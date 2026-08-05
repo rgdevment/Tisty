@@ -1,0 +1,215 @@
+# Parser cases in English. Same contract as `es.toml`, same reference instant:
+# Wednesday 5 August 2026, 09:00, America/Santiago.
+
+# ─────────────────────────────────────────────────────────────
+#  Nothing temporal: the whole phrase is the title
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "update the dependencies"
+title = "update the dependencies"
+
+# ─────────────────────────────────────────────────────────────
+#  Relative days
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "review the report today"
+title = "review the report"
+date = "2026-08-05"
+
+[[case]]
+input = "review the report tomorrow"
+title = "review the report"
+date = "2026-08-06"
+
+# ─────────────────────────────────────────────────────────────
+#  Weekdays
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "standup on monday"
+title = "standup"
+date = "2026-08-10"
+
+[[case]]
+input = "standup next tuesday"
+title = "standup"
+date = "2026-08-11"
+
+[[case]]
+input = "standup on wednesday"
+title = "standup"
+date = "2026-08-12"
+why = "today is wednesday; without an explicit today it means the next one"
+
+# ─────────────────────────────────────────────────────────────
+#  Offsets
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "renew the certificate in 3 days"
+title = "renew the certificate"
+date = "2026-08-08"
+
+[[case]]
+input = "check back in 2 weeks"
+title = "check back"
+date = "2026-08-19"
+
+# ─────────────────────────────────────────────────────────────
+#  Absolute dates
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "pay on august 15"
+title = "pay"
+date = "2026-08-15"
+
+[[case]]
+input = "pay on aug 15"
+title = "pay"
+date = "2026-08-15"
+
+[[case]]
+input = "pay on 2026-12-24"
+title = "pay"
+date = "2026-12-24"
+
+# ─────────────────────────────────────────────────────────────
+#  Times
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "deploy tomorrow at 10"
+title = "deploy"
+date = "2026-08-06"
+time = "10:00"
+
+[[case]]
+input = "deploy tomorrow at 10:30am"
+title = "deploy"
+date = "2026-08-06"
+time = "10:30"
+
+[[case]]
+input = "deploy tomorrow at 4pm"
+title = "deploy"
+date = "2026-08-06"
+time = "16:00"
+
+[[case]]
+input = "lunch tomorrow at noon"
+title = "lunch"
+date = "2026-08-06"
+time = "12:00"
+
+# ─────────────────────────────────────────────────────────────
+#  Date versus deadline
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "send the report on friday"
+title = "send the report"
+date = "2026-08-07"
+
+[[case]]
+input = "send the report by friday"
+title = "send the report"
+deadline = "2026-08-07"
+why = "«by» is a deadline, not a working date"
+
+[[case]]
+input = "renew the domain due august 30"
+title = "renew the domain"
+deadline = "2026-08-30"
+why = "«due» marks when it stops being possible, not when to do it"
+
+# ─────────────────────────────────────────────────────────────
+#  Periods
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "tidy the desk this week"
+title = "tidy the desk"
+date = "2026-08-09"
+
+[[case]]
+input = "close the books end of month"
+title = "close the books"
+date = "2026-08-31"
+
+[[case]]
+input = "rest this weekend"
+title = "rest"
+date = "2026-08-08"
+
+# ─────────────────────────────────────────────────────────────
+#  Explicit markers
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "review the deploy @backend @urgent"
+title = "review the deploy"
+tags = ["backend", "urgent"]
+
+[[case]]
+input = "fix the index !1"
+title = "fix the index"
+priority = 1
+
+[[case]]
+input = "review the deploy tomorrow @backend !2"
+title = "review the deploy"
+date = "2026-08-06"
+tags = ["backend"]
+priority = 2
+
+# ─────────────────────────────────────────────────────────────
+#  Ambiguity: leave it alone
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "review monday's report"
+title = "review monday's report"
+why = "the report may be called that; a mid-phrase span is not consumed"
+
+[[case]]
+input = "prepare tuesday's meeting by thursday"
+title = "prepare tuesday's meeting"
+deadline = "2026-08-06"
+why = "only the right-edge span, preceded by «by», is consumed"
+
+# ─────────────────────────────────────────────────────────────
+#  Explicit escapes
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = '"standup on monday"'
+title = "standup on monday"
+why = "quoted, the title is literal and nothing is interpreted"
+
+# ─────────────────────────────────────────────────────────────
+#  Must not break
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "migrate to v2 tomorrow"
+title = "migrate to v2"
+date = "2026-08-06"
+
+[[case]]
+input = "upgrade to 10.2 tomorrow"
+title = "upgrade to 10.2"
+date = "2026-08-06"
+why = "10.2 is a version, not a time"
+
+[[case]]
+input = "review ticket ABC-123 tomorrow"
+title = "review ticket ABC-123"
+date = "2026-08-06"
+
+[[case]]
+input = "backup every day"
+title = "backup every day"
+why = "recurrence lands in phase 3; until then it stays in the title"

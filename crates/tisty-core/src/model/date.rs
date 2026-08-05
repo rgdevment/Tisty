@@ -89,7 +89,6 @@ mod tests {
         assert!(!spec.has_time);
     }
 
-    /// Chile moves its clock in September. A floating 10:00 must stay 10:00.
     #[test]
     fn floating_time_survives_a_dst_change() {
         let zone = tz("America/Santiago");

@@ -13,7 +13,7 @@ const ACTIVE: &str = "active.jsonl";
 const LOCK: &str = ".lock";
 const SEGMENT_MAX_EVENTS: usize = 5_000;
 
-/// Writes only to this device's directory: that is what turns merging into
+/// Writes only to this device's directory: that turns merging into
 /// concatenation instead of conflict.
 #[derive(Debug)]
 pub struct Store {
@@ -21,7 +21,7 @@ pub struct Store {
     dir: PathBuf,
     device: DeviceId,
     active_events: usize,
-    _lock: File,
+    lock: Option<File>,
 }
 
 impl Store {
@@ -30,23 +30,32 @@ impl Store {
         let dir = root.join(&device.0);
         std::fs::create_dir_all(&dir)?;
 
-        let lock = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(false)
-            .open(dir.join(LOCK))?;
-        // fs4 signals failure with `Ok(false)`, not `Err`.
-        if !lock.try_lock_exclusive()? {
-            return Err(Error::AlreadyRunning);
-        }
-
         Ok(Self {
             active_events: count_lines(&dir.join(ACTIVE))?,
             root,
             dir,
             device,
-            _lock: lock,
+            lock: None,
         })
+    }
+
+    /// Taken on first write, not on open: reading must stay possible while the
+    /// GUI holds this device's store.
+    fn acquire(&mut self) -> Result<()> {
+        if self.lock.is_some() {
+            return Ok(());
+        }
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(self.dir.join(LOCK))?;
+        // fs4 signals failure with `Ok(false)`, not `Err`.
+        if !file.try_lock_exclusive()? {
+            return Err(Error::AlreadyRunning);
+        }
+        self.lock = Some(file);
+        Ok(())
     }
 
     pub fn device(&self) -> &DeviceId {
@@ -60,6 +69,7 @@ impl Store {
     }
 
     pub fn append_event(&mut self, event: &Event) -> Result<()> {
+        self.acquire()?;
         if self.active_events >= SEGMENT_MAX_EVENTS {
             self.rotate()?;
         }
@@ -147,8 +157,7 @@ fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
     Ok(())
 }
 
-/// Temp file plus rename, so a crash mid-write leaves the previous contents
-/// rather than a truncated file.
+/// Temp plus rename: a crash mid-write leaves the previous contents.
 pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     let tmp = path.with_extension("tmp");
     {
@@ -220,7 +229,6 @@ mod tests {
         assert_eq!(store.read_all().unwrap().len(), 1);
     }
 
-    /// Two machines writing at the same instant must still replay identically.
     #[test]
     fn merges_devices_in_canonical_order() {
         let tmp = tempfile::tempdir().unwrap();
@@ -241,21 +249,36 @@ mod tests {
     }
 
     #[test]
-    fn a_second_process_on_the_same_device_is_rejected() {
+    fn a_second_writer_on_the_same_device_is_rejected() {
         let tmp = tempfile::tempdir().unwrap();
-        let _first = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
+        let mut first = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
+        first.append(add("first")).unwrap();
 
+        let mut second = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
         assert!(matches!(
-            Store::open(tmp.path(), DeviceId("dev_a".into())),
+            second.append(add("second")),
             Err(Error::AlreadyRunning)
         ));
     }
 
     #[test]
-    fn a_different_device_can_open_at_the_same_time() {
+    fn reading_stays_possible_while_another_process_writes() {
         let tmp = tempfile::tempdir().unwrap();
-        let _a = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
-        assert!(Store::open(tmp.path(), DeviceId("dev_b".into())).is_ok());
+        let mut writer = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
+        writer.append(add("written")).unwrap();
+
+        let reader = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
+        assert_eq!(reader.read_all().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_different_device_can_write_at_the_same_time() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut a = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
+        let mut b = Store::open(tmp.path(), DeviceId("dev_b".into())).unwrap();
+
+        a.append(add("from a")).unwrap();
+        assert!(b.append(add("from b")).is_ok());
     }
 
     #[test]
@@ -273,8 +296,6 @@ mod tests {
         assert_eq!(store.read_all().unwrap().len(), 2);
     }
 
-    /// A missing active file must not crash the next append: it can vanish
-    /// through a manual delete or a partial restore.
     #[test]
     fn rotation_tolerates_a_missing_active_file() {
         let tmp = tempfile::tempdir().unwrap();
@@ -322,8 +343,6 @@ mod tests {
         }
     }
 
-    /// A newer device must not corrupt the state of an older one that cannot
-    /// understand its events.
     #[test]
     fn a_future_schema_version_is_refused() {
         let tmp = tempfile::tempdir().unwrap();

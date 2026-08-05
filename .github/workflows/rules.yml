@@ -1,0 +1,51 @@
+name: Rules
+
+# The project's own conventions, checked mechanically. Without this they hold
+# only as long as someone remembers them during review.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  conventions:
+    name: Project conventions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The core produces no terminal output
+        run: |
+          if grep -rn 'println!\|eprintln!\|print!' crates/tisty-core/src --include='*.rs'; then
+            echo "::error::tisty-core must not print: the GUI inherits it as garbage"
+            exit 1
+          fi
+
+      - name: No Spanish identifiers
+        run: |
+          if grep -rnE '\b(fecha|limite|prioridad|filtro|tarea|titulo|etiqueta) *:' \
+               crates/*/src --include='*.rs' | grep -v '"'; then
+            echo "::error::identifiers are English; user-facing strings live in locales/"
+            exit 1
+          fi
+
+      - name: No interface strings hardcoded
+        run: |
+          if grep -rnE 'println!\("[a-záéíóúñ]|bail!\("[a-záéíóúñ]' \
+               crates/tisty-cli/src --include='*.rs'; then
+            echo "::error::interface text belongs in locales/, not in the source"
+            exit 1
+          fi
+
+      - name: Locales define the same keys
+        run: cargo test -p tisty-cli --bin tisty i18n
+
+      - name: Tests are deterministic
+        run: |
+          for i in $(seq 1 20); do
+            cargo test --workspace --quiet || exit 1
+          done

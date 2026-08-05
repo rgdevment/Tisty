@@ -57,8 +57,7 @@ impl From<Priority> for u8 {
     }
 }
 
-/// No notes of its own: a failed step is something that *happened*, so it goes
-/// to the log, leaving one chronological place to read instead of two.
+/// No notes of its own: a failed step *happened*, so it belongs in the log.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Step {
     pub id: StepId,
@@ -155,8 +154,7 @@ impl Task {
         self.log.iter().find(|e| e.id == id)
     }
 
-    /// Always recomputed, never stored: lets the interface skip empty sections
-    /// and search rank a task with history above fifteen trivial ones.
+    /// Always recomputed: drives empty-section skipping and search ranking.
     pub fn weight(&self) -> usize {
         usize::from(self.description.is_some())
             + self.log.len()
@@ -223,7 +221,7 @@ mod tests {
     #[test]
     fn round_trips() {
         let mut t = task();
-        t.tags = vec![Tag::new("istio").unwrap()];
+        t.tags = vec![Tag::new("work").unwrap()];
         t.description = Some("check the gateway".into());
         let json = serde_json::to_string(&t).unwrap();
         assert_eq!(t, serde_json::from_str::<Task>(&json).unwrap());
@@ -242,11 +240,11 @@ mod tests {
         let mut rich = task();
         rich.description = Some("…".into());
         rich.date = Some(DateSpec::all_day("2026-08-05".parse().unwrap(), "UTC"));
-        rich.tags = vec![Tag::new("istio").unwrap(), Tag::new("brasil").unwrap()];
+        rich.tags = vec![Tag::new("work").unwrap(), Tag::new("urgent").unwrap()];
         rich.log.push(LogEntry {
             id: Ulid::generate(),
             at: Timestamp::UNIX_EPOCH,
-            body: "the sidecar failed".into(),
+            body: "first attempt failed".into(),
         });
 
         assert_eq!(trivial.weight(), 0);

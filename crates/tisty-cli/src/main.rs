@@ -1,16 +1,18 @@
 mod app;
+mod i18n;
 mod render;
 mod select;
 mod style;
 
 use std::process::ExitCode;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use jiff::civil::Date;
 use tisty_core::{Op, Task, event::TaskAdd};
 use ulid::Ulid;
 
 use app::App;
+use i18n::Lang;
 use select::{Resolved, Selection};
 
 const EXIT_ERROR: u8 = 1;
@@ -19,45 +21,48 @@ const EXIT_NOT_FOUND: u8 = 4;
 const SUBCOMMANDS: &[&str] = &["add", "ls", "done", "show", "lists", "help"];
 
 #[derive(Parser)]
-#[command(name = "tisty", version, about = "Gestor de tareas local y privado")]
+#[command(name = "tisty", version, about = "A local, private task manager")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
 }
 
+#[derive(Args)]
+struct AddArgs {
+    text: Vec<String>,
+    /// Date, as YYYY-MM-DD
+    #[arg(long, alias = "fecha")]
+    date: Option<Date>,
+    /// Deadline, as YYYY-MM-DD
+    #[arg(long, alias = "limite")]
+    deadline: Option<Date>,
+    /// Priority, 1 to 4
+    #[arg(long, alias = "prioridad", value_parser = clap::value_parser!(u8).range(1..=4))]
+    priority: Option<u8>,
+    #[arg(long)]
+    json: bool,
+}
+
 #[derive(Subcommand)]
 enum Command {
-    /// Captura una tarea
-    Add {
-        text: Vec<String>,
-        /// Fecha en formato YYYY-MM-DD
-        #[arg(long)]
-        fecha: Option<Date>,
-        /// Fecha límite en formato YYYY-MM-DD
-        #[arg(long)]
-        limite: Option<Date>,
-        /// Prioridad de 1 a 4
-        #[arg(long, value_parser = clap::value_parser!(u8).range(1..=4))]
-        prioridad: Option<u8>,
-        #[arg(long)]
-        json: bool,
-    },
-    /// Lista las tareas abiertas
+    /// Capture a task
+    Add(AddArgs),
+    /// List open tasks
     Ls {
-        /// hoy · todas · inbox · hechas
-        filtro: Option<String>,
+        /// today · all · inbox · done
+        filter: Option<String>,
         #[arg(long)]
         json: bool,
     },
-    /// Completa una tarea
-    Done { selector: String },
-    /// Muestra el detalle de una tarea
+    /// Complete a task. Without a selector, opens the interactive picker
+    Done { selector: Option<String> },
+    /// Show a task in full
     Show {
         selector: String,
         #[arg(long)]
         json: bool,
     },
-    /// Lista las listas
+    /// Show the lists
     Lists {
         #[arg(long)]
         json: bool,
@@ -68,7 +73,10 @@ fn main() -> ExitCode {
     match run() {
         Ok(code) => code,
         Err(e) => {
-            eprintln!("{}: {e}", style::paint(style::RED, "error"));
+            eprintln!(
+                "{}: {e}",
+                style::paint(style::RED, Lang::detect(None).get("error"))
+            );
             ExitCode::from(EXIT_ERROR)
         }
     }
@@ -77,26 +85,19 @@ fn main() -> ExitCode {
 fn run() -> anyhow::Result<ExitCode> {
     let cli = Cli::parse_from(normalise(std::env::args()));
     let mut app = App::open()?;
+    let lang = Lang::detect(app.locale());
     let today = render::today();
 
     match cli.command {
-        Command::Add {
-            text,
-            fecha,
-            limite,
-            prioridad,
-            json,
-        } => add(&mut app, text, fecha, limite, prioridad, json, today),
-        Command::Ls { filtro, json } => ls(&app, filtro.as_deref(), json, today),
-        Command::Done { selector } => done(&mut app, &selector),
-        Command::Show { selector, json } => show(&app, &selector, json, today),
-        Command::Lists { json } => lists(&app, json),
+        Command::Add(args) => add(&mut app, args, today, lang),
+        Command::Ls { filter, json } => ls(&app, filter.as_deref(), json, today, lang),
+        Command::Done { selector } => done(&mut app, selector.as_deref(), lang),
+        Command::Show { selector, json } => show(&app, &selector, json, today, lang),
+        Command::Lists { json } => lists(&app, json, lang),
     }
 }
 
-/// `tisty "texto"` captures; `tisty ls` runs a command. A first argument that
-/// matches no known subcommand is treated as capture, which is where speed
-/// matters most.
+/// An unrecognised first argument is a capture, not a typo'd subcommand.
 fn normalise(args: impl Iterator<Item = String>) -> Vec<String> {
     let args: Vec<String> = args.collect();
     let is_command = args
@@ -112,92 +113,113 @@ fn normalise(args: impl Iterator<Item = String>) -> Vec<String> {
     out
 }
 
-fn add(
-    app: &mut App,
-    text: Vec<String>,
-    fecha: Option<Date>,
-    limite: Option<Date>,
-    prioridad: Option<u8>,
-    json: bool,
-    today: Date,
-) -> anyhow::Result<ExitCode> {
-    let title = text.join(" ").trim().to_string();
+fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
+    let title = args.text.join(" ").trim().to_string();
     if title.is_empty() {
-        anyhow::bail!("hace falta un título");
+        anyhow::bail!("{}", lang.get("needs-title"));
     }
 
     let system = jiff::tz::TimeZone::system();
     let tz = system.iana_name().unwrap_or("UTC");
     let id = Ulid::generate();
     let d = TaskAdd {
-        date: fecha.map(|f| tisty_core::DateSpec::all_day(f, tz)),
-        deadline: limite.map(|f| tisty_core::DateSpec::all_day(f, tz)),
-        priority: prioridad.map(|p| p.try_into()).transpose()?,
+        date: args.date.map(|d| tisty_core::DateSpec::all_day(d, tz)),
+        deadline: args.deadline.map(|d| tisty_core::DateSpec::all_day(d, tz)),
+        priority: args.priority.map(|p| p.try_into()).transpose()?,
         ..TaskAdd::new(title, "a0")
     };
 
     app.commit(Op::TaskAdd { id, d })?;
     let task = &app.state.tasks[&id];
 
-    if json {
+    if args.json {
         println!("{}", serde_json::to_string(task)?);
     } else {
-        print!("{}", render::captured(task, &app.state, today));
+        print!("{}", render::captured(task, &app.state, today, lang));
     }
     Ok(ExitCode::SUCCESS)
 }
 
-fn ls(app: &App, filtro: Option<&str>, json: bool, today: Date) -> anyhow::Result<ExitCode> {
+fn ls(
+    app: &App,
+    filter: Option<&str>,
+    json: bool,
+    today: Date,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
     let open = app.ordered_open();
 
-    let (heading, tasks): (&str, Vec<&Task>) = match filtro.unwrap_or("hoy") {
-        "todas" => ("todas", open),
+    let raw = filter.unwrap_or("today");
+    let Some(canonical) = i18n::canonical_filter(raw) else {
+        anyhow::bail!(
+            "{}",
+            lang.fill(
+                "unknown-filter",
+                &[("filter", raw), ("known", "today · all · inbox · done")]
+            )
+        );
+    };
+
+    let (heading, tasks): (&str, Vec<&Task>) = match canonical {
+        "all" => (lang.get("all"), open),
         "inbox" => (
-            "bandeja de entrada",
+            lang.get("inbox"),
             open.into_iter().filter(|t| t.list.is_none()).collect(),
         ),
-        "hechas" | "archivo" => {
+        "archive" => {
             let mut done: Vec<_> = app.state.archived_tasks().collect();
             done.sort_by_key(|t| std::cmp::Reverse(t.completed_at));
-            ("archivo", done)
+            (lang.get("archive"), done)
         }
-        "hoy" => (
-            "hoy",
+        _ => (
+            lang.get("today"),
             open.into_iter()
                 .filter(|t| t.date.as_ref().is_none_or(|d| d.date() <= today))
                 .collect(),
         ),
-        other => anyhow::bail!("filtro desconocido: {other} (hoy · todas · inbox · hechas)"),
     };
 
     if json {
         println!("{}", serde_json::to_string(&tasks)?);
     } else {
-        print!("{}", render::list(&tasks, &app.state, heading, today));
+        print!("{}", render::list(&tasks, &app.state, heading, today, lang));
     }
 
     Selection::save(&app.paths, &tasks)?;
     Ok(ExitCode::SUCCESS)
 }
 
-fn done(app: &mut App, selector: &str) -> anyhow::Result<ExitCode> {
+fn done(app: &mut App, selector: Option<&str>, lang: Lang) -> anyhow::Result<ExitCode> {
     let open = app.ordered_open();
-    let selection = Selection::load(&app.paths);
 
-    let id = match select::resolve(selector, &selection, &open) {
-        Resolved::One(id) => id,
-        Resolved::None => {
-            eprintln!("no encontré ninguna tarea que coincida con «{selector}»");
-            return Ok(ExitCode::from(EXIT_NOT_FOUND));
-        }
-        Resolved::Many(ids) => {
-            eprintln!("«{selector}» coincide con {} tareas:", ids.len());
-            for id in ids {
-                let text = id.to_string();
-                let short = text[text.len() - 6..].to_lowercase();
-                eprintln!("  {short}  {}", app.state.tasks[&id].title);
+    let id = match selector {
+        None => {
+            if open.is_empty() {
+                println!("  {}", style::dim(lang.get("nothing-open")));
+                return Ok(ExitCode::SUCCESS);
             }
-            return Ok(ExitCode::from(EXIT_NOT_FOUND));
+            match select::prompt(&open, lang)? {
+                Some(id) => id,
+                None => return Ok(ExitCode::SUCCESS),
+            }
+        }
+        Some(selector) => {
+            let selection = Selection::load(&app.paths);
+            match select::resolve(selector, &selection, &open) {
+                Resolved::One(id) => id,
+                Resolved::None => {
+                    eprintln!("{}", lang.fill("not-found", &[("selector", selector)]));
+                    return Ok(ExitCode::from(EXIT_NOT_FOUND));
+                }
+                Resolved::Many(ids) => {
+                    let candidates: Vec<&Task> =
+                        ids.iter().map(|id| &app.state.tasks[id]).collect();
+                    match select::prompt(&candidates, lang)? {
+                        Some(id) => id,
+                        None => return Ok(ExitCode::SUCCESS),
+                    }
+                }
+            }
         }
     };
 
@@ -207,14 +229,20 @@ fn done(app: &mut App, selector: &str) -> anyhow::Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
-fn show(app: &App, selector: &str, json: bool, today: Date) -> anyhow::Result<ExitCode> {
+fn show(
+    app: &App,
+    selector: &str,
+    json: bool,
+    today: Date,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
     let all: Vec<&Task> = app.state.tasks.values().collect();
     let selection = Selection::load(&app.paths);
 
     let id = match select::resolve(selector, &selection, &all) {
         Resolved::One(id) => id,
         _ => {
-            eprintln!("no encontré ninguna tarea que coincida con «{selector}»");
+            eprintln!("{}", lang.fill("not-found", &[("selector", selector)]));
             return Ok(ExitCode::from(EXIT_NOT_FOUND));
         }
     };
@@ -223,17 +251,17 @@ fn show(app: &App, selector: &str, json: bool, today: Date) -> anyhow::Result<Ex
     if json {
         println!("{}", serde_json::to_string(task)?);
     } else {
-        print!("{}", render::detail(task, &app.state, today));
+        print!("{}", render::detail(task, &app.state, today, lang));
     }
     Ok(ExitCode::SUCCESS)
 }
 
-fn lists(app: &App, json: bool) -> anyhow::Result<ExitCode> {
+fn lists(app: &App, json: bool, lang: Lang) -> anyhow::Result<ExitCode> {
     if json {
         let all: Vec<_> = app.state.active_lists().collect();
         println!("{}", serde_json::to_string(&all)?);
     } else {
-        print!("{}", render::lists(&app.state));
+        print!("{}", render::lists(&app.state, lang));
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -255,8 +283,8 @@ mod tests {
     #[test]
     fn free_text_becomes_a_capture() {
         assert_eq!(
-            normalised(&["tisty", "enviar SOBR a producción"]),
-            ["tisty", "add", "enviar SOBR a producción"]
+            normalised(&["tisty", "deploy the release"]),
+            ["tisty", "add", "deploy the release"]
         );
     }
 
