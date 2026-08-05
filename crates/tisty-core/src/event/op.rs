@@ -2,8 +2,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::model::{DateSpec, ListId, LogId, Priority, StepId, Tag, TaskId};
 
-/// Absent means "leave alone", explicit null means "clear". Serde folds both
-/// into `None` without this, breaking last-write-wins per field.
+/// Serde folds `null` into `None`, which would make "clear" and "leave alone"
+/// indistinguishable and break last-write-wins per field.
 mod null_clears {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -24,8 +24,8 @@ mod null_clears {
     }
 }
 
-/// Semantic rather than generic updates: completing a recurring task must spawn
-/// the next one, editing its status by hand must not.
+/// Semantic, not generic: completing a recurring task must spawn the next one,
+/// editing its status by hand must not.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op")]
 pub enum Op {
@@ -107,8 +107,7 @@ impl TaskAdd {
     }
 }
 
-/// Only changed fields travel, so conflict resolution is last-write-wins per
-/// field rather than per entity.
+/// Only changed fields travel: last-write-wins per field, not per entity.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct TaskPatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -133,7 +132,6 @@ pub struct TaskMove {
     pub order: Option<String>,
 }
 
-/// `None` clears it; the field is always present, so there is no ambiguity.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Body {
     #[serde(deserialize_with = "explicit_option")]

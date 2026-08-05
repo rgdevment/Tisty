@@ -1,0 +1,23 @@
+today          = "hoy"
+tomorrow       = "mañana"
+yesterday      = "ayer"
+deadline       = "límite"
+nothing-here   = "nada por aquí"
+nothing-open   = "nada pendiente"
+description    = "descripción"
+steps          = "pasos"
+journal        = "bitácora"
+lists          = "listas"
+no-lists-yet   = "ninguna lista todavía"
+inbox          = "bandeja de entrada"
+archive        = "archivo"
+all            = "todas"
+error          = "error"
+which-task     = "qué tarea"
+needs-title    = "hace falta un título"
+needs-terminal = "hace falta un selector: no hay terminal"
+not-found      = "no encontré ninguna tarea que coincida con «{selector}»"
+unknown-filter = "filtro desconocido: {filter} ({known})"
+
+[plural]
+tasks = { one = "1 tarea", other = "{n} tareas" }

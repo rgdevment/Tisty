@@ -4,8 +4,7 @@ use ulid::Ulid;
 pub type ListId = Ulid;
 
 /// A theme of work, not a project: "project" would promise dates, progress and
-/// templates. Flat, and distinct from a tag — `bug` classifies, it is not a
-/// place where work lives.
+/// templates. Distinct from a tag — `bug` classifies, it is not a place.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct List {
     pub id: ListId,
@@ -36,14 +35,14 @@ mod tests {
     #[test]
     fn a_bare_list_serialises_to_the_minimum() {
         let json =
-            serde_json::to_string(&List::new(Ulid::generate(), "unificación login", "a0")).unwrap();
+            serde_json::to_string(&List::new(Ulid::generate(), "checkout rewrite", "a0")).unwrap();
         assert!(!json.contains("color"));
         assert!(!json.contains("archived"));
     }
 
     #[test]
     fn round_trips() {
-        let mut list = List::new(Ulid::generate(), "migración istio", "a1");
+        let mut list = List::new(Ulid::generate(), "spring cleaning", "a1");
         list.color = Some("#e44".into());
         list.archived = true;
         let json = serde_json::to_string(&list).unwrap();

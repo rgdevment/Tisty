@@ -94,8 +94,8 @@ mod tests {
 
     #[test]
     fn casing_and_spacing_collapse_into_one_tag() {
-        assert_eq!(tag("Istio"), "istio");
-        assert_eq!(tag("  ISTIO  "), "istio");
+        assert_eq!(tag("Work"), "work");
+        assert_eq!(tag("  WORK  "), "work");
         assert_eq!(tag("mi etiqueta"), "mi-etiqueta");
         assert_eq!(tag("mi_etiqueta"), "mi-etiqueta");
         assert_eq!(tag("mi   etiqueta"), "mi-etiqueta");
@@ -119,12 +119,10 @@ mod tests {
         assert_eq!(Tag::new(""), Err(InvalidTag));
     }
 
-    /// Deserialising must normalise too, or a hand-edited file could introduce
-    /// a tag the rest of the system cannot match.
     #[test]
     fn deserialisation_normalises() {
-        let tag: Tag = serde_json::from_str(r#""  Istio  ""#).unwrap();
-        assert_eq!(tag.as_str(), "istio");
+        let tag: Tag = serde_json::from_str(r#""  Work  ""#).unwrap();
+        assert_eq!(tag.as_str(), "work");
     }
 
     #[test]

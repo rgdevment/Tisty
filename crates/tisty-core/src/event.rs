@@ -10,8 +10,7 @@ use ulid::Ulid;
 
 pub const SCHEMA_VERSION: u32 = 1;
 
-/// Lives in local config and is never synced: two machines sharing an id would
-/// write the same segment file, which is what makes conflicts impossible.
+/// Never synced: a shared id would put two machines in one segment file.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct DeviceId(pub String);
@@ -83,13 +82,13 @@ mod tests {
     }
 
     fn add_event() -> Event {
-        let mut d = TaskAdd::new("issue en redirecciones istio para registration en BR", "a0");
+        let mut d = TaskAdd::new("fix the failing checkout", "a0");
         d.date = Some(DateSpec::floating(
             "2026-08-05T10:00:00".parse().unwrap(),
             "America/Santiago",
         ));
         d.priority = Some(Priority::P1);
-        d.tags = vec![Tag::new("istio").unwrap(), Tag::new("brasil").unwrap()];
+        d.tags = vec![Tag::new("work").unwrap(), Tag::new("urgent").unwrap()];
 
         Event::new(
             DeviceId("dev_a3f1".into()),
@@ -102,7 +101,6 @@ mod tests {
     fn an_event_fits_on_one_line() {
         let json = serde_json::to_string(&add_event()).unwrap();
         assert!(!json.contains('\n'), "{json}");
-        eprintln!("{json}");
     }
 
     #[test]
@@ -119,7 +117,7 @@ mod tests {
             at(1),
             Op::TaskAdd {
                 id: id(),
-                d: TaskAdd::new("agendar reunión con Pepe", "a0"),
+                d: TaskAdd::new("book a haircut", "a0"),
             },
         );
         let json = serde_json::to_string(&ev).unwrap();
@@ -139,7 +137,7 @@ mod tests {
                 id: id(),
                 d: LogAdd {
                     entry: Ulid::generate(),
-                    body: "the sidecar failed".into(),
+                    body: "first attempt failed".into(),
                 },
             },
             Op::StepDone {
@@ -211,11 +209,9 @@ mod tests {
         }
     }
 
-    /// A log entry is an event, never an edited field, so the log is
-    /// chronological and immutable by construction.
     #[test]
     fn the_log_grows_by_appending() {
-        let entries = ["the sidecar failed", "it was X-Forwarded-Proto"];
+        let entries = ["first attempt failed", "an index was missing"];
         let events: Vec<_> = entries
             .iter()
             .enumerate()

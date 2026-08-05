@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::io::IsTerminal;
 
 use serde::{Deserialize, Serialize};
 use tisty_core::{Paths, Task, TaskId, store::write_atomic};
@@ -9,8 +10,8 @@ pub struct Selection {
     by_number: BTreeMap<usize, TaskId>,
 }
 
-/// A ULID is for scripts, not for fingers. Numbers refer to the last listing
-/// and only have to survive the seconds between reading it and typing.
+const MIN_ID_FRAGMENT: usize = 4;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Resolved {
     One(TaskId),
@@ -44,13 +45,14 @@ impl Selection {
     }
 }
 
-/// Tries, in order: the number from the last listing, a ULID prefix, then a
-/// case-insensitive match on the title.
 pub fn resolve(selector: &str, selection: &Selection, tasks: &[&Task]) -> Resolved {
-    if let Ok(n) = selector.parse::<usize>()
-        && let Some(id) = selection.number(n)
-    {
-        return Resolved::One(id);
+    // Falling through would let `done 7` match an id ending in 7 — one in 32 —
+    // and complete the wrong task in silence.
+    if let Ok(n) = selector.parse::<usize>() {
+        return match selection.number(n) {
+            Some(id) => Resolved::One(id),
+            None => Resolved::None,
+        };
     }
 
     if let Ok(id) = selector.parse::<Ulid>() {
@@ -60,14 +62,17 @@ pub fn resolve(selector: &str, selection: &Selection, tasks: &[&Task]) -> Resolv
         };
     }
 
-    // Match on the tail: a ULID leads with its timestamp, so tasks created in
-    // the same millisecond share a prefix and only differ at the end.
+    // Tail, not head: a ULID leads with its timestamp.
     let upper = selector.to_uppercase();
-    let by_id: Vec<_> = tasks
-        .iter()
-        .filter(|t| t.id.to_string().ends_with(&upper))
-        .map(|t| t.id)
-        .collect();
+    let by_id: Vec<_> = if selector.len() >= MIN_ID_FRAGMENT {
+        tasks
+            .iter()
+            .filter(|t| t.id.to_string().ends_with(&upper))
+            .map(|t| t.id)
+            .collect()
+    } else {
+        Vec::new()
+    };
     if by_id.len() == 1 {
         return Resolved::One(by_id[0]);
     }
@@ -85,6 +90,25 @@ pub fn resolve(selector: &str, selection: &Selection, tasks: &[&Task]) -> Resolv
         1 => Resolved::One(by_title[0]),
         _ => Resolved::Many(by_title),
     }
+}
+
+/// Bails without a TTY: blocking on a prompt would hang any script.
+pub fn prompt(tasks: &[&Task], lang: crate::i18n::Lang) -> anyhow::Result<Option<TaskId>> {
+    if tasks.is_empty() {
+        return Ok(None);
+    }
+    if !std::io::stdin().is_terminal() {
+        anyhow::bail!("{}", lang.get("needs-terminal"));
+    }
+
+    let labels: Vec<&str> = tasks.iter().map(|t| t.title.as_str()).collect();
+    let chosen = dialoguer::FuzzySelect::new()
+        .with_prompt(lang.get("which-task"))
+        .items(&labels)
+        .default(0)
+        .interact_opt()?;
+
+    Ok(chosen.map(|i| tasks[i].id))
 }
 
 #[cfg(test)]
@@ -116,11 +140,11 @@ mod tests {
 
     #[test]
     fn text_matches_the_title_case_insensitively() {
-        let a = task("enviar SOBR a producción");
+        let a = task("Deploy The Release");
         let tasks = [&a];
 
         assert_eq!(
-            resolve("sobr", &Selection::default(), &tasks),
+            resolve("release", &Selection::default(), &tasks),
             Resolved::One(a.id)
         );
     }
@@ -136,17 +160,18 @@ mod tests {
         }
     }
 
-    /// The tail, not the head: two tasks created in the same millisecond share
-    /// a ULID prefix, so a git-style prefix match would be ambiguous for both.
+    /// Fixed ids: a random tail is all digits once in a thousand, and would
+    /// then resolve as a number.
     #[test]
     fn a_short_id_matches_on_the_tail() {
-        let (a, b) = (task("first"), task("second"));
+        let mut a = task("first");
+        let mut b = task("second");
+        a.id = "01J8F2K3XQ0000000000000ABC".parse().unwrap();
+        b.id = "01J8F2K3XQ0000000000000XYZ".parse().unwrap();
         let tasks = [&a, &b];
-        let id = a.id.to_string();
-        let tail = &id[id.len() - 6..];
 
         assert_eq!(
-            resolve(tail, &Selection::default(), &tasks),
+            resolve("000abc", &Selection::default(), &tasks),
             Resolved::One(a.id)
         );
     }
@@ -160,8 +185,6 @@ mod tests {
         );
     }
 
-    /// A stale number must not silently point at whatever occupies that slot
-    /// now: the listing it came from no longer exists.
     #[test]
     fn a_number_beyond_the_last_listing_resolves_to_nothing() {
         let a = task("ship it");
@@ -169,6 +192,36 @@ mod tests {
         let selection = selection_of(&tasks);
 
         assert_eq!(resolve("9", &selection, &tasks), Resolved::None);
+    }
+
+    #[test]
+    fn a_number_never_falls_through_to_an_id_ending_in_it() {
+        let mut a = task("ship it");
+        a.id = "01J8F2K3XQ0000000000000009".parse().unwrap();
+        let tasks = [&a];
+
+        assert_eq!(resolve("9", &Selection::default(), &tasks), Resolved::None);
+    }
+
+    #[test]
+    fn a_number_never_matches_a_title_that_contains_it() {
+        let a = task("migrate to v9");
+        let tasks = [&a];
+
+        assert_eq!(resolve("9", &Selection::default(), &tasks), Resolved::None);
+    }
+
+    #[test]
+    fn a_fragment_too_short_is_not_treated_as_an_id() {
+        let mut a = task("ship it");
+        a.id = "01J8F2K3XQ00000000000000AB".parse().unwrap();
+        let tasks = [&a];
+
+        assert_eq!(resolve("ab", &Selection::default(), &tasks), Resolved::None);
+        assert_eq!(
+            resolve("000ab", &Selection::default(), &tasks),
+            Resolved::One(a.id)
+        );
     }
 
     #[test]

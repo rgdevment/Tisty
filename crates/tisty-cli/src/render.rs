@@ -1,11 +1,12 @@
 use jiff::{Zoned, civil::Date};
 use tisty_core::{DateSpec, List, Priority, State, Status, Task};
 
+use crate::i18n::Lang;
 use crate::style::{self, BLUE, GREEN, RED, YELLOW};
 
-pub fn list(tasks: &[&Task], state: &State, heading: &str, today: Date) -> String {
+pub fn list(tasks: &[&Task], state: &State, heading: &str, today: Date, lang: Lang) -> String {
     if tasks.is_empty() {
-        return format!("\n  {}\n\n", style::dim("nada por aquí"));
+        return format!("\n  {}\n\n", style::dim(lang.get("nothing-here")));
     }
 
     let mut out = format!(
@@ -13,19 +14,19 @@ pub fn list(tasks: &[&Task], state: &State, heading: &str, today: Date) -> Strin
         style::bold(heading),
         style::dim(&format!(
             "{:>width$}",
-            plural(tasks.len(), "tarea", "tareas"),
+            lang.plural("tasks", tasks.len()),
             width = 62usize.saturating_sub(heading.len())
         ))
     );
 
     for (i, task) in tasks.iter().enumerate() {
-        out.push_str(&row(i + 1, task, state, today));
+        out.push_str(&row(i + 1, task, state, today, lang));
     }
     out.push('\n');
     out
 }
 
-fn row(number: usize, task: &Task, state: &State, today: Date) -> String {
+fn row(number: usize, task: &Task, state: &State, today: Date, lang: Lang) -> String {
     let mut line = format!(
         "  {:>3}  {} {}",
         style::dim(&number.to_string()),
@@ -38,12 +39,12 @@ fn row(number: usize, task: &Task, state: &State, today: Date) -> String {
         meta.push(p);
     }
     if let Some(d) = &task.date {
-        meta.push(when(d, today));
+        meta.push(when(d, today, lang));
     }
     if let Some(d) = &task.deadline {
         meta.push(style::paint(
             RED,
-            &format!("límite {}", short(d.date(), today)),
+            &format!("{} {}", lang.get("deadline"), short(d.date(), today, lang)),
         ));
     }
     if let Some(list) = task.list.and_then(|id| state.lists.get(&id)) {
@@ -67,7 +68,7 @@ fn row(number: usize, task: &Task, state: &State, today: Date) -> String {
     line
 }
 
-pub fn detail(task: &Task, state: &State, today: Date) -> String {
+pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     let mut out = format!(
         "\n  {} {}{}\n",
         marker(task),
@@ -77,10 +78,14 @@ pub fn detail(task: &Task, state: &State, today: Date) -> String {
 
     let mut meta = Vec::new();
     if let Some(d) = &task.date {
-        meta.push(when(d, today));
+        meta.push(when(d, today, lang));
     }
     if let Some(d) = &task.deadline {
-        meta.push(format!("límite {}", short(d.date(), today)));
+        meta.push(format!(
+            "{} {}",
+            lang.get("deadline"),
+            short(d.date(), today, lang)
+        ));
     }
     if let Some(p) = priority(task.priority) {
         meta.push(p);
@@ -97,7 +102,7 @@ pub fn detail(task: &Task, state: &State, today: Date) -> String {
     }
 
     if let Some(description) = &task.description {
-        out.push_str(&section("descripción", None));
+        out.push_str(&section(lang.get("description"), None));
         for line in description.lines() {
             out.push_str(&format!("    {line}\n"));
         }
@@ -105,7 +110,10 @@ pub fn detail(task: &Task, state: &State, today: Date) -> String {
 
     if !task.steps.is_empty() {
         let (done, total) = task.steps_done();
-        out.push_str(&section("pasos", Some(&format!("{done}/{total}"))));
+        out.push_str(&section(
+            lang.get("steps"),
+            Some(&format!("{done}/{total}")),
+        ));
         for step in &task.steps {
             let mark = if step.done {
                 style::paint(GREEN, "✓")
@@ -122,7 +130,10 @@ pub fn detail(task: &Task, state: &State, today: Date) -> String {
     }
 
     if !task.log.is_empty() {
-        out.push_str(&section("bitácora", Some(&task.log.len().to_string())));
+        out.push_str(&section(
+            lang.get("journal"),
+            Some(&task.log.len().to_string()),
+        ));
         for entry in &task.log {
             let stamp = entry
                 .at
@@ -140,7 +151,7 @@ pub fn detail(task: &Task, state: &State, today: Date) -> String {
     out
 }
 
-pub fn captured(task: &Task, state: &State, today: Date) -> String {
+pub fn captured(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     let mut out = format!(
         "\n  {} {}\n",
         style::paint(GREEN, "✓"),
@@ -149,10 +160,14 @@ pub fn captured(task: &Task, state: &State, today: Date) -> String {
 
     let mut meta = Vec::new();
     if let Some(d) = &task.date {
-        meta.push(when(d, today));
+        meta.push(when(d, today, lang));
     }
     if let Some(d) = &task.deadline {
-        meta.push(format!("límite {}", short(d.date(), today)));
+        meta.push(format!(
+            "{} {}",
+            lang.get("deadline"),
+            short(d.date(), today, lang)
+        ));
     }
     if let Some(p) = priority(task.priority) {
         meta.push(p);
@@ -169,14 +184,14 @@ pub fn captured(task: &Task, state: &State, today: Date) -> String {
     out
 }
 
-pub fn lists(state: &State) -> String {
+pub fn lists(state: &State, lang: Lang) -> String {
     let mut active: Vec<&List> = state.active_lists().collect();
     if active.is_empty() {
-        return format!("\n  {}\n\n", style::dim("ninguna lista todavía"));
+        return format!("\n  {}\n\n", style::dim(lang.get("no-lists-yet")));
     }
     active.sort_by(|a, b| a.order.cmp(&b.order));
 
-    let mut out = format!("\n  {}\n\n", style::bold("listas"));
+    let mut out = format!("\n  {}\n\n", style::bold(lang.get("lists")));
     for list in active {
         let open = state.tasks_in(list.id).count();
         let settled = if open == 0 {
@@ -219,8 +234,8 @@ fn priority(p: Priority) -> Option<String> {
     }
 }
 
-fn when(spec: &DateSpec, today: Date) -> String {
-    let label = short(spec.date(), today);
+fn when(spec: &DateSpec, today: Date, lang: Lang) -> String {
+    let label = short(spec.date(), today, lang);
     let text = if spec.has_time {
         format!("{label} {}", spec.at.strftime("%H:%M"))
     } else {
@@ -233,18 +248,17 @@ fn when(spec: &DateSpec, today: Date) -> String {
     }
 }
 
-fn short(date: Date, today: Date) -> String {
+fn short(date: Date, today: Date, lang: Lang) -> String {
     match (date - today).get_days() {
-        0 => "hoy".into(),
-        1 => "mañana".into(),
-        -1 => "ayer".into(),
+        0 => lang.get("today").into(),
+        1 => lang.get("tomorrow").into(),
+        -1 => lang.get("yesterday").into(),
         d if (0..7).contains(&d) => date.strftime("%a").to_string(),
         _ => date.strftime("%-d %b").to_string(),
     }
 }
 
-/// The tail, not the head: a ULID starts with its timestamp, so anything
-/// created in the same millisecond shares a prefix.
+/// Tail, not head: a ULID starts with its timestamp.
 fn short_id(task: &Task) -> String {
     let id = task.id.to_string();
     id[id.len() - 6..].to_lowercase()
@@ -252,14 +266,6 @@ fn short_id(task: &Task) -> String {
 
 fn slug(name: &str) -> String {
     name.to_lowercase().replace(' ', "-")
-}
-
-fn plural(n: usize, one: &str, many: &str) -> String {
-    if n == 1 {
-        format!("{n} {one}")
-    } else {
-        format!("{n} {many}")
-    }
 }
 
 pub fn today() -> Date {
@@ -283,29 +289,49 @@ mod tests {
     #[test]
     fn relative_days_read_naturally() {
         let today = day("2026-08-05");
-        assert_eq!(short(day("2026-08-05"), today), "hoy");
-        assert_eq!(short(day("2026-08-06"), today), "mañana");
-        assert_eq!(short(day("2026-08-04"), today), "ayer");
+        assert_eq!(
+            short(day("2026-08-05"), today, Lang::from_code("en")),
+            "today"
+        );
+        assert_eq!(
+            short(day("2026-08-06"), today, Lang::from_code("es")),
+            "mañana"
+        );
+        assert_eq!(
+            short(day("2026-08-04"), today, Lang::from_code("en")),
+            "yesterday"
+        );
     }
 
     #[test]
     fn a_far_off_date_shows_the_day_and_month() {
-        let out = short(day("2026-12-24"), day("2026-08-05"));
+        let out = short(day("2026-12-24"), day("2026-08-05"), Lang::from_code("en"));
         assert!(out.contains("24"), "{out}");
     }
 
     #[test]
     fn an_empty_list_says_so_instead_of_printing_nothing() {
-        let out = list(&[], &State::default(), "hoy", day("2026-08-05"));
-        assert!(out.contains("nada por aquí"));
+        let out = list(
+            &[],
+            &State::default(),
+            "today",
+            day("2026-08-05"),
+            Lang::from_code("en"),
+        );
+        assert!(out.contains(Lang::from_code("en").get("nothing-here")));
     }
 
-    /// A trivial task must not drag a line of empty metadata behind it.
     #[test]
     fn a_bare_task_renders_as_a_single_line() {
-        let t = task("agendar reunión con Pepe");
-        let out = list(&[&t], &State::default(), "hoy", day("2026-08-05"));
-        let body: Vec<_> = out.lines().filter(|l| l.contains("agendar")).collect();
+        let t = task("book a haircut");
+        let out = list(
+            &[&t],
+            &State::default(),
+            "today",
+            day("2026-08-05"),
+            Lang::from_code("en"),
+        );
+        let body: Vec<_> = out.lines().filter(|l| l.contains("haircut")).collect();
 
         assert_eq!(body.len(), 1);
         assert_eq!(out.lines().filter(|l| l.trim().starts_with('·')).count(), 0);
@@ -313,23 +339,30 @@ mod tests {
 
     #[test]
     fn a_documented_task_shows_its_sections() {
-        let mut t = task("issue en redirecciones istio");
-        t.description = Some("el query string se pierde".into());
-        t.tags = vec![Tag::new("istio").unwrap()];
+        let mut t = task("fix the failing checkout");
+        t.description = Some("reproduces only with an empty cart".into());
+        t.tags = vec![Tag::new("work").unwrap()];
 
-        let out = detail(&t, &State::default(), day("2026-08-05"));
+        let out = detail(
+            &t,
+            &State::default(),
+            day("2026-08-05"),
+            Lang::from_code("en"),
+        );
 
-        assert!(out.contains("descripción"));
-        assert!(out.contains("el query string se pierde"));
-        assert!(out.contains("@istio"));
-        assert!(!out.contains("pasos"), "no steps means no section");
-        assert!(!out.contains("bitácora"));
+        assert!(out.contains("description"));
+        assert!(out.contains("reproduces only with an empty cart"));
+        assert!(out.contains("@work"));
+        assert!(!out.contains("steps"), "no steps means no section");
+        assert!(!out.contains("journal"));
     }
 
     #[test]
     fn tasks_created_together_still_get_distinct_short_ids() {
-        let a = task("first");
-        let b = task("second");
+        let mut a = task("first");
+        let mut b = task("second");
+        a.id = "01J8F2K3XQ0000000000000ABC".parse().unwrap();
+        b.id = "01J8F2K3XQ0000000000000XYZ".parse().unwrap();
         assert_ne!(short_id(&a), short_id(&b));
     }
 

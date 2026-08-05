@@ -6,8 +6,7 @@ pub const DATA_ENV: &str = "TISTY_DATA";
 pub const CONFIG_ENV: &str = "TISTY_CONFIG";
 pub const CACHE_ENV: &str = "TISTY_CACHE";
 
-/// Apart on purpose: the data directory is synced, and a synced device id
-/// would break the one-writer-per-directory invariant.
+/// Apart on purpose: a synced device id would break one-writer-per-directory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Paths {
     data: PathBuf,
@@ -56,8 +55,7 @@ impl Paths {
         &self.cache
     }
 
-    /// Which task each number in the last listing referred to. Disposable: it
-    /// only has to outlive the ten seconds between reading a list and typing.
+    /// Disposable: only outlives the seconds between reading a list and typing.
     pub fn selection_file(&self) -> PathBuf {
         self.cache.join("selection.json")
     }
@@ -85,7 +83,6 @@ fn env_path(key: &str) -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-/// Visible, backed up by Time Machine or File History, easy to move to a cloud.
 fn default_data_dir() -> PathBuf {
     directories::UserDirs::new()
         .and_then(|d| d.document_dir().map(|p| p.join("Tisty")))

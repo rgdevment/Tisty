@@ -7,8 +7,7 @@ use crate::{
     model::{List, ListId, LogEntry, Status, Step, StepId, Tag, Task, TaskId},
 };
 
-/// Rebuilt by replaying the log in canonical order. Applying patches in that
-/// order is what yields last-write-wins per field.
+/// Replaying in canonical order is what yields last-write-wins per field.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct State {
     pub tasks: BTreeMap<TaskId, Task>,
@@ -119,7 +118,6 @@ impl State {
         self.tasks.values().filter(|t| t.is_archived())
     }
 
-    /// Tasks with no list: the inbox.
     pub fn inbox(&self) -> impl Iterator<Item = &Task> {
         self.open_tasks().filter(|t| t.list.is_none())
     }
@@ -136,14 +134,12 @@ impl State {
         self.lists.values().filter(|l| !l.archived)
     }
 
-    /// A list whose tasks are all done sinks to the bottom of the sidebar
-    /// instead of vanishing on its own.
+    /// Drives sinking a finished list in the sidebar; it never vanishes alone.
     pub fn is_settled(&self, list: ListId) -> bool {
         self.tasks_in(list).next().is_none()
     }
 
-    /// Every tag in use, deduplicated. There is no catalogue to administer:
-    /// tags exist because a task mentions them.
+    /// No catalogue to administer: tags exist because a task mentions them.
     pub fn tags(&self) -> BTreeSet<&Tag> {
         self.tasks.values().flat_map(|t| &t.tags).collect()
     }
@@ -397,7 +393,7 @@ mod tests {
         let id = Ulid::generate();
         let (first, second) = (Ulid::generate(), Ulid::generate());
         let state = State::replay(&[
-            ev(1, "dev_a", add(id, "istio")),
+            ev(1, "dev_a", add(id, "work")),
             ev(
                 10,
                 "dev_a",
@@ -405,7 +401,7 @@ mod tests {
                     id,
                     d: LogAdd {
                         entry: first,
-                        body: "the sidecar failed".into(),
+                        body: "first attempt failed".into(),
                     },
                 },
             ),
@@ -416,7 +412,7 @@ mod tests {
                     id,
                     d: LogAdd {
                         entry: second,
-                        body: "it was X-Forwarded-Proto".into(),
+                        body: "an index was missing".into(),
                     },
                 },
             ),
@@ -434,7 +430,7 @@ mod tests {
         let id = Ulid::generate();
         let entry = Ulid::generate();
         let state = State::replay(&[
-            ev(1, "dev_a", add(id, "istio")),
+            ev(1, "dev_a", add(id, "work")),
             ev(
                 10,
                 "dev_a",
@@ -502,7 +498,7 @@ mod tests {
                     id,
                     d: StepAdd {
                         step: a,
-                        text: "charts".into(),
+                        text: "first step".into(),
                         order: "a1".into(),
                     },
                 },
@@ -548,7 +544,7 @@ mod tests {
                     id,
                     d: StepAdd {
                         step: a,
-                        text: "charts".into(),
+                        text: "first step".into(),
                         order: "a1".into(),
                     },
                 },
@@ -603,7 +599,7 @@ mod tests {
     fn describing_replaces_and_clearing_removes() {
         let id = Ulid::generate();
         let described = State::replay(&[
-            ev(1, "dev_a", add(id, "istio")),
+            ev(1, "dev_a", add(id, "work")),
             ev(
                 2,
                 "dev_a",
@@ -621,7 +617,7 @@ mod tests {
         );
 
         let cleared = State::replay(&[
-            ev(1, "dev_a", add(id, "istio")),
+            ev(1, "dev_a", add(id, "work")),
             ev(
                 2,
                 "dev_a",
@@ -655,7 +651,7 @@ mod tests {
                 Op::ListAdd {
                     id: list,
                     d: ListAdd {
-                        name: "unificación login".into(),
+                        name: "checkout rewrite".into(),
                         order: "a0".into(),
                         color: None,
                     },
@@ -703,7 +699,6 @@ mod tests {
         assert_eq!(State::replay(&to_inbox).tasks[&id].list, None);
     }
 
-    /// Deleting a list must not leave tasks pointing at something gone.
     #[test]
     fn deleting_a_list_returns_its_tasks_to_the_inbox() {
         let id = Ulid::generate();
@@ -811,13 +806,13 @@ mod tests {
                 Op::ListRename {
                     id: list,
                     d: Name {
-                        name: "unificación login".into(),
+                        name: "checkout rewrite".into(),
                     },
                 },
             ),
         ]);
 
-        assert_eq!(state.lists[&list].name, "unificación login");
+        assert_eq!(state.lists[&list].name, "checkout rewrite");
         assert_eq!(state.tasks_in(list).count(), 1);
     }
 
@@ -831,7 +826,7 @@ mod tests {
                 Op::TaskAdd {
                     id: a,
                     d: TaskAdd {
-                        tags: vec![Tag::new("istio").unwrap(), Tag::new("brasil").unwrap()],
+                        tags: vec![Tag::new("work").unwrap(), Tag::new("urgent").unwrap()],
                         ..TaskAdd::new("one", "a0")
                     },
                 },
@@ -842,7 +837,7 @@ mod tests {
                 Op::TaskAdd {
                     id: b,
                     d: TaskAdd {
-                        tags: vec![Tag::new("istio").unwrap()],
+                        tags: vec![Tag::new("work").unwrap()],
                         ..TaskAdd::new("two", "a1")
                     },
                 },
@@ -850,7 +845,7 @@ mod tests {
         ]);
 
         assert_eq!(state.tags().len(), 2);
-        assert_eq!(state.tasks_tagged(&Tag::new("istio").unwrap()).count(), 2);
+        assert_eq!(state.tasks_tagged(&Tag::new("work").unwrap()).count(), 2);
     }
 
     #[test]

@@ -1,0 +1,18 @@
+[package]
+name = "tisty-nl"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tisty-core.workspace = true
+jiff.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+toml.workspace = true

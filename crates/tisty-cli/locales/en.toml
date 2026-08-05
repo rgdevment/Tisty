@@ -1,0 +1,26 @@
+# Reference locale: every other file must define exactly these keys.
+# Adding a language means adding a file here and one line in i18n.rs.
+
+today          = "today"
+tomorrow       = "tomorrow"
+yesterday      = "yesterday"
+deadline       = "due"
+nothing-here   = "nothing here"
+nothing-open   = "nothing open"
+description    = "description"
+steps          = "steps"
+journal        = "journal"
+lists          = "lists"
+no-lists-yet   = "no lists yet"
+inbox          = "inbox"
+archive        = "archive"
+all            = "all"
+error          = "error"
+which-task     = "which task"
+needs-title    = "a title is required"
+needs-terminal = "a selector is required: no terminal"
+not-found      = "no task matches «{selector}»"
+unknown-filter = "unknown filter: {filter} ({known})"
+
+[plural]
+tasks = { one = "1 task", other = "{n} tasks" }

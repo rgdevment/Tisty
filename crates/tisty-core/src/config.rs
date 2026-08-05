@@ -7,8 +7,7 @@ use crate::{Error, Result, event::DeviceId, paths::Paths, store};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
-    /// Machine-specific and never synced: two machines sharing it would write
-    /// the same segment file, which is what makes conflicts impossible.
+    /// Never synced: a shared id would put two machines in one segment file.
     pub device_id: DeviceId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
@@ -17,7 +16,6 @@ pub struct Config {
 }
 
 impl Config {
-    /// Generates and persists a device id on first run.
     pub fn load_or_init(paths: &Paths) -> Result<Self> {
         if let Some(existing) = Self::load(&paths.config_file())? {
             return Ok(existing);

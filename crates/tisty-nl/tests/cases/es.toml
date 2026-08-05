@@ -1,0 +1,301 @@
+# Casos del parser en español.
+#
+# Este archivo es el contrato: define hasta dónde llega «lenguaje natural» y qué
+# se queda fuera a propósito. Se escribe antes que el parser, porque es el único
+# componente que no se arregla a ojo — corriges «el martes» y rompes «antes del
+# martes» sin enterarte.
+#
+# `now` es siempre miércoles 5 de agosto de 2026, 09:00, America/Santiago.
+#
+# Campos:
+#   input     lo que se teclea
+#   title     lo que debe quedar como título
+#   date      fecha propuesta (YYYY-MM-DD), o ausente
+#   time      hora (HH:MM) si la frase la lleva
+#   deadline  fecha límite, cuando la frase la distingue de la fecha
+#   priority  1..4
+#   tags      etiquetas extraídas
+#   why       solo cuando el caso no es evidente
+
+# ─────────────────────────────────────────────────────────────
+#  Sin nada temporal: el título es la frase entera
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "actualizar las dependencias"
+title = "actualizar las dependencias"
+
+[[case]]
+input = "  llamar a soporte  "
+title = "llamar a soporte"
+why = "los espacios sobrantes se recortan"
+
+# ─────────────────────────────────────────────────────────────
+#  Días relativos
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "revisar el informe hoy"
+title = "revisar el informe"
+date = "2026-08-05"
+
+[[case]]
+input = "revisar el informe mañana"
+title = "revisar el informe"
+date = "2026-08-06"
+
+[[case]]
+input = "desplegar pasado mañana"
+title = "desplegar"
+date = "2026-08-07"
+
+# ─────────────────────────────────────────────────────────────
+#  Días de la semana
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "reunión el lunes"
+title = "reunión"
+date = "2026-08-10"
+why = "el próximo lunes, nunca uno pasado"
+
+[[case]]
+input = "reunión el jueves"
+title = "reunión"
+date = "2026-08-06"
+why = "mañana mismo: el jueves más cercano hacia adelante"
+
+[[case]]
+input = "reunión el miércoles"
+title = "reunión"
+date = "2026-08-12"
+why = "hoy es miércoles; sin «hoy» explícito se entiende el siguiente"
+
+[[case]]
+input = "reunión el próximo martes"
+title = "reunión"
+date = "2026-08-11"
+
+# ─────────────────────────────────────────────────────────────
+#  Desplazamientos
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "renovar el certificado en 3 días"
+title = "renovar el certificado"
+date = "2026-08-08"
+
+[[case]]
+input = "revisar en 2 semanas"
+title = "revisar"
+date = "2026-08-19"
+
+[[case]]
+input = "facturar dentro de un mes"
+title = "facturar"
+date = "2026-09-05"
+
+# ─────────────────────────────────────────────────────────────
+#  Fechas absolutas
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "pagar el 15 de agosto"
+title = "pagar"
+date = "2026-08-15"
+
+[[case]]
+input = "pagar el 15/8"
+title = "pagar"
+date = "2026-08-15"
+
+[[case]]
+input = "pagar el 2026-12-24"
+title = "pagar"
+date = "2026-12-24"
+
+[[case]]
+input = "pagar el 3 de enero"
+title = "pagar"
+date = "2027-01-03"
+why = "una fecha ya pasada este año se entiende del año que viene"
+
+# ─────────────────────────────────────────────────────────────
+#  Horas
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "desplegar mañana a las 10"
+title = "desplegar"
+date = "2026-08-06"
+time = "10:00"
+
+[[case]]
+input = "desplegar mañana a las 10:30"
+title = "desplegar"
+date = "2026-08-06"
+time = "10:30"
+
+[[case]]
+input = "desplegar mañana 10am"
+title = "desplegar"
+date = "2026-08-06"
+time = "10:00"
+
+[[case]]
+input = "comer mañana al mediodía"
+title = "comer"
+date = "2026-08-06"
+time = "12:00"
+
+[[case]]
+input = "llamar a las 15:00"
+title = "llamar"
+date = "2026-08-05"
+time = "15:00"
+why = "una hora futura de hoy se queda hoy"
+
+[[case]]
+input = "llamar a las 07:00"
+title = "llamar"
+date = "2026-08-06"
+time = "07:00"
+why = "una hora ya pasada se entiende mañana"
+
+# ─────────────────────────────────────────────────────────────
+#  Fecha frente a fecha límite
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "entregar el informe para el viernes"
+title = "entregar el informe"
+date = "2026-08-07"
+why = "«para el» propone cuándo hacerlo"
+
+[[case]]
+input = "entregar el informe antes del viernes"
+title = "entregar el informe"
+deadline = "2026-08-07"
+why = "«antes del» es un vencimiento, no una fecha de trabajo"
+
+[[case]]
+input = "renovar el dominio hasta el 30 de agosto"
+title = "renovar el dominio"
+deadline = "2026-08-30"
+why = "«hasta el» marca cuándo deja de ser posible, no cuándo hacerlo"
+
+# ─────────────────────────────────────────────────────────────
+#  Periodos
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "ordenar el escritorio esta semana"
+title = "ordenar el escritorio"
+date = "2026-08-09"
+why = "el final del periodo, que es cuando deja de poder hacerse"
+
+[[case]]
+input = "cerrar la facturación a fin de mes"
+title = "cerrar la facturación"
+date = "2026-08-31"
+
+[[case]]
+input = "descansar el finde"
+title = "descansar"
+date = "2026-08-08"
+
+# ─────────────────────────────────────────────────────────────
+#  Marcadores explícitos
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "revisar el deploy @backend @urgente"
+title = "revisar el deploy"
+tags = ["backend", "urgente"]
+
+[[case]]
+input = "arreglar el índice !1"
+title = "arreglar el índice"
+priority = 1
+
+[[case]]
+input = "revisar el deploy mañana @backend !2"
+title = "revisar el deploy"
+date = "2026-08-06"
+tags = ["backend"]
+priority = 2
+
+[[case]]
+input = "revisar @Backend"
+title = "revisar"
+tags = ["backend"]
+why = "las etiquetas se normalizan a minúsculas"
+
+# ─────────────────────────────────────────────────────────────
+#  Lo ambiguo: no consumir cuando no está claro
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "revisar el informe del lunes"
+title = "revisar el informe del lunes"
+why = """
+Genuinamente ambiguo incluso para una persona: el informe puede llamarse «del
+lunes». Una expresión temporal en medio de la frase y sin preposición de acción
+no se consume. Más vale un título largo que una fecha inventada."""
+
+[[case]]
+input = "preparar la reunión del martes para el jueves"
+title = "preparar la reunión del martes"
+date = "2026-08-06"
+why = "solo el span del borde derecho, precedido de «para el», se consume"
+
+[[case]]
+input = "comprar pan de ayer"
+title = "comprar pan de ayer"
+why = "«de ayer» describe el pan; además una fecha pasada nunca se propone"
+
+[[case]]
+input = "mañana de verano"
+title = "mañana de verano"
+why = "«mañana» aquí es un sustantivo, no un día; va al principio y sin preposición"
+
+# ─────────────────────────────────────────────────────────────
+#  Escapes explícitos
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = '"reunión el lunes"'
+title = "reunión el lunes"
+why = "entre comillas, el título es literal y nada se interpreta"
+
+[[case]]
+input = 'llamar sobre "el informe de mañana" el viernes'
+title = 'llamar sobre "el informe de mañana"'
+date = "2026-08-07"
+why = "lo entrecomillado queda intacto; fuera de ahí sí se interpreta"
+
+# ─────────────────────────────────────────────────────────────
+#  Casos que no deben romper
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "migrar a v2 el 15/8"
+title = "migrar a v2"
+date = "2026-08-15"
+why = "un número pegado al título no es una fecha"
+
+[[case]]
+input = "actualizar a 10.2 mañana"
+title = "actualizar a 10.2"
+date = "2026-08-06"
+why = "10.2 es una versión, no una hora ni un día"
+
+[[case]]
+input = "revisar el ticket ABC-123 mañana"
+title = "revisar el ticket ABC-123"
+date = "2026-08-06"
+
+[[case]]
+input = "backup cada día"
+title = "backup cada día"
+why = "la recurrencia llega en la fase 3; hasta entonces se deja en el título"

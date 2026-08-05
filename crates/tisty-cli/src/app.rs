@@ -3,6 +3,7 @@ use tisty_core::{Config, Event, Op, Paths, State, Store, Task};
 pub struct App {
     pub paths: Paths,
     pub state: State,
+    config: Config,
     store: Store,
 }
 
@@ -19,8 +20,13 @@ impl App {
         Ok(Self {
             paths,
             state,
+            config,
             store,
         })
+    }
+
+    pub fn locale(&self) -> Option<&str> {
+        self.config.locale.as_deref()
     }
 
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<Event> {
@@ -29,8 +35,6 @@ impl App {
         Ok(event)
     }
 
-    /// Open tasks in reading order: soonest first, then by priority, then by
-    /// the manual order.
     pub fn ordered_open(&self) -> Vec<&Task> {
         let mut tasks: Vec<_> = self.state.open_tasks().collect();
         tasks.sort_by(|a, b| {
