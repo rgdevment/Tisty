@@ -4,8 +4,13 @@ name: Release
 #
 #   git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
 #
-# A tag with a dash (v0.2.0-rc1) is published as a pre-release and skipped by
-# the Homebrew tap.
+# The tag is the version. Nothing in the repository gets bumped for a release,
+# and the binary reports what was tagged, suffix included: `v0.2.0-rc1` builds a
+# `tisty 0.2.0-rc1`, which a version pinned in Cargo.toml could never say. A tag
+# with a dash is published as a pre-release and skipped by the Homebrew tap.
+#
+# Running this by hand builds and packages every platform and publishes nothing,
+# which is how to rehearse the whole pipeline before the first tag exists.
 #
 # Signing is wired but dormant: every signing step is guarded by its secret, so
 # this runs green on a repository with none of them set, and starts signing the
@@ -15,6 +20,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build. Publishes nothing."
+        required: false
+        default: "0.0.0-dispatch"
 
 permissions:
   contents: write
@@ -24,33 +34,34 @@ env:
 
 jobs:
   version:
-    name: Tag agrees with Cargo.toml
+    name: Resolve the version
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
-      version: ${{ steps.check.outputs.version }}
-      crate: ${{ steps.check.outputs.crate }}
-      prerelease: ${{ steps.check.outputs.prerelease }}
+      version: ${{ steps.resolve.outputs.version }}
+      prerelease: ${{ steps.resolve.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@v6
-      - id: check
+      - id: resolve
         run: |
-          crate=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
-          version="$crate"
-          prerelease=false
-
           if [[ "$GITHUB_REF" =~ ^refs/tags/v(.+)$ ]]; then
             version="${BASH_REMATCH[1]}"
-            # A pre-release keeps the crate version and adds a suffix, so only
-            # the part before the dash has to agree.
-            if [[ "${version%%-*}" != "$crate" ]]; then
-              echo "::error::tag v$version but Cargo.toml says $crate"
-              exit 1
-            fi
-            [[ "$version" == *-* ]] && prerelease=true
+          else
+            version="${{ inputs.version }}"
+          fi
+
+          # The tag filter takes any `v*`, and cargo only takes semver: without
+          # this, `vlatest` fails inside the build with an unrelated message.
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::«$version» is not a version cargo accepts (1.2.3 or 1.2.3-rc1)"
+            exit 1
+          fi
+
+          prerelease=false
+          if [[ "$version" == *-* ]]; then
+            prerelease=true
           fi
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "crate=$crate" >> "$GITHUB_OUTPUT"
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           echo "version $version (pre-release: $prerelease)"
 
@@ -58,6 +69,7 @@ jobs:
     name: ${{ matrix.name }}
     needs: version
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -92,6 +104,26 @@ jobs:
           sudo apt-get update && sudo apt-get install -y musl-tools
           rustup target add ${{ matrix.target }}
 
+      # After the cache, not before: the cache key hashes Cargo.lock, and
+      # stamping first would miss the dependencies on every single release.
+      # `[workspace.package]` holds the only `version =` that starts a line in
+      # the manifest, and the three crates inherit it.
+      - name: Stamp the version from the tag
+        shell: bash
+        run: |
+          version="${{ needs.version.outputs.version }}"
+          sed -i.bak -e "s/^version = .*/version = \"$version\"/" Cargo.toml
+          rm -f Cargo.toml.bak
+
+          if ! grep -q "^version = \"$version\"\$" Cargo.toml; then
+            echo "::error::could not stamp $version into Cargo.toml"
+            exit 1
+          fi
+
+          # The lock records the workspace versions too. Syncing it offline
+          # touches only the three local crates and never reaches the network.
+          cargo update --workspace --offline
+
       - name: Build
         shell: bash
         run: |
@@ -103,7 +135,12 @@ jobs:
             lipo -create -output target/${{ matrix.target }}/release/tisty \
               target/aarch64-apple-darwin/release/tisty \
               target/x86_64-apple-darwin/release/tisty
-            lipo -archs target/${{ matrix.target }}/release/tisty
+
+            archs=$(lipo -archs target/${{ matrix.target }}/release/tisty)
+            case "$archs" in
+              *arm64*x86_64*|*x86_64*arm64*) echo "universal: $archs" ;;
+              *) echo "::error::expected a universal binary, got «$archs»"; exit 1 ;;
+            esac
           else
             cargo build --release --bin tisty --target ${{ matrix.target }}
           fi
@@ -192,8 +229,8 @@ jobs:
       # ── Package ──
 
       # Running it is the only proof that three runners produced three working
-      # binaries; linking successfully proves nothing. It reports the crate
-      # version, not the tag: a pre-release suffix never reaches Cargo.toml.
+      # binaries; linking successfully proves nothing. Comparing against the tag
+      # is also what proves the stamping reached the binary.
       - name: Smoke test
         shell: bash
         run: |
@@ -201,7 +238,7 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             bin="$bin.exe"
           fi
-          test "$("$bin" --version)" = "tisty ${{ needs.version.outputs.crate }}"
+          test "$("$bin" --version)" = "tisty ${{ needs.version.outputs.version }}"
 
       - name: Package
         shell: bash
@@ -226,8 +263,9 @@ jobs:
   publish:
     name: GitHub Release
     needs: [version, build]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
@@ -271,8 +309,9 @@ jobs:
   homebrew:
     name: Homebrew tap
     needs: [version, publish]
-    if: startsWith(github.ref, 'refs/tags/v') && needs.version.outputs.prerelease == 'false'
+    if: github.event_name == 'push' && needs.version.outputs.prerelease == 'false'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
     steps:
