@@ -40,15 +40,13 @@ impl Default for Lang {
 
 impl Lang {
     pub fn detect(configured: Option<&str>) -> Self {
+        Self::choose(configured, environment().as_deref())
+    }
+
+    fn choose(configured: Option<&str>, environment: Option<&str>) -> Self {
         configured
-            .map(Self::from_code)
-            .or_else(|| {
-                ["LC_ALL", "LC_MESSAGES", "LANG"]
-                    .iter()
-                    .find_map(|k| std::env::var(k).ok())
-                    .map(|v| Self::from_code(&v))
-            })
-            .unwrap_or_default()
+            .or(environment)
+            .map_or_else(Self::default, Self::from_code)
     }
 
     pub fn from_code(code: &str) -> Self {
@@ -129,6 +127,13 @@ impl Lang {
         }
         out
     }
+}
+
+/// POSIX order: `LC_ALL` overrides `LC_MESSAGES`, which overrides `LANG`.
+fn environment() -> Option<String> {
+    ["LC_ALL", "LC_MESSAGES", "LANG"]
+        .iter()
+        .find_map(|k| std::env::var(k).ok())
 }
 
 fn catalog(code: &str) -> Option<&'static Catalog> {
@@ -241,9 +246,12 @@ mod tests {
         found
     }
 
+    /// The environment is passed in, never read: a machine set to Spanish must
+    /// not decide what this test asserts.
     #[test]
     fn english_is_the_fallback() {
-        assert_eq!(Lang::detect(None).code(), "en");
+        assert_eq!(Lang::choose(None, None).code(), "en");
+        assert_eq!(Lang::choose(None, Some("fr_FR.UTF-8")).code(), "en");
         assert_eq!(Lang::from_code("fr_FR.UTF-8").code(), "en");
     }
 
@@ -256,8 +264,9 @@ mod tests {
 
     #[test]
     fn configured_locale_wins_over_the_environment() {
-        assert_eq!(Lang::detect(Some("es")).code(), "es");
-        assert_eq!(Lang::detect(Some("en")).code(), "en");
+        assert_eq!(Lang::choose(Some("es"), Some("en_US.UTF-8")).code(), "es");
+        assert_eq!(Lang::choose(Some("en"), Some("es_CL.UTF-8")).code(), "en");
+        assert_eq!(Lang::choose(None, Some("es_CL.UTF-8")).code(), "es");
     }
 
     #[test]
