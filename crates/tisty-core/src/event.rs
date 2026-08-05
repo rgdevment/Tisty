@@ -23,6 +23,10 @@ pub struct Event {
     pub timestamp: jiff::Timestamp,
     #[serde(rename = "by")]
     pub device: DeviceId,
+    /// One user action that took several events, so undo can take back all of
+    /// them: renaming a tag rewrites every task that carries it.
+    #[serde(rename = "tx", default, skip_serializing_if = "Option::is_none")]
+    pub batch: Option<Ulid>,
     #[serde(flatten)]
     pub op: Op,
 }
@@ -33,8 +37,14 @@ impl Event {
             version: SCHEMA_VERSION,
             timestamp,
             device,
+            batch: None,
             op,
         }
+    }
+
+    pub fn in_batch(mut self, batch: Ulid) -> Self {
+        self.batch = Some(batch);
+        self
     }
 
     /// Device tiebreak guarantees every machine replays into the same state.

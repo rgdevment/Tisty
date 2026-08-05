@@ -17,6 +17,10 @@ struct Catalog {
     messages: BTreeMap<String, String>,
     #[serde(default)]
     plural: BTreeMap<String, PluralForms>,
+    #[serde(default)]
+    weekday: BTreeMap<String, String>,
+    #[serde(default)]
+    month: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -58,8 +62,7 @@ impl Lang {
         )
     }
 
-    #[cfg(test)]
-    fn code(self) -> &'static str {
+    pub fn code(self) -> &'static str {
         self.0
     }
 
@@ -82,6 +85,22 @@ impl Lang {
             Some(f) => f.other.replace("{n}", &n.to_string()),
             None => format!("⟨{key}⟩"),
         }
+    }
+
+    /// strftime does not localise, so day and month names come from here.
+    pub fn weekday(self, index: u8) -> &'static str {
+        self.from(|c| c.weekday.get(&index.to_string()))
+    }
+
+    pub fn month(self, index: u8) -> &'static str {
+        self.from(|c| c.month.get(&index.to_string()))
+    }
+
+    fn from(self, pick: impl Fn(&'static Catalog) -> Option<&'static String>) -> &'static str {
+        catalog(self.0)
+            .and_then(&pick)
+            .or_else(|| catalog(FALLBACK).and_then(&pick))
+            .map_or("⟨?⟩", |s| s.as_str())
     }
 
     pub fn fill(self, key: &str, args: &[(&str, &str)]) -> String {
@@ -146,6 +165,15 @@ mod tests {
             let c = catalog(name).unwrap();
             for key in reference.messages.keys() {
                 assert!(c.messages.contains_key(key), "{name} is missing «{key}»");
+            }
+            for key in reference.weekday.keys() {
+                assert!(
+                    c.weekday.contains_key(key),
+                    "{name} is missing weekday «{key}»"
+                );
+            }
+            for key in reference.month.keys() {
+                assert!(c.month.contains_key(key), "{name} is missing month «{key}»");
             }
             for key in reference.plural.keys() {
                 assert!(
@@ -214,6 +242,14 @@ mod tests {
         assert_eq!(Lang::from_code("en").plural("tasks", 3), "3 tasks");
         assert_eq!(Lang::from_code("es").plural("tasks", 1), "1 tarea");
         assert_eq!(Lang::from_code("es").plural("tasks", 3), "3 tareas");
+    }
+
+    #[test]
+    fn day_and_month_names_are_localised() {
+        assert_eq!(Lang::from_code("en").weekday(1), "mon");
+        assert_eq!(Lang::from_code("es").weekday(1), "lun");
+        assert_eq!(Lang::from_code("en").month(8), "aug");
+        assert_eq!(Lang::from_code("es").month(8), "ago");
     }
 
     #[test]

@@ -68,31 +68,49 @@ veinticuatro horas sin dejar rastro que valga.
 ## Cómo se ve
 
 ```console
-$ tisty "arreglar los timeouts intermitentes al guardar" --prioridad 1
+$ tisty "corregir los timeouts intermitentes al guardar" --prioridad 1
 
-  ✓ arreglar los timeouts intermitentes al guardar
+  ✓ corregir los timeouts intermitentes al guardar
     !1
-    z8k4qm
+    ae0bvq
 ```
 
 ```console
-$ tisty ls
+$ tisty ls todas
 
-  hoy                                                   3 tareas
+  todas                                                 3 tareas
 
-    1  ○ arreglar los timeouts intermitentes al guardar
-       !1 · hoy
-    2  ○ validar notificaciones de pagos
-       !3 · hoy
+    1  ○ validar las notificaciones de pago
+       mañana
+    2  ○ corregir los timeouts intermitentes al guardar
+       !1
     3  ○ actualizar las dependencias de CI
 
-$ tisty done 2
-  ✓ validar notificaciones de pagos
+$ tisty done 3
+  ✓ actualizar las dependencias de CI
 ```
 
 Para referirte a una tarea puedes usar el número de la última lista, un trozo
-del título (`tisty done pagos`) o su identificador. Un ULID es para los scripts,
+del título (`tisty done pago`) o su identificador. Un ULID es para los scripts,
 no para los dedos.
+
+Y luego la parte que solo se cobra más tarde. Lo que anotas mientras trabajas
+queda pegado a la tarea, y completarla no lo pone fuera de alcance:
+
+```console
+$ tisty log 1 "el presupuesto de reintentos se agotó antes de que el pool se rellenara"
+$ tisty done 1
+
+$ tisty search "presupuesto de reintentos"
+
+  «presupuesto de reintentos»                          1 tarea
+
+    1  ✓ validar las notificaciones de pago
+       mañana · ✎1
+```
+
+La búsqueda lee el título, la descripción, la bitácora, los pasos y las
+etiquetas — tanto lo pendiente como el archivo.
 
 ## Pensado para quien vive en una terminal
 
@@ -142,8 +160,9 @@ cargo install --path crates/tisty-cli
 |---|---|
 | ✅ | Núcleo: modelo, registro de eventos, almacenamiento, proyección |
 | ✅ | CLI: capturar, listar, completar, ver detalle |
-| ⬜ | Lenguaje natural: `tisty "desplegar la API mañana a las 10"` |
-| ⬜ | Bitácora, pasos y listas desde la línea de comandos |
+| ✅ | Lenguaje natural: `tisty "desplegar la API mañana a las 10"` |
+| ✅ | Bitácora, pasos, listas, etiquetas, búsqueda y deshacer desde la terminal |
+| ◐ | Filtros compuestos de `ls`, `config`, `export` |
 | ⬜ | Sincronización por Git o por la carpeta de tu nube |
 | ⬜ | Interfaz gráfica (Tauri) |
 | ⬜ | Documentos en Markdown |

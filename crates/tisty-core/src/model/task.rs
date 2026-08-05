@@ -154,10 +154,16 @@ impl Task {
         self.log.iter().find(|e| e.id == id)
     }
 
+    /// An entry emptied by an undo is kept so a later edit from another device
+    /// still finds it, but it stopped being part of the journal.
+    pub fn journal(&self) -> impl Iterator<Item = &LogEntry> {
+        self.log.iter().filter(|e| !e.body.trim().is_empty())
+    }
+
     /// Always recomputed: drives empty-section skipping and search ranking.
     pub fn weight(&self) -> usize {
         usize::from(self.description.is_some())
-            + self.log.len()
+            + self.journal().count()
             + self.steps.len()
             + self.tags.len()
             + usize::from(self.date.is_some())

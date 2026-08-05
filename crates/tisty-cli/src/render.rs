@@ -27,13 +27,33 @@ pub fn list(tasks: &[&Task], state: &State, heading: &str, today: Date, lang: La
 }
 
 fn row(number: usize, task: &Task, state: &State, today: Date, lang: Lang) -> String {
-    let mut line = format!(
+    let mut out = format!(
         "  {:>3}  {} {}",
         style::dim(&number.to_string()),
         marker(task),
         task.title
     );
 
+    let meta = meta(task, state, today, lang);
+    if !meta.is_empty() {
+        out.push_str(&format!("\n       {meta}"));
+    }
+    out.push('\n');
+    out
+}
+
+/// The same one-line acknowledgement every mutating command prints.
+pub fn line(task: &Task, state: &State, today: Date, lang: Lang) -> String {
+    let mut out = format!("  {} {}\n", marker(task), task.title);
+
+    let meta = meta(task, state, today, lang);
+    if !meta.is_empty() {
+        out.push_str(&format!("    {meta}\n"));
+    }
+    out
+}
+
+fn meta(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     let mut meta = Vec::new();
     if let Some(p) = priority(task.priority) {
         meta.push(p);
@@ -57,15 +77,11 @@ fn row(number: usize, task: &Task, state: &State, today: Date, lang: Lang) -> St
     if total > 0 {
         meta.push(style::dim(&format!("{done}/{total}")));
     }
-    if !task.log.is_empty() {
-        meta.push(style::dim(&format!("✎{}", task.log.len())));
+    let entries = task.journal().count();
+    if entries > 0 {
+        meta.push(style::dim(&format!("✎{entries}")));
     }
-
-    if !meta.is_empty() {
-        line.push_str(&format!("\n       {}", meta.join(" · ")));
-    }
-    line.push('\n');
-    line
+    meta.join(" · ")
 }
 
 pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
@@ -114,7 +130,7 @@ pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
             lang.get("steps"),
             Some(&format!("{done}/{total}")),
         ));
-        for step in &task.steps {
+        for (i, step) in task.steps.iter().enumerate() {
             let mark = if step.done {
                 style::paint(GREEN, "✓")
             } else {
@@ -125,21 +141,28 @@ pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
             } else {
                 step.text.clone()
             };
-            out.push_str(&format!("    {mark} {text}\n"));
+            out.push_str(&format!(
+                "  {:>3} {mark} {text}\n",
+                style::dim(&(i + 1).to_string())
+            ));
         }
     }
 
-    if !task.log.is_empty() {
+    let journal: Vec<_> = task.journal().collect();
+    if !journal.is_empty() {
         out.push_str(&section(
             lang.get("journal"),
-            Some(&task.log.len().to_string()),
+            Some(&journal.len().to_string()),
         ));
-        for entry in &task.log {
-            let stamp = entry
-                .at
-                .to_zoned(jiff::tz::TimeZone::system())
-                .strftime("%a %-d %b · %H:%M")
-                .to_string();
+        for entry in journal {
+            let z = entry.at.to_zoned(jiff::tz::TimeZone::system());
+            let stamp = format!(
+                "{} {} {} · {}",
+                lang.weekday(weekday_index(z.date())),
+                z.day(),
+                lang.month(z.month() as u8),
+                z.strftime("%H:%M")
+            );
             out.push_str(&format!("    {}\n", style::dim(&stamp)));
             for line in entry.body.lines() {
                 out.push_str(&format!("      {line}\n"));
@@ -253,12 +276,16 @@ fn short(date: Date, today: Date, lang: Lang) -> String {
         0 => lang.get("today").into(),
         1 => lang.get("tomorrow").into(),
         -1 => lang.get("yesterday").into(),
-        d if (0..7).contains(&d) => date.strftime("%a").to_string(),
-        _ => date.strftime("%-d %b").to_string(),
+        d if (0..7).contains(&d) => lang.weekday(weekday_index(date)).to_string(),
+        _ => format!("{} {}", date.day(), lang.month(date.month() as u8)),
     }
 }
 
 /// Tail, not head: a ULID starts with its timestamp.
+fn weekday_index(date: Date) -> u8 {
+    date.weekday().to_monday_one_offset() as u8
+}
+
 fn short_id(task: &Task) -> String {
     let id = task.id.to_string();
     id[id.len() - 6..].to_lowercase()

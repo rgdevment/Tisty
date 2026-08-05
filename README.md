@@ -66,31 +66,49 @@ a day and leaves nothing worth keeping.
 ## What it looks like
 
 ```console
-$ tisty "fix the intermittent timeouts on save" --prioridad 1
+$ tisty "fix the intermittent timeouts on save" --priority 1
 
   ✓ fix the intermittent timeouts on save
     !1
-    z8k4qm
+    5htpgs
 ```
 
 ```console
-$ tisty ls
+$ tisty ls all
 
-  hoy                                                   3 tareas
+  all                                                    3 tasks
 
-    1  ○ fix the intermittent timeouts on save
-       !1 · hoy
-    2  ○ validate payment notifications
-       !3 · hoy
+    1  ○ validate the payment notifications
+       tomorrow
+    2  ○ fix the intermittent timeouts on save
+       !1
     3  ○ update the CI dependencies
 
-$ tisty done 2
-  ✓ validate payment notifications
+$ tisty done 3
+  ✓ update the CI dependencies
 ```
 
 You can refer to a task by its number in the last listing, by a fragment of its
 title (`tisty done payment`), or by its identifier. A ULID is for scripts, not
 for fingers.
+
+Then the part that only pays off later. What you write down while working stays
+attached to the task, and completing it does not put it out of reach:
+
+```console
+$ tisty log 1 "the retry budget was exhausted before the pool refilled"
+$ tisty done 1
+
+$ tisty search "retry budget"
+
+  «retry budget»                                        1 task
+
+    1  ✓ validate the payment notifications
+       tomorrow · ✎1
+```
+
+Search reads the title, the description, the journal, the steps and the tags —
+open work and archive alike.
 
 ## Built for people who live in a terminal
 
@@ -139,8 +157,9 @@ cargo install --path crates/tisty-cli
 |---|---|
 | ✅ | Core: model, event log, storage, projection |
 | ✅ | CLI: capture, list, complete, show detail |
-| ⬜ | Natural language: `tisty "deploy the API tomorrow at 10"` |
-| ⬜ | Journal, steps and lists from the command line |
+| ✅ | Natural language: `tisty "deploy the API tomorrow at 10"` |
+| ✅ | Journal, steps, lists, tags, search and undo from the command line |
+| ◐ | Composite `ls` filters, `config`, `export` |
 | ⬜ | Sync over Git or through your own cloud folder |
 | ⬜ | Graphical interface (Tauri) |
 | ⬜ | Markdown documents |

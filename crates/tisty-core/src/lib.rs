@@ -6,9 +6,11 @@
 pub mod config;
 pub mod event;
 pub mod model;
+pub mod order;
 pub mod paths;
 pub mod state;
 pub mod store;
+pub mod undo;
 
 pub use config::Config;
 pub use event::{DeviceId, Event, Op};
@@ -18,6 +20,7 @@ pub use model::{
 pub use paths::Paths;
 pub use state::State;
 pub use store::Store;
+pub use undo::inverse;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
