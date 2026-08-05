@@ -25,5 +25,10 @@ toml.workspace = true
 jiff.workspace = true
 ulid.workspace = true
 
+# Windows sets none of the POSIX locale variables, so the language has to be
+# asked for. Nothing else needs it, and it links no transitive dependency.
+[target.'cfg(windows)'.dependencies]
+sys-locale.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true

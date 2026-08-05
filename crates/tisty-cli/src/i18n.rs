@@ -40,12 +40,12 @@ impl Default for Lang {
 
 impl Lang {
     pub fn detect(configured: Option<&str>) -> Self {
-        Self::choose(configured, environment().as_deref())
+        Self::choose(configured, machine().as_deref())
     }
 
-    fn choose(configured: Option<&str>, environment: Option<&str>) -> Self {
+    fn choose(configured: Option<&str>, machine: Option<&str>) -> Self {
         configured
-            .or(environment)
+            .or(machine)
             .map_or_else(Self::default, Self::from_code)
     }
 
@@ -129,11 +129,36 @@ impl Lang {
     }
 }
 
-/// POSIX order: `LC_ALL` overrides `LC_MESSAGES`, which overrides `LANG`.
-fn environment() -> Option<String> {
+/// POSIX order: `LC_ALL` overrides `LC_MESSAGES`, which overrides `LANG`. A
+/// Windows terminal sets none of them, so there the system is asked directly.
+fn machine() -> Option<String> {
     ["LC_ALL", "LC_MESSAGES", "LANG"]
         .iter()
         .find_map(|k| std::env::var(k).ok())
+        .or_else(system)
+}
+
+fn system() -> Option<String> {
+    first_spoken(preferred_languages())
+}
+
+/// The preference is a list, and the first language Tisty speaks beats the
+/// first one the user asked for: a machine set to French and then Spanish
+/// reads better in Spanish than in the English fallback.
+fn first_spoken(preferred: Vec<String>) -> Option<String> {
+    preferred
+        .into_iter()
+        .find(|code| Lang::known(code).is_some())
+}
+
+#[cfg(windows)]
+fn preferred_languages() -> Vec<String> {
+    sys_locale::get_locales().collect()
+}
+
+#[cfg(not(windows))]
+fn preferred_languages() -> Vec<String> {
+    Vec::new()
 }
 
 fn catalog(code: &str) -> Option<&'static Catalog> {
@@ -260,6 +285,25 @@ mod tests {
         for code in ["es", "es_CL.UTF-8", "ES_ES", "es-419"] {
             assert_eq!(Lang::from_code(code).code(), "es", "{code}");
         }
+    }
+
+    /// Windows is the only platform that reaches this, but the decision is
+    /// worth checking everywhere: falling to English with Spanish further down
+    /// the list would be a worse reading than the one the machine offered.
+    #[test]
+    fn an_unsupported_first_choice_falls_to_the_next_one_tisty_speaks() {
+        let codes = |list: &[&str]| list.iter().map(|s| s.to_string()).collect();
+
+        assert_eq!(
+            first_spoken(codes(&["fr-FR", "es-ES", "en-US"])),
+            Some("es-ES".into())
+        );
+        assert_eq!(
+            first_spoken(codes(&["en-GB", "es-CL"])),
+            Some("en-GB".into())
+        );
+        assert_eq!(first_spoken(codes(&["fr-FR", "de-DE"])), None);
+        assert_eq!(first_spoken(Vec::new()), None);
     }
 
     #[test]
