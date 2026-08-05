@@ -1,3 +1,4 @@
+mod data;
 mod org;
 mod task;
 mod view;
@@ -39,7 +40,7 @@ pub fn dispatch(
         Command::Log { selector, text } => task::log(app, &selector, text, today, lang),
         Command::Step { selector, action } => task::step(app, &selector, action, today, lang),
 
-        Command::Ls { filter, json } => view::ls(app, filter.as_deref(), json, today, lang),
+        Command::Ls { filter, json } => view::ls(app, &filter, json, today, lang),
         Command::Show { selector, json } => view::show(app, &selector, json, today, lang),
         Command::Search {
             query,
@@ -52,6 +53,9 @@ pub fn dispatch(
         Command::Lists { json } => org::lists(app, json, lang),
         Command::List { action } => org::list(app, action, lang),
         Command::Tag { action } => org::tag(app, action, lang),
+
+        Command::Config { action } => data::config(app, action, lang),
+        Command::Export { filter, markdown } => data::export(app, &filter, markdown, today, lang),
     }
 }
 

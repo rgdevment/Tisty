@@ -235,6 +235,10 @@ pub fn log(
             id,
             d: LogAdd {
                 entry: Ulid::generate(),
+                tz: jiff::Zoned::now()
+                    .time_zone()
+                    .iana_name()
+                    .map(str::to_string),
                 body,
             },
         })?;

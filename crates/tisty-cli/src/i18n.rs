@@ -66,6 +66,25 @@ impl Lang {
         self.0
     }
 
+    /// Unlike `from_code`, an unknown code is not silently English: setting a
+    /// locale that does not exist has to be refused, not accepted and ignored.
+    pub fn known(code: &str) -> Option<Self> {
+        let code = code.to_lowercase();
+        let tag = code.split(['_', '-', '.']).next().unwrap_or_default();
+        LOCALES
+            .iter()
+            .find(|(name, _)| *name == tag)
+            .map(|(name, _)| Self(name))
+    }
+
+    pub fn available() -> String {
+        LOCALES
+            .iter()
+            .map(|(name, _)| *name)
+            .collect::<Vec<_>>()
+            .join(" · ")
+    }
+
     /// A missing key renders visibly rather than panicking: a broken
     /// translation must not take the command down with it.
     pub fn get(self, key: &str) -> &'static str {
@@ -124,18 +143,23 @@ fn catalog(code: &str) -> Option<&'static Catalog> {
         .get(code)
 }
 
+/// Shown when a filter is not understood. Canonical names only: the aliases
+/// would triple the line without teaching anything.
+pub const FILTERS: &str =
+    "today · tomorrow · week · overdue · inbox · archive · all · #list · @tag · !1";
+
 /// Filters are accepted in any language so a Spanish user is not forced into
 /// English mid-command, and scripts written either way keep working.
 pub fn canonical_filter(raw: &str) -> Option<&'static str> {
     let raw = raw.to_lowercase();
     for (canonical, aliases) in [
-        ("today", &["today", "hoy", "hoje"][..]),
-        ("all", &["all", "todas", "todo", "todas-as"][..]),
-        ("inbox", &["inbox", "bandeja", "caixa"][..]),
-        (
-            "archive",
-            &["archive", "archivo", "hechas", "done", "feitas"][..],
-        ),
+        ("today", &["today", "hoy"][..]),
+        ("tomorrow", &["tomorrow", "mañana", "manana"][..]),
+        ("week", &["week", "semana"][..]),
+        ("overdue", &["overdue", "vencidas", "atrasadas"][..]),
+        ("all", &["all", "todas", "todo"][..]),
+        ("inbox", &["inbox", "bandeja"][..]),
+        ("archive", &["archive", "archivo", "hechas", "done"][..]),
     ] {
         if aliases.contains(&raw.as_str()) {
             return Some(canonical);

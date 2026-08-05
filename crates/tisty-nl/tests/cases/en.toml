@@ -76,6 +76,18 @@ input = "pay on 2026-12-24"
 title = "pay"
 date = "2026-12-24"
 
+[[case]]
+input = "pay on 2026-07-30"
+title = "pay"
+date = "2026-07-30"
+why = "the year was written down, so it is not rolled forward for having passed"
+
+[[case]]
+input = "pay on jul 30"
+title = "pay"
+date = "2027-07-30"
+why = "no year written: july is gone, so it means the next one"
+
 # ─────────────────────────────────────────────────────────────
 #  Times
 # ─────────────────────────────────────────────────────────────

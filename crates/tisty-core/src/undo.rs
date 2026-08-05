@@ -343,10 +343,7 @@ mod tests {
             2,
             Op::TaskLog {
                 id,
-                d: LogAdd {
-                    entry,
-                    body: "written by mistake".into(),
-                },
+                d: LogAdd::new(entry, "written by mistake"),
             },
         );
         state.apply(&action);

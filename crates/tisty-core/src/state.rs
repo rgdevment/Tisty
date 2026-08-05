@@ -191,6 +191,7 @@ fn add_log_entry(task: &mut Task, d: &LogAdd, at: jiff::Timestamp) {
     task.log.push(LogEntry {
         id: d.entry,
         at,
+        tz: d.tz.clone(),
         body: d.body.clone(),
     });
 }
@@ -399,10 +400,7 @@ mod tests {
                 "dev_a",
                 Op::TaskLog {
                     id,
-                    d: LogAdd {
-                        entry: first,
-                        body: "first attempt failed".into(),
-                    },
+                    d: LogAdd::new(first, "first attempt failed"),
                 },
             ),
             ev(
@@ -410,10 +408,7 @@ mod tests {
                 "dev_b",
                 Op::TaskLog {
                     id,
-                    d: LogAdd {
-                        entry: second,
-                        body: "an index was missing".into(),
-                    },
+                    d: LogAdd::new(second, "an index was missing"),
                 },
             ),
         ]);
@@ -436,10 +431,7 @@ mod tests {
                 "dev_a",
                 Op::TaskLog {
                     id,
-                    d: LogAdd {
-                        entry,
-                        body: "typo here".into(),
-                    },
+                    d: LogAdd::new(entry, "typo here"),
                 },
             ),
             ev(

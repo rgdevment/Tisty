@@ -110,6 +110,24 @@ $ tisty search "retry budget"
 Search reads the title, the description, the journal, the steps and the tags —
 open work and archive alike.
 
+Filters combine, and the same words work when writing a task and when looking
+for one:
+
+```console
+$ tisty ls week @security
+
+  week @security                                          1 task
+
+    1  ○ rotate the signing keys
+       !1 · tomorrow · #platform · @security
+```
+
+`today` · `tomorrow` · `week` · `overdue` · `inbox` · `archive` · `all` ·
+`#list` · `@tag` · `!1`, or any date you can write — `tisty ls friday`.
+Bare `tisty ls` means today; naming any filter widens the scope to everything
+open, because asking for `@security` and getting only today's would hide the
+tasks you were asking about.
+
 ## Built for people who live in a terminal
 
 - **`--json` on every read command.** Without it, none of this would be
@@ -120,6 +138,9 @@ open work and archive alike.
   `4` not found.
 - **Anything the GUI will do, the terminal can do too.** What changes is how
   many keystrokes it costs, not what is possible.
+- **`tisty export` gives the data back**, as JSON or as a Markdown document you
+  can read without Tisty. Taking the same filters as `ls`, so you can export a
+  list, a tag or the whole archive.
 
 ## Your data
 

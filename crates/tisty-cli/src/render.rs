@@ -155,7 +155,7 @@ pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
             Some(&journal.len().to_string()),
         ));
         for entry in journal {
-            let z = entry.at.to_zoned(jiff::tz::TimeZone::system());
+            let z = entry.zoned();
             let stamp = format!(
                 "{} {} {} · {}",
                 lang.weekday(weekday_index(z.date())),
@@ -231,6 +231,85 @@ pub fn lists(state: &State, lang: Lang) -> String {
     }
     out.push('\n');
     out
+}
+
+/// Dates are absolute here, never «tomorrow»: an exported document is read
+/// months later, when the day it was written is no longer the reference.
+pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> String {
+    let mut out = format!("# {heading}\n\n");
+    if tasks.is_empty() {
+        out.push_str(&format!("{}\n", lang.get("nothing-here")));
+        return out;
+    }
+
+    for task in tasks {
+        let mark = match task.status {
+            Status::Open => " ",
+            Status::Done => "x",
+            Status::Dropped => "-",
+        };
+        out.push_str(&format!("## [{mark}] {}\n\n", task.title));
+
+        let mut meta = Vec::new();
+        if let Some(d) = &task.date {
+            meta.push(stamp(d));
+        }
+        if let Some(d) = &task.deadline {
+            meta.push(format!("{} {}", lang.get("deadline"), stamp(d)));
+        }
+        if let Some(at) = task.completed_at {
+            meta.push(format!(
+                "{} {}",
+                lang.get("completed"),
+                at.to_zoned(jiff::tz::TimeZone::system())
+                    .strftime("%Y-%m-%d")
+            ));
+        }
+        if task.priority != Priority::P4 {
+            meta.push(format!("!{}", u8::from(task.priority)));
+        }
+        if let Some(list) = task.list.and_then(|id| state.lists.get(&id)) {
+            meta.push(format!("#{}", slug(&list.name)));
+        }
+        meta.extend(task.tags.iter().map(|t| format!("@{t}")));
+        if !meta.is_empty() {
+            out.push_str(&format!("{}\n\n", meta.join(" · ")));
+        }
+
+        if let Some(description) = &task.description {
+            out.push_str(&format!("{description}\n\n"));
+        }
+
+        if !task.steps.is_empty() {
+            out.push_str(&format!("### {}\n\n", lang.get("steps")));
+            for step in &task.steps {
+                let tick = if step.done { "x" } else { " " };
+                out.push_str(&format!("- [{tick}] {}\n", step.text));
+            }
+            out.push('\n');
+        }
+
+        let journal: Vec<_> = task.journal().collect();
+        if !journal.is_empty() {
+            out.push_str(&format!("### {}\n\n", lang.get("journal")));
+            for entry in journal {
+                // The offset spells out what the author's zone means, so the
+                // entry can be placed on a timeline without looking it up.
+                let at = entry.zoned();
+                out.push_str(&format!("**{}**\n\n", at.strftime("%Y-%m-%d %H:%M %:z")));
+                out.push_str(&format!("{}\n\n", entry.body));
+            }
+        }
+    }
+    out
+}
+
+fn stamp(spec: &DateSpec) -> String {
+    if spec.has_time {
+        spec.at.strftime("%Y-%m-%d %H:%M").to_string()
+    } else {
+        spec.at.strftime("%Y-%m-%d").to_string()
+    }
 }
 
 fn section(name: &str, count: Option<&str>) -> String {

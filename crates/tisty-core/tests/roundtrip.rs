@@ -97,10 +97,7 @@ fn a_task_survives_the_round_trip_through_disk() {
             &laptop,
             Op::TaskLog {
                 id: task,
-                d: LogAdd {
-                    entry: first_note,
-                    body: "first attempt failed".into(),
-                },
+                d: LogAdd::new(first_note, "first attempt failed"),
             },
         ),
         (
@@ -108,10 +105,7 @@ fn a_task_survives_the_round_trip_through_disk() {
             &desktop,
             Op::TaskLog {
                 id: task,
-                d: LogAdd {
-                    entry: second_note,
-                    body: "an index was missing".into(),
-                },
+                d: LogAdd::new(second_note, "an index was missing"),
             },
         ),
         (
@@ -188,10 +182,7 @@ fn trivial_and_documented_tasks_live_side_by_side() {
     store
         .append(Op::TaskLog {
             id: documented,
-            d: LogAdd {
-                entry: Ulid::generate(),
-                body: "an index was missing".into(),
-            },
+            d: LogAdd::new(Ulid::generate(), "an index was missing"),
         })
         .unwrap();
 

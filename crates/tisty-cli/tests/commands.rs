@@ -7,6 +7,7 @@ use tempfile::TempDir;
 
 struct Cli {
     home: TempDir,
+    zone: &'static str,
 }
 
 struct Run {
@@ -16,9 +17,16 @@ struct Run {
 }
 
 impl Cli {
+    /// A fixed zone, or the suite drifts with whoever runs it: CI sits in UTC
+    /// and half the world does not.
     fn new() -> Self {
+        Self::in_zone("America/Santiago")
+    }
+
+    fn in_zone(zone: &'static str) -> Self {
         Self {
             home: tempfile::tempdir().unwrap(),
+            zone,
         }
     }
 
@@ -27,13 +35,25 @@ impl Cli {
     }
 
     fn pipe(&self, args: &[&str], stdin: Option<&str>) -> Run {
+        self.as_device(self.home.path(), self.zone, args, stdin)
+    }
+
+    /// Two configs over one data directory is two devices sharing a store.
+    fn as_device(
+        &self,
+        config: &std::path::Path,
+        zone: &str,
+        args: &[&str],
+        stdin: Option<&str>,
+    ) -> Run {
         let root = self.home.path();
         let mut command = Command::new(env!("CARGO_BIN_EXE_tisty"));
         command
             .args(args)
             .env("TISTY_DATA", root.join("data"))
-            .env("TISTY_CONFIG", root.join("config"))
-            .env("TISTY_CACHE", root.join("cache"))
+            .env("TISTY_CONFIG", config.join("config"))
+            .env("TISTY_CACHE", config.join("cache"))
+            .env("TZ", zone)
             .env("NO_COLOR", "1")
             .env("LANG", "en_US.UTF-8")
             .env_remove("LC_ALL")
@@ -383,4 +403,230 @@ fn an_unknown_filter_names_the_ones_that_exist() {
 
     assert_eq!(run.code, 1);
     assert!(run.err.contains("inbox"), "{}", run.err);
+}
+
+/// A day is decided where the user stands, not in UTC. Kiritimati is already
+/// on the next date while UTC has not turned over.
+#[test]
+fn tomorrow_is_tomorrow_where_the_user_is() {
+    for zone in ["Pacific/Kiritimati", "Pacific/Niue", "UTC"] {
+        let cli = Cli::in_zone(zone);
+        cli.ok(&["thing tomorrow"]);
+
+        let stored = cli.ok(&["ls", "all", "--json"]);
+        let stored: serde_json::Value = serde_json::from_str(stored.trim()).unwrap();
+        let at = stored[0]["date"]["at"].as_str().unwrap();
+
+        let local = Command::new("date")
+            .args(["+%Y-%m-%d"])
+            .env("TZ", zone)
+            .output()
+            .unwrap();
+        let today: jiff::civil::Date = String::from_utf8_lossy(&local.stdout)
+            .trim()
+            .parse()
+            .unwrap();
+        let expected = today.tomorrow().unwrap().strftime("%Y-%m-%d").to_string();
+
+        assert!(
+            at.starts_with(&expected),
+            "{zone}: stored {at}, wanted {expected}"
+        );
+    }
+}
+
+/// The whole sync design rests on this: order is `(ts, by)` in UTC, so two
+/// machines a day apart still replay into the same state.
+#[test]
+fn two_devices_in_opposite_zones_agree_on_everything() {
+    let cli = Cli::in_zone("UTC");
+    let east = cli.home.path().join("east");
+    let west = cli.home.path().join("west");
+
+    cli.as_device(&east, "Pacific/Kiritimati", &["work from the east"], None);
+    cli.as_device(&west, "Pacific/Niue", &["work from the west"], None);
+    cli.as_device(&east, "Pacific/Kiritimati", &["more from the east"], None);
+
+    let from_east = cli.as_device(&east, "Pacific/Kiritimati", &["export", "all"], None);
+    let from_west = cli.as_device(&west, "Pacific/Niue", &["export", "all"], None);
+
+    assert_eq!(from_east.code, 0, "{}", from_east.err);
+    assert_eq!(from_east.out, from_west.out, "the two devices disagree");
+}
+
+/// A bare `05:46` in an archived document cannot be placed on a timeline, and
+/// the reader has no way to know which machine wrote it.
+#[test]
+fn an_exported_journal_entry_says_which_zone_it_was_written_in() {
+    let cli = Cli::in_zone("Asia/Kolkata");
+    cli.ok(&["investigate the outage"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["log", "1", "the pool never refilled"]);
+
+    let md = cli.ok(&["export", "all", "--markdown"]);
+    assert!(md.contains("+05:30"), "{md}");
+}
+
+/// «It was 5am when I wrote this» is part of what the entry says. Reading it
+/// from another machine must not rewrite that.
+#[test]
+fn a_journal_entry_keeps_the_hour_its_author_wrote_it_at() {
+    let cli = Cli::in_zone("UTC");
+    let east = cli.home.path().join("east");
+    let west = cli.home.path().join("west");
+
+    cli.as_device(&east, "Asia/Kolkata", &["investigate the outage"], None);
+    cli.as_device(&east, "Asia/Kolkata", &["ls", "all"], None);
+    cli.as_device(
+        &east,
+        "Asia/Kolkata",
+        &["log", "1", "the pool never refilled"],
+        None,
+    );
+
+    let from_east = cli.as_device(
+        &east,
+        "Asia/Kolkata",
+        &["export", "all", "--markdown"],
+        None,
+    );
+    let from_west = cli.as_device(
+        &west,
+        "America/Santiago",
+        &["export", "all", "--markdown"],
+        None,
+    );
+
+    assert_eq!(from_west.code, 0, "{}", from_west.err);
+    assert!(from_west.out.contains("+05:30"), "{}", from_west.out);
+    assert_eq!(
+        from_east.out, from_west.out,
+        "the archive reads differently depending on who opens it"
+    );
+}
+
+#[test]
+fn filters_combine_and_each_one_narrows_the_result() {
+    let cli = Cli::new();
+    cli.ok(&["rotate the keys tomorrow @security !1"]);
+    cli.ok(&["read the access logs @security"]);
+    cli.ok(&["update the runbook @docs"]);
+
+    let out = cli.ok(&["ls", "@security"]);
+    assert_eq!(out.matches('○').count(), 2, "{out}");
+
+    let out = cli.ok(&["ls", "@security", "!1"]);
+    assert!(out.contains("rotate the keys"), "{out}");
+    assert!(!out.contains("access logs"), "{out}");
+}
+
+/// Asking for a tag and getting only today's would hide the very tasks the
+/// question was about.
+#[test]
+fn naming_a_filter_widens_the_scope_past_today() {
+    let cli = Cli::new();
+    cli.ok(&[
+        "add",
+        "deal with this much later @slow",
+        "--date",
+        "2026-12-24",
+    ]);
+
+    assert!(!cli.ok(&["ls"]).contains("much later"));
+    assert!(cli.ok(&["ls", "@slow"]).contains("much later"));
+}
+
+#[test]
+fn a_list_is_filtered_by_the_name_the_listing_prints() {
+    let cli = Cli::new();
+    cli.ok(&["list", "add", "Client Work"]);
+    cli.ok(&["draft the proposal"]);
+    cli.ok(&["something else"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["mv", "1", "Client Work"]);
+
+    let out = cli.ok(&["ls", "#client-work"]);
+    assert!(out.contains("draft the proposal"), "{out}");
+    assert!(!out.contains("something else"), "{out}");
+}
+
+#[test]
+fn two_time_filters_are_refused_rather_than_one_being_dropped() {
+    let cli = Cli::new();
+    let run = cli.run(&["ls", "today", "tomorrow"]);
+
+    assert_eq!(run.code, 1, "{}{}", run.out, run.err);
+}
+
+/// A written year is a decision: rolling it forward silently filed a task a
+/// year away from where it was put.
+#[test]
+fn a_date_that_already_passed_stays_where_it_was_written() {
+    let cli = Cli::new();
+    cli.ok(&["pay the hosting invoice 2026-07-30"]);
+
+    let out = cli.ok(&["ls", "all", "--json"]);
+    assert!(out.contains("2026-07-30"), "{out}");
+    assert!(!out.contains("2027-07-30"), "{out}");
+}
+
+#[test]
+fn settings_are_read_written_and_validated() {
+    let cli = Cli::new();
+
+    cli.ok(&["config", "set", "locale", "es"]);
+    assert_eq!(cli.ok(&["config", "get", "locale"]).trim(), "es");
+
+    let run = cli.run(&["config", "set", "locale", "klingon"]);
+    assert_eq!(run.code, 1, "{}{}", run.out, run.err);
+
+    cli.ok(&["config", "unset", "locale"]);
+    assert!(cli.ok(&["config"]).contains("device_id"));
+}
+
+/// Changing it by hand orphans the directory this machine already wrote to.
+#[test]
+fn the_device_id_cannot_be_edited() {
+    let cli = Cli::new();
+    let run = cli.run(&["config", "set", "device_id", "whatever"]);
+
+    assert_eq!(run.code, 1, "{}{}", run.out, run.err);
+}
+
+#[test]
+fn export_hands_the_data_back_in_both_shapes() {
+    let cli = Cli::new();
+    cli.ok(&["write the postmortem"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["step", "1", "add", "collect the timeline"]);
+    cli.ok(&["log", "1", "the cache never expired"]);
+
+    let json = cli.ok(&["export", "all"]);
+    serde_json::from_str::<serde_json::Value>(json.trim()).expect("export is not json");
+
+    let md = cli.ok(&["export", "all", "--markdown"]);
+    assert!(md.contains("## [ ] write the postmortem"), "{md}");
+    assert!(md.contains("- [ ] collect the timeline"), "{md}");
+    assert!(md.contains("the cache never expired"), "{md}");
+}
+
+/// «tomorrow» is meaningless in a document read months later.
+#[test]
+fn an_exported_document_carries_absolute_dates() {
+    let cli = Cli::new();
+    cli.ok(&["ship it", "--date", "2026-12-24"]);
+
+    let md = cli.ok(&["export", "all", "--markdown"]);
+    assert!(md.contains("2026-12-24"), "{md}");
+}
+
+#[test]
+fn export_takes_the_same_filters_as_listing() {
+    let cli = Cli::new();
+    cli.ok(&["kept @keep"]);
+    cli.ok(&["dropped @other"]);
+
+    let md = cli.ok(&["export", "@keep", "--markdown"]);
+    assert!(md.contains("kept"), "{md}");
+    assert!(!md.contains("dropped"), "{md}");
 }
