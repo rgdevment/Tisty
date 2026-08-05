@@ -704,6 +704,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tisty-core",
+ "tisty-nl",
  "toml",
  "ulid",
 ]

@@ -39,6 +39,94 @@ fn every_case() -> Vec<(&'static str, Case)> {
         .collect()
 }
 
+fn now() -> jiff::Zoned {
+    "2026-08-05T09:00:00[America/Santiago]".parse().unwrap()
+}
+
+#[derive(Default)]
+struct Report {
+    passed: usize,
+    failures: Vec<String>,
+}
+
+#[test]
+fn the_parser_matches_every_case() {
+    let mut report = Report::default();
+
+    for (locale, case) in every_case() {
+        let got = tisty_nl::parse(&case.input, &now(), locale);
+        let mut wrong = Vec::new();
+
+        if got.title != case.title {
+            wrong.push(format!("title: {:?} ≠ {:?}", got.title, case.title));
+        }
+
+        let expect_date = case
+            .date
+            .as_ref()
+            .map(|d| d.parse::<jiff::civil::Date>().unwrap());
+        let got_date = got.date.as_ref().map(|d| d.date());
+        if got_date != expect_date {
+            wrong.push(format!("date: {got_date:?} ≠ {expect_date:?}"));
+        }
+
+        let expect_deadline = case
+            .deadline
+            .as_ref()
+            .map(|d| d.parse::<jiff::civil::Date>().unwrap());
+        let got_deadline = got.deadline.as_ref().map(|d| d.date());
+        if got_deadline != expect_deadline {
+            wrong.push(format!("deadline: {got_deadline:?} ≠ {expect_deadline:?}"));
+        }
+
+        let expect_time = case
+            .time
+            .as_ref()
+            .map(|t| t.parse::<jiff::civil::Time>().unwrap());
+        let got_time = got
+            .date
+            .as_ref()
+            .filter(|d| d.has_time)
+            .map(|d| d.at.time());
+        if got_time != expect_time {
+            wrong.push(format!("time: {got_time:?} ≠ {expect_time:?}"));
+        }
+
+        let expect_priority = case
+            .priority
+            .map(|p| u8::from(tisty_core::Priority::try_from(p).unwrap()));
+        let got_priority = got.priority.map(u8::from);
+        if got_priority != expect_priority {
+            wrong.push(format!("priority: {got_priority:?} ≠ {expect_priority:?}"));
+        }
+
+        let got_tags: Vec<String> = got.tags.iter().map(|t| t.to_string()).collect();
+        if got_tags != case.tags {
+            wrong.push(format!("tags: {got_tags:?} ≠ {:?}", case.tags));
+        }
+
+        if wrong.is_empty() {
+            report.passed += 1;
+        } else {
+            report.failures.push(format!(
+                "  {locale}  «{}»\n       {}",
+                case.input,
+                wrong.join("\n       ")
+            ));
+        }
+    }
+
+    let total = report.passed + report.failures.len();
+    if !report.failures.is_empty() {
+        panic!(
+            "{}/{} cases pass\n\n{}\n",
+            report.passed,
+            total,
+            report.failures.join("\n")
+        );
+    }
+}
+
 #[test]
 fn both_locales_have_cases() {
     for locale in ["es", "en"] {

@@ -1,4 +1,4 @@
-use tisty_core::{Config, Event, Op, Paths, State, Store, Task};
+use tisty_core::{Config, Event, List, ListId, Op, Paths, State, Store, Task, order};
 
 pub struct App {
     pub paths: Paths,
@@ -35,6 +35,52 @@ impl App {
         Ok(event)
     }
 
+    pub fn commit_all(&mut self, ops: Vec<Op>) -> tisty_core::Result<usize> {
+        let events = self.store.append_batch(ops)?;
+        for event in &events {
+            self.state.apply(event);
+        }
+        Ok(events.len())
+    }
+
+    /// The last change made here, event by event, each paired with the state it
+    /// was applied to. A change that took several events comes back whole, or
+    /// undoing a tag rename would leave half the tasks renamed.
+    ///
+    /// Another device's events are left alone: undoing them from afar would
+    /// surprise whoever is sitting in front of that machine.
+    pub fn last_own_change(&self) -> tisty_core::Result<Vec<(Event, State)>> {
+        let events = self.store.read_all()?;
+        let Some(last) = events
+            .iter()
+            .rposition(|e| &e.device == self.store.device())
+        else {
+            return Ok(Vec::new());
+        };
+
+        let wanted: Vec<usize> = match events[last].batch {
+            None => vec![last],
+            Some(batch) => events
+                .iter()
+                .enumerate()
+                .filter(|(_, e)| e.batch == Some(batch))
+                .map(|(i, _)| i)
+                .collect(),
+        };
+
+        // Another device's event can sort between two of ours, so each one is
+        // inverted against the state it actually saw.
+        let mut state = State::default();
+        let mut found = Vec::with_capacity(wanted.len());
+        for (i, event) in events.iter().enumerate() {
+            if wanted.contains(&i) {
+                found.push((event.clone(), state.clone()));
+            }
+            state.apply(event);
+        }
+        Ok(found)
+    }
+
     pub fn ordered_open(&self) -> Vec<&Task> {
         let mut tasks: Vec<_> = self.state.open_tasks().collect();
         tasks.sort_by(|a, b| {
@@ -53,5 +99,47 @@ impl App {
             }
         });
         tasks
+    }
+
+    pub fn ordered_lists(&self) -> Vec<&List> {
+        let mut lists: Vec<_> = self.state.active_lists().collect();
+        lists.sort_by(|a, b| (&a.order, a.id).cmp(&(&b.order, b.id)));
+        lists
+    }
+
+    /// Lists are few and named by hand, so a case-insensitive substring is
+    /// enough; an exact name always wins over a partial one.
+    pub fn find_list(&self, needle: &str) -> Vec<&List> {
+        let needle = needle.to_lowercase();
+        let exact: Vec<&List> = self
+            .state
+            .lists
+            .values()
+            .filter(|l| l.name.to_lowercase() == needle)
+            .collect();
+        if !exact.is_empty() {
+            return exact;
+        }
+        self.state
+            .lists
+            .values()
+            .filter(|l| l.name.to_lowercase().contains(&needle))
+            .collect()
+    }
+
+    pub fn next_task_order(&self) -> String {
+        order::last_of(self.state.tasks.values().map(|t| t.order.as_str()))
+    }
+
+    pub fn next_list_order(&self) -> String {
+        order::last_of(self.state.lists.values().map(|l| l.order.as_str()))
+    }
+
+    pub fn next_step_order(&self, task: &Task) -> String {
+        order::last_of(task.steps.iter().map(|s| s.order.as_str()))
+    }
+
+    pub fn list_id(&self, name: &str) -> Option<ListId> {
+        self.find_list(name).first().map(|l| l.id)
     }
 }

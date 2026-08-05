@@ -43,6 +43,10 @@ impl Selection {
     pub fn number(&self, n: usize) -> Option<TaskId> {
         self.by_number.get(&n).copied()
     }
+
+    pub fn len(&self) -> usize {
+        self.by_number.len()
+    }
 }
 
 pub fn resolve(selector: &str, selection: &Selection, tasks: &[&Task]) -> Resolved {
