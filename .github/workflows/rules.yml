@@ -16,7 +16,7 @@ jobs:
     name: Project conventions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: The core produces no terminal output
         run: |

@@ -148,7 +148,26 @@ where
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogAdd {
     pub entry: LogId,
+    /// The author's zone, so the entry keeps reading as the hour it was
+    /// written at, on whatever machine opens it later.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tz: Option<String>,
     pub body: String,
+}
+
+impl LogAdd {
+    pub fn new(entry: LogId, body: impl Into<String>) -> Self {
+        Self {
+            entry,
+            tz: None,
+            body: body.into(),
+        }
+    }
+
+    pub fn in_zone(mut self, tz: Option<String>) -> Self {
+        self.tz = tz;
+        self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -29,6 +29,15 @@ impl App {
         self.config.locale.as_deref()
     }
 
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
+    pub fn edit_config(&mut self, f: impl FnOnce(&mut Config)) -> tisty_core::Result<()> {
+        f(&mut self.config);
+        self.config.save(&self.paths)
+    }
+
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<Event> {
         let event = self.store.append(op)?;
         self.state.apply(&event);
@@ -110,12 +119,12 @@ impl App {
     /// Lists are few and named by hand, so a case-insensitive substring is
     /// enough; an exact name always wins over a partial one.
     pub fn find_list(&self, needle: &str) -> Vec<&List> {
-        let needle = needle.to_lowercase();
+        let needle = loose(needle);
         let exact: Vec<&List> = self
             .state
             .lists
             .values()
-            .filter(|l| l.name.to_lowercase() == needle)
+            .filter(|l| loose(&l.name) == needle)
             .collect();
         if !exact.is_empty() {
             return exact;
@@ -123,7 +132,7 @@ impl App {
         self.state
             .lists
             .values()
-            .filter(|l| l.name.to_lowercase().contains(&needle))
+            .filter(|l| loose(&l.name).contains(&needle))
             .collect()
     }
 
@@ -142,4 +151,10 @@ impl App {
     pub fn list_id(&self, name: &str) -> Option<ListId> {
         self.find_list(name).first().map(|l| l.id)
     }
+}
+
+/// Listings print «Mi Lista» as `#mi-lista`, so what is on screen has to be
+/// what can be typed back.
+fn loose(name: &str) -> String {
+    name.to_lowercase().replace([' ', '_'], "-")
 }

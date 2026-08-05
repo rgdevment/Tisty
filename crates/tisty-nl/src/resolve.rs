@@ -57,14 +57,19 @@ fn weekend(today: Date) -> Option<Date> {
 }
 
 fn explicit(today: Date, day: u8, month: Option<u8>, year: Option<i16>) -> Option<Date> {
-    let month = month.unwrap_or(today.month() as u8);
-    let year = year.unwrap_or(today.year());
+    let month = month.unwrap_or(today.month() as u8) as i8;
 
-    let candidate = Date::new(year, month as i8, day as i8).ok()?;
-    if candidate >= today || year != today.year() {
+    // A written year is a decision, not a hint. Rolling it forward turned
+    // «2026-07-30» into 2027 whenever the day had already passed this year.
+    if let Some(year) = year {
+        return Date::new(year, month, day as i8).ok();
+    }
+
+    let candidate = Date::new(today.year(), month, day as i8).ok()?;
+    if candidate >= today {
         return Some(candidate);
     }
-    Date::new(year + 1, month as i8, day as i8).ok()
+    Date::new(today.year() + 1, month, day as i8).ok()
 }
 
 /// A time already past today means tomorrow: nobody schedules something for an

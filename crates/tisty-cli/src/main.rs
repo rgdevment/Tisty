@@ -1,5 +1,6 @@
 mod app;
 mod cmd;
+mod filter;
 mod i18n;
 mod render;
 mod select;
@@ -17,7 +18,7 @@ pub const EXIT_NOT_FOUND: u8 = 4;
 
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
-    "show", "undo", "lists", "list", "tag", "help",
+    "show", "undo", "lists", "list", "tag", "config", "export", "help",
 ];
 
 #[derive(Parser)]
@@ -73,10 +74,10 @@ pub struct SetArgs {
 pub enum Command {
     /// Capture a task
     Add(AddArgs),
-    /// List open tasks
+    /// List open tasks. Filters combine: `ls week @backend !1`
     Ls {
-        /// today · all · inbox · archive
-        filter: Option<String>,
+        /// today · tomorrow · week · overdue · inbox · archive · all · #list · @tag · !1
+        filter: Vec<String>,
         #[arg(long)]
         json: bool,
     },
@@ -153,6 +154,30 @@ pub enum Command {
         #[command(subcommand)]
         action: Option<TagAction>,
     },
+    /// Read or change the settings
+    Config {
+        #[command(subcommand)]
+        action: Option<ConfigAction>,
+    },
+    /// Write the tasks out, filters and all
+    Export {
+        filter: Vec<String>,
+        /// A document to read, instead of data to process
+        #[arg(long)]
+        markdown: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum ConfigAction {
+    /// Print one setting
+    Get { key: String },
+    /// Change one setting
+    Set { key: String, value: String },
+    /// Go back to the default
+    Unset { key: String },
+    /// Where the settings file lives
+    Path,
 }
 
 #[derive(Subcommand)]

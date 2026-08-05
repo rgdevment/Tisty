@@ -145,10 +145,7 @@ mod tests {
             Op::TaskDone { id: id() },
             Op::TaskLog {
                 id: id(),
-                d: LogAdd {
-                    entry: Ulid::generate(),
-                    body: "first attempt failed".into(),
-                },
+                d: LogAdd::new(Ulid::generate(), "first attempt failed"),
             },
             Op::StepDone {
                 id: id(),
@@ -231,10 +228,7 @@ mod tests {
                     at(i as i64 + 1),
                     Op::TaskLog {
                         id: id(),
-                        d: LogAdd {
-                            entry: Ulid::generate(),
-                            body: (*body).into(),
-                        },
+                        d: LogAdd::new(Ulid::generate(), *body),
                     },
                 )
             })

@@ -1,0 +1,329 @@
+name: Release
+
+# Cutting a release is pushing an annotated tag:
+#
+#   git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
+#
+# A tag with a dash (v0.2.0-rc1) is published as a pre-release and skipped by
+# the Homebrew tap.
+#
+# Signing is wired but dormant: every signing step is guarded by its secret, so
+# this runs green on a repository with none of them set, and starts signing the
+# day they are added. Nothing here needs editing for that to happen.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    name: Tag agrees with Cargo.toml
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      crate: ${{ steps.check.outputs.crate }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: check
+        run: |
+          crate=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          version="$crate"
+          prerelease=false
+
+          if [[ "$GITHUB_REF" =~ ^refs/tags/v(.+)$ ]]; then
+            version="${BASH_REMATCH[1]}"
+            # A pre-release keeps the crate version and adds a suffix, so only
+            # the part before the dash has to agree.
+            if [[ "${version%%-*}" != "$crate" ]]; then
+              echo "::error::tag v$version but Cargo.toml says $crate"
+              exit 1
+            fi
+            [[ "$version" == *-* ]] && prerelease=true
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "crate=$crate" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "version $version (pre-release: $prerelease)"
+
+  build:
+    name: ${{ matrix.name }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # musl, so one binary runs on any distribution: a glibc build made
+          # here refuses to start on anything older than the runner.
+          - name: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - name: macos-universal
+            os: macos-latest
+            target: universal-apple-darwin
+          - name: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+    env:
+      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+      PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Linux toolchain
+        if: matrix.name == 'linux-x86_64'
+        run: |
+          sudo apt-get update && sudo apt-get install -y musl-tools
+          rustup target add ${{ matrix.target }}
+
+      - name: Build
+        shell: bash
+        run: |
+          if [[ "${{ matrix.target }}" == "universal-apple-darwin" ]]; then
+            rustup target add aarch64-apple-darwin x86_64-apple-darwin
+            cargo build --release --bin tisty --target aarch64-apple-darwin
+            cargo build --release --bin tisty --target x86_64-apple-darwin
+            mkdir -p target/${{ matrix.target }}/release
+            lipo -create -output target/${{ matrix.target }}/release/tisty \
+              target/aarch64-apple-darwin/release/tisty \
+              target/x86_64-apple-darwin/release/tisty
+            lipo -archs target/${{ matrix.target }}/release/tisty
+          else
+            cargo build --release --bin tisty --target ${{ matrix.target }}
+          fi
+
+      # ── macOS signing ──
+
+      - name: Import signing certificate
+        if: matrix.name == 'macos-universal' && env.MACOS_CERTIFICATE_P12 != ''
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          rm -f "$CERT_PATH"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      # `lipo` strips the ad-hoc signature the linker leaves behind, and an
+      # unsigned binary does not run at all on Apple Silicon. Ad-hoc is the
+      # floor, not an optimisation.
+      - name: Sign binary
+        if: matrix.name == 'macos-universal'
+        run: |
+          BIN="target/${{ matrix.target }}/release/tisty"
+          if [[ -n "$MACOS_CERTIFICATE_P12" ]]; then
+            IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
+              | grep "Developer ID Application" | head -1 | awk '{print $2}')
+            codesign --force --options runtime --timestamp --sign "$IDENTITY" "$BIN"
+            codesign --verify --strict --verbose "$BIN"
+          else
+            codesign --force --sign - "$BIN"
+          fi
+
+      # Notarising the tarball, not the binary: `notarytool` only accepts
+      # archives, and stapling needs a container to staple onto.
+      - name: Notarize
+        if: matrix.name == 'macos-universal' && env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
+        run: |
+          BIN="target/${{ matrix.target }}/release/tisty"
+          ditto -c -k --keepParent "$BIN" "$RUNNER_TEMP/tisty.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/tisty.zip" \
+            --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" --wait --timeout 600
+          spctl --assess --type exec -vv "$BIN" || true
+
+      - name: Cleanup keychain
+        if: always() && matrix.name == 'macos-universal' && env.KEYCHAIN_PATH != ''
+        run: security delete-keychain "$KEYCHAIN_PATH" || true
+
+      # ── Windows signing ──
+
+      # Without `/tr` the signature dies with the certificate; with it, binaries
+      # signed today stay valid after the certificate expires.
+      - name: Sign executable
+        if: matrix.name == 'windows-x86_64' && env.PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
+          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
+            -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -like "*x64*" } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
+
+          $exe = "target/${{ matrix.target }}/release/tisty.exe"
+          & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
+            /tr http://timestamp.digicert.com /td sha256 /fd sha256 $exe
+          if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
+
+          & $signtool.FullName verify /pa $exe
+          if ($LASTEXITCODE -ne 0) { Write-Error "signature does not verify"; exit 1 }
+          Remove-Item signingCert.pfx
+
+      # ── Package ──
+
+      # Running it is the only proof that three runners produced three working
+      # binaries; linking successfully proves nothing. It reports the crate
+      # version, not the tag: a pre-release suffix never reaches Cargo.toml.
+      - name: Smoke test
+        shell: bash
+        run: |
+          bin="target/${{ matrix.target }}/release/tisty"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            bin="$bin.exe"
+          fi
+          test "$("$bin" --version)" = "tisty ${{ needs.version.outputs.crate }}"
+
+      - name: Package
+        shell: bash
+        run: |
+          name="tisty-${{ needs.version.outputs.version }}-${{ matrix.name }}"
+          mkdir -p dist "$name"
+          cp README.md LICENSE "$name"/
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cp "target/${{ matrix.target }}/release/tisty.exe" "$name"/
+            7z a "dist/$name.zip" "$name"
+          else
+            cp "target/${{ matrix.target }}/release/tisty" "$name"/
+            tar czf "dist/$name.tar.gz" "$name"
+          fi
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.name }}
+          path: dist/*
+          retention-days: 5
+
+  publish:
+    name: GitHub Release
+    needs: [version, build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
+
+      # What was written in the annotated tag is the release notes. The `sed`
+      # drops the SSH signature block that `git tag -s` leaves in the body, and
+      # then any trailing blank lines.
+      - name: Notes from the tag
+        id: notes
+        run: |
+          body=$(git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "${GITHUB_REF_NAME}" \
+            | sed '/-----BEGIN SSH SIGNATURE-----/,$d' \
+            | sed -e :a -e '/^\n*$/{$d;N;ba}')
+          {
+            echo "body<<TISTY_EOF"
+            echo "$body"
+            echo "TISTY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.notes.outputs.body }}
+          generate_release_notes: true
+          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
+          make_latest: ${{ needs.version.outputs.prerelease == 'false' }}
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # For a CLI this is the install channel that matters on macOS and Linux:
+  # `brew install rgdevment/tap/tisty` beats downloading a tarball by hand.
+  homebrew:
+    name: Homebrew tap
+    needs: [version, publish]
+    if: startsWith(github.ref, 'refs/tags/v') && needs.version.outputs.prerelease == 'false'
+    runs-on: ubuntu-latest
+    env:
+      GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+    steps:
+      - name: Update the formula
+        if: env.GIST_TOKEN != ''
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${{ needs.version.outputs.version }}"
+          BASE="https://github.com/${{ github.repository }}/releases/download/${TAG}"
+
+          MAC="tisty-${VERSION}-macos-universal.tar.gz"
+          LINUX="tisty-${VERSION}-linux-x86_64.tar.gz"
+
+          curl -fSL -o "/tmp/$MAC" "$BASE/$MAC"
+          curl -fSL -o "/tmp/$LINUX" "$BASE/$LINUX"
+          MAC_SHA=$(sha256sum "/tmp/$MAC" | awk '{print $1}')
+          LINUX_SHA=$(sha256sum "/tmp/$LINUX" | awk '{print $1}')
+
+          git clone "https://x-access-token:${GIST_TOKEN}@github.com/rgdevment/homebrew-tap.git" /tmp/tap
+          cd /tmp/tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p Formula
+
+          cat > Formula/tisty.rb <<-FORMULA
+          	class Tisty < Formula
+          	  desc "Local, private task manager whose archive is the point"
+          	  homepage "https://github.com/${{ github.repository }}"
+          	  license "AGPL-3.0-only"
+          	  version "${VERSION}"
+
+          	  on_macos do
+          	    url "${BASE}/${MAC}"
+          	    sha256 "${MAC_SHA}"
+          	  end
+
+          	  on_linux do
+          	    url "${BASE}/${LINUX}"
+          	    sha256 "${LINUX_SHA}"
+          	  end
+
+          	  def install
+          	    bin.install "tisty"
+          	  end
+
+          	  test do
+          	    assert_match "tisty", shell_output("#{bin}/tisty --version")
+          	  end
+          	end
+          FORMULA
+
+          git add Formula/tisty.rb
+          git commit -m "tisty ${VERSION}"
+          git push origin main

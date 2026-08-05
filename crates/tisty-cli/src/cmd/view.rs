@@ -5,45 +5,31 @@ use tisty_core::Task;
 
 use super::not_found;
 use crate::app::App;
-use crate::i18n::{self, Lang};
+use crate::filter::Filter;
+use crate::i18n::Lang;
 use crate::render;
 use crate::select::{Resolved, Selection, resolve};
 
 pub fn ls(
     app: &App,
-    filter: Option<&str>,
+    tokens: &[String],
     json: bool,
     today: Date,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
-    let raw = filter.unwrap_or("today");
-    let Some(canonical) = i18n::canonical_filter(raw) else {
-        anyhow::bail!(
-            "{}",
-            lang.fill(
-                "unknown-filter",
-                &[("filter", raw), ("known", "today · all · inbox · archive")]
-            )
-        );
-    };
+    let filter = Filter::parse(tokens, app, today, lang)?;
 
-    let open = app.ordered_open();
-    let (heading, tasks): (&str, Vec<&Task>) = match canonical {
-        "all" => (lang.get("all"), open),
-        "inbox" => (
-            lang.get("inbox"),
-            open.into_iter().filter(|t| t.list.is_none()).collect(),
-        ),
-        "archive" => (lang.get("archive"), newest_first(app)),
-        _ => (
-            lang.get("today"),
-            open.into_iter()
-                .filter(|t| t.date.as_ref().is_none_or(|d| d.date() <= today))
-                .collect(),
-        ),
+    let pool = if filter.archive {
+        newest_first(app)
+    } else {
+        app.ordered_open()
     };
+    let tasks: Vec<&Task> = pool
+        .into_iter()
+        .filter(|t| filter.matches(t, today))
+        .collect();
 
-    show_many(app, &tasks, heading, json, today, lang)
+    show_many(app, &tasks, filter.heading(), json, today, lang)
 }
 
 pub fn show(

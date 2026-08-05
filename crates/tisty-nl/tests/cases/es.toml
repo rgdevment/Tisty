@@ -115,6 +115,18 @@ title = "pagar"
 date = "2026-12-24"
 
 [[case]]
+input = "pagar el 2026-07-30"
+title = "pagar"
+date = "2026-07-30"
+why = "el año viene escrito, así que no se adelanta por haber pasado"
+
+[[case]]
+input = "pagar el 30 de julio"
+title = "pagar"
+date = "2027-07-30"
+why = "sin año escrito: julio ya pasó, así que es el del año siguiente"
+
+[[case]]
 input = "pagar el 3 de enero"
 title = "pagar"
 date = "2027-01-03"

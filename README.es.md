@@ -112,6 +112,24 @@ $ tisty search "presupuesto de reintentos"
 La búsqueda lee el título, la descripción, la bitácora, los pasos y las
 etiquetas — tanto lo pendiente como el archivo.
 
+Los filtros se combinan, y las mismas palabras sirven para escribir una tarea y
+para buscarla:
+
+```console
+$ tisty ls semana @seguridad
+
+  semana @seguridad                                       1 tarea
+
+    1  ○ rotar las llaves de firma
+       !1 · mañana · #plataforma · @seguridad
+```
+
+`hoy` · `mañana` · `semana` · `vencidas` · `inbox` · `archivo` · `todas` ·
+`#lista` · `@etiqueta` · `!1`, o cualquier fecha que sepas escribir —
+`tisty ls viernes`. `tisty ls` a secas significa hoy; nombrar cualquier filtro
+amplía a todo lo abierto, porque pedir `@seguridad` y recibir solo lo de hoy
+escondería justo las tareas por las que preguntabas.
+
 ## Pensado para quien vive en una terminal
 
 - **`--json` en todo comando de lectura.** Sin eso, nada de esto sería
@@ -122,6 +140,9 @@ etiquetas — tanto lo pendiente como el archivo.
   incorrecto · `4` no encontrado.
 - **Todo lo que hará la interfaz gráfica se puede hacer desde la terminal.** Lo
   que cambia es cuántas teclas cuesta, no qué es posible.
+- **`tisty export` te devuelve los datos**, como JSON o como un documento
+  Markdown que se lee sin Tisty. Acepta los mismos filtros que `ls`, así que
+  puedes exportar una lista, una etiqueta o el archivo entero.
 
 ## Tus datos
 

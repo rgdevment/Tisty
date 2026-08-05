@@ -71,7 +71,25 @@ pub struct Step {
 pub struct LogEntry {
     pub id: LogId,
     pub at: Timestamp,
+    /// Where the author was. Without it the entry renders in the reader's zone,
+    /// which is a different hour and sometimes a different day than the one
+    /// they wrote it in.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tz: Option<String>,
     pub body: String,
+}
+
+impl LogEntry {
+    /// Falls back to the reader's zone: entries written before this was
+    /// recorded, or in a zone this machine does not know, still render.
+    pub fn zoned(&self) -> jiff::Zoned {
+        let zone = self
+            .tz
+            .as_deref()
+            .and_then(|name| jiff::tz::TimeZone::get(name).ok())
+            .unwrap_or_else(jiff::tz::TimeZone::system);
+        self.at.to_zoned(zone)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -250,6 +268,7 @@ mod tests {
         rich.log.push(LogEntry {
             id: Ulid::generate(),
             at: Timestamp::UNIX_EPOCH,
+            tz: None,
             body: "first attempt failed".into(),
         });
 
