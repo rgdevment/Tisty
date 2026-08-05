@@ -38,6 +38,24 @@ impl Cli {
         self.as_device(self.home.path(), self.zone, args, stdin)
     }
 
+    /// Every locale variable is set or cleared, not just `LANG`: a machine
+    /// carrying `LC_ALL` in its environment outranks it and picks the language
+    /// for the test.
+    fn command(&self, config: &std::path::Path, zone: &str) -> Command {
+        let root = self.home.path();
+        let mut command = Command::new(env!("CARGO_BIN_EXE_tisty"));
+        command
+            .env("TISTY_DATA", root.join("data"))
+            .env("TISTY_CONFIG", config.join("config"))
+            .env("TISTY_CACHE", config.join("cache"))
+            .env("TZ", zone)
+            .env("NO_COLOR", "1")
+            .env("LANG", "en_US.UTF-8")
+            .env_remove("LC_ALL")
+            .env_remove("LC_MESSAGES");
+        command
+    }
+
     /// Two configs over one data directory is two devices sharing a store.
     fn as_device(
         &self,
@@ -46,19 +64,8 @@ impl Cli {
         args: &[&str],
         stdin: Option<&str>,
     ) -> Run {
-        let root = self.home.path();
-        let mut command = Command::new(env!("CARGO_BIN_EXE_tisty"));
-        command
-            .args(args)
-            .env("TISTY_DATA", root.join("data"))
-            .env("TISTY_CONFIG", config.join("config"))
-            .env("TISTY_CACHE", config.join("cache"))
-            .env("TZ", zone)
-            .env("NO_COLOR", "1")
-            .env("LANG", "en_US.UTF-8")
-            .env_remove("LC_ALL")
-            .env_remove("LC_MESSAGES")
-            .stdin(Stdio::piped());
+        let mut command = self.command(config, zone);
+        command.args(args).stdin(Stdio::piped());
 
         let mut child = command
             .stdout(Stdio::piped())
@@ -380,13 +387,9 @@ fn the_interface_follows_the_locale_but_the_data_does_not() {
     let cli = Cli::new();
     cli.ok(&["ship the thing"]);
 
-    let root = cli.home.path();
-    let out = Command::new(env!("CARGO_BIN_EXE_tisty"))
+    let out = cli
+        .command(cli.home.path(), cli.zone)
         .args(["ls", "all"])
-        .env("TISTY_DATA", root.join("data"))
-        .env("TISTY_CONFIG", root.join("config"))
-        .env("TISTY_CACHE", root.join("cache"))
-        .env("NO_COLOR", "1")
         .env("LANG", "es_CL.UTF-8")
         .output()
         .unwrap();
@@ -417,15 +420,11 @@ fn tomorrow_is_tomorrow_where_the_user_is() {
         let stored: serde_json::Value = serde_json::from_str(stored.trim()).unwrap();
         let at = stored[0]["date"]["at"].as_str().unwrap();
 
-        let local = Command::new("date")
-            .args(["+%Y-%m-%d"])
-            .env("TZ", zone)
-            .output()
-            .unwrap();
-        let today: jiff::civil::Date = String::from_utf8_lossy(&local.stdout)
-            .trim()
-            .parse()
-            .unwrap();
+        // Naming the zone keeps the expectation independent of the `TZ` the
+        // binary under test resolves for itself.
+        let today = jiff::Timestamp::now()
+            .to_zoned(jiff::tz::TimeZone::get(zone).unwrap())
+            .date();
         let expected = today.tomorrow().unwrap().strftime("%Y-%m-%d").to_string();
 
         assert!(
