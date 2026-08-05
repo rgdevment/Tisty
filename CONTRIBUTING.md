@@ -6,8 +6,8 @@ Bug reports, feature discussions and pull requests are all welcome.
 
 **Open an issue first for anything beyond a bug fix.** Tisty is deliberately
 minimal and has an explicit list of things it will never do — task
-collaboration, kanban boards, time tracking, Notion-style databases,
-AI in the critical path. A pull request that adds one of those will be
+collaboration, kanban boards, time tracking, databases with typed
+properties, AI in the critical path. A pull request that adds one of those will be
 declined no matter how well it is written, and that is a waste of your
 evening. Asking first costs nothing.
 

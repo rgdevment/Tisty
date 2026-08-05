@@ -3,4 +3,50 @@
 //! No terminal output belongs here: the CLI and the GUI are both clients of this
 //! API, and anything printed from the core leaks into the GUI as garbage.
 
+pub mod config;
+pub mod event;
+pub mod model;
+pub mod paths;
+pub mod state;
+pub mod store;
+
+pub use config::Config;
+pub use event::{DeviceId, Event, Op};
+pub use model::{
+    DateSpec, List, ListId, LogEntry, LogId, Priority, Status, Step, StepId, Tag, Task, TaskId,
+};
+pub use paths::Paths;
+pub use state::State;
+pub use store::Store;
+
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("i/o error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("serialization error: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("malformed event at {file}:{line}: {source}")]
+    MalformedEvent {
+        file: String,
+        line: usize,
+        source: serde_json::Error,
+    },
+    #[error("event schema version {0} is newer than this build understands")]
+    UnsupportedVersion(u32),
+    #[error("another tisty process is using this device's store")]
+    AlreadyRunning,
+    #[error("could not determine the home directory")]
+    NoHomeDirectory,
+    #[error("config parse error: {0}")]
+    ConfigParse(#[from] toml::de::Error),
+    #[error("config write error: {0}")]
+    ConfigWrite(#[from] toml::ser::Error),
+    #[error("invalid tag: {0}")]
+    Tag(#[from] model::InvalidTag),
+    #[error("invalid priority: {0}")]
+    Priority(#[from] model::InvalidPriority),
+}
+
+pub type Result<T> = std::result::Result<T, Error>;

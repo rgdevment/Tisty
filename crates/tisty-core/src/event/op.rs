@@ -1,0 +1,197 @@
+use serde::{Deserialize, Deserializer, Serialize};
+
+use crate::model::{DateSpec, ListId, LogId, Priority, StepId, Tag, TaskId};
+
+/// Absent means "leave alone", explicit null means "clear". Serde folds both
+/// into `None` without this, breaking last-write-wins per field.
+mod null_clears {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<T, S>(v: &Option<Option<T>>, s: S) -> Result<S::Ok, S::Error>
+    where
+        T: Serialize,
+        S: Serializer,
+    {
+        v.serialize(s)
+    }
+
+    pub fn deserialize<'de, T, D>(d: D) -> Result<Option<Option<T>>, D::Error>
+    where
+        T: Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        Option::deserialize(d).map(Some)
+    }
+}
+
+/// Semantic rather than generic updates: completing a recurring task must spawn
+/// the next one, editing its status by hand must not.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "op")]
+pub enum Op {
+    #[serde(rename = "task.add")]
+    TaskAdd { id: TaskId, d: TaskAdd },
+    #[serde(rename = "task.update")]
+    TaskUpdate { id: TaskId, d: TaskPatch },
+    #[serde(rename = "task.done")]
+    TaskDone { id: TaskId },
+    #[serde(rename = "task.reopen")]
+    TaskReopen { id: TaskId },
+    #[serde(rename = "task.drop")]
+    TaskDrop { id: TaskId },
+    #[serde(rename = "task.delete")]
+    TaskDelete { id: TaskId },
+    #[serde(rename = "task.move")]
+    TaskMove { id: TaskId, d: TaskMove },
+
+    #[serde(rename = "task.describe")]
+    TaskDescribe { id: TaskId, d: Body },
+    #[serde(rename = "task.log")]
+    TaskLog { id: TaskId, d: LogAdd },
+    #[serde(rename = "task.log.edit")]
+    TaskLogEdit { id: TaskId, d: LogEdit },
+
+    #[serde(rename = "task.step.add")]
+    StepAdd { id: TaskId, d: StepAdd },
+    #[serde(rename = "task.step.done")]
+    StepDone { id: TaskId, d: StepRef },
+    #[serde(rename = "task.step.undone")]
+    StepUndone { id: TaskId, d: StepRef },
+    #[serde(rename = "task.step.text")]
+    StepText { id: TaskId, d: StepText },
+    #[serde(rename = "task.step.remove")]
+    StepRemove { id: TaskId, d: StepRef },
+    #[serde(rename = "task.step.reorder")]
+    StepReorder { id: TaskId, d: StepReorder },
+
+    #[serde(rename = "list.add")]
+    ListAdd { id: ListId, d: ListAdd },
+    #[serde(rename = "list.rename")]
+    ListRename { id: ListId, d: Name },
+    #[serde(rename = "list.archive")]
+    ListArchive { id: ListId },
+    #[serde(rename = "list.delete")]
+    ListDelete { id: ListId },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TaskAdd {
+    pub title: String,
+    pub order: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub date: Option<DateSpec>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deadline: Option<DateSpec>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority: Option<Priority>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub list: Option<ListId>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<Tag>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reminders: Vec<DateSpec>,
+}
+
+impl TaskAdd {
+    pub fn new(title: impl Into<String>, order: impl Into<String>) -> Self {
+        Self {
+            title: title.into(),
+            order: order.into(),
+            date: None,
+            deadline: None,
+            priority: None,
+            list: None,
+            tags: Vec::new(),
+            reminders: Vec::new(),
+        }
+    }
+}
+
+/// Only changed fields travel, so conflict resolution is last-write-wins per
+/// field rather than per entity.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct TaskPatch {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub date: Option<Option<DateSpec>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub deadline: Option<Option<DateSpec>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority: Option<Priority>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<Tag>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reminders: Option<Vec<DateSpec>>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct TaskMove {
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub list: Option<Option<ListId>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<String>,
+}
+
+/// `None` clears it; the field is always present, so there is no ambiguity.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Body {
+    #[serde(deserialize_with = "explicit_option")]
+    pub body: Option<String>,
+}
+
+fn explicit_option<'de, D>(d: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Option::deserialize(d)
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LogAdd {
+    pub entry: LogId,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LogEdit {
+    pub entry: LogId,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StepAdd {
+    pub step: StepId,
+    pub text: String,
+    pub order: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StepRef {
+    pub step: StepId,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StepText {
+    pub step: StepId,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StepReorder {
+    pub step: StepId,
+    pub order: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ListAdd {
+    pub name: String,
+    pub order: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Name {
+    pub name: String,
+}
