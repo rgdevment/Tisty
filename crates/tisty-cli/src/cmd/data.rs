@@ -8,8 +8,7 @@ use crate::filter::Filter;
 use crate::i18n::Lang;
 use crate::{ConfigAction, EXIT_NOT_FOUND, render, style};
 
-/// `device_id` is missing on purpose: it decides which directory this machine
-/// writes to, and editing it by hand orphans everything already written.
+/// `device_id` is absent on purpose: editing it orphans what this machine wrote.
 const KEYS: &[&str] = &["locale", "editor"];
 
 pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow::Result<ExitCode> {
@@ -102,8 +101,7 @@ fn check(key: &str, lang: Lang) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// The way out of the format. A local-first tool that cannot hand the data back
-/// in something a person reads is asking to be trusted on nothing.
+/// The way out of the format, which is what makes the data worth trusting.
 pub fn export(
     app: &App,
     tokens: &[String],

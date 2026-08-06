@@ -119,8 +119,7 @@ struct Counted {
     tasks: usize,
 }
 
-/// Tags have no catalogue of their own: renaming one means rewriting every
-/// task that carries it.
+/// Tags have no catalogue: renaming one rewrites every task that carries it.
 pub fn tag(app: &mut App, action: Option<TagAction>, lang: Lang) -> anyhow::Result<ExitCode> {
     match action.unwrap_or(TagAction::Ls { json: false }) {
         TagAction::Ls { json } => {
@@ -224,8 +223,7 @@ fn missing_tag(tag: &Tag, lang: Lang) -> ExitCode {
     ExitCode::from(EXIT_NOT_FOUND)
 }
 
-/// Undo works off the log, not a separate stack: the last thing this device
-/// wrote is the only thing it can take back.
+/// Works off the log, not a stack: only this device's last write comes back.
 pub fn undo(app: &mut App, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let change = app.last_own_change()?;
     if change.is_empty() {
@@ -233,8 +231,7 @@ pub fn undo(app: &mut App, today: Date, lang: Lang) -> anyhow::Result<ExitCode> 
         return Ok(ExitCode::SUCCESS);
     }
 
-    // Later events are undone first: an inverse computed against an older state
-    // would restore a value the newer event had already replaced.
+    // Later events first, or an inverse restores what a newer one replaced.
     let mut ops = Vec::with_capacity(change.len());
     for (event, before) in change.iter().rev() {
         match inverse(event, before) {

@@ -9,8 +9,7 @@ pub const YELLOW: &str = "\x1b[33m";
 pub const BLUE: &str = "\x1b[34m";
 pub const GREEN: &str = "\x1b[32m";
 
-/// Honours NO_COLOR and pipes: a redirected listing must not carry escape
-/// sequences into whatever reads it.
+/// Honours NO_COLOR and pipes: a redirected listing carries no escape sequences.
 pub fn enabled() -> bool {
     static ENABLED: OnceLock<bool> = OnceLock::new();
     *ENABLED

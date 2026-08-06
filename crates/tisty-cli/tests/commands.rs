@@ -17,8 +17,7 @@ struct Run {
 }
 
 impl Cli {
-    /// A fixed zone, or the suite drifts with whoever runs it: CI sits in UTC
-    /// and half the world does not.
+    /// A fixed zone, or the suite drifts with whoever runs it.
     fn new() -> Self {
         Self::in_zone("America/Santiago")
     }
@@ -189,8 +188,6 @@ fn undo_takes_back_the_last_change() {
     assert!(!cli.ok(&["ls", "archive"]).contains("book the venue"));
 }
 
-/// One user action, however many events it took: undoing a tag rename halfway
-/// would leave the tasks disagreeing about what they are tagged.
 #[test]
 fn undo_takes_back_a_whole_batch_not_one_event_of_it() {
     let cli = Cli::new();
@@ -406,8 +403,7 @@ fn an_unknown_filter_names_the_ones_that_exist() {
     assert!(run.err.contains("inbox"), "{}", run.err);
 }
 
-/// A day is decided where the user stands, not in UTC. Kiritimati is already
-/// on the next date while UTC has not turned over.
+/// Kiritimati is already on the next date while UTC has not turned over.
 #[test]
 fn tomorrow_is_tomorrow_where_the_user_is() {
     for zone in ["Pacific/Kiritimati", "Pacific/Niue", "UTC"] {
@@ -418,8 +414,7 @@ fn tomorrow_is_tomorrow_where_the_user_is() {
         let stored: serde_json::Value = serde_json::from_str(stored.trim()).unwrap();
         let at = stored[0]["date"]["at"].as_str().unwrap();
 
-        // Naming the zone keeps the expectation independent of the `TZ` the
-        // binary under test resolves for itself.
+        // Naming the zone keeps this independent of what the binary resolves.
         let today = jiff::Timestamp::now()
             .to_zoned(jiff::tz::TimeZone::get(zone).unwrap())
             .date();
@@ -432,8 +427,7 @@ fn tomorrow_is_tomorrow_where_the_user_is() {
     }
 }
 
-/// The whole sync design rests on this: order is `(ts, by)` in UTC, so two
-/// machines a day apart still replay into the same state.
+/// The sync design rests on this: order is `(ts, by)` in UTC.
 #[test]
 fn two_devices_in_opposite_zones_agree_on_everything() {
     let cli = Cli::in_zone("UTC");
@@ -451,8 +445,7 @@ fn two_devices_in_opposite_zones_agree_on_everything() {
     assert_eq!(from_east.out, from_west.out, "the two devices disagree");
 }
 
-/// A bare `05:46` in an archived document cannot be placed on a timeline, and
-/// the reader has no way to know which machine wrote it.
+/// A bare `05:46` in an archived document cannot be placed on a timeline.
 #[test]
 fn an_exported_journal_entry_says_which_zone_it_was_written_in() {
     let cli = Cli::in_zone("Asia/Kolkata");
@@ -464,8 +457,7 @@ fn an_exported_journal_entry_says_which_zone_it_was_written_in() {
     assert!(md.contains("+05:30"), "{md}");
 }
 
-/// «It was 5am when I wrote this» is part of what the entry says. Reading it
-/// from another machine must not rewrite that.
+/// «It was 5am when I wrote this» is part of what the entry says.
 #[test]
 fn a_journal_entry_keeps_the_hour_its_author_wrote_it_at() {
     let cli = Cli::in_zone("UTC");
@@ -517,8 +509,6 @@ fn filters_combine_and_each_one_narrows_the_result() {
     assert!(!out.contains("access logs"), "{out}");
 }
 
-/// Asking for a tag and getting only today's would hide the very tasks the
-/// question was about.
 #[test]
 fn naming_a_filter_widens_the_scope_past_today() {
     let cli = Cli::new();
@@ -555,8 +545,7 @@ fn two_time_filters_are_refused_rather_than_one_being_dropped() {
     assert_eq!(run.code, 1, "{}{}", run.out, run.err);
 }
 
-/// A written year is a decision: rolling it forward silently filed a task a
-/// year away from where it was put.
+/// A written year is a decision, never rolled forward.
 #[test]
 fn a_date_that_already_passed_stays_where_it_was_written() {
     let cli = Cli::new();

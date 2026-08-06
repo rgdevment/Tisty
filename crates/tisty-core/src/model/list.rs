@@ -3,8 +3,7 @@ use ulid::Ulid;
 
 pub type ListId = Ulid;
 
-/// A theme of work, not a project: "project" would promise dates, progress and
-/// templates. Distinct from a tag — `bug` classifies, it is not a place.
+/// A theme of work, not a project: no dates, progress or templates promised.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct List {
     pub id: ListId,

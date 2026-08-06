@@ -2,8 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::model::{DateSpec, ListId, LogId, Priority, StepId, Tag, TaskId};
 
-/// Serde folds `null` into `None`, which would make "clear" and "leave alone"
-/// indistinguishable and break last-write-wins per field.
+/// Serde folds `null` into `None`, making "clear" and "leave alone" the same.
 mod null_clears {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -24,8 +23,7 @@ mod null_clears {
     }
 }
 
-/// Semantic, not generic: completing a recurring task must spawn the next one,
-/// editing its status by hand must not.
+/// Semantic, not generic: only completing a recurring task spawns the next one.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op")]
 pub enum Op {
@@ -148,8 +146,7 @@ where
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogAdd {
     pub entry: LogId,
-    /// The author's zone, so the entry keeps reading as the hour it was
-    /// written at, on whatever machine opens it later.
+    /// The author's zone, or the entry reads as another hour elsewhere.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tz: Option<String>,
     pub body: String,

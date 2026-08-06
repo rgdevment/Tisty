@@ -42,7 +42,6 @@ fn row(number: usize, task: &Task, state: &State, today: Date, lang: Lang) -> St
     out
 }
 
-/// The same one-line acknowledgement every mutating command prints.
 pub fn line(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     let mut out = format!("  {} {}\n", marker(task), task.title);
 
@@ -233,8 +232,7 @@ pub fn lists(state: &State, lang: Lang) -> String {
     out
 }
 
-/// Dates are absolute here, never «tomorrow»: an exported document is read
-/// months later, when the day it was written is no longer the reference.
+/// Absolute dates, never «tomorrow»: an export is read months later.
 pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> String {
     let mut out = format!("# {heading}\n\n");
     if tasks.is_empty() {
@@ -293,8 +291,7 @@ pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> St
         if !journal.is_empty() {
             out.push_str(&format!("### {}\n\n", lang.get("journal")));
             for entry in journal {
-                // The offset spells out what the author's zone means, so the
-                // entry can be placed on a timeline without looking it up.
+                // The offset places the entry on a timeline without a lookup.
                 let at = entry.zoned();
                 out.push_str(&format!("**{}**\n\n", at.strftime("%Y-%m-%d %H:%M %:z")));
                 out.push_str(&format!("{}\n\n", entry.body));
@@ -360,7 +357,6 @@ fn short(date: Date, today: Date, lang: Lang) -> String {
     }
 }
 
-/// Tail, not head: a ULID starts with its timestamp.
 fn weekday_index(date: Date) -> u8 {
     date.weekday().to_monday_one_offset() as u8
 }

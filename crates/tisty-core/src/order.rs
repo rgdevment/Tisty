@@ -1,12 +1,10 @@
-//! Fractional indexing: a position is a string, so inserting between two
-//! neighbours never renumbers the rest and two devices can insert at the same
-//! spot without conflict.
+//! Fractional indexing: positions are strings, so an insert never renumbers
+//! the rest and two devices can insert at the same spot without conflict.
 
 const DIGITS: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const BASE: usize = 62;
 
-/// Keys never end in the lowest digit, which is what keeps room to insert
-/// before any of them.
+/// Keys never end in the lowest digit, or there is no room to insert before them.
 pub fn between(before: Option<&str>, after: Option<&str>) -> String {
     let (a, b) = (before.unwrap_or(""), after.filter(|s| !s.is_empty()));
     debug_assert!(b.is_none_or(|b| a < b), "{a} is not before {b:?}");
@@ -25,7 +23,6 @@ pub fn before(key: &str) -> String {
     between(None, Some(key))
 }
 
-/// The next position at the end of `keys`, whatever order they arrive in.
 pub fn last_of<'a>(keys: impl IntoIterator<Item = &'a str>) -> String {
     match keys.into_iter().max() {
         Some(k) => after(k),
@@ -35,8 +32,7 @@ pub fn last_of<'a>(keys: impl IntoIterator<Item = &'a str>) -> String {
 
 fn midpoint(a: &str, b: Option<&str>) -> String {
     if let Some(b) = b {
-        // Past the end of `a` the comparison continues against the lowest
-        // digit, or the result can end in one and leave no room before it.
+        // Past the end of `a`, compare against the lowest digit, not nothing.
         let shared = b
             .bytes()
             .enumerate()
@@ -100,8 +96,6 @@ mod tests {
         assert_eq!(keys, sorted);
     }
 
-    /// Repeatedly splitting the same gap is the worst case for this scheme: it
-    /// must stay ordered however long the keys get.
     #[test]
     fn splitting_the_same_gap_stays_ordered() {
         let (low, high) = (first(), after(&first()));
@@ -146,7 +140,6 @@ mod tests {
         assert!(after(&start) > start);
     }
 
-    /// The legacy literal used before this module existed must keep working.
     #[test]
     fn keys_that_did_not_come_from_here_still_work() {
         let mid = between(Some("a0"), Some("a1"));

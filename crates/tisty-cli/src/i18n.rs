@@ -64,8 +64,7 @@ impl Lang {
         self.0
     }
 
-    /// Unlike `from_code`, an unknown code is not silently English: setting a
-    /// locale that does not exist has to be refused, not accepted and ignored.
+    /// Unlike `from_code`, an unknown code is refused rather than silently English.
     pub fn known(code: &str) -> Option<Self> {
         let code = code.to_lowercase();
         let tag = code.split(['_', '-', '.']).next().unwrap_or_default();
@@ -83,8 +82,7 @@ impl Lang {
             .join(" · ")
     }
 
-    /// A missing key renders visibly rather than panicking: a broken
-    /// translation must not take the command down with it.
+    /// A missing key renders visibly; a broken translation must not panic.
     pub fn get(self, key: &str) -> &'static str {
         catalog(self.0)
             .and_then(|c| c.messages.get(key))
@@ -170,13 +168,11 @@ fn catalog(code: &str) -> Option<&'static Catalog> {
         .get(code)
 }
 
-/// Shown when a filter is not understood. Canonical names only: the aliases
-/// would triple the line without teaching anything.
+/// Canonical names only: the aliases would triple the line.
 pub const FILTERS: &str =
     "today · tomorrow · week · overdue · inbox · archive · all · #list · @tag · !1";
 
-/// Filters are accepted in any language so a Spanish user is not forced into
-/// English mid-command, and scripts written either way keep working.
+/// Accepts every language, so scripts written in either keep working.
 pub fn canonical_filter(raw: &str) -> Option<&'static str> {
     let raw = raw.to_lowercase();
     for (canonical, aliases) in [
@@ -206,8 +202,6 @@ mod tests {
         }
     }
 
-    /// A key present in English and missing elsewhere would silently fall back
-    /// and leave the interface half translated.
     #[test]
     fn every_locale_defines_the_same_keys() {
         let reference = catalog(FALLBACK).unwrap();
@@ -241,8 +235,6 @@ mod tests {
         }
     }
 
-    /// Placeholders must survive translation, or the value never reaches the
-    /// message and the user sees a sentence with a hole in it.
     #[test]
     fn placeholders_match_the_reference() {
         let reference = catalog(FALLBACK).unwrap();
@@ -268,8 +260,7 @@ mod tests {
         found
     }
 
-    /// The environment is passed in, never read: a machine set to Spanish must
-    /// not decide what this test asserts.
+    /// The environment is passed in, never read off the machine running this.
     #[test]
     fn english_is_the_fallback() {
         assert_eq!(Lang::choose(None, None).code(), "en");
@@ -284,9 +275,6 @@ mod tests {
         }
     }
 
-    /// Windows is the only platform that reaches this, but the decision is
-    /// worth checking everywhere: falling to English with Spanish further down
-    /// the list would be a worse reading than the one the machine offered.
     #[test]
     fn an_unsupported_first_choice_falls_to_the_next_one_tisty_speaks() {
         let codes = |list: &[&str]| list.iter().map(|s| s.to_string()).collect();

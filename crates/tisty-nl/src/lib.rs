@@ -1,5 +1,4 @@
-//! Natural language capture. Deterministic and local: nothing is sent to a
-//! model, so the result is reproducible and testable.
+//! Natural language capture. Nothing reaches a model, so it stays reproducible.
 
 mod resolve;
 mod scan;
@@ -134,8 +133,7 @@ fn fully_quoted(text: &str) -> Option<String> {
     (!inner.contains('"')).then(|| inner.to_string())
 }
 
-/// Quoted spans are replaced by placeholders of the same byte length so offsets
-/// keep matching, and nothing inside them is ever interpreted.
+/// Placeholders keep the same byte length, or the offsets stop matching.
 fn protect_quoted(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut inside = false;

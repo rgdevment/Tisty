@@ -65,7 +65,6 @@ pub enum Pick {
     Cancelled,
 }
 
-/// Resolving prints nothing on success: every caller reports its own outcome.
 pub fn pick(app: &App, selector: Option<&str>, pool: &[&Task], lang: Lang) -> anyhow::Result<Pick> {
     if pool.is_empty() {
         return Ok(Pick::NotFound);
@@ -92,7 +91,6 @@ pub fn pick(app: &App, selector: Option<&str>, pool: &[&Task], lang: Lang) -> an
     })
 }
 
-/// The shape every mutating command shares: resolve, act, show the result.
 macro_rules! resolved {
     ($app:expr, $selector:expr, $pool:expr, $lang:expr, |$id:ident| $body:expr) => {{
         let $id = match crate::cmd::pick($app, $selector, &$pool, $lang)? {
@@ -112,8 +110,7 @@ pub fn not_found(app: &App, selector: &str, lang: Lang) -> ExitCode {
     ExitCode::from(EXIT_NOT_FOUND)
 }
 
-/// A number that outlived its listing is the commonest miss by far, and saying
-/// «no task matches 2» for it sends the reader looking for the wrong problem.
+/// A number that outlived its listing needs its own message, not «no match».
 fn report_missing(selection: &Selection, selector: &str, lang: Lang) {
     let stale = selector
         .parse::<usize>()
@@ -135,8 +132,7 @@ fn report_missing(selection: &Selection, selector: &str, lang: Lang) {
     }
 }
 
-/// Reads stdin when no words were given, so an editor or a pipe can supply the
-/// body; asking for it interactively would hang a script.
+/// Reads stdin when no words were given; prompting would hang a script.
 pub fn text_or_stdin(words: Vec<String>, lang: Lang) -> anyhow::Result<String> {
     let joined = words.join(" ").trim().to_string();
     if !joined.is_empty() {
@@ -156,8 +152,7 @@ pub fn text_or_stdin(words: Vec<String>, lang: Lang) -> anyhow::Result<String> {
     Ok(buffer)
 }
 
-/// Irreversible actions ask first, and a script that cannot answer is refused
-/// rather than assumed to agree.
+/// A script that cannot answer is refused, never assumed to agree.
 pub fn confirm(question: &str, force: bool, lang: Lang) -> anyhow::Result<bool> {
     if force {
         return Ok(true);

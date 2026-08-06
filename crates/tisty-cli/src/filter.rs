@@ -7,7 +7,7 @@ use crate::i18n::{self, Lang};
 
 #[derive(Debug, PartialEq)]
 pub enum Window {
-    /// Everything that is not waiting for a later day, undated work included.
+    /// Includes undated work: it is not waiting for a later day.
     Today,
     On(Date),
     Until(Date),
@@ -18,10 +18,9 @@ pub enum Window {
 pub struct Filter {
     pub archive: bool,
     inbox: bool,
-    /// A task belongs to one list, so several of them can only mean «any of».
+    /// A task has one list, so several mean «any of».
     lists: Vec<ListId>,
-    /// Tags accumulate on a task, so several of them mean «all of»: each one
-    /// narrows the result instead of widening it.
+    /// A task has many tags, so several mean «all of».
     tags: Vec<Tag>,
     priority: Option<Priority>,
     window: Option<Window>,
@@ -29,9 +28,7 @@ pub struct Filter {
 }
 
 impl Filter {
-    /// Bare `ls` means today. Naming any other filter widens the scope to
-    /// everything open: asking for `@backend` and getting only today's would
-    /// hide the very tasks the question was about.
+    /// Bare `ls` means today; naming any filter widens the scope to everything open.
     pub fn parse(tokens: &[String], app: &App, today: Date, lang: Lang) -> anyhow::Result<Self> {
         let mut f = Self {
             heading: heading(tokens, lang),
@@ -90,7 +87,6 @@ impl Filter {
         }
     }
 
-    /// The same parser the capture uses, so `ls friday` needs nothing learned.
     fn take_date(&mut self, token: &str, lang: Lang) -> anyhow::Result<()> {
         let now = jiff::Zoned::now();
         match tisty_nl::parse_date(token, &now, lang.code()) {
@@ -105,8 +101,7 @@ impl Filter {
         }
     }
 
-    /// Two of them would silently discard one, and «tomorrow overdue» is a
-    /// question with no answer rather than a refinement.
+    /// Refuses a second one: «tomorrow overdue» has no answer to narrow.
     fn take_window(&mut self, window: Window, lang: Lang) -> anyhow::Result<()> {
         if self.window.is_some() {
             anyhow::bail!("{}", lang.get("one-window-only"));
@@ -147,8 +142,7 @@ impl Filter {
     }
 }
 
-/// A single named filter reads back translated; anything composed reads back
-/// exactly as it was typed, which is the only honest label for it.
+/// One named filter reads back translated; anything composed, as it was typed.
 fn heading(tokens: &[String], lang: Lang) -> String {
     match tokens {
         [] => lang.get("today").to_string(),

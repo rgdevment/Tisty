@@ -50,8 +50,7 @@ impl Selection {
 }
 
 pub fn resolve(selector: &str, selection: &Selection, tasks: &[&Task]) -> Resolved {
-    // Falling through would let `done 7` match an id ending in 7 — one in 32 —
-    // and complete the wrong task in silence.
+    // Falling through would let `done 7` match an id ending in 7, silently.
     if let Ok(n) = selector.parse::<usize>() {
         return match selection.number(n) {
             Some(id) => Resolved::One(id),
@@ -164,8 +163,7 @@ mod tests {
         }
     }
 
-    /// Fixed ids: a random tail is all digits once in a thousand, and would
-    /// then resolve as a number.
+    /// Fixed ids: a random tail is all digits once in a thousand.
     #[test]
     fn a_short_id_matches_on_the_tail() {
         let mut a = task("first");
