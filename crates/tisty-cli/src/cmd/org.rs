@@ -241,7 +241,7 @@ pub fn undo(app: &mut App, today: Date, lang: Lang) -> anyhow::Result<ExitCode> 
     }
 
     let entity = change[0].0.entity_id();
-    let n = app.commit_all(ops)?;
+    let n = app.commit_undo(ops)?;
 
     match app.state.tasks.get(&entity) {
         Some(task) if n == 1 => print!("{}", render::line(task, &app.state, today, lang)),

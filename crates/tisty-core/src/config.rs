@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
@@ -13,6 +13,8 @@ pub struct Config {
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data_dir: Option<PathBuf>,
 }
 
 impl Config {
@@ -25,6 +27,7 @@ impl Config {
             device_id: DeviceId(new_device_id()),
             locale: None,
             editor: None,
+            data_dir: None,
         };
         config.save(paths)?;
         Ok(config)

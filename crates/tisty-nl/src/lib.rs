@@ -17,19 +17,21 @@ pub struct Parsed {
     pub deadline: Option<DateSpec>,
     pub priority: Option<Priority>,
     pub tags: Vec<Tag>,
+    pub list: Option<String>,
 }
 
 pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
     let v = vocab::for_locale(locale);
     let tz = now.time_zone().iana_name().unwrap_or("UTC");
 
-    let (text, tags, priority) = take_markers(input);
+    let (text, tags, priority, list) = take_markers(input);
 
     if let Some(literal) = fully_quoted(&text) {
         return Parsed {
             title: literal,
             tags,
             priority,
+            list,
             ..Default::default()
         };
     }
@@ -41,6 +43,7 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
             title: unquote(text.trim()),
             tags,
             priority,
+            list,
             ..Default::default()
         };
     };
@@ -56,6 +59,7 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
             title: unquote(text.trim()),
             tags,
             priority,
+            list,
             ..Default::default()
         };
     };
@@ -66,6 +70,7 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
             title: unquote(text.trim()),
             tags,
             priority,
+            list,
             ..Default::default()
         };
     }
@@ -86,6 +91,7 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
         deadline,
         priority,
         tags,
+        list,
     }
 }
 
@@ -102,9 +108,10 @@ pub fn parse_date(input: &str, now: &Zoned, locale: &str) -> Option<DateSpec> {
     parsed.date.or(parsed.deadline)
 }
 
-fn take_markers(input: &str) -> (String, Vec<Tag>, Option<Priority>) {
+fn take_markers(input: &str) -> (String, Vec<Tag>, Option<Priority>, Option<String>) {
     let mut tags = Vec::new();
     let mut priority = None;
+    let mut list = None;
     let mut kept = Vec::new();
 
     for word in input.split_whitespace() {
@@ -121,10 +128,18 @@ fn take_markers(input: &str) -> (String, Vec<Tag>, Option<Priority>) {
             priority = Some(p);
             continue;
         }
+        // A bare `#42` is part of the title: a list is never named by digits alone.
+        if let Some(raw) = word.strip_prefix('#')
+            && !raw.is_empty()
+            && raw.parse::<u64>().is_err()
+        {
+            list = Some(raw.to_string());
+            continue;
+        }
         kept.push(word);
     }
 
-    (kept.join(" "), tags, priority)
+    (kept.join(" "), tags, priority, list)
 }
 
 fn fully_quoted(text: &str) -> Option<String> {

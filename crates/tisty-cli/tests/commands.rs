@@ -135,6 +135,62 @@ fn a_number_from_a_listing_that_no_longer_applies_is_refused() {
 }
 
 #[test]
+fn undo_steps_further_back_instead_of_undoing_itself() {
+    let cli = Cli::new();
+    cli.ok(&["first task"]);
+    cli.ok(&["second task"]);
+    cli.ok(&["done", "first"]);
+
+    cli.ok(&["undo"]);
+    cli.ok(&["undo"]);
+
+    let out = cli.ok(&["ls", "all"]);
+    assert!(out.contains("first task"), "{out}");
+    assert!(!out.contains("second task"), "{out}");
+}
+
+#[test]
+fn a_hash_marker_files_the_task_and_creates_the_list() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants tomorrow #home"]);
+
+    let lists = cli.ok(&["lists"]);
+    assert!(lists.contains("home"), "{lists}");
+
+    let out = cli.ok(&["ls", "all"]);
+    assert!(
+        !out.contains("water the plants tomorrow"),
+        "the marker swallowed the date: {out}"
+    );
+    assert!(out.contains("water the plants"), "{out}");
+    assert!(out.contains("tomorrow"), "{out}");
+}
+
+#[test]
+fn a_bare_number_after_a_hash_stays_in_the_title() {
+    let cli = Cli::new();
+    cli.ok(&["review PR #42"]);
+
+    assert!(cli.ok(&["ls", "all"]).contains("#42"));
+    assert!(!cli.ok(&["lists"]).contains("42"));
+}
+
+#[test]
+fn erasing_the_same_number_twice_is_refused_rather_than_crashing() {
+    let cli = Cli::new();
+    cli.ok(&["first task"]);
+    cli.ok(&["second task"]);
+    cli.ok(&["ls", "all"]);
+
+    cli.ok(&["rm", "2", "--force"]);
+    let run = cli.run(&["rm", "2", "--force"]);
+
+    assert_eq!(run.code, 4, "{}{}", run.out, run.err);
+    assert!(!run.err.contains("panicked"), "{}", run.err);
+    assert!(cli.ok(&["ls", "all"]).contains("first task"));
+}
+
+#[test]
 fn completing_moves_a_task_into_the_archive() {
     let cli = Cli::new();
     cli.ok(&["ship the release"]);

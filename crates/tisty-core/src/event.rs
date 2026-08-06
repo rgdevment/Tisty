@@ -26,6 +26,10 @@ pub struct Event {
     /// Groups the events of one user action, so undo takes back all of them.
     #[serde(rename = "tx", default, skip_serializing_if = "Option::is_none")]
     pub batch: Option<Ulid>,
+    /// Marks a compensation, so the next undo steps further back instead of
+    /// undoing this one and oscillating between two states.
+    #[serde(rename = "un", default, skip_serializing_if = "std::ops::Not::not")]
+    pub undo: bool,
     #[serde(flatten)]
     pub op: Op,
 }
@@ -37,6 +41,7 @@ impl Event {
             timestamp,
             device,
             batch: None,
+            undo: false,
             op,
         }
     }

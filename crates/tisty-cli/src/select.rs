@@ -53,8 +53,8 @@ pub fn resolve(selector: &str, selection: &Selection, tasks: &[&Task]) -> Resolv
     // Falling through would let `done 7` match an id ending in 7, silently.
     if let Ok(n) = selector.parse::<usize>() {
         return match selection.number(n) {
-            Some(id) => Resolved::One(id),
-            None => Resolved::None,
+            Some(id) if tasks.iter().any(|t| t.id == id) => Resolved::One(id),
+            _ => Resolved::None,
         };
     }
 

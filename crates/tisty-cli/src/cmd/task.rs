@@ -27,7 +27,25 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
             Some(id) => Some(id),
             None => anyhow::bail!("{}", lang.fill("no-such-list", &[("selector", name)])),
         },
-        None => None,
+        // `#casa` in the text creates the list; the flag still demands one that exists.
+        None => match parsed.list.as_deref() {
+            Some(name) => Some(match app.list_id(name) {
+                Some(id) => id,
+                None => {
+                    let id = Ulid::generate();
+                    app.commit(Op::ListAdd {
+                        id,
+                        d: tisty_core::event::ListAdd {
+                            name: name.to_string(),
+                            order: app.next_list_order(),
+                            color: None,
+                        },
+                    })?;
+                    id
+                }
+            }),
+            None => None,
+        },
     };
 
     let id = Ulid::generate();

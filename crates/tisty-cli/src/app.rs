@@ -45,7 +45,15 @@ impl App {
     }
 
     pub fn commit_all(&mut self, ops: Vec<Op>) -> tisty_core::Result<usize> {
-        let events = self.store.append_batch(ops)?;
+        self.commit_marked(ops, false)
+    }
+
+    pub fn commit_undo(&mut self, ops: Vec<Op>) -> tisty_core::Result<usize> {
+        self.commit_marked(ops, true)
+    }
+
+    fn commit_marked(&mut self, ops: Vec<Op>, undo: bool) -> tisty_core::Result<usize> {
+        let events = self.store.append_batch_marked(ops, undo)?;
         for event in &events {
             self.state.apply(event);
         }
@@ -56,11 +64,35 @@ impl App {
     /// rename leaves the tasks disagreeing.
     pub fn last_own_change(&self) -> tisty_core::Result<Vec<(Event, State)>> {
         let events = self.store.read_all()?;
-        let Some(last) = events
+        let mine: Vec<usize> = events
             .iter()
-            .rposition(|e| &e.device == self.store.device())
-        else {
-            return Ok(Vec::new());
+            .enumerate()
+            .filter(|(_, e)| &e.device == self.store.device())
+            .map(|(i, _)| i)
+            .collect();
+
+        let mut cursor = mine.len();
+        let mut already_undone = 0usize;
+        let last = loop {
+            let Some(&i) = cursor.checked_sub(1).and_then(|c| mine.get(c)) else {
+                return Ok(Vec::new());
+            };
+            let step = match events[i].batch {
+                Some(batch) => mine
+                    .iter()
+                    .filter(|&&j| events[j].batch == Some(batch))
+                    .count(),
+                None => 1,
+            };
+            cursor -= step;
+
+            if events[i].undo {
+                already_undone += 1;
+            } else if already_undone > 0 {
+                already_undone -= 1;
+            } else {
+                break i;
+            }
         };
 
         let wanted: Vec<usize> = match events[last].batch {
