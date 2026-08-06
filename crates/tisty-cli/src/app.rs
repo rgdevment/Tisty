@@ -1,4 +1,4 @@
-use tisty_core::{Config, Event, List, ListId, Op, Paths, State, Store, Task, order};
+use tisty_core::{Config, Event, List, Op, Paths, State, Store, Task, order};
 
 pub struct App {
     pub paths: Paths,
@@ -172,10 +172,6 @@ impl App {
 
     pub fn next_step_order(&self, task: &Task) -> String {
         order::last_of(task.steps.iter().map(|s| s.order.as_str()))
-    }
-
-    pub fn list_id(&self, name: &str) -> Option<ListId> {
-        self.find_list(name).first().map(|l| l.id)
     }
 }
 

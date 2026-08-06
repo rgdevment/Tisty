@@ -102,12 +102,8 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             },
         }),
 
-        Op::ListArchive { id } => Some(Op::ListRename {
-            id: *id,
-            d: crate::event::Name {
-                name: before.lists.get(id)?.name.clone(),
-            },
-        }),
+        Op::ListArchive { id } => Some(Op::ListUnarchive { id: *id }),
+        Op::ListUnarchive { id } => Some(Op::ListArchive { id: *id }),
         Op::ListRename { id, .. } => Some(Op::ListRename {
             id: *id,
             d: crate::event::Name {

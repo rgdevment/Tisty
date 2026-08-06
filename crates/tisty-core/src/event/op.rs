@@ -68,6 +68,8 @@ pub enum Op {
     ListRename { id: ListId, d: Name },
     #[serde(rename = "list.archive")]
     ListArchive { id: ListId },
+    #[serde(rename = "list.unarchive")]
+    ListUnarchive { id: ListId },
     #[serde(rename = "list.delete")]
     ListDelete { id: ListId },
 }

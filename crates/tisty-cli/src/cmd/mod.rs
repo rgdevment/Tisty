@@ -67,6 +67,10 @@ pub enum Pick {
 
 pub fn pick(app: &App, selector: Option<&str>, pool: &[&Task], lang: Lang) -> anyhow::Result<Pick> {
     if pool.is_empty() {
+        match selector {
+            Some(selector) => eprintln!("{}", lang.fill("not-found", &[("selector", selector)])),
+            None => eprintln!("{}", lang.get("nothing-here")),
+        }
         return Ok(Pick::NotFound);
     }
 

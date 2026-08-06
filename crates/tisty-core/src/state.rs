@@ -84,6 +84,11 @@ impl State {
                     list.archived = true;
                 }
             }
+            Op::ListUnarchive { id } => {
+                if let Some(list) = self.lists.get_mut(id) {
+                    list.archived = false;
+                }
+            }
             Op::ListDelete { id } => {
                 self.lists.remove(id);
                 self.tombstones.insert(*id);
