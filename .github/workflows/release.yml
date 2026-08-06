@@ -379,3 +379,59 @@ jobs:
           git add "Formula/${NAME}.rb"
           git commit -m "${NAME} ${VERSION}"
           git push origin main
+
+  scoop:
+    name: Scoop bucket
+    needs: [version, publish]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+    steps:
+      - name: Update the manifest
+        if: env.GIST_TOKEN != ''
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${{ needs.version.outputs.version }}"
+          BASE="https://github.com/${{ github.repository }}/releases/download/${TAG}"
+
+          WIN="tisty-${VERSION}-windows-x86_64.zip"
+          DIR="tisty-${VERSION}-windows-x86_64"
+
+          if [[ "$VERSION" == *-* ]]; then
+            NAME="tisty-beta"; SUFFIX=" (beta)"
+          else
+            NAME="tisty"; SUFFIX=""
+          fi
+
+          curl -fSL -o "/tmp/$WIN" "$BASE/$WIN"
+          WIN_SHA=$(sha256sum "/tmp/$WIN" | awk '{print $1}')
+
+          git clone "https://x-access-token:${GIST_TOKEN}@github.com/rgdevment/scoop-bucket.git" /tmp/bucket
+          cd /tmp/bucket
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p bucket
+
+          # `extract_dir` because the archive carries a directory, and `bin`
+          # because the shim is what puts tisty on the PATH.
+          jq -n \
+            --arg version "$VERSION" \
+            --arg desc "Local, private task manager whose archive is the point${SUFFIX}" \
+            --arg home "https://github.com/${{ github.repository }}" \
+            --arg url "${BASE}/${WIN}" \
+            --arg hash "$WIN_SHA" \
+            --arg dir "$DIR" \
+            '{
+              version: $version,
+              description: $desc,
+              homepage: $home,
+              license: "AGPL-3.0-only",
+              architecture: {"64bit": {url: $url, hash: $hash, extract_dir: $dir}},
+              bin: "tisty.exe"
+            }' > "bucket/${NAME}.json"
+
+          git add "bucket/${NAME}.json"
+          git commit -m "${NAME} ${VERSION}"
+          git push origin main
