@@ -1,5 +1,4 @@
-//! Until a parser exists this guards the contract itself: a malformed or
-//! duplicated case is a silent hole in the suite it will be measured against.
+//! Guards the corpus itself: a malformed or duplicated case is a silent hole.
 
 use std::collections::BTreeSet;
 

@@ -65,8 +65,7 @@ pub fn show(
     Ok(ExitCode::SUCCESS)
 }
 
-/// The archive is the point of keeping everything, so search reaches into the
-/// description, the journal and the steps, not just the title.
+/// Reaches description, journal and steps, not just the title.
 pub fn search(
     app: &App,
     query: &str,
@@ -93,8 +92,7 @@ pub fn search(
         .filter(|t| matches(t, &query))
         .collect();
 
-    // Open work first, then the archive newest first: what is still pending is
-    // what the search was probably for.
+    // Open work first, then the archive newest first.
     hits.sort_by_key(|t| {
         (
             t.is_archived(),
@@ -123,8 +121,7 @@ fn newest_first(app: &App) -> Vec<&Task> {
     done
 }
 
-/// Every listing records what it showed, so `done 2` means the second line the
-/// user is looking at right now.
+/// Records what was shown, so `done 2` means the second line on screen.
 fn show_many(
     app: &App,
     tasks: &[&Task],

@@ -13,8 +13,7 @@ const ACTIVE: &str = "active.jsonl";
 const LOCK: &str = ".lock";
 const SEGMENT_MAX_EVENTS: usize = 5_000;
 
-/// Writes only to this device's directory: that turns merging into
-/// concatenation instead of conflict.
+/// Writes only to this device's directory, which makes merging a concatenation.
 #[derive(Debug)]
 pub struct Store {
     root: PathBuf,
@@ -39,8 +38,7 @@ impl Store {
         })
     }
 
-    /// Taken on first write, not on open: reading must stay possible while the
-    /// GUI holds this device's store.
+    /// Taken on first write, not on open, so reads work while the GUI holds it.
     fn acquire(&mut self) -> Result<()> {
         if self.lock.is_some() {
             return Ok(());

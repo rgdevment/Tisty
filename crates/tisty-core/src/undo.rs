@@ -4,8 +4,7 @@ use crate::{
     state::State,
 };
 
-/// The compensating operation, computed against the state just before the event
-/// so a field can be restored to what it actually held.
+/// Computed against the state before the event, or a field cannot be restored.
 pub fn inverse(event: &Event, before: &State) -> Option<Op> {
     match &event.op {
         Op::TaskAdd { id, .. } => Some(Op::TaskDelete { id: *id }),
@@ -116,8 +115,7 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             },
         }),
 
-        // The payload is gone from the projection; recovering it would mean
-        // replaying the log, which is what purge is meant to prevent.
+        // Recovering the payload would mean replaying the log, which purge prevents.
         Op::TaskDelete { .. } | Op::ListDelete { .. } | Op::ListAdd { .. } => None,
     }
 }
@@ -139,7 +137,6 @@ mod tests {
         Event::new(DeviceId("dev_a".into()), at(ms), op)
     }
 
-    /// Applying an event and then its inverse must land exactly where it began.
     fn round_trip(setup: Vec<Event>, action: Event) -> (State, State) {
         let before = State::replay(&setup);
 
@@ -187,9 +184,7 @@ mod tests {
         assert_eq!(undone.tasks[&id].status, Status::Dropped);
     }
 
-    /// Undoing a reopen restores the status but stamps a new completion time:
-    /// the projection takes the last event, which is what last-write-wins
-    /// means. The original moment is still in the log.
+    /// Last-write-wins: the projection takes the last event, the log keeps both.
     #[test]
     fn undoing_a_reopen_restamps_the_completion_time() {
         let id = Ulid::generate();
@@ -235,7 +230,6 @@ mod tests {
         assert_eq!(undone.tasks[&id].priority, Priority::P2);
     }
 
-    /// Undoing a date that was set restores absence, not a different date.
     #[test]
     fn setting_a_date_on_a_task_that_had_none_is_undone_to_none() {
         let id = Ulid::generate();
@@ -354,8 +348,6 @@ mod tests {
         assert_eq!(state.tasks[&id].entry(entry).unwrap().body, "");
     }
 
-    /// Deleting is the one thing undo cannot recover, and saying so is better
-    /// than pretending otherwise.
     #[test]
     fn deleting_has_no_inverse() {
         let id = Ulid::generate();

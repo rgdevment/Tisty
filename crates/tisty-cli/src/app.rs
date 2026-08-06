@@ -52,12 +52,8 @@ impl App {
         Ok(events.len())
     }
 
-    /// The last change made here, event by event, each paired with the state it
-    /// was applied to. A change that took several events comes back whole, or
-    /// undoing a tag rename would leave half the tasks renamed.
-    ///
-    /// Another device's events are left alone: undoing them from afar would
-    /// surprise whoever is sitting in front of that machine.
+    /// Whole batch or nothing, and never another device's: half an undone tag
+    /// rename leaves the tasks disagreeing.
     pub fn last_own_change(&self) -> tisty_core::Result<Vec<(Event, State)>> {
         let events = self.store.read_all()?;
         let Some(last) = events
@@ -77,8 +73,7 @@ impl App {
                 .collect(),
         };
 
-        // Another device's event can sort between two of ours, so each one is
-        // inverted against the state it actually saw.
+        // Another device's event can sort between two of ours.
         let mut state = State::default();
         let mut found = Vec::with_capacity(wanted.len());
         for (i, event) in events.iter().enumerate() {
@@ -116,8 +111,7 @@ impl App {
         lists
     }
 
-    /// Lists are few and named by hand, so a case-insensitive substring is
-    /// enough; an exact name always wins over a partial one.
+    /// Case-insensitive substring, but an exact name always wins.
     pub fn find_list(&self, needle: &str) -> Vec<&List> {
         let needle = loose(needle);
         let exact: Vec<&List> = self
@@ -153,8 +147,7 @@ impl App {
     }
 }
 
-/// Listings print «Mi Lista» as `#mi-lista`, so what is on screen has to be
-/// what can be typed back.
+/// Listings print «Mi Lista» as `#mi-lista`, which has to be typeable back.
 fn loose(name: &str) -> String {
     name.to_lowercase().replace([' ', '_'], "-")
 }

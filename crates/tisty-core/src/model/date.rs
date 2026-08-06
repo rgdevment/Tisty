@@ -1,8 +1,7 @@
 use jiff::civil::DateTime;
 use serde::{Deserialize, Serialize};
 
-/// `floating` follows the user across time zones ("tomorrow at 10:00" stays
-/// 10:00 anywhere); `has_time` keeps "due tomorrow" from meaning midnight.
+/// `floating` stays 10:00 in any zone; `has_time` keeps "tomorrow" off midnight.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DateSpec {
     pub at: DateTime,

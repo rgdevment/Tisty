@@ -10,9 +10,7 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
-  # Runs the tests, not just the build: nearly everything cross-platform
-  # (path separators, line endings, case sensitivity, file locking) only
-  # shows up at runtime.
+  # Runs the tests, not just the build: path and locking bugs only show at runtime.
   test:
     name: test / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

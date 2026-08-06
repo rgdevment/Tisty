@@ -65,8 +65,7 @@ fn make(input: &str, start: usize, end: usize) -> Token {
     }
 }
 
-/// Scans right to left: a temporal phrase that means the task's date sits at
-/// the end. Anything mid-sentence is left in the title.
+/// Right to left: a phrase that means the date sits at the end, not mid-sentence.
 pub fn scan(tokens: &[Token], v: &Vocabulary) -> Option<Found> {
     if tokens.is_empty() {
         return None;
@@ -103,8 +102,7 @@ pub fn scan(tokens: &[Token], v: &Vocabulary) -> Option<Found> {
     })
 }
 
-/// "el informe del lunes": the report may be called that. Only an action
-/// preposition turns the phrase into a date.
+/// "el informe del lunes" may be its name; only an action preposition dates it.
 fn is_descriptive(tokens: &[Token], cursor: usize, v: &Vocabulary, role: Role) -> bool {
     if role == Role::Deadline || cursor == 0 {
         return false;
@@ -171,8 +169,7 @@ fn skip_time_preps(tokens: &[Token], mut from: usize, v: &Vocabulary) -> usize {
     from
 }
 
-/// A bare integer is only a clock behind its preposition, or it would swallow
-/// versions and quantities.
+/// A bare integer is a clock only behind its preposition, or versions get eaten.
 fn parse_clock(word: &str, preceded: bool) -> Option<Time> {
     let (digits, suffix) = split_suffix(word);
 
@@ -332,8 +329,7 @@ fn match_explicit_date(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(
         return Some((Anchor::OnDate(d, Some(m), None), end - 1));
     }
 
-    // "15 de agosto" and "august 15" are the same date in either order; the
-    // particle between them is skipped.
+    // "15 de agosto" and "august 15" are the same date in either order.
     if let Some(month) = v.month_index(last) {
         for back in 2..=3 {
             if end >= back

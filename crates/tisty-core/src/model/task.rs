@@ -71,17 +71,14 @@ pub struct Step {
 pub struct LogEntry {
     pub id: LogId,
     pub at: Timestamp,
-    /// Where the author was. Without it the entry renders in the reader's zone,
-    /// which is a different hour and sometimes a different day than the one
-    /// they wrote it in.
+    /// The author's zone, or the entry renders on the reader's day instead.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tz: Option<String>,
     pub body: String,
 }
 
 impl LogEntry {
-    /// Falls back to the reader's zone: entries written before this was
-    /// recorded, or in a zone this machine does not know, still render.
+    /// Falls back to the reader's zone so older entries still render.
     pub fn zoned(&self) -> jiff::Zoned {
         let zone = self
             .tz
@@ -100,10 +97,8 @@ pub struct Task {
     pub priority: Priority,
     pub order: String,
 
-    /// What has to be done. Admits inline references.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// What happened, in order. Admits inline references.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub log: Vec<LogEntry>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -172,8 +167,7 @@ impl Task {
         self.log.iter().find(|e| e.id == id)
     }
 
-    /// An entry emptied by an undo is kept so a later edit from another device
-    /// still finds it, but it stopped being part of the journal.
+    /// Skips entries emptied by an undo, which are kept so a later edit finds them.
     pub fn journal(&self) -> impl Iterator<Item = &LogEntry> {
         self.log.iter().filter(|e| !e.body.trim().is_empty())
     }

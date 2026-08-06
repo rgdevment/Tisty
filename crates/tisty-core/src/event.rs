@@ -23,8 +23,7 @@ pub struct Event {
     pub timestamp: jiff::Timestamp,
     #[serde(rename = "by")]
     pub device: DeviceId,
-    /// One user action that took several events, so undo can take back all of
-    /// them: renaming a tag rewrites every task that carries it.
+    /// Groups the events of one user action, so undo takes back all of them.
     #[serde(rename = "tx", default, skip_serializing_if = "Option::is_none")]
     pub batch: Option<Ulid>,
     #[serde(flatten)]

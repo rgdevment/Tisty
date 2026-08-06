@@ -270,7 +270,6 @@ fn normalise(args: impl Iterator<Item = String>) -> Vec<String> {
     out
 }
 
-/// Flags win over what the text says: someone who typed `--fecha` means it.
 pub fn date_flag(raw: Option<&str>, lang: Lang) -> anyhow::Result<Option<tisty_core::DateSpec>> {
     let Some(raw) = raw else { return Ok(None) };
     let now = jiff::Zoned::now();
@@ -314,8 +313,7 @@ mod tests {
         assert_eq!(normalised(&["tisty"]), ["tisty"]);
     }
 
-    /// clap catches a subcommand that exists in one place and not the other,
-    /// but only once it runs; this fails at test time instead.
+    /// clap only catches the mismatch at runtime; this catches it at test time.
     #[test]
     fn every_subcommand_is_known_to_the_capture_guard() {
         use clap::CommandFactory;
