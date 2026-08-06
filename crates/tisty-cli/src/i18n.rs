@@ -129,8 +129,7 @@ impl Lang {
     }
 }
 
-/// POSIX order: `LC_ALL` overrides `LC_MESSAGES`, which overrides `LANG`. A
-/// Windows terminal sets none of them, so there the system is asked directly.
+/// POSIX precedence, then the system: a Windows terminal sets none of these.
 fn machine() -> Option<String> {
     ["LC_ALL", "LC_MESSAGES", "LANG"]
         .iter()
@@ -142,9 +141,7 @@ fn system() -> Option<String> {
     first_spoken(preferred_languages())
 }
 
-/// The preference is a list, and the first language Tisty speaks beats the
-/// first one the user asked for: a machine set to French and then Spanish
-/// reads better in Spanish than in the English fallback.
+/// Windows returns a ranked list; the first one Tisty speaks beats the fallback.
 fn first_spoken(preferred: Vec<String>) -> Option<String> {
     preferred
         .into_iter()

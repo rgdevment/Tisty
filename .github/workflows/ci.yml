@@ -27,8 +27,7 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - run: cargo nextest run --workspace --no-tests=pass
       - run: cargo test --doc --workspace
-      # A suite that reads the locale off the runner passes here and fails on
-      # the machine of anyone whose computer is not in English.
+      # Catches a suite that reads the locale off the runner instead of setting it.
       - run: cargo nextest run --workspace --no-tests=pass
         env:
           LC_ALL: es_ES.UTF-8

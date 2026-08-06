@@ -1,20 +1,6 @@
 name: Release
 
-# Cutting a release is pushing an annotated tag:
-#
-#   git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
-#
-# The tag is the version. Nothing in the repository gets bumped for a release,
-# and the binary reports what was tagged, suffix included: `v0.2.0-rc1` builds a
-# `tisty 0.2.0-rc1`, which a version pinned in Cargo.toml could never say. A tag
-# with a dash is published as a pre-release and skipped by the Homebrew tap.
-#
-# Running this by hand builds and packages every platform and publishes nothing,
-# which is how to rehearse the whole pipeline before the first tag exists.
-#
-# Signing is wired but dormant: every signing step is guarded by its secret, so
-# this runs green on a repository with none of them set, and starts signing the
-# day they are added. Nothing here needs editing for that to happen.
+# The tag is the version: nothing in the repository is bumped to cut a release.
 
 on:
   push:
@@ -49,9 +35,8 @@ jobs:
             version="${{ inputs.version }}"
           fi
 
-          # The tag filter takes any `v*`, and cargo only takes semver: without
-          # this, `vlatest` fails inside the build with an unrelated message.
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+          # The `v*` filter admits tags cargo will reject much later, like `vlatest`.
+          if [[ ! "$version" =~^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
             echo "::error::«$version» is not a version cargo accepts (1.2.3 or 1.2.3-rc1)"
             exit 1
           fi
@@ -74,8 +59,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # musl, so one binary runs on any distribution: a glibc build made
-          # here refuses to start on anything older than the runner.
           - name: linux-x86_64
             os: ubuntu-latest
             target: x86_64-unknown-linux-musl
@@ -94,9 +77,7 @@ jobs:
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
     steps:
-      # Half a signature is worse than none: a certificate whose password is
-      # missing gets past every `!= ''` guard below and dies inside the import,
-      # ten minutes into the build, with an error about the wrong password.
+      # Half a set passes every `!= ''` guard below and dies inside the import.
       - name: Signing secrets come in pairs
         shell: bash
         run: |
@@ -123,10 +104,7 @@ jobs:
           sudo apt-get update && sudo apt-get install -y musl-tools
           rustup target add ${{ matrix.target }}
 
-      # After the cache, not before: the cache key hashes Cargo.lock, and
-      # stamping first would miss the dependencies on every single release.
-      # `[workspace.package]` holds the only `version =` that starts a line in
-      # the manifest, and the three crates inherit it.
+      # After the cache, whose key hashes Cargo.lock: stamping first misses it.
       - name: Stamp the version from the tag
         shell: bash
         run: |
@@ -139,8 +117,7 @@ jobs:
             exit 1
           fi
 
-          # The lock records the workspace versions too. Syncing it offline
-          # touches only the three local crates and never reaches the network.
+          # The lock pins the workspace versions too, so `--locked` builds fail without this.
           cargo update --workspace --offline
 
       - name: Build
@@ -164,8 +141,6 @@ jobs:
             cargo build --release --bin tisty --target ${{ matrix.target }}
           fi
 
-      # ── macOS signing ──
-
       - name: Import signing certificate
         if: matrix.name == 'macos-universal' && env.MACOS_CERTIFICATE_P12 != ''
         run: |
@@ -187,9 +162,8 @@ jobs:
           rm -f "$CERT_PATH"
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
 
-      # `lipo` strips the ad-hoc signature the linker leaves behind, and an
-      # unsigned binary does not run at all on Apple Silicon. Ad-hoc is the
-      # floor, not an optimisation.
+      # `lipo` strips the linker's ad-hoc signature, and Apple Silicon refuses to
+      # run a binary with none at all.
       - name: Sign binary
         if: matrix.name == 'macos-universal'
         run: |
@@ -198,9 +172,6 @@ jobs:
             IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
               | grep "Developer ID Application" | head -1 | awk '{print $2}')
 
-            # An «Apple Development» certificate imports without complaint and
-            # signs, but notarisation rejects what it produces. Better to stop
-            # here, naming what is in the keychain, than at the Apple servers.
             if [[ -z "$IDENTITY" ]]; then
               echo "::error::no «Developer ID Application» identity in the keychain"
               security find-identity -v -p codesigning "$KEYCHAIN_PATH"
@@ -213,8 +184,7 @@ jobs:
             codesign --force --sign - "$BIN"
           fi
 
-      # Notarising the tarball, not the binary: `notarytool` only accepts
-      # archives, and stapling needs a container to staple onto.
+      # `notarytool` only accepts archives, hence the zip around a single binary.
       - name: Notarize
         if: matrix.name == 'macos-universal' && env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
         run: |
@@ -229,10 +199,7 @@ jobs:
         if: always() && matrix.name == 'macos-universal' && env.KEYCHAIN_PATH != ''
         run: security delete-keychain "$KEYCHAIN_PATH" || true
 
-      # ── Windows signing ──
-
-      # Without `/tr` the signature dies with the certificate; with it, binaries
-      # signed today stay valid after the certificate expires.
+      # Without `/tr` the signature expires with the certificate.
       - name: Sign executable
         if: matrix.name == 'windows-x86_64' && env.PFX_BASE64 != ''
         shell: pwsh
@@ -253,11 +220,8 @@ jobs:
 
           Remove-Item signingCert.pfx
 
-          # Not `signtool verify /pa`: that demands a chain ending in a root
-          # Windows trusts, which a self-signed certificate can never have. What
-          # is worth failing over is a file that came out unsigned, altered
-          # after signing, or without a timestamp. Trust is the reader's to
-          # grant and no build step can manufacture it.
+          # Not `signtool verify /pa`: it demands a trusted root, which a
+          # self-signed certificate can never reach.
           $sig = Get-AuthenticodeSignature $exe
           Write-Host "status:  $($sig.Status)"
           Write-Host "subject: $($sig.SignerCertificate.Subject)"
@@ -276,11 +240,6 @@ jobs:
             Write-Warning "the chain stops short of a trusted root ($($sig.Status)); SmartScreen will still warn"
           }
 
-      # ── Package ──
-
-      # Running it is the only proof that three runners produced three working
-      # binaries; linking successfully proves nothing. Comparing against the tag
-      # is also what proves the stamping reached the binary.
       - name: Smoke test
         shell: bash
         run: |
@@ -329,9 +288,7 @@ jobs:
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
 
-      # What was written in the annotated tag is the release notes. The `sed`
-      # drops the SSH signature block that `git tag -s` leaves in the body, and
-      # then any trailing blank lines.
+      # The first `sed` drops the signature block `git tag -s` leaves in the body.
       - name: Notes from the tag
         id: notes
         run: |
@@ -354,8 +311,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # For a CLI this is the install channel that matters on macOS and Linux:
-  # `brew install rgdevment/tap/tisty` beats downloading a tarball by hand.
   homebrew:
     name: Homebrew tap
     needs: [version, publish]
@@ -375,9 +330,6 @@ jobs:
           MAC="tisty-${VERSION}-macos-universal.tar.gz"
           LINUX="tisty-${VERSION}-linux-x86_64.tar.gz"
 
-          # A pre-release goes to its own formula, as CopyPaste does with its
-          # beta cask. Skipping the tap altogether left the only step that
-          # writes outside this repository untested until a real release.
           if [[ "$VERSION" == *-* ]]; then
             NAME="tisty-beta"; CLASS="TistyBeta"; OTHER="tisty"; SUFFIX=" (beta)"
           else

@@ -38,9 +38,7 @@ impl Cli {
         self.as_device(self.home.path(), self.zone, args, stdin)
     }
 
-    /// Every locale variable is set or cleared, not just `LANG`: a machine
-    /// carrying `LC_ALL` in its environment outranks it and picks the language
-    /// for the test.
+    /// Clears `LC_ALL` too: it outranks `LANG` and would pick the language here.
     fn command(&self, config: &std::path::Path, zone: &str) -> Command {
         let root = self.home.path();
         let mut command = Command::new(env!("CARGO_BIN_EXE_tisty"));
