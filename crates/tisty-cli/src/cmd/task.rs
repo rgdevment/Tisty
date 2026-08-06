@@ -23,15 +23,16 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
     let parsed = tisty_nl::parse(&text, &now, lang.code());
 
     let list = match &args.list {
-        Some(name) => match app.list_id(name) {
-            Some(id) => Some(id),
-            None => anyhow::bail!("{}", lang.fill("no-such-list", &[("selector", name)])),
+        Some(name) => match app.find_list(name).as_slice() {
+            [one] => Some(one.id),
+            [] => anyhow::bail!("{}", lang.fill("no-such-list", &[("selector", name)])),
+            _ => anyhow::bail!("{}", lang.fill("ambiguous-list", &[("selector", name)])),
         },
         // `#casa` in the text creates the list; the flag still demands one that exists.
         None => match parsed.list.as_deref() {
-            Some(name) => Some(match app.list_id(name) {
-                Some(id) => id,
-                None => {
+            Some(name) => Some(match app.find_list(name).as_slice() {
+                [one] => one.id,
+                [] => {
                     let id = Ulid::generate();
                     app.commit(Op::ListAdd {
                         id,
@@ -43,6 +44,7 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
                     })?;
                     id
                 }
+                _ => anyhow::bail!("{}", lang.fill("ambiguous-list", &[("selector", name)])),
             }),
             None => None,
         },

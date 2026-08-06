@@ -176,6 +176,46 @@ fn a_bare_number_after_a_hash_stays_in_the_title() {
 }
 
 #[test]
+fn a_command_with_nothing_to_act_on_says_so_instead_of_going_quiet() {
+    let cli = Cli::new();
+    cli.ok(&["only task"]);
+    cli.ok(&["ls"]);
+    cli.ok(&["done", "1"]);
+
+    let run = cli.run(&["drop", "1"]);
+
+    assert_eq!(run.code, 4, "{}{}", run.out, run.err);
+    assert!(!run.err.is_empty(), "failed without a word: {:?}", run.out);
+}
+
+#[test]
+fn undo_brings_an_archived_list_back() {
+    let cli = Cli::new();
+    cli.ok(&["list", "add", "errands"]);
+    cli.ok(&["list", "archive", "errands"]);
+    assert!(!cli.ok(&["lists"]).contains("errands"));
+
+    cli.ok(&["undo"]);
+
+    assert!(
+        cli.ok(&["lists"]).contains("errands"),
+        "the list stayed archived"
+    );
+}
+
+#[test]
+fn capturing_into_an_ambiguous_list_is_refused_like_listing_is() {
+    let cli = Cli::new();
+    cli.ok(&["list", "add", "Work"]);
+    cli.ok(&["list", "add", "work"]);
+
+    let run = cli.run(&["report the numbers #work"]);
+
+    assert_ne!(run.code, 0, "{}", run.out);
+    assert!(run.err.contains("several lists"), "{}", run.err);
+}
+
+#[test]
 fn erasing_the_same_number_twice_is_refused_rather_than_crashing() {
     let cli = Cli::new();
     cli.ok(&["first task"]);

@@ -77,6 +77,7 @@ impl Event {
             Op::ListAdd { id, .. }
             | Op::ListRename { id, .. }
             | Op::ListArchive { id }
+            | Op::ListUnarchive { id }
             | Op::ListDelete { id } => *id,
         }
     }
