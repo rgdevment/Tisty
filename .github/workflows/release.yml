@@ -359,7 +359,7 @@ jobs:
   homebrew:
     name: Homebrew tap
     needs: [version, publish]
-    if: github.event_name == 'push' && needs.version.outputs.prerelease == 'false'
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -375,6 +375,15 @@ jobs:
           MAC="tisty-${VERSION}-macos-universal.tar.gz"
           LINUX="tisty-${VERSION}-linux-x86_64.tar.gz"
 
+          # A pre-release goes to its own formula, as CopyPaste does with its
+          # beta cask. Skipping the tap altogether left the only step that
+          # writes outside this repository untested until a real release.
+          if [[ "$VERSION" == *-* ]]; then
+            NAME="tisty-beta"; CLASS="TistyBeta"; OTHER="tisty"; SUFFIX=" (beta)"
+          else
+            NAME="tisty"; CLASS="Tisty"; OTHER="tisty-beta"; SUFFIX=""
+          fi
+
           curl -fSL -o "/tmp/$MAC" "$BASE/$MAC"
           curl -fSL -o "/tmp/$LINUX" "$BASE/$LINUX"
           MAC_SHA=$(sha256sum "/tmp/$MAC" | awk '{print $1}')
@@ -386,12 +395,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           mkdir -p Formula
 
-          cat > Formula/tisty.rb <<-FORMULA
-          	class Tisty < Formula
-          	  desc "Local, private task manager whose archive is the point"
+          cat > "Formula/${NAME}.rb" <<-FORMULA
+          	class ${CLASS} < Formula
+          	  desc "Local, private task manager whose archive is the point${SUFFIX}"
           	  homepage "https://github.com/${{ github.repository }}"
           	  license "AGPL-3.0-only"
           	  version "${VERSION}"
+
+          	  conflicts_with "${OTHER}", because: "both install the same binary"
 
           	  on_macos do
           	    url "${BASE}/${MAC}"
@@ -413,6 +424,6 @@ jobs:
           	end
           FORMULA
 
-          git add Formula/tisty.rb
-          git commit -m "tisty ${VERSION}"
+          git add "Formula/${NAME}.rb"
+          git commit -m "${NAME} ${VERSION}"
           git push origin main
