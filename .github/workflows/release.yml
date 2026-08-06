@@ -290,6 +290,22 @@ jobs:
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
 
+      - name: Verify every artifact to attest is present
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          status=0
+          for f in "tisty-$v-linux-x86_64.tar.gz" \
+                   "tisty-$v-macos-universal.tar.gz" \
+                   "tisty-$v-windows-x86_64.zip"; do
+            if [ -s "dist/$f" ]; then
+              echo "$f"
+            else
+              echo "::error::missing dist/$f"
+              status=1
+            fi
+          done
+          exit $status
+
       - uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
@@ -344,8 +360,20 @@ jobs:
             NAME="tisty"; CLASS="Tisty"; OTHER="tisty-beta"; SUFFIX=""
           fi
 
-          curl -fSL -o "/tmp/$MAC" "$BASE/$MAC"
-          curl -fSL -o "/tmp/$LINUX" "$BASE/$LINUX"
+          fetch() {
+            for attempt in 1 2 3 4 5; do
+              if curl -fSL -o "/tmp/$1" "$BASE/$1" && [ -s "/tmp/$1" ]; then
+                return 0
+              fi
+              echo "$1 not downloadable yet (attempt ${attempt}/5)"
+              sleep $((attempt * 10))
+            done
+            echo "::error::could not download $1"
+            return 1
+          }
+
+          fetch "$MAC"
+          fetch "$LINUX"
           MAC_SHA=$(sha256sum "/tmp/$MAC" | awk '{print $1}')
           LINUX_SHA=$(sha256sum "/tmp/$LINUX" | awk '{print $1}')
 
@@ -385,8 +413,22 @@ jobs:
           FORMULA
 
           git add "Formula/${NAME}.rb"
+          if git diff --cached --quiet; then
+            echo "formula already at ${VERSION}"
+            exit 0
+          fi
           git commit -m "${NAME} ${VERSION}"
-          git push origin main
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "push rejected (attempt ${attempt}/5); rebasing onto the concurrent release"
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "::error::could not push the formula after 5 attempts"
+          exit 1
 
   scoop:
     name: Scoop bucket
@@ -413,7 +455,19 @@ jobs:
             NAME="tisty"; SUFFIX=""
           fi
 
-          curl -fSL -o "/tmp/$WIN" "$BASE/$WIN"
+          for attempt in 1 2 3 4 5; do
+            if curl -fSL -o "/tmp/$WIN" "$BASE/$WIN" && [ -s "/tmp/$WIN" ]; then
+              DOWNLOADED=1
+              break
+            fi
+            echo "$WIN not downloadable yet (attempt ${attempt}/5)"
+            sleep $((attempt * 10))
+          done
+          if [ -z "${DOWNLOADED:-}" ]; then
+            echo "::error::could not download $WIN"
+            exit 1
+          fi
+
           WIN_SHA=$(sha256sum "/tmp/$WIN" | awk '{print $1}')
 
           git clone "https://x-access-token:${GIST_TOKEN}@github.com/rgdevment/scoop-bucket.git" /tmp/bucket
@@ -439,5 +493,19 @@ jobs:
             }' > "bucket/${NAME}.json"
 
           git add "bucket/${NAME}.json"
+          if git diff --cached --quiet; then
+            echo "manifest already at ${VERSION}"
+            exit 0
+          fi
           git commit -m "${NAME} ${VERSION}"
-          git push origin main
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "push rejected (attempt ${attempt}/5); rebasing onto the concurrent release"
+            git fetch origin main
+            git rebase origin/main
+          done
+          echo "::error::could not push the manifest after 5 attempts"
+          exit 1
