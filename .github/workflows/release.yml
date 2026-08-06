@@ -94,6 +94,25 @@ jobs:
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
     steps:
+      # Half a signature is worse than none: a certificate whose password is
+      # missing gets past every `!= ''` guard below and dies inside the import,
+      # ten minutes into the build, with an error about the wrong password.
+      - name: Signing secrets come in pairs
+        shell: bash
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+
+          if [ -n "$MACOS_CERTIFICATE_P12" ] && [ -z "$MACOS_CERTIFICATE_PASSWORD" ]; then
+            fail "MACOS_CERTIFICATE_P12 is set but MACOS_CERTIFICATE_PASSWORD is empty"
+          fi
+          if [ -n "$PFX_BASE64" ] && [ -z "$PFX_PASSWORD" ]; then
+            fail "PFX_BASE64 is set but PFX_PASSWORD is empty"
+          fi
+          if [ -n "$APPLE_ID" ] && { [ -z "$APPLE_APP_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; }; then
+            fail "APPLE_ID is set but APPLE_APP_PASSWORD or APPLE_TEAM_ID is empty"
+          fi
+          echo "signing secrets are coherent"
+
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -178,6 +197,16 @@ jobs:
           if [[ -n "$MACOS_CERTIFICATE_P12" ]]; then
             IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
               | grep "Developer ID Application" | head -1 | awk '{print $2}')
+
+            # An «Apple Development» certificate imports without complaint and
+            # signs, but notarisation rejects what it produces. Better to stop
+            # here, naming what is in the keychain, than at the Apple servers.
+            if [[ -z "$IDENTITY" ]]; then
+              echo "::error::no «Developer ID Application» identity in the keychain"
+              security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+              exit 1
+            fi
+
             codesign --force --options runtime --timestamp --sign "$IDENTITY" "$BIN"
             codesign --verify --strict --verbose "$BIN"
           else
@@ -222,9 +251,30 @@ jobs:
             /tr http://timestamp.digicert.com /td sha256 /fd sha256 $exe
           if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
 
-          & $signtool.FullName verify /pa $exe
-          if ($LASTEXITCODE -ne 0) { Write-Error "signature does not verify"; exit 1 }
           Remove-Item signingCert.pfx
+
+          # Not `signtool verify /pa`: that demands a chain ending in a root
+          # Windows trusts, which a self-signed certificate can never have. What
+          # is worth failing over is a file that came out unsigned, altered
+          # after signing, or without a timestamp. Trust is the reader's to
+          # grant and no build step can manufacture it.
+          $sig = Get-AuthenticodeSignature $exe
+          Write-Host "status:  $($sig.Status)"
+          Write-Host "subject: $($sig.SignerCertificate.Subject)"
+          Write-Host "issuer:  $($sig.SignerCertificate.Issuer)"
+
+          if (-not $sig.SignerCertificate -or $sig.Status -eq 'NotSigned') {
+            Write-Error "the binary came out unsigned"; exit 1
+          }
+          if ($sig.Status -eq 'HashMismatch') {
+            Write-Error "the signature does not match the binary"; exit 1
+          }
+          if (-not $sig.TimeStamperCertificate) {
+            Write-Error "no timestamp: the signature would die with the certificate"; exit 1
+          }
+          if ($sig.Status -ne 'Valid') {
+            Write-Warning "the chain stops short of a trusted root ($($sig.Status)); SmartScreen will still warn"
+          }
 
       # ── Package ──
 
