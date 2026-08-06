@@ -68,12 +68,17 @@ impl Store {
 
     /// One user action, however many events it takes.
     pub fn append_batch(&mut self, ops: Vec<Op>) -> Result<Vec<Event>> {
+        self.append_batch_marked(ops, false)
+    }
+
+    pub fn append_batch_marked(&mut self, ops: Vec<Op>, undo: bool) -> Result<Vec<Event>> {
         let batch = (ops.len() > 1).then(ulid::Ulid::generate);
         let mut written = Vec::with_capacity(ops.len());
 
         for op in ops {
             let mut event = Event::new(self.device.clone(), jiff::Timestamp::now(), op);
             event.batch = batch;
+            event.undo = undo;
             self.append_event(&event)?;
             written.push(event);
         }
