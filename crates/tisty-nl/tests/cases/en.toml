@@ -246,3 +246,85 @@ priority = 3
 input = "paint the wall !low"
 title = "paint the wall !low"
 why = "«low» is none of the four; it stays in the title instead of being guessed"
+
+[[case]]
+input = "review the monday report"
+title = "review the monday report"
+why = "no clock and no preposition: mid-sentence «monday» is naming the report"
+
+[[case]]
+input = "ship the release tomorrow at 10 to production"
+title = "ship the release to production"
+date = "2026-08-06"
+time = "10:00"
+
+[[case]]
+input = "move the friday meeting to monday"
+title = "move the friday meeting"
+date = "2026-08-10"
+why = "the dangling «to» goes with the phrase that left it there"
+
+[[case]]
+input = "call the bank tomorrow about the invoice"
+title = "call the bank tomorrow about the invoice"
+why = "«tomorrow» alone mid-sentence is not enough to cut the title in two"
+
+[[case]]
+input = "parents meeting on tuesday in room 3c at 16:00"
+title = "parents meeting in room 3c"
+date = "2026-08-11"
+time = "16:00"
+why = "the day and the clock sit apart with half a title between them"
+
+[[case]]
+input = "take the kids to the dentist on thursday at 17:30"
+title = "take the kids to the dentist"
+date = "2026-08-06"
+time = "17:30"
+
+[[case]]
+input = "take the pills every day at 10 for 30 days"
+title = "take the pills every day for 30 days"
+date = "2026-08-05"
+time = "10:00"
+why = "«for 30 days» is a duration and stays written: inventing a date a month out was worse than leaving it undated. «every day» waits for recurrence"
+
+[[case]]
+input = "take the medicine at 10am for 1 month"
+title = "take the medicine for 1 month"
+date = "2026-08-05"
+time = "10:00"
+
+[[case]]
+input = "buy milk tomorrow and bread on friday"
+title = "buy milk tomorrow and bread"
+date = "2026-08-07"
+why = "two days in one sentence: the last one wins and the first stays as text"
+
+[[case]]
+input = "meet tuesday and thursday"
+title = "meet tuesday"
+date = "2026-08-06"
+why = "same rule, and the dangling «and» goes with the phrase"
+
+[[case]]
+input = "meet this friday"
+title = "meet"
+date = "2026-08-07"
+
+[[case]]
+input = "put it on the monday list"
+title = "put it on the monday list"
+why = "the noun behind it means «monday» was naming that list"
+
+[[case]]
+input = "review the monday report at 10"
+title = "review the monday report"
+date = "2026-08-05"
+time = "10:00"
+why = "the clock is real but the «monday» describes the report; taking it would contradict the case without a clock"
+
+[[case]]
+input = "turn the volume to 12"
+title = "turn the volume to 12"
+why = "a bare integer is a clock only behind «at»"

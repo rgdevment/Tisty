@@ -80,7 +80,7 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
         };
     };
 
-    let title = unquote(text[..tokens[found.from_token].start].trim());
+    let title = unquote(&without_spans(&text, &tokens, &found));
     if title.is_empty() {
         return Parsed {
             title: unquote(text.trim()),
@@ -133,7 +133,19 @@ fn take_markers(
     let mut list = None;
     let mut kept = Vec::new();
 
+    let mut inside = false;
     for word in input.split_whitespace() {
+        // Between quotes nothing is interpreted, markers included.
+        let quotes = word.matches('"').count();
+        let quoted = inside;
+        if quotes % 2 == 1 {
+            inside = !inside;
+        }
+        if quoted || inside {
+            kept.push(word);
+            continue;
+        }
+
         // A bare `#42` is a written reference — «review PR #42» — not a marker.
         if let Some(raw) = word.strip_prefix('#')
             && raw.parse::<u64>().is_err()
@@ -166,6 +178,41 @@ fn take_markers(
 
     (kept.join(" "), tags, priority, list)
 }
+
+/// The temporal phrase can sit mid-sentence, so both sides of the hole are the
+/// title; a trailing conjunction is what the phrase left dangling.
+fn without_spans(text: &str, tokens: &[scan::Token], found: &scan::Found) -> String {
+    let mut kept: Vec<&str> = Vec::new();
+    let mut at = 0;
+
+    for (from, to) in &found.spans {
+        kept.push(&text[at..tokens[*from].start]);
+        at = tokens.get(*to).map_or(text.len(), |token| token.start);
+    }
+    kept.push(&text[at..]);
+
+    let mut title = String::new();
+    for piece in kept {
+        let piece = piece.trim_end_matches(|c: char| c.is_whitespace() || c == ',');
+        let piece = LOOSE_ENDS
+            .iter()
+            .find_map(|word| piece.strip_suffix(&format!(" {word}")))
+            .unwrap_or(piece);
+        let piece = piece.trim();
+        if piece.is_empty() {
+            continue;
+        }
+        if !title.is_empty() {
+            title.push(' ');
+        }
+        title.push_str(piece);
+    }
+    title
+}
+
+const LOOSE_ENDS: &[&str] = &[
+    "y", "e", "and", "to", "al", "a", "el", "la", "los", "las", "por", "for",
+];
 
 fn fully_quoted(text: &str) -> Option<String> {
     let t = text.trim();

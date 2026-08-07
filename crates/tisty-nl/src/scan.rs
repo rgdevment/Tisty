@@ -29,7 +29,8 @@ pub struct Found {
     pub anchor: Option<Anchor>,
     pub time: Option<Time>,
     pub role: Role,
-    pub from_token: usize,
+    /// One range per piece taken out: the day and the clock can sit apart.
+    pub spans: Vec<(usize, usize)>,
 }
 
 pub struct Token {
@@ -67,11 +68,16 @@ fn make(input: &str, start: usize, end: usize) -> Token {
 
 /// Right to left: a phrase that means the date sits at the end, not mid-sentence.
 pub fn scan(tokens: &[Token], v: &Vocabulary) -> Option<Found> {
-    if tokens.is_empty() {
+    (0..=tokens.len()).rev().find_map(|end| at(tokens, end, v))
+}
+
+fn at(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<Found> {
+    if end == 0 {
         return None;
     }
+    let trailing = end == tokens.len();
 
-    let mut cursor = tokens.len();
+    let mut cursor = end;
     let mut time = None;
 
     if let Some((t, from)) = match_time(tokens, cursor, v) {
@@ -92,14 +98,67 @@ pub fn scan(tokens: &[Token], v: &Vocabulary) -> Option<Found> {
     if anchor.is_some() && time.is_none() && is_descriptive(tokens, cursor, v, role) {
         return None;
     }
-    let from_token = skip_particles(tokens, cursor, v, role);
+    // «por la mañana» is a part of the day; only the bare word means the day
+    // after. The article is what tells them apart.
+    if anchor.is_some() && names_part_of_day(tokens, cursor, end, v) {
+        return None;
+    }
+    // Mid-sentence, «monday» is usually naming something — «the monday report»,
+    // «lunes santo». Only a clock or a temporal preposition says it is a date.
+    if !trailing && time.is_none() && !prefixed(tokens, cursor, v) {
+        return None;
+    }
+    // And a noun right behind it means it was modifying that noun: «the monday
+    // list» names a list, while «el viernes el informe» just carries on.
+    if !trailing && qualifies_next(tokens, end, v) {
+        return None;
+    }
+
+    let mut spans = vec![(skip_particles(tokens, cursor, v, role), end)];
+    let mut anchor = anchor;
+
+    // A clock is signal enough to go looking for the day it belongs to: «the
+    // meeting on tuesday in room 3c at 16:00» means tuesday, not tomorrow.
+    if anchor.is_none()
+        && time.is_some()
+        && let Some((found, from, to)) = anchor_before(tokens, cursor, v)
+    {
+        anchor = Some(found);
+        spans.insert(0, (from, to));
+    }
 
     Some(Found {
         anchor,
         time,
         role,
-        from_token,
+        spans,
     })
+}
+
+fn anchor_before(tokens: &[Token], limit: usize, v: &Vocabulary) -> Option<(Anchor, usize, usize)> {
+    (0..limit).rev().find_map(|end| {
+        let (anchor, from) = match_anchor(tokens, end, v)?;
+        let role = role_before(tokens, from, v);
+        if is_descriptive(tokens, from, v, role) || qualifies_next(tokens, end, v) {
+            return None;
+        }
+        Some((anchor, skip_particles(tokens, from, v, role), end))
+    })
+}
+
+/// A bare noun straight after the phrase means the phrase was describing it.
+fn qualifies_next(tokens: &[Token], end: usize, v: &Vocabulary) -> bool {
+    let Some(next) = tokens.get(end) else {
+        return false;
+    };
+    let word = next.word.as_str();
+    !(v.article.contains(&word)
+        || v.linker.contains(&word)
+        || v.date_prep.contains(&word)
+        || v.deadline_prep.contains(&word)
+        || v.time_prep.contains(&word)
+        || v.in_prep.contains(&word)
+        || v.spans_prep.contains(&word))
 }
 
 /// "el informe del lunes" may be its name; only an action preposition dates it.
@@ -111,6 +170,20 @@ fn is_descriptive(tokens: &[Token], cursor: usize, v: &Vocabulary, role: Role) -
         return false;
     }
     !(cursor >= 2 && v.date_prep.contains(&tokens[cursor - 2].word.as_str()))
+}
+
+fn names_part_of_day(tokens: &[Token], cursor: usize, end: usize, v: &Vocabulary) -> bool {
+    end == cursor + 1
+        && v.day_part.contains(&tokens[cursor].word.as_str())
+        && cursor > 0
+        && v.article.contains(&tokens[cursor - 1].word.as_str())
+}
+
+fn prefixed(tokens: &[Token], cursor: usize, v: &Vocabulary) -> bool {
+    (0..cursor).rev().take(3).any(|i| {
+        let word = tokens[i].word.as_str();
+        v.deadline_prep.contains(&word) || v.date_prep.contains(&word)
+    })
 }
 
 fn role_before(tokens: &[Token], cursor: usize, v: &Vocabulary) -> Role {
@@ -157,7 +230,16 @@ fn match_time(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Time, usi
         ));
     }
 
-    let preceded = end >= 2 && v.time_prep.contains(&tokens[end - 2].word.as_str());
+    // «10 am» arrives as two words; alone, «am» is not a clock.
+    if matches!(last.as_str(), "am" | "pm") && end >= 2 {
+        let joined = format!("{}{last}", tokens[end - 2].word);
+        let preceded = end >= 3 && v.clock_prep.contains(&tokens[end - 3].word.as_str());
+        if let Some(t) = parse_clock(&joined, preceded) {
+            return Some((t, skip_time_preps(tokens, end - 2, v)));
+        }
+    }
+
+    let preceded = end >= 2 && v.clock_prep.contains(&tokens[end - 2].word.as_str());
     let t = parse_clock(last, preceded)?;
     Some((t, skip_time_preps(tokens, end - 1, v)))
 }
@@ -296,12 +378,25 @@ fn match_offset(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
     };
 
     let mut from = end - 2;
+    let mut asked = false;
     while from > 0 {
         let w = tokens[from - 1].word.as_str();
-        if v.in_prep.contains(&w) || v.article.contains(&w) {
+        if v.in_prep.contains(&w) {
+            asked = true;
+            from -= 1;
+        } else if v.article.contains(&w) {
             from -= 1;
         } else {
             break;
+        }
+    }
+
+    // «en 30 días» is a date; «por 30 días» is how long it lasts and «hace 3
+    // días» points backwards. Neither has anywhere to go: guessing is worse.
+    if from > 0 {
+        let before = tokens[from - 1].word.as_str();
+        if v.past_prep.contains(&before) || (!asked && v.spans_prep.contains(&before)) {
+            return None;
         }
     }
     Some((anchor, from))
