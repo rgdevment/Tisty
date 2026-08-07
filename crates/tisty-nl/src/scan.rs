@@ -59,11 +59,58 @@ pub fn tokenize(input: &str) -> Vec<Token> {
 
 fn make(input: &str, start: usize, end: usize) -> Token {
     Token {
-        word: input[start..end]
-            .trim_matches(|c: char| !c.is_alphanumeric())
-            .to_lowercase(),
+        word: composed(
+            input[start..end]
+                .trim_matches(|c: char| !c.is_alphanumeric())
+                .to_lowercase(),
+        ),
         start,
     }
+}
+
+/// macOS and some keyboards send «ñ» as n + U+0303, which matches no word in
+/// the vocabulary. Only the token is composed; the title keeps what was typed.
+fn composed(word: String) -> String {
+    if !word.chars().any(is_mark) {
+        return word;
+    }
+
+    let mut out = String::with_capacity(word.len());
+    for c in word.chars() {
+        match out.pop() {
+            Some(base) if is_mark(c) => match join(base, c) {
+                Some(single) => out.push(single),
+                None => {
+                    out.push(base);
+                    out.push(c);
+                }
+            },
+            Some(base) => {
+                out.push(base);
+                out.push(c);
+            }
+            None => out.push(c),
+        }
+    }
+    out
+}
+
+fn is_mark(c: char) -> bool {
+    ('\u{0300}'..='\u{036F}').contains(&c)
+}
+
+fn join(base: char, mark: char) -> Option<char> {
+    Some(match (base, mark) {
+        ('a', '\u{0301}') => 'á',
+        ('e', '\u{0301}') => 'é',
+        ('i', '\u{0301}') => 'í',
+        ('o', '\u{0301}') => 'ó',
+        ('u', '\u{0301}') => 'ú',
+        ('n', '\u{0303}') => 'ñ',
+        ('u', '\u{0308}') => 'ü',
+        ('c', '\u{0327}') => 'ç',
+        _ => return None,
+    })
 }
 
 /// Right to left: a phrase that means the date sits at the end, not mid-sentence.

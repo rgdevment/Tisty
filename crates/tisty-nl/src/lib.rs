@@ -282,6 +282,14 @@ mod tests {
         assert!(p.date.is_some());
     }
 
+    /// macOS and some keyboards send it decomposed.
+    #[test]
+    fn a_decomposed_enye_is_still_a_word() {
+        let p = parse("comprar pan man\u{0303}ana", &now(), "es");
+        assert_eq!(p.title, "comprar pan");
+        assert!(p.date.is_some());
+    }
+
     #[test]
     fn quoted_text_is_never_interpreted() {
         let p = parse("\"reunión el lunes\"", &now(), "es");

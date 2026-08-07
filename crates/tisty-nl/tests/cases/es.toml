@@ -488,3 +488,36 @@ input = "anotar \"revisar #precios\" mañana"
 title = "anotar \"revisar #precios\""
 date = "2026-08-06"
 why = "entre comillas no se interpreta NADA, marcadores incluidos"
+
+[[case]]
+input = "reunión el 15 de agosto"
+title = "reunión"
+date = "2026-08-15"
+why = "la fecha con mes escrito sí se entiende; es la que no lleva mes la que se queda corta"
+
+[[case]]
+input = "reunión el lunes 15"
+title = "reunión el lunes 15"
+why = "HUECO CONOCIDO: el día del mes tras el día de la semana hace fallar el reconocimiento entero. No inventa nada, solo no lo ve"
+
+[[case]]
+input = "entregar el 15/8/2026"
+title = "entregar el 15/8/2026"
+why = "HUECO CONOCIDO: las fechas con barras no se leen todavía; el formato con guiones sí"
+
+[[case]]
+input = "entregar el primero de agosto"
+title = "entregar el primero de agosto"
+why = "HUECO CONOCIDO: los ordinales escritos con letra no se reconocen"
+
+[[case]]
+input = "revisar la próxima semana"
+title = "revisar la próxima semana"
+why = "HUECO CONOCIDO: «la próxima semana» y «el mes que viene» se quedan en el título en silencio"
+
+[[case]]
+input = "llamar a las 3"
+title = "llamar"
+time = "03:00"
+date = "2026-08-06"
+why = "A DECIDIR, no es bug: las 3 se leen de madrugada. Suponer la tarde cambiaría la mitad de las horas habladas, así que se prefiere no adivinar hasta decidirlo"

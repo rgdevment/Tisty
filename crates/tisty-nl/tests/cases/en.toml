@@ -328,3 +328,18 @@ why = "the clock is real but the «monday» describes the report; taking it woul
 input = "turn the volume to 12"
 title = "turn the volume to 12"
 why = "a bare integer is a clock only behind «at»"
+
+[[case]]
+input = "ship it on august 1st"
+title = "ship it on august 1st"
+why = "KNOWN GAP: written ordinals are not recognised yet"
+
+[[case]]
+input = "review it next week"
+title = "review it next week"
+why = "KNOWN GAP: «next week» and «next month» stay in the title without a word"
+
+[[case]]
+input = "meeting on august 15"
+title = "meeting"
+date = "2026-08-15"
