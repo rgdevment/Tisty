@@ -338,3 +338,129 @@ fn projected(store_root: &Path, cache_dir: &Path, bodies: bool) -> Result<State>
     }
     Ok(state)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::event::{DeviceId, LogAdd, StepAdd, TaskAdd};
+    use crate::{Op, Store};
+    use ulid::Ulid;
+
+    struct Fixture {
+        _tmp: tempfile::TempDir,
+        store_root: std::path::PathBuf,
+        cache_dir: std::path::PathBuf,
+        task: Ulid,
+    }
+
+    fn loaded() -> Fixture {
+        let tmp = tempfile::tempdir().unwrap();
+        let store_root = tmp.path().join("store");
+        let cache_dir = tmp.path().join("cache");
+
+        let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+        let task = Ulid::generate();
+        store
+            .append(Op::TaskAdd {
+                id: task,
+                d: TaskAdd::new("write the report", "a0"),
+            })
+            .unwrap();
+        for body in ["spoke to accounting", "still waiting"] {
+            store
+                .append(Op::TaskLog {
+                    id: task,
+                    d: LogAdd::new(Ulid::generate(), body),
+                })
+                .unwrap();
+        }
+        store
+            .append(Op::StepAdd {
+                id: task,
+                d: StepAdd {
+                    step: Ulid::generate(),
+                    text: "collect the figures".into(),
+                    order: "a0".into(),
+                },
+            })
+            .unwrap();
+
+        Fixture {
+            _tmp: tmp,
+            store_root,
+            cache_dir,
+            task,
+        }
+    }
+
+    #[test]
+    fn a_summary_knows_how_much_body_it_left_behind() {
+        let f = loaded();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        let task = &light.tasks[&f.task];
+
+        assert!(task.log.is_empty(), "the body came along");
+        assert!(task.steps.is_empty(), "the body came along");
+        assert_eq!(task.journal_count(), 2);
+        assert_eq!(task.steps_done(), (0, 1));
+    }
+
+    #[test]
+    fn the_full_load_carries_everything_the_log_had() {
+        let f = loaded();
+        let cached = project(&f.store_root, &f.cache_dir).unwrap();
+        let replayed = State::replay(&store::read_all(&f.store_root).unwrap());
+
+        assert_eq!(cached, replayed, "the cache disagrees with the log");
+        assert_eq!(cached.tasks[&f.task].log.len(), 2);
+    }
+
+    #[test]
+    fn a_cache_built_once_is_reused_and_a_deleted_one_is_rebuilt() {
+        let f = loaded();
+        let first = project(&f.store_root, &f.cache_dir).unwrap();
+        assert!(matches!(
+            audit(&f.store_root, &f.cache_dir).unwrap(),
+            Audit::Agrees { .. }
+        ));
+
+        std::fs::remove_dir_all(&f.cache_dir).unwrap();
+        assert_eq!(project(&f.store_root, &f.cache_dir).unwrap(), first);
+    }
+
+    #[test]
+    fn a_log_that_grew_leaves_the_cache_behind() {
+        let f = loaded();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        store
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new("something later", "a1"),
+            })
+            .unwrap();
+
+        assert!(matches!(
+            audit(&f.store_root, &f.cache_dir).unwrap(),
+            Audit::Stale { .. }
+        ));
+        assert_eq!(project(&f.store_root, &f.cache_dir).unwrap().tasks.len(), 2);
+    }
+
+    #[test]
+    fn tombstones_survive_the_round_trip() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        store.append(Op::TaskDelete { id: f.task }).unwrap();
+
+        let state = project(&f.store_root, &f.cache_dir).unwrap();
+        assert!(state.is_erased(f.task));
+
+        // Straight from the cache this time, and it has to remember just the same.
+        let again = project(&f.store_root, &f.cache_dir).unwrap();
+        assert!(again.is_erased(f.task), "the cache forgot a deletion");
+    }
+}
