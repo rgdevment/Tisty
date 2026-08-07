@@ -137,6 +137,16 @@ impl State {
         self.tombstones.contains(&id)
     }
 
+    pub fn erased(&self) -> impl Iterator<Item = &Ulid> {
+        self.tombstones.iter()
+    }
+
+    /// Restoring a projection that was stored elsewhere. Losing the tombstones
+    /// would let a deleted task come back the next time its log is read.
+    pub fn mark_erased(&mut self, id: Ulid) {
+        self.tombstones.insert(id);
+    }
+
     pub fn tasks_tagged(&self, tag: &Tag) -> impl Iterator<Item = &Task> {
         self.tasks.values().filter(move |t| t.tags.contains(tag))
     }
