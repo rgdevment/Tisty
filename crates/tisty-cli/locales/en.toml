@@ -56,6 +56,15 @@ deadline-before-date = "heads up: the deadline falls before the date"
 unknown-locale = "unknown language: {value} ({known})"
 one-window-only = "only one time filter at a time"
 
+sync           = "sync"
+git-missing    = "git is not installed, and it is what tisty syncs with"
+not-a-repo     = "this store is not a git repository yet: run `tisty sync --setup <url>`"
+git-failed     = "git {command} failed"
+setup-done     = "run `tisty sync` to send what you have"
+no-remote      = "no remote configured"
+nothing-to-send = "nothing new to send"
+synced         = "synced"
+
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
 lines = { one = "1 line", other = "{n} lines" }

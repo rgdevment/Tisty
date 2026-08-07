@@ -18,7 +18,7 @@ pub const EXIT_NOT_FOUND: u8 = 4;
 
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
-    "show", "undo", "redo", "lists", "list", "tag", "config", "export", "help",
+    "show", "undo", "redo", "sync", "lists", "list", "tag", "config", "export", "help",
 ];
 
 #[derive(Parser)]
@@ -141,6 +141,15 @@ pub enum Command {
     Undo,
     /// Redo what the last undo took back
     Redo,
+    /// Send and receive changes over git
+    Sync {
+        /// Point this store at a remote, creating the repository if needed
+        #[arg(long, value_name = "URL")]
+        setup: Option<String>,
+        /// What would be sent, and where
+        #[arg(long, conflicts_with = "setup")]
+        status: bool,
+    },
     /// Show the lists
     Lists {
         #[arg(long)]
