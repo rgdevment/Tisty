@@ -396,6 +396,51 @@ fn a_listing_reports_its_counts_without_loading_the_bodies() {
     );
 }
 
+/// Deleting the cache must never change an answer, only how fast it arrives.
+#[test]
+fn every_read_says_the_same_with_the_cache_and_without_it() {
+    let cli = Cli::new();
+    cli.ok(&["write the report tomorrow !1 #work"]);
+    cli.ok(&["log", "write the report", "spoke to accounting"]);
+    cli.ok(&["step", "write the report", "add", "collect the figures"]);
+    cli.ok(&["buy milk"]);
+    cli.ok(&["done", "buy milk"]);
+
+    let reads: Vec<&[&str]> = vec![
+        &["ls", "all"],
+        &["ls", "archive"],
+        &["lists"],
+        &["show", "write the report"],
+        &["search", "accounting"],
+        &["export", "all", "--markdown"],
+        &["ls", "all", "--json"],
+    ];
+    let cached: Vec<String> = reads.iter().map(|args| cli.ok(args)).collect();
+
+    std::fs::remove_dir_all(cli.home.path().join("cache")).unwrap();
+
+    for (args, before) in reads.iter().zip(cached) {
+        assert_eq!(cli.ok(args), before, "`{}` changed", args.join(" "));
+    }
+}
+
+#[test]
+fn the_body_survives_writing_through_the_cache() {
+    let cli = Cli::new();
+    cli.ok(&["prepare the handover"]);
+    cli.ok(&["desc", "prepare the handover", "the keys are in the safe"]);
+    cli.ok(&["log", "prepare the handover", "left a note"]);
+
+    let shown = cli.ok(&["show", "prepare the handover"]);
+    assert!(shown.contains("keys are in the safe"), "{shown}");
+    assert!(shown.contains("left a note"), "{shown}");
+
+    cli.ok(&["undo"]);
+    let after = cli.ok(&["show", "prepare the handover"]);
+    assert!(after.contains("keys are in the safe"), "{after}");
+    assert!(!after.contains("left a note"), "{after}");
+}
+
 #[test]
 fn doctor_agrees_with_the_log_when_nothing_is_wrong() {
     let cli = Cli::new();
@@ -998,4 +1043,88 @@ fn export_takes_the_same_filters_as_listing() {
     let md = cli.ok(&["export", "@keep", "--markdown"]);
     assert!(md.contains("kept"), "{md}");
     assert!(!md.contains("dropped"), "{md}");
+}
+
+fn bare_remote() -> TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    let ok = Command::new("git")
+        .args(["init", "--bare", "-q", "-b", "main"])
+        .arg(dir.path())
+        .status()
+        .unwrap()
+        .success();
+    assert!(ok, "could not create the remote");
+    dir
+}
+
+impl Cli {
+    /// An identity of its own, or the suite fails wherever git has none set.
+    fn joins(&self, remote: &TempDir) {
+        self.ok(&["sync", "--setup", remote.path().to_str().unwrap()]);
+        for pair in [
+            ["user.email", "suite@tisty.test"],
+            ["user.name", "suite"],
+            ["commit.gpgsign", "false"],
+        ] {
+            Command::new("git")
+                .current_dir(self.home.path().join("data"))
+                .args(["config", pair[0], pair[1]])
+                .status()
+                .unwrap();
+        }
+    }
+}
+
+/// A machine joining a remote that already has history used to fail on the
+/// first sync and only work on the retry.
+#[test]
+fn a_second_machine_joins_an_existing_remote_on_the_first_try() {
+    let remote = bare_remote();
+
+    let first = Cli::new();
+    first.ok(&["buy bread"]);
+    first.joins(&remote);
+    first.ok(&["sync"]);
+
+    let second = Cli::new();
+    second.ok(&["call the bank"]);
+    second.joins(&remote);
+
+    let run = second.run(&["sync"]);
+    assert_eq!(run.code, 0, "the first sync failed: {}", run.err);
+
+    let out = second.ok(&["ls", "all"]);
+    assert!(out.contains("buy bread"), "{out}");
+    assert!(out.contains("call the bank"), "{out}");
+}
+
+#[test]
+fn what_one_machine_writes_the_other_reads_back() {
+    let remote = bare_remote();
+
+    let first = Cli::new();
+    first.joins(&remote);
+    first.ok(&["buy bread"]);
+    first.ok(&["sync"]);
+
+    let second = Cli::new();
+    second.joins(&remote);
+    second.ok(&["sync"]);
+    second.ok(&["call the bank"]);
+    second.ok(&["sync"]);
+
+    first.ok(&["sync"]);
+    let out = first.ok(&["ls", "all"]);
+    assert!(out.contains("call the bank"), "{out}");
+    assert!(out.contains("buy bread"), "{out}");
+}
+
+#[test]
+fn syncing_outside_a_repository_says_so() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+
+    let run = cli.run(&["sync"]);
+    assert_ne!(run.code, 0);
+    assert!(!run.err.trim().is_empty(), "it failed without saying why");
 }

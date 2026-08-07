@@ -87,13 +87,6 @@ fn report(root: &Path, lang: Lang) -> anyhow::Result<ExitCode> {
 fn run(root: &Path, lang: Lang) -> anyhow::Result<ExitCode> {
     let has_remote = git(root, &["remote", "get-url", "origin"], lang).is_ok();
 
-    // Pull first: rebasing our own commits onto theirs always applies, because
-    // no two devices ever write the same file.
-    if has_remote {
-        let _ = git(root, &["fetch", "origin"], lang);
-        let _ = git(root, &["pull", "--rebase", "origin", "main"], lang);
-    }
-
     git(root, &["add", "-A"], lang)?;
     let staged = git(root, &["diff", "--cached", "--name-only"], lang)?;
 
@@ -107,6 +100,16 @@ fn run(root: &Path, lang: Lang) -> anyhow::Result<ExitCode> {
     if !has_remote {
         println!("  {}", style::dim(lang.get("no-remote")));
         return Ok(ExitCode::SUCCESS);
+    }
+
+    // Commit before pulling: a rebase needs a commit to land on, and on a branch
+    // that has none git refuses to overwrite the files setup just wrote.
+    let _ = git(root, &["fetch", "origin"], lang);
+    if git(root, &["rev-parse", "--verify", "origin/main"], lang).is_ok()
+        && let Err(err) = git(root, &["pull", "--rebase", "origin", "main"], lang)
+    {
+        let _ = git(root, &["rebase", "--abort"], lang);
+        return Err(err);
     }
 
     git(root, &["push", "origin", "HEAD:main"], lang)?;
