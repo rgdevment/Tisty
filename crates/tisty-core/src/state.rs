@@ -179,20 +179,66 @@ impl State {
         tasks
     }
 
+    /// Mixed scopes read newest-closed first and then the open order, so what is
+    /// still to do is never buried under what is already done.
     pub fn matching(&self, filter: &crate::view::Filter, today: jiff::civil::Date) -> Vec<&Task> {
-        if filter.archive {
+        use crate::view::Scope;
+
+        let open = || {
+            self.ordered_open()
+                .into_iter()
+                .filter(|t| filter.matches(t, today))
+                .collect::<Vec<_>>()
+        };
+        let archived = || {
             let mut done: Vec<&Task> = self
                 .archived_tasks()
                 .filter(|t| filter.matches(t, today))
                 .collect();
             done.sort_by_key(|t| (std::cmp::Reverse(t.completed_at), std::cmp::Reverse(t.id)));
-            return done;
+            done
+        };
+
+        match filter.scope {
+            Scope::Open => open(),
+            Scope::Archived => archived(),
+            Scope::Either => {
+                let mut all = open();
+                all.extend(archived());
+                all
+            }
+        }
+    }
+
+    /// Open work first, then the archive newest first: what is still to do
+    /// comes before what is already filed.
+    pub fn search(&self, query: &str, scope: crate::view::Scope) -> Vec<&Task> {
+        use crate::view::Scope;
+
+        let query = query.trim().to_lowercase();
+        if query.is_empty() {
+            return Vec::new();
         }
 
-        self.ordered_open()
-            .into_iter()
-            .filter(|t| filter.matches(t, today))
-            .collect()
+        let mut hits: Vec<&Task> = self
+            .tasks
+            .values()
+            .filter(|t| match scope {
+                Scope::Open => t.is_open(),
+                Scope::Archived => t.is_archived(),
+                Scope::Either => true,
+            })
+            .filter(|t| crate::view::matches_query(t, &query))
+            .collect();
+
+        hits.sort_by_key(|t| {
+            (
+                t.is_archived(),
+                std::cmp::Reverse(t.completed_at),
+                std::cmp::Reverse(t.id),
+            )
+        });
+        hits
     }
 
     pub fn ordered_lists(&self) -> Vec<&List> {

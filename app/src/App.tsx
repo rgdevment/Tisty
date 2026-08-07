@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { capture, complete, snapshot, type Snapshot, type Task } from "./core";
 import { adopt } from "./locales";
-import { asView, title, type Chosen } from "./views";
+import { accepts, asView, invite, title, type Chosen } from "./views";
 import CaptureField from "./ui/CaptureField";
 import Detail from "./ui/Detail";
 import Notice from "./ui/Notice";
+import Search from "./ui/Search";
 import Sidebar from "./ui/Sidebar";
+import Tags from "./ui/Tags";
 import TaskList from "./ui/TaskList";
 import WindowChrome from "./ui/WindowChrome";
 
@@ -19,6 +21,7 @@ export default function App() {
   const [reveal, setReveal] = useState<string | undefined>();
   const [mode, setMode] = useState<Mode>("columns");
   const [chosen, setChosen] = useState<Chosen>({ named: "today" });
+  const [found, setFound] = useState<Task[] | null>(null);
   const dismiss = useCallback(() => setCaptured(undefined), []);
 
   useTheme();
@@ -78,6 +81,7 @@ export default function App() {
         onChoose={(next) => {
           setChosen(next);
           setSelected(undefined);
+          setFound(null);
         }}
       />
 
@@ -91,7 +95,7 @@ export default function App() {
         />
       ) : (
         <TaskList
-          tasks={data.tasks}
+          tasks={found ?? data.tasks}
           lists={data.lists}
           title={title(chosen, data.lists)}
           selected={selected}
@@ -100,11 +104,33 @@ export default function App() {
           centred={!open}
           onSelect={setSelected}
           onComplete={(id) => act(complete(id))}
+          above={
+            chosen.named === "tags" || chosen.tags?.length ? (
+              <Tags
+                tags={data.tags}
+                chosen={chosen.tags ?? []}
+                onToggle={(tag) => {
+                  const now = chosen.tags ?? [];
+                  const next = now.includes(tag)
+                    ? now.filter((t) => t !== tag)
+                    : [...now, tag];
+                  setChosen({ named: "tags", tags: next });
+                  setSelected(undefined);
+                }}
+              />
+            ) : undefined
+          }
         >
+          {chosen.named === "search" ? (
+            <Search onFound={setFound} />
+          ) : chosen.named === "archive" ? (
+            <Search fixed="archived" onFound={setFound} />
+          ) : accepts(chosen) ? (
           <CaptureField
+            invite={invite(chosen, data.lists)}
             onCapture={(written) => {
               setError(null);
-              return capture(written).then((task) => {
+              return capture(written, asView(chosen)).then((task) => {
                 setCaptured(task);
                 load();
                 return task;
@@ -112,6 +138,7 @@ export default function App() {
             }}
             onError={setError}
           />
+          ) : null}
           {error && <p className="mt-2 px-2.5 text-xs text-urgent">{error}</p>}
         </TaskList>
       )}

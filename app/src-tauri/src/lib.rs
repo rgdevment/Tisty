@@ -1,8 +1,8 @@
 use std::sync::Mutex;
 
 use tisty_core::{
-    Config, Event, List, Op, Paths, State, Store, Task,
-    view::{Filter, Window},
+    Config, Event, List, Op, Paths, State, Store, Tag, Task,
+    view::{Filter, Scope, Window},
 };
 
 /// The CLI writes to the same store while the window is open, so what the
@@ -102,9 +102,29 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
 }
 
 #[derive(serde::Serialize)]
+struct Counted {
+    tag: String,
+    tasks: usize,
+}
+
+/// No catalogue to administer: a tag exists because some task mentions it, and
+/// the count reaches into the archive because that is where a tag earns its keep.
+fn tags_in_use(state: &State) -> Vec<Counted> {
+    state
+        .tags()
+        .into_iter()
+        .map(|tag| Counted {
+            tag: tag.to_string(),
+            tasks: state.tasks_tagged(tag).count(),
+        })
+        .collect()
+}
+
+#[derive(serde::Serialize)]
 struct Snapshot {
     tasks: Vec<Task>,
     lists: Vec<List>,
+    tags: Vec<Counted>,
     counts: std::collections::BTreeMap<String, usize>,
     /// Set only when configured: the window would otherwise speak a different
     /// language than `tisty` on the same machine.
@@ -126,11 +146,22 @@ fn today() -> jiff::civil::Date {
     jiff::Zoned::now().date()
 }
 
-#[derive(serde::Deserialize)]
+fn zone() -> String {
+    jiff::Zoned::now()
+        .time_zone()
+        .iana_name()
+        .unwrap_or("UTC")
+        .to_string()
+}
+
+#[derive(serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct View {
     #[serde(default)]
     archive: bool,
+    /// A tag reaches across the archive: «everything I did with #istio».
+    #[serde(default)]
+    everything: bool,
     #[serde(default)]
     inbox: bool,
     #[serde(default)]
@@ -144,7 +175,11 @@ struct View {
 impl View {
     fn resolve(self) -> Result<Filter, String> {
         Ok(Filter {
-            archive: self.archive,
+            scope: match (self.everything, self.archive) {
+                (true, _) => Scope::Either,
+                (_, true) => Scope::Archived,
+                _ => Scope::Open,
+            },
             inbox: self.inbox,
             lists: self
                 .list
@@ -155,7 +190,7 @@ impl View {
             tags: self
                 .tags
                 .iter()
-                .map(|t| tisty_core::Tag::new(t).map_err(|e| e.to_string()))
+                .map(|t| Tag::new(t).map_err(|e| e.to_string()))
                 .collect::<Result<_, _>>()?,
             priority: None,
             window: match self.window.as_deref() {
@@ -186,6 +221,7 @@ fn snapshot(session: tauri::State<'_, Mutex<Session>>, view: Option<View>) -> An
             .cloned()
             .collect(),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),
+        tags: tags_in_use(&session.state),
         counts: tally(&session.state),
         locale: session.locale.clone(),
     })
@@ -197,10 +233,32 @@ fn capture(
     session: tauri::State<'_, Mutex<Session>>,
     text: String,
     locale: String,
+    view: Option<View>,
 ) -> Answer<Task> {
     let mut session = held(&session);
     let spoken = session.locale.clone().unwrap_or(locale);
-    let draft = tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken).into();
+    let mut draft: tisty_core::capture::Draft =
+        tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken).into();
+
+    // The view is where the task is born; what the text says wins over it,
+    // because typing `@work` is asking for something explicitly.
+    if let Some(view) = view {
+        if draft.filing.is_none()
+            && let Some(list) = view.list
+        {
+            draft.filing = Some(tisty_core::capture::Filing::Named(list));
+        }
+        for name in view.tags {
+            if let Ok(tag) = Tag::new(&name)
+                && !draft.tags.contains(&tag)
+            {
+                draft.tags.push(tag);
+            }
+        }
+        if draft.date.is_none() && view.window.as_deref() == Some("today") {
+            draft.date = Some(tisty_core::DateSpec::all_day(today(), zone()));
+        }
+    }
 
     let plan = tisty_core::capture::plan(&session.state, draft).map_err(|e| e.to_string())?;
     session.commit_all(plan.ops).map_err(|e| e.to_string())?;
@@ -215,6 +273,30 @@ fn read(
 ) -> Answer<tisty_nl::Parsed> {
     let spoken = held(&session).locale.clone().unwrap_or(locale);
     Ok(tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken))
+}
+
+/// The window searches through the core, or it would find different things
+/// than `tisty search` does with the same words.
+#[tauri::command]
+fn search(
+    session: tauri::State<'_, Mutex<Session>>,
+    query: String,
+    scope: Option<String>,
+) -> Answer<Vec<Task>> {
+    let mut session = held(&session);
+    session.reload().map_err(|e| e.to_string())?;
+
+    let scope = match scope.as_deref() {
+        Some("open") => Scope::Open,
+        Some("archived") => Scope::Archived,
+        _ => Scope::Either,
+    };
+    Ok(session
+        .state
+        .search(&query, scope)
+        .into_iter()
+        .cloned()
+        .collect())
 }
 
 #[tauri::command]
@@ -240,7 +322,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
-            snapshot, capture, read, complete, reopen
+            snapshot, capture, read, search, complete, reopen
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

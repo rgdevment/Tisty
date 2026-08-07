@@ -9,6 +9,11 @@ name: CLA
 # anyway. It only sees Pull Requests, so CONTRIBUTING.md rules out the routes
 # that bypass it. Widening what CLA.md grants needs a new signatures path: the
 # old signatures consented to the old text.
+#
+# Tools are deliberately NOT on the allowlist. A co-author that cannot sign
+# blocks its own pull request, and that is the intended outcome: CONTRIBUTING
+# asks for the credit line to name people only, so a blocked PR means the guide
+# went unread. Reopening it without that trailer costs a minute.
 
 on:
   issue_comment:

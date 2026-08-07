@@ -209,5 +209,9 @@ minimalista y una funcionalidad bien escrita puede rechazarse igualmente.
 [AGPL-3.0](LICENSE), y disponible bajo [términos comerciales](COMMERCIAL.md)
 para organizaciones que no puedan cumplirla.
 
+Los binarios firmados de las tiendas llevan términos propios, porque los de las
+tiendas no admiten la AGPL — [DISTRIBUTION.md](DISTRIBUTION.md) dice cuál se
+aplica a lo que tengas, y por qué. No se retiene nada del código en ningún caso.
+
 Ver también [SECURITY.md](SECURITY.md) y [PRIVACY.md](PRIVACY.md) — el resumen
 de esta última es que no se recoge nada y no se envía a ninguna parte.
