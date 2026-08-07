@@ -1,5 +1,6 @@
 mod data;
 mod org;
+mod sync;
 mod task;
 mod view;
 
@@ -51,6 +52,7 @@ pub fn dispatch(
 
         Command::Undo => org::undo(app, today, lang),
         Command::Redo => org::redo(app, today, lang),
+        Command::Sync { setup, status } => sync::sync(app, setup, status, lang),
         Command::Lists { json } => org::lists(app, json, lang),
         Command::List { action } => org::list(app, action, lang),
         Command::Tag { action } => org::tag(app, action, lang),
