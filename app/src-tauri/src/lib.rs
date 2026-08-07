@@ -1,6 +1,9 @@
 use std::sync::Mutex;
 
-use tisty_core::{Config, Event, List, Op, Paths, State, Store, Task};
+use tisty_core::{
+    Config, Event, List, Op, Paths, State, Store, Task,
+    view::{Filter, Window},
+};
 
 /// The CLI writes to the same store while the window is open, so what the
 /// session holds can go stale under it.
@@ -68,10 +71,40 @@ impl Session {
     }
 }
 
+/// Counted with the same filter the views use, or the sidebar would promise a
+/// number the list does not deliver.
+fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
+    let mut counts = std::collections::BTreeMap::new();
+    let mut count = |key: &str, filter: Filter| {
+        counts.insert(key.to_string(), state.matching(&filter, today()).len());
+    };
+
+    count(
+        "inbox",
+        Filter {
+            inbox: true,
+            ..Default::default()
+        },
+    );
+    count(
+        "today",
+        Filter {
+            window: Some(Window::Today),
+            ..Default::default()
+        },
+    );
+
+    for list in state.ordered_lists() {
+        counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
+    }
+    counts
+}
+
 #[derive(serde::Serialize)]
 struct Snapshot {
     tasks: Vec<Task>,
     lists: Vec<List>,
+    counts: std::collections::BTreeMap<String, usize>,
     /// Set only when configured: the window would otherwise speak a different
     /// language than `tisty` on the same machine.
     locale: Option<String>,
@@ -87,14 +120,76 @@ fn held<'a>(session: &'a tauri::State<'_, Mutex<Session>>) -> std::sync::MutexGu
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+/// The day is decided where the user is, never in UTC.
+fn today() -> jiff::civil::Date {
+    jiff::Zoned::now().date()
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct View {
+    #[serde(default)]
+    archive: bool,
+    #[serde(default)]
+    inbox: bool,
+    #[serde(default)]
+    list: Option<String>,
+    #[serde(default)]
+    tags: Vec<String>,
+    #[serde(default)]
+    window: Option<String>,
+}
+
+impl View {
+    fn resolve(self) -> Result<Filter, String> {
+        Ok(Filter {
+            archive: self.archive,
+            inbox: self.inbox,
+            lists: self
+                .list
+                .map(|id| id.parse().map_err(|_| "not a list id".to_string()))
+                .transpose()?
+                .into_iter()
+                .collect(),
+            tags: self
+                .tags
+                .iter()
+                .map(|t| tisty_core::Tag::new(t).map_err(|e| e.to_string()))
+                .collect::<Result<_, _>>()?,
+            priority: None,
+            window: match self.window.as_deref() {
+                Some("today") => Some(Window::Today),
+                Some("upcoming") => Some(Window::Until(
+                    today()
+                        .checked_add(jiff::ToSpan::days(7))
+                        .unwrap_or(today()),
+                )),
+                Some("overdue") => Some(Window::Overdue),
+                _ => None,
+            },
+        })
+    }
+}
+
 #[tauri::command]
-fn snapshot(session: tauri::State<'_, Mutex<Session>>) -> Answer<Snapshot> {
+fn snapshot(session: tauri::State<'_, Mutex<Session>>, view: Option<View>) -> Answer<Snapshot> {
     let mut session = held(&session);
     session.reload().map_err(|e| e.to_string())?;
 
+    let filter = match view {
+        Some(view) => view.resolve()?,
+        None => Filter::default(),
+    };
+
     Ok(Snapshot {
-        tasks: session.state.ordered_open().into_iter().cloned().collect(),
+        tasks: session
+            .state
+            .matching(&filter, today())
+            .into_iter()
+            .cloned()
+            .collect(),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),
+        counts: tally(&session.state),
         locale: session.locale.clone(),
     })
 }

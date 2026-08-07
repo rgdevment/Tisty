@@ -134,7 +134,9 @@ fn take_markers(
     let mut kept = Vec::new();
 
     for word in input.split_whitespace() {
-        if let Some(raw) = word.strip_prefix('@')
+        // A bare `#42` is a written reference — «review PR #42» — not a marker.
+        if let Some(raw) = word.strip_prefix('#')
+            && raw.parse::<u64>().is_err()
             && let Ok(tag) = Tag::new(raw)
         {
             tags.push(tag);
@@ -151,8 +153,8 @@ fn take_markers(
             priority = Some(p);
             continue;
         }
-        // A bare `#42` is part of the title: a list is never named by digits alone.
-        if let Some(raw) = word.strip_prefix('#')
+        // A bare `@42` is part of the title: a list is never named by digits alone.
+        if let Some(raw) = word.strip_prefix('@')
             && !raw.is_empty()
             && raw.parse::<u64>().is_err()
         {
@@ -212,7 +214,7 @@ mod tests {
 
     #[test]
     fn markers_are_taken_out_of_the_title() {
-        let p = parse("revisar el deploy @backend !1", &now(), "es");
+        let p = parse("revisar el deploy #backend !1", &now(), "es");
         assert_eq!(p.title, "revisar el deploy");
         assert_eq!(p.priority, Some(Priority::P1));
         assert_eq!(p.tags.len(), 1);

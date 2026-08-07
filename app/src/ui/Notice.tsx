@@ -22,8 +22,8 @@ export default function Notice({ task, lists, onOpen, onDismiss }: Props) {
   const said = [
     task.date && whenLabel(task.date),
     task.deadline && `⚑ ${whenLabel(task.deadline)}`,
-    list && `#${list}`,
-    ...(task.tags ?? []).map((tag) => `@${tag}`),
+    list && `@${list}`,
+    ...(task.tags ?? []).map((tag) => `#${tag}`),
   ].filter(Boolean);
 
   return (

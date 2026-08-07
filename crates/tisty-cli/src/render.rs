@@ -67,10 +67,10 @@ fn meta(task: &Task, state: &State, today: Date, lang: Lang) -> String {
         ));
     }
     if let Some(list) = task.list.and_then(|id| state.lists.get(&id)) {
-        meta.push(style::dim(&format!("#{}", slug(&list.name))));
+        meta.push(style::dim(&format!("@{}", slug(&list.name))));
     }
     for tag in &task.tags {
-        meta.push(style::dim(&format!("@{tag}")));
+        meta.push(style::dim(&format!("#{tag}")));
     }
     let (done, total) = task.steps_done();
     if total > 0 {
@@ -106,9 +106,9 @@ pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
         meta.push(p);
     }
     if let Some(list) = task.list.and_then(|id| state.lists.get(&id)) {
-        meta.push(format!("#{}", slug(&list.name)));
+        meta.push(format!("@{}", slug(&list.name)));
     }
-    meta.extend(task.tags.iter().map(|t| format!("@{t}")));
+    meta.extend(task.tags.iter().map(|t| format!("#{t}")));
     if !task.reminders.is_empty() {
         meta.push(format!("⏰ {}", task.reminders.len()));
     }
@@ -195,9 +195,9 @@ pub fn captured(task: &Task, state: &State, today: Date, lang: Lang) -> String {
         meta.push(p);
     }
     if let Some(list) = task.list.and_then(|id| state.lists.get(&id)) {
-        meta.push(format!("#{}", slug(&list.name)));
+        meta.push(format!("@{}", slug(&list.name)));
     }
-    meta.extend(task.tags.iter().map(|t| format!("@{t}")));
+    meta.extend(task.tags.iter().map(|t| format!("#{t}")));
 
     if !meta.is_empty() {
         out.push_str(&format!("    {}\n", meta.join(" · ")));
@@ -267,9 +267,9 @@ pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> St
             meta.push(format!("!{}", u8::from(task.priority)));
         }
         if let Some(list) = task.list.and_then(|id| state.lists.get(&id)) {
-            meta.push(format!("#{}", slug(&list.name)));
+            meta.push(format!("@{}", slug(&list.name)));
         }
-        meta.extend(task.tags.iter().map(|t| format!("@{t}")));
+        meta.extend(task.tags.iter().map(|t| format!("#{t}")));
         if !meta.is_empty() {
             out.push_str(&format!("{}\n\n", meta.join(" · ")));
         }
@@ -483,7 +483,7 @@ mod tests {
 
         assert!(out.contains("description"));
         assert!(out.contains("reproduces only with an empty cart"));
-        assert!(out.contains("@work"));
+        assert!(out.contains("#work"));
         assert!(!out.contains("steps"), "no steps means no section");
         assert!(!out.contains("journal"));
     }

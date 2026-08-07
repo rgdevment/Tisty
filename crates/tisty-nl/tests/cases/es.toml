@@ -221,7 +221,7 @@ date = "2026-08-08"
 # ─────────────────────────────────────────────────────────────
 
 [[case]]
-input = "revisar el deploy @backend @urgente"
+input = "revisar el deploy #backend #urgente"
 title = "revisar el deploy"
 tags = ["backend", "urgente"]
 
@@ -231,14 +231,14 @@ title = "arreglar el índice"
 priority = 1
 
 [[case]]
-input = "revisar el deploy mañana @backend !2"
+input = "revisar el deploy mañana #backend !2"
 title = "revisar el deploy"
 date = "2026-08-06"
 tags = ["backend"]
 priority = 2
 
 [[case]]
-input = "revisar @Backend"
+input = "revisar #Backend"
 title = "revisar"
 tags = ["backend"]
 why = "las etiquetas se normalizan a minúsculas"
@@ -339,3 +339,22 @@ title = "avisar al equipo"
 date = "2026-08-06"
 priority = 1
 why = "el nombre no distingue mayúsculas, igual que los filtros"
+
+[[case]]
+input = "salir mañana a las 10 para comprar ropa"
+title = "salir mañana a las 10 para comprar ropa"
+why = "la frase temporal va en medio y nada temporal la precede, así que no se consume: es la poda de §5.3 protegiendo «revisar el informe del lunes»"
+
+[[case]]
+input = "salir a comprar ropa mañana a las 10"
+title = "salir a comprar ropa"
+date = "2026-08-06"
+time = "10:00"
+why = "la misma frase en el borde derecho sí se consume"
+
+[[case]]
+input = "comprar ropa para mañana a las 10"
+title = "comprar ropa"
+date = "2026-08-06"
+time = "10:00"
+why = "«para» es preposición temporal, así que la fecha se consume aunque no cierre la frase"

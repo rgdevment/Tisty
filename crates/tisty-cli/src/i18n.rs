@@ -170,7 +170,7 @@ fn catalog(code: &str) -> Option<&'static Catalog> {
 
 /// Canonical names only: the aliases would triple the line.
 pub const FILTERS: &str =
-    "today · tomorrow · week · overdue · inbox · archive · all · #list · @tag · !1";
+    "today · tomorrow · week · overdue · inbox · archive · all · @list · #tag · !1";
 
 /// Accepts every language, so scripts written in either keep working.
 pub fn canonical_filter(raw: &str) -> Option<&'static str> {
