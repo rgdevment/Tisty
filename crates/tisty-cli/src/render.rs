@@ -275,7 +275,7 @@ pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> St
         }
 
         if let Some(description) = &task.description {
-            out.push_str(&format!("{description}\n\n"));
+            out.push_str(&format!("{}\n", body(description)));
         }
 
         if !task.steps.is_empty() {
@@ -294,11 +294,40 @@ pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> St
                 // The offset places the entry on a timeline without a lookup.
                 let at = entry.zoned();
                 out.push_str(&format!("**{}**\n\n", at.strftime("%Y-%m-%d %H:%M %:z")));
-                out.push_str(&format!("{}\n\n", entry.body));
+                out.push_str(&format!("{}\n", body(&entry.body)));
             }
         }
     }
     out
+}
+
+/// An open fence swallows the tasks after it, and a heading outranks the document's.
+fn body(text: &str) -> String {
+    let mut out = String::with_capacity(text.len() + 8);
+    let mut open = false;
+
+    for line in text.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            open = !open;
+        } else if !open && heading(trimmed) {
+            out.push_str("###");
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+
+    if open {
+        out.push_str("```\n");
+    }
+    out.push('\n');
+    out
+}
+
+fn heading(line: &str) -> bool {
+    let rest = line.trim_start_matches('#');
+    let level = line.len() - rest.len();
+    (1..=6).contains(&level) && rest.starts_with(' ')
 }
 
 fn stamp(spec: &DateSpec) -> String {

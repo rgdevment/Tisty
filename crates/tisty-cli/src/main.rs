@@ -18,7 +18,7 @@ pub const EXIT_NOT_FOUND: u8 = 4;
 
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
-    "show", "undo", "lists", "list", "tag", "config", "export", "help",
+    "show", "undo", "redo", "lists", "list", "tag", "config", "export", "help",
 ];
 
 #[derive(Parser)]
@@ -139,6 +139,8 @@ pub enum Command {
     },
     /// Undo the last change made on this device
     Undo,
+    /// Redo what the last undo took back
+    Redo,
     /// Show the lists
     Lists {
         #[arg(long)]
@@ -247,7 +249,11 @@ fn main() -> ExitCode {
 
 fn run() -> anyhow::Result<ExitCode> {
     let cli = Cli::parse_from(normalise(std::env::args()));
-    let mut app = App::open()?;
+    let paths = tisty_core::Paths::resolve()?;
+    let mut app = match cli.command {
+        Command::Config { .. } => App::without_store(paths)?,
+        _ => App::at(paths)?,
+    };
     let lang = Lang::detect(app.locale());
     let today = render::today();
 

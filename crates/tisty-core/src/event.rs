@@ -30,8 +30,20 @@ pub struct Event {
     /// undoing this one and oscillating between two states.
     #[serde(rename = "un", default, skip_serializing_if = "std::ops::Not::not")]
     pub undo: bool,
+    /// Redoing is not a new change: without this mark it would clear the very
+    /// stack it is walking, and only the first redo would work.
+    #[serde(rename = "re", default, skip_serializing_if = "std::ops::Not::not")]
+    pub redo: bool,
+    /// Breaks ties within a device without leaning on a stable sort and on
+    /// `000001.jsonl` happening to sort before `active.jsonl`.
+    #[serde(rename = "n", default, skip_serializing_if = "is_zero")]
+    pub seq: u64,
     #[serde(flatten)]
     pub op: Op,
+}
+
+fn is_zero(n: &u64) -> bool {
+    *n == 0
 }
 
 impl Event {
@@ -42,6 +54,8 @@ impl Event {
             device,
             batch: None,
             undo: false,
+            redo: false,
+            seq: 0,
             op,
         }
     }
@@ -52,8 +66,8 @@ impl Event {
     }
 
     /// Device tiebreak guarantees every machine replays into the same state.
-    pub fn sort_key(&self) -> (jiff::Timestamp, &DeviceId) {
-        (self.timestamp, &self.device)
+    pub fn sort_key(&self) -> (jiff::Timestamp, &DeviceId, u64) {
+        (self.timestamp, &self.device, self.seq)
     }
 
     pub fn entity_id(&self) -> Ulid {

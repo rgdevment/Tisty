@@ -204,15 +204,240 @@ fn undo_brings_an_archived_list_back() {
 }
 
 #[test]
-fn capturing_into_an_ambiguous_list_is_refused_like_listing_is() {
+fn a_name_another_list_already_uses_is_refused() {
     let cli = Cli::new();
     cli.ok(&["list", "add", "Work"]);
-    cli.ok(&["list", "add", "work"]);
 
-    let run = cli.run(&["report the numbers #work"]);
+    for args in [
+        ["list", "add", "work"].as_slice(),
+        ["list", "add", "Work"].as_slice(),
+    ] {
+        let run = cli.run(args);
+        assert_ne!(run.code, 0, "{args:?} was allowed: {}", run.out);
+        assert!(run.err.contains("already exists"), "{}", run.err);
+    }
 
+    cli.ok(&["list", "add", "Home"]);
+    let run = cli.run(&["list", "rename", "Home", "work"]);
     assert_ne!(run.code, 0, "{}", run.out);
-    assert!(run.err.contains("several lists"), "{}", run.err);
+}
+
+#[test]
+fn undoing_a_capture_takes_the_list_it_created_with_it() {
+    let cli = Cli::new();
+    cli.ok(&["call the plumber #errands"]);
+    assert!(cli.ok(&["lists"]).contains("errands"));
+
+    cli.ok(&["undo"]);
+
+    assert!(
+        !cli.ok(&["lists"]).contains("errands"),
+        "list left orphaned"
+    );
+    assert!(!cli.ok(&["ls", "all"]).contains("plumber"));
+    cli.ok(&["undo"]);
+}
+
+#[test]
+fn redo_puts_back_what_the_last_undo_took() {
+    let cli = Cli::new();
+    cli.ok(&["ship the release"]);
+    cli.ok(&["done", "ship the release"]);
+    assert!(cli.ok(&["ls", "archive"]).contains("ship the release"));
+
+    cli.ok(&["undo"]);
+    assert!(cli.ok(&["ls", "all"]).contains("ship the release"));
+
+    cli.ok(&["redo"]);
+    assert!(cli.ok(&["ls", "archive"]).contains("ship the release"));
+    assert!(!cli.ok(&["ls", "all"]).contains("ship the release"));
+}
+
+#[test]
+fn redo_walks_the_same_ladder_as_undo() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants"]);
+    cli.ok(&["set", "water the plants", "--priority", "1"]);
+    cli.ok(&["done", "water the plants"]);
+
+    cli.ok(&["undo"]);
+    cli.ok(&["undo"]);
+    assert!(!cli.ok(&["ls", "all"]).contains("!1"));
+
+    cli.ok(&["redo"]);
+    assert!(cli.ok(&["ls", "all"]).contains("!1"));
+    cli.ok(&["redo"]);
+    assert!(cli.ok(&["ls", "archive"]).contains("water the plants"));
+}
+
+/// Undoing a creation erases the task, and erasing is the one thing with no way back.
+#[test]
+fn redoing_an_undone_creation_is_refused_instead_of_pretending() {
+    let cli = Cli::new();
+    cli.ok(&["a task"]);
+    cli.ok(&["undo"]);
+
+    let run = cli.run(&["redo"]);
+    assert_ne!(run.code, 0, "{}", run.out);
+    assert!(run.err.contains("cannot be redone"), "{}", run.err);
+}
+
+#[test]
+fn doing_something_new_empties_the_redo_stack() {
+    let cli = Cli::new();
+    cli.ok(&["a task"]);
+    cli.ok(&["done", "a task"]);
+    cli.ok(&["undo"]);
+
+    cli.ok(&["another task"]);
+
+    let out = cli.ok(&["redo"]);
+    assert!(out.contains("nothing to redo"), "{out}");
+}
+
+#[test]
+fn redo_on_a_store_nobody_undid_says_so() {
+    let cli = Cli::new();
+    cli.ok(&["a task"]);
+
+    let out = cli.ok(&["redo"]);
+    assert!(out.contains("nothing to redo"), "{out}");
+    assert!(cli.ok(&["ls", "all"]).contains("a task"));
+}
+
+#[test]
+fn a_deadline_before_the_date_is_flagged_without_being_refused() {
+    let cli = Cli::new();
+
+    let captured = cli.run(&[
+        "ship it",
+        "--date",
+        "2026-09-10",
+        "--deadline",
+        "2026-09-01",
+    ]);
+    assert_eq!(captured.code, 0, "{}", captured.err);
+    assert!(captured.err.contains("deadline"), "{}", captured.err);
+
+    cli.ok(&["plan the trip"]);
+    cli.ok(&["set", "plan the trip", "--date", "2026-09-10"]);
+    let edited = cli.run(&["set", "plan the trip", "--deadline", "2026-09-01"]);
+    assert_eq!(edited.code, 0, "{}", edited.err);
+    assert!(edited.err.contains("deadline"), "{}", edited.err);
+}
+
+#[test]
+fn done_with_a_selector_reports_failure_even_with_nothing_open() {
+    let cli = Cli::new();
+    let run = cli.run(&["done", "5"]);
+
+    assert_eq!(run.code, 4, "{}{}", run.out, run.err);
+}
+
+#[test]
+fn an_unterminated_fence_cannot_swallow_the_next_task() {
+    let cli = Cli::new();
+    cli.ok(&["first task"]);
+    cli.ok(&["second task"]);
+    cli.pipe(&["desc", "first"], Some("notes\n```\nunterminated"));
+
+    let out = cli.ok(&["export", "all", "--markdown"]);
+
+    assert!(out.contains("second task"), "{out}");
+    assert_eq!(out.matches("```").count() % 2, 0, "fence left open: {out}");
+}
+
+#[test]
+fn a_heading_of_the_users_never_outranks_the_documents_own() {
+    let cli = Cli::new();
+    cli.ok(&["the task"]);
+    cli.pipe(&["desc", "the task"], Some("# mine\n\nnot a #tag heading"));
+
+    let out = cli.ok(&["export", "all", "--markdown"]);
+
+    assert!(out.contains("#### mine"), "{out}");
+    assert!(out.contains("not a #tag heading"), "{out}");
+}
+
+#[test]
+fn config_tells_an_unset_key_from_an_unknown_one_and_agrees_on_the_code() {
+    let cli = Cli::new();
+
+    let unset = cli.run(&["config", "get", "editor"]);
+    assert_eq!(unset.code, 4, "{}{}", unset.out, unset.err);
+    assert!(!unset.err.is_empty(), "failed without a word");
+
+    let read = cli.run(&["config", "get", "nope"]);
+    let write = cli.run(&["config", "set", "nope", "x"]);
+    assert_eq!(read.code, write.code, "same error, different exit codes");
+}
+
+#[test]
+fn a_broken_store_does_not_lock_the_user_out_of_config() {
+    let cli = Cli::new();
+    cli.ok(&["a task"]);
+
+    let store = cli.home.path().join("data").join("store");
+    let device = std::fs::read_dir(&store).unwrap().next().unwrap().unwrap();
+    let active = device.path().join("active.tisty");
+    let mut text = std::fs::read_to_string(&active).unwrap();
+    text.push_str("{\"v\":1,\"ts\":\"2026-0");
+    std::fs::write(&active, text).unwrap();
+
+    assert_ne!(
+        cli.run(&["ls", "all"]).code,
+        0,
+        "a broken store must not read as an empty one"
+    );
+    assert_eq!(cli.run(&["config", "get", "device_id"]).code, 0);
+}
+
+#[test]
+fn absurd_input_is_refused_and_never_panics() {
+    let cli = Cli::new();
+    cli.ok(&["a task"]);
+    cli.ok(&["ls", "all"]);
+
+    let long = "x".repeat(4096);
+    for args in [
+        ["done", "99999999999999999999"].as_slice(),
+        ["done", long.as_str()].as_slice(),
+        ["set", "1", "--priority", "250"].as_slice(),
+        ["set", "1", "--date", "2026-02-30"].as_slice(),
+        ["set", "1", "--date", "not a date at all"].as_slice(),
+        ["step", "1", "done", "999"].as_slice(),
+        ["step", "1", "done", "0"].as_slice(),
+    ] {
+        let run = cli.run(args);
+        assert_ne!(run.code, 0, "{args:?} was accepted: {}", run.out);
+        assert!(!run.err.contains("panicked"), "{args:?}: {}", run.err);
+    }
+}
+
+#[test]
+fn search_matches_literally_and_does_not_read_regex() {
+    let cli = Cli::new();
+    cli.ok(&["deploy the API v2"]);
+
+    assert!(cli.ok(&["search", "API v2"]).contains("deploy"));
+    assert!(!cli.ok(&["search", ".*"]).contains("deploy"));
+    assert!(!cli.ok(&["search", "AP."]).contains("deploy"));
+}
+
+#[test]
+fn renaming_a_tag_onto_an_existing_one_merges_instead_of_duplicating() {
+    let cli = Cli::new();
+    cli.ok(&["one job"]);
+    cli.ok(&["another job"]);
+    cli.ok(&["set", "one job", "--tag", "wip"]);
+    cli.ok(&["set", "another job", "--tag", "active"]);
+
+    cli.ok(&["tag", "rename", "wip", "active"]);
+
+    let json = cli.ok(&["ls", "all", "--json"]);
+    assert!(!json.contains("\"wip\""), "{json}");
+    assert_eq!(json.matches("\"active\"").count(), 2, "{json}");
+    assert_eq!(cli.ok(&["tag", "ls"]).matches("active").count(), 1);
 }
 
 #[test]

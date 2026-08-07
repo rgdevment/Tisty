@@ -8,14 +8,23 @@ pub struct App {
 }
 
 impl App {
-    pub fn open() -> tisty_core::Result<Self> {
-        Self::at(Paths::resolve()?)
+    pub fn at(paths: Paths) -> tisty_core::Result<Self> {
+        Self::build(paths, true)
     }
 
-    pub fn at(paths: Paths) -> tisty_core::Result<Self> {
+    /// One malformed line must not lock the user out of `config`.
+    pub fn without_store(paths: Paths) -> tisty_core::Result<Self> {
+        Self::build(paths, false)
+    }
+
+    fn build(paths: Paths, replay: bool) -> tisty_core::Result<Self> {
         let config = Config::load_or_init(&paths)?;
         let store = Store::open(paths.store(), config.device_id.clone())?;
-        let state = State::replay(&store.read_all()?);
+        let state = if replay {
+            State::replay(&store.read_all()?)
+        } else {
+            State::default()
+        };
 
         Ok(Self {
             paths,
@@ -45,15 +54,19 @@ impl App {
     }
 
     pub fn commit_all(&mut self, ops: Vec<Op>) -> tisty_core::Result<usize> {
-        self.commit_marked(ops, false)
+        self.commit_marked(ops, false, false)
     }
 
     pub fn commit_undo(&mut self, ops: Vec<Op>) -> tisty_core::Result<usize> {
-        self.commit_marked(ops, true)
+        self.commit_marked(ops, true, false)
     }
 
-    fn commit_marked(&mut self, ops: Vec<Op>, undo: bool) -> tisty_core::Result<usize> {
-        let events = self.store.append_batch_marked(ops, undo)?;
+    pub fn commit_redo(&mut self, ops: Vec<Op>) -> tisty_core::Result<usize> {
+        self.commit_marked(ops, false, true)
+    }
+
+    fn commit_marked(&mut self, ops: Vec<Op>, undo: bool, redo: bool) -> tisty_core::Result<usize> {
+        let events = self.store.append_batch_tagged(ops, undo, redo)?;
         for event in &events {
             self.state.apply(event);
         }
@@ -63,6 +76,10 @@ impl App {
     /// Whole batch or nothing, and never another device's: half an undone tag
     /// rename leaves the tasks disagreeing.
     pub fn last_own_change(&self) -> tisty_core::Result<Vec<(Event, State)>> {
+        self.reachable_change(false)
+    }
+
+    fn reachable_change(&self, want_undo: bool) -> tisty_core::Result<Vec<(Event, State)>> {
         let events = self.store.read_all()?;
         let mine: Vec<usize> = events
             .iter()
@@ -86,12 +103,13 @@ impl App {
             };
             cursor -= step;
 
-            if events[i].undo {
-                already_undone += 1;
-            } else if already_undone > 0 {
+            if events[i].undo == want_undo {
+                if already_undone == 0 {
+                    break i;
+                }
                 already_undone -= 1;
             } else {
-                break i;
+                already_undone += 1;
             }
         };
 
@@ -115,6 +133,47 @@ impl App {
             state.apply(event);
         }
         Ok(found)
+    }
+
+    /// The change the last undo took back, to apply again as it was. Redo is
+    /// not undoing an undo: the inverse of a creation is a deletion, and that
+    /// one has no inverse of its own.
+    pub fn last_undone_change(&self) -> tisty_core::Result<Vec<Event>> {
+        let events = self.store.read_all()?;
+        let mut live: Vec<Vec<Event>> = Vec::new();
+        let mut undone: Vec<Vec<Event>> = Vec::new();
+
+        for group in self.own_changes(&events) {
+            if group[0].undo {
+                if let Some(taken) = live.pop() {
+                    undone.push(taken);
+                }
+            } else if group[0].redo {
+                undone.pop();
+                live.push(group);
+            } else {
+                live.push(group);
+                // Doing something new is what empties the redo stack everywhere.
+                undone.clear();
+            }
+        }
+        Ok(undone.pop().unwrap_or_default())
+    }
+
+    fn own_changes(&self, events: &[Event]) -> Vec<Vec<Event>> {
+        let mut groups: Vec<Vec<Event>> = Vec::new();
+        for event in events.iter().filter(|e| &e.device == self.store.device()) {
+            match groups.last_mut() {
+                Some(last)
+                    if event.batch.is_some()
+                        && last.first().map(|e| e.batch) == Some(event.batch) =>
+                {
+                    last.push(event.clone());
+                }
+                _ => groups.push(vec![event.clone()]),
+            }
+        }
+        groups
     }
 
     pub fn ordered_open(&self) -> Vec<&Task> {

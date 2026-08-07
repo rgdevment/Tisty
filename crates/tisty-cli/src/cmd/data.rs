@@ -9,7 +9,8 @@ use crate::i18n::Lang;
 use crate::{ConfigAction, EXIT_NOT_FOUND, render, style};
 
 /// `device_id` is absent on purpose: editing it orphans what this machine wrote.
-const KEYS: &[&str] = &["locale", "editor", "data_dir"];
+const KEYS: &[&str] = &["locale", "editor"];
+const READABLE: &[&str] = &["device_id", "locale", "editor"];
 
 pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow::Result<ExitCode> {
     match action {
@@ -29,13 +30,19 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
             Ok(ExitCode::SUCCESS)
         }
 
-        Some(ConfigAction::Get { key }) => match value(app, &key, lang)? {
-            Some(value) => {
-                println!("{value}");
-                Ok(ExitCode::SUCCESS)
+        Some(ConfigAction::Get { key }) => {
+            known(&key, READABLE, lang)?;
+            match value(app, &key)? {
+                Some(value) => {
+                    println!("{value}");
+                    Ok(ExitCode::SUCCESS)
+                }
+                None => {
+                    eprintln!("{}", lang.fill("unset-key", &[("key", &key)]));
+                    Ok(ExitCode::from(EXIT_NOT_FOUND))
+                }
             }
-            None => Ok(ExitCode::from(EXIT_NOT_FOUND)),
-        },
+        }
 
         Some(ConfigAction::Set { key, value }) => {
             check(&key, lang)?;
@@ -51,7 +58,6 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
 
             app.edit_config(|c| match key.as_str() {
                 "locale" => c.locale = Some(value.clone()),
-                "data_dir" => c.data_dir = Some(value.clone().into()),
                 _ => c.editor = Some(value.clone()),
             })?;
             println!("  {} {key} = {value}", style::paint(style::GREEN, "✓"));
@@ -62,7 +68,6 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
             check(&key, lang)?;
             app.edit_config(|c| match key.as_str() {
                 "locale" => c.locale = None,
-                "data_dir" => c.data_dir = None,
                 _ => c.editor = None,
             })?;
             println!("  {} {key}", style::dim("✕"));
@@ -78,28 +83,29 @@ fn show(key: &str, value: Option<&str>) {
     }
 }
 
-fn value(app: &App, key: &str, lang: Lang) -> anyhow::Result<Option<String>> {
+fn value(app: &App, key: &str) -> anyhow::Result<Option<String>> {
     let config = app.config();
     match key {
         "device_id" => Ok(Some(config.device_id.0.clone())),
         "locale" => Ok(config.locale.clone()),
         "editor" => Ok(config.editor.clone()),
         "data_dir" => Ok(Some(app.paths.data().display().to_string())),
-        _ => {
-            eprintln!(
-                "{}",
-                lang.fill("unknown-key", &[("key", key), ("known", &KEYS.join(" · "))])
-            );
-            Ok(None)
-        }
+        _ => Ok(None),
     }
 }
 
 fn check(key: &str, lang: Lang) -> anyhow::Result<()> {
-    if !KEYS.contains(&key) {
+    known(key, KEYS, lang)
+}
+
+fn known(key: &str, allowed: &[&str], lang: Lang) -> anyhow::Result<()> {
+    if !allowed.contains(&key) {
         anyhow::bail!(
             "{}",
-            lang.fill("unknown-key", &[("key", key), ("known", &KEYS.join(" · "))])
+            lang.fill(
+                "unknown-key",
+                &[("key", key), ("known", &allowed.join(" · "))]
+            )
         );
     }
     Ok(())

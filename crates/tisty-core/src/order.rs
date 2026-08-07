@@ -31,32 +31,43 @@ pub fn last_of<'a>(keys: impl IntoIterator<Item = &'a str>) -> String {
 }
 
 fn midpoint(a: &str, b: Option<&str>) -> String {
-    if let Some(b) = b {
-        // Past the end of `a`, compare against the lowest digit, not nothing.
-        let shared = b
-            .bytes()
-            .enumerate()
-            .take_while(|(i, y)| a.as_bytes().get(*i).copied().unwrap_or(DIGITS[0]) == *y)
-            .count();
-        if shared > 0 {
-            return format!(
-                "{}{}",
-                &b[..shared],
-                midpoint(tail(a, shared), Some(&b[shared..]))
-            );
-        }
+    let Some(b) = b else {
+        return append_after(a);
+    };
+
+    // Past the end of `a`, compare against the lowest digit, not nothing.
+    let shared = b
+        .bytes()
+        .enumerate()
+        .take_while(|(i, y)| a.as_bytes().get(*i).copied().unwrap_or(DIGITS[0]) == *y)
+        .count();
+    if shared > 0 {
+        return format!(
+            "{}{}",
+            &b[..shared],
+            midpoint(tail(a, shared), Some(&b[shared..]))
+        );
     }
 
     let low = a.bytes().next().map_or(0, index);
-    let high = b.and_then(|b| b.bytes().next()).map_or(BASE, index);
+    let high = b.bytes().next().map_or(BASE, index);
 
     if high - low > 1 {
         return digit((low + high) / 2);
     }
-    match b {
-        Some(b) if b.len() > 1 => b[..1].to_string(),
-        _ => format!("{}{}", digit(low), midpoint(tail(a, 1), None)),
+    if b.len() > 1 {
+        return b[..1].to_string();
     }
+    format!("{}{}", digit(low), midpoint(tail(a, 1), None))
+}
+
+/// Bisecting towards nothing converges, so appending grew a character every six
+/// keys. Raising the last digit that has room keeps them flat for far longer.
+fn append_after(a: &str) -> String {
+    let Some(i) = a.bytes().rposition(|d| index(d) + 1 < BASE) else {
+        return format!("{a}{}", digit(BASE / 2));
+    };
+    format!("{}{}", &a[..i], digit(index(a.as_bytes()[i]) + 1))
 }
 
 fn tail(s: &str, from: usize) -> &str {
@@ -138,6 +149,17 @@ mod tests {
         let start = last_of(std::iter::empty());
         assert!(before(&start) < start);
         assert!(after(&start) > start);
+    }
+
+    #[test]
+    fn appending_does_not_grow_the_key_out_of_hand() {
+        let mut key = first();
+        for n in 0..5_000 {
+            let next = after(&key);
+            assert!(next > key, "{next} is not after {key} at {n}");
+            key = next;
+        }
+        assert!(key.len() <= 200, "{} chars after 5000 appends", key.len());
     }
 
     #[test]

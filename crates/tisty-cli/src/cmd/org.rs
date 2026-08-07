@@ -34,6 +34,8 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
                 anyhow::bail!("{}", lang.get("needs-name"));
             }
 
+            taken(app, &name, None, lang)?;
+
             let id = Ulid::generate();
             app.commit(Op::ListAdd {
                 id,
@@ -55,6 +57,7 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
             let Some(id) = one_list(app, &selector, lang)? else {
                 return Ok(ExitCode::from(EXIT_NOT_FOUND));
             };
+            taken(app, &name, Some(id), lang)?;
 
             app.commit(Op::ListRename {
                 id,
@@ -100,6 +103,18 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
             Ok(ExitCode::SUCCESS)
         }
     }
+}
+
+/// Two lists a selector cannot tell apart leave both unreachable by name.
+fn taken(app: &App, name: &str, except: Option<ListId>, lang: Lang) -> anyhow::Result<()> {
+    if app
+        .find_list(name)
+        .iter()
+        .any(|l| Some(l.id) != except && l.name.eq_ignore_ascii_case(name))
+    {
+        anyhow::bail!("{}", lang.fill("list-exists", &[("name", name)]));
+    }
+    Ok(())
 }
 
 fn one_list(app: &App, selector: &str, lang: Lang) -> anyhow::Result<Option<ListId>> {
@@ -225,30 +240,58 @@ fn missing_tag(tag: &Tag, lang: Lang) -> ExitCode {
 
 /// Works off the log, not a stack: only this device's last write comes back.
 pub fn undo(app: &mut App, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
-    let change = app.last_own_change()?;
-    if change.is_empty() {
-        println!("  {}", style::dim(lang.get("nothing-to-undo")));
-        return Ok(ExitCode::SUCCESS);
-    }
+    step_history(app, false, today, lang)
+}
 
-    // Later events first, or an inverse restores what a newer one replaced.
-    let mut ops = Vec::with_capacity(change.len());
-    for (event, before) in change.iter().rev() {
-        match inverse(event, before) {
-            Some(op) => ops.push(op),
-            None => anyhow::bail!("{}", lang.get("cannot-undo")),
+pub fn redo(app: &mut App, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
+    step_history(app, true, today, lang)
+}
+
+/// Redoing is applying the original change again, not inverting the
+/// compensation: the inverse of a creation is a deletion, and that has none.
+fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
+    let (entity, ops) = if redoing {
+        let change = app.last_undone_change()?;
+        if change.is_empty() {
+            println!("  {}", style::dim(lang.get("nothing-to-redo")));
+            return Ok(ExitCode::SUCCESS);
         }
-    }
+        let entity = change[0].entity_id();
+        if app.state.is_erased(entity) {
+            anyhow::bail!("{}", lang.get("cannot-redo"));
+        }
+        (entity, change.into_iter().map(|e| e.op).collect::<Vec<_>>())
+    } else {
+        let change = app.last_own_change()?;
+        if change.is_empty() {
+            println!("  {}", style::dim(lang.get("nothing-to-undo")));
+            return Ok(ExitCode::SUCCESS);
+        }
 
-    let entity = change[0].0.entity_id();
-    let n = app.commit_undo(ops)?;
+        // Later events first, or an inverse restores what a newer one replaced.
+        let mut ops = Vec::with_capacity(change.len());
+        for (event, before) in change.iter().rev() {
+            match inverse(event, before) {
+                Some(op) => ops.push(op),
+                None => anyhow::bail!("{}", lang.get("cannot-undo")),
+            }
+        }
+        (change[0].0.entity_id(), ops)
+    };
+
+    let n = if redoing {
+        app.commit_redo(ops)?
+    } else {
+        app.commit_undo(ops)?
+    };
+    let done = if redoing { "redone" } else { "undone" };
 
     match app.state.tasks.get(&entity) {
         Some(task) if n == 1 => print!("{}", render::line(task, &app.state, today, lang)),
-        _ if n == 1 => println!("  {}", style::dim(lang.get("undone"))),
+        _ if n == 1 => println!("  {}", style::dim(lang.get(done))),
         _ => println!(
             "  {} {}",
-            style::dim(lang.get("undone")),
+            style::dim(lang.get(done)),
             style::dim(&lang.plural("changes", n))
         ),
     }
