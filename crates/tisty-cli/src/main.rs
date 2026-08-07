@@ -18,7 +18,7 @@ pub const EXIT_NOT_FOUND: u8 = 4;
 
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
-    "show", "undo", "redo", "sync", "lists", "list", "tag", "config", "export", "help",
+    "show", "undo", "redo", "sync", "doctor", "lists", "list", "tag", "config", "export", "help",
 ];
 
 #[derive(Parser)]
@@ -141,6 +141,12 @@ pub enum Command {
     Undo,
     /// Redo what the last undo took back
     Redo,
+    /// Check the read cache against the log
+    Doctor {
+        /// Throw the cache away so the next read rebuilds it
+        #[arg(long)]
+        repair: bool,
+    },
     /// Send and receive changes over git
     Sync {
         /// Point this store at a remote, creating the repository if needed

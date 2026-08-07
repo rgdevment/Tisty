@@ -65,6 +65,17 @@ no-remote      = "no remote configured"
 nothing-to-send = "nothing new to send"
 synced         = "synced"
 
+doctor         = "doctor"
+tasks-in-log   = "tasks"
+lists-in-log   = "lists"
+cache          = "cache"
+no-cache       = "none, which is fine"
+agrees         = "agrees with the log"
+stale          = "behind; the next read rebuilds it"
+diverged       = "DISAGREES with the log"
+cache-discarded = "cache discarded; the next read rebuilds it"
+run-repair     = "run `tisty doctor --repair` to rebuild it"
+
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
 lines = { one = "1 line", other = "{n} lines" }

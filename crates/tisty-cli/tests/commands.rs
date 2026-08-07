@@ -373,6 +373,44 @@ fn config_tells_an_unset_key_from_an_unknown_one_and_agrees_on_the_code() {
 }
 
 #[test]
+fn doctor_agrees_with_the_log_when_nothing_is_wrong() {
+    let cli = Cli::new();
+    cli.ok(&["first task"]);
+    cli.ok(&["second task"]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["doctor"]);
+    assert!(out.contains("agrees"), "{out}");
+}
+
+/// The cache is a photograph; the log wins. This is what makes that checkable.
+#[test]
+fn doctor_catches_a_cache_that_disagrees_and_repair_clears_it() {
+    let cli = Cli::new();
+    cli.ok(&["first task"]);
+    cli.ok(&["second task"]);
+    cli.ok(&["ls", "all"]);
+
+    let db = cli.home.path().join("cache").join("read.db");
+    let touched = std::process::Command::new("sqlite3")
+        .arg(&db)
+        .arg("DELETE FROM task WHERE rowid = 1")
+        .status()
+        .is_ok_and(|s| s.success());
+    if !touched {
+        return;
+    }
+
+    let run = cli.run(&["doctor"]);
+    assert_ne!(run.code, 0, "{}", run.out);
+    assert!(run.out.contains("DISAGREES"), "{}", run.out);
+
+    cli.ok(&["doctor", "--repair"]);
+    assert_eq!(cli.run(&["doctor"]).code, 0);
+    assert!(cli.ok(&["ls", "all"]).contains("first task"));
+}
+
+#[test]
 fn a_broken_store_does_not_lock_the_user_out_of_config() {
     let cli = Cli::new();
     cli.ok(&["a task"]);

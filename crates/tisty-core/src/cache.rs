@@ -190,6 +190,63 @@ pub fn fingerprint(store_root: &Path) -> String {
     parts.join("|")
 }
 
+/// What the cache holds against what the log says. The cache is only ever a
+/// photograph, so the log wins every disagreement — this reports, never repairs.
+pub fn audit(store_root: &Path, cache_dir: &Path) -> Result<Audit> {
+    let truth = State::replay(&store::read_all(store_root)?);
+    let Some(cache) = Cache::open(cache_dir)? else {
+        return Ok(Audit::Unavailable);
+    };
+
+    let print = fingerprint(store_root);
+    match cache.load(&print) {
+        None => Ok(Audit::Stale { truth }),
+        Some(held) if held == truth => Ok(Audit::Agrees { truth }),
+        Some(held) => Ok(Audit::Diverged {
+            tasks: (held.tasks.len(), truth.tasks.len()),
+            lists: (held.lists.len(), truth.lists.len()),
+            truth,
+        }),
+    }
+}
+
+pub enum Audit {
+    /// No cache to check, which is never a problem.
+    Unavailable,
+    /// The log moved on; the next read rebuilds.
+    Stale {
+        truth: State,
+    },
+    Agrees {
+        truth: State,
+    },
+    /// The cache claims something the log does not. Rebuilding fixes it.
+    Diverged {
+        tasks: (usize, usize),
+        lists: (usize, usize),
+        truth: State,
+    },
+}
+
+impl Audit {
+    pub fn state(&self) -> Option<&State> {
+        match self {
+            Audit::Unavailable => None,
+            Audit::Stale { truth } | Audit::Agrees { truth } | Audit::Diverged { truth, .. } => {
+                Some(truth)
+            }
+        }
+    }
+}
+
+/// Throws the cache away so the next read builds it from the log again.
+pub fn discard(cache_dir: &Path) -> Result<()> {
+    if let Some(mut cache) = Cache::open(cache_dir)? {
+        cache.invalidate();
+    }
+    Ok(())
+}
+
 /// The projection, from cache when the log has not moved and from the log when
 /// it has. Falls back to reading the log whenever anything at all goes wrong.
 pub fn project(store_root: &Path, cache_dir: &Path) -> Result<State> {
