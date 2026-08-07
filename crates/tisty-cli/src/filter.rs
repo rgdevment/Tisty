@@ -77,7 +77,7 @@ impl Filter {
     }
 
     fn take_list(&mut self, name: &str, app: &App, lang: Lang) -> anyhow::Result<()> {
-        match app.find_list(name).as_slice() {
+        match app.state.find_list(name).as_slice() {
             [one] => {
                 self.lists.push(one.id);
                 Ok(())

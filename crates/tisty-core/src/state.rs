@@ -5,6 +5,7 @@ use ulid::Ulid;
 use crate::{
     event::{Event, LogAdd, LogEdit, Op, StepAdd, TaskAdd, TaskMove, TaskPatch},
     model::{List, ListId, LogEntry, Status, Step, StepId, Tag, Task, TaskId},
+    order,
 };
 
 /// Replaying in canonical order is what yields last-write-wins per field.
@@ -158,6 +159,31 @@ impl State {
         self.lists.values().filter(|l| !l.archived)
     }
 
+    /// Case-insensitive substring, but an exact name always wins.
+    pub fn find_list(&self, needle: &str) -> Vec<&List> {
+        let needle = loose(needle);
+        let exact: Vec<&List> = self
+            .lists
+            .values()
+            .filter(|l| loose(&l.name) == needle)
+            .collect();
+        if !exact.is_empty() {
+            return exact;
+        }
+        self.lists
+            .values()
+            .filter(|l| loose(&l.name).contains(&needle))
+            .collect()
+    }
+
+    pub fn next_task_order(&self) -> String {
+        order::last_of(self.tasks.values().map(|t| t.order.as_str()))
+    }
+
+    pub fn next_list_order(&self) -> String {
+        order::last_of(self.lists.values().map(|l| l.order.as_str()))
+    }
+
     /// Drives sinking a finished list in the sidebar; it never vanishes alone.
     pub fn is_settled(&self, list: ListId) -> bool {
         self.tasks_in(list).next().is_none()
@@ -167,6 +193,11 @@ impl State {
     pub fn tags(&self) -> BTreeSet<&Tag> {
         self.tasks.values().flat_map(|t| &t.tags).collect()
     }
+}
+
+/// Listings print «Mi Lista» as `#mi-lista`, which has to be typeable back.
+fn loose(name: &str) -> String {
+    name.to_lowercase().replace([' ', '_'], "-")
 }
 
 fn task_from(id: TaskId, d: &TaskAdd) -> Task {

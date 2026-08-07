@@ -6,7 +6,10 @@ mod vocab;
 
 use jiff::Zoned;
 use serde::{Deserialize, Serialize};
-use tisty_core::{DateSpec, Priority, Tag};
+use tisty_core::{
+    DateSpec, Priority, Tag,
+    capture::{Draft, Filing},
+};
 
 use scan::Role;
 
@@ -18,6 +21,19 @@ pub struct Parsed {
     pub priority: Option<Priority>,
     pub tags: Vec<Tag>,
     pub list: Option<String>,
+}
+
+impl From<Parsed> for Draft {
+    fn from(p: Parsed) -> Self {
+        Self {
+            title: p.title,
+            date: p.date,
+            deadline: p.deadline,
+            priority: p.priority,
+            tags: p.tags,
+            filing: p.list.map(Filing::Marked),
+        }
+    }
 }
 
 pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
@@ -201,6 +217,14 @@ mod tests {
         assert!(parse_date("2026-12-24", &now(), "es").is_some());
         assert!(parse_date("next friday", &now(), "en").is_some());
         assert!(parse_date("not a date", &now(), "en").is_none());
+    }
+
+    /// A client hands over what the system reports, not a canonical code.
+    #[test]
+    fn a_regional_locale_still_speaks_its_language() {
+        let p = parse("comprar pan mañana", &now(), "es-CL");
+        assert_eq!(p.title, "comprar pan");
+        assert!(p.date.is_some());
     }
 
     #[test]
