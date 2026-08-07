@@ -24,7 +24,31 @@ jobs:
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       prerelease: ${{ steps.resolve.outputs.prerelease }}
+    env:
+      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+      PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
     steps:
+      # Half a set passes every `!= ''` guard downstream and dies inside the import.
+      - name: Signing secrets come in pairs
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+
+          if [ -n "$MACOS_CERTIFICATE_P12" ] && [ -z "$MACOS_CERTIFICATE_PASSWORD" ]; then
+            fail "MACOS_CERTIFICATE_P12 is set but MACOS_CERTIFICATE_PASSWORD is empty"
+          fi
+          if [ -n "$PFX_BASE64" ] && [ -z "$PFX_PASSWORD" ]; then
+            fail "PFX_BASE64 is set but PFX_PASSWORD is empty"
+          fi
+          if [ -n "$APPLE_ID" ] && { [ -z "$APPLE_APP_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; }; then
+            fail "APPLE_ID is set but APPLE_APP_PASSWORD or APPLE_TEAM_ID is empty"
+          fi
+          echo "signing secrets are coherent"
+
       - id: resolve
         run: |
           if [[ "$GITHUB_REF" =~ ^refs/tags/v(.+)$ ]]; then
@@ -48,104 +72,71 @@ jobs:
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           echo "version $version (pre-release: $prerelease)"
 
-  build:
-    name: ${{ matrix.name }}
+  build-linux:
+    name: linux-x86_64
     needs: version
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: linux-x86_64
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-          - name: macos-universal
-            os: macos-latest
-            target: universal-apple-darwin
-          - name: windows-x86_64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
     env:
+      TARGET: x86_64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Musl toolchain
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - uses: ./.github/actions/prepare
+        with:
+          version: ${{ needs.version.outputs.version }}
+          targets: ${{ env.TARGET }}
+
+      - name: Build
+        run: cargo build --release --bin tisty --target "$TARGET"
+
+      - uses: ./.github/actions/package
+        with:
+          version: ${{ needs.version.outputs.version }}
+          name: linux-x86_64
+          target: ${{ env.TARGET }}
+
+  build-macos:
+    name: macos-universal
+    needs: version
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      TARGET: universal-apple-darwin
       MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
       MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      PFX_BASE64: ${{ secrets.PFX_BASE64 }}
-      PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
     steps:
-      # Half a set passes every `!= ''` guard below and dies inside the import.
-      - name: Signing secrets come in pairs
-        shell: bash
-        run: |
-          fail() { echo "::error::$1"; exit 1; }
-
-          if [ -n "$MACOS_CERTIFICATE_P12" ] && [ -z "$MACOS_CERTIFICATE_PASSWORD" ]; then
-            fail "MACOS_CERTIFICATE_P12 is set but MACOS_CERTIFICATE_PASSWORD is empty"
-          fi
-          if [ -n "$PFX_BASE64" ] && [ -z "$PFX_PASSWORD" ]; then
-            fail "PFX_BASE64 is set but PFX_PASSWORD is empty"
-          fi
-          if [ -n "$APPLE_ID" ] && { [ -z "$APPLE_APP_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; }; then
-            fail "APPLE_ID is set but APPLE_APP_PASSWORD or APPLE_TEAM_ID is empty"
-          fi
-          echo "signing secrets are coherent"
-
       - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
 
-      - name: Linux toolchain
-        if: matrix.name == 'linux-x86_64'
-        run: |
-          sudo apt-get update && sudo apt-get install -y musl-tools
-          rustup target add ${{ matrix.target }}
-
-      # After the cache, whose key hashes Cargo.lock: stamping first misses it.
-      - name: Stamp the version from the tag
-        shell: bash
-        run: |
-          version="${{ needs.version.outputs.version }}"
-
-          # Downloads what the lock pins while it still matches the manifest, so the
-          # update below resolves from a populated registry instead of the network.
-          cargo fetch --locked
-
-          sed -i.bak -e "s/^version = .*/version = \"$version\"/" Cargo.toml
-          rm -f Cargo.toml.bak
-
-          if ! grep -q "^version = \"$version\"\$" Cargo.toml; then
-            echo "::error::could not stamp $version into Cargo.toml"
-            exit 1
-          fi
-
-          # The lock pins the workspace versions too, so `--locked` builds fail without this.
-          cargo update --workspace --offline
+      - uses: ./.github/actions/prepare
+        with:
+          version: ${{ needs.version.outputs.version }}
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
 
       - name: Build
-        shell: bash
         run: |
-          if [[ "${{ matrix.target }}" == "universal-apple-darwin" ]]; then
-            rustup target add aarch64-apple-darwin x86_64-apple-darwin
-            cargo build --release --bin tisty --target aarch64-apple-darwin
-            cargo build --release --bin tisty --target x86_64-apple-darwin
-            mkdir -p target/${{ matrix.target }}/release
-            lipo -create -output target/${{ matrix.target }}/release/tisty \
-              target/aarch64-apple-darwin/release/tisty \
-              target/x86_64-apple-darwin/release/tisty
+          cargo build --release --bin tisty --target aarch64-apple-darwin
+          cargo build --release --bin tisty --target x86_64-apple-darwin
 
-            archs=$(lipo -archs target/${{ matrix.target }}/release/tisty)
-            case "$archs" in
-              *arm64*x86_64*|*x86_64*arm64*) echo "universal: $archs" ;;
-              *) echo "::error::expected a universal binary, got «$archs»"; exit 1 ;;
-            esac
-          else
-            cargo build --release --bin tisty --target ${{ matrix.target }}
-          fi
+          mkdir -p "target/$TARGET/release"
+          lipo -create -output "target/$TARGET/release/tisty" \
+            target/aarch64-apple-darwin/release/tisty \
+            target/x86_64-apple-darwin/release/tisty
+
+          archs=$(lipo -archs "target/$TARGET/release/tisty")
+          case "$archs" in
+            *arm64*x86_64*|*x86_64*arm64*) echo "universal: $archs" ;;
+            *) echo "::error::expected a universal binary, got «$archs»"; exit 1 ;;
+          esac
 
       - name: Import signing certificate
-        if: matrix.name == 'macos-universal' && env.MACOS_CERTIFICATE_P12 != ''
+        if: env.MACOS_CERTIFICATE_P12 != ''
         run: |
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
@@ -168,9 +159,8 @@ jobs:
       # `lipo` strips the linker's ad-hoc signature, and Apple Silicon refuses to
       # run a binary with none at all.
       - name: Sign binary
-        if: matrix.name == 'macos-universal'
         run: |
-          BIN="target/${{ matrix.target }}/release/tisty"
+          BIN="target/$TARGET/release/tisty"
           if [[ -n "$MACOS_CERTIFICATE_P12" ]]; then
             IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
               | grep "Developer ID Application" | head -1 | awk '{print $2}')
@@ -189,9 +179,9 @@ jobs:
 
       # `notarytool` only accepts archives, hence the zip around a single binary.
       - name: Notarize
-        if: matrix.name == 'macos-universal' && env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
+        if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
         run: |
-          BIN="target/${{ matrix.target }}/release/tisty"
+          BIN="target/$TARGET/release/tisty"
           ditto -c -k --keepParent "$BIN" "$RUNNER_TEMP/tisty.zip"
           xcrun notarytool submit "$RUNNER_TEMP/tisty.zip" \
             --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
@@ -199,12 +189,39 @@ jobs:
           spctl --assess --type exec -vv "$BIN" || true
 
       - name: Cleanup keychain
-        if: always() && matrix.name == 'macos-universal' && env.KEYCHAIN_PATH != ''
+        if: always() && env.KEYCHAIN_PATH != ''
         run: security delete-keychain "$KEYCHAIN_PATH" || true
+
+      - uses: ./.github/actions/package
+        with:
+          version: ${{ needs.version.outputs.version }}
+          name: macos-universal
+          target: ${{ env.TARGET }}
+
+  build-windows:
+    name: windows-x86_64
+    needs: version
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      TARGET: x86_64-pc-windows-msvc
+      PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+      PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/prepare
+        with:
+          version: ${{ needs.version.outputs.version }}
+          targets: ${{ env.TARGET }}
+
+      - name: Build
+        shell: bash
+        run: cargo build --release --bin tisty --target "$TARGET"
 
       # Without `/tr` the signature expires with the certificate.
       - name: Sign executable
-        if: matrix.name == 'windows-x86_64' && env.PFX_BASE64 != ''
+        if: env.PFX_BASE64 != ''
         shell: pwsh
         run: |
           $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
@@ -216,7 +233,7 @@ jobs:
             Sort-Object FullName -Descending | Select-Object -First 1
           if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
 
-          $exe = "target/${{ matrix.target }}/release/tisty.exe"
+          $exe = "target/$env:TARGET/release/tisty.exe"
           & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
             /tr http://timestamp.digicert.com /td sha256 /fd sha256 $exe
           if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
@@ -243,38 +260,15 @@ jobs:
             Write-Warning "the chain stops short of a trusted root ($($sig.Status)); SmartScreen will still warn"
           }
 
-      - name: Smoke test
-        shell: bash
-        run: |
-          bin="target/${{ matrix.target }}/release/tisty"
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            bin="$bin.exe"
-          fi
-          test "$("$bin" --version)" = "tisty ${{ needs.version.outputs.version }}"
-
-      - name: Package
-        shell: bash
-        run: |
-          name="tisty-${{ needs.version.outputs.version }}-${{ matrix.name }}"
-          mkdir -p dist "$name"
-          cp README.md LICENSE "$name"/
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            cp "target/${{ matrix.target }}/release/tisty.exe" "$name"/
-            7z a "dist/$name.zip" "$name"
-          else
-            cp "target/${{ matrix.target }}/release/tisty" "$name"/
-            tar czf "dist/$name.tar.gz" "$name"
-          fi
-
-      - uses: actions/upload-artifact@v6
+      - uses: ./.github/actions/package
         with:
-          name: ${{ matrix.name }}
-          path: dist/*
-          retention-days: 5
+          version: ${{ needs.version.outputs.version }}
+          name: windows-x86_64
+          target: ${{ env.TARGET }}
 
   publish:
     name: GitHub Release
-    needs: [version, build]
+    needs: [version, build-linux, build-macos, build-windows]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -330,7 +324,7 @@ jobs:
             echo "TISTY_EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           body: ${{ steps.notes.outputs.body }}
           generate_release_notes: true

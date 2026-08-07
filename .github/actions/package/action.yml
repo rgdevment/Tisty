@@ -1,0 +1,47 @@
+name: Package the binary
+description: Runs the built binary, archives it with its documents, and uploads it.
+
+inputs:
+  version:
+    description: Version the binary must report.
+    required: true
+  name:
+    description: Platform slug, as it appears in the artifact name.
+    required: true
+  target:
+    description: Rust target the binary was built for.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Compiling on three runners proves nothing until one of them runs.
+    - name: Smoke test
+      shell: bash
+      run: |
+        bin="target/${{ inputs.target }}/release/tisty"
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          bin="$bin.exe"
+        fi
+        test "$("$bin" --version)" = "tisty ${{ inputs.version }}"
+
+    - name: Package
+      shell: bash
+      run: |
+        name="tisty-${{ inputs.version }}-${{ inputs.name }}"
+        mkdir -p dist "$name"
+        cp README.md LICENSE "$name"/
+
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          cp "target/${{ inputs.target }}/release/tisty.exe" "$name"/
+          7z a "dist/$name.zip" "$name"
+        else
+          cp "target/${{ inputs.target }}/release/tisty" "$name"/
+          tar czf "dist/$name.tar.gz" "$name"
+        fi
+
+    - uses: actions/upload-artifact@v6
+      with:
+        name: ${{ inputs.name }}
+        path: dist/*
+        retention-days: 5
