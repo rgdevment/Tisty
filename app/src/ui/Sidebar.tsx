@@ -22,7 +22,8 @@ export default function Sidebar({ tasks, lists }: Props) {
 
   return (
     <aside className="flex flex-col overflow-hidden border-r border-hair bg-rail">
-      <div className="px-2.5 pt-3 pb-1.5">
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      <div className="px-2.5 pb-1.5">
         <nav className="flex flex-col gap-px">
           <Entry icon="⌕" label={t("search")} />
           <Entry icon="▤" label={t("inbox")} count={counts.inbox} />

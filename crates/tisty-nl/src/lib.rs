@@ -40,7 +40,7 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
     let v = vocab::for_locale(locale);
     let tz = now.time_zone().iana_name().unwrap_or("UTC");
 
-    let (text, tags, priority, list) = take_markers(input);
+    let (text, tags, priority, list) = take_markers(input, v);
 
     if let Some(literal) = fully_quoted(&text) {
         return Parsed {
@@ -124,7 +124,10 @@ pub fn parse_date(input: &str, now: &Zoned, locale: &str) -> Option<DateSpec> {
     parsed.date.or(parsed.deadline)
 }
 
-fn take_markers(input: &str) -> (String, Vec<Tag>, Option<Priority>, Option<String>) {
+fn take_markers(
+    input: &str,
+    v: &vocab::Vocabulary,
+) -> (String, Vec<Tag>, Option<Priority>, Option<String>) {
     let mut tags = Vec::new();
     let mut priority = None;
     let mut list = None;
@@ -137,9 +140,13 @@ fn take_markers(input: &str) -> (String, Vec<Tag>, Option<Priority>, Option<Stri
             tags.push(tag);
             continue;
         }
-        if let Some(digit) = word.strip_prefix('!')
-            && let Ok(n) = digit.parse::<u8>()
-            && let Ok(p) = Priority::try_from(n)
+        // `!1` is what fits in a terminal; `!urgente` is what the window shows.
+        if let Some(raw) = word.strip_prefix('!')
+            && let Some(p) = raw
+                .parse::<u8>()
+                .ok()
+                .and_then(|n| Priority::try_from(n).ok())
+                .or_else(|| v.priority(raw))
         {
             priority = Some(p);
             continue;

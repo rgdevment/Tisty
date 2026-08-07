@@ -225,3 +225,24 @@ date = "2026-08-06"
 input = "backup every day"
 title = "backup every day"
 why = "recurrence lands in phase 3; until then it stays in the title"
+
+[[case]]
+input = "fix the checkout !urgent"
+title = "fix the checkout"
+priority = 1
+why = "the interface names the priorities, so they are typed the way they read"
+
+[[case]]
+input = "draft the report !high"
+title = "draft the report"
+priority = 2
+
+[[case]]
+input = "check the links !medium"
+title = "check the links"
+priority = 3
+
+[[case]]
+input = "paint the wall !low"
+title = "paint the wall !low"
+why = "«low» is none of the four; it stays in the title instead of being guessed"

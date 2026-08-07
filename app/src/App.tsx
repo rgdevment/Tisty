@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { capture, complete, snapshot, type Snapshot } from "./core";
+import { capture, complete, snapshot, type Snapshot, type Task } from "./core";
 import { adopt, t } from "./locales";
 import Detail from "./ui/Detail";
+import Notice from "./ui/Notice";
 import Sidebar from "./ui/Sidebar";
 import TaskList from "./ui/TaskList";
+import WindowChrome from "./ui/WindowChrome";
 
 type Mode = "columns" | "sheet";
 
@@ -12,7 +14,10 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [selected, setSelected] = useState<string | undefined>();
+  const [captured, setCaptured] = useState<Task | undefined>();
+  const [reveal, setReveal] = useState<string | undefined>();
   const [mode, setMode] = useState<Mode>("columns");
+  const dismiss = useCallback(() => setCaptured(undefined), []);
 
   useTheme();
 
@@ -48,6 +53,22 @@ export default function App() {
         gridTemplateColumns: open && mode === "columns" ? "232px minmax(0,1fr) 380px" : "232px minmax(0,1fr)",
       }}
     >
+      <WindowChrome />
+
+      {captured && (
+        <Notice
+          key={captured.id}
+          task={captured}
+          lists={data.lists}
+          onOpen={() => {
+            setSelected(captured.id);
+            setReveal(captured.id);
+            dismiss();
+          }}
+          onDismiss={dismiss}
+        />
+      )}
+
       <Sidebar tasks={data.tasks} lists={data.lists} />
 
       {open && mode === "sheet" ? (
@@ -64,6 +85,8 @@ export default function App() {
           lists={data.lists}
           title={t("today")}
           selected={selected}
+          fresh={captured?.id}
+          reveal={reveal}
           centred={!open}
           onSelect={setSelected}
           onComplete={(id) => act(complete(id))}
@@ -71,9 +94,16 @@ export default function App() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              act(capture(text).then(() => setText("")));
+              setError(null);
+              capture(text)
+                .then((task) => {
+                  setText("");
+                  setCaptured(task);
+                  load();
+                })
+                .catch((e) => setError(String(e)));
             }}
-            className="mt-1.5 w-full"
+            className="w-full"
           >
             <input
               value={text}

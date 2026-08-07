@@ -311,3 +311,31 @@ date = "2026-08-06"
 input = "backup cada día"
 title = "backup cada día"
 why = "la recurrencia llega en la fase 3; hasta entonces se deja en el título"
+
+[[case]]
+input = "arreglar el checkout !urgente"
+title = "arreglar el checkout"
+priority = 1
+why = "la interfaz nombra las prioridades, así que se escriben como se leen"
+
+[[case]]
+input = "preparar el informe !alta"
+title = "preparar el informe"
+priority = 2
+
+[[case]]
+input = "revisar los enlaces !media"
+title = "revisar los enlaces"
+priority = 3
+
+[[case]]
+input = "pintar la pared !baja"
+title = "pintar la pared !baja"
+why = "«baja» no es ninguna de las cuatro; se queda en el título en vez de adivinar"
+
+[[case]]
+input = "avisar al equipo !URGENTE mañana"
+title = "avisar al equipo"
+date = "2026-08-06"
+priority = 1
+why = "el nombre no distingue mayúsculas, igual que los filtros"
