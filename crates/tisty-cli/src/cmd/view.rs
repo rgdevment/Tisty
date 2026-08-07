@@ -22,7 +22,7 @@ pub fn ls(
     let pool = if filter.archive {
         newest_first(app)
     } else {
-        app.ordered_open()
+        app.state.ordered_open()
     };
     let tasks: Vec<&Task> = pool
         .into_iter()

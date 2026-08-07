@@ -1,4 +1,4 @@
-use tisty_core::{Config, Event, List, Op, Paths, State, Store, Task, order};
+use tisty_core::{Config, Event, Op, Paths, State, Store, Task, order};
 
 enum Load {
     Full,
@@ -205,32 +205,6 @@ impl App {
             }
         }
         groups
-    }
-
-    pub fn ordered_open(&self) -> Vec<&Task> {
-        let mut tasks: Vec<_> = self.state.open_tasks().collect();
-        tasks.sort_by(|a, b| {
-            let key = |t: &Task| {
-                (
-                    t.date.as_ref().map(|d| d.at),
-                    t.priority,
-                    t.order.clone(),
-                    t.id,
-                )
-            };
-            match (&a.date, &b.date) {
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                _ => key(a).cmp(&key(b)),
-            }
-        });
-        tasks
-    }
-
-    pub fn ordered_lists(&self) -> Vec<&List> {
-        let mut lists: Vec<_> = self.state.active_lists().collect();
-        lists.sort_by(|a, b| (&a.order, a.id).cmp(&(&b.order, b.id)));
-        lists
     }
 
     pub fn next_step_order(&self, task: &Task) -> String {

@@ -106,8 +106,7 @@ pub const EN: Vocabulary = Vocabulary {
     weekend: &[&["this", "weekend"], &["weekend"]],
 };
 
-/// A caller that hands over what the system said — `es-CL`, `es_CL.UTF-8` —
-/// must not silently get English.
+/// What a system reports — `es-CL` — must not silently get English.
 pub fn for_locale(code: &str) -> &'static Vocabulary {
     let tag = code.split(['_', '-', '.']).next().unwrap_or_default();
     match tag.to_lowercase().as_str() {

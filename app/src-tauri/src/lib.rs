@@ -72,6 +72,9 @@ impl Session {
 struct Snapshot {
     tasks: Vec<Task>,
     lists: Vec<List>,
+    /// Set only when configured: the window would otherwise speak a different
+    /// language than `tisty` on the same machine.
+    locale: Option<String>,
 }
 
 type Answer<T> = std::result::Result<T, String>;
@@ -90,13 +93,13 @@ fn snapshot(session: tauri::State<'_, Mutex<Session>>) -> Answer<Snapshot> {
     session.reload().map_err(|e| e.to_string())?;
 
     Ok(Snapshot {
-        tasks: session.state.open_tasks().cloned().collect(),
-        lists: session.state.active_lists().cloned().collect(),
+        tasks: session.state.ordered_open().into_iter().cloned().collect(),
+        lists: session.state.ordered_lists().into_iter().cloned().collect(),
+        locale: session.locale.clone(),
     })
 }
 
-/// `locale` is what the webview reports, which is the system's; the configured
-/// one still wins, as it does in the CLI.
+/// `locale` is the system's, via the webview; the configured one still wins.
 #[tauri::command]
 fn capture(
     session: tauri::State<'_, Mutex<Session>>,
