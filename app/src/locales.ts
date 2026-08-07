@@ -20,6 +20,13 @@ const en = {
   minimise: "Minimise",
   maximise: "Maximise",
   close: "Close",
+  fieldDate: "date",
+  fieldDeadline: "deadline",
+  fieldList: "list",
+  fieldTag: "tag",
+  fieldPriority: "priority",
+  hintDates: "dates as you say them",
+  hintPick: "to pick",
 };
 
 /// Missing a key in another catalogue is a compile error, not a runtime «⟨?⟩».
@@ -47,6 +54,13 @@ const es: Catalog = {
   minimise: "Minimizar",
   maximise: "Maximizar",
   close: "Cerrar",
+  fieldDate: "fecha",
+  fieldDeadline: "límite",
+  fieldList: "lista",
+  fieldTag: "etiqueta",
+  fieldPriority: "prioridad",
+  hintDates: "fechas tal como se dicen",
+  hintPick: "para elegir",
 };
 
 const catalogs: Record<string, Catalog> = { en, es };
