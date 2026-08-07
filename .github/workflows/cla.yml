@@ -4,6 +4,11 @@ name: CLA
 # contribution cannot land before its author has signed. Signatures are stored
 # in a separate repository rather than this one to keep the audit trail intact
 # even if this repo's history is ever rewritten.
+#
+# Required in main's branch protection, or it reports and the merge happens
+# anyway. It only sees Pull Requests, so CONTRIBUTING.md rules out the routes
+# that bypass it. Widening what CLA.md grants needs a new signatures path: the
+# old signatures consented to the old text.
 
 on:
   issue_comment:

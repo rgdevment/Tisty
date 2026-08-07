@@ -1,5 +1,4 @@
-//! What every client has to do to turn a written line into a task. Duplicating
-//! it is how the CLI and the GUI would start disagreeing about the same input.
+//! Shared by every client: duplicating it is how they start disagreeing.
 
 use ulid::Ulid;
 
@@ -9,8 +8,7 @@ use crate::{
     model::{DateSpec, ListId, Priority, Tag, TaskId},
 };
 
-/// `#list` in the text creates the list; a flag or a picker still demands one
-/// that exists.
+/// `Marked` creates the list if it is missing; `Named` demands it exists.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Filing {
     Marked(String),
@@ -37,8 +35,7 @@ pub enum Rejected {
     AmbiguousList(String),
 }
 
-/// One action, however many events it takes: in two batches an undo would take
-/// back half a capture.
+/// One batch, or an undo takes back half a capture.
 pub struct Plan {
     pub task: TaskId,
     pub ops: Vec<Op>,
@@ -179,8 +176,6 @@ mod tests {
         assert_eq!(listed(&state, &plan), state.lists.keys().next().copied());
     }
 
-    /// The flag is how a script says «this one», so inventing a list would file
-    /// the task somewhere the caller never named.
     #[test]
     fn a_named_list_that_is_missing_is_refused_instead_of_created() {
         let state = with_lists(&["work"]);
@@ -192,8 +187,6 @@ mod tests {
         assert!(matches!(outcome, Err(Rejected::NoSuchList(_))));
     }
 
-    /// Resolving the ambiguity by creating would leave a third list with the
-    /// same name, and the next capture would face three.
     #[test]
     fn an_ambiguous_marker_is_refused_rather_than_creating_another() {
         let state = with_lists(&["work trip", "work notes"]);

@@ -159,6 +159,32 @@ impl State {
         self.lists.values().filter(|l| !l.archived)
     }
 
+    pub fn ordered_open(&self) -> Vec<&Task> {
+        let mut tasks: Vec<_> = self.open_tasks().collect();
+        tasks.sort_by(|a, b| {
+            let key = |t: &Task| {
+                (
+                    t.date.as_ref().map(|d| d.at),
+                    t.priority,
+                    t.order.clone(),
+                    t.id,
+                )
+            };
+            match (&a.date, &b.date) {
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                _ => key(a).cmp(&key(b)),
+            }
+        });
+        tasks
+    }
+
+    pub fn ordered_lists(&self) -> Vec<&List> {
+        let mut lists: Vec<_> = self.active_lists().collect();
+        lists.sort_by(|a, b| (&a.order, a.id).cmp(&(&b.order, b.id)));
+        lists
+    }
+
     /// Case-insensitive substring, but an exact name always wins.
     pub fn find_list(&self, needle: &str) -> Vec<&List> {
         let needle = loose(needle);

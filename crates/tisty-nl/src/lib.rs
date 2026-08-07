@@ -219,7 +219,6 @@ mod tests {
         assert!(parse_date("not a date", &now(), "en").is_none());
     }
 
-    /// A client hands over what the system reports, not a canonical code.
     #[test]
     fn a_regional_locale_still_speaks_its_language() {
         let p = parse("comprar pan mañana", &now(), "es-CL");

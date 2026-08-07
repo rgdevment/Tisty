@@ -46,7 +46,6 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
     Ok(ExitCode::SUCCESS)
 }
 
-/// The core states the reason in English; the catalogue is what the user reads.
 fn refused(e: Rejected, lang: Lang) -> anyhow::Error {
     let message = match &e {
         Rejected::Untitled => lang.get("needs-title").to_string(),
@@ -62,7 +61,7 @@ pub fn done(
     today: Date,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
-    let open = app.ordered_open();
+    let open = app.state.ordered_open();
     if open.is_empty() && selector.is_none() {
         println!("  {}", style::dim(lang.get("nothing-open")));
         return Ok(ExitCode::SUCCESS);
@@ -85,7 +84,7 @@ pub fn undone(app: &mut App, selector: &str, today: Date, lang: Lang) -> anyhow:
 }
 
 pub fn drop(app: &mut App, selector: &str, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
-    let open = app.ordered_open();
+    let open = app.state.ordered_open();
     resolved!(app, Some(selector), open, lang, |id| {
         app.commit(Op::TaskDrop { id })?;
         report(app, id, today, lang);

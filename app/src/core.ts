@@ -63,6 +63,7 @@ export interface List {
 export interface Snapshot {
   tasks: Task[];
   lists: List[];
+  locale?: string;
 }
 
 export const snapshot = (): Promise<Snapshot> => invoke("snapshot");

@@ -17,7 +17,7 @@ use serde::Serialize;
 
 pub fn lists(app: &App, json: bool, lang: Lang) -> anyhow::Result<ExitCode> {
     if json {
-        println!("{}", serde_json::to_string(&app.ordered_lists())?);
+        println!("{}", serde_json::to_string(&app.state.ordered_lists())?);
     } else {
         print!("{}", render::lists(&app.state, lang));
     }

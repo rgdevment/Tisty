@@ -126,7 +126,7 @@ pub fn export(
         done.sort_by_key(|t| (std::cmp::Reverse(t.completed_at), std::cmp::Reverse(t.id)));
         done
     } else {
-        app.ordered_open()
+        app.state.ordered_open()
     };
     let tasks: Vec<&Task> = pool
         .into_iter()

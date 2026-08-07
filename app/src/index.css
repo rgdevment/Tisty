@@ -1,1 +1,88 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --tisty-bg: #ffffff;
+  --tisty-rail: #f6f6f8;
+  --tisty-panel: #fbfbfd;
+  --tisty-ink: #1d1d1f;
+  --tisty-soft: #6e6e73;
+  --tisty-faint: #a1a1a6;
+  --tisty-line: rgb(0 0 0 / 0.08);
+  --tisty-hair: rgb(0 0 0 / 0.045);
+  --tisty-hover: rgb(0 0 0 / 0.035);
+  --tisty-active: rgb(0 0 0 / 0.06);
+  --tisty-accent: #0a7cff;
+  --tisty-accent-soft: rgb(10 124 255 / 0.1);
+  --tisty-urgent: #e5484d;
+  --tisty-high: #f0883e;
+  --tisty-mark-date: rgb(10 124 255 / 0.15);
+  --tisty-mark-list: rgb(22 163 124 / 0.17);
+  --tisty-mark-tag: rgb(124 92 222 / 0.15);
+}
+
+[data-theme="dark"] {
+  --tisty-bg: #1c1c1e;
+  --tisty-rail: #191919;
+  --tisty-panel: #202022;
+  --tisty-ink: #f2f2f7;
+  --tisty-soft: #9a9aa0;
+  --tisty-faint: #6c6c72;
+  --tisty-line: rgb(255 255 255 / 0.1);
+  --tisty-hair: rgb(255 255 255 / 0.055);
+  --tisty-hover: rgb(255 255 255 / 0.045);
+  --tisty-active: rgb(255 255 255 / 0.08);
+  --tisty-accent: #3d95ff;
+  --tisty-accent-soft: rgb(61 149 255 / 0.14);
+  --tisty-urgent: #ff5f57;
+  --tisty-high: #f5a04a;
+  --tisty-mark-date: rgb(61 149 255 / 0.24);
+  --tisty-mark-list: rgb(45 200 155 / 0.22);
+  --tisty-mark-tag: rgb(160 130 255 / 0.24);
+}
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
+    "Segoe UI", system-ui, sans-serif;
+
+  --color-bg: var(--tisty-bg);
+  --color-rail: var(--tisty-rail);
+  --color-panel: var(--tisty-panel);
+  --color-ink: var(--tisty-ink);
+  --color-soft: var(--tisty-soft);
+  --color-faint: var(--tisty-faint);
+  --color-line: var(--tisty-line);
+  --color-hair: var(--tisty-hair);
+  --color-hover: var(--tisty-hover);
+  --color-active: var(--tisty-active);
+  --color-accent: var(--tisty-accent);
+  --color-accent-soft: var(--tisty-accent-soft);
+  --color-urgent: var(--tisty-urgent);
+  --color-high: var(--tisty-high);
+  --color-mark-date: var(--tisty-mark-date);
+  --color-mark-list: var(--tisty-mark-list);
+  --color-mark-tag: var(--tisty-mark-tag);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--tisty-bg);
+  color: var(--tisty-ink);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.scroller {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scroller:hover {
+  scrollbar-color: var(--tisty-line) transparent;
+}

@@ -29,7 +29,13 @@ Pull Request with exactly:
 I have read the CLA Document and I hereby sign the CLA
 ```
 
-That is it — every later Pull Request from the same account is covered.
+That is it — every later Pull Request from the same account is covered, and so
+is anything you sent before signing.
+
+**Code in an issue or in a review suggestion counts too.** The bot only watches
+Pull Requests, so those routes reach the codebase without passing it. If you
+have not signed, keep such snippets to a description of the fix rather than the
+patch itself, and a maintainer will write it.
 
 **In return, the project commits that:**
 
