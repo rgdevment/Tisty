@@ -76,7 +76,7 @@ fn meta(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     if total > 0 {
         meta.push(style::dim(&format!("{done}/{total}")));
     }
-    let entries = task.journal().count();
+    let entries = task.journal_count();
     if entries > 0 {
         meta.push(style::dim(&format!("✎{entries}")));
     }

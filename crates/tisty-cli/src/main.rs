@@ -267,6 +267,7 @@ fn run() -> anyhow::Result<ExitCode> {
     let paths = tisty_core::Paths::resolve()?;
     let mut app = match cli.command {
         Command::Config { .. } => App::without_store(paths)?,
+        Command::Ls { .. } | Command::Lists { .. } => App::listing(paths)?,
         _ => App::at(paths)?,
     };
     let lang = Lang::detect(app.locale());

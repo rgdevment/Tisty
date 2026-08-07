@@ -372,6 +372,30 @@ fn config_tells_an_unset_key_from_an_unknown_one_and_agrees_on_the_code() {
     assert_eq!(read.code, write.code, "same error, different exit codes");
 }
 
+/// Listing loads no bodies, so the counts have to stand on their own.
+#[test]
+fn a_listing_reports_its_counts_without_loading_the_bodies() {
+    let cli = Cli::new();
+    cli.ok(&["write the report"]);
+    cli.ok(&["log", "write the report", "spoke to accounting"]);
+    cli.ok(&["log", "write the report", "still waiting"]);
+    cli.ok(&["step", "write the report", "add", "collect the figures"]);
+    cli.ok(&["step", "write the report", "add", "draft it"]);
+    cli.ok(&["step", "write the report", "done", "1"]);
+
+    let listed = cli.ok(&["ls", "all"]);
+    assert!(listed.contains("✎2"), "journal count missing: {listed}");
+    assert!(listed.contains("1/2"), "step count missing: {listed}");
+
+    let shown = cli.ok(&["show", "write the report"]);
+    assert!(shown.contains("spoke to accounting"), "{shown}");
+    assert!(shown.contains("collect the figures"), "{shown}");
+    assert!(
+        cli.ok(&["search", "accounting"])
+            .contains("write the report")
+    );
+}
+
 #[test]
 fn doctor_agrees_with_the_log_when_nothing_is_wrong() {
     let cli = Cli::new();

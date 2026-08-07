@@ -138,12 +138,23 @@ impl Store {
         Ok(())
     }
 
-    /// Closed segments never change again, so Git stores each one once.
+    /// Closed segments never change again, so Git stores each one once. The
+    /// count is written beside it: a segment that arrives half-downloaded looks
+    /// perfectly valid otherwise, and reading it drops history in silence.
     fn rotate(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
         if active.try_exists()? {
             let next = next_segment_number(&self.dir)?;
-            std::fs::rename(&active, self.dir.join(format!("{next:06}.tisty")))?;
+            let sealed = self.dir.join(format!("{next:06}.tisty"));
+            std::fs::rename(&active, &sealed)?;
+
+            // Counted off the file, not off the in-memory tally: the tally is
+            // what we believe, the file is what a second machine will receive.
+            let (lines, _, _) = tail_of(&sealed)?;
+            write_atomic(
+                &sealed.with_extension("count"),
+                lines.to_string().as_bytes(),
+            )?;
         }
         self.active_events = 0;
         Ok(())
@@ -183,13 +194,18 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
             let before = events.len();
             read_segment(&segment, &mut events)?;
 
-            // A sealed segment is never empty. An empty one is a cloud
-            // placeholder or a download that never happened, and reading it as
-            // written loses history without a word.
-            if closed && events.len() == before {
-                return Err(Error::TruncatedSegment {
-                    file: segment.display().to_string(),
-                });
+            if closed {
+                let found = events.len() - before;
+                let declared = declared_count(&segment);
+                // An empty one is a cloud placeholder or a download that never
+                // happened; a short one arrived half-written.
+                if found == 0 || declared.is_some_and(|n| n != found) {
+                    return Err(Error::TruncatedSegment {
+                        file: segment.display().to_string(),
+                        found,
+                        declared,
+                    });
+                }
             }
         }
     }
@@ -222,6 +238,16 @@ fn contiguous(segments: &[PathBuf]) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// How many events the segment held when it was sealed, if anyone recorded it.
+/// Segments written before this existed simply have nothing to check against.
+fn declared_count(segment: &Path) -> Option<usize> {
+    std::fs::read_to_string(segment.with_extension("count"))
+        .ok()?
+        .trim()
+        .parse()
+        .ok()
 }
 
 fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
@@ -313,6 +339,39 @@ mod tests {
             id: Ulid::generate(),
             d: TaskAdd::new(title, "a0"),
         }
+    }
+
+    #[test]
+    fn a_segment_that_arrived_half_written_is_an_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        let device = DeviceId("dev_a".into());
+        let mut store = Store::open(tmp.path(), device.clone()).unwrap();
+        for i in 0..4 {
+            store.append(add(&format!("task {i}"))).unwrap();
+        }
+        store.active_events = SEGMENT_MAX_EVENTS;
+        store.append(add("one more")).unwrap();
+
+        let dir = tmp.path().join(&device.0);
+        let sealed = dir.join("000001.tisty");
+        assert_eq!(declared_count(&sealed), Some(4));
+
+        let kept: String = std::fs::read_to_string(&sealed)
+            .unwrap()
+            .lines()
+            .take(2)
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&sealed, kept + "\n").unwrap();
+
+        assert!(matches!(
+            read_all(tmp.path()),
+            Err(Error::TruncatedSegment {
+                found: 2,
+                declared: Some(4),
+                ..
+            })
+        ));
     }
 
     #[test]

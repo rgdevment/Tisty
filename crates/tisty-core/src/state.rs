@@ -31,7 +31,9 @@ impl State {
 
         match &event.op {
             Op::TaskAdd { id, d } => {
-                self.tasks.insert(*id, task_from(*id, d));
+                let mut task = task_from(*id, d);
+                task.retally();
+                self.tasks.insert(*id, task);
             }
             Op::TaskUpdate { id, d } => self.with_task(*id, |t| patch(t, d)),
             Op::TaskDone { id } => self.with_task(*id, |t| {
@@ -104,6 +106,7 @@ impl State {
     fn with_task(&mut self, id: TaskId, f: impl FnOnce(&mut Task)) {
         if let Some(task) = self.tasks.get_mut(&id) {
             f(task);
+            task.retally();
         }
     }
 

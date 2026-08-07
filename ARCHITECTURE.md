@@ -109,6 +109,17 @@ and invalidates instead.
 Anything that goes wrong opening or reading the cache falls back to the log.
 The cache can be deleted at any time.
 
+### Checking it
+
+```sh
+tisty doctor            # replay the log and compare it against the cache
+tisty doctor --repair   # discard the cache; the next read rebuilds it
+```
+
+The cache is stale, absent, in agreement, or **wrong**. Only the last one exits
+non-zero. `doctor` reports and never repairs on its own, because the log wins
+every disagreement and rebuilding is the only repair there is.
+
 ## Syncing
 
 Over Git, and only over Git.
