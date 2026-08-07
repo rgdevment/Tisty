@@ -10,6 +10,8 @@ pub enum Window {
     Today,
     On(Date),
     Until(Date),
+    /// What is still ahead, so it never repeats what «today» already showed.
+    After(Date),
     Overdue,
 }
 
@@ -49,6 +51,7 @@ impl Filter {
             Some(Window::Today) => on.is_none_or(|d| d <= today),
             Some(Window::On(day)) => on == Some(*day),
             Some(Window::Until(day)) => on.is_some_and(|d| d <= *day),
+            Some(Window::After(day)) => on.is_some_and(|d| d > *day),
             Some(Window::Overdue) => on.is_some_and(|d| d < today),
         }
     }
@@ -109,6 +112,19 @@ mod tests {
         assert!(
             !f.matches(&task("no date"), today()),
             "undated is not a week"
+        );
+    }
+
+    #[test]
+    fn what_is_ahead_never_repeats_what_today_already_showed() {
+        let f = filter(|f| f.window = Some(Window::After(today())));
+
+        assert!(f.matches(&dated("later", "2026-08-09"), today()));
+        assert!(!f.matches(&dated("today", "2026-08-05"), today()));
+        assert!(!f.matches(&dated("overdue", "2026-08-01"), today()));
+        assert!(
+            !f.matches(&task("no date"), today()),
+            "undated work is not ahead: today already claims it"
         );
     }
 

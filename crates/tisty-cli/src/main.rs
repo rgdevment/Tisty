@@ -76,7 +76,7 @@ pub enum Command {
     Add(AddArgs),
     /// List open tasks. Filters combine: `ls week @backend !1`
     Ls {
-        /// today · tomorrow · week · overdue · inbox · archive · all · #list · @tag · !1
+        /// today · tomorrow · week · overdue · inbox · archive · all · @list · #tag · !1
         filter: Vec<String>,
         #[arg(long)]
         json: bool,

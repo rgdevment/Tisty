@@ -159,11 +159,7 @@ impl View {
             priority: None,
             window: match self.window.as_deref() {
                 Some("today") => Some(Window::Today),
-                Some("upcoming") => Some(Window::Until(
-                    today()
-                        .checked_add(jiff::ToSpan::days(7))
-                        .unwrap_or(today()),
-                )),
+                Some("upcoming") => Some(Window::After(today())),
                 Some("overdue") => Some(Window::Overdue),
                 _ => None,
             },
@@ -210,7 +206,6 @@ fn capture(
     Ok(session.state.tasks[&plan.task].clone())
 }
 
-/// Reads without writing, so the field can show what it understood as it is typed.
 #[tauri::command]
 fn read(
     session: tauri::State<'_, Mutex<Session>>,
