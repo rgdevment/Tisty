@@ -179,7 +179,6 @@ impl State {
         tasks
     }
 
-    /// Archived work reads newest first; everything else keeps the open order.
     pub fn matching(&self, filter: &crate::view::Filter, today: jiff::civil::Date) -> Vec<&Task> {
         if filter.archive {
             let mut done: Vec<&Task> = self
@@ -238,7 +237,7 @@ impl State {
     }
 }
 
-/// Listings print «Mi Lista» as `#mi-lista`, which has to be typeable back.
+/// Listings print «Mi Lista» as `@mi-lista`, which has to be typeable back.
 fn loose(name: &str) -> String {
     name.to_lowercase().replace([' ', '_'], "-")
 }
