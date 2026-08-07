@@ -20,6 +20,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v6
+      - uses: ./.github/actions/linux-deps
+        if: runner.os == 'Linux'
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@nextest
@@ -36,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: ./.github/actions/linux-deps
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy

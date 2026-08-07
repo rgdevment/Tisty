@@ -55,6 +55,19 @@ raises `n` instead.
 leaves the cache *behind*, which repairs itself on the next read. It can never
 leave the cache *ahead*, which would mean data that exists nowhere else.
 
+Both rules are per device directory, and more than one process may own the same
+one: a running GUI and a `tisty` command are the same device. So a write takes
+an exclusive lock, and **holds it for that write only** — a process that kept it
+would refuse every command for as long as it stayed open. A lock found busy is
+waited on briefly, since a write lasts microseconds; only a lock that stays busy
+is reported as a conflict.
+
+Releasing it means the counters can go stale, so the next write re-reads them
+first. It compares the active log's size against what it last saw, and reparses
+only when they differ. Without that, two processes stamp from clocks that never
+saw each other's events, and `(ts, by, n)` stops being unique — which is the one
+thing the merge order cannot survive.
+
 ### Reading
 
 Every device reads every directory, its own included. Events from all of them

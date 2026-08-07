@@ -309,6 +309,33 @@ pub fn discard(cache_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Carries the cache past events just written: both clients write and read in
+/// the same breath, so a cache invalidated on every write is never warm.
+/// Returns the fingerprint it settled on.
+pub fn advance(
+    cache: Option<&mut Cache>,
+    state: &State,
+    events: &[crate::Event],
+    store_root: &Path,
+) -> String {
+    let print = fingerprint(store_root);
+    let Some(cache) = cache else { return print };
+
+    // Deleting a list sends its tasks back to the inbox: one event, many entities.
+    if events
+        .iter()
+        .any(|e| matches!(e.op, crate::Op::ListDelete { .. }))
+    {
+        cache.invalidate();
+        return print;
+    }
+
+    for event in events {
+        let _ = cache.touch(state, event.entity_id(), &print);
+    }
+    print
+}
+
 /// The projection, from cache when the log has not moved and from the log when
 /// it has. Falls back to reading the log whenever anything at all goes wrong.
 pub fn project(store_root: &Path, cache_dir: &Path) -> Result<State> {
@@ -462,5 +489,48 @@ mod tests {
         // Straight from the cache this time, and it has to remember just the same.
         let again = project(&f.store_root, &f.cache_dir).unwrap();
         assert!(again.is_erased(f.task), "the cache forgot a deletion");
+    }
+
+    /// A client that writes without advancing the cache leaves it behind the log
+    /// forever, so every later read pays for the whole projection again.
+    #[test]
+    fn advancing_leaves_the_cache_current_after_a_write() {
+        let f = loaded();
+        let mut state = project(&f.store_root, &f.cache_dir).unwrap();
+        let mut cache = Cache::open(&f.cache_dir).unwrap();
+
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let event = store.append(Op::TaskDone { id: f.task }).unwrap();
+        state.apply(&event);
+
+        let print = advance(
+            cache.as_mut(),
+            &state,
+            std::slice::from_ref(&event),
+            &f.store_root,
+        );
+
+        assert_eq!(print, fingerprint(&f.store_root));
+        assert!(
+            matches!(
+                audit(&f.store_root, &f.cache_dir).unwrap(),
+                Audit::Agrees { .. }
+            ),
+            "the cache fell behind the log"
+        );
+    }
+
+    #[test]
+    fn a_write_that_is_not_carried_leaves_the_cache_behind() {
+        let f = loaded();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        store.append(Op::TaskDone { id: f.task }).unwrap();
+
+        assert!(matches!(
+            audit(&f.store_root, &f.cache_dir).unwrap(),
+            Audit::Stale { .. }
+        ));
     }
 }
