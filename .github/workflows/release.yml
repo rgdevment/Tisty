@@ -107,6 +107,11 @@ jobs:
         shell: bash
         run: |
           version="${{ needs.version.outputs.version }}"
+
+          # Downloads what the lock pins while it still matches the manifest, so the
+          # update below resolves from a populated registry instead of the network.
+          cargo fetch --locked
+
           sed -i.bak -e "s/^version = .*/version = \"$version\"/" Cargo.toml
           rm -f Cargo.toml.bak
 
