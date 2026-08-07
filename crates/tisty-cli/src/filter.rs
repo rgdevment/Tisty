@@ -41,8 +41,8 @@ impl Filter {
             self.inner.tags.push(Tag::new(name)?);
             return Ok(());
         }
-        if let Some(digit) = token.strip_prefix('!') {
-            self.inner.priority = Some(Priority::try_from(digit.parse::<u8>()?)?);
+        if let Some(raw) = token.strip_prefix('!') {
+            self.inner.priority = Some(named_priority(raw, lang)?);
             return Ok(());
         }
 
@@ -100,6 +100,13 @@ impl Filter {
 
     pub fn heading(&self) -> &str {
         &self.heading
+    }
+}
+
+fn named_priority(raw: &str, lang: Lang) -> anyhow::Result<Priority> {
+    match tisty_nl::parse_priority(raw, lang.code()) {
+        Some(priority) => Ok(priority),
+        None => anyhow::bail!("{}", lang.fill("not-a-priority", &[("value", raw)])),
     }
 }
 

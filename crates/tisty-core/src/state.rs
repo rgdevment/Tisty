@@ -201,9 +201,11 @@ impl State {
         lists
     }
 
-    /// Case-insensitive substring, but an exact name always wins.
+    /// Case-insensitive substring, but an exact name always wins. The `@` the
+    /// interface teaches is accepted here too, or `mv 1 @work` would be refused
+    /// for naming the list the way everything else does.
     pub fn find_list(&self, needle: &str) -> Vec<&List> {
-        let needle = loose(needle);
+        let needle = loose(needle.trim_start_matches('@'));
         let exact: Vec<&List> = self
             .lists
             .values()

@@ -67,6 +67,7 @@ impl Session {
             &self.state,
             events,
             &self.paths.store(),
+            self.store.overtaken(),
         )
     }
 }
