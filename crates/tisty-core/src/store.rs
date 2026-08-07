@@ -11,6 +11,8 @@ use crate::{
 
 const ACTIVE: &str = "active.tisty";
 const LOCK: &str = ".lock";
+const LOCK_WAIT_MS: u64 = 500;
+const LOCK_POLL_MS: u64 = 5;
 const SEGMENT_MAX_EVENTS: usize = 5_000;
 
 /// Writes only to this device's directory, which makes merging a concatenation.
@@ -22,6 +24,9 @@ pub struct Store {
     active_events: usize,
     head: jiff::Timestamp,
     seq: u64,
+    /// Size of the active log when its counters were last read, to tell our own
+    /// writes from another process's without reparsing the file.
+    seen: u64,
     lock: Option<File>,
 }
 
@@ -32,11 +37,13 @@ impl Store {
         std::fs::create_dir_all(&dir)?;
 
         let (active_events, head, seq) = tail_of(&dir.join(ACTIVE))?;
+        let seen = active_size(&dir.join(ACTIVE));
 
         Ok(Self {
             active_events,
             head,
             seq,
+            seen,
             root,
             dir,
             device,
@@ -44,7 +51,7 @@ impl Store {
         })
     }
 
-    /// Taken on first write, not on open, so reads work while the GUI holds it.
+    /// Taken on write, not on open, so reads work while another process holds it.
     fn acquire(&mut self) -> Result<()> {
         if self.lock.is_some() {
             return Ok(());
@@ -54,12 +61,50 @@ impl Store {
             .write(true)
             .truncate(false)
             .open(self.dir.join(LOCK))?;
+
+        // A write lasts microseconds, so a busy lock is a collision rather than a
+        // long operation: waiting it out beats failing at whoever typed second.
+        let mut waited = 0;
         // fs4 signals failure with `Ok(false)`, not `Err`.
-        if !file.try_lock_exclusive()? {
-            return Err(Error::AlreadyRunning);
+        while !file.try_lock_exclusive()? {
+            if waited >= LOCK_WAIT_MS {
+                return Err(Error::AlreadyRunning);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(LOCK_POLL_MS));
+            waited += LOCK_POLL_MS;
         }
+
         self.lock = Some(file);
+        self.catch_up()
+    }
+
+    /// A long-lived process holds stale counters: another one may have appended
+    /// since its last write, and stamping from a clock that never saw those
+    /// events produces a `(ts, seq)` that collides with theirs.
+    fn catch_up(&mut self) -> Result<()> {
+        let active = self.dir.join(ACTIVE);
+        let size = active_size(&active);
+        if size == self.seen {
+            return Ok(());
+        }
+
+        let (events, head, seq) = tail_of(&active)?;
+        self.active_events = events;
+        if (head, seq) > (self.head, self.seq) {
+            self.head = head;
+            self.seq = seq;
+        }
+        self.seen = size;
         Ok(())
+    }
+
+    /// Released as soon as the write ends: a GUI that kept it would lock the CLI
+    /// out for as long as its window stayed open.
+    fn locked<T>(&mut self, write: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+        self.acquire()?;
+        let out = write(self);
+        self.lock = None;
+        out
     }
 
     pub fn device(&self) -> &DeviceId {
@@ -67,11 +112,13 @@ impl Store {
     }
 
     pub fn append(&mut self, op: Op) -> Result<Event> {
-        let (timestamp, seq) = self.stamp();
-        let mut event = Event::new(self.device.clone(), timestamp, op);
-        event.seq = seq;
-        self.append_event(&event)?;
-        Ok(event)
+        self.locked(|s| {
+            let (timestamp, seq) = s.stamp();
+            let mut event = Event::new(s.device.clone(), timestamp, op);
+            event.seq = seq;
+            s.write(&event)?;
+            Ok(event)
+        })
     }
 
     /// A clock that steps back would let a device rewrite its own past and win
@@ -103,23 +150,30 @@ impl Store {
         redo: bool,
     ) -> Result<Vec<Event>> {
         let batch = (ops.len() > 1).then(ulid::Ulid::generate);
-        let mut written = Vec::with_capacity(ops.len());
 
-        for op in ops {
-            let (timestamp, seq) = self.stamp();
-            let mut event = Event::new(self.device.clone(), timestamp, op);
-            event.batch = batch;
-            event.undo = undo;
-            event.redo = redo;
-            event.seq = seq;
-            self.append_event(&event)?;
-            written.push(event);
-        }
-        Ok(written)
+        // One lock for the whole batch: releasing between events would let another
+        // process interleave writes into what is meant to be a single action.
+        self.locked(|s| {
+            let mut written = Vec::with_capacity(ops.len());
+            for op in ops {
+                let (timestamp, seq) = s.stamp();
+                let mut event = Event::new(s.device.clone(), timestamp, op);
+                event.batch = batch;
+                event.undo = undo;
+                event.redo = redo;
+                event.seq = seq;
+                s.write(&event)?;
+                written.push(event);
+            }
+            Ok(written)
+        })
     }
 
     pub fn append_event(&mut self, event: &Event) -> Result<()> {
-        self.acquire()?;
+        self.locked(|s| s.write(event))
+    }
+
+    fn write(&mut self, event: &Event) -> Result<()> {
         if self.active_events >= SEGMENT_MAX_EVENTS {
             self.rotate()?;
         }
@@ -135,6 +189,7 @@ impl Store {
         file.sync_all()?;
 
         self.active_events += 1;
+        self.seen = active_size(&self.dir.join(ACTIVE));
         Ok(())
     }
 
@@ -157,6 +212,7 @@ impl Store {
             )?;
         }
         self.active_events = 0;
+        self.seen = 0;
         Ok(())
     }
 
@@ -285,6 +341,10 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
 
 /// Counting and reading the last stamp in one pass: opening a store used to
 /// walk this file twice, once here and once to project.
+fn active_size(path: &Path) -> u64 {
+    std::fs::metadata(path).map(|m| m.len()).unwrap_or(0)
+}
+
 fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {
     let file = match File::open(path) {
         Ok(file) => file,
@@ -486,15 +546,17 @@ mod tests {
         assert_eq!(from_a[0].device, DeviceId("dev_a".into()));
     }
 
+    /// Only while the other is mid-write. Rejecting a writer for as long as
+    /// another process merely exists is what kept the CLI out of a running GUI.
     #[test]
-    fn a_second_writer_on_the_same_device_is_rejected() {
+    fn a_writer_that_holds_the_lock_turns_the_other_away() {
         let tmp = tempfile::tempdir().unwrap();
-        let mut first = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
-        first.append(add("first")).unwrap();
+        let mut holding = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
+        holding.acquire().unwrap();
 
-        let mut second = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
+        let mut other = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
         assert!(matches!(
-            second.append(add("second")),
+            other.append(add("second")),
             Err(Error::AlreadyRunning)
         ));
     }
@@ -618,5 +680,75 @@ mod tests {
 
         assert_eq!(std::fs::read_to_string(&target).unwrap(), "second");
         assert!(!target.with_extension("tmp").exists());
+    }
+
+    /// The GUI outlives its writes. Holding the lock past one would refuse every
+    /// `tisty` command for as long as the window stayed open.
+    #[test]
+    fn a_write_does_not_keep_the_lock() {
+        let tmp = tempfile::tempdir().unwrap();
+        let device = DeviceId("dev_a".into());
+
+        let mut gui = Store::open(tmp.path(), device.clone()).unwrap();
+        gui.append(add("from the window")).unwrap();
+
+        let mut cli = Store::open(tmp.path(), device).unwrap();
+        assert!(cli.append(add("from the terminal")).is_ok());
+    }
+
+    /// Two processes on one device stamp from their own clocks. Without catching
+    /// up, both would claim the same `(ts, seq)` and the merge order would stop
+    /// being a total order.
+    #[test]
+    fn two_processes_on_one_device_never_stamp_the_same_event() {
+        let tmp = tempfile::tempdir().unwrap();
+        let device = DeviceId("dev_a".into());
+
+        let mut gui = Store::open(tmp.path(), device.clone()).unwrap();
+        let mut cli = Store::open(tmp.path(), device).unwrap();
+
+        let mut stamps = Vec::new();
+        for i in 0..8 {
+            let who = if i % 2 == 0 { &mut gui } else { &mut cli };
+            let event = who.append(add(&format!("task {i}"))).unwrap();
+            stamps.push((event.timestamp, event.seq));
+        }
+
+        let mut unique = stamps.clone();
+        unique.sort();
+        unique.dedup();
+        assert_eq!(unique.len(), stamps.len(), "collided: {stamps:?}");
+    }
+
+    #[test]
+    fn catching_up_never_rewinds_the_clock() {
+        let tmp = tempfile::tempdir().unwrap();
+        let device = DeviceId("dev_a".into());
+
+        let mut first = Store::open(tmp.path(), device.clone()).unwrap();
+        first.append(add("one")).unwrap();
+
+        let mut second = Store::open(tmp.path(), device).unwrap();
+        second.append(add("two")).unwrap();
+
+        let ahead = second.head;
+        first.append(add("three")).unwrap();
+        assert!(first.head >= ahead);
+    }
+
+    /// Rotation renames the file it measures; a stale size would make the next
+    /// write reparse a log that is no longer there.
+    #[test]
+    fn rotation_resets_what_the_store_believes_it_has_seen() {
+        let tmp = tempfile::tempdir().unwrap();
+        let device = DeviceId("dev_a".into());
+        let mut store = Store::open(tmp.path(), device).unwrap();
+
+        store.append(add("before")).unwrap();
+        store.active_events = SEGMENT_MAX_EVENTS;
+        store.append(add("after")).unwrap();
+
+        assert_eq!(store.active_events, 1);
+        assert_eq!(store.seen, active_size(&store.dir.join(ACTIVE)));
     }
 }

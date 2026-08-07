@@ -95,20 +95,13 @@ impl App {
         Ok(events.len())
     }
 
-    /// Carrying the cache forward instead of letting the next read rebuild it:
-    /// a CLI writes and reads in the same breath, so invalidating on every
-    /// write leaves the cache never warm.
     fn refresh(&mut self, events: &[Event]) {
-        let Some(cache) = &mut self.cache else { return };
-        if events.iter().any(|e| matches!(e.op, Op::ListDelete { .. })) {
-            cache.invalidate();
-            return;
-        }
-
-        let print = tisty_core::cache::fingerprint(&self.paths.store());
-        for event in events {
-            let _ = cache.touch(&self.state, event.entity_id(), &print);
-        }
+        tisty_core::cache::advance(
+            self.cache.as_mut(),
+            &self.state,
+            events,
+            &self.paths.store(),
+        );
     }
 
     /// Whole batch or nothing, and never another device's: half an undone tag
