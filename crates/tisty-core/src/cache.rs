@@ -26,6 +26,7 @@ impl Cache {
                  PRAGMA synchronous=NORMAL;
                  CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS task(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
+                 CREATE TABLE IF NOT EXISTS task_body(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS list(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY);",
             )
@@ -37,7 +38,8 @@ impl Cache {
     }
 
     /// The state as of the fingerprint given, or nothing if the log moved on.
-    pub fn load(&self, fingerprint: &str) -> Option<State> {
+    /// `bodies` decides whether descriptions, journals and steps come along.
+    pub fn load(&self, fingerprint: &str, bodies: bool) -> Option<State> {
         if self.meta("schema")? != SCHEMA.to_string() || self.meta("fingerprint")? != fingerprint {
             return None;
         }
@@ -59,6 +61,24 @@ impl Cache {
                 }
             }
         }
+        if bodies {
+            let mut q = self.db.prepare("SELECT id, doc FROM task_body").ok()?;
+            let rows = q
+                .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+                .ok()?
+                .filter_map(|r| r.ok());
+            for (id, doc) in rows {
+                let (Ok(id), Ok(body)) = (id.parse(), serde_json::from_str::<Body>(&doc)) else {
+                    return None;
+                };
+                if let Some(task) = state.tasks.get_mut(&id) {
+                    task.description = body.description;
+                    task.log = body.log;
+                    task.steps = body.steps;
+                }
+            }
+        }
+
         let mut erased = self.db.prepare("SELECT id FROM tombstone").ok()?;
         let ids = erased
             .query_map([], |r| r.get::<_, String>(0))
@@ -81,13 +101,18 @@ impl Cache {
         };
         let written = (|| -> rusqlite::Result<()> {
             tx.execute("DELETE FROM task", [])?;
+            tx.execute("DELETE FROM task_body", [])?;
             tx.execute("DELETE FROM list", [])?;
             tx.execute("DELETE FROM tombstone", [])?;
             {
                 let mut task = tx.prepare("INSERT INTO task VALUES (?,?)")?;
+                let mut body = tx.prepare("INSERT INTO task_body VALUES (?,?)")?;
                 for t in state.tasks.values() {
-                    let doc = serde_json::to_string(t).unwrap_or_default();
-                    task.execute(rusqlite::params![t.id.to_string(), doc])?;
+                    let (summary, detail) = split(t);
+                    task.execute(rusqlite::params![t.id.to_string(), summary])?;
+                    if let Some(detail) = detail {
+                        body.execute(rusqlite::params![t.id.to_string(), detail])?;
+                    }
                 }
                 let mut list = tx.prepare("INSERT INTO list VALUES (?,?)")?;
                 for l in state.lists.values() {
@@ -118,11 +143,20 @@ impl Cache {
             let id = entity.to_string();
             match (state.tasks.get(&entity), state.lists.get(&entity)) {
                 (Some(task), _) => {
-                    let doc = serde_json::to_string(task).unwrap_or_default();
+                    let (summary, detail) = split(task);
                     self.db.execute(
                         "INSERT OR REPLACE INTO task VALUES (?,?)",
-                        rusqlite::params![id, doc],
+                        rusqlite::params![id, summary],
                     )?;
+                    match detail {
+                        Some(detail) => self.db.execute(
+                            "INSERT OR REPLACE INTO task_body VALUES (?,?)",
+                            rusqlite::params![id, detail],
+                        )?,
+                        None => self
+                            .db
+                            .execute("DELETE FROM task_body WHERE id = ?", [&id])?,
+                    };
                 }
                 (_, Some(list)) => {
                     let doc = serde_json::to_string(list).unwrap_or_default();
@@ -133,6 +167,8 @@ impl Cache {
                 }
                 _ => {
                     self.db.execute("DELETE FROM task WHERE id = ?", [&id])?;
+                    self.db
+                        .execute("DELETE FROM task_body WHERE id = ?", [&id])?;
                     self.db.execute("DELETE FROM list WHERE id = ?", [&id])?;
                     if state.is_erased(entity) {
                         self.db
@@ -162,6 +198,32 @@ impl Cache {
             .query_row("SELECT value FROM meta WHERE key = ?", [key], |r| r.get(0))
             .ok()
     }
+}
+
+/// The body is what makes a task heavy — a journal of forty entries is fifteen
+/// kilobytes against two hundred bytes of everything else. Listing never needs
+/// it, so it is stored apart and left on disk until something asks.
+fn split(task: &crate::Task) -> (String, Option<String>) {
+    let mut summary = task.clone();
+    let body = Body {
+        description: summary.description.take(),
+        log: std::mem::take(&mut summary.log),
+        steps: std::mem::take(&mut summary.steps),
+    };
+
+    let detail = (body.description.is_some() || !body.log.is_empty() || !body.steps.is_empty())
+        .then(|| serde_json::to_string(&body).unwrap_or_default());
+    (serde_json::to_string(&summary).unwrap_or_default(), detail)
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Body {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    log: Vec<crate::LogEntry>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    steps: Vec<crate::Step>,
 }
 
 /// Names and sizes of every log file. A byte more anywhere and the cache is
@@ -199,7 +261,7 @@ pub fn audit(store_root: &Path, cache_dir: &Path) -> Result<Audit> {
     };
 
     let print = fingerprint(store_root);
-    match cache.load(&print) {
+    match cache.load(&print, true) {
         None => Ok(Audit::Stale { truth }),
         Some(held) if held == truth => Ok(Audit::Agrees { truth }),
         Some(held) => Ok(Audit::Diverged {
@@ -250,11 +312,20 @@ pub fn discard(cache_dir: &Path) -> Result<()> {
 /// The projection, from cache when the log has not moved and from the log when
 /// it has. Falls back to reading the log whenever anything at all goes wrong.
 pub fn project(store_root: &Path, cache_dir: &Path) -> Result<State> {
+    projected(store_root, cache_dir, true)
+}
+
+/// Without bodies: everything a listing needs and none of what makes it slow.
+pub fn summarised(store_root: &Path, cache_dir: &Path) -> Result<State> {
+    projected(store_root, cache_dir, false)
+}
+
+fn projected(store_root: &Path, cache_dir: &Path, bodies: bool) -> Result<State> {
     let print = fingerprint(store_root);
     let mut cache = Cache::open(cache_dir)?;
 
     if let Some(cache) = &cache
-        && let Some(state) = cache.load(&print)
+        && let Some(state) = cache.load(&print, bodies)
     {
         return Ok(state);
     }

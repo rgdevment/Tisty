@@ -1,5 +1,11 @@
 use tisty_core::{Config, Event, List, Op, Paths, State, Store, Task, order};
 
+enum Load {
+    Full,
+    Summary,
+    None,
+}
+
 pub struct App {
     pub paths: Paths,
     pub state: State,
@@ -10,24 +16,30 @@ pub struct App {
 
 impl App {
     pub fn at(paths: Paths) -> tisty_core::Result<Self> {
-        Self::build(paths, true)
+        Self::build(paths, Load::Full)
+    }
+
+    /// Everything a listing needs, without the journals and steps that make up
+    /// most of the bytes. Anything that shows or searches content wants `at`.
+    pub fn listing(paths: Paths) -> tisty_core::Result<Self> {
+        Self::build(paths, Load::Summary)
     }
 
     /// One malformed line must not lock the user out of `config`.
     pub fn without_store(paths: Paths) -> tisty_core::Result<Self> {
-        Self::build(paths, false)
+        Self::build(paths, Load::None)
     }
 
-    fn build(paths: Paths, replay: bool) -> tisty_core::Result<Self> {
+    fn build(paths: Paths, load: Load) -> tisty_core::Result<Self> {
         let config = Config::load_or_init(&paths)?;
         let store = Store::open(paths.store(), config.device_id.clone())?;
-        let state = if replay {
-            tisty_core::cache::project(&paths.store(), paths.cache())?
-        } else {
-            State::default()
+        let state = match load {
+            Load::Full => tisty_core::cache::project(&paths.store(), paths.cache())?,
+            Load::Summary => tisty_core::cache::summarised(&paths.store(), paths.cache())?,
+            Load::None => State::default(),
         };
 
-        let cache = if replay {
+        let cache = if matches!(load, Load::Full | Load::Summary) {
             tisty_core::cache::Cache::open(paths.cache())?
         } else {
             None

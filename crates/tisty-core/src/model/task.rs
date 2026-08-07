@@ -116,6 +116,33 @@ pub struct Task {
     pub reminders: Vec<DateSpec>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completed_at: Option<Timestamp>,
+
+    /// Held apart from the vectors, not derived from them: a summary loaded
+    /// without its body still has to know how much body there is.
+    #[serde(default, skip_serializing_if = "Volume::is_empty")]
+    pub volume: Volume,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Volume {
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub steps: usize,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub steps_done: usize,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub journal: usize,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub described: bool,
+}
+
+fn is_zero(n: &usize) -> bool {
+    *n == 0
+}
+
+impl Volume {
+    fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 impl Task {
@@ -135,6 +162,7 @@ impl Task {
             tags: Vec::new(),
             reminders: Vec::new(),
             completed_at: None,
+            volume: Volume::default(),
         }
     }
 
@@ -153,10 +181,25 @@ impl Task {
     }
 
     pub fn steps_done(&self) -> (usize, usize) {
-        (
-            self.steps.iter().filter(|s| s.done).count(),
-            self.steps.len(),
-        )
+        (self.volume.steps_done, self.volume.steps)
+    }
+
+    pub fn journal_count(&self) -> usize {
+        self.volume.journal
+    }
+
+    /// Recomputed from the vectors after any change to them.
+    pub fn retally(&mut self) {
+        self.volume = Volume {
+            steps: self.steps.len(),
+            steps_done: self.steps.iter().filter(|s| s.done).count(),
+            journal: self
+                .log
+                .iter()
+                .filter(|e| !e.body.trim().is_empty())
+                .count(),
+            described: self.description.is_some(),
+        };
     }
 
     pub fn step(&self, id: StepId) -> Option<&Step> {
@@ -174,9 +217,9 @@ impl Task {
 
     /// Always recomputed: drives empty-section skipping and search ranking.
     pub fn weight(&self) -> usize {
-        usize::from(self.description.is_some())
-            + self.journal().count()
-            + self.steps.len()
+        usize::from(self.volume.described)
+            + self.volume.journal
+            + self.volume.steps
             + self.tags.len()
             + usize::from(self.date.is_some())
             + usize::from(self.deadline.is_some())

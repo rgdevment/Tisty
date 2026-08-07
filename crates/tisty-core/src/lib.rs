@@ -35,8 +35,12 @@ pub enum Error {
         line: usize,
         source: serde_json::Error,
     },
-    #[error("{file} is a sealed segment with no events: it was emptied, not written that way")]
-    TruncatedSegment { file: String },
+    #[error("{file} holds {found} events, not what it was sealed with: it arrived incomplete")]
+    TruncatedSegment {
+        file: String,
+        found: usize,
+        declared: Option<usize>,
+    },
     #[error("segment {number:06} of {device} is missing: that slice of history is not here")]
     MissingSegment { number: usize, device: String },
     #[error("event schema version {0} is newer than this build understands")]
