@@ -965,6 +965,35 @@ fn a_list_is_filtered_by_the_name_the_listing_prints() {
     assert!(!out.contains("something else"), "{out}");
 }
 
+/// The capture takes `!urgent`, so a filter that only took digits contradicted
+/// the vocabulary the app itself teaches.
+#[test]
+fn a_filter_takes_the_priority_by_name_too() {
+    let cli = Cli::new();
+    cli.ok(&["ship the release !urgent"]);
+    cli.ok(&["water the plants"]);
+
+    let out = cli.ok(&["ls", "!urgent"]);
+    assert!(out.contains("ship the release"), "{out}");
+    assert!(!out.contains("water the plants"), "{out}");
+
+    let run = cli.run(&["ls", "!nonsense"]);
+    assert_eq!(run.code, 1, "{}{}", run.out, run.err);
+    assert!(run.err.contains("nonsense"), "{}", run.err);
+}
+
+/// Every listing prints `@work`, so typing it back must not be refused.
+#[test]
+fn the_marker_the_listing_prints_is_accepted_wherever_a_list_is_named() {
+    let cli = Cli::new();
+    cli.ok(&["list", "add", "work"]);
+    cli.ok(&["draft the proposal"]);
+    cli.ok(&["ls", "all"]);
+
+    cli.ok(&["mv", "1", "@work"]);
+    assert!(cli.ok(&["ls", "@work"]).contains("draft the proposal"));
+}
+
 #[test]
 fn two_time_filters_are_refused_rather_than_one_being_dropped() {
     let cli = Cli::new();

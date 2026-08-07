@@ -27,6 +27,8 @@ pub struct Store {
     /// Size of the active log when its counters were last read, to tell our own
     /// writes from another process's without reparsing the file.
     seen: u64,
+    /// Someone else appended between our last look and this write.
+    overtaken: bool,
     lock: Option<File>,
 }
 
@@ -44,6 +46,7 @@ impl Store {
             head,
             seq,
             seen,
+            overtaken: false,
             root,
             dir,
             device,
@@ -87,6 +90,7 @@ impl Store {
         if size == self.seen {
             return Ok(());
         }
+        self.overtaken = true;
 
         let (events, head, seq) = tail_of(&active)?;
         self.active_events = events;
@@ -109,6 +113,12 @@ impl Store {
 
     pub fn device(&self) -> &DeviceId {
         &self.device
+    }
+
+    /// True once another process has appended since this one last looked, which
+    /// makes any state held in memory incomplete.
+    pub fn overtaken(&self) -> bool {
+        self.overtaken
     }
 
     pub fn append(&mut self, op: Op) -> Result<Event> {

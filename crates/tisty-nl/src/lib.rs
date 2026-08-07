@@ -111,6 +111,14 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
     }
 }
 
+/// `!1` or `!urgente`, the same two forms the capture accepts.
+pub fn parse_priority(raw: &str, locale: &str) -> Option<Priority> {
+    raw.parse::<u8>()
+        .ok()
+        .and_then(|n| Priority::try_from(n).ok())
+        .or_else(|| vocab::for_locale(locale).priority(raw))
+}
+
 /// A flag value is a date on its own, with no title to separate it from.
 pub fn parse_date(input: &str, now: &Zoned, locale: &str) -> Option<DateSpec> {
     let input = input.trim();

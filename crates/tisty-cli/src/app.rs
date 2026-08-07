@@ -12,6 +12,7 @@ pub struct App {
     config: Config,
     store: Store,
     cache: Option<tisty_core::cache::Cache>,
+    print: String,
 }
 
 impl App {
@@ -46,6 +47,7 @@ impl App {
         };
 
         Ok(Self {
+            print: tisty_core::cache::fingerprint(&paths.store()),
             paths,
             state,
             config,
@@ -96,11 +98,12 @@ impl App {
     }
 
     fn refresh(&mut self, events: &[Event]) {
-        tisty_core::cache::advance(
+        self.print = tisty_core::cache::advance(
             self.cache.as_mut(),
             &self.state,
             events,
             &self.paths.store(),
+            self.store.overtaken(),
         );
     }
 

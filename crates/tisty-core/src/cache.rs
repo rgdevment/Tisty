@@ -317,9 +317,18 @@ pub fn advance(
     state: &State,
     events: &[crate::Event],
     store_root: &Path,
+    overtaken: bool,
 ) -> String {
     let print = fingerprint(store_root);
     let Some(cache) = cache else { return print };
+
+    // Another process appended while we held this state, so it is missing
+    // whatever they wrote. Storing it under the new fingerprint would promise a
+    // log we never read.
+    if overtaken {
+        cache.invalidate();
+        return print;
+    }
 
     // Deleting a list sends its tasks back to the inbox: one event, many entities.
     if events
@@ -508,6 +517,7 @@ mod tests {
             &state,
             std::slice::from_ref(&event),
             &f.store_root,
+            false,
         );
 
         assert_eq!(print, fingerprint(&f.store_root));
@@ -532,5 +542,32 @@ mod tests {
             audit(&f.store_root, &f.cache_dir).unwrap(),
             Audit::Stale { .. }
         ));
+    }
+
+    /// Two processes completing at once: whoever writes second holds a state
+    /// that never saw the first one's event, so carrying it would file a
+    /// half-built projection under a fingerprint that promises both.
+    #[test]
+    fn a_state_that_was_overtaken_is_thrown_away_instead_of_carried() {
+        let f = loaded();
+        let state = project(&f.store_root, &f.cache_dir).unwrap();
+
+        let mut theirs = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let event = theirs.append(Op::TaskDone { id: f.task }).unwrap();
+
+        let mut cache = Cache::open(&f.cache_dir).unwrap();
+        advance(
+            cache.as_mut(),
+            &state,
+            std::slice::from_ref(&event),
+            &f.store_root,
+            true,
+        );
+
+        let fresh = Cache::open(&f.cache_dir).unwrap().unwrap();
+        assert!(
+            fresh.load(&fingerprint(&f.store_root), true).is_none(),
+            "a cache written from an overtaken state must not answer as fresh"
+        );
     }
 }
