@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { read, type Parsed, type Task } from "../core";
 import { whenLabel } from "../format";
 import { t } from "../locales";
+import { saidPlainly } from "../refusal";
 import Field from "./Field";
 
 interface Props {
@@ -39,7 +40,7 @@ export default function CaptureField({ invite, onCapture, onError }: Props) {
         onSubmit={() =>
           onCapture(text)
             .then(() => setText(""))
-            .catch((problem) => onError(String(problem)))
+            .catch((problem) => onError(saidPlainly(problem)))
         }
       />
 

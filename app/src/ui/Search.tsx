@@ -9,7 +9,7 @@ interface Props {
 }
 
 const SETTLES = 150;
-const SCOPES: Scope[] = ["either", "open", "archived"];
+const SCOPES: Scope[] = ["open", "archived", "either"];
 const LABEL: Record<Scope, "scopeEither" | "scopeOpen" | "scopeArchived"> = {
   either: "scopeEither",
   open: "scopeOpen",
@@ -18,7 +18,7 @@ const LABEL: Record<Scope, "scopeEither" | "scopeOpen" | "scopeArchived"> = {
 
 export default function Search({ fixed, onFound }: Props) {
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<Scope>(fixed ?? "either");
+  const [scope, setScope] = useState<Scope>(fixed ?? "open");
 
   useEffect(() => {
     if (!query.trim()) {

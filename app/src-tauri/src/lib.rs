@@ -131,7 +131,47 @@ struct Snapshot {
     locale: Option<String>,
 }
 
-type Answer<T> = std::result::Result<T, String>;
+/// The core states its reasons in English on purpose. What travels is the
+/// reason itself, so each client says it in the language it speaks.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Refusal {
+    code: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+}
+
+impl Refusal {
+    fn of(code: &'static str) -> Self {
+        Self { code, name: None }
+    }
+
+    fn about(code: &'static str, name: impl Into<String>) -> Self {
+        Self {
+            code,
+            name: Some(name.into()),
+        }
+    }
+}
+
+impl From<tisty_core::capture::Rejected> for Refusal {
+    fn from(rejected: tisty_core::capture::Rejected) -> Self {
+        use tisty_core::capture::Rejected;
+        match rejected {
+            Rejected::Untitled => Refusal::of("untitled"),
+            Rejected::NoSuchList(name) => Refusal::about("noSuchList", name),
+            Rejected::AmbiguousList(name) => Refusal::about("ambiguousList", name),
+        }
+    }
+}
+
+impl From<tisty_core::Error> for Refusal {
+    fn from(error: tisty_core::Error) -> Self {
+        Refusal::about("internal", error.to_string())
+    }
+}
+
+type Answer<T> = std::result::Result<T, Refusal>;
 
 /// Recovers the guard: one panicked command would otherwise refuse every
 /// command after it for the life of the window.
@@ -173,7 +213,7 @@ struct View {
 }
 
 impl View {
-    fn resolve(self) -> Result<Filter, String> {
+    fn resolve(self) -> Result<Filter, Refusal> {
         Ok(Filter {
             scope: match (self.everything, self.archive) {
                 (true, _) => Scope::Either,
@@ -183,14 +223,14 @@ impl View {
             inbox: self.inbox,
             lists: self
                 .list
-                .map(|id| id.parse().map_err(|_| "not a list id".to_string()))
+                .map(|id| id.parse().map_err(|_| Refusal::of("notAListId")))
                 .transpose()?
                 .into_iter()
                 .collect(),
             tags: self
                 .tags
                 .iter()
-                .map(|t| Tag::new(t).map_err(|e| e.to_string()))
+                .map(|t| Tag::new(t).map_err(|_| Refusal::about("badTag", t)))
                 .collect::<Result<_, _>>()?,
             priority: None,
             window: match self.window.as_deref() {
@@ -206,7 +246,7 @@ impl View {
 #[tauri::command]
 fn snapshot(session: tauri::State<'_, Mutex<Session>>, view: Option<View>) -> Answer<Snapshot> {
     let mut session = held(&session);
-    session.reload().map_err(|e| e.to_string())?;
+    session.reload()?;
 
     let filter = match view {
         Some(view) => view.resolve()?,
@@ -260,8 +300,8 @@ fn capture(
         }
     }
 
-    let plan = tisty_core::capture::plan(&session.state, draft).map_err(|e| e.to_string())?;
-    session.commit_all(plan.ops).map_err(|e| e.to_string())?;
+    let plan = tisty_core::capture::plan(&session.state, draft)?;
+    session.commit_all(plan.ops)?;
     Ok(session.state.tasks[&plan.task].clone())
 }
 
@@ -284,7 +324,7 @@ fn search(
     scope: Option<String>,
 ) -> Answer<Vec<Task>> {
     let mut session = held(&session);
-    session.reload().map_err(|e| e.to_string())?;
+    session.reload()?;
 
     let scope = match scope.as_deref() {
         Some("open") => Scope::Open,
@@ -301,18 +341,18 @@ fn search(
 
 #[tauri::command]
 fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let id = id.parse().map_err(|_| "not a task id".to_string())?;
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     held(&session)
         .commit(Op::TaskDone { id })
-        .map_err(|e| e.to_string())
+        .map_err(Refusal::from)
 }
 
 #[tauri::command]
 fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let id = id.parse().map_err(|_| "not a task id".to_string())?;
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     held(&session)
         .commit(Op::TaskReopen { id })
-        .map_err(|e| e.to_string())
+        .map_err(Refusal::from)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
