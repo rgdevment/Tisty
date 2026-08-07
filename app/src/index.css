@@ -78,6 +78,23 @@ body {
   overflow: hidden;
 }
 
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+.arrive {
+  animation: arrive 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrive {
+    animation: none;
+  }
+}
+
 .scroller {
   overflow-y: auto;
   scrollbar-width: thin;

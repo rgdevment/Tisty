@@ -14,6 +14,12 @@ const en = {
   description: "Description",
   expand: "Full screen",
   collapse: "Back to three columns",
+  urgent: "Urgent",
+  high: "High",
+  medium: "Medium",
+  minimise: "Minimise",
+  maximise: "Maximise",
+  close: "Close",
 };
 
 /// Missing a key in another catalogue is a compile error, not a runtime «⟨?⟩».
@@ -35,6 +41,12 @@ const es: Catalog = {
   description: "Descripción",
   expand: "Pantalla completa",
   collapse: "Volver a tres columnas",
+  urgent: "Urgente",
+  high: "Alta",
+  medium: "Media",
+  minimise: "Minimizar",
+  maximise: "Maximizar",
+  close: "Cerrar",
 };
 
 const catalogs: Record<string, Catalog> = { en, es };

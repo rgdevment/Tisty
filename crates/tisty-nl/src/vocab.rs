@@ -1,3 +1,5 @@
+use tisty_core::Priority;
+
 pub struct Vocabulary {
     pub today: &'static [&'static str],
     pub tomorrow: &'static [&'static str],
@@ -18,6 +20,8 @@ pub struct Vocabulary {
     pub this_week: &'static [&'static [&'static str]],
     pub end_of_month: &'static [&'static [&'static str]],
     pub weekend: &'static [&'static [&'static str]],
+    /// Ordered P1 to P4; an empty slot has no spoken name.
+    pub priorities: [&'static [&'static str]; 4],
 }
 
 pub const ES: Vocabulary = Vocabulary {
@@ -61,6 +65,7 @@ pub const ES: Vocabulary = Vocabulary {
     this_week: &[&["esta", "semana"]],
     end_of_month: &[&["fin", "de", "mes"], &["fin", "mes"]],
     weekend: &[&["finde"], &["fin", "de", "semana"]],
+    priorities: [&["urgente"], &["alta"], &["media"], &[]],
 };
 
 pub const EN: Vocabulary = Vocabulary {
@@ -104,6 +109,7 @@ pub const EN: Vocabulary = Vocabulary {
     this_week: &[&["this", "week"]],
     end_of_month: &[&["end", "of", "month"], &["end", "of", "the", "month"]],
     weekend: &[&["this", "weekend"], &["weekend"]],
+    priorities: [&["urgent"], &["high"], &["medium"], &[]],
 };
 
 /// What a system reports — `es-CL` — must not silently get English.
@@ -118,6 +124,14 @@ pub fn for_locale(code: &str) -> &'static Vocabulary {
 impl Vocabulary {
     pub fn weekday_index(&self, word: &str) -> Option<usize> {
         self.weekdays.iter().position(|w| w.contains(&word))
+    }
+
+    pub fn priority(&self, word: &str) -> Option<Priority> {
+        let lower = word.to_lowercase();
+        self.priorities
+            .iter()
+            .position(|names| names.contains(&lower.as_str()))
+            .and_then(|i| Priority::try_from(i as u8 + 1).ok())
     }
 
     pub fn month_index(&self, word: &str) -> Option<u8> {

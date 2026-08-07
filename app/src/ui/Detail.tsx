@@ -25,6 +25,11 @@ export default function Detail({ task, lists, expanded, onExpand, onCollapse }: 
         {list && <Chip>▤ {list.name}</Chip>}
         {task.date && <Chip tone="accent">☀ {whenLabel(task.date)}</Chip>}
         {task.deadline && <Chip>⚑ {whenLabel(task.deadline)}</Chip>}
+        {task.priority < 4 && (
+          <Chip tone={task.priority === 1 ? "urgent" : undefined}>
+            {t(task.priority === 1 ? "urgent" : task.priority === 2 ? "high" : "medium")}
+          </Chip>
+        )}
         {task.tags?.map((tag) => <Chip key={tag}>@{tag}</Chip>)}
         {task.reminders?.length ? <Chip>⏰ {task.reminders.length}</Chip> : null}
       </div>
@@ -65,7 +70,8 @@ export default function Detail({ task, lists, expanded, onExpand, onCollapse }: 
   if (expanded) {
     return (
       <main className="flex flex-col overflow-hidden">
-        <div className="flex px-6 pt-2.5 text-[13px]">
+        <div data-tauri-drag-region className="h-9 shrink-0" />
+        <div className="flex px-6 text-[13px]">
           <button onClick={onCollapse} className="text-accent">
             ‹ {t("collapse")}
           </button>
@@ -77,7 +83,8 @@ export default function Detail({ task, lists, expanded, onExpand, onCollapse }: 
 
   return (
     <aside className="flex flex-col overflow-hidden border-l border-hair bg-panel">
-      <div className="flex justify-end gap-4 px-5 pt-3 text-[13px] text-faint">
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      <div className="flex gap-4 px-5 text-[13px] text-faint">
         <button onClick={onExpand} title={t("expand")} className="hover:text-accent">
           ⤢
         </button>
@@ -87,13 +94,16 @@ export default function Detail({ task, lists, expanded, onExpand, onCollapse }: 
   );
 }
 
-function Chip({ children, tone }: { children: React.ReactNode; tone?: "accent" }) {
+function Chip({ children, tone }: { children: React.ReactNode; tone?: "accent" | "urgent" }) {
+  const paint =
+    tone === "accent"
+      ? "bg-accent-soft text-accent"
+      : tone === "urgent"
+        ? "bg-urgent/12 text-urgent"
+        : "bg-hover text-soft";
+
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs ${
-        tone === "accent" ? "bg-accent-soft text-accent" : "bg-hover text-soft"
-      }`}
-    >
+    <span className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs ${paint}`}>
       {children}
     </span>
   );
