@@ -1,6 +1,7 @@
 //! Tisty's domain core. Nothing here prints: the GUI is a client too, and
 //! anything written to the terminal reaches it as garbage.
 
+pub mod cache;
 pub mod config;
 pub mod event;
 pub mod model;

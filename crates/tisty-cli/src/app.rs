@@ -5,6 +5,7 @@ pub struct App {
     pub state: State,
     config: Config,
     store: Store,
+    cache: Option<tisty_core::cache::Cache>,
 }
 
 impl App {
@@ -21,9 +22,15 @@ impl App {
         let config = Config::load_or_init(&paths)?;
         let store = Store::open(paths.store(), config.device_id.clone())?;
         let state = if replay {
-            State::replay(&store.read_all()?)
+            tisty_core::cache::project(&paths.store(), paths.cache())?
         } else {
             State::default()
+        };
+
+        let cache = if replay {
+            tisty_core::cache::Cache::open(paths.cache())?
+        } else {
+            None
         };
 
         Ok(Self {
@@ -31,6 +38,7 @@ impl App {
             state,
             config,
             store,
+            cache,
         })
     }
 
@@ -50,6 +58,7 @@ impl App {
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<Event> {
         let event = self.store.append(op)?;
         self.state.apply(&event);
+        self.refresh(std::slice::from_ref(&event));
         Ok(event)
     }
 
@@ -70,7 +79,24 @@ impl App {
         for event in &events {
             self.state.apply(event);
         }
+        self.refresh(&events);
         Ok(events.len())
+    }
+
+    /// Carrying the cache forward instead of letting the next read rebuild it:
+    /// a CLI writes and reads in the same breath, so invalidating on every
+    /// write leaves the cache never warm.
+    fn refresh(&mut self, events: &[Event]) {
+        let Some(cache) = &mut self.cache else { return };
+        if events.iter().any(|e| matches!(e.op, Op::ListDelete { .. })) {
+            cache.invalidate();
+            return;
+        }
+
+        let print = tisty_core::cache::fingerprint(&self.paths.store());
+        for event in events {
+            let _ = cache.touch(&self.state, event.entity_id(), &print);
+        }
     }
 
     /// Whole batch or nothing, and never another device's: half an undone tag
