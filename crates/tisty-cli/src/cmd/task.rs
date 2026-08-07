@@ -3,7 +3,8 @@ use std::process::ExitCode;
 use jiff::civil::Date;
 use tisty_core::{
     Op, Tag, TaskId,
-    event::{Body, LogAdd, StepAdd, StepRef, StepText, TaskAdd, TaskMove, TaskPatch},
+    capture::{Draft, Filing, Rejected},
+    event::{Body, LogAdd, StepAdd, StepRef, StepText, TaskMove, TaskPatch},
 };
 use ulid::Ulid;
 
@@ -14,63 +15,28 @@ use crate::style;
 use crate::{AddArgs, SetArgs, StepAction, date_flag, render};
 
 pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
-    let text = args.text.join(" ").trim().to_string();
-    if text.is_empty() {
-        anyhow::bail!("{}", lang.get("needs-title"));
+    let text = args.text.join(" ");
+    let now = jiff::Zoned::now();
+    let mut draft = Draft::from(tisty_nl::parse(&text, &now, lang.code()));
+
+    if let Some(date) = date_flag(args.date.as_deref(), lang)? {
+        draft.date = Some(date);
+    }
+    if let Some(deadline) = date_flag(args.deadline.as_deref(), lang)? {
+        draft.deadline = Some(deadline);
+    }
+    if let Some(priority) = args.priority {
+        draft.priority = Some(tisty_core::Priority::try_from(priority)?);
+    }
+    if let Some(name) = args.list {
+        draft.filing = Some(Filing::Named(name));
     }
 
-    let now = jiff::Zoned::now();
-    let parsed = tisty_nl::parse(&text, &now, lang.code());
+    let plan = tisty_core::capture::plan(&app.state, draft).map_err(|e| refused(e, lang))?;
+    app.commit_all(plan.ops)?;
 
-    let mut ops = Vec::with_capacity(2);
-    let list = match &args.list {
-        Some(name) => match app.find_list(name).as_slice() {
-            [one] => Some(one.id),
-            [] => anyhow::bail!("{}", lang.fill("no-such-list", &[("selector", name)])),
-            _ => anyhow::bail!("{}", lang.fill("ambiguous-list", &[("selector", name)])),
-        },
-        // `#casa` in the text creates the list; the flag still demands one that exists.
-        None => match parsed.list.as_deref() {
-            Some(name) => Some(match app.find_list(name).as_slice() {
-                [one] => one.id,
-                // In the same batch as the task, or undo takes back half a capture.
-                [] => {
-                    let id = Ulid::generate();
-                    ops.push(Op::ListAdd {
-                        id,
-                        d: tisty_core::event::ListAdd {
-                            name: name.to_string(),
-                            order: app.next_list_order(),
-                            color: None,
-                        },
-                    });
-                    id
-                }
-                _ => anyhow::bail!("{}", lang.fill("ambiguous-list", &[("selector", name)])),
-            }),
-            None => None,
-        },
-    };
-
-    let id = Ulid::generate();
-    let d = TaskAdd {
-        date: date_flag(args.date.as_deref(), lang)?.or(parsed.date),
-        deadline: date_flag(args.deadline.as_deref(), lang)?.or(parsed.deadline),
-        priority: args
-            .priority
-            .map(tisty_core::Priority::try_from)
-            .transpose()?
-            .or(parsed.priority),
-        tags: parsed.tags,
-        list,
-        ..TaskAdd::new(parsed.title, app.next_task_order())
-    };
-
-    warn_if_backwards(d.date.as_ref(), d.deadline.as_ref(), lang);
-
-    ops.push(Op::TaskAdd { id, d });
-    app.commit_all(ops)?;
-    let task = &app.state.tasks[&id];
+    let task = &app.state.tasks[&plan.task];
+    warn_if_backwards(task.date.as_ref(), task.deadline.as_ref(), lang);
 
     if args.json {
         println!("{}", serde_json::to_string(task)?);
@@ -78,6 +44,16 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
         print!("{}", render::captured(task, &app.state, today, lang));
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// The core states the reason in English; the catalogue is what the user reads.
+fn refused(e: Rejected, lang: Lang) -> anyhow::Error {
+    let message = match &e {
+        Rejected::Untitled => lang.get("needs-title").to_string(),
+        Rejected::NoSuchList(name) => lang.fill("no-such-list", &[("selector", name)]),
+        Rejected::AmbiguousList(name) => lang.fill("ambiguous-list", &[("selector", name)]),
+    };
+    anyhow::anyhow!("{message}")
 }
 
 pub fn done(
@@ -209,7 +185,7 @@ pub fn mv(
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
     let target = match (list, inbox) {
-        (Some(name), false) => match app.find_list(name).as_slice() {
+        (Some(name), false) => match app.state.find_list(name).as_slice() {
             [one] => Some(one.id),
             [] => anyhow::bail!("{}", lang.fill("no-such-list", &[("selector", name)])),
             _ => anyhow::bail!("{}", lang.fill("ambiguous-list", &[("selector", name)])),

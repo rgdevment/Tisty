@@ -2,6 +2,7 @@
 //! anything written to the terminal reaches it as garbage.
 
 pub mod cache;
+pub mod capture;
 pub mod config;
 pub mod event;
 pub mod model;

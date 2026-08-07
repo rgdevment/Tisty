@@ -41,7 +41,7 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
                 id,
                 d: ListAdd {
                     name: name.clone(),
-                    order: app.next_list_order(),
+                    order: app.state.next_list_order(),
                     color: None,
                 },
             })?;
@@ -108,6 +108,7 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
 /// Two lists a selector cannot tell apart leave both unreachable by name.
 fn taken(app: &App, name: &str, except: Option<ListId>, lang: Lang) -> anyhow::Result<()> {
     if app
+        .state
         .find_list(name)
         .iter()
         .any(|l| Some(l.id) != except && l.name.eq_ignore_ascii_case(name))
@@ -118,7 +119,7 @@ fn taken(app: &App, name: &str, except: Option<ListId>, lang: Lang) -> anyhow::R
 }
 
 fn one_list(app: &App, selector: &str, lang: Lang) -> anyhow::Result<Option<ListId>> {
-    match app.find_list(selector).as_slice() {
+    match app.state.find_list(selector).as_slice() {
         [one] => Ok(Some(one.id)),
         [] => {
             eprintln!("{}", lang.fill("no-such-list", &[("selector", selector)]));

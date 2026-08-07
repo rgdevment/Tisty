@@ -66,5 +66,7 @@ export interface Snapshot {
 }
 
 export const snapshot = (): Promise<Snapshot> => invoke("snapshot");
+export const capture = (text: string): Promise<Task> =>
+  invoke("capture", { text, locale: navigator.language });
 export const complete = (id: string): Promise<void> => invoke("complete", { id });
 export const reopen = (id: string): Promise<void> => invoke("reopen", { id });

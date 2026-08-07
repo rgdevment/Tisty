@@ -233,39 +233,7 @@ impl App {
         lists
     }
 
-    /// Case-insensitive substring, but an exact name always wins.
-    pub fn find_list(&self, needle: &str) -> Vec<&List> {
-        let needle = loose(needle);
-        let exact: Vec<&List> = self
-            .state
-            .lists
-            .values()
-            .filter(|l| loose(&l.name) == needle)
-            .collect();
-        if !exact.is_empty() {
-            return exact;
-        }
-        self.state
-            .lists
-            .values()
-            .filter(|l| loose(&l.name).contains(&needle))
-            .collect()
-    }
-
-    pub fn next_task_order(&self) -> String {
-        order::last_of(self.state.tasks.values().map(|t| t.order.as_str()))
-    }
-
-    pub fn next_list_order(&self) -> String {
-        order::last_of(self.state.lists.values().map(|l| l.order.as_str()))
-    }
-
     pub fn next_step_order(&self, task: &Task) -> String {
         order::last_of(task.steps.iter().map(|s| s.order.as_str()))
     }
-}
-
-/// Listings print «Mi Lista» as `#mi-lista`, which has to be typeable back.
-fn loose(name: &str) -> String {
-    name.to_lowercase().replace([' ', '_'], "-")
 }
