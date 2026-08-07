@@ -342,8 +342,10 @@ why = "el nombre no distingue mayúsculas, igual que los filtros"
 
 [[case]]
 input = "salir mañana a las 10 para comprar ropa"
-title = "salir mañana a las 10 para comprar ropa"
-why = "la frase temporal va en medio y nada temporal la precede, así que no se consume: es la poda de §5.3 protegiendo «revisar el informe del lunes»"
+title = "salir para comprar ropa"
+date = "2026-08-06"
+time = "10:00"
+why = "en medio del texto hace falta señal fuerte, y la hora explícita lo es; el título se cose por los dos lados del hueco"
 
 [[case]]
 input = "salir a comprar ropa mañana a las 10"
@@ -358,3 +360,131 @@ title = "comprar ropa"
 date = "2026-08-06"
 time = "10:00"
 why = "«para» es preposición temporal, así que la fecha se consume aunque no cierre la frase"
+
+[[case]]
+input = "llevar el coche al taller mañana a las 9 y volver"
+title = "llevar el coche al taller y volver"
+date = "2026-08-06"
+time = "09:00"
+why = "la conjunción que la frase dejó colgando se recoge con ella"
+
+[[case]]
+input = "entregar antes del viernes el informe"
+title = "entregar el informe"
+deadline = "2026-08-07"
+why = "«antes de» es señal fuerte aunque no haya hora, y además marca límite y no fecha"
+
+[[case]]
+input = "reunión el lunes y el martes"
+title = "reunión el lunes"
+date = "2026-08-11"
+why = "se queda el último; el primero es parte del título y la «y» sobrante se recoge"
+
+[[case]]
+input = "revisar lunes santo"
+title = "revisar lunes santo"
+why = "sin hora ni preposición, «lunes» en medio está nombrando algo"
+
+[[case]]
+input = "la reunión de mañana"
+title = "la reunión de mañana"
+why = "«de» la vuelve descriptiva; se prefiere no fechar a fechar de más"
+
+[[case]]
+input = "pagar el martes la factura de la luz"
+title = "pagar el martes la factura de la luz"
+why = "sin señal fuerte no se toca, aunque una persona sí lo fecharía: es el precio de no destrozar títulos"
+
+[[case]]
+input = "ir mañana a comprar la ropa del niño a las 9am"
+title = "ir a comprar la ropa del niño"
+date = "2026-08-06"
+time = "09:00"
+why = "el día y la hora van separados por medio título y aun así se recogen los dos"
+
+[[case]]
+input = "reunion de apoderado el martes en la sala del 3c a las 16:00"
+title = "reunion de apoderado en la sala del 3c"
+date = "2026-08-11"
+time = "16:00"
+why = "sin buscar el día que la hora delata, esto se guardaba para mañana: fechar mal es peor que no fechar"
+
+[[case]]
+input = "llevar a los niños al dentista el jueves a las 17:30"
+title = "llevar a los niños al dentista"
+date = "2026-08-06"
+time = "17:30"
+
+[[case]]
+input = "Tomar la pastilla todos los dias a las 10 por 30 días"
+title = "Tomar la pastilla todos los dias por 30 días"
+date = "2026-08-05"
+time = "10:00"
+why = "«por 30 días» es una DURACIÓN y se queda escrita: inventar una fecha a 30 días vista era peor que no fecharla. «todos los días» espera a la recurrencia"
+
+[[case]]
+input = "tomar el medicamento a las 10 am por 1 mes"
+title = "tomar el medicamento por 1 mes"
+date = "2026-08-05"
+time = "10:00"
+why = "«10 am» llega como dos palabras y se lee junta, o el «am» se queda huérfano en el título"
+
+[[case]]
+input = "tomar las pastillas todos los dias por 30 dias"
+title = "tomar las pastillas todos los dias por 30 dias"
+why = "sin hora ni día, no hay nada que fechar: la duración sola no mueve la tarea a ninguna parte"
+
+[[case]]
+input = "comprar pan mañana y leche el viernes"
+title = "comprar pan mañana y leche"
+date = "2026-08-07"
+why = "dos días en la misma frase: se queda el último y el primero es texto, porque elegir entre ambos sería adivinar"
+
+[[case]]
+input = "mover la cita del lunes al martes"
+title = "mover la cita del lunes"
+date = "2026-08-11"
+why = "«del lunes» nombra la cita y «al martes» la mueve; que uno sea descriptivo y el otro no es lo que distingue la preposición"
+
+[[case]]
+input = "sacar la basura hoy antes de las 8"
+title = "sacar la basura"
+deadline = "2026-08-05"
+why = "«antes de» manda sobre «hoy» y la vuelve límite, no fecha"
+
+[[case]]
+input = "llamar mañana al banco"
+title = "llamar mañana al banco"
+why = "una persona lo fecharía, pero en medio y sin hora ni preposición no hay señal suficiente; es el precio de no destrozar títulos"
+
+[[case]]
+input = "reunión por la mañana"
+title = "reunión por la mañana"
+why = "«la mañana» es una parte del día, no el día siguiente; el artículo es lo que las distingue"
+
+[[case]]
+input = "reunión mañana por la mañana"
+title = "reunión mañana por la mañana"
+why = "las dos «mañana» en la misma frase: la última es parte del día y la primera va en medio sin señal fuerte, así que no se toca nada"
+
+[[case]]
+input = "revisar lo de hace 3 días"
+title = "revisar lo de hace 3 días"
+why = "«hace» mira al pasado y aquí el pasado no tiene fecha: antes lo mandaba 3 días HACIA ADELANTE"
+
+[[case]]
+input = "subir el volumen a 12"
+title = "subir el volumen a 12"
+why = "un entero pelado solo es reloj tras «las»; «a» es la preposición más común del español"
+
+[[case]]
+input = "reunión este viernes"
+title = "reunión"
+date = "2026-08-07"
+why = "«este» se va con la frase en vez de quedarse huérfano en el título"
+
+[[case]]
+input = "anotar \"revisar #precios\" mañana"
+title = "anotar \"revisar #precios\""
+date = "2026-08-06"
+why = "entre comillas no se interpreta NADA, marcadores incluidos"
