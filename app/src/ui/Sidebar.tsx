@@ -11,6 +11,7 @@ interface Props {
 }
 
 const NAMED: { key: Named; icon: string }[] = [
+  { key: "search", icon: "⌕" },
   { key: "inbox", icon: "▤" },
   { key: "today", icon: "☀" },
   { key: "upcoming", icon: "▦" },
@@ -29,14 +30,13 @@ export default function Sidebar({ lists, counts, chosen, onChoose }: Props) {
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="px-2.5 pb-1.5">
         <nav className="flex flex-col gap-px">
-          <Entry icon="⌕" label={t("search")} />
           {NAMED.map(({ key, icon }) => (
             <Entry
               key={key}
               icon={icon}
               label={t(key)}
               count={counts[key]}
-              on={!chosen.list && chosen.named === key}
+              on={!chosen.list && !chosen.tags?.length && chosen.named === key}
               onClick={() => onChoose({ named: key })}
             />
           ))}

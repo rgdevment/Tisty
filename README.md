@@ -228,5 +228,9 @@ can still be declined.
 [AGPL-3.0](LICENSE), and available under [commercial terms](COMMERCIAL.md) for
 organisations that cannot comply with it.
 
+The signed builds in the app stores carry their own terms, because the stores'
+do not accept the AGPL — [DISTRIBUTION.md](DISTRIBUTION.md) says which applies
+to what you have, and why. Nothing is withheld from the source either way.
+
 See also [SECURITY.md](SECURITY.md) and [PRIVACY.md](PRIVACY.md) — the summary
 of the latter is that nothing is collected and nothing is sent anywhere.

@@ -60,9 +60,15 @@ export interface List {
   archived?: boolean;
 }
 
+export interface Counted {
+  tag: string;
+  tasks: number;
+}
+
 export interface Snapshot {
   tasks: Task[];
   lists: List[];
+  tags: Counted[];
   /** Per view and per list id, counted by the core with the same filter. */
   counts: Record<string, number>;
   locale?: string;
@@ -81,6 +87,8 @@ export interface Parsed {
 /** What the sidebar asks for. The core decides which tasks answer. */
 export interface View {
   archive?: boolean;
+  /** A tag reaches across the archive, unlike every other view. */
+  everything?: boolean;
   inbox?: boolean;
   list?: string;
   tags?: string[];
@@ -88,9 +96,13 @@ export interface View {
 }
 
 export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });
+export type Scope = "either" | "open" | "archived";
+
+export const search = (query: string, scope: Scope = "either"): Promise<Task[]> =>
+  invoke("search", { query, scope });
 export const read = (text: string): Promise<Parsed> =>
   invoke("read", { text, locale: navigator.language });
-export const capture = (text: string): Promise<Task> =>
-  invoke("capture", { text, locale: navigator.language });
+export const capture = (text: string, view?: View): Promise<Task> =>
+  invoke("capture", { text, locale: navigator.language, view });
 export const complete = (id: string): Promise<void> => invoke("complete", { id });
 export const reopen = (id: string): Promise<void> => invoke("reopen", { id });

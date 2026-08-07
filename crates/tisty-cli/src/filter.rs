@@ -53,7 +53,7 @@ impl Filter {
                 Ok(())
             }
             Some("archive") => {
-                self.inner.archive = true;
+                self.inner.scope = view::Scope::Archived;
                 Ok(())
             }
             Some("today") => self.take_window(Window::Today, lang),

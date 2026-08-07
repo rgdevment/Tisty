@@ -37,6 +37,12 @@ Pull Requests, so those routes reach the codebase without passing it. If you
 have not signed, keep such snippets to a description of the fix rather than the
 patch itself, and a maintainer will write it.
 
+**Please leave tool co-authorship out of your commits.** Assistants are welcome
+here — this project is built with them — but the credit line is for people. If
+your editor adds a trailer naming one, drop it before you push. It changes
+nothing about what you are allowed to submit; section 4 of the CLA already puts
+the responsibility for generated code on you, whichever tool helped write it.
+
 **In return, the project commits that:**
 
 - The community edition stays available under the AGPL-3.0.

@@ -15,9 +15,19 @@ pub enum Window {
     Overdue,
 }
 
+/// A tag cuts across time — «everything I did with #istio» — so its view needs
+/// what neither of the other two shows: both sides at once.
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub enum Scope {
+    #[default]
+    Open,
+    Archived,
+    Either,
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Filter {
-    pub archive: bool,
+    pub scope: Scope,
     pub inbox: bool,
     /// A task has one list, so several mean «any of».
     pub lists: Vec<ListId>,
@@ -29,7 +39,12 @@ pub struct Filter {
 
 impl Filter {
     pub fn matches(&self, task: &Task, today: Date) -> bool {
-        if task.is_archived() != self.archive {
+        let fits = match self.scope {
+            Scope::Open => !task.is_archived(),
+            Scope::Archived => task.is_archived(),
+            Scope::Either => true,
+        };
+        if !fits {
             return false;
         }
         if self.inbox && task.list.is_some() {
@@ -55,6 +70,18 @@ impl Filter {
             Some(Window::Overdue) => on.is_some_and(|d| d < today),
         }
     }
+}
+
+/// Where a search looks. The archive is included by default because that is
+/// the point: eight months later, what you want is the task you finished.
+pub fn matches_query(task: &Task, query: &str) -> bool {
+    let contains = |text: &str| text.to_lowercase().contains(query);
+
+    contains(&task.title)
+        || task.description.as_deref().is_some_and(contains)
+        || task.log.iter().any(|e| contains(&e.body))
+        || task.steps.iter().any(|s| contains(&s.text))
+        || task.tags.iter().any(|t| contains(t.as_str()))
 }
 
 #[cfg(test)]
@@ -173,7 +200,7 @@ mod tests {
         done.status = Status::Done;
 
         let open = filter(|_| {});
-        let archive = filter(|f| f.archive = true);
+        let archive = filter(|f| f.scope = Scope::Archived);
 
         assert!(open.matches(&task("open"), today()));
         assert!(!open.matches(&done, today()));

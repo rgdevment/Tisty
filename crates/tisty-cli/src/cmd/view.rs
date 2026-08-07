@@ -66,44 +66,22 @@ pub fn search(
     today: Date,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
-    let query = query.trim().to_lowercase();
-    if query.is_empty() {
+    if query.trim().is_empty() {
         anyhow::bail!("{}", lang.get("needs-query"));
     }
+    let query = query.trim().to_lowercase();
 
-    let mut hits: Vec<&Task> = app
-        .state
-        .tasks
-        .values()
-        .filter(|t| match (open_only, archive_only) {
-            (true, _) => t.is_open(),
-            (_, true) => t.is_archived(),
-            _ => true,
-        })
-        .filter(|t| matches(t, &query))
-        .collect();
-
-    // Open work first, then the archive newest first.
-    hits.sort_by_key(|t| {
-        (
-            t.is_archived(),
-            std::cmp::Reverse(t.completed_at),
-            std::cmp::Reverse(t.id),
-        )
-    });
+    let hits = app.state.search(
+        &query,
+        match (open_only, archive_only) {
+            (true, _) => tisty_core::view::Scope::Open,
+            (_, true) => tisty_core::view::Scope::Archived,
+            _ => tisty_core::view::Scope::Either,
+        },
+    );
 
     let heading = lang.fill("results-for", &[("query", &query)]);
     show_many(app, &hits, &heading, json, today, lang)
-}
-
-fn matches(task: &Task, query: &str) -> bool {
-    let contains = |text: &str| text.to_lowercase().contains(query);
-
-    contains(&task.title)
-        || task.description.as_deref().is_some_and(contains)
-        || task.log.iter().any(|e| contains(&e.body))
-        || task.steps.iter().any(|s| contains(&s.text))
-        || task.tags.iter().any(|t| contains(t.as_str()))
 }
 
 /// Records what was shown, so `done 2` means the second line on screen.

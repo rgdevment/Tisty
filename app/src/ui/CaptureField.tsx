@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { read, type Parsed, type Task } from "../core";
 import { whenLabel } from "../format";
 import { t } from "../locales";
+import Field from "./Field";
 
 interface Props {
+  invite: string;
   onCapture: (text: string) => Promise<Task>;
   onError: (message: string) => void;
 }
 
 const SETTLES = 120;
 
-export default function CaptureField({ onCapture, onError }: Props) {
+export default function CaptureField({ invite, onCapture, onError }: Props) {
   const [text, setText] = useState("");
   const [seen, setSeen] = useState<Parsed | null>(null);
 
@@ -29,22 +31,17 @@ export default function CaptureField({ onCapture, onError }: Props) {
 
   return (
     <div className="w-full">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
+      <Field
+        icon="＋"
+        value={text}
+        hint={invite}
+        onChange={setText}
+        onSubmit={() =>
           onCapture(text)
             .then(() => setText(""))
-            .catch((problem) => onError(String(problem)));
-        }}
-      >
-        <input
-          autoFocus
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          aria-label={t("capture")}
-          className="w-full rounded-[9px] border border-line bg-bg px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-[3px] focus:ring-accent-soft"
-        />
-      </form>
+            .catch((problem) => onError(String(problem)))
+        }
+      />
 
       <div className="mt-2 flex gap-2.5 overflow-hidden px-1 text-[11.5px] whitespace-nowrap text-faint">
         {seen ? <Reading seen={seen} /> : <Hint />}

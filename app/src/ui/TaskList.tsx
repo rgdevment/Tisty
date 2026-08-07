@@ -13,6 +13,7 @@ interface Props {
   centred: boolean;
   onSelect: (id: string) => void;
   onComplete: (id: string) => void;
+  above?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -26,6 +27,7 @@ export default function TaskList({
   centred,
   onSelect,
   onComplete,
+  above,
   children,
 }: Props) {
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
@@ -46,6 +48,7 @@ export default function TaskList({
       </header>
 
       <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>
+      {above && <div className={`shrink-0 px-5 ${width}`}>{above}</div>}
 
       <div className={`scroller flex-1 px-5 pb-6 ${width}`}>
         {tasks.length === 0 && <p className="px-2.5 py-4 text-sm text-faint">{t("nothingOpen")}</p>}

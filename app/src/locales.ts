@@ -8,7 +8,17 @@ const en = {
   lists: "Lists",
   nothingSelected: "Nothing selected",
   nothingOpen: "Nothing here",
-  capture: "Capture a task",
+  noTagsYet: "No tags yet",
+  addTask: "Add a task",
+  addToInbox: "Add to the inbox",
+  addForToday: "Add for today",
+  addToList: "Add to {name}",
+  addWithTag: "Add with {name}",
+  searchEverywhere: "Search everywhere, archive included",
+  searchArchive: "Search the archive",
+  scopeEither: "All",
+  scopeOpen: "Open",
+  scopeArchived: "Archived",
   steps: "Steps",
   journal: "Journal",
   description: "Description",
@@ -42,7 +52,17 @@ const es: Catalog = {
   lists: "Listas",
   nothingSelected: "Nada seleccionado",
   nothingOpen: "Nada por aquí",
-  capture: "Capturar una tarea",
+  noTagsYet: "Ninguna etiqueta todavía",
+  addTask: "Añadir una tarea",
+  addToInbox: "Añadir a la bandeja",
+  addForToday: "Añadir para hoy",
+  addToList: "Añadir a {name}",
+  addWithTag: "Añadir con {name}",
+  searchEverywhere: "Buscar en todo, incluido el archivo",
+  searchArchive: "Buscar en el archivo",
+  scopeEither: "Todas",
+  scopeOpen: "Abiertas",
+  scopeArchived: "Archivadas",
   steps: "Pasos",
   journal: "Bitácora",
   description: "Descripción",
@@ -79,3 +99,6 @@ adopt();
 
 export const locale = (): string => code;
 export const t = (key: keyof Catalog): string => spoken[key];
+
+export const fill = (key: keyof Catalog, name: string): string =>
+  spoken[key].replace("{name}", name);
