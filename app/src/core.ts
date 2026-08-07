@@ -98,7 +98,7 @@ export interface View {
 export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });
 export type Scope = "either" | "open" | "archived";
 
-export const search = (query: string, scope: Scope = "either"): Promise<Task[]> =>
+export const search = (query: string, scope: Scope = "open"): Promise<Task[]> =>
   invoke("search", { query, scope });
 export const read = (text: string): Promise<Parsed> =>
   invoke("read", { text, locale: navigator.language });

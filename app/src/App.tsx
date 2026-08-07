@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { capture, complete, snapshot, type Snapshot, type Task } from "./core";
 import { adopt } from "./locales";
+import { saidPlainly } from "./refusal";
 import { accepts, asView, invite, title, type Chosen } from "./views";
 import CaptureField from "./ui/CaptureField";
 import Detail from "./ui/Detail";
@@ -32,7 +33,7 @@ export default function App() {
         adopt(fresh.locale);
         setData(fresh);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(saidPlainly(e)));
   }, [chosen]);
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function App() {
 
   const act = (work: Promise<unknown>) => {
     setError(null);
-    work.then(load).catch((e) => setError(String(e)));
+    work.then(load).catch((e) => setError(saidPlainly(e)));
   };
 
   return (
