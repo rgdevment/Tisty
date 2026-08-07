@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { capture, complete, snapshot, type Snapshot, type Task } from "./core";
 import { adopt, t } from "./locales";
+import CaptureField from "./ui/CaptureField";
 import Detail from "./ui/Detail";
 import Notice from "./ui/Notice";
 import Sidebar from "./ui/Sidebar";
@@ -12,7 +13,6 @@ type Mode = "columns" | "sheet";
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [text, setText] = useState("");
   const [selected, setSelected] = useState<string | undefined>();
   const [captured, setCaptured] = useState<Task | undefined>();
   const [reveal, setReveal] = useState<string | undefined>();
@@ -91,27 +91,17 @@ export default function App() {
           onSelect={setSelected}
           onComplete={(id) => act(complete(id))}
         >
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
+          <CaptureField
+            onCapture={(written) => {
               setError(null);
-              capture(text)
-                .then((task) => {
-                  setText("");
-                  setCaptured(task);
-                  load();
-                })
-                .catch((e) => setError(String(e)));
+              return capture(written).then((task) => {
+                setCaptured(task);
+                load();
+                return task;
+              });
             }}
-            className="w-full"
-          >
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              aria-label={t("capture")}
-              className="w-full rounded-[9px] border border-line bg-bg px-3.5 py-2.5 text-sm outline-none focus:border-accent focus:ring-[3px] focus:ring-accent-soft"
-            />
-          </form>
+            onError={setError}
+          />
           {error && <p className="mt-2 px-2.5 text-xs text-urgent">{error}</p>}
         </TaskList>
       )}

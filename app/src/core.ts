@@ -66,7 +66,19 @@ export interface Snapshot {
   locale?: string;
 }
 
+/** What the parser made of the text, without writing anything. */
+export interface Parsed {
+  title: string;
+  date?: DateSpec | null;
+  deadline?: DateSpec | null;
+  priority?: Priority | null;
+  tags: string[];
+  list?: string | null;
+}
+
 export const snapshot = (): Promise<Snapshot> => invoke("snapshot");
+export const read = (text: string): Promise<Parsed> =>
+  invoke("read", { text, locale: navigator.language });
 export const capture = (text: string): Promise<Task> =>
   invoke("capture", { text, locale: navigator.language });
 export const complete = (id: string): Promise<void> => invoke("complete", { id });

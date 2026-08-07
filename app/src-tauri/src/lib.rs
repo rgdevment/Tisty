@@ -115,6 +115,17 @@ fn capture(
     Ok(session.state.tasks[&plan.task].clone())
 }
 
+/// Reads without writing, so the field can show what it understood as it is typed.
+#[tauri::command]
+fn read(
+    session: tauri::State<'_, Mutex<Session>>,
+    text: String,
+    locale: String,
+) -> Answer<tisty_nl::Parsed> {
+    let spoken = held(&session).locale.clone().unwrap_or(locale);
+    Ok(tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken))
+}
+
 #[tauri::command]
 fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
     let id = id.parse().map_err(|_| "not a task id".to_string())?;
@@ -138,7 +149,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
-            snapshot, capture, complete, reopen
+            snapshot, capture, read, complete, reopen
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
