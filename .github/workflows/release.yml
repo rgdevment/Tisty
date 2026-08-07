@@ -68,6 +68,15 @@ jobs:
             prerelease=true
           fi
 
+          # The CLI ships as a companion to the GUI, never on its own. A stable tag
+          # would claim `brew install tisty` and `scoop install tisty`, and mark the
+          # release latest, for a product that is not the one being released.
+          # Delete this guard when the GUI ships.
+          if [[ "$prerelease" == "false" ]]; then
+            echo "::error::«$version» is stable, and the CLI does not ship without the GUI. Tag a pre-release (1.2.3-rc1) until the GUI is out."
+            exit 1
+          fi
+
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           echo "version $version (pre-release: $prerelease)"
