@@ -131,6 +131,12 @@ impl State {
         self.open_tasks().filter(move |t| t.list == Some(list))
     }
 
+    /// Erased for good. Nothing about it can be applied again, which is what
+    /// keeps a late event from resurrecting what someone deleted.
+    pub fn is_erased(&self, id: Ulid) -> bool {
+        self.tombstones.contains(&id)
+    }
+
     pub fn tasks_tagged(&self, tag: &Tag) -> impl Iterator<Item = &Task> {
         self.tasks.values().filter(move |t| t.tags.contains(tag))
     }

@@ -18,20 +18,9 @@ impl Paths {
     pub fn resolve() -> Result<Self> {
         let dirs = directories::ProjectDirs::from("", "", "tisty").ok_or(Error::NoHomeDirectory)?;
 
-        let config = env_path(CONFIG_ENV).unwrap_or_else(|| dirs.config_dir().to_path_buf());
-        let stored = crate::Config::load(&config.join("config.toml"))
-            .ok()
-            .flatten()
-            .and_then(|c| c.data_dir);
-
-        let data = match env_path(DATA_ENV).or(stored) {
-            Some(path) => path,
-            None => default_data_dir(dirs.data_dir()).ok_or(Error::NoHomeDirectory)?,
-        };
-
         Ok(Self {
-            data,
-            config,
+            data: env_path(DATA_ENV).unwrap_or_else(|| dirs.data_dir().to_path_buf()),
+            config: env_path(CONFIG_ENV).unwrap_or_else(|| dirs.config_dir().to_path_buf()),
             cache: env_path(CACHE_ENV).unwrap_or_else(|| dirs.cache_dir().to_path_buf()),
         })
     }
@@ -94,14 +83,6 @@ fn env_path(key: &str) -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-/// Never relative: that would grow a store in every working directory.
-fn default_data_dir(fallback: &Path) -> Option<PathBuf> {
-    match directories::UserDirs::new().and_then(|d| d.document_dir().map(Path::to_path_buf)) {
-        Some(documents) => Some(documents.join("Tisty")),
-        None => Some(fallback.to_path_buf()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,15 +109,18 @@ mod tests {
         assert!(b.starts_with(p.store()));
     }
 
+    /// A synced folder is not somewhere the store may end up by accident: it is
+    /// where OneDrive and iCloud hand out placeholders with no bytes behind them.
     #[test]
-    fn the_default_data_directory_is_never_relative() {
-        let Some(dir) = default_data_dir(Path::new("/var/lib/tisty")) else {
-            return;
-        };
-        assert!(
-            dir.is_absolute(),
-            "{dir:?} would follow the working directory"
-        );
+    fn the_store_never_lands_in_the_documents_folder() {
+        let p = Paths::resolve().unwrap();
+        assert!(p.data().is_absolute(), "{:?}", p.data());
+
+        let documents =
+            directories::UserDirs::new().and_then(|d| d.document_dir().map(Path::to_path_buf));
+        if let Some(documents) = documents {
+            assert!(!p.data().starts_with(&documents), "{:?}", p.data());
+        }
     }
 
     #[test]

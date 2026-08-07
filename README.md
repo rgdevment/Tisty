@@ -122,6 +122,11 @@ $ tisty ls week @security
        !1 · tomorrow · #platform · @security
 ```
 
+The same markers work while writing it down. `tisty "call the accountant on
+tuesday at 15:30 !1 @clients #work"` files it under `work`, creating that list
+if it is new. A `#42` in the middle of a sentence stays in the title, because no
+list is named by digits alone.
+
 `today` · `tomorrow` · `week` · `overdue` · `inbox` · `archive` · `all` ·
 `#list` · `@tag` · `!1`, or any date you can write — `tisty ls friday`.
 Bare `tisty ls` means today; naming any filter widens the scope to everything
@@ -144,7 +149,7 @@ tasks you were asking about.
 
 ## Your data
 
-A directory of text files:
+A directory of text files, in your documents folder when the system names one:
 
 ```
 ~/Documents/Tisty/
@@ -154,6 +159,17 @@ A directory of text files:
         └── active.jsonl      one line per event
 ```
 
+Point it wherever you want — a folder your cloud already syncs, an external
+drive, a Git repository:
+
+```sh
+tisty config set data_dir ~/GoogleDrive/Tisty
+```
+
+Your settings never travel with it. The device identifier lives in the config
+file precisely so it stays on this machine: if it went along, two computers
+would share it, write to the same file, and the guarantee below would collapse.
+
 ```jsonl
 {"v":1,"ts":"2026-08-05T08:27:49Z","by":"dev_a3f1","op":"task.add","id":"01KZ8G…","d":{"title":"fix the intermittent timeouts on save","priority":1,"tags":["backend","db"]}}
 ```
@@ -161,6 +177,11 @@ A directory of text files:
 An append-only event log. History and undo come for free, and so does
 conflict-free sync when it lands: **each machine only ever writes to its own
 directory**, so merging two histories is concatenating them.
+
+That is one list, not one per machine. Every device reads every directory and
+replays them in order; it only writes to its own. Which is also why a synced
+folder never produces one of those `file (conflicted copy).jsonl` — no two
+writers ever touch the same file.
 
 ## Installing
 
@@ -180,7 +201,8 @@ cargo install --path crates/tisty-cli
 | ✅ | CLI: capture, list, complete, show detail |
 | ✅ | Natural language: `tisty "deploy the API tomorrow at 10"` |
 | ✅ | Journal, steps, lists, tags, search and undo from the command line |
-| ◐ | Composite `ls` filters, `config`, `export` |
+| ✅ | Composite `ls` filters, `config`, `export`, `--json`, exit codes |
+| ◐ | Daily use, which is what turns up the bugs tests do not |
 | ⬜ | Sync over Git or through your own cloud folder |
 | ⬜ | Graphical interface (Tauri) |
 | ⬜ | Markdown documents |

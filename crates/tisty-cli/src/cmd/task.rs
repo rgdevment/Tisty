@@ -22,6 +22,7 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
     let now = jiff::Zoned::now();
     let parsed = tisty_nl::parse(&text, &now, lang.code());
 
+    let mut ops = Vec::with_capacity(2);
     let list = match &args.list {
         Some(name) => match app.find_list(name).as_slice() {
             [one] => Some(one.id),
@@ -32,16 +33,17 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
         None => match parsed.list.as_deref() {
             Some(name) => Some(match app.find_list(name).as_slice() {
                 [one] => one.id,
+                // In the same batch as the task, or undo takes back half a capture.
                 [] => {
                     let id = Ulid::generate();
-                    app.commit(Op::ListAdd {
+                    ops.push(Op::ListAdd {
                         id,
                         d: tisty_core::event::ListAdd {
                             name: name.to_string(),
                             order: app.next_list_order(),
                             color: None,
                         },
-                    })?;
+                    });
                     id
                 }
                 _ => anyhow::bail!("{}", lang.fill("ambiguous-list", &[("selector", name)])),
@@ -64,7 +66,10 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
         ..TaskAdd::new(parsed.title, app.next_task_order())
     };
 
-    app.commit(Op::TaskAdd { id, d })?;
+    warn_if_backwards(d.date.as_ref(), d.deadline.as_ref(), lang);
+
+    ops.push(Op::TaskAdd { id, d });
+    app.commit_all(ops)?;
     let task = &app.state.tasks[&id];
 
     if args.json {
@@ -82,7 +87,7 @@ pub fn done(
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
     let open = app.ordered_open();
-    if open.is_empty() {
+    if open.is_empty() && selector.is_none() {
         println!("  {}", style::dim(lang.get("nothing-open")));
         return Ok(ExitCode::SUCCESS);
     }
@@ -151,9 +156,24 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
         }
 
         app.commit(Op::TaskUpdate { id, d })?;
+        let task = &app.state.tasks[&id];
+        warn_if_backwards(task.date.as_ref(), task.deadline.as_ref(), lang);
         report(app, id, today, lang);
         Ok(ExitCode::SUCCESS)
     })
+}
+
+/// A task that is due before it starts is legal, and almost always a slip.
+fn warn_if_backwards(
+    date: Option<&tisty_core::DateSpec>,
+    deadline: Option<&tisty_core::DateSpec>,
+    lang: Lang,
+) {
+    if let (Some(date), Some(deadline)) = (date, deadline)
+        && deadline.at < date.at
+    {
+        eprintln!("{}", lang.get("deadline-before-date"));
+    }
 }
 
 fn merged_tags(

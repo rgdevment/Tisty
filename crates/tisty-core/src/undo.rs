@@ -111,8 +111,10 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             },
         }),
 
+        Op::ListAdd { id, .. } => Some(Op::ListDelete { id: *id }),
+
         // Recovering the payload would mean replaying the log, which purge prevents.
-        Op::TaskDelete { .. } | Op::ListDelete { .. } | Op::ListAdd { .. } => None,
+        Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
     }
 }
 

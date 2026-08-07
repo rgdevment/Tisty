@@ -50,6 +50,7 @@ pub fn dispatch(
         } => view::search(app, &query.join(" "), open, archive, json, today, lang),
 
         Command::Undo => org::undo(app, today, lang),
+        Command::Redo => org::redo(app, today, lang),
         Command::Lists { json } => org::lists(app, json, lang),
         Command::List { action } => org::list(app, action, lang),
         Command::Tag { action } => org::tag(app, action, lang),
