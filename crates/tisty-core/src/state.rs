@@ -179,6 +179,23 @@ impl State {
         tasks
     }
 
+    /// Archived work reads newest first; everything else keeps the open order.
+    pub fn matching(&self, filter: &crate::view::Filter, today: jiff::civil::Date) -> Vec<&Task> {
+        if filter.archive {
+            let mut done: Vec<&Task> = self
+                .archived_tasks()
+                .filter(|t| filter.matches(t, today))
+                .collect();
+            done.sort_by_key(|t| (std::cmp::Reverse(t.completed_at), std::cmp::Reverse(t.id)));
+            return done;
+        }
+
+        self.ordered_open()
+            .into_iter()
+            .filter(|t| filter.matches(t, today))
+            .collect()
+    }
+
     pub fn ordered_lists(&self) -> Vec<&List> {
         let mut lists: Vec<_> = self.active_lists().collect();
         lists.sort_by(|a, b| (&a.order, a.id).cmp(&(&b.order, b.id)));

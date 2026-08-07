@@ -150,9 +150,9 @@ fn undo_steps_further_back_instead_of_undoing_itself() {
 }
 
 #[test]
-fn a_hash_marker_files_the_task_and_creates_the_list() {
+fn an_at_marker_files_the_task_and_creates_the_list() {
     let cli = Cli::new();
-    cli.ok(&["water the plants tomorrow #home"]);
+    cli.ok(&["water the plants tomorrow @home"]);
 
     let lists = cli.ok(&["lists"]);
     assert!(lists.contains("home"), "{lists}");
@@ -167,7 +167,7 @@ fn a_hash_marker_files_the_task_and_creates_the_list() {
 }
 
 #[test]
-fn a_bare_number_after_a_hash_stays_in_the_title() {
+fn a_bare_number_after_the_marker_stays_in_the_title() {
     let cli = Cli::new();
     cli.ok(&["review PR #42"]);
 
@@ -225,7 +225,7 @@ fn a_name_another_list_already_uses_is_refused() {
 #[test]
 fn undoing_a_capture_takes_the_list_it_created_with_it() {
     let cli = Cli::new();
-    cli.ok(&["call the plumber #errands"]);
+    cli.ok(&["call the plumber @errands"]);
     assert!(cli.ok(&["lists"]).contains("errands"));
 
     cli.ok(&["undo"]);
@@ -400,7 +400,7 @@ fn a_listing_reports_its_counts_without_loading_the_bodies() {
 #[test]
 fn every_read_says_the_same_with_the_cache_and_without_it() {
     let cli = Cli::new();
-    cli.ok(&["write the report tomorrow !1 #work"]);
+    cli.ok(&["write the report tomorrow !1 @work"]);
     cli.ok(&["log", "write the report", "spoke to accounting"]);
     cli.ok(&["step", "write the report", "add", "collect the figures"]);
     cli.ok(&["buy milk"]);
@@ -628,13 +628,13 @@ fn undo_takes_back_a_whole_batch_not_one_event_of_it() {
     }
 
     cli.ok(&["tag", "rename", "wip", "active"]);
-    assert_eq!(cli.ok(&["ls", "all"]).matches("@active").count(), 3);
+    assert_eq!(cli.ok(&["ls", "all"]).matches("#active").count(), 3);
 
     cli.ok(&["undo"]);
     let out = cli.ok(&["ls", "all"]);
 
-    assert_eq!(out.matches("@wip").count(), 3, "{out}");
-    assert_eq!(out.matches("@active").count(), 0, "{out}");
+    assert_eq!(out.matches("#wip").count(), 3, "{out}");
+    assert_eq!(out.matches("#active").count(), 0, "{out}");
 }
 
 #[test]
@@ -712,12 +712,12 @@ fn tags_are_added_and_taken_off() {
     cli.ok(&["ls", "all"]);
 
     cli.ok(&["set", "1", "--tag", "security", "--tag", "ops"]);
-    assert!(cli.ok(&["tag", "ls"]).contains("@security"));
+    assert!(cli.ok(&["tag", "ls"]).contains("#security"));
 
     cli.ok(&["set", "1", "--untag", "ops"]);
     let out = cli.ok(&["tag", "ls"]);
-    assert!(out.contains("@security"), "{out}");
-    assert!(!out.contains("@ops"), "{out}");
+    assert!(out.contains("#security"), "{out}");
+    assert!(!out.contains("#ops"), "{out}");
 }
 
 #[test]
@@ -733,9 +733,9 @@ fn renaming_a_tag_rewrites_every_task_that_carries_it() {
     cli.ok(&["tag", "rename", "wip", "active"]);
     let out = cli.ok(&["tag", "ls"]);
 
-    assert!(out.contains("@active"), "{out}");
-    assert!(!out.contains("@wip"), "{out}");
-    assert!(cli.ok(&["ls", "all"]).matches("@active").count() == 2);
+    assert!(out.contains("#active"), "{out}");
+    assert!(!out.contains("#wip"), "{out}");
+    assert!(cli.ok(&["ls", "all"]).matches("#active").count() == 2);
 }
 
 #[test]
@@ -925,14 +925,14 @@ fn a_journal_entry_keeps_the_hour_its_author_wrote_it_at() {
 #[test]
 fn filters_combine_and_each_one_narrows_the_result() {
     let cli = Cli::new();
-    cli.ok(&["rotate the keys tomorrow @security !1"]);
-    cli.ok(&["read the access logs @security"]);
-    cli.ok(&["update the runbook @docs"]);
+    cli.ok(&["rotate the keys tomorrow #security !1"]);
+    cli.ok(&["read the access logs #security"]);
+    cli.ok(&["update the runbook #docs"]);
 
-    let out = cli.ok(&["ls", "@security"]);
+    let out = cli.ok(&["ls", "#security"]);
     assert_eq!(out.matches('○').count(), 2, "{out}");
 
-    let out = cli.ok(&["ls", "@security", "!1"]);
+    let out = cli.ok(&["ls", "#security", "!1"]);
     assert!(out.contains("rotate the keys"), "{out}");
     assert!(!out.contains("access logs"), "{out}");
 }
@@ -960,7 +960,7 @@ fn a_list_is_filtered_by_the_name_the_listing_prints() {
     cli.ok(&["ls", "all"]);
     cli.ok(&["mv", "1", "Client Work"]);
 
-    let out = cli.ok(&["ls", "#client-work"]);
+    let out = cli.ok(&["ls", "@client-work"]);
     assert!(out.contains("draft the proposal"), "{out}");
     assert!(!out.contains("something else"), "{out}");
 }
@@ -1037,10 +1037,10 @@ fn an_exported_document_carries_absolute_dates() {
 #[test]
 fn export_takes_the_same_filters_as_listing() {
     let cli = Cli::new();
-    cli.ok(&["kept @keep"]);
-    cli.ok(&["dropped @other"]);
+    cli.ok(&["kept #keep"]);
+    cli.ok(&["dropped #other"]);
 
-    let md = cli.ok(&["export", "@keep", "--markdown"]);
+    let md = cli.ok(&["export", "#keep", "--markdown"]);
     assert!(md.contains("kept"), "{md}");
     assert!(!md.contains("dropped"), "{md}");
 }

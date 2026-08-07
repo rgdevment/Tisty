@@ -114,23 +114,23 @@ Filters combine, and the same words work when writing a task and when looking
 for one:
 
 ```console
-$ tisty ls week @security
+$ tisty ls week #security
 
-  week @security                                          1 task
+  week #security                                          1 task
 
     1  ○ rotate the signing keys
-       !1 · tomorrow · #platform · @security
+       !1 · tomorrow · @platform · #security
 ```
 
 The same markers work while writing it down. `tisty "call the accountant on
-tuesday at 15:30 !1 @clients #work"` files it under `work`, creating that list
-if it is new. A `#42` in the middle of a sentence stays in the title, because no
-list is named by digits alone.
+tuesday at 15:30 !1 #clients @work"` files it under `work`, creating that list
+if it is new. A `#42` in the middle of a sentence stays in the title: it is a written
+reference, not a marker.
 
 `today` · `tomorrow` · `week` · `overdue` · `inbox` · `archive` · `all` ·
-`#list` · `@tag` · `!1`, or any date you can write — `tisty ls friday`.
+`@list` · `#tag` · `!1`, or any date you can write — `tisty ls friday`.
 Bare `tisty ls` means today; naming any filter widens the scope to everything
-open, because asking for `@security` and getting only today's would hide the
+open, because asking for `#security` and getting only today's would hide the
 tasks you were asking about.
 
 ## Built for people who live in a terminal

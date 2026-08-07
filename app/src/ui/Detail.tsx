@@ -30,7 +30,7 @@ export default function Detail({ task, lists, expanded, onExpand, onCollapse }: 
             {t(task.priority === 1 ? "urgent" : task.priority === 2 ? "high" : "medium")}
           </Chip>
         )}
-        {task.tags?.map((tag) => <Chip key={tag}>@{tag}</Chip>)}
+        {task.tags?.map((tag) => <Chip key={tag}>#{tag}</Chip>)}
         {task.reminders?.length ? <Chip>⏰ {task.reminders.length}</Chip> : null}
       </div>
 

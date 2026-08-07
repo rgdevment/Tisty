@@ -161,7 +161,7 @@ date = "2026-08-08"
 # ─────────────────────────────────────────────────────────────
 
 [[case]]
-input = "review the deploy @backend @urgent"
+input = "review the deploy #backend #urgent"
 title = "review the deploy"
 tags = ["backend", "urgent"]
 
@@ -171,7 +171,7 @@ title = "fix the index"
 priority = 1
 
 [[case]]
-input = "review the deploy tomorrow @backend !2"
+input = "review the deploy tomorrow #backend !2"
 title = "review the deploy"
 date = "2026-08-06"
 tags = ["backend"]

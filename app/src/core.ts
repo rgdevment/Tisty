@@ -63,6 +63,8 @@ export interface List {
 export interface Snapshot {
   tasks: Task[];
   lists: List[];
+  /** Per view and per list id, counted by the core with the same filter. */
+  counts: Record<string, number>;
   locale?: string;
 }
 
@@ -76,7 +78,16 @@ export interface Parsed {
   list?: string | null;
 }
 
-export const snapshot = (): Promise<Snapshot> => invoke("snapshot");
+/** What the sidebar asks for. The core decides which tasks answer. */
+export interface View {
+  archive?: boolean;
+  inbox?: boolean;
+  list?: string;
+  tags?: string[];
+  window?: "today" | "upcoming" | "overdue";
+}
+
+export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });
 export const read = (text: string): Promise<Parsed> =>
   invoke("read", { text, locale: navigator.language });
 export const capture = (text: string): Promise<Task> =>

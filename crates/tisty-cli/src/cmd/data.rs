@@ -1,7 +1,6 @@
 use std::process::ExitCode;
 
 use jiff::civil::Date;
-use tisty_core::Task;
 
 use crate::app::App;
 use crate::filter::Filter;
@@ -121,17 +120,7 @@ pub fn export(
 ) -> anyhow::Result<ExitCode> {
     let filter = Filter::parse(tokens, app, today, lang)?;
 
-    let pool: Vec<&Task> = if filter.archive {
-        let mut done: Vec<&Task> = app.state.archived_tasks().collect();
-        done.sort_by_key(|t| (std::cmp::Reverse(t.completed_at), std::cmp::Reverse(t.id)));
-        done
-    } else {
-        app.state.ordered_open()
-    };
-    let tasks: Vec<&Task> = pool
-        .into_iter()
-        .filter(|t| filter.matches(t, today))
-        .collect();
+    let tasks = app.state.matching(&filter.inner, today);
 
     if markdown {
         print!(

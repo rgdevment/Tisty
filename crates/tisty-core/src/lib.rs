@@ -11,6 +11,7 @@ pub mod paths;
 pub mod state;
 pub mod store;
 pub mod undo;
+pub mod view;
 
 pub use config::Config;
 pub use event::{DeviceId, Event, Op};

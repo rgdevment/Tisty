@@ -106,11 +106,11 @@ function Meta({ task, list }: { task: Task; list?: string }) {
       </span>,
     );
   }
-  if (list) bits.push(<span key="list">#{list}</span>);
+  if (list) bits.push(<span key="list">@{list}</span>);
   if (task.tags?.length) {
     bits.push(
       <span key="tags" className="text-faint">
-        {task.tags.map((tag) => `@${tag}`).join(" ")}
+        {task.tags.map((tag) => `#${tag}`).join(" ")}
       </span>,
     );
   }

@@ -158,7 +158,7 @@ pub fn tag(app: &mut App, action: Option<TagAction>, lang: Lang) -> anyhow::Resu
                 for c in counted {
                     println!(
                         "    {:<32}{}",
-                        format!("@{}", c.tag),
+                        format!("#{}", c.tag),
                         style::dim(&c.tasks.to_string())
                     );
                 }
@@ -176,7 +176,7 @@ pub fn tag(app: &mut App, action: Option<TagAction>, lang: Lang) -> anyhow::Resu
 
             let n = app.commit_all(ops)?;
             println!(
-                "  {} @{old} → @{new} {}",
+                "  {} #{old} → #{new} {}",
                 style::paint(GREEN, "✓"),
                 style::dim(&lang.plural("tasks", n))
             );
@@ -200,7 +200,7 @@ pub fn tag(app: &mut App, action: Option<TagAction>, lang: Lang) -> anyhow::Resu
 
             let n = app.commit_all(ops)?;
             println!(
-                "  {} @{tag} {}",
+                "  {} #{tag} {}",
                 style::dim("✕"),
                 style::dim(&lang.plural("tasks", n))
             );

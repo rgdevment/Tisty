@@ -18,16 +18,7 @@ pub fn ls(
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
     let filter = Filter::parse(tokens, app, today, lang)?;
-
-    let pool = if filter.archive {
-        newest_first(app)
-    } else {
-        app.state.ordered_open()
-    };
-    let tasks: Vec<&Task> = pool
-        .into_iter()
-        .filter(|t| filter.matches(t, today))
-        .collect();
+    let tasks = app.state.matching(&filter.inner, today);
 
     show_many(app, &tasks, filter.heading(), json, today, lang)
 }
@@ -113,12 +104,6 @@ fn matches(task: &Task, query: &str) -> bool {
         || task.log.iter().any(|e| contains(&e.body))
         || task.steps.iter().any(|s| contains(&s.text))
         || task.tags.iter().any(|t| contains(t.as_str()))
-}
-
-fn newest_first(app: &App) -> Vec<&Task> {
-    let mut done: Vec<&Task> = app.state.archived_tasks().collect();
-    done.sort_by_key(|t| (std::cmp::Reverse(t.completed_at), std::cmp::Reverse(t.id)));
-    done
 }
 
 /// Records what was shown, so `done 2` means the second line on screen.

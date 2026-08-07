@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { capture, complete, snapshot, type Snapshot, type Task } from "./core";
-import { adopt, t } from "./locales";
+import { adopt } from "./locales";
+import { asView, title, type Chosen } from "./views";
 import CaptureField from "./ui/CaptureField";
 import Detail from "./ui/Detail";
 import Notice from "./ui/Notice";
@@ -17,18 +18,19 @@ export default function App() {
   const [captured, setCaptured] = useState<Task | undefined>();
   const [reveal, setReveal] = useState<string | undefined>();
   const [mode, setMode] = useState<Mode>("columns");
+  const [chosen, setChosen] = useState<Chosen>({ named: "today" });
   const dismiss = useCallback(() => setCaptured(undefined), []);
 
   useTheme();
 
   const load = useCallback(() => {
-    snapshot()
+    snapshot(asView(chosen))
       .then((fresh) => {
         adopt(fresh.locale);
         setData(fresh);
       })
       .catch((e) => setError(String(e)));
-  }, []);
+  }, [chosen]);
 
   useEffect(() => {
     load();
@@ -69,7 +71,15 @@ export default function App() {
         />
       )}
 
-      <Sidebar tasks={data.tasks} lists={data.lists} />
+      <Sidebar
+        lists={data.lists}
+        counts={data.counts}
+        chosen={chosen}
+        onChoose={(next) => {
+          setChosen(next);
+          setSelected(undefined);
+        }}
+      />
 
       {open && mode === "sheet" ? (
         <Detail
@@ -83,7 +93,7 @@ export default function App() {
         <TaskList
           tasks={data.tasks}
           lists={data.lists}
-          title={t("today")}
+          title={title(chosen, data.lists)}
           selected={selected}
           fresh={captured?.id}
           reveal={reveal}

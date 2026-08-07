@@ -57,10 +57,10 @@ function Hint() {
   return (
     <>
       <span>
-        <Key>#</Key> {t("fieldList")}
+        <Key>#</Key> {t("fieldTag")}
       </span>
       <span>
-        <Key>@</Key> {t("fieldTag")}
+        <Key>@</Key> {t("fieldList")}
       </span>
       <span>
         <Key>!</Key> {t("fieldPriority")}
