@@ -34,7 +34,7 @@ jobs:
           fi
 
           # The `v*` filter admits tags cargo will reject much later, like `vlatest`.
-          if [[ ! "$version" =~^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
             echo "::error::«$version» is not a version cargo accepts (1.2.3 or 1.2.3-rc1)"
             exit 1
           fi
