@@ -37,9 +37,10 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
   const before = asked ? text.slice(0, text.length - asked[2].length - 1) : text;
   // Escape leaves the slash where it was typed: «leer /docs» is a title.
   const called = asked && before.length !== dismissed ? asked : null;
-  const written = (marker: string) => {
-    setText(`${before}${marker} `);
-    setEdits({});
+  const rewritten = (typed: string) => {
+    setText(typed);
+    // Removals point at spans of the old sentence; a picked date does not.
+    setEdits(({ date, deadline }) => ({ date, deadline }));
   };
 
   useEffect(() => {
@@ -63,9 +64,7 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
         hint={invite}
         marks={last?.of === text ? marks(text, last.seen, edits) : []}
         onChange={(typed) => {
-          setText(typed);
-          // Removals point at spans of the old sentence; a picked date does not.
-          setEdits(({ date, deadline }) => ({ date, deadline }));
+          rewritten(typed);
           if (!CALLED.test(typed)) setDismissed(null);
         }}
         onSubmit={() =>
@@ -88,7 +87,7 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
               setText(before);
               setPicking(field);
             }}
-            onInsert={written}
+            onInsert={(marker) => rewritten(`${before}${marker} `)}
             onClose={() => setDismissed(before.length)}
           />
         )}

@@ -600,3 +600,21 @@ why = "«24/7» tiene forma de fecha y no lo es; es una expresión fija, así qu
 input = "montar soporte 24/7"
 title = "montar soporte 24/7"
 why = "sin nada delante tampoco: la expresión es la misma"
+
+[[case]]
+input = "entregar el informe mañana antes del viernes"
+title = "entregar el informe"
+date = "2026-08-06"
+deadline = "2026-08-07"
+certainty = "assumed"
+why = "cuándo hacerlo Y cuándo vence, en la misma frase. La certeza que se fija aquí es la de la PRIMERA lectura: «mañana» va en medio y sin señal fuerte, así que se supone; «antes del viernes» lleva su preposición y es segura"
+
+[[case]]
+input = "entregar el informe mañana o antes del viernes #deporte !alto"
+title = "entregar el informe"
+date = "2026-08-06"
+deadline = "2026-08-07"
+certainty = "assumed"
+priority = 1
+tags = ["deporte"]
+why = "las dos fechas, la etiqueta y la prioridad en una sola frase; el «o» que queda entre los dos huecos se descarta por ser un conector suelto"

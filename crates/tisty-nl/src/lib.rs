@@ -158,20 +158,33 @@ fn timed(text: &str, now: &Zoned, tz: &str, v: &vocab::Vocabulary) -> Timed {
         offers: Vec::new(),
     };
 
-    if let Some(found) = &scanned.found
-        && let Some(read) = resolved(text, &tokens, found, now, tz)
-    {
-        let (date, deadline) = match found.role {
-            Role::Date => (Some(read.spec), None),
-            Role::Deadline => (None, Some(read.spec)),
+    let reads: Vec<(&scan::Found, Read)> = [scanned.found.as_ref(), scanned.also.as_ref()]
+        .into_iter()
+        .flatten()
+        .filter_map(|found| resolved(text, &tokens, found, now, tz).map(|read| (found, read)))
+        .collect();
+
+    if !reads.is_empty() {
+        let mut cut: Vec<(usize, usize)> =
+            reads.iter().flat_map(|(f, _)| f.spans.clone()).collect();
+        cut.sort_unstable();
+        let title = unquote(&without_spans(text, &tokens, &cut));
+        if title.is_empty() {
+            return untouched();
+        }
+
+        let mut timed = Timed {
+            title,
+            ..untouched()
         };
-        return Timed {
-            title: read.title,
-            date,
-            deadline,
-            spans: read.spans,
-            offers: Vec::new(),
-        };
+        for (found, read) in reads {
+            match found.role {
+                Role::Date => timed.date = Some(read.spec),
+                Role::Deadline => timed.deadline = Some(read.spec),
+            }
+            timed.spans.extend(read.spans);
+        }
+        return timed;
     }
 
     let Some(found) = &scanned.offer else {
@@ -180,19 +193,22 @@ fn timed(text: &str, now: &Zoned, tz: &str, v: &vocab::Vocabulary) -> Timed {
     let Some(read) = resolved(text, &tokens, found, now, tz) else {
         return untouched();
     };
+    let title = unquote(&without_spans(text, &tokens, &found.spans));
+    if title.is_empty() {
+        return untouched();
+    }
 
     Timed {
         offers: vec![Offer {
             spans: read.spans,
             date: read.spec,
-            title: read.title,
+            title,
         }],
         ..untouched()
     }
 }
 
 struct Read {
-    title: String,
     spec: DateSpec,
     spans: Vec<Span>,
 }
@@ -209,11 +225,6 @@ fn resolved(
         Some(t) => resolve::place_time(date, t, now),
         None => date,
     }?;
-
-    let title = unquote(&without_spans(text, tokens, found));
-    if title.is_empty() {
-        return None;
-    }
 
     let spec = match found.time {
         Some(t) => DateSpec::floating(date.to_datetime(t), tz),
@@ -238,7 +249,7 @@ fn resolved(
         })
         .collect();
 
-    Some(Read { title, spec, spans })
+    Some(Read { spec, spans })
 }
 
 /// Punctuation around the phrase is not part of the reading: «mañana,» would otherwise draw its comma inside the highlight.
@@ -373,11 +384,11 @@ pub fn title_without(input: &str, spans: &[Span]) -> String {
 }
 
 /// The temporal phrase can sit mid-sentence, so both sides of the hole are the title.
-fn without_spans(text: &str, tokens: &[scan::Token], found: &scan::Found) -> String {
+fn without_spans(text: &str, tokens: &[scan::Token], spans: &[(usize, usize)]) -> String {
     let mut kept = Vec::new();
     let mut at = 0;
 
-    for (from, to) in &found.spans {
+    for (from, to) in spans {
         kept.push(text[at..tokens[*from].start].to_string());
         at = tokens.get(*to).map_or(text.len(), |token| token.start);
     }
@@ -394,7 +405,7 @@ fn sewn(pieces: Vec<String>) -> String {
             .iter()
             .find_map(|word| piece.strip_suffix(&format!(" {word}")))
             .unwrap_or(piece);
-        if piece.is_empty() {
+        if piece.is_empty() || LOOSE_ENDS.contains(&piece) {
             continue;
         }
         if !title.is_empty() {
@@ -406,7 +417,8 @@ fn sewn(pieces: Vec<String>) -> String {
 }
 
 const LOOSE_ENDS: &[&str] = &[
-    "y", "e", "and", "to", "al", "a", "el", "la", "los", "las", "por", "for",
+    "y", "e", "o", "u", "ni", "and", "or", "nor", "to", "al", "a", "el", "la", "los", "las", "por",
+    "for",
 ];
 
 fn tidy(text: &str) -> String {
