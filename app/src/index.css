@@ -18,6 +18,7 @@
   --tisty-urgent: #e5484d;
   --tisty-high: #f0883e;
   --tisty-mark-date: rgb(10 124 255 / 0.15);
+  --tisty-mark-deadline: rgb(214 118 40 / 0.18);
   --tisty-mark-list: rgb(22 163 124 / 0.17);
   --tisty-mark-tag: rgb(124 92 222 / 0.15);
   --tisty-mark-priority: rgb(229 72 77 / 0.14);
@@ -39,6 +40,7 @@
   --tisty-urgent: #ff5f57;
   --tisty-high: #f5a04a;
   --tisty-mark-date: rgb(61 149 255 / 0.24);
+  --tisty-mark-deadline: rgb(245 160 74 / 0.26);
   --tisty-mark-list: rgb(45 200 155 / 0.22);
   --tisty-mark-tag: rgb(160 130 255 / 0.24);
   --tisty-mark-priority: rgb(255 95 87 / 0.22);
@@ -63,6 +65,7 @@
   --color-urgent: var(--tisty-urgent);
   --color-high: var(--tisty-high);
   --color-mark-date: var(--tisty-mark-date);
+  --color-mark-deadline: var(--tisty-mark-deadline);
   --color-mark-list: var(--tisty-mark-list);
   --color-mark-tag: var(--tisty-mark-tag);
   --color-mark-priority: var(--tisty-mark-priority);

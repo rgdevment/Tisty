@@ -21,6 +21,8 @@ pub struct Vocabulary {
     pub linker: &'static [&'static str],
     /// «mañana de verano» is a noun with a complement, not the day after.
     pub genitive: &'static [&'static str],
+    /// Fixed expressions shaped like a date.
+    pub idioms: &'static [&'static str],
     pub noon: &'static [&'static str],
     pub in_prep: &'static [&'static str],
     /// Marks a duration — «por 30 días» — which is not a date.
@@ -84,6 +86,7 @@ pub const ES: Vocabulary = Vocabulary {
         "que",
     ],
     genitive: &["de", "del"],
+    idioms: &["24/7"],
     noon: &["mediodía", "mediodia"],
     in_prep: &["en", "dentro"],
     spans_prep: &["por", "durante"],
@@ -94,7 +97,12 @@ pub const ES: Vocabulary = Vocabulary {
     this_week: &[&["esta", "semana"]],
     end_of_month: &[&["fin", "de", "mes"], &["fin", "mes"]],
     weekend: &[&["finde"], &["fin", "de", "semana"]],
-    priorities: [&["urgente"], &["alta"], &["media"], &[]],
+    priorities: [
+        &["alto", "alta", "urgente"],
+        &["medio", "media"],
+        &["bajo", "baja"],
+        &[],
+    ],
 };
 
 pub const EN: Vocabulary = Vocabulary {
@@ -146,6 +154,7 @@ pub const EN: Vocabulary = Vocabulary {
         "that",
     ],
     genitive: &["of"],
+    idioms: &["24/7"],
     noon: &["noon", "midday"],
     in_prep: &["in"],
     spans_prep: &["for", "during"],
@@ -156,7 +165,7 @@ pub const EN: Vocabulary = Vocabulary {
     this_week: &[&["this", "week"]],
     end_of_month: &[&["end", "of", "month"], &["end", "of", "the", "month"]],
     weekend: &[&["this", "weekend"], &["weekend"]],
-    priorities: [&["urgent"], &["high"], &["medium"], &[]],
+    priorities: [&["high", "urgent"], &["medium"], &["low"], &[]],
 };
 
 /// What a system reports — `es-CL` — must not silently get English.

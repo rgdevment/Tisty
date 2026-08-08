@@ -26,21 +26,22 @@ export default function SlashMenu({ query, lists, tags, onDate, onInsert, onClos
   const [at, setAt] = useState(0);
   const rows = step === null ? fields(onDate, setStep) : within(step, lists, tags, onInsert);
   const shown = step === null ? rows.filter((row) => fits(row, query)) : rows;
+  const on = Math.min(at, shown.length - 1);
 
   useEffect(() => setAt(0), [query, step]);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key === "ArrowDown") setAt((i) => (i + 1) % Math.max(shown.length, 1));
-      else if (e.key === "ArrowUp") setAt((i) => (i - 1 + shown.length) % Math.max(shown.length, 1));
-      else if (e.key === "Enter") shown[at]?.run();
+      if (e.key === "ArrowDown") setAt((on + 1) % shown.length);
+      else if (e.key === "ArrowUp") setAt((on - 1 + shown.length) % shown.length);
+      else if (e.key === "Enter") shown[on]?.run();
       else if (e.key === "Escape") onClose();
       else return;
       e.preventDefault();
     };
     document.addEventListener("keydown", key, true);
     return () => document.removeEventListener("keydown", key, true);
-  }, [shown, at, onClose]);
+  }, [shown, on, onClose]);
 
   if (shown.length === 0) return null;
 
@@ -53,7 +54,7 @@ export default function SlashMenu({ query, lists, tags, onDate, onInsert, onClos
           onMouseEnter={() => setAt(i)}
           onClick={row.run}
           className={`flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-[7px] text-[13px] ${
-            i === at ? "bg-accent-soft" : ""
+            i === on ? "bg-accent-soft" : ""
           }`}
         >
           <span className="w-[15px] text-center text-[12px] text-soft">{row.glyph}</span>
@@ -119,13 +120,16 @@ function within(
       run: () => onInsert(`#${counted.tag}`),
     }));
   }
-  return ([1, 2, 3] as const).map((level) => ({
-    key: String(level),
-    glyph: "!",
-    label: t(level === 1 ? "urgent" : level === 2 ? "high" : "medium"),
-    say: `!${level}`,
-    run: () => onInsert(`!${level}`),
-  }));
+  return ([1, 2, 3] as const).map((level) => {
+    const label = t(level === 1 ? "high" : level === 2 ? "medium" : "low");
+    return {
+      key: String(level),
+      glyph: "!",
+      label,
+      say: `!${level}`,
+      run: () => onInsert(`!${label.toLowerCase()}`),
+    };
+  });
 }
 
 const fits = (row: Row, query: string): boolean =>

@@ -27,7 +27,7 @@ export default function Detail({ task, lists, expanded, onExpand, onCollapse }: 
         {task.deadline && <Chip>⚑ {whenLabel(task.deadline)}</Chip>}
         {task.priority < 4 && (
           <Chip tone={task.priority === 1 ? "urgent" : undefined}>
-            {t(task.priority === 1 ? "urgent" : task.priority === 2 ? "high" : "medium")}
+            {t(task.priority === 1 ? "high" : task.priority === 2 ? "medium" : "low")}
           </Chip>
         )}
         {task.tags?.map((tag) => <Chip key={tag}>#{tag}</Chip>)}
