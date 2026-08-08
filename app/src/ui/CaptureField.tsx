@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
-import { read, type Edits, type Parsed, type Span, type Task } from "../core";
+import { read, type Counted, type Edits, type List, type Parsed, type Span, type Task } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
+import Calendar from "./Calendar";
 import Chips from "./Chips";
 import Field, { type Mark } from "./Field";
+import SlashMenu from "./SlashMenu";
 
 interface Props {
   invite: string;
+  lists: List[];
+  tags: Counted[];
   onCapture: (text: string, edits: Edits) => Promise<Task>;
   onError: (message: string) => void;
 }
+
+/** Only a `/` that opens a word, and only at the end: «and/or» is not a menu. */
+const CALLED = /(^|\s)\/(\S*)$/;
 
 const SETTLES = 120;
 
@@ -19,10 +26,21 @@ interface Read {
   seen: Parsed;
 }
 
-export default function CaptureField({ invite, onCapture, onError }: Props) {
+export default function CaptureField({ invite, lists, tags, onCapture, onError }: Props) {
   const [text, setText] = useState("");
   const [last, setLast] = useState<Read | null>(null);
   const [edits, setEdits] = useState<Edits>({});
+  const [picking, setPicking] = useState<"date" | "deadline" | null>(null);
+  const [dismissed, setDismissed] = useState<number | null>(null);
+
+  const asked = picking === null ? CALLED.exec(text) : null;
+  const before = asked ? text.slice(0, text.length - asked[2].length - 1) : text;
+  // Escape leaves the slash where it was typed: «leer /docs» is a title.
+  const called = asked && before.length !== dismissed ? asked : null;
+  const written = (marker: string) => {
+    setText(`${before}${marker} `);
+    setEdits({});
+  };
 
   useEffect(() => {
     if (!text.trim()) {
@@ -44,10 +62,11 @@ export default function CaptureField({ invite, onCapture, onError }: Props) {
         value={text}
         hint={invite}
         marks={last?.of === text ? marks(text, last.seen, edits) : []}
-        onChange={(written) => {
-          setText(written);
+        onChange={(typed) => {
+          setText(typed);
           // Edits answer to the sentence they were read from; a rewrite invalidates them.
           setEdits({});
+          if (!CALLED.test(typed)) setDismissed(null);
         }}
         onSubmit={() =>
           onCapture(text, edits)
@@ -58,6 +77,32 @@ export default function CaptureField({ invite, onCapture, onError }: Props) {
             .catch((problem) => onError(saidPlainly(problem)))
         }
       />
+
+      <div className="relative">
+        {called && (
+          <SlashMenu
+            query={called[2]}
+            lists={lists}
+            tags={tags}
+            onDate={(field) => {
+              setText(before);
+              setPicking(field);
+            }}
+            onInsert={written}
+            onClose={() => setDismissed(before.length)}
+          />
+        )}
+        {picking && (
+          <Calendar
+            onPick={(iso) => {
+              setEdits({ ...edits, [picking]: iso, [picking === "date" ? "noDate" : "noDeadline"]: false });
+              setPicking(null);
+            }}
+            onClear={() => setPicking(null)}
+            onClose={() => setPicking(null)}
+          />
+        )}
+      </div>
 
       <div className="mt-2 px-1 text-[11.5px] text-faint">
         {last ? (
