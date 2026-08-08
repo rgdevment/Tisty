@@ -1,5 +1,3 @@
-//! Shared by every client: duplicating it is how they start disagreeing.
-
 use ulid::Ulid;
 
 use crate::{
@@ -35,7 +33,7 @@ pub enum Rejected {
     AmbiguousList(String),
 }
 
-/// One batch, or an undo takes back half a capture.
+/// Applied and undone as one batch.
 pub struct Plan {
     pub task: TaskId,
     pub ops: Vec<Op>,

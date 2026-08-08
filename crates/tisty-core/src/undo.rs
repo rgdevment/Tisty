@@ -182,7 +182,6 @@ mod tests {
         assert_eq!(undone.tasks[&id].status, Status::Dropped);
     }
 
-    /// Last-write-wins: the projection takes the last event, the log keeps both.
     #[test]
     fn undoing_a_reopen_restamps_the_completion_time() {
         let id = Ulid::generate();

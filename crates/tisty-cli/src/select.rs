@@ -163,7 +163,6 @@ mod tests {
         }
     }
 
-    /// Fixed ids: a random tail is all digits once in a thousand.
     #[test]
     fn a_short_id_matches_on_the_tail() {
         let mut a = task("first");

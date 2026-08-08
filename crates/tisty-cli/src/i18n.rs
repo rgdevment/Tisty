@@ -260,7 +260,6 @@ mod tests {
         found
     }
 
-    /// The environment is passed in, never read off the machine running this.
     #[test]
     fn english_is_the_fallback() {
         assert_eq!(Lang::choose(None, None).code(), "en");

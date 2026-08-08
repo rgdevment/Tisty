@@ -7,7 +7,7 @@ use crate::{Error, Result, event::DeviceId, paths::Paths, store};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
-    /// Never synced: a shared id would put two machines in one segment file.
+    /// Never synced — a shared id would put two machines in one segment file.
     pub device_id: DeviceId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,

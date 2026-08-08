@@ -250,7 +250,9 @@ why = "«low» is none of the four; it stays in the title instead of being guess
 [[case]]
 input = "review the monday report"
 title = "review the monday report"
-why = "no clock and no preposition: mid-sentence «monday» is naming the report"
+offer = "2026-08-10"
+offer_title = "review the report"
+why = "no clock and no preposition: mid-sentence «monday» is naming the report, so it is offered and not taken. The article stays with the noun or accepting would leave «review report»"
 
 [[case]]
 input = "ship the release tomorrow at 10 to production"
@@ -266,8 +268,10 @@ why = "the dangling «to» goes with the phrase that left it there"
 
 [[case]]
 input = "call the bank tomorrow about the invoice"
-title = "call the bank tomorrow about the invoice"
-why = "«tomorrow» alone mid-sentence is not enough to cut the title in two"
+title = "call the bank about the invoice"
+date = "2026-08-06"
+certainty = "assumed"
+why = "«about» cannot head a noun being described, so «tomorrow» is not naming anything: it is dated and said out loud"
 
 [[case]]
 input = "parents meeting on tuesday in room 3c at 16:00"
@@ -315,7 +319,9 @@ date = "2026-08-07"
 [[case]]
 input = "put it on the monday list"
 title = "put it on the monday list"
-why = "the noun behind it means «monday» was naming that list"
+offer = "2026-08-10"
+offer_title = "put it on the list"
+why = "the noun behind it means «monday» was naming that list; the date is offered and ignoring it costs nothing"
 
 [[case]]
 input = "review the monday report at 10"
@@ -343,3 +349,27 @@ why = "KNOWN GAP: «next week» and «next month» stay in the title without a w
 input = "meeting on august 15"
 title = "meeting"
 date = "2026-08-15"
+
+# ─────────────────────────────────────────────────────────────
+#  Certainty: what is applied and marked as a guess
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "meeting monday in room 3c"
+title = "meeting in room 3c"
+date = "2026-08-10"
+certainty = "assumed"
+why = "mid-sentence and clockless: a person would date it, so it is dated and said out loud"
+
+[[case]]
+input = "call the bank tomorrow"
+title = "call the bank"
+date = "2026-08-06"
+why = "at the end of the sentence there is nothing to assume"
+
+[[case]]
+input = "pick the car up tomorrow at the garage"
+title = "pick the car up at the garage"
+date = "2026-08-06"
+certainty = "assumed"
+why = "«at» behind it is a place, not a clock, so the phrase carries on and the day is a guess"

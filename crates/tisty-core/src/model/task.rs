@@ -13,7 +13,7 @@ pub type LogId = Ulid;
 pub enum Status {
     Open,
     Done,
-    /// Kept apart from `Done`: costs nothing now, unreconstructable later.
+    /// Kept apart from `Done` — unreconstructable once merged.
     Dropped,
 }
 
@@ -57,7 +57,6 @@ impl From<Priority> for u8 {
     }
 }
 
-/// No notes of its own: a failed step *happened*, so it belongs in the log.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Step {
     pub id: StepId,
@@ -117,8 +116,7 @@ pub struct Task {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completed_at: Option<Timestamp>,
 
-    /// Held apart from the vectors, not derived from them: a summary loaded
-    /// without its body still has to know how much body there is.
+    /// Stored, not derived — a summary loaded without its body must still know how much body there is.
     #[serde(default, skip_serializing_if = "Volume::is_empty")]
     pub volume: Volume,
 }
@@ -166,7 +164,7 @@ impl Task {
         }
     }
 
-    /// Derived from the ULID rather than stored: the id already carries it.
+    /// Derived from the ULID's embedded timestamp; not stored separately.
     pub fn created_at(&self) -> Timestamp {
         Timestamp::from_millisecond(self.id.timestamp_ms() as i64).unwrap_or(Timestamp::UNIX_EPOCH)
     }
@@ -175,7 +173,7 @@ impl Task {
         self.status == Status::Open
     }
 
-    /// Archived rather than finished: it stays searchable forever.
+    /// True for both `Done` and `Dropped` — archived tasks stay searchable.
     pub fn is_archived(&self) -> bool {
         !self.is_open()
     }

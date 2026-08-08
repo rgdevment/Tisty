@@ -110,7 +110,6 @@ fn known(key: &str, allowed: &[&str], lang: Lang) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// The way out of the format, which is what makes the data worth trusting.
 pub fn export(
     app: &App,
     tokens: &[String],

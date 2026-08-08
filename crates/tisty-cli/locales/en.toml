@@ -54,6 +54,7 @@ unknown-filter = "unknown filter: {filter} ({known})"
 unknown-key    = "unknown setting: {key} ({known})"
 unset-key      = "«{key}» is not set"
 deadline-before-date = "heads up: the deadline falls before the date"
+date-assumed  = "this reading was a guess; to drop it and keep your words:"
 unknown-locale = "unknown language: {value} ({known})"
 one-window-only = "only one time filter at a time"
 

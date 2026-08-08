@@ -19,6 +19,8 @@ pub struct Vocabulary {
     pub day_part: &'static [&'static str],
     /// What can follow a temporal phrase without being described by it.
     pub linker: &'static [&'static str],
+    /// «mañana de verano» is a noun with a complement, not the day after.
+    pub genitive: &'static [&'static str],
     pub noon: &'static [&'static str],
     pub in_prep: &'static [&'static str],
     /// Marks a duration — «por 30 días» — which is not a date.
@@ -77,7 +79,11 @@ pub const ES: Vocabulary = Vocabulary {
     clock_prep: &["las"],
     past_prep: &["hace"],
     day_part: &["mañana", "tarde", "noche", "madrugada"],
-    linker: &["y", "e", "o", "u", "pero"],
+    linker: &[
+        "y", "e", "o", "u", "pero", "sobre", "con", "sin", "desde", "hacia", "según", "segun",
+        "que",
+    ],
+    genitive: &["de", "del"],
     noon: &["mediodía", "mediodia"],
     in_prep: &["en", "dentro"],
     spans_prep: &["por", "durante"],
@@ -126,7 +132,20 @@ pub const EN: Vocabulary = Vocabulary {
     clock_prep: &["at"],
     past_prep: &["ago"],
     day_part: &["morning", "afternoon", "evening", "night"],
-    linker: &["and", "or", "to", "but"],
+    linker: &[
+        "and",
+        "or",
+        "to",
+        "but",
+        "about",
+        "with",
+        "without",
+        "from",
+        "into",
+        "regarding",
+        "that",
+    ],
+    genitive: &["of"],
     noon: &["noon", "midday"],
     in_prep: &["in"],
     spans_prep: &["for", "during"],

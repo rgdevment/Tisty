@@ -23,6 +23,8 @@ const en = {
   noSuchList: "No list matches {name}",
   ambiguousList: "Several lists match {name}",
   badTag: "{name} is not a valid tag",
+  notADate: "{name} is not a date",
+  notAPriority: "That is not a priority",
   notATaskId: "That is not a task",
   notAListId: "That is not a list",
   internal: "{name}",
@@ -44,9 +46,16 @@ const en = {
   fieldPriority: "priority",
   hintDates: "dates as you say them",
   hintPick: "to pick",
+  guessed: "a guess: click to change it or × to drop it",
+  tomorrow: "Tomorrow",
+  remove: "Remove",
+  accept: "Use",
+  prevMonth: "Previous month",
+  nextMonth: "Next month",
+  offered: "seen but not taken: it may be naming what is next to it",
 };
 
-/// Missing a key in another catalogue is a compile error, not a runtime «⟨?⟩».
+// Missing a key in another catalogue is a compile error, not a runtime «⟨?⟩».
 type Catalog = typeof en;
 
 const es: Catalog = {
@@ -74,6 +83,8 @@ const es: Catalog = {
   noSuchList: "No encontré ninguna lista que coincida con {name}",
   ambiguousList: "Varias listas coinciden con {name}",
   badTag: "{name} no es una etiqueta válida",
+  notADate: "{name} no es una fecha",
+  notAPriority: "Eso no es una prioridad",
   notATaskId: "Eso no es una tarea",
   notAListId: "Eso no es una lista",
   internal: "{name}",
@@ -95,6 +106,13 @@ const es: Catalog = {
   fieldPriority: "prioridad",
   hintDates: "fechas tal como se dicen",
   hintPick: "para elegir",
+  guessed: "es una suposición: pincha para cambiarla o × para quitarla",
+  tomorrow: "Mañana",
+  remove: "Quitar",
+  accept: "Poner",
+  prevMonth: "Mes anterior",
+  nextMonth: "Mes siguiente",
+  offered: "la vi pero no la tomé: puede estar nombrando lo que tiene al lado",
 };
 
 const catalogs: Record<string, Catalog> = { en, es };

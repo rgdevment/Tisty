@@ -22,6 +22,8 @@ export function asView(chosen: Chosen): View {
       return { window: "upcoming" };
     case "archive":
       return { archive: true };
+    case "tags":
+      return { tagged: true, everything: true };
     default:
       return {};
   }
@@ -37,7 +39,7 @@ export function title(chosen: Chosen, lists: List[]): string {
   return t(chosen.named ?? "today");
 }
 
-/// Archive and search have nothing to add to; upcoming has no day to pick.
+/** Archive and search have nothing to add to; upcoming has no day to pick. */
 export function accepts(chosen: Chosen): boolean {
   if (chosen.named === "archive" || chosen.named === "search") return false;
   if (chosen.named === "upcoming") return false;
@@ -45,7 +47,7 @@ export function accepts(chosen: Chosen): boolean {
   return true;
 }
 
-/// Says where the task will land, because it lands where you are looking.
+/** Says where the task will land, because it lands where you are looking. */
 export function invite(chosen: Chosen, lists: List[]): string {
   if (chosen.list) {
     const name = lists.find((list) => list.id === chosen.list)?.name;

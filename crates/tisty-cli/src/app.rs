@@ -20,8 +20,7 @@ impl App {
         Self::build(paths, Load::Full)
     }
 
-    /// Everything a listing needs, without the journals and steps that make up
-    /// most of the bytes. Anything that shows or searches content wants `at`.
+    /// Without journals and steps; use `at` for anything that shows or searches content.
     pub fn listing(paths: Paths) -> tisty_core::Result<Self> {
         Self::build(paths, Load::Summary)
     }
@@ -107,8 +106,7 @@ impl App {
         );
     }
 
-    /// Whole batch or nothing, and never another device's: half an undone tag
-    /// rename leaves the tasks disagreeing.
+    /// Whole batch or nothing, never another device's — half an undone rename leaves tasks disagreeing.
     pub fn last_own_change(&self) -> tisty_core::Result<Vec<(Event, State)>> {
         self.reachable_change(false)
     }
@@ -169,9 +167,7 @@ impl App {
         Ok(found)
     }
 
-    /// The change the last undo took back, to apply again as it was. Redo is
-    /// not undoing an undo: the inverse of a creation is a deletion, and that
-    /// one has no inverse of its own.
+    /// The change the last undo took back, replayed as-is — a creation's inverse (deletion) has none of its own.
     pub fn last_undone_change(&self) -> tisty_core::Result<Vec<Event>> {
         let events = self.store.read_all()?;
         let mut live: Vec<Vec<Event>> = Vec::new();

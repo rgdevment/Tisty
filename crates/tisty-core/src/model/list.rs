@@ -3,7 +3,6 @@ use ulid::Ulid;
 
 pub type ListId = Ulid;
 
-/// A theme of work, not a project: no dates, progress or templates promised.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct List {
     pub id: ListId,

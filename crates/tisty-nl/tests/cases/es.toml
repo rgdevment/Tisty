@@ -250,6 +250,8 @@ why = "las etiquetas se normalizan a minúsculas"
 [[case]]
 input = "revisar el informe del lunes"
 title = "revisar el informe del lunes"
+offer = "2026-08-10"
+offer_title = "revisar el informe"
 why = """
 Genuinamente ambiguo incluso para una persona: el informe puede llamarse «del
 lunes». Una expresión temporal en medio de la frase y sin preposición de acción
@@ -383,7 +385,8 @@ why = "se queda el último; el primero es parte del título y la «y» sobrante 
 [[case]]
 input = "revisar lunes santo"
 title = "revisar lunes santo"
-why = "sin hora ni preposición, «lunes» en medio está nombrando algo"
+offer = "2026-08-10"
+why = "sin hora ni preposición, «lunes» en medio está nombrando algo; se ofrece por si acaso y un clic la pone"
 
 [[case]]
 input = "la reunión de mañana"
@@ -392,8 +395,10 @@ why = "«de» la vuelve descriptiva; se prefiere no fechar a fechar de más"
 
 [[case]]
 input = "pagar el martes la factura de la luz"
-title = "pagar el martes la factura de la luz"
-why = "sin señal fuerte no se toca, aunque una persona sí lo fecharía: es el precio de no destrozar títulos"
+title = "pagar la factura de la luz"
+date = "2026-08-11"
+certainty = "assumed"
+why = "en medio y sin hora ni preposición, pero cualquiera lo fecharía; se aplica marcado como suposición y un clic lo descarta"
 
 [[case]]
 input = "ir mañana a comprar la ropa del niño a las 9am"
@@ -454,8 +459,10 @@ why = "«antes de» manda sobre «hoy» y la vuelve límite, no fecha"
 
 [[case]]
 input = "llamar mañana al banco"
-title = "llamar mañana al banco"
-why = "una persona lo fecharía, pero en medio y sin hora ni preposición no hay señal suficiente; es el precio de no destrozar títulos"
+title = "llamar al banco"
+date = "2026-08-06"
+certainty = "assumed"
+why = "el caso que decidió el score: negarse a fecharlo era la mitad equivocada de la duda"
 
 [[case]]
 input = "reunión por la mañana"
@@ -464,8 +471,10 @@ why = "«la mañana» es una parte del día, no el día siguiente; el artículo 
 
 [[case]]
 input = "reunión mañana por la mañana"
-title = "reunión mañana por la mañana"
-why = "las dos «mañana» en la misma frase: la última es parte del día y la primera va en medio sin señal fuerte, así que no se toca nada"
+title = "reunión por la mañana"
+date = "2026-08-06"
+certainty = "assumed"
+why = "las dos «mañana» en la misma frase: la última es parte del día y no se toca, la primera es el día y se supone"
 
 [[case]]
 input = "revisar lo de hace 3 días"
@@ -518,6 +527,64 @@ why = "HUECO CONOCIDO: «la próxima semana» y «el mes que viene» se quedan e
 [[case]]
 input = "llamar a las 3"
 title = "llamar"
+time = "15:00"
+date = "2026-08-05"
+certainty = "assumed"
+why = "DECIDIDO 2026-08-08: nadie se reúne a las tres de la madrugada, así que se lee la tarde y se marca como suposición. Al no haber pasado aún, se queda hoy"
+
+[[case]]
+input = "llamar a las 6"
+title = "llamar"
+time = "18:00"
+date = "2026-08-05"
+certainty = "assumed"
+why = "el límite superior de la regla: de 1 a 6 la lectura nocturna es absurda"
+
+[[case]]
+input = "llamar a las 7"
+title = "llamar"
+time = "07:00"
+date = "2026-08-06"
+why = "de siete en adelante es una moneda al aire y las citas de mañana son las más comunes, así que se toman los dígitos tal cual; ya pasaron las 7, así que mañana"
+
+[[case]]
+input = "llamar a las 03:00"
+title = "llamar"
 time = "03:00"
 date = "2026-08-06"
-why = "A DECIDIR, no es bug: las 3 se leen de madrugada. Suponer la tarde cambiaría la mitad de las horas habladas, así que se prefiere no adivinar hasta decidirlo"
+why = "el cero delante es notación de 24 horas y es explícita: no se supone nada"
+
+[[case]]
+input = "llamar a las 3 am"
+title = "llamar"
+time = "03:00"
+date = "2026-08-06"
+why = "con sufijo escrito no hay nada que suponer"
+
+# ─────────────────────────────────────────────────────────────
+#  Certeza: lo que se aplica marcado como suposición
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "reunión el lunes en la sala 3c"
+title = "reunión en la sala 3c"
+date = "2026-08-10"
+certainty = "assumed"
+why = "misma frase que la del caso con hora, sin la hora: sin ella no hay señal fuerte y se supone"
+
+[[case]]
+input = "recoger el auto mañana en el taller"
+title = "recoger el auto en el taller"
+date = "2026-08-06"
+certainty = "assumed"
+why = "«en» detrás no describe a «mañana», así que la frase sigue y el día se supone"
+
+[[case]]
+input = "mañana de invierno"
+title = "mañana de invierno"
+why = "«de» detrás convierte la palabra en sustantivo con complemento; ni siquiera se supone"
+
+[[case]]
+input = "escribir el resumen de la reunión"
+title = "escribir el resumen de la reunión"
+why = "sin nada temporal no hay nada que suponer; el genitivo no inventa fechas"

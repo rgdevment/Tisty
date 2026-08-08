@@ -5,8 +5,7 @@ use tisty_core::{
     view::{Filter, Scope, Window},
 };
 
-/// The CLI writes to the same store while the window is open, so what the
-/// session holds can go stale under it.
+/// The CLI writes to the same store while the window is open, so this can go stale under it.
 struct Session {
     paths: Paths,
     state: State,
@@ -72,8 +71,7 @@ impl Session {
     }
 }
 
-/// Counted with the same filter the views use, or the sidebar would promise a
-/// number the list does not deliver.
+/// Counted with the same filter the views use, or the sidebar would promise a number the list does not deliver.
 fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
     let mut counts = std::collections::BTreeMap::new();
     let mut count = |key: &str, filter: Filter| {
@@ -107,8 +105,7 @@ struct Counted {
     tasks: usize,
 }
 
-/// No catalogue to administer: a tag exists because some task mentions it, and
-/// the count reaches into the archive because that is where a tag earns its keep.
+/// Derived from tasks in use; the count reaches into the archive too.
 fn tags_in_use(state: &State) -> Vec<Counted> {
     state
         .tags()
@@ -126,14 +123,12 @@ struct Snapshot {
     lists: Vec<List>,
     tags: Vec<Counted>,
     counts: std::collections::BTreeMap<String, usize>,
-    /// Set only when configured: the window would otherwise speak a different
-    /// language than `tisty` on the same machine.
+    /// Set only when configured, or the window would speak a different language than `tisty`.
     locale: Option<String>,
 }
 
-/// The core states its reasons in English on purpose. What travels is the
-/// reason itself, so each client says it in the language it speaks.
-#[derive(serde::Serialize)]
+/// `code` is untranslated; each client renders it in the language it speaks.
+#[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Refusal {
     code: &'static str,
@@ -173,8 +168,7 @@ impl From<tisty_core::Error> for Refusal {
 
 type Answer<T> = std::result::Result<T, Refusal>;
 
-/// Recovers the guard: one panicked command would otherwise refuse every
-/// command after it for the life of the window.
+/// Recovers the guard, or one panicked command would refuse every command after it.
 fn held<'a>(session: &'a tauri::State<'_, Mutex<Session>>) -> std::sync::MutexGuard<'a, Session> {
     session
         .lock()
@@ -208,6 +202,9 @@ struct View {
     list: Option<String>,
     #[serde(default)]
     tags: Vec<String>,
+    /// The tag view with nothing picked lists what carries a tag, not everything.
+    #[serde(default)]
+    tagged: bool,
     #[serde(default)]
     window: Option<String>,
 }
@@ -232,6 +229,7 @@ impl View {
                 .iter()
                 .map(|t| Tag::new(t).map_err(|_| Refusal::about("badTag", t)))
                 .collect::<Result<_, _>>()?,
+            tagged: self.tagged,
             priority: None,
             window: match self.window.as_deref() {
                 Some("today") => Some(Window::Today),
@@ -267,6 +265,118 @@ fn snapshot(session: tauri::State<'_, Mutex<Session>>, view: Option<View>) -> An
     })
 }
 
+/// Same knobs the CLI exposes as flags; the window may not store anything `tisty add` cannot.
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct Edits {
+    #[serde(default)]
+    no_date: bool,
+    #[serde(default)]
+    no_deadline: bool,
+    #[serde(default)]
+    no_list: bool,
+    #[serde(default)]
+    no_priority: bool,
+    #[serde(default)]
+    no_tags: Vec<String>,
+    #[serde(default)]
+    date: Option<String>,
+    #[serde(default)]
+    deadline: Option<String>,
+    #[serde(default)]
+    priority: Option<u8>,
+    /// The offered phrase was accepted, so it stops being part of the title.
+    #[serde(default)]
+    take_offer: bool,
+}
+
+impl Edits {
+    fn apply(
+        &self,
+        draft: &mut tisty_core::capture::Draft,
+        now: &jiff::Zoned,
+        spoken: &str,
+    ) -> Result<(), Refusal> {
+        if self.no_date {
+            draft.date = None;
+        }
+        if self.no_deadline {
+            draft.deadline = None;
+        }
+        if self.no_list {
+            draft.filing = None;
+        }
+        if self.no_priority {
+            draft.priority = None;
+        }
+        for name in &self.no_tags {
+            if let Ok(tag) = Tag::new(name) {
+                draft.tags.retain(|kept| *kept != tag);
+            }
+        }
+        if let Some(raw) = &self.date {
+            draft.date = Some(dated(raw, now, spoken)?);
+        }
+        if let Some(raw) = &self.deadline {
+            draft.deadline = Some(dated(raw, now, spoken)?);
+        }
+        if let Some(level) = self.priority {
+            draft.priority = Some(
+                tisty_core::Priority::try_from(level).map_err(|_| Refusal::of("notAPriority"))?,
+            );
+        }
+        Ok(())
+    }
+
+    /// A reading the user unmarked goes back into the title; picking a different date is not unmarking.
+    fn retitled(&self, text: &str, read: &tisty_nl::Parsed) -> Option<String> {
+        let undone = self.no_date
+            || self.no_deadline
+            || self.no_list
+            || self.no_priority
+            || !self.no_tags.is_empty();
+        if !undone && !self.take_offer {
+            return None;
+        }
+
+        let letters: Vec<char> = text.chars().collect();
+        let mut kept: Vec<tisty_nl::Span> = read
+            .spans
+            .iter()
+            .copied()
+            .filter(|span| !self.unmarked(span, &letters))
+            .collect();
+
+        if self.take_offer
+            && let Some(offer) = read.offers.first()
+        {
+            kept.extend(offer.spans.iter().copied());
+        }
+        Some(tisty_nl::title_without(text, &kept))
+    }
+
+    fn unmarked(&self, span: &tisty_nl::Span, letters: &[char]) -> bool {
+        match span.mark {
+            tisty_nl::Mark::Date => self.no_date,
+            tisty_nl::Mark::Deadline => self.no_deadline,
+            tisty_nl::Mark::List => self.no_list,
+            tisty_nl::Mark::Priority => self.no_priority,
+            tisty_nl::Mark::Tag => {
+                let written: String = letters[span.from..span.to].iter().collect();
+                Tag::new(written.trim_start_matches('#')).is_ok_and(|tag| {
+                    self.no_tags
+                        .iter()
+                        .any(|name| Tag::new(name) == Ok(tag.clone()))
+                })
+            }
+        }
+    }
+}
+
+fn dated(raw: &str, now: &jiff::Zoned, spoken: &str) -> Result<tisty_core::DateSpec, Refusal> {
+    tisty_nl::parse_date(raw, now, spoken).ok_or_else(|| Refusal::about("notADate", raw))
+}
+
 /// `locale` is the system's, via the webview; the configured one still wins.
 #[tauri::command]
 fn capture(
@@ -274,14 +384,14 @@ fn capture(
     text: String,
     locale: String,
     view: Option<View>,
+    edits: Option<Edits>,
 ) -> Answer<Task> {
     let mut session = held(&session);
     let spoken = session.locale.clone().unwrap_or(locale);
-    let mut draft: tisty_core::capture::Draft =
-        tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken).into();
+    let now = jiff::Zoned::now();
+    let read = tisty_nl::parse(&text, &now, &spoken);
+    let mut draft: tisty_core::capture::Draft = read.clone().into();
 
-    // The view is where the task is born; what the text says wins over it,
-    // because typing `@work` is asking for something explicitly.
     if let Some(view) = view {
         if draft.filing.is_none()
             && let Some(list) = view.list
@@ -300,6 +410,13 @@ fn capture(
         }
     }
 
+    // Last, or removing the date inside «Hoy» would hand it straight back.
+    let edits = edits.unwrap_or_default();
+    edits.apply(&mut draft, &now, &spoken)?;
+    if let Some(title) = edits.retitled(&text, &read) {
+        draft.title = title;
+    }
+
     let plan = tisty_core::capture::plan(&session.state, draft)?;
     session.commit_all(plan.ops)?;
     Ok(session.state.tasks[&plan.task].clone())
@@ -315,8 +432,7 @@ fn read(
     Ok(tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken))
 }
 
-/// The window searches through the core, or it would find different things
-/// than `tisty search` does with the same words.
+/// Searches through the core, or it would find different things than `tisty search` does.
 #[tauri::command]
 fn search(
     session: tauri::State<'_, Mutex<Session>>,
@@ -366,4 +482,80 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn now() -> jiff::Zoned {
+        "2026-08-05T09:00:00[America/Santiago]".parse().unwrap()
+    }
+
+    #[test]
+    fn an_accepted_offer_sets_the_date_and_trims_the_title() {
+        let text = "revisar el informe del lunes";
+        let read = tisty_nl::parse(text, &now(), "es");
+        let offer = read.offers.first().cloned().expect("an offer");
+        let mut draft: tisty_core::capture::Draft = read.clone().into();
+        assert!(draft.date.is_none());
+
+        let edits = Edits {
+            date: Some(offer.date.date().to_string()),
+            take_offer: true,
+            ..Default::default()
+        };
+        edits.apply(&mut draft, &now(), "es").unwrap();
+        draft.title = edits.retitled(text, &read).expect("a new title");
+
+        assert_eq!(draft.title, "revisar el informe");
+        assert_eq!(draft.date.unwrap().date().to_string(), "2026-08-10");
+    }
+
+    #[test]
+    fn a_removal_leaves_nothing_behind() {
+        let mut draft: tisty_core::capture::Draft =
+            tisty_nl::parse("comprar pan mañana #casa !1", &now(), "es").into();
+        assert!(draft.date.is_some());
+
+        Edits {
+            no_date: true,
+            no_priority: true,
+            no_tags: vec!["casa".to_string()],
+            ..Default::default()
+        }
+        .apply(&mut draft, &now(), "es")
+        .unwrap();
+
+        assert!(draft.date.is_none());
+        assert!(draft.priority.is_none());
+        assert!(draft.tags.is_empty());
+    }
+
+    #[test]
+    fn an_unmarked_reading_returns_to_the_title() {
+        let text = "comprar pan el proximo lunes #casa";
+        let read = tisty_nl::parse(text, &now(), "es");
+        assert_eq!(read.title, "comprar pan");
+
+        let edits = Edits {
+            no_tags: vec!["casa".to_string()],
+            ..Default::default()
+        };
+        assert_eq!(
+            edits.retitled(text, &read).as_deref(),
+            Some("comprar pan #casa")
+        );
+    }
+
+    #[test]
+    fn choosing_a_different_date_leaves_the_title_alone() {
+        let text = "comprar pan mañana";
+        let read = tisty_nl::parse(text, &now(), "es");
+        let edits = Edits {
+            date: Some("2026-08-20".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(edits.retitled(text, &read), None);
+    }
 }

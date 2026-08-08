@@ -135,8 +135,7 @@ impl State {
         self.open_tasks().filter(move |t| t.list == Some(list))
     }
 
-    /// Erased for good. Nothing about it can be applied again, which is what
-    /// keeps a late event from resurrecting what someone deleted.
+    /// Permanent — a late event cannot resurrect what this marks.
     pub fn is_erased(&self, id: Ulid) -> bool {
         self.tombstones.contains(&id)
     }
@@ -145,8 +144,7 @@ impl State {
         self.tombstones.iter()
     }
 
-    /// Restoring a projection that was stored elsewhere. Losing the tombstones
-    /// would let a deleted task come back the next time its log is read.
+    /// For restoring a projection stored elsewhere; omitting tombstones lets deletions resurrect.
     pub fn mark_erased(&mut self, id: Ulid) {
         self.tombstones.insert(id);
     }
@@ -179,8 +177,6 @@ impl State {
         tasks
     }
 
-    /// Mixed scopes read newest-closed first and then the open order, so what is
-    /// still to do is never buried under what is already done.
     pub fn matching(&self, filter: &crate::view::Filter, today: jiff::civil::Date) -> Vec<&Task> {
         use crate::view::Scope;
 
@@ -210,8 +206,7 @@ impl State {
         }
     }
 
-    /// Open work first, then the archive newest first: what is still to do
-    /// comes before what is already filed.
+    /// Sorted open-first, then archived newest-first.
     pub fn search(&self, query: &str, scope: crate::view::Scope) -> Vec<&Task> {
         use crate::view::Scope;
 
@@ -247,9 +242,7 @@ impl State {
         lists
     }
 
-    /// Case-insensitive substring, but an exact name always wins. The `@` the
-    /// interface teaches is accepted here too, or `mv 1 @work` would be refused
-    /// for naming the list the way everything else does.
+    /// Exact name wins over substring matches; accepts a leading `@` like the rest of the interface.
     pub fn find_list(&self, needle: &str) -> Vec<&List> {
         let needle = loose(needle.trim_start_matches('@'));
         let exact: Vec<&List> = self
@@ -274,12 +267,11 @@ impl State {
         order::last_of(self.lists.values().map(|l| l.order.as_str()))
     }
 
-    /// Drives sinking a finished list in the sidebar; it never vanishes alone.
     pub fn is_settled(&self, list: ListId) -> bool {
         self.tasks_in(list).next().is_none()
     }
 
-    /// No catalogue to administer: tags exist because a task mentions them.
+    /// Derived from tasks in use; there is no separate tag catalogue.
     pub fn tags(&self) -> BTreeSet<&Tag> {
         self.tasks.values().flat_map(|t| &t.tags).collect()
     }

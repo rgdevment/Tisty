@@ -109,8 +109,6 @@ mod tests {
         assert!(b.starts_with(p.store()));
     }
 
-    /// A synced folder is not somewhere the store may end up by accident: it is
-    /// where OneDrive and iCloud hand out placeholders with no bytes behind them.
     #[test]
     fn the_store_never_lands_in_the_documents_folder() {
         let p = Paths::resolve().unwrap();
