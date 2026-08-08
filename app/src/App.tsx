@@ -129,9 +129,9 @@ export default function App() {
           ) : accepts(chosen) ? (
           <CaptureField
             invite={invite(chosen, data.lists)}
-            onCapture={(written) => {
+            onCapture={(written, edits) => {
               setError(null);
-              return capture(written, asView(chosen)).then((task) => {
+              return capture(written, asView(chosen), edits).then((task) => {
                 setCaptured(task);
                 load();
                 return task;

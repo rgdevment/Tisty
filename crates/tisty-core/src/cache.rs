@@ -6,8 +6,6 @@ use crate::{Result, State, event::Event, store};
 
 const SCHEMA: i64 = 1;
 
-/// The projection of a log that has not changed. Derived, disposable, and never
-/// synced: losing it costs one slow read, trusting it wrongly would cost more.
 pub struct Cache {
     db: Connection,
 }
@@ -37,8 +35,7 @@ impl Cache {
         Ok(Some(Self { db }))
     }
 
-    /// The state as of the fingerprint given, or nothing if the log moved on.
-    /// `bodies` decides whether descriptions, journals and steps come along.
+    /// `None` if the log moved past `fingerprint`; `bodies` includes descriptions, journals and steps.
     pub fn load(&self, fingerprint: &str, bodies: bool) -> Option<State> {
         if self.meta("schema")? != SCHEMA.to_string() || self.meta("fingerprint")? != fingerprint {
             return None;
@@ -92,8 +89,7 @@ impl Cache {
         Some(state)
     }
 
-    /// Written only after the log itself is on disk, so a crash between the two
-    /// leaves the cache behind and repairable, never ahead and inventing.
+    /// Call only after the log is durably written, so a crash between the two leaves the cache behind, not ahead.
     pub fn store(&mut self, state: &State, fingerprint: &str) -> Result<()> {
         let tx = match self.db.transaction() {
             Ok(tx) => tx,
@@ -136,8 +132,6 @@ impl Cache {
         Ok(())
     }
 
-    /// Rewrites only what an event touched. Rebuilding on every write would
-    /// make the cache slower than the log it stands in for.
     pub fn touch(&mut self, state: &State, entity: ulid::Ulid, fingerprint: &str) -> Result<()> {
         let _ = (|| -> rusqlite::Result<()> {
             let id = entity.to_string();
@@ -185,8 +179,7 @@ impl Cache {
         Ok(())
     }
 
-    /// Some events reach further than their own entity — erasing a list moves
-    /// every task it held. Those give up the fast path instead of guessing.
+    /// Use when an event's effects reach beyond its own entity (e.g. a list deletion cascades to its tasks).
     pub fn invalidate(&mut self) {
         let _ = self
             .db
@@ -200,9 +193,6 @@ impl Cache {
     }
 }
 
-/// The body is what makes a task heavy — a journal of forty entries is fifteen
-/// kilobytes against two hundred bytes of everything else. Listing never needs
-/// it, so it is stored apart and left on disk until something asks.
 fn split(task: &crate::Task) -> (String, Option<String>) {
     let mut summary = task.clone();
     let body = Body {
@@ -226,9 +216,7 @@ struct Body {
     steps: Vec<crate::Step>,
 }
 
-/// Names and sizes of every log file. A byte more anywhere and the cache is
-/// stale — cheap to compute and impossible to be wrong about in the safe
-/// direction: it only ever says «rebuild» when it should not have to.
+/// Cheap proxy for log contents; only ever false-negatives toward stale, never toward fresh.
 pub fn fingerprint(store_root: &Path) -> String {
     let mut parts: Vec<String> = Vec::new();
     let Ok(devices) = std::fs::read_dir(store_root) else {
@@ -252,8 +240,7 @@ pub fn fingerprint(store_root: &Path) -> String {
     parts.join("|")
 }
 
-/// What the cache holds against what the log says. The cache is only ever a
-/// photograph, so the log wins every disagreement — this reports, never repairs.
+/// Compares cache to log; reports divergence, never repairs it.
 pub fn audit(store_root: &Path, cache_dir: &Path) -> Result<Audit> {
     let truth = State::replay(&store::read_all(store_root)?);
     let Some(cache) = Cache::open(cache_dir)? else {
@@ -273,16 +260,13 @@ pub fn audit(store_root: &Path, cache_dir: &Path) -> Result<Audit> {
 }
 
 pub enum Audit {
-    /// No cache to check, which is never a problem.
     Unavailable,
-    /// The log moved on; the next read rebuilds.
     Stale {
         truth: State,
     },
     Agrees {
         truth: State,
     },
-    /// The cache claims something the log does not. Rebuilding fixes it.
     Diverged {
         tasks: (usize, usize),
         lists: (usize, usize),
@@ -301,7 +285,6 @@ impl Audit {
     }
 }
 
-/// Throws the cache away so the next read builds it from the log again.
 pub fn discard(cache_dir: &Path) -> Result<()> {
     if let Some(mut cache) = Cache::open(cache_dir)? {
         cache.invalidate();
@@ -309,8 +292,6 @@ pub fn discard(cache_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Carries the cache past events just written: both clients write and read in
-/// the same breath, so a cache invalidated on every write is never warm.
 /// Returns the fingerprint it settled on.
 pub fn advance(
     cache: Option<&mut Cache>,
@@ -322,15 +303,13 @@ pub fn advance(
     let print = fingerprint(store_root);
     let Some(cache) = cache else { return print };
 
-    // Another process appended while we held this state, so it is missing
-    // whatever they wrote. Storing it under the new fingerprint would promise a
-    // log we never read.
+    // Overtaken: this state is missing events another process appended meanwhile; don't cache it.
     if overtaken {
         cache.invalidate();
         return print;
     }
 
-    // Deleting a list sends its tasks back to the inbox: one event, many entities.
+    // ListDelete cascades to every task it held; touch() only updates one entity.
     if events
         .iter()
         .any(|e| matches!(e.op, crate::Op::ListDelete { .. }))
@@ -345,13 +324,12 @@ pub fn advance(
     print
 }
 
-/// The projection, from cache when the log has not moved and from the log when
-/// it has. Falls back to reading the log whenever anything at all goes wrong.
+/// Falls back to reading the log on any cache failure.
 pub fn project(store_root: &Path, cache_dir: &Path) -> Result<State> {
     projected(store_root, cache_dir, true)
 }
 
-/// Without bodies: everything a listing needs and none of what makes it slow.
+/// Like `project`, without descriptions, journals or steps.
 pub fn summarised(store_root: &Path, cache_dir: &Path) -> Result<State> {
     projected(store_root, cache_dir, false)
 }
@@ -495,13 +473,10 @@ mod tests {
         let state = project(&f.store_root, &f.cache_dir).unwrap();
         assert!(state.is_erased(f.task));
 
-        // Straight from the cache this time, and it has to remember just the same.
         let again = project(&f.store_root, &f.cache_dir).unwrap();
         assert!(again.is_erased(f.task), "the cache forgot a deletion");
     }
 
-    /// A client that writes without advancing the cache leaves it behind the log
-    /// forever, so every later read pays for the whole projection again.
     #[test]
     fn advancing_leaves_the_cache_current_after_a_write() {
         let f = loaded();
@@ -544,9 +519,6 @@ mod tests {
         ));
     }
 
-    /// Two processes completing at once: whoever writes second holds a state
-    /// that never saw the first one's event, so carrying it would file a
-    /// half-built projection under a fingerprint that promises both.
     #[test]
     fn a_state_that_was_overtaken_is_thrown_away_instead_of_carried() {
         let f = loaded();

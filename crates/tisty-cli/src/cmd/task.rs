@@ -17,7 +17,15 @@ use crate::{AddArgs, SetArgs, StepAction, date_flag, render};
 pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let text = args.text.join(" ");
     let now = jiff::Zoned::now();
-    let mut draft = Draft::from(tisty_nl::parse(&text, &now, lang.code()));
+    let read = tisty_nl::parse(&text, &now, lang.code());
+    let guessed = (args.date.is_none()
+        && args.deadline.is_none()
+        && read
+            .spans
+            .iter()
+            .any(|span| span.certainty == tisty_nl::Certainty::Assumed))
+    .then(|| as_written(&text, &read));
+    let mut draft = Draft::from(read);
 
     if let Some(date) = date_flag(args.date.as_deref(), lang)? {
         draft.date = Some(date);
@@ -41,9 +49,23 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
     if args.json {
         println!("{}", serde_json::to_string(task)?);
     } else {
-        print!("{}", render::captured(task, &app.state, today, lang));
+        print!(
+            "{}",
+            render::captured(task, &app.state, today, lang, guessed)
+        );
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// The sentence with markers removed but the date left in — the title if nobody had guessed.
+fn as_written(text: &str, read: &tisty_nl::Parsed) -> String {
+    let markers: Vec<_> = read
+        .spans
+        .iter()
+        .copied()
+        .filter(|span| !matches!(span.mark, tisty_nl::Mark::Date | tisty_nl::Mark::Deadline))
+        .collect();
+    tisty_nl::title_without(text, &markers)
 }
 
 fn refused(e: Rejected, lang: Lang) -> anyhow::Error {

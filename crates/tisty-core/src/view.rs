@@ -1,5 +1,3 @@
-//! Which tasks a view shows. Shared, or each client answers it differently.
-
 use jiff::civil::Date;
 
 use crate::model::{ListId, Priority, Tag, Task};
@@ -15,8 +13,7 @@ pub enum Window {
     Overdue,
 }
 
-/// A tag cuts across time — «everything I did with #istio» — so its view needs
-/// what neither of the other two shows: both sides at once.
+/// `Either` exists for tag views, which cross the open/archived boundary.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum Scope {
     #[default]
@@ -33,6 +30,8 @@ pub struct Filter {
     pub lists: Vec<ListId>,
     /// A task has many tags, so several mean «all of».
     pub tags: Vec<Tag>,
+    /// True for any tag; empty `tags` then means «what I filed», not «everything».
+    pub tagged: bool,
     pub priority: Option<Priority>,
     pub window: Option<Window>,
 }
@@ -51,6 +50,9 @@ impl Filter {
             return false;
         }
         if !self.lists.is_empty() && !task.list.is_some_and(|l| self.lists.contains(&l)) {
+            return false;
+        }
+        if self.tagged && task.tags.is_empty() {
             return false;
         }
         if !self.tags.iter().all(|t| task.tags.contains(t)) {
@@ -72,8 +74,7 @@ impl Filter {
     }
 }
 
-/// Where a search looks. The archive is included by default because that is
-/// the point: eight months later, what you want is the task you finished.
+/// Searches both open and archived tasks by default.
 pub fn matches_query(task: &Task, query: &str) -> bool {
     let contains = |text: &str| text.to_lowercase().contains(query);
 

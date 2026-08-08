@@ -1,5 +1,4 @@
-//! Tisty's domain core. Nothing here prints: the GUI is a client too, and
-//! anything written to the terminal reaches it as garbage.
+//! Domain core: never prints — the GUI is a client too, not just the terminal.
 
 pub mod cache;
 pub mod capture;

@@ -1,6 +1,6 @@
 use jiff::civil::{Date, Time};
 
-use crate::vocab::Vocabulary;
+use crate::{Certainty, vocab::Vocabulary};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Anchor {
@@ -31,11 +31,13 @@ pub struct Found {
     pub role: Role,
     /// One range per piece taken out: the day and the clock can sit apart.
     pub spans: Vec<(usize, usize)>,
+    pub certainty: Certainty,
 }
 
 pub struct Token {
     pub word: String,
     pub start: usize,
+    pub end: usize,
 }
 
 pub fn tokenize(input: &str) -> Vec<Token> {
@@ -65,11 +67,11 @@ fn make(input: &str, start: usize, end: usize) -> Token {
                 .to_lowercase(),
         ),
         start,
+        end,
     }
 }
 
-/// macOS and some keyboards send «ñ» as n + U+0303, which matches no word in
-/// the vocabulary. Only the token is composed; the title keeps what was typed.
+/// Composes decomposed accents (e.g. n + U+0303) so they match the vocabulary; the title keeps what was typed.
 fn composed(word: String) -> String {
     if !word.chars().any(is_mark) {
         return word;
@@ -113,12 +115,38 @@ fn join(base: char, mark: char) -> Option<char> {
     })
 }
 
-/// Right to left: a phrase that means the date sits at the end, not mid-sentence.
-pub fn scan(tokens: &[Token], v: &Vocabulary) -> Option<Found> {
-    (0..=tokens.len()).rev().find_map(|end| at(tokens, end, v))
+#[derive(Default)]
+pub struct Scanned {
+    pub found: Option<Found>,
+    /// Kept only when nothing was taken: a second date is noise, not a reading.
+    pub offer: Option<Found>,
 }
 
-fn at(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<Found> {
+enum Reading {
+    Taken(Found),
+    Offered(Found),
+}
+
+/// Right to left: a phrase that means the date sits at the end, not mid-sentence.
+pub fn scan(tokens: &[Token], v: &Vocabulary) -> Scanned {
+    let mut offer = None;
+
+    for end in (0..=tokens.len()).rev() {
+        match at(tokens, end, v) {
+            Some(Reading::Taken(found)) => {
+                return Scanned {
+                    found: Some(found),
+                    offer: None,
+                };
+            }
+            Some(Reading::Offered(found)) if offer.is_none() => offer = Some(found),
+            _ => {}
+        }
+    }
+    Scanned { found: None, offer }
+}
+
+fn at(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<Reading> {
     if end == 0 {
         return None;
     }
@@ -126,10 +154,12 @@ fn at(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<Found> {
 
     let mut cursor = end;
     let mut time = None;
+    let mut assumed_hour = false;
 
-    if let Some((t, from)) = match_time(tokens, cursor, v) {
+    if let Some((t, from, guessed)) = match_time(tokens, cursor, v) {
         time = Some(t);
         cursor = from;
+        assumed_hour = guessed;
     }
 
     let anchor = match_anchor(tokens, cursor, v).map(|(a, from)| {
@@ -141,31 +171,50 @@ fn at(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<Found> {
         return None;
     }
 
-    let role = role_before(tokens, cursor, v);
-    if anchor.is_some() && time.is_none() && is_descriptive(tokens, cursor, v, role) {
-        return None;
-    }
-    // «por la mañana» is a part of the day; only the bare word means the day
-    // after. The article is what tells them apart.
+    // «por la mañana» names a part of the day, not the day after; the article is what tells them apart.
     if anchor.is_some() && names_part_of_day(tokens, cursor, end, v) {
         return None;
     }
-    // Mid-sentence, «monday» is usually naming something — «the monday report»,
-    // «lunes santo». Only a clock or a temporal preposition says it is a date.
-    if !trailing && time.is_none() && !prefixed(tokens, cursor, v) {
-        return None;
-    }
-    // And a noun right behind it means it was modifying that noun: «the monday
-    // list» names a list, while «el viernes el informe» just carries on.
-    if !trailing && qualifies_next(tokens, end, v) {
+
+    let role = role_before(tokens, cursor, v);
+    let strong = trailing || time.is_some() || prefixed(tokens, cursor, v);
+
+    // «mañana de verano» carries its own complement, so the word is a noun with nothing to offer.
+    if !strong && takes_complement(tokens, end, v) {
         return None;
     }
 
-    let mut spans = vec![(skip_particles(tokens, cursor, v, role), end)];
+    // The phrase may be naming the noun beside it — «el informe del lunes» — so it is offered, not taken.
+    let describes = qualifies_next(tokens, end, v);
+    let ambiguous = (anchor.is_some() && time.is_none() && is_descriptive(tokens, cursor, v, role))
+        || (!trailing && describes);
+
+    // Unless a number follows: «el lunes 15» is the fifteenth, which this parser cannot read yet.
+    if ambiguous
+        && tokens
+            .get(end)
+            .is_some_and(|next| next.word.parse::<u16>().is_ok())
+    {
+        return None;
+    }
+
+    // Mid-sentence without a clock or temporal preposition, the reading is only assumed, not sure.
+    let certainty = if strong && !assumed_hour {
+        Certainty::Sure
+    } else {
+        Certainty::Assumed
+    };
+
+    // «the monday report»: the article belongs to the noun, so it must not be swallowed.
+    let from = if describes {
+        cursor
+    } else {
+        skip_particles(tokens, cursor, v, role)
+    };
+    let mut spans = vec![(from, end)];
     let mut anchor = anchor;
 
-    // A clock is signal enough to go looking for the day it belongs to: «the
-    // meeting on tuesday in room 3c at 16:00» means tuesday, not tomorrow.
+    // A clock is signal enough to go looking for the day it belongs to.
     if anchor.is_none()
         && time.is_some()
         && let Some((found, from, to)) = anchor_before(tokens, cursor, v)
@@ -174,11 +223,17 @@ fn at(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<Found> {
         spans.insert(0, (from, to));
     }
 
-    Some(Found {
+    let found = Found {
         anchor,
         time,
         role,
         spans,
+        certainty,
+    };
+    Some(if ambiguous {
+        Reading::Offered(found)
+    } else {
+        Reading::Taken(found)
     })
 }
 
@@ -191,6 +246,12 @@ fn anchor_before(tokens: &[Token], limit: usize, v: &Vocabulary) -> Option<(Anch
         }
         Some((anchor, skip_particles(tokens, from, v, role), end))
     })
+}
+
+fn takes_complement(tokens: &[Token], end: usize, v: &Vocabulary) -> bool {
+    tokens
+        .get(end)
+        .is_some_and(|next| v.genitive.contains(&next.word.as_str()))
 }
 
 /// A bare noun straight after the phrase means the phrase was describing it.
@@ -264,7 +325,8 @@ fn skip_particles(tokens: &[Token], cursor: usize, v: &Vocabulary, role: Role) -
     i
 }
 
-fn match_time(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Time, usize)> {
+/// The third field says the afternoon was assumed, not written.
+fn match_time(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Time, usize, bool)> {
     if end == 0 {
         return None;
     }
@@ -274,6 +336,7 @@ fn match_time(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Time, usi
         return Some((
             Time::constant(12, 0, 0, 0),
             skip_time_preps(tokens, end - 1, v),
+            false,
         ));
     }
 
@@ -281,14 +344,14 @@ fn match_time(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Time, usi
     if matches!(last.as_str(), "am" | "pm") && end >= 2 {
         let joined = format!("{}{last}", tokens[end - 2].word);
         let preceded = end >= 3 && v.clock_prep.contains(&tokens[end - 3].word.as_str());
-        if let Some(t) = parse_clock(&joined, preceded) {
-            return Some((t, skip_time_preps(tokens, end - 2, v)));
+        if let Some((t, guessed)) = parse_clock(&joined, preceded) {
+            return Some((t, skip_time_preps(tokens, end - 2, v), guessed));
         }
     }
 
     let preceded = end >= 2 && v.clock_prep.contains(&tokens[end - 2].word.as_str());
-    let t = parse_clock(last, preceded)?;
-    Some((t, skip_time_preps(tokens, end - 1, v)))
+    let (t, guessed) = parse_clock(last, preceded)?;
+    Some((t, skip_time_preps(tokens, end - 1, v), guessed))
 }
 
 fn skip_time_preps(tokens: &[Token], mut from: usize, v: &Vocabulary) -> usize {
@@ -298,21 +361,32 @@ fn skip_time_preps(tokens: &[Token], mut from: usize, v: &Vocabulary) -> usize {
     from
 }
 
-/// A bare integer is a clock only behind its preposition, or versions get eaten.
-fn parse_clock(word: &str, preceded: bool) -> Option<Time> {
+/// A bare integer is a clock only behind its preposition, or version numbers get eaten.
+fn parse_clock(word: &str, preceded: bool) -> Option<(Time, bool)> {
     let (digits, suffix) = split_suffix(word);
 
     if let Some((h, m)) = digits.split_once(':') {
-        let h: i8 = h.parse().ok()?;
+        let hour: i8 = h.parse().ok()?;
         let m: i8 = m.parse().ok()?;
-        return Time::new(apply_suffix(h, suffix)?, m, 0, 0).ok();
+        let (hour, guessed) = afternoon(hour, suffix, h.starts_with('0'));
+        return Time::new(hour, m, 0, 0).ok().map(|t| (t, guessed));
     }
 
     if suffix.is_some() || preceded {
-        let h: i8 = digits.parse().ok()?;
-        return Time::new(apply_suffix(h, suffix)?, 0, 0, 0).ok();
+        let hour: i8 = digits.parse().ok()?;
+        let (hour, guessed) = afternoon(hour, suffix, digits.starts_with('0'));
+        return Time::new(hour, 0, 0, 0).ok().map(|t| (t, guessed));
     }
     None
+}
+
+/// Only 1–6 read as PM (the night reading is absurd there); 7+ is ambiguous and taken as written. A leading zero is explicit 24-hour.
+fn afternoon(hour: i8, suffix: Option<&str>, padded: bool) -> (i8, bool) {
+    match apply_suffix(hour, suffix) {
+        Some(h) if suffix.is_none() && !padded && (1..=6).contains(&h) => (h + 12, true),
+        Some(h) => (h, false),
+        None => (hour, false),
+    }
 }
 
 fn split_suffix(word: &str) -> (&str, Option<&str>) {
@@ -438,8 +512,7 @@ fn match_offset(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
         }
     }
 
-    // «en 30 días» is a date; «por 30 días» is how long it lasts and «hace 3
-    // días» points backwards. Neither has anywhere to go: guessing is worse.
+    // «por 30 días» is a duration and «hace 3 días» points backwards — neither is a date to guess at.
     if from > 0 {
         let before = tokens[from - 1].word.as_str();
         if v.past_prep.contains(&before) || (!asked && v.spans_prep.contains(&before)) {

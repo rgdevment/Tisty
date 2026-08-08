@@ -24,8 +24,7 @@ pub struct Store {
     active_events: usize,
     head: jiff::Timestamp,
     seq: u64,
-    /// Size of the active log when its counters were last read, to tell our own
-    /// writes from another process's without reparsing the file.
+    /// Size of the active log when counters were last read; tells our writes from another process's.
     seen: u64,
     /// Someone else appended between our last look and this write.
     overtaken: bool,
@@ -65,8 +64,7 @@ impl Store {
             .truncate(false)
             .open(self.dir.join(LOCK))?;
 
-        // A write lasts microseconds, so a busy lock is a collision rather than a
-        // long operation: waiting it out beats failing at whoever typed second.
+        // A busy lock means collision, not a long hold — worth waiting out.
         let mut waited = 0;
         // fs4 signals failure with `Ok(false)`, not `Err`.
         while !file.try_lock_exclusive()? {
@@ -81,9 +79,7 @@ impl Store {
         self.catch_up()
     }
 
-    /// A long-lived process holds stale counters: another one may have appended
-    /// since its last write, and stamping from a clock that never saw those
-    /// events produces a `(ts, seq)` that collides with theirs.
+    /// Refreshes counters a long-lived process would otherwise hold stale, avoiding a `(ts, seq)` collision with another writer.
     fn catch_up(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
         let size = active_size(&active);
@@ -102,8 +98,7 @@ impl Store {
         Ok(())
     }
 
-    /// Released as soon as the write ends: a GUI that kept it would lock the CLI
-    /// out for as long as its window stayed open.
+    /// Released as soon as the write ends — held longer, a GUI would lock the CLI out.
     fn locked<T>(&mut self, write: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
         self.acquire()?;
         let out = write(self);
@@ -115,8 +110,7 @@ impl Store {
         &self.device
     }
 
-    /// True once another process has appended since this one last looked, which
-    /// makes any state held in memory incomplete.
+    /// True once another process appended since this one last looked; in-memory state is then incomplete.
     pub fn overtaken(&self) -> bool {
         self.overtaken
     }
@@ -131,8 +125,7 @@ impl Store {
         })
     }
 
-    /// A clock that steps back would let a device rewrite its own past and win
-    /// every field it already lost. Time only moves forward here.
+    /// Monotonic — a clock that steps back would let a device rewrite its own past.
     fn stamp(&mut self) -> (jiff::Timestamp, u64) {
         let now = jiff::Timestamp::now();
         if now > self.head {
@@ -161,8 +154,7 @@ impl Store {
     ) -> Result<Vec<Event>> {
         let batch = (ops.len() > 1).then(ulid::Ulid::generate);
 
-        // One lock for the whole batch: releasing between events would let another
-        // process interleave writes into what is meant to be a single action.
+        // One lock for the whole batch; releasing between events would let another process interleave writes.
         self.locked(|s| {
             let mut written = Vec::with_capacity(ops.len());
             for op in ops {
@@ -203,9 +195,7 @@ impl Store {
         Ok(())
     }
 
-    /// Closed segments never change again, so Git stores each one once. The
-    /// count is written beside it: a segment that arrives half-downloaded looks
-    /// perfectly valid otherwise, and reading it drops history in silence.
+    /// Sealed segments are immutable; the sibling `.count` file catches a half-downloaded one that would otherwise look valid.
     fn rotate(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
         if active.try_exists()? {
@@ -213,8 +203,7 @@ impl Store {
             let sealed = self.dir.join(format!("{next:06}.tisty"));
             std::fs::rename(&active, &sealed)?;
 
-            // Counted off the file, not off the in-memory tally: the tally is
-            // what we believe, the file is what a second machine will receive.
+            // Counted off the file, not the in-memory tally — the file is what another machine will receive.
             let (lines, _, _) = tail_of(&sealed)?;
             write_atomic(
                 &sealed.with_extension("count"),
@@ -263,8 +252,7 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
             if closed {
                 let found = events.len() - before;
                 let declared = declared_count(&segment);
-                // An empty one is a cloud placeholder or a download that never
-                // happened; a short one arrived half-written.
+                // Empty means a cloud placeholder or unfinished download; short means half-written.
                 if found == 0 || declared.is_some_and(|n| n != found) {
                     return Err(Error::TruncatedSegment {
                         file: segment.display().to_string(),
@@ -280,9 +268,7 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
     Ok(events)
 }
 
-/// Sealed segments are numbered from one without gaps. A missing one is a
-/// deletion or a sync that delivered the newer file first, and reading around
-/// it drops that slice of history without a word.
+/// Sealed segments are numbered from one without gaps; a gap silently drops that slice of history.
 fn contiguous(segments: &[PathBuf]) -> Result<()> {
     let mut numbers: Vec<usize> = segments
         .iter()
@@ -306,8 +292,7 @@ fn contiguous(segments: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 
-/// How many events the segment held when it was sealed, if anyone recorded it.
-/// Segments written before this existed simply have nothing to check against.
+/// How many events the segment held when sealed; `None` for segments predating this check.
 fn declared_count(segment: &Path) -> Option<usize> {
     std::fs::read_to_string(segment.with_extension("count"))
         .ok()?
@@ -349,8 +334,6 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     Ok(())
 }
 
-/// Counting and reading the last stamp in one pass: opening a store used to
-/// walk this file twice, once here and once to project.
 fn active_size(path: &Path) -> u64 {
     std::fs::metadata(path).map(|m| m.len()).unwrap_or(0)
 }
@@ -556,8 +539,6 @@ mod tests {
         assert_eq!(from_a[0].device, DeviceId("dev_a".into()));
     }
 
-    /// Only while the other is mid-write. Rejecting a writer for as long as
-    /// another process merely exists is what kept the CLI out of a running GUI.
     #[test]
     fn a_writer_that_holds_the_lock_turns_the_other_away() {
         let tmp = tempfile::tempdir().unwrap();
@@ -692,8 +673,6 @@ mod tests {
         assert!(!target.with_extension("tmp").exists());
     }
 
-    /// The GUI outlives its writes. Holding the lock past one would refuse every
-    /// `tisty` command for as long as the window stayed open.
     #[test]
     fn a_write_does_not_keep_the_lock() {
         let tmp = tempfile::tempdir().unwrap();
@@ -706,9 +685,6 @@ mod tests {
         assert!(cli.append(add("from the terminal")).is_ok());
     }
 
-    /// Two processes on one device stamp from their own clocks. Without catching
-    /// up, both would claim the same `(ts, seq)` and the merge order would stop
-    /// being a total order.
     #[test]
     fn two_processes_on_one_device_never_stamp_the_same_event() {
         let tmp = tempfile::tempdir().unwrap();
@@ -746,8 +722,6 @@ mod tests {
         assert!(first.head >= ahead);
     }
 
-    /// Rotation renames the file it measures; a stale size would make the next
-    /// write reparse a log that is no longer there.
     #[test]
     fn rotation_resets_what_the_store_believes_it_has_seen() {
         let tmp = tempfile::tempdir().unwrap();

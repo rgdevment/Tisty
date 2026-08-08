@@ -14,6 +14,11 @@ struct Case {
     priority: Option<u8>,
     #[serde(default)]
     tags: Vec<String>,
+    /// Absent means «sure»; a dated case has to say when it is guessing.
+    certainty: Option<String>,
+    /// The date the parser saw and did not take, waiting for a click.
+    offer: Option<String>,
+    offer_title: Option<String>,
     #[allow(dead_code)]
     why: Option<String>,
 }
@@ -102,6 +107,38 @@ fn the_parser_matches_every_case() {
         let got_tags: Vec<String> = got.tags.iter().map(|t| t.to_string()).collect();
         if got_tags != case.tags {
             wrong.push(format!("tags: {got_tags:?} ≠ {:?}", case.tags));
+        }
+
+        let expect_certainty = (case.date.is_some() || case.deadline.is_some())
+            .then(|| case.certainty.as_deref().unwrap_or("sure"));
+        let got_certainty = got
+            .spans
+            .iter()
+            .find(|s| matches!(s.mark, tisty_nl::Mark::Date | tisty_nl::Mark::Deadline))
+            .map(|s| match s.certainty {
+                tisty_nl::Certainty::Sure => "sure",
+                tisty_nl::Certainty::Assumed => "assumed",
+            });
+        let expect_offer = case
+            .offer
+            .as_ref()
+            .map(|d| d.parse::<jiff::civil::Date>().unwrap());
+        let got_offer = got.offers.first().map(|o| o.date.date());
+        if got_offer != expect_offer {
+            wrong.push(format!("offer: {got_offer:?} ≠ {expect_offer:?}"));
+        }
+
+        if let Some(title) = &case.offer_title {
+            let got_title = got.offers.first().map(|o| o.title.as_str());
+            if got_title != Some(title.as_str()) {
+                wrong.push(format!("offer title: {got_title:?} ≠ {title:?}"));
+            }
+        }
+
+        if got_certainty != expect_certainty {
+            wrong.push(format!(
+                "certainty: {got_certainty:?} ≠ {expect_certainty:?}"
+            ));
         }
 
         if wrong.is_empty() {
@@ -218,6 +255,48 @@ fn ambiguous_cases_are_represented() {
         assert!(
             untouched >= 2,
             "{locale} needs cases where nothing is consumed"
+        );
+    }
+}
+
+#[test]
+fn assumptions_explain_themselves() {
+    for (locale, case) in every_case() {
+        let Some(said) = &case.certainty else {
+            continue;
+        };
+        assert!(
+            said == "sure" || said == "assumed",
+            "{locale}: «{}» has an unknown certainty: {said}",
+            case.input
+        );
+        assert!(
+            case.date.is_some() || case.deadline.is_some(),
+            "{locale}: «{}» states a certainty about nothing",
+            case.input
+        );
+        assert!(
+            said == "sure" || case.why.is_some(),
+            "{locale}: «{}» guesses a date without explaining why",
+            case.input
+        );
+    }
+}
+
+#[test]
+fn offers_only_exist_where_nothing_was_taken() {
+    for (locale, case) in every_case() {
+        if case.offer.is_some() {
+            assert!(
+                case.date.is_none() && case.deadline.is_none(),
+                "{locale}: «{}» offers a date it already took",
+                case.input
+            );
+        }
+        assert!(
+            case.offer_title.is_none() || case.offer.is_some(),
+            "{locale}: «{}» names an offer title without an offer",
+            case.input
         );
     }
 }

@@ -102,8 +102,7 @@ fn run(root: &Path, lang: Lang) -> anyhow::Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    // Commit before pulling: a rebase needs a commit to land on, and on a branch
-    // that has none git refuses to overwrite the files setup just wrote.
+    // Commit before pulling — rebase needs a commit to land on, or git refuses to overwrite setup's files.
     let _ = git(root, &["fetch", "origin"], lang);
     if git(root, &["rev-parse", "--verify", "origin/main"], lang).is_ok()
         && let Err(err) = git(root, &["pull", "--rebase", "origin", "main"], lang)

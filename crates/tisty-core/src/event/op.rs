@@ -23,7 +23,6 @@ mod null_clears {
     }
 }
 
-/// Semantic, not generic: only completing a recurring task spawns the next one.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op")]
 pub enum Op {

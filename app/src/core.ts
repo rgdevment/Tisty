@@ -74,6 +74,27 @@ export interface Snapshot {
   locale?: string;
 }
 
+export type Mark = "date" | "deadline" | "list" | "tag" | "priority";
+
+/** `assumed` is applied all the same; the window only says so. */
+export type Certainty = "sure" | "assumed";
+
+/** Offsets count code points, so slice with `Array.from`, never with indexes. */
+export interface Span {
+  from: number;
+  to: number;
+  mark: Mark;
+  certainty: Certainty;
+}
+
+/** A reading the parser saw and did not take; offered rather than applied. */
+export interface Offer {
+  spans: Span[];
+  date: DateSpec;
+  /** What the title becomes if it is taken. */
+  title: string;
+}
+
 /** What the parser made of the text, without writing anything. */
 export interface Parsed {
   title: string;
@@ -82,6 +103,8 @@ export interface Parsed {
   priority?: Priority | null;
   tags: string[];
   list?: string | null;
+  spans: Span[];
+  offers: Offer[];
 }
 
 /** What the sidebar asks for. The core decides which tasks answer. */
@@ -92,6 +115,8 @@ export interface View {
   inbox?: boolean;
   list?: string;
   tags?: string[];
+  /** Anything carrying a tag: the tag view with nothing picked. */
+  tagged?: boolean;
   window?: "today" | "upcoming" | "overdue";
 }
 
@@ -102,7 +127,21 @@ export const search = (query: string, scope: Scope = "open"): Promise<Task[]> =>
   invoke("search", { query, scope });
 export const read = (text: string): Promise<Parsed> =>
   invoke("read", { text, locale: navigator.language });
-export const capture = (text: string, view?: View): Promise<Task> =>
-  invoke("capture", { text, locale: navigator.language, view });
+/** What the chips changed by hand. Same knobs `tisty add` takes as flags. */
+export interface Edits {
+  noDate?: boolean;
+  noDeadline?: boolean;
+  noList?: boolean;
+  noPriority?: boolean;
+  noTags?: string[];
+  date?: string;
+  deadline?: string;
+  priority?: Priority;
+  /** The offered reading was accepted, so its words leave the title. */
+  takeOffer?: boolean;
+}
+
+export const capture = (text: string, view?: View, edits?: Edits): Promise<Task> =>
+  invoke("capture", { text, locale: navigator.language, view, edits });
 export const complete = (id: string): Promise<void> => invoke("complete", { id });
 export const reopen = (id: string): Promise<void> => invoke("reopen", { id });

@@ -29,6 +29,11 @@ pub struct Cli {
 }
 
 #[derive(Args)]
+#[command(
+    after_help = "Plain language is read, not obeyed: check the confirmation before \
+moving on. What it guessed it says so, and `tisty undo` takes the capture back. The window \
+lets you correct the reading before saving; here you correct it after, with `tisty set`."
+)]
 pub struct AddArgs {
     pub text: Vec<String>,
     /// Date, as YYYY-MM-DD or plain language
@@ -335,7 +340,6 @@ mod tests {
         assert_eq!(normalised(&["tisty"]), ["tisty"]);
     }
 
-    /// clap only catches the mismatch at runtime; this catches it at test time.
     #[test]
     fn every_subcommand_is_known_to_the_capture_guard() {
         use clap::CommandFactory;

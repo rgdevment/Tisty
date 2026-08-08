@@ -51,6 +51,7 @@ unknown-filter = "filtro desconocido: {filter} ({known})"
 unknown-key    = "opción desconocida: {key} ({known})"
 unset-key      = "«{key}» no está configurado"
 deadline-before-date = "ojo: el límite cae antes que la fecha"
+date-assumed  = "no estaba seguro de esta lectura; para deshacerla y dejar tu texto:"
 unknown-locale = "idioma desconocido: {value} ({known})"
 one-window-only = "solo un filtro temporal a la vez"
 

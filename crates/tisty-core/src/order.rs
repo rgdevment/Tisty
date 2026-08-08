@@ -1,5 +1,4 @@
-//! Fractional indexing: positions are strings, so an insert never renumbers
-//! the rest and two devices can insert at the same spot without conflict.
+//! Fractional indexing: string positions let an insert avoid renumbering the rest.
 
 const DIGITS: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const BASE: usize = 62;
@@ -61,8 +60,7 @@ fn midpoint(a: &str, b: Option<&str>) -> String {
     format!("{}{}", digit(low), midpoint(tail(a, 1), None))
 }
 
-/// Bisecting towards nothing converges, so appending grew a character every six
-/// keys. Raising the last digit that has room keeps them flat for far longer.
+/// Raises the last digit with room instead of bisecting toward nothing, to avoid growing a character every few keys.
 fn append_after(a: &str) -> String {
     let Some(i) = a.bytes().rposition(|d| index(d) + 1 < BASE) else {
         return format!("{a}{}", digit(BASE / 2));

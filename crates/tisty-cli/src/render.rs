@@ -173,7 +173,13 @@ pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     out
 }
 
-pub fn captured(task: &Task, state: &State, today: Date, lang: Lang) -> String {
+pub fn captured(
+    task: &Task,
+    state: &State,
+    today: Date,
+    lang: Lang,
+    guessed: Option<String>,
+) -> String {
     let mut out = format!(
         "\n  {} {}\n",
         style::paint(GREEN, "✓"),
@@ -202,7 +208,19 @@ pub fn captured(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     if !meta.is_empty() {
         out.push_str(&format!("    {}\n", meta.join(" · ")));
     }
-    out.push_str(&format!("    {}\n\n", style::dim(&short_id(task))));
+    match guessed {
+        Some(written) => {
+            out.push_str(&format!("    {}\n", style::dim(lang.get("date-assumed"))));
+            out.push_str(&format!(
+                "    {}\n\n",
+                style::dim(&format!(
+                    "tisty set {} --no-date --title \"{written}\"",
+                    short_id(task)
+                ))
+            ));
+        }
+        None => out.push_str(&format!("    {}\n\n", style::dim(&short_id(task)))),
+    }
     out
 }
 

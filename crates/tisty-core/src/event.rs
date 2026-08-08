@@ -10,7 +10,7 @@ use ulid::Ulid;
 
 pub const SCHEMA_VERSION: u32 = 1;
 
-/// Never synced: a shared id would put two machines in one segment file.
+/// Never synced — a shared id would put two machines in one segment file.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct DeviceId(pub String);
@@ -23,19 +23,16 @@ pub struct Event {
     pub timestamp: jiff::Timestamp,
     #[serde(rename = "by")]
     pub device: DeviceId,
-    /// Groups the events of one user action, so undo takes back all of them.
+    /// Groups the events of one user action so undo takes back all of them.
     #[serde(rename = "tx", default, skip_serializing_if = "Option::is_none")]
     pub batch: Option<Ulid>,
-    /// Marks a compensation, so the next undo steps further back instead of
-    /// undoing this one and oscillating between two states.
+    /// Marks a compensation so the next undo steps further back instead of oscillating.
     #[serde(rename = "un", default, skip_serializing_if = "std::ops::Not::not")]
     pub undo: bool,
-    /// Redoing is not a new change: without this mark it would clear the very
-    /// stack it is walking, and only the first redo would work.
+    /// Without this, redo would clear the stack it is walking and only the first redo would work.
     #[serde(rename = "re", default, skip_serializing_if = "std::ops::Not::not")]
     pub redo: bool,
-    /// Breaks ties within a device without leaning on a stable sort and on
-    /// `000001.jsonl` happening to sort before `active.jsonl`.
+    /// Tiebreak within a device; does not rely on stable sort or file-name ordering.
     #[serde(rename = "n", default, skip_serializing_if = "is_zero")]
     pub seq: u64,
     #[serde(flatten)]

@@ -248,8 +248,7 @@ pub fn redo(app: &mut App, today: Date, lang: Lang) -> anyhow::Result<ExitCode> 
     step_history(app, true, today, lang)
 }
 
-/// Redoing is applying the original change again, not inverting the
-/// compensation: the inverse of a creation is a deletion, and that has none.
+/// Replays the original change rather than inverting the compensation — a creation's inverse has none of its own.
 fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let (entity, ops) = if redoing {
         let change = app.last_undone_change()?;
