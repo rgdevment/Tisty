@@ -118,6 +118,8 @@ fn join(base: char, mark: char) -> Option<char> {
 #[derive(Default)]
 pub struct Scanned {
     pub found: Option<Found>,
+    /// «entregar mañana antes del viernes» carries a date and a deadline.
+    pub also: Option<Found>,
     /// Kept only when nothing was taken: a second date is noise, not a reading.
     pub offer: Option<Found>,
 }
@@ -134,8 +136,10 @@ pub fn scan(tokens: &[Token], v: &Vocabulary) -> Scanned {
     for end in (0..=tokens.len()).rev() {
         match at(tokens, end, v) {
             Some(Reading::Taken(found)) => {
+                let also = other_role(tokens, &found, v);
                 return Scanned {
                     found: Some(found),
+                    also,
                     offer: None,
                 };
             }
@@ -143,7 +147,19 @@ pub fn scan(tokens: &[Token], v: &Vocabulary) -> Scanned {
             _ => {}
         }
     }
-    Scanned { found: None, offer }
+    Scanned {
+        found: None,
+        also: None,
+        offer,
+    }
+}
+
+fn other_role(tokens: &[Token], taken: &Found, v: &Vocabulary) -> Option<Found> {
+    let limit = taken.spans.iter().map(|(from, _)| *from).min()?;
+    (0..=limit).rev().find_map(|end| match at(tokens, end, v) {
+        Some(Reading::Taken(found)) if found.role != taken.role => Some(found),
+        _ => None,
+    })
 }
 
 fn at(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<Reading> {

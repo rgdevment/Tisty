@@ -477,3 +477,21 @@ input = "pay on 15/8"
 title = "pay"
 date = "2026-08-15"
 why = "a slash date is still a date; only «24/7» is excluded, and by vocabulary"
+
+[[case]]
+input = "ship the report tomorrow before friday"
+title = "ship the report"
+date = "2026-08-06"
+deadline = "2026-08-07"
+certainty = "assumed"
+why = "when to do it AND when it is due, in one sentence. The certainty pinned here is the FIRST reading's: «tomorrow» sits mid-sentence with no strong signal, «before friday» carries its preposition"
+
+[[case]]
+input = "ship the report tomorrow or before friday #sport !high"
+title = "ship the report"
+date = "2026-08-06"
+deadline = "2026-08-07"
+certainty = "assumed"
+priority = 1
+tags = ["sport"]
+why = "both dates, the tag and the priority in one sentence; the «or» left between the two holes is dropped as a dangling connector"
