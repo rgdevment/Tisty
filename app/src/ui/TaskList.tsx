@@ -105,7 +105,7 @@ function Meta({ task, list }: { task: Task; list?: string }) {
   if (task.priority === 1 || task.priority === 2) {
     bits.push(
       <span key="priority" className={task.priority === 1 ? "text-urgent" : "text-high"}>
-        {t(task.priority === 1 ? "urgent" : "high")}
+        {t(task.priority === 1 ? "high" : "medium")}
       </span>,
     );
   }

@@ -105,7 +105,7 @@ function shown(seen: Parsed, edits: Edits): Chip[] {
       slot,
       glyph,
       value: picked ? plainly(picked) : whenLabel(spec as DateSpec),
-      tint: "bg-mark-date",
+      tint: slot === "deadline" ? "bg-mark-deadline" : "bg-mark-date",
       guessed: !picked && guessed,
       on: picked ?? (spec as DateSpec).at.slice(0, 10),
     });
@@ -139,7 +139,7 @@ function shown(seen: Parsed, edits: Edits): Chip[] {
     chips.push({
       slot: "priority",
       glyph: "!",
-      value: t(level === 1 ? "urgent" : level === 2 ? "high" : "medium"),
+      value: t(level === 1 ? "high" : level === 2 ? "medium" : "low"),
       tint: "bg-mark-priority",
       guessed: false,
     });

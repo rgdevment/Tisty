@@ -50,7 +50,7 @@ export default function Field({ icon, value, hint, marks, onChange, onSubmit }: 
 
 const TINT: Record<Span["mark"], string> = {
   date: "bg-mark-date",
-  deadline: "bg-mark-date",
+  deadline: "bg-mark-deadline",
   list: "bg-mark-list",
   tag: "bg-mark-tag",
   priority: "bg-mark-priority",
@@ -58,7 +58,7 @@ const TINT: Record<Span["mark"], string> = {
 
 const DOTTED: Record<Span["mark"], string> = {
   date: "decoration-accent",
-  deadline: "decoration-accent",
+  deadline: "decoration-high",
   list: "decoration-accent",
   tag: "decoration-accent",
   priority: "decoration-urgent",

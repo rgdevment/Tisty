@@ -235,17 +235,18 @@ why = "the interface names the priorities, so they are typed the way they read"
 [[case]]
 input = "draft the report !high"
 title = "draft the report"
-priority = 2
+priority = 1
 
 [[case]]
 input = "check the links !medium"
 title = "check the links"
-priority = 3
+priority = 2
 
 [[case]]
 input = "paint the wall !low"
-title = "paint the wall !low"
-why = "«low» is none of the four; it stays in the title instead of being guessed"
+title = "paint the wall"
+priority = 3
+why = "the third step of high · medium · low; it used to be no name at all and stayed in the title"
 
 [[case]]
 input = "review the monday report"
@@ -373,3 +374,106 @@ title = "pick the car up at the garage"
 date = "2026-08-06"
 certainty = "assumed"
 why = "«at» behind it is a place, not a clock, so the phrase carries on and the day is a guess"
+
+[[case]]
+input = "set up 24/7 support"
+title = "set up 24/7 support"
+why = "«24/7» is shaped like a date and is not one; a fixed expression, excluded by vocabulary rather than by rule"
+
+# ─────────────────────────────────────────────────────────────
+#  Clocks: the afternoon reading, and where it stops
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "call the bank at 3"
+title = "call the bank"
+date = "2026-08-05"
+time = "15:00"
+certainty = "assumed"
+why = "nobody meets at three in the morning, so the afternoon is read and said out loud; it has not passed yet, so it stays today"
+
+[[case]]
+input = "call the bank at 6"
+title = "call the bank"
+date = "2026-08-05"
+time = "18:00"
+certainty = "assumed"
+why = "the top of the rule: from one to six the night reading is absurd"
+
+[[case]]
+input = "call the bank at 7"
+title = "call the bank"
+date = "2026-08-06"
+time = "07:00"
+why = "from seven on it is a real coin toss and morning appointments are the commonest, so the digits are taken as written; seven has passed, so tomorrow"
+
+[[case]]
+input = "call the bank at 03:00"
+title = "call the bank"
+date = "2026-08-06"
+time = "03:00"
+why = "the leading zero is 24-hour notation and explicit: nothing is assumed"
+
+[[case]]
+input = "call the bank at 3 pm"
+title = "call the bank"
+date = "2026-08-05"
+time = "15:00"
+why = "with the suffix written there is nothing to assume"
+
+# ─────────────────────────────────────────────────────────────
+#  Words that only look temporal
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "meeting in the morning"
+title = "meeting in the morning"
+why = "a part of the day, not a day"
+
+[[case]]
+input = "a morning of meetings"
+title = "a morning of meetings"
+why = "«of» behind it makes the word a noun with a complement; not even offered"
+
+[[case]]
+input = "ship it 3 days ago"
+title = "ship it 3 days ago"
+why = "«ago» points backwards and the past has no date here"
+
+[[case]]
+input = "meeting friday with Ana"
+title = "meeting with Ana"
+date = "2026-08-07"
+certainty = "assumed"
+why = "«with» cannot head a noun being described, so friday is not naming anything"
+
+[[case]]
+input = "call the bank tuesday about the invoice"
+title = "call the bank about the invoice"
+date = "2026-08-11"
+certainty = "assumed"
+why = "same as «with»: the preposition behind it means the phrase is not a name"
+
+[[case]]
+input = "run the tests for 30 days"
+title = "run the tests for 30 days"
+why = "«for 30 days» is how long it lasts, not when: a duration is not a date. Recurrence is a phase 3 gap"
+
+[[case]]
+input = "renew the domain by august 30"
+title = "renew the domain"
+deadline = "2026-08-30"
+why = "«by» marks when it stops being possible, not when to do it"
+
+[[case]]
+input = "review the deploy #backend !high"
+title = "review the deploy"
+tags = ["backend"]
+priority = 1
+why = "markers and the renamed scale together"
+
+[[case]]
+input = "pay on 15/8"
+title = "pay"
+date = "2026-08-15"
+why = "a slash date is still a date; only «24/7» is excluded, and by vocabulary"

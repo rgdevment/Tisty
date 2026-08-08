@@ -33,9 +33,9 @@ const en = {
   description: "Description",
   expand: "Full screen",
   collapse: "Back to three columns",
-  urgent: "Urgent",
   high: "High",
   medium: "Medium",
+  low: "Low",
   minimise: "Minimise",
   maximise: "Maximise",
   close: "Close",
@@ -54,7 +54,7 @@ const en = {
   nextMonth: "Next month",
   sayDate: "today · tomorrow · calendar",
   sayDeadline: "due by…",
-  sayPriority: "urgent · high · medium",
+  sayPriority: "high · medium · low",
   offered: "seen but not taken: it may be naming what is next to it",
 };
 
@@ -96,9 +96,9 @@ const es: Catalog = {
   description: "Descripción",
   expand: "Pantalla completa",
   collapse: "Volver a tres columnas",
-  urgent: "Urgente",
-  high: "Alta",
-  medium: "Media",
+  high: "Alto",
+  medium: "Medio",
+  low: "Bajo",
   minimise: "Minimizar",
   maximise: "Maximizar",
   close: "Cerrar",
@@ -117,7 +117,7 @@ const es: Catalog = {
   nextMonth: "Mes siguiente",
   sayDate: "hoy · mañana · calendario",
   sayDeadline: "antes del…",
-  sayPriority: "urgente · alta · media",
+  sayPriority: "alto · medio · bajo",
   offered: "la vi pero no la tomé: puede estar nombrando lo que tiene al lado",
 };
 

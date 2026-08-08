@@ -15,7 +15,7 @@ interface Props {
   onError: (message: string) => void;
 }
 
-/** Only a `/` that opens a word, and only at the end: «and/or» is not a menu. */
+/** A slash opening a word, at the end: «24/7» is not a menu. */
 const CALLED = /(^|\s)\/(\S*)$/;
 
 const SETTLES = 120;
@@ -64,8 +64,8 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
         marks={last?.of === text ? marks(text, last.seen, edits) : []}
         onChange={(typed) => {
           setText(typed);
-          // Edits answer to the sentence they were read from; a rewrite invalidates them.
-          setEdits({});
+          // Removals point at spans of the old sentence; a picked date does not.
+          setEdits(({ date, deadline }) => ({ date, deadline }));
           if (!CALLED.test(typed)) setDismissed(null);
         }}
         onSubmit={() =>

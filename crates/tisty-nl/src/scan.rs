@@ -519,11 +519,21 @@ fn match_offset(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
             return None;
         }
     }
+    // English puts the marker behind the unit: «3 days ago».
+    if tokens
+        .get(end)
+        .is_some_and(|next| v.past_prep.contains(&next.word.as_str()))
+    {
+        return None;
+    }
     Some((anchor, from))
 }
 
 fn match_explicit_date(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor, usize)> {
     let last = tokens[end - 1].word.as_str();
+    if v.idioms.contains(&last) {
+        return None;
+    }
 
     if let Ok(date) = last.parse::<Date>() {
         return Some((

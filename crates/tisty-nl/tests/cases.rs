@@ -283,6 +283,32 @@ fn assumptions_explain_themselves() {
     }
 }
 
+/// English rides on the same rules, so a hole there is invisible until a real
+/// sentence hits it: «3 days ago» was offering a date three days ahead.
+#[test]
+fn both_locales_cover_the_same_ground() {
+    type Kind = (&'static str, fn(&Case) -> bool);
+    let kinds: [Kind; 8] = [
+        ("a date", |c| c.date.is_some()),
+        ("a deadline", |c| c.deadline.is_some()),
+        ("a clock", |c| c.time.is_some()),
+        ("a priority", |c| c.priority.is_some()),
+        ("tags", |c| !c.tags.is_empty()),
+        ("an offer", |c| c.offer.is_some()),
+        ("a guess", |c| c.certainty.as_deref() == Some("assumed")),
+        ("nothing taken", |c| {
+            c.date.is_none() && c.deadline.is_none() && c.priority.is_none() && c.tags.is_empty()
+        }),
+    ];
+
+    for locale in ["es", "en"] {
+        let cases = load(locale);
+        for (what, holds) in kinds {
+            assert!(cases.iter().any(holds), "{locale} has no case with {what}");
+        }
+    }
+}
+
 #[test]
 fn offers_only_exist_where_nothing_was_taken() {
     for (locale, case) in every_case() {

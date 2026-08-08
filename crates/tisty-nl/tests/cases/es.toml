@@ -323,17 +323,19 @@ why = "la interfaz nombra las prioridades, así que se escriben como se leen"
 [[case]]
 input = "preparar el informe !alta"
 title = "preparar el informe"
-priority = 2
+priority = 1
+why = "la escala es alto · medio · bajo; «alta» se sigue aceptando al teclear y significa el nivel más alto"
 
 [[case]]
 input = "revisar los enlaces !media"
 title = "revisar los enlaces"
-priority = 3
+priority = 2
 
 [[case]]
 input = "pintar la pared !baja"
-title = "pintar la pared !baja"
-why = "«baja» no es ninguna de las cuatro; se queda en el título en vez de adivinar"
+title = "pintar la pared"
+priority = 3
+why = "el tercer nivel de la escala alto · medio · bajo; antes no existía y se quedaba en el título"
 
 [[case]]
 input = "avisar al equipo !URGENTE mañana"
@@ -588,3 +590,13 @@ why = "«de» detrás convierte la palabra en sustantivo con complemento; ni siq
 input = "escribir el resumen de la reunión"
 title = "escribir el resumen de la reunión"
 why = "sin nada temporal no hay nada que suponer; el genitivo no inventa fechas"
+
+[[case]]
+input = "revisar el 24/7 del sistema"
+title = "revisar el 24/7 del sistema"
+why = "«24/7» tiene forma de fecha y no lo es; es una expresión fija, así que se excluye por vocabulario y no por regla"
+
+[[case]]
+input = "montar soporte 24/7"
+title = "montar soporte 24/7"
+why = "sin nada delante tampoco: la expresión es la misma"
