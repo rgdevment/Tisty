@@ -117,7 +117,7 @@ function shown(seen: Parsed, edits: Edits): Chip[] {
   if (seen.list && !edits.noList) {
     chips.push({
       slot: "list",
-      glyph: "#",
+      glyph: "@",
       value: seen.list,
       tint: "bg-mark-list",
       guessed: false,
@@ -127,7 +127,7 @@ function shown(seen: Parsed, edits: Edits): Chip[] {
     if (edits.noTags?.includes(tag)) continue;
     chips.push({
       slot: { tag },
-      glyph: "@",
+      glyph: "#",
       value: tag,
       tint: "bg-mark-tag",
       guessed: false,

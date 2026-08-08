@@ -52,6 +52,9 @@ const en = {
   accept: "Use",
   prevMonth: "Previous month",
   nextMonth: "Next month",
+  sayDate: "today · tomorrow · calendar",
+  sayDeadline: "due by…",
+  sayPriority: "urgent · high · medium",
   offered: "seen but not taken: it may be naming what is next to it",
 };
 
@@ -112,6 +115,9 @@ const es: Catalog = {
   accept: "Poner",
   prevMonth: "Mes anterior",
   nextMonth: "Mes siguiente",
+  sayDate: "hoy · mañana · calendario",
+  sayDeadline: "antes del…",
+  sayPriority: "urgente · alta · media",
   offered: "la vi pero no la tomé: puede estar nombrando lo que tiene al lado",
 };
 
