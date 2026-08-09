@@ -17,6 +17,8 @@ interface Props {
   onMark: (step: string, done: boolean) => void;
   onDropStep: (step: string) => void;
   onLog: (body: string, entry?: string) => void;
+  onDiscard: () => void;
+  onReopen: () => void;
 }
 
 export default function Detail({
@@ -31,6 +33,8 @@ export default function Detail({
   onMark,
   onDropStep,
   onLog,
+  onDiscard,
+  onReopen,
 }: Props) {
   const body = (
     <>
@@ -55,13 +59,14 @@ export default function Detail({
     return (
       <main className="flex flex-col overflow-hidden">
         <div data-tauri-drag-region className="h-9 shrink-0" />
-        <div className="flex px-6 text-[13px]">
+        <div className="flex items-center gap-1 px-6 text-[13px] text-faint">
           <button
             onClick={onCollapse}
             className="-ml-2 rounded-md px-2 py-1 text-accent hover:bg-hover"
           >
             ⤡ {t("collapse")}
           </button>
+          <Settled task={task} onDiscard={onDiscard} onReopen={onReopen} />
         </div>
         <div className="scroller mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-12">{body}</div>
       </main>
@@ -71,7 +76,7 @@ export default function Detail({
   return (
     <aside className="flex flex-col overflow-hidden border-l border-hair bg-panel">
       <div data-tauri-drag-region className="h-9 shrink-0" />
-      <div className="flex gap-4 px-5 text-[13px] text-faint">
+      <div className="flex items-center gap-1 px-5 text-[13px] text-faint">
         <button
           onClick={onExpand}
           title={t("expand")}
@@ -80,9 +85,30 @@ export default function Detail({
         >
           ⤢
         </button>
+        <Settled task={task} onDiscard={onDiscard} onReopen={onReopen} />
       </div>
       <div className="scroller flex-1 px-5 pt-2.5 pb-7">{body}</div>
     </aside>
+  );
+}
+
+function Settled({
+  task,
+  onDiscard,
+  onReopen,
+}: {
+  task: Task;
+  onDiscard: () => void;
+  onReopen: () => void;
+}) {
+  const shut = task.status !== "open";
+  return (
+    <button
+      onClick={shut ? onReopen : onDiscard}
+      className="ml-auto rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
+    >
+      {shut ? `↺ ${t("reopenIt")}` : `⨯ ${t("discardIt")}`}
+    </button>
   );
 }
 

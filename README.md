@@ -63,6 +63,50 @@ Three consequences run through the whole design:
 Because it also has to handle that call with Pepe, which is born and dies within
 a day and leaves nothing worth keeping.
 
+## It reads what you write
+
+You type a sentence. Tisty takes the date out of it, leaves the sentence
+readable, and tells you what it understood before anything is stored.
+
+```console
+$ tisty "ship the release tomorrow at 10 to production"
+  ✓ ship the release to production
+    tomorrow 10:00
+
+$ tisty "renew the domain by august 30"
+  ✓ renew the domain
+    deadline sun 30 aug          # «by» is a limit, not a plan
+
+$ tisty "review the deploy #backend !high"
+  ✓ review the deploy
+    high · #backend
+
+$ tisty "meeting monday 15"       →  meeting              · sat 15 aug
+$ tisty "review it next week"     →  review it            · sun 16 aug
+$ tisty "call the bank at 3"      →  call the bank        · today 15:00
+```
+
+**And what it refuses to read matters more.** A guess that reads well is worse
+than no guess at all, so these keep every word and get no date:
+
+```console
+$ tisty "review the monday report"   # «monday» names the report
+$ tisty "a course of 3 months"       # a duration is not a date
+$ tisty "ship it 3 days ago"         # the past is not a plan
+$ tisty "set up 24/7 support"        # 24/7 is an expression, not 24 July
+```
+
+Two more rules worth knowing. **Anything in quotes is left alone**, so
+`tisty '"meeting on monday"'` keeps the whole line. And when a phrase sits
+mid-sentence with nothing backing it — `call the bank tomorrow about the
+invoice` — the date is still applied, but **marked as a guess**: the terminal
+says so and prints the command that undoes just that, and the window underlines
+it so one click drops it.
+
+Every sentence above is a test. The parser ships with a contract of 190 cases in
+Spanish and English that says what it must read and, just as often, what it must
+leave alone.
+
 ## What it looks like
 
 ```console

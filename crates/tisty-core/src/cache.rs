@@ -4,7 +4,7 @@ use rusqlite::Connection;
 
 use crate::{Result, State, event::Event, store};
 
-const SCHEMA: i64 = 1;
+const SCHEMA: i64 = 2;
 
 pub struct Cache {
     db: Connection,

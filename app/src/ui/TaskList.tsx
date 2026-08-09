@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { List, Task } from "../core";
-import { isOverdue, whenLabel } from "../format";
+import { isOverdue, monthOf, whenLabel } from "../format";
 import { t } from "../locales";
 
 interface Props {
@@ -11,8 +11,10 @@ interface Props {
   reveal?: string;
   title: string;
   centred: boolean;
+  byMonth?: boolean;
   onSelect: (id: string) => void;
   onComplete?: (id: string) => void;
+  onFold?: (id: string, away: boolean) => void;
   above?: React.ReactNode;
   children?: React.ReactNode;
 }
@@ -25,12 +27,19 @@ export default function TaskList({
   reveal,
   title,
   centred,
+  byMonth,
   onSelect,
   onComplete,
+  onFold,
   above,
   children,
 }: Props) {
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
+  const columns = onComplete
+    ? "grid-cols-[20px_minmax(0,1fr)_auto]"
+    : onFold
+      ? "grid-cols-[16px_minmax(0,1fr)_auto_16px]"
+      : "grid-cols-[16px_minmax(0,1fr)_auto]";
   const width = centred ? "mx-auto w-full max-w-[780px]" : "";
 
   // Never on capture: scrolling under someone who is still typing loses them.
@@ -53,12 +62,17 @@ export default function TaskList({
       <div className={`scroller flex-1 px-5 pb-6 ${width}`}>
         {tasks.length === 0 && <p className="px-2.5 py-4 text-sm text-faint">{t("nothingOpen")}</p>}
 
-        {tasks.map((task) => (
+        {tasks.map((task, i) => (
+          <div key={task.id}>
+          {byMonth && monthOf(task.completed_at) && monthOf(task.completed_at) !== monthOf(tasks[i - 1]?.completed_at) && (
+            <div className="mt-5 mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1">
+              {monthOf(task.completed_at)}
+            </div>
+          )}
           <div
-            key={task.id}
             ref={reveal === task.id ? asked : undefined}
             onClick={() => onSelect(task.id)}
-            className={`grid cursor-pointer ${onComplete ? "grid-cols-[20px_1fr_auto]" : "grid-cols-[1fr_auto]"} items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-700 hover:bg-hover ${
+            className={`group grid cursor-pointer ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-700 hover:bg-hover ${
               selected === task.id ? "bg-active" : ""
             } ${fresh === task.id ? "bg-accent-soft" : ""}`}
           >
@@ -78,6 +92,14 @@ export default function TaskList({
                 }`}
               />
             )}
+            {!onComplete && (
+              <span
+                title={task.status === "dropped" ? t("dropped") : t("done")}
+                className={`mt-px text-[13px] ${task.status === "dropped" ? "text-faint" : "text-accent"}`}
+              >
+                {task.status === "dropped" ? "⨯" : "✓"}
+              </span>
+            )}
 
             <div className="min-w-0">
               <h2 className="text-sm leading-snug">{task.title}</h2>
@@ -85,6 +107,20 @@ export default function TaskList({
             </div>
 
             <Volume task={task} />
+            {onFold && (
+              <button
+                aria-label={task.hidden ? t("showIt") : t("hideIt")}
+                title={task.hidden ? t("showIt") : t("hideIt")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFold(task.id, !task.hidden);
+                }}
+                className="mt-0.5 flex h-4 w-4 items-center justify-center rounded text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 hover:bg-line hover:text-ink"
+              >
+                {task.hidden ? "⊕" : "⊖"}
+              </button>
+            )}
+          </div>
           </div>
         ))}
       </div>

@@ -32,6 +32,8 @@ pub struct Filter {
     pub tags: Vec<Tag>,
     /// True for any tag; empty `tags` then means «what I filed», not «everything».
     pub tagged: bool,
+    /// Folded noise stays out unless it is asked for by name.
+    pub hidden: bool,
     pub priority: Option<Priority>,
     pub window: Option<Window>,
 }
@@ -44,6 +46,9 @@ impl Filter {
             Scope::Either => true,
         };
         if !fits {
+            return false;
+        }
+        if task.hidden != self.hidden {
             return false;
         }
         if self.inbox && task.list.is_some() {
@@ -74,15 +79,26 @@ impl Filter {
     }
 }
 
+/// Naming it beats mentioning it: a heavy task that says «brasil» in passing
+/// must not outrank one that is called «…en BR».
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Hit {
+    Named,
+    Mentioned,
+}
+
 /// Searches both open and archived tasks by default.
-pub fn matches_query(task: &Task, query: &str) -> bool {
+pub fn matches_query(task: &Task, query: &str) -> Option<Hit> {
     let contains = |text: &str| text.to_lowercase().contains(query);
 
-    contains(&task.title)
-        || task.description.as_deref().is_some_and(contains)
+    if contains(&task.title) || task.tags.iter().any(|t| contains(t.as_str())) {
+        return Some(Hit::Named);
+    }
+    let body = task.description.as_deref().is_some_and(contains)
         || task.log.iter().any(|e| contains(&e.body))
-        || task.steps.iter().any(|s| contains(&s.text))
-        || task.tags.iter().any(|t| contains(t.as_str()))
+        || task.steps.iter().any(|s| contains(&s.text));
+
+    body.then_some(Hit::Mentioned)
 }
 
 #[cfg(test)]

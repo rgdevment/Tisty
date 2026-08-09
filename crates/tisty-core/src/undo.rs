@@ -10,6 +10,8 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
         Op::TaskAdd { id, .. } => Some(Op::TaskDelete { id: *id }),
 
         Op::TaskDone { id } | Op::TaskDrop { id } => Some(Op::TaskReopen { id: *id }),
+        Op::TaskHide { id } => Some(Op::TaskShow { id: *id }),
+        Op::TaskShow { id } => Some(Op::TaskHide { id: *id }),
         Op::TaskReopen { id } => match before.tasks.get(id)?.status {
             Status::Done => Some(Op::TaskDone { id: *id }),
             Status::Dropped => Some(Op::TaskDrop { id: *id }),

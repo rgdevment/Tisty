@@ -38,6 +38,10 @@ pub enum Op {
     TaskDrop { id: TaskId },
     #[serde(rename = "task.delete")]
     TaskDelete { id: TaskId },
+    #[serde(rename = "task.hide")]
+    TaskHide { id: TaskId },
+    #[serde(rename = "task.show")]
+    TaskShow { id: TaskId },
     #[serde(rename = "task.move")]
     TaskMove { id: TaskId, d: TaskMove },
 
