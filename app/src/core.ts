@@ -143,5 +143,20 @@ export interface Edits {
 
 export const capture = (text: string, view?: View, edits?: Edits): Promise<Task> =>
   invoke("capture", { text, locale: navigator.language, view, edits });
+export interface Change {
+  title?: string;
+  date?: string;
+  noDate?: boolean;
+  deadline?: string;
+  noDeadline?: boolean;
+  priority?: Priority;
+  tags?: string[];
+  list?: string;
+  inbox?: boolean;
+  description?: string;
+}
+
+export const patch = (id: string, change: Change): Promise<Task> =>
+  invoke("patch", { id, change, locale: navigator.language });
 export const complete = (id: string): Promise<void> => invoke("complete", { id });
 export const reopen = (id: string): Promise<void> => invoke("reopen", { id });

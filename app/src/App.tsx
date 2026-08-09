@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { capture, complete, snapshot, type Snapshot, type Task } from "./core";
+import { capture, complete, patch, snapshot, type Change, type Snapshot, type Task } from "./core";
 import { adopt } from "./locales";
 import { saidPlainly } from "./refusal";
 import { accepts, asView, invite, title, type Chosen } from "./views";
@@ -90,9 +90,11 @@ export default function App() {
         <Detail
           task={task}
           lists={data.lists}
+          known={data.tags.map((one) => one.tag)}
           expanded
           onExpand={() => setMode("sheet")}
           onCollapse={() => setMode("columns")}
+          onPatch={(change: Change) => act(patch(task.id, change))}
         />
       ) : (
         <TaskList
@@ -150,9 +152,11 @@ export default function App() {
         <Detail
           task={task}
           lists={data.lists}
+          known={data.tags.map((one) => one.tag)}
           expanded={false}
           onExpand={() => setMode("sheet")}
           onCollapse={() => setMode("columns")}
+          onPatch={(change: Change) => act(patch(task.id, change))}
         />
       )}
     </div>

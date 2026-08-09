@@ -15,8 +15,8 @@ interface Props {
   onError: (message: string) => void;
 }
 
-/** A slash opening a word, at the end: «24/7» is not a menu. */
-const CALLED = /(^|\s)\/(\S*)$/;
+const CALLED = /(^|\s)([/@#])(\S*)$/;
+const OPENS: Record<string, "list" | "tag" | null> = { "/": null, "@": "list", "#": "tag" };
 
 const SETTLES = 120;
 
@@ -34,7 +34,7 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
   const [dismissed, setDismissed] = useState<number | null>(null);
 
   const asked = picking === null ? CALLED.exec(text) : null;
-  const before = asked ? text.slice(0, text.length - asked[2].length - 1) : text;
+  const before = asked ? text.slice(0, text.length - asked[3].length - 1) : text;
   // Escape leaves the slash where it was typed: «leer /docs» is a title.
   const called = asked && before.length !== dismissed ? asked : null;
   const rewritten = (typed: string) => {
@@ -80,7 +80,8 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
       <div className="relative">
         {called && (
           <SlashMenu
-            query={called[2]}
+            from={OPENS[called[2]]}
+            query={called[3]}
             lists={lists}
             tags={tags}
             onDate={(field) => {

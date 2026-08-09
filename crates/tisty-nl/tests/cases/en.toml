@@ -338,13 +338,38 @@ why = "a bare integer is a clock only behind «at»"
 
 [[case]]
 input = "ship it on august 1st"
-title = "ship it on august 1st"
-why = "KNOWN GAP: written ordinals are not recognised yet"
+title = "ship it"
+date = "2027-08-01"
+why = "English writes ordinals as digits with a suffix; august has passed, so next year"
 
 [[case]]
+input = "ship it on september 3rd"
+title = "ship it"
+date = "2026-09-03"
+why = "the same suffix on a month still ahead"
+
+[[case]]
+input = "meeting monday 15"
+title = "meeting"
+date = "2026-08-15"
+why = "the weekday names it, the number dates it"
+
+[[case]]
+input = "pay on 15/8/2026"
+title = "pay"
+date = "2026-08-15"
+why = "a written year is never rolled forward"
+[[case]]
 input = "review it next week"
-title = "review it next week"
-why = "KNOWN GAP: «next week» and «next month» stay in the title without a word"
+title = "review it"
+date = "2026-08-16"
+why = "the end of the period, like «this week»: that is when it stops being possible"
+
+[[case]]
+input = "review it next month"
+title = "review it"
+date = "2026-09-30"
+why = "the last day of the following month, for the same reason"
 
 [[case]]
 input = "meeting on august 15"
@@ -495,3 +520,73 @@ certainty = "assumed"
 priority = 1
 tags = ["sport"]
 why = "both dates, the tag and the priority in one sentence; the «or» left between the two holes is dropped as a dangling connector"
+
+[[case]]
+input = "tell the team !URGENT tomorrow"
+title = "tell the team"
+date = "2026-08-06"
+priority = 1
+why = "a marker shouted in capitals is the same marker"
+
+[[case]]
+input = "leave tomorrow at 10 to buy clothes"
+title = "leave to buy clothes"
+date = "2026-08-06"
+time = "10:00"
+
+[[case]]
+input = "buy clothes for tomorrow at 10"
+title = "buy clothes"
+date = "2026-08-06"
+time = "10:00"
+why = "the same day and clock said in a different order"
+
+[[case]]
+input = "take the car to the garage tomorrow at 9 and come back"
+title = "take the car to the garage and come back"
+date = "2026-08-06"
+time = "09:00"
+why = "the «and» opens the second half of the title, so it survives; only a DANGLING connector is dropped"
+
+[[case]]
+input = "deliver before friday the report"
+title = "deliver the report"
+deadline = "2026-08-07"
+why = "the deadline sits in the middle and the title closes after it"
+
+[[case]]
+input = "tomorrow's meeting"
+title = "tomorrow's meeting"
+why = "the possessive makes it a different word, and naming a meeting is not dating it"
+
+[[case]]
+input = "go tomorrow to buy the kid clothes at 9am"
+title = "go to buy the kid clothes"
+date = "2026-08-06"
+time = "09:00"
+why = "the day and the clock sit apart with the whole title between them"
+
+[[case]]
+input = "take the bins out today before 8"
+title = "take the bins out before 8"
+date = "2026-08-05"
+certainty = "assumed"
+why = "«before 8» is not read as a clock, so it stays in the title; the day is mid-sentence and therefore a guess"
+
+[[case]]
+input = "meeting tomorrow in the morning"
+title = "meeting in the morning"
+date = "2026-08-06"
+certainty = "assumed"
+why = "the part of the day stays put and the day itself is taken, marked as a guess"
+
+[[case]]
+input = "meeting monday 3"
+title = "meeting"
+date = "2026-09-03"
+why = "a day of the month already past rolls to the NEXT MONTH, not the next year: no month was written"
+
+[[case]]
+input = "take the pills every day for 30 days"
+title = "take the pills every day for 30 days"
+why = "a duration is not a date; recurrence is a phase 3 gap"

@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use tisty_core::{
     Config, Event, List, Op, Paths, State, Store, Tag, Task,
+    event::TaskPatch,
     view::{Filter, Scope, Window},
 };
 
@@ -432,6 +433,120 @@ fn read(
     Ok(tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken))
 }
 
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct Change {
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    date: Option<String>,
+    #[serde(default)]
+    no_date: bool,
+    #[serde(default)]
+    deadline: Option<String>,
+    #[serde(default)]
+    no_deadline: bool,
+    #[serde(default)]
+    priority: Option<u8>,
+    #[serde(default)]
+    tags: Option<Vec<String>>,
+    #[serde(default)]
+    list: Option<String>,
+    #[serde(default)]
+    inbox: bool,
+    #[serde(default)]
+    description: Option<String>,
+}
+
+/// One batch: an undo has to take back the whole edit, not half of it.
+#[tauri::command]
+fn patch(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    change: Change,
+    locale: String,
+) -> Answer<Task> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    let spoken = session.locale.clone().unwrap_or(locale);
+    let now = jiff::Zoned::now();
+
+    let d = TaskPatch {
+        title: change
+            .title
+            .map(|t| t.trim().to_string())
+            .filter(|t| !t.is_empty()),
+        date: dated_field(change.date.as_deref(), change.no_date, &now, &spoken)?,
+        deadline: dated_field(
+            change.deadline.as_deref(),
+            change.no_deadline,
+            &now,
+            &spoken,
+        )?,
+        priority: change
+            .priority
+            .map(tisty_core::Priority::try_from)
+            .transpose()
+            .map_err(|_| Refusal::of("notAPriority"))?,
+        tags: change
+            .tags
+            .map(|names| {
+                names
+                    .iter()
+                    .map(|name| Tag::new(name).map_err(|_| Refusal::about("badTag", name)))
+                    .collect::<Result<_, _>>()
+            })
+            .transpose()?,
+        reminders: None,
+    };
+
+    let filed = match (&change.list, change.inbox) {
+        (Some(raw), _) => Some(Some(raw.parse().map_err(|_| Refusal::of("notAListId"))?)),
+        (None, true) => Some(None),
+        _ => None,
+    };
+
+    let mut ops = Vec::new();
+    if d != TaskPatch::default() {
+        ops.push(Op::TaskUpdate { id, d });
+    }
+    if let Some(body) = change.description {
+        let kept = body.trim().to_string();
+        ops.push(Op::TaskDescribe {
+            id,
+            d: tisty_core::event::Body {
+                body: (!kept.is_empty()).then_some(kept),
+            },
+        });
+    }
+    if let Some(list) = filed {
+        ops.push(Op::TaskMove {
+            id,
+            d: tisty_core::event::TaskMove {
+                list: Some(list),
+                order: None,
+            },
+        });
+    }
+    if !ops.is_empty() {
+        session.commit_all(ops)?;
+    }
+    Ok(session.state.tasks[&id].clone())
+}
+
+fn dated_field(
+    raw: Option<&str>,
+    cleared: bool,
+    now: &jiff::Zoned,
+    spoken: &str,
+) -> Result<Option<Option<tisty_core::DateSpec>>, Refusal> {
+    match (raw, cleared) {
+        (Some(raw), _) => Ok(Some(Some(dated(raw, now, spoken)?))),
+        (None, true) => Ok(Some(None)),
+        _ => Ok(None),
+    }
+}
+
 /// Searches through the core, or it would find different things than `tisty search` does.
 #[tauri::command]
 fn search(
@@ -478,7 +593,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
-            snapshot, capture, read, search, complete, reopen
+            snapshot, capture, read, search, complete, reopen, patch
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
