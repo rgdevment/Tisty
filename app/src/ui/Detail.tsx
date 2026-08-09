@@ -1,40 +1,35 @@
-import type { List, Task } from "../core";
+import { useEffect, useState } from "react";
+import type { Change, List, Task } from "../core";
 import { whenLabel } from "../format";
 import { t } from "../locales";
+import Fields from "./Fields";
 
 interface Props {
   task: Task;
   lists: List[];
+  known: string[];
   expanded: boolean;
   onExpand: () => void;
   onCollapse: () => void;
+  onPatch: (change: Change) => void;
 }
 
-export default function Detail({ task, lists, expanded, onExpand, onCollapse }: Props) {
-  const list = lists.find((l) => l.id === task.list);
-
+export default function Detail({
+  task,
+  lists,
+  known,
+  expanded,
+  onExpand,
+  onCollapse,
+  onPatch,
+}: Props) {
   const body = (
     <>
-      <h2
-        className={`leading-snug font-semibold -tracking-[0.01em] ${expanded ? "text-[22px]" : "text-[17px]"} mb-3`}
-      >
-        {task.title}
-      </h2>
+      <Title task={task} big={expanded} onRename={(title) => onPatch({ title })} />
+      <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
-      <div className="mb-5 flex flex-wrap gap-1.5">
-        {list && <Chip>▤ {list.name}</Chip>}
-        {task.date && <Chip tone="accent">☀ {whenLabel(task.date)}</Chip>}
-        {task.deadline && <Chip>⚑ {whenLabel(task.deadline)}</Chip>}
-        {task.priority < 4 && (
-          <Chip tone={task.priority === 1 ? "urgent" : undefined}>
-            {t(task.priority === 1 ? "high" : task.priority === 2 ? "medium" : "low")}
-          </Chip>
-        )}
-        {task.tags?.map((tag) => <Chip key={tag}>#{tag}</Chip>)}
-        {task.reminders?.length ? <Chip>⏰ {task.reminders.length}</Chip> : null}
-      </div>
-
-      {task.description && <p className="text-[13.5px] leading-relaxed">{task.description}</p>}
+      <Section label={t("description")} />
+      <Wrote task={task} onWrite={(description) => onPatch({ description })} />
 
       {task.volume?.steps ? (
         <Section label={t("steps")} note={`${task.volume.steps_done ?? 0}/${task.volume.steps}`} />
@@ -94,27 +89,79 @@ export default function Detail({ task, lists, expanded, onExpand, onCollapse }: 
   );
 }
 
-function Chip({ children, tone }: { children: React.ReactNode; tone?: "accent" | "urgent" }) {
-  const paint =
-    tone === "accent"
-      ? "bg-accent-soft text-accent"
-      : tone === "urgent"
-        ? "bg-urgent/12 text-urgent"
-        : "bg-hover text-soft";
+function Wrote({ task, onWrite }: { task: Task; onWrite: (body: string) => void }) {
+  const [text, setText] = useState(task.description ?? "");
+  useEffect(() => setText(task.description ?? ""), [task.id, task.description]);
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs ${paint}`}>
-      {children}
-    </span>
+    <textarea
+      rows={2}
+      value={text}
+      placeholder={t("describeIt")}
+      aria-label={t("description")}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        if (text.trim() !== (task.description ?? "").trim()) onWrite(text);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setText(task.description ?? "");
+          e.currentTarget.blur();
+        }
+      }}
+      className="field-sizing-content w-full resize-none rounded-md bg-transparent px-1.5 py-1 text-[13.5px] leading-relaxed outline-none placeholder:text-faint hover:bg-hover focus:bg-hover"
+    />
   );
 }
 
-function Section({ label, note }: { label: string; note: string }) {
+function Title({
+  task,
+  big,
+  onRename,
+}: {
+  task: Task;
+  big: boolean;
+  onRename: (title: string) => void;
+}) {
+  const [text, setText] = useState(task.title);
+  const size = big ? "text-[22px]" : "text-[17px]";
+
+  useEffect(() => setText(task.title), [task.id, task.title]);
+
+  const settle = () => {
+    const kept = text.trim();
+    if (kept && kept !== task.title) onRename(kept);
+    else setText(task.title);
+  };
+
   return (
-    <div className="mt-5 mb-2 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
+    <textarea
+      rows={1}
+      value={text}
+      aria-label={t("fieldTitle")}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={settle}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.currentTarget.blur();
+        }
+        if (e.key === "Escape") {
+          setText(task.title);
+          e.currentTarget.blur();
+        }
+      }}
+      className={`mb-3 field-sizing-content w-full resize-none rounded-md bg-transparent leading-snug font-semibold -tracking-[0.01em] outline-none hover:bg-hover focus:bg-hover ${size}`}
+    />
+  );
+}
+
+function Section({ label, note }: { label: string; note?: string }) {
+  return (
+    <div className="mt-5 mb-1.5 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
       <span>{label}</span>
       <span className="h-px flex-1 bg-hair" />
-      <span>{note}</span>
+      {note && <span>{note}</span>}
     </div>
   );
 }

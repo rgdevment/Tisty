@@ -15,6 +15,8 @@ pub enum Anchor {
     OnDate(u8, Option<u8>, Option<i16>),
     EndOfWeek,
     EndOfMonth,
+    EndOfNextWeek,
+    EndOfNextMonth,
     Weekend,
 }
 
@@ -428,15 +430,15 @@ fn match_anchor(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
         return None;
     }
 
-    for phrases in [v.weekend, v.end_of_month, v.this_week] {
+    let phrased = [
+        (v.weekend, Anchor::Weekend),
+        (v.end_of_month, Anchor::EndOfMonth),
+        (v.next_week, Anchor::EndOfNextWeek),
+        (v.next_month, Anchor::EndOfNextMonth),
+        (v.this_week, Anchor::EndOfWeek),
+    ];
+    for (phrases, anchor) in phrased {
         if let Some(from) = match_phrase(tokens, end, phrases) {
-            let anchor = if std::ptr::eq(phrases, v.weekend) {
-                Anchor::Weekend
-            } else if std::ptr::eq(phrases, v.end_of_month) {
-                Anchor::EndOfMonth
-            } else {
-                Anchor::EndOfWeek
-            };
             return Some((anchor, from));
         }
     }
@@ -545,6 +547,17 @@ fn match_offset(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
     Some((anchor, from))
 }
 
+fn as_day(word: &str, v: &Vocabulary) -> Option<u8> {
+    if v.first.contains(&word) {
+        return Some(1);
+    }
+    let bare = ["st", "nd", "rd", "th"]
+        .iter()
+        .find_map(|suffix| word.strip_suffix(suffix))
+        .unwrap_or(word);
+    bare.parse().ok().filter(|day| (1..=31).contains(day))
+}
+
 fn match_explicit_date(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor, usize)> {
     let last = tokens[end - 1].word.as_str();
     if v.idioms.contains(&last) {
@@ -562,20 +575,24 @@ fn match_explicit_date(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(
         ));
     }
 
-    if let Some((a, b)) = last.split_once('/')
-        && let (Ok(d), Ok(m)) = (a.parse::<u8>(), b.parse::<u8>())
+    let slashed: Vec<&str> = last.split('/').collect();
+    if let [d, m] | [d, m, _] = slashed.as_slice()
+        && let (Ok(d), Ok(m)) = (d.parse::<u8>(), m.parse::<u8>())
         && (1..=31).contains(&d)
         && (1..=12).contains(&m)
     {
-        return Some((Anchor::OnDate(d, Some(m), None), end - 1));
+        let year = match slashed.as_slice() {
+            [_, _, y] => Some(y.parse::<i16>().ok()?),
+            _ => None,
+        };
+        return Some((Anchor::OnDate(d, Some(m), year), end - 1));
     }
 
     // "15 de agosto" and "august 15" are the same date in either order.
     if let Some(month) = v.month_index(last) {
         for back in 2..=3 {
             if end >= back
-                && let Ok(day) = tokens[end - back].word.parse::<u8>()
-                && (1..=31).contains(&day)
+                && let Some(day) = as_day(&tokens[end - back].word, v)
             {
                 return Some((Anchor::OnDate(day, Some(month), None), end - back));
             }
@@ -583,15 +600,17 @@ fn match_explicit_date(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(
         return None;
     }
 
-    if let Ok(day) = last.parse::<u8>()
-        && (1..=31).contains(&day)
-    {
+    if let Some(day) = as_day(last, v) {
         for back in 2..=3 {
             if end >= back
                 && let Some(month) = v.month_index(tokens[end - back].word.as_str())
             {
                 return Some((Anchor::OnDate(day, Some(month), None), end - back));
             }
+        }
+        // «el lunes 15»: the weekday names it, the number dates it.
+        if end >= 2 && v.weekday_index(tokens[end - 2].word.as_str()).is_some() {
+            return Some((Anchor::OnDate(day, None, None), end - 2));
         }
     }
     None

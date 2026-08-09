@@ -17,6 +17,13 @@ pub fn to_date(anchor: Anchor, now: &Zoned) -> Option<Date> {
         Anchor::InWeeks(n) => today.checked_add(jiff::Span::new().weeks(n)).ok()?,
         Anchor::InMonths(n) => today.checked_add(jiff::Span::new().months(n)).ok()?,
         Anchor::EndOfWeek => end_of_week(today)?,
+        Anchor::EndOfNextWeek => end_of_week(today)?
+            .checked_add(jiff::Span::new().days(7))
+            .ok()?,
+        Anchor::EndOfNextMonth => today
+            .checked_add(jiff::Span::new().months(1))
+            .ok()?
+            .last_of_month(),
         Anchor::Weekend => weekend(today)?,
         Anchor::EndOfMonth => today.last_of_month(),
         Anchor::OnDate(day, month, year) => explicit(today, day, month, year)?,
@@ -55,8 +62,8 @@ fn weekend(today: Date) -> Option<Date> {
     today.checked_add(jiff::Span::new().days(ahead as i64)).ok()
 }
 
-fn explicit(today: Date, day: u8, month: Option<u8>, year: Option<i16>) -> Option<Date> {
-    let month = month.unwrap_or(today.month() as u8) as i8;
+fn explicit(today: Date, day: u8, written: Option<u8>, year: Option<i16>) -> Option<Date> {
+    let month = written.unwrap_or(today.month() as u8) as i8;
 
     // A written year is a decision, not a hint: never roll it forward.
     if let Some(year) = year {
@@ -66,6 +73,17 @@ fn explicit(today: Date, day: u8, month: Option<u8>, year: Option<i16>) -> Optio
     let candidate = Date::new(today.year(), month, day as i8).ok()?;
     if candidate >= today {
         return Some(candidate);
+    }
+    // A bare day of the month rolls to the next month; a written month, to the next year.
+    if written.is_none() {
+        return today
+            .checked_add(jiff::Span::new().months(1))
+            .ok()?
+            .first_of_month()
+            .with()
+            .day(day as i8)
+            .build()
+            .ok();
     }
     Date::new(today.year() + 1, month, day as i8).ok()
 }

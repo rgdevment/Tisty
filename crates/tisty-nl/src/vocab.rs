@@ -32,6 +32,10 @@ pub struct Vocabulary {
     pub months_unit: &'static [&'static str],
     pub one: &'static [&'static str],
     pub this_week: &'static [&'static [&'static str]],
+    pub next_week: &'static [&'static [&'static str]],
+    pub next_month: &'static [&'static [&'static str]],
+    /// The only ordinal spelled out often enough to be worth a word.
+    pub first: &'static [&'static str],
     pub end_of_month: &'static [&'static [&'static str]],
     pub weekend: &'static [&'static [&'static str]],
     /// Ordered P1 to P4; an empty slot has no spoken name.
@@ -95,6 +99,19 @@ pub const ES: Vocabulary = Vocabulary {
     months_unit: &["mes", "meses"],
     one: &["un", "una"],
     this_week: &[&["esta", "semana"]],
+    next_week: &[
+        &["próxima", "semana"],
+        &["proxima", "semana"],
+        &["semana", "que", "viene"],
+        &["siguiente", "semana"],
+    ],
+    next_month: &[
+        &["próximo", "mes"],
+        &["proximo", "mes"],
+        &["mes", "que", "viene"],
+        &["siguiente", "mes"],
+    ],
+    first: &["primero", "primer", "1º", "1o"],
     end_of_month: &[&["fin", "de", "mes"], &["fin", "mes"]],
     weekend: &[&["finde"], &["fin", "de", "semana"]],
     priorities: [
@@ -163,6 +180,9 @@ pub const EN: Vocabulary = Vocabulary {
     months_unit: &["month", "months"],
     one: &["a", "an", "one"],
     this_week: &[&["this", "week"]],
+    next_week: &[&["next", "week"]],
+    next_month: &[&["next", "month"]],
+    first: &["first"],
     end_of_month: &[&["end", "of", "month"], &["end", "of", "the", "month"]],
     weekend: &[&["this", "weekend"], &["weekend"]],
     priorities: [&["high", "urgent"], &["medium"], &["low"], &[]],

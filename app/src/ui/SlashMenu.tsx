@@ -5,6 +5,7 @@ import { t } from "../locales";
 export type Field = "date" | "deadline" | "list" | "tag" | "priority";
 
 interface Props {
+  from: Field | null;
   query: string;
   lists: List[];
   tags: Counted[];
@@ -21,14 +22,15 @@ interface Row {
   run: () => void;
 }
 
-export default function SlashMenu({ query, lists, tags, onDate, onInsert, onClose }: Props) {
-  const [step, setStep] = useState<Field | null>(null);
+export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, onClose }: Props) {
+  const [step, setStep] = useState<Field | null>(from);
   const [at, setAt] = useState(0);
   const rows = step === null ? fields(onDate, setStep) : within(step, lists, tags, onInsert);
-  const shown = step === null ? rows.filter((row) => fits(row, query)) : rows;
+  const shown = rows.filter((row) => fits(row, query));
   const on = Math.min(at, shown.length - 1);
 
   useEffect(() => setAt(0), [query, step]);
+  useEffect(() => setStep(from), [from]);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {

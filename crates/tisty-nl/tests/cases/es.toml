@@ -508,23 +508,42 @@ why = "la fecha con mes escrito sí se entiende; es la que no lleva mes la que s
 
 [[case]]
 input = "reunión el lunes 15"
-title = "reunión el lunes 15"
-why = "HUECO CONOCIDO: el día del mes tras el día de la semana hace fallar el reconocimiento entero. No inventa nada, solo no lo ve"
+title = "reunión"
+date = "2026-08-15"
+why = "el día de la semana lo NOMBRA y el número lo FECHA; manda el número, que es el dato exacto"
 
+[[case]]
+input = "reunión el lunes 3"
+title = "reunión"
+date = "2026-09-03"
+why = "un día del mes ya pasado rueda al MES siguiente, no al año: el mes no venía escrito"
 [[case]]
 input = "entregar el 15/8/2026"
-title = "entregar el 15/8/2026"
-why = "HUECO CONOCIDO: las fechas con barras no se leen todavía; el formato con guiones sí"
-
+title = "entregar"
+date = "2026-08-15"
+why = "con año escrito no se adelanta nunca, igual que el formato con guiones"
 [[case]]
 input = "entregar el primero de agosto"
-title = "entregar el primero de agosto"
-why = "HUECO CONOCIDO: los ordinales escritos con letra no se reconocen"
+title = "entregar"
+date = "2027-08-01"
+why = "«primero» es el único ordinal que se escribe con letra a menudo en una fecha; agosto ya pasó, así que el del año siguiente"
 
 [[case]]
+input = "entregar el primero de septiembre"
+title = "entregar"
+date = "2026-09-01"
+why = "el mismo ordinal con un mes que aún no llega"
+[[case]]
 input = "revisar la próxima semana"
-title = "revisar la próxima semana"
-why = "HUECO CONOCIDO: «la próxima semana» y «el mes que viene» se quedan en el título en silencio"
+title = "revisar"
+date = "2026-08-16"
+why = "el final del periodo, igual que «esta semana»: es cuando deja de poder hacerse"
+
+[[case]]
+input = "revisar el mes que viene"
+title = "revisar"
+date = "2026-09-30"
+why = "el último día del mes siguiente, por la misma razón"
 
 [[case]]
 input = "llamar a las 3"
