@@ -40,7 +40,10 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
   const rewritten = (typed: string) => {
     setText(typed);
     // Removals point at spans of the old sentence; a picked date does not.
-    setEdits(({ date, deadline }) => ({ date, deadline }));
+    // An emptied field keeps nothing: an invisible date would ride the next one.
+    setEdits(({ date, deadline, takeOffer }) =>
+      typed.trim() ? { date, deadline, takeOffer } : {},
+    );
   };
 
   useEffect(() => {
@@ -128,10 +131,10 @@ function marks(text: string, seen: Parsed, edits: Edits): Mark[] {
         return edits.noList === true;
       case "priority":
         return edits.noPriority === true;
-      case "tag":
-        return (edits.noTags ?? []).includes(
-          letters.slice(span.from, span.to).join("").replace(/^#/, "").toLowerCase(),
-        );
+      case "tag": {
+        const written = letters.slice(span.from, span.to).join("");
+        return (edits.noTags ?? []).some((one) => alike(one, written));
+      }
     }
   };
 
@@ -148,6 +151,14 @@ function marks(text: string, seen: Parsed, edits: Edits): Mark[] {
   );
   return [...taken, ...offered];
 }
+
+/// The span carries what was typed; the edit carries what the core normalised.
+const alike = (tag: string, written: string): boolean =>
+  written
+    .replace(/^#/, "")
+    .toLowerCase()
+    .replace(/[ _]/g, "-")
+    .replace(/[^\p{L}\p{N}-]/gu, "") === tag;
 
 function Hint() {
   return (

@@ -2,7 +2,8 @@ import { useState } from "react";
 import type { Change, List, Task } from "../core";
 import { whenLabel } from "../format";
 import { t } from "../locales";
-import Calendar from "./Calendar";
+import Recall from "./Recall";
+import When from "./When";
 
 interface Props {
   task: Task;
@@ -11,7 +12,7 @@ interface Props {
   onPatch: (change: Change) => void;
 }
 
-type Slot = "date" | "deadline" | "priority" | "list" | "tags";
+type Slot = "date" | "deadline" | "priority" | "list" | "tags" | "recall";
 
 export default function Fields({ task, lists, known, onPatch }: Props) {
   const [open, setOpen] = useState<Slot | null>(null);
@@ -24,18 +25,22 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
 
   return (
     <div className="mb-5 flex flex-wrap items-center gap-1.5">
-      <Held slot="list" open={open} onOpen={setOpen} tint="bg-mark-list" empty={list === undefined}>
-        <span>@ {list?.name ?? t("fieldList")}</span>
-        {open === "list" && (
-          <Sheet onClose={close}>
-            {list && <Row onPick={() => apply({ inbox: true })}>{t("noList")}</Row>}
-            {lists.map((one) => (
-              <Row key={one.id} onPick={() => apply({ list: one.id })}>
-                {one.name}
-              </Row>
-            ))}
-          </Sheet>
-        )}
+      <Held
+        slot="list"
+        open={open}
+        onOpen={setOpen}
+        tint="bg-mark-list"
+        empty={list === undefined}
+        label={`@ ${list?.name ?? t("fieldList")}`}
+      >
+        <Sheet onClose={close}>
+          {list && <Row onPick={() => apply({ inbox: true })}>{t("noList")}</Row>}
+          {lists.map((one) => (
+            <Row key={one.id} onPick={() => apply({ list: one.id })}>
+              {one.name}
+            </Row>
+          ))}
+        </Sheet>
       </Held>
 
       {(["date", "deadline"] as const).map((slot) => {
@@ -48,18 +53,17 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
             onOpen={setOpen}
             tint={slot === "date" ? "bg-mark-date" : "bg-mark-deadline"}
             empty={!spec}
+            label={`${slot === "date" ? "☀" : "⚑"} ${spec ? whenLabel(spec) : t(fieldOf(slot))}`}
           >
-            <span>
-              {slot === "date" ? "☀" : "⚑"} {spec ? whenLabel(spec) : t(fieldOf(slot))}
-            </span>
-            {open === slot && (
-              <Calendar
+            <Sheet roomy onClose={close}>
+              <When
                 value={spec?.at.slice(0, 10)}
-                onPick={(iso) => apply(slot === "date" ? { date: iso } : { deadline: iso })}
+                clock={spec?.has_time ? spec.at.slice(11, 16) : undefined}
+                onPick={(at) => apply(slot === "date" ? { date: at } : { deadline: at })}
                 onClear={() => apply(slot === "date" ? { noDate: true } : { noDeadline: true })}
                 onClose={close}
               />
-            )}
+            </Sheet>
           </Held>
         );
       })}
@@ -70,47 +74,64 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
         onOpen={setOpen}
         tint="bg-mark-priority"
         empty={task.priority === 4}
+        label={`! ${task.priority < 4 ? t(named(task.priority)) : t("fieldPriority")}`}
       >
-        <span>! {task.priority < 4 ? t(named(task.priority)) : t("fieldPriority")}</span>
-        {open === "priority" && (
-          <Sheet onClose={close}>
-            {([1, 2, 3, 4] as const).map((level) => (
-              <Row key={level} onPick={() => apply({ priority: level })}>
-                {level < 4 ? t(named(level)) : t("noPriority")}
-              </Row>
-            ))}
-          </Sheet>
-        )}
+        <Sheet onClose={close}>
+          {([1, 2, 3, 4] as const).map((level) => (
+            <Row key={level} onPick={() => apply({ priority: level })}>
+              {level < 4 ? t(named(level)) : t("noPriority")}
+            </Row>
+          ))}
+        </Sheet>
       </Held>
 
       {task.tags?.map((tag) => (
-        <span
+        <Worn
           key={tag}
-          className="inline-flex items-center gap-1 rounded-md bg-mark-tag py-1 pr-1 pl-2.5 text-xs"
-        >
-          # {tag}
-          <button
-            type="button"
-            aria-label={`${t("remove")} ${tag}`}
-            onClick={() => onPatch({ tags: (task.tags ?? []).filter((one) => one !== tag) })}
-            className="flex h-4 w-4 items-center justify-center rounded text-faint hover:bg-line hover:text-ink"
-          >
-            ×
-          </button>
-        </span>
+          tint="bg-mark-tag"
+          label={`# ${tag}`}
+          onDrop={() => onPatch({ untag: tag })}
+        />
       ))}
 
-      <Held slot="tags" open={open} onOpen={setOpen} tint="bg-mark-tag" empty>
-        <span># {t("fieldTag")}</span>
-        {open === "tags" && (
-          <Sheet onClose={close}>
-            <Naming
-              known={known}
-              taken={task.tags ?? []}
-              onName={(name) => apply({ tags: [...(task.tags ?? []), name] })}
-            />
-          </Sheet>
-        )}
+      <Held
+        slot="tags"
+        open={open}
+        onOpen={setOpen}
+        tint="bg-mark-tag"
+        empty
+        label={`# ${t("fieldTag")}`}
+      >
+        <Sheet onClose={close}>
+          <Naming known={known} taken={task.tags ?? []} onName={(name) => apply({ addTag: name })} />
+        </Sheet>
+      </Held>
+
+      {task.reminders?.map((at) => (
+        <Worn
+          key={at.at}
+          tint="bg-hover"
+          label={`⏰ ${whenLabel(at)}`}
+          onDrop={() => onPatch({ unremind: civil(at.at) })}
+        />
+      ))}
+
+      <Held
+        slot="recall"
+        open={open}
+        onOpen={setOpen}
+        tint="bg-hover"
+        empty
+        label={`⏰ ${t("reminder")}`}
+      >
+        <Sheet roomy onClose={close}>
+          <Recall
+            on={task.date}
+            taken={(task.reminders ?? []).map((one) => civil(one.at))}
+            onAdd={(at) => apply({ remind: at })}
+            onClose={close}
+          />
+        </Sheet>
       </Held>
     </div>
   );
@@ -121,11 +142,12 @@ interface HeldProps {
   open: Slot | null;
   tint: string;
   empty: boolean;
+  label: string;
   onOpen: (slot: Slot | null) => void;
   children: React.ReactNode;
 }
 
-function Held({ slot, open, tint, empty, onOpen, children }: HeldProps) {
+function Held({ slot, open, tint, empty, label, onOpen, children }: HeldProps) {
   return (
     <span className="relative inline-flex">
       <button
@@ -135,17 +157,47 @@ function Held({ slot, open, tint, empty, onOpen, children }: HeldProps) {
           empty ? "border border-dashed border-line text-faint" : `${tint} text-ink`
         }`}
       >
-        {children}
+        {empty && <span className="text-[13px] leading-none">＋</span>}
+        {label}
+      </button>
+      {open === slot && children}
+    </span>
+  );
+}
+
+function Worn({ label, tint, onDrop }: { label: string; tint: string; onDrop: () => void }) {
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-md py-1 pr-1 pl-2.5 text-xs ${tint}`}>
+      {label}
+      <button
+        type="button"
+        aria-label={`${t("remove")} ${label}`}
+        onClick={onDrop}
+        className="flex h-4 w-4 items-center justify-center rounded text-faint hover:bg-line hover:text-ink"
+      >
+        ×
       </button>
     </span>
   );
 }
 
-function Sheet({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function Sheet({
+  children,
+  roomy,
+  onClose,
+}: {
+  children: React.ReactNode;
+  roomy?: boolean;
+  onClose: () => void;
+}) {
   return (
     <>
       <span className="fixed inset-0 z-10" onClick={onClose} />
-      <div className="absolute top-7 left-0 z-20 max-h-64 w-56 overflow-auto rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lg">
+      <div
+        className={`absolute top-7 left-0 z-20 rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lg ${
+          roomy ? "w-[248px]" : "max-h-64 w-56 overflow-auto"
+        }`}
+      >
         {children}
       </div>
     </>
@@ -174,15 +226,15 @@ function Naming({
   onName: (name: string) => void;
 }) {
   const [text, setText] = useState("");
-  const name = text.trim().replace(/^#/, "").toLowerCase();
-  const offered = known.filter((one) => !taken.includes(one) && one.startsWith(name));
+  const typed = text.trim().replace(/^#/, "").toLowerCase();
+  const offered = known.filter((one) => !taken.includes(one) && one.startsWith(typed));
 
   return (
     <>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (name && !taken.includes(name)) onName(name);
+          if (typed) onName(typed);
         }}
       >
         <input
@@ -206,6 +258,8 @@ function Naming({
     </>
   );
 }
+
+const civil = (at: string): string => `${at.slice(0, 16).replace(" ", "T")}:00`;
 
 const named = (level: number): "high" | "medium" | "low" =>
   level === 1 ? "high" : level === 2 ? "medium" : "low";

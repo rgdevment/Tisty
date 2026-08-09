@@ -590,3 +590,14 @@ why = "a day of the month already past rolls to the NEXT MONTH, not the next yea
 input = "take the pills every day for 30 days"
 title = "take the pills every day for 30 days"
 why = "a duration is not a date; recurrence is a phase 3 gap"
+
+[[case]]
+input = "a course of 3 months"
+title = "a course of 3 months"
+why = "«of N units» is how long it lasts, not when"
+
+[[case]]
+input = "deliver on 24/12/26"
+title = "deliver"
+date = "2026-12-24"
+why = "a two-digit year belongs to this century"

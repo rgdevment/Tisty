@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
-import { capture, complete, patch, snapshot, type Change, type Snapshot, type Task } from "./core";
+import {
+  capture,
+  complete,
+  dropStep,
+  markStep,
+  patch,
+  snapshot,
+  writeLog,
+  writeStep,
+  type Change,
+  type Snapshot,
+  type Task,
+} from "./core";
 import { adopt } from "./locales";
 import { saidPlainly } from "./refusal";
 import { accepts, asView, invite, title, type Chosen } from "./views";
@@ -20,9 +32,12 @@ export default function App() {
   const [selected, setSelected] = useState<string | undefined>();
   const [captured, setCaptured] = useState<Task | undefined>();
   const [reveal, setReveal] = useState<string | undefined>();
-  const [mode, setMode] = useState<Mode>("columns");
+  const [mode, setMode] = useState<Mode>(
+    () => (localStorage.getItem("detail") as Mode) ?? "columns",
+  );
   const [chosen, setChosen] = useState<Chosen>({ named: "today" });
   const [found, setFound] = useState<Task[] | null>(null);
+  const [held, setHeld] = useState<Task | undefined>();
   const dismiss = useCallback(() => setCaptured(undefined), []);
 
   useTheme();
@@ -44,8 +59,17 @@ export default function App() {
 
   if (!data) return null;
 
-  const task = data.tasks.find((candidate) => candidate.id === selected);
+  const fresh =
+    data.tasks.find((candidate) => candidate.id === selected) ??
+    found?.find((candidate) => candidate.id === selected);
+  const task = fresh ?? (held?.id === selected ? held : undefined) ?? undefined;
   const open = task !== undefined;
+  if (fresh && fresh !== held) setHeld(fresh);
+
+  const remember = (next: Mode) => {
+    localStorage.setItem("detail", next);
+    setMode(next);
+  };
 
   const act = (work: Promise<unknown>) => {
     setError(null);
@@ -60,6 +84,12 @@ export default function App() {
       }}
     >
       <WindowChrome />
+
+      {error && (
+        <p className="pointer-events-none fixed inset-x-0 top-11 z-40 mx-auto w-fit rounded-md bg-urgent/12 px-3 py-1.5 text-xs text-urgent">
+          {error}
+        </p>
+      )}
 
       {captured && (
         <Notice
@@ -88,13 +118,18 @@ export default function App() {
 
       {open && mode === "sheet" ? (
         <Detail
+          key={task.id}
           task={task}
           lists={data.lists}
           known={data.tags.map((one) => one.tag)}
           expanded
-          onExpand={() => setMode("sheet")}
-          onCollapse={() => setMode("columns")}
+          onExpand={() => remember("sheet")}
+          onCollapse={() => remember("columns")}
           onPatch={(change: Change) => act(patch(task.id, change))}
+          onStep={(text, step) => act(writeStep(task.id, text, step))}
+          onMark={(step, done) => act(markStep(task.id, step, done))}
+          onDropStep={(step) => act(dropStep(task.id, step))}
+          onLog={(body, entry) => act(writeLog(task.id, body, entry))}
         />
       ) : (
         <TaskList
@@ -106,7 +141,7 @@ export default function App() {
           reveal={reveal}
           centred={!open}
           onSelect={setSelected}
-          onComplete={(id) => act(complete(id))}
+          onComplete={chosen.named === "archive" ? undefined : (id) => act(complete(id))}
           above={
             chosen.named === "tags" || chosen.tags?.length ? (
               <Tags
@@ -125,9 +160,9 @@ export default function App() {
           }
         >
           {chosen.named === "search" ? (
-            <Search onFound={setFound} />
+            <Search key="search" onFound={setFound} />
           ) : chosen.named === "archive" ? (
-            <Search fixed="archived" onFound={setFound} />
+            <Search key="archive" fixed="archived" onFound={setFound} />
           ) : accepts(chosen) ? (
           <CaptureField
             invite={invite(chosen, data.lists)}
@@ -144,19 +179,23 @@ export default function App() {
             onError={setError}
           />
           ) : null}
-          {error && <p className="mt-2 px-2.5 text-xs text-urgent">{error}</p>}
         </TaskList>
       )}
 
       {open && mode === "columns" && (
         <Detail
+          key={task.id}
           task={task}
           lists={data.lists}
           known={data.tags.map((one) => one.tag)}
           expanded={false}
-          onExpand={() => setMode("sheet")}
-          onCollapse={() => setMode("columns")}
+          onExpand={() => remember("sheet")}
+          onCollapse={() => remember("columns")}
           onPatch={(change: Change) => act(patch(task.id, change))}
+          onStep={(text, step) => act(writeStep(task.id, text, step))}
+          onMark={(step, done) => act(markStep(task.id, step, done))}
+          onDropStep={(step) => act(dropStep(task.id, step))}
+          onLog={(body, entry) => act(writeLog(task.id, body, entry))}
         />
       )}
     </div>

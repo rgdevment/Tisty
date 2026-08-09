@@ -637,3 +637,25 @@ certainty = "assumed"
 priority = 1
 tags = ["deporte"]
 why = "las dos fechas, la etiqueta y la prioridad en una sola frase; el «o» que queda entre los dos huecos se descarta por ser un conector suelto"
+
+[[case]]
+input = "contrato de 6 meses"
+title = "contrato de 6 meses"
+why = "«de N unidades» dice cuánto DURA, no cuándo; el paseo hacia atrás cruza «de» por ser artículo, así que la duración se caza después"
+
+[[case]]
+input = "curso de 3 meses con Ana"
+title = "curso de 3 meses con Ana"
+why = "la misma duración con texto detrás"
+
+[[case]]
+input = "entregar el 24/12/26"
+title = "entregar"
+date = "2026-12-24"
+why = "un año de dos dígitos es de este siglo, nunca el año 26 de nuestra era"
+
+[[case]]
+input = "hablar con @juan, mañana"
+title = "hablar con"
+date = "2026-08-06"
+why = "la coma detrás del marcador no forma parte del nombre; sin recortarla se creaba una lista «juan,» al lado de «juan»"

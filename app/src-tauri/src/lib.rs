@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use tisty_core::{
     Config, Event, List, Op, Paths, State, Store, Tag, Task,
-    event::TaskPatch,
+    event::{LogAdd, LogEdit, StepAdd, StepRef, StepText, TaskPatch},
     view::{Filter, Scope, Window},
 };
 
@@ -21,7 +21,7 @@ impl Session {
         let paths = Paths::resolve()?;
         let config = Config::load_or_init(&paths)?;
         let store = Store::open(paths.store(), config.device_id.clone())?;
-        let state = tisty_core::cache::summarised(&paths.store(), paths.cache())?;
+        let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
         let cache = tisty_core::cache::Cache::open(paths.cache())?;
         let print = tisty_core::cache::fingerprint(&paths.store());
 
@@ -40,7 +40,7 @@ impl Session {
         if print == self.print {
             return Ok(false);
         }
-        self.state = tisty_core::cache::summarised(&self.paths.store(), self.paths.cache())?;
+        self.state = tisty_core::cache::project(&self.paths.store(), self.paths.cache())?;
         self.print = print;
         Ok(true)
     }
@@ -375,7 +375,28 @@ impl Edits {
 }
 
 fn dated(raw: &str, now: &jiff::Zoned, spoken: &str) -> Result<tisty_core::DateSpec, Refusal> {
+    if let Ok(when) = raw.parse::<jiff::civil::DateTime>() {
+        return Ok(tisty_core::DateSpec::floating(when, zone()));
+    }
     tisty_nl::parse_date(raw, now, spoken).ok_or_else(|| Refusal::about("notADate", raw))
+}
+
+/// A deadline or a reminder in the past is not a mistake to store and explain
+/// later: it can never fire and it can never be met.
+fn ahead(
+    spec: &tisty_core::DateSpec,
+    now: &jiff::Zoned,
+    code: &'static str,
+) -> Result<(), Refusal> {
+    let passed = if spec.has_time {
+        spec.at < now.datetime()
+    } else {
+        spec.date() < now.date()
+    };
+    if passed {
+        return Err(Refusal::of(code));
+    }
+    Ok(())
 }
 
 /// `locale` is the system's, via the webview; the configured one still wins.
@@ -395,12 +416,13 @@ fn capture(
 
     if let Some(view) = view {
         if draft.filing.is_none()
-            && let Some(list) = view.list
+            && let Some(list) = &view.list
         {
-            draft.filing = Some(tisty_core::capture::Filing::Named(list));
+            let id = list.parse().map_err(|_| Refusal::of("notAListId"))?;
+            draft.filing = Some(tisty_core::capture::Filing::Kept(id));
         }
-        for name in view.tags {
-            if let Ok(tag) = Tag::new(&name)
+        for name in &view.tags {
+            if let Ok(tag) = Tag::new(name)
                 && !draft.tags.contains(&tag)
             {
                 draft.tags.push(tag);
@@ -449,13 +471,19 @@ struct Change {
     #[serde(default)]
     priority: Option<u8>,
     #[serde(default)]
-    tags: Option<Vec<String>>,
+    add_tag: Option<String>,
+    #[serde(default)]
+    untag: Option<String>,
     #[serde(default)]
     list: Option<String>,
     #[serde(default)]
     inbox: bool,
     #[serde(default)]
     description: Option<String>,
+    #[serde(default)]
+    remind: Option<String>,
+    #[serde(default)]
+    unremind: Option<String>,
 }
 
 /// One batch: an undo has to take back the whole edit, not half of it.
@@ -470,34 +498,39 @@ fn patch(
     let mut session = held(&session);
     let spoken = session.locale.clone().unwrap_or(locale);
     let now = jiff::Zoned::now();
+    let task = session
+        .state
+        .tasks
+        .get(&id)
+        .ok_or_else(|| Refusal::of("notATaskId"))?
+        .clone();
 
     let d = TaskPatch {
         title: change
             .title
+            .as_deref()
             .map(|t| t.trim().to_string())
             .filter(|t| !t.is_empty()),
         date: dated_field(change.date.as_deref(), change.no_date, &now, &spoken)?,
-        deadline: dated_field(
-            change.deadline.as_deref(),
-            change.no_deadline,
-            &now,
-            &spoken,
-        )?,
+        deadline: {
+            let field = dated_field(
+                change.deadline.as_deref(),
+                change.no_deadline,
+                &now,
+                &spoken,
+            )?;
+            if let Some(Some(spec)) = &field {
+                ahead(spec, &now, "pastDeadline")?;
+            }
+            field
+        },
         priority: change
             .priority
             .map(tisty_core::Priority::try_from)
             .transpose()
             .map_err(|_| Refusal::of("notAPriority"))?,
-        tags: change
-            .tags
-            .map(|names| {
-                names
-                    .iter()
-                    .map(|name| Tag::new(name).map_err(|_| Refusal::about("badTag", name)))
-                    .collect::<Result<_, _>>()
-            })
-            .transpose()?,
-        reminders: None,
+        tags: tagged(&task, &change)?,
+        reminders: recalled(&task, &change, &now)?,
     };
 
     let filed = match (&change.list, change.inbox) {
@@ -510,7 +543,7 @@ fn patch(
     if d != TaskPatch::default() {
         ops.push(Op::TaskUpdate { id, d });
     }
-    if let Some(body) = change.description {
+    if let Some(body) = &change.description {
         let kept = body.trim().to_string();
         ops.push(Op::TaskDescribe {
             id,
@@ -534,6 +567,56 @@ fn patch(
     Ok(session.state.tasks[&id].clone())
 }
 
+/// Built from the task as it is now, not from a vector the window sent: two
+/// quick clicks would otherwise undo each other.
+fn tagged(task: &Task, change: &Change) -> Result<Option<Vec<Tag>>, Refusal> {
+    if change.add_tag.is_none() && change.untag.is_none() {
+        return Ok(None);
+    }
+    let mut tags = task.tags.clone();
+    if let Some(name) = &change.untag {
+        let gone = Tag::new(name).map_err(|_| Refusal::about("badTag", name))?;
+        tags.retain(|kept| *kept != gone);
+    }
+    if let Some(name) = &change.add_tag {
+        let one = Tag::new(name).map_err(|_| Refusal::about("badTag", name))?;
+        if !tags.contains(&one) {
+            tags.push(one);
+        }
+    }
+    Ok(Some(tags))
+}
+
+fn recalled(
+    task: &Task,
+    change: &Change,
+    now: &jiff::Zoned,
+) -> Result<Option<Vec<tisty_core::DateSpec>>, Refusal> {
+    if change.remind.is_none() && change.unremind.is_none() {
+        return Ok(None);
+    }
+    let civil = |raw: &String| {
+        raw.parse::<jiff::civil::DateTime>()
+            .map_err(|_| Refusal::about("notADate", raw))
+    };
+    let mut at = task.reminders.clone();
+    if let Some(raw) = &change.unremind {
+        let gone = civil(raw)?;
+        at.retain(|kept| kept.at != gone);
+    }
+    if let Some(raw) = &change.remind {
+        let when = civil(raw)?;
+        if when < now.datetime() {
+            return Err(Refusal::of("pastReminder"));
+        }
+        if !at.iter().any(|kept| kept.at == when) {
+            at.push(tisty_core::DateSpec::floating(when, zone()));
+        }
+    }
+    at.sort_by_key(|one| one.at);
+    Ok(Some(at))
+}
+
 fn dated_field(
     raw: Option<&str>,
     cleared: bool,
@@ -545,6 +628,107 @@ fn dated_field(
         (None, true) => Ok(Some(None)),
         _ => Ok(None),
     }
+}
+
+#[tauri::command]
+fn write_step(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    step: Option<String>,
+    text: String,
+) -> Answer<Task> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let text = text.trim().to_string();
+    if text.is_empty() {
+        return Err(Refusal::of("emptyStep"));
+    }
+    let mut session = held(&session);
+
+    let op = match step {
+        Some(raw) => Op::StepText {
+            id,
+            d: StepText {
+                step: raw.parse().map_err(|_| Refusal::of("notAStepId"))?,
+                text,
+            },
+        },
+        None => Op::StepAdd {
+            id,
+            d: StepAdd {
+                step: ulid::Ulid::generate(),
+                text,
+                order: tisty_core::order::last_of(
+                    session.state.tasks[&id]
+                        .steps
+                        .iter()
+                        .map(|s| s.order.as_str()),
+                ),
+            },
+        },
+    };
+    session.commit(op)?;
+    Ok(session.state.tasks[&id].clone())
+}
+
+#[tauri::command]
+fn mark_step(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    step: String,
+    done: bool,
+) -> Answer<Task> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let d = StepRef {
+        step: step.parse().map_err(|_| Refusal::of("notAStepId"))?,
+    };
+    let mut session = held(&session);
+    session.commit(if done {
+        Op::StepDone { id, d }
+    } else {
+        Op::StepUndone { id, d }
+    })?;
+    Ok(session.state.tasks[&id].clone())
+}
+
+#[tauri::command]
+fn drop_step(session: tauri::State<'_, Mutex<Session>>, id: String, step: String) -> Answer<Task> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let d = StepRef {
+        step: step.parse().map_err(|_| Refusal::of("notAStepId"))?,
+    };
+    let mut session = held(&session);
+    session.commit(Op::StepRemove { id, d })?;
+    Ok(session.state.tasks[&id].clone())
+}
+
+#[tauri::command]
+fn write_log(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    entry: Option<String>,
+    body: String,
+) -> Answer<Task> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let body = body.trim().to_string();
+    if body.is_empty() {
+        return Err(Refusal::of("emptyEntry"));
+    }
+    let mut session = held(&session);
+
+    session.commit(match entry {
+        Some(raw) => Op::TaskLogEdit {
+            id,
+            d: LogEdit {
+                entry: raw.parse().map_err(|_| Refusal::of("notAnEntry"))?,
+                body,
+            },
+        },
+        None => Op::TaskLog {
+            id,
+            d: LogAdd::new(ulid::Ulid::generate(), body).in_zone(Some(zone())),
+        },
+    })?;
+    Ok(session.state.tasks[&id].clone())
 }
 
 /// Searches through the core, or it would find different things than `tisty search` does.
@@ -593,7 +777,8 @@ pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
-            snapshot, capture, read, search, complete, reopen, patch
+            snapshot, capture, read, search, complete, reopen, patch, write_step, mark_step,
+            drop_step, write_log
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -605,6 +790,33 @@ mod tests {
 
     fn now() -> jiff::Zoned {
         "2026-08-05T09:00:00[America/Santiago]".parse().unwrap()
+    }
+
+    /// The window sends the list it is looking at as an id; routing that through
+    /// the name lookup refused every capture inside a list.
+    #[test]
+    fn a_capture_inside_a_list_is_filed_by_id() {
+        let mut state = State::default();
+        let list = ulid::Ulid::generate();
+        state.apply(&tisty_core::Event::new(
+            tisty_core::event::DeviceId("dev".into()),
+            jiff::Timestamp::now(),
+            Op::ListAdd {
+                id: list,
+                d: tisty_core::event::ListAdd {
+                    name: "unificación de login".into(),
+                    color: None,
+                    order: "a0".into(),
+                },
+            },
+        ));
+
+        let mut draft: tisty_core::capture::Draft =
+            tisty_nl::parse("revisar el deploy", &now(), "es").into();
+        draft.filing = Some(tisty_core::capture::Filing::Kept(list));
+
+        let plan = tisty_core::capture::plan(&state, draft).expect("filed");
+        assert!(matches!(plan.ops.first(), Some(Op::TaskAdd { d, .. }) if d.list == Some(list)));
     }
 
     #[test]

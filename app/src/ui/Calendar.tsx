@@ -3,12 +3,13 @@ import { locale, t } from "../locales";
 
 interface Props {
   value?: string;
+  inline?: boolean;
   onPick: (iso: string) => void;
   onClear: () => void;
   onClose: () => void;
 }
 
-export default function Calendar({ value, onPick, onClear, onClose }: Props) {
+export default function Calendar({ value, inline, onPick, onClear, onClose }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const today = civil(new Date());
   const [month, setMonth] = useState(() => first(value ?? today));
@@ -18,20 +19,24 @@ export default function Calendar({ value, onPick, onClear, onClose }: Props) {
       if (!box.current?.contains(e.target as Node)) onClose();
     };
     const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("mousedown", away);
+    if (!inline) document.addEventListener("mousedown", away);
     document.addEventListener("keydown", key);
     return () => {
       document.removeEventListener("mousedown", away);
       document.removeEventListener("keydown", key);
     };
-  }, [onClose]);
+  }, [inline, onClose]);
 
   const { day: named, heading } = formats();
 
   return (
     <div
       ref={box}
-      className="absolute top-6 left-0 z-10 w-[236px] rounded-[10px] border border-line bg-bg p-2.5 text-[12.5px] shadow-lg"
+      className={
+        inline
+          ? "w-full text-[12.5px]"
+          : "absolute top-6 left-0 z-10 w-[236px] rounded-[10px] border border-line bg-bg p-2.5 text-[12.5px] shadow-lg"
+      }
     >
       <div className="mb-1.5 flex items-center">
         <Step to={-1} on={month} go={setMonth} />

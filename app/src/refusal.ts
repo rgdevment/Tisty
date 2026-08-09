@@ -13,6 +13,14 @@ const KNOWN = [
   "badTag",
   "notATaskId",
   "notAListId",
+  "notAStepId",
+  "notADate",
+  "notAPriority",
+  "notAnEntry",
+  "emptyStep",
+  "emptyEntry",
+  "pastDeadline",
+  "pastReminder",
   "internal",
 ] as const;
 
