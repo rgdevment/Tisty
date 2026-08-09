@@ -113,6 +113,9 @@ pub struct Task {
     pub tags: Vec<Tag>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reminders: Vec<DateSpec>,
+    /// Noise the user put away by hand. Never removed, only folded.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub hidden: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completed_at: Option<Timestamp>,
 
@@ -131,6 +134,12 @@ pub struct Volume {
     pub journal: usize,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub described: bool,
+    /// Substance of what was written, capped. A summary is loaded without its
+    /// bodies, so the weight has to be stored rather than recomputed from them.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub prose: usize,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub refs: usize,
 }
 
 fn is_zero(n: &usize) -> bool {
@@ -159,6 +168,7 @@ impl Task {
             list: None,
             tags: Vec::new(),
             reminders: Vec::new(),
+            hidden: false,
             completed_at: None,
             volume: Volume::default(),
         }
@@ -188,6 +198,13 @@ impl Task {
 
     /// Recomputed from the vectors after any change to them.
     pub fn retally(&mut self) {
+        let written: usize = self
+            .description
+            .iter()
+            .map(|body| substance(body))
+            .chain(self.log.iter().map(|entry| substance(&entry.body)))
+            .sum();
+
         self.volume = Volume {
             steps: self.steps.len(),
             steps_done: self.steps.iter().filter(|s| s.done).count(),
@@ -197,6 +214,8 @@ impl Task {
                 .filter(|e| !e.body.trim().is_empty())
                 .count(),
             described: self.description.is_some(),
+            prose: written.min(PROSE_CAP),
+            refs: self.volume.refs,
         };
     }
 
@@ -213,16 +232,38 @@ impl Task {
         self.log.iter().filter(|e| !e.body.trim().is_empty())
     }
 
-    /// Always recomputed: drives empty-section skipping and search ranking.
     pub fn weight(&self) -> usize {
-        usize::from(self.volume.described)
-            + self.volume.journal
-            + self.volume.steps
-            + self.tags.len()
-            + usize::from(self.date.is_some())
-            + usize::from(self.deadline.is_some())
-            + usize::from(self.list.is_some())
-            + self.reminders.len()
+        self.volume.weight()
+    }
+}
+
+const PROSE_CAP: usize = 8;
+
+/// Words, not entries: twelve «ok» say nothing and two paragraphs say a lot.
+fn substance(body: &str) -> usize {
+    match body.split_whitespace().count() {
+        0..=2 => 0,
+        3..=29 => 1,
+        _ => 2,
+    }
+}
+
+impl Volume {
+    /// What a task is worth being found by, months later. Date, deadline, list,
+    /// tags, priority and reminders say WHEN and WHERE, and say nothing at all
+    /// by then, so none of them count.
+    pub fn weight(&self) -> usize {
+        let plan = match self.steps {
+            0..=2 => 0,
+            3..=7 => 1,
+            _ => 2,
+        };
+        let refs = match self.refs {
+            0 => 0,
+            1..=2 => 1,
+            _ => 2,
+        };
+        self.prose.min(PROSE_CAP) + plan + refs
     }
 }
 
@@ -232,6 +273,15 @@ mod tests {
 
     fn task() -> Task {
         Task::new(Ulid::generate(), "ship it", "a0")
+    }
+
+    fn entry(body: &str) -> LogEntry {
+        LogEntry {
+            id: Ulid::generate(),
+            at: Timestamp::UNIX_EPOCH,
+            tz: None,
+            body: body.into(),
+        }
     }
 
     #[test]
@@ -294,21 +344,70 @@ mod tests {
 
     #[test]
     fn weight_separates_the_trivial_from_the_documented() {
-        let trivial = task();
+        let mut trivial = task();
+        trivial.retally();
 
         let mut rich = task();
-        rich.description = Some("…".into());
-        rich.date = Some(DateSpec::all_day("2026-08-05".parse().unwrap(), "UTC"));
-        rich.tags = vec![Tag::new("work").unwrap(), Tag::new("urgent").unwrap()];
-        rich.log.push(LogEntry {
-            id: Ulid::generate(),
-            at: Timestamp::UNIX_EPOCH,
-            tz: None,
-            body: "first attempt failed".into(),
-        });
+        rich.description = Some("el redirect de registration se cae en Brasil".into());
+        rich.log
+            .push(entry("el proxy lateral no arrancaba con la config nueva"));
+        rich.retally();
 
         assert_eq!(trivial.weight(), 0);
         assert!(rich.weight() > trivial.weight());
+    }
+
+    /// The old formula counted date, list and tags, so «reunión con Pepe mañana»
+    /// outranked a task with three journal entries — backwards.
+    #[test]
+    fn the_agenda_never_outweighs_the_history() {
+        let mut agenda = task();
+        agenda.date = Some(DateSpec::all_day("2026-08-05".parse().unwrap(), "UTC"));
+        agenda.deadline = Some(DateSpec::all_day("2026-08-09".parse().unwrap(), "UTC"));
+        agenda.tags = vec![Tag::new("work").unwrap(), Tag::new("urgent").unwrap()];
+        agenda.list = Some(Ulid::generate());
+        agenda.reminders = vec![DateSpec::all_day("2026-08-04".parse().unwrap(), "UTC")];
+        agenda.retally();
+
+        let mut history = task();
+        history
+            .log
+            .push(entry("el gateway no propagaba la cabecera"));
+        history.retally();
+
+        assert_eq!(agenda.weight(), 0);
+        assert!(history.weight() > agenda.weight());
+    }
+
+    /// Twelve «ok» are not documentation; two paragraphs are.
+    #[test]
+    fn weight_counts_substance_and_not_entries() {
+        let mut noisy = task();
+        for _ in 0..12 {
+            noisy.log.push(entry("ok"));
+        }
+        noisy.retally();
+
+        let mut written = task();
+        written.log.push(entry(
+            "el proxy lateral no arrancaba con la configuración nueva",
+        ));
+        written.retally();
+
+        assert_eq!(noisy.weight(), 0);
+        assert!(written.weight() > noisy.weight());
+    }
+
+    #[test]
+    fn weight_has_a_ceiling_so_a_disaster_cannot_top_everything() {
+        let mut endless = task();
+        for _ in 0..40 {
+            endless
+                .log
+                .push(entry("volvió a fallar el despliegue del proxy lateral"));
+        }
+        endless.retally();
+        assert_eq!(endless.weight(), 8);
     }
 
     #[test]

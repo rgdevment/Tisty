@@ -39,5 +39,19 @@ export function whenLabel(spec: DateSpec, now = new Date()): string {
 export const isOverdue = (spec: DateSpec, now = new Date()): boolean =>
   daysFrom(spec.at, now) < 0;
 
+/// The archive is read by month: «fue por marzo». The year only shows once it
+/// stops being the current one.
+export function monthOf(iso?: string, now = new Date()): string {
+  if (!iso) return "";
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "";
+
+  const shape =
+    at.getFullYear() === now.getFullYear()
+      ? { month: "long" as const }
+      : { month: "long" as const, year: "numeric" as const };
+  return new Intl.DateTimeFormat(locale(), shape).format(at);
+}
+
 export const isToday = (spec: DateSpec, now = new Date()): boolean =>
   daysFrom(spec.at, now) === 0;

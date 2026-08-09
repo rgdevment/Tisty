@@ -45,6 +45,8 @@ impl State {
                 t.status = Status::Open;
                 t.completed_at = None;
             }),
+            Op::TaskHide { id } => self.with_task(*id, |t| t.hidden = true),
+            Op::TaskShow { id } => self.with_task(*id, |t| t.hidden = false),
             Op::TaskDrop { id } => self.with_task(*id, |t| {
                 t.status = Status::Dropped;
                 t.completed_at = Some(event.timestamp);
@@ -215,7 +217,7 @@ impl State {
             return Vec::new();
         }
 
-        let mut hits: Vec<&Task> = self
+        let mut hits: Vec<(crate::view::Hit, &Task)> = self
             .tasks
             .values()
             .filter(|t| match scope {
@@ -223,17 +225,21 @@ impl State {
                 Scope::Archived => t.is_archived(),
                 Scope::Either => true,
             })
-            .filter(|t| crate::view::matches_query(t, &query))
+            .filter_map(|t| crate::view::matches_query(t, &query).map(|hit| (hit, t)))
             .collect();
 
-        hits.sort_by_key(|t| {
+        // What is still open first, or what remains to do ends up buried under
+        // what is already done. Then how it matched, then how much it carries.
+        hits.sort_by_key(|(hit, t)| {
             (
                 t.is_archived(),
+                *hit,
+                std::cmp::Reverse(t.weight()),
                 std::cmp::Reverse(t.completed_at),
                 std::cmp::Reverse(t.id),
             )
         });
-        hits
+        hits.into_iter().map(|(_, t)| t).collect()
     }
 
     pub fn ordered_lists(&self) -> Vec<&List> {
@@ -1002,5 +1008,56 @@ mod tests {
 
         assert_eq!(state.tasks[&a].status, Status::Done);
         assert_eq!(state.tasks[&b].status, Status::Dropped);
+    }
+
+    /// §3.1: «la tarea con historia sale antes que las quince triviales».
+    #[test]
+    fn search_puts_the_documented_before_the_trivial() {
+        let mut state = State::default();
+        let light = Ulid::generate();
+        let heavy = Ulid::generate();
+        state.apply(&ev(1, "a", add(light, "comprar pan brasil")));
+        state.apply(&ev(2, "a", add(heavy, "revisar el deploy brasil")));
+        state.apply(&ev(
+            3,
+            "a",
+            Op::TaskLog {
+                id: heavy,
+                d: crate::event::LogAdd::new(
+                    Ulid::generate(),
+                    "el gateway no propagaba la cabecera",
+                ),
+            },
+        ));
+
+        let found = state.search("brasil", crate::view::Scope::Either);
+        assert_eq!(found[0].id, heavy);
+    }
+
+    /// Naming it beats mentioning it, whatever it weighs.
+    #[test]
+    fn a_title_match_outranks_a_heavier_body_match() {
+        let mut state = State::default();
+        let named = Ulid::generate();
+        let mentioned = Ulid::generate();
+        state.apply(&ev(1, "a", add(named, "redirects en brasil")));
+        state.apply(&ev(2, "a", add(mentioned, "migrar el proxy")));
+        for n in 0..6 {
+            state.apply(&ev(
+                10 + n,
+                "a",
+                Op::TaskLog {
+                    id: mentioned,
+                    d: crate::event::LogAdd::new(
+                        Ulid::generate(),
+                        "el despliegue de brasil volvió a fallar por el proxy",
+                    ),
+                },
+            ));
+        }
+
+        let found = state.search("brasil", crate::view::Scope::Either);
+        assert_eq!(found[0].id, named);
+        assert!(state.tasks[&mentioned].weight() > state.tasks[&named].weight());
     }
 }

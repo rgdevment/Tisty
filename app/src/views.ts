@@ -7,6 +7,7 @@ export interface Chosen {
   named?: Named;
   list?: string;
   tags?: string[];
+  folded?: boolean;
 }
 
 export function asView(chosen: Chosen): View {
@@ -21,7 +22,7 @@ export function asView(chosen: Chosen): View {
     case "upcoming":
       return { window: "upcoming" };
     case "archive":
-      return { archive: true };
+      return { archive: true, hidden: chosen.folded };
     case "tags":
       return { tagged: true, everything: true };
     default:

@@ -49,6 +49,7 @@ export interface Task {
   tags?: string[];
   reminders?: DateSpec[];
   completed_at?: string;
+  hidden?: boolean;
   volume?: Volume;
 }
 
@@ -117,6 +118,7 @@ export interface View {
   tags?: string[];
   /** Anything carrying a tag: the tag view with nothing picked. */
   tagged?: boolean;
+  hidden?: boolean;
   window?: "today" | "upcoming" | "overdue";
 }
 
@@ -169,5 +171,7 @@ export const dropStep = (id: string, step: string): Promise<Task> =>
   invoke("drop_step", { id, step });
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });
-export const complete = (id: string): Promise<void> => invoke("complete", { id });
-export const reopen = (id: string): Promise<void> => invoke("reopen", { id });
+export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
+export const complete = (id: string): Promise<Task> => invoke("complete", { id });
+export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
+export const discard = (id: string): Promise<Task> => invoke("discard", { id });

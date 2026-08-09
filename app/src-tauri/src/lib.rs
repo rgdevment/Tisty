@@ -93,6 +93,15 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             ..Default::default()
         },
     );
+    // Folded work must still say it is there, or putting it away is losing it.
+    count(
+        "folded",
+        Filter {
+            scope: Scope::Archived,
+            hidden: true,
+            ..Default::default()
+        },
+    );
 
     for list in state.ordered_lists() {
         counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
@@ -207,6 +216,8 @@ struct View {
     #[serde(default)]
     tagged: bool,
     #[serde(default)]
+    hidden: bool,
+    #[serde(default)]
     window: Option<String>,
 }
 
@@ -231,6 +242,7 @@ impl View {
                 .map(|t| Tag::new(t).map_err(|_| Refusal::about("badTag", t)))
                 .collect::<Result<_, _>>()?,
             tagged: self.tagged,
+            hidden: self.hidden,
             priority: None,
             window: match self.window.as_deref() {
                 Some("today") => Some(Window::Today),
@@ -755,19 +767,39 @@ fn search(
 }
 
 #[tauri::command]
-fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+fn discard(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    held(&session)
-        .commit(Op::TaskDone { id })
-        .map_err(Refusal::from)
+    let mut session = held(&session);
+    session.commit(Op::TaskDrop { id })?;
+    Ok(session.state.tasks[&id].clone())
 }
 
 #[tauri::command]
-fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    held(&session)
-        .commit(Op::TaskReopen { id })
-        .map_err(Refusal::from)
+    let mut session = held(&session);
+    session.commit(if away {
+        Op::TaskHide { id }
+    } else {
+        Op::TaskShow { id }
+    })?;
+    Ok(session.state.tasks[&id].clone())
+}
+
+#[tauri::command]
+fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    session.commit(Op::TaskDone { id })?;
+    Ok(session.state.tasks[&id].clone())
+}
+
+#[tauri::command]
+fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    session.commit(Op::TaskReopen { id })?;
+    Ok(session.state.tasks[&id].clone())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -778,7 +810,7 @@ pub fn run() {
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
             snapshot, capture, read, search, complete, reopen, patch, write_step, mark_step,
-            drop_step, write_log
+            drop_step, write_log, fold, discard
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

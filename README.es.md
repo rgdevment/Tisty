@@ -65,6 +65,49 @@ De ahí salen tres consecuencias que atraviesan todo el diseño:
 Porque también tiene que servir para esa reunión con Pepe, que nace y muere en
 veinticuatro horas sin dejar rastro que valga.
 
+## Lee lo que escribes
+
+Escribes una frase. Tisty le saca la fecha, deja la frase legible y te dice qué
+entendió antes de guardar nada.
+
+```console
+$ tisty "entregar el informe mañana a las 10 en la oficina"
+  ✓ entregar el informe en la oficina
+    mañana 10:00
+
+$ tisty "renovar el dominio antes del 30 de agosto"
+  ✓ renovar el dominio
+    límite dom 30 ago            # «antes del» vence, no se planifica
+
+$ tisty "revisar el deploy #backend !alto"
+  ✓ revisar el deploy
+    alto · #backend
+
+$ tisty "reunión el lunes 15"       →  reunión        · sáb 15 ago
+$ tisty "revisar la próxima semana" →  revisar        · dom 16 ago
+$ tisty "tomar café a las 3"        →  tomar café     · hoy 15:00
+```
+
+**Y lo que se niega a leer importa más.** Una suposición que suena bien es peor
+que ninguna, así que estas conservan cada palabra y no llevan fecha:
+
+```console
+$ tisty "revisar el informe del lunes"   # el informe puede llamarse así
+$ tisty "contrato de 6 meses"            # una duración no es una fecha
+$ tisty "revisar lo de hace 3 días"      # el pasado no se agenda
+$ tisty "montar soporte 24/7"            # 24/7 es una expresión, no el 24 de julio
+```
+
+Dos reglas más que conviene saber. **Lo entrecomillado no se toca**, así que
+`tisty '"reunión el lunes"'` guarda la línea entera. Y cuando la frase va en
+medio sin nada que la respalde —`llamar mañana al banco`— la fecha **se aplica
+igual, pero marcada como suposición**: la terminal lo dice e imprime el comando
+que deshace solo eso, y la ventana la subraya para que un clic la quite.
+
+Cada frase de arriba es un test. El parser lleva detrás un contrato de 190 casos
+en español e inglés que fija qué debe leer y, con la misma frecuencia, qué debe
+dejar en paz.
+
 ## Cómo se ve
 
 ```console

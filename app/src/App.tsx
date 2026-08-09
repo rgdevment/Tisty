@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import {
   capture,
   complete,
+  discard,
+  fold,
   dropStep,
   markStep,
   patch,
+  reopen,
   snapshot,
   writeLog,
   writeStep,
@@ -12,7 +15,7 @@ import {
   type Snapshot,
   type Task,
 } from "./core";
-import { adopt } from "./locales";
+import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { accepts, asView, invite, title, type Chosen } from "./views";
 import CaptureField from "./ui/CaptureField";
@@ -71,9 +74,16 @@ export default function App() {
     setMode(next);
   };
 
-  const act = (work: Promise<unknown>) => {
+  // An action that pushes the task out of the view leaves `fresh` empty, so
+  // the held copy has to come from the answer or the panel shows a stale one.
+  const act = (work: Promise<Task>) => {
     setError(null);
-    work.then(load).catch((e) => setError(saidPlainly(e)));
+    work
+      .then((one) => {
+        setHeld(one);
+        load();
+      })
+      .catch((e) => setError(saidPlainly(e)));
   };
 
   return (
@@ -130,6 +140,8 @@ export default function App() {
           onMark={(step, done) => act(markStep(task.id, step, done))}
           onDropStep={(step) => act(dropStep(task.id, step))}
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
+          onDiscard={() => act(discard(task.id))}
+          onReopen={() => act(reopen(task.id))}
         />
       ) : (
         <TaskList
@@ -140,10 +152,23 @@ export default function App() {
           fresh={captured?.id}
           reveal={reveal}
           centred={!open}
+          byMonth={chosen.named === "archive"}
           onSelect={setSelected}
           onComplete={chosen.named === "archive" ? undefined : (id) => act(complete(id))}
+          onFold={
+            chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined
+          }
           above={
-            chosen.named === "tags" || chosen.tags?.length ? (
+            chosen.named === "archive" && (data.counts.folded || chosen.folded) ? (
+              <button
+                onClick={() => setChosen({ named: "archive", folded: !chosen.folded })}
+                className="px-2.5 pb-1.5 text-xs text-faint hover:text-ink"
+              >
+                {chosen.folded
+                  ? `⊕ ${t("backToArchive")}`
+                  : `⊖ ${data.counts.folded} ${t("folded")}`}
+              </button>
+            ) : chosen.named === "tags" || chosen.tags?.length ? (
               <Tags
                 tags={data.tags}
                 chosen={chosen.tags ?? []}
@@ -196,6 +221,8 @@ export default function App() {
           onMark={(step, done) => act(markStep(task.id, step, done))}
           onDropStep={(step) => act(dropStep(task.id, step))}
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
+          onDiscard={() => act(discard(task.id))}
+          onReopen={() => act(reopen(task.id))}
         />
       )}
     </div>

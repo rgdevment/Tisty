@@ -75,6 +75,8 @@ impl Event {
             | Op::TaskReopen { id }
             | Op::TaskDrop { id }
             | Op::TaskDelete { id }
+            | Op::TaskHide { id }
+            | Op::TaskShow { id }
             | Op::TaskMove { id, .. }
             | Op::TaskDescribe { id, .. }
             | Op::TaskLog { id, .. }
