@@ -518,22 +518,32 @@ fn match_offset(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
 
     let mut from = end - 2;
     let mut asked = false;
+    let mut owned = false;
     while from > 0 {
         let w = tokens[from - 1].word.as_str();
         if v.in_prep.contains(&w) {
             asked = true;
             from -= 1;
         } else if v.article.contains(&w) {
+            owned |= v.genitive.contains(&w);
             from -= 1;
         } else {
             break;
         }
     }
 
+    // «contrato de 6 meses» is how long it lasts. The walk swallows «de»
+    // because it is also an article, so the crossing has to be remembered.
+    if owned && !asked {
+        return None;
+    }
+
     // «por 30 días» is a duration and «hace 3 días» points backwards — neither is a date to guess at.
     if from > 0 {
         let before = tokens[from - 1].word.as_str();
-        if v.past_prep.contains(&before) || (!asked && v.spans_prep.contains(&before)) {
+        let duration = v.past_prep.contains(&before)
+            || (!asked && (v.spans_prep.contains(&before) || v.genitive.contains(&before)));
+        if duration {
             return None;
         }
     }
@@ -581,8 +591,12 @@ fn match_explicit_date(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(
         && (1..=31).contains(&d)
         && (1..=12).contains(&m)
     {
+        // A two-digit year is this century, never year 26 AD.
         let year = match slashed.as_slice() {
-            [_, _, y] => Some(y.parse::<i16>().ok()?),
+            [_, _, y] => {
+                let n = y.parse::<i16>().ok()?;
+                Some(if y.len() <= 2 { 2000 + n } else { n })
+            }
             _ => None,
         };
         return Some((Anchor::OnDate(d, Some(m), year), end - 1));

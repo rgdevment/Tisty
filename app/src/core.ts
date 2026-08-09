@@ -150,13 +150,24 @@ export interface Change {
   deadline?: string;
   noDeadline?: boolean;
   priority?: Priority;
-  tags?: string[];
+  addTag?: string;
+  untag?: string;
   list?: string;
   inbox?: boolean;
   description?: string;
+  remind?: string;
+  unremind?: string;
 }
 
 export const patch = (id: string, change: Change): Promise<Task> =>
   invoke("patch", { id, change, locale: navigator.language });
+export const writeStep = (id: string, text: string, step?: string): Promise<Task> =>
+  invoke("write_step", { id, step, text });
+export const markStep = (id: string, step: string, done: boolean): Promise<Task> =>
+  invoke("mark_step", { id, step, done });
+export const dropStep = (id: string, step: string): Promise<Task> =>
+  invoke("drop_step", { id, step });
+export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
+  invoke("write_log", { id, entry, body });
 export const complete = (id: string): Promise<void> => invoke("complete", { id });
 export const reopen = (id: string): Promise<void> => invoke("reopen", { id });

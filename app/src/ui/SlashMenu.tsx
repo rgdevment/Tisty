@@ -33,10 +33,11 @@ export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, 
   useEffect(() => setStep(from), [from]);
 
   useEffect(() => {
+    if (shown.length === 0) return;
     const key = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") setAt((on + 1) % shown.length);
       else if (e.key === "ArrowUp") setAt((on - 1 + shown.length) % shown.length);
-      else if (e.key === "Enter") shown[on]?.run();
+      else if (e.key === "Enter") shown[on].run();
       else if (e.key === "Escape") onClose();
       else return;
       e.preventDefault();

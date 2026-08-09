@@ -11,6 +11,8 @@ use crate::{
 pub enum Filing {
     Marked(String),
     Named(String),
+    /// The window already knows which list: it is the one being looked at.
+    Kept(ListId),
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -48,6 +50,7 @@ pub fn plan(state: &State, draft: Draft) -> Result<Plan, Rejected> {
     let mut ops = Vec::with_capacity(2);
     let list = match &draft.filing {
         None => None,
+        Some(Filing::Kept(id)) => Some(*id),
         Some(Filing::Named(name)) => Some(existing(state, name)?),
         Some(Filing::Marked(name)) => Some(match state.find_list(name).as_slice() {
             [one] => one.id,

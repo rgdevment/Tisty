@@ -12,7 +12,7 @@ interface Props {
   title: string;
   centred: boolean;
   onSelect: (id: string) => void;
-  onComplete: (id: string) => void;
+  onComplete?: (id: string) => void;
   above?: React.ReactNode;
   children?: React.ReactNode;
 }
@@ -58,23 +58,26 @@ export default function TaskList({
             key={task.id}
             ref={reveal === task.id ? asked : undefined}
             onClick={() => onSelect(task.id)}
-            className={`grid cursor-pointer grid-cols-[20px_1fr_auto] items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-700 hover:bg-hover ${
+            className={`grid cursor-pointer ${onComplete ? "grid-cols-[20px_1fr_auto]" : "grid-cols-[1fr_auto]"} items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-700 hover:bg-hover ${
               selected === task.id ? "bg-active" : ""
             } ${fresh === task.id ? "bg-accent-soft" : ""}`}
           >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onComplete(task.id);
-              }}
-              className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${
-                task.priority === 1
-                  ? "border-urgent"
-                  : task.priority === 2
-                    ? "border-high"
-                    : "border-faint"
-              }`}
-            />
+            {onComplete && (
+              <button
+                aria-label={task.title}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onComplete(task.id);
+                }}
+                className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${
+                  task.priority === 1
+                    ? "border-urgent"
+                    : task.priority === 2
+                      ? "border-high"
+                      : "border-faint"
+                }`}
+              />
+            )}
 
             <div className="min-w-0">
               <h2 className="text-sm leading-snug">{task.title}</h2>

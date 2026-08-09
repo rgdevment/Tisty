@@ -93,11 +93,19 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
         parsed.title = literal;
     } else {
         let read = timed(&taken.text, now, tz, v);
+        let markers = parsed.spans.clone();
         parsed.title = read.title;
         parsed.date = read.date;
         parsed.deadline = read.deadline;
-        parsed.spans.extend(read.spans);
-        parsed.offers = read.offers;
+        parsed.spans.extend(carved(read.spans, &markers, input, v));
+        parsed.offers = read
+            .offers
+            .into_iter()
+            .map(|offer| Offer {
+                spans: carved(offer.spans, &markers, input, v),
+                ..offer
+            })
+            .collect();
     }
 
     parsed.spans.sort_by_key(|span| span.from);
@@ -252,6 +260,56 @@ fn resolved(
     Some(Read { spec, spans })
 }
 
+/// A marker inside the phrase keeps its own colour and its own words: blanking
+/// it left a hole the scanner walked across, so one range covered them both.
+fn carved(spans: Vec<Span>, markers: &[Span], text: &str, v: &vocab::Vocabulary) -> Vec<Span> {
+    let mut out = Vec::new();
+
+    for span in spans {
+        let mut at = span.from;
+        for hole in markers
+            .iter()
+            .filter(|m| m.from >= span.from && m.to <= span.to)
+        {
+            if hole.from > at {
+                out.push(Span {
+                    from: at,
+                    to: hole.from,
+                    ..span
+                });
+            }
+            at = hole.to;
+        }
+        if at < span.to {
+            out.push(Span {
+                from: at,
+                to: span.to,
+                ..span
+            });
+        }
+    }
+
+    // A piece left with nothing but particles is what the swallow dragged in,
+    // not a reading: «llamar a @juan mañana» would paint the «a» blue.
+    out.retain_mut(|span| {
+        let (from, to) = pared(text, span.from, span.to);
+        span.from = from;
+        span.to = to;
+        text[from..to]
+            .split_whitespace()
+            .any(|word| !droppable(&word.to_lowercase(), v))
+    });
+    out
+}
+
+fn droppable(word: &str, v: &vocab::Vocabulary) -> bool {
+    v.article.contains(&word)
+        || v.time_prep.contains(&word)
+        || v.date_prep.contains(&word)
+        || v.deadline_prep.contains(&word)
+        || v.in_prep.contains(&word)
+}
+
 /// Punctuation around the phrase is not part of the reading: «mañana,» would otherwise draw its comma inside the highlight.
 fn pared(text: &str, from: usize, to: usize) -> (usize, usize) {
     let edge = |c: char| !c.is_alphanumeric();
@@ -320,7 +378,8 @@ fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
                 None => continue,
             }
         } else if let Some(raw) = word.strip_prefix('@') {
-            // A bare `@42` is part of the title: no list is named by digits alone.
+            // Trailing punctuation would create «juan,» next to «juan».
+            let raw = raw.trim_end_matches(|c: char| !c.is_alphanumeric());
             if raw.is_empty() || raw.parse::<u64>().is_ok() {
                 continue;
             }
@@ -636,6 +695,53 @@ mod tests {
                 ("a las 16:00".to_string(), Mark::Date, Certainty::Sure),
             ]
         );
+    }
+
+    /// A blanked marker left a hole the scanner walked across, so one date span
+    /// covered the tag too: it painted over it and unmarking lost the word.
+    #[test]
+    fn a_marker_inside_the_phrase_keeps_its_own_span() {
+        assert_eq!(
+            spans("reunión el martes #trabajo a las 16:00", "es"),
+            [
+                ("el martes".to_string(), Mark::Date, Certainty::Sure),
+                ("#trabajo".to_string(), Mark::Tag, Certainty::Sure),
+                ("a las 16:00".to_string(), Mark::Date, Certainty::Sure),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_list_between_the_verb_and_the_day_is_not_swallowed() {
+        assert_eq!(
+            spans("llamar a @juan mañana", "es"),
+            [
+                ("@juan".to_string(), Mark::List, Certainty::Sure),
+                ("mañana".to_string(), Mark::Date, Certainty::Sure),
+            ]
+        );
+    }
+
+    #[test]
+    fn no_span_ever_covers_another() {
+        for text in [
+            "comprar pan para #casa mañana",
+            "entregar el informe para @trabajo el lunes",
+            "reunión el martes #trabajo a las 16:00",
+            "llamar a @juan mañana !1",
+        ] {
+            let read = parse(text, &now(), "es");
+            let mut ranges: Vec<_> = read.spans.iter().map(|s| (s.from, s.to)).collect();
+            ranges.sort_unstable();
+            for pair in ranges.windows(2) {
+                assert!(
+                    pair[0].1 <= pair[1].0,
+                    "{text}: {:?} overlaps {:?}",
+                    pair[0],
+                    pair[1]
+                );
+            }
+        }
     }
 
     #[test]
