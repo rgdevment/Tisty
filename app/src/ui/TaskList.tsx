@@ -41,8 +41,7 @@ export default function TaskList({
   const [under, setUnder] = useState<string | null>(null);
   const [held, setHeld] = useState<string | null>(null);
 
-  // `dragend` fires on the row that started it, and that row is gone once the
-  // task moves to another list or the view reloads under the drag.
+  // `dragend` fires on the row that started it, and that row can be gone.
   useEffect(() => {
     if (held === null) return;
     const done = () => {
@@ -74,8 +73,6 @@ export default function TaskList({
         if (!e.dataTransfer.types.includes(TASK)) return;
         const moved = tasks.find((one) => one.id === held);
         if (!settles(moved, tasks[i])) {
-          // Clearing it matters: a line left on the row above promises a
-          // landing that the drop is going to refuse.
           setUnder(null);
           return;
         }
@@ -89,8 +86,7 @@ export default function TaskList({
         setUnder(null);
         setHeld(null);
         if (!id || id === tasks[i].id) return;
-        // Checked again here, not only on hover: a browser that skips the
-        // dragover guard would otherwise promise a move that snaps back.
+        // Again here, not only on hover: a drop can arrive without one.
         if (!settles(tasks.find((one) => one.id === id), tasks[i])) return;
         // Dropped ON a row means «take its place», so it lands just above it.
         const above = tasks[i - 1];

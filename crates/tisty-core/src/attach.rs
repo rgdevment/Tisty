@@ -26,10 +26,14 @@ impl Kept {
     /// target is wrapped, or a Windows path with a space stops being a link.
     pub fn written(&self, label: &str) -> String {
         let name = spoken(label);
-        match self {
-            Kept::Held { at, .. } if pictorial(at) => format!("![{name}](<{at}>)"),
-            Kept::Held { at, .. } => format!("[{name}](<{at}>)"),
-            Kept::Named { at } => format!("[{name}](<{}>)", at.display()),
+        let target = match self {
+            Kept::Held { at, .. } => at.clone(),
+            Kept::Named { at } => at.display().to_string(),
+        };
+        if pictorial(&target) {
+            format!("![{name}](<{target}>)")
+        } else {
+            format!("[{name}](<{target}>)")
         }
     }
 }
@@ -46,12 +50,10 @@ fn spoken(label: &str) -> String {
     if flat.is_empty() { "file".into() } else { flat }
 }
 
-/// Copies under the threshold, points above it. Never rewrites an existing
-/// file: same contents means same name, so a second copy is a no-op.
+/// Copies under the threshold, points above it.
 pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
     let mut file = std::fs::File::open(source)?;
-    // Not `metadata(path)`: a pipe or a device reports nothing and then hands
-    // over as much as it likes, and the file can grow between the two calls.
+    // Not `metadata(path)`: a pipe reports nothing and then hands over anything.
     let opened = file.metadata()?;
     if !opened.is_file() {
         return Err(Error::OutsideTheStore(source.display().to_string()));
@@ -92,6 +94,45 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
         at: format!("attachments/{shelf}/{name}"),
         sha256,
     })
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Loose {
+    pub files: usize,
+    pub bytes: u64,
+}
+
+/// Files under `attachments/` that no prose names any more. Collecting them is
+/// a separate decision: another machine may still reference what this one dropped.
+pub fn loose(root: &Path, referenced: &[String]) -> Loose {
+    let held: std::collections::BTreeSet<&str> = referenced
+        .iter()
+        .map(|one| one.trim_start_matches("attachments/"))
+        .collect();
+
+    let mut found = Loose::default();
+    let Ok(shelves) = std::fs::read_dir(root.join("attachments")) else {
+        return found;
+    };
+    for shelf in shelves.filter_map(|e| e.ok()) {
+        let Some(name) = shelf.file_name().to_str().map(str::to_owned) else {
+            continue;
+        };
+        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+            continue;
+        };
+        for file in files.filter_map(|e| e.ok()) {
+            let Some(leaf) = file.file_name().to_str().map(str::to_owned) else {
+                continue;
+            };
+            if held.contains(format!("{name}/{leaf}").as_str()) {
+                continue;
+            }
+            found.files += 1;
+            found.bytes += file.metadata().map(|m| m.len()).unwrap_or(0);
+        }
+    }
+    found
 }
 
 /// Rejects anything that climbs out of the data root, whoever wrote it.
@@ -200,6 +241,20 @@ mod tests {
         );
         let shelves = std::fs::read_dir(root.path().join("attachments")).unwrap();
         assert_eq!(shelves.count(), 1);
+    }
+
+    /// A picture over the threshold is still a picture; it used to come out as
+    /// a link that nothing on the machine could open.
+    #[test]
+    fn a_heavy_picture_is_still_shown() {
+        let kept = Kept::Named {
+            at: PathBuf::from(r"C:\Users\Mario\shot.PNG"),
+        };
+        assert!(
+            kept.written("shot").starts_with("!["),
+            "{}",
+            kept.written("shot")
+        );
     }
 
     #[test]
@@ -350,6 +405,30 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
 
         assert!(keep(dir.path(), root.path(), COPIED_UP_TO).is_err());
+    }
+
+    #[test]
+    fn what_no_prose_names_any_more_is_counted() {
+        let (_src, one) = dropped("kept.png", b"still referenced");
+        let (_other, two) = dropped("gone.png", b"nobody points here");
+        let root = tempfile::tempdir().unwrap();
+
+        let Kept::Held { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap() else {
+            panic!("copied in");
+        };
+        keep(&two, root.path(), COPIED_UP_TO).unwrap();
+
+        let counted = loose(root.path(), &[at]);
+        assert_eq!(counted.files, 1);
+        assert_eq!(counted.bytes, b"nobody points here".len() as u64);
+
+        assert_eq!(loose(root.path(), &[]).files, 2);
+    }
+
+    #[test]
+    fn a_store_without_attachments_has_nothing_loose() {
+        let root = tempfile::tempdir().unwrap();
+        assert_eq!(loose(root.path(), &[]), Loose::default());
     }
 
     /// A query string is not part of the path and would hide a climb.

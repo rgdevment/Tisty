@@ -27,7 +27,8 @@ md.renderer.rules.wiki = (tokens, i) =>
 export const INSIDE = "data-inside";
 
 /** Anything without a scheme is ours: attachments and documents are relative. */
-const ours = (target: string): boolean => !/^[a-z][a-z0-9+.-]*:/i.test(target) && !target.startsWith("//");
+const ours = (target: string): boolean =>
+  !/^[a-z][a-z0-9+.-]{1,}:/i.test(target) && !target.startsWith("//") && !target.startsWith("/");
 
 // A link is never followed in place: inside a webview that would replace the
 // app, and there is no back button to return with.
@@ -40,8 +41,9 @@ md.renderer.rules.link_open = (tokens, i, options, env, self) => {
 
 // An image under the data root cannot be loaded by path: the webview resolves
 // it against its own origin. The view swaps it for a served URL.
-md.renderer.rules.image = (tokens, i, options, _env, self) => {
+md.renderer.rules.image = (tokens, i, options, env, self) => {
   const target = String(tokens[i].attrGet("src") ?? "");
+  tokens[i].attrSet("alt", self.renderInlineAsText(tokens[i].children ?? [], options, env));
   if (ours(target)) {
     tokens[i].attrSet(INSIDE, target);
     tokens[i].attrSet("src", "");

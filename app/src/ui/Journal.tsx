@@ -7,10 +7,11 @@ import Prose from "./Prose";
 interface Props {
   entries: LogEntry[];
   known: string[];
+  onError?: (problem: unknown) => void;
   onWrite: (body: string, entry?: string) => void;
 }
 
-export default function Journal({ entries, known, onWrite }: Props) {
+export default function Journal({ entries, known, onError, onWrite }: Props) {
   const [draft, setDraft] = useState(0);
 
   return (
@@ -21,8 +22,8 @@ export default function Journal({ entries, known, onWrite }: Props) {
         hint={t("writeLog")}
         label={t("journal")}
         known={known}
+        onError={onError}
         rows={1}
-        submits
         catches
         onWrite={(body) => {
           if (body.trim()) onWrite(body);
@@ -40,6 +41,7 @@ export default function Journal({ entries, known, onWrite }: Props) {
             hint={t("writeLog")}
             label={entry.body}
             known={known}
+            onError={onError}
             rows={1}
             onWrite={(body) => body.trim() && onWrite(body, entry.id)}
           />

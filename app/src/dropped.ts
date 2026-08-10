@@ -32,8 +32,7 @@ export function whenFilesLand(onCaught: Caught): () => void {
   let live = true;
 
   const under = (x: number, y: number): Element | null => {
-    // The position is in device pixels and elementFromPoint wants CSS ones;
-    // on a display at 125% the point lands a quarter of the way further down.
+    // Device pixels in, CSS pixels out: at 125% the point lands a quarter low.
     const scale = window.devicePixelRatio || 1;
     return document.elementFromPoint(x / scale, y / scale)?.closest(`[${CATCHES}]`) ?? null;
   };
@@ -47,8 +46,7 @@ export function whenFilesLand(onCaught: Caught): () => void {
 
   getCurrentWebview()
     .onDragDropEvent(({ payload }) => {
-      // `enter` carries the paths too, so anything but an explicit drop would
-      // attach the file the moment the pointer crossed into the window.
+      // `enter` carries the paths too, and it is not a drop.
       if (payload.type === "enter" || payload.type === "over") {
         paint(under(payload.position.x, payload.position.y));
         return;

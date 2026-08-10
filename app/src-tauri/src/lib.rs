@@ -845,9 +845,8 @@ fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> An
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
-/// Turns a reference written in the prose into something the webview can load.
-/// This is what `attach::resolve` guards: without it a description could name
-/// any file on the disk and the window would happily show it.
+/// Guarded by `attach::resolve`: without it a description could name any file
+/// on the disk and the window would show it.
 #[tauri::command]
 fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<String> {
     let root = held(&session).paths.data().to_path_buf();
@@ -859,8 +858,27 @@ fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answe
     Ok(at.to_string_lossy().into_owned())
 }
 
-/// Brings a dropped file in and answers with the Markdown to write. It does not
-/// touch the task: what makes it an attachment is the reference in the prose.
+/// Uses the free function, not the plugin command: its scope is empty and would
+/// refuse every path. `attach::resolve` is the guard, and a tighter one.
+#[tauri::command]
+fn opened(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    reference: String,
+) -> Answer<()> {
+    let root = held(&session).paths.data().to_path_buf();
+    let at = tisty_core::attach::resolve(&reference, &root)
+        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
+    if !at.is_file() {
+        return Err(Refusal::about("cannotRead", reference));
+    }
+    tauri_plugin_opener::open_path(at, None::<&str>)
+        .map_err(|_| Refusal::about("cannotOpen", reference))?;
+    let _ = app;
+    Ok(())
+}
+
+/// Does not touch the task: what makes it an attachment is the reference in the prose.
 #[tauri::command]
 fn attach(
     session: tauri::State<'_, Mutex<Session>>,
@@ -975,7 +993,7 @@ pub fn run() {
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
             snapshot, capture, read, search, complete, reopen, patch, write_step, mark_step,
-            drop_step, write_log, fold, discard, reorder, attach, served
+            drop_step, write_log, fold, discard, reorder, attach, served, opened
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

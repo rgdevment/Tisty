@@ -166,13 +166,15 @@ describe("what an edit is allowed to do", () => {
     expect(box("Add a step").value).toBe("");
   });
 
-  it("writes a journal entry on Enter and empties the box", async () => {
+  it("keeps a journal entry on leaving, not on Enter", async () => {
     const user = userEvent.setup();
     const on = open();
 
-    await user.type(await into(user, "Journal"), "they answered{Enter}");
+    await user.type(await into(user, "Journal"), "they answered{Enter}and then some");
+    expect(on.log).not.toHaveBeenCalled();
 
-    expect(on.log).toHaveBeenCalledWith("they answered");
+    await user.tab();
+    expect(on.log).toHaveBeenCalledWith(["they answered", "and then some"].join("\n"));
     expect(screen.getByLabelText("Journal").textContent).toContain("What happened");
   });
 });

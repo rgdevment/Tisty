@@ -12,7 +12,6 @@
     "core:window:allow-toggle-maximize",
     "core:window:allow-is-maximized",
     "core:window:allow-close",
-    "opener:allow-open-path",
-    "opener:allow-open-url"
+    "opener:default"
   ]
 }

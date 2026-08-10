@@ -12,9 +12,8 @@ interface Props {
   known: string[];
   beside?: boolean;
   rows?: number;
-  /** Enter keeps the entry, as a journal line is written in one go. */
-  submits?: boolean;
   onWrite: (text: string) => void;
+  onError?: (problem: unknown) => void;
   /** True on the field a dropped file should land in. */
   catches?: boolean;
 }
@@ -27,8 +26,8 @@ export default function Prose({
   known,
   beside,
   rows = 2,
-  submits,
   onWrite,
+  onError,
   catches,
 }: Props) {
   const [text, setText] = useState(value);
@@ -39,15 +38,12 @@ export default function Prose({
 
   useEffect(() => setText(value), [value]);
 
-  // The two faces are different elements, so focus has to be placed after the
-  // swap rather than in the handler that asked for it.
+  // The two faces are different elements, so focus goes after the swap.
   useEffect(() => {
     if (writing) box.current?.focus();
   }, [writing]);
 
-  // The file arrives from outside React, so the field registers itself as the
-  // taker for its own element. Inserting never sends: what the drop writes is
-  // a draft the person still has to keep.
+  // The file arrives from outside React, so the field registers its element.
   const [mine, setMine] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (!mine || !catches) return;
@@ -105,10 +101,6 @@ export default function Prose({
             dropped.current = true;
             e.currentTarget.blur();
           }
-          if (e.key === "Enter" && !e.shiftKey && submits) {
-            e.preventDefault();
-            e.currentTarget.blur();
-          }
         }}
         className="field-sizing-content w-full resize-none rounded-md bg-transparent px-1.5 py-1 font-mono text-[12.5px] leading-relaxed outline-none placeholder:text-faint hover:bg-hover focus:bg-hover"
       />
@@ -132,6 +124,7 @@ export default function Prose({
         label={label}
         html={text.trim() ? composed(text) : placeholder(hint)}
         onEnter={() => setWriting(true)}
+        onError={onError}
         className="prose cursor-text rounded-md px-1.5 py-1 text-[13.5px] leading-relaxed outline-none hover:bg-hover"
       />
     </div>
@@ -145,6 +138,7 @@ export default function Prose({
       {source}
       <Composed
         label={t("composed")}
+        onError={onError}
         html={composed(text)}
         className="prose px-1.5 py-1 text-[13.5px] leading-relaxed"
       />

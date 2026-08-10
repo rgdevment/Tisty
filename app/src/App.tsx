@@ -163,6 +163,7 @@ export default function App() {
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
           onDiscard={() => act(discard(task.id))}
           onReopen={() => act(reopen(task.id))}
+          onError={(e) => setError(saidPlainly(e))}
         />
       ) : (
         <TaskList
@@ -252,6 +253,7 @@ export default function App() {
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
           onDiscard={() => act(discard(task.id))}
           onReopen={() => act(reopen(task.id))}
+          onError={(e) => setError(saidPlainly(e))}
         />
       )}
     </div>

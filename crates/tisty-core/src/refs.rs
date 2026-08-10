@@ -98,12 +98,31 @@ fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
         return at + 1;
     }
     let tail = &text[after + 1..];
-    let Some(close) = tail.find(')') else {
-        return at + 1;
-    };
 
-    // A Markdown target may carry a title: [a](https://x "why").
-    let target = tail[..close].split_whitespace().next().unwrap_or("");
+    // Angle brackets are the only way to write a destination with a space, and
+    // an attachment path is full of them — so they close it, not the paren.
+    let (target, close) = match tail.trim_start().strip_prefix('<') {
+        Some(_) => {
+            let opened = tail.find('<').unwrap_or(0);
+            let Some(shut) = tail[opened..].find('>').map(|n| opened + n) else {
+                return at + 1;
+            };
+            match tail[shut..].find(')') {
+                Some(paren) => (&tail[opened + 1..shut], shut + paren),
+                None => return at + 1,
+            }
+        }
+        None => {
+            let Some(close) = tail.find(')') else {
+                return at + 1;
+            };
+            // A target may carry a title: [a](https://x "why").
+            (
+                tail[..close].trim().split_whitespace().next().unwrap_or(""),
+                close,
+            )
+        }
+    };
     if !target.is_empty() {
         let label = label.trim();
         keep(Ref {
@@ -241,6 +260,20 @@ mod tests {
         assert!(targets("[etiqueta](sin cerrar").is_empty());
         assert!(targets("[[]]").is_empty());
         assert!(targets("[etiqueta]()").is_empty());
+    }
+
+    /// Angle brackets are how a destination with a space is written, and an
+    /// attachment path is full of them.
+    #[test]
+    fn a_wrapped_destination_loses_its_brackets() {
+        assert_eq!(
+            targets("![shot](<attachments/ab/cd.png>)"),
+            ["attachments/ab/cd.png"]
+        );
+        assert_eq!(
+            targets("[clip](<C:/My Docs/clip (1).mkv>)"),
+            ["C:/My Docs/clip (1).mkv"]
+        );
     }
 
     #[test]
