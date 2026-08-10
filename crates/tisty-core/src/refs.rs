@@ -117,10 +117,7 @@ fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
                 return at + 1;
             };
             // A target may carry a title: [a](https://x "why").
-            (
-                tail[..close].trim().split_whitespace().next().unwrap_or(""),
-                close,
-            )
+            (tail[..close].split_whitespace().next().unwrap_or(""), close)
         }
     };
     if !target.is_empty() {

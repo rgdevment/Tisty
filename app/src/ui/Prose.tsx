@@ -14,6 +14,8 @@ interface Props {
   rows?: number;
   onWrite: (text: string) => void;
   onError?: (problem: unknown) => void;
+  /** Given only where there is somewhere roomier to send the reader. */
+  onWhole?: () => void;
   /** True on the field a dropped file should land in. */
   catches?: boolean;
 }
@@ -28,6 +30,7 @@ export default function Prose({
   rows = 2,
   onWrite,
   onError,
+  onWhole,
   catches,
 }: Props) {
   const [text, setText] = useState(value);
@@ -102,7 +105,7 @@ export default function Prose({
             e.currentTarget.blur();
           }
         }}
-        className="field-sizing-content w-full resize-none rounded-md bg-transparent px-1.5 py-1 font-mono text-[12.5px] leading-relaxed outline-none placeholder:text-faint hover:bg-hover focus:bg-hover"
+        className="field-sizing-content max-h-[26rem] w-full resize-none overflow-y-auto rounded-md bg-transparent px-1.5 py-1 font-mono text-[12.5px] leading-relaxed outline-none placeholder:text-faint hover:bg-hover focus:bg-hover"
       />
       {slash !== null && (
         <Insert
@@ -125,6 +128,7 @@ export default function Prose({
         html={text.trim() ? composed(text) : placeholder(hint)}
         onEnter={() => setWriting(true)}
         onError={onError}
+        onWhole={onWhole}
         className="prose cursor-text rounded-md px-1.5 py-1 text-[13.5px] leading-relaxed outline-none hover:bg-hover"
       />
     </div>

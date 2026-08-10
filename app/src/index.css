@@ -161,10 +161,21 @@ body {
   border-top: 1px solid var(--tisty-hair);
 }
 .prose img {
+  display: block;
+  margin: 10px auto;
   max-width: 100%;
-  height: auto;
+  max-height: 20rem;
+  object-fit: contain;
   border-radius: 6px;
   cursor: zoom-in;
+}
+
+/* No mask and no gradient: a mask makes its own compositing layer and WebView2
+   repaints it wrong inside a scroller, and a gradient needs the background
+   colour, which differs between the panel and the full screen. */
+.clamped {
+  max-height: 22rem;
+  overflow: hidden;
 }
 .prose a,
 .prose .ref {
