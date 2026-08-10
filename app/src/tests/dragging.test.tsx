@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { List, Task } from "../core";
-import { TASK } from "../drag";
+import { STEP, TASK } from "../drag";
 import Sidebar from "../ui/Sidebar";
+import Steps from "../ui/Steps";
 import TaskList from "../ui/TaskList";
 
 const task = (id: string, title: string, over: Partial<Task> = {}): Task => ({
@@ -16,8 +17,8 @@ const task = (id: string, title: string, over: Partial<Task> = {}): Task => ({
 
 const OPEN = [task("01A", "first"), task("01B", "second"), task("01C", "third")];
 
-function held(id: string) {
-  const data = new Map<string, string>([[TASK, id]]);
+function held(id: string, kind: string = TASK) {
+  const data = new Map<string, string>([[kind, id]]);
   return {
     dataTransfer: {
       types: [...data.keys()],
@@ -172,5 +173,50 @@ describe("filing by dropping on the sidebar", () => {
       dataTransfer: { types: [], getData: () => "" },
     });
     expect(onFile).not.toHaveBeenCalled();
+  });
+});
+
+describe("reordering the steps of a task", () => {
+  const steps = [
+    { id: "01S", text: "reproduce it", done: false, order: "a0" },
+    { id: "02S", text: "deploy the fix", done: false, order: "a1" },
+    { id: "03S", text: "tell support", done: false, order: "a2" },
+  ];
+
+  const line = (text: string) =>
+    screen.getByRole("textbox", { name: text }).closest("[draggable]");
+
+  function list(onMove: (s: string, a?: string, b?: string) => void) {
+    render(
+      <Steps steps={steps} onWrite={() => {}} onMark={() => {}} onDrop={() => {}} onMove={onMove} />,
+    );
+  }
+
+  it("says where it landed by its neighbours", () => {
+    const onMove = vi.fn();
+    list(onMove);
+
+    fireEvent.dragStart(line("tell support")!, held("03S", STEP));
+    fireEvent.drop(line("deploy the fix")!.parentElement!, held("03S", STEP));
+
+    expect(onMove).toHaveBeenCalledWith("03S", "01S", "02S");
+  });
+
+  it("dropping on the first leaves nothing above it", () => {
+    const onMove = vi.fn();
+    list(onMove);
+
+    fireEvent.dragStart(line("tell support")!, held("03S", STEP));
+    fireEvent.drop(line("reproduce it")!.parentElement!, held("03S", STEP));
+
+    expect(onMove).toHaveBeenCalledWith("03S", undefined, "01S");
+  });
+
+  it("takes no notice of a task dragged over it", () => {
+    const onMove = vi.fn();
+    list(onMove);
+
+    fireEvent.drop(line("reproduce it")!.parentElement!, held("01A", TASK));
+    expect(onMove).not.toHaveBeenCalled();
   });
 });

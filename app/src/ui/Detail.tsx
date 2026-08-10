@@ -21,6 +21,7 @@ interface Props {
   onStep: (text: string, step?: string) => void;
   onMark: (step: string, done: boolean) => void;
   onDropStep: (step: string) => void;
+  onMoveStep: (step: string, after?: string, before?: string) => void;
   onLog: (body: string, entry?: string) => void;
   onDiscard: () => void;
   onReopen: () => void;
@@ -40,6 +41,7 @@ export default function Detail({
   onStep,
   onMark,
   onDropStep,
+  onMoveStep,
   onLog,
   onDiscard,
   onReopen,
@@ -67,7 +69,13 @@ export default function Detail({
         label={t("steps")}
         note={task.volume?.steps ? `${task.volume.steps_done ?? 0}/${task.volume.steps}` : undefined}
       />
-      <Steps steps={task.steps ?? []} onWrite={onStep} onMark={onMark} onDrop={onDropStep} />
+      <Steps
+        steps={task.steps ?? []}
+        onWrite={onStep}
+        onMark={onMark}
+        onDrop={onDropStep}
+        onMove={onMoveStep}
+      />
 
       <Section label={t("journal")} note={task.volume?.journal ? String(task.volume.journal) : undefined} />
       <Journal

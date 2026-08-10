@@ -668,6 +668,35 @@ fn dated_field(
 }
 
 #[tauri::command]
+fn move_step(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    step: String,
+    after: Option<String>,
+    before: Option<String>,
+) -> Answer<Task> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let step = step.parse().map_err(|_| Refusal::of("notAStepId"))?;
+    let neighbour = |raw: Option<String>| raw.and_then(|one| one.parse().ok());
+
+    let mut session = held(&session);
+    let order = session
+        .state
+        .step_order_between(id, neighbour(after), neighbour(before));
+
+    session.commit(Op::StepReorder {
+        id,
+        d: tisty_core::event::StepReorder { step, order },
+    })?;
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
+}
+
+#[tauri::command]
 fn write_step(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
@@ -993,7 +1022,7 @@ pub fn run() {
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
             snapshot, capture, read, search, complete, reopen, patch, write_step, mark_step,
-            drop_step, write_log, fold, discard, reorder, attach, served, opened
+            drop_step, write_log, fold, discard, reorder, attach, served, opened, move_step
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

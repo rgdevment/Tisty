@@ -167,6 +167,11 @@ export const patch = (id: string, change: Change): Promise<Task> =>
   invoke("patch", { id, change, locale: navigator.language });
 export const writeStep = (id: string, text: string, step?: string): Promise<Task> =>
   invoke("write_step", { id, step, text });
+export const moveStep = (
+  id: string,
+  step: string,
+  at: { after?: string; before?: string },
+): Promise<Task> => invoke("move_step", { id, step, ...at });
 export const markStep = (id: string, step: string, done: boolean): Promise<Task> =>
   invoke("mark_step", { id, step, done });
 export const dropStep = (id: string, step: string): Promise<Task> =>
