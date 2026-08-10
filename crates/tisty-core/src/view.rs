@@ -94,6 +94,16 @@ pub fn matches_query(task: &Task, query: &str) -> Option<Hit> {
     if contains(&task.title) || task.tags.iter().any(|t| contains(t.as_str())) {
         return Some(Hit::Named);
     }
+    // A reference is a declared pointer, so naming one whole names the task —
+    // «CUSLEG-3465» is what the task is about, not something it says in passing.
+    if task.volume.refs > 0
+        && task
+            .references()
+            .iter()
+            .any(|one| one.target.to_lowercase() == query)
+    {
+        return Some(Hit::Named);
+    }
     let body = task.description.as_deref().is_some_and(contains)
         || task.log.iter().any(|e| contains(&e.body))
         || task.steps.iter().any(|s| contains(&s.text));

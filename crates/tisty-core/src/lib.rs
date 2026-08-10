@@ -7,6 +7,7 @@ pub mod event;
 pub mod model;
 pub mod order;
 pub mod paths;
+pub mod refs;
 pub mod state;
 pub mod store;
 pub mod undo;
@@ -18,6 +19,7 @@ pub use model::{
     DateSpec, List, ListId, LogEntry, LogId, Priority, Status, Step, StepId, Tag, Task, TaskId,
 };
 pub use paths::Paths;
+pub use refs::Ref;
 pub use state::State;
 pub use store::Store;
 pub use undo::inverse;

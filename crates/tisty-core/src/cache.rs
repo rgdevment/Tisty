@@ -4,7 +4,7 @@ use rusqlite::Connection;
 
 use crate::{Result, State, event::Event, store};
 
-const SCHEMA: i64 = 2;
+const SCHEMA: i64 = 3;
 
 pub struct Cache {
     db: Connection,
@@ -42,6 +42,11 @@ impl Cache {
         }
 
         let mut state = State::default();
+        state.fill = if bodies {
+            crate::state::Fill::Whole
+        } else {
+            crate::state::Fill::Summary
+        };
         for (table, into) in [("task", true), ("list", false)] {
             let mut q = self.db.prepare(&format!("SELECT doc FROM {table}")).ok()?;
             let rows = q
@@ -91,6 +96,9 @@ impl Cache {
 
     /// Call only after the log is durably written, so a crash between the two leaves the cache behind, not ahead.
     pub fn store(&mut self, state: &State, fingerprint: &str) -> Result<()> {
+        if !state.has_bodies() {
+            return Ok(());
+        }
         let tx = match self.db.transaction() {
             Ok(tx) => tx,
             Err(_) => return Ok(()),
@@ -133,6 +141,10 @@ impl Cache {
     }
 
     pub fn touch(&mut self, state: &State, entity: ulid::Ulid, fingerprint: &str) -> Result<()> {
+        if !state.has_bodies() {
+            self.invalidate();
+            return Ok(());
+        }
         let _ = (|| -> rusqlite::Result<()> {
             let id = entity.to_string();
             match (state.tasks.get(&entity), state.lists.get(&entity)) {
@@ -305,6 +317,12 @@ pub fn advance(
 
     // Overtaken: this state is missing events another process appended meanwhile; don't cache it.
     if overtaken {
+        cache.invalidate();
+        return print;
+    }
+
+    // A summary carries no bodies, so writing it would erase the cached ones.
+    if !state.has_bodies() {
         cache.invalidate();
         return print;
     }
@@ -503,6 +521,50 @@ mod tests {
             ),
             "the cache fell behind the log"
         );
+    }
+
+    #[test]
+    fn a_summary_that_writes_never_erases_the_bodies_it_left_behind() {
+        let f = loaded();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let mut light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        let mut cache = Cache::open(&f.cache_dir).unwrap();
+
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let event = store.append(Op::TaskDone { id: f.task }).unwrap();
+        light.apply(&event);
+        advance(
+            cache.as_mut(),
+            &light,
+            std::slice::from_ref(&event),
+            &f.store_root,
+            false,
+        );
+
+        let whole = project(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(
+            whole,
+            State::replay(&store::read_all(&f.store_root).unwrap()),
+            "the cache kept a body-less state and called it fresh"
+        );
+        assert_eq!(whole.tasks[&f.task].log.len(), 2, "the journal was erased");
+        assert_eq!(whole.tasks[&f.task].steps.len(), 1, "the steps were erased");
+    }
+
+    #[test]
+    fn a_summary_keeps_the_volume_it_was_handed() {
+        let f = loaded();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let mut light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let event = store.append(Op::TaskDone { id: f.task }).unwrap();
+        light.apply(&event);
+
+        let task = &light.tasks[&f.task];
+        assert_eq!(task.journal_count(), 2, "the volume was recounted from air");
+        assert_eq!(task.steps_done(), (0, 1));
     }
 
     #[test]
