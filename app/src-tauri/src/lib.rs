@@ -1,5 +1,7 @@
 use std::sync::Mutex;
 
+use tauri::Manager;
+
 use tisty_core::{
     Config, Event, List, Op, Paths, State, Store, Tag, Task,
     event::{LogAdd, LogEdit, StepAdd, StepRef, StepText, TaskPatch},
@@ -843,6 +845,90 @@ fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> An
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
+/// Turns a reference written in the prose into something the webview can load.
+/// This is what `attach::resolve` guards: without it a description could name
+/// any file on the disk and the window would happily show it.
+#[tauri::command]
+fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<String> {
+    let root = held(&session).paths.data().to_path_buf();
+    let at = tisty_core::attach::resolve(&reference, &root)
+        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
+    if !at.is_file() {
+        return Err(Refusal::about("cannotRead", reference));
+    }
+    Ok(at.to_string_lossy().into_owned())
+}
+
+/// Brings a dropped file in and answers with the Markdown to write. It does not
+/// touch the task: what makes it an attachment is the reference in the prose.
+#[tauri::command]
+fn attach(
+    session: tauri::State<'_, Mutex<Session>>,
+    path: String,
+    label: Option<String>,
+) -> Answer<String> {
+    let source = std::path::PathBuf::from(&path);
+    let name = label
+        .or_else(|| {
+            source
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map(str::to_string)
+        })
+        .unwrap_or_default();
+
+    // The root is read and the lock released before any file work: copying
+    // megabytes with the session held would freeze every other command.
+    let root = held(&session).paths.data().to_path_buf();
+    let kept = tisty_core::attach::keep(&source, &root, tisty_core::attach::COPIED_UP_TO)
+        .map_err(|_| Refusal::about("cannotRead", name.clone()))?;
+
+    Ok(kept.written(&name))
+}
+
+/// `after` and `before` are the tasks it was dropped between; `list` is only
+/// sent when the drop crossed into another one, so a reorder never refiles.
+#[tauri::command]
+fn reorder(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    after: Option<String>,
+    before: Option<String>,
+    list: Option<String>,
+    inbox: Option<bool>,
+) -> Answer<Task> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let neighbour = |raw: Option<String>| raw.and_then(|one| one.parse().ok());
+
+    let filed = match (list, inbox) {
+        (Some(one), _) => Some(Some(one.parse().map_err(|_| Refusal::of("notAListId"))?)),
+        (None, Some(true)) => Some(None),
+        _ => None,
+    };
+
+    let mut session = held(&session);
+    // With no neighbours the midpoint of nothing is always the same key — the
+    // first position that ever existed — so every filed task would pile there.
+    let order = match (neighbour(after), neighbour(before)) {
+        (None, None) => session.state.order_last_in(filed.flatten()),
+        (a, b) => session.state.order_between(a, b),
+    };
+
+    session.commit(Op::TaskMove {
+        id,
+        d: tisty_core::event::TaskMove {
+            list: filed,
+            order: Some(order),
+        },
+    })?;
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
+}
+
 #[tauri::command]
 fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
@@ -873,11 +959,23 @@ fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task>
 pub fn run() {
     let session = Session::open().expect("could not open the store");
 
+    // The store lives outside the bundle, so the asset scope has to be opened
+    // at runtime: the path is only known once the data directory is resolved.
+    let attachments = session.paths.attachments();
+
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .setup(move |app| {
+            let _ = std::fs::create_dir_all(&attachments);
+            app.handle()
+                .asset_protocol_scope()
+                .allow_directory(&attachments, true)?;
+            Ok(())
+        })
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
             snapshot, capture, read, search, complete, reopen, patch, write_step, mark_step,
-            drop_step, write_log, fold, discard
+            drop_step, write_log, fold, discard, reorder, attach, served
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,6 @@
 //! Domain core: never prints — the GUI is a client too, not just the terminal.
 
+pub mod attach;
 pub mod cache;
 pub mod capture;
 pub mod config;
@@ -30,6 +31,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub enum Error {
     #[error("i/o error: {0}")]
     Io(#[from] std::io::Error),
+    #[error("{0} points outside the store")]
+    OutsideTheStore(String),
     #[error("serialization error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("malformed event at {file}:{line}: {source}")]

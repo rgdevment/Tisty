@@ -22,6 +22,7 @@ tauri-build = { workspace = true }
 tisty-core.workspace = true
 tisty-nl.workspace = true
 tauri.workspace = true
+tauri-plugin-opener.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 jiff.workspace = true

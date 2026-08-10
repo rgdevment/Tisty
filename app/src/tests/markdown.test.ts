@@ -19,10 +19,14 @@ describe("what gets composed", () => {
     expect(composed("[[never closed")).toContain("[[never closed");
   });
 
-  it("sends every link to the browser, or it would replace the app inside the webview", () => {
-    const html = composed("[OPS-3465](https://jira.example/browse/OPS-3465)");
-    expect(html).toContain('target="_blank"');
-    expect(html).toContain('rel="noreferrer"');
+  it("marks what lives under the data root so the view can resolve it", () => {
+    const inside = composed("![shot](<attachments/ab/cd.png>)");
+    expect(inside).toContain('data-inside="attachments/ab/cd.png"');
+    expect(inside).toContain('src=""');
+
+    const outside = composed("[OPS-3465](https://jira.example/browse/OPS-3465)");
+    expect(outside).not.toContain("data-inside");
+    expect(outside).toContain('href="https://jira.example/browse/OPS-3465"');
   });
 
   it("finds a bare address without being asked", () => {

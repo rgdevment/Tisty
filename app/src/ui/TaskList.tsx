@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { List, Task } from "../core";
+import { TASK } from "../drag";
 import { isOverdue, monthOf, whenLabel } from "../format";
 import { t } from "../locales";
 
@@ -15,6 +16,8 @@ interface Props {
   onSelect: (id: string) => void;
   onComplete?: (id: string) => void;
   onFold?: (id: string, away: boolean) => void;
+  /** Undefined where the order is not the user's to set — the archive, a search. */
+  onDrop?: (task: string, after?: string, before?: string) => void;
   above?: React.ReactNode;
   children?: React.ReactNode;
 }
@@ -31,9 +34,69 @@ export default function TaskList({
   onSelect,
   onComplete,
   onFold,
+  onDrop,
   above,
   children,
 }: Props) {
+  const [under, setUnder] = useState<string | null>(null);
+  const [held, setHeld] = useState<string | null>(null);
+
+  // `dragend` fires on the row that started it, and that row is gone once the
+  // task moves to another list or the view reloads under the drag.
+  useEffect(() => {
+    if (held === null) return;
+    const done = () => {
+      setUnder(null);
+      setHeld(null);
+    };
+    window.addEventListener("dragend", done);
+    window.addEventListener("drop", done);
+    return () => {
+      window.removeEventListener("dragend", done);
+      window.removeEventListener("drop", done);
+    };
+  }, [held]);
+
+  // The core sorts by date, then priority, then the manual key. A drop across
+  // either would snap back, so it is refused instead of promised.
+  const settles = (moved?: Task, onto?: Task) =>
+    moved !== undefined && onto !== undefined && group(moved) === group(onto);
+
+  const lands = (i: number) =>
+    onDrop && {
+      draggable: true,
+      onDragStart: (e: React.DragEvent) => {
+        e.dataTransfer.setData(TASK, tasks[i].id);
+        e.dataTransfer.effectAllowed = "move";
+        setHeld(tasks[i].id);
+      },
+      onDragOver: (e: React.DragEvent) => {
+        if (!e.dataTransfer.types.includes(TASK)) return;
+        const moved = tasks.find((one) => one.id === held);
+        if (!settles(moved, tasks[i])) {
+          // Clearing it matters: a line left on the row above promises a
+          // landing that the drop is going to refuse.
+          setUnder(null);
+          return;
+        }
+        e.preventDefault();
+        setUnder(tasks[i].id);
+      },
+      onDragLeave: () => setUnder((on) => (on === tasks[i].id ? null : on)),
+      onDrop: (e: React.DragEvent) => {
+        e.preventDefault();
+        const id = e.dataTransfer.getData(TASK);
+        setUnder(null);
+        setHeld(null);
+        if (!id || id === tasks[i].id) return;
+        // Checked again here, not only on hover: a browser that skips the
+        // dragover guard would otherwise promise a move that snaps back.
+        if (!settles(tasks.find((one) => one.id === id), tasks[i])) return;
+        // Dropped ON a row means «take its place», so it lands just above it.
+        const above = tasks[i - 1];
+        onDrop(id, settles(tasks[i], above) ? above.id : undefined, tasks[i].id);
+      },
+    };
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
   const columns = onFold
     ? "grid-cols-[20px_minmax(0,1fr)_auto_16px]"
@@ -70,9 +133,12 @@ export default function TaskList({
           <div
             ref={reveal === task.id ? asked : undefined}
             onClick={() => onSelect(task.id)}
+            {...lands(i)}
             className={`group grid cursor-pointer ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-700 hover:bg-hover ${
               selected === task.id ? "bg-active" : ""
-            } ${fresh === task.id ? "bg-accent-soft" : ""}`}
+            } ${fresh === task.id ? "bg-accent-soft" : ""} ${
+              under === task.id ? "border-t-2 border-accent" : "border-t-2 border-transparent"
+            }`}
           >
             {onComplete && task.status === "open" ? (
               <button
@@ -124,6 +190,9 @@ export default function TaskList({
     </main>
   );
 }
+
+/// Everything the sort decides before the manual key gets a say.
+const group = (task: Task): string => `${task.date?.at.slice(0, 10) ?? ""}|${task.priority}`;
 
 function Meta({ task, list }: { task: Task; list?: string }) {
   const bits: React.ReactNode[] = [];

@@ -52,6 +52,7 @@ export default function Detail({
         label={t("description")}
         known={refs}
         beside={expanded}
+        catches
         onWrite={(description) => onPatch({ description })}
       />
 

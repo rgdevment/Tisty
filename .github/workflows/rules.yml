@@ -41,6 +41,11 @@ jobs:
             exit 1
           fi
 
+      # `--workspace` reaches tisty-gui, which links the GTK stack on Linux.
+      - uses: ./.github/actions/linux-deps
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
       - name: Locales define the same keys
         run: cargo test -p tisty-cli --bin tisty i18n
 
