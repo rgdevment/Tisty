@@ -659,3 +659,56 @@ input = "hablar con @juan, mañana"
 title = "hablar con"
 date = "2026-08-06"
 why = "la coma detrás del marcador no forma parte del nombre; sin recortarla se creaba una lista «juan,» al lado de «juan»"
+
+[[case]]
+input = "entregar el informe antes de 3 dias"
+title = "entregar el informe"
+deadline = "2026-08-08"
+why = "«antes de N días» es la forma más común de decir un plazo; la guarda del genitivo se lo comía porque «de» también es artículo"
+
+[[case]]
+input = "revisar este informe lunes"
+title = "revisar este informe"
+date = "2026-08-10"
+why = "«este» PEGADO al día lo hace el próximo; con una palabra en medio no son una frase, y antes el span se comía «informe»"
+
+[[case]]
+input = "leer 2/3"
+title = "leer 2/3"
+why = "un capítulo, no el 2 de marzo: una fecha con barras va INTRODUCIDA por artículo o preposición"
+
+[[case]]
+input = "ratio 16/9"
+title = "ratio 16/9"
+why = "la misma regla, y es la clase de «subir el volumen a 12»"
+
+[[case]]
+input = "entregar el 1/1/026"
+title = "entregar"
+date = "2026-01-01"
+why = "cualquier año por debajo de cien es de este siglo; el corte por longitud dejaba «026» en el año 26"
+
+# ─────────────────────────────────────────────────────────────
+#  Barras: una fecha va introducida, o no es una fecha
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "leer 10/10"
+title = "leer 10/10"
+why = "sin artículo ni preposición delante, la barra no es una fecha — vale para cualquier x/x, no hay lista de casos"
+
+[[case]]
+input = "abrir 1/4"
+title = "abrir 1/4"
+why = "una fracción; la misma regla que «leer 2/3» y «ratio 16/9»"
+
+[[case]]
+input = "revisar el 24/7"
+title = "revisar el 24/7"
+why = "aquí SÍ va introducida, así que la regla la tomaría; la salva el vocabulario, porque «24/7» es una PALABRA con forma de fecha. Es el único sitio donde ese diccionario sigue haciendo falta"
+
+[[case]]
+input = "entregar antes del 15/8"
+title = "entregar"
+deadline = "2026-08-15"
+why = "«antes del» introduce Y marca vencimiento: la barra es fecha y el papel es límite"

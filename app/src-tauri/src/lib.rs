@@ -122,7 +122,9 @@ fn tags_in_use(state: &State) -> Vec<Counted> {
         .into_iter()
         .map(|tag| Counted {
             tag: tag.to_string(),
-            tasks: state.tasks_tagged(tag).count(),
+            // Folded work is not counted, or the chip promises more than the
+            // list delivers.
+            tasks: state.tasks_tagged(tag).filter(|t| !t.hidden).count(),
         })
         .collect()
 }
@@ -386,7 +388,12 @@ impl Edits {
     }
 }
 
+/// A bare day first, or `civil::DateTime` reads it as midnight and every date
+/// picked in the calendar comes back stamped «00:00».
 fn dated(raw: &str, now: &jiff::Zoned, spoken: &str) -> Result<tisty_core::DateSpec, Refusal> {
+    if let Ok(day) = raw.parse::<jiff::civil::Date>() {
+        return Ok(tisty_core::DateSpec::all_day(day, zone()));
+    }
     if let Ok(when) = raw.parse::<jiff::civil::DateTime>() {
         return Ok(tisty_core::DateSpec::floating(when, zone()));
     }
@@ -448,13 +455,21 @@ fn capture(
     // Last, or removing the date inside «Hoy» would hand it straight back.
     let edits = edits.unwrap_or_default();
     edits.apply(&mut draft, &now, &spoken)?;
+    if let Some(spec) = &draft.deadline {
+        ahead(spec, &now, "pastDeadline")?;
+    }
     if let Some(title) = edits.retitled(&text, &read) {
         draft.title = title;
     }
 
     let plan = tisty_core::capture::plan(&session.state, draft)?;
     session.commit_all(plan.ops)?;
-    Ok(session.state.tasks[&plan.task].clone())
+    session
+        .state
+        .tasks
+        .get(&plan.task)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[tauri::command]
@@ -576,7 +591,12 @@ fn patch(
     if !ops.is_empty() {
         session.commit_all(ops)?;
     }
-    Ok(session.state.tasks[&id].clone())
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 /// Built from the task as it is now, not from a vector the window sent: two
@@ -670,7 +690,11 @@ fn write_step(
                 step: ulid::Ulid::generate(),
                 text,
                 order: tisty_core::order::last_of(
-                    session.state.tasks[&id]
+                    session
+                        .state
+                        .tasks
+                        .get(&id)
+                        .ok_or_else(|| Refusal::of("notATaskId"))?
                         .steps
                         .iter()
                         .map(|s| s.order.as_str()),
@@ -679,7 +703,12 @@ fn write_step(
         },
     };
     session.commit(op)?;
-    Ok(session.state.tasks[&id].clone())
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[tauri::command]
@@ -699,7 +728,12 @@ fn mark_step(
     } else {
         Op::StepUndone { id, d }
     })?;
-    Ok(session.state.tasks[&id].clone())
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[tauri::command]
@@ -710,7 +744,12 @@ fn drop_step(session: tauri::State<'_, Mutex<Session>>, id: String, step: String
     };
     let mut session = held(&session);
     session.commit(Op::StepRemove { id, d })?;
-    Ok(session.state.tasks[&id].clone())
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[tauri::command]
@@ -740,7 +779,12 @@ fn write_log(
             d: LogAdd::new(ulid::Ulid::generate(), body).in_zone(Some(zone())),
         },
     })?;
-    Ok(session.state.tasks[&id].clone())
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 /// Searches through the core, or it would find different things than `tisty search` does.
@@ -771,7 +815,12 @@ fn discard(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
     session.commit(Op::TaskDrop { id })?;
-    Ok(session.state.tasks[&id].clone())
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[tauri::command]
@@ -783,7 +832,12 @@ fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> An
     } else {
         Op::TaskShow { id }
     })?;
-    Ok(session.state.tasks[&id].clone())
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[tauri::command]
@@ -791,7 +845,12 @@ fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Tas
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
     session.commit(Op::TaskDone { id })?;
-    Ok(session.state.tasks[&id].clone())
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[tauri::command]
@@ -799,7 +858,12 @@ fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task>
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
     session.commit(Op::TaskReopen { id })?;
-    Ok(session.state.tasks[&id].clone())
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

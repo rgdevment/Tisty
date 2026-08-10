@@ -44,6 +44,9 @@ impl State {
             Op::TaskReopen { id } => self.with_task(*id, |t| {
                 t.status = Status::Open;
                 t.completed_at = None;
+                // Open and hidden is a state no view reaches: it would vanish
+                // from the interface, from `tisty ls` and from `tisty export`.
+                t.hidden = false;
             }),
             Op::TaskHide { id } => self.with_task(*id, |t| t.hidden = true),
             Op::TaskShow { id } => self.with_task(*id, |t| t.hidden = false),
@@ -370,6 +373,10 @@ mod tests {
 
     fn at(ms: i64) -> jiff::Timestamp {
         jiff::Timestamp::from_millisecond(ms).unwrap()
+    }
+
+    fn day() -> jiff::civil::Date {
+        "2026-08-09".parse().unwrap()
     }
 
     fn ev(ms: i64, device: &str, op: Op) -> Event {
@@ -1059,5 +1066,54 @@ mod tests {
         let found = state.search("brasil", crate::view::Scope::Either);
         assert_eq!(found[0].id, named);
         assert!(state.tasks[&mentioned].weight() > state.tasks[&named].weight());
+    }
+
+    /// Open and hidden is a state no view reaches: neither the open ones, which
+    /// ask for `hidden == false`, nor the archive, which asks for archived.
+    #[test]
+    fn reopening_a_hidden_task_brings_it_back_into_sight() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(1, "a", add(id, "revisar el deploy")));
+        state.apply(&ev(2, "a", Op::TaskDone { id }));
+        state.apply(&ev(3, "a", Op::TaskHide { id }));
+        assert!(state.tasks[&id].hidden);
+
+        state.apply(&ev(4, "a", Op::TaskReopen { id }));
+        assert!(!state.tasks[&id].hidden);
+        assert_eq!(
+            state.matching(&crate::view::Filter::default(), day()).len(),
+            1
+        );
+    }
+
+    #[test]
+    fn hidden_work_stays_out_of_every_view_that_did_not_ask() {
+        let mut state = State::default();
+        let seen = Ulid::generate();
+        let away = Ulid::generate();
+        for (id, title) in [(seen, "a la vista"), (away, "guardada")] {
+            state.apply(&ev(1, "a", add(id, title)));
+            state.apply(&ev(2, "a", Op::TaskDone { id }));
+        }
+        state.apply(&ev(3, "a", Op::TaskHide { id: away }));
+
+        let archive = crate::view::Filter {
+            scope: crate::view::Scope::Archived,
+            ..Default::default()
+        };
+        let folded = crate::view::Filter {
+            hidden: true,
+            ..archive.clone()
+        };
+
+        assert_eq!(state.matching(&archive, day()).len(), 1);
+        assert_eq!(state.matching(&folded, day()).len(), 1);
+        assert_eq!(state.matching(&folded, day())[0].id, away);
+        assert!(
+            state
+                .matching(&crate::view::Filter::default(), day())
+                .is_empty()
+        );
     }
 }

@@ -10,8 +10,12 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
         Op::TaskAdd { id, .. } => Some(Op::TaskDelete { id: *id }),
 
         Op::TaskDone { id } | Op::TaskDrop { id } => Some(Op::TaskReopen { id: *id }),
-        Op::TaskHide { id } => Some(Op::TaskShow { id: *id }),
-        Op::TaskShow { id } => Some(Op::TaskHide { id: *id }),
+        Op::TaskHide { id } => (!before.tasks.get(id)?.hidden).then_some(Op::TaskShow { id: *id }),
+        Op::TaskShow { id } => before
+            .tasks
+            .get(id)?
+            .hidden
+            .then_some(Op::TaskHide { id: *id }),
         Op::TaskReopen { id } => match before.tasks.get(id)?.status {
             Status::Done => Some(Op::TaskDone { id: *id }),
             Status::Dropped => Some(Op::TaskDrop { id: *id }),
@@ -352,5 +356,37 @@ mod tests {
         let id = Ulid::generate();
         let state = State::replay(&[a_task(id)]);
         assert!(inverse(&ev(2, Op::TaskDelete { id }), &state).is_none());
+    }
+
+    /// Folding what is already folded changed nothing, so undoing it must not
+    /// unfold: the inverse has to look at the state, not at the op.
+    #[test]
+    fn undoing_a_redundant_fold_leaves_it_folded() {
+        let mut before = State::default();
+        let id = Ulid::generate();
+        before.apply(&ev(
+            1,
+            Op::TaskAdd {
+                id,
+                d: TaskAdd::new("revisar", "a0"),
+            },
+        ));
+        before.apply(&ev(2, Op::TaskHide { id }));
+
+        let again = ev(3, Op::TaskHide { id });
+        assert_eq!(inverse(&again, &before), None);
+
+        let mut open = State::default();
+        open.apply(&ev(
+            1,
+            Op::TaskAdd {
+                id,
+                d: TaskAdd::new("revisar", "a0"),
+            },
+        ));
+        assert_eq!(
+            inverse(&ev(2, Op::TaskHide { id }), &open),
+            Some(Op::TaskShow { id })
+        );
     }
 }

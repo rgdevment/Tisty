@@ -601,3 +601,62 @@ input = "deliver on 24/12/26"
 title = "deliver"
 date = "2026-12-24"
 why = "a two-digit year belongs to this century"
+
+[[case]]
+input = "deliver the report within 3 days"
+title = "deliver the report"
+date = "2026-08-08"
+why = "«within» asks for a date the same way «in» does; without it the word hung in the title"
+
+[[case]]
+input = "read 2/3"
+title = "read 2/3"
+why = "a chapter, not the 2nd of March: a slash date has to be introduced"
+
+# ─────────────────────────────────────────────────────────────
+#  Slashes: a date is introduced, or it is not a date
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "ratio 16/9"
+title = "ratio 16/9"
+why = "no article or preposition in front, so the slash is not a date; the rule holds for any x/x"
+
+[[case]]
+input = "open 1/4"
+title = "open 1/4"
+why = "a fraction, by the same rule"
+
+[[case]]
+input = "deliver by 15/8"
+title = "deliver"
+deadline = "2026-08-15"
+why = "«by» introduces it AND marks a limit: the slash is a date and the role is a deadline"
+
+[[case]]
+input = "review the 24/7 service"
+title = "review the 24/7 service"
+why = "«the» introduces it, so the rule would take it; the vocabulary saves it, because «24/7» is a WORD shaped like a date"
+
+[[case]]
+input = "ship on 1/1/026"
+title = "ship"
+date = "2026-01-01"
+why = "any year below a hundred belongs to this century, and a written year is never rolled forward"
+
+[[case]]
+input = "review this report monday"
+title = "review this report"
+date = "2026-08-10"
+why = "«this» has to be glued to the day to make it next; with a word between, the span used to eat «report»"
+
+[[case]]
+input = "deliver the report before 3 days"
+title = "deliver the report"
+deadline = "2026-08-08"
+why = "the mirror of «antes de 3 días»: English puts no article between, so the genitive guard never applied here"
+
+[[case]]
+input = "pay on 8/15"
+title = "pay on 8/15"
+why = "KNOWN GAP: month/day is how the United States writes it, and the parser reads day/month. Month 15 does not exist, so nothing is invented — but nothing is read either"
