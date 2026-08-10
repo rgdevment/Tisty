@@ -196,6 +196,24 @@ impl Task {
         self.volume.journal
     }
 
+    /// Pulled from the prose of the description and the journal, in that order;
+    /// a step is one line and holds no references of its own.
+    pub fn references(&self) -> Vec<crate::refs::Ref> {
+        let bodies = self
+            .description
+            .as_deref()
+            .into_iter()
+            .chain(self.log.iter().map(|entry| entry.body.as_str()));
+
+        let mut all: Vec<crate::refs::Ref> = Vec::new();
+        for one in bodies.flat_map(crate::refs::extract) {
+            if !all.contains(&one) {
+                all.push(one);
+            }
+        }
+        all
+    }
+
     /// Recomputed from the vectors after any change to them.
     pub fn retally(&mut self) {
         let written: usize = self
@@ -215,7 +233,7 @@ impl Task {
                 .count(),
             described: self.description.is_some(),
             prose: written.min(PROSE_CAP),
-            refs: self.volume.refs,
+            refs: self.references().len(),
         };
     }
 
@@ -410,6 +428,54 @@ mod tests {
         }
         endless.retally();
         assert_eq!(endless.weight(), 8);
+    }
+
+    #[test]
+    fn references_are_gathered_across_the_description_and_the_journal() {
+        let mut t = task();
+        t.description = Some("sale del ticket [[CUSLEG-3465]]".into());
+        t.log.push(entry("el MR está en https://gl.example/mr/7"));
+        t.log.push(entry("sigue siendo [[CUSLEG-3465]]"));
+        t.retally();
+
+        assert_eq!(
+            t.references()
+                .into_iter()
+                .map(|one| one.target)
+                .collect::<Vec<_>>(),
+            ["CUSLEG-3465", "https://gl.example/mr/7"],
+            "the same target twice is one reference, and the description comes first"
+        );
+        assert_eq!(t.volume.refs, 2);
+    }
+
+    /// A task that points somewhere carries more than one that points nowhere.
+    #[test]
+    fn a_reference_adds_to_the_weight() {
+        let mut bare = task();
+        bare.description = Some("mirar el despliegue del proxy lateral".into());
+        bare.retally();
+
+        let mut pointed = task();
+        pointed.description = Some("mirar el despliegue del proxy lateral [[CUSLEG-3465]]".into());
+        pointed.retally();
+
+        assert!(pointed.weight() > bare.weight());
+    }
+
+    #[test]
+    fn a_reference_that_leaves_the_prose_stops_counting() {
+        let mut t = task();
+        t.description = Some("sale de [[CUSLEG-3465]]".into());
+        t.retally();
+        assert_eq!(t.volume.refs, 1);
+
+        t.description = Some("sale de otra parte".into());
+        t.retally();
+        assert_eq!(
+            t.volume.refs, 0,
+            "the index outlived the prose it came from"
+        );
     }
 
     #[test]

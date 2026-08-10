@@ -8,11 +8,20 @@ use crate::{
     order,
 };
 
+/// Whether descriptions, journals and steps came along.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum Fill {
+    #[default]
+    Whole,
+    Summary,
+}
+
 /// Replaying in canonical order is what yields last-write-wins per field.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct State {
     pub tasks: BTreeMap<TaskId, Task>,
     pub lists: BTreeMap<ListId, List>,
+    pub(crate) fill: Fill,
     tombstones: BTreeSet<Ulid>,
 }
 
@@ -109,10 +118,19 @@ impl State {
         }
     }
 
+    /// False when descriptions, journals and steps were left behind; such a state must never be cached.
+    pub fn has_bodies(&self) -> bool {
+        self.fill == Fill::Whole
+    }
+
     fn with_task(&mut self, id: TaskId, f: impl FnOnce(&mut Task)) {
+        // Retallying without the bodies counts empty vectors and zeroes the volume.
+        let whole = self.has_bodies();
         if let Some(task) = self.tasks.get_mut(&id) {
             f(task);
-            task.retally();
+            if whole {
+                task.retally();
+            }
         }
     }
 
@@ -152,6 +170,22 @@ impl State {
     /// For restoring a projection stored elsewhere; omitting tombstones lets deletions resurrect.
     pub fn mark_erased(&mut self, id: Ulid) {
         self.tombstones.insert(id);
+    }
+
+    /// Backlinks: the index is derived on read, so nothing can fall out of step
+    /// with the prose it came from.
+    pub fn linking_to(&self, target: &str) -> Vec<&Task> {
+        let wanted = target.trim().to_lowercase();
+        self.tasks
+            .values()
+            .filter(|task| {
+                task.volume.refs > 0
+                    && task
+                        .references()
+                        .iter()
+                        .any(|one| one.target.to_lowercase() == wanted)
+            })
+            .collect()
     }
 
     pub fn tasks_tagged(&self, tag: &Tag) -> impl Iterator<Item = &Task> {
@@ -1066,6 +1100,64 @@ mod tests {
         let found = state.search("brasil", crate::view::Scope::Either);
         assert_eq!(found[0].id, named);
         assert!(state.tasks[&mentioned].weight() > state.tasks[&named].weight());
+    }
+
+    fn wrote(id: Ulid, body: &str) -> Op {
+        Op::TaskDescribe {
+            id,
+            d: Body {
+                body: Some(body.into()),
+            },
+        }
+    }
+
+    /// Searching a ticket finds the task that points at it, above the one that
+    /// merely says the same letters.
+    #[test]
+    fn a_reference_named_whole_outranks_the_same_letters_in_prose() {
+        let mut state = State::default();
+        let points = Ulid::generate();
+        let mentions = Ulid::generate();
+        state.apply(&ev(1, "a", add(points, "migrar el proxy")));
+        state.apply(&ev(2, "a", wrote(points, "sale de [[CUSLEG-3465]]")));
+        state.apply(&ev(3, "a", add(mentions, "revisar el deploy")));
+        state.apply(&ev(
+            4,
+            "a",
+            wrote(mentions, "parecido a cusleg-3465 pero no es el mismo"),
+        ));
+
+        let found = state.search("cusleg-3465", crate::view::Scope::Either);
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].id, points);
+    }
+
+    #[test]
+    fn backlinks_come_from_the_prose_and_follow_it_when_it_changes() {
+        let mut state = State::default();
+        let one = Ulid::generate();
+        let other = Ulid::generate();
+        state.apply(&ev(1, "a", add(one, "migrar el proxy")));
+        state.apply(&ev(2, "a", wrote(one, "sale de [[CUSLEG-3465]]")));
+        state.apply(&ev(3, "a", add(other, "revisar el deploy")));
+        state.apply(&ev(
+            4,
+            "a",
+            Op::TaskLog {
+                id: other,
+                d: crate::event::LogAdd::new(Ulid::generate(), "también [[cusleg-3465]]"),
+            },
+        ));
+
+        assert_eq!(
+            state.linking_to("CUSLEG-3465").len(),
+            2,
+            "case decides nothing"
+        );
+        assert!(state.linking_to("CUSLEG-9999").is_empty());
+
+        state.apply(&ev(5, "a", wrote(one, "ya no sale de ninguna parte")));
+        assert_eq!(state.linking_to("CUSLEG-3465").len(), 1);
     }
 
     /// Open and hidden is a state no view reaches: neither the open ones, which
