@@ -15,6 +15,26 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
     if let Some(truth) = audit.state() {
         line(lang.get("tasks-in-log"), &truth.tasks.len().to_string());
         line(lang.get("lists-in-log"), &truth.lists.len().to_string());
+
+        let held: Vec<String> = truth
+            .tasks
+            .values()
+            .flat_map(|task| task.references())
+            .map(|one| one.target)
+            .collect();
+        let adrift = tisty_core::attach::loose(app.paths.data(), &held);
+        if adrift.files > 0 {
+            line(
+                lang.get("loose-files"),
+                &style::dim(&lang.fill(
+                    "loose-files-are",
+                    &[
+                        ("count", &adrift.files.to_string()),
+                        ("size", &weighed(adrift.bytes)),
+                    ],
+                )),
+            );
+        }
     }
 
     let verdict = match &audit {
@@ -72,4 +92,12 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
 
 fn line(label: &str, value: &str) {
     println!("    {label:<14}{value}");
+}
+
+fn weighed(bytes: u64) -> String {
+    match bytes {
+        0..=1023 => format!("{bytes} B"),
+        1024..=1_048_575 => format!("{} kB", bytes / 1024),
+        _ => format!("{} MB", bytes / 1_048_576),
+    }
 }

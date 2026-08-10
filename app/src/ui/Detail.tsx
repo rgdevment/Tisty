@@ -22,6 +22,7 @@ interface Props {
   onLog: (body: string, entry?: string) => void;
   onDiscard: () => void;
   onReopen: () => void;
+  onError?: (problem: unknown) => void;
 }
 
 export default function Detail({
@@ -39,6 +40,7 @@ export default function Detail({
   onLog,
   onDiscard,
   onReopen,
+  onError,
 }: Props) {
   const body = (
     <>
@@ -53,6 +55,7 @@ export default function Detail({
         known={refs}
         beside={expanded}
         catches
+        onError={onError}
         onWrite={(description) => onPatch({ description })}
       />
 
@@ -63,7 +66,7 @@ export default function Detail({
       <Steps steps={task.steps ?? []} onWrite={onStep} onMark={onMark} onDrop={onDropStep} />
 
       <Section label={t("journal")} note={task.volume?.journal ? String(task.volume.journal) : undefined} />
-      <Journal entries={task.log ?? []} known={refs} onWrite={onLog} />
+      <Journal entries={task.log ?? []} known={refs} onError={onError} onWrite={onLog} />
     </>
   );
 
@@ -112,6 +115,7 @@ function Settled({
   task: Task;
   onDiscard: () => void;
   onReopen: () => void;
+  onError?: (problem: unknown) => void;
 }) {
   const shut = task.status !== "open";
   return (

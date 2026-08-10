@@ -160,6 +160,12 @@ body {
   margin: 14px 0;
   border-top: 1px solid var(--tisty-hair);
 }
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  cursor: zoom-in;
+}
 .prose a,
 .prose .ref {
   color: var(--tisty-accent);

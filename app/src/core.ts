@@ -193,5 +193,8 @@ export const attach = (path: string, label?: string): Promise<string> =>
 /** Turns a reference written in the prose into an absolute path, or refuses. */
 export const served = (reference: string): Promise<string> =>
   invoke("served", { reference });
+
+/** Hands the reference to the system: its viewer, its reader, its browser. */
+export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
 export const discard = (id: string): Promise<Task> => invoke("discard", { id });

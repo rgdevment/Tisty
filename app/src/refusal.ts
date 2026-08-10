@@ -22,6 +22,7 @@ const KNOWN = [
   "pastDeadline",
   "pastReminder",
   "cannotRead",
+  "cannotOpen",
   "internal",
 ] as const;
 

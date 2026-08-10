@@ -55,6 +55,8 @@ date-assumed  = "no estaba seguro de esta lectura; para deshacerla y dejar tu te
 unknown-locale = "idioma desconocido: {value} ({known})"
 one-window-only = "solo un filtro temporal a la vez"
 
+loose-files    = "sueltos"
+loose-files-are = "{count} archivos, {size} — ya no los nombra nadie"
 doctor         = "revisión"
 tasks-in-log   = "tareas"
 lists-in-log   = "listas"
