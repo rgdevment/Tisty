@@ -71,6 +71,7 @@ const shot = (view: { archive?: boolean } | undefined): Snapshot => ({
 });
 
 beforeEach(() => {
+  localStorage.clear();
   tasks = structuredClone([report, bank, filed]);
   ipc.answer = (cmd, args) => {
     const held = tasks.find((one) => one.id === args.id);
@@ -81,6 +82,10 @@ beforeEach(() => {
         return Promise.resolve({ title: String(args.text ?? ""), tags: [], spans: [], offers: [] });
       case "complete":
         held!.status = "done";
+        return Promise.resolve(held);
+      case "discard":
+        held!.status = "dropped";
+        held!.hidden = true;
         return Promise.resolve(held);
       default:
         return Promise.resolve(held);
@@ -121,6 +126,32 @@ describe("the open panel", () => {
     await user.click(screen.getByText("call the bank"));
     await waitFor(() => expect(value("Title")).toBe("call the bank"));
     expect(value("Add a step")).toBe("");
+  });
+});
+
+describe("the full screen", () => {
+  it("lets go of a task once you say you will not do it", async () => {
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByText("write the report"));
+    await user.click(screen.getByRole("button", { name: /Full screen/ }));
+    await screen.findByRole("button", { name: /Not doing it/ });
+
+    await user.click(screen.getByRole("button", { name: /Not doing it/ }));
+
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
+    expect(screen.getByText("call the bank")).toBeTruthy();
+  });
+
+  it("stays put in the side panel, where the list never left", async () => {
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByText("write the report"));
+    await user.click(screen.getByRole("button", { name: /Not doing it/ }));
+
+    await screen.findByRole("button", { name: /Reopen/ });
   });
 });
 

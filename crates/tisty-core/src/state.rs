@@ -201,6 +201,23 @@ impl State {
         }
     }
 
+    /// Steps carry an order of their own, and nothing sorts before it.
+    pub fn step_order_between(
+        &self,
+        task: TaskId,
+        after: Option<StepId>,
+        before: Option<StepId>,
+    ) -> String {
+        let key = |id: Option<StepId>| {
+            id.and_then(|id| self.tasks.get(&task)?.step(id))
+                .map(|step| step.order.clone())
+        };
+        match (key(after), key(before)) {
+            (Some(a), Some(b)) if a >= b => order::after(&a),
+            (a, b) => order::between(a.as_deref(), b.as_deref()),
+        }
+    }
+
     /// Backlinks: the index is derived on read, so nothing can fall out of step
     /// with the prose it came from. Matches the label as well as the address,
     /// because a ticket is a link and what people ask for is its code.
@@ -1324,6 +1341,74 @@ mod tests {
         let state = State::default();
         assert!(!state.order_last_in(None).is_empty());
         assert!(!state.order_last_in(Some(Ulid::generate())).is_empty());
+    }
+
+    #[test]
+    fn a_step_dropped_between_two_lands_between_them() {
+        let mut state = State::default();
+        let task = Ulid::generate();
+        state.apply(&ev(1, "a", add(task, "revisar el deploy")));
+
+        let mut steps = Vec::new();
+        for (n, text) in ["uno", "dos", "tres"].iter().enumerate() {
+            let step = Ulid::generate();
+            steps.push(step);
+            state.apply(&ev(
+                2 + n as i64,
+                "a",
+                Op::StepAdd {
+                    id: task,
+                    d: StepAdd {
+                        step,
+                        text: (*text).into(),
+                        order: format!("a{n}"),
+                    },
+                },
+            ));
+        }
+
+        let key = state.step_order_between(task, Some(steps[0]), Some(steps[1]));
+        assert!(key.as_str() > "a0" && key.as_str() < "a1", "{key}");
+        assert!(
+            state
+                .step_order_between(task, None, Some(steps[0]))
+                .as_str()
+                < "a0"
+        );
+        assert!(
+            state
+                .step_order_between(task, Some(steps[2]), None)
+                .as_str()
+                > "a2"
+        );
+    }
+
+    #[test]
+    fn a_step_that_is_gone_does_not_move_the_one_being_dragged() {
+        let mut state = State::default();
+        let task = Ulid::generate();
+        let step = Ulid::generate();
+        state.apply(&ev(1, "a", add(task, "revisar el deploy")));
+        state.apply(&ev(
+            2,
+            "a",
+            Op::StepAdd {
+                id: task,
+                d: StepAdd {
+                    step,
+                    text: "uno".into(),
+                    order: "a5".into(),
+                },
+            },
+        ));
+
+        let vanished = Ulid::generate();
+        assert!(
+            state
+                .step_order_between(task, Some(step), Some(vanished))
+                .as_str()
+                > "a5"
+        );
     }
 
     /// The archive is what you did; what you decided not to do folds away.

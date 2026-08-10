@@ -7,6 +7,7 @@ import {
   fold,
   dropStep,
   markStep,
+  moveStep,
   patch,
   reopen,
   reorder,
@@ -161,8 +162,12 @@ export default function App() {
           onStep={(text, step) => act(writeStep(task.id, text, step))}
           onMark={(step, done) => act(markStep(task.id, step, done))}
           onDropStep={(step) => act(dropStep(task.id, step))}
+          onMoveStep={(step, after, before) => act(moveStep(task.id, step, { after, before }))}
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
-          onDiscard={() => act(discard(task.id))}
+          onDiscard={() => {
+            act(discard(task.id));
+            setSelected(undefined);
+          }}
           onReopen={() => act(reopen(task.id))}
           onError={(e) => setError(saidPlainly(e))}
         />
@@ -251,6 +256,7 @@ export default function App() {
           onStep={(text, step) => act(writeStep(task.id, text, step))}
           onMark={(step, done) => act(markStep(task.id, step, done))}
           onDropStep={(step) => act(dropStep(task.id, step))}
+          onMoveStep={(step, after, before) => act(moveStep(task.id, step, { after, before }))}
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
           onDiscard={() => act(discard(task.id))}
           onReopen={() => act(reopen(task.id))}

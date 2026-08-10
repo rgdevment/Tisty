@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { STEP } from "../drag";
 import type { Step } from "../core";
 import { t } from "../locales";
 
@@ -7,15 +8,40 @@ interface Props {
   onWrite: (text: string, step?: string) => void;
   onMark: (step: string, done: boolean) => void;
   onDrop: (step: string) => void;
+  onMove: (step: string, after?: string, before?: string) => void;
 }
 
-export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
+export default function Steps({ steps, onWrite, onMark, onDrop, onMove }: Props) {
   const [adding, setAdding] = useState("");
+  const [under, setUnder] = useState<string | null>(null);
+
+  const lands = (i: number) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes(STEP)) return;
+      e.preventDefault();
+      setUnder(steps[i].id);
+    },
+    onDragLeave: () => setUnder((on) => (on === steps[i].id ? null : on)),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      const moved = e.dataTransfer.getData(STEP);
+      setUnder(null);
+      if (moved && moved !== steps[i].id) onMove(moved, steps[i - 1]?.id, steps[i].id);
+    },
+  });
 
   return (
     <>
-      {steps.map((step) => (
-        <Line key={step.id} step={step} onWrite={onWrite} onMark={onMark} onDrop={onDrop} />
+      {steps.map((step, i) => (
+        <div key={step.id} {...lands(i)}>
+          <Line
+            step={step}
+            under={under === step.id}
+            onWrite={onWrite}
+            onMark={onMark}
+            onDrop={onDrop}
+          />
+        </div>
       ))}
 
       <form
@@ -41,13 +67,28 @@ export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
   );
 }
 
-function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "steps">) {
+function Line({
+  step,
+  under,
+  onWrite,
+  onMark,
+  onDrop,
+}: { step: Step; under: boolean } & Omit<Props, "steps" | "onMove">) {
   const [text, setText] = useState(step.text);
   const dropped = useRef(false);
   useEffect(() => setText(step.text), [step.id, step.text]);
 
   return (
-    <div className="group flex items-start gap-2.5 py-1 text-[13.5px]">
+    <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData(STEP, step.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      className={`group flex items-start gap-2.5 border-t-2 py-1 text-[13.5px] ${
+        under ? "border-accent" : "border-transparent"
+      }`}
+    >
       <button
         type="button"
         aria-label={step.text}

@@ -29,6 +29,7 @@ function open(task: Task = written) {
     step: vi.fn(),
     mark: vi.fn(),
     dropStep: vi.fn(),
+    moveStep: vi.fn(),
     log: vi.fn(),
     discard: vi.fn(),
     reopen: vi.fn(),
@@ -46,6 +47,7 @@ function open(task: Task = written) {
       onStep={on.step}
       onMark={on.mark}
       onDropStep={on.dropStep}
+      onMoveStep={on.moveStep}
       onLog={on.log}
       onDiscard={on.discard}
       onReopen={on.reopen}
