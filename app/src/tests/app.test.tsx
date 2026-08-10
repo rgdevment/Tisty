@@ -59,6 +59,7 @@ const shot = (view: { archive?: boolean } | undefined): Snapshot => ({
   tasks: tasks.filter((one) => (view?.archive ? one.status !== "open" : one.status === "open")),
   lists: [],
   tags: [],
+  refs: [],
   counts: {},
   locale: "en",
 });

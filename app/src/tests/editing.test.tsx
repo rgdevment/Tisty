@@ -38,6 +38,7 @@ function open(task: Task = written) {
       task={task}
       lists={[]}
       known={[]}
+      refs={["infra/gateway"]}
       expanded={false}
       onExpand={() => {}}
       onCollapse={() => {}}
@@ -57,6 +58,12 @@ function open(task: Task = written) {
 const box = (name: string) =>
   screen.getByRole("textbox", { name }) as HTMLTextAreaElement | HTMLInputElement;
 
+/** Prose reads as composed text until the cursor lands in it. */
+const into = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(screen.getByLabelText(name));
+  return box(name);
+};
+
 describe("escape discards, blur keeps", () => {
   it("puts the title back and writes nothing", async () => {
     const user = userEvent.setup();
@@ -73,11 +80,11 @@ describe("escape discards, blur keeps", () => {
     const user = userEvent.setup();
     const on = open();
 
-    await user.clear(box("Description"));
+    await user.clear(await into(user, "Description"));
     await user.type(box("Description"), "never mind{Escape}");
 
     expect(on.patch).not.toHaveBeenCalled();
-    expect(box("Description").value).toBe("the one for accounting");
+    expect(screen.getByLabelText("Description").textContent).toContain("the one for accounting");
   });
 
   it("puts a step back and writes nothing", async () => {
@@ -95,18 +102,20 @@ describe("escape discards, blur keeps", () => {
     const user = userEvent.setup();
     const on = open();
 
-    await user.clear(box("spoke to accounting"));
+    await user.clear(await into(user, "spoke to accounting"));
     await user.type(box("spoke to accounting"), "never mind{Escape}");
 
     expect(on.log).not.toHaveBeenCalled();
-    expect(box("spoke to accounting").value).toBe("spoke to accounting");
+    expect(screen.getByLabelText("spoke to accounting").textContent).toContain(
+      "spoke to accounting",
+    );
   });
 
   it("keeps the edit when the field is simply left", async () => {
     const user = userEvent.setup();
     const on = open();
 
-    await user.clear(box("Description"));
+    await user.clear(await into(user, "Description"));
     await user.type(box("Description"), "the one for the bank");
     await user.tab();
 
@@ -161,10 +170,10 @@ describe("what an edit is allowed to do", () => {
     const user = userEvent.setup();
     const on = open();
 
-    await user.type(box("Journal"), "they answered{Enter}");
+    await user.type(await into(user, "Journal"), "they answered{Enter}");
 
     expect(on.log).toHaveBeenCalledWith("they answered");
-    expect(box("Journal").value).toBe("");
+    expect(screen.getByLabelText("Journal").textContent).toContain("What happened");
   });
 });
 

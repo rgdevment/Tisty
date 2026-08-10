@@ -109,3 +109,64 @@ body {
 .scroller:hover {
   scrollbar-color: var(--tisty-line) transparent;
 }
+
+.prose > :first-child {
+  margin-top: 0;
+}
+.prose h1,
+.prose h2,
+.prose h3 {
+  font-size: 13.5px;
+  font-weight: 640;
+  margin: 14px 0 4px;
+}
+.prose p + p,
+.prose ul,
+.prose ol,
+.prose pre,
+.prose blockquote {
+  margin-top: 8px;
+}
+.prose ul,
+.prose ol {
+  padding-left: 18px;
+  list-style: revert;
+}
+.prose li::marker {
+  color: var(--tisty-faint);
+}
+.prose code {
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--tisty-hover);
+}
+.prose pre {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--tisty-hover);
+  overflow-x: auto;
+}
+.prose pre code {
+  padding: 0;
+  background: none;
+}
+.prose blockquote {
+  padding-left: 10px;
+  border-left: 2px solid var(--tisty-line);
+  color: var(--tisty-soft);
+}
+.prose hr {
+  margin: 14px 0;
+  border-top: 1px solid var(--tisty-hair);
+}
+.prose a,
+.prose .ref {
+  color: var(--tisty-accent);
+}
+.prose a:hover {
+  text-decoration: underline;
+}
+.prose strong {
+  font-weight: 640;
+}

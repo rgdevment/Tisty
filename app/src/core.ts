@@ -70,6 +70,8 @@ export interface Snapshot {
   tasks: Task[];
   lists: List[];
   tags: Counted[];
+  /** Internal references already in use, so the `/` menu offers them back. */
+  refs: string[];
   /** Per view and per list id, counted by the core with the same filter. */
   counts: Record<string, number>;
   locale?: string;

@@ -173,19 +173,37 @@ impl State {
     }
 
     /// Backlinks: the index is derived on read, so nothing can fall out of step
-    /// with the prose it came from.
+    /// with the prose it came from. Matches the label as well as the address,
+    /// because a ticket is a link and what people ask for is its code.
     pub fn linking_to(&self, target: &str) -> Vec<&Task> {
         let wanted = target.trim().to_lowercase();
         self.tasks
             .values()
             .filter(|task| {
                 task.volume.refs > 0
-                    && task
-                        .references()
-                        .iter()
-                        .any(|one| one.target.to_lowercase() == wanted)
+                    && task.references().iter().any(|one| {
+                        one.target.to_lowercase() == wanted
+                            || one
+                                .label
+                                .as_deref()
+                                .is_some_and(|l| l.to_lowercase() == wanted)
+                    })
             })
             .collect()
+    }
+
+    /// Every internal reference in use, for offering back what already exists
+    /// instead of a second spelling of the same thing.
+    pub fn references(&self) -> Vec<String> {
+        let mut seen: BTreeSet<String> = BTreeSet::new();
+        for task in self.tasks.values().filter(|t| t.volume.refs > 0) {
+            for one in task.references() {
+                if one.kind == crate::refs::Kind::Doc {
+                    seen.insert(one.target);
+                }
+            }
+        }
+        seen.into_iter().collect()
     }
 
     pub fn tasks_tagged(&self, tag: &Tag) -> impl Iterator<Item = &Task> {
@@ -1130,6 +1148,43 @@ mod tests {
         let found = state.search("cusleg-3465", crate::view::Scope::Either);
         assert_eq!(found.len(), 2);
         assert_eq!(found[0].id, points);
+    }
+
+    /// A ticket is written as a link, so its code is the label and the address
+    /// is a URL nobody types into a search box.
+    #[test]
+    fn a_ticket_written_as_a_link_is_found_by_its_code() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(1, "a", add(id, "migrar el proxy")));
+        state.apply(&ev(
+            2,
+            "a",
+            wrote(
+                id,
+                "sale de [OPS-3465](https://jira.example/browse/OPS-3465)",
+            ),
+        ));
+
+        let other = Ulid::generate();
+        state.apply(&ev(3, "a", add(other, "revisar el deploy")));
+        state.apply(&ev(
+            4,
+            "a",
+            wrote(other, "algo parecido a ops-3465, sin ser eso"),
+        ));
+
+        let found = state.search("ops-3465", crate::view::Scope::Either);
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].id, id, "the link lost to a passing mention");
+        assert_eq!(state.linking_to("OPS-3465").len(), 1);
+        assert_eq!(
+            state
+                .linking_to("https://jira.example/browse/OPS-3465")
+                .len(),
+            1,
+            "the address still points at it"
+        );
     }
 
     #[test]

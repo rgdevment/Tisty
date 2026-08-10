@@ -3,12 +3,15 @@ import type { Change, List, Task } from "../core";
 import { t } from "../locales";
 import Fields from "./Fields";
 import Journal from "./Journal";
+import Prose from "./Prose";
 import Steps from "./Steps";
 
 interface Props {
   task: Task;
   lists: List[];
   known: string[];
+  /** References already in use; not the same list as the tags. */
+  refs: string[];
   expanded: boolean;
   onExpand: () => void;
   onCollapse: () => void;
@@ -25,6 +28,7 @@ export default function Detail({
   task,
   lists,
   known,
+  refs,
   expanded,
   onExpand,
   onCollapse,
@@ -42,7 +46,14 @@ export default function Detail({
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
       <Section label={t("description")} />
-      <Wrote task={task} onWrite={(description) => onPatch({ description })} />
+      <Prose
+        value={task.description ?? ""}
+        hint={t("describeIt")}
+        label={t("description")}
+        known={refs}
+        beside={expanded}
+        onWrite={(description) => onPatch({ description })}
+      />
 
       <Section
         label={t("steps")}
@@ -51,7 +62,7 @@ export default function Detail({
       <Steps steps={task.steps ?? []} onWrite={onStep} onMark={onMark} onDrop={onDropStep} />
 
       <Section label={t("journal")} note={task.volume?.journal ? String(task.volume.journal) : undefined} />
-      <Journal entries={task.log ?? []} onWrite={onLog} />
+      <Journal entries={task.log ?? []} known={refs} onWrite={onLog} />
     </>
   );
 
@@ -109,37 +120,6 @@ function Settled({
     >
       {shut ? `↺ ${t("reopenIt")}` : `⨯ ${t("discardIt")}`}
     </button>
-  );
-}
-
-function Wrote({ task, onWrite }: { task: Task; onWrite: (body: string) => void }) {
-  const [text, setText] = useState(task.description ?? "");
-  const dropped = useRef(false);
-  useEffect(() => setText(task.description ?? ""), [task.id, task.description]);
-
-  return (
-    <textarea
-      rows={2}
-      value={text}
-      placeholder={t("describeIt")}
-      aria-label={t("description")}
-      onChange={(e) => setText(e.target.value)}
-      onBlur={() => {
-        if (dropped.current) {
-          dropped.current = false;
-          setText(task.description ?? "");
-          return;
-        }
-        if (text.trim() !== (task.description ?? "").trim()) onWrite(text);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          dropped.current = true;
-          e.currentTarget.blur();
-        }
-      }}
-      className="field-sizing-content w-full resize-none rounded-md bg-transparent px-1.5 py-1 text-[13.5px] leading-relaxed outline-none placeholder:text-faint hover:bg-hover focus:bg-hover"
-    />
   );
 }
 
