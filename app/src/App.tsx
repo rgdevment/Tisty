@@ -132,6 +132,7 @@ export default function App() {
           task={task}
           lists={data.lists}
           known={data.tags.map((one) => one.tag)}
+          refs={data.refs ?? []}
           expanded
           onExpand={() => remember("sheet")}
           onCollapse={() => remember("columns")}
@@ -213,6 +214,7 @@ export default function App() {
           task={task}
           lists={data.lists}
           known={data.tags.map((one) => one.tag)}
+          refs={data.refs ?? []}
           expanded={false}
           onExpand={() => remember("sheet")}
           onCollapse={() => remember("columns")}

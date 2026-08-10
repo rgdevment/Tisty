@@ -55,15 +55,6 @@ date-assumed  = "no estaba seguro de esta lectura; para deshacerla y dejar tu te
 unknown-locale = "idioma desconocido: {value} ({known})"
 one-window-only = "solo un filtro temporal a la vez"
 
-sync           = "sincronización"
-git-missing    = "git no está instalado, y es con lo que tisty sincroniza"
-not-a-repo     = "este almacén todavía no es un repositorio git: ejecuta `tisty sync --setup <url>`"
-git-failed     = "git {command} falló"
-setup-done     = "ejecuta `tisty sync` para enviar lo que tengas"
-no-remote      = "no hay remoto configurado"
-nothing-to-send = "nada nuevo que enviar"
-synced         = "sincronizado"
-
 doctor         = "revisión"
 tasks-in-log   = "tareas"
 lists-in-log   = "listas"

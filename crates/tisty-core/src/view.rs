@@ -95,12 +95,17 @@ pub fn matches_query(task: &Task, query: &str) -> Option<Hit> {
         return Some(Hit::Named);
     }
     // A reference is a declared pointer, so naming one whole names the task —
-    // «CUSLEG-3465» is what the task is about, not something it says in passing.
+    // «OPS-3465» is what the task is about, not something it says in passing.
+    // The label counts as much as the target: a ticket is written as a link, and
+    // what gets searched is its code, never the address behind it.
     if task.volume.refs > 0
-        && task
-            .references()
-            .iter()
-            .any(|one| one.target.to_lowercase() == query)
+        && task.references().iter().any(|one| {
+            one.target.to_lowercase() == query
+                || one
+                    .label
+                    .as_deref()
+                    .is_some_and(|l| l.to_lowercase() == query)
+        })
     {
         return Some(Hit::Named);
     }

@@ -196,19 +196,18 @@ tasks you were asking about.
 A directory of text files, in your documents folder when the system names one:
 
 ```
-~/Documents/Tisty/
+<application data>/tisty/data/
 └── store/
     └── dev_a3f1/
         ├── 000001.jsonl      closed segment, never changes again
         └── active.jsonl      one line per event
 ```
 
-Point it wherever you want — a folder your cloud already syncs, an external
-drive, a Git repository:
-
-```sh
-tisty config set data_dir ~/GoogleDrive/Tisty
-```
+It lives in your system's local application data directory, and that is not
+configurable — a task manager that lets you file its own store in a folder some
+cloud client is quietly rewriting is handing you a footgun. Syncing is a
+separate thing, and it will be on demand: Tisty uploads and downloads when you
+ask, so no background client ever gets between the app and your files.
 
 Your settings never travel with it. The device identifier lives in the config
 file precisely so it stays on this machine: if it went along, two computers

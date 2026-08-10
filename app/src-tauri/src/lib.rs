@@ -134,6 +134,8 @@ struct Snapshot {
     tasks: Vec<Task>,
     lists: Vec<List>,
     tags: Vec<Counted>,
+    /// Internal references already in use, for the `/` menu to offer back.
+    refs: Vec<String>,
     counts: std::collections::BTreeMap<String, usize>,
     /// Set only when configured, or the window would speak a different language than `tisty`.
     locale: Option<String>,
@@ -275,6 +277,7 @@ fn snapshot(session: tauri::State<'_, Mutex<Session>>, view: Option<View>) -> An
             .collect(),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),
         tags: tags_in_use(&session.state),
+        refs: session.state.references(),
         counts: tally(&session.state),
         locale: session.locale.clone(),
     })

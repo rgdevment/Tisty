@@ -192,7 +192,7 @@ escondería justo las tareas por las que preguntabas.
 Un directorio con archivos de texto:
 
 ```
-~/Documents/Tisty/
+<datos de aplicación>/tisty/data/
 └── store/
     └── dev_a3f1/
         ├── 000001.jsonl      segmento cerrado, ya no cambia
@@ -203,10 +203,24 @@ Un directorio con archivos de texto:
 {"v":1,"ts":"2026-08-05T08:27:49Z","by":"dev_a3f1","op":"task.add","id":"01KZ8G…","d":{"title":"arreglar los timeouts intermitentes al guardar","priority":1,"tags":["backend","db"]}}
 ```
 
+Vive en el directorio de datos locales de tu sistema, y eso no se configura:
+un gestor de tareas que te deje meter su propio almacén en una carpeta que un
+cliente de nube reescribe por detrás te está dando un arma cargada. Sincronizar
+es otra cosa, y será a petición — Tisty sube y baja cuando se lo pides, así
+que ningún proceso ajeno se mete entre la app y tus ficheros.
+
+Tu configuración nunca viaja con ellos. El identificador de dispositivo vive en
+el fichero de configuración precisamente para quedarse en esta máquina: si
+viajara, dos equipos lo compartirían, escribirían en el mismo fichero y la
+garantía de abajo se vendría abajo.
+
 Un registro de eventos que solo crece. De ahí salen gratis el historial y el
 deshacer, y también una sincronización sin conflictos cuando llegue: **cada
 máquina escribe únicamente en su propio directorio**, así que fusionar dos
 historias es concatenarlas.
+
+Eso es una sola lista, no una por máquina. Cada dispositivo lee todos los
+directorios y los reproduce en orden; solo escribe en el suyo.
 
 ## Instalación
 

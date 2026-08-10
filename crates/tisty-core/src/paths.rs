@@ -19,7 +19,9 @@ impl Paths {
         let dirs = directories::ProjectDirs::from("", "", "tisty").ok_or(Error::NoHomeDirectory)?;
 
         Ok(Self {
-            data: env_path(DATA_ENV).unwrap_or_else(|| dirs.data_dir().to_path_buf()),
+            // Local, never roaming: a Windows domain profile copies %APPDATA%
+            // at logon and logoff, which is another process touching the log.
+            data: env_path(DATA_ENV).unwrap_or_else(|| dirs.data_local_dir().to_path_buf()),
             config: env_path(CONFIG_ENV).unwrap_or_else(|| dirs.config_dir().to_path_buf()),
             cache: env_path(CACHE_ENV).unwrap_or_else(|| dirs.cache_dir().to_path_buf()),
         })

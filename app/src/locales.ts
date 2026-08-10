@@ -84,6 +84,13 @@ const en = {
   sayDeadline: "due by…",
   sayPriority: "high · medium · low",
   offered: "seen but not taken: it may be naming what is next to it",
+  insertDoc: "Document",
+  insertLink: "Link",
+  sayDoc: "inside Tisty",
+  sayLink: "text and url",
+  linkText: "Text",
+  linkUrl: "URL",
+  composed: "Composed",
 };
 
 // Missing a key in another catalogue is a compile error, not a runtime «⟨?⟩».
@@ -175,6 +182,13 @@ const es: Catalog = {
   sayDeadline: "antes del…",
   sayPriority: "alto · medio · bajo",
   offered: "la vi pero no la tomé: puede estar nombrando lo que tiene al lado",
+  insertDoc: "Documento",
+  insertLink: "Enlace",
+  sayDoc: "dentro de Tisty",
+  sayLink: "texto y url",
+  linkText: "Texto",
+  linkUrl: "URL",
+  composed: "Compuesto",
 };
 
 const catalogs: Record<string, Catalog> = { en, es };

@@ -1074,86 +1074,80 @@ fn export_takes_the_same_filters_as_listing() {
     assert!(!md.contains("dropped"), "{md}");
 }
 
-fn bare_remote() -> TempDir {
-    let dir = tempfile::tempdir().unwrap();
-    let ok = Command::new("git")
-        .args(["init", "--bare", "-q", "-b", "main"])
-        .arg(dir.path())
-        .status()
-        .unwrap()
-        .success();
-    assert!(ok, "could not create the remote");
-    dir
+/// The transport is a plain directory: what rclone will do is copy device
+/// directories around, so the tests copy them by hand and stay transport-free.
+fn shared() -> TempDir {
+    tempfile::tempdir().unwrap()
 }
 
 impl Cli {
-    /// An identity of its own, or the suite fails wherever git has none set.
-    fn joins(&self, remote: &TempDir) {
-        self.ok(&["sync", "--setup", remote.path().to_str().unwrap()]);
-        for pair in [
-            ["user.email", "suite@tisty.test"],
-            ["user.name", "suite"],
-            ["commit.gpgsign", "false"],
-        ] {
-            Command::new("git")
-                .current_dir(self.home.path().join("data"))
-                .args(["config", pair[0], pair[1]])
-                .status()
-                .unwrap();
+    fn store(&self) -> std::path::PathBuf {
+        self.home.path().join("data").join("store")
+    }
+
+    /// Upload: only ever this machine's own directory.
+    fn sends(&self, remote: &TempDir) {
+        copy_dirs(&self.store(), remote.path());
+    }
+
+    /// Download: everyone else's, and never over our own.
+    fn receives(&self, remote: &TempDir) {
+        copy_dirs(remote.path(), &self.store());
+    }
+}
+
+fn copy_dirs(from: &std::path::Path, to: &std::path::Path) {
+    let Ok(entries) = std::fs::read_dir(from) else {
+        return;
+    };
+    for device in entries.filter_map(|e| e.ok()) {
+        let target = to.join(device.file_name());
+        std::fs::create_dir_all(&target).unwrap();
+        for file in std::fs::read_dir(device.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+        {
+            std::fs::copy(file.path(), target.join(file.file_name())).unwrap();
         }
     }
 }
 
-/// A machine joining a remote that already has history used to fail on the
-/// first sync and only work on the retry.
+/// A machine joining a remote that already has history has to work on the
+/// first try, not on the retry.
 #[test]
 fn a_second_machine_joins_an_existing_remote_on_the_first_try() {
-    let remote = bare_remote();
+    let remote = shared();
 
     let first = Cli::new();
     first.ok(&["buy bread"]);
-    first.joins(&remote);
-    first.ok(&["sync"]);
+    first.sends(&remote);
 
     let second = Cli::new();
     second.ok(&["call the bank"]);
-    second.joins(&remote);
-
-    let run = second.run(&["sync"]);
-    assert_eq!(run.code, 0, "the first sync failed: {}", run.err);
+    second.receives(&remote);
 
     let out = second.ok(&["ls", "all"]);
     assert!(out.contains("buy bread"), "{out}");
     assert!(out.contains("call the bank"), "{out}");
 }
 
+/// The whole guarantee in one test: two machines, no merge, no conflict —
+/// each one only ever wrote to its own directory.
 #[test]
 fn what_one_machine_writes_the_other_reads_back() {
-    let remote = bare_remote();
+    let remote = shared();
 
     let first = Cli::new();
-    first.joins(&remote);
     first.ok(&["buy bread"]);
-    first.ok(&["sync"]);
+    first.sends(&remote);
 
     let second = Cli::new();
-    second.joins(&remote);
-    second.ok(&["sync"]);
+    second.receives(&remote);
     second.ok(&["call the bank"]);
-    second.ok(&["sync"]);
+    second.sends(&remote);
 
-    first.ok(&["sync"]);
+    first.receives(&remote);
     let out = first.ok(&["ls", "all"]);
     assert!(out.contains("call the bank"), "{out}");
     assert!(out.contains("buy bread"), "{out}");
-}
-
-#[test]
-fn syncing_outside_a_repository_says_so() {
-    let cli = Cli::new();
-    cli.ok(&["buy bread"]);
-
-    let run = cli.run(&["sync"]);
-    assert_ne!(run.code, 0);
-    assert!(!run.err.trim().is_empty(), "it failed without saying why");
 }
