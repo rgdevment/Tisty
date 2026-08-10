@@ -8,10 +8,11 @@ interface Props {
   entries: LogEntry[];
   known: string[];
   onError?: (problem: unknown) => void;
+  onWhole?: () => void;
   onWrite: (body: string, entry?: string) => void;
 }
 
-export default function Journal({ entries, known, onError, onWrite }: Props) {
+export default function Journal({ entries, known, onError, onWhole, onWrite }: Props) {
   const [draft, setDraft] = useState(0);
 
   return (
@@ -42,6 +43,7 @@ export default function Journal({ entries, known, onError, onWrite }: Props) {
             label={entry.body}
             known={known}
             onError={onError}
+            onWhole={onWhole}
             rows={1}
             onWrite={(body) => body.trim() && onWrite(body, entry.id)}
           />

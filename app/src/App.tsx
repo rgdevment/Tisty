@@ -154,6 +154,7 @@ export default function App() {
           known={data.tags.map((one) => one.tag)}
           refs={data.refs ?? []}
           expanded
+          from={title(chosen, data.lists)}
           onExpand={() => remember("sheet")}
           onCollapse={() => remember("columns")}
           onPatch={(change: Change) => act(patch(task.id, change))}

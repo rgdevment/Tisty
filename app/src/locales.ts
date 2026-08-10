@@ -32,7 +32,7 @@ const en = {
   journal: "Journal",
   description: "Description",
   expand: "Full screen",
-  collapse: "Back to three columns",
+  collapse: "Back",
   high: "High",
   medium: "Medium",
   low: "Low",
@@ -57,7 +57,7 @@ const en = {
   showIt: "Show it again",
   folded: "hidden",
   backToArchive: "Back to the archive",
-  discardIt: "Discard",
+  discardIt: "Not doing it",
   reopenIt: "Reopen",
   done: "Done",
   dropped: "Dropped",
@@ -95,6 +95,7 @@ const en = {
   linkText: "Text",
   linkUrl: "URL",
   composed: "Composed",
+  showWhole: "Read it in full",
 };
 
 // Missing a key in another catalogue is a compile error, not a runtime «⟨?⟩».
@@ -134,7 +135,7 @@ const es: Catalog = {
   journal: "Bitácora",
   description: "Descripción",
   expand: "Pantalla completa",
-  collapse: "Volver a tres columnas",
+  collapse: "Volver",
   high: "Alto",
   medium: "Medio",
   low: "Bajo",
@@ -159,7 +160,7 @@ const es: Catalog = {
   showIt: "Mostrar de nuevo",
   folded: "ocultas",
   backToArchive: "Volver al archivo",
-  discardIt: "Descartar",
+  discardIt: "No lo haré",
   reopenIt: "Reabrir",
   done: "Hecha",
   dropped: "Descartada",
@@ -197,6 +198,7 @@ const es: Catalog = {
   linkText: "Texto",
   linkUrl: "URL",
   composed: "Compuesto",
+  showWhole: "Verlo completo",
 };
 
 const catalogs: Record<string, Catalog> = { en, es };

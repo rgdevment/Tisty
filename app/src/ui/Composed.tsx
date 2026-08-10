@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { opened, served } from "../core";
 import { INSIDE } from "../markdown";
+import { t } from "../locales";
 
 interface Props {
   html: string;
@@ -10,6 +11,8 @@ interface Props {
   /** Click, Enter or Space — never mere focus, or tabbing past would edit. */
   onEnter?: () => void;
   onError?: (problem: unknown) => void;
+  /** Cuts a long body down to a preview and offers the full screen instead. */
+  onWhole?: () => void;
   className: string;
   tabIndex?: number;
 }
@@ -22,10 +25,12 @@ export default function Composed({
   label,
   onEnter,
   onError,
+  onWhole,
   className,
   tabIndex,
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
+  const [long, setLong] = useState(false);
 
   // Not `dangerouslySetInnerHTML`: React compares it by object identity, so
   // every render rewrote the markup and threw away the resolved sources.
@@ -33,11 +38,19 @@ export default function Composed({
     const holder = box.current;
     if (!holder) return;
     holder.innerHTML = html;
+    setLong(false);
     let live = true;
+
+    // Latched, never lowered: the clamp changes the height it measures, so a
+    // two-way answer oscillates and the text flickers.
+    const measure = () => {
+      if (live && holder.scrollHeight > holder.clientHeight + 4) setLong(true);
+    };
 
     holder.querySelectorAll<HTMLImageElement>(`img[${INSIDE}]`).forEach((img) => {
       const reference = img.getAttribute(INSIDE);
       if (!reference) return;
+      img.addEventListener("load", measure);
 
       const cached = known.get(reference);
       if (cached) {
@@ -53,39 +66,54 @@ export default function Composed({
         .catch(() => live && img.replaceWith(missing(img.alt || reference)));
     });
 
+    measure();
     return () => {
       live = false;
     };
-  }, [html]);
+  }, [html, onWhole]);
 
   return (
-    <div
-      ref={box}
-      tabIndex={tabIndex}
-      aria-label={label}
-      onKeyDown={(e) => {
-        if (onEnter && (e.key === "Enter" || e.key === " ")) {
+    <div>
+      <div
+        ref={box}
+        tabIndex={tabIndex}
+        aria-label={label}
+        onKeyDown={(e) => {
+          if (onEnter && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            onEnter();
+          }
+        }}
+        onClick={(e) => {
+          const spot = e.target as HTMLElement;
+          const link = spot.closest("a");
+          const picture = spot.closest(`img[${INSIDE}]`);
+
+          if (!link && !picture) {
+            onEnter?.();
+            return;
+          }
           e.preventDefault();
-          onEnter();
-        }
-      }}
-      onClick={(e) => {
-        const spot = e.target as HTMLElement;
-        const link = spot.closest("a");
-        const picture = spot.closest(`img[${INSIDE}]`);
 
-        if (!link && !picture) {
-          onEnter?.();
-          return;
-        }
-        e.preventDefault();
-
-        const inside = (picture ?? link)?.getAttribute(INSIDE);
-        if (inside) opened(inside).catch((problem) => onError?.(problem));
-        else openUrl(link?.getAttribute("href") ?? "").catch((problem) => onError?.(problem));
-      }}
-      className={className}
-    />
+          const inside = (picture ?? link)?.getAttribute(INSIDE);
+          if (inside) opened(inside).catch((problem) => onError?.(problem));
+          else openUrl(link?.getAttribute("href") ?? "").catch((problem) => onError?.(problem));
+        }}
+        className={`${className} ${onWhole ? "clamped" : ""}`}
+      />
+      {onWhole && long && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onWhole();
+          }}
+          className="mt-1 rounded-md px-1.5 py-0.5 text-xs text-accent hover:bg-hover"
+        >
+          {t("showWhole")}
+        </button>
+      )}
+    </div>
   );
 }
 

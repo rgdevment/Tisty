@@ -16,4 +16,11 @@ window.matchMedia ??= ((query: string) => ({
   dispatchEvent: () => false,
 })) as unknown as typeof window.matchMedia;
 
+// jsdom has no layout, so nothing ever resizes; the app measures with this.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 afterEach(cleanup);

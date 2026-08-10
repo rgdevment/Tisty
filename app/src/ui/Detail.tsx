@@ -13,6 +13,8 @@ interface Props {
   /** References already in use; not the same list as the tags. */
   refs: string[];
   expanded: boolean;
+  /** Where the reader came from, so «back» names a place and not a layout. */
+  from?: string;
   onExpand: () => void;
   onCollapse: () => void;
   onPatch: (change: Change) => void;
@@ -31,6 +33,7 @@ export default function Detail({
   known,
   refs,
   expanded,
+  from,
   onExpand,
   onCollapse,
   onPatch,
@@ -56,6 +59,7 @@ export default function Detail({
         beside={expanded}
         catches
         onError={onError}
+        onWhole={expanded ? undefined : onExpand}
         onWrite={(description) => onPatch({ description })}
       />
 
@@ -66,7 +70,13 @@ export default function Detail({
       <Steps steps={task.steps ?? []} onWrite={onStep} onMark={onMark} onDrop={onDropStep} />
 
       <Section label={t("journal")} note={task.volume?.journal ? String(task.volume.journal) : undefined} />
-      <Journal entries={task.log ?? []} known={refs} onError={onError} onWrite={onLog} />
+      <Journal
+        entries={task.log ?? []}
+        known={refs}
+        onError={onError}
+        onWhole={expanded ? undefined : onExpand}
+        onWrite={onLog}
+      />
     </>
   );
 
@@ -79,7 +89,7 @@ export default function Detail({
             onClick={onCollapse}
             className="-ml-2 rounded-md px-2 py-1 text-accent hover:bg-hover"
           >
-            ⤡ {t("collapse")}
+            ‹ {from || t("collapse")}
           </button>
           <Settled task={task} onDiscard={onDiscard} onReopen={onReopen} />
         </div>
@@ -123,7 +133,7 @@ function Settled({
       onClick={shut ? onReopen : onDiscard}
       className="ml-auto rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
     >
-      {shut ? `↺ ${t("reopenIt")}` : `⨯ ${t("discardIt")}`}
+      {shut ? `↺ ${t("reopenIt")}` : `⊘ ${t("discardIt")}`}
     </button>
   );
 }

@@ -62,6 +62,9 @@ impl State {
             Op::TaskDrop { id } => self.with_task(*id, |t| {
                 t.status = Status::Dropped;
                 t.completed_at = Some(event.timestamp);
+                // What you decided not to do is not what you did: it folds away
+                // on its own, and can be brought back by hand like any other.
+                t.hidden = true;
             }),
             Op::TaskDelete { id } => {
                 self.tasks.remove(id);
@@ -311,8 +314,11 @@ impl State {
 
         // What is still open first, or what remains to do ends up buried under
         // what is already done. Then how it matched, then how much it carries.
+        // Folded last, not gone: hiding is not deleting, so what was put away
+        // stays findable — just never above what was not.
         hits.sort_by_key(|(hit, t)| {
             (
+                t.hidden,
                 t.is_archived(),
                 *hit,
                 std::cmp::Reverse(t.weight()),
@@ -1318,6 +1324,35 @@ mod tests {
         let state = State::default();
         assert!(!state.order_last_in(None).is_empty());
         assert!(!state.order_last_in(Some(Ulid::generate())).is_empty());
+    }
+
+    /// The archive is what you did; what you decided not to do folds away.
+    #[test]
+    fn a_discarded_task_folds_itself_away() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(1, "a", add(id, "no lo voy a hacer")));
+        assert!(!state.tasks[&id].hidden);
+
+        state.apply(&ev(2, "a", Op::TaskDrop { id }));
+        assert!(state.tasks[&id].hidden);
+        assert_eq!(state.tasks[&id].status, Status::Dropped);
+
+        state.apply(&ev(3, "a", Op::TaskShow { id }));
+        assert!(!state.tasks[&id].hidden, "it can be brought back by hand");
+    }
+
+    #[test]
+    fn what_was_folded_away_is_findable_but_never_first() {
+        let mut state = State::default();
+        let (kept, dropped) = (Ulid::generate(), Ulid::generate());
+        state.apply(&ev(1, "a", add(kept, "revisar el proxy")));
+        state.apply(&ev(2, "a", add(dropped, "revisar el proxy viejo")));
+        state.apply(&ev(3, "a", Op::TaskDrop { id: dropped }));
+
+        let found = state.search("proxy", crate::view::Scope::Either);
+        assert_eq!(found.len(), 2, "hiding is not deleting");
+        assert_eq!(found[0].id, kept);
     }
 
     /// Open and hidden is a state no view reaches: neither the open ones, which

@@ -183,6 +183,6 @@ describe("a settled task", () => {
   it("offers to reopen instead of to discard", () => {
     open({ ...written, status: "done" });
     expect(screen.getByRole("button", { name: /Reopen/ })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Discard/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Not doing it/ })).toBeNull();
   });
 });
