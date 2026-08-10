@@ -2,12 +2,14 @@ import { useState } from "react";
 import type { List } from "../core";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
+import { INBOX, TASK } from "../drag";
 
 interface Props {
   lists: List[];
   counts: Record<string, number>;
   chosen: Chosen;
   onChoose: (chosen: Chosen) => void;
+  onFile?: (task: string, list?: string) => void;
 }
 
 const NAMED: { key: Named; icon: string }[] = [
@@ -19,8 +21,25 @@ const NAMED: { key: Named; icon: string }[] = [
   { key: "archive", icon: "▣" },
 ];
 
-export default function Sidebar({ lists, counts, chosen, onChoose }: Props) {
+export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Props) {
   const [openLists, setOpenLists] = useState(true);
+  const [over, setOver] = useState<string | null>(null);
+
+  const lands = (list?: string) =>
+    onFile && {
+      onDragOver: (e: React.DragEvent) => {
+        if (!e.dataTransfer.types.includes(TASK)) return;
+        e.preventDefault();
+        setOver(list ?? INBOX);
+      },
+      onDragLeave: () => setOver(null),
+      onDrop: (e: React.DragEvent) => {
+        const task = e.dataTransfer.getData(TASK);
+        setOver(null);
+        if (task) onFile(task, list);
+      },
+      under: over === (list ?? INBOX),
+    };
 
   const settled = lists.filter((list) => !counts[list.id]);
   const working = lists.filter((list) => counts[list.id]);
@@ -38,6 +57,7 @@ export default function Sidebar({ lists, counts, chosen, onChoose }: Props) {
               count={counts[key]}
               on={!chosen.list && !chosen.tags?.length && chosen.named === key}
               onClick={() => onChoose({ named: key })}
+              {...(key === "inbox" ? lands(undefined) : {})}
             />
           ))}
         </nav>
@@ -62,6 +82,7 @@ export default function Sidebar({ lists, counts, chosen, onChoose }: Props) {
                 count={counts[list.id]}
                 on={chosen.list === list.id}
                 onClick={() => onChoose({ list: list.id })}
+                {...lands(list.id)}
               />
             ))}
             {settled.length > 0 && working.length > 0 && (
@@ -75,6 +96,7 @@ export default function Sidebar({ lists, counts, chosen, onChoose }: Props) {
                 muted
                 on={chosen.list === list.id}
                 onClick={() => onChoose({ list: list.id })}
+                {...lands(list.id)}
               />
             ))}
           </nav>
@@ -90,16 +112,21 @@ interface EntryProps {
   count?: number | string;
   on?: boolean;
   muted?: boolean;
+  under?: boolean;
   onClick?: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent) => void;
 }
 
-function Entry({ icon, label, count, on, muted, onClick }: EntryProps) {
+function Entry({ icon, label, count, on, muted, under, onClick, ...drag }: EntryProps) {
   return (
     <button
       onClick={onClick}
+      {...drag}
       className={`flex items-center gap-2.5 rounded-[7px] px-2.5 py-1.5 text-left text-[13.5px] hover:bg-hover ${
         on ? "bg-active font-semibold" : ""
-      } ${muted ? "text-faint" : "text-ink"}`}
+      } ${under ? "ring-2 ring-accent ring-inset" : ""} ${muted ? "text-faint" : "text-ink"}`}
     >
       {icon && (
         <span className={`w-4 shrink-0 text-center text-[13px] ${on ? "text-accent" : "text-soft"}`}>

@@ -21,6 +21,7 @@ const KNOWN = [
   "emptyEntry",
   "pastDeadline",
   "pastReminder",
+  "cannotRead",
   "internal",
 ] as const;
 

@@ -47,6 +47,11 @@ describe("source where the cursor is, composed where it is not", () => {
     field();
 
     await user.tab();
+    expect(region()).toBe(document.activeElement);
+
+    // Focus alone must not open it, or tabbing past a task would edit it.
+    expect(screen.queryByRole("textbox")).toBeNull();
+    await user.keyboard("{Enter}");
     expect(box()).toBe(document.activeElement);
   });
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  attach,
   capture,
   complete,
   discard,
@@ -8,6 +9,7 @@ import {
   markStep,
   patch,
   reopen,
+  reorder,
   snapshot,
   writeLog,
   writeStep,
@@ -15,6 +17,7 @@ import {
   type Snapshot,
   type Task,
 } from "./core";
+import { handTo, whenFilesLand } from "./dropped";
 import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { accepts, asView, invite, title, type Chosen } from "./views";
@@ -59,6 +62,22 @@ export default function App() {
     window.addEventListener("focus", load);
     return () => window.removeEventListener("focus", load);
   }, [load]);
+
+  useEffect(
+    () =>
+      whenFilesLand((target, paths) => {
+        setError(null);
+        Promise.all(paths.map((one) => attach(one)))
+          .then((written) => {
+            // The field can be gone by the time the copy finishes; saying so
+            // beats leaving the file in the store with nothing pointing at it.
+            const put = handTo(target, written.join("\n\n"));
+            if (!put) setError(t("attachmentLost"));
+          })
+          .catch((e) => setError(saidPlainly(e)));
+      }),
+    [],
+  );
 
   if (!data) return null;
 
@@ -118,6 +137,7 @@ export default function App() {
       <Sidebar
         lists={data.lists}
         counts={data.counts}
+        onFile={(task, list) => act(reorder(task, list ? { list } : { inbox: true }))}
         chosen={chosen}
         onChoose={(next) => {
           setChosen(next);
@@ -158,6 +178,13 @@ export default function App() {
           onComplete={chosen.named === "archive" ? undefined : (id) => act(complete(id))}
           onFold={
             chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined
+          }
+          onDrop={
+            // The archive is sorted by when it closed and a search by how it
+            // matched; dragging inside either would promise an order it has not.
+            chosen.named === "archive" || found !== null
+              ? undefined
+              : (task, after, before) => act(reorder(task, { after, before }))
           }
           above={
             chosen.named === "archive" && (data.counts.folded || chosen.folded) ? (

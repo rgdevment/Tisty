@@ -23,6 +23,7 @@ export default function Journal({ entries, known, onWrite }: Props) {
         known={known}
         rows={1}
         submits
+        catches
         onWrite={(body) => {
           if (body.trim()) onWrite(body);
           setDraft((n) => n + 1);

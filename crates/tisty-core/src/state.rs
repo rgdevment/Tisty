@@ -172,6 +172,32 @@ impl State {
         self.tombstones.insert(id);
     }
 
+    /// Last place in a list, for a task that arrived without neighbours —
+    /// dropped on the sidebar, where there was nothing to land between.
+    pub fn order_last_in(&self, list: Option<ListId>) -> String {
+        let keys: Vec<&str> = self
+            .open_tasks()
+            .filter(|task| task.list == list)
+            .map(|task| task.order.as_str())
+            .collect();
+        order::last_of(keys)
+    }
+
+    /// The client says which two tasks it was dropped between; the key is the
+    /// core's to compute, as it is the only place that knows what an order is.
+    pub fn order_between(&self, after: Option<TaskId>, before: Option<TaskId>) -> String {
+        let key = |id: Option<TaskId>| {
+            id.and_then(|id| self.tasks.get(&id))
+                .map(|task| task.order.clone())
+        };
+        let (a, b) = (key(after), key(before));
+        // A stale neighbour would put the task somewhere nobody pointed at.
+        match (a, b) {
+            (Some(a), Some(b)) if a >= b => order::after(&a),
+            (a, b) => order::between(a.as_deref(), b.as_deref()),
+        }
+    }
+
     /// Backlinks: the index is derived on read, so nothing can fall out of step
     /// with the prose it came from. Matches the label as well as the address,
     /// because a ticket is a link and what people ask for is its code.
@@ -1213,6 +1239,85 @@ mod tests {
 
         state.apply(&ev(5, "a", wrote(one, "ya no sale de ninguna parte")));
         assert_eq!(state.linking_to("CUSLEG-3465").len(), 1);
+    }
+
+    #[test]
+    fn dropping_between_two_tasks_lands_between_them() {
+        let mut state = State::default();
+        let (one, two, moved) = (Ulid::generate(), Ulid::generate(), Ulid::generate());
+        state.apply(&ev(1, "a", add(one, "first")));
+        state.apply(&ev(2, "a", add(two, "second")));
+        state.apply(&ev(3, "a", add(moved, "dropped in the middle")));
+        state.tasks.get_mut(&one).unwrap().order = "a0".into();
+        state.tasks.get_mut(&two).unwrap().order = "a1".into();
+
+        let key = state.order_between(Some(one), Some(two));
+        assert!(key.as_str() > "a0" && key.as_str() < "a1", "{key}");
+    }
+
+    #[test]
+    fn dropping_at_either_end_needs_only_one_neighbour() {
+        let mut state = State::default();
+        let only = Ulid::generate();
+        state.apply(&ev(1, "a", add(only, "the only one")));
+        state.tasks.get_mut(&only).unwrap().order = "a5".into();
+
+        assert!(state.order_between(None, Some(only)).as_str() < "a5");
+        assert!(state.order_between(Some(only), None).as_str() > "a5");
+        assert!(!state.order_between(None, None).is_empty());
+    }
+
+    /// A neighbour deleted on another machine while the drag was in flight.
+    #[test]
+    fn a_neighbour_that_is_gone_does_not_drop_the_task_somewhere_else() {
+        let mut state = State::default();
+        let here = Ulid::generate();
+        state.apply(&ev(1, "a", add(here, "still here")));
+        state.tasks.get_mut(&here).unwrap().order = "a5".into();
+
+        let vanished = Ulid::generate();
+        assert!(state.order_between(Some(here), Some(vanished)).as_str() > "a5");
+        assert!(state.order_between(Some(vanished), Some(here)).as_str() < "a5");
+    }
+
+    /// Neighbours arriving the wrong way round would panic the midpoint.
+    #[test]
+    fn neighbours_out_of_order_land_after_the_first_instead_of_panicking() {
+        let mut state = State::default();
+        let (one, two) = (Ulid::generate(), Ulid::generate());
+        state.apply(&ev(1, "a", add(one, "first")));
+        state.apply(&ev(2, "a", add(two, "second")));
+        state.tasks.get_mut(&one).unwrap().order = "a9".into();
+        state.tasks.get_mut(&two).unwrap().order = "a1".into();
+
+        assert!(state.order_between(Some(one), Some(two)).as_str() > "a9");
+    }
+
+    /// Filing from the sidebar arrives without neighbours, and the midpoint of
+    /// nothing is always the same key: every task would pile on the first one.
+    #[test]
+    fn a_task_filed_without_neighbours_goes_last_in_its_list() {
+        let mut state = State::default();
+        let list = Ulid::generate();
+        let (one, two) = (Ulid::generate(), Ulid::generate());
+        state.apply(&ev(1, "a", add(one, "first")));
+        state.apply(&ev(2, "a", add(two, "second")));
+        for (id, key) in [(one, "a0"), (two, "a5")] {
+            let task = state.tasks.get_mut(&id).unwrap();
+            task.order = key.into();
+            task.list = Some(list);
+        }
+
+        let landed = state.order_last_in(Some(list));
+        assert!(landed.as_str() > "a5", "it did not go last: {landed}");
+        assert_ne!(landed, state.order_between(None, None));
+    }
+
+    #[test]
+    fn the_first_task_of_an_empty_list_still_gets_a_key() {
+        let state = State::default();
+        assert!(!state.order_last_in(None).is_empty());
+        assert!(!state.order_last_in(Some(Ulid::generate())).is_empty());
     }
 
     /// Open and hidden is a state no view reaches: neither the open ones, which

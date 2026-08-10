@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { CATCHES, takesFiles } from "../dropped";
 import { composed } from "../markdown";
 import { t } from "../locales";
+import Composed from "./Composed";
 import Insert from "./Insert";
 
 interface Props {
@@ -13,6 +15,8 @@ interface Props {
   /** Enter keeps the entry, as a journal line is written in one go. */
   submits?: boolean;
   onWrite: (text: string) => void;
+  /** True on the field a dropped file should land in. */
+  catches?: boolean;
 }
 
 /** Source where the cursor is, composed where it is not: no preview button, no mode to learn. */
@@ -25,6 +29,7 @@ export default function Prose({
   rows = 2,
   submits,
   onWrite,
+  catches,
 }: Props) {
   const [text, setText] = useState(value);
   const [writing, setWriting] = useState(false);
@@ -34,11 +39,27 @@ export default function Prose({
 
   useEffect(() => setText(value), [value]);
 
-  // React reuses the same div across both faces, so focus has to be placed
-  // after the swap rather than in the handler that asked for it.
+  // The two faces are different elements, so focus has to be placed after the
+  // swap rather than in the handler that asked for it.
   useEffect(() => {
     if (writing) box.current?.focus();
   }, [writing]);
+
+  // The file arrives from outside React, so the field registers itself as the
+  // taker for its own element. Inserting never sends: what the drop writes is
+  // a draft the person still has to keep.
+  const [mine, setMine] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!mine || !catches) return;
+    return takesFiles(mine, (written) => {
+      setWriting(true);
+      setText((held) => {
+        const kept = held.replace(/\s+$/, "");
+        return kept ? [kept, "", written].join("\n") : written;
+      });
+      dropped.current = false;
+    });
+  }, [mine, catches]);
 
   const settle = () => {
     setWriting(false);
@@ -62,8 +83,10 @@ export default function Prose({
     });
   };
 
+  const caught = catches ? { [CATCHES]: "", ref: setMine } : {};
+
   const source = (
-    <div className="relative">
+    <div className="relative" {...caught}>
       <textarea
         ref={box}
         rows={rows}
@@ -103,14 +126,15 @@ export default function Prose({
   );
 
   const read = (
-    <div
-      tabIndex={0}
-      aria-label={label}
-      onClick={() => setWriting(true)}
-      onFocus={() => setWriting(true)}
-      className="prose cursor-text rounded-md px-1.5 py-1 text-[13.5px] leading-relaxed outline-none hover:bg-hover"
-      dangerouslySetInnerHTML={{ __html: text.trim() ? composed(text) : placeholder(hint) }}
-    />
+    <div {...caught}>
+      <Composed
+        tabIndex={0}
+        label={label}
+        html={text.trim() ? composed(text) : placeholder(hint)}
+        onEnter={() => setWriting(true)}
+        className="prose cursor-text rounded-md px-1.5 py-1 text-[13.5px] leading-relaxed outline-none hover:bg-hover"
+      />
+    </div>
   );
 
   if (!writing) return read;
@@ -119,10 +143,10 @@ export default function Prose({
   return (
     <div className="grid grid-cols-2 items-start gap-5">
       {source}
-      <div
+      <Composed
+        label={t("composed")}
+        html={composed(text)}
         className="prose px-1.5 py-1 text-[13.5px] leading-relaxed"
-        aria-label={t("composed")}
-        dangerouslySetInnerHTML={{ __html: composed(text) }}
       />
     </div>
   );
