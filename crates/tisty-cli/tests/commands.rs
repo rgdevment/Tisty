@@ -1044,7 +1044,7 @@ fn export_hands_the_data_back_in_both_shapes() {
     cli.ok(&["step", "1", "add", "collect the timeline"]);
     cli.ok(&["log", "1", "the cache never expired"]);
 
-    let json = cli.ok(&["export", "all"]);
+    let json = cli.ok(&["export"]);
     serde_json::from_str::<serde_json::Value>(json.trim()).expect("export is not json");
 
     let md = cli.ok(&["export", "all", "--markdown"]);
@@ -1076,6 +1076,32 @@ fn export_takes_the_same_filters_as_listing() {
 
 /// The transport is a plain directory: what rclone will do is copy device
 /// directories around, so the tests copy them by hand and stay transport-free.
+/// An export that omits what was folded away is silent data loss.
+#[test]
+fn an_export_carries_what_the_views_fold_away() {
+    let cli = Cli::new();
+    cli.ok(&["kept #keep"]);
+    cli.ok(&["dropped #keep"]);
+    cli.ok(&["ls"]);
+    cli.ok(&["drop", "dropped"]);
+
+    let out = cli.ok(&["ls", "archive"]);
+    assert!(
+        !out.contains("dropped"),
+        "the archive shows what you did: {out}"
+    );
+
+    let json = cli.ok(&["export"]);
+    assert!(json.contains("dropped"), "the export lost it: {json}");
+    assert!(json.contains("kept"), "{json}");
+
+    let drawer = cli.ok(&["ls", "folded"]);
+    assert!(
+        drawer.contains("dropped"),
+        "no way out of the drawer: {drawer}"
+    );
+}
+
 fn shared() -> TempDir {
     tempfile::tempdir().unwrap()
 }

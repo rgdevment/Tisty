@@ -48,7 +48,7 @@ impl Filter {
         if !fits {
             return false;
         }
-        if task.hidden != self.hidden {
+        if task.folded() != self.hidden {
             return false;
         }
         if self.inbox && task.list.is_some() {

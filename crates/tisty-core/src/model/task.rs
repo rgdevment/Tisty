@@ -188,6 +188,15 @@ impl Task {
         !self.is_open()
     }
 
+    pub fn is_dropped(&self) -> bool {
+        self.status == Status::Dropped
+    }
+
+    /// Put away by hand, or decided against: the archive is what you did.
+    pub fn folded(&self) -> bool {
+        self.hidden || self.is_dropped()
+    }
+
     pub fn steps_done(&self) -> (usize, usize) {
         (self.volume.steps_done, self.volume.steps)
     }

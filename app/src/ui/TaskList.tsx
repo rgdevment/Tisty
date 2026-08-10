@@ -89,8 +89,8 @@ export default function TaskList({
         // Again here, not only on hover: a drop can arrive without one.
         if (!settles(tasks.find((one) => one.id === id), tasks[i])) return;
         // Dropped ON a row means «take its place», so it lands just above it.
-        const above = tasks[i - 1];
-        onDrop(id, settles(tasks[i], above) ? above.id : undefined, tasks[i].id);
+        const above = tasks[i - 1]?.id === id ? tasks[i - 2] : tasks[i - 1];
+        onDrop(id, settles(tasks[i], above) ? above?.id : undefined, tasks[i].id);
       },
     };
   const named = (id: string) => lists.find((list) => list.id === id)?.name;

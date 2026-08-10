@@ -29,6 +29,15 @@ describe("what gets composed", () => {
     expect(outside).toContain('href="https://jira.example/browse/OPS-3465"');
   });
 
+  /// Over the threshold only the path is kept, and it is a file of yours —
+  /// not something the store holds, so it never goes through `resolve`.
+  it("leaves an absolute path alone, whatever the platform writes", () => {
+    for (const at of ["C:/Users/Mario/clip.mkv", "/home/mario/clip.mkv", "//server/share/clip.mkv"]) {
+      expect(composed(`[clip](<${at}>)`)).not.toContain("data-inside");
+    }
+    expect(composed("![shot](<attachments/ab/cd.png>)")).toContain("data-inside");
+  });
+
   it("finds a bare address without being asked", () => {
     expect(composed("see https://x.example/1")).toContain('href="https://x.example/1"');
   });

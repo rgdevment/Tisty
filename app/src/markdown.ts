@@ -26,9 +26,12 @@ md.renderer.rules.wiki = (tokens, i) =>
 /** Marks a target that lives under the data root, for the view to resolve. */
 export const INSIDE = "data-inside";
 
-/** Anything without a scheme is ours: attachments and documents are relative. */
+/** Ours is what is relative: an absolute path is a file of yours, not of the store. */
 const ours = (target: string): boolean =>
-  !/^[a-z][a-z0-9+.-]{1,}:/i.test(target) && !target.startsWith("//") && !target.startsWith("/");
+  !/^[a-z][a-z0-9+.-]*:/i.test(target) &&
+  !/^[a-z]:/i.test(target) &&
+  !target.startsWith("/") &&
+  !target.startsWith("\\\\");
 
 // A link is never followed in place: inside a webview that would replace the
 // app, and there is no back button to return with.

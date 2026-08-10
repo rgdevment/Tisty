@@ -201,5 +201,8 @@ export const served = (reference: string): Promise<string> =>
 
 /** Hands the reference to the system: its viewer, its reader, its browser. */
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
+
+/** Shows a file in its folder: for what the store never held, and for anything runnable. */
+export const revealed = (path: string): Promise<void> => invoke("revealed", { path });
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
 export const discard = (id: string): Promise<Task> => invoke("discard", { id });

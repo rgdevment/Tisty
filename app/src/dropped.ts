@@ -13,7 +13,9 @@ const takers = new WeakMap<Element, (written: string) => void>();
 
 export function takesFiles(target: Element, put: (written: string) => void): () => void {
   takers.set(target, put);
-  return () => takers.delete(target);
+  return () => {
+    if (takers.get(target) === put) takers.delete(target);
+  };
 }
 
 /** False when the field is gone, so the caller can say so instead of losing it. */

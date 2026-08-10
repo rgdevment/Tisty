@@ -901,10 +901,52 @@ fn opened(
     if !at.is_file() {
         return Err(Refusal::about("cannotRead", reference));
     }
+    // Never launched, only shown: a description can arrive from another machine.
+    if runnable(&at) {
+        return show(&at, &reference);
+    }
     tauri_plugin_opener::open_path(at, None::<&str>)
         .map_err(|_| Refusal::about("cannotOpen", reference))?;
     let _ = app;
     Ok(())
+}
+
+/// A file the store does not hold: over the threshold only its path was kept,
+/// so it is shown in its folder rather than opened from a path we cannot vouch for.
+#[tauri::command]
+fn revealed(path: String) -> Answer<()> {
+    show(std::path::Path::new(&path), &path)
+}
+
+fn show(at: &std::path::Path, said: &str) -> Answer<()> {
+    tauri_plugin_opener::reveal_item_in_dir(at)
+        .map_err(|_| Refusal::about("cannotOpen", said.to_string()))
+}
+
+fn runnable(at: &std::path::Path) -> bool {
+    let ext = at
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    matches!(
+        ext.as_str(),
+        "exe"
+            | "bat"
+            | "cmd"
+            | "com"
+            | "msi"
+            | "scr"
+            | "ps1"
+            | "vbs"
+            | "js"
+            | "jar"
+            | "sh"
+            | "app"
+            | "lnk"
+            | "reg"
+            | "hta"
+    )
 }
 
 /// Does not touch the task: what makes it an attachment is the reference in the prose.
@@ -1022,7 +1064,8 @@ pub fn run() {
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
             snapshot, capture, read, search, complete, reopen, patch, write_step, mark_step,
-            drop_step, write_log, fold, discard, reorder, attach, served, opened, move_step
+            drop_step, write_log, fold, discard, reorder, attach, served, opened, revealed,
+            move_step
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

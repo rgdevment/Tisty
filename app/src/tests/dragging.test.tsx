@@ -212,6 +212,18 @@ describe("reordering the steps of a task", () => {
     expect(onMove).toHaveBeenCalledWith("03S", undefined, "01S");
   });
 
+  /// Dropping on the neighbour just below used to ask for a place between
+  /// where it already was and the target, so nothing moved.
+  it("moves one place down, which is the drop that used to do nothing", () => {
+    const onMove = vi.fn();
+    list(onMove);
+
+    fireEvent.dragStart(line("reproduce it")!, held("01S", STEP));
+    fireEvent.drop(line("deploy the fix")!.parentElement!, held("01S", STEP));
+
+    expect(onMove).toHaveBeenCalledWith("01S", undefined, "02S");
+  });
+
   it("takes no notice of a task dragged over it", () => {
     const onMove = vi.fn();
     list(onMove);

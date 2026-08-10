@@ -57,6 +57,7 @@ one-window-only = "solo un filtro temporal a la vez"
 
 loose-files    = "sueltos"
 loose-files-are = "{count} archivos, {size} — ya no los nombra nadie"
+folded         = "plegadas"
 doctor         = "revisión"
 tasks-in-log   = "tareas"
 lists-in-log   = "listas"
