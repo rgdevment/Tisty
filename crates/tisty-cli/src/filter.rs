@@ -56,6 +56,11 @@ impl Filter {
                 self.inner.scope = view::Scope::Archived;
                 Ok(())
             }
+            Some("folded") => {
+                self.inner.scope = view::Scope::Either;
+                self.inner.hidden = true;
+                Ok(())
+            }
             Some("today") => self.take_window(Window::Today, lang),
             Some("tomorrow") => self.take_window(Window::On(today.tomorrow()?), lang),
             Some("week") => self.take_window(Window::Until(today.checked_add(7.days())?), lang),

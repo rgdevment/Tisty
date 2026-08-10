@@ -117,9 +117,20 @@ pub fn export(
     today: Date,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
-    let filter = Filter::parse(tokens, app, today, lang)?;
+    let mut filter = Filter::parse(tokens, app, today, lang)?;
 
-    let tasks = app.state.matching(&filter.inner, today);
+    // Without a filter this is the way out of the format, so it carries
+    // everything; anything omitted here is data the person cannot get back.
+    if tokens.is_empty() {
+        filter.inner.scope = tisty_core::view::Scope::Either;
+        filter.inner.window = None;
+    }
+    let mut tasks = app.state.matching(&filter.inner, today);
+    if !filter.inner.hidden {
+        let mut folded = filter.inner.clone();
+        folded.hidden = true;
+        tasks.extend(app.state.matching(&folded, today));
+    }
 
     if markdown {
         print!(

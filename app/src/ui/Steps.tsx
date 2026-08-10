@@ -26,7 +26,11 @@ export default function Steps({ steps, onWrite, onMark, onDrop, onMove }: Props)
       e.preventDefault();
       const moved = e.dataTransfer.getData(STEP);
       setUnder(null);
-      if (moved && moved !== steps[i].id) onMove(moved, steps[i - 1]?.id, steps[i].id);
+      if (!moved || moved === steps[i].id) return;
+      // Skipping itself: dropping on the neighbour just below would otherwise
+      // ask to land between where it already is and the target.
+      const above = steps[i - 1]?.id === moved ? steps[i - 2]?.id : steps[i - 1]?.id;
+      onMove(moved, above, steps[i].id);
     },
   });
 

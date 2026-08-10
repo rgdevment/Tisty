@@ -62,9 +62,6 @@ impl State {
             Op::TaskDrop { id } => self.with_task(*id, |t| {
                 t.status = Status::Dropped;
                 t.completed_at = Some(event.timestamp);
-                // What you decided not to do is not what you did: it folds away
-                // on its own, and can be brought back by hand like any other.
-                t.hidden = true;
             }),
             Op::TaskDelete { id } => {
                 self.tasks.remove(id);
@@ -175,15 +172,20 @@ impl State {
         self.tombstones.insert(id);
     }
 
+    /// Every task, not only the open ones: an archived key still holds its
+    /// place, and reopening one must not land on a key already taken.
+    fn ordered_keys(&self, list: Option<ListId>) -> Vec<&str> {
+        self.tasks
+            .values()
+            .filter(|task| task.list == list)
+            .map(|task| task.order.as_str())
+            .collect()
+    }
+
     /// Last place in a list, for a task that arrived without neighbours —
     /// dropped on the sidebar, where there was nothing to land between.
     pub fn order_last_in(&self, list: Option<ListId>) -> String {
-        let keys: Vec<&str> = self
-            .open_tasks()
-            .filter(|task| task.list == list)
-            .map(|task| task.order.as_str())
-            .collect();
-        order::last_of(keys)
+        order::last_of(self.ordered_keys(list))
     }
 
     /// The client says which two tasks it was dropped between; the key is the
@@ -335,7 +337,7 @@ impl State {
         // stays findable — just never above what was not.
         hits.sort_by_key(|(hit, t)| {
             (
-                t.hidden,
+                t.folded(),
                 t.is_archived(),
                 *hit,
                 std::cmp::Reverse(t.weight()),
@@ -1411,20 +1413,40 @@ mod tests {
         );
     }
 
-    /// The archive is what you did; what you decided not to do folds away.
+    /// Folded by the view, never by touching the data: mutating `hidden` on a
+    /// drop cost the export, the whole CLI and a correct undo.
     #[test]
-    fn a_discarded_task_folds_itself_away() {
+    fn a_discarded_task_folds_without_being_marked_hidden() {
         let mut state = State::default();
         let id = Ulid::generate();
         state.apply(&ev(1, "a", add(id, "no lo voy a hacer")));
-        assert!(!state.tasks[&id].hidden);
-
         state.apply(&ev(2, "a", Op::TaskDrop { id }));
-        assert!(state.tasks[&id].hidden);
-        assert_eq!(state.tasks[&id].status, Status::Dropped);
 
-        state.apply(&ev(3, "a", Op::TaskShow { id }));
-        assert!(!state.tasks[&id].hidden, "it can be brought back by hand");
+        let task = &state.tasks[&id];
+        assert_eq!(task.status, Status::Dropped);
+        assert!(!task.hidden, "the flag is the person's, not the status");
+        assert!(task.folded(), "and it folds all the same");
+    }
+
+    #[test]
+    fn the_archive_shows_what_you_did_and_the_drawer_the_rest() {
+        let mut state = State::default();
+        let (done, gone) = (Ulid::generate(), Ulid::generate());
+        state.apply(&ev(1, "a", add(done, "lo hice")));
+        state.apply(&ev(2, "a", add(gone, "no lo haré")));
+        state.apply(&ev(3, "a", Op::TaskDone { id: done }));
+        state.apply(&ev(4, "a", Op::TaskDrop { id: gone }));
+
+        let archive = |folded: bool| {
+            let filter = crate::view::Filter {
+                scope: crate::view::Scope::Archived,
+                hidden: folded,
+                ..Default::default()
+            };
+            state.matching(&filter, day()).len()
+        };
+        assert_eq!(archive(false), 1);
+        assert_eq!(archive(true), 1);
     }
 
     #[test]

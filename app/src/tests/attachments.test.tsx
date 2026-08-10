@@ -24,7 +24,7 @@ describe("more than one image", () => {
     await waitFor(() => expect(resolved()).toBe(2));
   });
 
-  it("loses them when the parent re-renders with the very same html", async () => {
+  it("keeps them when the parent re-renders with the very same html", async () => {
     const { rerender } = render(<Composed html={composed(TWO)} className="prose" />);
     await waitFor(() => expect(resolved()).toBe(2));
 

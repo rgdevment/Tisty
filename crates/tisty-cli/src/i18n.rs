@@ -183,6 +183,10 @@ pub fn canonical_filter(raw: &str) -> Option<&'static str> {
         ("all", &["all", "todas", "todo"][..]),
         ("inbox", &["inbox", "bandeja"][..]),
         ("archive", &["archive", "archivo", "hechas", "done"][..]),
+        (
+            "folded",
+            &["folded", "plegadas", "descartadas", "dropped"][..],
+        ),
     ] {
         if aliases.contains(&raw.as_str()) {
             return Some(canonical);

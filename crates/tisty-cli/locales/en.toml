@@ -60,6 +60,7 @@ one-window-only = "only one time filter at a time"
 
 loose-files    = "loose"
 loose-files-are = "{count} files, {size} — nothing points at them any more"
+folded         = "folded away"
 doctor         = "doctor"
 tasks-in-log   = "tasks"
 lists-in-log   = "lists"

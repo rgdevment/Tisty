@@ -9,7 +9,11 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
     match &event.op {
         Op::TaskAdd { id, .. } => Some(Op::TaskDelete { id: *id }),
 
-        Op::TaskDone { id } | Op::TaskDrop { id } => Some(Op::TaskReopen { id: *id }),
+        Op::TaskDone { id } | Op::TaskDrop { id } => match before.tasks.get(id)?.status {
+            Status::Open => Some(Op::TaskReopen { id: *id }),
+            Status::Done => Some(Op::TaskDone { id: *id }),
+            Status::Dropped => Some(Op::TaskDrop { id: *id }),
+        },
         Op::TaskHide { id } => (!before.tasks.get(id)?.hidden).then_some(Op::TaskShow { id: *id }),
         Op::TaskShow { id } => before
             .tasks
@@ -388,5 +392,81 @@ mod tests {
             inverse(&ev(2, Op::TaskHide { id }), &open),
             Some(Op::TaskShow { id })
         );
+    }
+}
+
+#[cfg(test)]
+mod dropping {
+    use super::*;
+    use crate::event::DeviceId;
+    use ulid::Ulid;
+
+    fn ev(ms: i64, op: Op) -> Event {
+        Event::new(
+            DeviceId("dev_a".into()),
+            jiff::Timestamp::from_millisecond(ms).unwrap(),
+            op,
+        )
+    }
+
+    fn settled(status: Status) -> (State, Ulid) {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            Op::TaskAdd {
+                id,
+                d: crate::event::TaskAdd::new("revisar el deploy", "a0"),
+            },
+        ));
+        match status {
+            Status::Done => state.apply(&ev(2, Op::TaskDone { id })),
+            Status::Dropped => state.apply(&ev(2, Op::TaskDrop { id })),
+            Status::Open => {}
+        }
+        (state, id)
+    }
+
+    /// Undoing has to put back what was there, not what is usually there.
+    #[test]
+    fn discarding_a_completed_task_undoes_back_to_completed() {
+        let (before, id) = settled(Status::Done);
+        let op = inverse(&ev(3, Op::TaskDrop { id }), &before).unwrap();
+
+        let mut after = before.clone();
+        after.apply(&ev(3, Op::TaskDrop { id }));
+        after.apply(&ev(4, op));
+
+        assert_eq!(after.tasks[&id].status, Status::Done);
+        assert_eq!(after.tasks[&id].hidden, before.tasks[&id].hidden);
+    }
+
+    #[test]
+    fn discarding_something_put_away_by_hand_leaves_it_put_away() {
+        let (mut before, id) = settled(Status::Done);
+        before.apply(&ev(3, Op::TaskHide { id }));
+
+        let op = inverse(&ev(4, Op::TaskDrop { id }), &before).unwrap();
+        let mut after = before.clone();
+        after.apply(&ev(4, Op::TaskDrop { id }));
+        after.apply(&ev(5, op));
+
+        assert!(
+            after.tasks[&id].hidden,
+            "the drawer was the person's choice"
+        );
+        assert_eq!(after.tasks[&id].status, Status::Done);
+    }
+
+    #[test]
+    fn discarding_an_open_task_undoes_back_to_open() {
+        let (before, id) = settled(Status::Open);
+        let op = inverse(&ev(3, Op::TaskDrop { id }), &before).unwrap();
+
+        let mut after = before.clone();
+        after.apply(&ev(3, Op::TaskDrop { id }));
+        after.apply(&ev(4, op));
+
+        assert_eq!(after.tasks[&id], before.tasks[&id]);
     }
 }

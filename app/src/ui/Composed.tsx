@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { opened, served } from "../core";
+import { opened, revealed, served } from "../core";
 import { INSIDE } from "../markdown";
 import { t } from "../locales";
 
@@ -31,6 +31,7 @@ export default function Composed({
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [long, setLong] = useState(false);
+  const cut = onWhole !== undefined;
 
   // Not `dangerouslySetInnerHTML`: React compares it by object identity, so
   // every render rewrote the markup and threw away the resolved sources.
@@ -70,7 +71,7 @@ export default function Composed({
     return () => {
       live = false;
     };
-  }, [html, onWhole]);
+  }, [html, cut]);
 
   return (
     <div>
@@ -96,17 +97,21 @@ export default function Composed({
           e.preventDefault();
 
           const inside = (picture ?? link)?.getAttribute(INSIDE);
-          if (inside) opened(inside).catch((problem) => onError?.(problem));
-          else openUrl(link?.getAttribute("href") ?? "").catch((problem) => onError?.(problem));
+          const target = link?.getAttribute("href") ?? "";
+          const outside = /^(https?|mailto|tel):/i.test(target)
+            ? openUrl(target)
+            : revealed(decodeURI(target));
+
+          (inside ? opened(inside) : outside).catch((problem) => onError?.(problem));
         }}
-        className={`${className} ${onWhole ? "clamped" : ""}`}
+        className={`${className} ${cut ? "clamped" : ""}`}
       />
-      {onWhole && long && (
+      {cut && long && (
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onWhole();
+            onWhole?.();
           }}
           className="mt-1 rounded-md px-1.5 py-0.5 text-xs text-accent hover:bg-hover"
         >
