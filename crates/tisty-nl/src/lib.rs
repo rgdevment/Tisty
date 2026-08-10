@@ -432,7 +432,7 @@ pub fn title_without(input: &str, spans: &[Span]) -> String {
     let mut kept = Vec::new();
     let mut at = 0;
     for span in ordered {
-        if span.from < at || span.to > letters.len() {
+        if span.from < at || span.to > letters.len() || span.from > span.to {
             continue;
         }
         kept.push(letters[at..span.from].iter().collect());

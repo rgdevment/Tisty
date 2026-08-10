@@ -457,8 +457,9 @@ fn match_anchor(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
         });
     }
     if let Some(day) = v.weekday_index(last) {
-        let is_next = (1..=2)
-            .any(|back| end > back && v.next.contains(&tokens[end - 1 - back].word.as_str()));
+        // Glued to the day: «el próximo lunes». With a word in between it is
+        // not one phrase — «este informe lunes» names the report.
+        let is_next = end > 1 && v.next.contains(&tokens[end - 2].word.as_str());
         let from = if is_next { end - 2 } else { end - 1 };
         return Some((
             if is_next {
@@ -533,8 +534,13 @@ fn match_offset(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
     }
 
     // «contrato de 6 meses» is how long it lasts. The walk swallows «de»
-    // because it is also an article, so the crossing has to be remembered.
-    if owned && !asked {
+    // because it is also an article, so the crossing has to be remembered —
+    // unless a temporal preposition backs it: «antes de 3 días» is a deadline.
+    let backed = from > 0 && {
+        let before = tokens[from - 1].word.as_str();
+        v.deadline_prep.contains(&before) || v.date_prep.contains(&before)
+    };
+    if owned && !asked && !backed {
         return None;
     }
 
@@ -585,17 +591,27 @@ fn match_explicit_date(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(
         ));
     }
 
+    // «leer 2/3» is a chapter and «ratio 16/9» is a ratio. A written date is
+    // introduced: «el 15/8», «on 15/8» — or it stands alone as a flag value.
+    let introduced = end < 2 || {
+        let before = tokens[end - 2].word.as_str();
+        before.is_empty()
+            || v.article.contains(&before)
+            || v.date_prep.contains(&before)
+            || v.deadline_prep.contains(&before)
+    };
     let slashed: Vec<&str> = last.split('/').collect();
-    if let [d, m] | [d, m, _] = slashed.as_slice()
+    if introduced
+        && let [d, m] | [d, m, _] = slashed.as_slice()
         && let (Ok(d), Ok(m)) = (d.parse::<u8>(), m.parse::<u8>())
         && (1..=31).contains(&d)
         && (1..=12).contains(&m)
     {
-        // A two-digit year is this century, never year 26 AD.
+        // Any year under a hundred is this century, never year 26 AD.
         let year = match slashed.as_slice() {
             [_, _, y] => {
                 let n = y.parse::<i16>().ok()?;
-                Some(if y.len() <= 2 { 2000 + n } else { n })
+                Some(if n < 100 { 2000 + n } else { n })
             }
             _ => None,
         };

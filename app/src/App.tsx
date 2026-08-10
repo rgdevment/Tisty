@@ -152,7 +152,7 @@ export default function App() {
           fresh={captured?.id}
           reveal={reveal}
           centred={!open}
-          byMonth={chosen.named === "archive"}
+          byMonth={chosen.named === "archive" && found === null}
           onSelect={setSelected}
           onComplete={chosen.named === "archive" ? undefined : (id) => act(complete(id))}
           onFold={
@@ -185,9 +185,9 @@ export default function App() {
           }
         >
           {chosen.named === "search" ? (
-            <Search key="search" onFound={setFound} />
+            <Search key="search" onFound={setFound} onError={setError} />
           ) : chosen.named === "archive" ? (
-            <Search key="archive" fixed="archived" onFound={setFound} />
+            <Search key="archive" fixed="archived" onFound={setFound} onError={setError} />
           ) : accepts(chosen) ? (
           <CaptureField
             invite={invite(chosen, data.lists)}

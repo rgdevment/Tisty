@@ -35,11 +35,9 @@ export default function TaskList({
   children,
 }: Props) {
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
-  const columns = onComplete
-    ? "grid-cols-[20px_minmax(0,1fr)_auto]"
-    : onFold
-      ? "grid-cols-[16px_minmax(0,1fr)_auto_16px]"
-      : "grid-cols-[16px_minmax(0,1fr)_auto]";
+  const columns = onFold
+    ? "grid-cols-[20px_minmax(0,1fr)_auto_16px]"
+    : "grid-cols-[20px_minmax(0,1fr)_auto]";
   const width = centred ? "mx-auto w-full max-w-[780px]" : "";
 
   // Never on capture: scrolling under someone who is still typing loses them.
@@ -76,7 +74,7 @@ export default function TaskList({
               selected === task.id ? "bg-active" : ""
             } ${fresh === task.id ? "bg-accent-soft" : ""}`}
           >
-            {onComplete && (
+            {onComplete && task.status === "open" ? (
               <button
                 aria-label={task.title}
                 onClick={(e) => {
@@ -91,8 +89,7 @@ export default function TaskList({
                       : "border-faint"
                 }`}
               />
-            )}
-            {!onComplete && (
+            ) : (
               <span
                 title={task.status === "dropped" ? t("dropped") : t("done")}
                 className={`mt-px text-[13px] ${task.status === "dropped" ? "text-faint" : "text-accent"}`}
@@ -162,14 +159,14 @@ function Meta({ task, list }: { task: Task; list?: string }) {
 }
 
 function Volume({ task }: { task: Task }) {
-  const v = task.volume;
-  if (!v) return null;
+  const v = task.volume ?? {};
 
   const parts = [
     v.steps ? `${v.steps_done ?? 0}/${v.steps}` : null,
     v.journal ? `✎${v.journal}` : null,
   ].filter(Boolean);
 
-  if (parts.length === 0) return null;
-  return <span className="pt-px text-xs whitespace-nowrap text-faint">{parts.join(" · ")}</span>;
+  return (
+    <span className="pt-px text-xs whitespace-nowrap text-faint">{parts.join(" · ")}</span>
+  );
 }

@@ -173,7 +173,7 @@ pub const EN: Vocabulary = Vocabulary {
     genitive: &["of"],
     idioms: &["24/7"],
     noon: &["noon", "midday"],
-    in_prep: &["in"],
+    in_prep: &["in", "within"],
     spans_prep: &["for", "during"],
     days_unit: &["day", "days"],
     weeks_unit: &["week", "weeks"],

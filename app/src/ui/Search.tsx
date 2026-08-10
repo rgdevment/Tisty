@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { search, type Scope, type Task } from "../core";
 import { t } from "../locales";
+import { saidPlainly } from "../refusal";
 import Field from "./Field";
 
 interface Props {
   fixed?: Scope;
   onFound: (tasks: Task[] | null) => void;
+  onError: (message: string) => void;
 }
 
 const SETTLES = 150;
@@ -16,7 +18,7 @@ const LABEL: Record<Scope, "scopeEither" | "scopeOpen" | "scopeArchived"> = {
   archived: "scopeArchived",
 };
 
-export default function Search({ fixed, onFound }: Props) {
+export default function Search({ fixed, onFound, onError }: Props) {
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<Scope>(fixed ?? "open");
 
@@ -28,10 +30,10 @@ export default function Search({ fixed, onFound }: Props) {
     const timer = setTimeout(() => {
       search(query, scope)
         .then(onFound)
-        .catch(() => onFound([]));
+        .catch((problem) => onError(saidPlainly(problem)));
     }, SETTLES);
     return () => clearTimeout(timer);
-  }, [query, scope, onFound]);
+  }, [query, scope, onFound, onError]);
 
   return (
     <div className="w-full">

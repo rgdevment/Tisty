@@ -240,6 +240,8 @@ impl Task {
 const PROSE_CAP: usize = 8;
 
 /// Words, not entries: twelve «ok» say nothing and two paragraphs say a lot.
+/// Blind to scripts that do not space their words, which only ever costs a
+/// place in the ranking and never touches stored data.
 fn substance(body: &str) -> usize {
     match body.split_whitespace().count() {
         0..=2 => 0,
@@ -263,7 +265,7 @@ impl Volume {
             1..=2 => 1,
             _ => 2,
         };
-        self.prose.min(PROSE_CAP) + plan + refs
+        self.prose + plan + refs
     }
 }
 
