@@ -99,7 +99,7 @@ function Line({
         type="button"
         aria-label={`${t("remove")} ${step.text}`}
         onClick={() => onDrop(step.id)}
-        className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded text-faint opacity-0 group-hover:opacity-100 hover:bg-line hover:text-ink"
+        className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded text-faint opacity-0 outline-none group-hover:opacity-100 hover:bg-line hover:text-ink focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent"
       >
         ×
       </button>

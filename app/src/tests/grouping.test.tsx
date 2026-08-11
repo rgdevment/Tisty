@@ -21,7 +21,7 @@ const done = (id: string, title: string, at: string): Task =>
 
 const archive = (tasks: Task[]) =>
   render(
-    <TaskList tasks={tasks} lists={[]} title="Archive" bands="month" centred onSelect={() => {}} />,
+    <TaskList tasks={tasks} lists={[]} title="Archive" bands="month" onSelect={() => {}} />,
   );
 
 describe("the archive folds repetitions", () => {

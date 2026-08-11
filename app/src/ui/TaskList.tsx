@@ -11,7 +11,8 @@ interface Props {
   fresh?: string;
   reveal?: string;
   title: string;
-  centred: boolean;
+  /** Left out where the chips above carry a number each and this one would read as their sum. */
+  count?: number;
   bands?: "month" | "day";
   empty?: string;
   /// Said above the rows: what the list is not showing.
@@ -32,7 +33,7 @@ export default function TaskList({
   fresh,
   reveal,
   title,
-  centred,
+  count,
   bands,
   empty,
   note,
@@ -68,7 +69,10 @@ export default function TaskList({
   const columns = onFold
     ? "grid-cols-[20px_minmax(0,1fr)_auto_16px]"
     : "grid-cols-[20px_minmax(0,1fr)_auto]";
-  const width = centred ? "mx-auto w-full max-w-[780px]" : "";
+  // Centred whether or not the panel is open: dropping the centring at the same
+  // frame the column narrows moved the list twice, and the row under the cursor
+  // slid out from under it.
+  const width = "mx-auto w-full max-w-[780px]";
 
   // Never on capture: scrolling under someone who is still typing loses them.
   const asked = useRef<HTMLDivElement>(null);
@@ -120,6 +124,13 @@ export default function TaskList({
       if (onComplete && task.status === "open") {
         walk(task.id, 1);
         onComplete(task.id);
+        return;
+      }
+      // In the archive the row's verb is folding it away, and its button was
+      // out of the tab order and drawn only under the mouse.
+      if (onFold) {
+        walk(task.id, 1);
+        onFold(task.id, !task.hidden);
       }
       return;
     }
@@ -144,7 +155,9 @@ export default function TaskList({
             role="listitem"
             tabIndex={stops(task.id) ? 0 : -1}
             aria-label={task.title}
-            aria-keyshortcuts={onComplete && task.status === "open" ? "Control+Enter" : undefined}
+            aria-keyshortcuts={
+              (onComplete && task.status === "open") || onFold ? "Control+Enter" : undefined
+            }
             onFocus={() => setReached(task.id)}
             onKeyDown={(event) => typed(event, task)}
             onClick={() => onSelect(task.id)}
@@ -194,7 +207,7 @@ export default function TaskList({
                   e.stopPropagation();
                   onFold(task.id, !task.hidden);
                 }}
-                className="mt-0.5 flex h-4 w-4 items-center justify-center rounded text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 hover:bg-line hover:text-ink"
+                className="mt-0.5 flex h-4 w-4 items-center justify-center rounded text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 hover:bg-line hover:text-ink"
               >
                 {task.hidden ? "⊕" : "⊖"}
               </button>
@@ -209,7 +222,7 @@ export default function TaskList({
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <header className={`flex items-baseline gap-2.5 px-8 pb-3.5 ${width}`}>
         <h1 className="text-[21px] font-semibold -tracking-[0.01em]">{title}</h1>
-        <span className="text-[13px] text-faint">{tasks.length || ""}</span>
+        <span className="text-[13px] tabular-nums text-faint">{count || ""}</span>
       </header>
 
       <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>

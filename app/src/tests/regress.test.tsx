@@ -30,7 +30,7 @@ describe("the list never loses its way in", () => {
   it("keeps a tab stop when the focused task leaves the list", () => {
     const three = [task("1", "una"), task("2", "dos"), task("3", "tres")];
     const shown = render(
-      <TaskList tasks={three} lists={[]} title="Open" centred onSelect={() => {}} />,
+      <TaskList tasks={three} lists={[]} title="Open" onSelect={() => {}} />,
     );
 
     screen.getAllByRole("listitem")[2].focus();
@@ -39,7 +39,6 @@ describe("the list never loses its way in", () => {
         tasks={[task("1", "una"), task("2", "dos")]}
         lists={[]}
         title="Open"
-        centred
         onSelect={() => {}}
       />,
     );
@@ -60,7 +59,6 @@ describe("the list never loses its way in", () => {
         lists={[]}
         title="Archive"
         bands="month"
-        centred
         onSelect={() => {}}
       />,
     );
@@ -84,7 +82,6 @@ describe("day bands", () => {
         lists={[]}
         title="Tags"
         bands="day"
-        centred
         onSelect={() => {}}
       />,
     );

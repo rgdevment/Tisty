@@ -118,6 +118,23 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             ..Default::default()
         },
     );
+    // One number beside a title that always says «Tasks» reads as the whole of
+    // them. Each slice carries its own instead.
+    count(
+        "upcoming",
+        Filter {
+            window: Some(Window::After(today())),
+            ..Default::default()
+        },
+    );
+    count(
+        "repeating",
+        Filter {
+            repeating: true,
+            ..Default::default()
+        },
+    );
+    count("all", Filter::default());
     count(
         "archive",
         Filter {

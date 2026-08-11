@@ -22,6 +22,7 @@ interface Props {
   onLog: (body: string, entry?: string) => void;
   onDiscard: () => void;
   onReopen: () => void;
+  onClose: () => void;
   onError?: (problem: unknown) => void;
 }
 
@@ -40,6 +41,7 @@ export default function Detail({
   onLog,
   onDiscard,
   onReopen,
+  onClose,
   onError,
 }: Props) {
   // Opening a task moved the eye and left the keyboard back in the list; the
@@ -48,6 +50,16 @@ export default function Detail({
   useEffect(() => {
     opened.current?.focus({ preventScroll: true });
   }, [task.id]);
+
+  // Escape already cancels an edit inside a field, so it only closes the panel
+  // when it is not being typed into.
+  const leave = (event: React.KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    const at = event.target as HTMLElement;
+    if (at.isContentEditable || at.closest("input, textarea, select")) return;
+    event.preventDefault();
+    onClose();
+  };
 
   const body = (
     <>
@@ -90,7 +102,12 @@ export default function Detail({
 
   if (expanded) {
     return (
-      <main ref={opened} tabIndex={-1} className="flex flex-col overflow-hidden outline-none">
+      <main
+        ref={opened}
+        tabIndex={-1}
+        onKeyDown={leave}
+        className="flex flex-col overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+      >
         <div data-tauri-drag-region className="h-9 shrink-0" />
         <div className="flex items-center gap-1 px-6 text-[13px] text-faint">
           <button
@@ -111,10 +128,20 @@ export default function Detail({
     <aside
       ref={opened as React.RefObject<HTMLElement>}
       tabIndex={-1}
-      className="flex flex-col overflow-hidden border-l border-hair bg-panel outline-none"
+      onKeyDown={leave}
+      className="flex flex-col overflow-hidden border-l border-hair bg-panel outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
     >
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="flex items-center gap-1 px-5 text-[13px] text-faint">
+        <button
+          onClick={onClose}
+          title={t("closePanel")}
+          aria-label={t("closePanel")}
+          aria-keyshortcuts="Escape"
+          className="-ml-1 flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-ink"
+        >
+          <span aria-hidden="true">✕</span>
+        </button>
         <button
           onClick={onExpand}
           title={t("expand")}

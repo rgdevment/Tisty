@@ -65,6 +65,9 @@ export default function App() {
     setAloud(words + "\u200b".repeat(twice.current % 2));
   };
   const [reveal, setReveal] = useState<string | undefined>();
+  // Closing the panel used to drop the keyboard on the body: the row it was
+  // opened from takes it back once the list has drawn without the panel.
+  const [returning, setReturning] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(
     () => (localStorage.getItem("detail") as Mode) ?? "columns",
   );
@@ -123,6 +126,12 @@ export default function App() {
       .then((state) => setGreet(!state.asked))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!returning) return;
+    document.querySelector<HTMLElement>(`[data-row="${returning}"]`)?.focus();
+    setReturning(null);
+  }, [returning]);
 
   useEffect(() => {
     const stop = listen("closing", () => setLeaving(true));
@@ -192,9 +201,16 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
   };
 
+  const shown = found?.tasks ?? (chosen.named === "search" ? [] : data.tasks);
+
+  const shut = () => {
+    setReturning(selected ?? null);
+    setSelected(undefined);
+  };
+
   return (
     <div
-      className="grid h-full font-sans"
+      className="grid h-full font-sans motion-safe:transition-[grid-template-columns] motion-safe:duration-150"
       style={{
         gridTemplateColumns:
           open && mode === "columns" && chosen.named !== "keeping"
@@ -310,13 +326,15 @@ export default function App() {
             setSelected(undefined);
           }}
           onReopen={() => act(reopen(task.id))}
+          onClose={shut}
           onError={(e) => setError(saidPlainly(e))}
         />
       ) : (
         <TaskList
-          tasks={found?.tasks ?? (chosen.named === "search" ? [] : data.tasks)}
+          tasks={shown}
           lists={data.lists}
           title={title(chosen, data.lists)}
+          count={chosen.named === "tasks" ? undefined : shown.length}
           empty={nothing(chosen, found !== null)}
           note={
             found && found.total > found.tasks.length
@@ -326,7 +344,6 @@ export default function App() {
           selected={selected}
           fresh={captured?.id}
           reveal={reveal}
-          centred={!open}
           bands={
             found !== null || chosen.list || chosen.named === "tags" || chosen.tags?.length
               ? undefined
@@ -339,7 +356,7 @@ export default function App() {
             chosen.named === "archive"
               ? undefined
               : (id) => {
-                  const one = (found?.tasks ?? data.tasks).find((task) => task.id === id);
+                  const one = shown.find((task) => task.id === id);
                   if (one) say(fill("saidDone", one.title));
                   act(complete(id));
                 }
@@ -352,6 +369,7 @@ export default function App() {
               <div className="flex gap-1 px-2.5 pb-1">
                 {SLICES.map((slice) => {
                   const on = (chosen.slice ?? "today") === slice;
+                  const many = data.counts[slice === "today" ? "tasks" : slice];
                   return (
                     <button
                       key={slice}
@@ -371,6 +389,7 @@ export default function App() {
                       }`}
                     >
                       {t(sliceWord(slice))}
+                      {many ? <span className="ml-1 tabular-nums opacity-70">{many}</span> : null}
                     </button>
                   );
                 })}
@@ -448,6 +467,7 @@ export default function App() {
             setSelected(undefined);
           }}
           onReopen={() => act(reopen(task.id))}
+          onClose={shut}
           onError={(e) => setError(saidPlainly(e))}
         />
       )}

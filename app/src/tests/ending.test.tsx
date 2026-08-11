@@ -35,6 +35,7 @@ const open = (one: Task) =>
       onLog={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}
+      onClose={() => {}}
     />,
   );
 

@@ -186,7 +186,7 @@ export default function Keeping({ onChanged }: Props) {
       <div className="scroller mx-auto w-full max-w-[560px] px-6 pb-12">
         <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
 
-        <Card title={t("syncing")} which="sync" said={said} trouble={trouble}>
+        <Card title={t("syncing")} which="sync" busy={busy} said={said} trouble={trouble}>
           <p className="text-[12.5px] leading-relaxed text-soft">
             {state.chosen ? fill("syncOn", state.chosen) : t("syncOff")}
           </p>
@@ -221,7 +221,7 @@ export default function Keeping({ onChanged }: Props) {
           </div>
         </Card>
 
-        <Card title={t("backup")} which="backup" said={said} trouble={trouble}>
+        <Card title={t("backup")} which="backup" busy={busy} said={said} trouble={trouble}>
           <p className="text-[12.5px] leading-relaxed text-soft">
             {state.backsUp ? t("backupWhat") : t("backupOffWhy")}
           </p>
@@ -238,7 +238,7 @@ export default function Keeping({ onChanged }: Props) {
         </Card>
 
         {kept && (
-          <Card title={t("settingsTitle")} which="settings" said={said} trouble={trouble}>
+          <Card title={t("settingsTitle")} which="settings" busy={busy} said={said} trouble={trouble}>
             <p className="text-[12.5px] leading-relaxed text-soft">{t("noticesWhy")}</p>
             <div className="mt-2.5 flex flex-col gap-1.5">
               {(["screen", "chime"] as const).map((channel) => (
@@ -268,7 +268,7 @@ export default function Keeping({ onChanged }: Props) {
                 value={String(kept.attachUpTo)}
                 disabled={held}
                 onChange={(e) => remember({ ...kept, attachUpTo: Number(e.target.value) })}
-                className="rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px]"
+                className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
               >
                 {SIZES.map((bytes) => (
                   <option key={bytes} value={bytes}>
@@ -281,14 +281,14 @@ export default function Keeping({ onChanged }: Props) {
           </Card>
         )}
 
-        <Card title={t("quick")} which="quick" said={said} trouble={trouble}>
+        <Card title={t("quick")} which="quick" busy={busy} said={said} trouble={trouble}>
           <p className="text-[12.5px] leading-relaxed text-soft">
             {keys ? fill("quickOn", keys) : t("quickNone")}
           </p>
         </Card>
 
         {reach?.shipped && (
-          <Card title={t("terminal")} which="terminal" said={said} trouble={trouble}>
+          <Card title={t("terminal")} which="terminal" busy={busy} said={said} trouble={trouble}>
             <p className="text-[12.5px] leading-relaxed text-soft">
               {reach.withinReach ? fill("terminalOn", reach.through ?? reach.at ?? "") : t("terminalOff")}
             </p>
@@ -313,7 +313,7 @@ export default function Keeping({ onChanged }: Props) {
           </Card>
         )}
 
-        <Card title={t("review")} which="review" said={said} trouble={trouble}>
+        <Card title={t("review")} which="review" busy={busy} said={said} trouble={trouble}>
           <p className="text-[12.5px] leading-relaxed text-soft">
             {audit
               ? [
@@ -359,23 +359,41 @@ export default function Keeping({ onChanged }: Props) {
   );
 }
 
-const mild =
-  "rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:opacity-50";
-const strong = "rounded-[7px] bg-accent px-2.5 py-1 text-[12.5px] text-bg disabled:opacity-50";
+// Not `opacity-50`: half-strength ink lands at 2:1, and no test can measure a
+// colour that is only ever computed by the compositor.
+const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
+const mild = `rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
+const strong = `rounded-[7px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
 
 interface CardProps {
   title: string;
   which: Which;
+  busy: Which | null;
   said?: Word;
   trouble?: Word;
   children: React.ReactNode;
 }
 
-function Card({ title, which, said, trouble, children }: CardProps) {
+/// Work anywhere on this screen holds every button on it, and only the card
+/// that started it used to say anything: the rest looked broken.
+const NAMED: Record<Which, Parameters<typeof t>[0]> = {
+  sync: "syncing",
+  backup: "backup",
+  review: "review",
+  terminal: "terminal",
+  quick: "quick",
+  settings: "settingsTitle",
+};
+
+function Card({ title, which, busy, said, trouble, children }: CardProps) {
+  const waiting = busy !== null && busy !== which;
   return (
     <section className="mb-3 rounded-[10px] border border-hair px-4 py-3.5">
       <h3 className="mb-0.5 text-[13.5px] font-semibold">{title}</h3>
       {children}
+      {waiting && (
+        <p className="mt-2 text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
+      )}
       {trouble?.card === which && <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>}
       {said?.card === which && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
     </section>

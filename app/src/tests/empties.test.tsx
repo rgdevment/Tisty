@@ -50,7 +50,6 @@ describe("what an empty screen says", () => {
         tasks={[]}
         lists={[]}
         title="Today"
-        centred
         empty={nothing({ named: "tasks" }, false)}
         onSelect={() => {}}
       />,
