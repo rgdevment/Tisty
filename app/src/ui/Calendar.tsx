@@ -64,7 +64,7 @@ export default function Calendar({ value, inline, onPick, onClear, onClose }: Pr
               onClick={() => onPick(iso)}
               className={`h-[26px] rounded-md tabular-nums ${
                 iso === value
-                  ? "bg-accent font-medium text-white"
+                  ? "bg-accent font-medium text-bg"
                   : `hover:bg-hover ${day.getMonth() === month.getMonth() ? "text-ink" : "text-faint"} ${
                       iso === today ? "font-semibold text-accent" : ""
                     }`
