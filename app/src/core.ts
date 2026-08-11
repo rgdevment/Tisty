@@ -129,7 +129,7 @@ export interface View {
   /** Anything carrying a tag: the tag view with nothing picked. */
   tagged?: boolean;
   hidden?: boolean;
-  window?: "today" | "upcoming" | "overdue";
+  window?: "today" | "upcoming" | "overdue" | "undated";
 }
 
 export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });

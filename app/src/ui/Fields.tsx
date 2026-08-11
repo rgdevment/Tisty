@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Change, List, Task } from "../core";
 import { cadence, whenLabel } from "../format";
 import { t } from "../locales";
@@ -216,6 +216,20 @@ function Sheet({
   onClose: () => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
+  const [away, setAway] = useState({ right: false, up: false });
+
+  // Anchored bottom-left of the chip with no regard for the window edge, half
+  // of the calendar fell outside the three-column layout, where the detail is
+  // a narrow strip. Measured after the first paint and flipped if it does not
+  // fit — `useLayoutEffect` so nobody sees the wrong side.
+  useLayoutEffect(() => {
+    const at = box.current?.getBoundingClientRect();
+    if (!at) return;
+    setAway({
+      right: at.right > window.innerWidth - EDGE,
+      up: at.bottom > window.innerHeight - EDGE,
+    });
+  }, []);
 
   useEffect(() => {
     const came = document.activeElement as HTMLElement | null;
@@ -245,7 +259,9 @@ function Sheet({
           event.stopPropagation();
           onClose();
         }}
-        className={`absolute top-7 left-0 z-20 rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lift ${
+        className={`absolute z-20 rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lift ${
+          away.right ? "right-0" : "left-0"
+        } ${away.up ? "bottom-7" : "top-7"} ${
           roomy ? "w-[248px]" : "max-h-64 w-56 overflow-auto"
         }`}
       >
@@ -325,3 +341,7 @@ const CADENCES = [
 
 const fieldOf = (slot: "date" | "deadline"): "fieldDate" | "fieldDeadline" =>
   slot === "date" ? "fieldDate" : "fieldDeadline";
+
+/// Breathing room against the window edge, so a flipped sheet does not sit
+/// flush against it.
+const EDGE = 8;

@@ -1374,6 +1374,35 @@ fn undoing_and_redoing_a_completion_keeps_the_series_alive() {
     );
 }
 
+/// Redoing a chain of completions means rebuilding what each undo buried, and
+/// the second step cannot see the rename the first one had to do. It stops
+/// there — and the part that matters is that it now says something true: the
+/// old wording claimed the task had been erased while it sat in the list.
+#[test]
+fn a_chained_redo_of_completions_stops_and_tells_the_truth() {
+    let cli = Cli::new();
+    cli.ok(&["take out the bins every week"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["undo"]);
+    cli.ok(&["undo"]);
+    cli.ok(&["redo"]);
+
+    let run = cli.run(&["redo"]);
+
+    assert!(
+        !run.err.contains("erased"),
+        "it claimed a live task was gone: {}",
+        run.err
+    );
+    assert!(
+        cli.ok(&["ls", "all"]).contains("take out the bins"),
+        "the series was lost"
+    );
+}
+
 #[test]
 fn dropping_a_repeating_task_says_the_series_is_over() {
     let cli = Cli::new();

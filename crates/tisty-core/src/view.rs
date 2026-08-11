@@ -11,6 +11,9 @@ pub enum Window {
     /// What is still ahead, so it never repeats what «today» already showed.
     After(Date),
     Overdue,
+    /// Waiting for no particular day. `Today` shows it too, on purpose; this is
+    /// for looking at it on its own.
+    Undated,
 }
 
 /// `Either` exists for tag views, which cross the open/archived boundary.
@@ -75,6 +78,7 @@ impl Filter {
             Some(Window::Until(day)) => on.is_some_and(|d| d <= *day),
             Some(Window::After(day)) => on.is_some_and(|d| d > *day),
             Some(Window::Overdue) => on.is_some_and(|d| d < today),
+            Some(Window::Undated) => on.is_none(),
         }
     }
 }
@@ -140,6 +144,15 @@ mod tests {
         let mut filter = Filter::default();
         f(&mut filter);
         filter
+    }
+
+    #[test]
+    fn undated_is_everything_waiting_for_no_day() {
+        let f = filter(|f| f.window = Some(Window::Undated));
+
+        assert!(f.matches(&task("no date"), today()));
+        assert!(!f.matches(&dated("today", "2026-08-05"), today()));
+        assert!(!f.matches(&dated("overdue", "2026-08-01"), today()));
     }
 
     #[test]

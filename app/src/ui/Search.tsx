@@ -11,7 +11,6 @@ interface Props {
 }
 
 const SETTLES = 150;
-const ENOUGH = 2;
 const SCOPES: Scope[] = ["open", "archived", "either"];
 const LABEL: Record<Scope, "scopeEither" | "scopeOpen" | "scopeArchived"> = {
   either: "scopeEither",
@@ -26,9 +25,7 @@ export default function Search({ fixed, onFound, onError }: Props) {
   const [scope, setScope] = useState<Scope>(fixed ?? "either");
 
   useEffect(() => {
-    // One letter matches most of a long archive, and the cost of that lands on
-    // every keystroke: the whole thing crosses the IPC boundary and gets drawn.
-    if (query.trim().length < ENOUGH) {
+    if (!query.trim()) {
       onFound(null);
       return;
     }

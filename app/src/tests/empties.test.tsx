@@ -17,9 +17,9 @@ describe("what an empty screen says", () => {
   /// they were going to read.
   it("says something different on each of them", () => {
     const said = [
-      nothing({ named: "today" }, false),
+      nothing({ named: "tasks" }, false),
       nothing({ named: "inbox" }, false),
-      nothing({ named: "upcoming" }, false),
+      nothing({ named: "tasks", slice: "upcoming" }, false),
       nothing({ named: "archive" }, false),
       nothing({ named: "search" }, false),
       nothing({ named: "search" }, true),
@@ -42,7 +42,7 @@ describe("what an empty screen says", () => {
 
   /// The first screen after installing is an empty «Today».
   it("teaches the syntax where a new reader lands", () => {
-    expect(nothing({ named: "today" }, false)).toMatch(/tomorrow/i);
+    expect(nothing({ named: "tasks" }, false)).toMatch(/tomorrow/i);
   });
 
   it("reaches the list", () => {
@@ -52,7 +52,7 @@ describe("what an empty screen says", () => {
         lists={[]}
         title="Today"
         centred
-        empty={nothing({ named: "today" }, false)}
+        empty={nothing({ named: "tasks" }, false)}
         onSelect={() => {}}
       />,
     );
@@ -64,18 +64,20 @@ describe("what an empty screen says", () => {
 describe("the search scope", () => {
   /// The placeholder promised the archive and the default reached only what
   /// was open: a ticket from six months ago read as lost.
-  /// One letter matches most of a long archive, and that cost lands on every
-  /// keystroke: the whole thing crosses IPC and gets drawn.
-  it("waits for a second letter before asking at all", async () => {
+  /// A two-letter query matches just as much of a long archive as a one-letter
+  /// one, so the gate bought nothing the 200-result cap had not bought already
+  /// — while refusing «会», any single digit, and telling someone who had just
+  /// typed a letter to «type to search».
+  it("asks on the first letter, whatever alphabet it is", async () => {
     searched.mockClear();
     render(<Search onFound={() => {}} onError={() => {}} />);
 
     const field = screen.getByRole("textbox");
     field.focus();
-    await import("@testing-library/user-event").then(({ default: user }) => user.type(field, "e"));
+    await import("@testing-library/user-event").then(({ default: user }) => user.type(field, "会"));
     await new Promise((rest) => setTimeout(rest, 250));
 
-    expect(searched).not.toHaveBeenCalled();
+    expect(searched).toHaveBeenCalledWith(expect.objectContaining({ query: "会" }));
   });
 
   it("looks in the archive by default, as the field says it does", async () => {

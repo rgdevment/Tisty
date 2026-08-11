@@ -11,7 +11,7 @@ describe("asView", () => {
   });
 
   it("lets a chosen list outrank whatever else was selected", () => {
-    expect(asView({ named: "today", list: "01L" })).toEqual({ list: "01L" });
+    expect(asView({ named: "tasks", list: "01L" })).toEqual({ list: "01L" });
   });
 
   it("reaches into the archive for tags, unlike every other view", () => {
@@ -21,7 +21,7 @@ describe("asView", () => {
 
   it("falls back to today", () => {
     expect(asView({})).toEqual({});
-    expect(asView({ named: "today" })).toEqual({ window: "today" });
+    expect(asView({ named: "tasks" })).toEqual({ window: "today" });
   });
 });
 
@@ -29,7 +29,7 @@ describe("accepts", () => {
   it("refuses the views with nothing to add to", () => {
     expect(accepts({ named: "archive" })).toBe(false);
     expect(accepts({ named: "search" })).toBe(false);
-    expect(accepts({ named: "upcoming" })).toBe(false);
+    expect(accepts({ named: "tasks", slice: "upcoming" })).toBe(false);
   });
 
   it("allows tags only once one is picked, because the task inherits it", () => {
@@ -43,7 +43,7 @@ describe("invite", () => {
     expect(invite({ list: "01L" }, lists)).toBe("Add to work");
     expect(invite({ tags: ["home", "urgent"] }, lists)).toBe("Add with #home #urgent");
     expect(invite({ named: "inbox" }, lists)).toBe("Add to the inbox");
-    expect(invite({ named: "today" }, lists)).toBe("Add for today");
+    expect(invite({ named: "tasks" }, lists)).toBe("Add for today");
   });
 
   it("stays generic when the list is gone", () => {
