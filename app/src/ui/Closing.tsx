@@ -12,8 +12,7 @@ export default function Closing({ onDismiss, onError }: Props) {
   const [remember, setRemember] = useState(true);
 
   const settle = (how: "hide" | "quit") => {
-    // Dismissed on the way out: hiding leaves the component mounted, and the
-    // window would come back from the tray with the question still on top.
+    // Hiding leaves this mounted: it would return from the tray still open.
     closeWindow(how, remember).then(onDismiss).catch(onError);
   };
 

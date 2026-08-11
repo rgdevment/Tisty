@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Tisty",
-  "version": "0.1.0",
   "identifier": "dev.rgdevment.tisty",
   "build": {
     "beforeDevCommand": "npm run dev",

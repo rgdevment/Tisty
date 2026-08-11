@@ -959,8 +959,7 @@ struct Reviewed {
     loose_bytes: u64,
 }
 
-/// Called after any read: the terminal can change the language while the
-/// window is open, and the tray menu was drawn before either of them.
+/// The terminal can change the language while the window is open.
 fn language<R: tauri::Runtime>(app: &tauri::AppHandle<R>, locale: &Option<String>) {
     tray::reword(
         app,
@@ -972,9 +971,8 @@ fn language<R: tauri::Runtime>(app: &tauri::AppHandle<R>, locale: &Option<String
     );
 }
 
-/// After an install or an update, and only then. The order is deliberate:
-/// bring the other machines in first, because reviewing a store that is about
-/// to change would report on a state nobody is going to keep.
+/// Sync before reviewing: a store about to change would be reviewed for a
+/// state nobody keeps.
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Settling {
@@ -1015,9 +1013,11 @@ async fn settle_in(
     };
 
     let mut brought = false;
+    let mut carried = dest.is_none();
     if let Some(dest) = dest
         && let Some(_done) = alone.inner().claim()
     {
+        carried = true;
         let before = tisty_core::cache::fingerprint(&store);
         // A folder that is not there is not a reason to refuse to start.
         let _ = tauri::async_runtime::spawn_blocking(move || {
@@ -1039,8 +1039,7 @@ async fn settle_in(
             .reproject()
             .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
     }
-    // The same check `tisty doctor` runs: the cache is derived, and a version
-    // that changed how it is built must not be trusted to have rebuilt it.
+    // A version that changed how the cache is built cannot be trusted with it.
     let audit = tisty_core::cache::audit(&session.paths.store(), session.paths.cache())
         .map_err(|_| Refusal::of("internal"))?;
     let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
@@ -1051,7 +1050,11 @@ async fn settle_in(
             .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
     }
 
-    session.keep(|c| c.opened_by = Some(here.to_string()))?;
+    // Not sealed when the carry never ran — the automatic one had the lock —
+    // or the next start would skip settling in for good.
+    if carried {
+        session.keep(|c| c.opened_by = Some(here.to_string()))?;
+    }
     Ok(Settling {
         ran: true,
         brought,
@@ -1065,9 +1068,7 @@ fn reachable() -> command::Reach {
     command::reach()
 }
 
-/// The installer used to do this and wiped a whole PATH doing it; from here
-/// the value is read without a length limit, and it is asked for rather than
-/// done quietly.
+/// Here and not in the installer, which read the value truncated and wiped it.
 #[tauri::command]
 fn reach_for(wanted: bool) -> Answer<command::Reach> {
     command::within_reach(wanted).map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
@@ -1113,9 +1114,7 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
     {
         Some(dest) => {
             let at = std::path::PathBuf::from(&dest);
-            // Copies of the store inside the store: the panel would start
-            // counting them as loose attachments and every backup would
-            // carry a copy of itself.
+            // The panel would count them loose, and each backup carry itself.
             let data = session.paths.data();
             let tangled = at.starts_with(data)
                 || data.starts_with(&at)
@@ -1134,8 +1133,7 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
     session.keep(|c| c.sync = Some(chosen))
 }
 
-/// The window asked, and this is what came back. `None` means «not now»: it
-/// stays unanswered so the question comes again rather than guessing.
+/// `None` is «not now»: unanswered, so the question comes again.
 #[tauri::command]
 fn close_window(
     window: tauri::Window,
@@ -1213,14 +1211,12 @@ async fn sync_now(
             .reproject()
             .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
     }
-    // Stamped last: saying «synced a moment ago» over a store that would not
-    // project is the one reading of the panel nobody can argue with.
+    // Last: «synced a moment ago» over a store that will not project is a lie.
     session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
     Ok(if moved { "came" } else { "same" })
 }
 
-/// Off the main thread: compressing hundreds of megabytes there freezes the
-/// window, and this one has no system title bar to keep dragging.
+/// Off the main thread: this window has no system title bar to keep dragging.
 #[tauri::command]
 async fn back_up(
     session: tauri::State<'_, Mutex<Session>>,
@@ -1543,6 +1539,10 @@ impl OneAtATime {
     fn taken(&self) -> Answer<Releasing<'_>> {
         self.claim().ok_or_else(|| Refusal::of("stillCarrying"))
     }
+}
+
+pub fn unreach() -> std::io::Result<bool> {
+    command::within_reach(false)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

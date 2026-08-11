@@ -7,7 +7,6 @@ const GIVE_UP_AFTER = 60_000;
 
 type Way = "push" | "pull" | undefined;
 
-/** Two directions owed at once is both directions, not the later one. */
 const owing = (held: Way | null, next: Way): Way =>
   held === null || held === next ? next : undefined;
 
@@ -25,8 +24,7 @@ export function carrying(brought: () => void) {
 
   const go = (way: Way) => {
     if (gone || folder === undefined) return;
-    // A pull that arrives mid-carry is remembered as a pull: relaunching it as
-    // a push would leave the other machine's work sitting there for fifteen.
+    // Remembered as what it was: relaunching a pull as a push strands theirs.
     if (running) {
       owed = owing(owed, way);
       return;

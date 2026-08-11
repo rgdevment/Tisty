@@ -32,8 +32,7 @@ export default function Keeping({ onChanged }: Props) {
   const [reach, setReach] = useState<Reach | null>(null);
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
-  // Kept in the card, not in the window's banner: an unreachable folder is news
-  // for the panel you came to read, and it would otherwise hang over every view.
+  // In the card, not the window banner, which would hang over every view.
   const [trouble, setTrouble] = useState<Word>();
 
   const look = useCallback(() => {
@@ -67,8 +66,7 @@ export default function Keeping({ onChanged }: Props) {
   if (!state) return <main className="overflow-hidden" />;
 
   const carrying = busy === "sync";
-  // Any card busy blocks the others: restoring on top of a running carry is
-  // the pair that must never overlap, and they cannot see each other.
+  // Restoring on top of a running carry is the pair that must never overlap.
   const held = busy !== null;
 
   // Joining two histories cannot be undone, so the answer is the person's.

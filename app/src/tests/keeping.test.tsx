@@ -172,7 +172,7 @@ describe("the first-run assistant", () => {
 
     await waitFor(() => expect(sent("reach_for").length).toBe(1));
     expect(sent("reach_for")[0].args.wanted).toBe(true);
-    expect(await screen.findByText(/open a new terminal/i)).toBeTruthy();
+    expect(await screen.findByText(/next time you sign in/i)).toBeTruthy();
   });
 
   it("takes it back off when asked", async () => {
