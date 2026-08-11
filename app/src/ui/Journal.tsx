@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { LogEntry } from "../core";
-import { whenLabel } from "../format";
+import { wroteAt } from "../format";
 import { t } from "../locales";
 import Prose from "./Prose";
 
@@ -35,7 +35,7 @@ export default function Journal({ entries, known, onError, onWhole, onWrite }: P
       {entries.map((entry) => (
         <div key={entry.id} className="border-t border-hair py-2.5">
           <time className="mb-1 block px-1.5 text-[11.5px] text-faint">
-            {whenLabel({ at: entry.at, tz: entry.tz ?? "", floating: false, has_time: true })}
+            {wroteAt(entry.at, entry.tz)}
           </time>
           <Prose
             value={entry.body}
