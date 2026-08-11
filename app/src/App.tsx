@@ -477,6 +477,4 @@ const sliceWord = (slice: Slice) =>
     ? ("today" as const)
     : slice === "upcoming"
       ? ("upcoming" as const)
-      : slice === "undated"
-        ? ("someday" as const)
-        : ("sliceAll" as const);
+      : ("someday" as const);

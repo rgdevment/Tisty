@@ -6,9 +6,12 @@ export type Named = "search" | "inbox" | "tasks" | "tags" | "archive" | "keeping
 /// «Hoy» and «Próximo» were two names for one thing: a date filter with a fixed
 /// seat in the sidebar. They are the same view now, and this is what it filters
 /// by — opening on `today`, because «all» is forty rows the moment you arrive.
-export type Slice = "today" | "upcoming" | "undated" | "all";
+export type Slice = "today" | "upcoming" | "undated";
 
-export const SLICES: Slice[] = ["today", "upcoming", "undated", "all"];
+/// No «all»: `today` already carries what has no date, so today ∪ upcoming is
+/// every open task. A fourth chip would have shown the union of the other two
+/// under a name that answers no question of its own.
+export const SLICES: Slice[] = ["today", "upcoming", "undated"];
 
 export interface Chosen {
   named?: Named;
@@ -43,10 +46,8 @@ function sliced(slice: Slice = "today"): View {
       return { window: "today" };
     case "upcoming":
       return { window: "upcoming" };
-    case "undated":
-      return { window: "undated" };
     default:
-      return {};
+      return { window: "undated" };
   }
 }
 
@@ -102,6 +103,5 @@ export function nothing(chosen: Chosen, searching: boolean): string {
   if (chosen.named === "inbox") return t("inboxEmpty");
   if (chosen.slice === "upcoming") return t("upcomingEmpty");
   if (chosen.slice === "undated") return t("undatedEmpty");
-  if (chosen.slice === "all") return t("allEmpty");
   return t("todayEmpty");
 }

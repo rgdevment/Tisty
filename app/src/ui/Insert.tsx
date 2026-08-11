@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { attach } from "../core";
 import { t } from "../locales";
 
 interface Props {
   known: string[];
   onPut: (snippet: string) => void;
   onClose: () => void;
+  onError?: (problem: unknown) => void;
 }
 
-/** Two options, not three: a ticket is a link, so it goes in with its code as the text. */
-export default function Insert({ known, onPut, onClose }: Props) {
+/** A ticket is a link, so it goes in with its code as the text — that is why
+ * there is no third row for one. Attaching IS a third thing: it copies a file
+ * into the store, and until now the only way in was dragging one onto the
+ * window, which left out anyone not using a mouse. */
+export default function Insert({ known, onPut, onClose, onError }: Props) {
   const [step, setStep] = useState<"pick" | "doc" | "link">("pick");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -23,6 +30,22 @@ export default function Insert({ known, onPut, onClose }: Props) {
     return () => window.removeEventListener("keydown", key, true);
   }, [onClose]);
 
+  const pickFile = () => {
+    if (busy) return;
+    setBusy(true);
+    open({ multiple: false })
+      .then((at) => (typeof at === "string" ? attach(at) : null))
+      .then((markdown) => {
+        if (markdown) onPut(markdown);
+        else onClose();
+      })
+      .catch((problem) => {
+        onClose();
+        onError?.(problem);
+      })
+      .finally(() => setBusy(false));
+  };
+
   return (
     <>
       <span className="fixed inset-0 z-10" onClick={onClose} />
@@ -34,6 +57,9 @@ export default function Insert({ known, onPut, onClose }: Props) {
             </Row>
             <Row glyph="🔗" say={t("sayLink")} onPick={() => setStep("link")}>
               {t("insertLink")}
+            </Row>
+            <Row glyph="📎" say={busy ? "…" : t("sayAttach")} onPick={pickFile}>
+              {t("insertAttach")}
             </Row>
           </>
         )}

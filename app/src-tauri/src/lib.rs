@@ -1055,6 +1055,49 @@ struct About {
     store: String,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Settings {
+    /// Channels told to keep quiet, by name.
+    quiet: Vec<String>,
+    /// In bytes, already clamped to what the core will accept.
+    attach_up_to: u64,
+    locale: Option<String>,
+}
+
+#[tauri::command]
+fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
+    let session = held(&session);
+    Ok(Settings {
+        quiet: session.config.muted().to_vec(),
+        attach_up_to: session.config.copies_up_to(),
+        locale: session.config.locale.clone(),
+    })
+}
+
+/// Written through `keep`, which re-reads the file first: the terminal edits
+/// the same config while the window is open.
+#[tauri::command]
+fn keep_settings(
+    session: tauri::State<'_, Mutex<Session>>,
+    settings: Settings,
+) -> Answer<Settings> {
+    let mut session = held(&session);
+    let quiet = settings.quiet.clone();
+    let up_to = settings.attach_up_to;
+    let locale = settings.locale.clone();
+    session.keep(|config| {
+        config.quiet = (!quiet.is_empty()).then_some(quiet);
+        config.attach_up_to = Some(up_to);
+        config.locale = locale;
+    })?;
+    Ok(Settings {
+        quiet: session.config.muted().to_vec(),
+        attach_up_to: session.config.copies_up_to(),
+        locale: session.config.locale.clone(),
+    })
+}
+
 /// Nobody could say which version they hit a problem with: it existed only in
 /// `CARGO_PKG_VERSION` and was never shown anywhere in the window.
 #[tauri::command]
@@ -1472,8 +1515,14 @@ fn attach(
 
     // The root is read and the lock released before any file work: copying
     // megabytes with the session held would freeze every other command.
-    let root = held(&session).paths.data().to_path_buf();
-    let kept = tisty_core::attach::keep(&source, &root, tisty_core::attach::COPIED_UP_TO)
+    let (root, ceiling) = {
+        let session = held(&session);
+        (
+            session.paths.data().to_path_buf(),
+            session.config.copies_up_to(),
+        )
+    };
+    let kept = tisty_core::attach::keep(&source, &root, ceiling)
         .map_err(|_| Refusal::about("cannotRead", name.clone()))?;
 
     Ok(kept.written(&name))
@@ -1688,8 +1737,9 @@ pub fn run() {
                 missed: worded(&session.locale, "missed"),
             };
             let watched = session.paths.clone();
+            let quiet = session.config.muted().to_vec();
             app.manage(Mutex::new(session));
-            app.manage(herald::heralds(app.handle(), telling));
+            app.manage(herald::heralds(app.handle(), telling, &quiet));
             herald::watch(app.handle().clone(), watched);
 
             // No tray on this desktop means closing keeps its plain meaning,
@@ -1779,7 +1829,9 @@ pub fn run() {
             restore,
             checked,
             rebuild,
-            about
+            about,
+            settings,
+            keep_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

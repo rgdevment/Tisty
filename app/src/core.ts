@@ -246,6 +246,18 @@ export interface About {
   store: string;
 }
 
+export interface Settings {
+  /// Channels told to keep quiet, by name.
+  quiet: string[];
+  /// In bytes. Above it a file is pointed at instead of copied in.
+  attachUpTo: number;
+  locale: string | null;
+}
+
+export const settings = (): Promise<Settings> => invoke("settings");
+export const keepSettings = (settings: Settings): Promise<Settings> =>
+  invoke("keep_settings", { settings });
+
 export const about = (): Promise<About> => invoke("about");
 export const rebuild = (): Promise<void> => invoke("rebuild");
 export const checked = (): Promise<Reviewed> => invoke("checked");

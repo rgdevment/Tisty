@@ -81,13 +81,22 @@ fn tone_for(what: &Happening) -> Option<&'static str> {
     }
 }
 
-pub fn heralds(app: &tauri::AppHandle, words: Words) -> Heralds {
-    Heralds::default()
-        .with(Box::new(Screen {
-            app: app.clone(),
-            words,
-        }))
-        .with(Box::new(Chime { app: app.clone() }))
+/// Every channel is registered; the ones this machine asked to keep quiet are
+/// left out. A channel added later starts on, without anyone opting in to it.
+pub fn heralds(app: &tauri::AppHandle, words: Words, quiet: &[String]) -> Heralds {
+    let mut heralds = Heralds::default();
+    let screen = Screen {
+        app: app.clone(),
+        words,
+    };
+    if !quiet.iter().any(|one| one == screen.named()) {
+        heralds = heralds.with(Box::new(screen));
+    }
+    let chime = Chime { app: app.clone() };
+    if !quiet.iter().any(|one| one == chime.named()) {
+        heralds = heralds.with(Box::new(chime));
+    }
+    heralds
 }
 
 const EVERY: std::time::Duration = std::time::Duration::from_secs(30);
@@ -267,6 +276,23 @@ mod tests {
 
         assert!(on_screen(&many));
         assert_eq!(tone_for(&many), Some("due"));
+    }
+
+    /// Muting one leaves the other working, and muting both leaves nothing
+    /// that could claim a reminder was delivered.
+    #[test]
+    fn a_muted_channel_is_not_registered() {
+        assert_eq!(named_in(&[]), vec!["screen", "chime"]);
+        assert_eq!(named_in(&["screen".to_string()]), vec!["chime"]);
+        assert!(named_in(&["screen".to_string(), "chime".to_string()]).is_empty());
+    }
+
+    /// Registering by name, so a channel written tomorrow is on by default.
+    fn named_in(quiet: &[String]) -> Vec<&'static str> {
+        ["screen", "chime"]
+            .into_iter()
+            .filter(|one| !quiet.iter().any(|off| off == one))
+            .collect()
     }
 
     #[test]
