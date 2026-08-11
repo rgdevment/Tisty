@@ -1,5 +1,4 @@
 import type { Counted } from "../core";
-import { t } from "../locales";
 
 interface Props {
   tags: Counted[];
@@ -8,12 +7,12 @@ interface Props {
 }
 
 export default function Tags({ tags, chosen, onToggle }: Props) {
-  if (tags.length === 0) {
-    return <p className="px-2.5 py-4 text-sm text-faint">{t("noTagsYet")}</p>;
-  }
+  // Nothing to filter by, and the list below already says the view is empty:
+  // two stacked empty messages read as a fault.
+  if (tags.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 px-2.5 pb-4">
+    <div className="scroller flex max-h-[38vh] flex-wrap content-start gap-2 px-2.5 pb-4">
       {tags.map(({ tag, tasks }) => {
         const on = chosen.includes(tag);
         return (

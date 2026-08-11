@@ -30,7 +30,7 @@ export default function Notice({ task, lists, onOpen, onDismiss }: Props) {
     <div className="pointer-events-none fixed top-[46px] right-4 z-40 w-[280px]">
       <div
         onClick={onOpen}
-        className="arrive pointer-events-auto flex cursor-pointer items-start gap-2.5 rounded-[10px] border border-line bg-bg p-[11px_13px] shadow-lg"
+        className="arrive pointer-events-auto flex cursor-pointer items-start gap-2.5 rounded-[10px] border border-line bg-bg p-[11px_13px] shadow-lift"
       >
         <span className="text-[13px] leading-snug text-accent">✓</span>
         <div className="min-w-0 flex-1">

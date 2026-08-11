@@ -217,7 +217,7 @@ function Sheet({
     <>
       <span className="fixed inset-0 z-10" onClick={onClose} />
       <div
-        className={`absolute top-7 left-0 z-20 rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lg ${
+        className={`absolute top-7 left-0 z-20 rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lift ${
           roomy ? "w-[248px]" : "max-h-64 w-56 overflow-auto"
         }`}
       >

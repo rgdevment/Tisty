@@ -65,7 +65,7 @@ export default function Quick() {
   // Frameless: an empty render is an invisible rectangle eating clicks.
   if (!data) {
     return (
-      <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg px-4 py-3 shadow-2xl">
+      <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg px-4 py-3 shadow-lift-tall">
         <p className="px-1 text-[13.5px] text-soft">{error ?? t("addTask")}</p>
         <p className="px-1 pt-1 text-[11px] text-faint">{hint(keys)}</p>
       </div>
@@ -73,7 +73,7 @@ export default function Quick() {
   }
 
   return (
-    <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg px-4 py-3 shadow-2xl">
+    <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg px-4 py-3 shadow-lift-tall">
       {kept ? (
         <p className="px-1 text-[13.5px] text-soft">
           <span className="text-accent">✓</span> {kept}

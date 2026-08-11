@@ -38,8 +38,8 @@ export default function Welcome({ onDone }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/25 p-6">
-      <div className="w-full max-w-md rounded-xl border border-hair bg-bg p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-veil p-6">
+      <div className="w-full max-w-md rounded-xl border border-hair bg-bg p-6 shadow-lift-tall">
         <h2 className="text-lg font-semibold">{t("welcomeTitle")}</h2>
         <p className="mt-2 text-[12.5px] leading-relaxed text-soft">{t("welcomeWhy")}</p>
 

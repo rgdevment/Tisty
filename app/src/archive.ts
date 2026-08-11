@@ -1,9 +1,9 @@
 import type { Task } from "./core";
-import { monthOf } from "./format";
+import { bandOf, monthOf } from "./format";
 
 export type Row =
-  | { kind: "one"; key: string; task: Task; month: string }
-  | { kind: "many"; key: string; title: string; month: string; tasks: Task[] };
+  | { kind: "one"; key: string; task: Task; band: string }
+  | { kind: "many"; key: string; title: string; band: string; tasks: Task[] };
 
 /**
  * Fifty-two rows a year per habit is what turns the archive into noise, and the
@@ -29,9 +29,22 @@ export function grouped(tasks: Task[]): Row[] {
 
   return order.map((key) => {
     const held = seen.get(key) as Task[];
-    const month = monthOf(held[0].completed_at);
+    const band = monthOf(held[0].completed_at);
     return held.length === 1
-      ? { kind: "one" as const, key: held[0].id, task: held[0], month }
-      : { kind: "many" as const, key, title: held[0].title, month, tasks: held };
+      ? { kind: "one" as const, key: held[0].id, task: held[0], band }
+      : { kind: "many" as const, key, title: held[0].title, band, tasks: held };
   });
+}
+
+/**
+ * Labels each task with the day it belongs under, without reordering: the core
+ * already sorts dated before undated, so a band never comes back twice.
+ */
+export function banded(tasks: Task[]): Row[] {
+  return tasks.map((task) => ({
+    kind: "one" as const,
+    key: task.id,
+    task,
+    band: bandOf(task.date),
+  }));
 }
