@@ -66,7 +66,7 @@ describe("the archive by month", () => {
   /// Folding by title alone would put a bin from August under one from July.
   it("keeps the first closing of the group as its month", () => {
     const rows = grouped([done("1", "sacar la basura", "2026-08-25T09:00:00Z")]);
-    expect(rows[0].month).toBe(grouped([done("2", "x", "2026-08-01T09:00:00Z")])[0].month);
+    expect(rows[0].band).toBe(grouped([done("2", "x", "2026-08-01T09:00:00Z")])[0].band);
   });
 
   /// «March» + «2025 informe» and «March 2025» + «informe» are the same string

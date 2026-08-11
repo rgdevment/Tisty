@@ -35,7 +35,7 @@ export default function Calendar({ value, inline, onPick, onClear, onClose }: Pr
       className={
         inline
           ? "w-full text-[12.5px]"
-          : "absolute top-6 left-0 z-10 w-[236px] rounded-[10px] border border-line bg-bg p-2.5 text-[12.5px] shadow-lg"
+          : "absolute top-6 left-0 z-10 w-[236px] rounded-[10px] border border-line bg-bg p-2.5 text-[12.5px] shadow-lift"
       }
     >
       <div className="mb-1.5 flex items-center">

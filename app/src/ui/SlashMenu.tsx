@@ -49,7 +49,7 @@ export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, 
   if (shown.length === 0) return null;
 
   return (
-    <div className="absolute top-1 left-0 z-20 w-[330px] rounded-[10px] border border-line bg-bg p-[5px] shadow-lg">
+    <div className="absolute top-1 left-0 z-20 w-[330px] rounded-[10px] border border-line bg-bg p-[5px] shadow-lift">
       {shown.map((row, i) => (
         <button
           key={row.key}

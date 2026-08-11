@@ -62,3 +62,18 @@ export function invite(chosen: Chosen, lists: List[]): string {
   if (chosen.named === "today") return t("addForToday");
   return t("addTask");
 }
+
+/**
+ * What an empty screen should say. One line for six different situations told
+ * the reader nothing at the only moment they were going to read.
+ */
+export function nothing(chosen: Chosen, searching: boolean): string {
+  if (searching) return t("noHits");
+  if (chosen.named === "search") return t("searchInvite");
+  if (chosen.named === "archive") return t("archiveEmpty");
+  if (chosen.named === "tags") return t("noTagsYet");
+  if (chosen.list || chosen.tags?.length) return t("listEmpty");
+  if (chosen.named === "upcoming") return t("upcomingEmpty");
+  if (chosen.named === "inbox") return t("inboxEmpty");
+  return t("todayEmpty");
+}

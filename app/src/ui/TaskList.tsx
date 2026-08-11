@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { List, Task } from "../core";
 import { TASK } from "../drag";
 import { isOverdue, whenLabel } from "../format";
-import { grouped } from "../archive";
+import { banded, grouped } from "../archive";
 import { fill, t } from "../locales";
 
 interface Props {
@@ -13,7 +13,8 @@ interface Props {
   reveal?: string;
   title: string;
   centred: boolean;
-  byMonth?: boolean;
+  bands?: "month" | "day";
+  empty?: string;
   onSelect: (id: string) => void;
   onComplete?: (id: string) => void;
   onFold?: (id: string, away: boolean) => void;
@@ -31,7 +32,8 @@ export default function TaskList({
   reveal,
   title,
   centred,
-  byMonth,
+  bands,
+  empty,
   onSelect,
   onComplete,
   onFold,
@@ -43,11 +45,16 @@ export default function TaskList({
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const rows = useMemo(
     () =>
-      byMonth
+      bands === "month"
         ? grouped(tasks)
-        : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, month: "" })),
-    [tasks, byMonth],
+        : bands === "day"
+          ? banded(tasks)
+          : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
+    [tasks, bands],
   );
+  // One heading over the whole list says nothing and costs a line: «Someday»
+  // above a list where nothing is dated is noise, not structure.
+  const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
   // `indexOf` per row turns the render quadratic on a long archive.
   const at = useMemo(() => new Map(tasks.map((task, i) => [task.id, i])), [tasks]);
   const [held, setHeld] = useState<string | null>(null);
@@ -191,13 +198,17 @@ export default function TaskList({
       {above && <div className={`shrink-0 px-5 ${width}`}>{above}</div>}
 
       <div className={`scroller flex-1 px-5 pb-6 ${width}`}>
-        {tasks.length === 0 && <p className="px-2.5 py-4 text-sm text-faint">{t("nothingOpen")}</p>}
+        {tasks.length === 0 && (
+          <p className="px-2.5 py-4 text-sm leading-relaxed text-soft">
+            {empty ?? t("nothingOpen")}
+          </p>
+        )}
 
         {rows.map((row, r) => (
           <div key={row.key}>
-            {byMonth && row.month && row.month !== rows[r - 1]?.month && (
+            {heads && row.band && row.band !== rows[r - 1]?.band && (
               <div className="mt-5 mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1">
-                {row.month}
+                {row.band}
               </div>
             )}
 

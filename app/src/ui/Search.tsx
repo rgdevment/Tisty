@@ -20,7 +20,9 @@ const LABEL: Record<Scope, "scopeEither" | "scopeOpen" | "scopeArchived"> = {
 
 export default function Search({ fixed, onFound, onError }: Props) {
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<Scope>(fixed ?? "open");
+  // The placeholder promises the archive, so the default has to reach it:
+  // searching a ticket from six months ago found nothing and read as lost.
+  const [scope, setScope] = useState<Scope>(fixed ?? "either");
 
   useEffect(() => {
     if (!query.trim()) {

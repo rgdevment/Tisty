@@ -25,7 +25,7 @@ import { settleIn, syncState } from "./core";
 import { handTo, whenFilesLand } from "./dropped";
 import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
-import { accepts, asView, invite, title, type Chosen } from "./views";
+import { accepts, asView, invite, nothing, title, type Chosen } from "./views";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Detail from "./ui/Detail";
@@ -281,14 +281,17 @@ export default function App() {
         />
       ) : (
         <TaskList
-          tasks={found ?? data.tasks}
+          tasks={found ?? (chosen.named === "search" ? [] : data.tasks)}
           lists={data.lists}
           title={title(chosen, data.lists)}
+          empty={nothing(chosen, found !== null)}
           selected={selected}
           fresh={captured?.id}
           reveal={reveal}
           centred={!open}
-          byMonth={chosen.named === "archive" && found === null}
+          bands={
+            found !== null ? undefined : chosen.named === "archive" ? "month" : "day"
+          }
           onSelect={setSelected}
           onComplete={chosen.named === "archive" ? undefined : (id) => act(complete(id))}
           onFold={

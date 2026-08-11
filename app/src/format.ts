@@ -86,3 +86,16 @@ export function cadence(repeat: Repeat): string {
   );
   return one ? fill("everyOne", word) : fill("everyMany", `${every} ${word}`);
 }
+
+/**
+ * The heading a task sits under in an open list. Everything late shares one
+ * band on purpose: a heading per overdue day is the wall it is meant to break.
+ */
+export function bandOf(spec: DateSpec | undefined, now = new Date()): string {
+  if (!spec) return t("someday");
+  const away = daysFrom(spec.at, now);
+  if (away < 0) return t("overdue");
+  if (away === 0) return t("today");
+  if (away === 1) return t("tomorrow");
+  return formats().day.format(new Date(spec.at));
+}

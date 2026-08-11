@@ -26,7 +26,7 @@ export default function Insert({ known, onPut, onClose }: Props) {
   return (
     <>
       <span className="fixed inset-0 z-10" onClick={onClose} />
-      <div className="absolute top-full left-1.5 z-20 w-[258px] rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lg">
+      <div className="absolute top-full left-1.5 z-20 w-[258px] rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lift">
         {step === "pick" && (
           <>
             <Row first glyph="📄" say={t("sayDoc")} onPick={() => setStep("doc")}>

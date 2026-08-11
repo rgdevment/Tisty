@@ -63,7 +63,36 @@ export default function Keeping({ onChanged }: Props) {
       .finally(() => setBusy(null));
   };
 
-  if (!state) return <main className="overflow-hidden" />;
+  // The early return used to sit above everything, so a failed read left a grey
+  // panel with no title, no reason and no button: the screen you go to when
+  // something is wrong looked like the app had hung.
+  if (!state) {
+    return (
+      <main className="flex flex-col overflow-hidden">
+        <div data-tauri-drag-region className="h-9 shrink-0" />
+        <div className="mx-auto w-full max-w-[560px] px-6">
+          <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
+          {trouble && (
+            <div className="rounded-xl border border-hair bg-panel p-4">
+              <p role="alert" className="text-[12.5px] leading-relaxed text-urgent">
+                {trouble.text}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setTrouble(undefined);
+                  look();
+                }}
+                className={`mt-2.5 ${strong}`}
+              >
+                {t("tryAgain")}
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   const carrying = busy === "sync";
   // Restoring on top of a running carry is the pair that must never overlap.

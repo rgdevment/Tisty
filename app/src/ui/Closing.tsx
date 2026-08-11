@@ -21,10 +21,10 @@ export default function Closing({ onDismiss, onError }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="closing-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/25 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-veil p-6"
       onKeyDown={(e) => e.key === "Escape" && onDismiss()}
     >
-      <div className="w-full max-w-sm rounded-xl border border-hair bg-bg p-6 shadow-xl">
+      <div className="w-full max-w-sm rounded-xl border border-hair bg-bg p-6 shadow-lift-tall">
         <h2 id="closing-title" className="text-lg font-semibold">
           {t("closingTitle")}
         </h2>
