@@ -22,7 +22,7 @@ beforeEach(() => {
   ipc.calls = [];
   state.chosen = "G:/My Drive/tisty";
   ipc.answer = (cmd) =>
-    cmd === "sync_state" ? Promise.resolve({ ...state }) : Promise.resolve(true);
+    cmd === "sync_state" ? Promise.resolve({ ...state }) : Promise.resolve("came");
 });
 
 afterEach(() => {
@@ -92,7 +92,7 @@ describe("carrying on its own", () => {
   it("reloads only when something came back", async () => {
     const brought = vi.fn();
     ipc.answer = (cmd) =>
-      cmd === "sync_state" ? Promise.resolve({ ...state }) : Promise.resolve(false);
+      cmd === "sync_state" ? Promise.resolve({ ...state }) : Promise.resolve("same");
 
     carried = carrying(brought);
     await settle();
@@ -128,5 +128,65 @@ describe("carrying on its own", () => {
     await settle();
 
     expect(sent("sync_now").length).toBe(0);
+  });
+
+  /// Relaunching a remembered pull as a push leaves the other machine's work
+  /// sitting in the folder until the next focus or the quarter-hour beat.
+  it("remembers which direction it owed, not just that it owed one", async () => {
+    let release: (answer: string) => void = () => {};
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : new Promise((resolve) => {
+            release = resolve;
+          });
+
+    carried = carrying(() => {});
+    await settle();
+    expect(sent("sync_now").length).toBe(1);
+
+    window.dispatchEvent(new Event("focus"));
+    await settle();
+    release("same");
+    await settle();
+
+    expect(sent("sync_now").length).toBe(2);
+    expect(sent("sync_now")[1].args.way).toBe("pull");
+  });
+
+  it("brings the folder in the moment it is switched for another", async () => {
+    carried = carrying(() => {});
+    await settle();
+    ipc.calls = [];
+
+    state.chosen = "D:/another/folder";
+    carried.recheck();
+    await settle();
+
+    expect(sent("sync_now").length).toBe(1);
+  });
+
+  it("leaves no timer behind when it is stopped mid-carry", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "sync_state" ? Promise.resolve({ ...state }) : new Promise(() => {});
+
+    carried = carrying(() => {});
+    await settle();
+    carried.stop();
+    carried = undefined;
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  /// «Busy» means another carry holds the lock, which is not «nothing new».
+  it("does not treat a busy backend as a finished sync", async () => {
+    const brought = vi.fn();
+    ipc.answer = (cmd) =>
+      cmd === "sync_state" ? Promise.resolve({ ...state }) : Promise.resolve("busy");
+
+    carried = carrying(brought);
+    await settle();
+
+    expect(brought).not.toHaveBeenCalled();
   });
 });

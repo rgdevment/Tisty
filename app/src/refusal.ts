@@ -28,10 +28,14 @@ const KNOWN = [
   "syncUnreadable",
   "syncBroke",
   "wouldMerge",
+  "remoteInsideStore",
   "sharedIsTheBackup",
   "otherStore",
   "cannotWrite",
+  "restoreFailed",
+  "stillCarrying",
   "internal",
+  "internalNamed",
 ] as const;
 
 type Known = (typeof KNOWN)[number];

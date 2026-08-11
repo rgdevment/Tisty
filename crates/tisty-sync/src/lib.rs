@@ -89,23 +89,25 @@ fn settled(store: &Path, dest: &Path, join: Join) -> Result<String, Trouble> {
         claims(theirs, ours)?;
         return Ok(ours.clone());
     }
-    if we_are_new || they_are_new {
-        return match theirs {
-            Some(theirs) if we_are_new => {
-                write(&store.join(MARKER), theirs.as_bytes())?;
-                Ok(theirs)
-            }
-            Some(theirs) => Ok(theirs),
-            None => match ours {
-                Some(ours) => Ok(ours),
-                None => tisty_core::store::identity(store)
-                    .map_err(|e| Trouble::Unreadable(e.to_string())),
-            },
-        };
+    match (&ours, &theirs) {
+        // Nothing of ours to lose, and the folder says who it is.
+        (None, Some(theirs)) if we_are_new => {
+            write(&store.join(MARKER), theirs.as_bytes())?;
+            return Ok(theirs.clone());
+        }
+        // Ours has a name and the folder is genuinely empty.
+        (Some(ours), None) if they_are_new => return Ok(ours.clone()),
+        // An empty folder has nothing to merge with, whatever we are carrying.
+        (None, None) if they_are_new => {
+            return tisty_core::store::identity(store)
+                .map_err(|e| Trouble::Unreadable(e.to_string()));
+        }
+        _ => {}
     }
 
-    // Both have history and at least one has no name yet: it is either your own
-    // second machine joining, or somebody else's store. Only you know which.
+    // Someone has something to lose and no name pairs them up. A folder full of
+    // history whose `.store-id` has not arrived yet reads exactly like an empty
+    // one, and a hidden file is what a cloud client syncs last, or never.
     if join == Join::Ask {
         return Err(Trouble::WouldMerge {
             theirs: theirs.unwrap_or_else(|| dest.display().to_string()),
@@ -153,13 +155,35 @@ fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
         }
         // What arrives is read before it is written, or a half-downloaded
         // segment takes down the whole store — every device, ours included.
-        tisty_core::store::check_device(&entry.path())
-            .map_err(|e| Trouble::Unreadable(e.to_string()))?;
-        brought += copy_segments(&entry.path(), &store.join(named))?;
+        // Skipped when nothing changed: this reparses their whole history, and
+        // it runs on every window focus.
+        let mine = store.join(named);
+        if !settled_already(&entry.path(), &mine) {
+            tisty_core::store::check_device(&entry.path())
+                .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+        }
+        brought += copy_segments(&entry.path(), &mine)?;
     }
 
-    tisty_core::store::read_all(store).map_err(|e| Trouble::Unreadable(e.to_string()))?;
+    // Only when something landed: replaying every machine's history to prove
+    // that nothing changed is the most expensive way to learn it.
+    if brought > 0 {
+        tisty_core::store::read_all(store).map_err(|e| Trouble::Unreadable(e.to_string()))?;
+    }
     Ok(brought)
+}
+
+/// Every segment of theirs already here, byte for byte: nothing to validate,
+/// because what we hold was validated when it arrived.
+fn settled_already(theirs: &Path, mine: &Path) -> bool {
+    let Ok(offered) = tisty_core::store::segments_in(theirs) else {
+        return false;
+    };
+    !offered.is_empty()
+        && offered.iter().all(|at| {
+            at.file_name()
+                .is_some_and(|named| same(at, &mine.join(named)))
+        })
 }
 
 /// In order: a `000002` without its `000001` stops the whole store, not one device.
@@ -202,8 +226,16 @@ fn sweep(dir: &Path) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
+    // Ours alone: the window and the terminal can be pushing at the same time,
+    // and taking another process's temp file makes its rename fail as if the
+    // folder had gone missing.
+    let mine = format!(".{}.", std::process::id());
     for at in entries.filter_map(|e| e.ok()).map(|e| e.path()) {
-        if at.extension().is_some_and(|e| e == "part") {
+        let ours = at
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.ends_with(".part") && n.contains(&mine));
+        if ours {
             let _ = std::fs::remove_file(&at);
         }
     }
@@ -223,6 +255,7 @@ fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
         let Ok(files) = std::fs::read_dir(shelf.path()) else {
             continue;
         };
+        sweep(&into.join(shelf.file_name()));
         for file in files.filter_map(|e| e.ok()) {
             let at = file.path();
             if !at.is_file() {
@@ -232,7 +265,12 @@ fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
                 continue;
             };
             let target = into.join(rest);
-            if target.exists() {
+            // Not `exists`: a cloud placeholder is a real file of zero bytes
+            // with exactly the right name, and the name is the hash, so a
+            // short copy would never be repaired from the good side.
+            if std::fs::metadata(&at).map(|m| m.len()).ok()
+                == std::fs::metadata(&target).map(|m| m.len()).ok()
+            {
                 continue;
             }
             copy_onto(&at, &target)?;
@@ -251,8 +289,13 @@ fn same(from: &Path, to: &Path) -> bool {
     if a.len() != b.len() {
         return false;
     }
+    // Within a couple of seconds: exFAT rounds to even seconds and SMB to one,
+    // so demanding equality would recopy the whole store on every carry.
     match (a.modified(), b.modified()) {
-        (Ok(a), Ok(b)) => a == b,
+        (Ok(a), Ok(b)) => a
+            .duration_since(b)
+            .or_else(|_| b.duration_since(a))
+            .is_ok_and(|apart| apart <= std::time::Duration::from_secs(2)),
         _ => false,
     }
 }
@@ -729,6 +772,50 @@ mod tests {
             2,
             "the conflict copy was read as history"
         );
+    }
+
+    /// A pull that finds nothing new must not replay every machine's history:
+    /// it runs on every window focus.
+    #[test]
+    fn a_pull_with_nothing_to_bring_does_not_reread_everything() {
+        let one = machine("dev_a");
+        let other = machine("dev_b");
+        let shared = tempfile::tempdir().unwrap();
+        carry(
+            &other.data,
+            &other.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Pull,
+            Join::Agreed,
+        )
+        .unwrap();
+
+        // Unreadable now, and still unread: what is already here was checked
+        // when it arrived, so a second pull must not look at it again.
+        std::fs::write(
+            shared.path().join("store/dev_b/000001.tisty"),
+            b"not json at all",
+        )
+        .unwrap();
+        std::fs::write(shared.path().join("store/dev_b/000001.count"), b"1").unwrap();
+
+        let again = carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Pull,
+            Join::Agreed,
+        );
+        assert!(again.is_err(), "a changed segment went unchecked");
+        assert_eq!(titles(&one.store).len(), 2, "our store still reads");
     }
 
     #[test]

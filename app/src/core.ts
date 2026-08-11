@@ -225,8 +225,10 @@ export const checked = (): Promise<Reviewed> => invoke("checked");
 export const syncState = (): Promise<Carrying> => invoke("sync_state");
 /** No destination means «only on this machine», which is an answer, not a blank. */
 export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
-/** True when something came back. */
-export const syncNow = (way?: "push" | "pull", merge?: boolean): Promise<boolean> =>
+/** «busy» is another carry already running, which is not «nothing new». */
+export type Carried = "came" | "same" | "busy";
+
+export const syncNow = (way?: "push" | "pull", merge?: boolean): Promise<Carried> =>
   invoke("sync_now", { way, merge });
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
 export const restore = (from: string): Promise<number> => invoke("restore", { from });

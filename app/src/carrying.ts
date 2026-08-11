@@ -1,61 +1,71 @@
-import { syncNow, syncState } from "./core";
+import { syncNow, syncState, type Carried } from "./core";
 
 const AFTER_A_CHANGE = 4_000;
 const EVERY_SO_OFTEN = 15 * 60_000;
 /** A hung share must not silence the carrier for the rest of the session. */
 const GIVE_UP_AFTER = 60_000;
 
+type Way = "push" | "pull" | undefined;
+
+/** Two directions owed at once is both directions, not the later one. */
+const owing = (held: Way | null, next: Way): Way =>
+  held === null || held === next ? next : undefined;
+
 /**
  * Never blocks a local write and never interrupts: a folder that is not there
  * is retried in silence, and what happened is read in the maintenance panel.
  */
 export function carrying(brought: () => void) {
-  let on = false;
+  let folder: string | undefined;
   let gone = false;
   let running = false;
-  let owed = false;
+  let owed: Way | null = null;
   let soon: ReturnType<typeof setTimeout> | undefined;
+  let expire: ReturnType<typeof setTimeout> | undefined;
 
-  const go = (way?: "push" | "pull") => {
-    if (gone || !on) return;
-    // A change made mid-carry is remembered, or it would never go up.
+  const go = (way: Way) => {
+    if (gone || folder === undefined) return;
+    // A pull that arrives mid-carry is remembered as a pull: relaunching it as
+    // a push would leave the other machine's work sitting there for fifteen.
     if (running) {
-      owed = true;
+      owed = owing(owed, way);
       return;
     }
     running = true;
 
-    let expire: ReturnType<typeof setTimeout>;
-    const patience = new Promise<boolean>((resolve) => {
-      expire = setTimeout(() => resolve(false), GIVE_UP_AFTER);
+    const patience = new Promise<Carried>((resolve) => {
+      expire = setTimeout(() => resolve("same"), GIVE_UP_AFTER);
     });
 
     Promise.race([syncNow(way), patience])
-      .then((came) => came && !gone && brought())
+      .then((answer) => answer === "came" && !gone && brought())
       .catch(() => {})
       .finally(() => {
         clearTimeout(expire);
+        expire = undefined;
         running = false;
-        if (owed && !gone) {
-          owed = false;
-          go("push");
+        if (owed !== null && !gone) {
+          const again = owed;
+          owed = null;
+          go(again);
         }
       });
   };
 
   const pull = () => go("pull");
-  const both = () => go();
+  const both = () => go(undefined);
 
-  const settings = (then?: () => void) =>
+  const settings = (then?: (was: string | undefined) => void) =>
     syncState()
       .then((state) => {
         if (gone) return;
-        on = state.chosen != null;
-        then?.();
+        const was = folder;
+        folder = state.chosen ?? undefined;
+        then?.(was);
       })
       .catch(() => {});
 
-  settings(pull);
+  settings(() => pull());
 
   window.addEventListener("focus", pull);
   const beat = setInterval(both, EVERY_SO_OFTEN);
@@ -66,14 +76,14 @@ export function carrying(brought: () => void) {
       clearTimeout(soon);
       soon = setTimeout(() => go("push"), AFTER_A_CHANGE);
     },
-    /** Turning it on has to bring the others in now, not in fifteen minutes. */
+    /** A folder just turned on, or swapped for another, has to be read now. */
     recheck() {
-      const was = on;
-      settings(() => !was && on && go());
+      settings((was) => was !== folder && both());
     },
     stop() {
       gone = true;
       clearTimeout(soon);
+      clearTimeout(expire);
       clearInterval(beat);
       window.removeEventListener("focus", pull);
     },

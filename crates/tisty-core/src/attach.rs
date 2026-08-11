@@ -85,10 +85,14 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
     let name = format!("{rest}{ext}");
     let folder = root.join("attachments").join(shelf);
     std::fs::create_dir_all(&folder)?;
+    let _ = crate::paths::ours_alone(root);
+    let _ = crate::paths::ours_alone(&root.join("attachments"));
+    let _ = crate::paths::ours_alone(&folder);
 
     let target = folder.join(&name);
     if !target.exists() {
         std::fs::write(&target, &bytes)?;
+        let _ = crate::paths::ours_alone(&target);
     }
     Ok(Kept::Held {
         at: format!("attachments/{shelf}/{name}"),

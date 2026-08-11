@@ -55,7 +55,7 @@ beforeEach(() => {
       case "sync_state":
         return Promise.resolve({ ...carrying });
       case "sync_now":
-        return Promise.resolve(true);
+        return Promise.resolve("came");
       case "checked":
         return Promise.resolve({ tasks: 7, lists: 2, agrees: true, loose: 3, looseBytes: 311_000 });
       case "back_up":
@@ -135,7 +135,7 @@ describe("the maintenance panel", () => {
 describe("the first-run assistant", () => {
   it("takes «only here» as an answer, not as a blank", async () => {
     const done = vi.fn();
-    render(<Welcome onDone={done} onError={() => {}} />);
+    render(<Welcome onDone={done} />);
 
     await userEvent.click(screen.getByRole("button", { name: /only on this machine/i }));
 
@@ -146,7 +146,7 @@ describe("the first-run assistant", () => {
   /** Closing it must not be filed as a choice, or the folder is never offered again. */
   it("decides nothing when it is put off", async () => {
     const done = vi.fn();
-    render(<Welcome onDone={done} onError={() => {}} />);
+    render(<Welcome onDone={done} />);
 
     await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
 

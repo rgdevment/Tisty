@@ -36,6 +36,9 @@ pub enum Error {
     OutsideTheStore(String),
     #[error("that backup belongs to another store ({theirs})")]
     OtherStore { theirs: String },
+
+    #[error("the backup is larger than Tisty will carry")]
+    TooBig,
     #[error("serialization error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("malformed event at {file}:{line}: {source}")]

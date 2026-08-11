@@ -49,7 +49,7 @@ impl Session {
         change(&mut fresh);
         fresh
             .save(&self.paths)
-            .map_err(|e| Refusal::about("internal", e.to_string()))?;
+            .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
         self.config = fresh;
         Ok(())
     }
@@ -202,7 +202,7 @@ impl From<tisty_core::capture::Rejected> for Refusal {
 
 impl From<tisty_core::Error> for Refusal {
     fn from(error: tisty_core::Error) -> Self {
-        Refusal::about("internal", error.to_string())
+        Refusal::about("internalNamed", error.to_string())
     }
 }
 
@@ -974,7 +974,24 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
         .map(|one| one.trim().to_string())
         .filter(|one| !one.is_empty())
     {
-        Some(dest) => tisty_core::config::Sync::Folder(dest.into()),
+        Some(dest) => {
+            let at = std::path::PathBuf::from(&dest);
+            // Copies of the store inside the store: the panel would start
+            // counting them as loose attachments and every backup would
+            // carry a copy of itself.
+            let data = session.paths.data();
+            let tangled = at.starts_with(data)
+                || data.starts_with(&at)
+                || at
+                    .canonicalize()
+                    .ok()
+                    .zip(data.canonicalize().ok())
+                    .is_some_and(|(a, b)| a.starts_with(&b) || b.starts_with(&a));
+            if tangled {
+                return Err(Refusal::about("remoteInsideStore", dest));
+            }
+            tisty_core::config::Sync::Folder(at)
+        }
         None => tisty_core::config::Sync::Local,
     };
     session.keep(|c| c.sync = Some(chosen))
@@ -983,9 +1000,16 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
 #[tauri::command]
 async fn sync_now(
     session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
     way: Option<String>,
     merge: Option<bool>,
-) -> Answer<bool> {
+) -> Answer<&'static str> {
+    // Busy is not «nothing new»: reporting the second as the first tells the
+    // person a sync happened when what happened was that one was already going.
+    let Some(_done) = alone.inner().claim() else {
+        return Ok("busy");
+    };
+
     let (dest, data, store, device) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
@@ -1023,18 +1047,25 @@ async fn sync_now(
     if moved {
         session
             .reproject()
-            .map_err(|e| Refusal::about("internal", e.to_string()))?;
+            .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
     }
     // Stamped last: saying «synced a moment ago» over a store that would not
     // project is the one reading of the panel nobody can argue with.
     session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
-    Ok(moved)
+    Ok(if moved { "came" } else { "same" })
 }
 
 /// Off the main thread: compressing hundreds of megabytes there freezes the
 /// window, and this one has no system title bar to keep dragging.
 #[tauri::command]
-async fn back_up(session: tauri::State<'_, Mutex<Session>>, into: String) -> Answer<u64> {
+async fn back_up(
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    into: String,
+) -> Answer<u64> {
+    // The same lock as carrying: a restore renaming the store while a carry
+    // writes into it is the pair that must never overlap.
+    let _done = alone.inner().taken()?;
     let data = {
         let session = held(&session);
         if !session.config.backs_up() {
@@ -1052,7 +1083,12 @@ async fn back_up(session: tauri::State<'_, Mutex<Session>>, into: String) -> Ans
 }
 
 #[tauri::command]
-async fn restore(session: tauri::State<'_, Mutex<Session>>, from: String) -> Answer<usize> {
+async fn restore(
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    from: String,
+) -> Answer<usize> {
+    let _done = alone.inner().taken()?;
     let paths = {
         let session = held(&session);
         if !session.config.backs_up() {
@@ -1067,13 +1103,23 @@ async fn restore(session: tauri::State<'_, Mutex<Session>>, from: String) -> Ans
         .map_err(|_| Refusal::of("internal"))?
         .map_err(|e| match e {
             tisty_core::Error::OtherStore { theirs } => Refusal::about("otherStore", theirs),
+            tisty_core::Error::Io(why) => Refusal::about("restoreFailed", why.to_string()),
             _ => Refusal::about("cannotRead", from.clone()),
         })?;
 
     // Not `reload`: the restore minted a new device id, and a Store still open
     // on the old one would write into a directory that just went back in time.
-    *held(&session) = Session::open().map_err(|e| Refusal::about("internal", e.to_string()))?;
+    *held(&session) =
+        Session::open().map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
     Ok(done.files)
+}
+
+struct Releasing<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl Drop for Releasing<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, std::sync::atomic::Ordering::Release);
+    }
 }
 
 fn said(trouble: tisty_sync::Trouble) -> Refusal {
@@ -1256,25 +1302,75 @@ fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task>
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
+/// Only one at a time: the automatic carrier and the panel's button cannot see
+/// each other, and two carries would copy the same files over one another.
+#[derive(Default)]
+struct OneAtATime(std::sync::atomic::AtomicBool);
+
+impl OneAtATime {
+    /// `None` while another one holds it: the caller decides whether that is
+    /// «already going» or a reason to refuse.
+    fn claim(&self) -> Option<Releasing<'_>> {
+        use std::sync::atomic::Ordering;
+        self.0
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok()
+            .then(|| Releasing(&self.0))
+    }
+
+    fn taken(&self) -> Answer<Releasing<'_>> {
+        self.claim().ok_or_else(|| Refusal::of("stillCarrying"))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let session = Session::open().expect("could not open the store");
-
-    // The store lives outside the bundle, so the asset scope has to be opened
-    // at runtime: the path is only known once the data directory is resolved.
-    let attachments = session.paths.attachments();
-
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
+            // Opened here, not before the builder: with syncing on, other
+            // machines write this store, so failing to read it stopped being
+            // impossible — and a window that dies without a word leaves
+            // nothing to act on, while the path and the reason do.
+            let session = match Session::open() {
+                Ok(session) => session,
+                Err(why) => {
+                    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+                    for window in app.webview_windows().values() {
+                        let _ = window.close();
+                    }
+                    app.dialog()
+                        .message(why.to_string())
+                        .kind(MessageDialogKind::Error)
+                        .title("Tisty")
+                        .blocking_show();
+                    std::process::exit(1);
+                }
+            };
+
+            // The store lives outside the bundle, so the asset scope has to be
+            // opened at runtime: the path is only known once data is resolved.
+            // A restore that died left the only copy of what it swapped out;
+            // once the store reads, it is over and can go.
+            for at in tisty_core::backup::leftovers(session.paths.data()) {
+                let _ = std::fs::remove_dir_all(at);
+            }
+
+            let attachments = session.paths.attachments();
             let _ = std::fs::create_dir_all(&attachments);
             app.handle()
                 .asset_protocol_scope()
                 .allow_directory(&attachments, true)?;
+            app.manage(Mutex::new(session));
+            // Shown only now: the window is created before `setup` runs, and
+            // projecting a long log would leave a blank frame on screen.
+            for window in app.webview_windows().values() {
+                let _ = window.show();
+            }
             Ok(())
         })
-        .manage(Mutex::new(session))
+        .manage(OneAtATime::default())
         .invoke_handler(tauri::generate_handler![
             snapshot,
             capture,
