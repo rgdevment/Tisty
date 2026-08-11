@@ -194,3 +194,10 @@ body {
   border-radius: 8px;
   background: var(--tisty-accent-soft);
 }
+
+/* The quick window is a floating card: the page behind it has to be see-through. */
+.quick,
+.quick body,
+.quick #root {
+  background: transparent;
+}

@@ -1,6 +1,13 @@
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, vi } from "vitest";
 import { adopt } from "../locales";
+
+// There is no Tauri host under jsdom, so the window's event bridge has to be
+// stood in for: without it every suite that mounts App leaks a rejection.
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: () => Promise.resolve(() => {}),
+  emit: () => Promise.resolve(),
+}));
 
 adopt("en");
 

@@ -22,6 +22,16 @@ impl Config {
     }
 }
 
+/// `None` means nobody has been asked yet, which is what asks on first close.
+/// Not a system convention: whoever knows how they use it is the person, not
+/// the operating system.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Closing {
+    Hide,
+    Quit,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     /// Never synced — a shared id would put two machines in one segment file.
@@ -30,6 +40,16 @@ pub struct Config {
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,
+    /// The version that last opened this store. A different one means the
+    /// program was just installed or updated, and the store may have been
+    /// written by another machine since — or by an older Tisty.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub opened_by: Option<String>,
+    /// What closing the window does. Ignored where there is no tray to hide in.
+    /// Kept above `sync`, which becomes a TOML table: the serialiser floats
+    /// tables to the end on its own, but a hand-edited file will not.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_close: Option<Closing>,
     /// Never synced either: where this machine sends its own directory.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync: Option<Sync>,
@@ -47,6 +67,8 @@ impl Config {
             device_id: DeviceId(new_device_id()),
             locale: None,
             editor: None,
+            opened_by: None,
+            on_close: None,
             sync: None,
             synced_at: None,
         };
@@ -145,6 +167,8 @@ mod tests {
             device_id: DeviceId("dev_a".into()),
             locale: Some("es".into()),
             editor: None,
+            opened_by: Some("0.1.0".into()),
+            on_close: Some(Closing::Hide),
             sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
             synced_at: None,
         };

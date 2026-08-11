@@ -1,6 +1,8 @@
 use std::sync::Mutex;
 
-use tauri::Manager;
+mod tray;
+
+use tauri::{Emitter, Manager};
 
 use tisty_core::{
     Config, Event, List, Op, Paths, State, Store, Tag, Task,
@@ -285,9 +287,23 @@ impl View {
 }
 
 #[tauri::command]
-fn snapshot(session: tauri::State<'_, Mutex<Session>>, view: Option<View>) -> Answer<Snapshot> {
+fn snapshot(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    view: Option<View>,
+) -> Answer<Snapshot> {
     let mut session = held(&session);
     session.reload()?;
+    // Reread from disk on every snapshot, so a language changed from the
+    // terminal reaches the tray as well as the window.
+    let spoken = Config::load(&session.paths.config_file())
+        .ok()
+        .flatten()
+        .and_then(|c| c.locale);
+    if spoken != session.locale {
+        session.locale = spoken.clone();
+        language(&app, &spoken);
+    }
 
     let filter = match view {
         Some(view) => view.resolve()?,
@@ -942,6 +958,112 @@ struct Reviewed {
     loose_bytes: u64,
 }
 
+/// Called after any read: the terminal can change the language while the
+/// window is open, and the tray menu was drawn before either of them.
+fn language<R: tauri::Runtime>(app: &tauri::AppHandle<R>, locale: &Option<String>) {
+    tray::reword(
+        app,
+        &tray::Words {
+            show: worded(locale, "show"),
+            capture: worded(locale, "capture"),
+            quit: worded(locale, "quit"),
+        },
+    );
+}
+
+/// After an install or an update, and only then. The order is deliberate:
+/// bring the other machines in first, because reviewing a store that is about
+/// to change would report on a state nobody is going to keep.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Settling {
+    ran: bool,
+    brought: bool,
+    agrees: bool,
+    was: Option<String>,
+}
+
+#[tauri::command]
+async fn settle_in(
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+) -> Answer<Settling> {
+    let here = env!("CARGO_PKG_VERSION");
+    let (was, dest, data, store, device) = {
+        let session = held(&session);
+        let was = session.config.opened_by.clone();
+        if was.as_deref() == Some(here) {
+            return Ok(Settling {
+                ran: false,
+                brought: false,
+                agrees: true,
+                was,
+            });
+        }
+        let dest = match &session.config.sync {
+            Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
+            _ => None,
+        };
+        (
+            was,
+            dest,
+            session.paths.data().to_path_buf(),
+            session.paths.store(),
+            session.config.device_id.0.clone(),
+        )
+    };
+
+    let mut brought = false;
+    if let Some(dest) = dest
+        && let Some(_done) = alone.inner().claim()
+    {
+        let before = tisty_core::cache::fingerprint(&store);
+        // A folder that is not there is not a reason to refuse to start.
+        let _ = tauri::async_runtime::spawn_blocking(move || {
+            tisty_sync::carry(
+                &data,
+                &device,
+                &dest,
+                tisty_sync::Way::Both,
+                tisty_sync::Join::Ask,
+            )
+        })
+        .await;
+        brought = tisty_core::cache::fingerprint(&store) != before;
+    }
+
+    let mut session = held(&session);
+    if brought {
+        session
+            .reproject()
+            .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+    }
+    // The same check `tisty doctor` runs: the cache is derived, and a version
+    // that changed how it is built must not be trusted to have rebuilt it.
+    let audit = tisty_core::cache::audit(&session.paths.store(), session.paths.cache())
+        .map_err(|_| Refusal::of("internal"))?;
+    let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
+    if !agrees {
+        let _ = std::fs::remove_dir_all(session.paths.cache());
+        session
+            .reproject()
+            .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+    }
+
+    session.keep(|c| c.opened_by = Some(here.to_string()))?;
+    Ok(Settling {
+        ran: true,
+        brought,
+        agrees,
+        was,
+    })
+}
+
+#[tauri::command]
+fn shortcut(bound: tauri::State<'_, Bound>) -> Option<String> {
+    bound.0.clone()
+}
+
 #[tauri::command]
 fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
     let session = held(&session);
@@ -995,6 +1117,33 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
         None => tisty_core::config::Sync::Local,
     };
     session.keep(|c| c.sync = Some(chosen))
+}
+
+/// The window asked, and this is what came back. `None` means «not now»: it
+/// stays unanswered so the question comes again rather than guessing.
+#[tauri::command]
+fn close_window(
+    window: tauri::Window,
+    session: tauri::State<'_, Mutex<Session>>,
+    how: Option<String>,
+    remember: Option<bool>,
+) -> Answer<()> {
+    let how = match how.as_deref() {
+        Some("hide") => tisty_core::config::Closing::Hide,
+        Some("quit") => tisty_core::config::Closing::Quit,
+        _ => return Ok(()),
+    };
+
+    if remember == Some(true) {
+        held(&session).keep(|c| c.on_close = Some(how))?;
+    }
+    match how {
+        tisty_core::config::Closing::Hide => {
+            let _ = window.hide();
+        }
+        tisty_core::config::Closing::Quit => window.app_handle().exit(0),
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -1302,6 +1451,64 @@ fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task>
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
+struct Perched(bool);
+
+/// Which combination answered, so the window can say it instead of leaving the
+/// person pressing keys that belong to their editor.
+struct Bound(Option<String>);
+
+/// A shortcut another program already holds is not an error worth stopping
+/// for: the tray still opens the same window. Which one answered is worth
+/// saying — `Ctrl+Shift+Space` is Trigger Parameter Hints in VS Code and Smart
+/// Type Completion in the JetBrains IDEs, so it does get taken.
+fn listen_for<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<String> {
+    use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+
+    let tries = [
+        (
+            "Ctrl+Shift+Space",
+            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space),
+        ),
+        (
+            "Ctrl+Alt+Space",
+            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::Space),
+        ),
+    ];
+
+    for (said, combo) in tries {
+        let handle = app.clone();
+        let taken = app
+            .global_shortcut()
+            .on_shortcut(combo, move |_, _, event| {
+                if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                    tray::quicken(&handle);
+                }
+            });
+        if taken.is_ok() {
+            return Some(said.to_string());
+        }
+    }
+    None
+}
+
+/// The tray menu is drawn before the window exists, so it cannot ask the
+/// frontend for its words.
+fn worded(locale: &Option<String>, key: &str) -> String {
+    let spanish = locale
+        .as_deref()
+        .or(sys_locale::get_locale().as_deref())
+        .is_some_and(|code| code.to_lowercase().starts_with("es"));
+
+    match (key, spanish) {
+        ("show", true) => "Abrir Tisty".into(),
+        ("show", false) => "Open Tisty".into(),
+        ("capture", true) => "Capturar…".into(),
+        ("capture", false) => "Capture…".into(),
+        (_, true) => "Salir".into(),
+        (_, false) => "Quit".into(),
+    }
+}
+
 /// Only one at a time: the automatic carrier and the panel's button cannot see
 /// each other, and two carries would copy the same files over one another.
 #[derive(Default)]
@@ -1328,6 +1535,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(move |app| {
             // Opened here, not before the builder: with syncing on, other
             // machines write this store, so failing to read it stopped being
@@ -1362,17 +1570,73 @@ pub fn run() {
             app.handle()
                 .asset_protocol_scope()
                 .allow_directory(&attachments, true)?;
+            let words = tray::Words {
+                show: worded(&session.locale, "show"),
+                capture: worded(&session.locale, "capture"),
+                quit: worded(&session.locale, "quit"),
+            };
             app.manage(Mutex::new(session));
+
+            // No tray on this desktop means closing keeps its plain meaning,
+            // and the preference is ignored rather than hiding the app away.
+            let perched = tray::raise(app.handle(), &words).is_some();
+            app.manage(Perched(perched));
+            app.manage(Bound(listen_for(app.handle())));
+
             // Shown only now: the window is created before `setup` runs, and
             // projecting a long log would leave a blank frame on screen.
-            for window in app.webview_windows().values() {
+            if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
             }
             Ok(())
         })
+        .on_window_event(|window, event| {
+            // The quick window is hidden, never closed, and asking there would
+            // put the question in front of a capture nobody finished.
+            if window.label() != "main" {
+                return;
+            }
+            // Windows 11 switches the taskbar theme while running, so the
+            // colour art has to be chosen again, not only at startup.
+            if let tauri::WindowEvent::ThemeChanged(_) = event {
+                tray::repaint(window.app_handle());
+                return;
+            }
+
+            let tauri::WindowEvent::CloseRequested { api, .. } = event else {
+                return;
+            };
+
+            let app = window.app_handle();
+            // The quick window is created at startup and never closed, so the
+            // process outlives the main window: letting the close through
+            // would leave an invisible Tisty holding the global shortcut.
+            if !app.state::<Perched>().0 {
+                app.exit(0);
+                return;
+            }
+
+            let asked = held(&app.state::<Mutex<Session>>()).config.on_close;
+            match asked {
+                Some(tisty_core::config::Closing::Quit) => app.exit(0),
+                Some(tisty_core::config::Closing::Hide) => {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+                // Asked once, where the answer matters, instead of buried in a
+                // settings screen nobody opens.
+                None => {
+                    api.prevent_close();
+                    let _ = window.emit("closing", ());
+                }
+            }
+        })
         .manage(OneAtATime::default())
         .invoke_handler(tauri::generate_handler![
             snapshot,
+            close_window,
+            shortcut,
+            settle_in,
             capture,
             read,
             search,

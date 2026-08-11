@@ -20,6 +20,20 @@
         "decorations": false,
         "shadow": true,
         "visible": false
+      },
+      {
+        "label": "quick",
+        "title": "Tisty",
+        "width": 620,
+        "height": 132,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": true,
+        "center": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false
       }
     ],
     "security": {
@@ -36,13 +50,40 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "nsis",
+      "app",
+      "dmg"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "publisher": "rgdevment",
+    "copyright": "Copyright © 2026 rgdevment",
+    "category": "Productivity",
+    "shortDescription": "Local, private task manager whose archive is the point",
+    "longDescription": "Tisty keeps your tasks on your own machine, in plain files you can read without it. No account, no telemetry, no server. Sync, if you want it, goes through a folder both your machines already reach.",
+    "licenseFile": "../../LICENSE",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "English",
+          "Spanish"
+        ],
+        "displayLanguageSelector": false,
+        "installerHooks": "nsis/hooks.nsh"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "externalBin": [
+      "binaries/tisty"
     ]
   }
 }

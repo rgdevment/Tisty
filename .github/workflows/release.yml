@@ -68,15 +68,6 @@ jobs:
             prerelease=true
           fi
 
-          # The CLI ships as a companion to the GUI, never on its own. A stable tag
-          # would claim `brew install tisty` and mark the release latest, for a
-          # product that is not the one being released.
-          # Delete this guard when the GUI ships.
-          if [[ "$prerelease" == "false" ]]; then
-            echo "::error::«$version» is stable, and the CLI does not ship without the GUI. Tag a pre-release (1.2.3-rc1) until the GUI is out."
-            exit 1
-          fi
-
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           echo "version $version (pre-release: $prerelease)"
@@ -275,9 +266,170 @@ jobs:
           name: windows-x86_64
           target: ${{ env.TARGET }}
 
+  bundle-windows:
+    name: windows installer
+    needs: version
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      TARGET: x86_64-pc-windows-msvc
+      PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+      PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/prepare
+        with:
+          version: ${{ needs.version.outputs.version }}
+          targets: ${{ env.TARGET }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Frontend
+        working-directory: app
+        run: npm ci
+
+      # The window carries the command line: the installer's PATH entry has to
+      # have something to point at.
+      - name: The CLI rides along
+        shell: bash
+        run: |
+          cargo build --release --bin tisty --target "$TARGET"
+          mkdir -p app/src-tauri/binaries
+          cp "target/$TARGET/release/tisty.exe" "app/src-tauri/binaries/tisty-$TARGET.exe"
+
+      - name: Bundle
+        working-directory: app
+        run: npm run tauri build -- --bundles nsis
+
+      - name: Sign the installer
+        if: env.PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
+          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
+            -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -like "*x64*" } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
+
+          $setup = Get-ChildItem -Path "target/release/bundle/nsis" -Filter "*-setup.exe" |
+            Select-Object -First 1
+          if (-not $setup) { Write-Error "no installer to sign"; exit 1 }
+
+          & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
+            /tr http://timestamp.digicert.com /td sha256 /fd sha256 $setup.FullName
+          if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
+          Remove-Item signingCert.pfx
+
+          $sig = Get-AuthenticodeSignature $setup.FullName
+          if (-not $sig.TimeStamperCertificate) {
+            Write-Error "no timestamp: the signature would die with the certificate"; exit 1
+          }
+          Write-Host "status: $($sig.Status)"
+
+      - name: Name it after the release
+        shell: bash
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          mkdir -p dist
+          setup=$(ls target/release/bundle/nsis/*-setup.exe | head -1)
+          if [ -z "$setup" ]; then
+            echo "::error::the bundler produced no installer"
+            exit 1
+          fi
+          cp "$setup" "dist/Tisty-$v-windows-x86_64-setup.exe"
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-windows
+          path: dist/*
+          if-no-files-found: error
+
+  bundle-macos:
+    name: macos installer
+    needs: version
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/prepare
+        with:
+          version: ${{ needs.version.outputs.version }}
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Frontend
+        working-directory: app
+        run: npm ci
+
+      - name: The CLI rides along
+        run: |
+          cargo build --release --bin tisty --target aarch64-apple-darwin
+          cargo build --release --bin tisty --target x86_64-apple-darwin
+          mkdir -p app/src-tauri/binaries
+          lipo -create -output app/src-tauri/binaries/tisty-universal-apple-darwin \
+            target/aarch64-apple-darwin/release/tisty \
+            target/x86_64-apple-darwin/release/tisty
+
+      # Tauri imports the certificate itself when these are set, and signs the
+      # bundle as it builds it; signing afterwards would break the .app seal.
+      - name: Bundle
+        working-directory: app
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: npm run tauri build -- --target universal-apple-darwin --bundles app,dmg
+
+      - name: Notarize
+        if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
+        run: |
+          dmg=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
+          xcrun notarytool submit "$dmg" \
+            --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" --wait --timeout 900
+          xcrun stapler staple "$dmg"
+
+      - name: Name it after the release
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          mkdir -p dist
+          dmg=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
+          if [ -z "$dmg" ]; then
+            echo "::error::the bundler produced no disk image"
+            exit 1
+          fi
+          cp "$dmg" "dist/Tisty-$v-macos-universal.dmg"
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundle-macos
+          path: dist/*
+          if-no-files-found: error
+
   publish:
     name: GitHub Release
-    needs: [version, build-linux, build-macos, build-windows]
+    needs: [version, build-linux, build-macos, build-windows, bundle-windows, bundle-macos]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -304,7 +456,9 @@ jobs:
           status=0
           for f in "tisty-$v-linux-x86_64.tar.gz" \
                    "tisty-$v-macos-universal.tar.gz" \
-                   "tisty-$v-windows-x86_64.zip"; do
+                   "tisty-$v-windows-x86_64.zip" \
+                   "Tisty-$v-windows-x86_64-setup.exe" \
+                   "Tisty-$v-macos-universal.dmg"; do
             if [ -s "dist/$f" ]; then
               echo "$f"
             else
@@ -319,6 +473,8 @@ jobs:
           subject-path: |
             dist/*.tar.gz
             dist/*.zip
+            dist/*.exe
+            dist/*.dmg
 
       # The first `sed` drops the signature block `git tag -s` leaves in the body.
       - name: Notes from the tag
