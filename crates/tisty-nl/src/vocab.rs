@@ -106,7 +106,7 @@ pub const ES: Vocabulary = Vocabulary {
     years_unit: &["año", "ano", "años", "anos"],
     every: &[&["cada"], &["todos", "los"], &["todas", "las"]],
     cadences: &[
-        (&["diariamente", "diario"], Unit::Day),
+        (&["diariamente"], Unit::Day),
         (&["semanalmente"], Unit::Week),
         (&["mensualmente"], Unit::Month),
         (&["anualmente"], Unit::Year),

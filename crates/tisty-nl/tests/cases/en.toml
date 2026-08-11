@@ -732,3 +732,24 @@ repeat = "done:1m"
 input = "renew the certificate annually"
 title = "renew the certificate"
 repeat = "done:1y"
+
+[[case]]
+input = "standup every monday at 9"
+title = "standup"
+date = "2026-08-10"
+time = "09:00"
+repeat = "due:1w"
+why = "the named day beats a bare hour; without this the series anchored on today"
+
+[[case]]
+input = "write the daily report"
+title = "write the daily report"
+why = "«daily» in the middle is an adjective, and taking it would eat the word too"
+
+[[case]]
+input = "buy a weekly pass"
+title = "buy a weekly pass"
+
+[[case]]
+input = "cancel my monthly subscription"
+title = "cancel my monthly subscription"

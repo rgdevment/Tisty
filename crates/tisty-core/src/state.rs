@@ -205,6 +205,7 @@ impl State {
             now.datetime()
                 .date()
                 .to_datetime(jiff::civil::Time::midnight()),
+            now.time_zone().iana_name().unwrap_or("UTC"),
         ) else {
             return done;
         };
@@ -230,12 +231,28 @@ impl State {
         fresh.list = task.list;
         fresh.tags = task.tags.clone();
         fresh.repeat = Some(repeat);
+        fresh.after = Some(id);
 
         let mut ops = done;
         ops.push(Op::TaskAdd {
             id: ulid::Ulid::generate(),
             d: fresh,
         });
+        ops
+    }
+
+    /// Reopening a completed occurrence takes its successor back with it, or
+    /// the series would run twice from then on — and undoing a tick is the
+    /// commonest way to say «I pressed that by mistake».
+    pub fn reopening(&self, id: TaskId) -> Vec<Op> {
+        let mut ops = vec![Op::TaskReopen { id }];
+        if let Some(born) = self
+            .tasks
+            .values()
+            .find(|task| task.after == Some(id) && task.status == crate::model::Status::Open)
+        {
+            ops.push(Op::TaskDelete { id: born.id });
+        }
         ops
     }
 
@@ -456,11 +473,15 @@ fn shifted(
     along: Option<&Result<jiff::Span, jiff::Error>>,
 ) -> Option<crate::DateSpec> {
     let spec = spec?;
+    // Nothing to move it by — a repeat with no date of its own — is not a
+    // reason to drop the deadline or the reminder on the floor.
     let Some(Ok(span)) = along else {
-        return None;
+        return Some(spec.clone());
     };
-    let at = spec.at.checked_add(*span).ok()?;
-    Some(spec.moved(at))
+    match spec.at.checked_add(*span) {
+        Ok(at) => Some(spec.moved(at)),
+        Err(_) => Some(spec.clone()),
+    }
 }
 
 fn task_from(id: TaskId, d: &TaskAdd) -> Task {
@@ -472,6 +493,7 @@ fn task_from(id: TaskId, d: &TaskAdd) -> Task {
         tags: d.tags.clone(),
         reminders: d.reminders.clone(),
         repeat: d.repeat,
+        after: d.after,
         ..Task::new(id, d.title.clone(), d.order.clone())
     }
 }

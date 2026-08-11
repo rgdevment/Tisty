@@ -36,7 +36,13 @@ impl Repeat {
     }
 
     /// `None` when there is nothing to count from.
-    pub fn next(self, due: Option<&DateSpec>, done: DateTime, today: DateTime) -> Option<DateSpec> {
+    pub fn next(
+        self,
+        due: Option<&DateSpec>,
+        done: DateTime,
+        today: DateTime,
+        zone: &str,
+    ) -> Option<DateSpec> {
         let step = self.cadence();
         if step.every == 0 {
             return None;
@@ -52,7 +58,9 @@ impl Repeat {
             Repeat::Done(_) => {
                 let at = step.after(done)?;
                 let Some(spec) = due else {
-                    return Some(DateSpec::floating(at, "UTC"));
+                    // No date to inherit a shape from: a whole day, not the
+                    // minute the box happened to be ticked.
+                    return Some(DateSpec::all_day(at.date(), zone));
                 };
                 // «cada día a las 10» is at ten. Counting the interval from the
                 // moment it was ticked would walk the time down the day: taken
@@ -125,6 +133,7 @@ mod tests {
                 Some(&due),
                 date(2026, 8, 4).at(9, 30, 0, 0),
                 date(2026, 8, 4).at(0, 0, 0, 0),
+                "Europe/Madrid",
             )
             .unwrap();
 
@@ -139,6 +148,7 @@ mod tests {
                 Some(&due),
                 date(2026, 8, 6).at(20, 0, 0, 0),
                 date(2026, 8, 6).at(0, 0, 0, 0),
+                "Europe/Madrid",
             )
             .unwrap();
 
@@ -157,6 +167,7 @@ mod tests {
                 Some(&due),
                 date(2026, 8, 25).at(9, 0, 0, 0),
                 date(2026, 8, 25).at(0, 0, 0, 0),
+                "Europe/Madrid",
             )
             .unwrap();
 
@@ -180,7 +191,12 @@ mod tests {
             (date(2026, 3, 30), date(2026, 4, 1)),
         ] {
             let next = monthly
-                .next(Some(&due), paid.at(9, 0, 0, 0), paid.at(0, 0, 0, 0))
+                .next(
+                    Some(&due),
+                    paid.at(9, 0, 0, 0),
+                    paid.at(0, 0, 0, 0),
+                    "Europe/Madrid",
+                )
                 .unwrap();
             assert_eq!(next.at.date(), expected, "paid on {paid}");
             due = next;
@@ -199,6 +215,7 @@ mod tests {
                 Some(&due),
                 date(2026, 8, 9).at(18, 0, 0, 0),
                 date(2026, 8, 9).at(0, 0, 0, 0),
+                "Europe/Madrid",
             )
             .unwrap();
 
@@ -221,6 +238,7 @@ mod tests {
                 Some(&due),
                 date(2026, 8, 11).at(8, 4, 0, 0),
                 date(2026, 8, 11).at(0, 0, 0, 0),
+                "Europe/Madrid",
             )
             .unwrap();
 
@@ -238,10 +256,14 @@ mod tests {
                 None,
                 date(2026, 8, 9).at(18, 0, 0, 0),
                 date(2026, 8, 9).at(0, 0, 0, 0),
+                "Europe/Madrid",
             )
             .unwrap();
 
-        assert_eq!(next.at, date(2026, 8, 10).at(18, 0, 0, 0));
+        // A whole day, not the minute the box happened to be ticked: a task
+        // that never had a time of day must not grow one.
+        assert_eq!(next.at, date(2026, 8, 10).at(0, 0, 0, 0));
+        assert!(!next.has_time);
     }
 
     #[test]
@@ -251,7 +273,8 @@ mod tests {
                 .next(
                     None,
                     date(2026, 8, 9).at(9, 0, 0, 0),
-                    date(2026, 8, 9).at(0, 0, 0, 0)
+                    date(2026, 8, 9).at(0, 0, 0, 0),
+                    "Europe/Madrid"
                 )
                 .is_none()
         );
@@ -269,6 +292,7 @@ mod tests {
                 Some(&due),
                 date(2026, 1, 31).at(9, 0, 0, 0),
                 date(2026, 1, 31).at(0, 0, 0, 0),
+                "Europe/Madrid",
             )
             .unwrap();
 
@@ -287,7 +311,8 @@ mod tests {
                     .next(
                         None,
                         date(2026, 8, 9).at(9, 0, 0, 0),
-                        date(2026, 8, 9).at(0, 0, 0, 0)
+                        date(2026, 8, 9).at(0, 0, 0, 0),
+                        "Europe/Madrid"
                     )
                     .is_none(),
                 "«every {every} years» should not be a repeat"
@@ -306,7 +331,8 @@ mod tests {
                 .next(
                     None,
                     date(2026, 8, 9).at(9, 0, 0, 0),
-                    date(2026, 8, 9).at(0, 0, 0, 0)
+                    date(2026, 8, 9).at(0, 0, 0, 0),
+                    "Europe/Madrid"
                 )
                 .is_none()
         );
@@ -320,6 +346,7 @@ mod tests {
                 Some(&due),
                 date(2026, 8, 4).at(9, 0, 0, 0),
                 date(2026, 8, 4).at(0, 0, 0, 0),
+                "Europe/Madrid",
             )
             .unwrap();
 

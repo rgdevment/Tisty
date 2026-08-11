@@ -96,7 +96,7 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
     if let Some(literal) = fully_quoted(&taken.text) {
         parsed.title = literal;
     } else {
-        let over = repeat::take(&taken.text, now, v);
+        let over = repeat::take(&taken.text, &protect_quoted(&taken.text), now, v);
         parsed.repeat = over.repeat;
         if over.repeat.is_some() {
             parsed.spans.push(Span {
@@ -107,10 +107,15 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
             });
         }
         let mut read = timed(&over.text, now, tz, v);
-        // Settled when the phrase was read: a fixed repeat with no date, which
-        // is what a weekday at the start of a sentence leaves, never fires.
-        if read.date.is_none() {
-            read.date = over.first.clone();
+        // The weekday wins the day, the scanner keeps the hour: «cada lunes a
+        // las 9» read as a bare time would anchor the series to today.
+        if let Some(first) = &over.first {
+            read.date = Some(match read.date.take() {
+                Some(said) if said.has_time => {
+                    said.moved(first.at.date().to_datetime(said.at.time()))
+                }
+                _ => first.clone(),
+            });
         }
         // The cut moved everything after it: put the readings back where the
         // person actually typed them, or the highlight lands on the wrong word.

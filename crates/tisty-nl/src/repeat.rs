@@ -25,16 +25,21 @@ pub struct Took {
 /// it out last week. «cada 3 días» is a habit, and three days start counting
 /// when you actually did it. The distinction G1 asked for falls out of how the
 /// sentence is said, so neither form needs a syntax of its own.
-pub fn take(text: &str, now: &Zoned, v: &Vocabulary) -> Took {
-    let words: Vec<(usize, &str)> = spots(text);
+/// `masked` is `text` with anything inside quotes blanked out, same length:
+/// «leer "El Diario de Ana Frank"» is a title, not a daily habit.
+pub fn take(text: &str, masked: &str, now: &Zoned, v: &Vocabulary) -> Took {
+    let words: Vec<(usize, &str)> = spots(masked);
 
     for (i, (at, word)) in words.iter().enumerate() {
-        // «diariamente», «weekly»: a whole cadence in one word, opening nothing.
-        if let Some(unit) = v
-            .cadences
-            .iter()
-            .find(|(said, _)| said.iter().any(|one| one.eq_ignore_ascii_case(word)))
-            .map(|(_, unit)| *unit)
+        // «weekly» is a cadence at the end of a sentence and an adjective in the
+        // middle of one: «send the report weekly» against «buy a weekly pass».
+        // Taking it wherever it appears both invents a repeat and eats the word.
+        if words.get(i + 1).is_none()
+            && let Some(unit) = v
+                .cadences
+                .iter()
+                .find(|(said, _)| said.iter().any(|one| one.eq_ignore_ascii_case(word)))
+                .map(|(_, unit)| *unit)
         {
             let to = at + word.len();
             let repeat = Repeat::Done(Cadence { every: 1, unit });
@@ -86,10 +91,13 @@ fn opens(from: &[(usize, &str)], v: &Vocabulary) -> Option<usize> {
 
 fn weekly(rest: &[(usize, &str)], v: &Vocabulary) -> Option<(Repeat, usize)> {
     let (_, word) = rest.first()?;
-    let which = v
-        .weekdays
-        .iter()
-        .position(|day| day.iter().any(|one| one.eq_ignore_ascii_case(word)))?;
+    // «todos los domingos» is the ordinary way to say it, and only the days
+    // that do not already end in «s» have a plural to strip.
+    let bare = word.strip_suffix('s').unwrap_or(word);
+    let which = v.weekdays.iter().position(|day| {
+        day.iter()
+            .any(|one| one.eq_ignore_ascii_case(word) || one.eq_ignore_ascii_case(bare))
+    })?;
 
     // «cada lunes y jueves» is two days a week. Reading one of them and
     // dropping the other silently is worse than reading nothing.
