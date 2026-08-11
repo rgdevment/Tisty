@@ -1,4 +1,5 @@
 mod data;
+mod demo;
 mod doctor;
 mod org;
 mod sync;
@@ -55,6 +56,7 @@ pub fn dispatch(
         Command::Redo => org::redo(app, today, lang),
         Command::Sync { push, pull, merge } => sync::sync(app, push, pull, merge, lang),
         Command::Doctor { repair } => doctor::doctor(app, repair, lang),
+        Command::Demo { force } => demo::demo(app, force, lang),
         Command::Lists { json } => org::lists(app, json, lang),
         Command::List { action } => org::list(app, action, lang),
         Command::Tag { action } => org::tag(app, action, lang),

@@ -80,8 +80,8 @@ diverged       = "NO COINCIDE con el log"
 cache-discarded = "caché descartada; la próxima lectura la rehace"
 run-repair     = "ejecuta `tisty doctor --repair` para rehacerla"
 
-every-one      = "cada {$unit}"
-every-many     = "cada {$n} {$unit}"
+every-one      = "cada {unit}"
+every-many     = "cada {n} {unit}"
 a-day          = "día"
 many-days      = "días"
 a-week         = "semana"
@@ -91,7 +91,10 @@ many-months    = "meses"
 a-year         = "año"
 many-years     = "años"
 
-not-a-cadence  = "eso no es una cadencia: {$said}"
+not-a-cadence  = "eso no es una cadencia: {said}"
+demo-needs-sandbox = "demo solo corre dentro de un sandbox: define TISTY_PROFILE antes"
+demo-not-empty     = "este almacén ya tiene {n} tareas; usa --force para añadir los ejemplos igualmente"
+demo-planted       = "sembrados {n} cambios en el sandbox «{name}»"
 [plural]
 tasks = { one = "1 tarea", other = "{n} tareas" }
 lines = { one = "1 línea", other = "{n} líneas" }

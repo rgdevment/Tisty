@@ -113,7 +113,7 @@ fn cadence_flag(
     let read = tisty_nl::parse(said, &jiff::Zoned::now(), lang.code());
     match read.repeat {
         Some(over) => Ok(Some(Some(over))),
-        None => anyhow::bail!("{}", lang.get("not-a-cadence").replace("{$said}", said)),
+        None => anyhow::bail!("{}", lang.get("not-a-cadence").replace("{said}", said)),
     }
 }
 
