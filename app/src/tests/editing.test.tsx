@@ -39,7 +39,6 @@ function open(task: Task = written) {
       task={task}
       lists={[]}
       known={[]}
-      refs={["infra/gateway"]}
       expanded={false}
       onExpand={() => {}}
       onCollapse={() => {}}
@@ -47,7 +46,6 @@ function open(task: Task = written) {
       onStep={on.step}
       onMark={on.mark}
       onDropStep={on.dropStep}
-      onMoveStep={on.moveStep}
       onLog={on.log}
       onDiscard={on.discard}
       onReopen={on.reopen}

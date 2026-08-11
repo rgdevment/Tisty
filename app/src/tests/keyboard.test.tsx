@@ -117,4 +117,41 @@ describe("moving through the list without a mouse", () => {
 
     expect(completed).toHaveBeenCalledWith("1");
   });
+
+  /// Completing is the verb this product exists for, and until now it was
+  /// mouse-only: the circle is out of the tab order on purpose, and the detail
+  /// only offers «Not doing it», which discards.
+  it("completes the focused task with Ctrl+Enter", async () => {
+    const completed = vi.fn();
+    show(() => {}, completed);
+
+    await userEvent.tab();
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+
+    expect(completed).toHaveBeenCalledWith("1");
+  });
+
+  /// Plain Enter still opens: the destructive-by-accident shape is what the
+  /// whole keyboard work was about.
+  it("does not complete on plain Enter", async () => {
+    const opened = vi.fn();
+    const completed = vi.fn();
+    show(opened, completed);
+
+    await userEvent.tab();
+    await userEvent.keyboard("{Enter}");
+
+    expect(completed).not.toHaveBeenCalled();
+    expect(opened).toHaveBeenCalled();
+  });
+
+  /// So a run of them can be ticked off without reaching for the mouse.
+  it("moves to the next one after completing", async () => {
+    show(() => {}, vi.fn());
+
+    await userEvent.tab();
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+
+    expect(document.activeElement).toBe(rows()[1]);
+  });
 });

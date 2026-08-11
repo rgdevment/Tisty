@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Prose from "../ui/Prose";
 
-const KNOWN = ["infra/notificaciones", "infra/gateway"];
 
 function field(over: Partial<React.ComponentProps<typeof Prose>> = {}) {
   const onWrite = vi.fn();
@@ -12,7 +11,6 @@ function field(over: Partial<React.ComponentProps<typeof Prose>> = {}) {
       value="sale de **contabilidad**"
       hint="qué hay que hacer"
       label="Descripción"
-      known={KNOWN}
       onWrite={onWrite}
       {...over}
     />,
@@ -85,13 +83,17 @@ describe("the / menu", () => {
     await user.type(box(), "{End} /");
   };
 
-  it("offers two things, because a ticket is a link", async () => {
+  /// A ticket is a link, so it never had a row of its own. And «Document» is
+  /// gone until documents exist: `[[…]]` now reads as a step reference, so
+  /// offering it taught the wrong thing.
+  it("offers what can actually be written, and nothing else", async () => {
     const user = userEvent.setup();
     field();
     await slash(user);
 
-    expect(screen.getByRole("button", { name: /Document/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Link/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Attach/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Document/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Ticket/ })).toBeNull();
   });
 
@@ -120,16 +122,6 @@ describe("the / menu", () => {
     expect(box().value).toBe(" [https://x.example](https://x.example)");
   });
 
-  it("offers the references already in use and writes one", async () => {
-    const user = userEvent.setup();
-    field({ value: "" });
-    await slash(user);
-
-    await user.click(screen.getByRole("button", { name: /Document/ }));
-    await user.click(screen.getByRole("button", { name: "infra/gateway" }));
-
-    expect(box().value).toBe(" [[infra/gateway]]");
-  });
 
   it("closes on Escape without discarding what was written", async () => {
     const user = userEvent.setup();

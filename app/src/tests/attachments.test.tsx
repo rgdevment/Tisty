@@ -35,18 +35,18 @@ describe("more than one image", () => {
 
 describe("the description field, which is the one that takes files", () => {
   it("shows its images when it does not take files", async () => {
-    render(<Prose value={TWO} hint="h" label="Journal" known={[]} onWrite={vi.fn()} />);
+    render(<Prose value={TWO} hint="h" label="Journal" onWrite={vi.fn()} />);
     await waitFor(() => expect(resolved()).toBe(2));
   });
 
   it("shows its images when it does take files", async () => {
-    render(<Prose value={TWO} hint="h" label="Description" known={[]} catches onWrite={vi.fn()} />);
+    render(<Prose value={TWO} hint="h" label="Description" catches onWrite={vi.fn()} />);
     await waitFor(() => expect(resolved()).toBe(2));
   });
 
   it("keeps them after entering and leaving the source", async () => {
     const user = userEvent.setup();
-    render(<Prose value={TWO} hint="h" label="Description" known={[]} catches onWrite={vi.fn()} />);
+    render(<Prose value={TWO} hint="h" label="Description" catches onWrite={vi.fn()} />);
     await waitFor(() => expect(resolved()).toBe(2));
 
     await user.click(screen.getByLabelText("Description"));
@@ -57,7 +57,7 @@ describe("the description field, which is the one that takes files", () => {
   it("shows them in the second column of the full screen view", async () => {
     const user = userEvent.setup();
     render(
-      <Prose value={TWO} hint="h" label="Description" known={[]} catches beside onWrite={vi.fn()} />,
+      <Prose value={TWO} hint="h" label="Description" catches beside onWrite={vi.fn()} />,
     );
     await user.click(screen.getByLabelText("Description"));
     expect(screen.getByLabelText("Composed")).toBeTruthy();

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { List, Task } from "../core";
-import { TASK } from "../drag";
 import { cadence, isOverdue, whenLabel } from "../format";
 import { banded, grouped } from "../archive";
 import { fill, t } from "../locales";
@@ -14,9 +13,6 @@ interface Props {
   title: string;
   centred: boolean;
   bands?: "month" | "day";
-  /// True where the manual key is what orders the view, so a drag can cross
-  /// days and priorities without the row snapping back.
-  byHand?: boolean;
   empty?: string;
   /// Said above the rows: what the list is not showing.
   note?: string;
@@ -38,17 +34,14 @@ export default function TaskList({
   title,
   centred,
   bands,
-  byHand,
   empty,
   note,
   onSelect,
   onComplete,
   onFold,
-  onDrop,
   above,
   children,
 }: Props) {
-  const [under, setUnder] = useState<string | null>(null);
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const rows = useMemo(
     () =>
@@ -70,62 +63,7 @@ export default function TaskList({
       return true;
     });
   }, [rows]);
-  // `indexOf` per row turns the render quadratic on a long archive.
-  const at = useMemo(() => new Map(tasks.map((task, i) => [task.id, i])), [tasks]);
-  const [held, setHeld] = useState<string | null>(null);
 
-  // `dragend` fires on the row that started it, and that row can be gone.
-  useEffect(() => {
-    if (held === null) return;
-    const done = () => {
-      setUnder(null);
-      setHeld(null);
-    };
-    window.addEventListener("dragend", done);
-    window.addEventListener("drop", done);
-    return () => {
-      window.removeEventListener("dragend", done);
-      window.removeEventListener("drop", done);
-    };
-  }, [held]);
-
-  // The core sorts by date, then priority, then the manual key. A drop across
-  // either would snap back, so it is refused instead of promised.
-  const settles = (moved?: Task, onto?: Task) =>
-    moved !== undefined && onto !== undefined && (byHand || group(moved) === group(onto));
-
-  const lands = (i: number) =>
-    onDrop && {
-      draggable: true,
-      onDragStart: (e: React.DragEvent) => {
-        e.dataTransfer.setData(TASK, tasks[i].id);
-        e.dataTransfer.effectAllowed = "move";
-        setHeld(tasks[i].id);
-      },
-      onDragOver: (e: React.DragEvent) => {
-        if (!e.dataTransfer.types.includes(TASK)) return;
-        const moved = tasks.find((one) => one.id === held);
-        if (!settles(moved, tasks[i])) {
-          setUnder(null);
-          return;
-        }
-        e.preventDefault();
-        setUnder(tasks[i].id);
-      },
-      onDragLeave: () => setUnder((on) => (on === tasks[i].id ? null : on)),
-      onDrop: (e: React.DragEvent) => {
-        e.preventDefault();
-        const id = e.dataTransfer.getData(TASK);
-        setUnder(null);
-        setHeld(null);
-        if (!id || id === tasks[i].id) return;
-        // Again here, not only on hover: a drop can arrive without one.
-        if (!settles(tasks.find((one) => one.id === id), tasks[i])) return;
-        // Dropped ON a row means «take its place», so it lands just above it.
-        const above = tasks[i - 1]?.id === id ? tasks[i - 2] : tasks[i - 1];
-        onDrop(id, settles(tasks[i], above) ? above?.id : undefined, tasks[i].id);
-      },
-    };
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
   const columns = onFold
     ? "grid-cols-[20px_minmax(0,1fr)_auto_16px]"
@@ -175,6 +113,16 @@ export default function TaskList({
   };
 
   const typed = (event: React.KeyboardEvent, task: Task) => {
+    // The verb this product exists for, and it was mouse-only: the circle is
+    // out of the tab order on purpose, so without this there was no way at all.
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      event.preventDefault();
+      if (onComplete && task.status === "open") {
+        walk(task.id, 1);
+        onComplete(task.id);
+      }
+      return;
+    }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       onSelect(task.id);
@@ -188,7 +136,6 @@ export default function TaskList({
 
 
   const line = (task: Task) => {
-    const i = at.get(task.id) ?? -1;
     return (
       <div key={task.id}>
           <div
@@ -197,15 +144,13 @@ export default function TaskList({
             role="listitem"
             tabIndex={stops(task.id) ? 0 : -1}
             aria-label={task.title}
+            aria-keyshortcuts={onComplete && task.status === "open" ? "Control+Enter" : undefined}
             onFocus={() => setReached(task.id)}
             onKeyDown={(event) => typed(event, task)}
             onClick={() => onSelect(task.id)}
-            {...lands(i)}
-            className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-700 hover:bg-hover ${
+            className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 hover:bg-hover ${
               selected === task.id ? "bg-active" : ""
-            } ${fresh === task.id ? "bg-accent-soft" : ""} ${
-              under === task.id ? "border-t-2 border-accent" : "border-t-2 border-transparent"
-            }`}
+            } ${fresh === task.id ? "bg-accent-soft transition-colors duration-700" : ""}`}
           >
             {onComplete && task.status === "open" ? (
               <button
@@ -326,8 +271,6 @@ const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
   return next;
 };
 
-/// Everything the sort decides before the manual key gets a say.
-const group = (task: Task): string => `${task.date?.at.slice(0, 10) ?? ""}|${task.priority}`;
 
 function Meta({ task, list }: { task: Task; list?: string }) {
   const bits: React.ReactNode[] = [];
