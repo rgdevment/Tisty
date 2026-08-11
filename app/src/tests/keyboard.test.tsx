@@ -17,7 +17,6 @@ const show = (onSelect = () => {}, onComplete?: (id: string) => void) =>
       tasks={three}
       lists={[]}
       title="Open"
-      centred
       onSelect={onSelect}
       onComplete={onComplete}
     />,
@@ -153,5 +152,36 @@ describe("moving through the list without a mouse", () => {
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
 
     expect(document.activeElement).toBe(rows()[1]);
+  });
+});
+
+describe("folding a row away in the archive", () => {
+  const shelf = (onFold: (id: string, away: boolean) => void) =>
+    render(<TaskList tasks={three} lists={[]} title="Archive" onSelect={() => {}} onFold={onFold} />);
+
+  /// Its button is out of the tab order AND drawn only under the mouse, so the
+  /// archive's one verb did not exist without one.
+  it("folds the focused row with Ctrl+Enter", async () => {
+    const folded = vi.fn();
+    shelf(folded);
+
+    await userEvent.tab();
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+
+    expect(folded).toHaveBeenCalledWith("1", true);
+  });
+
+  it("says the row carries a shortcut", () => {
+    shelf(vi.fn());
+
+    expect(rows()[0].getAttribute("aria-keyshortcuts")).toBe("Control+Enter");
+  });
+
+  /// Hidden until hovered is hidden for good to whoever is on the keyboard.
+  it("draws the fold button when the row has focus", () => {
+    shelf(vi.fn());
+
+    const button = screen.getAllByRole("button", { name: /hide it/i })[0];
+    expect(button.className).toContain("group-focus-visible:opacity-100");
   });
 });

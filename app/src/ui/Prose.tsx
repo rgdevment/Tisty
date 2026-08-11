@@ -130,7 +130,7 @@ export default function Prose({
         onEnter={() => setWriting(true)}
         onError={onError}
         onWhole={onWhole}
-        className="prose cursor-text rounded-md px-1.5 py-1 text-[13.5px] leading-relaxed outline-none hover:bg-hover"
+        className="prose cursor-text rounded-md px-1.5 py-1 text-[13.5px] leading-relaxed outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
       />
     </div>
   );

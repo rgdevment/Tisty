@@ -131,6 +131,17 @@ describe("the palette holds up where it is actually painted", () => {
     }
   });
 
+  /// A button that cannot be pressed is still read, and `opacity-50` put its
+  /// ink at 2:1 — a colour no test can reach, because only the compositor ever
+  /// works it out. It paints declared tokens now: `soft` over `hair`.
+  it("keeps a disabled button readable", () => {
+    for (const block of [LIGHT, DARK]) {
+      expect(worst(declared(block, "soft").rgb, groundsOf(block, ["hair"]))).toBeGreaterThanOrEqual(
+        AA,
+      );
+    }
+  });
+
   /// The test measures `--tisty-*`; the app paints `--color-*`. Without this,
   /// pointing an alias elsewhere leaves every measurement above true and every
   /// pixel wrong.

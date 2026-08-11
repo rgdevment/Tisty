@@ -1,13 +1,22 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { about, revealed, served, type About as Build } from "../core";
 import { fill, t } from "../locales";
+import { saidPlainly } from "../refusal";
 
 export default function About({ onError }: { onError: (problem: unknown) => void }) {
   const [build, setBuild] = useState<Build | null>(null);
+  // In the card, like its sister screen: a version that cannot be read is not a
+  // reason to leave the page blank with no way to ask again.
+  const [trouble, setTrouble] = useState<string | null>(null);
 
-  useEffect(() => {
-    about().then(setBuild).catch(onError);
-  }, [onError]);
+  const look = useCallback(() => {
+    setTrouble(null);
+    about()
+      .then(setBuild)
+      .catch((problem) => setTrouble(saidPlainly(problem)));
+  }, []);
+
+  useEffect(look, [look]);
 
   return (
     <main className="flex flex-col overflow-hidden">
@@ -25,6 +34,18 @@ export default function About({ onError }: { onError: (problem: unknown) => void
           <p className="text-[12.5px] leading-relaxed text-soft">{t("aboutWhat")}</p>
           <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
         </Card>
+
+        {trouble && (
+          <Card title={t("aboutBuild")}>
+            <p role="alert" className="text-[12.5px] leading-relaxed text-urgent">
+              {t("aboutFailed")}
+            </p>
+            <p className="mt-1 text-[11.5px] leading-relaxed text-faint">{trouble}</p>
+            <button type="button" onClick={look} className={`mt-2.5 ${mild}`}>
+              {t("tryAgain")}
+            </button>
+          </Card>
+        )}
 
         {build && (
           <>

@@ -34,9 +34,28 @@ describe("the capture notice", () => {
     const gone = vi.fn();
     render(<Notice task={task} lists={[]} onOpen={() => {}} onDismiss={gone} />);
 
-    await userEvent.click(screen.getByRole("button"));
+    await userEvent.click(screen.getByRole("button", { name: /close/i }));
 
     expect(gone).toHaveBeenCalled();
+  });
+
+  /// Six seconds is plenty to read and nowhere near enough to reach by keyboard,
+  /// so it used to be gone before anyone tabbing to it arrived.
+  it("waits while the keyboard is on it", async () => {
+    const gone = vi.fn();
+    render(<Notice task={task} lists={[]} onOpen={() => {}} onDismiss={gone} />);
+
+    screen.getByRole("button", { name: /open/i }).focus();
+    await vi.advanceTimersByTimeAsync(9000);
+
+    expect(gone).not.toHaveBeenCalled();
+  });
+
+  it("is a button, not a div that happens to answer clicks", () => {
+    render(<Notice task={task} lists={[]} onOpen={() => {}} onDismiss={() => {}} />);
+
+    const open = screen.getByRole("button", { name: /open/i });
+    expect(open.textContent).toContain("tomar la pastilla");
   });
 
   /// Clicking the body opens the task; only the ✕ dismisses it.

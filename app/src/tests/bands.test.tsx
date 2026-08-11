@@ -24,7 +24,7 @@ const task = (id: string, title: string, day?: string): Task =>
 
 const show = (tasks: Task[]) =>
   render(
-    <TaskList tasks={tasks} lists={[]} title="Open" bands="day" centred onSelect={() => {}} />,
+    <TaskList tasks={tasks} lists={[]} title="Open" bands="day" onSelect={() => {}} />,
   );
 
 describe("the day headings", () => {
@@ -79,7 +79,6 @@ describe("the day headings", () => {
         tasks={[task("1", "pagar la luz", "2026-08-04")]}
         lists={[]}
         title="Search"
-        centred
         onSelect={() => {}}
       />,
     );

@@ -129,6 +129,46 @@ describe("the maintenance panel", () => {
     expect(sent("restore")[0].args.from).toBe("C:/keep/tisty-backup.zip");
   });
 
+  /// Work anywhere on the screen holds every button on it — restoring on top of
+  /// a running carry is the pair that must never overlap — and only the card
+  /// that started it said anything. The rest looked broken.
+  it("says why the other cards went quiet", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "checked" ? new Promise(() => {}) : otherwise(cmd, args);
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    const said = await screen.findAllByText(/waiting for «review»/i);
+    expect(said.length).toBeGreaterThan(1);
+    expect(screen.getByRole("button", { name: /create backup/i }).hasAttribute("disabled")).toBe(
+      true,
+    );
+  });
+
+  /// `disabled:opacity-50` put the ink at 2:1 and left the dropdown looking
+  /// perfectly usable while it was not.
+  it("draws what cannot be pressed as such, in a colour the palette declares", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "settings"
+        ? Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024 })
+        : cmd === "checked"
+          ? new Promise(() => {})
+          : otherwise(cmd, args);
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    const size = await screen.findByRole("combobox");
+    await waitFor(() => expect(size.hasAttribute("disabled")).toBe(true));
+    expect(size.className).toContain("disabled:text-soft");
+    expect(size.className).not.toContain("opacity-50");
+  });
+
   it("says what the review found", async () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);

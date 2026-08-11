@@ -173,6 +173,7 @@ describe("opening a task", () => {
         onLog={() => {}}
         onDiscard={() => {}}
         onReopen={() => {}}
+        onClose={() => {}}
         onError={() => {}}
       />,
     );

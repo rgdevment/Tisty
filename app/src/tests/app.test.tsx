@@ -60,19 +60,21 @@ const filed: Task = {
 };
 
 let tasks: Task[];
+let counts: Record<string, number>;
 
 const shot = (view: { archive?: boolean } | undefined): Snapshot => ({
   tasks: tasks.filter((one) => (view?.archive ? one.status !== "open" : one.status === "open")),
   lists: [],
   tags: [],
   refs: [],
-  counts: {},
+  counts,
   locale: "en",
 });
 
 beforeEach(() => {
   localStorage.clear();
   tasks = structuredClone([report, bank, filed]);
+  counts = {};
   ipc.answer = (cmd, args) => {
     const held = tasks.find((one) => one.id === args.id);
     switch (cmd) {
@@ -189,5 +191,64 @@ describe("a refusal", () => {
     await user.click(screen.getByRole("button", { name: "Complete write the report" }));
 
     expect(await screen.findByText("That is not a task")).toBeTruthy();
+  });
+});
+
+describe("what the numbers on screen refer to", () => {
+  /// One number beside a title that always says «Tasks» reads as the whole of
+  /// them, while it only ever counted the slice on show — and the chips said
+  /// nothing about what was behind them.
+  it("puts each count on its own chip, and none beside the title", async () => {
+    counts = { tasks: 2, upcoming: 5, repeating: 1, all: 8 };
+    await started();
+
+    expect(screen.getByRole("button", { name: /today/i }).textContent).toContain("2");
+    expect(screen.getByRole("button", { name: /upcoming/i }).textContent).toContain("5");
+    expect(screen.getByRole("button", { name: /^all/i }).textContent).toContain("8");
+    expect(screen.getByRole("heading", { level: 1 }).parentElement?.textContent).toBe("Tasks");
+  });
+
+  /// The archive is one view with one number, so there it still belongs there.
+  it("keeps the count beside a title that names one list", async () => {
+    await started();
+
+    await userEvent.click(screen.getByRole("button", { name: /Archive/ }));
+    await screen.findByText("filed last month");
+
+    expect(screen.getByRole("heading", { level: 1 }).parentElement?.textContent).toBe("Archive1");
+  });
+});
+
+describe("closing an open task", () => {
+  /// It dropped the keyboard on the body, so the next Tab started over from the
+  /// top of the window.
+  it("hands the keyboard back to the row it was opened from", async () => {
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByText("write the report"));
+    await screen.findByRole("textbox", { name: "Title" });
+
+    await user.click(screen.getByRole("button", { name: /close the task/i }));
+
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
+    expect(document.activeElement).toBe(document.querySelector('[data-row="01A"]'));
+  });
+});
+
+describe("opening a task beside the list", () => {
+  /// The list lost its centring and its column narrowed in the same frame, so
+  /// it jumped left and the row that had just been clicked slid out from under
+  /// the cursor.
+  it("does not throw the list to the left", async () => {
+    const user = userEvent.setup();
+    await started();
+    const list = screen.getByRole("list");
+    expect(list.className).toContain("mx-auto");
+
+    await user.click(screen.getByText("write the report"));
+    await screen.findByRole("textbox", { name: "Title" });
+
+    expect(list.className).toContain("mx-auto");
   });
 });

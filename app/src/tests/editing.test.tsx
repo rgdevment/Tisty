@@ -49,6 +49,7 @@ function open(task: Task = written) {
       onLog={on.log}
       onDiscard={on.discard}
       onReopen={on.reopen}
+      onClose={() => {}}
     />,
   );
   return on;
