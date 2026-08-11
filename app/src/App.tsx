@@ -48,6 +48,13 @@ export default function App() {
   // Everything that happens is answered by something moving on screen, which
   // is no answer at all to someone who is not looking at it.
   const [aloud, setAloud] = useState("");
+  const twice = useRef(0);
+  // A reader skips a live region whose text did not change, so completing two
+  // tasks with the same title said it once. The zero-width space alternates.
+  const say = (words: string) => {
+    twice.current += 1;
+    setAloud(words + "\u200b".repeat(twice.current % 2));
+  };
   const [reveal, setReveal] = useState<string | undefined>();
   const [mode, setMode] = useState<Mode>(
     () => (localStorage.getItem("detail") as Mode) ?? "columns",
@@ -139,10 +146,6 @@ export default function App() {
     return (
       <div className="grid h-full font-sans" style={{ gridTemplateColumns: "1fr" }}>
         <WindowChrome />
-
-      <p role="status" aria-live="polite" className="sr-only">
-        {aloud}
-      </p>
         {error && (
           <p className="mt-16 px-6 text-center text-xs text-urgent">{error}</p>
         )}
@@ -186,6 +189,10 @@ export default function App() {
       }}
     >
       <WindowChrome />
+
+      <p role="status" aria-live="polite" className="sr-only">
+        {aloud}
+      </p>
 
       {error && (
         <div
@@ -297,7 +304,11 @@ export default function App() {
           reveal={reveal}
           centred={!open}
           bands={
-            found !== null ? undefined : chosen.named === "archive" ? "month" : "day"
+            found !== null || chosen.named === "tags" || chosen.tags?.length
+              ? undefined
+              : chosen.named === "archive"
+                ? "month"
+                : "day"
           }
           onSelect={setSelected}
           onComplete={
@@ -305,7 +316,7 @@ export default function App() {
               ? undefined
               : (id) => {
                   const one = (found ?? data.tasks).find((task) => task.id === id);
-                  if (one) setAloud(fill("saidDone", one.title));
+                  if (one) say(fill("saidDone", one.title));
                   act(complete(id));
                 }
           }
@@ -322,7 +333,10 @@ export default function App() {
           above={
             chosen.named === "archive" && (data.counts.folded || chosen.folded) ? (
               <button
-                onClick={() => setChosen({ named: "archive", folded: !chosen.folded })}
+                onClick={() => {
+                  setFound(null);
+                  setChosen({ named: "archive", folded: !chosen.folded });
+                }}
                 className="px-2.5 pb-1.5 text-xs text-faint hover:text-ink"
               >
                 {chosen.folded
@@ -357,7 +371,7 @@ export default function App() {
             onCapture={(written, edits) => {
               setError(null);
               return capture(written, asView(chosen), edits).then((task) => {
-                setAloud(fill("saidFiled", task.title));
+                say(fill("saidFiled", task.title));
                 setCaptured(task);
                 load();
                 return task;

@@ -177,7 +177,7 @@ function Hint() {
       </span>
       <span>{t("hintDates")}</span>
       <span>
-        <Key>\u21bb</Key> {t("hintRepeat")}
+        <Key>↻</Key> {t("hintRepeat")}
       </span>
       <span>
         <Key>/</Key> {t("hintPick")}

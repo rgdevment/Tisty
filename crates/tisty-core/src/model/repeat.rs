@@ -98,7 +98,7 @@ impl Repeat {
 impl Cadence {
     /// Built rather than added directly: `ToSpan` panics outside its range, and
     /// a cadence read off a line of text can hold any number at all.
-    fn after(self, from: DateTime) -> Option<DateTime> {
+    pub fn after(self, from: DateTime) -> Option<DateTime> {
         let n = i64::from(self.every);
         let span = match self.unit {
             Unit::Day => jiff::Span::new().try_days(n),

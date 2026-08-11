@@ -221,10 +221,17 @@ impl State {
         let mut fresh =
             crate::event::TaskAdd::new(task.title.clone(), self.order_last_in(task.list));
         fresh.deadline = shifted(task.deadline.as_ref(), along.as_ref());
+        // With no old date there is nothing to measure the move against, so the
+        // cadence itself moves them: a reminder on «cada 3 días» that was left
+        // where it was would be in the past from the second occurrence on, and
+        // stay there for ever.
         fresh.reminders = task
             .reminders
             .iter()
-            .filter_map(|one| shifted(Some(one), along.as_ref()))
+            .filter_map(|one| match (&task.date, repeat.cadence().after(one.at)) {
+                (None, Some(at)) => Some(one.moved(at)),
+                _ => shifted(Some(one), along.as_ref()),
+            })
             .collect();
         fresh.date = Some(next);
         fresh.priority = Some(task.priority);
@@ -271,6 +278,7 @@ impl State {
             .tasks
             .values()
             .find(|task| task.after == Some(id) && task.status == crate::model::Status::Open)
+            .filter(|born| untouched(born))
         {
             ops.push(Op::TaskDelete { id: born.id });
         }
@@ -485,6 +493,16 @@ impl State {
 /// Listings print «Mi Lista» as `@mi-lista`, which has to be typeable back.
 fn loose(name: &str) -> String {
     name.to_lowercase().replace([' ', '_'], "-")
+}
+
+/// Nothing was written into it since it was born.
+///
+/// `TaskDelete` cannot be undone, so taking the successor back is only safe
+/// while it holds nothing of the person's: an entry in its journal or a ticked
+/// step means work that reopening must not destroy, and running the series
+/// twice is the lesser of the two.
+fn untouched(born: &Task) -> bool {
+    born.log.is_empty() && !born.steps.iter().any(|step| step.done)
 }
 
 /// Carried the same distance the date moved, so what was two days before it
@@ -876,6 +894,143 @@ mod tests {
             .unwrap();
 
         assert_eq!(state.completing(id, now).len(), 1);
+    }
+
+    /// It was copied verbatim, so from the second occurrence on it sat in the
+    /// past and never fired again.
+    #[test]
+    fn a_reminder_on_a_dateless_repeat_moves_with_the_cadence() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = TaskAdd::new("tomar la pastilla", "a0");
+        add.repeat = Some(Repeat::Done(Cadence {
+            every: 3,
+            unit: Unit::Day,
+        }));
+        add.reminders = vec![DateSpec::floating(
+            jiff::civil::date(2026, 8, 11).at(9, 0, 0, 0),
+            "Europe/Madrid",
+        )];
+        state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
+
+        let now = jiff::civil::date(2026, 8, 11)
+            .at(21, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+        for op in state.completing(id, now) {
+            state.apply(&ev(9, "a", op));
+        }
+
+        let born = state
+            .tasks
+            .values()
+            .find(|task| task.after == Some(id))
+            .expect("no next occurrence");
+        assert_eq!(
+            born.reminders[0].at,
+            jiff::civil::date(2026, 8, 14).at(9, 0, 0, 0),
+            "the reminder stayed in the past"
+        );
+    }
+
+    /// The commonest way to say «I pressed that by mistake» must not cost
+    /// anything, so a successor nobody has touched goes back with it.
+    #[test]
+    fn reopening_takes_back_a_successor_nobody_wrote_in() {
+        let (mut state, id) = repeating();
+        let born = successor(&state, id);
+
+        for op in state.reopening(id) {
+            state.apply(&ev(20, "a", op));
+        }
+
+        assert!(!state.tasks.contains_key(&born));
+    }
+
+    /// `TaskDelete` cannot be undone: an entry written into the successor is
+    /// work, and running the series twice is the lesser of the two.
+    #[test]
+    fn reopening_leaves_a_successor_that_was_written_in() {
+        let (mut state, id) = repeating();
+        let born = successor(&state, id);
+        state.apply(&ev(
+            15,
+            "a",
+            Op::TaskLog {
+                id: born,
+                d: crate::event::LogAdd::new(ulid::Ulid::generate(), "media hora en la sala"),
+            },
+        ));
+
+        for op in state.reopening(id) {
+            state.apply(&ev(20, "a", op));
+        }
+
+        assert!(
+            state.tasks.contains_key(&born),
+            "the journal entry was lost"
+        );
+    }
+
+    #[test]
+    fn a_ticked_step_also_keeps_the_successor_alive() {
+        let (mut state, id) = repeating();
+        let born = successor(&state, id);
+        let step = ulid::Ulid::generate();
+        state.apply(&ev(
+            15,
+            "a",
+            Op::StepAdd {
+                id: born,
+                d: crate::event::StepAdd {
+                    step,
+                    text: "la sala".into(),
+                    order: "a1".into(),
+                },
+            },
+        ));
+        state.apply(&ev(
+            16,
+            "a",
+            Op::StepDone {
+                id: born,
+                d: crate::event::StepRef { step },
+            },
+        ));
+
+        for op in state.reopening(id) {
+            state.apply(&ev(20, "a", op));
+        }
+
+        assert!(state.tasks.contains_key(&born));
+    }
+
+    fn repeating() -> (State, TaskId) {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = TaskAdd::new("regar las plantas", "a0");
+        add.repeat = Some(Repeat::Done(Cadence {
+            every: 1,
+            unit: Unit::Week,
+        }));
+        state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
+        let now = jiff::civil::date(2026, 8, 4)
+            .at(21, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+        for op in state.completing(id, now) {
+            state.apply(&ev(9, "a", op));
+        }
+        (state, id)
+    }
+
+    fn successor(state: &State, of: TaskId) -> TaskId {
+        state
+            .tasks
+            .values()
+            .find(|task| task.after == Some(of))
+            .expect("no successor")
+            .id
     }
 
     fn ev(ms: i64, device: &str, op: Op) -> Event {

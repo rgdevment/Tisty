@@ -68,11 +68,15 @@ export function invite(chosen: Chosen, lists: List[]): string {
  * the reader nothing at the only moment they were going to read.
  */
 export function nothing(chosen: Chosen, searching: boolean): string {
-  if (searching) return t("noHits");
+  // The archive hides the scope chips, so «widen the scope above» would point
+  // at something that is not on screen.
+  if (searching) return t(chosen.named === "archive" ? "noHitsHere" : "noHits");
   if (chosen.named === "search") return t("searchInvite");
   if (chosen.named === "archive") return t("archiveEmpty");
-  if (chosen.named === "tags") return t("noTagsYet");
+  // Before the bare tag view: choosing tags sets `named` AND `tags`, and the
+  // screen said «no tags yet» with the chosen tags drawn right above it.
   if (chosen.list || chosen.tags?.length) return t("listEmpty");
+  if (chosen.named === "tags") return t("noTagsYet");
   if (chosen.named === "upcoming") return t("upcomingEmpty");
   if (chosen.named === "inbox") return t("inboxEmpty");
   return t("todayEmpty");

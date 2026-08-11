@@ -5,14 +5,18 @@ import {
   checked,
   chooseSync,
   reachFor,
+  about,
   reachable,
   rebuild,
+  revealed,
+  served,
   shortcut,
   restore,
   syncNow,
   syncState,
   type Carrying,
   type Reach,
+  type About,
   type Reviewed,
 } from "../core";
 import { fill, t } from "../locales";
@@ -21,7 +25,7 @@ import { stamped } from "../format";
 
 const carried = { came: "syncCame", same: "syncSame", busy: "syncBusy" } as const;
 
-type Which = "sync" | "backup" | "review" | "terminal" | "quick";
+type Which = "sync" | "backup" | "review" | "terminal" | "quick" | "about";
 type Word = { card: Which; text: string };
 
 interface Props {
@@ -33,6 +37,7 @@ export default function Keeping({ onChanged }: Props) {
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
   const [keys, setKeys] = useState<string | null>(null);
+  const [build, setBuild] = useState<About | null>(null);
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
   // In the card, not the window banner, which would hang over every view.
@@ -52,6 +57,9 @@ export default function Keeping({ onChanged }: Props) {
       .catch(() => {});
     shortcut()
       .then(setKeys)
+      .catch(() => {});
+    about()
+      .then(setBuild)
       .catch(() => {});
   }, []);
 
@@ -223,6 +231,37 @@ export default function Keeping({ onChanged }: Props) {
             </div>
           )}
         </Card>
+
+        {build && (
+          <Card title={t("about")} which="about" said={said} trouble={trouble}>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[12.5px]">
+              <dt className="text-faint">{t("aboutVersion")}</dt>
+              <dd className="tabular-nums text-soft">{build.version}</dd>
+              <dt className="text-faint">{t("aboutLicense")}</dt>
+              <dd className="text-soft">{build.license}</dd>
+              <dt className="text-faint">{t("aboutStore")}</dt>
+              <dd className="truncate text-soft" title={build.store}>
+                {build.store}
+              </dd>
+            </dl>
+            <div className="mt-2.5 flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => served(build.repository).catch(() => {})}
+                className={mild}
+              >
+                {t("aboutRepo")}
+              </button>
+              <button
+                type="button"
+                onClick={() => revealed(build.store).catch(() => {})}
+                className={mild}
+              >
+                {t("aboutReveal")}
+              </button>
+            </div>
+          </Card>
+        )}
 
         <Card title={t("quick")} which="quick" said={said} trouble={trouble}>
           <p className="text-[12.5px] leading-relaxed text-soft">

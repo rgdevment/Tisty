@@ -232,6 +232,14 @@ export interface Reviewed {
   looseBytes: number;
 }
 
+export interface About {
+  version: string;
+  repository: string;
+  license: string;
+  store: string;
+}
+
+export const about = (): Promise<About> => invoke("about");
 export const rebuild = (): Promise<void> => invoke("rebuild");
 export const checked = (): Promise<Reviewed> => invoke("checked");
 export const syncState = (): Promise<Carrying> => invoke("sync_state");
