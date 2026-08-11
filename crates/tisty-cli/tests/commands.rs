@@ -1239,3 +1239,79 @@ fn what_one_machine_writes_the_other_reads_back() {
     assert!(out.contains("call the bank"), "{out}");
     assert!(out.contains("buy bread"), "{out}");
 }
+
+#[test]
+fn completing_a_repeating_task_leaves_the_next_one_waiting() {
+    let cli = Cli::new();
+    cli.ok(&["take out the bins every tuesday"]);
+
+    let before = cli.ok(&["ls", "all"]);
+    assert_eq!(before.matches("take out the bins").count(), 1, "{before}");
+
+    cli.ok(&["done", "1"]);
+
+    let after = cli.ok(&["ls", "all"]);
+    assert_eq!(
+        after.matches("take out the bins").count(),
+        1,
+        "the next one did not arrive, or two did
+{after}"
+    );
+    let archive = cli.ok(&["ls", "archive"]);
+    assert!(archive.contains("take out the bins"), "{archive}");
+}
+
+#[test]
+fn undoing_a_repeat_takes_the_next_one_with_it() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every 3 days"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["undo"]);
+
+    let open = cli.ok(&["ls", "all"]);
+    assert_eq!(
+        open.matches("water the plants").count(),
+        1,
+        "undo left a copy behind
+{open}"
+    );
+    let archive = cli.ok(&["ls", "archive"]);
+    assert!(!archive.contains("water the plants"), "{archive}");
+}
+
+#[test]
+fn a_repeat_written_in_spanish_works_the_same() {
+    let cli = Cli::new();
+    cli.ok(&["config", "set", "locale", "es"]);
+    cli.ok(&["sacar la basura cada martes"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+
+    let open = cli.ok(&["ls", "all"]);
+    assert_eq!(open.matches("sacar la basura").count(), 1, "{open}");
+}
+
+#[test]
+fn dropping_a_repeating_task_says_the_series_is_over() {
+    let cli = Cli::new();
+    cli.ok(&["take out the bins every tuesday"]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["drop", "1"]);
+    assert!(out.contains("repeat ends here"), "{out}");
+    assert!(
+        cli.ok(&["ls", "all"]).contains("nothing"),
+        "a next one arrived"
+    );
+}
+
+#[test]
+fn dropping_an_ordinary_task_says_nothing_about_repeats() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["drop", "1"]);
+    assert!(!out.contains("repeat"), "{out}");
+}

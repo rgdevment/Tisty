@@ -339,6 +339,8 @@ struct Edits {
     #[serde(default)]
     no_priority: bool,
     #[serde(default)]
+    no_repeat: bool,
+    #[serde(default)]
     no_tags: Vec<String>,
     #[serde(default)]
     date: Option<String>,
@@ -370,6 +372,9 @@ impl Edits {
         if self.no_priority {
             draft.priority = None;
         }
+        if self.no_repeat {
+            draft.repeat = None;
+        }
         for name in &self.no_tags {
             if let Ok(tag) = Tag::new(name) {
                 draft.tags.retain(|kept| *kept != tag);
@@ -395,6 +400,7 @@ impl Edits {
             || self.no_deadline
             || self.no_list
             || self.no_priority
+            || self.no_repeat
             || !self.no_tags.is_empty();
         if !undone && !self.take_offer {
             return None;
@@ -419,6 +425,7 @@ impl Edits {
     fn unmarked(&self, span: &tisty_nl::Span, letters: &[char]) -> bool {
         match span.mark {
             tisty_nl::Mark::Date => self.no_date,
+            tisty_nl::Mark::Repeat => self.no_repeat,
             tisty_nl::Mark::Deadline => self.no_deadline,
             tisty_nl::Mark::List => self.no_list,
             tisty_nl::Mark::Priority => self.no_priority,
@@ -604,6 +611,7 @@ fn patch(
             .map_err(|_| Refusal::of("notAPriority"))?,
         tags: tagged(&task, &change)?,
         reminders: recalled(&task, &change, &now)?,
+        repeat: None,
     };
 
     let filed = match (&change.list, change.inbox) {
@@ -1440,7 +1448,8 @@ fn reorder(
 fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
-    session.commit(Op::TaskDone { id })?;
+    let ops = session.state.completing(id, jiff::Zoned::now());
+    session.commit_all(ops)?;
     session
         .state
         .tasks

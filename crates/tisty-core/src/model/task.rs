@@ -113,6 +113,8 @@ pub struct Task {
     pub tags: Vec<Tag>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reminders: Vec<DateSpec>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeat: Option<crate::model::Repeat>,
     /// Noise the user put away by hand. Never removed, only folded.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
@@ -168,6 +170,7 @@ impl Task {
             list: None,
             tags: Vec::new(),
             reminders: Vec::new(),
+            repeat: None,
             hidden: false,
             completed_at: None,
             volume: Volume::default(),

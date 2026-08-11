@@ -37,6 +37,7 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
                     priority: d.priority.map(|_| task.priority),
                     tags: d.tags.as_ref().map(|_| task.tags.clone()),
                     reminders: d.reminders.as_ref().map(|_| task.reminders.clone()),
+                    repeat: d.repeat.as_ref().map(|_| task.repeat),
                 },
             })
         }

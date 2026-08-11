@@ -1,4 +1,5 @@
 use tisty_core::Priority;
+use tisty_core::model::Unit;
 
 pub struct Vocabulary {
     pub today: &'static [&'static str],
@@ -30,6 +31,11 @@ pub struct Vocabulary {
     pub days_unit: &'static [&'static str],
     pub weeks_unit: &'static [&'static str],
     pub months_unit: &'static [&'static str],
+    pub years_unit: &'static [&'static str],
+    /// What opens a cadence, one or two words: «cada», «todos los», «every».
+    pub every: &'static [&'static [&'static str]],
+    /// A whole cadence in one word: «diariamente», «weekly».
+    pub cadences: &'static [(&'static [&'static str], Unit)],
     pub one: &'static [&'static str],
     pub this_week: &'static [&'static [&'static str]],
     pub next_week: &'static [&'static [&'static str]],
@@ -97,6 +103,14 @@ pub const ES: Vocabulary = Vocabulary {
     days_unit: &["día", "dia", "días", "dias"],
     weeks_unit: &["semana", "semanas"],
     months_unit: &["mes", "meses"],
+    years_unit: &["año", "ano", "años", "anos"],
+    every: &[&["cada"], &["todos", "los"], &["todas", "las"]],
+    cadences: &[
+        (&["diariamente", "diario"], Unit::Day),
+        (&["semanalmente"], Unit::Week),
+        (&["mensualmente"], Unit::Month),
+        (&["anualmente"], Unit::Year),
+    ],
     one: &["un", "una"],
     this_week: &[&["esta", "semana"]],
     next_week: &[
@@ -178,6 +192,14 @@ pub const EN: Vocabulary = Vocabulary {
     days_unit: &["day", "days"],
     weeks_unit: &["week", "weeks"],
     months_unit: &["month", "months"],
+    years_unit: &["year", "years"],
+    every: &[&["every"], &["each"]],
+    cadences: &[
+        (&["daily"], Unit::Day),
+        (&["weekly"], Unit::Week),
+        (&["monthly"], Unit::Month),
+        (&["yearly", "annually"], Unit::Year),
+    ],
     one: &["a", "an", "one"],
     this_week: &[&["this", "week"]],
     next_week: &[&["next", "week"]],

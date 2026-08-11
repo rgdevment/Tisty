@@ -184,6 +184,61 @@ impl State {
 
     /// Last place in a list, for a task that arrived without neighbours —
     /// dropped on the sidebar, where there was nothing to land between.
+    /// Completing a repeating task emits the next one, in the same batch: undo
+    /// has to take back both or the series grows a copy every time.
+    pub fn completing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
+        let done = vec![Op::TaskDone { id }];
+        let Some(task) = self.tasks.get(&id) else {
+            return done;
+        };
+        // Completing was idempotent until it started emitting a task: a second
+        // click, or the terminal and the window at once, would make two.
+        if task.status != crate::model::Status::Open {
+            return done;
+        }
+        let Some(repeat) = task.repeat else {
+            return done;
+        };
+        let Some(next) = repeat.next(
+            task.date.as_ref(),
+            now.datetime(),
+            now.datetime()
+                .date()
+                .to_datetime(jiff::civil::Time::midnight()),
+        ) else {
+            return done;
+        };
+
+        // Everything that was pinned to the old date moves with it. A deadline
+        // left where it was would be overdue before the task exists, and a
+        // reminder left behind is the only reason to put one on a habit.
+        let along = task
+            .date
+            .as_ref()
+            .map(|was| next.at.date().since(was.at.date()));
+
+        let mut fresh =
+            crate::event::TaskAdd::new(task.title.clone(), self.order_last_in(task.list));
+        fresh.deadline = shifted(task.deadline.as_ref(), along.as_ref());
+        fresh.reminders = task
+            .reminders
+            .iter()
+            .filter_map(|one| shifted(Some(one), along.as_ref()))
+            .collect();
+        fresh.date = Some(next);
+        fresh.priority = Some(task.priority);
+        fresh.list = task.list;
+        fresh.tags = task.tags.clone();
+        fresh.repeat = Some(repeat);
+
+        let mut ops = done;
+        ops.push(Op::TaskAdd {
+            id: ulid::Ulid::generate(),
+            d: fresh,
+        });
+        ops
+    }
+
     pub fn order_last_in(&self, list: Option<ListId>) -> String {
         order::last_of(self.ordered_keys(list))
     }
@@ -394,6 +449,20 @@ fn loose(name: &str) -> String {
     name.to_lowercase().replace([' ', '_'], "-")
 }
 
+/// Carried the same distance the date moved, so what was two days before it
+/// stays two days before it.
+fn shifted(
+    spec: Option<&crate::DateSpec>,
+    along: Option<&Result<jiff::Span, jiff::Error>>,
+) -> Option<crate::DateSpec> {
+    let spec = spec?;
+    let Some(Ok(span)) = along else {
+        return None;
+    };
+    let at = spec.at.checked_add(*span).ok()?;
+    Some(spec.moved(at))
+}
+
 fn task_from(id: TaskId, d: &TaskAdd) -> Task {
     Task {
         priority: d.priority.unwrap_or_default(),
@@ -402,6 +471,7 @@ fn task_from(id: TaskId, d: &TaskAdd) -> Task {
         list: d.list,
         tags: d.tags.clone(),
         reminders: d.reminders.clone(),
+        repeat: d.repeat,
         ..Task::new(id, d.title.clone(), d.order.clone())
     }
 }
@@ -424,6 +494,9 @@ fn patch(task: &mut Task, d: &TaskPatch) {
     }
     if let Some(v) = &d.reminders {
         task.reminders = v.clone();
+    }
+    if let Some(v) = &d.repeat {
+        task.repeat = *v;
     }
 }
 
@@ -468,6 +541,143 @@ fn sort_steps(task: &mut Task) {
 
 #[cfg(test)]
 mod tests {
+
+    use crate::model::{Cadence, Repeat, Unit};
+
+    #[test]
+    fn completing_a_repeating_task_emits_the_next_one() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = TaskAdd::new("sacar la basura", "a0");
+        add.date = Some(DateSpec::floating(
+            jiff::civil::date(2026, 8, 4).at(9, 0, 0, 0),
+            "Europe/Madrid",
+        ));
+        add.repeat = Some(Repeat::Due(Cadence {
+            every: 1,
+            unit: Unit::Week,
+        }));
+        add.tags = vec!["casa".parse().unwrap()];
+        state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
+
+        let now = jiff::civil::date(2026, 8, 4)
+            .at(21, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+        let ops = state.completing(id, now);
+
+        assert_eq!(ops.len(), 2, "{ops:?}");
+        let Op::TaskAdd { d, .. } = &ops[1] else {
+            panic!("the next one was not emitted");
+        };
+        assert_eq!(d.title, "sacar la basura");
+        assert_eq!(
+            d.date.as_ref().unwrap().date(),
+            jiff::civil::date(2026, 8, 11)
+        );
+        assert_eq!(d.repeat, add_repeat());
+        assert_eq!(d.tags.len(), 1, "it lost what it was filed under");
+    }
+
+    fn add_repeat() -> Option<Repeat> {
+        Some(Repeat::Due(Cadence {
+            every: 1,
+            unit: Unit::Week,
+        }))
+    }
+
+    /// A deadline left where it was would be overdue before the task exists,
+    /// and a reminder left behind is the only reason to put one on a habit.
+    #[test]
+    fn what_was_pinned_to_the_old_date_moves_with_it() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = TaskAdd::new("declarar el IVA", "a0");
+        let day = |d: i8| {
+            DateSpec::floating(
+                jiff::civil::date(2026, 8, d).at(9, 0, 0, 0),
+                "Europe/Madrid",
+            )
+        };
+        add.date = Some(day(11));
+        add.deadline = Some(day(12));
+        add.reminders = vec![day(10)];
+        add.repeat = Some(Repeat::Done(Cadence {
+            every: 1,
+            unit: Unit::Month,
+        }));
+        state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
+
+        let now = jiff::civil::date(2026, 8, 11)
+            .at(20, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+        let ops = state.completing(id, now);
+        let Op::TaskAdd { d, .. } = &ops[1] else {
+            panic!("no next one");
+        };
+
+        assert_eq!(
+            d.date.as_ref().unwrap().date(),
+            jiff::civil::date(2026, 9, 11)
+        );
+        assert_eq!(
+            d.deadline.as_ref().unwrap().date(),
+            jiff::civil::date(2026, 9, 12),
+            "it was born already overdue"
+        );
+        assert_eq!(
+            d.reminders.first().unwrap().date(),
+            jiff::civil::date(2026, 9, 10),
+            "the reminder stayed behind"
+        );
+    }
+
+    #[test]
+    fn completing_twice_does_not_emit_two_of_the_next_one() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = TaskAdd::new("sacar la basura", "a0");
+        add.date = Some(DateSpec::floating(
+            jiff::civil::date(2026, 8, 4).at(9, 0, 0, 0),
+            "Europe/Madrid",
+        ));
+        add.repeat = Some(Repeat::Due(Cadence {
+            every: 1,
+            unit: Unit::Week,
+        }));
+        state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
+
+        let now = jiff::civil::date(2026, 8, 4)
+            .at(21, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+        for op in state.completing(id, now.clone()) {
+            state.apply(&ev(2, "a", op));
+        }
+        assert_eq!(
+            state.completing(id, now).len(),
+            1,
+            "a second click made another"
+        );
+    }
+
+    #[test]
+    fn completing_an_ordinary_task_emits_nothing_extra() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::TaskAdd {
+                id,
+                d: TaskAdd::new("comprar pan", "a0"),
+            },
+        ));
+
+        let now = jiff::Timestamp::now().to_zoned(jiff::tz::TimeZone::UTC);
+        assert_eq!(state.completing(id, now).len(), 1);
+    }
     use super::*;
     use crate::{
         event::{Body, DeviceId, ListAdd, Name, StepRef, StepReorder, StepText},

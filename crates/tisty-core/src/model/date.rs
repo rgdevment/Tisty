@@ -38,6 +38,18 @@ impl DateSpec {
         }
     }
 
+    /// Same zone, same «has a time of day», new moment.
+    pub fn moved(&self, at: DateTime) -> Self {
+        Self {
+            at: if self.has_time {
+                at
+            } else {
+                at.date().to_datetime(jiff::civil::Time::midnight())
+            },
+            ..self.clone()
+        }
+    }
+
     pub fn date(&self) -> jiff::civil::Date {
         self.at.date()
     }

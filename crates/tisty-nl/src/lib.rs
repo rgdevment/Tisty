@@ -1,5 +1,6 @@
 //! Natural language capture. Nothing reaches a model, so it stays reproducible.
 
+mod repeat;
 mod resolve;
 mod scan;
 mod vocab;
@@ -17,6 +18,7 @@ use scan::Role;
 #[serde(rename_all = "camelCase")]
 pub enum Mark {
     Date,
+    Repeat,
     Deadline,
     List,
     Tag,
@@ -57,6 +59,7 @@ pub struct Parsed {
     pub priority: Option<Priority>,
     pub tags: Vec<Tag>,
     pub list: Option<String>,
+    pub repeat: Option<tisty_core::model::Repeat>,
     /// Where each reading came from in the input, so a client can point at it.
     pub spans: Vec<Span>,
     pub offers: Vec<Offer>,
@@ -71,6 +74,7 @@ impl From<Parsed> for Draft {
             priority: p.priority,
             tags: p.tags,
             filing: p.list.map(Filing::Marked),
+            repeat: p.repeat,
         }
     }
 }
@@ -92,7 +96,39 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
     if let Some(literal) = fully_quoted(&taken.text) {
         parsed.title = literal;
     } else {
-        let read = timed(&taken.text, now, tz, v);
+        let over = repeat::take(&taken.text, now, v);
+        parsed.repeat = over.repeat;
+        if over.repeat.is_some() {
+            parsed.spans.push(Span {
+                from: over.from,
+                to: over.to,
+                mark: Mark::Repeat,
+                certainty: Certainty::Sure,
+            });
+        }
+        let mut read = timed(&over.text, now, tz, v);
+        // Settled when the phrase was read: a fixed repeat with no date, which
+        // is what a weekday at the start of a sentence leaves, never fires.
+        if read.date.is_none() {
+            read.date = over.first.clone();
+        }
+        // The cut moved everything after it: put the readings back where the
+        // person actually typed them, or the highlight lands on the wrong word.
+        if over.repeat.is_some() {
+            let shift = |at: &mut usize| {
+                if *at >= over.head {
+                    *at += over.shift;
+                }
+            };
+            for span in read.spans.iter_mut() {
+                shift(&mut span.from);
+                shift(&mut span.to);
+            }
+            for span in read.offers.iter_mut().flat_map(|o| o.spans.iter_mut()) {
+                shift(&mut span.from);
+                shift(&mut span.to);
+            }
+        }
         let markers = parsed.spans.clone();
         parsed.title = read.title;
         parsed.date = read.date;

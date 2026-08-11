@@ -23,6 +23,7 @@ pub struct Draft {
     pub priority: Option<Priority>,
     pub tags: Vec<Tag>,
     pub filing: Option<Filing>,
+    pub repeat: Option<crate::model::Repeat>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -79,6 +80,7 @@ pub fn plan(state: &State, draft: Draft) -> Result<Plan, Rejected> {
             priority: draft.priority,
             tags: draft.tags,
             list,
+            repeat: draft.repeat,
             ..TaskAdd::new(title, state.next_task_order())
         },
     });

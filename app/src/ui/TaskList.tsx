@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { List, Task } from "../core";
 import { TASK } from "../drag";
-import { isOverdue, monthOf, whenLabel } from "../format";
-import { t } from "../locales";
+import { isOverdue, whenLabel } from "../format";
+import { grouped } from "../archive";
+import { fill, t } from "../locales";
 
 interface Props {
   tasks: Task[];
@@ -39,6 +40,16 @@ export default function TaskList({
   children,
 }: Props) {
   const [under, setUnder] = useState<string | null>(null);
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
+  const rows = useMemo(
+    () =>
+      byMonth
+        ? grouped(tasks)
+        : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, month: "" })),
+    [tasks, byMonth],
+  );
+  // `indexOf` per row turns the render quadratic on a long archive.
+  const at = useMemo(() => new Map(tasks.map((task, i) => [task.id, i])), [tasks]);
   const [held, setHeld] = useState<string | null>(null);
 
   // `dragend` fires on the row that started it, and that row can be gone.
@@ -105,27 +116,11 @@ export default function TaskList({
     asked.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [reveal]);
 
-  return (
-    <main className="flex flex-col overflow-hidden">
-      <div data-tauri-drag-region className="h-9 shrink-0" />
-      <header className={`flex items-baseline gap-2.5 px-8 pb-3.5 ${width}`}>
-        <h1 className="text-[21px] font-semibold -tracking-[0.01em]">{title}</h1>
-        <span className="text-[13px] text-faint">{tasks.length || ""}</span>
-      </header>
 
-      <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>
-      {above && <div className={`shrink-0 px-5 ${width}`}>{above}</div>}
-
-      <div className={`scroller flex-1 px-5 pb-6 ${width}`}>
-        {tasks.length === 0 && <p className="px-2.5 py-4 text-sm text-faint">{t("nothingOpen")}</p>}
-
-        {tasks.map((task, i) => (
-          <div key={task.id}>
-          {byMonth && monthOf(task.completed_at) && monthOf(task.completed_at) !== monthOf(tasks[i - 1]?.completed_at) && (
-            <div className="mt-5 mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1">
-              {monthOf(task.completed_at)}
-            </div>
-          )}
+  const line = (task: Task) => {
+    const i = at.get(task.id) ?? -1;
+    return (
+      <div key={task.id}>
           <div
             ref={reveal === task.id ? asked : undefined}
             onClick={() => onSelect(task.id)}
@@ -180,12 +175,69 @@ export default function TaskList({
               </button>
             )}
           </div>
+      </div>
+    );
+  };
+
+  return (
+    <main className="flex flex-col overflow-hidden">
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      <header className={`flex items-baseline gap-2.5 px-8 pb-3.5 ${width}`}>
+        <h1 className="text-[21px] font-semibold -tracking-[0.01em]">{title}</h1>
+        <span className="text-[13px] text-faint">{tasks.length || ""}</span>
+      </header>
+
+      <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>
+      {above && <div className={`shrink-0 px-5 ${width}`}>{above}</div>}
+
+      <div className={`scroller flex-1 px-5 pb-6 ${width}`}>
+        {tasks.length === 0 && <p className="px-2.5 py-4 text-sm text-faint">{t("nothingOpen")}</p>}
+
+        {rows.map((row, r) => (
+          <div key={row.key}>
+            {byMonth && row.month && row.month !== rows[r - 1]?.month && (
+              <div className="mt-5 mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1">
+                {row.month}
+              </div>
+            )}
+
+            {row.kind === "many" ? (
+              <>
+                <button
+                  onClick={() => setOpen((was) => flip(was, row.key))}
+                  aria-expanded={open.has(row.key)}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-hover"
+                >
+                  <span className="w-4 shrink-0 text-center text-[13px] text-accent">✓</span>
+                  <span className="min-w-0 truncate text-sm">{row.title}</span>
+                  <span className="text-xs text-faint">
+                    {fill("timesThisMonth", String(row.tasks.length))}
+                  </span>
+                  <span className="ml-auto text-[9px] text-faint">
+                    {open.has(row.key) ? "▲" : "▼"}
+                  </span>
+                </button>
+                {open.has(row.key) && (
+                  <div className="ml-4 border-l border-hair pl-1">
+                    {row.tasks.map((one) => line(one))}
+                  </div>
+                )}
+              </>
+            ) : (
+              line(row.task)
+            )}
           </div>
         ))}
       </div>
     </main>
   );
 }
+
+const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
+  const next = new Set(was);
+  if (!next.delete(key)) next.add(key);
+  return next;
+};
 
 /// Everything the sort decides before the manual key gets a say.
 const group = (task: Task): string => `${task.date?.at.slice(0, 10) ?? ""}|${task.priority}`;

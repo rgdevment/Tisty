@@ -136,12 +136,16 @@ function Settled({
   onError?: (problem: unknown) => void;
 }) {
   const shut = task.status !== "open";
+  // On a repeating task «not doing it» reads as «not this one», and it ends
+  // the whole series. The button says what it does.
+  const away = task.repeat ? t("endRepeat") : t("discardIt");
   return (
     <button
       onClick={shut ? onReopen : onDiscard}
+      title={task.repeat && !shut ? t("endRepeatWhy") : undefined}
       className="ml-auto rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
     >
-      {shut ? `↺ ${t("reopenIt")}` : `⊘ ${t("discardIt")}`}
+      {shut ? `↺ ${t("reopenIt")}` : `⊘ ${away}`}
     </button>
   );
 }

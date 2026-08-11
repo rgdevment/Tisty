@@ -258,6 +258,7 @@ así que una foto al lado solo sería una verdad rival.
 | ✅ | Markdown en descripciones y bitácora |
 | ✅ | Sincronización por una carpeta que alcancen los dos equipos, y respaldo a mano |
 | ✅ | Bandeja y barra de menú, con captura rápida por atajo global |
+| ✅ | Tareas que se repiten, una por ocurrencia, plegadas en el archivo |
 | ◐ | Uso diario, que es lo que saca los fallos que los tests no |
 | ⬜ | Binarios empaquetados para Windows y macOS |
 

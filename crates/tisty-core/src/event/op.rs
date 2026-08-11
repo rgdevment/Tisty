@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::model::{DateSpec, ListId, LogId, Priority, StepId, Tag, TaskId};
+use crate::model::{DateSpec, ListId, LogId, Priority, Repeat, StepId, Tag, TaskId};
 
 /// Serde folds `null` into `None`, making "clear" and "leave alone" the same.
 mod null_clears {
@@ -93,6 +93,8 @@ pub struct TaskAdd {
     pub tags: Vec<Tag>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reminders: Vec<DateSpec>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeat: Option<Repeat>,
 }
 
 impl TaskAdd {
@@ -106,6 +108,7 @@ impl TaskAdd {
             list: None,
             tags: Vec::new(),
             reminders: Vec::new(),
+            repeat: None,
         }
     }
 }
@@ -125,6 +128,8 @@ pub struct TaskPatch {
     pub tags: Option<Vec<Tag>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reminders: Option<Vec<DateSpec>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub repeat: Option<Option<Repeat>>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

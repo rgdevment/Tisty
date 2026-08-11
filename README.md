@@ -262,6 +262,7 @@ history, so a snapshot beside it would only be a rival truth.
 | ✅ | Markdown in descriptions and journal entries |
 | ✅ | Sync through a folder both machines reach, and backup by hand |
 | ✅ | Tray and menu bar, with quick capture on a global shortcut |
+| ✅ | Repeating tasks, one per occurrence, folded in the archive |
 | ◐ | Daily use, which is what turns up the bugs tests do not |
 | ⬜ | Packaged builds for Windows and macOS |
 
