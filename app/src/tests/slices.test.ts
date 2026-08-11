@@ -61,16 +61,4 @@ describe("what an empty slice says", () => {
     expect(nothing({ named: "tasks", slice: "today" }, false)).toMatch(/tomorrow/i);
   });
 
-  it("keeps the inbox saying its own thing", () => {
-    expect(nothing({ named: "inbox" }, false)).toMatch(/inbox/i);
-  });
-});
-
-describe("Tasks and the Inbox are not the same list", () => {
-  /// The question each one answers is different: the inbox is «what have I not
-  /// filed yet», which is about LISTS; the slices are about DAYS.
-  it("asks the core for different things", () => {
-    expect(asView({ named: "inbox" })).toEqual({ inbox: true });
-    expect(asView({ named: "tasks", slice: "today" })).toEqual({ window: "today" });
-  });
 });

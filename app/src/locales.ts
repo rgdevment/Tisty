@@ -1,5 +1,4 @@
 const en = {
-  inbox: "Inbox",
   today: "Today",
   upcoming: "Upcoming",
   tags: "Tags",
@@ -9,7 +8,6 @@ const en = {
   nothingOpen: "Nothing here",
   noTagsYet: "No tags yet",
   addTask: "Add a task",
-  addToInbox: "Add to the inbox",
   addForToday: "Add for today",
   addToList: "Add to {name}",
   addWithTag: "Add with {name}",
@@ -101,6 +99,7 @@ const en = {
   inSandbox: "This is the «{name}» sandbox. Nothing here is your real store, and it never merges with it.",
   aboutScreen: "About",
   aboutBuild: "This build",
+  insertLabel: "What to add",
   aboutWhat: "A local, private, minimal task manager. Your tasks never leave this machine unless you set up syncing yourself.",
   aboutPrivacy: "No account, no telemetry, no server. What you write stays in the store above.",
   repeating: "Repeating",
@@ -137,7 +136,6 @@ const en = {
   archiveEmpty: "What you close ends up here, gathered by month. A task that repeats is folded into one line per month.",
   listEmpty: "Nothing in here yet. Add the first one from the field above.",
   upcomingEmpty: "Nothing dated ahead. Write «call the dentist on Friday» to put something here.",
-  inboxEmpty: "The inbox is clear. Anything you capture without a list lands here.",
   todayEmpty: "Nothing for today. Write «buy bread tomorrow at 10» — the date is read from the sentence.",
   someday: "Someday",
   remove: "Remove",
@@ -233,7 +231,6 @@ const en = {
 type Catalog = typeof en;
 
 const es: Catalog = {
-  inbox: "Bandeja de entrada",
   today: "Hoy",
   upcoming: "Próximo",
   tags: "Etiquetas",
@@ -243,7 +240,6 @@ const es: Catalog = {
   nothingOpen: "Nada por aquí",
   noTagsYet: "Ninguna etiqueta todavía",
   addTask: "Añadir una tarea",
-  addToInbox: "Añadir a la bandeja",
   addForToday: "Añadir para hoy",
   addToList: "Añadir a {name}",
   addWithTag: "Añadir con {name}",
@@ -335,6 +331,7 @@ const es: Catalog = {
   inSandbox: "Esto es el sandbox «{name}». Nada de aquí es tu almacén real, y nunca se fusiona con él.",
   aboutScreen: "Acerca de",
   aboutBuild: "Esta versión",
+  insertLabel: "Qué añadir",
   aboutWhat: "Un gestor de tareas local, privado y minimalista. Tus tareas no salen de esta máquina salvo que configures la sincronización tú.",
   aboutPrivacy: "Sin cuenta, sin telemetría, sin servidor. Lo que escribes se queda en el almacén de arriba.",
   repeating: "Se repiten",
@@ -371,7 +368,6 @@ const es: Catalog = {
   archiveEmpty: "Aquí llega lo que vas cerrando, agrupado por mes. Lo que se repite se pliega en una sola línea por mes.",
   listEmpty: "Todavía no hay nada aquí. Añade lo primero desde el campo de arriba.",
   upcomingEmpty: "Nada con fecha por delante. Escribe «llamar al dentista el viernes» para poner algo aquí.",
-  inboxEmpty: "La bandeja está limpia. Aquí cae lo que capturas sin lista.",
   todayEmpty: "Nada para hoy. Escribe «comprar pan mañana a las 10»: la fecha se lee de la frase.",
   someday: "Algún día",
   remove: "Quitar",

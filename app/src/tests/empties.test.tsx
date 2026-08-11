@@ -18,7 +18,6 @@ describe("what an empty screen says", () => {
   it("says something different on each of them", () => {
     const said = [
       nothing({ named: "tasks" }, false),
-      nothing({ named: "inbox" }, false),
       nothing({ named: "tasks", slice: "upcoming" }, false),
       nothing({ named: "archive" }, false),
       nothing({ named: "search" }, false),

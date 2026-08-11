@@ -50,10 +50,18 @@ export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, 
   if (shown.length === 0) return null;
 
   return (
-    <div className="absolute top-1 left-0 z-20 w-[330px] rounded-[10px] border border-line bg-bg p-[5px] shadow-lift">
+    <div
+      role="listbox"
+      aria-label={t("insertLabel")}
+      aria-activedescendant={`slash-${shown[on].key}`}
+      className="absolute top-1 left-0 z-20 w-[330px] rounded-[10px] border border-line bg-bg p-[5px] shadow-lift"
+    >
       {shown.map((row, i) => (
         <button
           key={row.key}
+          id={`slash-${row.key}`}
+          role="option"
+          aria-selected={i === on}
           type="button"
           onMouseEnter={() => setAt(i)}
           onClick={row.run}
