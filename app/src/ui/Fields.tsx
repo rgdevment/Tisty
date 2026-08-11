@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Change, List, Task } from "../core";
 import { cadence, whenLabel } from "../format";
 import { t } from "../locales";
@@ -175,6 +175,8 @@ function Held({ slot, open, tint, empty, label, onOpen, children }: HeldProps) {
     <span className="relative inline-flex">
       <button
         type="button"
+        aria-expanded={open === slot}
+        aria-haspopup="menu"
         onClick={() => onOpen(open === slot ? null : slot)}
         className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs ${
           empty ? "border border-dashed border-line text-faint" : `${tint} text-ink`
@@ -213,10 +215,27 @@ function Sheet({
   roomy?: boolean;
   onClose: () => void;
 }) {
+  const box = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const came = document.activeElement as HTMLElement | null;
+    box.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => came?.focus?.();
+  }, []);
+
   return (
     <>
+      {/* The catcher is for the mouse; Escape is what closes this for anyone
+          who never touched it. */}
       <span className="fixed inset-0 z-10" onClick={onClose} />
       <div
+        ref={box}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
+        }}
         className={`absolute top-7 left-0 z-20 rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lift ${
           roomy ? "w-[248px]" : "max-h-64 w-56 overflow-auto"
         }`}

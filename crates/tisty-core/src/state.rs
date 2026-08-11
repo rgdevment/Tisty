@@ -234,10 +234,31 @@ impl State {
         fresh.after = Some(id);
 
         let mut ops = done;
-        ops.push(Op::TaskAdd {
-            id: ulid::Ulid::generate(),
-            d: fresh,
-        });
+        let born = ulid::Ulid::generate();
+        ops.push(Op::TaskAdd { id: born, d: fresh });
+
+        // The recipe is the task. A weekly «water the plants» that came back
+        // without its rooms, or a monthly report without the instructions that
+        // took an afternoon to write, is a different task wearing the name.
+        if let Some(body) = &task.description {
+            ops.push(Op::TaskDescribe {
+                id: born,
+                d: crate::event::Body {
+                    body: Some(body.clone()),
+                },
+            });
+        }
+        // Unticked: what was done belongs to the occurrence that was closed.
+        for step in &task.steps {
+            ops.push(Op::StepAdd {
+                id: born,
+                d: crate::event::StepAdd {
+                    step: ulid::Ulid::generate(),
+                    text: step.text.clone(),
+                    order: step.order.clone(),
+                },
+            });
+        }
         ops
     }
 
@@ -712,6 +733,149 @@ mod tests {
 
     fn day() -> jiff::civil::Date {
         "2026-08-09".parse().unwrap()
+    }
+
+    /// A weekly «water the plants» that came back without its rooms is a
+    /// different task wearing the same name.
+    #[test]
+    fn the_next_occurrence_carries_the_recipe() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = TaskAdd::new("regar las plantas", "a0");
+        add.date = Some(DateSpec::floating(
+            jiff::civil::date(2026, 8, 4).at(9, 0, 0, 0),
+            "Europe/Madrid",
+        ));
+        add.repeat = Some(Repeat::Due(Cadence {
+            every: 1,
+            unit: Unit::Week,
+        }));
+        state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
+        state.apply(&ev(
+            2,
+            "a",
+            Op::TaskDescribe {
+                id,
+                d: crate::event::Body {
+                    body: Some("agua tibia, nunca del grifo".into()),
+                },
+            },
+        ));
+        for (n, text) in [(3, "la sala"), (4, "la cocina")] {
+            state.apply(&ev(
+                n,
+                "a",
+                Op::StepAdd {
+                    id,
+                    d: crate::event::StepAdd {
+                        step: ulid::Ulid::generate(),
+                        text: text.into(),
+                        order: format!("a{n}"),
+                    },
+                },
+            ));
+        }
+
+        let now = jiff::civil::date(2026, 8, 4)
+            .at(21, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+        for op in state.completing(id, now) {
+            state.apply(&ev(9, "a", op));
+        }
+
+        let born = state
+            .tasks
+            .values()
+            .find(|task| task.after == Some(id))
+            .expect("no next occurrence");
+        assert_eq!(
+            born.description.as_deref(),
+            Some("agua tibia, nunca del grifo")
+        );
+        assert_eq!(
+            born.steps
+                .iter()
+                .map(|s| s.text.as_str())
+                .collect::<Vec<_>>(),
+            vec!["la sala", "la cocina"]
+        );
+    }
+
+    /// What was ticked belongs to the occurrence that was closed.
+    #[test]
+    fn the_steps_come_back_unticked() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = TaskAdd::new("regar las plantas", "a0");
+        add.repeat = Some(Repeat::Done(Cadence {
+            every: 3,
+            unit: Unit::Day,
+        }));
+        state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
+        let step = ulid::Ulid::generate();
+        state.apply(&ev(
+            2,
+            "a",
+            Op::StepAdd {
+                id,
+                d: crate::event::StepAdd {
+                    step,
+                    text: "la sala".into(),
+                    order: "a1".into(),
+                },
+            },
+        ));
+        state.apply(&ev(
+            3,
+            "a",
+            Op::StepDone {
+                id,
+                d: crate::event::StepRef { step },
+            },
+        ));
+
+        let now = jiff::civil::date(2026, 8, 4)
+            .at(21, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+        for op in state.completing(id, now) {
+            state.apply(&ev(9, "a", op));
+        }
+
+        let born = state
+            .tasks
+            .values()
+            .find(|task| task.after == Some(id))
+            .expect("no next occurrence");
+        assert_eq!(born.steps.len(), 1);
+        assert!(!born.steps[0].done, "the new one arrived already ticked");
+        assert_ne!(born.steps[0].id, step, "both share one step id");
+    }
+
+    /// A task with no repeat must emit nothing but the completion.
+    #[test]
+    fn nothing_is_copied_when_there_is_no_repeat() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        state.apply(&ev(1, "a", add(id, "comprar pan")));
+        state.apply(&ev(
+            2,
+            "a",
+            Op::TaskDescribe {
+                id,
+                d: crate::event::Body {
+                    body: Some("del horno de la esquina".into()),
+                },
+            },
+        ));
+
+        let now = jiff::civil::date(2026, 8, 4)
+            .at(21, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+
+        assert_eq!(state.completing(id, now).len(), 1);
     }
 
     fn ev(ms: i64, device: &str, op: Op) -> Event {

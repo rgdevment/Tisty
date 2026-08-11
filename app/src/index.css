@@ -108,9 +108,16 @@ body {
   animation: arrive 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Vestibular disorders are set off by any movement, not only by the one that
+   happens to be called an animation. */
 @media (prefers-reduced-motion: reduce) {
-  .arrive {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

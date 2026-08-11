@@ -6,6 +6,8 @@ import {
   chooseSync,
   reachFor,
   reachable,
+  rebuild,
+  shortcut,
   restore,
   syncNow,
   syncState,
@@ -19,7 +21,7 @@ import { stamped } from "../format";
 
 const carried = { came: "syncCame", same: "syncSame", busy: "syncBusy" } as const;
 
-type Which = "sync" | "backup" | "review" | "terminal";
+type Which = "sync" | "backup" | "review" | "terminal" | "quick";
 type Word = { card: Which; text: string };
 
 interface Props {
@@ -30,6 +32,7 @@ export default function Keeping({ onChanged }: Props) {
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
+  const [keys, setKeys] = useState<string | null>(null);
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
   // In the card, not the window banner, which would hang over every view.
@@ -46,6 +49,9 @@ export default function Keeping({ onChanged }: Props) {
   useEffect(() => {
     reachable()
       .then(setReach)
+      .catch(() => {});
+    shortcut()
+      .then(setKeys)
       .catch(() => {});
   }, []);
 
@@ -218,6 +224,12 @@ export default function Keeping({ onChanged }: Props) {
           )}
         </Card>
 
+        <Card title={t("quick")} which="quick" said={said} trouble={trouble}>
+          <p className="text-[12.5px] leading-relaxed text-soft">
+            {keys ? fill("quickOn", keys) : t("quickNone")}
+          </p>
+        </Card>
+
         {reach?.shipped && (
           <Card title={t("terminal")} which="terminal" said={said} trouble={trouble}>
             <p className="text-[12.5px] leading-relaxed text-soft">
@@ -263,6 +275,21 @@ export default function Keeping({ onChanged }: Props) {
             >
               {t("reviewRun")}
             </button>
+            {audit && !audit.agrees && (
+              <button
+                type="button"
+                disabled={held}
+                onClick={() =>
+                  run("review", rebuild().then(checked), (now) => {
+                    setAudit(now);
+                    setSaid({ card: "review", text: t("reviewRebuilt") });
+                  })
+                }
+                className={strong}
+              >
+                {t("reviewRedo")}
+              </button>
+            )}
             {audit && audit.loose > 0 && (
               <span className="ml-auto text-[11.5px] text-faint">
                 {`${fill("reviewLoose", String(audit.loose))} · ${weigh(audit.looseBytes)}`}

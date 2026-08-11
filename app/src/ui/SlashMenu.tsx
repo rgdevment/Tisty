@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Counted, List } from "../core";
 import { t } from "../locales";
+import { cadence } from "../format";
 
-export type Field = "date" | "deadline" | "list" | "tag" | "priority";
+export type Field = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
 
 interface Props {
   from: Field | null;
@@ -97,6 +98,13 @@ function fields(
       say: t("sayPriority"),
       run: () => setStep("priority"),
     },
+    {
+      key: "repeat",
+      glyph: "\u21bb",
+      label: t("fieldRepeat"),
+      say: t("hintRepeat"),
+      run: () => setStep("repeat"),
+    },
   ];
 }
 
@@ -123,6 +131,19 @@ function within(
       run: () => onInsert(`#${counted.tag}`),
     }));
   }
+  // Words, not a code: the sentence stays something a person wrote, and the
+  // parser reads it back exactly as if it had been typed by hand.
+  if (step === "repeat") {
+    return CADENCES.map(({ every, unit }) => {
+      const said = cadence({ from: "due", each: { every, unit } });
+      return {
+        key: `${every}${unit}`,
+        glyph: "\u21bb",
+        label: said,
+        run: () => onInsert(said),
+      };
+    });
+  }
   return ([1, 2, 3] as const).map((level) => {
     const label = t(level === 1 ? "high" : level === 2 ? "medium" : "low");
     return {
@@ -145,3 +166,11 @@ const bare = (text: string): string =>
     .replace(/[̀-ͯ]/g, "");
 
 const slug = (name: string): string => name.toLowerCase().replace(/[ _]/g, "-");
+
+const CADENCES = [
+  { every: 1, unit: "day" },
+  { every: 1, unit: "week" },
+  { every: 2, unit: "week" },
+  { every: 1, unit: "month" },
+  { every: 1, unit: "year" },
+] as const;

@@ -20,12 +20,13 @@ export default function WindowChrome() {
         <button
           key={button.key}
           onClick={button.act}
+          aria-label={t(button.key)}
           title={t(button.key)}
           className={`grid h-7 w-9 place-items-center rounded-md text-[11px] text-soft ${
             button.danger ? "hover:bg-urgent hover:text-white" : "hover:bg-hover"
           }`}
         >
-          {button.glyph}
+          <span aria-hidden="true">{button.glyph}</span>
         </button>
       ))}
     </div>

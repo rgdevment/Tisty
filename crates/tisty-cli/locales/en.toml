@@ -94,6 +94,7 @@ many-months    = "months"
 a-year         = "year"
 many-years     = "years"
 
+not-a-cadence  = "that is not a cadence: {$said}"
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
 lines = { one = "1 line", other = "{n} lines" }

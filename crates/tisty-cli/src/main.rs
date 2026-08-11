@@ -73,6 +73,11 @@ pub struct SetArgs {
     pub no_date: bool,
     #[arg(long, conflicts_with = "deadline")]
     pub no_deadline: bool,
+    /// A cadence, written the way it is spoken: «every tuesday», «cada 3 días»
+    #[arg(long, alias = "repetir")]
+    pub repeat: Option<String>,
+    #[arg(long, conflicts_with = "repeat")]
+    pub no_repeat: bool,
 }
 
 #[derive(Subcommand)]

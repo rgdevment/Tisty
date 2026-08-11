@@ -123,6 +123,33 @@ export default function TaskList({
     asked.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [reveal]);
 
+  // One stop for the whole list, not one per task: tabbing through ninety rows
+  // to reach the sidebar is not navigation.
+  const listed = useRef<HTMLDivElement>(null);
+  const [reached, setReached] = useState<string | null>(null);
+  const stops = (id: string) => (reached ?? tasks[0]?.id) === id;
+
+  const walk = (from: string, by: number) => {
+    const rows = Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
+    const now = rows.findIndex((row) => row.dataset.row === from);
+    const next = rows[now + by];
+    if (!next) return;
+    setReached(next.dataset.row ?? null);
+    next.focus();
+  };
+
+  const typed = (event: React.KeyboardEvent, task: Task) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(task.id);
+      return;
+    }
+    const by = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
+    if (by === 0) return;
+    event.preventDefault();
+    walk(task.id, by);
+  };
+
 
   const line = (task: Task) => {
     const i = at.get(task.id) ?? -1;
@@ -130,9 +157,15 @@ export default function TaskList({
       <div key={task.id}>
           <div
             ref={reveal === task.id ? asked : undefined}
+            data-row={task.id}
+            role="listitem"
+            tabIndex={stops(task.id) ? 0 : -1}
+            aria-label={task.title}
+            onFocus={() => setReached(task.id)}
+            onKeyDown={(event) => typed(event, task)}
             onClick={() => onSelect(task.id)}
             {...lands(i)}
-            className={`group grid cursor-pointer ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-700 hover:bg-hover ${
+            className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors duration-700 hover:bg-hover ${
               selected === task.id ? "bg-active" : ""
             } ${fresh === task.id ? "bg-accent-soft" : ""} ${
               under === task.id ? "border-t-2 border-accent" : "border-t-2 border-transparent"
@@ -140,7 +173,9 @@ export default function TaskList({
           >
             {onComplete && task.status === "open" ? (
               <button
-                aria-label={task.title}
+                aria-label={fill("completeIt", task.title)}
+                title={fill("completeIt", task.title)}
+                tabIndex={-1}
                 onClick={(e) => {
                   e.stopPropagation();
                   onComplete(task.id);
@@ -197,7 +232,7 @@ export default function TaskList({
       <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>
       {above && <div className={`shrink-0 px-5 ${width}`}>{above}</div>}
 
-      <div className={`scroller flex-1 px-5 pb-6 ${width}`}>
+      <div ref={listed} role="list" className={`scroller flex-1 px-5 pb-6 ${width}`}>
         {tasks.length === 0 && (
           <p className="px-2.5 py-4 text-sm leading-relaxed text-soft">
             {empty ?? t("nothingOpen")}

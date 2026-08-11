@@ -23,7 +23,7 @@ import { heard, play } from "./chime";
 import { carrying } from "./carrying";
 import { settleIn, syncState } from "./core";
 import { handTo, whenFilesLand } from "./dropped";
-import { adopt, t } from "./locales";
+import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { accepts, asView, invite, nothing, title, type Chosen } from "./views";
 import CaptureField from "./ui/CaptureField";
@@ -45,6 +45,9 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | undefined>();
   const [captured, setCaptured] = useState<Task | undefined>();
+  // Everything that happens is answered by something moving on screen, which
+  // is no answer at all to someone who is not looking at it.
+  const [aloud, setAloud] = useState("");
   const [reveal, setReveal] = useState<string | undefined>();
   const [mode, setMode] = useState<Mode>(
     () => (localStorage.getItem("detail") as Mode) ?? "columns",
@@ -136,6 +139,10 @@ export default function App() {
     return (
       <div className="grid h-full font-sans" style={{ gridTemplateColumns: "1fr" }}>
         <WindowChrome />
+
+      <p role="status" aria-live="polite" className="sr-only">
+        {aloud}
+      </p>
         {error && (
           <p className="mt-16 px-6 text-center text-xs text-urgent">{error}</p>
         )}
@@ -293,7 +300,15 @@ export default function App() {
             found !== null ? undefined : chosen.named === "archive" ? "month" : "day"
           }
           onSelect={setSelected}
-          onComplete={chosen.named === "archive" ? undefined : (id) => act(complete(id))}
+          onComplete={
+            chosen.named === "archive"
+              ? undefined
+              : (id) => {
+                  const one = (found ?? data.tasks).find((task) => task.id === id);
+                  if (one) setAloud(fill("saidDone", one.title));
+                  act(complete(id));
+                }
+          }
           onFold={
             chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined
           }
@@ -342,6 +357,7 @@ export default function App() {
             onCapture={(written, edits) => {
               setError(null);
               return capture(written, asView(chosen), edits).then((task) => {
+                setAloud(fill("saidFiled", task.title));
                 setCaptured(task);
                 load();
                 return task;

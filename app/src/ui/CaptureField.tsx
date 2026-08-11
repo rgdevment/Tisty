@@ -109,7 +109,10 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
 
       <div className="mt-2 px-1 text-[11.5px] text-faint">
         {last ? (
-          <Chips seen={last.seen} edits={edits} onEdit={setEdits} empty={<Hint />} />
+          <>
+            <Chips seen={last.seen} edits={edits} onEdit={setEdits} empty={null} />
+            <Hint />
+          </>
         ) : (
           <Hint />
         )}
@@ -173,6 +176,9 @@ function Hint() {
         <Key>!</Key> {t("fieldPriority")}
       </span>
       <span>{t("hintDates")}</span>
+      <span>
+        <Key>\u21bb</Key> {t("hintRepeat")}
+      </span>
       <span>
         <Key>/</Key> {t("hintPick")}
       </span>
