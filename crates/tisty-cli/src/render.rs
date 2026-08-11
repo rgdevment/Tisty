@@ -83,6 +83,28 @@ fn meta(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     meta.join(" · ")
 }
 
+fn cadence(over: tisty_core::model::Repeat, lang: Lang) -> String {
+    use tisty_core::model::Unit;
+    let step = over.cadence();
+    let one = step.every == 1;
+    let unit = lang.get(match (step.unit, one) {
+        (Unit::Day, true) => "a-day",
+        (Unit::Day, false) => "many-days",
+        (Unit::Week, true) => "a-week",
+        (Unit::Week, false) => "many-weeks",
+        (Unit::Month, true) => "a-month",
+        (Unit::Month, false) => "many-months",
+        (Unit::Year, true) => "a-year",
+        (Unit::Year, false) => "many-years",
+    });
+    if one {
+        return lang.get("every-one").replace("{$unit}", unit);
+    }
+    lang.get("every-many")
+        .replace("{$n}", &step.every.to_string())
+        .replace("{$unit}", unit)
+}
+
 pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     let mut out = format!(
         "\n  {} {}{}\n",
@@ -109,6 +131,9 @@ pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
         meta.push(format!("@{}", slug(&list.name)));
     }
     meta.extend(task.tags.iter().map(|t| format!("#{t}")));
+    if let Some(over) = task.repeat {
+        meta.push(format!("↻ {}", cadence(over, lang)));
+    }
     if !task.reminders.is_empty() {
         meta.push(format!("⏰ {}", task.reminders.len()));
     }
@@ -288,6 +313,9 @@ pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> St
             meta.push(format!("@{}", slug(&list.name)));
         }
         meta.extend(task.tags.iter().map(|t| format!("#{t}")));
+        if let Some(over) = task.repeat {
+            meta.push(format!("↻ {}", cadence(over, lang)));
+        }
         if !meta.is_empty() {
             out.push_str(&format!("{}\n\n", meta.join(" · ")));
         }

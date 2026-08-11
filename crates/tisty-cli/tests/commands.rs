@@ -1293,6 +1293,37 @@ fn a_repeat_written_in_spanish_works_the_same() {
 }
 
 #[test]
+fn the_detail_says_the_cadence_out_loud() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every 3 days"]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["show", "1"]);
+    assert!(out.contains("every 3 days"), "{out}");
+}
+
+#[test]
+fn the_cadence_is_said_in_the_language_in_use() {
+    let cli = Cli::new();
+    cli.ok(&["config", "set", "locale", "es"]);
+    cli.ok(&["pagar el arriendo cada mes"]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["show", "1"]);
+    assert!(out.contains("cada mes"), "{out}");
+}
+
+#[test]
+fn a_task_without_a_cadence_says_nothing_about_one() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["show", "1"]);
+    assert!(!out.contains("every"), "{out}");
+}
+
+#[test]
 fn dropping_a_repeating_task_says_the_series_is_over() {
     let cli = Cli::new();
     cli.ok(&["take out the bins every tuesday"]);

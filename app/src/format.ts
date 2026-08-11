@@ -1,5 +1,5 @@
-import type { DateSpec } from "./core";
-import { locale } from "./locales";
+import type { DateSpec, Repeat } from "./core";
+import { fill, locale, t } from "./locales";
 
 type Formats = {
   day: Intl.DateTimeFormat;
@@ -75,3 +75,14 @@ function months(here: boolean): Intl.DateTimeFormat {
 
 export const isToday = (spec: DateSpec, now = new Date()): boolean =>
   daysFrom(spec.at, now) === 0;
+
+/** «cada 3 días», not «done:3d»: it is said the way it was written. */
+export function cadence(repeat: Repeat): string {
+  const { every, unit } = repeat.each;
+  const one = every === 1;
+  const word = t(
+    unit === "day" ? (one ? "aDay" : "days") : unit === "week" ? (one ? "aWeek" : "weeks") :
+    unit === "month" ? (one ? "aMonth" : "months") : one ? "aYear" : "years",
+  );
+  return one ? fill("everyOne", word) : fill("everyMany", `${every} ${word}`);
+}

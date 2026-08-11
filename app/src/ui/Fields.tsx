@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Change, List, Task } from "../core";
-import { whenLabel } from "../format";
+import { cadence, whenLabel } from "../format";
 import { t } from "../locales";
 import Recall from "./Recall";
 import When from "./When";
@@ -12,7 +12,7 @@ interface Props {
   onPatch: (change: Change) => void;
 }
 
-type Slot = "date" | "deadline" | "priority" | "list" | "tags" | "recall";
+type Slot = "date" | "deadline" | "priority" | "list" | "tags" | "recall" | "repeat";
 
 export default function Fields({ task, lists, known, onPatch }: Props) {
   const [open, setOpen] = useState<Slot | null>(null);
@@ -82,6 +82,29 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
               {level < 4 ? t(named(level)) : t("noPriority")}
             </Row>
           ))}
+        </Sheet>
+      </Held>
+
+      <Held
+        slot="repeat"
+        open={open}
+        onOpen={setOpen}
+        tint="bg-mark-repeat"
+        empty={!task.repeat}
+        label={`↻ ${task.repeat ? cadence(task.repeat) : t("fieldRepeat")}`}
+      >
+        <Sheet onClose={close}>
+          {CADENCES.map(({ every, unit }) => (
+            <Row
+              key={`${every}${unit}`}
+              onPick={() =>
+                apply({ repeat: { from: task.repeat?.from ?? (task.date ? "due" : "done"), each: { every, unit } } })
+              }
+            >
+              {cadence({ from: "due", each: { every, unit } })}
+            </Row>
+          ))}
+          {task.repeat && <Row onPick={() => apply({ noRepeat: true })}>{t("endRepeat")}</Row>}
         </Sheet>
       </Held>
 
@@ -263,6 +286,14 @@ const civil = (at: string): string => `${at.slice(0, 16).replace(" ", "T")}:00`;
 
 const named = (level: number): "high" | "medium" | "low" =>
   level === 1 ? "high" : level === 2 ? "medium" : "low";
+
+const CADENCES = [
+  { every: 1, unit: "day" },
+  { every: 1, unit: "week" },
+  { every: 2, unit: "week" },
+  { every: 1, unit: "month" },
+  { every: 1, unit: "year" },
+] as const;
 
 const fieldOf = (slot: "date" | "deadline"): "fieldDate" | "fieldDeadline" =>
   slot === "date" ? "fieldDate" : "fieldDeadline";

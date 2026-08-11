@@ -1,10 +1,10 @@
 import { useState } from "react";
 import type { DateSpec, Edits, Parsed } from "../core";
-import { whenLabel } from "../format";
+import { cadence, whenLabel } from "../format";
 import { t } from "../locales";
 import Calendar from "./Calendar";
 
-type Slot = "date" | "deadline" | "list" | "priority" | { tag: string };
+type Slot = "date" | "deadline" | "list" | "priority" | "repeat" | { tag: string };
 
 interface Chip {
   slot: Slot;
@@ -134,6 +134,16 @@ function shown(seen: Parsed, edits: Edits): Chip[] {
     });
   }
 
+  if (seen.repeat && !edits.noRepeat) {
+    chips.push({
+      slot: "repeat",
+      glyph: "↻",
+      value: cadence(seen.repeat),
+      tint: "bg-mark-repeat",
+      guessed: false,
+    });
+  }
+
   const level = seen.priority;
   if (level && level < 4 && !edits.noPriority) {
     chips.push({
@@ -179,6 +189,8 @@ function without(edits: Edits, slot: Slot): Edits {
       return { ...edits, noList: true };
     case "priority":
       return { ...edits, noPriority: true };
+    case "repeat":
+      return { ...edits, noRepeat: true };
   }
 }
 

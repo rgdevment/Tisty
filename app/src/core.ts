@@ -113,6 +113,7 @@ export interface Parsed {
   priority?: Priority | null;
   tags: string[];
   list?: string | null;
+  repeat?: Repeat | null;
   spans: Span[];
   offers: Offer[];
 }
@@ -144,6 +145,7 @@ export interface Edits {
   noDeadline?: boolean;
   noList?: boolean;
   noPriority?: boolean;
+  noRepeat?: boolean;
   noTags?: string[];
   date?: string;
   deadline?: string;
@@ -168,6 +170,8 @@ export interface Change {
   description?: string;
   remind?: string;
   unremind?: string;
+  repeat?: Repeat;
+  noRepeat?: boolean;
 }
 
 export const patch = (id: string, change: Change): Promise<Task> =>

@@ -16,6 +16,7 @@
     "opener:default",
     "dialog:default",
     "global-shortcut:default",
+    "notification:default",
     "core:window:allow-hide",
     "core:window:allow-show",
     "core:window:allow-set-focus"
