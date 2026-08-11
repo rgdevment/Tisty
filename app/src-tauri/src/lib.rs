@@ -1035,6 +1035,29 @@ struct Settling {
     was: Option<String>,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct About {
+    version: String,
+    repository: &'static str,
+    license: &'static str,
+    /// Where the log actually lives, so a report can say it without guessing.
+    store: String,
+}
+
+/// Nobody could say which version they hit a problem with: it existed only in
+/// `CARGO_PKG_VERSION` and was never shown anywhere in the window.
+#[tauri::command]
+fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
+    let session = held(&session);
+    Ok(About {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        repository: "https://github.com/rgdevment/Tisty",
+        license: "AGPL-3.0-only",
+        store: session.paths.store().display().to_string(),
+    })
+}
+
 #[tauri::command]
 async fn settle_in(
     session: tauri::State<'_, Mutex<Session>>,
@@ -1741,7 +1764,8 @@ pub fn run() {
             back_up,
             restore,
             checked,
-            rebuild
+            rebuild,
+            about
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

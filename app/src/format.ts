@@ -100,7 +100,24 @@ export function bandOf(spec: DateSpec | undefined, now = new Date()): string {
   return formats().day.format(new Date(spec.at));
 }
 
-const here = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone;
+const here = (): string => canonical(Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+/// Windows hands jiff «Asia/Calcutta» where Linux says «Asia/Kolkata». Compared
+/// raw, every entry written on your own machine grew a «· Calcutta» behind it.
+const settled = new Map<string, string>();
+
+function canonical(tz: string): string {
+  let known = settled.get(tz);
+  if (known === undefined) {
+    try {
+      known = new Intl.DateTimeFormat("en", { timeZone: tz }).resolvedOptions().timeZone;
+    } catch {
+      known = tz;
+    }
+    settled.set(tz, known);
+  }
+  return known;
+}
 
 /// A zone that no longer exists in the reader's data would throw on every
 /// render, so it is asked once and remembered as unusable.
@@ -132,13 +149,21 @@ function inZone(tz: string, shape: Intl.DateTimeFormatOptions, tag: string): Int
   return made;
 }
 
-const dayIn = (at: Date, tz: string): string =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(at);
+const days = new Map<string, Intl.DateTimeFormat>();
+
+const dayIn = (at: Date, tz: string): string => {
+  let made = days.get(tz);
+  if (!made) {
+    made = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    days.set(tz, made);
+  }
+  return made.format(at);
+};
 
 /**
  * A journal entry, on the day and at the hour its author wrote it.
@@ -164,7 +189,8 @@ export function wroteAt(at: string, tz?: string, now = new Date(), reader = here
 
   // Said only when it differs: the hour would otherwise be a quiet lie about
   // which day it was written on.
-  return tz === reader ? `${named} ${clock}` : `${named} ${clock} · ${cityOf(tz)}`;
+  const same = canonical(tz) === canonical(reader);
+  return same ? `${named} ${clock}` : `${named} ${clock} · ${cityOf(tz)}`;
 }
 
 const cityOf = (tz: string): string => (tz.split("/").pop() ?? tz).replace(/_/g, " ");

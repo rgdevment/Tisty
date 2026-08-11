@@ -219,7 +219,16 @@ function Sheet({
 
   useEffect(() => {
     const came = document.activeElement as HTMLElement | null;
-    box.current?.querySelector<HTMLElement>("button")?.focus();
+    // Only if nothing inside asked for it first: the tag sheet autofocuses its
+    // input, and grabbing the first button put the focus on a suggestion —
+    // where Space applied a tag nobody chose. In the date sheet the first
+    // button is «previous month», which is nobody's destination either.
+    const wants = box.current?.querySelector<HTMLElement>("input, textarea");
+    if (wants) {
+      wants.focus();
+    } else if (!box.current?.contains(document.activeElement)) {
+      box.current?.querySelector<HTMLElement>("button")?.focus();
+    }
     return () => came?.focus?.();
   }, []);
 

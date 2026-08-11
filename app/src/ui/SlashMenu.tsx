@@ -100,7 +100,7 @@ function fields(
     },
     {
       key: "repeat",
-      glyph: "\u21bb",
+      glyph: "↻",
       label: t("fieldRepeat"),
       say: t("hintRepeat"),
       run: () => setStep("repeat"),
@@ -138,7 +138,7 @@ function within(
       const said = cadence({ from: "due", each: { every, unit } });
       return {
         key: `${every}${unit}`,
-        glyph: "\u21bb",
+        glyph: "↻",
         label: said,
         run: () => onInsert(said),
       };

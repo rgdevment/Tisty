@@ -104,12 +104,17 @@ export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Pro
       </div>
 
       <div className="shrink-0 border-t border-hair px-2.5 py-2">
-        <Entry
-          icon="⚙"
-          label={t("keeping")}
-          on={chosen.named === "keeping"}
+        <button
+          type="button"
+          aria-label={t("keeping")}
+          title={t("keeping")}
           onClick={() => onChoose({ named: "keeping" })}
-        />
+          className={`grid h-7 w-7 place-items-center rounded-[7px] text-[13px] hover:bg-hover ${
+            chosen.named === "keeping" ? "bg-active text-accent" : "text-soft"
+          }`}
+        >
+          <span aria-hidden="true">⚙</span>
+        </button>
       </div>
     </aside>
   );

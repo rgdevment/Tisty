@@ -55,6 +55,14 @@ export default function TaskList({
   // One heading over the whole list says nothing and costs a line: «Someday»
   // above a list where nothing is dated is noise, not structure.
   const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
+  const opens = useMemo(() => {
+    const said = new Set<string>();
+    return rows.map((row) => {
+      if (!row.band || said.has(row.band)) return false;
+      said.add(row.band);
+      return true;
+    });
+  }, [rows]);
   // `indexOf` per row turns the render quadratic on a long archive.
   const at = useMemo(() => new Map(tasks.map((task, i) => [task.id, i])), [tasks]);
   const [held, setHeld] = useState<string | null>(null);
@@ -120,14 +128,35 @@ export default function TaskList({
   // Never on capture: scrolling under someone who is still typing loses them.
   const asked = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    asked.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    asked.current?.scrollIntoView({
+      block: "nearest",
+      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
   }, [reveal]);
 
   // One stop for the whole list, not one per task: tabbing through ninety rows
   // to reach the sidebar is not navigation.
   const listed = useRef<HTMLDivElement>(null);
   const [reached, setReached] = useState<string | null>(null);
-  const stops = (id: string) => (reached ?? tasks[0]?.id) === id;
+
+  // Only the rows that are actually drawn: a task inside a folded group is not
+  // in the DOM, and one that was completed is not in the list any more. Anchor
+  // the stop on either and the whole list becomes unreachable by keyboard.
+  const drawn = useMemo(
+    () =>
+      rows.flatMap((row) =>
+        row.kind === "one"
+          ? [row.task.id]
+          : open.has(row.key)
+            ? row.tasks.map((one) => one.id)
+            : [],
+      ),
+    [rows, open],
+  );
+  const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
+  const stops = (id: string) => anchor === id;
 
   const walk = (from: string, by: number) => {
     const rows = Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
@@ -207,6 +236,8 @@ export default function TaskList({
               <button
                 aria-label={task.hidden ? t("showIt") : t("hideIt")}
                 title={task.hidden ? t("showIt") : t("hideIt")}
+                tabIndex={-1}
+                onKeyDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
                   onFold(task.id, !task.hidden);
@@ -241,7 +272,7 @@ export default function TaskList({
 
         {rows.map((row, r) => (
           <div key={row.key}>
-            {heads && row.band && row.band !== rows[r - 1]?.band && (
+            {heads && opens[r] && (
               <div className="mt-5 mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1">
                 {row.band}
               </div>
