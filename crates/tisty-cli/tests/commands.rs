@@ -1098,7 +1098,11 @@ fn two_machines_meeting_in_a_folder_end_up_with_the_same_tasks() {
     let second = Cli::new();
     second.ok(&["config", "set", "remote", &met]);
     second.ok(&["call the bank"]);
-    second.ok(&["sync"]);
+    // Both have history, so joining them is the one irreversible step: it is
+    // asked for rather than assumed, because a stranger's folder looks the same.
+    let asked = second.run(&["sync"]);
+    assert_ne!(asked.code, 0, "{}", asked.out);
+    second.ok(&["sync", "--merge"]);
     first.ok(&["sync"]);
 
     for cli in [&first, &second] {

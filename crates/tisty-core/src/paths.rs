@@ -20,9 +20,11 @@ impl Paths {
 
         Ok(Self {
             // Local, never roaming: a Windows domain profile copies %APPDATA%
-            // at logon and logoff, which is another process touching the log.
+            // at logon and logoff. For the store that is another process
+            // touching the log; for the config it is the device id — and the
+            // `private/` folder — leaving the machine for a company server.
             data: env_path(DATA_ENV).unwrap_or_else(|| dirs.data_local_dir().to_path_buf()),
-            config: env_path(CONFIG_ENV).unwrap_or_else(|| dirs.config_dir().to_path_buf()),
+            config: env_path(CONFIG_ENV).unwrap_or_else(|| local_config(&dirs)),
             cache: env_path(CACHE_ENV).unwrap_or_else(|| dirs.cache_dir().to_path_buf()),
         })
     }
@@ -79,6 +81,18 @@ impl Paths {
     }
 }
 
+/// macOS gives config and data the same directory, and a config sitting where
+/// the store lives reads as something that travels. It does not — only `store/`
+/// and `attachments/` ever do — but the separation is worth being visible.
+fn local_config(dirs: &directories::ProjectDirs) -> PathBuf {
+    let config = dirs.config_local_dir();
+    if config == dirs.data_local_dir() {
+        config.join("config")
+    } else {
+        config.to_path_buf()
+    }
+}
+
 fn env_path(key: &str) -> Option<PathBuf> {
     std::env::var_os(key)
         .filter(|v| !v.is_empty())
@@ -93,11 +107,30 @@ mod tests {
         Paths::new("/data/Tisty", "/config/tisty")
     }
 
+    /// Against the real resolver, not two invented paths: the old version of
+    /// this test compared `/data/Tisty` with `/config/tisty` and could not fail.
     #[test]
-    fn config_never_lives_inside_the_synced_directory() {
-        let p = paths();
-        assert!(!p.config_file().starts_with(p.data()));
-        assert!(!p.private().starts_with(p.data()));
+    fn nothing_private_lives_where_the_transports_look() {
+        let p = Paths::resolve().unwrap();
+        for kept in [p.config_file(), p.private(), p.cache().to_path_buf()] {
+            assert!(!kept.starts_with(p.store()), "{kept:?}");
+            assert!(!kept.starts_with(p.attachments()), "{kept:?}");
+            assert!(!kept.starts_with(p.docs()), "{kept:?}");
+        }
+    }
+
+    /// A roaming profile copies `%APPDATA%` to a company server at logoff,
+    /// which would take the device id and `private/` with it.
+    #[test]
+    fn the_config_never_lands_in_a_roaming_profile() {
+        let p = Paths::resolve().unwrap();
+        if let Some(roaming) = std::env::var_os("APPDATA").map(PathBuf::from) {
+            let local = std::env::var_os("LOCALAPPDATA").map(PathBuf::from);
+            if local.as_deref() != Some(roaming.as_path()) {
+                assert!(!p.config().starts_with(&roaming), "{:?}", p.config());
+                assert!(!p.private().starts_with(&roaming), "{:?}", p.private());
+            }
+        }
     }
 
     #[test]

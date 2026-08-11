@@ -226,7 +226,8 @@ export const syncState = (): Promise<Carrying> => invoke("sync_state");
 /** No destination means «only on this machine», which is an answer, not a blank. */
 export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
 /** True when something came back. */
-export const syncNow = (way?: "push" | "pull"): Promise<boolean> => invoke("sync_now", { way });
+export const syncNow = (way?: "push" | "pull", merge?: boolean): Promise<boolean> =>
+  invoke("sync_now", { way, merge });
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 

@@ -138,10 +138,11 @@ every disagreement and rebuilding is the only repair there is.
 Through a folder both machines can reach. Nothing else.
 
 ```sh
-tisty sync --setup <folder>   # remember where the copies go
-tisty sync                    # leave ours, take everyone else's
-tisty sync --push             # leave only
-tisty sync --pull             # take only
+tisty config set remote <folder>   # where the copies go
+tisty sync                         # leave ours, take everyone else's
+tisty sync --push                  # leave only
+tisty sync --pull                  # take only
+tisty sync --merge                 # join this history with the folder's
 ```
 
 Tisty always works in its own local directory. Syncing **leaves a copy** in that
@@ -160,9 +161,14 @@ else touches it, so your copy is authoritative. Pull only the others — you nev
 write them, so theirs is. The question "which one is newer?" never comes up, and
 two machines cannot produce a conflicting file.
 
-Segments are copied in order: a `000002` without its `000001` stops the whole
-store, not one device. Identical files are skipped by size, so syncing twice
+What arrives is read before it is written. A `000002` without its `000001`, a
+half-downloaded segment, a conflict copy a cloud client left behind — all are
+refused at the door, because reading a broken one takes down the whole store,
+every device included. Files already identical are skipped, so syncing twice
 over moves nothing the second time.
+
+Attachments travel too. They are named after their own sha-256, so a name that
+matches is a file that matches and two machines cannot disagree about one.
 
 ### The one mistake that cannot be undone
 
@@ -170,6 +176,11 @@ Two different stores merging into one append-only log. A `.store-id` marker
 guards it: a machine that has never met the folder **adopts** its name, an empty
 folder is **given** one, and a machine carrying a different name is **refused
 before anything moves**.
+
+When both sides hold history and only one has a name, there is no safe guess —
+your own second machine and a stranger's folder are the same gesture. So it
+**asks**: `tisty sync --merge`, or a confirmation in the window. Joining cannot
+be undone, which is exactly why it is never assumed.
 
 Syncing runs on its own — pull when the window opens and when it regains focus,
 push shortly after each change, and both on a timer. It never blocks a local
@@ -201,8 +212,8 @@ down as an idea and not built.
 | | Location | Synced |
 |---|---|---|
 | Events | `<data>/store/<device>/` | yes |
-| Documents | `<data>/docs/` | yes |
 | Attachments | `<data>/attachments/` | yes |
+| Documents | `<data>/docs/` | not yet — they do not exist |
 | Settings and device id | `<config>/config.toml` | **no** |
 | Read cache | `<cache>/read.db` | **no** |
 | Last listing | `<cache>/selection.json` | **no** |
@@ -211,6 +222,13 @@ down as an idea and not built.
 `TISTY_DATA`, `TISTY_CONFIG` and `TISTY_CACHE` override them, and exist for
 tests.
 
-The device id never syncs. If it did, two machines would share it, write to the
-same file, and every guarantee above would stop holding. It is also why the
-configuration stays out of a backup.
+The **configuration** never syncs, and that is what matters: if two machines
+shared a device id they would write to the same file and every guarantee above
+would stop holding. It is also why the configuration stays out of a backup.
+
+The device id itself does travel, and has to — it is the name of the directory
+and the `by` field of every event, which is what tells the writers apart. What
+must never travel is the file that says *«this machine is that id»*. That file
+lives in the local config directory, never a roaming one: a Windows domain
+profile copies `%APPDATA%` to a company server at logoff, and it would take the
+device id and the `private/` folder with it.

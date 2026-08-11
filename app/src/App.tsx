@@ -180,6 +180,7 @@ export default function App() {
           setChosen(next);
           setSelected(undefined);
           setFound(null);
+          setError(null);
         }}
       />
 
@@ -189,7 +190,6 @@ export default function App() {
             load();
             carries.current?.recheck();
           }}
-          onError={setError}
         />
       ) : open && mode === "sheet" ? (
         <Detail
