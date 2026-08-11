@@ -221,6 +221,30 @@ impl Store {
     }
 }
 
+pub const MARKER: &str = ".store-id";
+
+/// Names this store, not this machine. Pointing two different stores at one
+/// remote would merge two histories into an append-only log, which is the only
+/// mistake of the whole transport that cannot be undone.
+pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
+    if let Some(held) = peek_identity(&store_root) {
+        return Ok(held);
+    }
+    let at = store_root.as_ref().join(MARKER);
+    let fresh = ulid::Ulid::generate().to_string();
+    std::fs::create_dir_all(store_root.as_ref())?;
+    write_atomic(&at, fresh.as_bytes())?;
+    Ok(fresh)
+}
+
+/// Reads without writing. A restore has to ask before it decides, and asking
+/// with `identity` invents a name and then refuses the one in the backup.
+pub fn peek_identity(store_root: impl AsRef<Path>) -> Option<String> {
+    let held = std::fs::read_to_string(store_root.as_ref().join(MARKER)).ok()?;
+    let held = held.trim().to_string();
+    (!held.is_empty()).then_some(held)
+}
+
 pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
     let root = store_root.as_ref();
     let mut events = Vec::new();
@@ -324,7 +348,8 @@ fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
 
 /// Temp plus rename: a crash mid-write leaves the previous contents.
 pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
-    let tmp = path.with_extension("tmp");
+    // Unique: two processes saving the same file would otherwise share it.
+    let tmp = path.with_extension(format!("{}.tmp", std::process::id()));
     {
         let mut file = File::create(&tmp)?;
         file.write_all(contents)?;
@@ -734,5 +759,49 @@ mod tests {
 
         assert_eq!(store.active_events, 1);
         assert_eq!(store.seen, active_size(&store.dir.join(ACTIVE)));
+    }
+    #[test]
+    fn a_store_keeps_the_same_name_however_often_it_is_asked() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("store");
+
+        let first = identity(&root).unwrap();
+        assert!(!first.is_empty());
+        assert_eq!(identity(&root).unwrap(), first);
+
+        let other = tempfile::tempdir().unwrap();
+        assert_ne!(identity(other.path()).unwrap(), first);
+    }
+
+    /// A blank marker is nobody's, and asking again has to fill it.
+    #[test]
+    fn an_empty_marker_is_replaced_rather_than_trusted() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path()).unwrap();
+        std::fs::write(
+            dir.path().join(MARKER),
+            "   
+",
+        )
+        .unwrap();
+
+        let named = identity(dir.path()).unwrap();
+        assert!(!named.trim().is_empty());
+    }
+
+    #[test]
+    fn the_marker_does_not_disturb_reading_the_log() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("store");
+        let mut store = Store::open(&root, DeviceId("dev_a".into())).unwrap();
+        store
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new("comprar pan", "a0"),
+            })
+            .unwrap();
+
+        identity(&root).unwrap();
+        assert_eq!(read_all(&root).unwrap().len(), 1);
     }
 }

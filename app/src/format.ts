@@ -24,6 +24,13 @@ function formats(): Formats {
 
 const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
+/** A moment, not a day: syncing happens several times an hour. */
+export function stamped(iso: string, now = new Date()): string {
+  const at = new Date(iso);
+  const time = formats().clock.format(at);
+  return daysFrom(iso, now) === 0 ? time : `${formats().day.format(at)} ${time}`;
+}
+
 /** Whole days apart on the reader's calendar, not 24-hour spans. */
 export const daysFrom = (iso: string, now = new Date()): number =>
   Math.round((midnight(new Date(iso)) - midnight(now)) / 86_400_000);

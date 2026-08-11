@@ -5,6 +5,23 @@ use ulid::Ulid;
 
 use crate::{Error, Result, event::DeviceId, paths::Paths, store};
 
+/// `None` means nobody has been asked yet, which is what shows the assistant.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase", tag = "how", content = "at")]
+pub enum Sync {
+    Local,
+    /// A folder both machines reach; whoever keeps it in step is not our problem.
+    Folder(std::path::PathBuf),
+}
+
+impl Config {
+    /// The shared folder already holds every machine's history, so a second
+    /// snapshot beside it would be a rival truth nobody asked for.
+    pub fn backs_up(&self) -> bool {
+        !matches!(self.sync, Some(Sync::Folder(_)))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     /// Never synced — a shared id would put two machines in one segment file.
@@ -13,6 +30,11 @@ pub struct Config {
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,
+    /// Never synced either: where this machine sends its own directory.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sync: Option<Sync>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub synced_at: Option<jiff::Timestamp>,
 }
 
 impl Config {
@@ -25,6 +47,8 @@ impl Config {
             device_id: DeviceId(new_device_id()),
             locale: None,
             editor: None,
+            sync: None,
+            synced_at: None,
         };
         config.save(paths)?;
         Ok(config)
@@ -47,7 +71,7 @@ impl Config {
     }
 }
 
-fn new_device_id() -> String {
+pub fn new_device_id() -> String {
     let ulid = Ulid::generate().to_string().to_lowercase();
     format!("dev_{}", &ulid[ulid.len() - 8..])
 }
@@ -112,6 +136,24 @@ mod tests {
             Config::load(&tmp.path().join("absent.toml"))
                 .unwrap()
                 .is_none()
+        );
+    }
+    #[test]
+    fn a_table_valued_field_does_not_swallow_what_follows_it() {
+        let config = Config {
+            device_id: DeviceId("dev_a".into()),
+            locale: Some("es".into()),
+            editor: None,
+            sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
+            synced_at: None,
+        };
+
+        let written = toml::to_string_pretty(&config).unwrap();
+        let read: Config = toml::from_str(&written).unwrap();
+        assert_eq!(
+            read, config,
+            "round trip lost something:
+{written}"
         );
     }
 }

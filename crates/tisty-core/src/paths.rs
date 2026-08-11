@@ -48,7 +48,7 @@ impl Paths {
         self.config.join("config.toml")
     }
 
-    /// Outside the synced directory: a `.gitignore` only stops Git, not Dropbox.
+    /// Outside the synced directory, so no cloud client ever carries it away.
     pub fn private(&self) -> PathBuf {
         self.config.join("private")
     }

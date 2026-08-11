@@ -206,8 +206,9 @@ A directory of text files, in your documents folder when the system names one:
 It lives in your system's local application data directory, and that is not
 configurable — a task manager that lets you file its own store in a folder some
 cloud client is quietly rewriting is handing you a footgun. Syncing is a
-separate thing, and it will be on demand: Tisty uploads and downloads when you
-ask, so no background client ever gets between the app and your files.
+separate thing: Tisty **leaves copies** in a folder both machines can reach and
+**brings home the ones others left**. Two different paths, and only one of them
+is yours to choose.
 
 Your settings never travel with it. The device identifier lives in the config
 file precisely so it stays on this machine: if it went along, two computers
@@ -225,6 +226,27 @@ That is one list, not one per machine. Every device reads every directory and
 replays them in order; it only writes to its own. Which is also why a synced
 folder never produces one of those `file (conflicted copy).jsonl` — no two
 writers ever touch the same file.
+
+## Two machines
+
+Point Tisty at a folder both computers already reach — the one your Google
+Drive, OneDrive or iCloud client keeps in step, a mounted NAS, an external drive
+you plug in on Fridays — and it does the rest on its own: it pulls when the window opens,
+pushes shortly after you change something, and does both on a timer. It never
+blocks a write and never interrupts you; an unreachable folder is retried in
+silence.
+
+There is no merge and no "which one is newer?", because a device directory has
+exactly one writer: yours is authoritative going up, theirs coming down.
+
+Whoever runs that folder is not Tisty's business, and there is nothing of ours
+in the middle — no account, no server, no daemon. If you sync nothing, Tisty
+never opens a socket at all.
+
+**Or back up by hand instead.** One zip, kept wherever you like. Restoring is a
+photograph: back to that moment, and what came after is lost on purpose. The two
+are mutually exclusive — the shared folder already holds every machine's
+history, so a snapshot beside it would only be a rival truth.
 
 ## Installing
 
@@ -245,10 +267,11 @@ cargo install --path crates/tisty-cli
 | ✅ | Natural language: `tisty "deploy the API tomorrow at 10"` |
 | ✅ | Journal, steps, lists, tags, search and undo from the command line |
 | ✅ | Composite `ls` filters, `config`, `export`, `--json`, exit codes |
+| ✅ | Graphical interface (Tauri): three columns, drag and drop, attachments |
+| ✅ | Markdown in descriptions and journal entries |
+| ✅ | Sync through a folder both machines reach, and backup by hand |
 | ◐ | Daily use, which is what turns up the bugs tests do not |
-| ⬜ | Sync over Git or through your own cloud folder |
-| ⬜ | Graphical interface (Tauri) |
-| ⬜ | Markdown documents |
+| ⬜ | Packaged builds for Windows and macOS |
 
 ## What it will never do
 

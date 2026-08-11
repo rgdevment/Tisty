@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   attach,
   capture,
@@ -18,17 +18,21 @@ import {
   type Snapshot,
   type Task,
 } from "./core";
+import { carrying } from "./carrying";
+import { syncState } from "./core";
 import { handTo, whenFilesLand } from "./dropped";
 import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { accepts, asView, invite, title, type Chosen } from "./views";
 import CaptureField from "./ui/CaptureField";
 import Detail from "./ui/Detail";
+import Keeping from "./ui/Keeping";
 import Notice from "./ui/Notice";
 import Search from "./ui/Search";
 import Sidebar from "./ui/Sidebar";
 import Tags from "./ui/Tags";
 import TaskList from "./ui/TaskList";
+import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
 
 type Mode = "columns" | "sheet";
@@ -45,7 +49,9 @@ export default function App() {
   const [chosen, setChosen] = useState<Chosen>({ named: "today" });
   const [found, setFound] = useState<Task[] | null>(null);
   const [held, setHeld] = useState<Task | undefined>();
+  const [greet, setGreet] = useState(false);
   const dismiss = useCallback(() => setCaptured(undefined), []);
+  const carries = useRef<ReturnType<typeof carrying>>(null);
 
   useTheme();
 
@@ -63,6 +69,22 @@ export default function App() {
     window.addEventListener("focus", load);
     return () => window.removeEventListener("focus", load);
   }, [load]);
+
+  // Through a ref, and started once: a carrier per view would reset its
+  // timers, and one holding the first `load` would reload the first view.
+  const latest = useRef(load);
+  latest.current = load;
+  useEffect(() => {
+    const carrier = carrying(() => latest.current());
+    carries.current = carrier;
+    return () => carrier.stop();
+  }, []);
+
+  useEffect(() => {
+    syncState()
+      .then((state) => setGreet(!state.asked))
+      .catch(() => {});
+  }, []);
 
   useEffect(
     () =>
@@ -102,6 +124,7 @@ export default function App() {
       .then((one) => {
         setHeld(one);
         load();
+        carries.current?.changed();
       })
       .catch((e) => setError(saidPlainly(e)));
   };
@@ -110,7 +133,10 @@ export default function App() {
     <div
       className="grid h-full font-sans"
       style={{
-        gridTemplateColumns: open && mode === "columns" ? "232px minmax(0,1fr) 380px" : "232px minmax(0,1fr)",
+        gridTemplateColumns:
+          open && mode === "columns" && chosen.named !== "keeping"
+            ? "232px minmax(0,1fr) 380px"
+            : "232px minmax(0,1fr)",
       }}
     >
       <WindowChrome />
@@ -119,6 +145,16 @@ export default function App() {
         <p className="pointer-events-none fixed inset-x-0 top-11 z-40 mx-auto w-fit rounded-md bg-urgent/12 px-3 py-1.5 text-xs text-urgent">
           {error}
         </p>
+      )}
+
+      {greet && (
+        <Welcome
+          onDone={() => {
+            setGreet(false);
+            carries.current?.recheck();
+          }}
+          onError={(e) => setError(saidPlainly(e))}
+        />
       )}
 
       {captured && (
@@ -147,7 +183,15 @@ export default function App() {
         }}
       />
 
-      {open && mode === "sheet" ? (
+      {chosen.named === "keeping" ? (
+        <Keeping
+          onChanged={() => {
+            load();
+            carries.current?.recheck();
+          }}
+          onError={setError}
+        />
+      ) : open && mode === "sheet" ? (
         <Detail
           key={task.id}
           task={task}
@@ -242,7 +286,7 @@ export default function App() {
         </TaskList>
       )}
 
-      {open && mode === "columns" && (
+      {open && mode === "columns" && chosen.named !== "keeping" && (
         <Detail
           key={task.id}
           task={task}

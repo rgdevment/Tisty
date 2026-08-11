@@ -102,6 +102,15 @@ export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Pro
           </nav>
         )}
       </div>
+
+      <div className="shrink-0 border-t border-hair px-2.5 py-2">
+        <Entry
+          icon="⚙"
+          label={t("keeping")}
+          on={chosen.named === "keeping"}
+          onClick={() => onChoose({ named: "keeping" })}
+        />
+      </div>
     </aside>
   );
 }

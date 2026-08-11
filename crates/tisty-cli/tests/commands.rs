@@ -1074,8 +1074,66 @@ fn export_takes_the_same_filters_as_listing() {
     assert!(!md.contains("dropped"), "{md}");
 }
 
-/// The transport is a plain directory: what rclone will do is copy device
-/// directories around, so the tests copy them by hand and stay transport-free.
+#[test]
+fn syncing_without_a_folder_says_which_command_sets_one() {
+    let cli = Cli::new();
+    let run = cli.run(&["sync"]);
+
+    assert_ne!(run.code, 0);
+    assert!(run.err.contains("config set remote"), "{}", run.err);
+}
+
+/// The whole point, end to end and with the real binary: two machines meeting
+/// in one folder, which is what a synced cloud folder or a mounted share is.
+#[test]
+fn two_machines_meeting_in_a_folder_end_up_with_the_same_tasks() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+
+    let first = Cli::new();
+    first.ok(&["config", "set", "remote", &met]);
+    first.ok(&["buy bread"]);
+    first.ok(&["sync"]);
+
+    let second = Cli::new();
+    second.ok(&["config", "set", "remote", &met]);
+    second.ok(&["call the bank"]);
+    second.ok(&["sync"]);
+    first.ok(&["sync"]);
+
+    for cli in [&first, &second] {
+        let out = cli.ok(&["ls", "all"]);
+        assert!(out.contains("buy bread"), "{out}");
+        assert!(out.contains("call the bank"), "{out}");
+    }
+}
+
+#[test]
+fn a_folder_that_is_not_there_says_so_instead_of_failing_quietly() {
+    let cli = Cli::new();
+    cli.ok(&["config", "set", "remote", "Z:/no/such/place"]);
+
+    let run = cli.run(&["sync"]);
+    assert_ne!(run.code, 0);
+    assert!(!run.err.trim().is_empty(), "{}", run.err);
+}
+
+#[test]
+fn the_remote_is_remembered_and_can_be_taken_back() {
+    let cli = Cli::new();
+
+    assert!(cli.ok(&["config"]).contains("remote"));
+    cli.ok(&["config", "set", "remote", "drive:tisty"]);
+    assert_eq!(cli.ok(&["config", "get", "remote"]).trim(), "drive:tisty");
+
+    cli.ok(&["config", "unset", "remote"]);
+    let run = cli.run(&["config", "get", "remote"]);
+    assert_ne!(
+        run.code, 0,
+        "unset means «only on this machine», not «unanswered»"
+    );
+}
+
 /// An export that omits what was folded away is silent data loss.
 #[test]
 fn an_export_carries_what_the_views_fold_away() {

@@ -135,24 +135,66 @@ every disagreement and rebuilding is the only repair there is.
 
 ## Syncing
 
-Over Git, and only over Git.
+Through a folder both machines can reach. Nothing else.
 
 ```sh
-tisty sync --setup <url>   # create the repository, write .gitattributes, point at the remote
-tisty sync                 # pull --rebase · commit · push
-tisty sync --status        # where it sends, and what is pending
+tisty sync --setup <folder>   # remember where the copies go
+tisty sync                    # leave ours, take everyone else's
+tisty sync --push             # leave only
+tisty sync --pull             # take only
 ```
 
-`tisty` invokes the `git` binary; it is not linked as a library. The pull runs
-first and its failures do not stop the local commit — syncing never blocks
-writing.
+Tisty always works in its own local directory. Syncing **leaves a copy** in that
+folder and **brings home the copies others left**. Whatever keeps the folder
+alive — the Google Drive, OneDrive or iCloud client you already run, a mounted
+NAS, an external drive you plug in once a week — is not Tisty's business.
 
-Because each device writes only its own files, two devices never touch the same
-file, and the rebase always applies. `.gitattributes` marks `*.tisty` as `-text`
-so line endings are never rewritten.
+That folder is **not** the data directory, and pointing a cloud client at
+`AppData` is still the wrong thing to do. The store stays on your disk; only
+copies travel.
 
-The store is a normal Git repository. Anyone who prefers to pull and push by
-hand loses nothing.
+### Why there is nothing to merge
+
+Each device directory has **exactly one writer**. Push only your own — nobody
+else touches it, so your copy is authoritative. Pull only the others — you never
+write them, so theirs is. The question "which one is newer?" never comes up, and
+two machines cannot produce a conflicting file.
+
+Segments are copied in order: a `000002` without its `000001` stops the whole
+store, not one device. Identical files are skipped by size, so syncing twice
+over moves nothing the second time.
+
+### The one mistake that cannot be undone
+
+Two different stores merging into one append-only log. A `.store-id` marker
+guards it: a machine that has never met the folder **adopts** its name, an empty
+folder is **given** one, and a machine carrying a different name is **refused
+before anything moves**.
+
+Syncing runs on its own — pull when the window opens and when it regains focus,
+push shortly after each change, and both on a timer. It never blocks a local
+write and never interrupts to complain: an unreachable folder is retried in
+silence and reported in the maintenance panel.
+
+## Backing up by hand
+
+One zip of `store/` and `attachments/`, never the configuration — a shared
+`device_id` would put two machines in one file.
+
+Restoring is **a photograph**: back to that moment, and what came after is lost
+on purpose. It wipes the store and the attachments, writes what the zip holds,
+throws the cache away, and the machine **takes a new device id** so its
+directory starts empty and can never shrink what other machines already hold.
+
+**Backing up and syncing are mutually exclusive**, and the buttons disable each
+other. The shared folder already holds every machine's history, so a second
+snapshot beside it would be a rival truth. Restoring is a local decision with
+global consequences, and the other machines never hear about it.
+
+The honest limit: with syncing you get **redundancy, not a way back in time**.
+Delete a task and the deletion travels. Going back for everyone would have to be
+an event of its own — a `store.rewind` the projection honours — which is written
+down as an idea and not built.
 
 ## Where things live
 
@@ -160,7 +202,7 @@ hand loses nothing.
 |---|---|---|
 | Events | `<data>/store/<device>/` | yes |
 | Documents | `<data>/docs/` | yes |
-| Attachments | `<data>/attachments/sha256/` | yes |
+| Attachments | `<data>/attachments/` | yes |
 | Settings and device id | `<config>/config.toml` | **no** |
 | Read cache | `<cache>/read.db` | **no** |
 | Last listing | `<cache>/selection.json` | **no** |
@@ -170,4 +212,5 @@ hand loses nothing.
 tests.
 
 The device id never syncs. If it did, two machines would share it, write to the
-same file, and every guarantee above would stop holding.
+same file, and every guarantee above would stop holding. It is also why the
+configuration stays out of a backup.

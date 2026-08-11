@@ -29,9 +29,10 @@ report will never be dismissed for being inconvenient.
 - **The data never leaves your machine unless you tell it to.** No account, no
   telemetry, no remote server, no phone-home. There is no cloud service to
   breach because there is no cloud service.
-- **Synchronisation is yours.** Tisty writes files; you choose whether Git or
-  a folder in a cloud you already trust moves them. There is no Tisty-operated
-  backend at any tier.
+- **Synchronisation is yours.** Tisty copies files into a folder you name, and
+  whatever already keeps that folder in step between your machines is what moves
+  them. There is no Tisty-operated backend at any tier, and no transport of ours
+  to attack: the code that syncs reads and writes local paths.
 - **No plugin system.** Nothing loads third-party code into the process.
 - **`unsafe` is forbidden** at the workspace level, not merely discouraged.
 
@@ -41,13 +42,18 @@ Being explicit here matters more than sounding reassuring.
 
 - **Data is stored in plain text.** Tasks, notes and documents sit readable on
   disk, protected only by your operating system's file permissions. At-rest
-  encryption was evaluated and rejected: it breaks three-way merges of
-  documents, which is the single place where synchronisation most needs them.
-- **Git history does not forget.** If you sync through Git and a credential
-  ends up in a task, deleting the task does not remove it from history — and
-  once pushed to a remote, it cannot be purged without rewriting that history
-  everywhere. Prevention is the only real defence: keep anything sensitive in
-  the `private/` folder, which never leaves the machine under any transport.
+  encryption was evaluated and rejected: it would put every reader of your data
+  behind a key Tisty would then have to manage, and the promise here is that
+  your files stay readable with tools you already have.
+- **An append-only log does not forget.** If a credential ends up in a task,
+  deleting the task removes it from the current state but not from the history
+  underneath — and if it already travelled to the shared folder, it is on the
+  other machines too. Prevention is the only real defence: keep anything
+  sensitive in the `private/` folder, which never leaves the machine.
+- **Whoever holds the shared folder holds your data.** Syncing through a
+  provider's folder means that provider stores your tasks, under their terms.
+  That is the trade you make when you turn it on, and Tisty states it rather
+  than hiding it.
 - **Anyone with access to your user account has access to your data.** Tisty
   adds no second authentication layer on top of your operating system's.
 
