@@ -105,6 +105,43 @@ element carries its own identifier.
 Deleting is the exception: it leaves a tombstone, and nothing about that entity
 is ever applied again. That is what stops a late event from resurrecting it.
 
+## Repeating
+
+A repeat is **one task per occurrence**, not one entity collecting completions.
+Finishing «take out the bins every Tuesday» writes two events in one batch: the
+completion, and next Tuesday's task.
+
+```
+task.done   MNKMPX
+task.add    MNKMQ2   "take out the bins"   2026-08-18
+```
+
+One batch, because undo has to take back both — otherwise every undo would
+leave a copy and the series would grow on its own.
+
+It costs a row per occurrence, and buys the thing the archive is for: it shows
+you did it twelve times. Each occurrence gets its own journal, so «the lorry did
+not come this week» has somewhere to live. The archive folds repetitions of the
+same month into one line so the rows do not become noise.
+
+A cadence is opened by a word (`every`, `each`), by two (`todos los`), or by an
+adverb that is the whole cadence (`daily`, `weekly`, `annually`). One day per
+repeat: «Tuesdays and Thursdays» is two tasks, not one.
+
+How the next date is worked out depends on how it was written. Naming a day
+fixes it to the calendar — the bin goes out on Tuesday whether or not it went
+last week — and naming only an interval counts from the doing, which is what a
+habit means. Either way the next one lands past today **and** past the day it
+was finished: a fortnight away does not come back owing a fortnight of bins, and
+finishing today's does not hand you another one for today. A time of day is kept
+as asked — taking the pills at 08:04 does not move them to 08:04 for ever — and
+months and years count off the calendar even when said as an interval, or the
+rent would walk down the month.
+
+Nothing is ever created ahead of time. There is no timer and no scheduler: a
+task can only come from you writing one or from finishing a repeat. Skip a day
+and there is still exactly one, waiting, overdue — never two.
+
 ## The read cache
 
 SQLite in the cache directory, holding the projected state: tasks, lists and

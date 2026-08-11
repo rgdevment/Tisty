@@ -311,8 +311,9 @@ date = "2026-08-06"
 
 [[case]]
 input = "backup cada día"
-title = "backup cada día"
-why = "la recurrencia llega en la fase 3; hasta entonces se deja en el título"
+title = "backup"
+repeat = "done:1d"
+why = "un intervalo sin día nombrado se cuenta desde que se hizo"
 
 [[case]]
 input = "arreglar el checkout !urgente"
@@ -424,10 +425,11 @@ time = "17:30"
 
 [[case]]
 input = "Tomar la pastilla todos los dias a las 10 por 30 días"
-title = "Tomar la pastilla todos los dias por 30 días"
+title = "Tomar la pastilla por 30 días"
 date = "2026-08-05"
 time = "10:00"
-why = "«por 30 días» es una DURACIÓN y se queda escrita: inventar una fecha a 30 días vista era peor que no fecharla. «todos los días» espera a la recurrencia"
+repeat = "done:1d"
+why = "«todos los días» es la cadencia; «por 30 días» es una DURACIÓN y se queda escrita, porque cuánto dura un tratamiento no es una fecha"
 
 [[case]]
 input = "tomar el medicamento a las 10 am por 1 mes"
@@ -438,8 +440,9 @@ why = "«10 am» llega como dos palabras y se lee junta, o el «am» se queda hu
 
 [[case]]
 input = "tomar las pastillas todos los dias por 30 dias"
-title = "tomar las pastillas todos los dias por 30 dias"
-why = "sin hora ni día, no hay nada que fechar: la duración sola no mueve la tarea a ninguna parte"
+title = "tomar las pastillas por 30 dias"
+repeat = "done:1d"
+why = "la cadencia se lee; sin hora ni día no hay nada que fechar, y la duración sola no mueve la tarea a ninguna parte"
 
 [[case]]
 input = "comprar pan mañana y leche el viernes"
@@ -712,3 +715,108 @@ input = "entregar antes del 15/8"
 title = "entregar"
 deadline = "2026-08-15"
 why = "«antes del» introduce Y marca vencimiento: la barra es fecha y el papel es límite"
+
+# ─────────────────────────────────────────────────────────────
+#  Recurrencia: nombrar un día la fija, un intervalo la hace relativa
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "sacar la basura cada martes"
+title = "sacar la basura"
+date = "2026-08-11"
+repeat = "due:1w"
+why = "nombra el día, así que el cubo sale el martes se hiciera o no la semana pasada"
+
+[[case]]
+input = "reunión de equipo cada lunes"
+title = "reunión de equipo"
+date = "2026-08-10"
+repeat = "due:1w"
+
+[[case]]
+input = "regar las plantas cada 3 días"
+title = "regar las plantas"
+repeat = "done:3d"
+why = "un intervalo sin día se cuenta desde que la haces, que es lo que quiere un hábito"
+
+[[case]]
+input = "pagar el alquiler cada mes"
+title = "pagar el alquiler"
+repeat = "done:1m"
+
+[[case]]
+input = "revisar los respaldos cada 2 semanas"
+title = "revisar los respaldos"
+repeat = "done:2w"
+
+[[case]]
+input = "renovar el dominio cada año"
+title = "renovar el dominio"
+repeat = "done:1y"
+
+[[case]]
+input = "estirar cada día"
+title = "estirar"
+repeat = "done:1d"
+
+[[case]]
+input = "llamar a mamá cada una semana"
+title = "llamar a mamá"
+repeat = "done:1w"
+
+[[case]]
+input = "comprar pan mañana"
+title = "comprar pan"
+date = "2026-08-06"
+why = "sin «cada» no hay recurrencia que inventar"
+
+[[case]]
+input = "cambiar el filtro cada 3 meses el lunes"
+title = "cambiar el filtro"
+date = "2026-08-10"
+repeat = "done:3m"
+why = "el intervalo manda; la fecha suelta sigue siendo la primera vez"
+
+[[case]]
+input = "revisar el contrato de 6 meses"
+title = "revisar el contrato de 6 meses"
+why = "una duración no es una cadencia, y sin «cada» no se toca"
+
+[[case]]
+input = "tomar las pastillas todos los días a las 10"
+title = "tomar las pastillas"
+date = "2026-08-05"
+time = "10:00"
+repeat = "done:1d"
+why = "la forma en que mucha gente lo diría, y la hora pedida se conserva en cada ocurrencia"
+
+[[case]]
+input = "sacar la basura todos los martes"
+title = "sacar la basura"
+date = "2026-08-11"
+repeat = "due:1w"
+
+[[case]]
+input = "pagar el alquiler todos los meses"
+title = "pagar el alquiler"
+repeat = "done:1m"
+
+[[case]]
+input = "revisar los respaldos todas las semanas"
+title = "revisar los respaldos"
+repeat = "done:1w"
+
+[[case]]
+input = "hacer copia diariamente"
+title = "hacer copia"
+repeat = "done:1d"
+
+[[case]]
+input = "informe mensualmente"
+title = "informe"
+repeat = "done:1m"
+
+[[case]]
+input = "todos los caminos llevan a Roma"
+title = "todos los caminos llevan a Roma"
+why = "«todos los» solo abre una cadencia si lo que sigue es una unidad o un día"

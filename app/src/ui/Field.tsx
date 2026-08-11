@@ -54,6 +54,7 @@ const TINT: Record<Span["mark"], string> = {
   list: "bg-mark-list",
   tag: "bg-mark-tag",
   priority: "bg-mark-priority",
+  repeat: "bg-mark-list",
 };
 
 const DOTTED: Record<Span["mark"], string> = {
@@ -62,6 +63,7 @@ const DOTTED: Record<Span["mark"], string> = {
   list: "decoration-accent",
   tag: "decoration-accent",
   priority: "decoration-urgent",
+  repeat: "decoration-accent",
 };
 
 function paint({ span, offered, overruled }: Mark): string {

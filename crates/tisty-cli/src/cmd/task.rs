@@ -90,7 +90,8 @@ pub fn done(
     }
 
     resolved!(app, selector, open, lang, |id| {
-        app.commit(Op::TaskDone { id })?;
+        let ops = app.state.completing(id, jiff::Zoned::now());
+        app.commit_all(ops)?;
         report(app, id, today, lang);
         Ok(ExitCode::SUCCESS)
     })
@@ -108,8 +109,18 @@ pub fn undone(app: &mut App, selector: &str, today: Date, lang: Lang) -> anyhow:
 pub fn drop(app: &mut App, selector: &str, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let open = app.state.ordered_open();
     resolved!(app, Some(selector), open, lang, |id| {
+        // Dropping a repeating task ends the whole series, and that is not what
+        // «not doing it» sounds like.
+        let repeats = app
+            .state
+            .tasks
+            .get(&id)
+            .is_some_and(|task| task.repeat.is_some());
         app.commit(Op::TaskDrop { id })?;
         report(app, id, today, lang);
+        if repeats {
+            println!("  {}", style::dim(lang.get("repeat-ended")));
+        }
         Ok(ExitCode::SUCCESS)
     })
 }
@@ -146,6 +157,7 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
                 .transpose()?,
             tags,
             reminders: None,
+            repeat: None,
         };
 
         if d == TaskPatch::default() {

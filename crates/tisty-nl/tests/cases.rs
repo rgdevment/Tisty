@@ -12,6 +12,8 @@ struct Case {
     time: Option<String>,
     deadline: Option<String>,
     priority: Option<u8>,
+    /// «due:1w» is a fixed schedule; «done:3d» counts from the doing.
+    repeat: Option<String>,
     #[serde(default)]
     tags: Vec<String>,
     /// Absent means «sure»; a dated case has to say when it is guessing.
@@ -26,6 +28,21 @@ struct Case {
 #[derive(Debug, Deserialize)]
 struct Cases {
     case: Vec<Case>,
+}
+
+fn said(repeat: tisty_core::model::Repeat) -> String {
+    use tisty_core::model::{Repeat, Unit};
+    let (from, c) = match repeat {
+        Repeat::Due(c) => ("due", c),
+        Repeat::Done(c) => ("done", c),
+    };
+    let unit = match c.unit {
+        Unit::Day => "d",
+        Unit::Week => "w",
+        Unit::Month => "m",
+        Unit::Year => "y",
+    };
+    format!("{from}:{}{unit}", c.every)
 }
 
 fn load(locale: &str) -> Vec<Case> {
@@ -96,6 +113,17 @@ fn the_parser_matches_every_case() {
             wrong.push(format!("time: {got_time:?} ≠ {expect_time:?}"));
         }
 
+        let expect_repeat = case.repeat.as_deref();
+        let got_repeat = got.repeat.map(said);
+        assert_eq!(
+            got_repeat.as_deref(),
+            expect_repeat,
+            "«{}» repeat
+  {}",
+            case.input,
+            case.why.as_deref().unwrap_or("")
+        );
+
         let expect_priority = case
             .priority
             .map(|p| u8::from(tisty_core::Priority::try_from(p).unwrap()));
@@ -114,7 +142,12 @@ fn the_parser_matches_every_case() {
         let got_certainty = got
             .spans
             .iter()
-            .find(|s| matches!(s.mark, tisty_nl::Mark::Date | tisty_nl::Mark::Deadline))
+            // «cada martes» carries its own first occurrence, so a date that
+            // came from it is vouched for by the repeat marker.
+            .find(|s| {
+                matches!(s.mark, tisty_nl::Mark::Date | tisty_nl::Mark::Deadline)
+                    || (matches!(s.mark, tisty_nl::Mark::Repeat) && got.date.is_some())
+            })
             .map(|s| match s.certainty {
                 tisty_nl::Certainty::Sure => "sure",
                 tisty_nl::Certainty::Assumed => "assumed",

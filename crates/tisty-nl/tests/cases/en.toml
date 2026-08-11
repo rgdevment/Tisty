@@ -223,8 +223,9 @@ date = "2026-08-06"
 
 [[case]]
 input = "backup every day"
-title = "backup every day"
-why = "recurrence lands in phase 3; until then it stays in the title"
+title = "backup"
+repeat = "done:1d"
+why = "an interval with no day named counts from the doing"
 
 [[case]]
 input = "fix the checkout !urgent"
@@ -289,10 +290,11 @@ time = "17:30"
 
 [[case]]
 input = "take the pills every day at 10 for 30 days"
-title = "take the pills every day for 30 days"
+title = "take the pills for 30 days"
 date = "2026-08-05"
 time = "10:00"
-why = "«for 30 days» is a duration and stays written: inventing a date a month out was worse than leaving it undated. «every day» waits for recurrence"
+repeat = "done:1d"
+why = "the cadence is read; «for 30 days» stays written, because how long a course lasts is not a date and inventing one a month out was worse than leaving it undated"
 
 [[case]]
 input = "take the medicine at 10am for 1 month"
@@ -482,7 +484,7 @@ why = "same as «with»: the preposition behind it means the phrase is not a nam
 [[case]]
 input = "run the tests for 30 days"
 title = "run the tests for 30 days"
-why = "«for 30 days» is how long it lasts, not when: a duration is not a date. Recurrence is a phase 3 gap"
+why = "«for 30 days» is how long it lasts, not when: a duration is not a date"
 
 [[case]]
 input = "renew the domain by august 30"
@@ -588,8 +590,9 @@ why = "a day of the month already past rolls to the NEXT MONTH, not the next yea
 
 [[case]]
 input = "take the pills every day for 30 days"
-title = "take the pills every day for 30 days"
-why = "a duration is not a date; recurrence is a phase 3 gap"
+title = "take the pills for 30 days"
+repeat = "done:1d"
+why = "a duration is not a date; the cadence is read and «for 30 days» stays written"
 
 [[case]]
 input = "a course of 3 months"
@@ -660,3 +663,72 @@ why = "the mirror of «antes de 3 días»: English puts no article between, so t
 input = "pay on 8/15"
 title = "pay on 8/15"
 why = "KNOWN GAP: month/day is how the United States writes it, and the parser reads day/month. Month 15 does not exist, so nothing is invented — but nothing is read either"
+
+# ─────────────────────────────────────────────────────────────
+#  Repeating: naming a day fixes it, an interval makes it relative
+# ─────────────────────────────────────────────────────────────
+
+[[case]]
+input = "take out the bins every tuesday"
+title = "take out the bins"
+date = "2026-08-11"
+repeat = "due:1w"
+why = "it names the day, so the bin goes out on Tuesday whether or not it went last week"
+
+[[case]]
+input = "team meeting each monday"
+title = "team meeting"
+date = "2026-08-10"
+repeat = "due:1w"
+
+[[case]]
+input = "water the plants every 3 days"
+title = "water the plants"
+repeat = "done:3d"
+why = "an interval with no day counts from the doing, which is what a habit wants"
+
+[[case]]
+input = "pay the rent every month"
+title = "pay the rent"
+repeat = "done:1m"
+
+[[case]]
+input = "check the backups every 2 weeks"
+title = "check the backups"
+repeat = "done:2w"
+
+[[case]]
+input = "renew the domain every year"
+title = "renew the domain"
+repeat = "done:1y"
+
+[[case]]
+input = "stretch every day"
+title = "stretch"
+repeat = "done:1d"
+
+[[case]]
+input = "buy bread tomorrow"
+title = "buy bread"
+date = "2026-08-06"
+why = "no «every», nothing to repeat"
+
+[[case]]
+input = "back up the laptop daily"
+title = "back up the laptop"
+repeat = "done:1d"
+
+[[case]]
+input = "send the report weekly"
+title = "send the report"
+repeat = "done:1w"
+
+[[case]]
+input = "pay the rent monthly"
+title = "pay the rent"
+repeat = "done:1m"
+
+[[case]]
+input = "renew the certificate annually"
+title = "renew the certificate"
+repeat = "done:1y"

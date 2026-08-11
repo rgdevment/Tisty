@@ -53,11 +53,24 @@ export function monthOf(iso?: string, now = new Date()): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return "";
 
-  const shape =
-    at.getFullYear() === now.getFullYear()
-      ? { month: "long" as const }
-      : { month: "long" as const, year: "numeric" as const };
-  return new Intl.DateTimeFormat(locale(), shape).format(at);
+  const here = at.getFullYear() === now.getFullYear();
+  return months(here).format(at);
+}
+
+let named: { for: string; here: Intl.DateTimeFormat; away: Intl.DateTimeFormat } | null = null;
+
+/// Built once: the archive calls this per task, and a formatter costs more than
+/// the comparison it feeds.
+function months(here: boolean): Intl.DateTimeFormat {
+  const code = locale();
+  if (named?.for !== code) {
+    named = {
+      for: code,
+      here: new Intl.DateTimeFormat(code, { month: "long" }),
+      away: new Intl.DateTimeFormat(code, { month: "long", year: "numeric" }),
+    };
+  }
+  return here ? named.here : named.away;
 }
 
 export const isToday = (spec: DateSpec, now = new Date()): boolean =>

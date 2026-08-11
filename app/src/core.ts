@@ -48,9 +48,16 @@ export interface Task {
   list?: string;
   tags?: string[];
   reminders?: DateSpec[];
+  repeat?: Repeat;
   completed_at?: string;
   hidden?: boolean;
   volume?: Volume;
+}
+
+/** «due» counts off the calendar, «done» counts from when you finished it. */
+export interface Repeat {
+  from: "due" | "done";
+  each: { every: number; unit: "day" | "week" | "month" | "year" };
 }
 
 export interface List {
@@ -77,7 +84,7 @@ export interface Snapshot {
   locale?: string;
 }
 
-export type Mark = "date" | "deadline" | "list" | "tag" | "priority";
+export type Mark = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
 
 /** `assumed` is applied all the same; the window only says so. */
 export type Certainty = "sure" | "assumed";

@@ -64,6 +64,7 @@ no-meeting-place = "no se llega a {at}: ¿está el disco conectado, o la carpeta
 other-store    = "ese remoto ya es de otro almacén ({id})"
 sync-unreadable = "lo que llegó no se puede leer: {why}"
 sync-broke     = "no se pudo terminar la copia: {why}"
+repeat-ended   = "la repetición termina aquí; no se creará ninguna más"
 would-merge    = "esa carpeta ya guarda otro historial ({id}). Si es tu otro equipo, únelos con `tisty sync --merge` — no se puede deshacer"
 remote-inside  = "{at} está dentro de la carpeta de Tisty — elige una fuera"
 synced-new     = "sincronizado, y llegó algo"
