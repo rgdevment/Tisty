@@ -66,3 +66,60 @@ describe("what the capture field teaches", () => {
     expect(screen.getByText("every tuesday")).toBeTruthy();
   });
 });
+
+describe("the / menu on a fresh install", () => {
+  /// Zero lists and zero tags used to mean a menu with nothing in it, which
+  /// rendered as nothing at all — and there is no other place that says typing
+  /// the name is what creates one.
+  it("says how a list is made when there are none", async () => {
+    const { default: SlashMenu } = await import("../ui/SlashMenu");
+    render(
+      <SlashMenu
+        from="list"
+        query=""
+        lists={[]}
+        tags={[]}
+        onDate={() => {}}
+        onInsert={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("status").textContent).toMatch(/No lists yet/i);
+  });
+
+  it("says the same for tags", async () => {
+    const { default: SlashMenu } = await import("../ui/SlashMenu");
+    render(
+      <SlashMenu
+        from="tag"
+        query=""
+        lists={[]}
+        tags={[]}
+        onDate={() => {}}
+        onInsert={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("status").textContent).toMatch(/No tags yet/i);
+  });
+
+  /// The top level with nothing matching is still nothing to show.
+  it("stays out of the way when the query matches no field", async () => {
+    const { default: SlashMenu } = await import("../ui/SlashMenu");
+    const { container } = render(
+      <SlashMenu
+        from={null}
+        query="zzzz"
+        lists={[]}
+        tags={[]}
+        onDate={() => {}}
+        onInsert={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(container.firstChild).toBeNull();
+  });
+});

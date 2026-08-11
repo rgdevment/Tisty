@@ -186,11 +186,6 @@ export const patch = (id: string, change: Change): Promise<Task> =>
   invoke("patch", { id, change, locale: navigator.language });
 export const writeStep = (id: string, text: string, step?: string): Promise<Task> =>
   invoke("write_step", { id, step, text });
-export const moveStep = (
-  id: string,
-  step: string,
-  at: { after?: string; before?: string },
-): Promise<Task> => invoke("move_step", { id, step, ...at });
 export const markStep = (id: string, step: string, done: boolean): Promise<Task> =>
   invoke("mark_step", { id, step, done });
 export const dropStep = (id: string, step: string): Promise<Task> =>
@@ -199,16 +194,6 @@ export const writeLog = (id: string, body: string, entry?: string): Promise<Task
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
 export const complete = (id: string): Promise<Task> => invoke("complete", { id });
-/** Where it landed, said as its neighbours; the core works out the key. */
-export interface Landing {
-  after?: string;
-  before?: string;
-  list?: string;
-  inbox?: boolean;
-}
-
-export const reorder = (id: string, at: Landing): Promise<Task> =>
-  invoke("reorder", { id, ...at });
 
 /** Brings the file in and answers with the Markdown that references it. */
 export const attach = (path: string, label?: string): Promise<string> =>

@@ -5,7 +5,6 @@ import { attach } from "../core";
 import { t } from "../locales";
 
 interface Props {
-  known: string[];
   /// The steps of the task this prose belongs to, in the order they are drawn,
   /// so «#3» in a journal entry means the third line of the list above it.
   steps?: string[];
@@ -18,8 +17,8 @@ interface Props {
  * there is no third row for one. Attaching IS a third thing: it copies a file
  * into the store, and until now the only way in was dragging one onto the
  * window, which left out anyone not using a mouse. */
-export default function Insert({ known, steps = [], onPut, onClose, onError }: Props) {
-  const [step, setStep] = useState<"pick" | "doc" | "link" | "step">("pick");
+export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
+  const [step, setStep] = useState<"pick" | "link" | "step">("pick");
   const [busy, setBusy] = useState(false);
   const { box, away } = useEdge<HTMLDivElement>();
 
@@ -62,10 +61,7 @@ export default function Insert({ known, steps = [], onPut, onClose, onError }: P
       >
         {step === "pick" && (
           <>
-            <Row first glyph="📄" say={t("sayDoc")} onPick={() => setStep("doc")}>
-              {t("insertDoc")}
-            </Row>
-            <Row glyph="🔗" say={t("sayLink")} onPick={() => setStep("link")}>
+            <Row first glyph="🔗" say={t("sayLink")} onPick={() => setStep("link")}>
               {t("insertLink")}
             </Row>
             <Row glyph="📎" say={busy ? "…" : t("sayAttach")} onPick={pickFile}>
@@ -78,7 +74,6 @@ export default function Insert({ known, steps = [], onPut, onClose, onError }: P
             )}
           </>
         )}
-        {step === "doc" && <Naming known={known} onName={(name) => onPut(`[[${name}]]`)} />}
         {step === "link" && <Linking onLink={(text, url) => onPut(`[${text}](${url})`)} />}
         {step === "step" &&
           steps.map((text, at) => (
@@ -118,41 +113,6 @@ function Row({
   );
 }
 
-function Naming({ known, onName }: { known: string[]; onName: (name: string) => void }) {
-  const [text, setText] = useState("");
-  const typed = text.trim().toLowerCase();
-  const offered = known.filter((one) => one.toLowerCase().includes(typed)).slice(0, 6);
-
-  return (
-    <>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (text.trim()) onName(text.trim());
-        }}
-      >
-        <input
-          autoFocus
-          value={text}
-          placeholder={t("insertDoc")}
-          aria-label={t("insertDoc")}
-          onChange={(e) => setText(e.target.value)}
-          className="mb-1 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none placeholder:text-faint"
-        />
-      </form>
-      {offered.map((one) => (
-        <button
-          key={one}
-          type="button"
-          onClick={() => onName(one)}
-          className="block w-full truncate rounded-md px-2.5 py-1.5 text-left text-ink hover:bg-hover"
-        >
-          {one}
-        </button>
-      ))}
-    </>
-  );
-}
 
 function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
   const [label, setLabel] = useState("");

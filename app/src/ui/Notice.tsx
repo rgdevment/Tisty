@@ -4,6 +4,10 @@ import { whenLabel } from "../format";
 import { t } from "../locales";
 
 interface Props {
+  /// True when what was just filed does not show in the list behind this card:
+  /// written from «upcoming» or «repeating», a task with no date lands on today
+  /// and vanishes from view the instant it is typed.
+  elsewhere?: boolean;
   task: Task;
   lists: List[];
   onOpen: () => void;
@@ -12,7 +16,7 @@ interface Props {
 
 const LINGERS = 6000;
 
-export default function Notice({ task, lists, onOpen, onDismiss }: Props) {
+export default function Notice({ task, lists, elsewhere, onOpen, onDismiss }: Props) {
   useEffect(() => {
     const timer = setTimeout(onDismiss, LINGERS);
     return () => clearTimeout(timer);
@@ -37,6 +41,9 @@ export default function Notice({ task, lists, onOpen, onDismiss }: Props) {
           <h3 className="truncate text-[13px] leading-snug font-medium">{task.title}</h3>
           {said.length > 0 && (
             <p className="mt-0.5 truncate text-[11.5px] text-faint">{said.join(" · ")}</p>
+          )}
+          {elsewhere && (
+            <p className="mt-0.5 text-[11.5px] text-accent">{t("filedElsewhere")}</p>
           )}
         </div>
         <button

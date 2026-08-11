@@ -9,8 +9,8 @@
   --tisty-ink: #1d1d1f;
   --tisty-soft: #57575c;
   --tisty-faint: #67676b;
-  --tisty-line: rgb(0 0 0 / 0.08);
-  --tisty-hair: rgb(0 0 0 / 0.045);
+  --tisty-line: rgb(0 0 0 / 0.16);
+  --tisty-hair: rgb(0 0 0 / 0.09);
   --tisty-hover: rgb(0 0 0 / 0.035);
   --tisty-active: rgb(0 0 0 / 0.06);
   --tisty-accent: #0060e3;
@@ -36,8 +36,8 @@
   --tisty-ink: #f2f2f7;
   --tisty-soft: #adadb4;
   --tisty-faint: #9a9aa1;
-  --tisty-line: rgb(255 255 255 / 0.1);
-  --tisty-hair: rgb(255 255 255 / 0.055);
+  --tisty-line: rgb(255 255 255 / 0.2);
+  --tisty-hair: rgb(255 255 255 / 0.12);
   --tisty-hover: rgb(255 255 255 / 0.045);
   --tisty-active: rgb(255 255 255 / 0.08);
   --tisty-accent: #439bff;

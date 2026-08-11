@@ -49,4 +49,21 @@ describe("the capture notice", () => {
 
     expect(opened).toHaveBeenCalled();
   });
+
+  /// Written from «upcoming» or «repeating», a task with no date lands on today
+  /// and vanishes from the list the instant it is typed. The card said the
+  /// title and nothing about where it went.
+  it("says so when what was filed is not in the list behind it", () => {
+    render(
+      <Notice task={task} lists={[]} elsewhere onOpen={() => {}} onDismiss={() => {}} />,
+    );
+
+    expect(screen.getByText(/Not in this view/i)).toBeTruthy();
+  });
+
+  it("stays quiet when it is right there", () => {
+    render(<Notice task={task} lists={[]} onOpen={() => {}} onDismiss={() => {}} />);
+
+    expect(screen.queryByText(/Not in this view/i)).toBeNull();
+  });
 });

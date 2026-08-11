@@ -49,7 +49,22 @@ export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, 
     return () => document.removeEventListener("keydown", key, true);
   }, [shown, on, onClose]);
 
-  if (shown.length === 0) return null;
+  // An empty menu drawn as nothing is the only place a first user would learn
+  // that typing the name is what creates the list or tag.
+  if (shown.length === 0) {
+    if (step === null) return null;
+    return (
+      <div
+        role="status"
+        ref={box}
+        className={`absolute left-0 z-20 w-[330px] rounded-[10px] border border-line bg-bg px-3 py-2.5 text-[12.5px] leading-relaxed text-soft shadow-lift ${
+          away.up ? "bottom-6" : "top-1"
+        }`}
+      >
+        {t(step === "list" ? "newListHere" : step === "tag" ? "newTagHere" : "noneHere")}
+      </div>
+    );
+  }
 
   return (
     <div

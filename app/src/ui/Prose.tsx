@@ -9,7 +9,6 @@ interface Props {
   value: string;
   hint: string;
   label: string;
-  known: string[];
   steps?: string[];
   beside?: boolean;
   rows?: number;
@@ -26,7 +25,6 @@ export default function Prose({
   value,
   hint,
   label,
-  known,
   steps,
   beside,
   rows = 2,
@@ -111,7 +109,6 @@ export default function Prose({
       />
       {slash !== null && (
         <Insert
-          known={known}
           steps={steps}
           onPut={put}
           onError={onError}

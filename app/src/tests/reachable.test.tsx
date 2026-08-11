@@ -163,7 +163,6 @@ describe("opening a task", () => {
         task={task}
         lists={[]}
         known={[]}
-        refs={[]}
         expanded={false}
         onExpand={() => {}}
         onCollapse={() => {}}
@@ -171,7 +170,6 @@ describe("opening a task", () => {
         onStep={() => {}}
         onMark={() => {}}
         onDropStep={() => {}}
-        onMoveStep={() => {}}
         onLog={() => {}}
         onDiscard={() => {}}
         onReopen={() => {}}

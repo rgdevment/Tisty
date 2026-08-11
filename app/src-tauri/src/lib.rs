@@ -109,17 +109,19 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
         counts.insert(key.to_string(), state.matching(&filter, today()).len());
     };
 
+    // Keyed by what the sidebar actually paints. They used to be «inbox» and
+    // «today», which no entry asks for, so every count up there was blank.
     count(
-        "inbox",
+        "tasks",
         Filter {
-            inbox: true,
+            window: Some(Window::Today),
             ..Default::default()
         },
     );
     count(
-        "today",
+        "archive",
         Filter {
-            window: Some(Window::Today),
+            scope: Scope::Archived,
             ..Default::default()
         },
     );
@@ -132,6 +134,8 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             ..Default::default()
         },
     );
+
+    counts.insert("tags".to_string(), state.tags().len());
 
     for list in state.ordered_lists() {
         counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
@@ -748,35 +752,6 @@ fn dated_field(
         (None, true) => Ok(Some(None)),
         _ => Ok(None),
     }
-}
-
-#[tauri::command]
-fn move_step(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    step: String,
-    after: Option<String>,
-    before: Option<String>,
-) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let step = step.parse().map_err(|_| Refusal::of("notAStepId"))?;
-    let neighbour = |raw: Option<String>| raw.and_then(|one| one.parse().ok());
-
-    let mut session = held(&session);
-    let order = session
-        .state
-        .step_order_between(id, neighbour(after), neighbour(before));
-
-    session.commit(Op::StepReorder {
-        id,
-        d: tisty_core::event::StepReorder { step, order },
-    })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[tauri::command]
@@ -1542,49 +1517,6 @@ fn attach(
     Ok(kept.written(&name))
 }
 
-/// `after` and `before` are the tasks it was dropped between; `list` is only
-/// sent when the drop crossed into another one, so a reorder never refiles.
-#[tauri::command]
-fn reorder(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    after: Option<String>,
-    before: Option<String>,
-    list: Option<String>,
-    inbox: Option<bool>,
-) -> Answer<Task> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let neighbour = |raw: Option<String>| raw.and_then(|one| one.parse().ok());
-
-    let filed = match (list, inbox) {
-        (Some(one), _) => Some(Some(one.parse().map_err(|_| Refusal::of("notAListId"))?)),
-        (None, Some(true)) => Some(None),
-        _ => None,
-    };
-
-    let mut session = held(&session);
-    // With no neighbours the midpoint of nothing is always the same key — the
-    // first position that ever existed — so every filed task would pile there.
-    let order = match (neighbour(after), neighbour(before)) {
-        (None, None) => session.state.order_last_in(filed.flatten()),
-        (a, b) => session.state.order_between(a, b),
-    };
-
-    session.commit(Op::TaskMove {
-        id,
-        d: tisty_core::event::TaskMove {
-            list: filed,
-            order: Some(order),
-        },
-    })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
 #[tauri::command]
 fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
@@ -1830,12 +1762,10 @@ pub fn run() {
             write_log,
             fold,
             discard,
-            reorder,
             attach,
             served,
             opened,
             revealed,
-            move_step,
             sync_state,
             choose_sync,
             sync_now,

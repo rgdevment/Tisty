@@ -7,10 +7,8 @@ import {
   fold,
   dropStep,
   markStep,
-  moveStep,
   patch,
   reopen,
-  reorder,
   snapshot,
   writeLog,
   writeStep,
@@ -256,7 +254,13 @@ export default function App() {
           key={captured.id}
           task={captured}
           lists={data.lists}
+          elsewhere={!data.tasks.some((one) => one.id === captured.id)}
           onOpen={() => {
+            // Taking it to a view that shows it: selecting a task the list is
+            // not drawing would open a panel next to a list without it.
+            if (!data.tasks.some((one) => one.id === captured.id)) {
+              setChosen({ named: "tasks", slice: "all" });
+            }
             setSelected(captured.id);
             setReveal(captured.id);
             dismiss();
@@ -268,7 +272,6 @@ export default function App() {
       <Sidebar
         lists={data.lists}
         counts={data.counts}
-        onFile={(task, list) => act(reorder(task, { list }))}
         chosen={chosen}
         onChoose={(next) => {
           setChosen(next);
@@ -293,7 +296,6 @@ export default function App() {
           task={task}
           lists={data.lists}
           known={data.tags.map((one) => one.tag)}
-          refs={data.refs ?? []}
           expanded
           from={title(chosen, data.lists)}
           onExpand={() => remember("sheet")}
@@ -302,7 +304,6 @@ export default function App() {
           onStep={(text, step) => act(writeStep(task.id, text, step))}
           onMark={(step, done) => act(markStep(task.id, step, done))}
           onDropStep={(step) => act(dropStep(task.id, step))}
-          onMoveStep={(step, after, before) => act(moveStep(task.id, step, { after, before }))}
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
           onDiscard={() => {
             act(discard(task.id));
@@ -317,7 +318,6 @@ export default function App() {
           lists={data.lists}
           title={title(chosen, data.lists)}
           empty={nothing(chosen, found !== null)}
-          byHand={found === null && !!chosen.list}
           note={
             found && found.total > found.tasks.length
               ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
@@ -346,13 +346,6 @@ export default function App() {
           }
           onFold={
             chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined
-          }
-          onDrop={
-            // The archive is sorted by when it closed and a search by how it
-            // matched; dragging inside either would promise an order it has not.
-            chosen.named === "archive" || found !== null
-              ? undefined
-              : (task, after, before) => act(reorder(task, { after, before }))
           }
           above={
             chosen.named === "tasks" ? (
@@ -440,7 +433,6 @@ export default function App() {
           task={task}
           lists={data.lists}
           known={data.tags.map((one) => one.tag)}
-          refs={data.refs ?? []}
           expanded={false}
           onExpand={() => remember("sheet")}
           onCollapse={() => remember("columns")}
@@ -448,7 +440,6 @@ export default function App() {
           onStep={(text, step) => act(writeStep(task.id, text, step))}
           onMark={(step, done) => act(markStep(task.id, step, done))}
           onDropStep={(step) => act(dropStep(task.id, step))}
-          onMoveStep={(step, after, before) => act(moveStep(task.id, step, { after, before }))}
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
           // Same as the full-screen panel: the task leaves the list, so the
           // column that was showing it has nothing left to show.

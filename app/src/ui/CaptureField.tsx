@@ -165,7 +165,7 @@ const alike = (tag: string, written: string): boolean =>
 
 function Hint() {
   return (
-    <div className="flex gap-2.5 overflow-hidden whitespace-nowrap">
+    <div className="flex flex-wrap gap-x-2.5 gap-y-1">
       <span>
         <Key>#</Key> {t("fieldTag")}
       </span>

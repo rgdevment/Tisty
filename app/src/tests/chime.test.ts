@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const started: number[] = [];
+const stopped: number[] = [];
+const pitches: number[] = [];
 const connected: unknown[] = [];
 
 class FakeGain {
@@ -17,10 +19,17 @@ class FakeGain {
 
 class FakeOscillator {
   type = "";
-  frequency = { value: 0 };
+  frequency = {
+    set value(hz: number) {
+      pitches.push(hz);
+    },
+    get value() {
+      return 0;
+    },
+  };
   connect = vi.fn((to: unknown) => to);
   start = vi.fn((at: number) => started.push(at));
-  stop = vi.fn();
+  stop = vi.fn((at: number) => stopped.push(at));
 }
 
 class FakeAudio {
@@ -43,18 +52,38 @@ class FakeAudio {
 describe("the chime", () => {
   beforeEach(() => {
     started.length = 0;
+    stopped.length = 0;
+    pitches.length = 0;
     connected.length = 0;
     FakeAudio.made = 0;
     vi.stubGlobal("AudioContext", FakeAudio);
     vi.resetModules();
   });
 
-  it("plays one note when a task is filed", async () => {
+  /// A single beep reads as a system error. Filing plays a major triad that
+  /// climbs, which is what makes a sound lift rather than merely ping.
+  it("plays a rising figure when a task is filed", async () => {
     const { play } = await import("../chime");
 
     play("filed");
 
-    expect(started).toHaveLength(1);
+    expect(started).toHaveLength(3);
+    expect(started[0]).toBeLessThan(started[1]);
+    expect(started[1]).toBeLessThan(started[2]);
+    expect(pitches).toEqual([...pitches].sort((a, b) => a - b));
+  });
+
+  /// The notes overlap instead of following one another — that is the whole
+  /// difference between a chord opening out and three separate beeps.
+  it("lets each note still be ringing when the next arrives", async () => {
+    const { play } = await import("../chime");
+
+    play("filed");
+
+    const apart = started[1] - started[0];
+    expect(apart).toBeGreaterThan(0);
+    expect(apart).toBeLessThan(0.2);
+    expect(stopped[0]).toBeGreaterThan(started[2]);
   });
 
   /// A reminder has to carry further than the tick of a capture.
@@ -107,5 +136,19 @@ describe("the chime", () => {
     expect(heard("due")).toBe(true);
     expect(heard("explosion")).toBe(false);
     expect(heard(undefined)).toBe(false);
+  });
+
+  /// Told apart across a room: filing opens out, a reminder ticks.
+  it("keeps the two shapes distinct", async () => {
+    const { play } = await import("../chime");
+
+    play("due");
+    const ticks = stopped[0] - started[0];
+    started.length = 0;
+    stopped.length = 0;
+    play("filed");
+    const rings = stopped[0] - started[0];
+
+    expect(rings).toBeGreaterThan(ticks);
   });
 });
