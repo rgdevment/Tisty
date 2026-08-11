@@ -1,7 +1,7 @@
 import type { List, View } from "./core";
 import { fill, t } from "./locales";
 
-export type Named = "search" | "inbox" | "today" | "upcoming" | "tags" | "archive";
+export type Named = "search" | "inbox" | "today" | "upcoming" | "tags" | "archive" | "keeping";
 
 export interface Chosen {
   named?: Named;
@@ -43,6 +43,7 @@ export function title(chosen: Chosen, lists: List[]): string {
 /** Archive and search have nothing to add to; upcoming has no day to pick. */
 export function accepts(chosen: Chosen): boolean {
   if (chosen.named === "archive" || chosen.named === "search") return false;
+  if (chosen.named === "keeping") return false;
   if (chosen.named === "upcoming") return false;
   if (chosen.named === "tags") return (chosen.tags?.length ?? 0) > 0;
   return true;

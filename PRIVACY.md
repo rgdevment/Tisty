@@ -24,19 +24,25 @@ Here is the accurate statement:
 > synchronisation, your data goes exactly where you told it to go, and whoever
 > runs that destination can technically read it.**
 
-The three transports and what each implies:
+What you can choose, and what each implies:
 
 | You choose | Who else can reach your data |
 |---|---|
 | **Local only** (the default) | Nobody. It never leaves the machine |
-| **A folder inside your cloud** (Dropbox, iCloud, OneDrive, Drive) | That provider, under their terms and their jurisdiction |
-| **Git** | Whoever hosts the repository — GitHub, GitLab, your own server |
+| **A folder your cloud client keeps in step** (Google Drive, OneDrive, iCloud, Dropbox, pCloud…) | That provider, under their terms and their jurisdiction |
+| **A folder on hardware you own** (a NAS, an external drive) | Whoever can reach that hardware |
+| **A backup zip you keep somewhere** | Wherever you put it |
 
-There is no fourth option where Tisty hosts anything. There is no paid tier
-that changes this. **We never operate a server that holds your data**, so
-there is nothing on our side to breach, subpoena, sell, or lose.
+Tisty itself only ever reads and writes local paths. It has no network code for
+syncing, no credentials, and no idea which provider — if any — is behind the
+folder you named. Whatever keeps that folder in step between your machines is
+software you already installed and already trust.
 
-Choosing a transport is choosing who you trust. Tisty makes that choice
+There is no option where Tisty hosts anything. There is no paid tier that
+changes this. **We never operate a server that holds your data**, so there is
+nothing on our side to breach, subpoena, sell, or lose.
+
+Choosing a destination is choosing who you trust. Tisty makes that choice
 visible instead of making it for you.
 
 ## What is stored, and how
@@ -61,10 +67,11 @@ still be readable with tools you already have. That is the point.
 
 ## One consequence worth knowing before it bites you
 
-**Git history does not forget.** If you synchronise through Git and a
-credential ends up in a task, deleting the task removes it from the current
-state but not from history — and once pushed to a remote, it cannot be purged
-without rewriting that history everywhere it has been cloned.
+**An append-only log does not forget.** If a credential ends up in a task,
+deleting the task removes it from the current state but not from the history
+underneath — and if it already travelled to the shared folder, it is on every
+machine that pulled it, plus whatever the provider keeps in its own version
+history.
 
 The `private/` folder exists for exactly this. Prevention is the only real
 defence, because the remedy barely exists.

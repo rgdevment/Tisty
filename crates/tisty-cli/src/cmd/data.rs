@@ -8,8 +8,8 @@ use crate::i18n::Lang;
 use crate::{ConfigAction, EXIT_NOT_FOUND, render, style};
 
 /// `device_id` is absent on purpose: editing it orphans what this machine wrote.
-const KEYS: &[&str] = &["locale", "editor"];
-const READABLE: &[&str] = &["device_id", "locale", "editor"];
+const KEYS: &[&str] = &["locale", "editor", "remote"];
+const READABLE: &[&str] = &["device_id", "locale", "editor", "remote"];
 
 pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow::Result<ExitCode> {
     match action {
@@ -19,6 +19,7 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
             show("device_id", Some(&config.device_id.0));
             show("locale", config.locale.as_deref());
             show("editor", config.editor.as_deref());
+            show("remote", value(app, "remote")?.as_deref());
             show("data_dir", Some(&app.paths.data().display().to_string()));
             println!();
             Ok(ExitCode::SUCCESS)
@@ -57,6 +58,7 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
 
             app.edit_config(|c| match key.as_str() {
                 "locale" => c.locale = Some(value.clone()),
+                "remote" => c.sync = Some(tisty_core::config::Sync::Folder(value.clone().into())),
                 _ => c.editor = Some(value.clone()),
             })?;
             println!("  {} {key} = {value}", style::paint(style::GREEN, "✓"));
@@ -67,6 +69,7 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
             check(&key, lang)?;
             app.edit_config(|c| match key.as_str() {
                 "locale" => c.locale = None,
+                "remote" => c.sync = Some(tisty_core::config::Sync::Local),
                 _ => c.editor = None,
             })?;
             println!("  {} {key}", style::dim("✕"));
@@ -88,6 +91,10 @@ fn value(app: &App, key: &str) -> anyhow::Result<Option<String>> {
         "device_id" => Ok(Some(config.device_id.0.clone())),
         "locale" => Ok(config.locale.clone()),
         "editor" => Ok(config.editor.clone()),
+        "remote" => Ok(match &config.sync {
+            Some(tisty_core::config::Sync::Folder(at)) => Some(at.display().to_string()),
+            _ => None,
+        }),
         "data_dir" => Ok(Some(app.paths.data().display().to_string())),
         _ => Ok(None),
     }

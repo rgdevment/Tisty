@@ -23,6 +23,12 @@ const KNOWN = [
   "pastReminder",
   "cannotRead",
   "cannotOpen",
+  "noRemote",
+  "noMeetingPlace",
+  "syncUnreadable",
+  "sharedIsTheBackup",
+  "otherStore",
+  "cannotWrite",
   "internal",
 ] as const;
 

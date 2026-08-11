@@ -1,6 +1,7 @@
 //! Domain core: never prints — the GUI is a client too, not just the terminal.
 
 pub mod attach;
+pub mod backup;
 pub mod cache;
 pub mod capture;
 pub mod config;
@@ -33,6 +34,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("{0} points outside the store")]
     OutsideTheStore(String),
+    #[error("that backup belongs to another store ({theirs})")]
+    OtherStore { theirs: String },
     #[error("serialization error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("malformed event at {file}:{line}: {source}")]

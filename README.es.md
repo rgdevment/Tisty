@@ -206,8 +206,9 @@ Un directorio con archivos de texto:
 Vive en el directorio de datos locales de tu sistema, y eso no se configura:
 un gestor de tareas que te deje meter su propio almacén en una carpeta que un
 cliente de nube reescribe por detrás te está dando un arma cargada. Sincronizar
-es otra cosa, y será a petición — Tisty sube y baja cuando se lo pides, así
-que ningún proceso ajeno se mete entre la app y tus ficheros.
+es otra cosa: Tisty **deja copias** en una carpeta que tus dos equipos alcancen
+y **se trae las que dejaron los demás**. Son dos rutas distintas, y solo una la
+eliges tú.
 
 Tu configuración nunca viaja con ellos. El identificador de dispositivo vive en
 el fichero de configuración precisamente para quedarse en esta máquina: si
@@ -220,7 +221,29 @@ máquina escribe únicamente en su propio directorio**, así que fusionar dos
 historias es concatenarlas.
 
 Eso es una sola lista, no una por máquina. Cada dispositivo lee todos los
-directorios y los reproduce en orden; solo escribe en el suyo.
+directorios y los reproduce en orden; solo escribe en el suyo. Por eso una
+carpeta sincronizada nunca produce uno de esos `fichero (copia en conflicto)`:
+dos escritores jamás tocan el mismo fichero.
+
+## Dos máquinas
+
+Apunta Tisty a una carpeta que tus dos equipos ya alcancen —la que mantiene al
+día tu cliente de Google Drive, OneDrive o iCloud; un NAS montado; un disco
+externo que enchufas los viernes— y el resto lo hace solo: baja al abrir la ventana, sube al
+rato de que cambies algo, y ambas cada cierto tiempo. Nunca bloquea una
+escritura ni te interrumpe; si la carpeta no está, lo reintenta en silencio.
+
+No hay fusión ni «¿cuál es más nueva?», porque el directorio de un dispositivo
+tiene un único escritor: subiendo manda la tuya, bajando manda la suya.
+
+Quién mantenga esa carpeta no es asunto de Tisty, y no hay nada nuestro en medio
+—ni cuenta, ni servidor, ni proceso residente—. Si no sincronizas nada, Tisty no
+abre un socket en su vida.
+
+**O respalda a mano.** Un zip, guardado donde quieras. Restaurar es una foto:
+vuelves a ese momento y lo posterior se pierde a propósito. Las dos cosas se
+excluyen — la carpeta compartida ya contiene la historia de todas las máquinas,
+así que una foto al lado solo sería una verdad rival.
 
 ## Instalación
 
@@ -240,10 +263,12 @@ cargo install --path crates/tisty-cli
 | ✅ | CLI: capturar, listar, completar, ver detalle |
 | ✅ | Lenguaje natural: `tisty "desplegar la API mañana a las 10"` |
 | ✅ | Bitácora, pasos, listas, etiquetas, búsqueda y deshacer desde la terminal |
-| ◐ | Filtros compuestos de `ls`, `config`, `export` |
-| ⬜ | Sincronización por Git o por la carpeta de tu nube |
-| ⬜ | Interfaz gráfica (Tauri) |
-| ⬜ | Documentos en Markdown |
+| ✅ | Filtros compuestos de `ls`, `config`, `export`, `--json`, códigos de salida |
+| ✅ | Interfaz gráfica (Tauri): tres columnas, arrastrar y soltar, adjuntos |
+| ✅ | Markdown en descripciones y bitácora |
+| ✅ | Sincronización por una carpeta que alcancen los dos equipos, y respaldo a mano |
+| ◐ | Uso diario, que es lo que saca los fallos que los tests no |
+| ⬜ | Binarios empaquetados para Windows y macOS |
 
 ## Qué nunca va a hacer
 

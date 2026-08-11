@@ -46,9 +46,9 @@ here so it is not a surprise.
 ## What it does with your data
 
 Nothing. Tisty stores your tasks on your own machine and speaks to no server of
-ours — there is none. Synchronisation, when you turn it on, goes to a Git remote
-**you choose**, and what happens there is between you and whoever hosts it. See
-[PRIVACY.md](PRIVACY.md).
+ours — there is none. Synchronisation, when you turn it on, copies files into a
+folder **you choose**, and what happens there is between you and whoever keeps
+that folder in step. See [PRIVACY.md](PRIVACY.md).
 
 Stores report their own aggregate figures — downloads, crashes, versions — to
 the developer account. That comes from the store, not from the program, and it

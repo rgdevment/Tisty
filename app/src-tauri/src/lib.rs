@@ -11,6 +11,7 @@ use tisty_core::{
 /// The CLI writes to the same store while the window is open, so this can go stale under it.
 struct Session {
     paths: Paths,
+    config: Config,
     state: State,
     store: Store,
     cache: Option<tisty_core::cache::Cache>,
@@ -28,13 +29,29 @@ impl Session {
         let print = tisty_core::cache::fingerprint(&paths.store());
 
         Ok(Self {
+            locale: config.locale.clone(),
             paths,
+            config,
             state,
             store,
             cache,
             print,
-            locale: config.locale,
         })
+    }
+
+    /// Read from disk before writing: the terminal edits the same file while
+    /// the window is open, and saving a copy from startup would undo it.
+    fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
+        let mut fresh = Config::load(&self.paths.config_file())
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| self.config.clone());
+        change(&mut fresh);
+        fresh
+            .save(&self.paths)
+            .map_err(|e| Refusal::about("internal", e.to_string()))?;
+        self.config = fresh;
+        Ok(())
     }
 
     fn reload(&mut self) -> tisty_core::Result<bool> {
@@ -874,6 +891,158 @@ fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> An
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Carrying {
+    chosen: Option<String>,
+    asked: bool,
+    backs_up: bool,
+    last: Option<String>,
+    loose: usize,
+}
+
+#[tauri::command]
+fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
+    let session = held(&session);
+    let audit = tisty_core::cache::audit(&session.paths.store(), session.paths.cache())
+        .map_err(|_| Refusal::of("internal"))?;
+
+    let held: Vec<String> = session
+        .state
+        .tasks
+        .values()
+        .flat_map(|task| task.references())
+        .map(|one| one.target)
+        .collect();
+    let adrift = tisty_core::attach::loose(session.paths.data(), &held);
+
+    Ok(Reviewed {
+        tasks: session.state.tasks.len(),
+        lists: session.state.lists.len(),
+        agrees: matches!(audit, tisty_core::cache::Audit::Agrees { .. }),
+        loose: adrift.files,
+        loose_bytes: adrift.bytes,
+    })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Reviewed {
+    tasks: usize,
+    lists: usize,
+    agrees: bool,
+    loose: usize,
+    loose_bytes: u64,
+}
+
+#[tauri::command]
+fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
+    let session = held(&session);
+    let config = &session.config;
+
+    let held: Vec<String> = session
+        .state
+        .tasks
+        .values()
+        .flat_map(|task| task.references())
+        .map(|one| one.target)
+        .collect();
+
+    Ok(Carrying {
+        chosen: match &config.sync {
+            Some(tisty_core::config::Sync::Folder(at)) => Some(at.display().to_string()),
+            _ => None,
+        },
+        asked: config.sync.is_some(),
+        backs_up: config.backs_up(),
+        last: config.synced_at.map(|at| at.to_string()),
+        loose: tisty_core::attach::loose(session.paths.data(), &held).files,
+    })
+}
+
+#[tauri::command]
+fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) -> Answer<()> {
+    let mut session = held(&session);
+    let chosen = match dest
+        .map(|one| one.trim().to_string())
+        .filter(|one| !one.is_empty())
+    {
+        Some(dest) => tisty_core::config::Sync::Folder(dest.into()),
+        None => tisty_core::config::Sync::Local,
+    };
+    session.keep(|c| c.sync = Some(chosen))
+}
+
+#[tauri::command]
+async fn sync_now(session: tauri::State<'_, Mutex<Session>>, way: Option<String>) -> Answer<bool> {
+    let (dest, root, device) = {
+        let session = held(&session);
+        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+            return Err(Refusal::of("noRemote"));
+        };
+        (
+            dest,
+            session.paths.store(),
+            session.config.device_id.0.clone(),
+        )
+    };
+
+    let before = tisty_core::cache::fingerprint(&root);
+    let way = match way.as_deref() {
+        Some("push") => tisty_sync::Way::Push,
+        Some("pull") => tisty_sync::Way::Pull,
+        _ => tisty_sync::Way::Both,
+    };
+
+    let here = root.clone();
+    tauri::async_runtime::spawn_blocking(move || tisty_sync::carry(&here, &device, &dest, way))
+        .await
+        .map_err(|_| Refusal::of("internal"))?
+        .map_err(said)?;
+
+    let mut session = held(&session);
+    session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
+    let moved = tisty_core::cache::fingerprint(&root) != before;
+    if moved {
+        session.reload()?;
+    }
+    Ok(moved)
+}
+
+#[tauri::command]
+fn back_up(session: tauri::State<'_, Mutex<Session>>, into: String) -> Answer<u64> {
+    let session = held(&session);
+    if !session.config.backs_up() {
+        return Err(Refusal::of("sharedIsTheBackup"));
+    }
+    tisty_core::backup::write(session.paths.data(), std::path::Path::new(&into))
+        .map(|made| made.bytes)
+        .map_err(|_| Refusal::about("cannotWrite", into))
+}
+
+#[tauri::command]
+fn restore(session: tauri::State<'_, Mutex<Session>>, from: String) -> Answer<usize> {
+    let mut session = held(&session);
+    if !session.config.backs_up() {
+        return Err(Refusal::of("sharedIsTheBackup"));
+    }
+    let done = tisty_core::backup::read(&session.paths.clone(), std::path::Path::new(&from))
+        .map_err(|e| match e {
+            tisty_core::Error::OtherStore { theirs } => Refusal::about("otherStore", theirs),
+            _ => Refusal::about("cannotRead", from.clone()),
+        })?;
+    session.reload()?;
+    Ok(done.files)
+}
+
+fn said(trouble: tisty_sync::Trouble) -> Refusal {
+    match trouble {
+        tisty_sync::Trouble::NotThere(at) => Refusal::about("noMeetingPlace", at),
+        tisty_sync::Trouble::OtherStore { theirs } => Refusal::about("otherStore", theirs),
+        tisty_sync::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
+    }
+}
+
 /// Guarded by `attach::resolve`: without it a description could name any file
 /// on the disk and the window would show it.
 #[tauri::command]
@@ -1054,6 +1223,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
             let _ = std::fs::create_dir_all(&attachments);
             app.handle()
@@ -1063,9 +1233,31 @@ pub fn run() {
         })
         .manage(Mutex::new(session))
         .invoke_handler(tauri::generate_handler![
-            snapshot, capture, read, search, complete, reopen, patch, write_step, mark_step,
-            drop_step, write_log, fold, discard, reorder, attach, served, opened, revealed,
-            move_step
+            snapshot,
+            capture,
+            read,
+            search,
+            complete,
+            reopen,
+            patch,
+            write_step,
+            mark_step,
+            drop_step,
+            write_log,
+            fold,
+            discard,
+            reorder,
+            attach,
+            served,
+            opened,
+            revealed,
+            move_step,
+            sync_state,
+            choose_sync,
+            sync_now,
+            back_up,
+            restore,
+            checked
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

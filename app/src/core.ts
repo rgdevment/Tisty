@@ -202,6 +202,34 @@ export const served = (reference: string): Promise<string> =>
 /** Hands the reference to the system: its viewer, its reader, its browser. */
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 
+/** What the maintenance area needs to say, in one answer. */
+export interface Carrying {
+  chosen?: string;
+  /** False until somebody chose; that is what opens the assistant. */
+  asked: boolean;
+  /** False once a shared folder is set: it already is the backup. */
+  backsUp: boolean;
+  last?: string;
+  loose: number;
+}
+
+export interface Reviewed {
+  tasks: number;
+  lists: number;
+  agrees: boolean;
+  loose: number;
+  looseBytes: number;
+}
+
+export const checked = (): Promise<Reviewed> => invoke("checked");
+export const syncState = (): Promise<Carrying> => invoke("sync_state");
+/** No destination means «only on this machine», which is an answer, not a blank. */
+export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
+/** True when something came back. */
+export const syncNow = (way?: "push" | "pull"): Promise<boolean> => invoke("sync_now", { way });
+export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
+export const restore = (from: string): Promise<number> => invoke("restore", { from });
+
 /** Shows a file in its folder: for what the store never held, and for anything runnable. */
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
