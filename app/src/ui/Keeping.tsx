@@ -6,7 +6,6 @@ import {
   checked,
   chooseSync,
   facts,
-  forgetLogs,
   keepReport,
   logs,
   reachFor,
@@ -22,7 +21,6 @@ import {
   type About,
   type Carrying,
   type Reach,
-  type Logs,
   type Settings,
   type Reviewed,
 } from "../core";
@@ -41,8 +39,7 @@ type Which =
   | "quick"
   | "settings"
   | "report"
-  | "store"
-  | "logs";
+  | "store";
 type Word = { card: Which; text: string };
 type Tab = "data" | "notices" | "writing" | "upkeep";
 
@@ -69,9 +66,8 @@ export default function Keeping({ onChanged }: Props) {
   const [said, setSaid] = useState<Word>();
   // In the card, not the window banner, which would hang over every view.
   const [trouble, setTrouble] = useState<Word>();
-  const [told, setTold] = useState({ names: false, paths: false });
+  const [told, setTold] = useState({ names: false, paths: false, logs: true });
   const [paper, setPaper] = useState<string | null>(null);
-  const [record, setRecord] = useState<Logs | null>(null);
 
   const look = useCallback(() => {
     syncState()
@@ -93,9 +89,6 @@ export default function Keeping({ onChanged }: Props) {
       .catch(() => {});
     about()
       .then(setBuild)
-      .catch(() => {});
-    logs(0)
-      .then(setRecord)
       .catch(() => {});
   }, []);
 
@@ -232,10 +225,18 @@ export default function Keeping({ onChanged }: Props) {
 
   const showReport = () => {
     if (held || paper !== null) return;
-    quietly("report", compose(), setPaper);
+    // What is on screen is what goes in the file, log included: «it is redacted»
+    // is a promise, and the text underneath is the proof.
+    quietly(
+      "report",
+      Promise.all([compose(), told.logs ? logs(TAIL) : Promise.resolve(null)]).then(
+        ([text, kept]) => (kept ? `${text}\n${LOGS}\n${kept.lines.join("\n")}\n` : text),
+      ),
+      setPaper,
+    );
   };
 
-  const changeTold = (next: { names: boolean; paths: boolean }) => {
+  const changeTold = (next: typeof told) => {
     setTold(next);
     // Or the screen would show one redaction while saving another.
     setPaper(null);
@@ -246,13 +247,13 @@ export default function Keeping({ onChanged }: Props) {
     setSaid(undefined);
     setTrouble(undefined);
     Promise.all([
-      save({ defaultPath: "tisty-report.txt", filters: [{ name: "Tisty", extensions: ["txt"] }] }),
+      save({ defaultPath: "tisty-report.zip", filters: [{ name: "Tisty", extensions: ["zip"] }] }),
       paper !== null ? Promise.resolve(paper) : compose(),
     ])
       .then(([at, text]) => {
         setPaper(text);
         if (typeof at !== "string") return;
-        quietly("report", keepReport(at, text), () =>
+        quietly("report", keepReport(at, text, told.logs), () =>
           setSaid({ card: "report", text: fill("reportKept", at) }),
         );
       })
@@ -268,47 +269,6 @@ export default function Keeping({ onChanged }: Props) {
       })
       .then(() => setSaid({ card: "report", text: t("reportCopied") }))
       .catch(() => setTrouble({ card: "report", text: t("reportNoClipboard") }));
-  };
-
-  const showLogs = () => {
-    if (held || (record?.lines.length ?? 0) > 0) return;
-    quietly("logs", logs(TAIL), setRecord);
-  };
-
-  const saveLogs = () => {
-    if (held) return;
-    setSaid(undefined);
-    setTrouble(undefined);
-    Promise.all([
-      save({ defaultPath: "tisty-log.txt", filters: [{ name: "Tisty", extensions: ["txt"] }] }),
-      logs(TAIL),
-    ])
-      .then(([at, all]) => {
-        setRecord(all);
-        if (typeof at !== "string") return;
-        quietly("logs", keepReport(at, `${all.lines.join("\n")}\n`), () =>
-          setSaid({ card: "logs", text: fill("reportKept", at) }),
-        );
-      })
-      .catch((e) => setTrouble({ card: "logs", text: saidPlainly(e) }));
-  };
-
-  const openLogs = () => {
-    if (held || !record) return;
-    revealed(record.at).catch((e) => setTrouble({ card: "logs", text: saidPlainly(e) }));
-  };
-
-  const emptyLogs = () => {
-    if (held) return;
-    ask(t("logsSure"), { kind: "warning" })
-      .then((sure) => {
-        if (!sure) return;
-        quietly("logs", forgetLogs().then(() => logs(0)), (now) => {
-          setRecord(now);
-          setSaid({ card: "logs", text: t("logsForgot") });
-        });
-      })
-      .catch((e) => setTrouble({ card: "logs", text: saidPlainly(e) }));
   };
 
   const holds = [
@@ -623,6 +583,19 @@ export default function Keeping({ onChanged }: Props) {
                 <label className="flex items-start gap-2 text-[12.5px]">
                   <input
                     type="checkbox"
+                    checked={told.logs}
+                    disabled={held}
+                    onChange={(e) => changeTold({ ...told, logs: e.target.checked })}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    {t("reportLogs")}
+                    <span className="block text-[11.5px] text-faint">{t("reportLogsWhy")}</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-[12.5px]">
+                  <input
+                    type="checkbox"
                     checked={told.names}
                     disabled={held}
                     onChange={(e) => changeTold({ ...told, names: e.target.checked })}
@@ -669,52 +642,6 @@ export default function Keeping({ onChanged }: Props) {
               </div>
             </Card>
 
-            <Card title={t("logsTitle")} which="logs" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("logsWhat")}</p>
-              <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">{t("logsPrivate")}</p>
-
-              {kept && (
-                <label className="mt-2.5 flex items-start gap-2 text-[12.5px]">
-                  <input
-                    type="checkbox"
-                    checked={kept.logsAll}
-                    disabled={held}
-                    onChange={(e) => remember({ ...kept, logsAll: e.target.checked })}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    {t("logsAll")}
-                    <span className="block text-[11.5px] text-faint">{t("logsAllWhy")}</span>
-                  </span>
-                </label>
-              )}
-
-              <details className="mt-2.5" onToggle={showLogs}>
-                <summary className="cursor-pointer text-[12.5px] text-accent">
-                  {t("logsShow")}
-                </summary>
-                <pre className="scroller mt-2 max-h-[22rem] overflow-x-auto rounded-lg bg-hover px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-soft">
-                  {record === null ? "…" : record.lines.join("\n") || t("logsQuiet")}
-                </pre>
-              </details>
-
-              <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-                <button type="button" disabled={held} onClick={saveLogs} className={mild}>
-                  {t("logsSave")}
-                </button>
-                <button type="button" disabled={held} onClick={openLogs} className={mild}>
-                  {t("logsOpen")}
-                </button>
-                <button type="button" disabled={held} onClick={emptyLogs} className={mild}>
-                  {t("logsForget")}
-                </button>
-                {record && record.bytes > 0 && (
-                  <span className="ml-auto text-[11.5px] text-faint">
-                    {fill("logsWeighs", weigh(record.bytes))}
-                  </span>
-                )}
-              </div>
-            </Card>
           </>
         )}
       </div>
@@ -757,10 +684,10 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   settings: "settingsTitle",
   report: "reportTitle",
   store: "aboutStore",
-  logs: "logsTitle",
 };
 
 const TAIL = 300;
+const LOGS = "\n--- tisty.log ---";
 
 function Card({ title, which, busy, said, trouble, children }: CardProps) {
   const waiting = busy !== null && busy !== which;

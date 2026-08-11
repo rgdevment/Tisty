@@ -4349,6 +4349,7 @@ dependencies = [
  "tisty-sync",
  "ulid",
  "winreg",
+ "zip",
 ]
 
 [[package]]

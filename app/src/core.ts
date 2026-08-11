@@ -279,8 +279,6 @@ export interface About {
 export interface Settings {
   quiet: string[];
   attachUpTo: number;
-  /** Also records what worked. Off again next time Tisty starts. */
-  logsAll: boolean;
 }
 
 export interface Logs {
@@ -292,7 +290,6 @@ export interface Logs {
 
 export const logs = (most: number): Promise<Logs> => invoke("logs", { most });
 export const noteTrouble = (code: string): Promise<void> => invoke("note_trouble", { code });
-export const forgetLogs = (): Promise<void> => invoke("forget_logs");
 
 export const settings = (): Promise<Settings> => invoke("settings");
 export const keepSettings = (settings: Settings): Promise<Settings> =>
@@ -301,8 +298,8 @@ export const keepSettings = (settings: Settings): Promise<Settings> =>
 export const about = (): Promise<About> => invoke("about");
 export const facts = (names: boolean, paths: boolean): Promise<Facts> =>
   invoke("facts", { names, paths });
-export const keepReport = (at: string, text: string): Promise<void> =>
-  invoke("keep_report", { at, text });
+export const keepReport = (at: string, text: string, logs: boolean): Promise<void> =>
+  invoke("keep_report", { at, text, logs });
 export const rebuild = (): Promise<void> => invoke("rebuild");
 export const checked = (): Promise<Reviewed> => invoke("checked");
 export const syncState = (): Promise<Carrying> => invoke("sync_state");

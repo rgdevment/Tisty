@@ -1174,13 +1174,60 @@ fn facts(
 /// Written by us and not by a file plugin: the only thing the window may put on
 /// disk unasked is the report it just showed, at the path the dialog returned.
 #[tauri::command(async)]
-fn keep_report(at: String, text: String) -> Answer<()> {
+fn keep_report(
+    session: tauri::State<'_, Mutex<Session>>,
+    at: String,
+    text: String,
+    logs: bool,
+) -> Answer<()> {
     let path = std::path::PathBuf::from(&at);
-    if path.extension().is_none_or(|kind| kind != "txt") {
+    if path.extension().is_none_or(|kind| kind != "zip") {
         return Err(Refusal::about("cannotWrite", at));
     }
-    tisty_core::store::write_atomic(&path, text.as_bytes())
-        .map_err(|_| Refusal::about("cannotWrite", at))
+
+    let carried: Vec<(String, Vec<u8>)> = if logs {
+        let session = held(&session);
+        let live = witness::file(&session.paths);
+        [live.clone(), live.with_extension("log.1")]
+            .into_iter()
+            .filter_map(|one| {
+                let named = one.file_name()?.to_string_lossy().into_owned();
+                Some((named, std::fs::read(&one).ok()?))
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    bundled(&path, &text, &carried)
+        .map_err(|e| blamed(channel::WINDOW, "the report would not be written", e))
+}
+
+fn bundled(
+    at: &std::path::Path,
+    text: &str,
+    carried: &[(String, Vec<u8>)],
+) -> tisty_core::Result<()> {
+    use std::io::Write;
+    let file = std::fs::File::create(at)?;
+    let _ = tisty_core::paths::ours_alone(at);
+    let mut zip = zip::ZipWriter::new(file);
+    let plain = zip::write::SimpleFileOptions::default();
+
+    let mut put = |named: &str, body: &[u8]| -> tisty_core::Result<()> {
+        zip.start_file(named, plain)
+            .map_err(|e| tisty_core::Error::Io(std::io::Error::other(e)))?;
+        zip.write_all(body)?;
+        Ok(())
+    };
+
+    put("report.txt", text.as_bytes())?;
+    for (named, body) in carried {
+        put(named, body)?;
+    }
+    zip.finish()
+        .map_err(|e| tisty_core::Error::Io(std::io::Error::other(e)))?;
+    Ok(())
 }
 
 /// Every code a refusal can carry. A `Fact::Code` is a `&'static str`, and one
@@ -1260,13 +1307,6 @@ fn logs(session: tauri::State<'_, Mutex<Session>>, most: usize) -> Answer<Logs> 
     })
 }
 
-#[tauri::command(async)]
-fn forget_logs(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
-    let session = held(&session);
-    witness::forget(&session.paths)
-        .map_err(|e| blamed(channel::WINDOW, "the log would not empty", e))
-}
-
 /// The terminal can change the language while the window is open.
 fn language<R: tauri::Runtime>(app: &tauri::AppHandle<R>, locale: &Option<String>) {
     tray::reword(
@@ -1309,9 +1349,6 @@ struct Settings {
     quiet: Vec<String>,
     /// In bytes, already clamped to what the core will accept.
     attach_up_to: u64,
-    /// Records what worked too. Never saved: it goes back off on the next
-    /// start, so nobody leaves a noisy log running for a month.
-    logs_all: bool,
 }
 
 #[tauri::command]
@@ -1320,7 +1357,6 @@ fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     Ok(Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
-        logs_all: witness::keeping_all(),
     })
 }
 
@@ -1343,11 +1379,9 @@ fn keep_settings(
         config.quiet = (!quiet.is_empty()).then_some(quiet);
         config.attach_up_to = Some(up_to);
     })?;
-    witness::keeps(witness::file(&session.paths), settings.logs_all);
     let now = Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
-        logs_all: witness::keeping_all(),
     };
     drop(session);
     // Channels are registered once at startup, so without this the switch said
@@ -2116,8 +2150,7 @@ pub fn run() {
             facts,
             keep_report,
             note_trouble,
-            logs,
-            forget_logs
+            logs
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -2232,5 +2265,51 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(edits.retitled(text, &read), None);
+    }
+
+    /// One file to attach to an issue, and the log only if it was asked for.
+    #[test]
+    fn a_report_is_one_zip_that_carries_what_was_ticked() {
+        let tmp = tempfile::tempdir().unwrap();
+        let at = tmp.path().join("tisty-report.zip");
+        let log = (
+            "tisty.log".to_string(),
+            b"WARN sync folder unreachable
+"
+            .to_vec(),
+        );
+
+        bundled(
+            &at,
+            "# report
+version 0.1.0
+",
+            std::slice::from_ref(&log),
+        )
+        .unwrap();
+
+        let mut zip = zip::ZipArchive::new(std::fs::File::open(&at).unwrap()).unwrap();
+        let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
+        assert!(named.contains(&"report.txt".to_string()), "{named:?}");
+        assert!(named.contains(&"tisty.log".to_string()), "{named:?}");
+
+        use std::io::Read;
+        let mut said = String::new();
+        zip.by_name("report.txt")
+            .unwrap()
+            .read_to_string(&mut said)
+            .unwrap();
+        assert!(said.contains("version 0.1.0"), "{said}");
+    }
+
+    #[test]
+    fn a_report_without_the_log_carries_only_itself() {
+        let tmp = tempfile::tempdir().unwrap();
+        let at = tmp.path().join("tisty-report.zip");
+
+        bundled(&at, "# report", &[]).unwrap();
+
+        let zip = zip::ZipArchive::new(std::fs::File::open(&at).unwrap()).unwrap();
+        assert_eq!(zip.file_names().count(), 1);
     }
 }
