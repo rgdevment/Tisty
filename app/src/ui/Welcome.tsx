@@ -2,27 +2,39 @@ import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { chooseSync } from "../core";
 import { t } from "../locales";
+import { saidPlainly } from "../refusal";
 
 interface Props {
   onDone: () => void;
-  onError: (problem: unknown) => void;
 }
 
-export default function Welcome({ onDone, onError }: Props) {
+export default function Welcome({ onDone }: Props) {
   const [busy, setBusy] = useState(false);
+  // Its own, not the window's banner: that one paints under this veil, so the
+  // refusal would be unreadable and the assistant would just sit there mute.
+  const [trouble, setTrouble] = useState<string>();
 
   const settle = (dest?: string) => {
     setBusy(true);
     chooseSync(dest)
       .then(onDone)
-      .catch(onError)
+      .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => setBusy(false));
   };
 
   const pick = () => {
+    if (busy) return;
+    setBusy(true);
+    setTrouble(undefined);
     open({ directory: true })
-      .then((at) => typeof at === "string" && settle(at))
-      .catch(onError);
+      .then((at) => {
+        if (typeof at === "string") return settle(at);
+        setBusy(false);
+      })
+      .catch((e) => {
+        setTrouble(saidPlainly(e));
+        setBusy(false);
+      });
   };
 
   return (
@@ -52,6 +64,8 @@ export default function Welcome({ onDone, onError }: Props) {
             <span className="block text-xs text-faint">{t("welcomeSharedWhy")}</span>
           </button>
         </div>
+
+        {trouble && <p className="mt-3 text-xs text-urgent">{trouble}</p>}
 
         <p className="mt-4 text-xs leading-relaxed text-faint">{t("welcomeRedundancy")}</p>
 

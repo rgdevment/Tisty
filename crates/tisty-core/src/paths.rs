@@ -93,6 +93,21 @@ fn local_config(dirs: &directories::ProjectDirs) -> PathBuf {
     }
 }
 
+/// A home directory is 0755 on most distributions, so the default 0644 puts
+/// every task on the machine within reach of any other local account.
+#[cfg(unix)]
+pub fn ours_alone(at: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let mode = if at.is_dir() { 0o700 } else { 0o600 };
+    std::fs::set_permissions(at, std::fs::Permissions::from_mode(mode))
+}
+
+#[cfg(not(unix))]
+pub fn ours_alone(at: &Path) -> std::io::Result<()> {
+    let _ = at;
+    Ok(())
+}
+
 fn env_path(key: &str) -> Option<PathBuf> {
     std::env::var_os(key)
         .filter(|v| !v.is_empty())

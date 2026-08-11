@@ -36,6 +36,10 @@ impl Store {
         let root = store_root.as_ref().to_path_buf();
         let dir = root.join(&device.0);
         std::fs::create_dir_all(&dir)?;
+        let _ = crate::paths::ours_alone(&dir);
+        if let Some(parent) = dir.parent() {
+            let _ = crate::paths::ours_alone(parent);
+        }
 
         let (active_events, head, seq) = tail_of(&dir.join(ACTIVE))?;
         let seen = active_size(&dir.join(ACTIVE));
@@ -233,8 +237,28 @@ pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
     let at = store_root.as_ref().join(MARKER);
     let fresh = ulid::Ulid::generate().to_string();
     std::fs::create_dir_all(store_root.as_ref())?;
-    write_atomic(&at, fresh.as_bytes())?;
-    Ok(fresh)
+
+    // Created, not written over: the window and the terminal minting at the
+    // same moment would each keep their own name, and from then on the store
+    // would refuse its own folder forever.
+    match File::create_new(&at) {
+        Ok(mut file) => {
+            file.write_all(fresh.as_bytes())?;
+            file.sync_all()?;
+            let _ = crate::paths::ours_alone(&at);
+            Ok(fresh)
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            if let Some(held) = peek_identity(&store_root) {
+                return Ok(held);
+            }
+            // An empty or unreadable marker claims nothing, so it is replaced;
+            // reading back afterwards settles it if two of us did the same.
+            write_atomic(&at, fresh.as_bytes())?;
+            Ok(peek_identity(&store_root).unwrap_or(fresh))
+        }
+        Err(e) => Err(Error::Io(e)),
+    }
 }
 
 /// Reads without writing. A restore has to ask before it decides, and asking
@@ -286,6 +310,11 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
     }
 
     events.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    // A push caught mid-rotation leaves the sealed segment and the identical
+    // `active.tisty` side by side for as long as the cloud client takes. The
+    // key is unique per writer, and `apply` appends steps and journal entries
+    // without asking, so reading both would double every one of them.
+    events.dedup_by(|a, b| a.sort_key() == b.sort_key());
     Ok(events)
 }
 
@@ -293,9 +322,11 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
 /// which keeps the extension: reading one duplicates every event it holds.
 pub fn is_segment(name: &str) -> bool {
     name == ACTIVE
-        || name
-            .strip_suffix(".tisty")
-            .is_some_and(|stem| stem.len() == 6 && stem.bytes().all(|b| b.is_ascii_digit()))
+        || name.strip_suffix(".tisty").is_some_and(|stem| {
+            // Six is what `rotate` writes, but `{:06}` does not truncate: past
+            // 999999 it grows, and a lower bound alone would drop the segment.
+            (6..=10).contains(&stem.len()) && stem.bytes().all(|b| b.is_ascii_digit())
+        })
 }
 
 pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
@@ -405,6 +436,7 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     let tmp = path.with_extension(format!("{}.tmp", std::process::id()));
     {
         let mut file = File::create(&tmp)?;
+        let _ = crate::paths::ours_alone(&tmp);
         file.write_all(contents)?;
         file.sync_all()?;
     }

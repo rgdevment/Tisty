@@ -153,7 +153,6 @@ export default function App() {
             setGreet(false);
             carries.current?.recheck();
           }}
-          onError={(e) => setError(saidPlainly(e))}
         />
       )}
 

@@ -14,6 +14,8 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { stamped } from "../format";
 
+const carried = { came: "syncCame", same: "syncSame", busy: "syncBusy" } as const;
+
 type Which = "sync" | "backup" | "review";
 type Word = { card: Which; text: string };
 
@@ -55,39 +57,49 @@ export default function Keeping({ onChanged }: Props) {
   if (!state) return <main className="overflow-hidden" />;
 
   const carrying = busy === "sync";
+  // Any card busy blocks the others: restoring on top of a running carry is
+  // the pair that must never overlap, and they cannot see each other.
+  const held = busy !== null;
 
   // Joining two histories cannot be undone, so the answer is the person's.
-  const carryNow = () => {
-    if (carrying) return;
+  const carryNow = async () => {
+    if (held) return;
     setBusy("sync");
     setSaid(undefined);
     setTrouble(undefined);
-    syncNow()
-      .then((came) => setSaid({ card: "sync", text: t(came ? "syncCame" : "syncSame") }))
-      .catch(async (problem) => {
+    try {
+      let answer = await syncNow().catch(async (problem) => {
         const refusal = problem as { code?: string; name?: string };
         if (refusal?.code !== "wouldMerge") throw problem;
-        if (!(await ask(fill("joinThem", refusal.name ?? ""), { kind: "warning" }))) return;
-        const came = await syncNow(undefined, true);
-        setSaid({ card: "sync", text: t(came ? "syncCame" : "syncSame") });
-      })
-      .then(() => {
-        look();
-        onChanged();
-      })
-      .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }))
-      .finally(() => setBusy(null));
+        if (!(await ask(fill("joinThem", refusal.name ?? ""), { kind: "warning" }))) {
+          return "declined" as const;
+        }
+        return syncNow(undefined, true);
+      });
+
+      if (answer === "declined") {
+        setTrouble({ card: "sync", text: t("wouldMerge") });
+        return;
+      }
+      setSaid({ card: "sync", text: t(carried[answer]) });
+      look();
+      onChanged();
+    } catch (e) {
+      setTrouble({ card: "sync", text: saidPlainly(e) });
+    } finally {
+      setBusy(null);
+    }
   };
 
   const pickFolder = () => {
-    if (carrying) return;
+    if (held) return;
     open({ directory: true })
       .then((at) => typeof at === "string" && run("sync", chooseSync(at), () => {}))
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
   };
 
   const makeBackup = () => {
-    if (busy) return;
+    if (held) return;
     save({ defaultPath: "tisty-backup.zip", filters: [{ name: "Tisty", extensions: ["zip"] }] })
       .then(
         (at) =>
@@ -100,7 +112,7 @@ export default function Keeping({ onChanged }: Props) {
   };
 
   const takeBackup = () => {
-    if (busy) return;
+    if (held) return;
     open({ filters: [{ name: "Tisty", extensions: ["zip"] }] })
       .then(async (at) => {
         if (typeof at !== "string") return;
@@ -125,20 +137,15 @@ export default function Keeping({ onChanged }: Props) {
           <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
             {state.chosen ? (
               <>
-                <button
-                  type="button"
-                  disabled={carrying}
-                  onClick={carryNow}
-                  className={strong}
-                >
+                <button type="button" disabled={held} onClick={carryNow} className={strong}>
                   {carrying ? t("syncing_") : t("syncNow")}
                 </button>
-                <button type="button" disabled={carrying} onClick={pickFolder} className={mild}>
+                <button type="button" disabled={held} onClick={pickFolder} className={mild}>
                   {t("changeFolder")}
                 </button>
                 <button
                   type="button"
-                  disabled={carrying}
+                  disabled={held}
                   onClick={() => run("sync", chooseSync(undefined), () => {})}
                   className={mild}
                 >
@@ -146,7 +153,7 @@ export default function Keeping({ onChanged }: Props) {
                 </button>
               </>
             ) : (
-              <button type="button" disabled={carrying} onClick={pickFolder} className={strong}>
+              <button type="button" disabled={held} onClick={pickFolder} className={strong}>
                 {t("turnSyncOn")}
               </button>
             )}
@@ -164,10 +171,10 @@ export default function Keeping({ onChanged }: Props) {
           </p>
           {state.backsUp && (
             <div className="mt-2.5 flex items-center gap-2.5">
-              <button type="button" disabled={busy !== null} onClick={makeBackup} className={mild}>
+              <button type="button" disabled={held} onClick={makeBackup} className={mild}>
                 {t("backupMake")}
               </button>
-              <button type="button" disabled={busy !== null} onClick={takeBackup} className={mild}>
+              <button type="button" disabled={held} onClick={takeBackup} className={mild}>
                 {t("backupRestore")}
               </button>
             </div>
@@ -187,7 +194,7 @@ export default function Keeping({ onChanged }: Props) {
           <div className="mt-2.5 flex items-center gap-2.5">
             <button
               type="button"
-              disabled={busy === "review"}
+              disabled={held}
               onClick={() => run("review", checked(), setAudit)}
               className={mild}
             >

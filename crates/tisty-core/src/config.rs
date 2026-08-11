@@ -64,6 +64,7 @@ impl Config {
 
     pub fn save(&self, paths: &Paths) -> Result<()> {
         std::fs::create_dir_all(paths.config())?;
+        let _ = crate::paths::ours_alone(paths.config());
         store::write_atomic(
             &paths.config_file(),
             toml::to_string_pretty(self)?.as_bytes(),

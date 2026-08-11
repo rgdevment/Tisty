@@ -46,6 +46,9 @@ pub fn write(data: &Path, into: &Path) -> Result<Made> {
 
 fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
     let file = std::fs::File::create(into)?;
+    // The zip is the whole history in one file, and it often lands somewhere
+    // shared like /tmp.
+    let _ = crate::paths::ours_alone(into);
     let mut zip = zip::ZipWriter::new(file);
     let mut made = Made {
         files: 0,
@@ -66,11 +69,17 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
             let named = rest.to_string_lossy().replace('\\', "/");
             let body = std::fs::read(&at)?;
 
+            // The same ceiling as reading: a backup nobody can restore is worse
+            // than none, because it is only found out on the bad day.
+            made.files += 1;
+            made.bytes += body.len() as u64;
+            if made.bytes > AT_MOST || made.files > AT_MOST_FILES {
+                return Err(Error::TooBig);
+            }
+
             zip.start_file(named, zip::write::SimpleFileOptions::default())
                 .map_err(zipped)?;
             zip.write_all(&body)?;
-            made.files += 1;
-            made.bytes += body.len() as u64;
         }
     }
     zip.finish().map_err(zipped)?;
@@ -84,6 +93,10 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
 /// it and read back: a zip that turns out to be corrupt, truncated or somebody
 /// else's must cost you nothing, and the only way to be sure is to try it first.
 pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
+    within(paths, from, AT_MOST)
+}
+
+pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restored> {
     let data = paths.data();
     let file = std::fs::File::open(from)?;
     let mut zip = zip::ZipArchive::new(file).map_err(zipped)?;
@@ -113,7 +126,7 @@ pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
 
     let staged = data.join(format!(".restoring-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&staged);
-    let done = unpack(&mut zip, &staged).and_then(|files| {
+    let done = unpack(&mut zip, &staged, at_most).and_then(|files| {
         store::read_all(staged.join("store"))?;
         if files == 0 || !staged.join("store").is_dir() {
             return Err(Error::OtherStore {
@@ -132,7 +145,8 @@ pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
 
     // Named before anything moves: writing under the old one into a store that
     // just went back in time is what shrinks a directory other machines hold.
-    let mut config = Config::load_or_init(paths)?;
+    let was = Config::load_or_init(paths)?;
+    let mut config = was.clone();
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
     config.save(paths)?;
@@ -140,14 +154,12 @@ pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
     let old = data.join(format!(".replaced-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&old);
     std::fs::create_dir_all(&old)?;
-    for folder in CARRIED {
-        let at = data.join(folder);
-        if at.exists() {
-            std::fs::rename(&at, old.join(folder))?;
-        }
-        if staged.join(folder).exists() {
-            std::fs::rename(staged.join(folder), &at)?;
-        }
+    if let Err(e) = swap(data, &staged, &old) {
+        // Half a restore is the one outcome worth more than either whole: put
+        // everything back, including the name, and let the person try again.
+        let _ = was.save(paths);
+        let _ = std::fs::remove_dir_all(&staged);
+        return Err(e);
     }
     let _ = std::fs::remove_dir_all(&staged);
     let _ = std::fs::remove_dir_all(&old);
@@ -166,9 +178,79 @@ pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
     })
 }
 
-fn unpack<R: Read + Seek>(zip: &mut zip::ZipArchive<R>, into: &Path) -> Result<usize> {
+/// Every old folder steps aside before a single new one steps in, and a failure
+/// walks all of them back: a machine left with half a photograph and half of
+/// what it had is worse off than with either one whole.
+fn swap(data: &Path, staged: &Path, old: &Path) -> Result<()> {
+    let mut moved: Vec<&str> = Vec::new();
+    for folder in CARRIED {
+        let at = data.join(folder);
+        if !at.exists() {
+            continue;
+        }
+        if let Err(e) = std::fs::rename(&at, old.join(folder)) {
+            undo(data, old, &moved);
+            return Err(Error::Io(e));
+        }
+        moved.push(folder);
+    }
+
+    for folder in CARRIED {
+        let fresh = staged.join(folder);
+        if !fresh.exists() {
+            continue;
+        }
+        if let Err(e) = std::fs::rename(&fresh, data.join(folder)) {
+            for done in CARRIED {
+                let at = data.join(done);
+                if at.exists() && staged.join(done).exists() {
+                    continue;
+                }
+                let _ = std::fs::rename(&at, staged.join(done));
+            }
+            undo(data, old, &moved);
+            return Err(Error::Io(e));
+        }
+    }
+    Ok(())
+}
+
+fn undo(data: &Path, old: &Path, moved: &[&str]) {
+    for folder in moved {
+        let at = data.join(folder);
+        if at.exists() {
+            let _ = std::fs::remove_dir_all(&at);
+        }
+        let _ = std::fs::rename(old.join(folder), at);
+    }
+}
+
+/// Left by a restore that died: `.replaced-*` is the only copy of what was
+/// swapped out, so a machine that crashed mid-swap still has its history here.
+pub fn leftovers(data: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(data) else {
+        return Vec::new();
+    };
+    entries
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|at| {
+            at.is_dir()
+                && at
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.starts_with(".restoring-") || n.starts_with(".replaced-"))
+        })
+        .collect()
+}
+
+fn unpack<R: Read + Seek>(
+    zip: &mut zip::ZipArchive<R>,
+    into: &Path,
+    at_most: u64,
+) -> Result<usize> {
     if zip.len() > AT_MOST_FILES {
-        return Err(Error::Io(std::io::Error::other("too many files")));
+        return Err(Error::TooBig);
     }
     let mut files = 0;
     let mut bytes = 0u64;
@@ -181,18 +263,24 @@ fn unpack<R: Read + Seek>(zip: &mut zip::ZipArchive<R>, into: &Path) -> Result<u
         let Some(rest) = safe(held.name()) else {
             continue;
         };
-        bytes = bytes.saturating_add(held.size());
-        if bytes > AT_MOST {
-            return Err(Error::Io(std::io::Error::other("backup is too large")));
+        if held.size() > at_most.saturating_sub(bytes) {
+            return Err(Error::TooBig);
         }
 
         let at = into.join(&rest);
         if let Some(parent) = at.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let mut body = Vec::new();
-        held.read_to_end(&mut body)?;
-        std::fs::write(&at, &body)?;
+        // Streamed, and capped: a declared size is what the zip claims, not
+        // what it holds, so the ceiling has to hold on the way out too.
+        let mut file = std::fs::File::create(&at)?;
+        let _ = crate::paths::ours_alone(&at);
+        let room = at_most.saturating_sub(bytes).saturating_add(1);
+        let written = std::io::copy(&mut held.by_ref().take(room), &mut file)?;
+        if written >= room {
+            return Err(Error::TooBig);
+        }
+        bytes = bytes.saturating_add(written);
         files += 1;
     }
     Ok(files)
@@ -522,6 +610,90 @@ mod tests {
             now.synced_at.is_none(),
             "it claimed a sync that predates it"
         );
+    }
+
+    /// A hundred megabytes from a hundred kilobytes, and the store gone first.
+    #[test]
+    fn a_zip_bomb_is_refused_and_costs_nothing() {
+        let (_src, data) = filled("lo mio");
+        let paths = Paths::new(&data, data.parent().unwrap().join("config"));
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("bomb.zip");
+        {
+            let mut zip = zip::ZipWriter::new(std::fs::File::create(&file).unwrap());
+            zip.start_file(
+                "store/dev_a/000001.tisty",
+                zip::write::SimpleFileOptions::default(),
+            )
+            .unwrap();
+            let chunk = vec![b'0'; 1024 * 1024];
+            for _ in 0..4 {
+                zip.write_all(&chunk).unwrap();
+            }
+            zip.finish().unwrap();
+        }
+        assert!(
+            std::fs::metadata(&file).unwrap().len() < 64 * 1024,
+            "not a bomb"
+        );
+
+        assert!(
+            within(&paths, &file, 1024 * 1024).is_err(),
+            "it swallowed the bomb"
+        );
+        assert_eq!(
+            store::read_all(paths.store()).unwrap().len(),
+            1,
+            "the store went with it"
+        );
+    }
+
+    /// Windows refuses to rename a directory holding an open file; here the
+    /// same refusal is forced on purpose, because half a restore is the one
+    /// outcome worth less than either whole.
+    #[test]
+    fn a_swap_that_cannot_finish_puts_everything_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let data = dir.path().join("data");
+        let staged = dir.path().join("staged");
+        let old = dir.path().join("old");
+        for at in [&data, &staged, &old] {
+            std::fs::create_dir_all(at).unwrap();
+        }
+        for root in [&data, &staged] {
+            for folder in CARRIED {
+                std::fs::create_dir_all(root.join(folder)).unwrap();
+            }
+        }
+        std::fs::write(data.join("store/mine.txt"), b"what was here").unwrap();
+        std::fs::write(staged.join("store/theirs.txt"), b"the photograph").unwrap();
+
+        // `old/attachments` already taken by a directory that is not empty, so
+        // its rename is refused and the swap walks `store` back on its own.
+        std::fs::create_dir_all(old.join("attachments/busy")).unwrap();
+        std::fs::write(old.join("attachments/busy/x"), b"in the way").unwrap();
+
+        assert!(swap(&data, &staged, &old).is_err(), "it swapped anyway");
+
+        assert!(
+            data.join("store/mine.txt").exists(),
+            "the old store never came back"
+        );
+        assert!(
+            !data.join("store/theirs.txt").exists(),
+            "half the photograph stayed"
+        );
+        assert!(data.join("attachments").is_dir());
+    }
+
+    #[test]
+    fn what_a_dead_restore_left_behind_can_be_found() {
+        let (_src, data) = filled("lo mio");
+        std::fs::create_dir_all(data.join(".replaced-4242/store")).unwrap();
+        std::fs::create_dir_all(data.join(".restoring-4242")).unwrap();
+
+        let found = leftovers(&data);
+        assert_eq!(found.len(), 2, "{found:?}");
     }
 
     #[test]

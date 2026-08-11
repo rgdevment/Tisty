@@ -56,6 +56,14 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                 );
             }
 
+            if key == "remote" {
+                let at = std::path::PathBuf::from(&value);
+                let data = app.paths.data();
+                if at.starts_with(data) || data.starts_with(&at) {
+                    anyhow::bail!("{}", lang.fill("remote-inside", &[("at", &value)]));
+                }
+            }
+
             app.edit_config(|c| match key.as_str() {
                 "locale" => c.locale = Some(value.clone()),
                 "remote" => c.sync = Some(tisty_core::config::Sync::Folder(value.clone().into())),
