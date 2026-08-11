@@ -1,14 +1,8 @@
-//! Putting `tisty` within reach of a terminal, and taking it back out.
-//!
-//! The installer used to do this and wiped a 1724-character PATH doing it:
-//! NSIS reads at most 1024 characters and writes back what it managed to read.
-//! Here the whole value is read and written, and the awkward part — deciding
-//! what the new value should be — is separate from the registry so it can be
-//! tested without one.
+//! Deciding the new PATH is kept apart from writing it, so the part that once
+//! destroyed one can be tested without a registry.
 
 use std::path::{Path, PathBuf};
 
-/// Windows compares paths without case; the others do not.
 fn same(a: &str, b: &str) -> bool {
     let tidy = |one: &str| {
         let one = one.trim().trim_end_matches(['\\', '/']).to_string();
@@ -33,8 +27,7 @@ pub fn with(path: &str, dir: &str) -> Option<String> {
     })
 }
 
-/// `None` when it was not there. Everything else keeps its order and its
-/// spelling: this value belongs to the person, and we are a guest in it.
+/// `None` when it was not there. Everything else keeps its order and spelling.
 pub fn without(path: &str, dir: &str) -> Option<String> {
     if !path.split(SEPARATOR).any(|one| same(one, dir)) {
         return None;
@@ -51,7 +44,6 @@ const SEPARATOR: char = ';';
 #[cfg(not(windows))]
 const SEPARATOR: char = ':';
 
-/// Beside the window, which is where the bundler puts it.
 pub fn beside() -> Option<PathBuf> {
     let here = std::env::current_exe().ok()?;
     let folder = here.parent()?;
@@ -66,7 +58,6 @@ pub struct Reach {
     pub shipped: bool,
     pub within_reach: bool,
     pub at: Option<String>,
-    /// Where it would be reachable from, which is not where it lives.
     pub through: Option<String>,
 }
 
@@ -101,7 +92,7 @@ fn already(folder: &Path) -> bool {
 
 #[cfg(not(windows))]
 fn already(_folder: &Path) -> bool {
-    linked()
+    ours()
 }
 
 #[cfg(windows)]
@@ -145,10 +136,8 @@ fn write_to(at: &str, value: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-/// Elsewhere the PATH lives in whichever shell file the person happens to use,
-/// and editing those by guesswork is worse than not offering it. A link in
-/// `~/.local/bin` is the one place every modern distribution already looks,
-/// and macOS finds it too once it is on the PATH.
+/// A link, not the PATH: that lives in whichever shell file the person uses,
+/// and editing those by guesswork is worse than not offering it.
 #[cfg(not(windows))]
 fn shelf() -> Option<PathBuf> {
     std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local").join("bin"))
@@ -159,8 +148,20 @@ fn link() -> Option<PathBuf> {
     Some(shelf()?.join("tisty"))
 }
 
+/// Ours means a symlink pointing at the binary beside this window. A real file
+/// there is somebody else's `tisty` — a tarball copy, a `cargo install` — and
+/// removing it would take a program we never put there.
 #[cfg(not(windows))]
-fn linked() -> bool {
+fn ours() -> bool {
+    let (Some(at), Some(folder)) = (link(), beside()) else {
+        return false;
+    };
+    at.symlink_metadata().is_ok_and(|it| it.is_symlink())
+        && std::fs::read_link(&at).is_ok_and(|to| to == folder.join("tisty"))
+}
+
+#[cfg(not(windows))]
+fn taken() -> bool {
     link().is_some_and(|at| at.symlink_metadata().is_ok())
 }
 
@@ -170,13 +171,24 @@ fn tie(wanted: bool) -> std::io::Result<bool> {
         return Ok(false);
     };
     if wanted {
-        if linked() {
+        if ours() {
             return Ok(false);
+        }
+        // A link of ours pointing elsewhere is stale — the app moved, or macOS
+        // ran it from a translocated copy — and repointing it is the repair.
+        if taken() {
+            if !is_our_own_link(&link) {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    link.display().to_string(),
+                ));
+            }
+            std::fs::remove_file(&link)?;
         }
         std::fs::create_dir_all(&shelf)?;
         std::os::unix::fs::symlink(folder.join("tisty"), &link)?;
     } else {
-        if !linked() {
+        if !ours() {
             return Ok(false);
         }
         std::fs::remove_file(&link)?;
@@ -184,9 +196,14 @@ fn tie(wanted: bool) -> std::io::Result<bool> {
     Ok(true)
 }
 
-/// True when the change went in. Everything the person had is preserved: the
-/// value is read whole, one entry is added or dropped, and the rest is written
-/// back untouched.
+/// A symlink whose target is a `tisty` of ours, wherever this build now lives.
+#[cfg(not(windows))]
+fn is_our_own_link(at: &Path) -> bool {
+    at.symlink_metadata().is_ok_and(|it| it.is_symlink())
+        && std::fs::read_link(at).is_ok_and(|to| to.file_name().is_some_and(|n| n == "tisty"))
+}
+
+/// True when the change went in.
 #[cfg(windows)]
 pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
     let Some(folder) = beside() else {
@@ -205,7 +222,6 @@ pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
             write(&next)?;
             Ok(true)
         }
-        // Already how they asked for it.
         None => Ok(false),
     }
 }
@@ -225,7 +241,6 @@ mod tests {
 
     #[test]
     fn a_long_path_survives_the_round_trip() {
-        // The one that broke: 22 entries, 1724 characters.
         let many: Vec<String> = (0..22)
             .map(|i| format!("C:\\Users\\Someone\\A rather long program directory number {i}"))
             .collect();
@@ -258,7 +273,6 @@ mod tests {
         assert!(without("", "C:\\Tisty").is_none());
     }
 
-    /// A trailing separator would otherwise add an empty entry every time.
     #[test]
     fn a_trailing_separator_does_not_become_a_blank_entry() {
         let path = format!("C:\\one{SEPARATOR}");
@@ -281,9 +295,7 @@ mod tests {
         assert_eq!(without(&path, "C:\\Programs\\Tisty").unwrap(), "C:\\one");
     }
 
-    /// The whole point, against a real registry: NSIS stopped at 1024 and
-    /// wrote back the truncation. Written to a key of our own, never the
-    /// person's `Environment`.
+    /// Against a real registry, and never the person's `Environment`.
     #[cfg(windows)]
     #[test]
     fn the_registry_keeps_a_value_longer_than_nsis_could_read() {
@@ -304,9 +316,9 @@ mod tests {
         assert_eq!(read_from(at).unwrap(), long, "the registry lost part of it");
 
         let _ = winreg::RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(at);
+        let _ = winreg::RegKey::predef(HKEY_CURRENT_USER).delete_subkey(r"Software\Tisty");
     }
 
-    /// Nothing else in the value is touched: it is the person's, not ours.
     #[test]
     fn the_rest_keeps_its_order_and_its_spelling() {
         let path = joined(&[

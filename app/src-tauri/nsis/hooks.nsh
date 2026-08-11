@@ -1,27 +1,28 @@
-; Where the program goes, and what the installer deliberately leaves alone.
+; The program goes under Programs, not into the folder the store lives in:
+; $LOCALAPPDATA\Tisty and $LOCALAPPDATA\tisty are one folder on Windows.
 ;
-; It does not touch PATH. NSIS is built with 1024-character strings unless it
-; is rebuilt for large ones, and Tauri ships the ordinary build: reading a PATH
-; longer than that returns nothing, and writing it back wipes every entry the
-; person had. Measured here on a 1724-character PATH — twenty-two entries gone,
-; on install and again on uninstall. The command line is offered from inside
-; the app instead, where the registry can be read without a length limit.
+; PATH is left alone. NSIS reads at most 1024 characters and writes back what
+; it managed to read, which cost a 1724-character PATH its twenty-two entries.
+; The app offers the command line instead, where the value is read whole.
 ;
-; It does not remove the data directory either. Uninstalling the program is not
-; a request to throw away everything the person ever wrote.
+; The data directory is left alone too: wanting the program gone is not wanting
+; the history gone.
 
 !macro NSIS_HOOK_PREINSTALL
-  ; Tauri's per-user default is `$LOCALAPPDATA\<product>`, which on Windows is
-  ; the very directory the store lives in — `tisty` and `Tisty` are one folder.
-  ; Programs go under Programs, and the history stays where it was.
-  ;
-  ; Only the untouched default is redirected: a path the person chose, or one
-  ; restored from an earlier install, is theirs and is left alone.
-  ${If} $INSTDIR == "$LOCALAPPDATA\${PRODUCTNAME}"
+  ; Only when nothing is installed yet: an existing install keeps its place,
+  ; or the old copy would be orphaned where the store lives.
+  ReadRegStr $0 SHCTX "Software\${MANUFACTURER}\${PRODUCTNAME}" ""
+  ${If} $0 == ""
+  ${AndIf} $INSTDIR == "$LOCALAPPDATA\${PRODUCTNAME}"
     StrCpy $INSTDIR "$LOCALAPPDATA\Programs\${PRODUCTNAME}"
     SetOutPath $INSTDIR
   ${EndIf}
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
+  ; The app put the PATH entry there and is the only thing that can read the
+  ; value whole to take it back out. After this it is gone.
+  ${If} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
+    ExecWait '"$INSTDIR\${MAINBINARYNAME}.exe" --unreach'
+  ${EndIf}
 !macroend

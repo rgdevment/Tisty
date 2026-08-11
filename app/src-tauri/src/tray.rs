@@ -1,5 +1,4 @@
-//! Presence when the window is gone. Where no tray exists, nothing here runs
-//! and closing keeps its ordinary meaning.
+//! Where no tray exists nothing here runs, and closing keeps its plain meaning.
 
 use std::sync::Mutex;
 
@@ -13,8 +12,6 @@ use tauri::{
 /// while the window is open, and the tray would keep the startup one.
 pub struct Said<R: Runtime>(pub Mutex<Vec<MenuItem<R>>>);
 
-/// macOS wants one white-on-transparent image and tints it itself; Windows and
-/// Linux want the colour art, picked against the taskbar's own theme.
 #[cfg(target_os = "macos")]
 const MACOS: &[u8] = include_bytes!("../icons/tray/tray-macos/menubarTemplate@2x.png");
 #[cfg(not(target_os = "macos"))]
@@ -28,13 +25,9 @@ pub struct Words {
     pub quit: String,
 }
 
-/// `None` where the desktop has no tray: GNOME dropped it in 2017, and hiding
-/// the window into a tray that is not there loses the app with no way back.
-///
-/// On Linux there is no cheap way to know. `tray-icon`'s GTK backend builds an
-/// AppIndicator and reports success whether or not anything is listening, so a
-/// `Some` there would be a guess — and guessing wrong costs the whole app. It
-/// is treated as absent, which only costs the choice of hiding.
+/// `None` where the desktop has no tray, and Linux counts as none: the GTK
+/// backend reports success whether or not anything is listening, and hiding
+/// into a tray that is not there loses the app with no way back.
 pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R>> {
     let show = MenuItem::with_id(app, "show", &words.show, true, None::<&str>).ok()?;
     let capture = MenuItem::with_id(app, "capture", &words.capture, true, None::<&str>).ok()?;

@@ -37,8 +37,7 @@ export default function Quick() {
         away();
         return;
       }
-      // The 900 ms that hides after a capture outlives the hiding itself, so
-      // reappearing without cancelling it takes the next capture down with it.
+      // Outlives the hiding: uncancelled, it takes the next capture down.
       if (going.current) clearTimeout(going.current);
       setKept(undefined);
       setError(null);
@@ -63,8 +62,7 @@ export default function Quick() {
     };
   }, []);
 
-  // Never nothing: this window has no frame, no title bar and no taskbar
-  // entry, so an empty one is an invisible rectangle eating clicks.
+  // Frameless: an empty render is an invisible rectangle eating clicks.
   if (!data) {
     return (
       <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg px-4 py-3 shadow-2xl">
@@ -91,7 +89,6 @@ export default function Quick() {
             return capture(written, {}, edits).then((task) => {
               setKept(task.title);
               void emit("captured");
-              // Long enough to read what was filed, short enough not to wait.
               going.current = setTimeout(() => void getCurrentWindow().hide(), 900);
               return task;
             });
