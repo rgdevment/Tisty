@@ -15,6 +15,19 @@ pub enum Sync {
 }
 
 impl Config {
+    /// Named channels this machine has been told to keep quiet.
+    pub fn muted(&self) -> &[String] {
+        self.quiet.as_deref().unwrap_or_default()
+    }
+
+    /// Clamped, not trusted: a hand-edited zero would copy nothing at all and a
+    /// huge one would put a film inside the store.
+    pub fn copies_up_to(&self) -> u64 {
+        self.attach_up_to
+            .unwrap_or(crate::attach::COPIED_UP_TO)
+            .clamp(crate::attach::COPIED_LEAST, crate::attach::COPIED_MOST)
+    }
+
     /// The shared folder already holds every machine's history, so a second
     /// snapshot beside it would be a rival truth nobody asked for.
     pub fn backs_up(&self) -> bool {
@@ -55,6 +68,14 @@ pub struct Config {
     pub sync: Option<Sync>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub synced_at: Option<jiff::Timestamp>,
+    /// Which channels may speak. Absent means every one of them, so a new
+    /// channel starts on without anyone having to opt in to it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quiet: Option<Vec<String>>,
+    /// Bytes above which an attachment is pointed at instead of copied in.
+    /// §9 G3 promised this configurable and it had stayed a constant.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attach_up_to: Option<u64>,
 }
 
 impl Config {
@@ -67,6 +88,8 @@ impl Config {
             device_id: DeviceId(new_device_id()),
             locale: None,
             editor: None,
+            quiet: None,
+            attach_up_to: None,
             opened_by: None,
             on_close: None,
             sync: None,
@@ -171,6 +194,8 @@ mod tests {
             on_close: Some(Closing::Hide),
             sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
             synced_at: None,
+            quiet: None,
+            attach_up_to: None,
         };
 
         let written = toml::to_string_pretty(&config).unwrap();

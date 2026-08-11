@@ -6,10 +6,12 @@ import {
   chooseSync,
   reachFor,
   about,
+  keepSettings,
   reachable,
   rebuild,
   revealed,
   served,
+  settings as readSettings,
   shortcut,
   restore,
   syncNow,
@@ -17,6 +19,7 @@ import {
   type Carrying,
   type Reach,
   type About,
+  type Settings,
   type Reviewed,
 } from "../core";
 import { fill, t } from "../locales";
@@ -25,7 +28,7 @@ import { stamped } from "../format";
 
 const carried = { came: "syncCame", same: "syncSame", busy: "syncBusy" } as const;
 
-type Which = "sync" | "backup" | "review" | "terminal" | "quick" | "about";
+type Which = "sync" | "backup" | "review" | "terminal" | "quick" | "about" | "settings";
 type Word = { card: Which; text: string };
 
 interface Props {
@@ -38,6 +41,7 @@ export default function Keeping({ onChanged }: Props) {
   const [reach, setReach] = useState<Reach | null>(null);
   const [keys, setKeys] = useState<string | null>(null);
   const [build, setBuild] = useState<About | null>(null);
+  const [kept, setKept] = useState<Settings | null>(null);
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
   // In the card, not the window banner, which would hang over every view.
@@ -60,6 +64,9 @@ export default function Keeping({ onChanged }: Props) {
       .catch(() => {});
     about()
       .then(setBuild)
+      .catch(() => {});
+    readSettings()
+      .then(setKept)
       .catch(() => {});
   }, []);
 
@@ -141,6 +148,12 @@ export default function Keeping({ onChanged }: Props) {
       setBusy(null);
     }
   };
+
+  const remember = (next: Settings) =>
+    run("settings", keepSettings(next), (now) => {
+      setKept(now);
+      setSaid({ card: "settings", text: t("settingsKept") });
+    });
 
   const pickFolder = () => {
     if (held) return;
@@ -263,6 +276,50 @@ export default function Keeping({ onChanged }: Props) {
           </Card>
         )}
 
+        {kept && (
+          <Card title={t("settingsTitle")} which="settings" said={said} trouble={trouble}>
+            <p className="text-[12.5px] leading-relaxed text-soft">{t("noticesWhy")}</p>
+            <div className="mt-2.5 flex flex-col gap-1.5">
+              {(["screen", "chime"] as const).map((channel) => (
+                <label key={channel} className="flex items-center gap-2 text-[12.5px]">
+                  <input
+                    type="checkbox"
+                    checked={!kept.quiet.includes(channel)}
+                    disabled={held}
+                    onChange={(e) =>
+                      remember({
+                        ...kept,
+                        quiet: e.target.checked
+                          ? kept.quiet.filter((one) => one !== channel)
+                          : [...kept.quiet, channel],
+                      })
+                    }
+                  />
+                  {t(channel === "screen" ? "noticeScreen" : "noticeChime")}
+                </label>
+              ))}
+            </div>
+
+            <p className="mt-3.5 text-[12.5px] leading-relaxed text-soft">{t("attachWhy")}</p>
+            <div className="mt-2 flex items-center gap-2.5">
+              <select
+                aria-label={t("attachUpTo")}
+                value={String(kept.attachUpTo)}
+                disabled={held}
+                onChange={(e) => remember({ ...kept, attachUpTo: Number(e.target.value) })}
+                className="rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px]"
+              >
+                {SIZES.map((bytes) => (
+                  <option key={bytes} value={bytes}>
+                    {weigh(bytes)}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[11.5px] text-faint">{t("attachUpTo")}</span>
+            </div>
+          </Card>
+        )}
+
         <Card title={t("quick")} which="quick" said={said} trouble={trouble}>
           <p className="text-[12.5px] leading-relaxed text-soft">
             {keys ? fill("quickOn", keys) : t("quickNone")}
@@ -374,3 +431,13 @@ function weigh(bytes: number): string {
   }
   return `${step === 0 ? left : left.toFixed(1)} ${units[step]}`;
 }
+
+/// The band the core will accept, in the steps a person thinks in.
+const SIZES = [
+  256 * 1024,
+  1024 * 1024,
+  5 * 1024 * 1024,
+  20 * 1024 * 1024,
+  50 * 1024 * 1024,
+  200 * 1024 * 1024,
+];

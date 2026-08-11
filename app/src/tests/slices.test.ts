@@ -12,24 +12,20 @@ describe("Tasks, the view that replaced Today and Upcoming", () => {
     ["today", { window: "today" }],
     ["upcoming", { window: "upcoming" }],
     ["undated", { window: "undated" }],
-    ["all", {}],
   ] as const)("asks the core for %s", (slice, view) => {
     expect(asView({ named: "tasks", slice })).toEqual(view);
   });
 
-  /// «All» is «no window at all», which is every open task — not a fourth
-  /// window the core would have to learn.
-  it("asks for no window when it wants everything", () => {
-    expect(asView({ named: "tasks", slice: "all" })).toEqual({});
-  });
-
-  it("offers exactly the four the sidebar lost plus the two it gained", () => {
-    expect(SLICES).toEqual(["today", "upcoming", "undated", "all"]);
+  /// There is no «all» chip on purpose: `today` already carries what has no
+  /// date, so today ∪ upcoming is every open task. A fourth chip would show
+  /// the union of the other two under a name answering no question of its own.
+  it("offers three slices, because a fourth would be the sum of two", () => {
+    expect(SLICES).toEqual(["today", "upcoming", "undated"]);
   });
 
   /// A list still outranks it, as it always did.
   it("lets a chosen list win over the slice", () => {
-    expect(asView({ named: "tasks", slice: "all", list: "01L" })).toEqual({ list: "01L" });
+    expect(asView({ named: "tasks", slice: "undated", list: "01L" })).toEqual({ list: "01L" });
   });
 });
 
@@ -41,7 +37,7 @@ describe("capturing from a slice", () => {
     expect(accepts({ named: "tasks" })).toBe(true);
   });
 
-  it.each(["upcoming", "undated", "all"] as const)("is refused on %s", (slice) => {
+  it.each(["upcoming", "undated"] as const)("is refused on %s", (slice) => {
     expect(accepts({ named: "tasks", slice })).toBe(false);
   });
 
@@ -52,7 +48,7 @@ describe("capturing from a slice", () => {
 
 describe("what an empty slice says", () => {
   it("says something different for each one", () => {
-    const said = (["today", "upcoming", "undated", "all"] as const).map((slice) =>
+    const said = (["today", "upcoming", "undated"] as const).map((slice) =>
       nothing({ named: "tasks", slice }, false),
     );
 
@@ -65,5 +61,14 @@ describe("what an empty slice says", () => {
 
   it("keeps the inbox saying its own thing", () => {
     expect(nothing({ named: "inbox" }, false)).toMatch(/inbox/i);
+  });
+});
+
+describe("Tasks and the Inbox are not the same list", () => {
+  /// The question each one answers is different: the inbox is «what have I not
+  /// filed yet», which is about LISTS; the slices are about DAYS.
+  it("asks the core for different things", () => {
+    expect(asView({ named: "inbox" })).toEqual({ inbox: true });
+    expect(asView({ named: "tasks", slice: "today" })).toEqual({ window: "today" });
   });
 });

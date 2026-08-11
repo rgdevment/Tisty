@@ -5,6 +5,11 @@ use crate::{Error, Result, event::DeviceId};
 pub const DATA_ENV: &str = "TISTY_DATA";
 pub const CONFIG_ENV: &str = "TISTY_CONFIG";
 pub const CACHE_ENV: &str = "TISTY_CACHE";
+/// A named sandbox, for both the terminal and the window. The three variables
+/// above only ever helped the terminal: the window resolves its own paths, so
+/// there was no way to point it anywhere but at the real store — and trying
+/// things by hand meant trying them on your own data.
+pub const PROFILE_ENV: &str = "TISTY_PROFILE";
 
 /// Apart on purpose: a synced device id would break one-writer-per-directory.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,15 +22,25 @@ pub struct Paths {
 impl Paths {
     pub fn resolve() -> Result<Self> {
         let dirs = directories::ProjectDirs::from("", "", "tisty").ok_or(Error::NoHomeDirectory)?;
+        let under = profile();
 
         Ok(Self {
             // Local, never roaming: a Windows domain profile copies %APPDATA%
             // at logon and logoff. For the store that is another process
             // touching the log; for the config it is the device id — and the
             // `private/` folder — leaving the machine for a company server.
-            data: env_path(DATA_ENV).unwrap_or_else(|| dirs.data_local_dir().to_path_buf()),
-            config: env_path(CONFIG_ENV).unwrap_or_else(|| local_config(&dirs)),
-            cache: env_path(CACHE_ENV).unwrap_or_else(|| dirs.cache_dir().to_path_buf()),
+            data: aside(
+                env_path(DATA_ENV).unwrap_or_else(|| dirs.data_local_dir().to_path_buf()),
+                under.as_deref(),
+            ),
+            config: aside(
+                env_path(CONFIG_ENV).unwrap_or_else(|| local_config(&dirs)),
+                under.as_deref(),
+            ),
+            cache: aside(
+                env_path(CACHE_ENV).unwrap_or_else(|| dirs.cache_dir().to_path_buf()),
+                under.as_deref(),
+            ),
         })
     }
 
@@ -108,6 +123,29 @@ pub fn ours_alone(at: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+/// The sandbox in force, if any. Anything but letters, digits, `-` and `_` is
+/// dropped: this ends up in a path, and a name carrying `..` would reach out of
+/// the sandbox it exists to stay inside.
+pub fn profile() -> Option<String> {
+    named(&std::env::var(PROFILE_ENV).ok()?)
+}
+
+fn named(raw: &str) -> Option<String> {
+    let clean: String = raw
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .take(48)
+        .collect();
+    (!clean.is_empty()).then_some(clean)
+}
+
+fn aside(root: PathBuf, under: Option<&str>) -> PathBuf {
+    match under {
+        Some(name) => root.join("sandboxes").join(name),
+        None => root,
+    }
+}
+
 fn env_path(key: &str) -> Option<PathBuf> {
     std::env::var_os(key)
         .filter(|v| !v.is_empty())
@@ -116,6 +154,45 @@ fn env_path(key: &str) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    use super::{aside, named};
+    use std::path::PathBuf;
+
+    /// A name lands in a path, so one carrying `..` would climb out of the very
+    /// sandbox it exists to stay inside.
+    #[test]
+    fn a_profile_name_cannot_escape_its_own_directory() {
+        for raw in ["../..", "..", "/etc", "a/../../b", r"..\..\windows"] {
+            let clean = named(raw).unwrap_or_default();
+            assert!(!clean.contains(".."), "{raw} survived as {clean}");
+            assert!(!clean.contains('/'), "{raw} -> {clean}");
+            assert!(!clean.contains('\\'), "{raw} -> {clean}");
+        }
+    }
+
+    #[test]
+    fn an_ordinary_name_survives_whole() {
+        assert_eq!(named("demo"), Some("demo".into()));
+        assert_eq!(named("dos-maquinas_2"), Some("dos-maquinas_2".into()));
+    }
+
+    /// Empty, or nothing but punctuation, is no sandbox at all.
+    #[test]
+    fn a_name_with_nothing_usable_in_it_is_no_profile() {
+        assert_eq!(named(""), None);
+        assert_eq!(named("   "), None);
+        assert_eq!(named("../.."), None);
+    }
+
+    #[test]
+    fn without_a_profile_nothing_moves() {
+        let root = PathBuf::from("/data");
+
+        assert_eq!(aside(root.clone(), None), root);
+        assert_eq!(
+            aside(root, Some("demo")),
+            PathBuf::from("/data/sandboxes/demo")
+        );
+    }
     use super::*;
 
     fn paths() -> Paths {

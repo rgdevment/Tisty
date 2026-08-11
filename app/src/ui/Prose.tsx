@@ -111,6 +111,7 @@ export default function Prose({
         <Insert
           known={known}
           onPut={put}
+          onError={onError}
           onClose={() => {
             setSlash(null);
             box.current?.focus();

@@ -13,6 +13,11 @@ use crate::{Error, Result};
 /// video inside the store is a store nobody can move again.
 pub const COPIED_UP_TO: u64 = 5 * 1024 * 1024;
 
+/// The band the setting may move in. Below the floor nothing would ever be
+/// copied; above the ceiling the store stops being a thing you can move.
+pub const COPIED_LEAST: u64 = 64 * 1024;
+pub const COPIED_MOST: u64 = 200 * 1024 * 1024;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Kept {
     /// Copied in; the reference is relative to the data root.
