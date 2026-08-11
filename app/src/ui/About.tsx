@@ -1,7 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
-import { about, revealed, served, type About as Build } from "../core";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { about, revealed, type About as Build } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import copypaste from "../assets/copypaste.png";
+import linkunbound from "../assets/linkunbound.png";
+
+const TOOLS = [
+  {
+    icon: copypaste,
+    name: "CopyPaste",
+    said: "toolCopyPaste",
+    at: "https://github.com/rgdevment/CopyPaste",
+  },
+  {
+    icon: linkunbound,
+    name: "LinkUnbound",
+    said: "toolLinkUnbound",
+    at: "https://github.com/rgdevment/LinkUnbound",
+  },
+] as const;
 
 export default function About({ onError }: { onError: (problem: unknown) => void }) {
   const [build, setBuild] = useState<Build | null>(null);
@@ -57,7 +75,13 @@ export default function About({ onError }: { onError: (problem: unknown) => void
                 <dd className="text-soft">{build.license}</dd>
               </dl>
               <div className="mt-2.5">
-                <button type="button" onClick={() => served(build.repository).catch(onError)} className={mild}>
+                {/* Not `served`, which resolves a reference inside the store and
+                    refuses anything that leaves it — a URL always failed. */}
+                <button
+                  type="button"
+                  onClick={() => openUrl(build.repository).catch(onError)}
+                  className={mild}
+                >
                   {t("aboutRepo")}
                 </button>
               </div>
@@ -68,20 +92,49 @@ export default function About({ onError }: { onError: (problem: unknown) => void
                 {build.store}
               </p>
               <div className="mt-2.5">
-                <button type="button" onClick={() => revealed(build.store).catch(onError)} className={mild}>
+                <button
+                  type="button"
+                  onClick={() => revealed(build.store).catch(onError)}
+                  className={mild}
+                >
                   {t("aboutReveal")}
                 </button>
               </div>
             </Card>
           </>
         )}
+
+        <div className="mt-5 mb-2 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
+          <span>{t("otherTools")}</span>
+          <span className="h-px flex-1 bg-hair" />
+        </div>
+
+        {TOOLS.map((tool) => (
+          <button
+            key={tool.name}
+            type="button"
+            onClick={() => openUrl(tool.at).catch(onError)}
+            className="mb-3 flex w-full items-start gap-3 rounded-[10px] border border-hair px-4 py-3.5 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <img src={tool.icon} alt="" className="mt-px h-6 w-6 shrink-0 rounded-[6px]" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13.5px] font-semibold">{tool.name}</span>
+              <span className="mt-0.5 block text-[12.5px] leading-relaxed text-soft">
+                {t(tool.said)}
+              </span>
+            </span>
+            <span aria-hidden="true" className="mt-0.5 text-[13px] text-faint">
+              ↗
+            </span>
+          </button>
+        ))}
       </div>
     </main>
   );
 }
 
 const mild =
-  "rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:opacity-50";
+  "rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:border-hair disabled:bg-hair disabled:text-soft";
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (

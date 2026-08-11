@@ -72,33 +72,6 @@ jobs:
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           echo "version $version (pre-release: $prerelease)"
 
-  build-linux:
-    name: linux-x86_64
-    needs: version
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      TARGET: x86_64-unknown-linux-musl
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Musl toolchain
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
-
-      - uses: ./.github/actions/prepare
-        with:
-          version: ${{ needs.version.outputs.version }}
-          targets: ${{ env.TARGET }}
-
-      - name: Build
-        run: cargo build --release --bin tisty --target "$TARGET"
-
-      - uses: ./.github/actions/package
-        with:
-          version: ${{ needs.version.outputs.version }}
-          name: linux-x86_64
-          target: ${{ env.TARGET }}
-
   build-macos:
     name: macos-universal
     needs: version
@@ -427,10 +400,129 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  bundle-msix:
+    name: windows msix
+    needs: version
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      TARGET: x86_64-pc-windows-msvc
+      # Reserved once in Partner Center. Without them there is nothing to build:
+      # a package with an invented identity is a package that has to be thrown
+      # away, and writing one to «leave it ready» is how ficticious values end
+      # up shipped.
+      MSIX_IDENTITY: ${{ vars.MSIX_IDENTITY }}
+      MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+      MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+    steps:
+      - name: Nothing to build without a reserved identity
+        id: gate
+        shell: bash
+        run: |
+          if [ -z "$MSIX_IDENTITY" ] || [ -z "$MSIX_PUBLISHER" ]; then
+            echo "::notice::MSIX_IDENTITY or MSIX_PUBLISHER not set; no MSIX this run"
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v6
+        if: steps.gate.outputs.go == 'yes'
+
+      - uses: ./.github/actions/prepare
+        if: steps.gate.outputs.go == 'yes'
+        with:
+          version: ${{ needs.version.outputs.version }}
+          targets: ${{ env.TARGET }}
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.go == 'yes'
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Frontend
+        if: steps.gate.outputs.go == 'yes'
+        working-directory: app
+        run: npm ci
+
+      - name: The CLI rides along
+        if: steps.gate.outputs.go == 'yes'
+        shell: bash
+        run: |
+          cargo build --release --bin tisty --target "$TARGET"
+          mkdir -p app/src-tauri/binaries
+          cp "target/$TARGET/release/tisty.exe" "app/src-tauri/binaries/tisty-$TARGET.exe"
+
+      # No bundle: MSIX wants the executable and its resources, laid out by us.
+      - name: Build
+        if: steps.gate.outputs.go == 'yes'
+        working-directory: app
+        run: npm run tauri build -- --no-bundle
+
+      - name: Lay the package out
+        if: steps.gate.outputs.go == 'yes'
+        shell: bash
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          # Four numbers and no suffix, which is all MSIX takes.
+          quad="${v%%-*}.0"
+
+          mkdir -p msix/Assets msix/cli
+          cp target/release/Tisty.exe msix/Tisty.exe
+          cp "target/$TARGET/release/tisty.exe" msix/cli/tisty.exe
+          for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
+            cp "app/src-tauri/icons/$logo.png" "msix/Assets/$logo.png"
+          done
+
+          sed -e "s|@IDENTITY@|$MSIX_IDENTITY|" \
+              -e "s|@PUBLISHER@|$MSIX_PUBLISHER|" \
+              -e "s|@PUBLISHER_DISPLAY@|${MSIX_PUBLISHER_DISPLAY:-rgdevment}|" \
+              -e "s|@VERSION@|$quad|" \
+              app/src-tauri/msix/AppxManifest.xml.in > msix/AppxManifest.xml
+
+          if grep -q "@[A-Z_]*@" msix/AppxManifest.xml; then
+            echo "::error::a placeholder survived the manifest"
+            exit 1
+          fi
+          cat msix/AppxManifest.xml
+
+      # Never signed here: the Store signs it, and a signature of ours would be
+      # rejected on upload.
+      - name: Pack
+        if: steps.gate.outputs.go == 'yes'
+        shell: pwsh
+        run: |
+          $sdk = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Directory |
+            Where-Object { Test-Path "$($_.FullName)\x64\makeappx.exe" } |
+            Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $sdk) { Write-Host "::error::no Windows SDK with makeappx"; exit 1 }
+
+          $v = "${{ needs.version.outputs.version }}"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          & "$($sdk.FullName)\x64\makeappx.exe" pack /d msix /p "dist/Tisty-$v-windows-x86_64.msix" /o
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - uses: actions/upload-artifact@v4
+        if: steps.gate.outputs.go == 'yes'
+        with:
+          name: bundle-msix
+          path: dist/*
+          if-no-files-found: error
+
   publish:
     name: GitHub Release
-    needs: [version, build-linux, build-macos, build-windows]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    # Waits for the installers without depending on them. The warning below is
+    # only honest if they have had their chance to finish, and a tag must not be
+    # burned by a bundler — nor published behind its back.
+    needs:
+      [version, build-macos, build-windows, bundle-windows, bundle-macos, bundle-msix]
+    if: >-
+      always() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      && needs.version.result == 'success'
+      && needs.build-macos.result == 'success'
+      && needs.build-windows.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -451,7 +543,7 @@ jobs:
       # archives and have never run in anger: a tag must not be burned by one.
       - name: Say which installers made it
         run: |
-          for f in dist/Tisty-*-setup.exe dist/Tisty-*.dmg; do
+          for f in dist/Tisty-*-setup.exe dist/Tisty-*.dmg dist/Tisty-*.msix; do
             if [ -s "$f" ]; then echo "$f"; else echo "::warning::no installer at $f"; fi
           done
 
@@ -462,8 +554,7 @@ jobs:
         run: |
           v="${{ needs.version.outputs.version }}"
           status=0
-          for f in "tisty-$v-linux-x86_64.tar.gz" \
-                   "tisty-$v-macos-universal.tar.gz" \
+          for f in "tisty-$v-macos-universal.tar.gz" \
                    "tisty-$v-windows-x86_64.zip"; do
             if [ -s "dist/$f" ]; then
               echo "$f"
@@ -481,6 +572,7 @@ jobs:
             dist/*.zip
             dist/*.exe
             dist/*.dmg
+            dist/*.msix
 
       # The first `sed` drops the signature block `git tag -s` leaves in the body.
       - name: Notes from the tag
@@ -505,6 +597,50 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  msstore:
+    name: Microsoft Store
+    needs: [version, publish, bundle-msix]
+    if: >-
+      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      && needs.version.outputs.prerelease == 'false'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      STORE_APP_ID: ${{ vars.STORE_APP_ID }}
+      STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
+    steps:
+      - name: Nothing to publish without a listing
+        id: gate
+        shell: bash
+        run: |
+          if [ -z "$STORE_APP_ID" ] || [ -z "$STORE_TENANT_ID" ]; then
+            echo "::notice::no Store credentials; skipping"
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v7
+        if: steps.gate.outputs.go == 'yes'
+        with:
+          name: bundle-msix
+          path: dist
+
+      - uses: microsoft/microsoft-store-apppublisher@v1.3
+        if: steps.gate.outputs.go == 'yes'
+
+      - name: Publish
+        if: steps.gate.outputs.go == 'yes'
+        shell: bash
+        run: |
+          msix=$(ls dist/*.msix | head -1)
+          msstore reconfigure \
+            --tenantId "$STORE_TENANT_ID" \
+            --sellerId "${{ secrets.STORE_SELLER_ID }}" \
+            --clientId "${{ secrets.STORE_CLIENT_ID }}" \
+            --clientSecret "${{ secrets.STORE_CLIENT_SECRET }}"
+          msstore publish "$msix" --appId "$STORE_APP_ID"
+
   homebrew:
     name: Homebrew tap
     needs: [version, publish]
@@ -522,7 +658,6 @@ jobs:
           BASE="https://github.com/${{ github.repository }}/releases/download/${TAG}"
 
           MAC="tisty-${VERSION}-macos-universal.tar.gz"
-          LINUX="tisty-${VERSION}-linux-x86_64.tar.gz"
 
           if [[ "$VERSION" == *-* ]]; then
             NAME="tisty-beta"; CLASS="TistyBeta"; OTHER="tisty"; SUFFIX=" (beta)"
@@ -543,9 +678,7 @@ jobs:
           }
 
           fetch "$MAC"
-          fetch "$LINUX"
           MAC_SHA=$(sha256sum "/tmp/$MAC" | awk '{print $1}')
-          LINUX_SHA=$(sha256sum "/tmp/$LINUX" | awk '{print $1}')
 
           git clone "https://x-access-token:${GIST_TOKEN}@github.com/rgdevment/homebrew-tap.git" /tmp/tap
           cd /tmp/tap
@@ -562,14 +695,10 @@ jobs:
 
           	  conflicts_with "${OTHER}", because: "both install the same binary"
 
+          	  # Linux is a phase of its own and is not built yet.
           	  on_macos do
           	    url "${BASE}/${MAC}"
           	    sha256 "${MAC_SHA}"
-          	  end
-
-          	  on_linux do
-          	    url "${BASE}/${LINUX}"
-          	    sha256 "${LINUX_SHA}"
           	  end
 
           	  def install

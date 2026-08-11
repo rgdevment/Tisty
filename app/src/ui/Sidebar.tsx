@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { List } from "../core";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
+import mark from "../assets/tisty.png";
 
 interface Props {
   lists: List[];
@@ -96,13 +97,19 @@ export default function Sidebar({ lists, counts, chosen, onChoose }: Props) {
           aria-label={t("aboutScreen")}
           title={t("aboutScreen")}
           onClick={() => onChoose({ named: "aboutScreen" })}
-          className={`ml-auto grid h-7 w-7 place-items-center rounded-[7px] text-[13px] leading-none hover:bg-hover ${
-            chosen.named === "aboutScreen" ? "bg-active text-accent" : "text-soft"
+          className={`ml-auto grid h-7 w-7 place-items-center rounded-[7px] hover:bg-hover ${
+            chosen.named === "aboutScreen" ? "bg-active" : ""
           }`}
         >
-          {/* «?» promises help that is not there; the screen holds version,
-              licence and where the store lives, which is information. */}
-          <span aria-hidden="true">ⓘ</span>
+          {/* The mark itself: what is behind it is what Tisty is, its version
+              and its licence. A glyph would have to stand for that; this is it. */}
+          <img
+            src={mark}
+            alt=""
+            className={`h-[18px] w-[18px] rounded-[4px] ${
+              chosen.named === "aboutScreen" ? "" : "opacity-70"
+            }`}
+          />
         </button>
       </div>
     </aside>
