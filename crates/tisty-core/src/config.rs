@@ -3,7 +3,13 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-use crate::{Error, Result, event::DeviceId, paths::Paths, store};
+use crate::{
+    Error, Result,
+    event::DeviceId,
+    paths::Paths,
+    store,
+    witness::{self, Fact, channel},
+};
 
 /// `None` means nobody has been asked yet, which is what shows the assistant.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -63,6 +69,10 @@ pub struct Config {
     /// tables to the end on its own, but a hand-edited file will not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on_close: Option<Closing>,
+    /// So the screen can say when the last copy was made. Never synced: a copy
+    /// is a thing one machine did.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backed_up_at: Option<jiff::Timestamp>,
     /// Never synced either: where this machine sends its own directory.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync: Option<Sync>,
@@ -92,6 +102,7 @@ impl Config {
             attach_up_to: None,
             opened_by: None,
             on_close: None,
+            backed_up_at: None,
             sync: None,
             synced_at: None,
         };
@@ -109,7 +120,18 @@ impl Config {
 
     pub fn save(&self, paths: &Paths) -> Result<()> {
         std::fs::create_dir_all(paths.config())?;
-        let _ = crate::paths::ours_alone(paths.config());
+        // Where the device id and `private/` live, so a mode nobody narrowed
+        // leaves both within reach of every other account on the machine.
+        if let Err(e) = crate::paths::ours_alone(paths.config()) {
+            witness::warn(
+                channel::CONFIG,
+                "config folder not made private",
+                &[
+                    ("at", Fact::Path(paths.config().to_path_buf())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+        }
         store::write_atomic(
             &paths.config_file(),
             toml::to_string_pretty(self)?.as_bytes(),
@@ -192,6 +214,7 @@ mod tests {
             editor: None,
             opened_by: Some("0.1.0".into()),
             on_close: Some(Closing::Hide),
+            backed_up_at: None,
             sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
             synced_at: None,
             quiet: None,

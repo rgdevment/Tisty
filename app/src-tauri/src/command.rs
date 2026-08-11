@@ -3,6 +3,16 @@
 
 use std::path::{Path, PathBuf};
 
+use tisty_core::witness::{self, Fact, channel};
+
+fn unwritten(why: &std::io::Error) {
+    witness::error(
+        channel::TERMINAL,
+        "the command could not be put within reach",
+        &[("why", Fact::Why(why.to_string()))],
+    );
+}
+
 fn same(a: &str, b: &str) -> bool {
     let tidy = |one: &str| {
         let one = one.trim().trim_end_matches(['\\', '/']).to_string();
@@ -219,7 +229,7 @@ pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
     };
     match next {
         Some(next) => {
-            write(&next)?;
+            write(&next).inspect_err(unwritten)?;
             Ok(true)
         }
         None => Ok(false),
@@ -228,7 +238,7 @@ pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
 
 #[cfg(not(windows))]
 pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
-    tie(wanted)
+    tie(wanted).inspect_err(unwritten)
 }
 
 #[cfg(test)]

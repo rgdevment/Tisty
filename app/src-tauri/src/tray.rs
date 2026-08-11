@@ -7,6 +7,21 @@ use tauri::{
     menu::{Menu, MenuItem},
     tray::{TrayIcon, TrayIconBuilder, TrayIconEvent},
 };
+use tisty_core::witness::{self, Fact, channel};
+
+fn kept<T, E: std::fmt::Display>(what: Result<T, E>, said: &'static str) -> Option<T> {
+    match what {
+        Ok(one) => Some(one),
+        Err(why) => {
+            witness::warn(
+                channel::WINDOW,
+                said,
+                &[("why", Fact::Why(why.to_string()))],
+            );
+            None
+        }
+    }
+}
 
 /// Kept so the menu can be reworded: the terminal can change the language
 /// while the window is open, and the tray would keep the startup one.
@@ -29,12 +44,25 @@ pub struct Words {
 /// backend reports success whether or not anything is listening, and hiding
 /// into a tray that is not there loses the app with no way back.
 pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R>> {
-    let show = MenuItem::with_id(app, "show", &words.show, true, None::<&str>).ok()?;
-    let capture = MenuItem::with_id(app, "capture", &words.capture, true, None::<&str>).ok()?;
-    let quit = MenuItem::with_id(app, "quit", &words.quit, true, None::<&str>).ok()?;
-    let menu = Menu::with_items(app, &[&capture, &show, &quit]).ok()?;
+    let item = "a tray menu item was refused";
+    let show = kept(
+        MenuItem::with_id(app, "show", &words.show, true, None::<&str>),
+        item,
+    )?;
+    let capture = kept(
+        MenuItem::with_id(app, "capture", &words.capture, true, None::<&str>),
+        item,
+    )?;
+    let quit = kept(
+        MenuItem::with_id(app, "quit", &words.quit, true, None::<&str>),
+        item,
+    )?;
+    let menu = kept(
+        Menu::with_items(app, &[&capture, &show, &quit]),
+        "the tray menu was refused",
+    )?;
 
-    let tray = TrayIconBuilder::with_id("tisty")
+    let building = TrayIconBuilder::with_id("tisty")
         .icon(art(app)?)
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -53,9 +81,8 @@ pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R
             {
                 surface(tray.app_handle());
             }
-        })
-        .build(app)
-        .ok()?;
+        });
+    let tray = kept(building.build(app), "the tray would not build")?;
 
     #[cfg(target_os = "macos")]
     // Without this the white art is painted white, which is nothing at all on

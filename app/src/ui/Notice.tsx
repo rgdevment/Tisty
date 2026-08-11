@@ -4,9 +4,7 @@ import { whenLabel } from "../format";
 import { fill, t } from "../locales";
 
 interface Props {
-  /// True when what was just filed does not show in the list behind this card:
-  /// written from «upcoming» or «repeating», a task with no date lands on today
-  /// and vanishes from view the instant it is typed.
+  /// True when what was just filed does not show in the list behind this card.
   elsewhere?: boolean;
   task: Task;
   lists: List[];
@@ -17,8 +15,7 @@ interface Props {
 const LINGERS = 6000;
 
 export default function Notice({ task, lists, elsewhere, onOpen, onDismiss }: Props) {
-  // Six seconds is plenty to read and nowhere near enough to tab to. It only
-  // runs out while nobody is holding the card.
+  // Long enough to read, nowhere near enough to tab to — so it waits on focus.
   const [reading, setReading] = useState(false);
 
   useEffect(() => {

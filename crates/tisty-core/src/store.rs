@@ -7,6 +7,7 @@ use fs4::fs_std::FileExt;
 use crate::{
     Error, Result,
     event::{DeviceId, Event, Op, SCHEMA_VERSION},
+    witness::{self, Fact, channel},
 };
 
 const ACTIVE: &str = "active.tisty";
@@ -36,7 +37,18 @@ impl Store {
         let root = store_root.as_ref().to_path_buf();
         let dir = root.join(&device.0);
         std::fs::create_dir_all(&dir)?;
-        let _ = crate::paths::ours_alone(&dir);
+        // Every task's own words sit under here, and a home directory is 0755
+        // on most distributions.
+        if let Err(e) = crate::paths::ours_alone(&dir) {
+            witness::warn(
+                channel::STORE,
+                "store not made private",
+                &[
+                    ("at", Fact::Path(dir.clone())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+        }
         if let Some(parent) = dir.parent() {
             let _ = crate::paths::ours_alone(parent);
         }
@@ -402,11 +414,18 @@ fn contiguous(segments: &[PathBuf]) -> Result<()> {
 
 /// How many events the segment held when sealed; `None` for segments predating this check.
 fn declared_count(segment: &Path) -> Option<usize> {
-    std::fs::read_to_string(segment.with_extension("count"))
-        .ok()?
-        .trim()
-        .parse()
-        .ok()
+    let at = segment.with_extension("count");
+    match std::fs::read_to_string(&at).ok()?.trim().parse() {
+        Ok(found) => Some(found),
+        Err(_) => {
+            witness::warn(
+                channel::STORE,
+                "segment tally unreadable",
+                &[("at", Fact::Path(at))],
+            );
+            None
+        }
+    }
 }
 
 fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
@@ -467,11 +486,21 @@ fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {
             continue;
         }
         lines += 1;
-        if let Ok(event) = serde_json::from_str::<Event>(&line)
-            && (event.timestamp, event.seq) > (head, seq)
-        {
-            head = event.timestamp;
-            seq = event.seq;
+        match serde_json::from_str::<Event>(&line) {
+            Ok(event) if (event.timestamp, event.seq) > (head, seq) => {
+                head = event.timestamp;
+                seq = event.seq;
+            }
+            Ok(_) => {}
+            // Never the parser's words: it quotes the value it choked on.
+            Err(_) => witness::warn(
+                channel::STORE,
+                "segment line unreadable",
+                &[
+                    ("at", Fact::Path(path.to_path_buf())),
+                    ("line", Fact::Count(lines)),
+                ],
+            ),
         }
     }
     Ok((lines, head, seq))

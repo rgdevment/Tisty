@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 mod command;
 mod herald;
+mod report;
 mod tray;
 
 use tauri::{Emitter, Manager};
@@ -10,6 +11,7 @@ use tisty_core::{
     Config, Event, List, Op, Paths, State, Store, Tag, Task,
     event::{LogAdd, LogEdit, StepAdd, StepRef, StepText, TaskPatch},
     view::{Filter, Scope, Window},
+    witness::{self, Fact, channel},
 };
 
 /// The CLI writes to the same store while the window is open, so this can go stale under it.
@@ -26,6 +28,26 @@ struct Session {
 impl Session {
     fn open() -> tisty_core::Result<Self> {
         let paths = Paths::resolve()?;
+        tisty_core::witness::keeps(
+            tisty_core::witness::file(&paths),
+            tisty_core::witness::wants_all(),
+        );
+        tisty_core::witness::catches(tisty_core::witness::channel::WINDOW);
+        witness::note(
+            channel::WINDOW,
+            "the window opened",
+            &[
+                ("version", Fact::Id(env!("CARGO_PKG_VERSION").to_string())),
+                (
+                    "sandbox",
+                    Fact::Word(if tisty_core::paths::profile().is_some() {
+                        "yes"
+                    } else {
+                        "no"
+                    }),
+                ),
+            ],
+        );
         let config = Config::load_or_init(&paths)?;
         let store = Store::open(paths.store(), config.device_id.clone())?;
         let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
@@ -46,14 +68,24 @@ impl Session {
     /// Read from disk before writing: the terminal edits the same file while
     /// the window is open, and saving a copy from startup would undo it.
     fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
-        let mut fresh = Config::load(&self.paths.config_file())
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| self.config.clone());
+        let mut fresh = match Config::load(&self.paths.config_file()) {
+            Ok(Some(kept)) => kept,
+            Ok(None) => self.config.clone(),
+            // What is about to be written over cannot be read: worth a record,
+            // because the settings that vanish are the ones nobody saw go.
+            Err(why) => {
+                witness::warn(
+                    channel::CONFIG,
+                    "the settings could not be read before saving",
+                    &[("why", Fact::Why(why.to_string()))],
+                );
+                self.config.clone()
+            }
+        };
         change(&mut fresh);
         fresh
             .save(&self.paths)
-            .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+            .map_err(|e| blamed(channel::CONFIG, "the settings could not be saved", e))?;
         self.config = fresh;
         Ok(())
     }
@@ -227,8 +259,17 @@ impl From<tisty_core::capture::Rejected> for Refusal {
 
 impl From<tisty_core::Error> for Refusal {
     fn from(error: tisty_core::Error) -> Self {
-        Refusal::about("internalNamed", error.to_string())
+        blamed(channel::WINDOW, "a command could not finish", error)
     }
+}
+
+/// Written down before it becomes a `Refusal`: the window shows a code, and
+/// this is the only place the cause survives.
+fn blamed(channel: &'static str, said: &'static str, error: tisty_core::Error) -> Refusal {
+    // The banner gets the whole of it — it is on the person's own screen. The
+    // log gets only what cannot carry what they wrote.
+    witness::error(channel, said, &error.told());
+    Refusal::about("internalNamed", error.to_string())
 }
 
 type Answer<T> = std::result::Result<T, Refusal>;
@@ -966,6 +1007,14 @@ struct Carrying {
     backs_up: bool,
     last: Option<String>,
     loose: usize,
+    /// What a copy would carry and what it would weigh, said before the dialog
+    /// asks for a folder rather than after the file is written.
+    open: usize,
+    archived: usize,
+    lists: usize,
+    attachments: usize,
+    weight: u64,
+    backed_up_at: Option<String>,
 }
 
 /// Reporting that the cache disagrees without offering to redo it leaves the
@@ -974,20 +1023,27 @@ struct Carrying {
 fn rebuild(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
     let mut session = held(&session);
     tisty_core::cache::discard(session.paths.cache())
-        .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+        .map_err(|e| blamed(channel::CACHE, "the cache could not be thrown away", e))?;
     session.cache = tisty_core::cache::Cache::open(session.paths.cache())
-        .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+        .map_err(|e| blamed(channel::CACHE, "the cache could not be opened", e))?;
     session
         .reproject()
-        .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+        .map_err(|e| blamed(channel::CACHE, "the store would not project", e))?;
     Ok(())
 }
 
 #[tauri::command(async)]
 fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
     let session = held(&session);
-    let audit = tisty_core::cache::audit(&session.paths.store(), session.paths.cache())
-        .map_err(|_| Refusal::of("internal"))?;
+    let audit =
+        tisty_core::cache::audit(&session.paths.store(), session.paths.cache()).map_err(|e| {
+            witness::error(
+                channel::CACHE,
+                "the cache could not be audited",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+            Refusal::of("internal")
+        })?;
 
     let held: Vec<String> = session
         .state
@@ -1004,6 +1060,10 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         agrees: matches!(audit, tisty_core::cache::Audit::Agrees { .. }),
         loose: adrift.files,
         loose_bytes: adrift.bytes,
+        events: tisty_core::store::read_all(session.paths.store())
+            .map(|all| all.len())
+            .unwrap_or(0),
+        devices: report::devices(&session.paths.store()),
     })
 }
 
@@ -1015,6 +1075,196 @@ struct Reviewed {
     agrees: bool,
     loose: usize,
     loose_bytes: u64,
+    events: usize,
+    devices: usize,
+}
+
+/// Gathered on demand and never sent anywhere: the window writes it to a file
+/// the person picked, and they decide whether it is worth sharing.
+#[tauri::command(async)]
+fn facts(
+    session: tauri::State<'_, Mutex<Session>>,
+    bound: tauri::State<'_, Bound>,
+    names: bool,
+    paths: bool,
+) -> Answer<report::Facts> {
+    let session = held(&session);
+    let store = session.paths.store();
+    let audit = tisty_core::cache::audit(&store, session.paths.cache());
+
+    let referenced: Vec<String> = session
+        .state
+        .tasks
+        .values()
+        .flat_map(|task| task.references())
+        .map(|one| one.target)
+        .collect();
+    let adrift = tisty_core::attach::loose(session.paths.data(), &referenced);
+    let kept = report::attachments(session.paths.data());
+
+    let shown = |raw: String| if paths { raw } else { report::hidden(&raw) };
+    let lists = session.state.ordered_lists();
+    let tags = session.state.tags();
+
+    Ok(report::Facts {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        dev: cfg!(debug_assertions),
+        sandbox: tisty_core::paths::profile(),
+        locale: session
+            .locale
+            .clone()
+            .or_else(sys_locale::get_locale)
+            .unwrap_or_else(|| "?".into()),
+        zone: jiff::tz::TimeZone::system()
+            .iana_name()
+            .unwrap_or("?")
+            .to_string(),
+        os: report::os(),
+        arch: std::env::consts::ARCH,
+        webview: tauri::webview_version().ok(),
+        store: shown(store.display().to_string()),
+        devices: report::devices(&store),
+        events: tisty_core::store::read_all(&store)
+            .map(|all| all.len())
+            .unwrap_or(0),
+        open: session.state.matching(&Filter::default(), today()).len(),
+        archived: session
+            .state
+            .matching(
+                &Filter {
+                    scope: Scope::Archived,
+                    ..Default::default()
+                },
+                today(),
+            )
+            .len(),
+        lists: lists.len(),
+        tags: tags.len(),
+        list_names: if names {
+            lists.iter().map(|one| one.name.clone()).collect()
+        } else {
+            Vec::new()
+        },
+        tag_names: if names {
+            tags.iter().map(|one| one.to_string()).collect()
+        } else {
+            Vec::new()
+        },
+        cache: match audit {
+            Ok(tisty_core::cache::Audit::Agrees { .. }) => "agrees",
+            Ok(tisty_core::cache::Audit::Stale { .. }) => "stale",
+            Ok(tisty_core::cache::Audit::Diverged { .. }) => "diverged",
+            _ => "none",
+        },
+        attachments: kept.files,
+        attachment_bytes: kept.bytes,
+        loose: adrift.files,
+        loose_bytes: adrift.bytes,
+        weight: report::weighed(session.paths.data()),
+        syncs: session.config.sync.is_some(),
+        shared: !session.config.backs_up(),
+        backed_up_at: session.config.backed_up_at.map(|at| at.to_string()),
+        quiet: session.config.muted().to_vec(),
+        attach_up_to: session.config.copies_up_to(),
+        in_path: command::reach().within_reach,
+        shortcut: bound.0.clone(),
+    })
+}
+
+/// Written by us and not by a file plugin: the only thing the window may put on
+/// disk unasked is the report it just showed, at the path the dialog returned.
+#[tauri::command(async)]
+fn keep_report(at: String, text: String) -> Answer<()> {
+    let path = std::path::PathBuf::from(&at);
+    if path.extension().is_none_or(|kind| kind != "txt") {
+        return Err(Refusal::about("cannotWrite", at));
+    }
+    tisty_core::store::write_atomic(&path, text.as_bytes())
+        .map_err(|_| Refusal::about("cannotWrite", at))
+}
+
+/// Every code a refusal can carry. A `Fact::Code` is a `&'static str`, and one
+/// the webview typed must never become one: the code that arrives is matched
+/// against these and it is ours that is written down, or nothing.
+const REFUSALS: &[&str] = &[
+    "untitled",
+    "noSuchList",
+    "ambiguousList",
+    "badTag",
+    "notATaskId",
+    "notAListId",
+    "notAStepId",
+    "notAnEntry",
+    "notADate",
+    "notAPriority",
+    "notACadence",
+    "emptyStep",
+    "emptyEntry",
+    "pastDeadline",
+    "pastReminder",
+    "cannotRead",
+    "cannotOpen",
+    "cannotWrite",
+    "noRemote",
+    "noMeetingPlace",
+    "syncUnreadable",
+    "syncBroke",
+    "wouldMerge",
+    "remoteInsideStore",
+    "sharedIsTheBackup",
+    "otherStore",
+    "restoreFailed",
+    "stillCarrying",
+    "sandboxCannotMerge",
+    "internal",
+    "internalNamed",
+];
+
+fn refusal_code(said: &str) -> Option<&'static str> {
+    REFUSALS.iter().copied().find(|one| *one == said)
+}
+
+/// What the window put in front of the person, which is the half of the story
+/// the log never had: the cause is recorded where it happened, the banner here.
+#[tauri::command]
+fn note_trouble(code: String) {
+    let Some(code) = refusal_code(&code) else {
+        return;
+    };
+    witness::warn(
+        channel::WINDOW,
+        "the window showed a refusal",
+        &[("code", Fact::Code(code))],
+    );
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Logs {
+    at: String,
+    bytes: u64,
+    lines: Vec<String>,
+}
+
+#[tauri::command(async)]
+fn logs(session: tauri::State<'_, Mutex<Session>>, most: usize) -> Answer<Logs> {
+    let session = held(&session);
+    Ok(Logs {
+        at: witness::file(&session.paths).display().to_string(),
+        bytes: witness::weighs(&session.paths),
+        lines: if most == 0 {
+            Vec::new()
+        } else {
+            witness::recent(&session.paths, most)
+        },
+    })
+}
+
+#[tauri::command(async)]
+fn forget_logs(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
+    let session = held(&session);
+    witness::forget(&session.paths)
+        .map_err(|e| blamed(channel::WINDOW, "the log would not empty", e))
 }
 
 /// The terminal can change the language while the window is open.
@@ -1059,6 +1309,9 @@ struct Settings {
     quiet: Vec<String>,
     /// In bytes, already clamped to what the core will accept.
     attach_up_to: u64,
+    /// Records what worked too. Never saved: it goes back off on the next
+    /// start, so nobody leaves a noisy log running for a month.
+    logs_all: bool,
 }
 
 #[tauri::command]
@@ -1067,6 +1320,7 @@ fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     Ok(Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
+        logs_all: witness::keeping_all(),
     })
 }
 
@@ -1089,9 +1343,11 @@ fn keep_settings(
         config.quiet = (!quiet.is_empty()).then_some(quiet);
         config.attach_up_to = Some(up_to);
     })?;
+    witness::keeps(witness::file(&session.paths), settings.logs_all);
     let now = Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
+        logs_all: witness::keeping_all(),
     };
     drop(session);
     // Channels are registered once at startup, so without this the switch said
@@ -1167,19 +1423,34 @@ async fn settle_in(
 
     let mut session = held(&session);
     if brought {
-        session
-            .reproject()
-            .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+        session.reproject().map_err(|e| {
+            blamed(
+                channel::SYNC,
+                "the store would not project after carrying",
+                e,
+            )
+        })?;
     }
     // A version that changed how the cache is built cannot be trusted with it.
-    let audit = tisty_core::cache::audit(&session.paths.store(), session.paths.cache())
-        .map_err(|_| Refusal::of("internal"))?;
+    let audit =
+        tisty_core::cache::audit(&session.paths.store(), session.paths.cache()).map_err(|e| {
+            witness::error(
+                channel::CACHE,
+                "the cache could not be audited on settling in",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+            Refusal::of("internal")
+        })?;
     let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
     if !agrees {
         let _ = std::fs::remove_dir_all(session.paths.cache());
-        session
-            .reproject()
-            .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+        session.reproject().map_err(|e| {
+            blamed(
+                channel::CACHE,
+                "the store would not project without a cache",
+                e,
+            )
+        })?;
     }
 
     // Not sealed when the carry never ran — the automatic one had the lock —
@@ -1234,6 +1505,21 @@ fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
         backs_up: config.backs_up(),
         last: config.synced_at.map(|at| at.to_string()),
         loose: tisty_core::attach::loose(session.paths.data(), &held).files,
+        open: session.state.matching(&Filter::default(), today()).len(),
+        archived: session
+            .state
+            .matching(
+                &Filter {
+                    scope: Scope::Archived,
+                    ..Default::default()
+                },
+                today(),
+            )
+            .len(),
+        lists: session.state.lists.len(),
+        attachments: report::attachments(session.paths.data()).files,
+        weight: report::weighed(session.paths.data()),
+        backed_up_at: config.backed_up_at.map(|at| at.to_string()),
     })
 }
 
@@ -1342,10 +1628,19 @@ async fn sync_now(
     let mut session = held(&session);
     let moved = tisty_core::cache::fingerprint(&store) != before;
     if moved {
-        session
-            .reproject()
-            .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+        session.reproject().map_err(|e| {
+            blamed(
+                channel::SYNC,
+                "the store would not project after syncing",
+                e,
+            )
+        })?;
     }
+    witness::note(
+        channel::SYNC,
+        "a carry finished",
+        &[("moved", Fact::Word(if moved { "yes" } else { "no" }))],
+    );
     // Last: «synced a moment ago» over a store that will not project is a lie.
     session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
     Ok(if moved { "came" } else { "same" })
@@ -1370,11 +1665,23 @@ async fn back_up(
     };
 
     let at = std::path::PathBuf::from(&into);
-    tauri::async_runtime::spawn_blocking(move || tisty_core::backup::write(&data, &at))
+    let made = tauri::async_runtime::spawn_blocking(move || tisty_core::backup::write(&data, &at))
         .await
         .map_err(|_| Refusal::of("internal"))?
-        .map(|made| made.bytes)
-        .map_err(|_| Refusal::about("cannotWrite", into))
+        .map_err(|e| {
+            witness::error(
+                channel::BACKUP,
+                "the backup could not be written",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+            Refusal::about("cannotWrite", into)
+        })?;
+
+    // Remembered so the screen can say when the last one was made — the question
+    // that decides whether anyone makes the next.
+    let now = jiff::Timestamp::now();
+    held(&session).keep(|config| config.backed_up_at = Some(now))?;
+    Ok(made.bytes)
 }
 
 #[tauri::command]
@@ -1404,8 +1711,13 @@ async fn restore(
 
     // Not `reload`: the restore minted a new device id, and a Store still open
     // on the old one would write into a directory that just went back in time.
-    *held(&session) =
-        Session::open().map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+    *held(&session) = Session::open().map_err(|e| {
+        blamed(
+            channel::BACKUP,
+            "the session would not reopen after a restore",
+            e,
+        )
+    })?;
     Ok(done.files)
 }
 
@@ -1528,8 +1840,14 @@ fn attach(
             session.config.copies_up_to(),
         )
     };
-    let kept = tisty_core::attach::keep(&source, &root, ceiling)
-        .map_err(|_| Refusal::about("cannotRead", name.clone()))?;
+    let kept = tisty_core::attach::keep(&source, &root, ceiling).map_err(|e| {
+        witness::warn(
+            channel::ATTACH,
+            "the file could not be kept",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        Refusal::about("cannotRead", name.clone())
+    })?;
 
     Ok(kept.written(&name))
 }
@@ -1599,6 +1917,7 @@ fn listen_for<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<String> {
             return Some(said.to_string());
         }
     }
+    witness::warn(channel::WINDOW, "no shortcut was free", &[]);
     None
 }
 
@@ -1665,6 +1984,7 @@ pub fn run() {
                 Ok(session) => session,
                 Err(why) => {
                     use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+                    witness::error(channel::WINDOW, "the session would not open", &why.told());
                     for window in app.webview_windows().values() {
                         let _ = window.close();
                     }
@@ -1792,7 +2112,12 @@ pub fn run() {
             rebuild,
             about,
             settings,
-            keep_settings
+            keep_settings,
+            facts,
+            keep_report,
+            note_trouble,
+            logs,
+            forget_logs
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -1887,6 +2212,15 @@ mod tests {
             edits.retitled(text, &read).as_deref(),
             Some("comprar pan #casa")
         );
+    }
+
+    /// A code the window made up would have to be leaked to become a
+    /// `&'static str`, so it is dropped instead.
+    #[test]
+    fn only_a_code_we_ship_is_written_down() {
+        assert_eq!(refusal_code("pastDeadline"), Some("pastDeadline"));
+        assert_eq!(refusal_code("internalNamed"), Some("internalNamed"));
+        assert_eq!(refusal_code("comprar pan"), None);
     }
 
     #[test]

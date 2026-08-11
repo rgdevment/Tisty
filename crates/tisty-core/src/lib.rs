@@ -15,6 +15,7 @@ pub mod state;
 pub mod store;
 pub mod undo;
 pub mod view;
+pub mod witness;
 
 pub use config::Config;
 pub use event::{DeviceId, Event, Op};
@@ -73,3 +74,53 @@ pub enum Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl Error {
+    pub fn coded(&self) -> &'static str {
+        match self {
+            Error::Io(_) => "io",
+            Error::OutsideTheStore(_) => "outsideTheStore",
+            Error::OtherStore { .. } => "otherStore",
+            Error::TooBig => "tooBig",
+            Error::Json(_) => "json",
+            Error::MalformedEvent { .. } => "malformedEvent",
+            Error::TruncatedSegment { .. } => "truncatedSegment",
+            Error::MissingSegment { .. } => "missingSegment",
+            Error::UnsupportedVersion(_) => "unsupportedVersion",
+            Error::AlreadyRunning => "alreadyRunning",
+            Error::NoHomeDirectory => "noHomeDirectory",
+            Error::ConfigParse(_) => "configParse",
+            Error::ConfigWrite(_) => "configWrite",
+            Error::Tag(_) => "badTag",
+            Error::Priority(_) => "badPriority",
+        }
+    }
+
+    /// What is safe to write down. `Display` is not: serde quotes the value it
+    /// choked on, and a malformed event carries a task title.
+    pub fn told(&self) -> Vec<(&'static str, witness::Fact)> {
+        use witness::Fact;
+        let mut facts = vec![("code", Fact::Code(self.coded()))];
+        match self {
+            Error::Io(e) => facts.push(("why", Fact::Why(e.to_string()))),
+            Error::ConfigParse(e) => facts.push(("why", Fact::Why(e.to_string()))),
+            Error::ConfigWrite(e) => facts.push(("why", Fact::Why(e.to_string()))),
+            Error::OtherStore { theirs } => facts.push(("theirs", Fact::Id(theirs.clone()))),
+            Error::MalformedEvent { file, line, .. } => {
+                facts.push(("file", Fact::Id(file.clone())));
+                facts.push(("line", Fact::Count(*line)));
+            }
+            Error::TruncatedSegment { file, found, .. } => {
+                facts.push(("file", Fact::Id(file.clone())));
+                facts.push(("found", Fact::Count(*found)));
+            }
+            Error::MissingSegment { number, device } => {
+                facts.push(("number", Fact::Count(*number)));
+                facts.push(("device", Fact::Id(device.clone())));
+            }
+            Error::UnsupportedVersion(v) => facts.push(("version", Fact::Count(*v as usize))),
+            _ => {}
+        }
+        facts
+    }
+}

@@ -194,3 +194,14 @@ export function wroteAt(at: string, tz?: string, now = new Date(), reader = here
 }
 
 const cityOf = (tz: string): string => (tz.split("/").pop() ?? tz).replace(/_/g, " ");
+
+export function weigh(bytes: number): string {
+  const units = ["B", "kB", "MB", "GB"];
+  let step = 0;
+  let left = bytes;
+  while (left >= 1000 && step < units.length - 1) {
+    left /= 1000;
+    step += 1;
+  }
+  return `${step === 0 ? left : left.toFixed(1)} ${units[step]}`;
+}

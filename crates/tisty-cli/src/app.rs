@@ -1,3 +1,4 @@
+use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Config, Event, Op, Paths, State, Store, Task, order};
 
 enum Load {
@@ -67,10 +68,20 @@ impl App {
     /// save the config it had loaded minutes earlier, quietly undoing whatever
     /// had been changed from the window meanwhile.
     pub fn edit_config(&mut self, f: impl FnOnce(&mut Config)) -> tisty_core::Result<()> {
-        let mut fresh = Config::load(&self.paths.config_file())
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| self.config.clone());
+        let mut fresh = match Config::load(&self.paths.config_file()) {
+            Ok(Some(kept)) => kept,
+            Ok(None) => self.config.clone(),
+            // Nothing is printed and the file is written anyway: whatever could
+            // not be read is about to be replaced by what this run remembers.
+            Err(why) => {
+                witness::warn(
+                    channel::CONFIG,
+                    "the settings could not be read before saving",
+                    &[("why", Fact::Why(why.to_string()))],
+                );
+                self.config.clone()
+            }
+        };
         f(&mut fresh);
         fresh.save(&self.paths)?;
         self.config = fresh;

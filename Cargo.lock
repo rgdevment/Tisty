@@ -4343,6 +4343,7 @@ dependencies = [
  "tauri-plugin-global-shortcut",
  "tauri-plugin-notification",
  "tauri-plugin-opener",
+ "tempfile",
  "tisty-core",
  "tisty-nl",
  "tisty-sync",

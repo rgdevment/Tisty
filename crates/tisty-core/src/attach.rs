@@ -7,7 +7,10 @@ use std::path::{Component, Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
-use crate::{Error, Result};
+use crate::{
+    Error, Result,
+    witness::{self, Fact, channel},
+};
 
 /// Above this the file is left where it is and only its path is kept: a 40 MB
 /// video inside the store is a store nobody can move again.
@@ -120,8 +123,19 @@ pub fn loose(root: &Path, referenced: &[String]) -> Loose {
         .collect();
 
     let mut found = Loose::default();
-    let Ok(shelves) = std::fs::read_dir(root.join("attachments")) else {
-        return found;
+    let at = root.join("attachments");
+    let shelves = match std::fs::read_dir(&at) {
+        Ok(shelves) => shelves,
+        Err(e) => {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                witness::warn(
+                    channel::ATTACH,
+                    "attachments unreadable",
+                    &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
+                );
+            }
+            return found;
+        }
     };
     for shelf in shelves.filter_map(|e| e.ok()) {
         let Some(name) = shelf.file_name().to_str().map(str::to_owned) else {
