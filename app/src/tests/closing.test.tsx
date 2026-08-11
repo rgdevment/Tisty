@@ -34,7 +34,7 @@ describe("the closing question", () => {
     render(<Closing onDismiss={() => {}} onError={() => {}} />);
 
     await userEvent.click(screen.getByRole("checkbox"));
-    await userEvent.click(screen.getByRole("button", { name: /close tisty/i }));
+    await userEvent.click(screen.getByRole("button", { name: /quit tisty/i }));
 
     await waitFor(() => expect(sent().length).toBe(1));
     expect(sent()[0].args).toMatchObject({ how: "quit", remember: false });

@@ -46,10 +46,15 @@ const isKnown = (code: string): code is Known => (KNOWN as readonly string[]).in
 export function saidPlainly(problem: unknown): string {
   const refusal = problem as Refusal | undefined;
   if (!refusal || typeof refusal.code !== "string") {
-    return String(problem);
+    return technical(String(problem));
   }
   if (!isKnown(refusal.code)) {
-    return refusal.name ?? refusal.code;
+    return technical(refusal.name ?? refusal.code);
   }
   return refusal.name ? fill(refusal.code, refusal.name) : t(refusal.code);
 }
+
+/// The Rust text stays — it is what makes a report worth anything — but never
+/// as the whole message: it is English, technical, and arrives at the worst
+/// possible moment.
+const technical = (raw: string): string => `${t("internal")} — ${raw}`;

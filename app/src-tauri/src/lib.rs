@@ -1557,8 +1557,8 @@ fn worded(locale: &Option<String>, key: &str) -> String {
         ("capture", false) => "Capture…".into(),
         ("due", true) => "Recordatorio".into(),
         ("due", false) => "Reminder".into(),
-        (_, true) => "Salir".into(),
-        (_, false) => "Quit".into(),
+        (_, true) => "Salir de Tisty".into(),
+        (_, false) => "Quit Tisty".into(),
     }
 }
 
