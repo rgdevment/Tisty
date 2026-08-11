@@ -22,6 +22,7 @@ export default function Recall({ on, taken, onAdd, onClose }: Props) {
     return (
       <When
         never
+        confirm={t("addReminder")}
         value={day || undefined}
         clock={OPENS}
         onPick={(at) => {

@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
+import { useEdge } from "./edge";
 import { open } from "@tauri-apps/plugin-dialog";
 import { attach } from "../core";
 import { t } from "../locales";
 
 interface Props {
   known: string[];
+  /// The steps of the task this prose belongs to, in the order they are drawn,
+  /// so «#3» in a journal entry means the third line of the list above it.
+  steps?: string[];
   onPut: (snippet: string) => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
@@ -14,9 +18,10 @@ interface Props {
  * there is no third row for one. Attaching IS a third thing: it copies a file
  * into the store, and until now the only way in was dragging one onto the
  * window, which left out anyone not using a mouse. */
-export default function Insert({ known, onPut, onClose, onError }: Props) {
-  const [step, setStep] = useState<"pick" | "doc" | "link">("pick");
+export default function Insert({ known, steps = [], onPut, onClose, onError }: Props) {
+  const [step, setStep] = useState<"pick" | "doc" | "link" | "step">("pick");
   const [busy, setBusy] = useState(false);
+  const { box, away } = useEdge<HTMLDivElement>();
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -49,7 +54,12 @@ export default function Insert({ known, onPut, onClose, onError }: Props) {
   return (
     <>
       <span className="fixed inset-0 z-10" onClick={onClose} />
-      <div className="absolute top-full left-1.5 z-20 w-[258px] rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lift">
+      <div
+        ref={box}
+        className={`absolute left-1.5 z-20 w-[258px] rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lift ${
+          away.up ? "bottom-full mb-1" : "top-full"
+        }`}
+      >
         {step === "pick" && (
           <>
             <Row first glyph="📄" say={t("sayDoc")} onPick={() => setStep("doc")}>
@@ -61,10 +71,21 @@ export default function Insert({ known, onPut, onClose, onError }: Props) {
             <Row glyph="📎" say={busy ? "…" : t("sayAttach")} onPick={pickFile}>
               {t("insertAttach")}
             </Row>
+            {steps.length > 0 && (
+              <Row glyph="#" say={t("sayStep")} onPick={() => setStep("step")}>
+                {t("insertStep")}
+              </Row>
+            )}
           </>
         )}
         {step === "doc" && <Naming known={known} onName={(name) => onPut(`[[${name}]]`)} />}
         {step === "link" && <Linking onLink={(text, url) => onPut(`[${text}](${url})`)} />}
+        {step === "step" &&
+          steps.map((text, at) => (
+            <Row key={at} glyph={`${at + 1}`} onPick={() => onPut(`[[#${at + 1}]]`)}>
+              {text}
+            </Row>
+          ))}
       </div>
     </>
   );
@@ -78,7 +99,7 @@ function Row({
   onPick,
 }: {
   glyph: string;
-  say: string;
+  say?: string;
   first?: boolean;
   children: React.ReactNode;
   onPick: () => void;

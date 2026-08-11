@@ -6,13 +6,19 @@ interface Props {
   value?: string;
   clock?: string;
   never?: boolean;
+  /// Names the button that applies it. Without one, touching a day applies
+  /// straight away — fine for a due date, wrong for a reminder, where the hour
+  /// is the point and gets typed after the day.
+  confirm?: string;
   onPick: (at: string) => void;
   onClear: () => void;
   onClose: () => void;
 }
 
-export default function When({ value, clock, never, onPick, onClear, onClose }: Props) {
+export default function When({ value, clock, never, confirm, onPick, onClear, onClose }: Props) {
   const [at, setAt] = useState(clock ?? "");
+  const [day, setDay] = useState(value ?? "");
+  const said = (iso: string) => onPick(at ? `${iso}T${at}:00` : iso);
 
   return (
     <>
@@ -39,11 +45,31 @@ export default function When({ value, clock, never, onPick, onClear, onClose }: 
       </div>
       <Calendar
         inline
-        value={value}
-        onPick={(iso) => onPick(at ? `${iso}T${at}:00` : iso)}
+        value={confirm ? day : value}
+        onPick={(iso) => (confirm ? setDay(iso) : said(iso))}
         onClear={never ? onClose : onClear}
         onClose={onClose}
       />
+
+      {confirm && (
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={!day}
+            onClick={() => said(day)}
+            className="flex-1 rounded-md bg-accent px-2.5 py-1.5 text-bg disabled:opacity-40"
+          >
+            {confirm}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md px-2.5 py-1.5 text-faint hover:bg-hover hover:text-ink"
+          >
+            {t("cancel")}
+          </button>
+        </div>
+      )}
     </>
   );
 }

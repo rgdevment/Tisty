@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useEdge } from "./edge";
 import type { Counted, List } from "../core";
 import { t } from "../locales";
 import { cadence } from "../format";
@@ -26,6 +27,7 @@ interface Row {
 export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, onClose }: Props) {
   const [step, setStep] = useState<Field | null>(from);
   const [at, setAt] = useState(0);
+  const { box, away } = useEdge<HTMLDivElement>();
   const rows = step === null ? fields(onDate, setStep) : within(step, lists, tags, onInsert);
   const shown = rows.filter((row) => fits(row, query));
   const on = Math.min(at, shown.length - 1);
@@ -54,7 +56,10 @@ export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, 
       role="listbox"
       aria-label={t("insertLabel")}
       aria-activedescendant={`slash-${shown[on].key}`}
-      className="absolute top-1 left-0 z-20 w-[330px] rounded-[10px] border border-line bg-bg p-[5px] shadow-lift"
+      ref={box}
+      className={`absolute left-0 z-20 w-[330px] rounded-[10px] border border-line bg-bg p-[5px] shadow-lift ${
+        away.up ? "bottom-6" : "top-1"
+      }`}
     >
       {shown.map((row, i) => (
         <button

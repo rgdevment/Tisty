@@ -7,12 +7,13 @@ import Prose from "./Prose";
 interface Props {
   entries: LogEntry[];
   known: string[];
+  steps?: string[];
   onError?: (problem: unknown) => void;
   onWhole?: () => void;
   onWrite: (body: string, entry?: string) => void;
 }
 
-export default function Journal({ entries, known, onError, onWhole, onWrite }: Props) {
+export default function Journal({ entries, known, steps, onError, onWhole, onWrite }: Props) {
   const [draft, setDraft] = useState(0);
 
   return (
@@ -23,6 +24,7 @@ export default function Journal({ entries, known, onError, onWhole, onWrite }: P
         hint={t("writeLog")}
         label={t("journal")}
         known={known}
+        steps={steps}
         onError={onError}
         rows={1}
         catches
@@ -42,6 +44,7 @@ export default function Journal({ entries, known, onError, onWhole, onWrite }: P
             hint={t("writeLog")}
             label={entry.body}
             known={known}
+        steps={steps}
             onError={onError}
             onWhole={onWhole}
             rows={1}

@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Change, List, Task } from "../core";
 import { cadence, whenLabel } from "../format";
 import { t } from "../locales";
+import { useEdge } from "./edge";
 import Recall from "./Recall";
 import When from "./When";
 
@@ -215,21 +216,7 @@ function Sheet({
   roomy?: boolean;
   onClose: () => void;
 }) {
-  const box = useRef<HTMLDivElement>(null);
-  const [away, setAway] = useState({ right: false, up: false });
-
-  // Anchored bottom-left of the chip with no regard for the window edge, half
-  // of the calendar fell outside the three-column layout, where the detail is
-  // a narrow strip. Measured after the first paint and flipped if it does not
-  // fit — `useLayoutEffect` so nobody sees the wrong side.
-  useLayoutEffect(() => {
-    const at = box.current?.getBoundingClientRect();
-    if (!at) return;
-    setAway({
-      right: at.right > window.innerWidth - EDGE,
-      up: at.bottom > window.innerHeight - EDGE,
-    });
-  }, []);
+  const { box, away } = useEdge<HTMLDivElement>();
 
   useEffect(() => {
     const came = document.activeElement as HTMLElement | null;
@@ -341,7 +328,3 @@ const CADENCES = [
 
 const fieldOf = (slot: "date" | "deadline"): "fieldDate" | "fieldDeadline" =>
   slot === "date" ? "fieldDate" : "fieldDeadline";
-
-/// Breathing room against the window edge, so a flipped sheet does not sit
-/// flush against it.
-const EDGE = 8;

@@ -88,6 +88,7 @@ export default function Detail({
       <Journal
         entries={task.log ?? []}
         known={refs}
+        steps={task.steps?.map((one) => one.text)}
         onError={onError}
         onWhole={expanded ? undefined : onExpand}
         onWrite={onLog}

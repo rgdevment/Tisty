@@ -14,6 +14,9 @@ interface Props {
   title: string;
   centred: boolean;
   bands?: "month" | "day";
+  /// True where the manual key is what orders the view, so a drag can cross
+  /// days and priorities without the row snapping back.
+  byHand?: boolean;
   empty?: string;
   /// Said above the rows: what the list is not showing.
   note?: string;
@@ -35,6 +38,7 @@ export default function TaskList({
   title,
   centred,
   bands,
+  byHand,
   empty,
   note,
   onSelect,
@@ -88,7 +92,7 @@ export default function TaskList({
   // The core sorts by date, then priority, then the manual key. A drop across
   // either would snap back, so it is refused instead of promised.
   const settles = (moved?: Task, onto?: Task) =>
-    moved !== undefined && onto !== undefined && group(moved) === group(onto);
+    moved !== undefined && onto !== undefined && (byHand || group(moved) === group(onto));
 
   const lands = (i: number) =>
     onDrop && {

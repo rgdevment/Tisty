@@ -317,6 +317,7 @@ export default function App() {
           lists={data.lists}
           title={title(chosen, data.lists)}
           empty={nothing(chosen, found !== null)}
+          byHand={found === null && !!chosen.list}
           note={
             found && found.total > found.tasks.length
               ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
@@ -327,7 +328,7 @@ export default function App() {
           reveal={reveal}
           centred={!open}
           bands={
-            found !== null || chosen.named === "tags" || chosen.tags?.length
+            found !== null || chosen.list || chosen.named === "tags" || chosen.tags?.length
               ? undefined
               : chosen.named === "archive"
                 ? "month"
