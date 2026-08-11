@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
-import { search, type Scope, type Task } from "../core";
+import { search, type Found, type Scope } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Field from "./Field";
 
 interface Props {
   fixed?: Scope;
-  onFound: (tasks: Task[] | null) => void;
+  onFound: (found: Found | null) => void;
   onError: (message: string) => void;
 }
 
 const SETTLES = 150;
+const ENOUGH = 2;
 const SCOPES: Scope[] = ["open", "archived", "either"];
 const LABEL: Record<Scope, "scopeEither" | "scopeOpen" | "scopeArchived"> = {
   either: "scopeEither",
@@ -25,7 +26,9 @@ export default function Search({ fixed, onFound, onError }: Props) {
   const [scope, setScope] = useState<Scope>(fixed ?? "either");
 
   useEffect(() => {
-    if (!query.trim()) {
+    // One letter matches most of a long archive, and the cost of that lands on
+    // every keystroke: the whole thing crosses the IPC boundary and gets drawn.
+    if (query.trim().length < ENOUGH) {
       onFound(null);
       return;
     }

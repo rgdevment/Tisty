@@ -77,6 +77,66 @@ pub enum Op {
     ListDelete { id: ListId },
 }
 
+impl Op {
+    /// The same operation, aimed at another entity. Only a redo needs this: it
+    /// has to rebuild what its own undo buried under a tombstone.
+    pub fn about(self, id: TaskId) -> Self {
+        match self {
+            Op::TaskAdd { d, .. } => Op::TaskAdd { id, d },
+            Op::TaskUpdate { d, .. } => Op::TaskUpdate { id, d },
+            Op::TaskDone { .. } => Op::TaskDone { id },
+            Op::TaskReopen { .. } => Op::TaskReopen { id },
+            Op::TaskDrop { .. } => Op::TaskDrop { id },
+            Op::TaskDelete { .. } => Op::TaskDelete { id },
+            Op::TaskHide { .. } => Op::TaskHide { id },
+            Op::TaskShow { .. } => Op::TaskShow { id },
+            Op::TaskMove { d, .. } => Op::TaskMove { id, d },
+            Op::TaskDescribe { d, .. } => Op::TaskDescribe { id, d },
+            Op::TaskLog { d, .. } => Op::TaskLog { id, d },
+            Op::TaskLogEdit { d, .. } => Op::TaskLogEdit { id, d },
+            Op::StepAdd { d, .. } => Op::StepAdd { id, d },
+            Op::StepDone { d, .. } => Op::StepDone { id, d },
+            Op::StepUndone { d, .. } => Op::StepUndone { id, d },
+            Op::StepText { d, .. } => Op::StepText { id, d },
+            Op::StepRemove { d, .. } => Op::StepRemove { id, d },
+            Op::StepReorder { d, .. } => Op::StepReorder { id, d },
+            Op::ListAdd { d, .. } => Op::ListAdd { id, d },
+            Op::ListRename { d, .. } => Op::ListRename { id, d },
+            Op::ListArchive { .. } => Op::ListArchive { id },
+            Op::ListUnarchive { .. } => Op::ListUnarchive { id },
+            Op::ListDelete { .. } => Op::ListDelete { id },
+        }
+    }
+
+    pub fn about_whom(&self) -> TaskId {
+        match self {
+            Op::TaskAdd { id, .. }
+            | Op::TaskUpdate { id, .. }
+            | Op::TaskDone { id }
+            | Op::TaskReopen { id }
+            | Op::TaskDrop { id }
+            | Op::TaskDelete { id }
+            | Op::TaskHide { id }
+            | Op::TaskShow { id }
+            | Op::TaskMove { id, .. }
+            | Op::TaskDescribe { id, .. }
+            | Op::TaskLog { id, .. }
+            | Op::TaskLogEdit { id, .. }
+            | Op::StepAdd { id, .. }
+            | Op::StepDone { id, .. }
+            | Op::StepUndone { id, .. }
+            | Op::StepText { id, .. }
+            | Op::StepRemove { id, .. }
+            | Op::StepReorder { id, .. }
+            | Op::ListAdd { id, .. }
+            | Op::ListRename { id, .. }
+            | Op::ListArchive { id }
+            | Op::ListUnarchive { id }
+            | Op::ListDelete { id } => *id,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TaskAdd {
     pub title: String,

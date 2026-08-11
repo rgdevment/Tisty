@@ -64,6 +64,20 @@ describe("what an empty screen says", () => {
 describe("the search scope", () => {
   /// The placeholder promised the archive and the default reached only what
   /// was open: a ticket from six months ago read as lost.
+  /// One letter matches most of a long archive, and that cost lands on every
+  /// keystroke: the whole thing crosses IPC and gets drawn.
+  it("waits for a second letter before asking at all", async () => {
+    searched.mockClear();
+    render(<Search onFound={() => {}} onError={() => {}} />);
+
+    const field = screen.getByRole("textbox");
+    field.focus();
+    await import("@testing-library/user-event").then(({ default: user }) => user.type(field, "e"));
+    await new Promise((rest) => setTimeout(rest, 250));
+
+    expect(searched).not.toHaveBeenCalled();
+  });
+
   it("looks in the archive by default, as the field says it does", async () => {
     searched.mockClear();
     render(<Search onFound={() => {}} onError={() => {}} />);

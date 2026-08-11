@@ -167,6 +167,35 @@ impl State {
         self.tombstones.iter()
     }
 
+    /// The same batch, with any entity its own undo buried given a fresh id.
+    ///
+    /// A tombstone is permanent by design — that is what makes a deletion
+    /// converge between machines — so `apply` drops every event about a buried
+    /// id, including the `TaskAdd` that would bring it back. Replaying a redo
+    /// verbatim therefore did nothing at all and reported that it had worked.
+    /// The occurrence a repeat gives birth to is the case that hits people.
+    pub fn afresh(&self, ops: Vec<Op>) -> Vec<Op> {
+        let born: std::collections::HashMap<Ulid, Ulid> = ops
+            .iter()
+            .filter_map(|op| match op {
+                Op::TaskAdd { id, .. } | Op::ListAdd { id, .. } if self.is_erased(*id) => {
+                    Some((*id, Ulid::generate()))
+                }
+                _ => None,
+            })
+            .collect();
+
+        if born.is_empty() {
+            return ops;
+        }
+        ops.into_iter()
+            .map(|op| match born.get(&op.about_whom()) {
+                Some(&fresh) => op.about(fresh),
+                None => op,
+            })
+            .collect()
+    }
+
     /// For restoring a projection stored elsewhere; omitting tombstones lets deletions resurrect.
     pub fn mark_erased(&mut self, id: Ulid) {
         self.tombstones.insert(id);
@@ -414,11 +443,25 @@ impl State {
 
     /// Sorted open-first, then archived newest-first.
     pub fn search(&self, query: &str, scope: crate::view::Scope) -> Vec<&Task> {
+        self.searching(query, scope, usize::MAX).0
+    }
+
+    /// The best `most` of them, and how many there were in all.
+    ///
+    /// A client that draws every row and ships every body over an IPC boundary
+    /// cannot afford «everything»: one letter against a store with years of
+    /// archive matches most of it, and the cost lands on each keystroke.
+    pub fn searching(
+        &self,
+        query: &str,
+        scope: crate::view::Scope,
+        most: usize,
+    ) -> (Vec<&Task>, usize) {
         use crate::view::Scope;
 
         let query = query.trim().to_lowercase();
         if query.is_empty() {
-            return Vec::new();
+            return (Vec::new(), 0);
         }
 
         let mut hits: Vec<(crate::view::Hit, &Task)> = self
@@ -446,7 +489,8 @@ impl State {
                 std::cmp::Reverse(t.id),
             )
         });
-        hits.into_iter().map(|(_, t)| t).collect()
+        let total = hits.len();
+        (hits.into_iter().take(most).map(|(_, t)| t).collect(), total)
     }
 
     pub fn ordered_lists(&self) -> Vec<&List> {
@@ -1031,6 +1075,111 @@ mod tests {
             .find(|task| task.after == Some(of))
             .expect("no successor")
             .id
+    }
+
+    /// A tombstone is permanent, so replaying the batch verbatim applied
+    /// nothing at all — and said it had worked.
+    #[test]
+    fn a_redo_rebuilds_what_its_undo_buried() {
+        let mut state = State::default();
+        let gone = ulid::Ulid::generate();
+        let ops = vec![
+            Op::TaskAdd {
+                id: gone,
+                d: TaskAdd::new("regar las plantas", "a0"),
+            },
+            Op::TaskDescribe {
+                id: gone,
+                d: crate::event::Body {
+                    body: Some("agua tibia".into()),
+                },
+            },
+        ];
+        state.mark_erased(gone);
+
+        let again = state.afresh(ops);
+
+        assert_eq!(again.len(), 2);
+        let fresh = again[0].about_whom();
+        assert_ne!(fresh, gone, "it reused the buried id");
+        assert_eq!(again[1].about_whom(), fresh, "the batch was torn apart");
+        for op in &again {
+            state.apply(&ev(9, "a", op.clone()));
+        }
+        assert_eq!(
+            state.tasks[&fresh].description.as_deref(),
+            Some("agua tibia")
+        );
+    }
+
+    /// Renaming what was never buried would break every other redo.
+    #[test]
+    fn nothing_is_renamed_when_nothing_was_buried() {
+        let state = State::default();
+        let id = ulid::Ulid::generate();
+        let ops = vec![Op::TaskDone { id }];
+
+        assert_eq!(state.afresh(ops.clone()), ops);
+    }
+
+    /// A client that draws every row and ships every body over IPC cannot
+    /// afford «everything» on each keystroke.
+    #[test]
+    fn a_search_hands_back_the_top_and_says_how_many_there_were() {
+        let mut state = State::default();
+        for n in 0..50 {
+            let id = ulid::Ulid::generate();
+            state.apply(&ev(
+                n,
+                "a",
+                Op::TaskAdd {
+                    id,
+                    d: TaskAdd::new(format!("informe {n}"), format!("a{n}")),
+                },
+            ));
+        }
+
+        let (hits, total) = state.searching("informe", crate::view::Scope::Either, 10);
+
+        assert_eq!(hits.len(), 10);
+        assert_eq!(
+            total, 50,
+            "the count has to be the real one, not the capped one"
+        );
+    }
+
+    #[test]
+    fn the_cap_never_shrinks_a_result_that_already_fits() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        state.apply(&ev(1, "a", add(id, "informe anual")));
+
+        let (hits, total) = state.searching("informe", crate::view::Scope::Either, 200);
+
+        assert_eq!(hits.len(), 1);
+        assert_eq!(total, 1);
+    }
+
+    /// The uncapped call is what the terminal uses, and it must not change.
+    #[test]
+    fn the_plain_search_still_returns_everything() {
+        let mut state = State::default();
+        for n in 0..30 {
+            let id = ulid::Ulid::generate();
+            state.apply(&ev(
+                n,
+                "a",
+                Op::TaskAdd {
+                    id,
+                    d: TaskAdd::new(format!("informe {n}"), format!("a{n}")),
+                },
+            ));
+        }
+
+        assert_eq!(
+            state.search("informe", crate::view::Scope::Either).len(),
+            30
+        );
     }
 
     fn ev(ms: i64, device: &str, op: Op) -> Event {

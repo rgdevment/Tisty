@@ -526,7 +526,7 @@ fn capture(
         .cloned()
         .ok_or_else(|| Refusal::of("notATaskId"))?;
     drop(session);
-    herald::told(
+    let _ = herald::told(
         &app,
         tisty_core::herald::Happening::Filed {
             title: task.title.clone(),
@@ -906,7 +906,7 @@ fn search(
     session: tauri::State<'_, Mutex<Session>>,
     query: String,
     scope: Option<String>,
-) -> Answer<Vec<Task>> {
+) -> Answer<Found> {
     let mut session = held(&session);
     session.reload()?;
 
@@ -915,12 +915,21 @@ fn search(
         Some("archived") => Scope::Archived,
         _ => Scope::Either,
     };
-    Ok(session
-        .state
-        .search(&query, scope)
-        .into_iter()
-        .cloned()
-        .collect())
+    let (hits, total) = session.state.searching(&query, scope, MOST);
+    Ok(Found {
+        tasks: hits.into_iter().cloned().collect(),
+        total,
+    })
+}
+
+/// Enough to scroll through; far short of what a one-letter query matches in a
+/// store with years of archive, which is what used to be cloned and shipped.
+const MOST: usize = 200;
+
+#[derive(serde::Serialize)]
+struct Found {
+    tasks: Vec<Task>,
+    total: usize,
 }
 
 #[tauri::command]
@@ -1595,6 +1604,8 @@ fn worded(locale: &Option<String>, key: &str) -> String {
         ("capture", false) => "Capture…".into(),
         ("due", true) => "Recordatorio".into(),
         ("due", false) => "Reminder".into(),
+        ("missed", true) => "{n} recordatorios mientras no estabas".into(),
+        ("missed", false) => "{n} reminders while you were away".into(),
         (_, true) => "Salir de Tisty".into(),
         (_, false) => "Quit Tisty".into(),
     }
@@ -1673,10 +1684,12 @@ pub fn run() {
             };
             let telling = herald::Words {
                 due: worded(&session.locale, "due"),
+                missed: worded(&session.locale, "missed"),
             };
+            let watched = session.paths.clone();
             app.manage(Mutex::new(session));
             app.manage(herald::heralds(app.handle(), telling));
-            herald::watch(app.handle().clone());
+            herald::watch(app.handle().clone(), watched);
 
             // No tray on this desktop means closing keeps its plain meaning,
             // and the preference is ignored rather than hiding the app away.

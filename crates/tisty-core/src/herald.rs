@@ -7,16 +7,28 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "what")]
 pub enum Happening {
-    Filed { title: String },
-    Due { title: String, task: String },
-    Carried { brought: usize },
+    Filed {
+        title: String,
+    },
+    Due {
+        title: String,
+        task: String,
+    },
+    /// A lid closed at ten and opened at eight owes a dozen at once. One line
+    /// beats a dozen notifications and a dozen overlapping tones.
+    Missed {
+        count: usize,
+    },
+    Carried {
+        brought: usize,
+    },
 }
 
 impl Happening {
     pub fn title(&self) -> Option<&str> {
         match self {
             Happening::Filed { title } | Happening::Due { title, .. } => Some(title),
-            Happening::Carried { .. } => None,
+            Happening::Missed { .. } | Happening::Carried { .. } => None,
         }
     }
 }
@@ -63,6 +75,18 @@ pub struct Due {
     pub what: Happening,
 }
 
+/// How many owed reminders are worth one notification each.
+pub const ONE_BY_ONE: usize = 3;
+
+/// Told one by one while there are few, gathered into a single line when a
+/// suspended machine wakes up owing a night's worth.
+pub fn gathered(owed: Vec<Due>) -> Vec<Happening> {
+    if owed.len() <= ONE_BY_ONE {
+        return owed.into_iter().map(|one| one.what).collect();
+    }
+    vec![Happening::Missed { count: owed.len() }]
+}
+
 /// A way of telling. Register one and it hears every happening it wants.
 pub trait Channel: Send + Sync {
     fn named(&self) -> &'static str;
@@ -96,12 +120,33 @@ impl Heralds {
     }
 
     /// One channel failing must not silence the rest.
-    pub fn tell(&self, what: &Happening) -> Vec<Trouble> {
-        self.channels
-            .iter()
-            .filter(|one| one.wants(what))
-            .filter_map(|one| one.tell(what).err())
-            .collect()
+    pub fn tell(&self, what: &Happening) -> Told {
+        let mut told = Told::default();
+        for one in self.channels.iter().filter(|one| one.wants(what)) {
+            told.asked += 1;
+            match one.tell(what) {
+                Ok(()) => told.heard += 1,
+                Err(why) => told.trouble.push(why),
+            }
+        }
+        told
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Told {
+    /// Channels that wanted it. Zero is an answer, not a failure.
+    pub asked: usize,
+    pub heard: usize,
+    pub trouble: Vec<Trouble>,
+}
+
+impl Told {
+    /// Nobody wanting to hear it is fine. Everybody wanting to and failing is
+    /// not: that is a reminder nobody will ever see, and it must not be
+    /// written off as said.
+    pub fn lost(&self) -> bool {
+        self.asked > 0 && self.heard == 0
     }
 }
 
@@ -284,7 +329,7 @@ mod tests {
             .with(Box::new(Counting::new("screen")))
             .with(Box::new(Counting::new("sound")));
 
-        assert!(heralds.tell(&filed("comprar pan")).is_empty());
+        assert!(!heralds.tell(&filed("comprar pan")).lost());
         assert_eq!(heralds.names(), vec!["screen", "sound"]);
     }
 
@@ -296,10 +341,11 @@ mod tests {
             .with(Box::new(broken))
             .with(Box::new(Counting::new("screen")));
 
-        let trouble = heralds.tell(&filed("comprar pan"));
+        let told = heralds.tell(&filed("comprar pan"));
 
-        assert_eq!(trouble.len(), 1);
-        assert_eq!(trouble[0].channel, "mail");
+        assert_eq!(told.trouble.len(), 1);
+        assert_eq!(told.trouble[0].channel, "mail");
+        assert!(!told.lost(), "the screen did hear it");
     }
 
     #[test]
@@ -308,11 +354,31 @@ mod tests {
         picky.deaf_to_carries = true;
         let heralds = Heralds::default().with(Box::new(picky));
 
-        assert!(heralds.tell(&Happening::Carried { brought: 2 }).is_empty());
+        assert!(!heralds.tell(&Happening::Carried { brought: 2 }).lost());
+    }
+
+    /// A reminder nobody could deliver must not be written off as said.
+    #[test]
+    fn a_happening_no_channel_could_deliver_is_lost() {
+        let mut broken = Counting::new("screen");
+        broken.breaks = true;
+        let heralds = Heralds::default().with(Box::new(broken));
+
+        assert!(heralds.tell(&filed("comprar pan")).lost());
+    }
+
+    /// Otherwise every quiet happening would be retried for ever.
+    #[test]
+    fn nobody_wanting_it_is_not_the_same_as_losing_it() {
+        let mut picky = Counting::new("phone");
+        picky.deaf_to_carries = true;
+        let heralds = Heralds::default().with(Box::new(picky));
+
+        assert!(!heralds.tell(&Happening::Carried { brought: 2 }).lost());
     }
 
     #[test]
     fn nobody_listening_is_not_an_error() {
-        assert!(Heralds::default().tell(&filed("comprar pan")).is_empty());
+        assert!(!Heralds::default().tell(&filed("comprar pan")).lost());
     }
 }
