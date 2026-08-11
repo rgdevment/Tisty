@@ -230,6 +230,23 @@ export type Carried = "came" | "same" | "busy";
 
 export const syncNow = (way?: "push" | "pull", merge?: boolean): Promise<Carried> =>
   invoke("sync_now", { way, merge });
+
+/** What the first run after an install or an update had to put right. */
+export interface Settling {
+  ran: boolean;
+  brought: boolean;
+  agrees: boolean;
+  was?: string;
+}
+
+export const settleIn = (): Promise<Settling> => invoke("settle_in");
+
+/** Which combination answered, or none if every one was already taken. */
+export const shortcut = (): Promise<string | null> => invoke("shortcut");
+
+/** No answer leaves it unasked, so the question comes again next time. */
+export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<void> =>
+  invoke("close_window", { how, remember });
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 

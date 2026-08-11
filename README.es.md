@@ -267,6 +267,7 @@ cargo install --path crates/tisty-cli
 | ✅ | Interfaz gráfica (Tauri): tres columnas, arrastrar y soltar, adjuntos |
 | ✅ | Markdown en descripciones y bitácora |
 | ✅ | Sincronización por una carpeta que alcancen los dos equipos, y respaldo a mano |
+| ✅ | Bandeja y barra de menú, con captura rápida por atajo global |
 | ◐ | Uso diario, que es lo que saca los fallos que los tests no |
 | ⬜ | Binarios empaquetados para Windows y macOS |
 

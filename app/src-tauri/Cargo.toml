@@ -18,6 +18,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { workspace = true }
 
+[target."cfg(windows)".dependencies]
+winreg = "0.55"
+
 [dependencies]
 tisty-core.workspace = true
 tisty-sync.workspace = true
@@ -25,6 +28,8 @@ tisty-nl.workspace = true
 tauri.workspace = true
 tauri-plugin-opener.workspace = true
 tauri-plugin-dialog.workspace = true
+tauri-plugin-global-shortcut.workspace = true
+sys-locale.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 jiff.workspace = true

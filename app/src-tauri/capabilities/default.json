@@ -3,7 +3,8 @@
   "identifier": "default",
   "description": "Capability for the main window",
   "windows": [
-    "main"
+    "main",
+    "quick"
   ],
   "permissions": [
     "core:default",
@@ -13,6 +14,10 @@
     "core:window:allow-is-maximized",
     "core:window:allow-close",
     "opener:default",
-    "dialog:default"
+    "dialog:default",
+    "global-shortcut:default",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:window:allow-set-focus"
   ]
 }

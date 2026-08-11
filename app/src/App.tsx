@@ -18,13 +18,15 @@ import {
   type Snapshot,
   type Task,
 } from "./core";
+import { listen } from "@tauri-apps/api/event";
 import { carrying } from "./carrying";
-import { syncState } from "./core";
+import { settleIn, syncState } from "./core";
 import { handTo, whenFilesLand } from "./dropped";
 import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { accepts, asView, invite, title, type Chosen } from "./views";
 import CaptureField from "./ui/CaptureField";
+import Closing from "./ui/Closing";
 import Detail from "./ui/Detail";
 import Keeping from "./ui/Keeping";
 import Notice from "./ui/Notice";
@@ -50,6 +52,8 @@ export default function App() {
   const [found, setFound] = useState<Task[] | null>(null);
   const [held, setHeld] = useState<Task | undefined>();
   const [greet, setGreet] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [settling, setSettling] = useState(true);
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
 
@@ -63,6 +67,15 @@ export default function App() {
       })
       .catch((e) => setError(saidPlainly(e)));
   }, [chosen]);
+
+  // Before the first read: a fresh install may find a store another machine
+  // has been writing, and a cache an older version built.
+  useEffect(() => {
+    settleIn()
+      .then((done) => done.brought && latest.current())
+      .catch(() => {})
+      .finally(() => setSettling(false));
+  }, []);
 
   useEffect(() => {
     load();
@@ -86,6 +99,16 @@ export default function App() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const stop = listen("closing", () => setLeaving(true));
+    // Captured from the quick window, which the main one never hears about.
+    const caught = listen("captured", () => latest.current());
+    return () => {
+      stop.then((off) => off()).catch(() => {});
+      caught.then((off) => off()).catch(() => {});
+    };
+  }, []);
+
   useEffect(
     () =>
       whenFilesLand((target, paths) => {
@@ -102,7 +125,18 @@ export default function App() {
     [],
   );
 
-  if (!data) return null;
+  // Not `null`: with the frame drawn by us, an empty render leaves a window
+  // with no way to close it and nothing saying why.
+  if (!data) {
+    return (
+      <div className="grid h-full font-sans" style={{ gridTemplateColumns: "1fr" }}>
+        <WindowChrome />
+        {error && (
+          <p className="mt-16 px-6 text-center text-xs text-urgent">{error}</p>
+        )}
+      </div>
+    );
+  }
 
   const fresh =
     data.tasks.find((candidate) => candidate.id === selected) ??
@@ -145,6 +179,19 @@ export default function App() {
         <p className="pointer-events-none fixed inset-x-0 top-11 z-40 mx-auto w-fit rounded-md bg-urgent/12 px-3 py-1.5 text-xs text-urgent">
           {error}
         </p>
+      )}
+
+      {settling && (
+        <p className="pointer-events-none fixed inset-x-0 top-11 z-40 mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-xs text-accent">
+          {t("settlingIn")}
+        </p>
+      )}
+
+      {leaving && (
+        <Closing
+          onDismiss={() => setLeaving(false)}
+          onError={(e) => setError(saidPlainly(e))}
+        />
       )}
 
       {greet && (

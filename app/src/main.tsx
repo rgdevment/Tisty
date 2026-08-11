@@ -1,6 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import App from "./App";
+import Quick from "./Quick";
 import "./index.css";
 
 /// A native app has no Back, no Reload and no page source. Only a field where
@@ -11,8 +13,10 @@ document.addEventListener("contextmenu", (e) => {
   if (!writes) e.preventDefault();
 });
 
+// One bundle, two windows: the label says which one this is.
+const quick = getCurrentWindow().label === "quick";
+if (quick) document.documentElement.classList.add("quick");
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  <React.StrictMode>{quick ? <Quick /> : <App />}</React.StrictMode>,
 );

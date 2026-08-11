@@ -76,6 +76,8 @@ beforeEach(() => {
   ipc.answer = (cmd, args) => {
     const held = tasks.find((one) => one.id === args.id);
     switch (cmd) {
+      case "settle_in":
+        return Promise.resolve({ ran: false, brought: false, agrees: true });
       case "sync_state":
         return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
       case "snapshot":
