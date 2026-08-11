@@ -1324,6 +1324,38 @@ fn a_task_without_a_cadence_says_nothing_about_one() {
 }
 
 #[test]
+fn a_cadence_can_be_set_on_a_task_that_had_none() {
+    let cli = Cli::new();
+    cli.ok(&["take out the bins"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["set", "1", "--repeat", "every 3 days"]);
+
+    assert!(cli.ok(&["show", "1"]).contains("every 3 days"));
+}
+
+#[test]
+fn a_cadence_can_be_taken_off_again() {
+    let cli = Cli::new();
+    cli.ok(&["take out the bins every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["set", "1", "--no-repeat"]);
+
+    let out = cli.ok(&["show", "1"]);
+    assert!(!out.contains("every"), "{out}");
+}
+
+/// Read by the same parser the sentence goes through, so nonsense is nonsense.
+#[test]
+fn a_cadence_that_is_not_one_is_refused() {
+    let cli = Cli::new();
+    cli.ok(&["take out the bins"]);
+    cli.ok(&["ls", "all"]);
+
+    let run = cli.run(&["set", "1", "--repeat", "blue"]);
+    assert_ne!(run.code, 0, "{}", run.out);
+}
+
+#[test]
 fn dropping_a_repeating_task_says_the_series_is_over() {
     let cli = Cli::new();
     cli.ok(&["take out the bins every tuesday"]);

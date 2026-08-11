@@ -3,6 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { chooseSync } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
+import Modal from "./Modal";
 
 interface Props {
   onDone: () => void;
@@ -38,9 +39,7 @@ export default function Welcome({ onDone }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-veil p-6">
-      <div className="w-full max-w-md rounded-xl border border-hair bg-bg p-6 shadow-lift-tall">
-        <h2 className="text-lg font-semibold">{t("welcomeTitle")}</h2>
+    <Modal title={t("welcomeTitle")}>
         <p className="mt-2 text-[12.5px] leading-relaxed text-soft">{t("welcomeWhy")}</p>
 
         <div className="mt-5 flex flex-col gap-2">
@@ -65,7 +64,11 @@ export default function Welcome({ onDone }: Props) {
           </button>
         </div>
 
-        {trouble && <p className="mt-3 text-xs text-urgent">{trouble}</p>}
+        {trouble && (
+          <p role="alert" className="mt-3 text-xs text-urgent">
+            {trouble}
+          </p>
+        )}
 
         <p className="mt-4 text-xs leading-relaxed text-faint">{t("welcomeRedundancy")}</p>
 
@@ -76,7 +79,6 @@ export default function Welcome({ onDone }: Props) {
         >
           {t("welcomeLater")}
         </button>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -47,6 +47,13 @@ export default function Detail({
   onReopen,
   onError,
 }: Props) {
+  // Opening a task moved the eye and left the keyboard back in the list; the
+  // next Tab went nowhere near what had just been opened.
+  const opened = useRef<HTMLElement>(null);
+  useEffect(() => {
+    opened.current?.focus({ preventScroll: true });
+  }, [task.id]);
+
   const body = (
     <>
       <Title task={task} big={expanded} onRename={(title) => onPatch({ title })} />
@@ -90,14 +97,15 @@ export default function Detail({
 
   if (expanded) {
     return (
-      <main className="flex flex-col overflow-hidden">
+      <main ref={opened} tabIndex={-1} className="flex flex-col overflow-hidden outline-none">
         <div data-tauri-drag-region className="h-9 shrink-0" />
         <div className="flex items-center gap-1 px-6 text-[13px] text-faint">
           <button
             onClick={onCollapse}
+            aria-label={t("collapse")}
             className="-ml-2 rounded-md px-2 py-1 text-accent hover:bg-hover"
           >
-            ‹ {from || t("collapse")}
+            <span aria-hidden="true">‹</span> {from || t("collapse")}
           </button>
           <Settled task={task} onDiscard={onDiscard} onReopen={onReopen} />
         </div>
@@ -107,7 +115,11 @@ export default function Detail({
   }
 
   return (
-    <aside className="flex flex-col overflow-hidden border-l border-hair bg-panel">
+    <aside
+      ref={opened as React.RefObject<HTMLElement>}
+      tabIndex={-1}
+      className="flex flex-col overflow-hidden border-l border-hair bg-panel outline-none"
+    >
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="flex items-center gap-1 px-5 text-[13px] text-faint">
         <button
@@ -116,7 +128,7 @@ export default function Detail({
           aria-label={t("expand")}
           className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-accent"
         >
-          ⤢
+          <span aria-hidden="true">⤢</span>
         </button>
         <Settled task={task} onDiscard={onDiscard} onReopen={onReopen} />
       </div>

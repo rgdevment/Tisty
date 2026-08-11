@@ -963,6 +963,21 @@ struct Carrying {
     loose: usize,
 }
 
+/// Reporting that the cache disagrees without offering to redo it leaves the
+/// only screen you go to when something is wrong with nothing to press.
+#[tauri::command(async)]
+fn rebuild(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
+    let mut session = held(&session);
+    tisty_core::cache::discard(session.paths.cache())
+        .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+    session.cache = tisty_core::cache::Cache::open(session.paths.cache())
+        .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+    session
+        .reproject()
+        .map_err(|e| Refusal::about("internalNamed", e.to_string()))?;
+    Ok(())
+}
+
 #[tauri::command(async)]
 fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
     let session = held(&session);
@@ -1725,7 +1740,8 @@ pub fn run() {
             sync_now,
             back_up,
             restore,
-            checked
+            checked,
+            rebuild
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -97,6 +97,26 @@ pub fn done(
     })
 }
 
+/// Read by the same parser the sentence goes through, so «cada 3 días» means
+/// here exactly what it means when it is typed into a capture.
+fn cadence_flag(
+    said: Option<&str>,
+    cleared: bool,
+    lang: Lang,
+) -> anyhow::Result<Option<Option<tisty_core::model::Repeat>>> {
+    if cleared {
+        return Ok(Some(None));
+    }
+    let Some(said) = said else {
+        return Ok(None);
+    };
+    let read = tisty_nl::parse(said, &jiff::Zoned::now(), lang.code());
+    match read.repeat {
+        Some(over) => Ok(Some(Some(over))),
+        None => anyhow::bail!("{}", lang.get("not-a-cadence").replace("{$said}", said)),
+    }
+}
+
 pub fn undone(app: &mut App, selector: &str, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let archived: Vec<_> = app.state.archived_tasks().collect();
     resolved!(app, Some(selector), archived, lang, |id| {
@@ -143,6 +163,7 @@ pub fn rm(app: &mut App, selector: &str, force: bool, lang: Lang) -> anyhow::Res
 pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let date = date_flag(args.date.as_deref(), lang)?;
     let deadline = date_flag(args.deadline.as_deref(), lang)?;
+    let over = cadence_flag(args.repeat.as_deref(), args.no_repeat, lang)?;
     let all: Vec<_> = app.state.tasks.values().collect();
 
     resolved!(app, Some(&args.selector), all, lang, |id| {
@@ -158,7 +179,7 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
                 .transpose()?,
             tags,
             reminders: None,
-            repeat: None,
+            repeat: over,
         };
 
         if d == TaskPatch::default() {

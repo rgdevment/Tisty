@@ -232,6 +232,7 @@ export interface Reviewed {
   looseBytes: number;
 }
 
+export const rebuild = (): Promise<void> => invoke("rebuild");
 export const checked = (): Promise<Reviewed> => invoke("checked");
 export const syncState = (): Promise<Carrying> => invoke("sync_state");
 /** No destination means «only on this machine», which is an answer, not a blank. */

@@ -113,7 +113,7 @@ describe("the open panel", () => {
     await user.click(screen.getByText("write the report"));
     await screen.findByRole("textbox", { name: "Title" });
 
-    await user.click(screen.getByRole("button", { name: "write the report" }));
+    await user.click(screen.getByRole("button", { name: "Complete write the report" }));
 
     await screen.findByRole("button", { name: /Reopen/ });
     expect(value("Title")).toBe("write the report");
@@ -182,7 +182,7 @@ describe("a refusal", () => {
         ? Promise.resolve(shot(args.view as { archive?: boolean } | undefined))
         : Promise.reject({ code: "notATaskId" });
 
-    await user.click(screen.getByRole("button", { name: "write the report" }));
+    await user.click(screen.getByRole("button", { name: "Complete write the report" }));
 
     expect(await screen.findByText("That is not a task")).toBeTruthy();
   });
