@@ -63,9 +63,18 @@ impl App {
         &self.config
     }
 
+    /// Re-read before writing, like the window does. A long `sync` used to
+    /// save the config it had loaded minutes earlier, quietly undoing whatever
+    /// had been changed from the window meanwhile.
     pub fn edit_config(&mut self, f: impl FnOnce(&mut Config)) -> tisty_core::Result<()> {
-        f(&mut self.config);
-        self.config.save(&self.paths)
+        let mut fresh = Config::load(&self.paths.config_file())
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| self.config.clone());
+        f(&mut fresh);
+        fresh.save(&self.paths)?;
+        self.config = fresh;
+        Ok(())
     }
 
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<Event> {

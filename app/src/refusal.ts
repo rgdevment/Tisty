@@ -34,6 +34,7 @@ const KNOWN = [
   "cannotWrite",
   "restoreFailed",
   "stillCarrying",
+  "sandboxCannotMerge",
   "internal",
   "internalNamed",
 ] as const;

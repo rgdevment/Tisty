@@ -11,44 +11,46 @@ describe("Tasks, the view that replaced Today and Upcoming", () => {
   it.each([
     ["today", { window: "today" }],
     ["upcoming", { window: "upcoming" }],
-    ["undated", { window: "undated" }],
+    ["repeating", { repeating: true }],
+    ["all", {}],
   ] as const)("asks the core for %s", (slice, view) => {
     expect(asView({ named: "tasks", slice })).toEqual(view);
   });
 
-  /// There is no «all» chip on purpose: `today` already carries what has no
-  /// date, so today ∪ upcoming is every open task. A fourth chip would show
-  /// the union of the other two under a name answering no question of its own.
-  it("offers three slices, because a fourth would be the sum of two", () => {
-    expect(SLICES).toEqual(["today", "upcoming", "undated"]);
+  /// «Today» already carries what has no date, so there is no «undated» chip.
+  it("offers the four the author settled on", () => {
+    expect(SLICES).toEqual(["today", "upcoming", "repeating", "all"]);
+  });
+
+  /// It cuts across the calendar, not along it, which is exactly why «all»
+  /// earns its place: the other three no longer cover the whole.
+  it("asks for habits without asking for a day", () => {
+    expect(asView({ named: "tasks", slice: "repeating" })).not.toHaveProperty("window");
   });
 
   /// A list still outranks it, as it always did.
   it("lets a chosen list win over the slice", () => {
-    expect(asView({ named: "tasks", slice: "undated", list: "01L" })).toEqual({ list: "01L" });
+    expect(asView({ named: "tasks", slice: "all", list: "01L" })).toEqual({ list: "01L" });
   });
 });
 
 describe("capturing from a slice", () => {
-  /// A task written with no day lands on today. In any other slice it would
-  /// disappear the instant it was typed.
-  it("is offered on today, where what you write stays visible", () => {
-    expect(accepts({ named: "tasks", slice: "today" })).toBe(true);
-    expect(accepts({ named: "tasks" })).toBe(true);
+  /// It used to be refused anywhere but «today», reasoning that a task written
+  /// with no day would vanish. It does not: the notice after a capture shows
+  /// what was filed and opens it, wherever the list happens to be looking.
+  it.each(["today", "upcoming", "repeating", "all"] as const)("is offered on %s", (slice) => {
+    expect(accepts({ named: "tasks", slice })).toBe(true);
   });
 
-  it.each(["upcoming", "undated"] as const)("is refused on %s", (slice) => {
-    expect(accepts({ named: "tasks", slice })).toBe(false);
-  });
-
-  it("still says the task will land on today", () => {
+  it("says the task lands on today only where that is true", () => {
     expect(invite({ named: "tasks", slice: "today" }, [])).toMatch(/today/i);
+    expect(invite({ named: "tasks", slice: "upcoming" }, [])).not.toMatch(/today/i);
   });
 });
 
 describe("what an empty slice says", () => {
   it("says something different for each one", () => {
-    const said = (["today", "upcoming", "undated"] as const).map((slice) =>
+    const said = (["today", "upcoming", "repeating", "all"] as const).map((slice) =>
       nothing({ named: "tasks", slice }, false),
     );
 

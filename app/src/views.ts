@@ -1,17 +1,18 @@
 import type { List, View } from "./core";
 import { fill, t } from "./locales";
 
-export type Named = "search" | "inbox" | "tasks" | "tags" | "archive" | "keeping";
+export type Named = "search" | "inbox" | "tasks" | "tags" | "archive" | "keeping" | "aboutScreen";
 
 /// «Hoy» and «Próximo» were two names for one thing: a date filter with a fixed
 /// seat in the sidebar. They are the same view now, and this is what it filters
 /// by — opening on `today`, because «all» is forty rows the moment you arrive.
-export type Slice = "today" | "upcoming" | "undated";
+export type Slice = "today" | "upcoming" | "repeating" | "all";
 
-/// No «all»: `today` already carries what has no date, so today ∪ upcoming is
-/// every open task. A fourth chip would have shown the union of the other two
-/// under a name that answers no question of its own.
-export const SLICES: Slice[] = ["today", "upcoming", "undated"];
+/// «Today» already carries what has no date — it is not waiting for another
+/// day — so there is no separate «undated» chip. «Repeating» cuts across the
+/// calendar instead of along it, which is why «all» earns its place back: the
+/// other three no longer cover the whole of what is open.
+export const SLICES: Slice[] = ["today", "upcoming", "repeating", "all"];
 
 export interface Chosen {
   named?: Named;
@@ -46,8 +47,10 @@ function sliced(slice: Slice = "today"): View {
       return { window: "today" };
     case "upcoming":
       return { window: "upcoming" };
+    case "repeating":
+      return { repeating: true };
     default:
-      return { window: "undated" };
+      return {};
   }
 }
 
@@ -65,9 +68,7 @@ export function title(chosen: Chosen, lists: List[]): string {
 export function accepts(chosen: Chosen): boolean {
   if (chosen.named === "archive" || chosen.named === "search") return false;
   if (chosen.named === "keeping") return false;
-  // Nothing to add TO: a task captured here would land on a day this slice
-  // does not show, and vanish the moment it was written.
-  if (chosen.named === "tasks" && chosen.slice && chosen.slice !== "today") return false;
+
   if (chosen.named === "tags") return (chosen.tags?.length ?? 0) > 0;
   return true;
 }
@@ -82,6 +83,8 @@ export function invite(chosen: Chosen, lists: List[]): string {
     return fill("addWithTag", chosen.tags.map((tag) => `#${tag}`).join(" "));
   }
   if (chosen.named === "inbox") return t("addToInbox");
+  // Only where it is true. Elsewhere the notice that follows a capture is what
+  // says where it landed, so writing from any slice is safe.
   if (chosen.named === "tasks" && (chosen.slice ?? "today") === "today") return t("addForToday");
   return t("addTask");
 }
@@ -102,6 +105,7 @@ export function nothing(chosen: Chosen, searching: boolean): string {
   if (chosen.named === "tags") return t("noTagsYet");
   if (chosen.named === "inbox") return t("inboxEmpty");
   if (chosen.slice === "upcoming") return t("upcomingEmpty");
-  if (chosen.slice === "undated") return t("undatedEmpty");
+  if (chosen.slice === "repeating") return t("repeatingEmpty");
+  if (chosen.slice === "all") return t("allEmpty");
   return t("todayEmpty");
 }

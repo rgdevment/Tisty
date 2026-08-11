@@ -39,6 +39,7 @@ import {
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Detail from "./ui/Detail";
+import About from "./ui/About";
 import Keeping from "./ui/Keeping";
 import Notice from "./ui/Notice";
 import Search from "./ui/Search";
@@ -277,7 +278,9 @@ export default function App() {
         }}
       />
 
-      {chosen.named === "keeping" ? (
+      {chosen.named === "aboutScreen" ? (
+        <About onError={(e) => setError(saidPlainly(e))} />
+      ) : chosen.named === "keeping" ? (
         <Keeping
           onChanged={() => {
             load();
@@ -477,4 +480,6 @@ const sliceWord = (slice: Slice) =>
     ? ("today" as const)
     : slice === "upcoming"
       ? ("upcoming" as const)
-      : ("someday" as const);
+      : slice === "repeating"
+        ? ("repeating" as const)
+        : ("sliceAll" as const);

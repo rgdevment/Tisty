@@ -14,7 +14,6 @@ interface Props {
 
 const NAMED: { key: Named; icon: string }[] = [
   { key: "search", icon: "⌕" },
-  { key: "inbox", icon: "▤" },
   { key: "tasks", icon: "☀" },
   { key: "tags", icon: "◈" },
   { key: "archive", icon: "▣" },
@@ -56,7 +55,6 @@ export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Pro
               count={counts[key]}
               on={!chosen.list && !chosen.tags?.length && chosen.named === key}
               onClick={() => onChoose({ named: key })}
-              {...(key === "inbox" ? lands(undefined) : {})}
             />
           ))}
         </nav>
@@ -74,6 +72,15 @@ export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Pro
 
         {openLists && (
           <nav className="flex flex-col gap-px">
+            <Entry
+              icon="▤"
+              label={t("inbox")}
+              count={counts.inbox}
+              on={chosen.named === "inbox"}
+              onClick={() => onChoose({ named: "inbox" })}
+              {...lands(undefined)}
+            />
+            {working.length > 0 && <div className="mx-3 my-1.5 h-px bg-hair" />}
             {working.map((list) => (
               <Entry
                 key={list.id}
@@ -102,7 +109,7 @@ export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Pro
         )}
       </div>
 
-      <div className="shrink-0 border-t border-hair px-2.5 py-2">
+      <div className="flex shrink-0 items-center border-t border-hair px-2.5 py-2">
         <button
           type="button"
           aria-label={t("keeping")}
@@ -113,6 +120,17 @@ export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Pro
           }`}
         >
           <span aria-hidden="true">⚙</span>
+        </button>
+        <button
+          type="button"
+          aria-label={t("aboutScreen")}
+          title={t("aboutScreen")}
+          onClick={() => onChoose({ named: "aboutScreen" })}
+          className={`ml-auto grid h-7 w-7 place-items-center rounded-[7px] text-[12px] leading-none hover:bg-hover ${
+            chosen.named === "aboutScreen" ? "bg-active text-accent" : "text-soft"
+          }`}
+        >
+          <span aria-hidden="true">?</span>
         </button>
       </div>
     </aside>

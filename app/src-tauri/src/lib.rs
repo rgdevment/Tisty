@@ -253,6 +253,8 @@ struct View {
     hidden: bool,
     #[serde(default)]
     window: Option<String>,
+    #[serde(default)]
+    repeating: bool,
 }
 
 impl View {
@@ -278,6 +280,7 @@ impl View {
             tagged: self.tagged,
             hidden: self.hidden,
             priority: None,
+            repeating: self.repeating,
             window: match self.window.as_deref() {
                 Some("today") => Some(Window::Today),
                 Some("upcoming") => Some(Window::After(today())),
@@ -1049,6 +1052,8 @@ struct Settling {
 #[serde(rename_all = "camelCase")]
 struct About {
     version: String,
+    /// Named when this is a sandbox, so nothing here is mistaken for real.
+    sandbox: Option<String>,
     repository: &'static str,
     license: &'static str,
     /// Where the log actually lives, so a report can say it without guessing.
@@ -1062,7 +1067,6 @@ struct Settings {
     quiet: Vec<String>,
     /// In bytes, already clamped to what the core will accept.
     attach_up_to: u64,
-    locale: Option<String>,
 }
 
 #[tauri::command]
@@ -1071,31 +1075,37 @@ fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     Ok(Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
-        locale: session.config.locale.clone(),
     })
 }
 
-/// Written through `keep`, which re-reads the file first: the terminal edits
-/// the same config while the window is open.
+/// Writes only what this screen owns. It used to carry the locale along, and
+/// the window's copy of it is read once at startup: a language set from the
+/// terminal afterwards was silently written back to what it had been.
 #[tauri::command]
 fn keep_settings(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     settings: Settings,
 ) -> Answer<Settings> {
     let mut session = held(&session);
     let quiet = settings.quiet.clone();
-    let up_to = settings.attach_up_to;
-    let locale = settings.locale.clone();
+    let up_to = settings.attach_up_to.clamp(
+        tisty_core::attach::COPIED_LEAST,
+        tisty_core::attach::COPIED_MOST,
+    );
     session.keep(|config| {
         config.quiet = (!quiet.is_empty()).then_some(quiet);
         config.attach_up_to = Some(up_to);
-        config.locale = locale;
     })?;
-    Ok(Settings {
+    let now = Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
-        locale: session.config.locale.clone(),
-    })
+    };
+    drop(session);
+    // Channels are registered once at startup, so without this the switch said
+    // «Saved» and the tone kept sounding until the app was restarted.
+    herald::respeak(&app, &now.quiet);
+    Ok(now)
 }
 
 /// Nobody could say which version they hit a problem with: it existed only in
@@ -1105,6 +1115,7 @@ fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
     let session = held(&session);
     Ok(About {
         version: env!("CARGO_PKG_VERSION").to_string(),
+        sandbox: tisty_core::paths::profile(),
         repository: "https://github.com/rgdevment/Tisty",
         license: "AGPL-3.0-only",
         store: session.paths.store().display().to_string(),
@@ -1321,6 +1332,9 @@ async fn sync_now(
         _ => tisty_sync::Way::Both,
     };
 
+    if merge == Some(true) && tisty_core::paths::profile().is_some() {
+        return Err(Refusal::of("sandboxCannotMerge"));
+    }
     let join = if merge == Some(true) {
         tisty_sync::Join::Agreed
     } else {
@@ -1739,7 +1753,7 @@ pub fn run() {
             let watched = session.paths.clone();
             let quiet = session.config.muted().to_vec();
             app.manage(Mutex::new(session));
-            app.manage(herald::heralds(app.handle(), telling, &quiet));
+            app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
             herald::watch(app.handle().clone(), watched);
 
             // No tray on this desktop means closing keeps its plain meaning,
