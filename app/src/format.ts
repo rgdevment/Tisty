@@ -99,3 +99,72 @@ export function bandOf(spec: DateSpec | undefined, now = new Date()): string {
   if (away === 1) return t("tomorrow");
   return formats().day.format(new Date(spec.at));
 }
+
+const here = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+/// A zone that no longer exists in the reader's data would throw on every
+/// render, so it is asked once and remembered as unusable.
+const zones = new Map<string, boolean>();
+
+function usable(tz?: string): tz is string {
+  if (!tz) return false;
+  const known = zones.get(tz);
+  if (known !== undefined) return known;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    zones.set(tz, true);
+    return true;
+  } catch {
+    zones.set(tz, false);
+    return false;
+  }
+}
+
+const dated = new Map<string, Intl.DateTimeFormat>();
+
+function inZone(tz: string, shape: Intl.DateTimeFormatOptions, tag: string): Intl.DateTimeFormat {
+  const key = `${locale()}|${tz}|${tag}`;
+  let made = dated.get(key);
+  if (!made) {
+    made = new Intl.DateTimeFormat(locale(), { ...shape, timeZone: tz });
+    dated.set(key, made);
+  }
+  return made;
+}
+
+const dayIn = (at: Date, tz: string): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(at);
+
+/**
+ * A journal entry, on the day and at the hour its author wrote it.
+ *
+ * Rendering it in the reader's zone turned 23:30 in Madrid into 17:30 of the
+ * previous day in Santiago — the entry is the thing this product exists for,
+ * and syncing across machines is exactly when it stops being the same zone.
+ */
+export function wroteAt(at: string, tz?: string, now = new Date(), reader = here()): string {
+  const when = new Date(at);
+  if (Number.isNaN(when.getTime())) return "";
+  if (!usable(tz)) return stamped(at, now);
+
+  const away = Math.round(
+    (Date.parse(`${dayIn(when, tz)}T00:00:00Z`) - Date.parse(`${dayIn(now, tz)}T00:00:00Z`)) /
+      86_400_000,
+  );
+  const named =
+    Math.abs(away) <= 1
+      ? formats().relative.format(away, "day")
+      : inZone(tz, { weekday: "short", day: "numeric", month: "short" }, "day").format(when);
+  const clock = inZone(tz, { hour: "2-digit", minute: "2-digit" }, "clock").format(when);
+
+  // Said only when it differs: the hour would otherwise be a quiet lie about
+  // which day it was written on.
+  return tz === reader ? `${named} ${clock}` : `${named} ${clock} · ${cityOf(tz)}`;
+}
+
+const cityOf = (tz: string): string => (tz.split("/").pop() ?? tz).replace(/_/g, " ");
