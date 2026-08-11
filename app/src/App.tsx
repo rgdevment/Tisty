@@ -19,6 +19,7 @@ import {
   type Task,
 } from "./core";
 import { listen } from "@tauri-apps/api/event";
+import { heard, play } from "./chime";
 import { carrying } from "./carrying";
 import { settleIn, syncState } from "./core";
 import { handTo, whenFilesLand } from "./dropped";
@@ -103,9 +104,13 @@ export default function App() {
     const stop = listen("closing", () => setLeaving(true));
     // Captured from the quick window, which the main one never hears about.
     const caught = listen("captured", () => latest.current());
+    const sound = listen<unknown>("chime", (rung) => {
+      if (heard(rung.payload)) play(rung.payload);
+    });
     return () => {
       stop.then((off) => off()).catch(() => {});
       caught.then((off) => off()).catch(() => {});
+      sound.then((off) => off()).catch(() => {});
     };
   }, []);
 
@@ -176,12 +181,25 @@ export default function App() {
       <WindowChrome />
 
       {error && (
-        <p className="pointer-events-none fixed inset-x-0 top-11 z-40 mx-auto w-fit rounded-md bg-urgent/12 px-3 py-1.5 text-xs text-urgent">
-          {error}
-        </p>
+        <div
+          role="alert"
+          className="fixed inset-x-0 top-11 z-40 mx-auto flex w-fit max-w-[70%] items-start gap-2 rounded-md bg-urgent/12 px-3 py-1.5 text-xs text-urgent"
+        >
+          {/* Selectable and closable: it used to sit there unreadable and
+              unremovable until some later action happened to succeed. */}
+          <span className="select-text">{error}</span>
+          <button
+            type="button"
+            aria-label={t("close")}
+            onClick={() => setError(null)}
+            className="-mr-1 shrink-0 rounded px-1 hover:bg-urgent/15"
+          >
+            ✕
+          </button>
+        </div>
       )}
 
-      {settling && (
+      {settling && !error && (
         <p className="pointer-events-none fixed inset-x-0 top-11 z-40 mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-xs text-accent">
           {t("settlingIn")}
         </p>

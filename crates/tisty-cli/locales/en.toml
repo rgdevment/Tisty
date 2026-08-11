@@ -83,6 +83,17 @@ diverged       = "DISAGREES with the log"
 cache-discarded = "cache discarded; the next read rebuilds it"
 run-repair     = "run `tisty doctor --repair` to rebuild it"
 
+every-one      = "every {$unit}"
+every-many     = "every {$n} {$unit}"
+a-day          = "day"
+many-days      = "days"
+a-week         = "week"
+many-weeks     = "weeks"
+a-month        = "month"
+many-months    = "months"
+a-year         = "year"
+many-years     = "years"
+
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
 lines = { one = "1 line", other = "{n} lines" }

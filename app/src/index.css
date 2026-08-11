@@ -22,6 +22,7 @@
   --tisty-mark-list: rgb(22 163 124 / 0.17);
   --tisty-mark-tag: rgb(124 92 222 / 0.15);
   --tisty-mark-priority: rgb(229 72 77 / 0.14);
+  --tisty-mark-repeat: rgb(120 120 128 / 0.16);
 }
 
 [data-theme="dark"] {
@@ -44,6 +45,7 @@
   --tisty-mark-list: rgb(45 200 155 / 0.22);
   --tisty-mark-tag: rgb(160 130 255 / 0.24);
   --tisty-mark-priority: rgb(255 95 87 / 0.22);
+  --tisty-mark-repeat: rgb(174 174 184 / 0.22);
 }
 
 @theme inline {
@@ -69,6 +71,7 @@
   --color-mark-list: var(--tisty-mark-list);
   --color-mark-tag: var(--tisty-mark-tag);
   --color-mark-priority: var(--tisty-mark-priority);
+  --color-mark-repeat: var(--tisty-mark-repeat);
 }
 
 html,

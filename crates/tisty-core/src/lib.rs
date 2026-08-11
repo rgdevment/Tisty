@@ -6,6 +6,7 @@ pub mod cache;
 pub mod capture;
 pub mod config;
 pub mod event;
+pub mod herald;
 pub mod model;
 pub mod order;
 pub mod paths;

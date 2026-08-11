@@ -80,6 +80,17 @@ diverged       = "NO COINCIDE con el log"
 cache-discarded = "caché descartada; la próxima lectura la rehace"
 run-repair     = "ejecuta `tisty doctor --repair` para rehacerla"
 
+every-one      = "cada {$unit}"
+every-many     = "cada {$n} {$unit}"
+a-day          = "día"
+many-days      = "días"
+a-week         = "semana"
+many-weeks     = "semanas"
+a-month        = "mes"
+many-months    = "meses"
+a-year         = "año"
+many-years     = "años"
+
 [plural]
 tasks = { one = "1 tarea", other = "{n} tareas" }
 lines = { one = "1 línea", other = "{n} líneas" }

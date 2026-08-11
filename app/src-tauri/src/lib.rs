@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 
 mod command;
+mod herald;
 mod tray;
 
 use tauri::{Emitter, Manager};
@@ -474,6 +475,7 @@ fn ahead(
 /// `locale` is the system's, via the webview; the configured one still wins.
 #[tauri::command]
 fn capture(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     text: String,
     locale: String,
@@ -517,12 +519,20 @@ fn capture(
 
     let plan = tisty_core::capture::plan(&session.state, draft)?;
     session.commit_all(plan.ops)?;
-    session
+    let task = session
         .state
         .tasks
         .get(&plan.task)
         .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
+        .ok_or_else(|| Refusal::of("notATaskId"))?;
+    drop(session);
+    herald::told(
+        &app,
+        tisty_core::herald::Happening::Filed {
+            title: task.title.clone(),
+        },
+    );
+    Ok(task)
 }
 
 #[tauri::command]
@@ -564,6 +574,10 @@ struct Change {
     remind: Option<String>,
     #[serde(default)]
     unremind: Option<String>,
+    #[serde(default)]
+    repeat: Option<tisty_core::model::Repeat>,
+    #[serde(default)]
+    no_repeat: bool,
 }
 
 /// One batch: an undo has to take back the whole edit, not half of it.
@@ -611,7 +625,7 @@ fn patch(
             .map_err(|_| Refusal::of("notAPriority"))?,
         tags: tagged(&task, &change)?,
         reminders: recalled(&task, &change, &now)?,
-        repeat: None,
+        repeat: repeated(&change)?,
     };
 
     let filed = match (&change.list, change.inbox) {
@@ -671,6 +685,22 @@ fn tagged(task: &Task, change: &Change) -> Result<Option<Vec<Tag>>, Refusal> {
         }
     }
     Ok(Some(tags))
+}
+
+/// A cadence of zero would make the next occurrence land on the same day for
+/// ever; the parser refuses it too.
+fn repeated(change: &Change) -> Result<Option<Option<tisty_core::model::Repeat>>, Refusal> {
+    if change.no_repeat {
+        return Ok(Some(None));
+    }
+    let Some(over) = change.repeat else {
+        return Ok(None);
+    };
+    let every = over.cadence().every;
+    if every == 0 || every > 999 {
+        return Err(Refusal::of("notACadence"));
+    }
+    Ok(Some(Some(over)))
 }
 
 fn recalled(
@@ -1525,6 +1555,8 @@ fn worded(locale: &Option<String>, key: &str) -> String {
         ("show", false) => "Open Tisty".into(),
         ("capture", true) => "Capturar…".into(),
         ("capture", false) => "Capture…".into(),
+        ("due", true) => "Recordatorio".into(),
+        ("due", false) => "Reminder".into(),
         (_, true) => "Salir".into(),
         (_, false) => "Quit".into(),
     }
@@ -1561,6 +1593,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
         .setup(move |app| {
             // Opened here, not before the builder: with syncing on, other
             // machines write this store, so failing to read it stopped being
@@ -1600,7 +1633,12 @@ pub fn run() {
                 capture: worded(&session.locale, "capture"),
                 quit: worded(&session.locale, "quit"),
             };
+            let telling = herald::Words {
+                due: worded(&session.locale, "due"),
+            };
             app.manage(Mutex::new(session));
+            app.manage(herald::heralds(app.handle(), telling));
+            herald::watch(app.handle().clone());
 
             // No tray on this desktop means closing keeps its plain meaning,
             // and the preference is ignored rather than hiding the app away.
