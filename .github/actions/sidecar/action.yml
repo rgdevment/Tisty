@@ -1,0 +1,20 @@
+name: The CLI the window carries
+description: >-
+  `externalBin` in tauri.conf.json makes the binary a build-time requirement of
+  tisty-gui, so anything that compiles the workspace — a test, a clippy run —
+  needs it there first, not only a bundle.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+        target=$(rustc -vV | sed -n 's/^host: //p')
+        suffix=""
+        case "$target" in *windows*) suffix=".exe" ;; esac
+
+        cargo build --bin tisty
+        mkdir -p app/src-tauri/binaries
+        cp "target/debug/tisty$suffix" "app/src-tauri/binaries/tisty-$target$suffix"
+        echo "app/src-tauri/binaries/tisty-$target$suffix"
