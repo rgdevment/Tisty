@@ -149,7 +149,7 @@ pub enum Command {
     },
     /// Undo the last change made on this device
     Undo,
-    /// Redo what the last undo took back
+    /// Redo
     Redo,
     /// Send this machine's changes and bring back the others'
     Sync {

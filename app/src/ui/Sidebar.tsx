@@ -15,8 +15,7 @@ interface Props {
 const NAMED: { key: Named; icon: string }[] = [
   { key: "search", icon: "⌕" },
   { key: "inbox", icon: "▤" },
-  { key: "today", icon: "☀" },
-  { key: "upcoming", icon: "▦" },
+  { key: "tasks", icon: "☀" },
   { key: "tags", icon: "◈" },
   { key: "archive", icon: "▣" },
 ];

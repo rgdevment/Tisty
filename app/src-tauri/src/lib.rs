@@ -282,6 +282,7 @@ impl View {
                 Some("today") => Some(Window::Today),
                 Some("upcoming") => Some(Window::After(today())),
                 Some("overdue") => Some(Window::Overdue),
+                Some("undated") => Some(Window::Undated),
                 _ => None,
             },
         })

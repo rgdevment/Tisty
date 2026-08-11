@@ -148,14 +148,18 @@ describe("the full screen", () => {
     expect(screen.getByText("call the bank")).toBeTruthy();
   });
 
-  it("stays put in the side panel, where the list never left", async () => {
+  /// Asked for by the author: the task leaves the list, so the column showing
+  /// it has nothing left to show. The cost is real and accepted — the Reopen
+  /// button went away with it, so undoing a mistaken discard now means finding
+  /// the task in the archive.
+  it("closes the side panel too, once the task has left the list", async () => {
     const user = userEvent.setup();
     await started();
 
     await user.click(screen.getByText("write the report"));
     await user.click(screen.getByRole("button", { name: /Not doing it/ }));
 
-    await screen.findByRole("button", { name: /Reopen/ });
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
   });
 });
 

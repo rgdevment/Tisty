@@ -26,7 +26,16 @@ import { settleIn, syncState } from "./core";
 import { handTo, whenFilesLand } from "./dropped";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
-import { accepts, asView, invite, nothing, title, type Chosen } from "./views";
+import {
+  accepts,
+  asView,
+  invite,
+  nothing,
+  SLICES,
+  title,
+  type Chosen,
+  type Slice,
+} from "./views";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Detail from "./ui/Detail";
@@ -60,7 +69,12 @@ export default function App() {
   const [mode, setMode] = useState<Mode>(
     () => (localStorage.getItem("detail") as Mode) ?? "columns",
   );
-  const [chosen, setChosen] = useState<Chosen>({ named: "today" });
+  // Opens on today, and on whatever slice was last chosen: «all» is forty rows
+  // the moment you arrive, which is the wall «today» existed to avoid.
+  const [chosen, setChosen] = useState<Chosen>(() => ({
+    named: "tasks",
+    slice: (localStorage.getItem("tisty.slice") as Slice) ?? "today",
+  }));
   const [found, setFound] = useState<Found | null>(null);
   const [held, setHeld] = useState<Task | undefined>();
   const [greet, setGreet] = useState(false);
@@ -337,7 +351,34 @@ export default function App() {
               : (task, after, before) => act(reorder(task, { after, before }))
           }
           above={
-            chosen.named === "archive" && (data.counts.folded || chosen.folded) ? (
+            chosen.named === "tasks" ? (
+              <div className="flex gap-1 px-2.5 pb-1">
+                {SLICES.map((slice) => {
+                  const on = (chosen.slice ?? "today") === slice;
+                  return (
+                    <button
+                      key={slice}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => {
+                        setSelected(undefined);
+                        // Remembered, not reset: a filter that forgets what it
+                        // was told is a filter people stop reaching for.
+                        window.localStorage.setItem("tisty.slice", slice);
+                        setChosen({ named: "tasks", slice });
+                      }}
+                      className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+                        on
+                          ? "border-ink bg-ink text-bg"
+                          : "border-line text-faint hover:text-soft"
+                      }`}
+                    >
+                      {t(sliceWord(slice))}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : chosen.named === "archive" && (data.counts.folded || chosen.folded) ? (
               <button
                 onClick={() => {
                   setFound(null);
@@ -405,7 +446,12 @@ export default function App() {
           onDropStep={(step) => act(dropStep(task.id, step))}
           onMoveStep={(step, after, before) => act(moveStep(task.id, step, { after, before }))}
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
-          onDiscard={() => act(discard(task.id))}
+          // Same as the full-screen panel: the task leaves the list, so the
+          // column that was showing it has nothing left to show.
+          onDiscard={() => {
+            act(discard(task.id));
+            setSelected(undefined);
+          }}
           onReopen={() => act(reopen(task.id))}
           onError={(e) => setError(saidPlainly(e))}
         />
@@ -425,3 +471,12 @@ function useTheme() {
     return () => dark.removeEventListener("change", paint);
   }, []);
 }
+
+const sliceWord = (slice: Slice) =>
+  slice === "today"
+    ? ("today" as const)
+    : slice === "upcoming"
+      ? ("upcoming" as const)
+      : slice === "undated"
+        ? ("someday" as const)
+        : ("sliceAll" as const);

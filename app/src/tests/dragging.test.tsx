@@ -137,7 +137,7 @@ describe("filing by dropping on the sidebar", () => {
       <Sidebar
         lists={lists}
         counts={{ "01L": 2 }}
-        chosen={{ named: "today" }}
+        chosen={{ named: "tasks" }}
         onChoose={() => {}}
         onFile={onFile}
       />,
@@ -153,7 +153,7 @@ describe("filing by dropping on the sidebar", () => {
       <Sidebar
         lists={lists}
         counts={{}}
-        chosen={{ named: "today" }}
+        chosen={{ named: "tasks" }}
         onChoose={() => {}}
         onFile={onFile}
       />,
@@ -166,7 +166,7 @@ describe("filing by dropping on the sidebar", () => {
   it("takes nothing when nobody offered a task", () => {
     const onFile = vi.fn();
     render(
-      <Sidebar lists={lists} counts={{}} chosen={{ named: "today" }} onChoose={() => {}} onFile={onFile} />,
+      <Sidebar lists={lists} counts={{}} chosen={{ named: "tasks" }} onChoose={() => {}} onFile={onFile} />,
     );
 
     fireEvent.drop(screen.getByRole("button", { name: /work/ }), {
