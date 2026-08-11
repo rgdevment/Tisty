@@ -154,6 +154,9 @@ pub enum Command {
         /// Only bring back
         #[arg(long, conflicts_with = "push")]
         pull: bool,
+        /// Join this machine's history with the one already in the folder
+        #[arg(long)]
+        merge: bool,
     },
     /// Check the read cache against the log
     Doctor {

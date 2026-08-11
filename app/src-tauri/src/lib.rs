@@ -59,9 +59,16 @@ impl Session {
         if print == self.print {
             return Ok(false);
         }
-        self.state = tisty_core::cache::project(&self.paths.store(), self.paths.cache())?;
-        self.print = print;
+        self.reproject()?;
         Ok(true)
+    }
+
+    /// A local write during a pull already folded the arrived files into the
+    /// fingerprint, so comparing it would report «nothing new» and hide them.
+    fn reproject(&mut self) -> tisty_core::Result<()> {
+        self.state = tisty_core::cache::project(&self.paths.store(), self.paths.cache())?;
+        self.print = tisty_core::cache::fingerprint(&self.paths.store());
+        Ok(())
     }
 
     fn commit(&mut self, op: Op) -> tisty_core::Result<()> {
@@ -901,7 +908,7 @@ struct Carrying {
     loose: usize,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
     let session = held(&session);
     let audit = tisty_core::cache::audit(&session.paths.store(), session.paths.cache())
@@ -974,64 +981,98 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
 }
 
 #[tauri::command]
-async fn sync_now(session: tauri::State<'_, Mutex<Session>>, way: Option<String>) -> Answer<bool> {
-    let (dest, root, device) = {
+async fn sync_now(
+    session: tauri::State<'_, Mutex<Session>>,
+    way: Option<String>,
+    merge: Option<bool>,
+) -> Answer<bool> {
+    let (dest, data, store, device) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
         };
         (
             dest,
+            session.paths.data().to_path_buf(),
             session.paths.store(),
             session.config.device_id.0.clone(),
         )
     };
 
-    let before = tisty_core::cache::fingerprint(&root);
+    let before = tisty_core::cache::fingerprint(&store);
     let way = match way.as_deref() {
         Some("push") => tisty_sync::Way::Push,
         Some("pull") => tisty_sync::Way::Pull,
         _ => tisty_sync::Way::Both,
     };
 
-    let here = root.clone();
-    tauri::async_runtime::spawn_blocking(move || tisty_sync::carry(&here, &device, &dest, way))
-        .await
-        .map_err(|_| Refusal::of("internal"))?
-        .map_err(said)?;
+    let join = if merge == Some(true) {
+        tisty_sync::Join::Agreed
+    } else {
+        tisty_sync::Join::Ask
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        tisty_sync::carry(&data, &device, &dest, way, join)
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(said)?;
 
     let mut session = held(&session);
-    session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
-    let moved = tisty_core::cache::fingerprint(&root) != before;
+    let moved = tisty_core::cache::fingerprint(&store) != before;
     if moved {
-        session.reload()?;
+        session
+            .reproject()
+            .map_err(|e| Refusal::about("internal", e.to_string()))?;
     }
+    // Stamped last: saying «synced a moment ago» over a store that would not
+    // project is the one reading of the panel nobody can argue with.
+    session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
     Ok(moved)
 }
 
+/// Off the main thread: compressing hundreds of megabytes there freezes the
+/// window, and this one has no system title bar to keep dragging.
 #[tauri::command]
-fn back_up(session: tauri::State<'_, Mutex<Session>>, into: String) -> Answer<u64> {
-    let session = held(&session);
-    if !session.config.backs_up() {
-        return Err(Refusal::of("sharedIsTheBackup"));
-    }
-    tisty_core::backup::write(session.paths.data(), std::path::Path::new(&into))
+async fn back_up(session: tauri::State<'_, Mutex<Session>>, into: String) -> Answer<u64> {
+    let data = {
+        let session = held(&session);
+        if !session.config.backs_up() {
+            return Err(Refusal::of("sharedIsTheBackup"));
+        }
+        session.paths.data().to_path_buf()
+    };
+
+    let at = std::path::PathBuf::from(&into);
+    tauri::async_runtime::spawn_blocking(move || tisty_core::backup::write(&data, &at))
+        .await
+        .map_err(|_| Refusal::of("internal"))?
         .map(|made| made.bytes)
         .map_err(|_| Refusal::about("cannotWrite", into))
 }
 
 #[tauri::command]
-fn restore(session: tauri::State<'_, Mutex<Session>>, from: String) -> Answer<usize> {
-    let mut session = held(&session);
-    if !session.config.backs_up() {
-        return Err(Refusal::of("sharedIsTheBackup"));
-    }
-    let done = tisty_core::backup::read(&session.paths.clone(), std::path::Path::new(&from))
+async fn restore(session: tauri::State<'_, Mutex<Session>>, from: String) -> Answer<usize> {
+    let paths = {
+        let session = held(&session);
+        if !session.config.backs_up() {
+            return Err(Refusal::of("sharedIsTheBackup"));
+        }
+        session.paths.clone()
+    };
+
+    let at = std::path::PathBuf::from(&from);
+    let done = tauri::async_runtime::spawn_blocking(move || tisty_core::backup::read(&paths, &at))
+        .await
+        .map_err(|_| Refusal::of("internal"))?
         .map_err(|e| match e {
             tisty_core::Error::OtherStore { theirs } => Refusal::about("otherStore", theirs),
             _ => Refusal::about("cannotRead", from.clone()),
         })?;
-    session.reload()?;
+
+    // Not `reload`: the restore minted a new device id, and a Store still open
+    // on the old one would write into a directory that just went back in time.
+    *held(&session) = Session::open().map_err(|e| Refusal::about("internal", e.to_string()))?;
     Ok(done.files)
 }
 
@@ -1040,6 +1081,8 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
         tisty_sync::Trouble::NotThere(at) => Refusal::about("noMeetingPlace", at),
         tisty_sync::Trouble::OtherStore { theirs } => Refusal::about("otherStore", theirs),
         tisty_sync::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
+        tisty_sync::Trouble::Broke(why) => Refusal::about("syncBroke", why),
+        tisty_sync::Trouble::WouldMerge { theirs } => Refusal::about("wouldMerge", theirs),
     }
 }
 

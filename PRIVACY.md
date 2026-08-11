@@ -51,8 +51,12 @@ visible instead of making it for you.
   `cat`, searchable with `grep`, parseable with `jq`.
 - **Documents** — plain Markdown files.
 - **Attachments** — the files themselves, unmodified.
-- **Local configuration** — including the device identifier, which stays on
-  the machine and is never synchronised.
+- **Local configuration** — including the device identifier. The *file* never
+  leaves this machine, and it lives in the local application data directory,
+  never a roaming profile, so a company logon script cannot carry it off. The
+  identifier itself does appear in the shared folder — it names your device's
+  directory and stamps every event — because that is what tells two writers
+  apart. What must never be shared is the file that binds it to this machine.
 - **A `private/` folder** — anything placed here never leaves the machine
   under any transport.
 

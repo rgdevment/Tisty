@@ -26,6 +26,8 @@ const KNOWN = [
   "noRemote",
   "noMeetingPlace",
   "syncUnreadable",
+  "syncBroke",
+  "wouldMerge",
   "sharedIsTheBackup",
   "otherStore",
   "cannotWrite",

@@ -1,9 +1,13 @@
 //! Up goes ours, down comes everyone else's. One writer per directory, so
 //! there is nothing to merge and nothing to choose.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 pub use tisty_core::store::MARKER;
+
+const STORE: &str = "store";
+const HELD: &str = "attachments";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Trouble {
@@ -13,6 +17,20 @@ pub enum Trouble {
         theirs: String,
     },
     Unreadable(String),
+    Broke(String),
+    /// Two histories, both with something to lose. Joining them cannot be
+    /// undone, and only the person knows whether it is their own other machine.
+    WouldMerge {
+        theirs: String,
+    },
+}
+
+/// Asked once, and never assumed: the same gesture picks your own laptop's
+/// folder and a stranger's, and the two cannot be told apart from here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Join {
+    Ask,
+    Agreed,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,38 +46,78 @@ pub struct Moved {
     pub brought: usize,
 }
 
-/// A machine that has never met the folder adopts its name; one that has met a
-/// different one is refused. Two stores in a folder is the one undoable mistake.
-pub fn carry(store: &Path, device: &str, dest: &Path, way: Way) -> Result<Moved, Trouble> {
+/// `data` holds `store/` and `attachments/`; both travel, because an attachment
+/// is named after its own sha-256 and two machines cannot disagree about one.
+pub fn carry(
+    data: &Path,
+    device: &str,
+    dest: &Path,
+    way: Way,
+    join: Join,
+) -> Result<Moved, Trouble> {
     if !dest.is_dir() {
         return Err(Trouble::NotThere(dest.display().to_string()));
     }
-
-    let theirs = theirs(dest);
-    let ours = match (tisty_core::store::peek_identity(store), theirs.is_empty()) {
-        (Some(ours), false) => {
-            claims(&theirs, &ours)?;
-            ours
-        }
-        (Some(ours), true) => ours,
-        (None, false) => {
-            write(&store.join(MARKER), theirs.as_bytes())?;
-            theirs
-        }
-        (None, true) => {
-            tisty_core::store::identity(store).map_err(|e| Trouble::Unreadable(e.to_string()))?
-        }
-    };
+    let store = data.join(STORE);
+    let ours = settled(&store, dest, join)?;
 
     let mut moved = Moved::default();
     if matches!(way, Way::Both | Way::Push) {
-        write(&dest.join("store").join(MARKER), ours.as_bytes())?;
-        moved.sent = copy_segments(&store.join(device), &dest.join("store").join(device))?;
+        write(&dest.join(STORE).join(MARKER), ours.as_bytes())?;
+        moved.sent = copy_segments(&store.join(device), &dest.join(STORE).join(device))?;
+        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD))?;
     }
     if matches!(way, Way::Both | Way::Pull) {
-        moved.brought = bring(store, device, dest)?;
+        moved.brought = bring(&store, device, dest)?;
+        moved.brought += copy_held(&dest.join(HELD), &data.join(HELD))?;
     }
     Ok(moved)
+}
+
+/// A machine that has never met the folder adopts its name; one that has met a
+/// different one is refused. Adopting is only safe while there is nothing of
+/// ours to lose: an unmarked store with history is a store, not a blank.
+fn settled(store: &Path, dest: &Path, join: Join) -> Result<String, Trouble> {
+    let ours = tisty_core::store::peek_identity(store);
+    let theirs = theirs(dest);
+    let we_are_new = ours.is_none() && !tisty_core::store::inhabited(store);
+    let they_are_new = theirs.is_none() && !tisty_core::store::inhabited(dest.join(STORE));
+
+    // Two stores that have already been named and disagree is the one case with
+    // no innocent reading: nobody ends up here by picking their own folder.
+    if let (Some(ours), Some(theirs)) = (&ours, &theirs) {
+        claims(theirs, ours)?;
+        return Ok(ours.clone());
+    }
+    if we_are_new || they_are_new {
+        return match theirs {
+            Some(theirs) if we_are_new => {
+                write(&store.join(MARKER), theirs.as_bytes())?;
+                Ok(theirs)
+            }
+            Some(theirs) => Ok(theirs),
+            None => match ours {
+                Some(ours) => Ok(ours),
+                None => tisty_core::store::identity(store)
+                    .map_err(|e| Trouble::Unreadable(e.to_string())),
+            },
+        };
+    }
+
+    // Both have history and at least one has no name yet: it is either your own
+    // second machine joining, or somebody else's store. Only you know which.
+    if join == Join::Ask {
+        return Err(Trouble::WouldMerge {
+            theirs: theirs.unwrap_or_else(|| dest.display().to_string()),
+        });
+    }
+    match theirs {
+        Some(theirs) => {
+            write(&store.join(MARKER), theirs.as_bytes())?;
+            Ok(theirs)
+        }
+        None => tisty_core::store::identity(store).map_err(|e| Trouble::Unreadable(e.to_string())),
+    }
 }
 
 pub fn claims(theirs: &str, ours: &str) -> Result<(), Trouble> {
@@ -73,15 +131,13 @@ pub fn claims(theirs: &str, ours: &str) -> Result<(), Trouble> {
     }
 }
 
-pub fn theirs(dest: &Path) -> String {
-    std::fs::read_to_string(dest.join("store").join(MARKER))
-        .map(|held| held.trim().to_string())
-        .unwrap_or_default()
+pub fn theirs(dest: &Path) -> Option<String> {
+    tisty_core::store::peek_identity(dest.join(STORE))
 }
 
 fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
     let mut brought = 0;
-    let Ok(entries) = std::fs::read_dir(dest.join("store")) else {
+    let Ok(entries) = std::fs::read_dir(dest.join(STORE)) else {
         return Ok(0);
     };
 
@@ -90,9 +146,15 @@ fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
         let Some(named) = named.to_str() else {
             continue;
         };
-        if named == device || !entry.path().is_dir() {
+        // Byte equality is not enough: on Windows and macOS `DEV_A` and `dev_a`
+        // are the same directory, so a stranger's name would land on our own.
+        if named.eq_ignore_ascii_case(device) || !entry.path().is_dir() {
             continue;
         }
+        // What arrives is read before it is written, or a half-downloaded
+        // segment takes down the whole store — every device, ours included.
+        tisty_core::store::check_device(&entry.path())
+            .map_err(|e| Trouble::Unreadable(e.to_string()))?;
         brought += copy_segments(&entry.path(), &store.join(named))?;
     }
 
@@ -102,74 +164,166 @@ fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
 
 /// In order: a `000002` without its `000001` stops the whole store, not one device.
 fn copy_segments(from: &Path, into: &Path) -> Result<usize, Trouble> {
-    let Ok(entries) = std::fs::read_dir(from) else {
+    let Ok(mut carried) = tisty_core::store::segments_in(from) else {
         return Ok(0);
     };
-    let mut carried: Vec<PathBuf> = entries
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|at| at.is_file() && at.extension().is_some_and(|e| e == "tisty"))
-        .collect();
     carried.sort();
 
     std::fs::create_dir_all(into).map_err(io)?;
+    sweep(into);
     let mut done = 0;
     for at in carried {
         let Some(named) = at.file_name() else {
             continue;
         };
+        // Always, even when the segment itself is skipped: a sealed segment
+        // whose `.count` never followed it can be truncated with nobody noticing.
+        let counter = at.with_extension("count");
+        if let Some(tally) = counter.file_name().filter(|_| counter.is_file()) {
+            let target = into.join(tally);
+            if !same(&counter, &target) {
+                copy_onto(&counter, &target)?;
+            }
+        }
+
         let target = into.join(named);
         if same(&at, &target) {
             continue;
         }
-        let counter = at.with_extension("count");
-        if let Some(named) = counter.file_name().filter(|_| counter.is_file()) {
-            let body = std::fs::read(&counter).map_err(io)?;
-            write(&into.join(named), &body)?;
-        }
-        let body = std::fs::read(&at).map_err(io)?;
-        write(&target, &body)?;
+        copy_onto(&at, &target)?;
         done += 1;
     }
     Ok(done)
 }
 
+/// A crash between write and rename leaves the user's log, in the clear, in a
+/// folder that syncs to a provider. Nothing else ever reads or removes them.
+fn sweep(dir: &Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for at in entries.filter_map(|e| e.ok()).map(|e| e.path()) {
+        if at.extension().is_some_and(|e| e == "part") {
+            let _ = std::fs::remove_file(&at);
+        }
+    }
+}
+
+/// Content addressed by sha-256: a name that matches is a file that matches,
+/// so what is already there is never rewritten and nothing can conflict.
+fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
+    let mut done = 0;
+    let Ok(shelves) = std::fs::read_dir(from) else {
+        return Ok(0);
+    };
+    for shelf in shelves.filter_map(|e| e.ok()) {
+        if !shelf.path().is_dir() {
+            continue;
+        }
+        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+            continue;
+        };
+        for file in files.filter_map(|e| e.ok()) {
+            let at = file.path();
+            if !at.is_file() {
+                continue;
+            }
+            let Some(rest) = at.strip_prefix(from).ok() else {
+                continue;
+            };
+            let target = into.join(rest);
+            if target.exists() {
+                continue;
+            }
+            copy_onto(&at, &target)?;
+            done += 1;
+        }
+    }
+    Ok(done)
+}
+
+/// Length alone calls a corrupted copy identical, and the local store is the
+/// only original: without the timestamp nothing would ever repair it.
 fn same(from: &Path, to: &Path) -> bool {
-    match (std::fs::metadata(from), std::fs::metadata(to)) {
-        (Ok(a), Ok(b)) => a.len() == b.len(),
+    let (Ok(a), Ok(b)) = (std::fs::metadata(from), std::fs::metadata(to)) else {
+        return false;
+    };
+    if a.len() != b.len() {
+        return false;
+    }
+    match (a.modified(), b.modified()) {
+        (Ok(a), Ok(b)) => a == b,
         _ => false,
     }
 }
 
+static ROUND: AtomicU64 = AtomicU64::new(0);
+
 fn write(at: &Path, body: &[u8]) -> Result<(), Trouble> {
+    written(at, body, None)
+}
+
+/// Copies the source's timestamp along with its bytes, which is what lets
+/// `same` tell an untouched copy from one somebody else overwrote.
+fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
+    let body = std::fs::read(from).map_err(io)?;
+    let when = std::fs::metadata(from).and_then(|m| m.modified()).ok();
+    written(at, &body, when)
+}
+
+fn written(at: &Path, body: &[u8], when: Option<std::time::SystemTime>) -> Result<(), Trouble> {
     if let Some(parent) = at.parent() {
         std::fs::create_dir_all(parent).map_err(io)?;
     }
-    let tmp = at.with_extension(format!("{}.part", std::process::id()));
-    std::fs::write(&tmp, body).map_err(io)?;
-    std::fs::rename(&tmp, at).map_err(io)
+    // Per call, not per process: two carries can run at once in one window.
+    let mine = ROUND.fetch_add(1, Ordering::Relaxed);
+    let tmp = at.with_extension(format!("{}.{mine}.part", std::process::id()));
+
+    let done = (|| {
+        let file = std::fs::File::create(&tmp)?;
+        std::io::Write::write_all(&mut &file, body)?;
+        file.sync_all()?;
+        if let Some(when) = when {
+            file.set_modified(when)?;
+        }
+        std::fs::rename(&tmp, at)
+    })();
+
+    if let Err(e) = done {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(io(e));
+    }
+    Ok(())
 }
 
+/// «Not there» is a folder that is not there, never a disk that filled up:
+/// the two need different answers and only one of them is worth retrying.
 fn io(e: std::io::Error) -> Trouble {
-    Trouble::NotThere(e.to_string())
+    match e.kind() {
+        std::io::ErrorKind::NotFound => Trouble::NotThere(e.to_string()),
+        _ => Trouble::Broke(e.to_string()),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
     use tisty_core::event::{DeviceId, TaskAdd};
     use tisty_core::{Op, Store};
     use ulid::Ulid;
 
     struct Machine {
         _dir: tempfile::TempDir,
+        data: PathBuf,
         store: PathBuf,
         device: String,
     }
 
     fn machine(named: &str) -> Machine {
         let dir = tempfile::tempdir().unwrap();
-        let store = dir.path().join("store");
+        let data = dir.path().join("data");
+        let store = data.join("store");
         let mut held = Store::open(&store, DeviceId(named.into())).unwrap();
         held.append(Op::TaskAdd {
             id: Ulid::generate(),
@@ -178,6 +332,7 @@ mod tests {
         .unwrap();
         Machine {
             _dir: dir,
+            data,
             store,
             device: named.into(),
         }
@@ -197,9 +352,30 @@ mod tests {
         let other = machine("dev_b");
         let shared = tempfile::tempdir().unwrap();
 
-        carry(&one.store, &one.device, shared.path(), Way::Both).unwrap();
-        carry(&other.store, &other.device, shared.path(), Way::Both).unwrap();
-        carry(&one.store, &one.device, shared.path(), Way::Both).unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            Join::Agreed,
+        )
+        .unwrap();
+        carry(
+            &other.data,
+            &other.device,
+            shared.path(),
+            Way::Both,
+            Join::Agreed,
+        )
+        .unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            Join::Agreed,
+        )
+        .unwrap();
 
         let mine = titles(&one.store);
         assert!(mine.contains(&"lo de dev_a".to_string()), "{mine:?}");
@@ -211,12 +387,54 @@ mod tests {
     fn nobody_ever_writes_over_their_own_directory() {
         let one = machine("dev_a");
         let shared = tempfile::tempdir().unwrap();
-        carry(&one.store, &one.device, shared.path(), Way::Both).unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            Join::Agreed,
+        )
+        .unwrap();
 
         std::fs::write(shared.path().join("store/dev_a/active.tisty"), b"").unwrap();
 
-        carry(&one.store, &one.device, shared.path(), Way::Pull).unwrap();
+        let _ = carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Pull,
+            Join::Agreed,
+        );
         assert_eq!(titles(&one.store).len(), 1, "the emptied copy came home");
+    }
+
+    /// On Windows and macOS `DEV_A` and `dev_a` are one directory, so a
+    /// stranger's copy would land on the only original this machine has.
+    #[test]
+    fn a_directory_that_differs_only_in_case_is_still_our_own() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
+
+        let theirs = shared.path().join("store/DEV_A");
+        std::fs::create_dir_all(&theirs).unwrap();
+        std::fs::write(theirs.join("active.tisty"), b"").unwrap();
+
+        let _ = carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Pull,
+            Join::Agreed,
+        );
+        assert_eq!(titles(&one.store).len(), 1, "our own log was overwritten");
     }
 
     #[test]
@@ -227,7 +445,14 @@ mod tests {
         std::fs::create_dir_all(&stranger).unwrap();
         std::fs::write(stranger.join("keep.txt"), b"not ours").unwrap();
 
-        carry(&one.store, &one.device, shared.path(), Way::Both).unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
         assert!(stranger.join("keep.txt").exists());
     }
 
@@ -239,9 +464,13 @@ mod tests {
         std::fs::create_dir_all(shared.path().join("store")).unwrap();
         std::fs::write(shared.path().join("store").join(MARKER), b"01THEIRS").unwrap();
 
-        let Err(Trouble::OtherStore { theirs }) =
-            carry(&one.store, &one.device, shared.path(), Way::Both)
-        else {
+        let Err(Trouble::OtherStore { theirs }) = carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            Join::Agreed,
+        ) else {
             panic!("two histories were about to be merged");
         };
         assert_eq!(theirs, "01THEIRS");
@@ -251,13 +480,101 @@ mod tests {
         );
     }
 
+    /// Your own second machine and a stranger's folder are the same gesture:
+    /// picking a directory. Joining is irreversible, so it gets asked.
+    #[test]
+    fn two_histories_are_never_joined_without_being_asked() {
+        let one = machine("dev_a");
+        std::fs::remove_file(one.store.join(MARKER)).ok();
+        let other = machine("dev_b");
+        let shared = tempfile::tempdir().unwrap();
+        carry(
+            &other.data,
+            &other.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
+
+        let Err(Trouble::WouldMerge { .. }) =
+            carry(&one.data, &one.device, shared.path(), Way::Both, Join::Ask)
+        else {
+            panic!("two histories were joined without a word");
+        };
+        assert_eq!(titles(&one.store), vec!["lo de dev_a".to_string()]);
+        assert!(
+            !shared.path().join("store/dev_a").exists(),
+            "something moved"
+        );
+
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            Join::Agreed,
+        )
+        .unwrap();
+        assert_eq!(titles(&one.store).len(), 2, "saying yes did not join them");
+    }
+
+    /// The marker is newer than the store: a machine that predates it has
+    /// months of history and no name, and that is not a blank to write over.
+    #[test]
+    fn a_store_with_history_and_no_marker_is_not_adopted() {
+        let one = machine("dev_a");
+        std::fs::remove_file(one.store.join(MARKER)).ok();
+        let other = machine("dev_b");
+        let shared = tempfile::tempdir().unwrap();
+        carry(
+            &other.data,
+            &other.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
+
+        let Err(Trouble::WouldMerge { .. }) =
+            carry(&one.data, &one.device, shared.path(), Way::Both, Join::Ask)
+        else {
+            panic!("an unmarked store merged into a stranger's history");
+        };
+        assert_eq!(titles(&one.store), vec!["lo de dev_a".to_string()]);
+    }
+
+    /// A hidden file is what a cloud client syncs last, or not at all.
+    #[test]
+    fn a_folder_full_of_history_with_no_marker_is_refused() {
+        let one = machine("dev_a");
+        let other = machine("dev_b");
+        let shared = tempfile::tempdir().unwrap();
+        carry(
+            &other.data,
+            &other.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
+        std::fs::remove_file(shared.path().join("store").join(MARKER)).unwrap();
+
+        let Err(Trouble::WouldMerge { .. }) =
+            carry(&one.data, &one.device, shared.path(), Way::Both, Join::Ask)
+        else {
+            panic!("a folder with history and no marker was treated as empty");
+        };
+        assert_eq!(titles(&one.store), vec!["lo de dev_a".to_string()]);
+    }
+
     #[test]
     fn a_meeting_place_that_is_not_there_says_so() {
         let one = machine("dev_a");
         let gone = one.store.join("unplugged");
 
         assert!(matches!(
-            carry(&one.store, &one.device, &gone, Way::Both),
+            carry(&one.data, &one.device, &gone, Way::Both, Join::Agreed),
             Err(Trouble::NotThere(_))
         ));
     }
@@ -267,12 +584,33 @@ mod tests {
         let one = machine("dev_a");
         let other = machine("dev_b");
         let shared = tempfile::tempdir().unwrap();
-        carry(&other.store, &other.device, shared.path(), Way::Push).unwrap();
+        carry(
+            &other.data,
+            &other.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
 
-        carry(&one.store, &one.device, shared.path(), Way::Push).unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
         assert_eq!(titles(&one.store).len(), 1, "a push brought something back");
 
-        carry(&one.store, &one.device, shared.path(), Way::Pull).unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Pull,
+            Join::Agreed,
+        )
+        .unwrap();
         assert_eq!(titles(&one.store).len(), 2);
     }
 
@@ -282,10 +620,26 @@ mod tests {
     fn a_machine_meeting_the_folder_for_the_first_time_adopts_its_name() {
         let one = machine("dev_a");
         let other = machine("dev_b");
+        std::fs::remove_file(other.store.join(MARKER)).ok();
         let shared = tempfile::tempdir().unwrap();
 
-        carry(&one.store, &one.device, shared.path(), Way::Both).unwrap();
-        carry(&other.store, &other.device, shared.path(), Way::Both).unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            Join::Agreed,
+        )
+        .unwrap();
+        std::fs::remove_dir_all(other.store.join(&other.device)).unwrap();
+        carry(
+            &other.data,
+            &other.device,
+            shared.path(),
+            Way::Both,
+            Join::Agreed,
+        )
+        .unwrap();
 
         assert_eq!(
             tisty_core::store::peek_identity(&other.store),
@@ -298,10 +652,115 @@ mod tests {
         let one = machine("dev_a");
         let shared = tempfile::tempdir().unwrap();
 
-        let first = carry(&one.store, &one.device, shared.path(), Way::Push).unwrap();
-        let again = carry(&one.store, &one.device, shared.path(), Way::Push).unwrap();
+        let first = carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
+        let again = carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
 
         assert!(first.sent > 0);
         assert_eq!(again.sent, 0, "it copied what was already identical");
+    }
+
+    /// Half a download is not history: reading it takes down every device,
+    /// so it has to be refused before a single byte lands on this machine.
+    #[test]
+    fn a_gap_in_what_is_offered_is_refused_without_importing_it() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let theirs = shared.path().join("store/dev_b");
+        std::fs::create_dir_all(&theirs).unwrap();
+        std::fs::write(theirs.join("000002.tisty"), b"").unwrap();
+
+        let Err(Trouble::Unreadable(_)) = carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Pull,
+            Join::Agreed,
+        ) else {
+            panic!("a segment with no predecessor was imported");
+        };
+        assert!(!one.store.join("dev_b").exists(), "it landed anyway");
+        assert_eq!(titles(&one.store).len(), 1, "our own store still reads");
+    }
+
+    /// Dropbox and Drive name their conflict copies keeping the extension.
+    #[test]
+    fn a_conflict_copy_is_not_a_segment() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
+
+        let mine = shared.path().join("store/dev_a");
+        let held = std::fs::read(mine.join("active.tisty")).unwrap();
+        std::fs::write(mine.join("active (conflicted copy).tisty"), &held).unwrap();
+
+        let other = machine("dev_b");
+        carry(
+            &other.data,
+            &other.device,
+            shared.path(),
+            Way::Pull,
+            Join::Agreed,
+        )
+        .unwrap();
+
+        assert_eq!(
+            titles(&other.store).len(),
+            2,
+            "the conflict copy was read as history"
+        );
+    }
+
+    #[test]
+    fn attachments_travel_with_the_tasks_that_name_them() {
+        let one = machine("dev_a");
+        let shelf = one.data.join("attachments").join("ab");
+        std::fs::create_dir_all(&shelf).unwrap();
+        std::fs::write(shelf.join("cd.png"), b"a picture").unwrap();
+
+        let shared = tempfile::tempdir().unwrap();
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Push,
+            Join::Agreed,
+        )
+        .unwrap();
+
+        let other = machine("dev_b");
+        carry(
+            &other.data,
+            &other.device,
+            shared.path(),
+            Way::Pull,
+            Join::Agreed,
+        )
+        .unwrap();
+
+        assert_eq!(
+            std::fs::read(other.data.join("attachments/ab/cd.png")).unwrap(),
+            b"a picture"
+        );
     }
 }

@@ -7,6 +7,9 @@ use crate::{Config, Error, Paths, Result, store};
 
 /// Never the configuration: a shared `device_id` puts two machines in one file.
 const CARRIED: [&str; 2] = ["store", "attachments"];
+/// A backup is history, not a filesystem: past this it is somebody's zip bomb.
+const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
+const AT_MOST_FILES: usize = 200_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Made {
@@ -21,8 +24,27 @@ pub struct Restored {
     pub devices: usize,
 }
 
+/// Written aside and renamed at the end: overwriting the previous backup in
+/// place would trade a good one for a well-formed zip that is missing files.
 pub fn write(data: &Path, into: &Path) -> Result<Made> {
     let store_id = store::identity(data.join("store"))?;
+    store::read_all(data.join("store"))?;
+
+    let part = into.with_extension(format!("{}.part", std::process::id()));
+    let made = fill(data, &part, store_id);
+    match made {
+        Ok(made) => {
+            std::fs::rename(&part, into)?;
+            Ok(made)
+        }
+        Err(e) => {
+            let _ = std::fs::remove_file(&part);
+            Err(e)
+        }
+    }
+}
+
+fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
     let file = std::fs::File::create(into)?;
     let mut zip = zip::ZipWriter::new(file);
     let mut made = Made {
@@ -37,6 +59,10 @@ pub fn write(data: &Path, into: &Path) -> Result<Made> {
             let Ok(rest) = at.strip_prefix(data) else {
                 continue;
             };
+            // A lock is a live claim on this machine, not history to carry.
+            if rest.file_name().is_some_and(|n| n == ".lock") {
+                continue;
+            }
             let named = rest.to_string_lossy().replace('\\', "/");
             let body = std::fs::read(&at)?;
 
@@ -53,6 +79,10 @@ pub fn write(data: &Path, into: &Path) -> Result<Made> {
 
 /// A photograph: back to that moment, and what came after is lost on purpose.
 /// The machine takes a new identity so it can never shrink what others hold.
+///
+/// Nothing of yours is touched until the whole backup has been unpacked beside
+/// it and read back: a zip that turns out to be corrupt, truncated or somebody
+/// else's must cost you nothing, and the only way to be sure is to try it first.
 pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
     let data = paths.data();
     let file = std::fs::File::open(from)?;
@@ -65,21 +95,84 @@ pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
         && store::read_all(&root)
             .map(|all| all.is_empty())
             .unwrap_or(false);
-    if !theirs.is_empty() && Some(&theirs) != ours.as_ref() && !free {
-        return Err(Error::OtherStore { theirs });
-    }
-
-    for folder in CARRIED {
-        let at = data.join(folder);
-        if at.exists() {
-            std::fs::remove_dir_all(&at)?;
+    // An unmarked backup is only safe onto an unmarked, empty machine: taken
+    // the other way round it is a stranger's history replacing your own.
+    match (&ours, theirs.is_empty()) {
+        (_, false) if ours.as_ref() == Some(&theirs) || free => {}
+        (None, true) if free => {}
+        _ => {
+            return Err(Error::OtherStore {
+                theirs: if theirs.is_empty() {
+                    from.display().to_string()
+                } else {
+                    theirs
+                },
+            });
         }
     }
 
-    let mut restored = Restored {
-        files: 0,
-        devices: 0,
+    let staged = data.join(format!(".restoring-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&staged);
+    let done = unpack(&mut zip, &staged).and_then(|files| {
+        store::read_all(staged.join("store"))?;
+        if files == 0 || !staged.join("store").is_dir() {
+            return Err(Error::OtherStore {
+                theirs: from.display().to_string(),
+            });
+        }
+        Ok(files)
+    });
+    let files = match done {
+        Ok(files) => files,
+        Err(e) => {
+            let _ = std::fs::remove_dir_all(&staged);
+            return Err(e);
+        }
     };
+
+    // Named before anything moves: writing under the old one into a store that
+    // just went back in time is what shrinks a directory other machines hold.
+    let mut config = Config::load_or_init(paths)?;
+    config.device_id = crate::DeviceId(crate::config::new_device_id());
+    config.synced_at = None;
+    config.save(paths)?;
+
+    let old = data.join(format!(".replaced-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&old);
+    std::fs::create_dir_all(&old)?;
+    for folder in CARRIED {
+        let at = data.join(folder);
+        if at.exists() {
+            std::fs::rename(&at, old.join(folder))?;
+        }
+        if staged.join(folder).exists() {
+            std::fs::rename(staged.join(folder), &at)?;
+        }
+    }
+    let _ = std::fs::remove_dir_all(&staged);
+    let _ = std::fs::remove_dir_all(&old);
+    let _ = std::fs::remove_dir_all(paths.cache());
+
+    Ok(Restored {
+        files,
+        devices: std::fs::read_dir(data.join("store"))
+            .map(|entries| {
+                entries
+                    .filter_map(|e| e.ok())
+                    .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                    .count()
+            })
+            .unwrap_or(0),
+    })
+}
+
+fn unpack<R: Read + Seek>(zip: &mut zip::ZipArchive<R>, into: &Path) -> Result<usize> {
+    if zip.len() > AT_MOST_FILES {
+        return Err(Error::Io(std::io::Error::other("too many files")));
+    }
+    let mut files = 0;
+    let mut bytes = 0u64;
+
     for i in 0..zip.len() {
         let mut held = zip.by_index(i).map_err(zipped)?;
         if held.is_dir() {
@@ -88,33 +181,21 @@ pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
         let Some(rest) = safe(held.name()) else {
             continue;
         };
-        let at = data.join(&rest);
+        bytes = bytes.saturating_add(held.size());
+        if bytes > AT_MOST {
+            return Err(Error::Io(std::io::Error::other("backup is too large")));
+        }
+
+        let at = into.join(&rest);
         if let Some(parent) = at.parent() {
             std::fs::create_dir_all(parent)?;
         }
         let mut body = Vec::new();
         held.read_to_end(&mut body)?;
-        store::write_atomic(&at, &body)?;
-        restored.files += 1;
+        std::fs::write(&at, &body)?;
+        files += 1;
     }
-
-    store::read_all(&root)?;
-
-    let _ = std::fs::remove_dir_all(paths.cache());
-
-    let mut config = Config::load(&paths.config_file())?.unwrap_or(Config::load_or_init(paths)?);
-    config.device_id = crate::DeviceId(crate::config::new_device_id());
-    config.save(paths)?;
-
-    restored.devices = std::fs::read_dir(data.join("store"))
-        .map(|entries| {
-            entries
-                .filter_map(|e| e.ok())
-                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-                .count()
-        })
-        .unwrap_or(0);
-    Ok(restored)
+    Ok(files)
 }
 
 fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
@@ -329,6 +410,118 @@ mod tests {
                 "the device id travelled: {named}"
             );
         }
+    }
+
+    /// The file picker filters by `*.zip`, and every machine has a zip that is
+    /// not a backup. Choosing one must cost nothing at all.
+    #[test]
+    fn a_zip_that_is_not_a_backup_leaves_everything_where_it_was() {
+        let (_src, data) = filled("lo mio");
+        let paths = Paths::new(&data, data.parent().unwrap().join("config"));
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("holiday-photos.zip");
+        {
+            let mut zip = zip::ZipWriter::new(std::fs::File::create(&file).unwrap());
+            zip.start_file("photos/beach.jpg", zip::write::SimpleFileOptions::default())
+                .unwrap();
+            zip.write_all(b"not a backup").unwrap();
+            zip.finish().unwrap();
+        }
+
+        assert!(read(&paths, &file).is_err(), "it accepted a stranger's zip");
+        assert_eq!(
+            store::read_all(paths.store()).unwrap().len(),
+            1,
+            "the store was emptied by a zip full of photographs"
+        );
+        assert!(data.join("attachments/ab/cd.png").exists());
+    }
+
+    #[test]
+    fn a_corrupt_backup_costs_nothing() {
+        let (_src, data) = filled("lo mio");
+        let paths = Paths::new(&data, data.parent().unwrap().join("config"));
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file).unwrap();
+
+        let mut bytes = std::fs::read(&file).unwrap();
+        let middle = bytes.len() / 2;
+        bytes[middle] ^= 0xff;
+        bytes[middle + 1] ^= 0xff;
+        std::fs::write(&file, &bytes).unwrap();
+
+        let _ = read(&paths, &file);
+        assert_eq!(
+            store::read_all(paths.store()).unwrap().len(),
+            1,
+            "a damaged backup took the store with it"
+        );
+    }
+
+    /// An unmarked backup used to walk straight past the guard.
+    #[test]
+    fn a_backup_with_no_marker_is_refused_onto_a_store_that_has_one() {
+        let (_src, data) = filled("lo mio");
+        let paths = Paths::new(&data, data.parent().unwrap().join("config"));
+        let (_b, other) = filled("lo de otro");
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&other, &file).unwrap();
+
+        let stripped = out.path().join("stripped.zip");
+        {
+            let held = std::fs::File::open(&file).unwrap();
+            let mut from = zip::ZipArchive::new(held).unwrap();
+            let mut to = zip::ZipWriter::new(std::fs::File::create(&stripped).unwrap());
+            for i in 0..from.len() {
+                let mut one = from.by_index(i).unwrap();
+                let named = one.name().to_string();
+                if named.ends_with(store::MARKER) {
+                    continue;
+                }
+                let mut body = Vec::new();
+                one.read_to_end(&mut body).unwrap();
+                to.start_file(named, zip::write::SimpleFileOptions::default())
+                    .unwrap();
+                to.write_all(&body).unwrap();
+            }
+            to.finish().unwrap();
+        }
+
+        assert!(matches!(
+            read(&paths, &stripped),
+            Err(Error::OtherStore { .. })
+        ));
+        assert_eq!(store::read_all(paths.store()).unwrap().len(), 1);
+    }
+
+    /// The old id would keep writing into a directory that just went back in
+    /// time, shrinking what the other machines already hold.
+    #[test]
+    fn the_machine_is_renamed_before_anything_is_replaced() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(dir.path().join("data"), dir.path().join("config"));
+        let was = Config::load_or_init(&paths).unwrap().device_id.0;
+        let mut store = Store::open(paths.store(), DeviceId(was.clone())).unwrap();
+        store
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new("lo de antes", "a0"),
+            })
+            .unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(paths.data(), &file).unwrap();
+        read(&paths, &file).unwrap();
+
+        let now = Config::load(&paths.config_file()).unwrap().unwrap();
+        assert_ne!(now.device_id.0, was);
+        assert!(
+            now.synced_at.is_none(),
+            "it claimed a sync that predates it"
+        );
     }
 
     #[test]

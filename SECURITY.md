@@ -55,7 +55,12 @@ Being explicit here matters more than sounding reassuring.
   That is the trade you make when you turn it on, and Tisty states it rather
   than hiding it.
 - **Anyone with access to your user account has access to your data.** Tisty
-  adds no second authentication layer on top of your operating system's.
+  adds no second authentication layer on top of your operating system's, and
+  on Unix the files carry the default permissions of your account, so another
+  local account with a readable home directory can reach them.
+- **Whoever can write to the shared folder can write to your history.** The
+  transport reads what it finds there. It refuses what does not parse and it
+  refuses a second store, but it cannot tell a genuine event from a forged one.
 
 ## Supported versions
 

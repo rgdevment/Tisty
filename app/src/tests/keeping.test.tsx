@@ -70,7 +70,7 @@ const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 describe("the maintenance panel", () => {
   it("offers to turn syncing on when there is no folder", async () => {
-    render(<Keeping onChanged={() => {}} onError={() => {}} />);
+    render(<Keeping onChanged={() => {}} />);
 
     expect(await screen.findByText(/only on this machine/i)).toBeTruthy();
     expect(screen.getByText("no destination")).toBeTruthy();
@@ -79,7 +79,7 @@ describe("the maintenance panel", () => {
 
   it("remembers the folder that was picked", async () => {
     asked.folder = "G:/My Drive/tisty";
-    render(<Keeping onChanged={() => {}} onError={() => {}} />);
+    render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
 
     await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
@@ -92,7 +92,7 @@ describe("the maintenance panel", () => {
   it("hides backing up once a shared folder holds every machine", async () => {
     carrying.chosen = "G:/My Drive/tisty";
     carrying.backsUp = false;
-    render(<Keeping onChanged={() => {}} onError={() => {}} />);
+    render(<Keeping onChanged={() => {}} />);
 
     expect(await screen.findByText(/already holds every machine/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /create backup/i })).toBeNull();
@@ -101,7 +101,7 @@ describe("the maintenance panel", () => {
 
   it("never restores without asking first", async () => {
     asked.file = "C:/keep/tisty-backup.zip";
-    render(<Keeping onChanged={() => {}} onError={() => {}} />);
+    render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
 
     await userEvent.click(screen.getByRole("button", { name: /restore/i }));
@@ -112,7 +112,7 @@ describe("the maintenance panel", () => {
   it("restores once the warning is accepted", async () => {
     asked.file = "C:/keep/tisty-backup.zip";
     asked.sure = true;
-    render(<Keeping onChanged={() => {}} onError={() => {}} />);
+    render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
 
     await userEvent.click(screen.getByRole("button", { name: /restore/i }));
@@ -122,7 +122,7 @@ describe("the maintenance panel", () => {
   });
 
   it("says what the review found", async () => {
-    render(<Keeping onChanged={() => {}} onError={() => {}} />);
+    render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
 
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));

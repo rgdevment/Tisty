@@ -261,10 +261,7 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
             continue;
         }
 
-        let mut segments: Vec<PathBuf> = std::fs::read_dir(device.path())?
-            .filter_map(|e| e.ok().map(|e| e.path()))
-            .filter(|p| p.extension().is_some_and(|e| e == "tisty"))
-            .collect();
+        let mut segments = segments_in(&device.path())?;
         segments.sort();
         contiguous(&segments)?;
 
@@ -290,6 +287,62 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
 
     events.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
     Ok(events)
+}
+
+/// A cloud client names its conflict copies `000001 (conflicted copy).tisty`,
+/// which keeps the extension: reading one duplicates every event it holds.
+pub fn is_segment(name: &str) -> bool {
+    name == ACTIVE
+        || name
+            .strip_suffix(".tisty")
+            .is_some_and(|stem| stem.len() == 6 && stem.bytes().all(|b| b.is_ascii_digit()))
+}
+
+pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
+    Ok(std::fs::read_dir(device_dir)?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|at| {
+            at.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(is_segment)
+        })
+        .collect())
+}
+
+/// True once any machine has left a directory here, marker or no marker.
+pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
+    std::fs::read_dir(store_root.as_ref()).is_ok_and(|entries| {
+        entries.filter_map(|e| e.ok()).any(|e| {
+            e.file_type().is_ok_and(|kind| kind.is_dir())
+                && segments_in(&e.path()).is_ok_and(|found| !found.is_empty())
+        })
+    })
+}
+
+/// Everything `read_all` demands of one device, without reading the others:
+/// what a transport needs before it copies a stranger's directory home.
+pub fn check_device(device_dir: &Path) -> Result<usize> {
+    let mut segments = segments_in(device_dir)?;
+    segments.sort();
+    contiguous(&segments)?;
+
+    let mut events = Vec::new();
+    for segment in &segments {
+        let before = events.len();
+        read_segment(segment, &mut events)?;
+        if segment.file_name().is_some_and(|n| n != ACTIVE) {
+            let found = events.len() - before;
+            let declared = declared_count(segment);
+            if found == 0 || declared.is_some_and(|n| n != found) {
+                return Err(Error::TruncatedSegment {
+                    file: segment.display().to_string(),
+                    found,
+                    declared,
+                });
+            }
+        }
+    }
+    Ok(events.len())
 }
 
 /// Sealed segments are numbered from one without gaps; a gap silently drops that slice of history.
