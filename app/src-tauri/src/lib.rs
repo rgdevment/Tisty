@@ -1462,7 +1462,8 @@ fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Tas
 fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
-    session.commit(Op::TaskReopen { id })?;
+    let ops = session.state.reopening(id);
+    session.commit_all(ops)?;
     session
         .state
         .tasks

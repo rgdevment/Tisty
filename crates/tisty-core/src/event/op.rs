@@ -95,6 +95,10 @@ pub struct TaskAdd {
     pub reminders: Vec<DateSpec>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repeat: Option<Repeat>,
+    /// The occurrence this one was born from, so undoing that completion can
+    /// find its successor instead of leaving two of the series alive.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub after: Option<TaskId>,
 }
 
 impl TaskAdd {
@@ -109,6 +113,7 @@ impl TaskAdd {
             tags: Vec::new(),
             reminders: Vec::new(),
             repeat: None,
+            after: None,
         }
     }
 }

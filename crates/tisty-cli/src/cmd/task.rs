@@ -100,7 +100,8 @@ pub fn done(
 pub fn undone(app: &mut App, selector: &str, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let archived: Vec<_> = app.state.archived_tasks().collect();
     resolved!(app, Some(selector), archived, lang, |id| {
-        app.commit(Op::TaskReopen { id })?;
+        let ops = app.state.reopening(id);
+        app.commit_all(ops)?;
         report(app, id, today, lang);
         Ok(ExitCode::SUCCESS)
     })

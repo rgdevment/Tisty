@@ -1315,3 +1315,23 @@ fn dropping_an_ordinary_task_says_nothing_about_repeats() {
     let out = cli.ok(&["drop", "1"]);
     assert!(!out.contains("repeat"), "{out}");
 }
+
+#[test]
+fn undoing_a_tick_does_not_leave_the_series_running_twice() {
+    let cli = Cli::new();
+    cli.ok(&["take out the bins every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+
+    // The commonest way to say «I pressed that by mistake».
+    cli.ok(&["ls", "archive"]);
+    cli.ok(&["undone", "1"]);
+
+    let open = cli.ok(&["ls", "all"]);
+    assert_eq!(
+        open.matches("take out the bins").count(),
+        1,
+        "two of the series are running
+{open}"
+    );
+}

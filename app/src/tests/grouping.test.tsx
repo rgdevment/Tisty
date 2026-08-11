@@ -33,7 +33,7 @@ describe("the archive folds repetitions", () => {
     ]);
 
     expect(screen.getAllByText("sacar la basura")).toHaveLength(1);
-    expect(screen.getByText(/3 times this month/i)).toBeTruthy();
+    expect(screen.getByText(/3 times/i)).toBeTruthy();
   });
 
   it("opens to show every one of them", async () => {
@@ -52,7 +52,7 @@ describe("the archive folds repetitions", () => {
     archive([done("1", "comprar pan", "2026-08-25T09:00:00Z")]);
 
     expect(screen.getByText("comprar pan")).toBeTruthy();
-    expect(screen.queryByText(/times this month/i)).toBeNull();
+    expect(screen.queryByText(/\d+ times/i)).toBeNull();
   });
 
   /// Without the month heading the fold would read as one long streak.
@@ -63,6 +63,6 @@ describe("the archive folds repetitions", () => {
     ]);
 
     expect(screen.getAllByText("sacar la basura")).toHaveLength(2);
-    expect(screen.queryByText(/times this month/i)).toBeNull();
+    expect(screen.queryByText(/\d+ times/i)).toBeNull();
   });
 });

@@ -820,3 +820,41 @@ repeat = "done:1m"
 input = "todos los caminos llevan a Roma"
 title = "todos los caminos llevan a Roma"
 why = "«todos los» solo abre una cadencia si lo que sigue es una unidad o un día"
+
+[[case]]
+input = "sacar la basura todos los domingos"
+title = "sacar la basura"
+date = "2026-08-09"
+repeat = "due:1w"
+why = "el plural es la forma corriente de decirlo"
+
+[[case]]
+input = "gimnasio todos los sábados"
+title = "gimnasio"
+date = "2026-08-08"
+repeat = "due:1w"
+
+[[case]]
+input = "reunión de equipo cada lunes a las 9"
+title = "reunión de equipo"
+date = "2026-08-10"
+time = "09:00"
+repeat = "due:1w"
+why = "el día nombrado manda sobre la hora suelta; sin esto la serie se anclaba en hoy"
+
+[[case]]
+input = "escribir en el diario"
+title = "escribir en el diario"
+why = "«diario» es un sustantivo mucho más a menudo que una cadencia"
+
+[[case]]
+input = "comprar el diario del domingo"
+title = "comprar el diario del domingo"
+offer = "2026-08-09"
+offer_title = "comprar el diario"
+why = "el domingo se ofrece pero no se toma, que es lo de siempre; «diario» no es cadencia"
+
+[[case]]
+input = "leer \"El Diario de Ana Frank\""
+title = "leer \"El Diario de Ana Frank\""
+why = "lo entrecomillado no se toca, tampoco para leer una cadencia"
