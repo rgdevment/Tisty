@@ -3,6 +3,15 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import About from "../ui/About";
 
+const opened = vi.hoisted(() => ({ urls: [] as string[] }));
+
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openUrl: (url: string) => {
+    opened.urls.push(url);
+    return Promise.resolve();
+  },
+}));
+
 const ipc = vi.hoisted(() => ({
   tries: 0,
   answer: (_cmd: string): Promise<unknown> => Promise.resolve(null),
@@ -23,6 +32,7 @@ const build = {
 };
 
 beforeEach(() => {
+  opened.urls = [];
   ipc.tries = 0;
   ipc.answer = () => Promise.resolve(build);
 });
@@ -50,5 +60,38 @@ describe("the about screen", () => {
     expect(await screen.findByText("0.1.0")).toBeTruthy();
     await waitFor(() => expect(ipc.tries).toBe(2));
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("the other tools", () => {
+  it("points each one at its own repository", async () => {
+    render(<About onError={() => {}} />);
+    await screen.findByText("0.1.0");
+
+    await userEvent.click(screen.getByRole("button", { name: /CopyPaste/ }));
+    await userEvent.click(screen.getByRole("button", { name: /LinkUnbound/ }));
+
+    expect(opened.urls).toEqual([
+      "https://github.com/rgdevment/CopyPaste",
+      "https://github.com/rgdevment/LinkUnbound",
+    ]);
+  });
+
+  it("draws an icon for each, not a bullet", async () => {
+    const { container } = render(<About onError={() => {}} />);
+    await screen.findByText("0.1.0");
+
+    expect(container.querySelectorAll("img").length).toBe(2);
+  });
+
+  /// It used to call `served`, which resolves a reference inside the store and
+  /// refuses anything that leaves it: the button could never have worked.
+  it("opens Tisty's own repository as a url", async () => {
+    render(<About onError={() => {}} />);
+    await screen.findByText("0.1.0");
+
+    await userEvent.click(screen.getByRole("button", { name: /repository/i }));
+
+    expect(opened.urls).toContain("https://github.com/rgdevment/tisty");
   });
 });
