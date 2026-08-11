@@ -182,6 +182,10 @@ your own second machine and a stranger's folder are the same gesture. So it
 **asks**: `tisty sync --merge`, or a confirmation in the window. Joining cannot
 be undone, which is exactly why it is never assumed.
 
+Directory names are compared without case: on Windows and macOS `DEV_A` and
+`dev_a` are one directory, so a stranger's copy would land on the only original
+this machine has.
+
 Syncing runs on its own — pull when the window opens and when it regains focus,
 push shortly after each change, and both on a timer. It never blocks a local
 write and never interrupts to complain: an unreachable folder is retried in
@@ -193,9 +197,14 @@ One zip of `store/` and `attachments/`, never the configuration — a shared
 `device_id` would put two machines in one file.
 
 Restoring is **a photograph**: back to that moment, and what came after is lost
-on purpose. It wipes the store and the attachments, writes what the zip holds,
-throws the cache away, and the machine **takes a new device id** so its
-directory starts empty and can never shrink what other machines already hold.
+on purpose. The machine **takes a new device id** so its directory starts empty
+and can never shrink what other machines already hold.
+
+Nothing of yours is touched until the whole backup has been unpacked beside it
+and read back, and the swap moves every old folder aside before a single new one
+steps in. A zip that turns out to be corrupt, truncated, somebody else's, or not
+a backup at all costs you nothing — and half a restore is the one outcome worth
+less than either whole.
 
 **Backing up and syncing are mutually exclusive**, and the buttons disable each
 other. The shared folder already holds every machine's history, so a second
