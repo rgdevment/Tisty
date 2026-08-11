@@ -71,8 +71,45 @@ beforeEach(() => {
         return Promise.resolve({ tasks: 7, lists: 2, agrees: true, loose: 3, looseBytes: 311_000 });
       case "back_up":
         return Promise.resolve(4096);
+      case "facts":
+        return Promise.resolve({
+          version: "0.1.0",
+          dev: true,
+          sandbox: null,
+          locale: "en",
+          zone: "America/Santiago",
+          os: "Windows 11",
+          arch: "x86_64",
+          webview: "132",
+          store: "C:/tisty",
+          devices: 1,
+          events: 10,
+          open: 7,
+          archived: 2,
+          lists: 2,
+          tags: 0,
+          listNames: [],
+          tagNames: [],
+          cache: "agrees",
+          attachments: 0,
+          attachmentBytes: 0,
+          loose: 0,
+          looseBytes: 0,
+          weight: 1000,
+          syncs: false,
+          shared: false,
+          backedUpAt: null,
+          quiet: [],
+          attachUpTo: 5 * 1024 * 1024,
+          inPath: true,
+          shortcut: null,
+        });
       case "logs":
-        return Promise.resolve({ at: "C:/tisty/private/tisty.log", bytes: 240, lines: kept.lines });
+        return Promise.resolve({
+          at: "C:/tisty/private/tisty.log",
+          bytes: kept.lines.length === 0 ? 0 : 240,
+          lines: kept.lines,
+        });
       case "settings":
         return Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024, logsAll: false });
       default:
@@ -254,72 +291,50 @@ describe("the first-run assistant", () => {
   });
 });
 
-describe("the log", () => {
+describe("the report a bug gets attached to", () => {
   const upkeep = async () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
     await go(/maintenance/i);
   };
 
-  it("says on its face that nothing about your tasks reaches it", async () => {
+  /// The log is not something to administer: it is material for a report, and
+  /// the only question is whether it goes in.
+  it("offers the log as one more answer, on by default", async () => {
     await upkeep();
 
-    expect(screen.getByText(/no titles, no descriptions, no journals/i)).toBeTruthy();
+    const box = screen.getByRole("checkbox", { name: /include the error log/i });
+    expect((box as HTMLInputElement).checked).toBe(true);
   });
 
-  it("says so when nothing has gone wrong", async () => {
-    await upkeep();
-
-    await userEvent.click(screen.getByText(/see what it holds/i));
-
-    expect(await screen.findByText(/nothing has gone wrong yet/i)).toBeTruthy();
-  });
-
-  it("shows what it holds, newest last", async () => {
-    kept.lines = [
-      "2026-08-11 10:00:00-04  WARN   sync      folder unreachable",
-      "2026-08-11 10:05:00-04  ERROR  cache     rebuild failed",
-    ];
-    await upkeep();
-
-    await userEvent.click(screen.getByText(/see what it holds/i));
-
-    const shown = await screen.findByText(/folder unreachable/);
-    expect(shown.textContent?.indexOf("folder unreachable")).toBeLessThan(
-      shown.textContent?.indexOf("rebuild failed") ?? -1,
-    );
-  });
-
-  /// It is the only account of whatever went wrong on this machine.
-  it("never empties without asking first", async () => {
+  it("shows the log inside what would be sent", async () => {
     kept.lines = ["2026-08-11 10:00:00-04  WARN   sync      folder unreachable"];
     await upkeep();
 
-    await userEvent.click(screen.getByRole("button", { name: /empty it/i }));
+    await userEvent.click(screen.getByText(/see the report/i));
 
-    await waitFor(() => expect(sent("forget_logs").length).toBe(0));
+    expect(await screen.findByText(/folder unreachable/)).toBeTruthy();
   });
 
-  it("empties once the warning is accepted", async () => {
-    asked.sure = true;
+  it("leaves it out once it is unticked", async () => {
     kept.lines = ["2026-08-11 10:00:00-04  WARN   sync      folder unreachable"];
     await upkeep();
 
-    await userEvent.click(screen.getByRole("button", { name: /empty it/i }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /include the error log/i }));
+    await userEvent.click(screen.getByText(/see the report/i));
 
-    await waitFor(() => expect(sent("forget_logs").length).toBe(1));
-    expect(await screen.findByText(/emptied/i)).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText(/folder unreachable/)).toBeNull());
   });
 
-  it("saves a copy where it is told to", async () => {
-    asked.file = "D:/issues/tisty-log.txt";
-    kept.lines = ["2026-08-11 10:00:00-04  WARN   sync      folder unreachable"];
+  /// One file, not a text file beside a log file beside a screenshot.
+  it("writes one zip, and says whether the log goes in it", async () => {
+    asked.file = "D:/issues/tisty-report.zip";
     await upkeep();
 
-    await userEvent.click(screen.getByRole("button", { name: /save a copy/i }));
+    await userEvent.click(screen.getByRole("button", { name: /save the report/i }));
 
     await waitFor(() => expect(sent("keep_report").length).toBe(1));
-    expect(sent("keep_report")[0].args.at).toBe("D:/issues/tisty-log.txt");
-    expect(String(sent("keep_report")[0].args.text)).toContain("folder unreachable");
+    expect(sent("keep_report")[0].args.at).toBe("D:/issues/tisty-report.zip");
+    expect(sent("keep_report")[0].args.logs).toBe(true);
   });
 });
