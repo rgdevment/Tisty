@@ -15,6 +15,8 @@ interface Props {
   centred: boolean;
   bands?: "month" | "day";
   empty?: string;
+  /// Said above the rows: what the list is not showing.
+  note?: string;
   onSelect: (id: string) => void;
   onComplete?: (id: string) => void;
   onFold?: (id: string, away: boolean) => void;
@@ -34,6 +36,7 @@ export default function TaskList({
   centred,
   bands,
   empty,
+  note,
   onSelect,
   onComplete,
   onFold,
@@ -261,6 +264,9 @@ export default function TaskList({
       </header>
 
       <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>
+      {note && (
+        <p className={`shrink-0 px-7 pb-1.5 text-[11.5px] text-faint ${width}`}>{note}</p>
+      )}
       {above && <div className={`shrink-0 px-5 ${width}`}>{above}</div>}
 
       <div ref={listed} role="list" className={`scroller flex-1 px-5 pb-6 ${width}`}>

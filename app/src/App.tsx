@@ -16,6 +16,7 @@ import {
   writeStep,
   type Change,
   type Snapshot,
+  type Found,
   type Task,
 } from "./core";
 import { listen } from "@tauri-apps/api/event";
@@ -60,7 +61,7 @@ export default function App() {
     () => (localStorage.getItem("detail") as Mode) ?? "columns",
   );
   const [chosen, setChosen] = useState<Chosen>({ named: "today" });
-  const [found, setFound] = useState<Task[] | null>(null);
+  const [found, setFound] = useState<Found | null>(null);
   const [held, setHeld] = useState<Task | undefined>();
   const [greet, setGreet] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -155,7 +156,7 @@ export default function App() {
 
   const fresh =
     data.tasks.find((candidate) => candidate.id === selected) ??
-    found?.find((candidate) => candidate.id === selected);
+    found?.tasks.find((candidate) => candidate.id === selected);
   const task = fresh ?? (held?.id === selected ? held : undefined) ?? undefined;
   const open = task !== undefined;
   if (fresh && fresh !== held) setHeld(fresh);
@@ -295,10 +296,15 @@ export default function App() {
         />
       ) : (
         <TaskList
-          tasks={found ?? (chosen.named === "search" ? [] : data.tasks)}
+          tasks={found?.tasks ?? (chosen.named === "search" ? [] : data.tasks)}
           lists={data.lists}
           title={title(chosen, data.lists)}
           empty={nothing(chosen, found !== null)}
+          note={
+            found && found.total > found.tasks.length
+              ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
+              : undefined
+          }
           selected={selected}
           fresh={captured?.id}
           reveal={reveal}
@@ -315,7 +321,7 @@ export default function App() {
             chosen.named === "archive"
               ? undefined
               : (id) => {
-                  const one = (found ?? data.tasks).find((task) => task.id === id);
+                  const one = (found?.tasks ?? data.tasks).find((task) => task.id === id);
                   if (one) say(fill("saidDone", one.title));
                   act(complete(id));
                 }

@@ -1355,6 +1355,25 @@ fn a_cadence_that_is_not_one_is_refused() {
     assert_ne!(run.code, 0, "{}", run.out);
 }
 
+/// Undo tombstoned the occurrence completing had just given birth to, and the
+/// redo replayed the same id: the series ended there, silently, and the redo
+/// reported success.
+#[test]
+fn undoing_and_redoing_a_completion_keeps_the_series_alive() {
+    let cli = Cli::new();
+    cli.ok(&["take out the bins every week"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["undo"]);
+    cli.ok(&["redo"]);
+
+    let out = cli.ok(&["ls", "all"]);
+    assert!(
+        out.contains("take out the bins"),
+        "the next occurrence is gone: {out}"
+    );
+}
+
 #[test]
 fn dropping_a_repeating_task_says_the_series_is_over() {
     let cli = Cli::new();

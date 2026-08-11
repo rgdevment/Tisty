@@ -260,7 +260,10 @@ fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow
         if app.state.is_erased(entity) {
             anyhow::bail!("{}", lang.get("cannot-redo"));
         }
-        (entity, change.into_iter().map(|e| e.op).collect::<Vec<_>>())
+        let ops = app
+            .state
+            .afresh(change.into_iter().map(|e| e.op).collect::<Vec<_>>());
+        (entity, ops)
     } else {
         let change = app.last_own_change()?;
         if change.is_empty() {

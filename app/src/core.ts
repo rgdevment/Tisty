@@ -135,7 +135,14 @@ export interface View {
 export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });
 export type Scope = "either" | "open" | "archived";
 
-export const search = (query: string, scope: Scope = "open"): Promise<Task[]> =>
+export interface Found {
+  tasks: Task[];
+  /// Before the cap: a result list that quietly stops at 200 reads as «that is
+  /// all there is».
+  total: number;
+}
+
+export const search = (query: string, scope?: Scope): Promise<Found> =>
   invoke("search", { query, scope });
 export const read = (text: string): Promise<Parsed> =>
   invoke("read", { text, locale: navigator.language });
