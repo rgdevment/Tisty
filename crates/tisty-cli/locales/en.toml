@@ -98,6 +98,7 @@ not-a-cadence  = "that is not a cadence: {said}"
 demo-needs-sandbox = "demo only runs inside a sandbox: set TISTY_PROFILE first"
 demo-not-empty     = "this store already holds {n} tasks; pass --force to add the examples anyway"
 demo-planted       = "planted {n} changes in the «{name}» sandbox"
+sandbox-cannot-merge = "a sandbox never merges: joining two histories cannot be undone, and this store is a test one"
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
 lines = { one = "1 line", other = "{n} lines" }

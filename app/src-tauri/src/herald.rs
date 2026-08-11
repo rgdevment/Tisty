@@ -83,20 +83,58 @@ fn tone_for(what: &Happening) -> Option<&'static str> {
 
 /// Every channel is registered; the ones this machine asked to keep quiet are
 /// left out. A channel added later starts on, without anyone opting in to it.
-pub fn heralds(app: &tauri::AppHandle, words: Words, quiet: &[String]) -> Heralds {
+pub struct Speaking {
+    words: Words,
+    now: std::sync::Mutex<Heralds>,
+}
+
+impl Speaking {
+    pub fn new(app: &tauri::AppHandle, words: Words, quiet: &[String]) -> Self {
+        Self {
+            now: std::sync::Mutex::new(built(app, &words, quiet)),
+            words,
+        }
+    }
+
+    fn tell(&self, what: &Happening) -> Told {
+        match self.now.lock() {
+            Ok(heralds) => heralds.tell(what),
+            Err(held) => held.into_inner().tell(what),
+        }
+    }
+}
+
+/// Registered once at startup was not enough: a channel switched off from the
+/// settings screen said «Saved» and kept sounding until the app was restarted.
+pub fn respeak(app: &tauri::AppHandle, quiet: &[String]) {
+    let Some(speaking) = app.try_state::<Speaking>() else {
+        return;
+    };
+    let fresh = built(app, &speaking.words, quiet);
+    match speaking.now.lock() {
+        Ok(mut now) => *now = fresh,
+        Err(held) => *held.into_inner() = fresh,
+    }
+}
+
+fn built(app: &tauri::AppHandle, words: &Words, quiet: &[String]) -> Heralds {
     let mut heralds = Heralds::default();
     let screen = Screen {
         app: app.clone(),
-        words,
+        words: words.clone(),
     };
-    if !quiet.iter().any(|one| one == screen.named()) {
+    if speaks(screen.named(), quiet) {
         heralds = heralds.with(Box::new(screen));
     }
     let chime = Chime { app: app.clone() };
-    if !quiet.iter().any(|one| one == chime.named()) {
+    if speaks(chime.named(), quiet) {
         heralds = heralds.with(Box::new(chime));
     }
     heralds
+}
+
+fn speaks(channel: &str, quiet: &[String]) -> bool {
+    !quiet.iter().any(|one| one == channel)
 }
 
 const EVERY: std::time::Duration = std::time::Duration::from_secs(30);
@@ -187,8 +225,8 @@ fn onward(now: jiff::Timestamp, kept: Option<jiff::Timestamp>) -> jiff::Timestam
 /// Nothing listening is not a failure; every channel failing is, and the caller
 /// decides what to do about it.
 pub fn told(app: &tauri::AppHandle, what: Happening) -> Told {
-    match app.try_state::<Heralds>() {
-        Some(heralds) => heralds.tell(&what),
+    match app.try_state::<Speaking>() {
+        Some(speaking) => speaking.tell(&what),
         None => Told::default(),
     }
 }
@@ -278,20 +316,28 @@ mod tests {
         assert_eq!(tone_for(&many), Some("due"));
     }
 
-    /// Muting one leaves the other working, and muting both leaves nothing
-    /// that could claim a reminder was delivered.
+    /// The old test for this reimplemented the filter inside the test file and
+    /// would have passed with `built` ignoring `quiet` entirely.
     #[test]
     fn a_muted_channel_is_not_registered() {
-        assert_eq!(named_in(&[]), vec!["screen", "chime"]);
-        assert_eq!(named_in(&["screen".to_string()]), vec!["chime"]);
-        assert!(named_in(&["screen".to_string(), "chime".to_string()]).is_empty());
+        assert_eq!(would_speak(&[]), vec!["screen", "chime"]);
+        assert_eq!(would_speak(&["screen".to_string()]), vec!["chime"]);
+        assert_eq!(would_speak(&["chime".to_string()]), vec!["screen"]);
+        assert!(would_speak(&["screen".to_string(), "chime".to_string()]).is_empty());
     }
 
-    /// Registering by name, so a channel written tomorrow is on by default.
-    fn named_in(quiet: &[String]) -> Vec<&'static str> {
+    #[test]
+    fn a_channel_nobody_has_heard_of_mutes_nothing() {
+        assert_eq!(
+            would_speak(&["telegram".to_string()]),
+            vec!["screen", "chime"]
+        );
+    }
+
+    fn would_speak(quiet: &[String]) -> Vec<&'static str> {
         ["screen", "chime"]
             .into_iter()
-            .filter(|one| !quiet.iter().any(|off| off == one))
+            .filter(|one| speaks(one, quiet))
             .collect()
     }
 

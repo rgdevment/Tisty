@@ -39,6 +39,9 @@ pub struct Filter {
     pub hidden: bool,
     pub priority: Option<Priority>,
     pub window: Option<Window>,
+    /// Cuts across the calendar rather than along it: a habit is a habit
+    /// whatever day its next occurrence falls on.
+    pub repeating: bool,
 }
 
 impl Filter {
@@ -67,6 +70,10 @@ impl Filter {
             return false;
         }
         if self.priority.is_some_and(|p| task.priority != p) {
+            return false;
+        }
+
+        if self.repeating && task.repeat.is_none() {
             return false;
         }
 
@@ -144,6 +151,33 @@ mod tests {
         let mut filter = Filter::default();
         f(&mut filter);
         filter
+    }
+
+    #[test]
+    fn repeating_keeps_only_what_comes_back() {
+        let f = filter(|f| f.repeating = true);
+        let mut habit = dated("regar", "2026-08-20");
+        habit.repeat = Some(crate::model::Repeat::Due(crate::model::Cadence {
+            every: 1,
+            unit: crate::model::Unit::Week,
+        }));
+
+        assert!(f.matches(&habit, today()));
+        assert!(!f.matches(&dated("una vez", "2026-08-20"), today()));
+        assert!(!f.matches(&task("sin fecha"), today()));
+    }
+
+    /// It is a filter, not a window: a habit due next month is still a habit.
+    #[test]
+    fn repeating_says_nothing_about_the_day() {
+        let f = filter(|f| f.repeating = true);
+        let mut far = dated("anual", "2027-01-01");
+        far.repeat = Some(crate::model::Repeat::Due(crate::model::Cadence {
+            every: 1,
+            unit: crate::model::Unit::Year,
+        }));
+
+        assert!(f.matches(&far, today()));
     }
 
     #[test]

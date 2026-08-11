@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { List, Task } from "../core";
 import { TASK } from "../drag";
-import { isOverdue, whenLabel } from "../format";
+import { cadence, isOverdue, whenLabel } from "../format";
 import { banded, grouped } from "../archive";
 import { fill, t } from "../locales";
 
@@ -337,6 +337,13 @@ function Meta({ task, list }: { task: Task; list?: string }) {
   }
   if (task.deadline) {
     bits.push(<span key="deadline">⚑ {whenLabel(task.deadline)}</span>);
+  }
+  if (task.repeat) {
+    bits.push(
+      <span key="repeat" title={cadence(task.repeat)}>
+        ↻ {cadence(task.repeat)}
+      </span>,
+    );
   }
   if (task.priority === 1 || task.priority === 2) {
     bits.push(

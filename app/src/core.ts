@@ -130,6 +130,7 @@ export interface View {
   tagged?: boolean;
   hidden?: boolean;
   window?: "today" | "upcoming" | "overdue" | "undated";
+  repeating?: boolean;
 }
 
 export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });
@@ -241,17 +242,15 @@ export interface Reviewed {
 
 export interface About {
   version: string;
+  sandbox: string | null;
   repository: string;
   license: string;
   store: string;
 }
 
 export interface Settings {
-  /// Channels told to keep quiet, by name.
   quiet: string[];
-  /// In bytes. Above it a file is pointed at instead of copied in.
   attachUpTo: number;
-  locale: string | null;
 }
 
 export const settings = (): Promise<Settings> => invoke("settings");

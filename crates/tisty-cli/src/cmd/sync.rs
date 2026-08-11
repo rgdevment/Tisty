@@ -26,6 +26,9 @@ pub fn sync(
         (_, true) => carrier::Way::Pull,
         _ => carrier::Way::Both,
     };
+    if merge && tisty_core::paths::profile().is_some() {
+        anyhow::bail!("{}", lang.get("sandbox-cannot-merge"));
+    }
     let join = if merge {
         carrier::Join::Agreed
     } else {

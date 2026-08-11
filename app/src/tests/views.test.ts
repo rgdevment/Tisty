@@ -29,7 +29,7 @@ describe("accepts", () => {
   it("refuses the views with nothing to add to", () => {
     expect(accepts({ named: "archive" })).toBe(false);
     expect(accepts({ named: "search" })).toBe(false);
-    expect(accepts({ named: "tasks", slice: "upcoming" })).toBe(false);
+    expect(accepts({ named: "keeping" })).toBe(false);
   });
 
   it("allows tags only once one is picked, because the task inherits it", () => {
