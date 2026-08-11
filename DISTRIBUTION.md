@@ -43,6 +43,24 @@ The build is provided **as is**, without warranty of any kind, to the extent the
 law where you live allows. That is the same warranty the AGPL-3.0 gives, worded
 here so it is not a surprise.
 
+## What the installer does to your machine
+
+Little, and all of it reversible.
+
+- It installs **under your own user account**, never machine-wide, so it never
+  asks for an administrator.
+- It puts the program in `%LOCALAPPDATA%\Programs\Tisty` on Windows — beside
+  your other per-user programs, and deliberately **not** in the folder your
+  tasks live in.
+- The command line travels inside the installer, but **nothing is added to your
+  PATH**. The app offers that from Maintenance, where it can ask first and can
+  be undone. (An installer did it once and destroyed a PATH doing it: the tool
+  that builds Windows installers reads at most 1024 characters and writes back
+  what it managed to read.)
+- **Uninstalling removes the program and leaves your data alone.** Wanting the
+  program gone is not the same as wanting your history gone. If you do want it
+  gone, the folder is yours to delete.
+
 ## What it does with your data
 
 Nothing. Tisty stores your tasks on your own machine and speaks to no server of

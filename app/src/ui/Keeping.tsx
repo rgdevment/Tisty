@@ -4,10 +4,13 @@ import {
   backUp,
   checked,
   chooseSync,
+  reachFor,
+  reachable,
   restore,
   syncNow,
   syncState,
   type Carrying,
+  type Reach,
   type Reviewed,
 } from "../core";
 import { fill, t } from "../locales";
@@ -16,7 +19,7 @@ import { stamped } from "../format";
 
 const carried = { came: "syncCame", same: "syncSame", busy: "syncBusy" } as const;
 
-type Which = "sync" | "backup" | "review";
+type Which = "sync" | "backup" | "review" | "terminal";
 type Word = { card: Which; text: string };
 
 interface Props {
@@ -26,6 +29,7 @@ interface Props {
 export default function Keeping({ onChanged }: Props) {
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
+  const [reach, setReach] = useState<Reach | null>(null);
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
   // Kept in the card, not in the window's banner: an unreachable folder is news
@@ -39,6 +43,12 @@ export default function Keeping({ onChanged }: Props) {
   }, []);
 
   useEffect(look, [look]);
+
+  useEffect(() => {
+    reachable()
+      .then(setReach)
+      .catch(() => {});
+  }, []);
 
   const run = <T,>(card: Which, work: Promise<T>, then: (answer: T) => void) => {
     setBusy(card);
@@ -180,6 +190,32 @@ export default function Keeping({ onChanged }: Props) {
             </div>
           )}
         </Card>
+
+        {reach?.shipped && (
+          <Card title={t("terminal")} which="terminal" said={said} trouble={trouble}>
+            <p className="text-[12.5px] leading-relaxed text-soft">
+              {reach.withinReach ? fill("terminalOn", reach.through ?? reach.at ?? "") : t("terminalOff")}
+            </p>
+            <div className="mt-2.5 flex items-center gap-2.5">
+              <button
+                type="button"
+                disabled={held}
+                onClick={() =>
+                  run("terminal", reachFor(!reach.withinReach), (now) => {
+                    setReach(now);
+                    setSaid({
+                      card: "terminal",
+                      text: t(now.withinReach ? "terminalFresh" : "terminalGone"),
+                    });
+                  })
+                }
+                className={mild}
+              >
+                {t(reach.withinReach ? "terminalRemove" : "terminalAdd")}
+              </button>
+            </div>
+          </Card>
+        )}
 
         <Card title={t("review")} which="review" said={said} trouble={trouble}>
           <p className="text-[12.5px] leading-relaxed text-soft">

@@ -245,16 +245,6 @@ vuelves a ese momento y lo posterior se pierde a propósito. Las dos cosas se
 excluyen — la carpeta compartida ya contiene la historia de todas las máquinas,
 así que una foto al lado solo sería una verdad rival.
 
-## Instalación
-
-Todavía no hay binarios publicados. Con Rust 1.97 o superior:
-
-```sh
-git clone https://github.com/rgdevment/Tisty
-cd Tisty
-cargo install --path crates/tisty-cli
-```
-
 ## En qué punto está
 
 | | |

@@ -30,6 +30,8 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: () => Promise.resolve(asked.sure),
 }));
 
+const standing = { shipped: true, withinReach: false, at: "C:/Programs/Tisty", through: "C:/Programs/Tisty" };
+
 const carrying = {
   chosen: undefined as string | undefined,
   asked: true,
@@ -40,6 +42,7 @@ const carrying = {
 
 beforeEach(() => {
   ipc.calls = [];
+  Object.assign(standing, { shipped: true, withinReach: false, at: "C:/Programs/Tisty", through: "C:/Programs/Tisty" });
   asked.folder = null;
   asked.file = null;
   asked.sure = false;
@@ -56,6 +59,11 @@ beforeEach(() => {
         return Promise.resolve({ ...carrying });
       case "sync_now":
         return Promise.resolve("came");
+      case "reachable":
+        return Promise.resolve({ ...standing });
+      case "reach_for":
+        standing.withinReach = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
+        return Promise.resolve({ ...standing });
       case "checked":
         return Promise.resolve({ tasks: 7, lists: 2, agrees: true, loose: 3, looseBytes: 311_000 });
       case "back_up":
@@ -152,5 +160,37 @@ describe("the first-run assistant", () => {
 
     expect(done).toHaveBeenCalled();
     expect(sent("choose_sync").length).toBe(0);
+  });
+
+  /// The installer used to do this and wiped a whole PATH; from here it is
+  /// asked for, and the reply says a new terminal is needed.
+  it("offers the command line, and says what to do next", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    expect(await screen.findByText(/no terminal can find it yet/i)).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: /make it reachable/i }));
+
+    await waitFor(() => expect(sent("reach_for").length).toBe(1));
+    expect(sent("reach_for")[0].args.wanted).toBe(true);
+    expect(await screen.findByText(/open a new terminal/i)).toBeTruthy();
+  });
+
+  it("takes it back off when asked", async () => {
+    standing.withinReach = true;
+    render(<Keeping onChanged={() => {}} />);
+    expect(await screen.findByText(/a terminal can find/i)).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: /take it back out/i }));
+
+    await waitFor(() => expect(sent("reach_for")[0].args.wanted).toBe(false));
+  });
+
+  /// A dev run has no CLI beside the window; offering it would be a lie.
+  it("says nothing when there is no command line to offer", async () => {
+    standing.shipped = false;
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+
+    expect(screen.queryByRole("button", { name: /make it reachable/i })).toBeNull();
   });
 });

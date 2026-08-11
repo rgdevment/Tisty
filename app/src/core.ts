@@ -231,6 +231,19 @@ export type Carried = "came" | "same" | "busy";
 export const syncNow = (way?: "push" | "pull", merge?: boolean): Promise<Carried> =>
   invoke("sync_now", { way, merge });
 
+/** Whether a terminal can find `tisty`, and where it would look. */
+export interface Reach {
+  /** False in a dev run: there is no CLI beside the window to point at. */
+  shipped: boolean;
+  withinReach: boolean;
+  at?: string;
+  /** Where a terminal would find it, which is not where it lives. */
+  through?: string;
+}
+
+export const reachable = (): Promise<Reach> => invoke("reachable");
+export const reachFor = (wanted: boolean): Promise<Reach> => invoke("reach_for", { wanted });
+
 /** What the first run after an install or an update had to put right. */
 export interface Settling {
   ran: boolean;

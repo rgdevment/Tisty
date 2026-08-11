@@ -1,0 +1,322 @@
+//! Putting `tisty` within reach of a terminal, and taking it back out.
+//!
+//! The installer used to do this and wiped a 1724-character PATH doing it:
+//! NSIS reads at most 1024 characters and writes back what it managed to read.
+//! Here the whole value is read and written, and the awkward part — deciding
+//! what the new value should be — is separate from the registry so it can be
+//! tested without one.
+
+use std::path::{Path, PathBuf};
+
+/// Windows compares paths without case; the others do not.
+fn same(a: &str, b: &str) -> bool {
+    let tidy = |one: &str| {
+        let one = one.trim().trim_end_matches(['\\', '/']).to_string();
+        if cfg!(windows) {
+            one.to_lowercase()
+        } else {
+            one
+        }
+    };
+    !a.trim().is_empty() && tidy(a) == tidy(b)
+}
+
+/// `None` when it is already there, so a reinstall cannot grow the variable.
+pub fn with(path: &str, dir: &str) -> Option<String> {
+    if path.split(SEPARATOR).any(|one| same(one, dir)) {
+        return None;
+    }
+    Some(if path.trim().is_empty() {
+        dir.to_string()
+    } else {
+        format!("{}{SEPARATOR}{dir}", path.trim_end_matches(SEPARATOR))
+    })
+}
+
+/// `None` when it was not there. Everything else keeps its order and its
+/// spelling: this value belongs to the person, and we are a guest in it.
+pub fn without(path: &str, dir: &str) -> Option<String> {
+    if !path.split(SEPARATOR).any(|one| same(one, dir)) {
+        return None;
+    }
+    let kept: Vec<&str> = path
+        .split(SEPARATOR)
+        .filter(|one| !same(one, dir))
+        .collect();
+    Some(kept.join(&SEPARATOR.to_string()))
+}
+
+#[cfg(windows)]
+const SEPARATOR: char = ';';
+#[cfg(not(windows))]
+const SEPARATOR: char = ':';
+
+/// Beside the window, which is where the bundler puts it.
+pub fn beside() -> Option<PathBuf> {
+    let here = std::env::current_exe().ok()?;
+    let folder = here.parent()?;
+    let named = if cfg!(windows) { "tisty.exe" } else { "tisty" };
+    folder.join(named).is_file().then(|| folder.to_path_buf())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Reach {
+    /// False when the build has no `tisty` beside it — a dev run, mostly.
+    pub shipped: bool,
+    pub within_reach: bool,
+    pub at: Option<String>,
+    /// Where it would be reachable from, which is not where it lives.
+    pub through: Option<String>,
+}
+
+pub fn reach() -> Reach {
+    let folder = beside();
+    Reach {
+        shipped: folder.is_some(),
+        within_reach: folder.as_deref().is_some_and(already),
+        at: folder.map(|at| at.display().to_string()),
+        through: through(),
+    }
+}
+
+#[cfg(windows)]
+fn through() -> Option<String> {
+    beside().map(|at| at.display().to_string())
+}
+
+#[cfg(not(windows))]
+fn through() -> Option<String> {
+    link().map(|at| at.display().to_string())
+}
+
+#[cfg(windows)]
+fn already(folder: &Path) -> bool {
+    let named = folder.display().to_string();
+    read()
+        .unwrap_or_default()
+        .split(SEPARATOR)
+        .any(|one| same(one, &named))
+}
+
+#[cfg(not(windows))]
+fn already(_folder: &Path) -> bool {
+    linked()
+}
+
+#[cfg(windows)]
+const WHERE: &str = "Environment";
+
+#[cfg(windows)]
+fn read() -> Option<String> {
+    read_from(WHERE)
+}
+
+#[cfg(windows)]
+fn read_from(at: &str) -> Option<String> {
+    use winreg::enums::HKEY_CURRENT_USER;
+    let key = winreg::RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey(at)
+        .ok()?;
+    key.get_value::<String, _>("Path").ok()
+}
+
+#[cfg(windows)]
+fn write(value: &str) -> std::io::Result<()> {
+    write_to(WHERE, value)
+}
+
+#[cfg(windows)]
+fn write_to(at: &str, value: &str) -> std::io::Result<()> {
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_WRITE, REG_EXPAND_SZ};
+    let key = winreg::RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(at, KEY_WRITE)?;
+    // Expandable, like the one Windows itself writes: plain would freeze any
+    // `%USERPROFILE%` the person has in there.
+    let mut held = winreg::RegValue {
+        bytes: Vec::new(),
+        vtype: REG_EXPAND_SZ,
+    };
+    held.bytes = value
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .flat_map(u16::to_le_bytes)
+        .collect();
+    key.set_raw_value("Path", &held)?;
+    Ok(())
+}
+
+/// Elsewhere the PATH lives in whichever shell file the person happens to use,
+/// and editing those by guesswork is worse than not offering it. A link in
+/// `~/.local/bin` is the one place every modern distribution already looks,
+/// and macOS finds it too once it is on the PATH.
+#[cfg(not(windows))]
+fn shelf() -> Option<PathBuf> {
+    std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local").join("bin"))
+}
+
+#[cfg(not(windows))]
+fn link() -> Option<PathBuf> {
+    Some(shelf()?.join("tisty"))
+}
+
+#[cfg(not(windows))]
+fn linked() -> bool {
+    link().is_some_and(|at| at.symlink_metadata().is_ok())
+}
+
+#[cfg(not(windows))]
+fn tie(wanted: bool) -> std::io::Result<bool> {
+    let (Some(shelf), Some(link), Some(folder)) = (shelf(), link(), beside()) else {
+        return Ok(false);
+    };
+    if wanted {
+        if linked() {
+            return Ok(false);
+        }
+        std::fs::create_dir_all(&shelf)?;
+        std::os::unix::fs::symlink(folder.join("tisty"), &link)?;
+    } else {
+        if !linked() {
+            return Ok(false);
+        }
+        std::fs::remove_file(&link)?;
+    }
+    Ok(true)
+}
+
+/// True when the change went in. Everything the person had is preserved: the
+/// value is read whole, one entry is added or dropped, and the rest is written
+/// back untouched.
+#[cfg(windows)]
+pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
+    let Some(folder) = beside() else {
+        return Ok(false);
+    };
+    let named = folder.display().to_string();
+    let path = read().unwrap_or_default();
+
+    let next = if wanted {
+        with(&path, &named)
+    } else {
+        without(&path, &named)
+    };
+    match next {
+        Some(next) => {
+            write(&next)?;
+            Ok(true)
+        }
+        // Already how they asked for it.
+        None => Ok(false),
+    }
+}
+
+#[cfg(not(windows))]
+pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
+    tie(wanted)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn joined(parts: &[&str]) -> String {
+        parts.join(&SEPARATOR.to_string())
+    }
+
+    #[test]
+    fn a_long_path_survives_the_round_trip() {
+        // The one that broke: 22 entries, 1724 characters.
+        let many: Vec<String> = (0..22)
+            .map(|i| format!("C:\\Users\\Someone\\A rather long program directory number {i}"))
+            .collect();
+        let path = many.join(&SEPARATOR.to_string());
+        assert!(path.len() > 1024, "the case only bites past 1024");
+
+        let added = with(&path, "C:\\Programs\\Tisty").unwrap();
+        assert_eq!(added.split(SEPARATOR).count(), 23);
+
+        let back = without(&added, "C:\\Programs\\Tisty").unwrap();
+        assert_eq!(back, path, "the other entries did not come back");
+    }
+
+    #[test]
+    fn adding_twice_does_not_grow_it() {
+        let path = joined(&["C:\\one", "C:\\two"]);
+        let added = with(&path, "C:\\Tisty").unwrap();
+        assert!(with(&added, "C:\\Tisty").is_none());
+    }
+
+    #[test]
+    fn removing_what_was_never_there_changes_nothing() {
+        let path = joined(&["C:\\one", "C:\\two"]);
+        assert!(without(&path, "C:\\Tisty").is_none());
+    }
+
+    #[test]
+    fn an_empty_path_is_not_a_missing_one() {
+        assert_eq!(with("", "C:\\Tisty").unwrap(), "C:\\Tisty");
+        assert!(without("", "C:\\Tisty").is_none());
+    }
+
+    /// A trailing separator would otherwise add an empty entry every time.
+    #[test]
+    fn a_trailing_separator_does_not_become_a_blank_entry() {
+        let path = format!("C:\\one{SEPARATOR}");
+        let added = with(&path, "C:\\Tisty").unwrap();
+        assert_eq!(added, joined(&["C:\\one", "C:\\Tisty"]));
+    }
+
+    #[test]
+    fn a_trailing_slash_is_the_same_directory() {
+        let path = joined(&["C:\\one", "C:\\Tisty\\"]);
+        assert!(with(&path, "C:\\Tisty").is_none());
+        assert_eq!(without(&path, "C:\\Tisty").unwrap(), "C:\\one");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_does_not_mind_the_case() {
+        let path = joined(&["C:\\one", "c:\\programs\\TISTY"]);
+        assert!(with(&path, "C:\\Programs\\Tisty").is_none());
+        assert_eq!(without(&path, "C:\\Programs\\Tisty").unwrap(), "C:\\one");
+    }
+
+    /// The whole point, against a real registry: NSIS stopped at 1024 and
+    /// wrote back the truncation. Written to a key of our own, never the
+    /// person's `Environment`.
+    #[cfg(windows)]
+    #[test]
+    fn the_registry_keeps_a_value_longer_than_nsis_could_read() {
+        use winreg::enums::{HKEY_CURRENT_USER, KEY_WRITE};
+
+        let at = r"Software\Tisty\PathRoundTrip";
+        let (_key, _) = winreg::RegKey::predef(HKEY_CURRENT_USER)
+            .create_subkey_with_flags(at, KEY_WRITE)
+            .unwrap();
+
+        let long: String = (0..30)
+            .map(|i| format!(r"C:\Users\Someone\Program directory number {i}"))
+            .collect::<Vec<_>>()
+            .join(";");
+        assert!(long.len() > 1024);
+
+        write_to(at, &long).unwrap();
+        assert_eq!(read_from(at).unwrap(), long, "the registry lost part of it");
+
+        let _ = winreg::RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(at);
+    }
+
+    /// Nothing else in the value is touched: it is the person's, not ours.
+    #[test]
+    fn the_rest_keeps_its_order_and_its_spelling() {
+        let path = joined(&[
+            "%USERPROFILE%\\bin",
+            "C:\\Tisty",
+            "C:\\Program Files\\Git\\cmd",
+        ]);
+        assert_eq!(
+            without(&path, "C:\\Tisty").unwrap(),
+            joined(&["%USERPROFILE%\\bin", "C:\\Program Files\\Git\\cmd"])
+        );
+    }
+}

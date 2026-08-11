@@ -224,6 +224,7 @@ down as an idea and not built.
 | Attachments | `<data>/attachments/` | yes |
 | Documents | `<data>/docs/` | not yet — they do not exist |
 | Settings and device id | `<config>/config.toml` | **no** |
+| The program itself | `%LOCALAPPDATA%\Programs\Tisty` and friends | **no** |
 | Read cache | `<cache>/read.db` | **no** |
 | Last listing | `<cache>/selection.json` | **no** |
 
