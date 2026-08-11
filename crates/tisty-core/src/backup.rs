@@ -3,7 +3,10 @@
 use std::io::{Read, Seek, Write};
 use std::path::{Component, Path, PathBuf};
 
-use crate::{Config, Error, Paths, Result, store};
+use crate::{
+    Config, Error, Paths, Result, store,
+    witness::{self, Fact, channel},
+};
 
 /// Never the configuration: a shared `device_id` puts two machines in one file.
 const CARRIED: [&str; 2] = ["store", "attachments"];
@@ -157,7 +160,9 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     if let Err(e) = swap(data, &staged, &old) {
         // Half a restore is the one outcome worth more than either whole: put
         // everything back, including the name, and let the person try again.
-        let _ = was.save(paths);
+        if was.save(paths).is_err() {
+            witness::error(channel::BACKUP, "device name not put back", &[]);
+        }
         let _ = std::fs::remove_dir_all(&staged);
         return Err(e);
     }
@@ -221,7 +226,16 @@ fn undo(data: &Path, old: &Path, moved: &[&str]) {
         if at.exists() {
             let _ = std::fs::remove_dir_all(&at);
         }
-        let _ = std::fs::rename(old.join(folder), at);
+        if let Err(e) = std::fs::rename(old.join(folder), &at) {
+            witness::error(
+                channel::BACKUP,
+                "folder not put back",
+                &[
+                    ("at", Fact::Path(at.clone())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+        }
     }
 }
 
@@ -312,8 +326,21 @@ fn safe(named: &str) -> Option<PathBuf> {
 
 fn walk(root: &Path) -> Vec<PathBuf> {
     let mut found = Vec::new();
-    let Ok(entries) = std::fs::read_dir(root) else {
-        return found;
+    let entries = match std::fs::read_dir(root) {
+        Ok(entries) => entries,
+        Err(e) => {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                witness::warn(
+                    channel::BACKUP,
+                    "folder left out of the copy",
+                    &[
+                        ("at", Fact::Path(root.to_path_buf())),
+                        ("why", Fact::Why(e.to_string())),
+                    ],
+                );
+            }
+            return found;
+        }
     };
     for entry in entries.filter_map(|e| e.ok()) {
         let at = entry.path();

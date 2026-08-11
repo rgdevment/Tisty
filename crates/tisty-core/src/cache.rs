@@ -2,7 +2,12 @@ use std::path::Path;
 
 use rusqlite::Connection;
 
-use crate::{Result, State, event::Event, store};
+use crate::{
+    Result, State,
+    event::Event,
+    store,
+    witness::{self, Fact, channel},
+};
 
 const SCHEMA: i64 = 3;
 
@@ -12,24 +17,43 @@ pub struct Cache {
 
 impl Cache {
     pub fn open(cache_dir: &Path) -> Result<Option<Self>> {
-        if std::fs::create_dir_all(cache_dir).is_err() {
+        if let Err(e) = std::fs::create_dir_all(cache_dir) {
+            witness::warn(
+                channel::CACHE,
+                "cache folder unusable",
+                &[
+                    ("at", Fact::Path(cache_dir.to_path_buf())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
             return Ok(None);
         }
-        let Ok(db) = Connection::open(cache_dir.join("read.db")) else {
-            return Ok(None);
+        let at = cache_dir.join("read.db");
+        let db = match Connection::open(&at) {
+            Ok(db) => db,
+            Err(e) => {
+                witness::warn(
+                    channel::CACHE,
+                    "cache unopenable",
+                    &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
+                );
+                return Ok(None);
+            }
         };
-        if db
-            .execute_batch(
-                "PRAGMA journal_mode=WAL;
+        if let Err(e) = db.execute_batch(
+            "PRAGMA journal_mode=WAL;
                  PRAGMA synchronous=NORMAL;
                  CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS task(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS task_body(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS list(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY);",
-            )
-            .is_err()
-        {
+        ) {
+            witness::warn(
+                channel::CACHE,
+                "cache schema refused",
+                &[("why", Fact::Why(e.to_string()))],
+            );
             return Ok(None);
         }
         Ok(Some(Self { db }))
@@ -71,6 +95,7 @@ impl Cache {
                 .filter_map(|r| r.ok());
             for (id, doc) in rows {
                 let (Ok(id), Ok(body)) = (id.parse(), serde_json::from_str::<Body>(&doc)) else {
+                    witness::warn(channel::CACHE, "cached body unreadable", &[]);
                     return None;
                 };
                 if let Some(task) = state.tasks.get_mut(&id) {
@@ -136,7 +161,13 @@ impl Cache {
             )?;
             tx.commit()
         })();
-        let _ = written;
+        if let Err(e) = written {
+            witness::warn(
+                channel::CACHE,
+                "cache not written",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+        }
         Ok(())
     }
 
@@ -145,7 +176,7 @@ impl Cache {
             self.invalidate();
             return Ok(());
         }
-        let _ = (|| -> rusqlite::Result<()> {
+        let carried = (|| -> rusqlite::Result<()> {
             let id = entity.to_string();
             match (state.tasks.get(&entity), state.lists.get(&entity)) {
                 (Some(task), _) => {
@@ -188,14 +219,31 @@ impl Cache {
             )?;
             Ok(())
         })();
+        if let Err(e) = carried {
+            witness::warn(
+                channel::CACHE,
+                "cache entry not carried",
+                &[
+                    ("id", Fact::Id(entity.to_string())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+        }
         Ok(())
     }
 
     /// Use when an event's effects reach beyond its own entity (e.g. a list deletion cascades to its tasks).
     pub fn invalidate(&mut self) {
-        let _ = self
+        if let Err(e) = self
             .db
-            .execute("DELETE FROM meta WHERE key = 'fingerprint'", []);
+            .execute("DELETE FROM meta WHERE key = 'fingerprint'", [])
+        {
+            witness::warn(
+                channel::CACHE,
+                "cache not invalidated",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+        }
     }
 
     fn meta(&self, key: &str) -> Option<String> {

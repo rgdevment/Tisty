@@ -215,6 +215,12 @@ export interface Carrying {
   backsUp: boolean;
   last?: string;
   loose: number;
+  open: number;
+  archived: number;
+  lists: number;
+  attachments: number;
+  weight: number;
+  backedUpAt?: string;
 }
 
 export interface Reviewed {
@@ -223,6 +229,43 @@ export interface Reviewed {
   agrees: boolean;
   loose: number;
   looseBytes: number;
+  events: number;
+  devices: number;
+}
+
+/** Everything a bug report needs, gathered on demand and sent nowhere. */
+export interface Facts {
+  version: string;
+  dev: boolean;
+  sandbox: string | null;
+  locale: string;
+  zone: string;
+  os: string;
+  arch: string;
+  webview: string | null;
+  store: string;
+  devices: number;
+  events: number;
+  open: number;
+  archived: number;
+  lists: number;
+  tags: number;
+  /** Empty unless asked for; the counts above stand either way. */
+  listNames: string[];
+  tagNames: string[];
+  cache: "agrees" | "stale" | "diverged" | "none";
+  attachments: number;
+  attachmentBytes: number;
+  loose: number;
+  looseBytes: number;
+  weight: number;
+  syncs: boolean;
+  shared: boolean;
+  backedUpAt: string | null;
+  quiet: string[];
+  attachUpTo: number;
+  inPath: boolean;
+  shortcut: string | null;
 }
 
 export interface About {
@@ -236,13 +279,30 @@ export interface About {
 export interface Settings {
   quiet: string[];
   attachUpTo: number;
+  /** Also records what worked. Off again next time Tisty starts. */
+  logsAll: boolean;
 }
+
+export interface Logs {
+  at: string;
+  bytes: number;
+  /** Newest last, so the end of the list is what just happened. */
+  lines: string[];
+}
+
+export const logs = (most: number): Promise<Logs> => invoke("logs", { most });
+export const noteTrouble = (code: string): Promise<void> => invoke("note_trouble", { code });
+export const forgetLogs = (): Promise<void> => invoke("forget_logs");
 
 export const settings = (): Promise<Settings> => invoke("settings");
 export const keepSettings = (settings: Settings): Promise<Settings> =>
   invoke("keep_settings", { settings });
 
 export const about = (): Promise<About> => invoke("about");
+export const facts = (names: boolean, paths: boolean): Promise<Facts> =>
+  invoke("facts", { names, paths });
+export const keepReport = (at: string, text: string): Promise<void> =>
+  invoke("keep_report", { at, text });
 export const rebuild = (): Promise<void> => invoke("rebuild");
 export const checked = (): Promise<Reviewed> => invoke("checked");
 export const syncState = (): Promise<Carrying> => invoke("sync_state");

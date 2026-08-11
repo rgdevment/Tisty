@@ -96,11 +96,13 @@ export default function Sidebar({ lists, counts, chosen, onChoose }: Props) {
           aria-label={t("aboutScreen")}
           title={t("aboutScreen")}
           onClick={() => onChoose({ named: "aboutScreen" })}
-          className={`ml-auto grid h-7 w-7 place-items-center rounded-[7px] text-[12px] leading-none hover:bg-hover ${
+          className={`ml-auto grid h-7 w-7 place-items-center rounded-[7px] text-[13px] leading-none hover:bg-hover ${
             chosen.named === "aboutScreen" ? "bg-active text-accent" : "text-soft"
           }`}
         >
-          <span aria-hidden="true">?</span>
+          {/* «?» promises help that is not there; the screen holds version,
+              licence and where the store lives, which is information. */}
+          <span aria-hidden="true">ⓘ</span>
         </button>
       </div>
     </aside>

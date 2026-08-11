@@ -14,8 +14,8 @@
         "title": "Tisty",
         "width": 1100,
         "height": 720,
-        "minWidth": 680,
-        "minHeight": 480,
+        "minWidth": 920,
+        "minHeight": 600,
         "decorations": false,
         "shadow": true,
         "visible": false

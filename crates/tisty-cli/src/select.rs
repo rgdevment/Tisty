@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::io::IsTerminal;
 
 use serde::{Deserialize, Serialize};
+use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Paths, Task, TaskId, store::write_atomic};
 use ulid::Ulid;
 
@@ -21,10 +22,19 @@ pub enum Resolved {
 
 impl Selection {
     pub fn load(paths: &Paths) -> Self {
-        std::fs::read_to_string(paths.selection_file())
-            .ok()
-            .and_then(|t| serde_json::from_str(&t).ok())
-            .unwrap_or_default()
+        let Ok(text) = std::fs::read_to_string(paths.selection_file()) else {
+            return Self::default();
+        };
+        // Not having it is ordinary; having it and not understanding it turns
+        // every `done 2` into «no match», with nothing said about why.
+        serde_json::from_str(&text).unwrap_or_else(|why| {
+            witness::warn(
+                channel::TERMINAL,
+                "the last listing could not be read",
+                &[("why", Fact::Why(why.to_string()))],
+            );
+            Self::default()
+        })
     }
 
     pub fn save(paths: &Paths, tasks: &[&Task]) -> std::io::Result<()> {

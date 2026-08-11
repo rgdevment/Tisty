@@ -4,6 +4,8 @@
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use tisty_core::witness::{self, Fact, channel};
+
 pub use tisty_core::store::MARKER;
 
 const STORE: &str = "store";
@@ -139,8 +141,19 @@ pub fn theirs(dest: &Path) -> Option<String> {
 
 fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
     let mut brought = 0;
-    let Ok(entries) = std::fs::read_dir(dest.join(STORE)) else {
-        return Ok(0);
+    let at = dest.join(STORE);
+    let entries = match std::fs::read_dir(&at) {
+        Ok(entries) => entries,
+        Err(e) => {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                witness::warn(
+                    channel::SYNC,
+                    "folder unreadable",
+                    &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
+                );
+            }
+            return Ok(0);
+        }
     };
 
     for entry in entries.filter_map(|e| e.ok()) {
@@ -188,8 +201,22 @@ fn settled_already(theirs: &Path, mine: &Path) -> bool {
 
 /// In order: a `000002` without its `000001` stops the whole store, not one device.
 fn copy_segments(from: &Path, into: &Path) -> Result<usize, Trouble> {
-    let Ok(mut carried) = tisty_core::store::segments_in(from) else {
-        return Ok(0);
+    let mut carried = match tisty_core::store::segments_in(from) {
+        Ok(carried) => carried,
+        Err(e) => {
+            if !matches!(&e, tisty_core::Error::Io(io) if io.kind() == std::io::ErrorKind::NotFound)
+            {
+                witness::warn(
+                    channel::SYNC,
+                    "segments unlistable",
+                    &[
+                        ("at", Fact::Path(from.to_path_buf())),
+                        ("why", Fact::Why(e.to_string())),
+                    ],
+                );
+            }
+            return Ok(0);
+        }
     };
     carried.sort();
 
@@ -235,8 +262,15 @@ fn sweep(dir: &Path) {
             .file_name()
             .and_then(|n| n.to_str())
             .is_some_and(|n| n.ends_with(".part") && n.contains(&mine));
-        if ours {
-            let _ = std::fs::remove_file(&at);
+        if ours && let Err(e) = std::fs::remove_file(&at) {
+            witness::warn(
+                channel::SYNC,
+                "leftover not removed",
+                &[
+                    ("at", Fact::Path(at.clone())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
         }
     }
 }
@@ -245,8 +279,21 @@ fn sweep(dir: &Path) {
 /// so what is already there is never rewritten and nothing can conflict.
 fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
     let mut done = 0;
-    let Ok(shelves) = std::fs::read_dir(from) else {
-        return Ok(0);
+    let shelves = match std::fs::read_dir(from) {
+        Ok(shelves) => shelves,
+        Err(e) => {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                witness::warn(
+                    channel::SYNC,
+                    "attachments unreadable",
+                    &[
+                        ("at", Fact::Path(from.to_path_buf())),
+                        ("why", Fact::Why(e.to_string())),
+                    ],
+                );
+            }
+            return Ok(0);
+        }
     };
     for shelf in shelves.filter_map(|e| e.ok()) {
         if !shelf.path().is_dir() {
@@ -334,6 +381,14 @@ fn written(at: &Path, body: &[u8], when: Option<std::time::SystemTime>) -> Resul
 
     if let Err(e) = done {
         let _ = std::fs::remove_file(&tmp);
+        witness::warn(
+            channel::SYNC,
+            "file not carried",
+            &[
+                ("at", Fact::Path(at.to_path_buf())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
         return Err(io(e));
     }
     Ok(())

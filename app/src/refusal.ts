@@ -1,3 +1,4 @@
+import { noteTrouble } from "./core";
 import { fill, t } from "./locales";
 
 /** What a rejected command sends back: a reason, not a sentence. */
@@ -49,6 +50,9 @@ export function saidPlainly(problem: unknown): string {
   if (!refusal || typeof refusal.code !== "string") {
     return technical(String(problem));
   }
+  // The cause was written down where it happened; this is the other half of the
+  // story — what the person was actually shown.
+  noteTrouble(refusal.code).catch(() => {});
   if (!isKnown(refusal.code)) {
     return technical(refusal.name ?? refusal.code);
   }

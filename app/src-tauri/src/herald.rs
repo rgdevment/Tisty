@@ -2,6 +2,7 @@
 
 use tauri::{Emitter, Manager};
 use tisty_core::herald::{Channel, Due, Happening, Heralds, Told, Trouble};
+use tisty_core::witness::{self, Fact, channel};
 
 /// A notification handed to the operating system, so it arrives with the window
 /// closed, minimised or behind everything else.
@@ -225,10 +226,27 @@ fn onward(now: jiff::Timestamp, kept: Option<jiff::Timestamp>) -> jiff::Timestam
 /// Nothing listening is not a failure; every channel failing is, and the caller
 /// decides what to do about it.
 pub fn told(app: &tauri::AppHandle, what: Happening) -> Told {
-    match app.try_state::<Speaking>() {
-        Some(speaking) => speaking.tell(&what),
-        None => Told::default(),
+    let Some(speaking) = app.try_state::<Speaking>() else {
+        return Told::default();
+    };
+    let told = speaking.tell(&what);
+    if told.lost() {
+        // Never `what`: a happening carries the title of the task it is about.
+        let why: Vec<String> = told
+            .trouble
+            .iter()
+            .map(|one| format!("{}: {}", one.channel, one.why))
+            .collect();
+        witness::warn(
+            channel::HERALD,
+            "no channel could deliver",
+            &[
+                ("asked", Fact::Count(told.asked)),
+                ("why", Fact::Why(why.join("; "))),
+            ],
+        );
     }
+    told
 }
 
 #[cfg(test)]

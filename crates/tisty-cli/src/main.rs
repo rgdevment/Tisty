@@ -284,6 +284,19 @@ fn main() -> ExitCode {
 fn run() -> anyhow::Result<ExitCode> {
     let cli = Cli::parse_from(normalise(std::env::args()));
     let paths = tisty_core::Paths::resolve()?;
+    tisty_core::witness::keeps(
+        tisty_core::witness::file(&paths),
+        tisty_core::witness::wants_all(),
+    );
+    tisty_core::witness::catches(tisty_core::witness::channel::TERMINAL);
+    tisty_core::witness::note(
+        tisty_core::witness::channel::TERMINAL,
+        "a command ran",
+        &[(
+            "version",
+            tisty_core::witness::Fact::Id(env!("CARGO_PKG_VERSION").to_string()),
+        )],
+    );
     let mut app = match cli.command {
         Command::Config { .. } => App::without_store(paths)?,
         Command::Ls { .. } | Command::Lists { .. } => App::listing(paths)?,

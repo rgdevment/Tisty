@@ -32,6 +32,8 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 const standing = { shipped: true, withinReach: false, at: "C:/Programs/Tisty", through: "C:/Programs/Tisty" };
 
+const kept = { lines: [] as string[] };
+
 const carrying = {
   chosen: undefined as string | undefined,
   asked: true,
@@ -43,6 +45,7 @@ const carrying = {
 beforeEach(() => {
   ipc.calls = [];
   Object.assign(standing, { shipped: true, withinReach: false, at: "C:/Programs/Tisty", through: "C:/Programs/Tisty" });
+  kept.lines = [];
   asked.folder = null;
   asked.file = null;
   asked.sure = false;
@@ -68,6 +71,10 @@ beforeEach(() => {
         return Promise.resolve({ tasks: 7, lists: 2, agrees: true, loose: 3, looseBytes: 311_000 });
       case "back_up":
         return Promise.resolve(4096);
+      case "logs":
+        return Promise.resolve({ at: "C:/tisty/private/tisty.log", bytes: 240, lines: kept.lines });
+      case "settings":
+        return Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024, logsAll: false });
       default:
         return Promise.resolve(null);
     }
@@ -75,6 +82,9 @@ beforeEach(() => {
 });
 
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
+
+/// The screen holds four sections now; a card only exists once its own is open.
+const go = (tab: RegExp) => userEvent.click(screen.getByRole("tab", { name: tab }));
 
 describe("the maintenance panel", () => {
   it("offers to turn syncing on when there is no folder", async () => {
@@ -133,35 +143,38 @@ describe("the maintenance panel", () => {
   /// a running carry is the pair that must never overlap — and only the card
   /// that started it said anything. The rest looked broken.
   it("says why the other cards went quiet", async () => {
+    carrying.chosen = "G:/My Drive/tisty";
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
-      cmd === "checked" ? new Promise(() => {}) : otherwise(cmd, args);
+      cmd === "sync_now" ? new Promise(() => {}) : otherwise(cmd, args);
     render(<Keeping onChanged={() => {}} />);
-    await screen.findByText(/only on this machine/i);
+    await screen.findByText(/leaving copies in/i);
 
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
 
-    const said = await screen.findAllByText(/waiting for «review»/i);
-    expect(said.length).toBeGreaterThan(1);
-    expect(screen.getByRole("button", { name: /create backup/i }).hasAttribute("disabled")).toBe(
+    expect((await screen.findAllByText(/waiting for «syncing»/i)).length).toBeGreaterThan(1);
+    expect(screen.getByRole("button", { name: /restore from/i }).hasAttribute("disabled")).toBe(
       true,
     );
   });
 
   /// `disabled:opacity-50` put the ink at 2:1 and left the dropdown looking
-  /// perfectly usable while it was not.
+  /// perfectly usable while it was not. Work started in one section holds the
+  /// controls in every other one, so the state travels across the tabs.
   it("draws what cannot be pressed as such, in a colour the palette declares", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "settings"
         ? Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024 })
-        : cmd === "checked"
+        : cmd === "keep_settings"
           ? new Promise(() => {})
           : otherwise(cmd, args);
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
+    await go(/notices/i);
 
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /a short tone/i }));
+    await go(/writing/i);
 
     const size = await screen.findByRole("combobox");
     await waitFor(() => expect(size.hasAttribute("disabled")).toBe(true));
@@ -172,6 +185,7 @@ describe("the maintenance panel", () => {
   it("says what the review found", async () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
 
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
 
@@ -206,6 +220,8 @@ describe("the first-run assistant", () => {
   /// asked for, and the reply says a new terminal is needed.
   it("offers the command line, and says what to do next", async () => {
     render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/writing/i);
     expect(await screen.findByText(/no terminal can find it yet/i)).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: /make it reachable/i }));
@@ -218,6 +234,8 @@ describe("the first-run assistant", () => {
   it("takes it back off when asked", async () => {
     standing.withinReach = true;
     render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/writing/i);
     expect(await screen.findByText(/a terminal can find/i)).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: /take it back out/i }));
@@ -230,7 +248,78 @@ describe("the first-run assistant", () => {
     standing.shipped = false;
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
+    await go(/writing/i);
 
     expect(screen.queryByRole("button", { name: /make it reachable/i })).toBeNull();
+  });
+});
+
+describe("the log", () => {
+  const upkeep = async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+  };
+
+  it("says on its face that nothing about your tasks reaches it", async () => {
+    await upkeep();
+
+    expect(screen.getByText(/no titles, no descriptions, no journals/i)).toBeTruthy();
+  });
+
+  it("says so when nothing has gone wrong", async () => {
+    await upkeep();
+
+    await userEvent.click(screen.getByText(/see what it holds/i));
+
+    expect(await screen.findByText(/nothing has gone wrong yet/i)).toBeTruthy();
+  });
+
+  it("shows what it holds, newest last", async () => {
+    kept.lines = [
+      "2026-08-11 10:00:00-04  WARN   sync      folder unreachable",
+      "2026-08-11 10:05:00-04  ERROR  cache     rebuild failed",
+    ];
+    await upkeep();
+
+    await userEvent.click(screen.getByText(/see what it holds/i));
+
+    const shown = await screen.findByText(/folder unreachable/);
+    expect(shown.textContent?.indexOf("folder unreachable")).toBeLessThan(
+      shown.textContent?.indexOf("rebuild failed") ?? -1,
+    );
+  });
+
+  /// It is the only account of whatever went wrong on this machine.
+  it("never empties without asking first", async () => {
+    kept.lines = ["2026-08-11 10:00:00-04  WARN   sync      folder unreachable"];
+    await upkeep();
+
+    await userEvent.click(screen.getByRole("button", { name: /empty it/i }));
+
+    await waitFor(() => expect(sent("forget_logs").length).toBe(0));
+  });
+
+  it("empties once the warning is accepted", async () => {
+    asked.sure = true;
+    kept.lines = ["2026-08-11 10:00:00-04  WARN   sync      folder unreachable"];
+    await upkeep();
+
+    await userEvent.click(screen.getByRole("button", { name: /empty it/i }));
+
+    await waitFor(() => expect(sent("forget_logs").length).toBe(1));
+    expect(await screen.findByText(/emptied/i)).toBeTruthy();
+  });
+
+  it("saves a copy where it is told to", async () => {
+    asked.file = "D:/issues/tisty-log.txt";
+    kept.lines = ["2026-08-11 10:00:00-04  WARN   sync      folder unreachable"];
+    await upkeep();
+
+    await userEvent.click(screen.getByRole("button", { name: /save a copy/i }));
+
+    await waitFor(() => expect(sent("keep_report").length).toBe(1));
+    expect(sent("keep_report")[0].args.at).toBe("D:/issues/tisty-log.txt");
+    expect(String(sent("keep_report")[0].args.text)).toContain("folder unreachable");
   });
 });
