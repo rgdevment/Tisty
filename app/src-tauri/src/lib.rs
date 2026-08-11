@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 
+mod command;
 mod tray;
 
 use tauri::{Emitter, Manager};
@@ -1060,6 +1061,20 @@ async fn settle_in(
 }
 
 #[tauri::command]
+fn reachable() -> command::Reach {
+    command::reach()
+}
+
+/// The installer used to do this and wiped a whole PATH doing it; from here
+/// the value is read without a length limit, and it is asked for rather than
+/// done quietly.
+#[tauri::command]
+fn reach_for(wanted: bool) -> Answer<command::Reach> {
+    command::within_reach(wanted).map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+    Ok(command::reach())
+}
+
+#[tauri::command]
 fn shortcut(bound: tauri::State<'_, Bound>) -> Option<String> {
     bound.0.clone()
 }
@@ -1637,6 +1652,8 @@ pub fn run() {
             close_window,
             shortcut,
             settle_in,
+            reachable,
+            reach_for,
             capture,
             read,
             search,

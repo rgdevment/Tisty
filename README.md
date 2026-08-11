@@ -248,15 +248,6 @@ photograph: back to that moment, and what came after is lost on purpose. The two
 are mutually exclusive — the shared folder already holds every machine's
 history, so a snapshot beside it would only be a rival truth.
 
-## Installing
-
-No published binaries yet. With Rust 1.97 or newer:
-
-```sh
-git clone https://github.com/rgdevment/Tisty
-cd Tisty
-cargo install --path crates/tisty-cli
-```
 
 ## Where it stands
 
