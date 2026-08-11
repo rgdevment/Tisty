@@ -168,8 +168,10 @@ describe("reordering the steps of a task", () => {
     { id: "03S", text: "tell support", done: false, order: "a2" },
   ];
 
-  const line = (text: string) =>
-    screen.getByRole("textbox", { name: text }).closest("[draggable]");
+  const line = (text: string) => screen.getByRole("textbox", { name: text }).parentElement!;
+  /// The row is almost entirely an input, and dragging from a text field drags
+  /// the text — so the handle is the only thing that starts a move.
+  const grip = (text: string) => line(text).querySelector("[draggable]")!;
 
   function list(onMove: (s: string, a?: string, b?: string) => void) {
     render(
@@ -181,8 +183,8 @@ describe("reordering the steps of a task", () => {
     const onMove = vi.fn();
     list(onMove);
 
-    fireEvent.dragStart(line("tell support")!, held("03S", STEP));
-    fireEvent.drop(line("deploy the fix")!.parentElement!, held("03S", STEP));
+    fireEvent.dragStart(grip("tell support"), held("03S", STEP));
+    fireEvent.drop(line("deploy the fix").parentElement!, held("03S", STEP));
 
     expect(onMove).toHaveBeenCalledWith("03S", "01S", "02S");
   });
@@ -191,8 +193,8 @@ describe("reordering the steps of a task", () => {
     const onMove = vi.fn();
     list(onMove);
 
-    fireEvent.dragStart(line("tell support")!, held("03S", STEP));
-    fireEvent.drop(line("reproduce it")!.parentElement!, held("03S", STEP));
+    fireEvent.dragStart(grip("tell support"), held("03S", STEP));
+    fireEvent.drop(line("reproduce it").parentElement!, held("03S", STEP));
 
     expect(onMove).toHaveBeenCalledWith("03S", undefined, "01S");
   });
@@ -203,8 +205,8 @@ describe("reordering the steps of a task", () => {
     const onMove = vi.fn();
     list(onMove);
 
-    fireEvent.dragStart(line("reproduce it")!, held("01S", STEP));
-    fireEvent.drop(line("deploy the fix")!.parentElement!, held("01S", STEP));
+    fireEvent.dragStart(grip("reproduce it"), held("01S", STEP));
+    fireEvent.drop(line("deploy the fix").parentElement!, held("01S", STEP));
 
     expect(onMove).toHaveBeenCalledWith("01S", undefined, "02S");
   });
@@ -213,7 +215,61 @@ describe("reordering the steps of a task", () => {
     const onMove = vi.fn();
     list(onMove);
 
-    fireEvent.drop(line("reproduce it")!.parentElement!, held("01A", TASK));
+    fireEvent.drop(line("reproduce it").parentElement!, held("01A", TASK));
     expect(onMove).not.toHaveBeenCalled();
+  });
+
+  /// The whole point of the handle: without it there is nothing to grab, and
+  /// the drag never starts because the browser drags the text instead.
+  it("gives every step something to grab that is not its text field", () => {
+    list(() => {});
+
+    for (const text of ["reproduce it", "deploy the fix", "tell support"]) {
+      expect(grip(text)).toBeTruthy();
+      expect(grip(text).tagName).not.toBe("INPUT");
+    }
+  });
+});
+
+describe("inside one list, the order is yours", () => {
+  const MIXED = [
+    { ...OPEN[0], date: { at: "2026-08-20T10:00:00", tz: "UTC", floating: true, has_time: false } },
+    { ...OPEN[1], priority: 1 },
+    OPEN[2],
+  ] as unknown as Task[];
+
+  /// The core sorts by date, then priority, then the manual key — so anywhere
+  /// else a drag across either would snap back and is refused. A list is a
+  /// sequence somebody composed, and there the key wins.
+  it("accepts a drag that crosses a day and a priority", () => {
+    const onDrop = vi.fn();
+    render(
+      <TaskList
+        tasks={MIXED}
+        lists={[]}
+        title="Casa"
+        centred
+        byHand
+        onSelect={() => {}}
+        onDrop={onDrop}
+      />,
+    );
+
+    fireEvent.dragStart(row("third")!, held("01C"));
+    fireEvent.drop(row("first")!, held("01C"));
+
+    expect(onDrop).toHaveBeenCalled();
+  });
+
+  it("still refuses it where the calendar decides", () => {
+    const onDrop = vi.fn();
+    render(
+      <TaskList tasks={MIXED} lists={[]} title="Hoy" centred onSelect={() => {}} onDrop={onDrop} />,
+    );
+
+    fireEvent.dragStart(row("third")!, held("01C"));
+    fireEvent.drop(row("first")!, held("01C"));
+
+    expect(onDrop).not.toHaveBeenCalled();
   });
 });

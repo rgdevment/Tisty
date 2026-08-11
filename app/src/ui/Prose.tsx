@@ -10,6 +10,7 @@ interface Props {
   hint: string;
   label: string;
   known: string[];
+  steps?: string[];
   beside?: boolean;
   rows?: number;
   onWrite: (text: string) => void;
@@ -26,6 +27,7 @@ export default function Prose({
   hint,
   label,
   known,
+  steps,
   beside,
   rows = 2,
   onWrite,
@@ -110,6 +112,7 @@ export default function Prose({
       {slash !== null && (
         <Insert
           known={known}
+          steps={steps}
           onPut={put}
           onError={onError}
           onClose={() => {
@@ -126,7 +129,7 @@ export default function Prose({
       <Composed
         tabIndex={0}
         label={label}
-        html={text.trim() ? composed(text) : placeholder(hint)}
+        html={text.trim() ? composed(text, steps) : placeholder(hint)}
         onEnter={() => setWriting(true)}
         onError={onError}
         onWhole={onWhole}
@@ -144,7 +147,7 @@ export default function Prose({
       <Composed
         label={t("composed")}
         onError={onError}
-        html={composed(text)}
+        html={composed(text, steps)}
         className="prose px-1.5 py-1 text-[13.5px] leading-relaxed"
       />
     </div>

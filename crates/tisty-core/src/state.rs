@@ -416,10 +416,18 @@ impl State {
         use crate::view::Scope;
 
         let open = || {
-            self.ordered_open()
+            let mut kept: Vec<&Task> = self
+                .ordered_open()
                 .into_iter()
                 .filter(|t| filter.matches(t, today))
-                .collect::<Vec<_>>()
+                .collect();
+            // Looking at one list is looking at a sequence somebody composed,
+            // so their key wins over the calendar. Everywhere else the date
+            // decides, and dragging across one is refused rather than promised.
+            if by_hand(filter) {
+                kept.sort_by(|a, b| (&a.order, a.id).cmp(&(&b.order, b.id)));
+            }
+            kept
         };
         let archived = || {
             let mut done: Vec<&Task> = self
@@ -537,6 +545,15 @@ impl State {
 /// Listings print «Mi Lista» as `@mi-lista`, which has to be typeable back.
 fn loose(name: &str) -> String {
     name.to_lowercase().replace([' ', '_'], "-")
+}
+
+/// One list, nothing else narrowing it: that is «my list», in my order.
+fn by_hand(filter: &crate::view::Filter) -> bool {
+    filter.lists.len() == 1
+        && filter.window.is_none()
+        && !filter.repeating
+        && filter.tags.is_empty()
+        && filter.priority.is_none()
 }
 
 /// Nothing was written into it since it was born.
@@ -1180,6 +1197,77 @@ mod tests {
             state.search("informe", crate::view::Scope::Either).len(),
             30
         );
+    }
+
+    /// A list is a sequence somebody composed; the calendar has no say in it.
+    #[test]
+    fn a_list_keeps_the_order_you_put_it_in() {
+        let mut state = State::default();
+        let list = ulid::Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListAdd {
+                id: list,
+                d: crate::event::ListAdd {
+                    name: "Casa".into(),
+                    color: None,
+                    order: "a0".into(),
+                },
+            },
+        ));
+        // Written in the order they should show, dated the other way round.
+        for (n, (title, day)) in [("primera", 20), ("segunda", 10), ("tercera", 5)]
+            .into_iter()
+            .enumerate()
+        {
+            let id = ulid::Ulid::generate();
+            let mut add = TaskAdd::new(title, format!("a{n}"));
+            add.list = Some(list);
+            add.date = Some(DateSpec::all_day(
+                jiff::civil::date(2026, 8, day),
+                "Europe/Madrid",
+            ));
+            state.apply(&ev(2 + n as i64, "a", Op::TaskAdd { id, d: add }));
+        }
+
+        let mine = crate::view::Filter {
+            lists: vec![list],
+            ..Default::default()
+        };
+        let said: Vec<&str> = state
+            .matching(&mine, jiff::civil::date(2026, 8, 1))
+            .iter()
+            .map(|t| t.title.as_str())
+            .collect();
+
+        assert_eq!(said, vec!["primera", "segunda", "tercera"]);
+    }
+
+    /// Anywhere else the date still decides, or «hoy» would stop being a day.
+    #[test]
+    fn a_window_still_orders_by_the_calendar() {
+        let mut state = State::default();
+        for (n, (title, day)) in [("tarde", 20), ("pronto", 5)].into_iter().enumerate() {
+            let id = ulid::Ulid::generate();
+            let mut add = TaskAdd::new(title, format!("a{n}"));
+            add.date = Some(DateSpec::all_day(
+                jiff::civil::date(2026, 8, day),
+                "Europe/Madrid",
+            ));
+            state.apply(&ev(n as i64, "a", Op::TaskAdd { id, d: add }));
+        }
+
+        let said: Vec<&str> = state
+            .matching(
+                &crate::view::Filter::default(),
+                jiff::civil::date(2026, 8, 1),
+            )
+            .iter()
+            .map(|t| t.title.as_str())
+            .collect();
+
+        assert_eq!(said, vec!["pronto", "tarde"]);
     }
 
     fn ev(ms: i64, device: &str, op: Op) -> Event {

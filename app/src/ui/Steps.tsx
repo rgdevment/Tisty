@@ -84,15 +84,23 @@ function Line({
 
   return (
     <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData(STEP, step.id);
-        e.dataTransfer.effectAllowed = "move";
-      }}
-      className={`group flex items-start gap-2.5 border-t-2 py-1 text-[13.5px] ${
+      className={`group flex items-start gap-1.5 border-t-2 py-1 text-[13.5px] ${
         under ? "border-accent" : "border-transparent"
       }`}
     >
+      {/* Its own handle: the row is almost entirely an <input>, and dragging
+          from a text field drags the text, not the row. */}
+      <span
+        draggable
+        aria-hidden="true"
+        onDragStart={(e) => {
+          e.dataTransfer.setData(STEP, step.id);
+          e.dataTransfer.effectAllowed = "move";
+        }}
+        className="mt-0.5 w-3 shrink-0 cursor-grab text-center text-[11px] leading-[15px] text-faint opacity-0 group-hover:opacity-100"
+      >
+        ⠿
+      </span>
       <button
         type="button"
         aria-label={step.text}
