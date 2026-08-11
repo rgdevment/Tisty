@@ -182,3 +182,33 @@ describe("opening a task", () => {
     expect((document.activeElement as HTMLElement).tagName).toBe("ASIDE");
   });
 });
+
+describe("the / menu says which row is live", () => {
+  /// Arrow keys move a highlight the eye can follow and a reader could not:
+  /// the focus never leaves the text field, so without this nothing is said.
+  it("points at the highlighted option, and moves the pointer with it", async () => {
+    const { default: SlashMenu } = await import("../ui/SlashMenu");
+    render(
+      <SlashMenu
+        from={null}
+        query=""
+        lists={[]}
+        tags={[]}
+        onDate={() => {}}
+        onInsert={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    const box = screen.getByRole("listbox");
+    const first = box.getAttribute("aria-activedescendant");
+    expect(first).toBeTruthy();
+    expect(document.getElementById(first as string)?.getAttribute("aria-selected")).toBe("true");
+
+    await userEvent.keyboard("{ArrowDown}");
+
+    const second = box.getAttribute("aria-activedescendant");
+    expect(second).not.toBe(first);
+    expect(document.getElementById(second as string)?.getAttribute("aria-selected")).toBe("true");
+  });
+});

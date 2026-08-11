@@ -268,7 +268,7 @@ export default function App() {
       <Sidebar
         lists={data.lists}
         counts={data.counts}
-        onFile={(task, list) => act(reorder(task, list ? { list } : { inbox: true }))}
+        onFile={(task, list) => act(reorder(task, { list }))}
         chosen={chosen}
         onChoose={(next) => {
           setChosen(next);

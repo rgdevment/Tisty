@@ -42,7 +42,6 @@ describe("invite", () => {
   it("says where the task will land", () => {
     expect(invite({ list: "01L" }, lists)).toBe("Add to work");
     expect(invite({ tags: ["home", "urgent"] }, lists)).toBe("Add with #home #urgent");
-    expect(invite({ named: "inbox" }, lists)).toBe("Add to the inbox");
     expect(invite({ named: "tasks" }, lists)).toBe("Add for today");
   });
 

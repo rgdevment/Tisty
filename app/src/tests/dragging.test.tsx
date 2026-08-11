@@ -147,21 +147,6 @@ describe("filing by dropping on the sidebar", () => {
     expect(onFile).toHaveBeenCalledWith("01A", "01L");
   });
 
-  it("the inbox takes it out of every list", () => {
-    const onFile = vi.fn();
-    render(
-      <Sidebar
-        lists={lists}
-        counts={{}}
-        chosen={{ named: "tasks" }}
-        onChoose={() => {}}
-        onFile={onFile}
-      />,
-    );
-
-    fireEvent.drop(screen.getByRole("button", { name: /Inbox/ }), held("01A"));
-    expect(onFile).toHaveBeenCalledWith("01A", undefined);
-  });
 
   it("takes nothing when nobody offered a task", () => {
     const onFile = vi.fn();

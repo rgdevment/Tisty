@@ -2,14 +2,14 @@ import { useState } from "react";
 import type { List } from "../core";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
-import { INBOX, TASK } from "../drag";
+import { TASK } from "../drag";
 
 interface Props {
   lists: List[];
   counts: Record<string, number>;
   chosen: Chosen;
   onChoose: (chosen: Chosen) => void;
-  onFile?: (task: string, list?: string) => void;
+  onFile?: (task: string, list: string) => void;
 }
 
 const NAMED: { key: Named; icon: string }[] = [
@@ -23,12 +23,12 @@ export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Pro
   const [openLists, setOpenLists] = useState(true);
   const [over, setOver] = useState<string | null>(null);
 
-  const lands = (list?: string) =>
+  const lands = (list: string) =>
     onFile && {
       onDragOver: (e: React.DragEvent) => {
         if (!e.dataTransfer.types.includes(TASK)) return;
         e.preventDefault();
-        setOver(list ?? INBOX);
+        setOver(list);
       },
       onDragLeave: () => setOver(null),
       onDrop: (e: React.DragEvent) => {
@@ -36,7 +36,7 @@ export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Pro
         setOver(null);
         if (task) onFile(task, list);
       },
-      under: over === (list ?? INBOX),
+      under: over === list,
     };
 
   const settled = lists.filter((list) => !counts[list.id]);
@@ -72,15 +72,6 @@ export default function Sidebar({ lists, counts, chosen, onChoose, onFile }: Pro
 
         {openLists && (
           <nav className="flex flex-col gap-px">
-            <Entry
-              icon="▤"
-              label={t("inbox")}
-              count={counts.inbox}
-              on={chosen.named === "inbox"}
-              onClick={() => onChoose({ named: "inbox" })}
-              {...lands(undefined)}
-            />
-            {working.length > 0 && <div className="mx-3 my-1.5 h-px bg-hair" />}
             {working.map((list) => (
               <Entry
                 key={list.id}
