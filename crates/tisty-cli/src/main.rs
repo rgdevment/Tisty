@@ -18,7 +18,8 @@ pub const EXIT_NOT_FOUND: u8 = 4;
 
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
-    "show", "undo", "redo", "sync", "doctor", "lists", "list", "tag", "config", "export", "help",
+    "show", "undo", "redo", "sync", "doctor", "demo", "lists", "list", "tag", "config", "export",
+    "help",
 ];
 
 #[derive(Parser)]
@@ -151,6 +152,11 @@ pub enum Command {
     Undo,
     /// Redo
     Redo,
+    /// Fill a sandbox with example data. Refuses to run outside one
+    Demo {
+        #[arg(long)]
+        force: bool,
+    },
     /// Send this machine's changes and bring back the others'
     Sync {
         /// Only send

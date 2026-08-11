@@ -98,11 +98,11 @@ fn cadence(over: tisty_core::model::Repeat, lang: Lang) -> String {
         (Unit::Year, false) => "many-years",
     });
     if one {
-        return lang.get("every-one").replace("{$unit}", unit);
+        return lang.get("every-one").replace("{unit}", unit);
     }
     lang.get("every-many")
-        .replace("{$n}", &step.every.to_string())
-        .replace("{$unit}", unit)
+        .replace("{n}", &step.every.to_string())
+        .replace("{unit}", unit)
 }
 
 pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
