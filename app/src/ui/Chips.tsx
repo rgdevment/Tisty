@@ -63,7 +63,9 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
               className={`ml-1 flex h-4 w-4 items-center justify-center rounded ${
                 chip.offer
                   ? "text-accent hover:bg-accent-soft"
-                  : "text-faint hover:bg-line hover:text-ink"
+                  // On a tint, not on the panel: the faintest grey cannot
+                  // reach AA there, and this is a control, not a whisper.
+                  : "text-soft hover:bg-line hover:text-ink"
               }`}
             >
               {chip.offer ? "＋" : "×"}

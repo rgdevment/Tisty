@@ -343,7 +343,7 @@ export default function Keeping({ onChanged }: Props) {
 
 const mild =
   "rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:opacity-50";
-const strong = "rounded-[7px] bg-accent px-2.5 py-1 text-[12.5px] text-white disabled:opacity-50";
+const strong = "rounded-[7px] bg-accent px-2.5 py-1 text-[12.5px] text-bg disabled:opacity-50";
 
 interface CardProps {
   title: string;

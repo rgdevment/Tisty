@@ -106,17 +106,26 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
             let now = jiff::Timestamp::now();
             let mut kept: Option<jiff::Timestamp> = None;
 
-            let owed = watching.owed(&paths, since, now);
-            let missed = owed.iter().map(|one| one.at).min();
+            let (owed, read) = watching.owed(&paths, since, now);
+            // Grouped happenings lose their own timestamps, so the batch is
+            // owed from its oldest — but only the batch that actually failed.
+            let oldest = owed.iter().map(|one| one.at).min();
             for what in tisty_core::herald::gathered(owed) {
                 if told(&app, what).lost() {
-                    kept = missed;
+                    kept = match (kept, oldest) {
+                        (Some(had), Some(at)) => Some(had.min(at)),
+                        (had, at) => had.or(at),
+                    };
                 }
             }
             // Left just before the oldest one that failed, so the next round
             // picks it up again. The lookback still caps how long it is worth
             // retrying, which is what keeps this from running for ever.
-            since = onward(now, kept);
+            // A half-written segment — the shape of a sync still coming down —
+            // leaves the projection frozen. Moving the mark then walks over
+            // reminders that were never read, which is the very loss this
+            // whole retry exists to close.
+            since = if read { onward(now, kept) } else { since };
         }
     });
 }
@@ -133,24 +142,30 @@ struct Watching {
 }
 
 impl Watching {
+    /// The second half of the answer is whether the store could be read at all.
     fn owed(
         &mut self,
         paths: &tisty_core::Paths,
         since: jiff::Timestamp,
         now: jiff::Timestamp,
-    ) -> Vec<Due> {
+    ) -> (Vec<Due>, bool) {
         // Cheap: it only stats the segment files. The replay below happens at
-        // most once per write, and never with anyone waiting on it.
+        // most once per tick, and never with anyone waiting on it.
         let print = tisty_core::cache::fingerprint(&paths.store());
-        if print != self.print
-            && let Ok(events) = tisty_core::store::read_all(paths.store())
-        {
-            // Deliberately not `cache::project`: that writes the shared cache,
-            // and the window is the only thing that should be writing it.
-            self.state = tisty_core::State::replay(&events);
-            self.print = print;
+        let mut read = true;
+        if print != self.print {
+            match tisty_core::store::read_all(paths.store()) {
+                // Deliberately not `cache::project`: that writes the shared
+                // cache, and the window is the only thing that should.
+                Ok(events) => {
+                    self.state = tisty_core::State::replay(&events);
+                    self.print = print;
+                }
+                Err(_) => read = false,
+            }
         }
-        tisty_core::herald::owed(&self.state, since, now, &jiff::tz::TimeZone::system())
+        let owed = tisty_core::herald::owed(&self.state, since, now, &jiff::tz::TimeZone::system());
+        (owed, read)
     }
 }
 
