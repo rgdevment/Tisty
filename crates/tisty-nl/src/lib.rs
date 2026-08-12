@@ -139,6 +139,7 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
         parsed.date = read.date;
         parsed.deadline = read.deadline;
         parsed.spans.extend(carved(read.spans, &markers, input, v));
+        ends_the_series(&mut parsed, input, v);
         parsed.offers = read
             .offers
             .into_iter()
@@ -552,6 +553,34 @@ fn protect_quoted(text: &str) -> String {
 
 fn unquote(text: &str) -> String {
     text.trim().to_string()
+}
+
+/// Read as a deadline it would travel to the next occurrence and never arrive.
+fn ends_the_series(parsed: &mut Parsed, input: &str, v: &vocab::Vocabulary) {
+    let (Some(over), Some(last)) = (parsed.repeat, parsed.deadline.as_ref()) else {
+        return;
+    };
+    let Some(at) = parsed
+        .spans
+        .iter()
+        .position(|one| one.mark == Mark::Deadline)
+    else {
+        return;
+    };
+    let said = input[parsed.spans[at].from..parsed.spans[at].to].to_lowercase();
+    if !said
+        .split_whitespace()
+        .next()
+        .is_some_and(|word| v.ends_prep.contains(&word))
+    {
+        return;
+    }
+    parsed.repeat = Some(tisty_core::model::Repeat {
+        until: Some(last.at.date()),
+        ..over
+    });
+    parsed.deadline = None;
+    parsed.spans[at].mark = Mark::Repeat;
 }
 
 #[cfg(test)]

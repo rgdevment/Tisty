@@ -753,3 +753,15 @@ title = "buy a weekly pass"
 [[case]]
 input = "cancel my monthly subscription"
 title = "cancel my monthly subscription"
+
+[[case]]
+input = "take the pill every day until september 30"
+title = "take the pill"
+repeat = "done:1d until 2026-09-30"
+why = "«until» over a series says when it ends, not when one of them is due"
+
+[[case]]
+input = "send the report until friday"
+title = "send the report"
+deadline = "2026-08-07"
+why = "with no cadence, «until» is the deadline it has always been"
