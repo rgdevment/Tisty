@@ -73,7 +73,7 @@ jobs:
           echo "version $version (pre-release: $prerelease)"
 
   build-macos:
-    name: macos-universal
+    name: tisty-macos-cli
     needs: version
     runs-on: macos-latest
     timeout-minutes: 45
@@ -172,7 +172,7 @@ jobs:
           target: ${{ env.TARGET }}
 
   build-windows:
-    name: windows-x86_64
+    name: tisty-windows-cli
     needs: version
     runs-on: windows-latest
     timeout-minutes: 45
@@ -240,7 +240,7 @@ jobs:
           target: ${{ env.TARGET }}
 
   bundle-windows:
-    name: windows installer
+    name: tisty-windows-installer
     needs: version
     runs-on: windows-latest
     timeout-minutes: 60
@@ -327,7 +327,7 @@ jobs:
           if-no-files-found: error
 
   bundle-macos:
-    name: macos installer
+    name: tisty-macos-installer
     needs: version
     runs-on: macos-latest
     timeout-minutes: 60
@@ -409,7 +409,7 @@ jobs:
           if-no-files-found: error
 
   bundle-msix:
-    name: windows msix
+    name: tisty-windows-msix
     needs: version
     runs-on: windows-latest
     timeout-minutes: 60
@@ -662,19 +662,29 @@ jobs:
     env:
       GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
     steps:
-      - name: Update the formula
+      # Two packages, because they install two different things: the cask is the
+      # application, and the formula is the command line for whoever wants only
+      # that. Installing the app already brings the command line inside it.
+      - name: Update the tap
         if: env.GIST_TOKEN != ''
         run: |
+          set -euo pipefail
+
           TAG="${GITHUB_REF_NAME}"
           VERSION="${{ needs.version.outputs.version }}"
           BASE="https://github.com/${{ github.repository }}/releases/download/${TAG}"
 
-          MAC="tisty-${VERSION}-macos-universal.tar.gz"
+          DMG="Tisty-${VERSION}-macos-universal.dmg"
+          CLI="tisty-${VERSION}-macos-universal.tar.gz"
 
           if [[ "$VERSION" == *-* ]]; then
-            NAME="tisty-beta"; CLASS="TistyBeta"; OTHER="tisty"; SUFFIX=" (beta)"
+            CASK="tisty-beta";     CASK_OTHER="tisty"
+            FORMULA="tisty-cli-beta"; CLASS="TistyCliBeta"; FORMULA_OTHER="tisty-cli"
+            SUFFIX=" (beta)"
           else
-            NAME="tisty"; CLASS="Tisty"; OTHER="tisty-beta"; SUFFIX=""
+            CASK="tisty";          CASK_OTHER="tisty-beta"
+            FORMULA="tisty-cli";   CLASS="TistyCli";       FORMULA_OTHER="tisty-cli-beta"
+            SUFFIX=""
           fi
 
           fetch() {
@@ -689,28 +699,64 @@ jobs:
             return 1
           }
 
-          fetch "$MAC"
-          MAC_SHA=$(sha256sum "/tmp/$MAC" | awk '{print $1}')
+          fetch "$CLI"
+          CLI_SHA=$(sha256sum "/tmp/$CLI" | awk '{print $1}')
+
+          # The disk image rides along when it was made. A bundler that failed
+          # must not also cost the command line its update.
+          DMG_SHA=""
+          if fetch "$DMG"; then
+            DMG_SHA=$(sha256sum "/tmp/$DMG" | awk '{print $1}')
+          else
+            echo "::warning::no disk image for ${VERSION}; leaving the cask as it is"
+          fi
 
           git clone "https://x-access-token:${GIST_TOKEN}@github.com/rgdevment/homebrew-tap.git" /tmp/tap
           cd /tmp/tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          mkdir -p Formula
+          mkdir -p Casks Formula
 
-          cat > "Formula/${NAME}.rb" <<-FORMULA
-          	class ${CLASS} < Formula
+          if [ -n "$DMG_SHA" ]; then
+            cat > "Casks/${CASK}.rb" <<-CASK
+          	cask "${CASK}" do
+          	  version "${VERSION}"
+          	  sha256 "${DMG_SHA}"
+
+          	  url "${BASE}/${DMG}"
+          	  name "Tisty"
           	  desc "Local, private task manager whose archive is the point${SUFFIX}"
+          	  homepage "https://github.com/${{ github.repository }}"
+
+          	  conflicts_with cask: "${CASK_OTHER}"
+          	  depends_on macos: :ventura
+
+          	  app "Tisty.app"
+
+          	  # The command line travels inside the app; Settings puts it within
+          	  # reach. The tisty-cli formula is for whoever wants only that.
+          	  zap trash: [
+          	    "~/Library/Application Support/dev.rgdevment.tisty",
+          	    "~/Library/Caches/dev.rgdevment.tisty",
+          	  ]
+          	end
+          CASK
+          fi
+
+          cat > "Formula/${FORMULA}.rb" <<-FORMULA
+          	class ${CLASS} < Formula
+          	  desc "Command line for Tisty, the local task manager${SUFFIX}"
           	  homepage "https://github.com/${{ github.repository }}"
           	  license "AGPL-3.0-only"
           	  version "${VERSION}"
 
-          	  conflicts_with "${OTHER}", because: "both install the same binary"
+          	  # The app carries this same binary, so having both is having two.
+          	  conflicts_with formula: "${FORMULA_OTHER}"
 
           	  # Linux is a phase of its own and is not built yet.
           	  on_macos do
-          	    url "${BASE}/${MAC}"
-          	    sha256 "${MAC_SHA}"
+          	    url "${BASE}/${CLI}"
+          	    sha256 "${CLI_SHA}"
           	  end
 
           	  def install
@@ -723,12 +769,12 @@ jobs:
           	end
           FORMULA
 
-          git add "Formula/${NAME}.rb"
+          git add Casks Formula
           if git diff --cached --quiet; then
-            echo "formula already at ${VERSION}"
+            echo "tap already at ${VERSION}"
             exit 0
           fi
-          git commit -m "${NAME} ${VERSION}"
+          git commit -m "tisty ${VERSION}"
 
           for attempt in 1 2 3 4 5; do
             if git push origin HEAD:main; then
@@ -738,5 +784,5 @@ jobs:
             git fetch origin main
             git rebase origin/main
           done
-          echo "::error::could not push the formula after 5 attempts"
+          echo "::error::could not push the tap after 5 attempts"
           exit 1

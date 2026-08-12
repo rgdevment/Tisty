@@ -18,6 +18,23 @@ desaparece mañana, tus datos siguen ahí.
 
 ---
 
+## Instalación
+
+En macOS, con [Homebrew](https://brew.sh):
+
+```console
+$ brew install --cask rgdevment/tap/tisty      # la aplicación
+$ brew install rgdevment/tap/tisty-cli         # solo la línea de comandos
+```
+
+O descarga la imagen de disco o el instalador desde
+[Releases](https://github.com/rgdevment/Tisty/releases).
+
+**No necesitas las dos.** La aplicación lleva la línea de comandos dentro
+—Configuración la pone al alcance de tu terminal—, así que la fórmula es para
+quien quiere el comando y ninguna ventana. En cualquier caso, el comando que
+escribes es `tisty`.
+
 ## Por qué existe
 
 La mayoría de los gestores de tareas tratan lo completado como basura: lo tachas

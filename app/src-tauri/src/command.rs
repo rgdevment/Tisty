@@ -72,6 +72,10 @@ pub struct Reach {
     pub within_reach: bool,
     pub at: Option<String>,
     pub through: Option<String>,
+    /// False when the link exists but nothing would find it. macOS builds its
+    /// PATH from `/etc/paths`, which does not include `~/.local/bin`, so «done»
+    /// and «works» are not the same answer there.
+    pub on_path: bool,
 }
 
 pub fn reach() -> Reach {
@@ -81,7 +85,24 @@ pub fn reach() -> Reach {
         within_reach: folder.as_deref().is_some_and(already),
         at: folder.map(|at| at.display().to_string()),
         through: through(),
+        on_path: on_path(),
     }
+}
+
+/// Whether the directory the command ends up in is one the shell searches.
+#[cfg(windows)]
+fn on_path() -> bool {
+    true
+}
+
+#[cfg(not(windows))]
+fn on_path() -> bool {
+    let Some(shelf) = shelf() else {
+        return false;
+    };
+    std::env::var_os("PATH")
+        .map(|path| std::env::split_paths(&path).any(|one| one == shelf))
+        .unwrap_or(false)
 }
 
 #[cfg(windows)]

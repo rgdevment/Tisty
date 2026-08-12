@@ -497,6 +497,23 @@ export default function Keeping({ onChanged }: Props) {
                     ? fill("terminalOn", reach.through ?? reach.at ?? "")
                     : t("terminalOff")}
                 </p>
+
+                {/* «Done» and «works» are different answers: macOS builds its
+                    PATH from /etc/paths, which does not include ~/.local/bin. */}
+                {reach.withinReach && !reach.onPath && (
+                  <div className="mt-2 rounded-lg bg-mark-priority px-3 py-2.5">
+                    <p className="text-[12.5px] leading-relaxed text-ink">
+                      {t("terminalNotOnPath")}
+                    </p>
+                    <code className="mt-1.5 block font-mono text-[11.5px] break-all text-soft">
+                      export PATH=&quot;$HOME/.local/bin:$PATH&quot;
+                    </code>
+                    <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">
+                      {t("terminalOrBrew")}
+                    </p>
+                  </div>
+                )}
+
                 <div className="mt-2.5 flex items-center gap-2.5">
                   <button
                     type="button"

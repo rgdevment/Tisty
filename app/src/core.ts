@@ -315,6 +315,8 @@ export const syncNow = (way?: "push" | "pull", merge?: boolean): Promise<Carried
 export interface Reach {
   /** False in a dev run: there is no CLI beside the window to point at. */
   shipped: boolean;
+  /** False when the link exists but no shell would look there. */
+  onPath: boolean;
   withinReach: boolean;
   at?: string;
   /** Where a terminal would find it, which is not where it lives. */

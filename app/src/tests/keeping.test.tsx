@@ -30,7 +30,13 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: () => Promise.resolve(asked.sure),
 }));
 
-const standing = { shipped: true, withinReach: false, at: "C:/Programs/Tisty", through: "C:/Programs/Tisty" };
+const standing = {
+  shipped: true,
+  withinReach: false,
+  onPath: true,
+  at: "C:/Programs/Tisty",
+  through: "C:/Programs/Tisty",
+};
 
 const kept = { lines: [] as string[] };
 
@@ -44,7 +50,13 @@ const carrying = {
 
 beforeEach(() => {
   ipc.calls = [];
-  Object.assign(standing, { shipped: true, withinReach: false, at: "C:/Programs/Tisty", through: "C:/Programs/Tisty" });
+  Object.assign(standing, {
+    shipped: true,
+    withinReach: false,
+    onPath: true,
+    at: "C:/Programs/Tisty",
+    through: "C:/Programs/Tisty",
+  });
   kept.lines = [];
   asked.folder = null;
   asked.file = null;
@@ -336,5 +348,32 @@ describe("the report a bug gets attached to", () => {
     await waitFor(() => expect(sent("keep_report").length).toBe(1));
     expect(sent("keep_report")[0].args.at).toBe("D:/issues/tisty-report.zip");
     expect(sent("keep_report")[0].args.logs).toBe(true);
+  });
+});
+
+describe("the command line on a Mac", () => {
+  /// macOS builds its PATH from /etc/paths, which does not list ~/.local/bin:
+  /// the link gets made and the terminal still says «command not found».
+  it("says so when the link lands where no shell looks", async () => {
+    standing.withinReach = true;
+    standing.onPath = false;
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/writing/i);
+
+    expect(await screen.findByText(/no shell looks in that folder/i)).toBeTruthy();
+    expect(screen.getByText(/\$HOME\/\.local\/bin/)).toBeTruthy();
+    expect(screen.getByText(/brew install/)).toBeTruthy();
+  });
+
+  it("stays quiet where the folder is already searched", async () => {
+    standing.withinReach = true;
+    standing.onPath = true;
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/writing/i);
+
+    await screen.findByText(/a terminal can find/i);
+    expect(screen.queryByText(/no shell looks in that folder/i)).toBeNull();
   });
 });
