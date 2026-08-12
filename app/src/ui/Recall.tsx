@@ -10,13 +10,24 @@ interface Props {
   onClose: () => void;
 }
 
-const AHEAD = [60, 30, 15] as const;
+const AHEAD = [60, 30, 15, 0] as const;
+const SAID = {
+  60: "anHourBefore",
+  30: "halfHourBefore",
+  15: "quarterBefore",
+  0: "onTheDot",
+} as const;
 const OPENS = "09:00";
 
 export default function Recall({ on, taken, onAdd, onClose }: Props) {
   const [day, setDay] = useState<string | null>(null);
   const worth = (at: string) => new Date(at) > new Date() && !taken.includes(at);
-  const ahead = on ? AHEAD.map((m) => [m, before(on, m)] as const).filter(([, at]) => worth(at)) : [];
+  // «At the time» only where there is a time to be at: on an all-day task it
+  // would name the nine o'clock this file invents, which is not what it says.
+  const offsets = on?.has_time ? AHEAD : AHEAD.filter((m) => m !== 0);
+  const ahead = on
+    ? offsets.map((m) => [m, before(on, m)] as const).filter(([, at]) => worth(at))
+    : [];
 
   if (day !== null) {
     return (
@@ -40,7 +51,7 @@ export default function Recall({ on, taken, onAdd, onClose }: Props) {
     <>
       {ahead.map(([minutes, at]) => (
         <Row key={minutes} onPick={() => onAdd(at)}>
-          {t(minutes === 60 ? "anHourBefore" : minutes === 30 ? "halfHourBefore" : "quarterBefore")}
+          {t(SAID[minutes])}
         </Row>
       ))}
       <Row onPick={() => setDay(on?.at.slice(0, 10) ?? "")}>{t("pickIt")}</Row>

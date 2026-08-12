@@ -132,8 +132,15 @@ fn art<R: Runtime>(_app: &AppHandle<R>) -> Option<tauri::image::Image<'static>> 
 #[cfg(not(target_os = "macos"))]
 fn art<R: Runtime>(app: &AppHandle<R>) -> Option<tauri::image::Image<'static>> {
     let _ = app;
-    // Dark taskbar takes the light-inked icon, and the other way round.
-    tauri::image::Image::from_bytes(if dark_bar() { ON_LIGHT } else { ON_DARK }).ok()
+    tauri::image::Image::from_bytes(for_bar(dark_bar())).ok()
+}
+
+/// Named after the bar each one goes on, not the ink it carries: `ON_DARK` is
+/// the pale one. Reading the pair the other way round puts each icon exactly
+/// where it cannot be seen.
+#[cfg(not(target_os = "macos"))]
+fn for_bar(dark: bool) -> &'static [u8] {
+    if dark { ON_DARK } else { ON_LIGHT }
 }
 
 /// The taskbar follows `SystemUsesLightTheme`, which is a different setting
@@ -177,4 +184,44 @@ pub fn surface<R: Runtime>(app: &AppHandle<R>) {
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();
+}
+
+#[cfg(all(test, not(target_os = "macos")))]
+mod tests {
+    use super::{ON_DARK, ON_LIGHT, for_bar};
+
+    /// Mean brightness of what is actually painted, ignoring what is see-through.
+    fn ink(png: &[u8]) -> u32 {
+        let art = tauri::image::Image::from_bytes(png).expect("tray icon is a png");
+        let (sum, seen) = art
+            .rgba()
+            .chunks_exact(4)
+            .fold((0u64, 0u64), |(sum, seen), px| {
+                if px[3] < 128 {
+                    return (sum, seen);
+                }
+                let grey = (px[0] as u64 * 299 + px[1] as u64 * 587 + px[2] as u64 * 114) / 1000;
+                (sum + grey, seen + 1)
+            });
+        assert!(seen > 0, "the icon is fully transparent");
+        (sum / seen) as u32
+    }
+
+    #[test]
+    fn each_tray_icon_is_inked_against_the_bar_it_sits_on() {
+        assert!(ink(ON_DARK) > 160, "on-dark must be pale: {}", ink(ON_DARK));
+        assert!(
+            ink(ON_LIGHT) < 96,
+            "on-light must be dark: {}",
+            ink(ON_LIGHT)
+        );
+    }
+
+    /// The bug this replaces: a pale icon was handed to a light taskbar, where
+    /// it is not there at all. Checking the files alone would not have caught it.
+    #[test]
+    fn a_light_taskbar_gets_the_dark_icon() {
+        assert!(ink(for_bar(false)) < 96, "a light bar needs dark ink");
+        assert!(ink(for_bar(true)) > 160, "a dark bar needs pale ink");
+    }
 }
