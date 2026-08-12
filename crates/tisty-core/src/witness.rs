@@ -335,6 +335,23 @@ fn kept_short(at: &Path) -> String {
     said.display().to_string()
 }
 
+/// Not `$HOME` on macOS: inside an App Sandbox container that points at
+/// `…/Containers/dev.rgdevment.tisty/Data`, so the name to hide would come out
+/// as «Data» and the account would be left in the clear — which is the one
+/// thing this is for.
+#[cfg(target_os = "macos")]
+fn who() -> Option<String> {
+    let name = std::env::var("USER").ok().filter(|one| !one.is_empty());
+    name.or_else(|| {
+        let home = std::env::var("HOME").ok()?;
+        Path::new(&home)
+            .file_name()
+            .and_then(|one| one.to_str())
+            .map(str::to_owned)
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
 fn who() -> Option<String> {
     let home = std::env::var("USERPROFILE")
         .or_else(|_| std::env::var("HOME"))

@@ -19,6 +19,9 @@ pub enum Trouble {
         theirs: String,
     },
     Unreadable(String),
+    /// The folder is there and the system says no. On macOS that is a decision
+    /// somebody made in a dialog, not a fault to hunt for.
+    Refused(String),
     Broke(String),
     /// Two histories, both with something to lose. Joining them cannot be
     /// undone, and only the person knows whether it is their own other machine.
@@ -399,6 +402,7 @@ fn written(at: &Path, body: &[u8], when: Option<std::time::SystemTime>) -> Resul
 fn io(e: std::io::Error) -> Trouble {
     match e.kind() {
         std::io::ErrorKind::NotFound => Trouble::NotThere(e.to_string()),
+        std::io::ErrorKind::PermissionDenied => Trouble::Refused(e.to_string()),
         _ => Trouble::Broke(e.to_string()),
     }
 }

@@ -42,33 +42,10 @@ pub struct Facts {
     pub shortcut: Option<String>,
 }
 
-/// The account name, wherever it appears — a sync folder under `G:\Mario\…`
-/// gives it away as surely as the store path does.
-pub fn hidden(text: &str) -> String {
-    match who() {
-        Some(name) => without(text, &name),
-        None => text.to_string(),
-    }
-}
-
-/// Two characters at least: a one-letter account would turn every «a» in every
-/// path into a dot.
-fn without(text: &str, who: &str) -> String {
-    if who.chars().count() < 2 {
-        return text.to_string();
-    }
-    text.replace(who, "···")
-}
-
-fn who() -> Option<String> {
-    let home = std::env::var("USERPROFILE")
-        .or_else(|_| std::env::var("HOME"))
-        .ok()?;
-    Path::new(&home)
-        .file_name()
-        .and_then(|one| one.to_str())
-        .map(str::to_owned)
-}
+/// The core's, not a second copy: the redaction that keeps a log safe to attach
+/// to a public issue is the same one that keeps the report safe, and two
+/// implementations of it would drift.
+pub use tisty_core::witness::hidden;
 
 /// Every file under the data root, which is what a backup would have to carry.
 pub fn weighed(root: &Path) -> u64 {
@@ -187,30 +164,6 @@ pub fn os() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn the_account_name_goes_wherever_it_appears() {
-        let said = without(
-            r"store C:\Users\rgdevment\AppData\tisty, sync G:\rgdevment\copies",
-            "rgdevment",
-        );
-
-        assert!(!said.contains("rgdevment"), "{said}");
-        assert!(said.contains(r"C:\Users\···\AppData\tisty"), "{said}");
-        assert!(said.contains(r"G:\···\copies"), "{said}");
-    }
-
-    #[test]
-    fn a_name_too_short_to_replace_safely_is_left_alone() {
-        assert_eq!(without(r"C:\data\attachments", "a"), r"C:\data\attachments");
-    }
-
-    /// Whatever the environment says here, the call has to come back with
-    /// something — an unset HOME must not take the report down with it.
-    #[test]
-    fn redacting_survives_an_environment_that_says_nothing() {
-        assert!(!hidden("C:/somewhere/tisty").is_empty());
-    }
 
     #[test]
     fn an_empty_store_weighs_nothing_instead_of_failing() {

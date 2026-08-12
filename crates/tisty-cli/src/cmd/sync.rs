@@ -53,6 +53,7 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
         carrier::Trouble::NotThere(at) => lang.fill("no-meeting-place", &[("at", at)]),
         carrier::Trouble::OtherStore { theirs } => lang.fill("other-store", &[("id", theirs)]),
         carrier::Trouble::Unreadable(why) => lang.fill("sync-unreadable", &[("why", why)]),
+        carrier::Trouble::Refused(why) => lang.fill("sync-refused", &[("why", why)]),
         carrier::Trouble::Broke(why) => lang.fill("sync-broke", &[("why", why)]),
         carrier::Trouble::WouldMerge { theirs } => lang.fill("would-merge", &[("id", theirs)]),
     };
