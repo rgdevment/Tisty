@@ -569,31 +569,6 @@ jobs:
             if [ -s "$f" ]; then echo "$f"; else echo "::warning::no installer at $f"; fi
           done
 
-      - name: Release manifest
-        run: |
-          v="${{ needs.version.outputs.version }}"
-          git fetch origin main --depth 1
-          git checkout -B main origin/main
-
-          latest=$(jq -r '.latest // ""' release-manifest.json 2>/dev/null || echo "")
-          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
-            jq -n --arg l "${latest:-$v}" --arg c "$v" \
-              '{schema: 1, latest: $l, latestPrerelease: $c}' > release-manifest.json
-          else
-            jq -n --arg l "$v" '{schema: 1, latest: $l}' > release-manifest.json
-          fi
-          cat release-manifest.json
-
-          if git diff --quiet release-manifest.json; then
-            echo "already says $v"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add release-manifest.json
-          git commit -m "chore: release manifest for $v"
-          git push origin main
-
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
 
@@ -643,6 +618,38 @@ jobs:
           files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # On a branch of its own: the default one takes changes only through a
+      # pull request, and this file has to be written by the release that
+      # produces it.
+      - name: Release manifest
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          if git fetch origin manifest --depth 1 2>/dev/null; then
+            git checkout -B manifest FETCH_HEAD
+          else
+            git checkout -B manifest
+          fi
+
+          latest=$(jq -r '.latest // ""' release-manifest.json 2>/dev/null || echo "")
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
+            jq -n --arg l "${latest:-0.0.0}" --arg c "$v" \
+              '{schema: 1, latest: $l, latestPrerelease: $c}' > release-manifest.json
+          else
+            jq -n --arg l "$v" '{schema: 1, latest: $l}' > release-manifest.json
+          fi
+          cat release-manifest.json
+
+          if git diff --quiet release-manifest.json; then
+            echo "already says $v"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add release-manifest.json
+          git commit -m "chore: release manifest for $v"
+          git push origin manifest
+        continue-on-error: true
 
   msstore:
     name: Microsoft Store
