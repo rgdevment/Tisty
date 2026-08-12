@@ -137,7 +137,13 @@ function opens(): number {
 
 const first = (iso: string): Date => {
   const [y, m] = iso.split("-").map(Number);
-  return new Date(y, m - 1, 1);
+  const at = new Date(y, m - 1, 1);
+  if (!Number.isNaN(at.getTime())) return at;
+  // Empty or half-typed must not become an Invalid Date. Every formatter below
+  // throws a RangeError on one, and a throw while rendering takes the whole
+  // window to a blank screen — which is how this was found.
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
 };
 
 const shifted = (days: number): Date => {

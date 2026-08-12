@@ -999,6 +999,25 @@ fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> An
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
+/// An error nobody caught used to leave nothing behind at all: the window goes
+/// blank and the log stays empty, so the one failure that needs a trace is the
+/// only one without one.
+///
+/// Where it broke, never what it said. A render error carries the props that
+/// caused it, and props carry titles — the same rule the panic hook follows.
+#[tauri::command]
+fn note_break(kind: String, frames: String) {
+    let cut = |text: String, most: usize| text.chars().take(most).collect::<String>();
+    witness::error(
+        channel::WINDOW,
+        "the window broke and stopped drawing",
+        &[
+            ("kind", Fact::Why(cut(kind, 40))),
+            ("frames", Fact::Why(cut(frames, 400))),
+        ],
+    );
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Carrying {
@@ -2188,6 +2207,7 @@ pub fn run() {
             facts,
             keep_report,
             note_trouble,
+            note_break,
             logs
         ])
         .run(tauri::generate_context!())

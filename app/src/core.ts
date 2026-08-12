@@ -291,6 +291,9 @@ export interface Logs {
 export const logs = (most: number): Promise<Logs> => invoke("logs", { most });
 export const noteTrouble = (code: string): Promise<void> => invoke("note_trouble", { code });
 
+export const noteBreak = (kind: string, frames: string): Promise<void> =>
+  invoke("note_break", { kind, frames });
+
 export const settings = (): Promise<Settings> => invoke("settings");
 export const keepSettings = (settings: Settings): Promise<Settings> =>
   invoke("keep_settings", { settings });
