@@ -30,6 +30,7 @@ tauri-plugin-opener.workspace = true
 tauri-plugin-dialog.workspace = true
 tauri-plugin-global-shortcut.workspace = true
 tauri-plugin-notification.workspace = true
+tauri-plugin-single-instance.workspace = true
 sys-locale.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -37,7 +38,7 @@ jiff.workspace = true
 ulid.workspace = true
 zip.workspace = true
 semver = "1"
-reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls", "charset", "http2"] }
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "default-tls", "charset", "http2"] }
 
 [dev-dependencies]
 tempfile.workspace = true
