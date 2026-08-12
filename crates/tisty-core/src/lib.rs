@@ -41,6 +41,8 @@ pub enum Error {
 
     #[error("the backup is larger than Tisty will carry")]
     TooBig,
+    #[error("that file is {bytes} bytes and the limit is {limit}")]
+    AttachmentTooBig { bytes: u64, limit: u64 },
     #[error("serialization error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("malformed event at {file}:{line}: {source}")]
@@ -82,6 +84,7 @@ impl Error {
             Error::OutsideTheStore(_) => "outsideTheStore",
             Error::OtherStore { .. } => "otherStore",
             Error::TooBig => "tooBig",
+            Error::AttachmentTooBig { .. } => "attachmentTooBig",
             Error::Json(_) => "json",
             Error::MalformedEvent { .. } => "malformedEvent",
             Error::TruncatedSegment { .. } => "truncatedSegment",
@@ -119,6 +122,10 @@ impl Error {
                 facts.push(("device", Fact::Id(device.clone())));
             }
             Error::UnsupportedVersion(v) => facts.push(("version", Fact::Count(*v as usize))),
+            Error::AttachmentTooBig { bytes, limit } => {
+                facts.push(("bytes", Fact::Bytes(*bytes)));
+                facts.push(("limit", Fact::Bytes(*limit)));
+            }
             _ => {}
         }
         facts

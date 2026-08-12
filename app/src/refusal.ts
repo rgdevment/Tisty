@@ -33,6 +33,7 @@ const KNOWN = [
   "sharedIsTheBackup",
   "otherStore",
   "cannotWrite",
+  "attachmentTooBig",
   "restoreFailed",
   "stillCarrying",
   "sandboxCannotMerge",

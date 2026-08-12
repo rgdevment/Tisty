@@ -22,11 +22,13 @@ pub const COPIED_LEAST: u64 = 64 * 1024;
 pub const COPIED_MOST: u64 = 200 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Kept {
-    /// Copied in; the reference is relative to the data root.
-    Held { at: String, sha256: String },
-    /// Left outside, so it only exists on the machine that has it.
-    Named { at: PathBuf },
+/// Always copied in. Pointing at a file where it already lives made an
+/// attachment that existed on one machine and nowhere else, and that survived
+/// exactly until somebody moved it.
+pub struct Kept {
+    /// Relative to the data root.
+    pub at: String,
+    pub sha256: String,
 }
 
 impl Kept {
@@ -34,10 +36,7 @@ impl Kept {
     /// target is wrapped, or a Windows path with a space stops being a link.
     pub fn written(&self, label: &str) -> String {
         let name = spoken(label);
-        let target = match self {
-            Kept::Held { at, .. } => at.clone(),
-            Kept::Named { at } => at.display().to_string(),
-        };
+        let target = self.at.clone();
         if pictorial(&target) {
             format!("![{name}](<{target}>)")
         } else {
@@ -67,17 +66,16 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
         return Err(Error::OutsideTheStore(source.display().to_string()));
     }
     if opened.len() > limit {
-        return Ok(Kept::Named {
-            at: source.to_path_buf(),
+        return Err(Error::AttachmentTooBig {
+            bytes: opened.len(),
+            limit,
         });
     }
 
     let mut bytes = Vec::new();
     let read = file.by_ref().take(limit + 1).read_to_end(&mut bytes)? as u64;
     if read > limit {
-        return Ok(Kept::Named {
-            at: source.to_path_buf(),
-        });
+        return Err(Error::AttachmentTooBig { bytes: read, limit });
     }
 
     let sha256 = fingerprint(&bytes);
@@ -102,7 +100,7 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
         std::fs::write(&target, &bytes)?;
         let _ = crate::paths::ours_alone(&target);
     }
-    Ok(Kept::Held {
+    Ok(Kept {
         at: format!("attachments/{shelf}/{name}"),
         sha256,
     })
@@ -236,9 +234,7 @@ mod tests {
         let (_src, file) = dropped("shot.PNG", b"pretend this is a screenshot");
         let root = tempfile::tempdir().unwrap();
 
-        let Kept::Held { at, sha256 } = keep(&file, root.path(), COPIED_UP_TO).unwrap() else {
-            panic!("a small file must be copied in");
-        };
+        let Kept { at, sha256 } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
 
         assert!(at.starts_with("attachments/"), "{at}");
         assert!(at.ends_with(".png"), "the extension is lowercased: {at}");
@@ -266,28 +262,23 @@ mod tests {
         assert_eq!(shelves.count(), 1);
     }
 
-    /// A picture over the threshold is still a picture; it used to come out as
-    /// a link that nothing on the machine could open.
+    /// Pointing at a file where it lives made an attachment that existed on one
+    /// machine and nowhere else, and only until somebody moved it. It is
+    /// refused now, and the refusal says both numbers.
     #[test]
-    fn a_heavy_picture_is_still_shown() {
-        let kept = Kept::Named {
-            at: PathBuf::from(r"C:\Users\Mario\shot.PNG"),
-        };
-        assert!(
-            kept.written("shot").starts_with("!["),
-            "{}",
-            kept.written("shot")
-        );
-    }
-
-    #[test]
-    fn a_heavy_file_is_pointed_at_and_never_copied() {
+    fn a_heavy_file_is_refused_and_never_copied() {
         let (_src, file) = dropped("recording.mkv", b"pretend this is fifteen gigabytes");
         let root = tempfile::tempdir().unwrap();
 
-        let kept = keep(&file, root.path(), 4).unwrap();
+        let refused = keep(&file, root.path(), 4).unwrap_err();
 
-        assert_eq!(kept, Kept::Named { at: file.clone() });
+        assert!(
+            matches!(
+                refused,
+                crate::Error::AttachmentTooBig { bytes, limit } if bytes > 4 && limit == 4
+            ),
+            "{refused:?}"
+        );
         assert!(
             !root.path().join("attachments").exists(),
             "nothing was copied in"
@@ -296,7 +287,7 @@ mod tests {
 
     #[test]
     fn a_picture_is_shown_and_everything_else_is_linked() {
-        let held = |at: &str| Kept::Held {
+        let held = |at: &str| Kept {
             at: at.into(),
             sha256: "ab".into(),
         };
@@ -314,8 +305,9 @@ mod tests {
     /// The usual Windows path has spaces and brackets, and both cut a link.
     #[test]
     fn a_path_with_spaces_is_still_a_link() {
-        let kept = Kept::Named {
-            at: PathBuf::from(r"C:\Users\Mario\My Docs\clip (1).mkv"),
+        let kept = Kept {
+            at: "attachments/ab/clip (1).mkv".into(),
+            sha256: "ab".into(),
         };
         let written = kept.written("clip (1).mkv");
         assert!(written.starts_with("[clip (1).mkv](<"), "{written}");
@@ -324,7 +316,7 @@ mod tests {
 
     #[test]
     fn a_name_that_would_break_the_link_is_flattened() {
-        let one = Kept::Held {
+        let one = Kept {
             at: "attachments/ab/cd.png".into(),
             sha256: "ab".into(),
         };
@@ -344,9 +336,7 @@ mod tests {
         let (_src, file) = dropped("carrier.txt-evil", b"hidden");
         let root = tempfile::tempdir().unwrap();
 
-        let Kept::Held { at, .. } = keep(&file, root.path(), COPIED_UP_TO).unwrap() else {
-            panic!("it should be copied in");
-        };
+        let Kept { at, .. } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
         assert!(!at.contains(':'), "a stream reached the store: {at}");
         assert!(
             at.ends_with("-evil") || !at.contains('.'),
@@ -405,10 +395,7 @@ mod tests {
         let (_src, file) = dropped("shot.png", b"1234");
         let root = tempfile::tempdir().unwrap();
 
-        assert!(matches!(
-            keep(&file, root.path(), 4).unwrap(),
-            Kept::Held { .. }
-        ));
+        assert!(keep(&file, root.path(), 4).is_ok());
     }
 
     #[test]
@@ -416,9 +403,7 @@ mod tests {
         let (_src, file) = dropped("README", b"no extension here");
         let root = tempfile::tempdir().unwrap();
 
-        let Kept::Held { at, sha256 } = keep(&file, root.path(), COPIED_UP_TO).unwrap() else {
-            panic!("it should be copied in");
-        };
+        let Kept { at, sha256 } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
         assert!(at.ends_with(&sha256[2..]), "{at}");
     }
 
@@ -436,9 +421,7 @@ mod tests {
         let (_other, two) = dropped("gone.png", b"nobody points here");
         let root = tempfile::tempdir().unwrap();
 
-        let Kept::Held { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap() else {
-            panic!("copied in");
-        };
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
         keep(&two, root.path(), COPIED_UP_TO).unwrap();
 
         let counted = loose(root.path(), &[at]);
