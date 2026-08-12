@@ -41,6 +41,9 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
               {one.name}
             </Row>
           ))}
+          {/* Until now this sheet was empty on a store with no lists yet: no
+              list to file under, and nowhere to make one either. */}
+          <Filing onName={(name) => apply({ listNamed: name })} />
         </Sheet>
       </Held>
 
@@ -278,6 +281,30 @@ function Row({ children, onPick }: { children: React.ReactNode; onPick: () => vo
     >
       {children}
     </button>
+  );
+}
+
+/// Lists keep the case they were typed in — «Trabajo» is a name, not a tag,
+/// and the ones already made are the rows above this.
+function Filing({ onName }: { onName: (name: string) => void }) {
+  const [text, setText] = useState("");
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const name = text.trim();
+        if (name) onName(name);
+      }}
+    >
+      <input
+        value={text}
+        placeholder={t("namedList")}
+        aria-label={t("namedList")}
+        onChange={(e) => setText(e.target.value)}
+        className="w-full rounded-md bg-hover px-2.5 py-1.5 outline-none placeholder:text-faint"
+      />
+    </form>
   );
 }
 

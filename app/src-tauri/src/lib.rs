@@ -632,6 +632,10 @@ struct Change {
     untag: Option<String>,
     #[serde(default)]
     list: Option<String>,
+    /// By name, and made if there is none: with no lists yet the window had
+    /// nowhere to file a task and no way to make anywhere either.
+    #[serde(default)]
+    list_named: Option<String>,
     #[serde(default)]
     inbox: bool,
     #[serde(default)]
@@ -694,13 +698,36 @@ fn patch(
         repeat: repeated(&change)?,
     };
 
-    let filed = match (&change.list, change.inbox) {
-        (Some(raw), _) => Some(Some(raw.parse().map_err(|_| Refusal::of("notAListId"))?)),
-        (None, true) => Some(None),
+    let mut ops = Vec::new();
+    let named = match change.list_named.as_deref().map(str::trim) {
+        Some(name) if !name.is_empty() => Some(match session.state.find_list(name).as_slice() {
+            [one] => one.id,
+            // Ambiguity is the one case worth refusing: picking either of two
+            // lists on the person's behalf is the wrong kind of helpful.
+            [_, _, ..] => return Err(Refusal::about("manyLists", name)),
+            [] => {
+                let made = ulid::Ulid::generate();
+                ops.push(Op::ListAdd {
+                    id: made,
+                    d: tisty_core::event::ListAdd {
+                        name: name.to_string(),
+                        order: session.state.next_list_order(),
+                        color: None,
+                    },
+                });
+                made
+            }
+        }),
         _ => None,
     };
 
-    let mut ops = Vec::new();
+    let filed = match (named, &change.list, change.inbox) {
+        (Some(id), _, _) => Some(Some(id)),
+        (None, Some(raw), _) => Some(Some(raw.parse().map_err(|_| Refusal::of("notAListId"))?)),
+        (None, None, true) => Some(None),
+        _ => None,
+    };
+
     if d != TaskPatch::default() {
         ops.push(Op::TaskUpdate { id, d });
     }
