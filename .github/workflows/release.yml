@@ -569,37 +569,30 @@ jobs:
             if [ -s "$f" ]; then echo "$f"; else echo "::warning::no installer at $f"; fi
           done
 
-      # Installed copies read this to learn a newer one exists. It carries
-      # versions and nothing else: every address the app can open is compiled
-      # into it, so this file cannot send anyone anywhere.
-      #
-      # `latest` only moves on a final release, or a stable install would be
-      # told to go and fetch a candidate.
       - name: Release manifest
         run: |
           v="${{ needs.version.outputs.version }}"
-          previous=$(gh release list --exclude-drafts --exclude-pre-releases \
-            --limit 1 --json tagName --jq '.[0].tagName // ""' | sed 's/^v//')
+          git fetch origin main --depth 1
+          git checkout -B main origin/main
 
+          latest=$(jq -r '.latest // ""' release-manifest.json 2>/dev/null || echo "")
           if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
-            latest="${previous:-$v}"
-            candidate="$v"
+            jq -n --arg l "${latest:-$v}" --arg c "$v" \
+              '{schema: 1, latest: $l, latestPrerelease: $c}' > release-manifest.json
           else
-            latest="$v"
-            candidate=""
+            jq -n --arg l "$v" '{schema: 1, latest: $l}' > release-manifest.json
           fi
+          cat release-manifest.json
 
-          {
-            echo '{'
-            echo '  "schema": 1,'
-            printf '  "latest": "%s"' "$latest"
-            if [ -n "$candidate" ]; then printf ',\n  "latestPrerelease": "%s"' "$candidate"; fi
-            echo
-            echo '}'
-          } > dist/release-manifest.json
-          cat dist/release-manifest.json
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if git diff --quiet release-manifest.json; then
+            echo "already says $v"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add release-manifest.json
+          git commit -m "chore: release manifest for $v"
+          git push origin main
 
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS

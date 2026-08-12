@@ -11,7 +11,7 @@
 use tisty_core::witness::{self, Fact, channel};
 
 const MANIFEST: &str =
-    "https://github.com/rgdevment/Tisty/releases/latest/download/release-manifest.json";
+    "https://raw.githubusercontent.com/rgdevment/Tisty/main/release-manifest.json";
 pub const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
@@ -187,6 +187,17 @@ mod tests {
             newer("0.2.0-rc1", feed, Route::Download).unwrap().version,
             "0.3.0"
         );
+    }
+
+    #[test]
+    fn a_project_with_no_stable_release_yet_still_works() {
+        let feed = r#"{"schema":1,"latest":"0.0.0","latestPrerelease":"0.2.0-rc6"}"#;
+
+        assert_eq!(
+            newer("0.2.0-rc5", feed, Route::Download).unwrap().version,
+            "0.2.0-rc6"
+        );
+        assert!(newer("0.1.0", feed, Route::Download).is_none());
     }
 
     #[test]
