@@ -695,7 +695,7 @@ fn patch(
             .map_err(|_| Refusal::of("notAPriority"))?,
         tags: tagged(&task, &change)?,
         reminders: recalled(&task, &change, &now)?,
-        repeat: repeated(&change)?,
+        repeat: repeated(&change, &now)?,
     };
 
     let mut ops = Vec::new();
@@ -782,7 +782,10 @@ fn tagged(task: &Task, change: &Change) -> Result<Option<Vec<Tag>>, Refusal> {
 
 /// A cadence of zero would make the next occurrence land on the same day for
 /// ever; the parser refuses it too.
-fn repeated(change: &Change) -> Result<Option<Option<tisty_core::model::Repeat>>, Refusal> {
+fn repeated(
+    change: &Change,
+    now: &jiff::Zoned,
+) -> Result<Option<Option<tisty_core::model::Repeat>>, Refusal> {
     if change.no_repeat {
         return Ok(Some(None));
     }
@@ -792,6 +795,13 @@ fn repeated(change: &Change) -> Result<Option<Option<tisty_core::model::Repeat>>
     let every = over.cadence().every;
     if every == 0 || every > 999 {
         return Err(Refusal::of("notACadence"));
+    }
+    // A last day already gone by would end the series at the next completion,
+    // silently: the task simply stops coming back and nothing ever said why.
+    if let Some(last) = over.until
+        && last < now.date()
+    {
+        return Err(Refusal::of("pastEnd"));
     }
     Ok(Some(Some(over)))
 }
@@ -2396,5 +2406,38 @@ version 0.1.0
 
         let zip = zip::ZipArchive::new(std::fs::File::open(&at).unwrap()).unwrap();
         assert_eq!(zip.file_names().count(), 1);
+    }
+
+    fn every_day(until: Option<jiff::civil::Date>) -> Change {
+        Change {
+            repeat: Some(tisty_core::model::Repeat {
+                from: tisty_core::model::From::Due,
+                each: tisty_core::model::Cadence {
+                    every: 1,
+                    unit: tisty_core::model::Unit::Day,
+                },
+                until,
+            }),
+            ..Default::default()
+        }
+    }
+
+    /// Silent before this: the series simply stopped coming back at the next
+    /// completion, and nothing ever said why.
+    #[test]
+    fn a_series_cannot_be_told_to_have_ended_already() {
+        let past = repeated(&every_day(Some(jiff::civil::date(2026, 8, 4))), &now());
+
+        assert!(
+            matches!(past, Err(ref why) if why.code == "pastEnd"),
+            "{past:?}"
+        );
+    }
+
+    #[test]
+    fn today_is_late_enough_to_end_on() {
+        assert!(repeated(&every_day(Some(jiff::civil::date(2026, 8, 5))), &now()).is_ok());
+        assert!(repeated(&every_day(Some(jiff::civil::date(2027, 1, 1))), &now()).is_ok());
+        assert!(repeated(&every_day(None), &now()).is_ok());
     }
 }
