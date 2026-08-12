@@ -2,15 +2,19 @@
 
 [English](README.md) · **Español**
 
-Un gestor de tareas local, privado y minimalista para macOS, Windows y Linux.
+Un gestor de tareas local, privado y minimalista para macOS y Windows, con una
+línea de comandos y una ventana que hacen lo mismo.
+
+**Lo que terminas es el punto.** Un gestor de tareas que tira lo que resolviste
+está tirando el único registro de cómo lo resolviste.
 
 Sin cuenta, sin telemetría, sin servidor. Tus tareas son archivos de texto plano
 en tu propio disco, legibles con `cat` y buscables con `grep`. Si Tisty
 desaparece mañana, tus datos siguen ahí.
 
-> **En desarrollo temprano.** El núcleo funciona y la línea de comandos ya es
-> usable, pero el lenguaje natural, la sincronización y la interfaz gráfica aún
-> no están. Esto no es un lanzamiento.
+> **Alfa.** Todo lo de abajo funciona y lo usa a diario quien lo escribió. Lo
+> que falta es el rodaje que solo dan las máquinas de otras personas. Linux es
+> una fase propia y no ha empezado.
 
 ---
 
@@ -39,9 +43,11 @@ Lo que faltaba estaba en medio: **un gestor personal de tareas que además sea e
 registro de cómo resolviste las cosas.** Local, privado, con una línea de
 comandos de primera y una interfaz que no duela mirar.
 
-Esto es una herramienta que construyo porque quiero usarla. Es software
+Esto es una herramienta que construyo porque quiero usarla. Un desarrollador,
+una necesidad, y una solución compartida por si también es la tuya. Es software
 deliberadamente personal — sin equipos, sin colaboración, sin plan de
-crecimiento. Si a ti también te sirve, mejor.
+crecimiento, sin nada que venderte después. Gratuito y de código abierto, y así
+se queda.
 
 ## Una tarea no termina cuando la tachas
 
@@ -67,8 +73,10 @@ veinticuatro horas sin dejar rastro que valga.
 
 ## Lee lo que escribes
 
-Escribes una frase. Tisty le saca la fecha, deja la frase legible y te dice qué
-entendió antes de guardar nada.
+Así se captura una tarea, tanto en la ventana como en la terminal. Escribes una
+frase; Tisty le saca la fecha, deja la frase legible y te enseña qué entendió
+**antes** de guardar nada. En la ventana eso aparece como fichas que corriges
+con un clic; los ejemplos de abajo usan la terminal porque caben en una página.
 
 ```console
 $ tisty "entregar el informe mañana a las 10 en la oficina"
@@ -108,84 +116,67 @@ Cada frase de arriba es un test. El parser lleva detrás un contrato de 190 caso
 en español e inglés que fija qué debe leer y, con la misma frecuencia, qué debe
 dejar en paz.
 
-## Cómo se ve
+## La ventana
+
+Tres columnas como mucho: qué estás mirando, la lista, y la tarea que abriste.
+Nada más en pantalla.
+
+**Tareas**, con cuatro rodajas —*hoy*, *próximas*, *se repiten*, *todas*— y
+vuelves a la que elegiste la última vez. Debajo tus listas, tus etiquetas, el
+archivo, y una búsqueda que llega a todo.
+
+**Una tarea se abre al lado de la lista**, no encima: título, fechas, lista,
+etiquetas y prioridad; descripción y bitácora en Markdown; pasos que tachas de
+uno en uno; y lo que le hayas soltado encima. Completarla no aleja nada de eso
+— pasa al archivo, que es donde la búsqueda hace su mejor trabajo.
+
+**Capturar es un campo arriba.** Lo que Tisty entendió aparece debajo como
+fichas antes de guardarse, y una ficha está a un clic de estar equivocada a
+propósito. Un atajo global abre un campo pequeño sobre lo que estés haciendo,
+para que una tarea que se te ocurre a media cosa no te cueste la cosa.
+
+**Los recordatorios** llegan como notificación del sistema y un sonido corto, y
+cualquiera de los dos se puede apagar. Las tareas que se repiten vuelven solas,
+una ocurrencia cada vez.
+
+**Configuración** guarda tus datos (sincronización, respaldo, dónde vive el
+almacén), los avisos, la escritura y el mantenimiento — incluido un informe que
+puedes adjuntar a un fallo, y que te enseña exactamente lo que lleva antes de
+guardarlo.
+
+La ventana entera funciona con el teclado: flechas por la lista, `Ctrl+Enter`
+para completar, `Escape` para cerrar una tarea, y un anillo de foco visible allá
+donde vaya.
+
+## Y una línea de comandos, si la usas
+
+No es la vía principal —esa es la ventana—, pero todo lo que hace la ventana lo
+hace también la terminal. Lo que cambia es cuántas pulsaciones cuesta, no lo que
+se puede.
 
 ```console
-$ tisty "corregir los timeouts intermitentes al guardar" --prioridad 1
-
-  ✓ corregir los timeouts intermitentes al guardar
+$ tisty "arreglar los timeouts intermitentes al guardar" --priority 1
+  ✓ arreglar los timeouts intermitentes al guardar
     !1
-    ae0bvq
-```
 
-```console
-$ tisty ls todas
-
-  todas                                                 3 tareas
-
-    1  ○ validar las notificaciones de pago
-       mañana
-    2  ○ corregir los timeouts intermitentes al guardar
-       !1
-    3  ○ actualizar las dependencias de CI
-
-$ tisty done 3
-  ✓ actualizar las dependencias de CI
-```
-
-Para referirte a una tarea puedes usar el número de la última lista, un trozo
-del título (`tisty done pago`) o su identificador. Un ULID es para los scripts,
-no para los dedos.
-
-Y luego la parte que solo se cobra más tarde. Lo que anotas mientras trabajas
-queda pegado a la tarea, y completarla no lo pone fuera de alcance:
-
-```console
 $ tisty log 1 "el presupuesto de reintentos se agotó antes de que el pool se rellenara"
 $ tisty done 1
 
 $ tisty search "presupuesto de reintentos"
-
   «presupuesto de reintentos»                          1 tarea
-
-    1  ✓ validar las notificaciones de pago
-       mañana · ✎1
+    1  ✓ arreglar los timeouts intermitentes al guardar
+       ✎1
 ```
 
-La búsqueda lee el título, la descripción, la bitácora, los pasos y las
-etiquetas — tanto lo pendiente como el archivo.
+A una tarea la nombras por su número en el último listado, por un fragmento de
+su título (`tisty done pagos`) o por su identificador. Los filtros se combinan y
+se escriben como los marcadores con los que capturas: `tisty ls semana
+#seguridad`, `tisty ls @trabajo !1`.
 
-Los filtros se combinan, y las mismas palabras sirven para escribir una tarea y
-para buscarla:
-
-```console
-$ tisty ls semana #seguridad
-
-  semana #seguridad                                       1 tarea
-
-    1  ○ rotar las llaves de firma
-       !1 · mañana · @plataforma · #seguridad
-```
-
-`hoy` · `mañana` · `semana` · `vencidas` · `inbox` · `archivo` · `todas` ·
-`@lista` · `#etiqueta` · `!1`, o cualquier fecha que sepas escribir —
-`tisty ls viernes`. `tisty ls` a secas significa hoy; nombrar cualquier filtro
-amplía a todo lo abierto, porque pedir `#seguridad` y recibir solo lo de hoy
-escondería justo las tareas por las que preguntabas.
-
-## Pensado para quien vive en una terminal
-
-- **`--json` en todo comando de lectura.** Sin eso, nada de esto sería
-  scriptable.
-- **stdout es datos, stderr es conversación.** Un pipe nunca arrastra
-  decoración, y sin terminal interactivo no hay color ni secuencias de escape.
-- **Códigos de salida con significado:** `0` correcto · `1` error · `2` uso
-  incorrecto · `4` no encontrado.
-- **Todo lo que hará la interfaz gráfica se puede hacer desde la terminal.** Lo
-  que cambia es cuántas teclas cuesta, no qué es posible.
-- **`tisty export` te devuelve los datos**, como JSON o como un documento
-  Markdown que se lee sin Tisty. Acepta los mismos filtros que `ls`, así que
-  puedes exportar una lista, una etiqueta o el archivo entero.
+Para automatizar: `--json` en toda orden de lectura, stdout son datos y stderr
+es conversación, códigos de salida que significan algo (`0` bien · `1` error ·
+`2` mal uso · `4` no encontrado), y `tisty export` te devuelve los datos como
+JSON o como un documento Markdown que se lee sin Tisty.
 
 ## Tus datos
 
@@ -250,17 +241,24 @@ así que una foto al lado solo sería una verdad rival.
 | | |
 |---|---|
 | ✅ | Núcleo: modelo, registro de eventos, almacenamiento, proyección |
-| ✅ | CLI: capturar, listar, completar, ver detalle |
+| ✅ | CLI: capturar, listar, completar, ver detalle, bitácora, pasos, listas, etiquetas |
 | ✅ | Lenguaje natural: `tisty "desplegar la API mañana a las 10"` |
-| ✅ | Bitácora, pasos, listas, etiquetas, búsqueda y deshacer desde la terminal |
-| ✅ | Filtros compuestos de `ls`, `config`, `export`, `--json`, códigos de salida |
-| ✅ | Interfaz gráfica (Tauri): tres columnas, arrastrar y soltar, adjuntos |
-| ✅ | Markdown en descripciones y bitácora |
-| ✅ | Sincronización por una carpeta que alcancen los dos equipos, y respaldo a mano |
-| ✅ | Bandeja y barra de menú, con captura rápida por atajo global |
+| ✅ | Búsqueda en todo, deshacer y rehacer, `--json`, `export`, códigos de salida |
+| ✅ | Ventana (Tauri): lista y detalle, Markdown, adjuntos, teclado en todo |
+| ✅ | Sincronización por una carpeta que ambos equipos alcanzan, y respaldo a mano |
+| ✅ | Bandeja y barra de menús, con captura rápida en un atajo global |
 | ✅ | Tareas que se repiten, una por ocurrencia, plegadas en el archivo |
+| ✅ | Recordatorios, con notificación del sistema y un sonido que puedes apagar |
+| ✅ | Un registro de errores, y un informe que puedes adjuntar a un issue |
 | ◐ | Uso diario, que es lo que saca los fallos que los tests no |
-| ⬜ | Binarios empaquetados para Windows y macOS |
+| ◐ | Builds firmadas: el DMG y el `.exe` están cableados; el paquete de la Store espera un nombre |
+| ⬜ | Linux, fase propia, sin empezar |
+
+Dos cosas son sabidas y aceptadas, no pendientes: no se puede reordenar a mano
+en la ventana —el arrastre de HTML no sobrevive al arrastre nativo de archivos
+que Tauri necesita para los adjuntos, y quedarse con los adjuntos era el mejor
+trato— y nada se ha probado con un lector de pantalla real, aunque el recorrido
+de teclado sí.
 
 ## Qué nunca va a hacer
 
@@ -271,6 +269,17 @@ fórmulas, y IA en el camino crítico de cualquier operación.
 
 El intérprete de lenguaje natural será determinista y local. Nada se envía nunca
 a ningún modelo.
+
+## Otras herramientas
+
+Las mismas manos, la misma idea: gratuitas, de código abierto, sin anuncios, sin
+telemetría, todo en tu máquina.
+
+- **[CopyPaste](https://github.com/rgdevment/CopyPaste)** — un gestor de
+  portapapeles para Windows, macOS y Linux.
+- **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — un selector de
+  navegadores para Windows y macOS: pregunta con cuál abrir un enlace en vez de
+  suponerlo.
 
 ## Contribuir
 

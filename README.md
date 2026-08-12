@@ -2,15 +2,19 @@
 
 **English** · [Español](README.es.md)
 
-A local, private, minimal task manager for macOS, Windows and Linux.
+A local, private, minimal task manager for macOS and Windows, with a command
+line and a window that do the same things.
+
+**What you finish is the point.** A task manager that throws away what you
+solved is throwing away the only record of how you solved it.
 
 No account, no telemetry, no server. Your tasks are plain text files on your own
 disk, readable with `cat` and searchable with `grep`. If Tisty disappears
 tomorrow, your data is still there.
 
-> **Early development.** The core works and the command line is usable, but
-> natural language, sync and the graphical interface are not there yet. This is
-> not a release.
+> **Alpha.** Everything below works and is in daily use by the person who wrote
+> it. What is missing is the mileage that only other people's machines provide.
+> Linux is a phase of its own and has not started.
 
 ---
 
@@ -39,9 +43,10 @@ What was missing sat in between: **a personal task manager that is also the
 record of how you solved things.** Local, private, with a first-class command
 line and an interface that doesn't hurt to look at.
 
-This is a tool I am building because I want to use it. It is deliberately
-personal software — no teams, no collaboration, no growth plan. If it is useful
-to you as well, all the better.
+This is a tool I am building because I want to use it. One developer, one need,
+and a solution shared in case it is yours too. It is deliberately personal
+software — no teams, no collaboration, no growth plan, nothing to sell you
+later. Free and open source, and it stays that way.
 
 ## A task doesn't end when you tick it
 
@@ -65,8 +70,11 @@ a day and leaves nothing worth keeping.
 
 ## It reads what you write
 
-You type a sentence. Tisty takes the date out of it, leaves the sentence
-readable, and tells you what it understood before anything is stored.
+This is how a task is captured, in the window and in the terminal alike. You
+type a sentence; Tisty takes the date out of it, leaves the sentence readable,
+and shows you what it understood **before** anything is stored. In the window
+the reading appears as chips you can correct with one click; the examples below
+use the terminal because it fits on a page.
 
 ```console
 $ tisty "ship the release tomorrow at 10 to production"
@@ -107,89 +115,64 @@ Every sentence above is a test. The parser ships with a contract of 190 cases in
 Spanish and English that says what it must read and, just as often, what it must
 leave alone.
 
-## What it looks like
+## The window
+
+Three columns at most: what you are looking at, the list, and the task you
+opened. Nothing else on screen.
+
+**Tasks**, with four slices — *today*, *upcoming*, *repeating*, *all* — and the
+one you chose last is the one you come back to. Then your lists, your tags, the
+archive, and a search that reaches all of it.
+
+**A task opens beside the list**, not on top of it: title, dates, list, tags and
+priority; a description and a journal in Markdown; steps you tick off one at a
+time; and whatever you dropped on it. Completing it does not put any of that out
+of reach — it moves to the archive, which is where search does its best work.
+
+**Capture is one field at the top.** What Tisty understood appears underneath as
+chips before it is saved, and a chip is one click away from being wrong on
+purpose. A global shortcut opens a small field over whatever you are doing, so
+a task that occurs to you mid-something does not cost you the something.
+
+**Reminders** arrive as a system notification and a short sound, and either can
+be turned off. Repeating tasks come back on their own, one occurrence at a time.
+
+**Settings** hold your data (sync, backup, where the store lives), notices,
+writing, and maintenance — including a report you can attach to a bug, which
+shows you exactly what it contains before you save it.
+
+The whole window works from the keyboard: arrows through the list, `Ctrl+Enter`
+to complete, `Escape` to close a task, and a visible focus ring everywhere it
+goes.
+
+## And a command line, if you use one
+
+Not the main way in — the window is — but everything the window does, the
+terminal does too. What changes is how many keystrokes it costs, not what is
+possible.
 
 ```console
 $ tisty "fix the intermittent timeouts on save" --priority 1
-
   ✓ fix the intermittent timeouts on save
     !1
-    5htpgs
-```
 
-```console
-$ tisty ls all
-
-  all                                                    3 tasks
-
-    1  ○ validate the payment notifications
-       tomorrow
-    2  ○ fix the intermittent timeouts on save
-       !1
-    3  ○ update the CI dependencies
-
-$ tisty done 3
-  ✓ update the CI dependencies
-```
-
-You can refer to a task by its number in the last listing, by a fragment of its
-title (`tisty done payment`), or by its identifier. A ULID is for scripts, not
-for fingers.
-
-Then the part that only pays off later. What you write down while working stays
-attached to the task, and completing it does not put it out of reach:
-
-```console
 $ tisty log 1 "the retry budget was exhausted before the pool refilled"
 $ tisty done 1
 
 $ tisty search "retry budget"
-
   «retry budget»                                        1 task
-
-    1  ✓ validate the payment notifications
-       tomorrow · ✎1
+    1  ✓ fix the intermittent timeouts on save
+       ✎1
 ```
 
-Search reads the title, the description, the journal, the steps and the tags —
-open work and archive alike.
+Refer to a task by its number in the last listing, by a fragment of its title
+(`tisty done payment`), or by its identifier. Filters combine and read like the
+markers you write with: `tisty ls week #security`, `tisty ls @work !1`.
 
-Filters combine, and the same words work when writing a task and when looking
-for one:
-
-```console
-$ tisty ls week #security
-
-  week #security                                          1 task
-
-    1  ○ rotate the signing keys
-       !1 · tomorrow · @platform · #security
-```
-
-The same markers work while writing it down. `tisty "call the accountant on
-tuesday at 15:30 !1 #clients @work"` files it under `work`, creating that list
-if it is new. A `#42` in the middle of a sentence stays in the title: it is a written
-reference, not a marker.
-
-`today` · `tomorrow` · `week` · `overdue` · `inbox` · `archive` · `all` ·
-`@list` · `#tag` · `!1`, or any date you can write — `tisty ls friday`.
-Bare `tisty ls` means today; naming any filter widens the scope to everything
-open, because asking for `#security` and getting only today's would hide the
-tasks you were asking about.
-
-## Built for people who live in a terminal
-
-- **`--json` on every read command.** Without it, none of this would be
-  scriptable.
-- **stdout is data, stderr is conversation.** A pipe never carries decoration,
-  and without an interactive terminal there is no colour and no escape codes.
-- **Exit codes that mean something:** `0` fine · `1` error · `2` misuse ·
-  `4` not found.
-- **Anything the GUI will do, the terminal can do too.** What changes is how
-  many keystrokes it costs, not what is possible.
-- **`tisty export` gives the data back**, as JSON or as a Markdown document you
-  can read without Tisty. Taking the same filters as `ls`, so you can export a
-  list, a tag or the whole archive.
+For scripting: `--json` on every read command, stdout is data and stderr is
+conversation, exit codes that mean something (`0` fine · `1` error · `2` misuse
+· `4` not found), and `tisty export` gives the data back as JSON or as a
+Markdown document you can read without Tisty.
 
 ## Your data
 
@@ -254,17 +237,24 @@ history, so a snapshot beside it would only be a rival truth.
 | | |
 |---|---|
 | ✅ | Core: model, event log, storage, projection |
-| ✅ | CLI: capture, list, complete, show detail |
+| ✅ | CLI: capture, list, complete, show detail, journal, steps, lists, tags |
 | ✅ | Natural language: `tisty "deploy the API tomorrow at 10"` |
-| ✅ | Journal, steps, lists, tags, search and undo from the command line |
-| ✅ | Composite `ls` filters, `config`, `export`, `--json`, exit codes |
-| ✅ | Graphical interface (Tauri): three columns, drag and drop, attachments |
-| ✅ | Markdown in descriptions and journal entries |
+| ✅ | Search across everything, undo and redo, `--json`, `export`, exit codes |
+| ✅ | Window (Tauri): list and detail, Markdown, attachments, keyboard throughout |
 | ✅ | Sync through a folder both machines reach, and backup by hand |
 | ✅ | Tray and menu bar, with quick capture on a global shortcut |
 | ✅ | Repeating tasks, one per occurrence, folded in the archive |
+| ✅ | Reminders, with a system notification and a sound you can turn off |
+| ✅ | An error log, and a report you can attach to an issue |
 | ◐ | Daily use, which is what turns up the bugs tests do not |
-| ⬜ | Packaged builds for Windows and macOS |
+| ◐ | Signed builds: DMG and `.exe` are wired; the Store package waits on a name |
+| ⬜ | Linux, its own phase, not started |
+
+Two things are known and accepted rather than pending: there is no way to
+reorder by hand in the window — HTML drag and drop does not survive the native
+file drop Tauri needs for attachments, and keeping attachments was the better
+trade — and nothing has been tested with a real screen reader, though the
+keyboard path has.
 
 ## What it will never do
 
@@ -275,6 +265,17 @@ critical path.
 
 The natural language parser will be deterministic and local. Nothing is ever
 sent to a model.
+
+## Other tools
+
+Same hands, same idea: free, open source, no ads, no telemetry, everything on
+your machine.
+
+- **[CopyPaste](https://github.com/rgdevment/CopyPaste)** — a clipboard manager
+  for Windows, macOS and Linux.
+- **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — a browser
+  selector for Windows and macOS: it asks which browser should open a link
+  instead of assuming.
 
 ## Contributing
 
