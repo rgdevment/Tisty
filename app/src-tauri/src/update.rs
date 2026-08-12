@@ -11,7 +11,7 @@
 use tisty_core::witness::{self, Fact, channel};
 
 const MANIFEST: &str =
-    "https://raw.githubusercontent.com/rgdevment/Tisty/main/release-manifest.json";
+    "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json";
 pub const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
