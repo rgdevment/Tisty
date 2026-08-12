@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Change, List, Task } from "../core";
-import { cadence, whenLabel } from "../format";
+import { cadence, clockOf, whenLabel } from "../format";
 import { t } from "../locales";
 import { useEdge } from "./edge";
 import Recall from "./Recall";
@@ -134,8 +134,15 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
       {task.reminders?.map((at) => (
         <Worn
           key={at.at}
-          tint="bg-hover"
-          label={`⏰ ${whenLabel(at)}`}
+          // A reminder on a repeating task comes back with it, so it wears the
+          // repeat's own glyph and tint: a date alone reads as «once, and then
+          // never again», which is the opposite of what it does.
+          tint={task.repeat ? "bg-mark-repeat" : "bg-hover"}
+          label={
+            task.repeat
+              ? `⏰↻ ${cadence(task.repeat)}${clockOf(at) ? ` · ${clockOf(at)}` : ""}`
+              : `⏰ ${whenLabel(at)}`
+          }
           onDrop={() => onPatch({ unremind: civil(at.at) })}
         />
       ))}
@@ -150,7 +157,11 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
       >
         <Sheet roomy onClose={close}>
           <Recall
-            on={task.date}
+            // The deadline stands in when there is no date: something has to
+            // be counted back from, and «a las seis menos cuarto» is the same
+            // wish whichever of the two the task happens to carry.
+            on={task.date ?? task.deadline}
+            due={!task.date && !!task.deadline}
             taken={(task.reminders ?? []).map((one) => civil(one.at))}
             onAdd={(at) => apply({ remind: at })}
             onClose={close}

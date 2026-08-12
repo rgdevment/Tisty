@@ -43,6 +43,11 @@ export function whenLabel(spec: DateSpec, now = new Date()): string {
   return spec.has_time ? `${named} ${clock.format(at)}` : named;
 }
 
+/// The hour alone, for a reminder that names its cadence instead of a day.
+export function clockOf(spec: DateSpec): string {
+  return spec.has_time ? formats().clock.format(new Date(spec.at)) : "";
+}
+
 export const isOverdue = (spec: DateSpec, now = new Date()): boolean =>
   daysFrom(spec.at, now) < 0;
 

@@ -52,8 +52,7 @@ pub fn owed(
         .flat_map(|task| {
             task.reminders
                 .iter()
-                .filter_map(|one| one.instant(here).ok())
-                .filter(|at| *at > from && *at <= now)
+                .flat_map(|one| rings(task, one, here, from, now))
                 .map(|at| Due {
                     at,
                     what: Happening::Due {
@@ -66,6 +65,53 @@ pub fn owed(
     owed.sort_by_key(|one| one.at);
     owed
 }
+
+/// When a task repeats, its reminder is a rule and not a date. The successor is
+/// only born on completion, so a habit skipped once would go quiet for ever —
+/// which is the day it is needed most. It rings while the task stays open, and
+/// completing or dropping it is what stops the ringing.
+fn rings(
+    task: &crate::model::Task,
+    one: &crate::DateSpec,
+    here: &jiff::tz::TimeZone,
+    from: jiff::Timestamp,
+    now: jiff::Timestamp,
+) -> Vec<jiff::Timestamp> {
+    let Ok(first) = one.instant(here) else {
+        return Vec::new();
+    };
+    let Some(repeat) = task.repeat else {
+        return match first > from && first <= now {
+            true => vec![first],
+            false => Vec::new(),
+        };
+    };
+
+    let cadence = repeat.cadence();
+    let mut said = Vec::new();
+    let mut at = one.at;
+    // A reminder abandoned years ago would otherwise be walked one day at a
+    // time on every tick. Past the cap it stops: the task is still sitting
+    // overdue in the list, which is the honest place for it.
+    for _ in 0..STEPS {
+        let Ok(stamp) = one.moved(at).instant(here) else {
+            break;
+        };
+        if stamp > now {
+            break;
+        }
+        if stamp > from {
+            said.push(stamp);
+        }
+        let Some(next) = cadence.after(at) else {
+            break;
+        };
+        at = next;
+    }
+    said
+}
+
+const STEPS: usize = 4_000;
 
 const LOOKBACK: jiff::SignedDuration = jiff::SignedDuration::from_hours(12);
 
@@ -221,10 +267,25 @@ mod tests {
     }
 
     fn with(reminders: Vec<crate::DateSpec>) -> crate::State {
+        made(reminders, None)
+    }
+
+    fn every_day(reminders: Vec<crate::DateSpec>) -> crate::State {
+        made(
+            reminders,
+            Some(crate::model::Repeat::Done(crate::model::Cadence {
+                every: 1,
+                unit: crate::model::Unit::Day,
+            })),
+        )
+    }
+
+    fn made(reminders: Vec<crate::DateSpec>, repeat: Option<crate::model::Repeat>) -> crate::State {
         let mut state = crate::State::default();
         let id = ulid::Ulid::generate();
         let mut add = crate::event::TaskAdd::new("tomar la pastilla".to_string(), "a0".to_string());
         add.reminders = reminders;
+        add.repeat = repeat;
         state.apply(&fired(crate::Op::TaskAdd { id, d: add }));
         state
     }
@@ -380,5 +441,68 @@ mod tests {
     #[test]
     fn nobody_listening_is_not_an_error() {
         assert!(!Heralds::default().tell(&filed("comprar pan")).lost());
+    }
+
+    /// The reason the whole thing changed: a daily medicine whose successor was
+    /// never born, because the day it was skipped is the day it matters.
+    #[test]
+    fn a_habit_skipped_yesterday_still_rings_today() {
+        let state = every_day(vec![at("2026-08-11T09:00:00")]);
+
+        let told = owed(
+            &state,
+            moment("2026-08-12T08:59:00"),
+            moment("2026-08-12T09:01:00"),
+            &zone(),
+        );
+
+        assert_eq!(told.len(), 1, "the day after should ring: {told:?}");
+    }
+
+    #[test]
+    fn a_habit_left_for_a_week_rings_once_today_and_not_seven_times() {
+        let state = every_day(vec![at("2026-08-05T09:00:00")]);
+
+        let told = owed(
+            &state,
+            moment("2026-08-12T08:59:00"),
+            moment("2026-08-12T09:01:00"),
+            &zone(),
+        );
+
+        assert_eq!(told.len(), 1, "{told:?}");
+    }
+
+    /// The cadence still decides: a reminder that does not fall on today rings
+    /// on none of the days in between.
+    #[test]
+    fn a_habit_says_nothing_at_an_hour_that_is_not_its_own() {
+        let state = every_day(vec![at("2026-08-11T09:00:00")]);
+
+        assert!(
+            owed(
+                &state,
+                moment("2026-08-12T14:00:00"),
+                moment("2026-08-12T15:00:00"),
+                &zone(),
+            )
+            .is_empty()
+        );
+    }
+
+    /// Without a cadence nothing changes: one reminder, one ring, once.
+    #[test]
+    fn a_plain_reminder_still_rings_only_the_once() {
+        let state = with(vec![at("2026-08-11T09:00:00")]);
+
+        assert!(
+            owed(
+                &state,
+                moment("2026-08-12T08:59:00"),
+                moment("2026-08-12T09:01:00"),
+                &zone(),
+            )
+            .is_empty()
+        );
     }
 }
