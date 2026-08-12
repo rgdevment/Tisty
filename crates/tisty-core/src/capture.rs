@@ -34,6 +34,8 @@ pub enum Rejected {
     NoSuchList(String),
     #[error("several lists match «{0}»")]
     AmbiguousList(String),
+    #[error("a series cannot end before today")]
+    EndedAlready,
 }
 
 /// Applied and undone as one batch.
@@ -46,6 +48,14 @@ pub fn plan(state: &State, draft: Draft) -> Result<Plan, Rejected> {
     let title = draft.title.trim();
     if title.is_empty() {
         return Err(Rejected::Untitled);
+    }
+    // Otherwise the series ends at the first completion and nothing ever says
+    // why: the task simply stops coming back.
+    if draft
+        .repeat
+        .is_some_and(|over| over.ended(jiff::Zoned::now().date()))
+    {
+        return Err(Rejected::EndedAlready);
     }
 
     let mut ops = Vec::with_capacity(2);

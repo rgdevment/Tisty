@@ -251,6 +251,7 @@ impl From<tisty_core::capture::Rejected> for Refusal {
         use tisty_core::capture::Rejected;
         match rejected {
             Rejected::Untitled => Refusal::of("untitled"),
+            Rejected::EndedAlready => Refusal::of("pastEnd"),
             Rejected::NoSuchList(name) => Refusal::about("noSuchList", name),
             Rejected::AmbiguousList(name) => Refusal::about("ambiguousList", name),
         }
@@ -798,9 +799,7 @@ fn repeated(
     }
     // A last day already gone by would end the series at the next completion,
     // silently: the task simply stops coming back and nothing ever said why.
-    if let Some(last) = over.until
-        && last < now.date()
-    {
+    if over.ended(now.date()) {
         return Err(Refusal::of("pastEnd"));
     }
     Ok(Some(Some(over)))
