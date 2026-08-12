@@ -13,6 +13,7 @@ fn unwritten(why: &std::io::Error) {
     );
 }
 
+#[cfg(windows)]
 fn same(a: &str, b: &str) -> bool {
     let tidy = |one: &str| {
         let one = one.trim().trim_end_matches(['\\', '/']).to_string();
@@ -26,6 +27,7 @@ fn same(a: &str, b: &str) -> bool {
 }
 
 /// `None` when it is already there, so a reinstall cannot grow the variable.
+#[cfg(windows)]
 pub fn with(path: &str, dir: &str) -> Option<String> {
     if path.split(SEPARATOR).any(|one| same(one, dir)) {
         return None;
@@ -38,6 +40,7 @@ pub fn with(path: &str, dir: &str) -> Option<String> {
 }
 
 /// `None` when it was not there. Everything else keeps its order and spelling.
+#[cfg(windows)]
 pub fn without(path: &str, dir: &str) -> Option<String> {
     if !path.split(SEPARATOR).any(|one| same(one, dir)) {
         return None;
@@ -49,10 +52,10 @@ pub fn without(path: &str, dir: &str) -> Option<String> {
     Some(kept.join(&SEPARATOR.to_string()))
 }
 
+// Windows only, like everything it separates: elsewhere `tisty` is reached by
+// a symlink and no PATH is ever edited.
 #[cfg(windows)]
 const SEPARATOR: char = ';';
-#[cfg(not(windows))]
-const SEPARATOR: char = ':';
 
 pub fn beside() -> Option<PathBuf> {
     let here = std::env::current_exe().ok()?;
@@ -241,7 +244,7 @@ pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
     tie(wanted).inspect_err(unwritten)
 }
 
-#[cfg(test)]
+#[cfg(all(test, windows))]
 mod tests {
     use super::*;
 

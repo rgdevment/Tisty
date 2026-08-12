@@ -420,7 +420,7 @@ mod tests {
 
     #[test]
     fn a_path_that_names_nobody_is_left_whole() {
-        let said = kept_short(Path::new(r"C:\store\store\dev_a\000001.jsonl"));
+        let said = kept_short(Path::new("/store/store/dev_a/000001.jsonl"));
 
         assert!(said.ends_with("000001.jsonl"), "{said}");
     }
