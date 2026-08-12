@@ -2117,7 +2117,15 @@ pub fn unreach() -> std::io::Result<bool> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut building = tauri::Builder::default();
+
+    if tisty_core::paths::profile().is_none() {
+        building = building.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            tray::surface(app);
+        }));
+    }
+
+    building
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
