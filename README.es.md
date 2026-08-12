@@ -100,18 +100,64 @@ $ tisty "entregar el informe mañana a las 10 en la oficina"
   ✓ entregar el informe en la oficina
     mañana 10:00
 
-$ tisty "renovar el dominio antes del 30 de agosto"
-  ✓ renovar el dominio
-    límite dom 30 ago            # «antes del» vence, no se planifica
-
-$ tisty "revisar el deploy #backend !alto"
-  ✓ revisar el deploy
-    alto · #backend
-
-$ tisty "reunión el lunes 15"       →  reunión        · sáb 15 ago
-$ tisty "revisar la próxima semana" →  revisar        · dom 16 ago
-$ tisty "tomar café a las 3"        →  tomar café     · hoy 15:00
+$ tisty "reservar los vuelos @viajes #urgente !alto"
+  ✓ reservar los vuelos
+    !1 · @viajes · #urgente
 ```
+
+**Cuándo ocurre.** Un día, una hora, o las dos. Valen los nombres, las
+distancias y las fechas a secas; lo que no sabe leer lo deja en paz en vez de
+adivinar.
+
+```console
+$ tisty "tomar café a las 3"          →  hoy 15:00
+$ tisty "reunión el lunes 15"         →  sáb
+$ tisty "revisar la próxima semana"   →  23 ago
+```
+
+**Cuándo vence de verdad.** El límite no es lo mismo que el plan: la fecha es
+cuándo piensas hacerlo, el límite es la pared de detrás. Tres formas lo abren
+—**antes de**, **vence** y **hasta**— y se leen igual.
+
+```console
+$ tisty "entregar el informe antes del viernes"     →  límite vie
+$ tisty "renovar el dominio vence el 30 de agosto"  →  límite 30 ago
+$ tisty "enviar la factura hasta el viernes"        →  límite vie
+```
+
+Cuidado con **para**, que hace lo contrario: `para el viernes` es un plan,
+`antes del viernes` es un límite.
+
+**Qué vuelve.** Nombrar un día la hace fija; nombrar solo un intervalo la hace
+relativa. La basura sale el martes tanto si la sacaste la semana pasada como si
+no, pero los tres días empiezan a contar cuando de verdad regaste.
+
+```console
+$ tisty "sacar la basura cada martes"      →  mar · ↻ cada semana
+$ tisty "regar las plantas cada 3 días"    →  ↻ cada 3 días
+```
+
+Una tarea que se repite puede llevar su propio límite, y es el **de esa
+ocurrencia**: el alquiler vence el día 5 de cada mes, no una sola vez.
+
+```console
+$ tisty "enviar el reporte cada semana antes del viernes"
+  ✓ enviar el reporte
+    límite vie · ↻ cada semana
+```
+
+Y a una serie se le puede decir cuándo parar. **Hasta** termina la repetición:
+la última no deja sucesora.
+
+```console
+$ tisty "tomar la pastilla cada día a las 9 hasta el 30 de septiembre"
+  ✓ tomar la pastilla
+    mañana 09:00 · ↻ cada día hasta el 30 sep
+```
+
+La misma palabra hace dos trabajos y la frase decide cuál: con una cadencia
+dentro, `hasta el 30 de septiembre` termina la serie; sin ella, es el límite. Di
+`antes de` o `vence` cuando quieras un límite en una tarea que se repite.
 
 **Y lo que se niega a leer importa más.** Una suposición que suena bien es peor
 que ninguna, así que estas conservan cada palabra y no llevan fecha:
@@ -129,9 +175,13 @@ medio sin nada que la respalde —`llamar mañana al banco`— la fecha **se apl
 igual, pero marcada como suposición**: la terminal lo dice e imprime el comando
 que deshace solo eso, y la ventana la subraya para que un clic la quite.
 
-Cada frase de arriba es un test. El parser lleva detrás un contrato de 190 casos
+Cada frase de arriba es un test. El parser lleva detrás un contrato de 253 casos
 en español e inglés que fija qué debe leer y, con la misma frecuencia, qué debe
 dejar en paz.
+
+En inglés funciona con las mismas reglas y sus propias palabras: `every tuesday`,
+`every 3 days`, `before friday`, `due august 30`,
+`every day at 9am until september 30`.
 
 ## La ventana
 
@@ -219,8 +269,8 @@ y **se trae las que dejaron los demás**. Son dos rutas distintas, y solo una la
 eliges tú.
 
 Tu configuración nunca viaja con ellos. El identificador de dispositivo vive en
-el fichero de configuración precisamente para quedarse en esta máquina: si
-viajara, dos equipos lo compartirían, escribirían en el mismo fichero y la
+el archivo de configuración precisamente para quedarse en esta máquina: si
+viajara, dos equipos lo compartirían, escribirían en el mismo archivo y la
 garantía de abajo se vendría abajo.
 
 Un registro de eventos que solo crece. De ahí salen gratis el historial y el
@@ -230,8 +280,8 @@ historias es concatenarlas.
 
 Eso es una sola lista, no una por máquina. Cada dispositivo lee todos los
 directorios y los reproduce en orden; solo escribe en el suyo. Por eso una
-carpeta sincronizada nunca produce uno de esos `fichero (copia en conflicto)`:
-dos escritores jamás tocan el mismo fichero.
+carpeta sincronizada nunca produce uno de esos `archivo (copia en conflicto)`:
+dos escritores jamás tocan el mismo archivo.
 
 ## Dos máquinas
 

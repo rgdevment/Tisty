@@ -97,18 +97,63 @@ $ tisty "ship the release tomorrow at 10 to production"
   ✓ ship the release to production
     tomorrow 10:00
 
-$ tisty "renew the domain by august 30"
-  ✓ renew the domain
-    deadline sun 30 aug          # «by» is a limit, not a plan
-
-$ tisty "review the deploy #backend !high"
-  ✓ review the deploy
-    high · #backend
-
-$ tisty "meeting monday 15"       →  meeting              · sat 15 aug
-$ tisty "review it next week"     →  review it            · sun 16 aug
-$ tisty "call the bank at 3"      →  call the bank        · today 15:00
+$ tisty "book the flights @travel #urgent !high"
+  ✓ book the flights
+    !1 · @travel · #urgent
 ```
+
+**When it happens.** A day, a time, or both. Names, distances and plain dates all
+work; what it cannot read it leaves alone rather than guess.
+
+```console
+$ tisty "call the bank at 3"        →  today 15:00
+$ tisty "meeting monday 15"         →  sat
+$ tisty "review it next week"       →  23 aug
+```
+
+**When it is actually due.** A deadline is a different thing from a plan: the
+date is when you mean to do it, the deadline is the wall behind it. Three words
+open one — **before**, **due** and **until** — and they read the same.
+
+```console
+$ tisty "file the report before friday"      →  due fri
+$ tisty "renew the domain due august 30"     →  due 30 aug
+$ tisty "send the invoice until friday"      →  due fri
+```
+
+Mind the difference between *for* and the three above: `for friday` is a plan,
+`before friday` is a limit.
+
+**What comes back.** Naming a day makes it fixed; naming only an interval makes
+it relative. The bin goes out on Tuesday whether or not you took it out last
+week, but three days start counting when you actually watered the plants.
+
+```console
+$ tisty "bins out every tuesday"        →  tue · ↻ every week
+$ tisty "water the plants every 3 days" →  ↻ every 3 days
+```
+
+A repeating task can carry a deadline of its own, and it belongs to **that
+occurrence**: the rent is due by the 5th of every month, not once ever.
+
+```console
+$ tisty "submit the report every week before friday"
+  ✓ submit the report
+    due fri · ↻ every week
+```
+
+And a series can be told when to stop. **Until** ends the repetition — the last
+one hands on no successor.
+
+```console
+$ tisty "take the pill every day at 9am until september 30"
+  ✓ take the pill
+    tomorrow 09:00 · ↻ every day until 30 sep
+```
+
+The same word does two jobs and the sentence decides which: with a cadence in
+it, `until september 30` ends the series; without one, it is the deadline. Say
+`before` or `due` when you mean a deadline on a task that repeats.
 
 **And what it refuses to read matters more.** A guess that reads well is worse
 than no guess at all, so these keep every word and get no date:
@@ -127,9 +172,13 @@ invoice` — the date is still applied, but **marked as a guess**: the terminal
 says so and prints the command that undoes just that, and the window underlines
 it so one click drops it.
 
-Every sentence above is a test. The parser ships with a contract of 190 cases in
+Every sentence above is a test. The parser ships with a contract of 253 cases in
 Spanish and English that says what it must read and, just as often, what it must
 leave alone.
+
+It reads Spanish with the same rules and its own words: `cada martes`,
+`cada 3 días`, `antes del viernes`, `vence el 30 de agosto`,
+`cada día a las 9 hasta el 30 de septiembre`.
 
 ## The window
 

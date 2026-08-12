@@ -105,10 +105,10 @@ fn cadence(over: tisty_core::model::Repeat, lang: Lang) -> String {
             .replace("{unit}", unit)
     };
     match over.until {
-        Some(last) => format!(
-            "{said} {}",
-            lang.get("until-day").replace("{day}", &last.to_string())
-        ),
+        Some(last) => {
+            let day = format!("{} {}", last.day(), lang.month(last.month() as u8));
+            format!("{said} {}", lang.get("until-day").replace("{day}", &day))
+        }
         None => said,
     }
 }
@@ -237,6 +237,10 @@ pub fn captured(
         meta.push(format!("@{}", slug(&list.name)));
     }
     meta.extend(task.tags.iter().map(|t| format!("#{t}")));
+    // A capture that stays quiet about the cadence is not showing what it read.
+    if let Some(over) = task.repeat {
+        meta.push(format!("↻ {}", cadence(over, lang)));
+    }
 
     if !meta.is_empty() {
         out.push_str(&format!("    {}\n", meta.join(" · ")));
