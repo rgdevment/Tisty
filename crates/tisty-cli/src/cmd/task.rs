@@ -24,7 +24,7 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
             .spans
             .iter()
             .any(|span| span.certainty == tisty_nl::Certainty::Assumed))
-    .then(|| as_written(&text, &read));
+    .then(|| as_written(&text, &read, lang));
     let mut draft = Draft::from(read);
 
     if let Some(date) = date_flag(args.date.as_deref(), lang)? {
@@ -58,14 +58,14 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
 }
 
 /// The sentence with markers removed but the date left in — the title if nobody had guessed.
-fn as_written(text: &str, read: &tisty_nl::Parsed) -> String {
+fn as_written(text: &str, read: &tisty_nl::Parsed, lang: Lang) -> String {
     let markers: Vec<_> = read
         .spans
         .iter()
         .copied()
         .filter(|span| !matches!(span.mark, tisty_nl::Mark::Date | tisty_nl::Mark::Deadline))
         .collect();
-    tisty_nl::title_without(text, &markers)
+    tisty_nl::title_without(text, &markers, lang.code())
 }
 
 fn refused(e: Rejected, lang: Lang) -> anyhow::Error {

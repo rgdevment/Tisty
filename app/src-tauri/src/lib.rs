@@ -463,7 +463,7 @@ impl Edits {
     }
 
     /// A reading the user unmarked goes back into the title; picking a different date is not unmarking.
-    fn retitled(&self, text: &str, read: &tisty_nl::Parsed) -> Option<String> {
+    fn retitled(&self, text: &str, read: &tisty_nl::Parsed, spoken: &str) -> Option<String> {
         let undone = self.no_date
             || self.no_deadline
             || self.no_list
@@ -487,7 +487,7 @@ impl Edits {
         {
             kept.extend(offer.spans.iter().copied());
         }
-        Some(tisty_nl::title_without(text, &kept))
+        Some(tisty_nl::title_without(text, &kept, spoken))
     }
 
     fn unmarked(&self, span: &tisty_nl::Span, letters: &[char]) -> bool {
@@ -580,7 +580,7 @@ fn capture(
     if let Some(spec) = &draft.deadline {
         ahead(spec, &now, "pastDeadline")?;
     }
-    if let Some(title) = edits.retitled(&text, &read) {
+    if let Some(title) = edits.retitled(&text, &read, &spoken) {
         draft.title = title;
     }
 
@@ -2299,7 +2299,7 @@ mod tests {
             ..Default::default()
         };
         edits.apply(&mut draft, &now(), "es").unwrap();
-        draft.title = edits.retitled(text, &read).expect("a new title");
+        draft.title = edits.retitled(text, &read, "es").expect("a new title");
 
         assert_eq!(draft.title, "revisar el informe");
         assert_eq!(draft.date.unwrap().date().to_string(), "2026-08-10");
@@ -2336,7 +2336,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            edits.retitled(text, &read).as_deref(),
+            edits.retitled(text, &read, "es").as_deref(),
             Some("comprar pan #casa")
         );
     }
@@ -2358,7 +2358,7 @@ mod tests {
             date: Some("2026-08-20".to_string()),
             ..Default::default()
         };
-        assert_eq!(edits.retitled(text, &read), None);
+        assert_eq!(edits.retitled(text, &read, "es"), None);
     }
 
     /// One file to attach to an issue, and the log only if it was asked for.

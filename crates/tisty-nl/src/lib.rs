@@ -218,7 +218,7 @@ fn timed(text: &str, now: &Zoned, tz: &str, v: &vocab::Vocabulary) -> Timed {
         let mut cut: Vec<(usize, usize)> =
             reads.iter().flat_map(|(f, _)| f.spans.clone()).collect();
         cut.sort_unstable();
-        let title = unquote(&without_spans(text, &tokens, &cut));
+        let title = unquote(&without_spans(text, &tokens, &cut, v));
         if title.is_empty() {
             return untouched();
         }
@@ -243,7 +243,7 @@ fn timed(text: &str, now: &Zoned, tz: &str, v: &vocab::Vocabulary) -> Timed {
     let Some(read) = resolved(text, &tokens, found, now, tz) else {
         return untouched();
     };
-    let title = unquote(&without_spans(text, &tokens, &found.spans));
+    let title = unquote(&without_spans(text, &tokens, &found.spans, v));
     if title.is_empty() {
         return untouched();
     }
@@ -446,7 +446,9 @@ fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
     taken
 }
 
-fn words(input: &str) -> Vec<(usize, &str)> {
+/// Whitespace-separated, each with the byte it starts at. The one place
+/// that walks the text; everything else layers on top.
+pub(crate) fn words(input: &str) -> Vec<(usize, &str)> {
     let mut out = Vec::new();
     let mut start = None;
 
@@ -466,7 +468,7 @@ fn words(input: &str) -> Vec<(usize, &str)> {
 }
 
 /// The title with these readings removed; public so a client can preview unmarking one.
-pub fn title_without(input: &str, spans: &[Span]) -> String {
+pub fn title_without(input: &str, spans: &[Span], locale: &str) -> String {
     let letters: Vec<char> = input.chars().collect();
     let mut ordered: Vec<&Span> = spans.iter().collect();
     ordered.sort_by_key(|span| span.from);
@@ -481,11 +483,16 @@ pub fn title_without(input: &str, spans: &[Span]) -> String {
         at = span.to;
     }
     kept.push(letters[at..].iter().collect());
-    sewn(kept)
+    sewn(kept, vocab::for_locale(locale))
 }
 
 /// The temporal phrase can sit mid-sentence, so both sides of the hole are the title.
-fn without_spans(text: &str, tokens: &[scan::Token], spans: &[(usize, usize)]) -> String {
+fn without_spans(
+    text: &str,
+    tokens: &[scan::Token],
+    spans: &[(usize, usize)],
+    v: &vocab::Vocabulary,
+) -> String {
     let mut kept = Vec::new();
     let mut at = 0;
 
@@ -494,19 +501,20 @@ fn without_spans(text: &str, tokens: &[scan::Token], spans: &[(usize, usize)]) -
         at = tokens.get(*to).map_or(text.len(), |token| token.start);
     }
     kept.push(text[at..].to_string());
-    sewn(kept)
+    sewn(kept, v)
 }
 
-fn sewn(pieces: Vec<String>) -> String {
+fn sewn(pieces: Vec<String>, v: &vocab::Vocabulary) -> String {
     let mut title = String::new();
     for piece in pieces {
         let tidied = tidy(&piece);
         let piece = tidied.trim_end_matches(',').trim_end();
-        let piece = LOOSE_ENDS
+        let piece = v
+            .loose_ends
             .iter()
             .find_map(|word| piece.strip_suffix(&format!(" {word}")))
             .unwrap_or(piece);
-        if piece.is_empty() || LOOSE_ENDS.contains(&piece) {
+        if piece.is_empty() || v.loose_ends.contains(&piece) {
             continue;
         }
         if !title.is_empty() {
@@ -516,11 +524,6 @@ fn sewn(pieces: Vec<String>) -> String {
     }
     title
 }
-
-const LOOSE_ENDS: &[&str] = &[
-    "y", "e", "o", "u", "ni", "and", "or", "nor", "to", "al", "a", "el", "la", "los", "las", "por",
-    "for",
-];
 
 fn tidy(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
