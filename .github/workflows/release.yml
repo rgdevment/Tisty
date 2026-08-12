@@ -359,9 +359,17 @@ jobs:
           cargo build --release --bin tisty --target aarch64-apple-darwin
           cargo build --release --bin tisty --target x86_64-apple-darwin
           mkdir -p app/src-tauri/binaries
+          # Three files, not one. The bundler asks for the universal sidecar,
+          # but a universal build is two `cargo build`s and each resolves the
+          # sidecar for its own triple, long before the bundler is reached.
+          cp target/aarch64-apple-darwin/release/tisty \
+            app/src-tauri/binaries/tisty-aarch64-apple-darwin
+          cp target/x86_64-apple-darwin/release/tisty \
+            app/src-tauri/binaries/tisty-x86_64-apple-darwin
           lipo -create -output app/src-tauri/binaries/tisty-universal-apple-darwin \
             target/aarch64-apple-darwin/release/tisty \
             target/x86_64-apple-darwin/release/tisty
+          lipo -archs app/src-tauri/binaries/tisty-universal-apple-darwin
 
       # Tauri imports the certificate itself when these are set, and signs the
       # bundle as it builds it; signing afterwards would break the .app seal.
@@ -470,7 +478,11 @@ jobs:
           quad="${v%%-*}.0"
 
           mkdir -p msix/Assets msix/cli
-          cp target/release/Tisty.exe msix/Tisty.exe
+          # `tisty-gui.exe`, not `Tisty.exe`: Tauri renames the binary when it
+          # bundles, and this job does not bundle. On a case-insensitive
+          # filesystem `Tisty.exe` resolves to the CLI sitting beside it, so the
+          # wrong copy would have succeeded in silence and shipped no app at all.
+          cp target/release/tisty-gui.exe msix/Tisty.exe
           cp "target/$TARGET/release/tisty.exe" msix/cli/tisty.exe
           for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
             cp "app/src-tauri/icons/$logo.png" "msix/Assets/$logo.png"
@@ -519,7 +531,7 @@ jobs:
     needs:
       [version, build-macos, build-windows, bundle-windows, bundle-macos, bundle-msix]
     if: >-
-      always() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success'
       && needs.build-macos.result == 'success'
       && needs.build-windows.result == 'success'

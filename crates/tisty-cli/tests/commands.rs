@@ -461,14 +461,12 @@ fn doctor_catches_a_cache_that_disagrees_and_repair_clears_it() {
     cli.ok(&["ls", "all"]);
 
     let db = cli.home.path().join("cache").join("read.db");
-    let touched = std::process::Command::new("sqlite3")
-        .arg(&db)
-        .arg("DELETE FROM task WHERE rowid = 1")
-        .status()
-        .is_ok_and(|s| s.success());
-    if !touched {
-        return;
-    }
+    let taken = rusqlite::Connection::open(&db).unwrap();
+    let gone = taken
+        .execute("DELETE FROM task WHERE rowid = 1", [])
+        .unwrap();
+    assert_eq!(gone, 1, "the cache held nothing to take away");
+    drop(taken);
 
     let run = cli.run(&["doctor"]);
     assert_ne!(run.code, 0, "{}", run.out);
@@ -680,14 +678,16 @@ fn fields_are_set_and_cleared_one_at_a_time() {
     cli.ok(&["audit the permissions"]);
     cli.ok(&["ls", "all"]);
 
-    cli.ok(&["set", "1", "--date", "2026-12-24", "--priority", "1"]);
+    let later = far_ahead();
+    let day = later.day().to_string();
+    cli.ok(&["set", "1", "--date", &later.to_string(), "--priority", "1"]);
     let out = cli.ok(&["ls", "all"]);
-    assert!(out.contains("24"), "{out}");
+    assert!(out.contains(&day), "{out}");
     assert!(out.contains("!1"), "{out}");
 
     cli.ok(&["set", "1", "--no-date"]);
     let out = cli.ok(&["ls", "all"]);
-    assert!(!out.contains("24"), "{out}");
+    assert!(!out.contains(&day), "{out}");
     assert!(
         out.contains("!1"),
         "the priority was not asked about: {out}"
@@ -937,15 +937,22 @@ fn filters_combine_and_each_one_narrows_the_result() {
     assert!(!out.contains("access logs"), "{out}");
 }
 
+/// Far enough ahead that no view calls it «today» and no renderer spells it as
+/// a weekday: `short()` only prints the number outside the -1..7 day band. A
+/// literal date would have started failing on its own, which is how the two
+/// tests below were written.
+fn far_ahead() -> jiff::civil::Date {
+    jiff::Zoned::now()
+        .date()
+        .checked_add(jiff::Span::new().days(400))
+        .unwrap()
+}
+
 #[test]
 fn naming_a_filter_widens_the_scope_past_today() {
     let cli = Cli::new();
-    cli.ok(&[
-        "add",
-        "deal with this much later @slow",
-        "--date",
-        "2026-12-24",
-    ]);
+    let later = far_ahead().to_string();
+    cli.ok(&["add", "deal with this much later @slow", "--date", &later]);
 
     assert!(!cli.ok(&["ls"]).contains("much later"));
     assert!(cli.ok(&["ls", "@slow"]).contains("much later"));
