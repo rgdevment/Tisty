@@ -45,6 +45,7 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 dialoguer = { version = "0.12", default-features = false, features = ["fuzzy-select"] }
 sys-locale = "0.3"
+unicode-normalization = "0.1"
 tempfile = "3"
 
 [workspace.lints.rust]

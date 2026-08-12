@@ -272,6 +272,11 @@ fn main() -> ExitCode {
     match run() {
         Ok(code) => code,
         Err(e) => {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::TERMINAL,
+                "a command ended in an error",
+                &blamed(asked(), &e),
+            );
             eprintln!(
                 "{}: {e}",
                 style::paint(style::RED, Lang::detect(None).get("error"))
@@ -279,6 +284,32 @@ fn main() -> ExitCode {
             ExitCode::from(EXIT_ERROR)
         }
     }
+}
+
+fn blamed(
+    command: &'static str,
+    e: &anyhow::Error,
+) -> Vec<(&'static str, tisty_core::witness::Fact)> {
+    let mut facts = vec![("command", tisty_core::witness::Fact::Code(command))];
+    if let Some(ours) = e.downcast_ref::<tisty_core::Error>() {
+        facts.extend(ours.told());
+    }
+    facts
+}
+
+fn asked() -> &'static str {
+    named(std::env::args().nth(1).as_deref())
+}
+
+fn named(first: Option<&str>) -> &'static str {
+    let Some(first) = first else {
+        return "none";
+    };
+    SUBCOMMANDS
+        .iter()
+        .copied()
+        .find(|known| *known == first)
+        .unwrap_or("add")
 }
 
 fn run() -> anyhow::Result<ExitCode> {
@@ -340,6 +371,56 @@ mod tests {
 
     fn normalised(args: &[&str]) -> Vec<String> {
         normalise(args.iter().map(|s| s.to_string()))
+    }
+
+    fn keys(facts: &[(&'static str, tisty_core::witness::Fact)]) -> Vec<&'static str> {
+        facts.iter().map(|(name, _)| *name).collect()
+    }
+
+    #[test]
+    fn a_failure_from_the_core_carries_the_facts_the_core_deems_safe() {
+        let broke = anyhow::Error::from(tisty_core::Error::MissingSegment {
+            number: 7,
+            device: "dev_a3f1".into(),
+        });
+
+        let facts = blamed("sync", &broke);
+
+        assert_eq!(keys(&facts), ["command", "code", "number", "device"]);
+    }
+
+    #[test]
+    fn a_refusal_meant_for_the_screen_leaves_its_words_on_the_screen() {
+        let said = "no list matches «la clínica de Juan»";
+        let refused = anyhow::anyhow!("{said}");
+
+        let facts = blamed("mv", &refused);
+
+        assert_eq!(keys(&facts), ["command"]);
+        assert!(!format!("{facts:?}").contains("Juan"), "{facts:?}");
+    }
+
+    #[test]
+    fn a_failed_command_is_written_down_by_the_name_of_its_subcommand() {
+        assert_eq!(named(Some("sync")), "sync");
+        assert_eq!(named(Some("doctor")), "doctor");
+        assert_eq!(named(None), "none");
+    }
+
+    #[test]
+    fn a_bare_capture_is_written_down_as_the_capture_it_is() {
+        assert_eq!(named(Some("comprar pan")), "add");
+        assert_eq!(named(Some("--version")), "add");
+    }
+
+    #[test]
+    fn nothing_a_person_typed_can_reach_the_file() {
+        let secret = "llamar a la clínica de Juan";
+
+        let written = named(Some(secret));
+
+        assert!(SUBCOMMANDS.contains(&written), "{written}");
+        assert!(!written.contains("Juan"));
     }
 
     #[test]

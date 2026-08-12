@@ -39,10 +39,11 @@ describe("the update dot", () => {
 });
 
 describe("what About suggests", () => {
-  const ready = (route: Ready["route"]): Ready => ({
+  const ready = (route: Ready["route"], named: string | null = null): Ready => ({
     version: "0.3.0",
     route,
     url: "https://example.invalid/releases",
+    package: named,
   });
 
   /// Nothing to ask of somebody whose store does it for them.
@@ -55,9 +56,24 @@ describe("what About suggests", () => {
   });
 
   it("gives the command to a Homebrew install", async () => {
-    render(<About ready={ready("brew")} onError={vi.fn()} />);
+    render(<About ready={ready("brew", "tisty")} onError={vi.fn()} />);
 
     expect(await screen.findByText(/brew upgrade --cask tisty/)).toBeTruthy();
+  });
+
+  /// A candidate installs under its own name, and the stable command upgrades
+  /// nothing there.
+  it("names the package a candidate was installed under", async () => {
+    render(<About ready={ready("brew", "tisty-beta")} onError={vi.fn()} />);
+
+    expect(await screen.findByText(/brew upgrade --cask tisty-beta/)).toBeTruthy();
+  });
+
+  it("gives the formula its own command, without the cask flag", async () => {
+    render(<About ready={ready("brewCli", "tisty-cli")} onError={vi.fn()} />);
+
+    const said = await screen.findByText(/brew upgrade tisty-cli/);
+    expect(said.textContent).not.toContain("--cask");
   });
 
   it("offers the page to everyone else", async () => {

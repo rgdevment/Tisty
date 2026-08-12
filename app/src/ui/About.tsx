@@ -97,7 +97,10 @@ export default function About({
                     </button>
                   ) : (
                     <code className="text-faint">
-                      {t(ready.route === "brew" ? "updateBrew" : "updateBrewCli")}
+                      {fill(
+                        ready.route === "brew" ? "updateBrew" : "updateBrewCli",
+                        ready.package ?? "tisty",
+                      )}
                     </code>
                   )}
                 </p>

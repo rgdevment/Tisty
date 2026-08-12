@@ -153,6 +153,33 @@ describe("what a screen reader is told", () => {
   });
 });
 
+describe("the window buttons sit where the system puts them", () => {
+  const named = () =>
+    screen.getAllByRole("button").map((one) => one.getAttribute("aria-label"));
+
+  /// `onMac` is read once, when the module is first imported.
+  const chrome = async (agent: string) => {
+    vi.resetModules();
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(agent);
+    const { default: WindowChrome } = await import("../ui/WindowChrome");
+    render(<WindowChrome />);
+  };
+
+  it("keeps closing on the right on Windows", async () => {
+    await chrome("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+
+    expect(named()).toEqual(["Minimise", "Maximise", "Close"]);
+  });
+
+  /// Closing is the outermost button on both, and macOS puts the group on the
+  /// left: the same order there would leave it pointing at the middle.
+  it("puts closing on the far left on macOS", async () => {
+    await chrome("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+
+    expect(named()).toEqual(["Close", "Maximise", "Minimise"]);
+  });
+});
+
 describe("opening a task", () => {
   /// It moved the eye and left the keyboard back in the list, so the next Tab
   /// went nowhere near what had just been opened.

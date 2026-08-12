@@ -19,6 +19,14 @@ document.addEventListener("contextmenu", (e) => {
 // «en», Spanish came out read with English phonetics.
 document.documentElement.lang = locale();
 
+{
+  const dark = window.matchMedia("(prefers-color-scheme: dark)");
+  const paint = () =>
+    document.documentElement.setAttribute("data-theme", dark.matches ? "dark" : "light");
+  paint();
+  dark.addEventListener("change", paint);
+}
+
 /// The stack without its first line: in V8 that line is «Kind: message», and
 /// the message is the part that can be carrying somebody's task title.
 const framesOf = (stack?: string): string =>

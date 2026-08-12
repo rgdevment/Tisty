@@ -95,8 +95,6 @@ export default function App() {
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
 
-  useTheme();
-
   const load = useCallback(() => {
     snapshot(asView(chosen))
       .then((fresh) => {
@@ -484,18 +482,6 @@ export default function App() {
       )}
     </div>
   );
-}
-
-function useTheme() {
-  useEffect(() => {
-    const dark = window.matchMedia("(prefers-color-scheme: dark)");
-    const paint = () =>
-      document.documentElement.setAttribute("data-theme", dark.matches ? "dark" : "light");
-
-    paint();
-    dark.addEventListener("change", paint);
-    return () => dark.removeEventListener("change", paint);
-  }, []);
 }
 
 const sliceWord = (slice: Slice) =>

@@ -184,21 +184,12 @@ fn link() -> Option<PathBuf> {
     Some(shelf()?.join("tisty"))
 }
 
-/// Ours means a symlink pointing at the binary beside this window. A real file
-/// there is somebody else's `tisty` — a tarball copy, a `cargo install` — and
-/// removing it would take a program we never put there.
 #[cfg(not(windows))]
 fn ours() -> bool {
     let (Some(at), Some(folder)) = (link(), beside()) else {
         return false;
     };
-    at.symlink_metadata().is_ok_and(|it| it.is_symlink())
-        && std::fs::read_link(&at).is_ok_and(|to| to == folder.join("tisty"))
-}
-
-#[cfg(not(windows))]
-fn taken() -> bool {
-    link().is_some_and(|at| at.symlink_metadata().is_ok())
+    points_at(&at, &folder)
 }
 
 #[cfg(not(windows))]
@@ -206,30 +197,42 @@ fn tie(wanted: bool) -> std::io::Result<bool> {
     let (Some(shelf), Some(link), Some(folder)) = (shelf(), link(), beside()) else {
         return Ok(false);
     };
+    tie_at(&shelf, &link, &folder, wanted)
+}
+
+#[cfg(not(windows))]
+fn tie_at(shelf: &Path, link: &Path, folder: &Path, wanted: bool) -> std::io::Result<bool> {
+    let mine = points_at(link, folder);
     if wanted {
-        if ours() {
+        if mine {
             return Ok(false);
         }
         // A link of ours pointing elsewhere is stale — the app moved, or macOS
         // ran it from a translocated copy — and repointing it is the repair.
-        if taken() {
-            if !is_our_own_link(&link) {
+        if link.symlink_metadata().is_ok() {
+            if !is_our_own_link(link) {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::AlreadyExists,
                     link.display().to_string(),
                 ));
             }
-            std::fs::remove_file(&link)?;
+            std::fs::remove_file(link)?;
         }
-        std::fs::create_dir_all(&shelf)?;
-        std::os::unix::fs::symlink(folder.join("tisty"), &link)?;
+        std::fs::create_dir_all(shelf)?;
+        std::os::unix::fs::symlink(folder.join("tisty"), link)?;
     } else {
-        if !ours() {
+        if !mine {
             return Ok(false);
         }
-        std::fs::remove_file(&link)?;
+        std::fs::remove_file(link)?;
     }
     Ok(true)
+}
+
+#[cfg(not(windows))]
+fn points_at(link: &Path, folder: &Path) -> bool {
+    link.symlink_metadata().is_ok_and(|it| it.is_symlink())
+        && std::fs::read_link(link).is_ok_and(|to| to == folder.join("tisty"))
 }
 
 /// A symlink whose target is a `tisty` of ours, wherever this build now lives.
@@ -265,6 +268,110 @@ pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
 #[cfg(not(windows))]
 pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
     tie(wanted).inspect_err(unwritten)
+}
+
+#[cfg(all(test, not(windows)))]
+mod tests {
+    use super::*;
+
+    struct Laid {
+        _tmp: tempfile::TempDir,
+        shelf: PathBuf,
+        link: PathBuf,
+        folder: PathBuf,
+    }
+
+    fn laid() -> Laid {
+        let tmp = tempfile::tempdir().unwrap();
+        let shelf = tmp.path().join("bin");
+        let folder = tmp.path().join("Tisty.app/Contents/MacOS");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("tisty"), b"#!/bin/sh\n").unwrap();
+        Laid {
+            link: shelf.join("tisty"),
+            shelf,
+            folder,
+            _tmp: tmp,
+        }
+    }
+
+    #[test]
+    fn the_link_is_made_and_taken_back_out() {
+        let it = laid();
+
+        assert!(tie_at(&it.shelf, &it.link, &it.folder, true).unwrap());
+        assert_eq!(
+            std::fs::read_link(&it.link).unwrap(),
+            it.folder.join("tisty")
+        );
+
+        assert!(tie_at(&it.shelf, &it.link, &it.folder, false).unwrap());
+        assert!(it.link.symlink_metadata().is_err());
+    }
+
+    #[test]
+    fn making_it_twice_changes_nothing_and_says_so() {
+        let it = laid();
+        tie_at(&it.shelf, &it.link, &it.folder, true).unwrap();
+
+        assert!(!tie_at(&it.shelf, &it.link, &it.folder, true).unwrap());
+    }
+
+    #[test]
+    fn taking_out_what_was_never_there_changes_nothing() {
+        let it = laid();
+
+        assert!(!tie_at(&it.shelf, &it.link, &it.folder, false).unwrap());
+    }
+
+    #[test]
+    fn a_tisty_that_is_not_ours_is_refused_rather_than_replaced() {
+        let it = laid();
+        std::fs::create_dir_all(&it.shelf).unwrap();
+        std::fs::write(&it.link, b"somebody else's tisty").unwrap();
+
+        let refused = tie_at(&it.shelf, &it.link, &it.folder, true);
+
+        assert_eq!(
+            refused.unwrap_err().kind(),
+            std::io::ErrorKind::AlreadyExists
+        );
+        assert!(it.link.is_file(), "the other tisty was removed");
+    }
+
+    #[test]
+    fn somebody_elses_tisty_is_left_alone_when_the_link_is_taken_out() {
+        let it = laid();
+        std::fs::create_dir_all(&it.shelf).unwrap();
+        std::fs::write(&it.link, b"somebody else's tisty").unwrap();
+
+        assert!(!tie_at(&it.shelf, &it.link, &it.folder, false).unwrap());
+        assert!(it.link.is_file());
+    }
+
+    #[test]
+    fn a_link_of_ours_left_pointing_elsewhere_is_repointed() {
+        let it = laid();
+        let gone = it.folder.parent().unwrap().join("Old/tisty");
+        std::fs::create_dir_all(&it.shelf).unwrap();
+        std::os::unix::fs::symlink(&gone, &it.link).unwrap();
+
+        assert!(tie_at(&it.shelf, &it.link, &it.folder, true).unwrap());
+        assert_eq!(
+            std::fs::read_link(&it.link).unwrap(),
+            it.folder.join("tisty")
+        );
+    }
+
+    #[test]
+    fn a_shelf_that_is_not_there_yet_is_made() {
+        let it = laid();
+        assert!(!it.shelf.exists());
+
+        tie_at(&it.shelf, &it.link, &it.folder, true).unwrap();
+
+        assert!(it.shelf.is_dir());
+    }
 }
 
 #[cfg(all(test, windows))]

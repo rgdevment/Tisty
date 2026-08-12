@@ -1519,7 +1519,7 @@ async fn settle_in(
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
         // A folder that is not there is not a reason to refuse to start.
-        let _ = tauri::async_runtime::spawn_blocking(move || {
+        let carried = tauri::async_runtime::spawn_blocking(move || {
             tisty_sync::carry(
                 &data,
                 &device,
@@ -1529,6 +1529,15 @@ async fn settle_in(
             )
         })
         .await;
+        match carried {
+            Ok(Err(why)) => witness::warn(
+                channel::SYNC,
+                "the carry on opening did not finish",
+                &[("code", Fact::Code(said(why).code))],
+            ),
+            Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
+            Ok(Ok(_)) => {}
+        }
         brought = tisty_core::cache::fingerprint(&store) != before;
     }
 
@@ -2157,11 +2166,26 @@ pub fn run() {
             // A restore that died left the only copy of what it swapped out;
             // once the store reads, it is over and can go.
             for at in tisty_core::backup::leftovers(session.paths.data()) {
-                let _ = std::fs::remove_dir_all(at);
+                if let Err(why) = std::fs::remove_dir_all(&at) {
+                    witness::warn(
+                        channel::BACKUP,
+                        "what a restore left behind could not be swept up",
+                        &[("at", Fact::Path(at)), ("why", Fact::Why(why.to_string()))],
+                    );
+                }
             }
 
             let attachments = session.paths.attachments();
-            let _ = std::fs::create_dir_all(&attachments);
+            if let Err(why) = std::fs::create_dir_all(&attachments) {
+                witness::error(
+                    channel::ATTACH,
+                    "the attachments folder could not be made",
+                    &[
+                        ("at", Fact::Path(attachments.clone())),
+                        ("why", Fact::Why(why.to_string())),
+                    ],
+                );
+            }
             app.handle()
                 .asset_protocol_scope()
                 .allow_directory(&attachments, true)?;

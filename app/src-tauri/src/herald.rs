@@ -154,7 +154,12 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
             let now = jiff::Timestamp::now();
             let mut kept: Option<jiff::Timestamp> = None;
 
-            let (owed, read) = watching.owed(&paths, since, now);
+            let Some((owed, read)) = survived(
+                || watching.owed(&paths, since, now),
+                "the watch could not read what was owed",
+            ) else {
+                continue;
+            };
             // Grouped happenings lose their own timestamps, so the batch is
             // owed from its oldest — but only the batch that actually failed.
             let oldest = owed.iter().map(|one| one.at).min();
@@ -176,6 +181,16 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
             since = if read { onward(now, kept) } else { since };
         }
     });
+}
+
+fn survived<T>(work: impl FnOnce() -> T, said: &'static str) -> Option<T> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)) {
+        Ok(done) => Some(done),
+        Err(_) => {
+            witness::error(channel::HERALD, said, &[]);
+            None
+        }
+    }
 }
 
 /// The watch keeps a projection of its own and never touches the session lock.
@@ -370,5 +385,41 @@ mod tests {
         assert_eq!(tone_for(&filed()), Some("filed"));
         assert_eq!(tone_for(&due()), Some("due"));
         assert_eq!(tone_for(&Happening::Carried { brought: 2 }), None);
+    }
+
+    static ALONE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn quietly<T>(work: impl FnOnce() -> T) -> T {
+        let loud = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let done = work();
+        std::panic::set_hook(loud);
+        done
+    }
+
+    #[test]
+    fn a_round_that_panics_does_not_take_the_watch_with_it() {
+        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        witness::keeps(witness::file(&paths), false);
+
+        let broke = quietly(|| survived(|| panic!("the store went sideways"), "the watch broke"));
+
+        assert!(broke.is_none());
+        let seen = witness::recent(&paths, 10);
+        assert!(
+            seen.iter().any(|line| line.contains("the watch broke")),
+            "{seen:?}"
+        );
+        assert!(
+            !seen.iter().any(|line| line.contains("sideways")),
+            "the panic message reached the file: {seen:?}"
+        );
+    }
+
+    #[test]
+    fn a_round_that_finishes_hands_back_what_it_found() {
+        assert_eq!(survived(|| 41 + 1, "unused"), Some(42));
     }
 }
