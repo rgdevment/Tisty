@@ -870,3 +870,31 @@ input = "entregar el informe hasta el viernes"
 title = "entregar el informe"
 deadline = "2026-08-07"
 why = "sin repetición, «hasta» sigue siendo la fecha límite de siempre"
+
+[[case]]
+input = "llamar a las 9 de la noche"
+title = "llamar"
+date = "2026-08-05"
+time = "21:00"
+why = "«de la noche» es lo que dice qué nueve es; leer el número solo se equivoca por doce horas"
+
+[[case]]
+input = "llamar a las 12 de la noche"
+title = "llamar"
+date = "2026-08-06"
+time = "00:00"
+why = "las doce de la noche son medianoche, no mediodía"
+
+[[case]]
+input = "llamar a las 8 de la mañana"
+title = "llamar"
+date = "2026-08-06"
+time = "08:00"
+why = "la mañana no mueve la hora, pero sí sale del título"
+
+[[case]]
+input = "comprar pan para #casa mañana"
+title = "comprar pan"
+date = "2026-08-06"
+tags = ["casa"]
+why = "la preposición se va con la etiqueta a la que apunta, no queda suelta al final"

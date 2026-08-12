@@ -5,6 +5,8 @@ pub struct Vocabulary {
     pub today: &'static [&'static str],
     pub tomorrow: &'static [&'static str],
     pub day_after: &'static [&'static str],
+    /// The noun «day» where the phrase spells it out: «the DAY after tomorrow».
+    pub spelled_day: &'static [&'static str],
     pub weekdays: [&'static [&'static str]; 7],
     pub months: [&'static [&'static str]; 12],
     pub next: &'static [&'static str],
@@ -20,6 +22,10 @@ pub struct Vocabulary {
     pub past_prep: &'static [&'static str],
     /// «por la mañana» is a part of the day, not the day after.
     pub day_part: &'static [&'static str],
+    pub pm_part: &'static [&'static str],
+    /// Where twelve means midnight, not noon.
+    pub night_part: &'static [&'static str],
+    pub part_prep: &'static [&'static str],
     /// What can follow a temporal phrase without being described by it.
     pub linker: &'static [&'static str],
     /// «mañana de verano» is a noun with a complement, not the day after.
@@ -54,6 +60,7 @@ pub const ES: Vocabulary = Vocabulary {
     today: &["hoy"],
     tomorrow: &["mañana"],
     day_after: &["pasado"],
+    spelled_day: &[],
     weekdays: [
         &["lunes"],
         &["martes"],
@@ -94,6 +101,9 @@ pub const ES: Vocabulary = Vocabulary {
     clock_prep: &["las"],
     past_prep: &["hace"],
     day_part: &["mañana", "tarde", "noche", "madrugada"],
+    pm_part: &["tarde", "noche"],
+    night_part: &["noche", "madrugada"],
+    part_prep: &["de", "del", "por"],
     linker: &[
         "y", "e", "o", "u", "pero", "sobre", "con", "sin", "desde", "hacia", "según", "segun",
         "que",
@@ -142,7 +152,8 @@ pub const ES: Vocabulary = Vocabulary {
 pub const EN: Vocabulary = Vocabulary {
     today: &["today"],
     tomorrow: &["tomorrow"],
-    day_after: &[],
+    day_after: &["after"],
+    spelled_day: &["day"],
     weekdays: [
         &["monday", "mon"],
         &["tuesday", "tue"],
@@ -175,6 +186,9 @@ pub const EN: Vocabulary = Vocabulary {
     clock_prep: &["at"],
     past_prep: &["ago"],
     day_part: &["morning", "afternoon", "evening", "night"],
+    pm_part: &["afternoon", "evening", "night"],
+    night_part: &["night"],
+    part_prep: &["in", "at", "of"],
     linker: &[
         "and",
         "or",

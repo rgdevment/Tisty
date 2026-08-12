@@ -375,3 +375,44 @@ fn deadline_cases_explain_themselves() {
         }
     }
 }
+
+/// The window highlights these ranges and lets one be un-marked, so a range
+/// that starts or ends inside a letter would slice a title mid-character.
+#[test]
+fn every_span_lands_on_a_letter_boundary() {
+    for locale in ["es", "en"] {
+        for case in load(locale) {
+            let read = tisty_nl::parse(&case.input, &now(), locale);
+            let letters = case.input.chars().count();
+            for span in &read.spans {
+                assert!(
+                    span.from <= span.to && span.to <= letters,
+                    "{locale} «{}»: {}..{} is outside {letters} letters",
+                    case.input,
+                    span.from,
+                    span.to
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn no_two_spans_ever_overlap() {
+    for locale in ["es", "en"] {
+        for case in load(locale) {
+            let read = tisty_nl::parse(&case.input, &now(), locale);
+            let mut ranges: Vec<_> = read.spans.iter().map(|s| (s.from, s.to)).collect();
+            ranges.sort_unstable();
+            for pair in ranges.windows(2) {
+                assert!(
+                    pair[0].1 <= pair[1].0,
+                    "{locale} «{}»: {:?} overlaps {:?}",
+                    case.input,
+                    pair[0],
+                    pair[1]
+                );
+            }
+        }
+    }
+}
