@@ -20,12 +20,8 @@ const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Route {
-    /// The Store does it, so there is nothing to ask anyone to do.
     Store,
-    // Only macOS ever answers with these, and the window is built for both.
-    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Brew,
-    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     BrewCli,
     Download,
 }
@@ -75,9 +71,12 @@ pub fn due(last: Option<jiff::Timestamp>, now: jiff::Timestamp) -> bool {
 
 /// Asked of the running program, never of a setting: whoever installed it is
 /// not always whoever is using it, and a wrong instruction is worse than none.
-#[cfg(windows)]
 pub fn route() -> Route {
-    let packaged = std::env::current_exe().is_ok_and(|at| {
+    chosen(std::env::current_exe().ok().as_deref(), |at| at.is_dir())
+}
+
+fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) -> bool) -> Route {
+    let packaged = running.is_some_and(|at| {
         at.components().any(|part| {
             part.as_os_str()
                 .to_string_lossy()
@@ -85,30 +84,17 @@ pub fn route() -> Route {
         })
     });
     if packaged {
-        Route::Store
-    } else {
-        Route::Download
+        return Route::Store;
     }
-}
 
-#[cfg(target_os = "macos")]
-pub fn route() -> Route {
-    let brewed = |what: &str| {
-        ["/opt/homebrew/Caskroom/", "/usr/local/Caskroom/"]
+    for (cask, route) in [("tisty", Route::Brew), ("tisty-cli", Route::BrewCli)] {
+        let brewed = ["/opt/homebrew/Caskroom/", "/usr/local/Caskroom/"]
             .iter()
-            .any(|root| std::path::Path::new(&format!("{root}{what}")).is_dir())
-    };
-    if brewed("tisty") {
-        Route::Brew
-    } else if brewed("tisty-cli") {
-        Route::BrewCli
-    } else {
-        Route::Download
+            .any(|root| there(std::path::Path::new(&format!("{root}{cask}"))));
+        if brewed {
+            return route;
+        }
     }
-}
-
-#[cfg(not(any(windows, target_os = "macos")))]
-pub fn route() -> Route {
     Route::Download
 }
 
@@ -198,6 +184,39 @@ mod tests {
             "0.2.0-rc6"
         );
         assert!(newer("0.1.0", feed, Route::Download).is_none());
+    }
+
+    fn nowhere(_: &std::path::Path) -> bool {
+        false
+    }
+
+    #[test]
+    fn a_copy_under_windowsapps_is_kept_by_the_store() {
+        let at = std::path::Path::new(r"C:\Program Files\WindowsApps\Tisty\tisty.exe");
+
+        assert_eq!(chosen(Some(at), nowhere), Route::Store);
+    }
+
+    #[test]
+    fn a_cask_answers_with_its_own_command() {
+        let plain = std::path::Path::new("/Applications/Tisty.app/Contents/MacOS/tisty");
+
+        assert_eq!(
+            chosen(Some(plain), |at| at.ends_with("Caskroom/tisty")),
+            Route::Brew
+        );
+        assert_eq!(
+            chosen(Some(plain), |at| at.ends_with("Caskroom/tisty-cli")),
+            Route::BrewCli
+        );
+    }
+
+    #[test]
+    fn everything_else_gets_the_page() {
+        let at = std::path::Path::new("C:/Program Files/Tisty/tisty.exe");
+
+        assert_eq!(chosen(Some(at), nowhere), Route::Download);
+        assert_eq!(chosen(None, nowhere), Route::Download);
     }
 
     #[test]
