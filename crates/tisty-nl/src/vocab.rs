@@ -30,6 +30,8 @@ pub struct Vocabulary {
     pub linker: &'static [&'static str],
     /// «mañana de verano» is a noun with a complement, not the day after.
     pub genitive: &'static [&'static str],
+    /// Words a title must not be left ending on once a reading is cut out.
+    pub loose_ends: &'static [&'static str],
     /// Fixed expressions shaped like a date.
     pub idioms: &'static [&'static str],
     pub noon: &'static [&'static str],
@@ -109,6 +111,9 @@ pub const ES: Vocabulary = Vocabulary {
         "que",
     ],
     genitive: &["de", "del"],
+    loose_ends: &[
+        "y", "e", "o", "u", "ni", "al", "a", "el", "la", "los", "las", "por",
+    ],
     idioms: &["24/7"],
     noon: &["mediodía", "mediodia"],
     in_prep: &["en", "dentro"],
@@ -203,6 +208,7 @@ pub const EN: Vocabulary = Vocabulary {
         "that",
     ],
     genitive: &["of"],
+    loose_ends: &["and", "or", "nor", "to", "for", "a"],
     idioms: &["24/7"],
     noon: &["noon", "midday"],
     in_prep: &["in", "within"],

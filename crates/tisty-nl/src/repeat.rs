@@ -28,7 +28,7 @@ pub struct Took {
 /// `masked` is `text` with anything inside quotes blanked out, same length:
 /// «leer "El Diario de Ana Frank"» is a title, not a daily habit.
 pub fn take(text: &str, masked: &str, now: &Zoned, v: &Vocabulary) -> Took {
-    let words: Vec<(usize, &str)> = spots(masked);
+    let words = crate::words(masked);
 
     for (i, (at, word)) in words.iter().enumerate() {
         // «weekly» is a cadence at the end of a sentence and an adjective in the
@@ -206,15 +206,4 @@ fn cut(
         to: span_to,
         first: None,
     }
-}
-
-fn spots(text: &str) -> Vec<(usize, &str)> {
-    let mut out = Vec::new();
-    let mut at = 0;
-    for part in text.split_whitespace() {
-        let start = text[at..].find(part).map(|k| at + k).unwrap_or(at);
-        out.push((start, part));
-        at = start + part.len();
-    }
-    out
 }

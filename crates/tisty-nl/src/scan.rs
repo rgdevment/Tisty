@@ -44,34 +44,17 @@ pub struct Token {
 }
 
 pub fn tokenize(input: &str) -> Vec<Token> {
-    let mut tokens = Vec::new();
-    let mut start = None;
-
-    for (i, c) in input.char_indices() {
-        if c.is_whitespace() {
-            if let Some(s) = start.take() {
-                tokens.push(make(input, s, i));
-            }
-        } else if start.is_none() {
-            start = Some(i);
-        }
-    }
-    if let Some(s) = start {
-        tokens.push(make(input, s, input.len()));
-    }
-    tokens
-}
-
-fn make(input: &str, start: usize, end: usize) -> Token {
-    Token {
-        word: composed(
-            input[start..end]
-                .trim_matches(|c: char| !c.is_alphanumeric())
-                .to_lowercase(),
-        ),
-        start,
-        end,
-    }
+    crate::words(input)
+        .into_iter()
+        .map(|(start, word)| Token {
+            word: composed(
+                word.trim_matches(|c: char| !c.is_alphanumeric())
+                    .to_lowercase(),
+            ),
+            start,
+            end: start + word.len(),
+        })
+        .collect()
 }
 
 /// Composes decomposed accents (e.g. n + U+0303) so they match the vocabulary; the title keeps what was typed.
