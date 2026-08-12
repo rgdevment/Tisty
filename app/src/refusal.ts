@@ -14,6 +14,7 @@ const KNOWN = [
   "badTag",
   "notATaskId",
   "notAListId",
+  "pastEnd",
   "manyLists",
   "notAStepId",
   "notADate",
