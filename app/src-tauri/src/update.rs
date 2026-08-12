@@ -76,12 +76,12 @@ pub fn route() -> Route {
 }
 
 fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) -> bool) -> Route {
+    // Read as text, not as a path: `components` splits on a backslash only on
+    // Windows, so the question would answer itself wrong anywhere else.
     let packaged = running.is_some_and(|at| {
-        at.components().any(|part| {
-            part.as_os_str()
-                .to_string_lossy()
-                .starts_with("WindowsApps")
-        })
+        at.to_string_lossy()
+            .split(['/', '\\'])
+            .any(|part| part.eq_ignore_ascii_case("WindowsApps"))
     });
     if packaged {
         return Route::Store;
@@ -190,32 +190,92 @@ mod tests {
         false
     }
 
+    fn at(said: &str) -> Option<&std::path::Path> {
+        Some(std::path::Path::new(said))
+    }
+
+    const MSIX: &str =
+        r"C:\Program Files\WindowsApps\rgdevment.Tisty_0.2.0.0_x64__8wekyb3d8bbwe\tisty.exe";
+
     #[test]
     fn a_copy_under_windowsapps_is_kept_by_the_store() {
-        let at = std::path::Path::new(r"C:\Program Files\WindowsApps\Tisty\tisty.exe");
+        assert_eq!(chosen(at(MSIX), nowhere), Route::Store);
+    }
 
-        assert_eq!(chosen(Some(at), nowhere), Route::Store);
+    #[test]
+    fn the_separator_is_read_the_same_on_every_system() {
+        assert_eq!(chosen(at(&MSIX.replace('\\', "/")), nowhere), Route::Store);
+    }
+
+    #[test]
+    fn a_folder_is_named_windowsapps_or_it_is_not() {
+        let alike = r"C:\Program Files\WindowsAppsBackup\Tisty\tisty.exe";
+
+        assert_eq!(chosen(at(alike), nowhere), Route::Download);
+        assert_eq!(
+            chosen(at(&MSIX.to_lowercase()), nowhere),
+            Route::Store,
+            "Windows does not distinguish the case of a folder"
+        );
     }
 
     #[test]
     fn a_cask_answers_with_its_own_command() {
-        let plain = std::path::Path::new("/Applications/Tisty.app/Contents/MacOS/tisty");
+        let plain = "/Applications/Tisty.app/Contents/MacOS/tisty";
 
         assert_eq!(
-            chosen(Some(plain), |at| at.ends_with("Caskroom/tisty")),
+            chosen(at(plain), |what| what
+                == std::path::Path::new("/opt/homebrew/Caskroom/tisty")),
             Route::Brew
         );
         assert_eq!(
-            chosen(Some(plain), |at| at.ends_with("Caskroom/tisty-cli")),
+            chosen(at(plain), |what| what
+                == std::path::Path::new("/opt/homebrew/Caskroom/tisty-cli")),
             Route::BrewCli
         );
     }
 
     #[test]
-    fn everything_else_gets_the_page() {
-        let at = std::path::Path::new("C:/Program Files/Tisty/tisty.exe");
+    fn the_older_homebrew_root_answers_too() {
+        let plain = "/Applications/Tisty.app/Contents/MacOS/tisty";
 
-        assert_eq!(chosen(Some(at), nowhere), Route::Download);
+        assert_eq!(
+            chosen(at(plain), |what| what
+                == std::path::Path::new("/usr/local/Caskroom/tisty")),
+            Route::Brew
+        );
+        assert_eq!(
+            chosen(at(plain), |what| what
+                == std::path::Path::new("/usr/local/Caskroom/tisty-cli")),
+            Route::BrewCli
+        );
+    }
+
+    #[test]
+    fn the_window_is_the_window_even_beside_its_own_command_line() {
+        assert_eq!(
+            chosen(at("/Applications/Tisty.app/Contents/MacOS/tisty"), |what| {
+                what.starts_with("/opt/homebrew/Caskroom")
+            }),
+            Route::Brew
+        );
+    }
+
+    #[test]
+    fn what_is_running_wins_over_what_is_merely_installed() {
+        assert_eq!(chosen(at(MSIX), |_| true), Route::Store);
+    }
+
+    #[test]
+    fn everything_else_gets_the_page() {
+        assert_eq!(
+            chosen(at(r"C:\Program Files\Tisty\tisty.exe"), nowhere),
+            Route::Download
+        );
+        assert_eq!(
+            chosen(at("/Applications/Tisty.app/Contents/MacOS/tisty"), nowhere),
+            Route::Download
+        );
         assert_eq!(chosen(None, nowhere), Route::Download);
     }
 

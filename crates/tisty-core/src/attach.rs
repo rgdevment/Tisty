@@ -164,6 +164,13 @@ pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
         return refused();
     }
 
+    // A reference is written with `/` wherever it was made. Windows eats a
+    // backslash as a separator and everywhere else it is an ordinary
+    // letter, so one left in would name two different things.
+    if cleaned.contains('\\') {
+        return refused();
+    }
+
     let mut walked = root.to_path_buf();
     let mut steps = 0;
     // By component, not by substring: `C:foo` carries a prefix and no root, so
@@ -359,6 +366,24 @@ mod tests {
         let root = Path::new("/data");
         for climbing in ["C:foo", "attachments/ab/cd.png:hidden", "//server/share"] {
             assert!(resolve(climbing, root).is_err(), "«{climbing}» got through");
+        }
+    }
+
+    /// One store is opened from more than one machine, so a reference has to
+    /// mean the same thing on all of them.
+    #[test]
+    fn a_backslash_is_refused_wherever_it_is_read() {
+        let root = Path::new("/data");
+
+        for climbing in [
+            r"..\..\.ssh\id_rsa",
+            r"attachments\..\..\secrets",
+            r"attachments\ab\cd.png",
+        ] {
+            assert!(
+                resolve(climbing, root).is_err(),
+                "«{climbing}» is read as a climb on Windows and as a name elsewhere"
+            );
         }
     }
 
