@@ -282,7 +282,7 @@ mod tests {
     fn every_day(reminders: Vec<crate::DateSpec>) -> crate::State {
         made(
             reminders,
-            Some(crate::model::Repeat::Done(crate::model::Cadence {
+            Some(crate::model::Repeat::done(crate::model::Cadence {
                 every: 1,
                 unit: crate::model::Unit::Day,
             })),

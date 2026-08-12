@@ -89,7 +89,14 @@ export function cadence(repeat: Repeat): string {
     unit === "day" ? (one ? "aDay" : "days") : unit === "week" ? (one ? "aWeek" : "weeks") :
     unit === "month" ? (one ? "aMonth" : "months") : one ? "aYear" : "years",
   );
-  return one ? fill("everyOne", word) : fill("everyMany", `${every} ${word}`);
+  const said = one ? fill("everyOne", word) : fill("everyMany", `${every} ${word}`);
+  return repeat.until ? `${said} ${fill("untilDay", lastDay(repeat.until))}` : said;
+}
+
+/// Day and month, no weekday: a last day is read, not counted down to.
+function lastDay(iso: string): string {
+  const at = new Date(`${iso}T00:00:00`);
+  return new Intl.DateTimeFormat(locale(), { day: "numeric", month: "short" }).format(at);
 }
 
 /**

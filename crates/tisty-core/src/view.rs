@@ -157,7 +157,7 @@ mod tests {
     fn repeating_keeps_only_what_comes_back() {
         let f = filter(|f| f.repeating = true);
         let mut habit = dated("regar", "2026-08-20");
-        habit.repeat = Some(crate::model::Repeat::Due(crate::model::Cadence {
+        habit.repeat = Some(crate::model::Repeat::due(crate::model::Cadence {
             every: 1,
             unit: crate::model::Unit::Week,
         }));
@@ -172,7 +172,7 @@ mod tests {
     fn repeating_says_nothing_about_the_day() {
         let f = filter(|f| f.repeating = true);
         let mut far = dated("anual", "2027-01-01");
-        far.repeat = Some(crate::model::Repeat::Due(crate::model::Cadence {
+        far.repeat = Some(crate::model::Repeat::due(crate::model::Cadence {
             every: 1,
             unit: crate::model::Unit::Year,
         }));

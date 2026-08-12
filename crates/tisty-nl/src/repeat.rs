@@ -42,7 +42,7 @@ pub fn take(text: &str, masked: &str, now: &Zoned, v: &Vocabulary) -> Took {
                 .map(|(_, unit)| *unit)
         {
             let to = at + word.len();
-            let repeat = Repeat::Done(Cadence { every: 1, unit });
+            let repeat = Repeat::done(Cadence { every: 1, unit });
             return cut(text, *at, to, Some(repeat), *at, to);
         }
 
@@ -113,7 +113,7 @@ fn weekly(rest: &[(usize, &str)], v: &Vocabulary) -> Option<(Repeat, usize)> {
     }
 
     Some((
-        Repeat::Due(Cadence {
+        Repeat::due(Cadence {
             every: 1,
             unit: Unit::Week,
         }),
@@ -158,7 +158,7 @@ fn interval(rest: &[(usize, &str)], v: &Vocabulary) -> Option<(Repeat, usize)> {
     if every == 0 || every > 999 {
         return None;
     }
-    Some((Repeat::Done(Cadence { every, unit }), taken))
+    Some((Repeat::done(Cadence { every, unit }), taken))
 }
 
 fn unit_of(word: &str, v: &Vocabulary) -> Option<Unit> {
