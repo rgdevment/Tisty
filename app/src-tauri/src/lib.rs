@@ -700,7 +700,7 @@ fn patch(
 
     let mut ops = Vec::new();
     let named = match change.list_named.as_deref().map(str::trim) {
-        Some(name) if !name.is_empty() => Some(match session.state.find_list(name).as_slice() {
+        Some(name) if !name.is_empty() => Some(match session.state.list_called(name).as_slice() {
             [one] => one.id,
             // Ambiguity is the one case worth refusing: picking either of two
             // lists on the person's behalf is the wrong kind of helpful.
