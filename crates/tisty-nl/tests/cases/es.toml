@@ -858,3 +858,15 @@ why = "el domingo se ofrece pero no se toma, que es lo de siempre; «diario» no
 input = "leer \"El Diario de Ana Frank\""
 title = "leer \"El Diario de Ana Frank\""
 why = "lo entrecomillado no se toca, tampoco para leer una cadencia"
+
+[[case]]
+input = "tomar la pastilla cada día hasta el 30 de septiembre"
+title = "tomar la pastilla"
+repeat = "done:1d until 2026-09-30"
+why = "«hasta» sobre una serie dice cuándo termina, no cuándo vence una ocurrencia"
+
+[[case]]
+input = "entregar el informe hasta el viernes"
+title = "entregar el informe"
+deadline = "2026-08-07"
+why = "sin repetición, «hasta» sigue siendo la fecha límite de siempre"

@@ -11,6 +11,8 @@ pub struct Vocabulary {
     pub article: &'static [&'static str],
     pub date_prep: &'static [&'static str],
     pub deadline_prep: &'static [&'static str],
+    /// Of those, the ones that end a series rather than date one occurrence.
+    pub ends_prep: &'static [&'static str],
     pub time_prep: &'static [&'static str],
     /// Only these turn a bare integer into a clock: «a 12» is a volume.
     pub clock_prep: &'static [&'static str],
@@ -87,6 +89,7 @@ pub const ES: Vocabulary = Vocabulary {
     article: &["el", "la", "los", "las", "de", "del"],
     date_prep: &["para"],
     deadline_prep: &["antes", "hasta", "vence"],
+    ends_prep: &["hasta"],
     time_prep: &["a", "al", "las", "la"],
     clock_prep: &["las"],
     past_prep: &["hace"],
@@ -167,6 +170,7 @@ pub const EN: Vocabulary = Vocabulary {
     article: &["the", "on"],
     date_prep: &["on"],
     deadline_prep: &["by", "due", "before", "until"],
+    ends_prep: &["until"],
     time_prep: &["at"],
     clock_prep: &["at"],
     past_prep: &["ago"],

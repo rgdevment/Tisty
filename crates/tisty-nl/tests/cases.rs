@@ -42,7 +42,10 @@ fn said(repeat: tisty_core::model::Repeat) -> String {
         Unit::Month => "m",
         Unit::Year => "y",
     };
-    format!("{from}:{}{unit}", c.every)
+    match repeat.until {
+        Some(last) => format!("{from}:{}{unit} until {last}", c.every),
+        None => format!("{from}:{}{unit}", c.every),
+    }
 }
 
 fn load(locale: &str) -> Vec<Case> {
