@@ -174,6 +174,8 @@ export interface Change {
   addTag?: string;
   untag?: string;
   list?: string;
+  /** By name, and made if there is none yet. */
+  listNamed?: string;
   inbox?: boolean;
   description?: string;
   remind?: string;
