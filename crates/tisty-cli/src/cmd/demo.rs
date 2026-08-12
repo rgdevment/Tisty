@@ -105,7 +105,7 @@ fn tasks(ops: &mut Vec<Op>, today: Date, lists: &[ListId]) {
             .map(|away| DateSpec::all_day(shifted(today, away), ZONE));
         add.repeat = seed
             .every
-            .map(|(every, unit)| Repeat::Due(Cadence { every, unit }));
+            .map(|(every, unit)| Repeat::due(Cadence { every, unit }));
         ops.push(Op::TaskAdd { id, d: add });
 
         if n == 0 {

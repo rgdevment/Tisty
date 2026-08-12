@@ -31,10 +31,10 @@ struct Cases {
 }
 
 fn said(repeat: tisty_core::model::Repeat) -> String {
-    use tisty_core::model::{Repeat, Unit};
-    let (from, c) = match repeat {
-        Repeat::Due(c) => ("due", c),
-        Repeat::Done(c) => ("done", c),
+    use tisty_core::model::{From, Unit};
+    let (from, c) = match repeat.from {
+        From::Due => ("due", repeat.each),
+        From::Done => ("done", repeat.each),
     };
     let unit = match c.unit {
         Unit::Day => "d",

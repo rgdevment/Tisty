@@ -58,6 +58,8 @@ export interface Task {
 export interface Repeat {
   from: "due" | "done";
   each: { every: number; unit: "day" | "week" | "month" | "year" };
+  /** The last day of the series, as YYYY-MM-DD. */
+  until?: string | null;
 }
 
 export interface List {

@@ -238,6 +238,11 @@ impl State {
         ) else {
             return done;
         };
+        // Past the last day the series was given: this one is completed and no
+        // successor follows it.
+        if repeat.ended(next.at.date()) {
+            return done;
+        }
 
         // Everything that was pinned to the old date moves with it. A deadline
         // left where it was would be overdue before the task exists, and a
@@ -672,7 +677,7 @@ mod tests {
             jiff::civil::date(2026, 8, 4).at(9, 0, 0, 0),
             "Europe/Madrid",
         ));
-        add.repeat = Some(Repeat::Due(Cadence {
+        add.repeat = Some(Repeat::due(Cadence {
             every: 1,
             unit: Unit::Week,
         }));
@@ -699,7 +704,7 @@ mod tests {
     }
 
     fn add_repeat() -> Option<Repeat> {
-        Some(Repeat::Due(Cadence {
+        Some(Repeat::due(Cadence {
             every: 1,
             unit: Unit::Week,
         }))
@@ -721,7 +726,7 @@ mod tests {
         add.date = Some(day(11));
         add.deadline = Some(day(12));
         add.reminders = vec![day(10)];
-        add.repeat = Some(Repeat::Done(Cadence {
+        add.repeat = Some(Repeat::done(Cadence {
             every: 1,
             unit: Unit::Month,
         }));
@@ -761,7 +766,7 @@ mod tests {
             jiff::civil::date(2026, 8, 4).at(9, 0, 0, 0),
             "Europe/Madrid",
         ));
-        add.repeat = Some(Repeat::Due(Cadence {
+        add.repeat = Some(Repeat::due(Cadence {
             every: 1,
             unit: Unit::Week,
         }));
@@ -822,7 +827,7 @@ mod tests {
             jiff::civil::date(2026, 8, 4).at(9, 0, 0, 0),
             "Europe/Madrid",
         ));
-        add.repeat = Some(Repeat::Due(Cadence {
+        add.repeat = Some(Repeat::due(Cadence {
             every: 1,
             unit: Unit::Week,
         }));
@@ -884,7 +889,7 @@ mod tests {
         let mut state = State::default();
         let id = ulid::Ulid::generate();
         let mut add = TaskAdd::new("regar las plantas", "a0");
-        add.repeat = Some(Repeat::Done(Cadence {
+        add.repeat = Some(Repeat::done(Cadence {
             every: 3,
             unit: Unit::Day,
         }));
@@ -961,7 +966,7 @@ mod tests {
         let mut state = State::default();
         let id = ulid::Ulid::generate();
         let mut add = TaskAdd::new("tomar la pastilla", "a0");
-        add.repeat = Some(Repeat::Done(Cadence {
+        add.repeat = Some(Repeat::done(Cadence {
             every: 3,
             unit: Unit::Day,
         }));
@@ -1067,7 +1072,7 @@ mod tests {
         let mut state = State::default();
         let id = ulid::Ulid::generate();
         let mut add = TaskAdd::new("regar las plantas", "a0");
-        add.repeat = Some(Repeat::Done(Cadence {
+        add.repeat = Some(Repeat::done(Cadence {
             every: 1,
             unit: Unit::Week,
         }));
@@ -2274,5 +2279,62 @@ mod tests {
         let state = holding(&["Casa", "casa"]);
 
         assert_eq!(state.list_called("casa").len(), 2);
+    }
+
+    #[test]
+    fn a_series_with_a_last_day_stops_there() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = crate::event::TaskAdd::new("tomar la pastilla".to_string(), "a0".to_string());
+        add.date = Some(DateSpec::floating(
+            "2026-08-12T09:00:00".parse().unwrap(),
+            "Europe/Madrid",
+        ));
+        add.repeat = Some(crate::model::Repeat {
+            from: crate::model::From::Due,
+            each: crate::model::Cadence {
+                every: 1,
+                unit: crate::model::Unit::Day,
+            },
+            until: Some(jiff::civil::date(2026, 8, 12)),
+        });
+        state.apply(&crate::Event::new(
+            DeviceId("dev".into()),
+            jiff::Timestamp::now(),
+            crate::Op::TaskAdd { id, d: add },
+        ));
+
+        let ops = state.completing(id, "2026-08-12T10:00:00[Europe/Madrid]".parse().unwrap());
+
+        assert_eq!(ops.len(), 1, "no successor past the last day: {ops:?}");
+        assert!(matches!(ops.first(), Some(crate::Op::TaskDone { .. })));
+    }
+
+    #[test]
+    fn a_series_still_running_hands_the_next_one_on() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = crate::event::TaskAdd::new("tomar la pastilla".to_string(), "a0".to_string());
+        add.date = Some(DateSpec::floating(
+            "2026-08-12T09:00:00".parse().unwrap(),
+            "Europe/Madrid",
+        ));
+        add.repeat = Some(crate::model::Repeat {
+            from: crate::model::From::Due,
+            each: crate::model::Cadence {
+                every: 1,
+                unit: crate::model::Unit::Day,
+            },
+            until: Some(jiff::civil::date(2026, 12, 31)),
+        });
+        state.apply(&crate::Event::new(
+            DeviceId("dev".into()),
+            jiff::Timestamp::now(),
+            crate::Op::TaskAdd { id, d: add },
+        ));
+
+        let ops = state.completing(id, "2026-08-12T10:00:00[Europe/Madrid]".parse().unwrap());
+
+        assert!(ops.iter().any(|op| matches!(op, crate::Op::TaskAdd { .. })));
     }
 }

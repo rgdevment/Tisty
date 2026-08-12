@@ -19,20 +19,47 @@ pub struct Cadence {
     pub unit: Unit,
 }
 
-/// The bin goes out every Tuesday; the plants are watered three days after you
-/// last watered them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase", tag = "from", content = "each")]
-pub enum Repeat {
-    Due(Cadence),
-    Done(Cadence),
+#[serde(rename_all = "lowercase")]
+pub enum From {
+    Due,
+    Done,
+}
+
+/// The bin goes out every Tuesday; the plants are watered three days after you
+/// last watered them. `until` lives here, not beside it, so a last day cannot
+/// outlive the cadence it was ending.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Repeat {
+    pub from: From,
+    pub each: Cadence,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub until: Option<jiff::civil::Date>,
 }
 
 impl Repeat {
-    pub fn cadence(self) -> Cadence {
-        match self {
-            Repeat::Due(c) | Repeat::Done(c) => c,
+    pub const fn due(each: Cadence) -> Self {
+        Self {
+            from: From::Due,
+            each,
+            until: None,
         }
+    }
+
+    pub const fn done(each: Cadence) -> Self {
+        Self {
+            from: From::Done,
+            each,
+            until: None,
+        }
+    }
+
+    pub fn cadence(self) -> Cadence {
+        self.each
+    }
+
+    pub fn ended(self, at: jiff::civil::Date) -> bool {
+        self.until.is_some_and(|last| at > last)
     }
 
     /// `None` when there is nothing to count from.
@@ -48,14 +75,14 @@ impl Repeat {
             return None;
         }
 
-        match self {
+        match self.from {
             // A month or a year counts off the calendar even when it was said
             // as an interval: rent paid on the 4th, the 13th and the 30th would
             // otherwise walk down the month and skip one entirely.
-            Repeat::Done(_) if matches!(step.unit, Unit::Month | Unit::Year) && due.is_some() => {
+            From::Done if matches!(step.unit, Unit::Month | Unit::Year) && due.is_some() => {
                 self.off_the_calendar(step, due?, done, today)
             }
-            Repeat::Done(_) => {
+            From::Done => {
                 let at = step.after(done)?;
                 let Some(spec) = due else {
                     // No date to inherit a shape from: a whole day, not the
@@ -72,7 +99,7 @@ impl Repeat {
                 };
                 Some(spec.moved(at))
             }
-            Repeat::Due(_) => self.off_the_calendar(step, due?, done, today),
+            From::Due => self.off_the_calendar(step, due?, done, today),
         }
     }
 
@@ -120,7 +147,7 @@ mod tests {
         DateSpec::floating(at, "Europe/Madrid")
     }
 
-    const EVERY_WEEK: Repeat = Repeat::Due(Cadence {
+    const EVERY_WEEK: Repeat = Repeat::due(Cadence {
         every: 1,
         unit: Unit::Week,
     });
@@ -179,7 +206,7 @@ mod tests {
     /// walks it down the month and eventually skips one.
     #[test]
     fn a_monthly_one_stays_on_its_day_however_late_it_is_paid() {
-        let monthly = Repeat::Done(Cadence {
+        let monthly = Repeat::done(Cadence {
             every: 1,
             unit: Unit::Month,
         });
@@ -205,7 +232,7 @@ mod tests {
 
     #[test]
     fn a_relative_one_counts_from_when_it_was_done() {
-        let every_three = Repeat::Done(Cadence {
+        let every_three = Repeat::done(Cadence {
             every: 3,
             unit: Unit::Day,
         });
@@ -228,7 +255,7 @@ mod tests {
     /// hour would drift a little further every day.
     #[test]
     fn a_time_of_day_stays_where_it_was_asked_for() {
-        let daily = Repeat::Done(Cadence {
+        let daily = Repeat::done(Cadence {
             every: 1,
             unit: Unit::Day,
         });
@@ -247,7 +274,7 @@ mod tests {
 
     #[test]
     fn a_relative_one_needs_no_date_to_start_from() {
-        let every_day = Repeat::Done(Cadence {
+        let every_day = Repeat::done(Cadence {
             every: 1,
             unit: Unit::Day,
         });
@@ -282,7 +309,7 @@ mod tests {
 
     #[test]
     fn the_last_day_of_a_month_survives_a_shorter_one() {
-        let monthly = Repeat::Due(Cadence {
+        let monthly = Repeat::due(Cadence {
             every: 1,
             unit: Unit::Month,
         });
@@ -302,7 +329,7 @@ mod tests {
     #[test]
     fn a_cadence_beyond_what_a_calendar_holds_repeats_nothing() {
         for every in [19999, 40000, u16::MAX] {
-            let absurd = Repeat::Done(Cadence {
+            let absurd = Repeat::done(Cadence {
                 every,
                 unit: Unit::Year,
             });
@@ -322,7 +349,7 @@ mod tests {
 
     #[test]
     fn a_cadence_of_zero_repeats_nothing() {
-        let never = Repeat::Done(Cadence {
+        let never = Repeat::done(Cadence {
             every: 0,
             unit: Unit::Day,
         });
