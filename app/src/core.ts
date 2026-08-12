@@ -295,6 +295,17 @@ export interface Logs {
 export const logs = (most: number): Promise<Logs> => invoke("logs", { most });
 export const noteTrouble = (code: string): Promise<void> => invoke("note_trouble", { code });
 
+export type Route = "store" | "brew" | "brewCli" | "download";
+
+export interface Ready {
+  version: string;
+  route: Route;
+  url: string;
+}
+
+/** Null when it is switched off, not due yet, or nothing newer exists. */
+export const updateReady = (): Promise<Ready | null> => invoke("update_ready");
+
 export const noteBreak = (kind: string, frames: string): Promise<void> =>
   invoke("note_break", { kind, frames });
 

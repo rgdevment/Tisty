@@ -1,12 +1,15 @@
 # Privacy policy
 
-**Last updated:** 5 August 2026
+**Last updated:** August 12, 2026
 
 ## The short version
 
-Tisty does not collect anything, does not transmit anything, and has no server
-to transmit to. No account, no telemetry, no analytics, no crash reporting, no
-phone-home.
+Tisty does not collect anything and has no server to transmit to. No account,
+no telemetry, no analytics, no crash reporting.
+
+It makes **one** network request, and only one: once a day it downloads a small
+file to see whether a newer version exists. It sends nothing, it downloads
+nothing else, and it is described in full below.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -33,8 +36,8 @@ What you can choose, and what each implies:
 | **A folder on hardware you own** (a NAS, an external drive) | Whoever can reach that hardware |
 | **A backup zip you keep somewhere** | Wherever you put it |
 
-Tisty itself only ever reads and writes local paths. It has no network code for
-syncing, no credentials, and no idea which provider — if any — is behind the
+For syncing, Tisty only ever reads and writes local paths. It has no network
+code for it, no credentials, and no idea which provider — if any — is behind the
 folder you named. Whatever keeps that folder in step between your machines is
 software you already installed and already trust.
 
@@ -89,11 +92,36 @@ defence, because the remedy barely exists.
 - Does not use AI or machine learning on your data. The natural-language
   parser is deterministic rules running locally; nothing is sent to any model.
 - Does not upload crash reports.
-- Does not make background network calls.
+- Does not make background network calls, except the update check below.
 
-If a future version ever needs to make a network request — an update check,
-for instance — it will be read-only, documented in this file before it ships,
-and visible as a code change in the public repository first.
+An earlier version of this file promised that if Tisty ever needed a network
+request it would be read-only, documented here before it shipped, and visible
+as a code change first. That is what happened: the check went into the public
+repository, and this section was written before the release that carries it.
+
+## The one network request
+
+| | |
+| :--- | :--- |
+| **Why** | To tell you a newer Tisty exists |
+| **What it asks for** | `https://github.com/rgdevment/Tisty/releases/latest/download/release-manifest.json` |
+| **Method** | GET. Nothing is uploaded |
+| **What it sends** | The headers a request cannot avoid, and a user agent that says `tisty/<version>` — the same thing the download itself would reveal. No identifier, no store, no task, no name |
+| **How often** | At most once a day, and only while the window is open |
+| **Timeout** | 5 seconds |
+| **If it fails** | Nothing is said and nothing is retried until tomorrow |
+
+The file it downloads contains version numbers and nothing else. **Every address
+Tisty is able to open is compiled into the program**, so nothing that arrives
+over the network can send you anywhere — which is what a signature would
+otherwise be needed for.
+
+**Nothing is ever downloaded or installed for you.** What arrives is a line of
+text you can ignore; Tisty has no updater and does not want one. If a newer
+version exists, a line appears in *About*, and what it suggests depends on how
+this copy was installed: the Microsoft Store updates itself, a Homebrew install
+gets the command to run, and everything else gets a link you choose to open. Opening it is a normal
+browser navigation that you started.
 
 ## Children's privacy
 

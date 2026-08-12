@@ -16,6 +16,8 @@ import {
   type Snapshot,
   type Found,
   type Task,
+  updateReady,
+  type Ready,
 } from "./core";
 import { listen } from "@tauri-apps/api/event";
 import { heard, play } from "./chime";
@@ -57,6 +59,14 @@ export default function App() {
   // Everything that happens is answered by something moving on screen, which
   // is no answer at all to someone who is not looking at it.
   const [aloud, setAloud] = useState("");
+  // Asked once, shown in two places. Quiet on failure: nobody asked for this.
+  const [ready, setReady] = useState<Ready | null>(null);
+
+  useEffect(() => {
+    updateReady()
+      .then(setReady)
+      .catch(() => {});
+  }, []);
   const twice = useRef(0);
   // A reader skips a live region whose text did not change, so completing two
   // tasks with the same title said it once. The zero-width space alternates.
@@ -289,6 +299,7 @@ export default function App() {
         lists={data.lists}
         counts={data.counts}
         chosen={chosen}
+        ready={ready !== null}
         onChoose={(next) => {
           setChosen(next);
           setSelected(undefined);
@@ -298,7 +309,7 @@ export default function App() {
       />
 
       {chosen.named === "aboutScreen" ? (
-        <About onError={(e) => setError(saidPlainly(e))} />
+        <About ready={ready} onError={(e) => setError(saidPlainly(e))} />
       ) : chosen.named === "keeping" ? (
         <Keeping
           onChanged={() => {

@@ -4,6 +4,7 @@ mod command;
 mod herald;
 mod report;
 mod tray;
+mod update;
 
 use tauri::{Emitter, Manager};
 
@@ -1408,6 +1409,25 @@ struct Settings {
     attach_up_to: u64,
 }
 
+/// Nothing is asked when it is switched off, and nothing is asked twice within
+/// the interval: the answer is remembered, not the request repeated.
+#[tauri::command]
+async fn update_ready(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<update::Ready>> {
+    let last = held(&session).config.checked_at;
+    let now = jiff::Timestamp::now();
+    if !update::due(last, now) {
+        return Ok(None);
+    }
+
+    let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
+        .await
+        .map_err(|_| Refusal::of("internal"))?;
+
+    let mut session = held(&session);
+    session.keep(|c| c.checked_at = Some(now))?;
+    Ok(manifest.and_then(|said| update::newer(env!("CARGO_PKG_VERSION"), &said, update::route())))
+}
+
 #[tauri::command]
 fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     let session = held(&session);
@@ -2244,6 +2264,7 @@ pub fn run() {
             keep_report,
             note_trouble,
             note_break,
+            update_ready,
             logs
         ])
         .run(tauri::generate_context!())

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { about, revealed, type About as Build } from "../core";
+import { about, revealed, type About as Build, type Ready } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import copypaste from "../assets/copypaste.png";
@@ -21,7 +21,13 @@ const TOOLS = [
   },
 ] as const;
 
-export default function About({ onError }: { onError: (problem: unknown) => void }) {
+export default function About({
+  ready,
+  onError,
+}: {
+  ready: Ready | null;
+  onError: (problem: unknown) => void;
+}) {
   const [build, setBuild] = useState<Build | null>(null);
   // In the card, like its sister screen: a version that cannot be read is not a
   // reason to leave the page blank with no way to ask again.
@@ -74,6 +80,28 @@ export default function About({ onError }: { onError: (problem: unknown) => void
                 <dt className="text-faint">{t("aboutLicense")}</dt>
                 <dd className="text-soft">{build.license}</dd>
               </dl>
+
+              {ready && (
+                <p className="mt-2.5 text-[12.5px] text-soft">
+                  <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" />
+                  {fill("updateThere", ready.version)}{" "}
+                  {ready.route === "store" ? (
+                    <span className="text-faint">{t("updateStore")}</span>
+                  ) : ready.route === "download" ? (
+                    <button
+                      type="button"
+                      onClick={() => openUrl(ready.url).catch(onError)}
+                      className="underline decoration-line underline-offset-2 hover:text-ink"
+                    >
+                      {t("updateDownload")}
+                    </button>
+                  ) : (
+                    <code className="text-faint">
+                      {t(ready.route === "brew" ? "updateBrew" : "updateBrewCli")}
+                    </code>
+                  )}
+                </p>
+              )}
               <div className="mt-2.5">
                 {/* Not `served`, which resolves a reference inside the store and
                     refuses anything that leaves it — a URL always failed. */}

@@ -82,6 +82,8 @@ pub struct Config {
     /// channel starts on without anyone having to opt in to it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quiet: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checked_at: Option<jiff::Timestamp>,
     /// Bytes above which an attachment is pointed at instead of copied in.
     /// §9 G3 promised this configurable and it had stayed a constant.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -99,6 +101,7 @@ impl Config {
             locale: None,
             editor: None,
             quiet: None,
+            checked_at: None,
             attach_up_to: None,
             opened_by: None,
             on_close: None,
@@ -218,6 +221,7 @@ mod tests {
             sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
             synced_at: None,
             quiet: None,
+            checked_at: None,
             attach_up_to: None,
         };
 

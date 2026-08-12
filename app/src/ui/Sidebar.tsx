@@ -8,6 +8,9 @@ interface Props {
   lists: List[];
   counts: Record<string, number>;
   chosen: Chosen;
+  /// A newer Tisty exists. A dot and nothing else: it is worth noticing once,
+  /// never worth interrupting for.
+  ready: boolean;
   onChoose: (chosen: Chosen) => void;
 }
 
@@ -18,7 +21,7 @@ const NAMED: { key: Named; icon: string }[] = [
   { key: "archive", icon: "▣" },
 ];
 
-export default function Sidebar({ lists, counts, chosen, onChoose }: Props) {
+export default function Sidebar({ lists, counts, chosen, ready, onChoose }: Props) {
   const [openLists, setOpenLists] = useState(true);
 
   const settled = lists.filter((list) => !counts[list.id]);
@@ -94,13 +97,19 @@ export default function Sidebar({ lists, counts, chosen, onChoose }: Props) {
         </button>
         <button
           type="button"
-          aria-label={t("aboutScreen")}
+          aria-label={ready ? `${t("aboutScreen")} · ${t("updateWaiting")}` : t("aboutScreen")}
           title={t("aboutScreen")}
           onClick={() => onChoose({ named: "aboutScreen" })}
-          className={`ml-auto grid h-7 w-7 place-items-center rounded-[7px] hover:bg-hover ${
+          className={`relative ml-auto grid h-7 w-7 place-items-center rounded-[7px] hover:bg-hover ${
             chosen.named === "aboutScreen" ? "bg-active" : ""
           }`}
         >
+          {ready && (
+            <span
+              aria-hidden
+              className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-accent"
+            />
+          )}
           {/* The mark itself: what is behind it is what Tisty is, its version
               and its licence. A glyph would have to stand for that; this is it. */}
           <img

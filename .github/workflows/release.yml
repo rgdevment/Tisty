@@ -569,6 +569,38 @@ jobs:
             if [ -s "$f" ]; then echo "$f"; else echo "::warning::no installer at $f"; fi
           done
 
+      # Installed copies read this to learn a newer one exists. It carries
+      # versions and nothing else: every address the app can open is compiled
+      # into it, so this file cannot send anyone anywhere.
+      #
+      # `latest` only moves on a final release, or a stable install would be
+      # told to go and fetch a candidate.
+      - name: Release manifest
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          previous=$(gh release list --exclude-drafts --exclude-pre-releases \
+            --limit 1 --json tagName --jq '.[0].tagName // ""' | sed 's/^v//')
+
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
+            latest="${previous:-$v}"
+            candidate="$v"
+          else
+            latest="$v"
+            candidate=""
+          fi
+
+          {
+            echo '{'
+            echo '  "schema": 1,'
+            printf '  "latest": "%s"' "$latest"
+            if [ -n "$candidate" ]; then printf ',\n  "latestPrerelease": "%s"' "$candidate"; fi
+            echo
+            echo '}'
+          } > dist/release-manifest.json
+          cat dist/release-manifest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
 
