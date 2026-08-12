@@ -29,8 +29,17 @@ const framesOf = (stack?: string): string =>
     .map((line) => line.trim())
     .join(" | ");
 
+/// React retries a failed render, so one broken component can raise the same
+/// error dozens of times a second. Unchecked it would roll the log past its own
+/// 256 kB and throw away the history that explains how it got there.
+const seen = new Set<string>();
+
 const broke = (kind: string, stack?: string) => {
-  void noteBreak(kind, framesOf(stack)).catch(() => {});
+  const frames = framesOf(stack);
+  const once = `${kind} ${frames}`;
+  if (seen.has(once)) return;
+  seen.add(once);
+  void noteBreak(kind, frames).catch(() => {});
 };
 
 window.addEventListener("error", (e) => broke(e.error?.name ?? "Error", e.error?.stack));

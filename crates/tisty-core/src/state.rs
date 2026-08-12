@@ -516,6 +516,20 @@ impl State {
             .collect()
     }
 
+    /// Named exactly, ignoring case and accents. `find_list` falls back to
+    /// substring so a half-typed `@mark` still lands, which is the opposite of
+    /// what naming a new list wants: «Tra» would file into «Trabajo» instead of
+    /// making the list that was asked for.
+    pub fn list_called(&self, name: &str) -> Vec<&List> {
+        // Trimmed first: `loose` turns a space into a hyphen, so an untrimmed
+        // name would match nothing and quietly make a second list.
+        let wanted = loose(name.trim().trim_start_matches('@').trim());
+        self.lists
+            .values()
+            .filter(|one| loose(&one.name) == wanted)
+            .collect()
+    }
+
     pub fn next_task_order(&self) -> String {
         order::last_of(self.tasks.values().map(|t| t.order.as_str()))
     }
@@ -2209,5 +2223,56 @@ mod tests {
                 .matching(&crate::view::Filter::default(), day())
                 .is_empty()
         );
+    }
+
+    fn holding(names: &[&str]) -> State {
+        let mut state = State::default();
+        for (nth, name) in names.iter().enumerate() {
+            state.apply(&crate::Event::new(
+                DeviceId("dev".into()),
+                jiff::Timestamp::now(),
+                crate::Op::ListAdd {
+                    id: ulid::Ulid::generate(),
+                    d: ListAdd {
+                        name: (*name).to_string(),
+                        order: format!("a{nth}"),
+                        color: None,
+                    },
+                },
+            ));
+        }
+        state
+    }
+
+    /// `find_list` matches a substring on purpose, so a half-typed `@mark`
+    /// still lands. Naming a NEW list wants the opposite: «Tra» must make
+    /// «Tra», not quietly file the task under «Trabajo».
+    #[test]
+    fn naming_a_list_does_not_settle_for_a_longer_one() {
+        let state = holding(&["Trabajo"]);
+
+        assert!(state.list_called("Tra").is_empty());
+        assert_eq!(
+            state.find_list("Tra").len(),
+            1,
+            "the fuzzy one still matches"
+        );
+    }
+
+    /// Reusing the same list under another casing is right: two lists called
+    /// «Trabajo» and «trabajo» would be the same list to a reader.
+    #[test]
+    fn naming_a_list_reuses_the_one_already_there_whatever_the_case() {
+        let state = holding(&["Trabajo"]);
+
+        assert_eq!(state.list_called("trabajo").len(), 1);
+        assert_eq!(state.list_called("  TRABAJO ").len(), 1);
+    }
+
+    #[test]
+    fn two_lists_of_the_same_name_are_both_returned_so_the_caller_can_refuse() {
+        let state = holding(&["Casa", "casa"]);
+
+        assert_eq!(state.list_called("casa").len(), 2);
     }
 }

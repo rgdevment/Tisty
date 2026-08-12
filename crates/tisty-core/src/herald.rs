@@ -91,9 +91,11 @@ fn rings(
     let mut said = Vec::new();
     let mut at = one.at;
     // A reminder abandoned years ago would otherwise be walked one day at a
-    // time on every tick. Past the cap it stops: the task is still sitting
-    // overdue in the list, which is the honest place for it.
+    // time on every tick. Past the cap it stops — and says so, because a habit
+    // that quietly goes silent is the thing this whole function came to fix.
+    let mut walked = 0;
     for _ in 0..STEPS {
+        walked += 1;
         let Ok(stamp) = one.moved(at).instant(here) else {
             break;
         };
@@ -107,6 +109,13 @@ fn rings(
             break;
         };
         at = next;
+    }
+    if walked == STEPS {
+        crate::witness::warn(
+            crate::witness::channel::HERALD,
+            "a repeating reminder is too far behind to walk",
+            &[("id", crate::witness::Fact::Id(task.id.to_string()))],
+        );
     }
     said
 }
