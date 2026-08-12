@@ -1252,6 +1252,7 @@ const REFUSALS: &[&str] = &[
     "cannotRead",
     "cannotOpen",
     "cannotWrite",
+    "attachmentTooBig",
     "noRemote",
     "noMeetingPlace",
     "syncUnreadable",
@@ -1875,15 +1876,34 @@ fn attach(
         )
     };
     let kept = tisty_core::attach::keep(&source, &root, ceiling).map_err(|e| {
-        witness::warn(
-            channel::ATTACH,
-            "the file could not be kept",
-            &[("why", Fact::Why(e.to_string()))],
-        );
-        Refusal::about("cannotRead", name.clone())
+        witness::warn(channel::ATTACH, "the file could not be kept", &e.told());
+        // Its own refusal: «could not be read» would send somebody looking for a
+        // broken file when what happened is that it does not fit.
+        match e {
+            tisty_core::Error::AttachmentTooBig { limit, .. } => {
+                Refusal::about("attachmentTooBig", weighed(limit))
+            }
+            _ => Refusal::about("cannotRead", name.clone()),
+        }
     })?;
 
     Ok(kept.written(&name))
+}
+
+/// In the steps a person reads, not bytes.
+fn weighed(bytes: u64) -> String {
+    let units = ["B", "kB", "MB", "GB"];
+    let mut step = 0;
+    let mut left = bytes as f64;
+    while left >= 1000.0 && step < units.len() - 1 {
+        left /= 1000.0;
+        step += 1;
+    }
+    if step == 0 {
+        format!("{left:.0} {}", units[step])
+    } else {
+        format!("{left:.1} {}", units[step])
+    }
 }
 
 #[tauri::command]
