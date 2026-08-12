@@ -769,6 +769,16 @@ jobs:
           	end
           FORMULA
 
+          # `tisty` and `tisty-beta` were formulas that installed the command
+          # line, from before there was an application. They are casks now, and
+          # a tap cannot hold a cask and a formula under one name.
+          for stale in Formula/tisty.rb Formula/tisty-beta.rb; do
+            if [ -f "$stale" ]; then
+              git rm -q "$stale"
+              echo "removed $stale, which the cask replaces"
+            fi
+          done
+
           git add Casks Formula
           if git diff --cached --quiet; then
             echo "tap already at ${VERSION}"
