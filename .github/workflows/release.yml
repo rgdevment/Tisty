@@ -15,9 +15,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  # Off until the app has been tried on a real Mac. Turns off both macOS jobs
-  # and the Homebrew tap, which installs what they build.
-  BUILD_MACOS: "false"
+  BUILD_MACOS: "true"
 
 jobs:
   version:
@@ -35,6 +33,7 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
     steps:
@@ -51,6 +50,9 @@ jobs:
           fi
           if [ -n "$APPLE_ID" ] && { [ -z "$APPLE_APP_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; }; then
             fail "APPLE_ID is set but APPLE_APP_PASSWORD or APPLE_TEAM_ID is empty"
+          fi
+          if [ -n "$MACOS_CERTIFICATE_P12" ] && [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+            fail "MACOS_CERTIFICATE_P12 is set but APPLE_SIGNING_IDENTITY is empty: the app would be bundled unsigned"
           fi
           echo "signing secrets are coherent"
 
@@ -388,6 +390,16 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: npm run tauri build -- --target universal-apple-darwin --bundles app,dmg
+
+      - name: The app is really signed
+        if: env.MACOS_CERTIFICATE_P12 != ''
+        run: |
+          app=$(ls -d target/universal-apple-darwin/release/bundle/macos/*.app | head -1)
+          codesign --verify --deep --strict --verbose=2 "$app"
+          if codesign -dv "$app" 2>&1 | grep -q "Signature=adhoc"; then
+            echo "::error::$app came out ad-hoc signed; notarisation would refuse it"
+            exit 1
+          fi
 
       - name: Notarize
         if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
