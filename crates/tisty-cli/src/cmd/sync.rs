@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use tisty_core::{cache, config::Sync};
+use tisty_core::config::Sync;
 use tisty_sync as carrier;
 
 use crate::{EXIT_ERROR, app::App, i18n::Lang, style};
@@ -17,9 +17,7 @@ pub fn sync(
     };
 
     let data = app.paths.data().to_path_buf();
-    let root = app.paths.store();
     let device = app.config().device_id.0.clone();
-    let before = cache::fingerprint(&root);
 
     let way = match (push, pull) {
         (true, _) => carrier::Way::Push,
@@ -34,16 +32,24 @@ pub fn sync(
     } else {
         carrier::Join::Ask
     };
-    if let Err(trouble) = carrier::carry(&data, &device, &dest, way, join) {
-        return Ok(said(&trouble, lang));
-    }
+    let moved = match carrier::carry(&data, &device, &dest, way, join) {
+        Ok(moved) => moved,
+        Err(trouble) => return Ok(said(&trouble, lang)),
+    };
 
     app.edit_config(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
-    let moved = cache::fingerprint(&root) != before;
+    // What was sent counts too: a push that carried a change reported «nothing
+    // new», because only the local store was being looked at.
+    let told = match (moved.sent > 0, moved.brought > 0) {
+        (true, true) => "synced-both",
+        (true, false) => "synced-sent",
+        (false, true) => "synced-new",
+        (false, false) => "synced-same",
+    };
     println!(
         "\n  {} {}\n",
         style::paint(style::GREEN, "✓"),
-        lang.get(if moved { "synced-new" } else { "synced-same" })
+        lang.get(told)
     );
     Ok(ExitCode::SUCCESS)
 }
