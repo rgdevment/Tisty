@@ -27,6 +27,7 @@ pub fn to_date(anchor: Anchor, now: &Zoned) -> Option<Date> {
         Anchor::Weekend => weekend(today)?,
         Anchor::EndOfMonth => today.last_of_month(),
         Anchor::OnDate(day, month, year) => explicit(today, day, month, year)?,
+        Anchor::OnDateNamed(day, _) => explicit(today, day, None, None)?,
     };
 
     Some(date)

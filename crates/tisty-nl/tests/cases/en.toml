@@ -765,3 +765,31 @@ input = "send the report until friday"
 title = "send the report"
 deadline = "2026-08-07"
 why = "with no cadence, «until» is the deadline it has always been"
+
+[[case]]
+input = "call at 8 in the evening"
+title = "call"
+date = "2026-08-05"
+time = "20:00"
+why = "the part of the day says which eight it is"
+
+[[case]]
+input = "call at 5 in the morning"
+title = "call"
+date = "2026-08-06"
+time = "05:00"
+why = "said outright, so the 1-6 afternoon guess must not override it"
+
+[[case]]
+input = "call at 12 at night"
+title = "call"
+date = "2026-08-06"
+time = "00:00"
+why = "twelve at night is midnight"
+
+[[case]]
+input = "buy bread for #home tomorrow"
+title = "buy bread"
+date = "2026-08-06"
+tags = ["home"]
+why = "the preposition leaves with the tag it points at, not stranded at the end"

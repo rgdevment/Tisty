@@ -13,6 +13,7 @@ pub enum Anchor {
     InWeeks(i64),
     InMonths(i64),
     OnDate(u8, Option<u8>, Option<i16>),
+    OnDateNamed(u8, usize),
     EndOfWeek,
     EndOfMonth,
     EndOfNextWeek,
@@ -156,12 +157,19 @@ pub fn scan(tokens: &[Token], v: &Vocabulary) -> Scanned {
     }
 }
 
+/// The companion sits beside the reading, never at the far end of a paste. Left
+/// unbounded this walks every token and `at` walks back again from each, which
+/// turns a long line of bare clock phrases into seconds of work.
+const NEARBY: usize = 12;
+
 fn other_role(tokens: &[Token], taken: &Found, v: &Vocabulary) -> Option<Found> {
     let limit = taken.spans.iter().map(|(from, _)| *from).min()?;
-    (0..=limit).rev().find_map(|end| match at(tokens, end, v) {
-        Some(Reading::Taken(found)) if found.role != taken.role => Some(found),
-        _ => None,
-    })
+    (limit.saturating_sub(NEARBY)..=limit)
+        .rev()
+        .find_map(|end| match at(tokens, end, v) {
+            Some(Reading::Taken(found)) if found.role != taken.role => Some(found),
+            _ => None,
+        })
 }
 
 fn at(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<Reading> {
@@ -292,7 +300,7 @@ fn is_descriptive(tokens: &[Token], cursor: usize, v: &Vocabulary, role: Role) -
     if role == Role::Deadline || cursor == 0 {
         return false;
     }
-    if !matches!(tokens[cursor - 1].word.as_str(), "de" | "del") {
+    if !v.genitive.contains(&tokens[cursor - 1].word.as_str()) {
         return false;
     }
     !(cursor >= 2 && v.date_prep.contains(&tokens[cursor - 2].word.as_str()))
@@ -343,11 +351,49 @@ fn skip_particles(tokens: &[Token], cursor: usize, v: &Vocabulary, role: Role) -
     i
 }
 
+/// Reading the number alone lands twelve hours off, sometimes contradicting the
+/// words that were typed.
+fn told_apart(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Time, usize, bool)> {
+    let part = tokens.get(end - 1)?.word.as_str();
+    if !v.day_part.contains(&part) {
+        return None;
+    }
+
+    let mut i = end - 1;
+    while i > 0 {
+        let w = tokens[i - 1].word.as_str();
+        if !(v.article.contains(&w) || v.part_prep.contains(&w)) {
+            break;
+        }
+        i -= 1;
+    }
+    // «por la mañana» is a stretch of the day, not an hour.
+    if i == end - 1 {
+        return None;
+    }
+
+    let (digits, suffix) = split_suffix(&tokens[i - 1].word);
+    if suffix.is_some() {
+        return None;
+    }
+    let hour: i8 = digits.parse().ok()?;
+    let hour = match hour {
+        12 if v.night_part.contains(&part) => 0,
+        h if (1..12).contains(&h) && v.pm_part.contains(&part) => h + 12,
+        h => h,
+    };
+    Some((Time::new(hour, 0, 0, 0).ok()?, i - 1, false))
+}
+
 /// The third field says the afternoon was assumed, not written.
 fn match_time(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Time, usize, bool)> {
     if end == 0 {
         return None;
     }
+    if let Some(read) = told_apart(tokens, end, v) {
+        return Some(read);
+    }
+
     let last = &tokens[end - 1].word;
 
     if v.noon.contains(&last.as_str()) {
@@ -450,11 +496,21 @@ fn match_anchor(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
     }
     if v.tomorrow.contains(&last) {
         let after = end >= 2 && v.day_after.contains(&tokens[end - 2].word.as_str());
-        return Some(if after {
-            (Anchor::DayAfterTomorrow, end - 2)
-        } else {
-            (Anchor::Tomorrow, end - 1)
-        });
+        if !after {
+            return Some((Anchor::Tomorrow, end - 1));
+        }
+        // English says it in four words and the last two are the phrase, so the
+        // other two would be left standing in the title.
+        let mut from = end - 2;
+        while from > 0 && v.spelled_day.contains(&tokens[from - 1].word.as_str()) {
+            from -= 1;
+        }
+        if from < end - 2 {
+            while from > 0 && v.article.contains(&tokens[from - 1].word.as_str()) {
+                from -= 1;
+            }
+        }
+        return Some((Anchor::DayAfterTomorrow, from));
     }
     if let Some(day) = v.weekday_index(last) {
         // Glued to the day: «el próximo lunes». With a word in between it is
@@ -494,6 +550,10 @@ fn match_phrase(tokens: &[Token], end: usize, phrases: &[&[&str]]) -> Option<usi
     None
 }
 
+/// Ten years out in days, which is further than anyone plans and short of the
+/// nonsense a stray number produces.
+const AT_MOST: i64 = 3_650;
+
 fn match_offset(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor, usize)> {
     if end < 2 {
         return None;
@@ -506,6 +566,11 @@ fn match_offset(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(Anchor,
     } else {
         amount_word.parse().ok()?
     };
+    // «cada 99999 días» is refused as a cadence and then landed here, which read
+    // it as an offset and stored the year 2300 without a word.
+    if !(1..=AT_MOST).contains(&amount) {
+        return None;
+    }
 
     let anchor = if v.days_unit.contains(&unit) {
         Anchor::InDays(amount)
@@ -639,8 +704,10 @@ fn match_explicit_date(tokens: &[Token], end: usize, v: &Vocabulary) -> Option<(
             }
         }
         // «el lunes 15»: the weekday names it, the number dates it.
-        if end >= 2 && v.weekday_index(tokens[end - 2].word.as_str()).is_some() {
-            return Some((Anchor::OnDate(day, None, None), end - 2));
+        if end >= 2
+            && let Some(named) = v.weekday_index(tokens[end - 2].word.as_str())
+        {
+            return Some((Anchor::OnDateNamed(day, named), end - 2));
         }
     }
     None
