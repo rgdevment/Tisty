@@ -97,12 +97,20 @@ fn cadence(over: tisty_core::model::Repeat, lang: Lang) -> String {
         (Unit::Year, true) => "a-year",
         (Unit::Year, false) => "many-years",
     });
-    if one {
-        return lang.get("every-one").replace("{unit}", unit);
+    let said = if one {
+        lang.get("every-one").replace("{unit}", unit)
+    } else {
+        lang.get("every-many")
+            .replace("{n}", &step.every.to_string())
+            .replace("{unit}", unit)
+    };
+    match over.until {
+        Some(last) => format!(
+            "{said} {}",
+            lang.get("until-day").replace("{day}", &last.to_string())
+        ),
+        None => said,
     }
-    lang.get("every-many")
-        .replace("{n}", &step.every.to_string())
-        .replace("{unit}", unit)
 }
 
 pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {

@@ -73,6 +73,7 @@ fn refused(e: Rejected, lang: Lang) -> anyhow::Error {
         Rejected::Untitled => lang.get("needs-title").to_string(),
         Rejected::NoSuchList(name) => lang.fill("no-such-list", &[("selector", name)]),
         Rejected::AmbiguousList(name) => lang.fill("ambiguous-list", &[("selector", name)]),
+        Rejected::EndedAlready => lang.get("past-end").to_string(),
     };
     anyhow::anyhow!("{message}")
 }
@@ -110,8 +111,15 @@ fn cadence_flag(
     let Some(said) = said else {
         return Ok(None);
     };
-    let read = tisty_nl::parse(said, &jiff::Zoned::now(), lang.code());
+    // A flag is a specification, not a capture: with nothing left over the
+    // reader takes it for a title and gives back neither date nor cadence, so
+    // «cada mes hasta el 15» lost its last day without a word. The stand-in
+    // title is thrown away with the rest of the reading.
+    let read = tisty_nl::parse(&format!("· {said}"), &jiff::Zoned::now(), lang.code());
     match read.repeat {
+        Some(over) if over.ended(jiff::Zoned::now().date()) => {
+            anyhow::bail!("{}", lang.get("past-end"))
+        }
         Some(over) => Ok(Some(Some(over))),
         None => anyhow::bail!("{}", lang.get("not-a-cadence").replace("{said}", said)),
     }
