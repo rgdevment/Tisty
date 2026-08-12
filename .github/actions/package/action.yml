@@ -28,7 +28,7 @@ runs:
     - name: Package
       shell: bash
       run: |
-        name="tisty-${{ inputs.version }}-${{ inputs.name }}"
+        name="tisty-cli-${{ inputs.version }}-${{ inputs.name }}"
         mkdir -p dist "$name"
         cp README.md LICENSE "$name"/
 
