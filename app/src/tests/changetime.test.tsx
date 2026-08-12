@@ -15,7 +15,7 @@ describe("changing only the hour", () => {
     const onPick = put({ value: "2026-08-20", clock: "10:00" });
 
     fireEvent.change(screen.getByLabelText(/time/i), { target: { value: "09:00" } });
-    fireEvent.click(screen.getByText("Set it"));
+    fireEvent.click(screen.getByText("Apply"));
 
     expect(onPick).toHaveBeenCalledWith("2026-08-20T09:00:00");
   });
@@ -23,9 +23,9 @@ describe("changing only the hour", () => {
   it("asks for one as soon as an hour is typed on an all-day date", () => {
     const onPick = put({ value: "2026-08-20" });
 
-    expect(screen.queryByText("Set it")).toBeNull();
+    expect(screen.queryByText("Apply")).toBeNull();
     fireEvent.change(screen.getByLabelText(/time/i), { target: { value: "07:30" } });
-    fireEvent.click(screen.getByText("Set it"));
+    fireEvent.click(screen.getByText("Apply"));
 
     expect(onPick).toHaveBeenCalledWith("2026-08-20T07:30:00");
   });
