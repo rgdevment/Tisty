@@ -81,6 +81,8 @@ pub struct Reach {
 pub fn reach() -> Reach {
     let folder = beside();
     Reach {
+        // Inside a container the link would be made, reported as ready, and
+        // found by no shell on the machine. Better to not offer it at all.
         shipped: folder.is_some(),
         within_reach: folder.as_deref().is_some_and(already),
         at: folder.map(|at| at.display().to_string()),

@@ -125,9 +125,14 @@ describe("capturing without the window", () => {
   });
 
   /// Pressing keys that belong to an editor is a poor way to find out.
-  it("says which combination actually answered", async () => {
+  /// No footer: Enter and Esc are what every field on every system already does,
+  /// and 132 pixels are worth more given to the sentence. The keys belong in the
+  /// help menu, with the rest of what can be typed.
+  it("spends its height on the sentence, not on instructions", async () => {
     render(<Quick />);
+    await screen.findByRole("textbox");
 
-    expect(await screen.findByText(/Ctrl\+Shift\+Space opens this/)).toBeTruthy();
+    expect(screen.queryByText(/Esc/)).toBeNull();
+    expect(screen.queryByText(/Ctrl\+Shift\+Space/)).toBeNull();
   });
 });

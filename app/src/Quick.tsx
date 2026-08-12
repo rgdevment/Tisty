@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
-import { capture, shortcut, snapshot, type Snapshot } from "./core";
-import { adopt, fill, t } from "./locales";
+import { capture, snapshot, type Snapshot } from "./core";
+import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import CaptureField from "./ui/CaptureField";
-
-const hint = (keys: string | null) =>
-  keys ? `${fill("quickKeys", keys)} · ${t("quickHint")}` : t("quickHint");
 
 /** Capture without the window: one field, and it is gone again. */
 export default function Quick() {
@@ -16,7 +13,6 @@ export default function Quick() {
   const [kept, setKept] = useState<string>();
   const [round, setRound] = useState(0);
   const going = useRef<ReturnType<typeof setTimeout>>(null);
-  const [keys, setKeys] = useState<string | null>(null);
 
   useEffect(() => {
     const window = getCurrentWindow();
@@ -46,9 +42,6 @@ export default function Quick() {
     });
 
     void look();
-    shortcut()
-      .then(setKeys)
-      .catch(() => {});
 
     const escape = (e: KeyboardEvent) => {
       if (e.key === "Escape") away();
@@ -65,18 +58,19 @@ export default function Quick() {
   // Frameless: an empty render is an invisible rectangle eating clicks.
   if (!data) {
     return (
-      <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg px-4 py-3 shadow-lift-tall">
-        <p className="px-1 text-[13.5px] text-soft">{error ?? t("addTask")}</p>
-        <p className="px-1 pt-1 text-[11px] text-faint">{hint(keys)}</p>
-      </div>
+      <Frame>
+        <p className="text-[17px] leading-snug -tracking-[0.011em] text-soft">
+          {error ?? t("addTask")}
+        </p>
+      </Frame>
     );
   }
 
   return (
-    <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg px-4 py-3 shadow-lift-tall">
+    <Frame>
       {kept ? (
-        <p className="px-1 text-[13.5px] text-soft">
-          <span className="text-accent">✓</span> {kept}
+        <p className="flex items-baseline gap-2.5 text-[17px] leading-snug -tracking-[0.011em]">
+          <span className="text-[13px] text-accent">✓</span> {kept}
         </p>
       ) : (
         <CaptureField
@@ -96,8 +90,18 @@ export default function Quick() {
           onError={setError}
         />
       )}
-      {error && <p className="px-1 pt-1 text-xs text-urgent">{error}</p>}
-      {!kept && <p className="px-1 pt-1 text-[11px] text-faint">{hint(keys)}</p>}
+      {error && <p className="pt-1 text-xs text-urgent">{error}</p>}
+    </Frame>
+  );
+}
+
+/// No footer: `Enter` and `Esc` are what every field on every system already
+/// does, and 132 pixels are worth more given to the sentence. The keys belong
+/// in the help menu, with the rest of what can be typed.
+function Frame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg/85 px-[22px] py-5 shadow-lift-tall backdrop-blur-xl">
+      {children}
     </div>
   );
 }

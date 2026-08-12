@@ -27,17 +27,35 @@ pub struct Restored {
     pub devices: usize,
 }
 
-/// Written aside and renamed at the end: overwriting the previous backup in
-/// place would trade a good one for a well-formed zip that is missing files.
-pub fn write(data: &Path, into: &Path) -> Result<Made> {
+/// Built under another name and moved at the end, beside the destination when
+/// that folder takes a file. `aside` is the fallback for a macOS save panel,
+/// which grants the chosen path and nothing next to it.
+pub fn write(data: &Path, into: &Path, aside: &Path) -> Result<Made> {
     let store_id = store::identity(data.join("store"))?;
     store::read_all(data.join("store"))?;
 
-    let part = into.with_extension(format!("{}.part", std::process::id()));
-    let made = fill(data, &part, store_id);
-    match made {
+    // Named after the destination, not just the process: two at once in one
+    // process would otherwise build into the same file.
+    let named = into
+        .file_name()
+        .map(|one| one.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "backup".into());
+    let named = format!("{named}.{}.part", std::process::id());
+
+    let beside = into.with_file_name(&named);
+    let part = if std::fs::File::create(&beside).is_ok() {
+        beside
+    } else {
+        std::fs::create_dir_all(aside)?;
+        aside.join(&named)
+    };
+
+    match fill(data, &part, store_id) {
         Ok(made) => {
-            std::fs::rename(&part, into)?;
+            // Kept when it could not be placed: it is the only whole zip left
+            // if the destination was torn getting there.
+            place(&part, into)?;
+            let _ = std::fs::remove_file(&part);
             Ok(made)
         }
         Err(e) => {
@@ -45,6 +63,40 @@ pub fn write(data: &Path, into: &Path) -> Result<Made> {
             Err(e)
         }
     }
+}
+
+/// `copy` truncates the destination before writing a byte, so one that dies
+/// halfway destroys the previous backup. Three tries, in order of how much they
+/// ask for; only the last can leave a torn file, and only it works in a sandbox.
+fn place(part: &Path, into: &Path) -> std::io::Result<()> {
+    if std::fs::rename(part, into).is_ok() {
+        return Ok(());
+    }
+
+    let beside = into.with_extension(format!("part{}", std::process::id()));
+    if std::fs::copy(part, &beside).is_ok() && std::fs::rename(&beside, into).is_ok() {
+        witness::warn(channel::BACKUP, "backup placed by copying beside", &[]);
+        return Ok(());
+    }
+    let _ = std::fs::remove_file(&beside);
+
+    witness::warn(
+        channel::BACKUP,
+        "backup placed by overwriting, which is not atomic",
+        &[],
+    );
+    let done = std::fs::copy(part, into).map(|_| ());
+    if let Err(e) = &done {
+        witness::error(
+            channel::BACKUP,
+            "backup could not be placed and may be torn",
+            &[
+                ("at", Fact::Path(into.into())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+    }
+    done
 }
 
 fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
@@ -361,6 +413,13 @@ fn zipped(e: zip::result::ZipError) -> Error {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Where the zip is built before it is copied where it was asked for. One
+    /// per call: these tests share a process and all name their destination
+    /// the same, so a shared workspace has them building over each other.
+    fn tmp() -> tempfile::TempDir {
+        tempfile::tempdir().unwrap()
+    }
     use crate::event::{DeviceId, TaskAdd};
     use crate::{Op, Store};
     use ulid::Ulid;
@@ -393,10 +452,39 @@ mod tests {
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("tisty.zip");
 
-        let made = write(&data, &file).unwrap();
+        let made = write(&data, &file, tmp().path()).unwrap();
         assert!(made.files >= 2, "{made:?}");
         assert!(made.bytes > 0);
         assert!(file.exists());
+    }
+
+    #[test]
+    fn a_destination_that_cannot_be_written_leaves_it_alone() {
+        let (_src, data) = filled("comprar pan");
+        let out = tempfile::tempdir().unwrap();
+
+        let taken = out.path().join("tisty.zip");
+        std::fs::create_dir(&taken).unwrap();
+        std::fs::write(taken.join("inside"), b"still here").unwrap();
+
+        assert!(write(&data, &taken, tmp().path()).is_err());
+        assert!(taken.join("inside").exists());
+    }
+
+    #[test]
+    fn nothing_is_left_beside_the_backup() {
+        let (_src, data) = filled("comprar pan");
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+
+        write(&data, &file, tmp().path()).unwrap();
+
+        let left: Vec<String> = std::fs::read_dir(out.path())
+            .unwrap()
+            .filter_map(|one| one.ok())
+            .map(|one| one.file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(left, vec!["tisty.zip".to_string()], "{left:?}");
     }
 
     #[test]
@@ -404,7 +492,7 @@ mod tests {
         let (_src, data) = filled("comprar pan");
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("tisty.zip");
-        write(&data, &file).unwrap();
+        write(&data, &file, tmp().path()).unwrap();
 
         let fresh = tempfile::tempdir().unwrap();
         let restored = read(&quarters(&fresh), &file).unwrap();
@@ -428,7 +516,7 @@ mod tests {
         let (_src, data) = filled("lo de antes");
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("tisty.zip");
-        write(&data, &file).unwrap();
+        write(&data, &file, tmp().path()).unwrap();
 
         let fresh = tempfile::tempdir().unwrap();
         read(&quarters(&fresh), &file).unwrap();
@@ -466,7 +554,7 @@ mod tests {
 
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("tisty.zip");
-        write(paths.data(), &file).unwrap();
+        write(paths.data(), &file, tmp().path()).unwrap();
 
         store
             .append(Op::TaskAdd {
@@ -497,7 +585,7 @@ mod tests {
         let (_b, other) = filled("lo de otro");
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("tisty.zip");
-        write(&one, &file).unwrap();
+        write(&one, &file, tmp().path()).unwrap();
 
         let other_paths = Paths::new(&other, other.parent().unwrap().join("config"));
         let Err(Error::OtherStore { theirs }) = read(&other_paths, &file) else {
@@ -514,7 +602,7 @@ mod tests {
 
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("tisty.zip");
-        write(&data, &file).unwrap();
+        write(&data, &file, tmp().path()).unwrap();
 
         let held = std::fs::File::open(&file).unwrap();
         let mut zip = zip::ZipArchive::new(held).unwrap();
@@ -558,7 +646,7 @@ mod tests {
         let paths = Paths::new(&data, data.parent().unwrap().join("config"));
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("tisty.zip");
-        write(&data, &file).unwrap();
+        write(&data, &file, tmp().path()).unwrap();
 
         let mut bytes = std::fs::read(&file).unwrap();
         let middle = bytes.len() / 2;
@@ -582,7 +670,7 @@ mod tests {
         let (_b, other) = filled("lo de otro");
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("tisty.zip");
-        write(&other, &file).unwrap();
+        write(&other, &file, tmp().path()).unwrap();
 
         let stripped = out.path().join("stripped.zip");
         {
@@ -628,7 +716,7 @@ mod tests {
 
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("tisty.zip");
-        write(paths.data(), &file).unwrap();
+        write(paths.data(), &file, tmp().path()).unwrap();
         read(&paths, &file).unwrap();
 
         let now = Config::load(&paths.config_file()).unwrap().unwrap();

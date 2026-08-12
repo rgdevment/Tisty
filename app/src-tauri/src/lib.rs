@@ -1256,6 +1256,7 @@ const REFUSALS: &[&str] = &[
     "noRemote",
     "noMeetingPlace",
     "syncUnreadable",
+    "syncRefused",
     "syncBroke",
     "wouldMerge",
     "remoteInsideStore",
@@ -1691,26 +1692,30 @@ async fn back_up(
     // The same lock as carrying: a restore renaming the store while a carry
     // writes into it is the pair that must never overlap.
     let _done = alone.inner().taken()?;
-    let data = {
+    let (data, aside) = {
         let session = held(&session);
         if !session.config.backs_up() {
             return Err(Refusal::of("sharedIsTheBackup"));
         }
-        session.paths.data().to_path_buf()
+        (
+            session.paths.data().to_path_buf(),
+            session.paths.cache().to_path_buf(),
+        )
     };
 
     let at = std::path::PathBuf::from(&into);
-    let made = tauri::async_runtime::spawn_blocking(move || tisty_core::backup::write(&data, &at))
-        .await
-        .map_err(|_| Refusal::of("internal"))?
-        .map_err(|e| {
-            witness::error(
-                channel::BACKUP,
-                "the backup could not be written",
-                &[("why", Fact::Why(e.to_string()))],
-            );
-            Refusal::about("cannotWrite", into)
-        })?;
+    let made =
+        tauri::async_runtime::spawn_blocking(move || tisty_core::backup::write(&data, &at, &aside))
+            .await
+            .map_err(|_| Refusal::of("internal"))?
+            .map_err(|e| {
+                witness::error(
+                    channel::BACKUP,
+                    "the backup could not be written",
+                    &[("why", Fact::Why(e.to_string()))],
+                );
+                Refusal::about("cannotWrite", into)
+            })?;
 
     // Remembered so the screen can say when the last one was made — the question
     // that decides whether anyone makes the next.
@@ -1769,6 +1774,7 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
         tisty_sync::Trouble::NotThere(at) => Refusal::about("noMeetingPlace", at),
         tisty_sync::Trouble::OtherStore { theirs } => Refusal::about("otherStore", theirs),
         tisty_sync::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
+        tisty_sync::Trouble::Refused(why) => Refusal::about("syncRefused", why),
         tisty_sync::Trouble::Broke(why) => Refusal::about("syncBroke", why),
         tisty_sync::Trouble::WouldMerge { theirs } => Refusal::about("wouldMerge", theirs),
     }
@@ -1805,8 +1811,7 @@ fn opened(
     if runnable(&at) {
         return show(&at, &reference);
     }
-    tauri_plugin_opener::open_path(at, None::<&str>)
-        .map_err(|_| Refusal::about("cannotOpen", reference))?;
+    handed(&at).map_err(|_| Refusal::about("cannotOpen", reference))?;
     let _ = app;
     Ok(())
 }
@@ -1816,6 +1821,11 @@ fn opened(
 #[tauri::command]
 fn revealed(path: String) -> Answer<()> {
     show(std::path::Path::new(&path), &path)
+}
+
+fn handed(at: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    tauri_plugin_opener::open_path(at, None::<&str>)?;
+    Ok(())
 }
 
 fn show(at: &std::path::Path, said: &str) -> Answer<()> {
@@ -1952,9 +1962,17 @@ fn listen_for<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<String> {
             "Ctrl+Shift+Space",
             Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space),
         ),
+        // Not on macOS: `Ctrl+Alt+Space` and `Ctrl+Space` are «select the next
+        // input source» on any Mac with two keyboard layouts, so a fallback
+        // that lands there is taken before Tisty asks.
+        #[cfg(not(target_os = "macos"))]
         (
             "Ctrl+Alt+Space",
             Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::Space),
+        ),
+        (
+            "Ctrl+Shift+T",
+            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyT),
         ),
     ];
 
