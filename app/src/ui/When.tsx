@@ -19,6 +19,10 @@ export default function When({ value, clock, never, confirm, onPick, onClear, on
   const [at, setAt] = useState(clock ?? "");
   const [day, setDay] = useState(value ?? "");
   const said = (iso: string) => onPick(at ? `${iso}T${at}:00` : iso);
+  /// An hour is typed digit by digit, so nothing in it says «that is the one I
+  /// meant» — without a button, changing 10:00 to 09:00 could not be applied at
+  /// all. A bare day still lands on the touch, which is what makes it quick.
+  const asks = confirm ?? (at ? t("setWhen") : undefined);
 
   return (
     <>
@@ -45,13 +49,13 @@ export default function When({ value, clock, never, confirm, onPick, onClear, on
       </div>
       <Calendar
         inline
-        value={confirm ? day : value}
-        onPick={(iso) => (confirm ? setDay(iso) : said(iso))}
+        value={asks ? day : value}
+        onPick={(iso) => (asks ? setDay(iso) : said(iso))}
         onClear={never ? onClose : onClear}
         onClose={onClose}
       />
 
-      {confirm && (
+      {asks && (
         <div className="mt-1.5 flex items-center gap-1.5">
           <button
             type="button"
@@ -59,7 +63,7 @@ export default function When({ value, clock, never, confirm, onPick, onClear, on
             onClick={() => said(day)}
             className="flex-1 rounded-md bg-accent px-2.5 py-1.5 text-bg disabled:opacity-40"
           >
-            {confirm}
+            {asks}
           </button>
           <button
             type="button"
