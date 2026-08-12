@@ -18,6 +18,22 @@ tomorrow, your data is still there.
 
 ---
 
+## Installing
+
+macOS, with [Homebrew](https://brew.sh):
+
+```console
+$ brew install --cask rgdevment/tap/tisty      # the application
+$ brew install rgdevment/tap/tisty-cli         # only the command line
+```
+
+Or download the disk image or the installer from
+[Releases](https://github.com/rgdevment/Tisty/releases).
+
+**You do not need both.** The application carries the command line inside it —
+Settings puts it within reach of your terminal — so the formula is for whoever
+wants the command and no window. Either way the command you type is `tisty`.
+
 ## Why this exists
 
 Most task managers treat what you finish as rubbish: you tick it and it is gone.
