@@ -94,6 +94,15 @@ fn rolled(at: &Path) -> PathBuf {
     at.with_extension("log.1")
 }
 
+/// Stops writing anywhere. Only the tests need it: they install a destination
+/// in a temporary directory, and the one left behind would take every note the
+/// rest of the suite makes — into a folder that no longer exists.
+#[cfg(test)]
+fn stops() {
+    *held().lock().unwrap_or_else(|e| e.into_inner()) = None;
+    ALL.store(false, Ordering::Relaxed);
+}
+
 pub fn keeps(at: PathBuf, all: bool) {
     if let Some(parent) = at.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -409,9 +418,13 @@ mod tests {
     /// what somebody attached is named by them.
     #[test]
     fn nothing_under_attachments_is_named() {
-        let said = kept_short(Path::new(
-            r"C:\store\attachments\2026-08\severance-juan.pdf",
-        ));
+        // Built from parts, not spelled: `\` separates nothing on Unix, so a
+        // literal Windows path arrives as one component and nothing is cut.
+        let at: PathBuf = ["store", "attachments", "2026-08", "severance-juan.pdf"]
+            .iter()
+            .collect();
+
+        let said = kept_short(&at);
 
         assert!(!said.contains("severance"), "{said}");
         assert!(said.contains("attachments"), "{said}");
@@ -420,9 +433,9 @@ mod tests {
 
     #[test]
     fn a_path_that_names_nobody_is_left_whole() {
-        let said = kept_short(Path::new("/store/store/dev_a/000001.jsonl"));
+        let at: PathBuf = ["store", "dev_a", "000001.jsonl"].iter().collect();
 
-        assert!(said.ends_with("000001.jsonl"), "{said}");
+        assert!(kept_short(&at).ends_with("000001.jsonl"), "{at:?}");
     }
 
     #[test]
@@ -477,6 +490,7 @@ mod tests {
         forget(&paths).unwrap();
         assert!(recent(&paths, 10).is_empty());
         assert_eq!(weighs(&paths), 0);
+        stops();
     }
 
     /// The whole reason the hook exists: a fault nobody was watching.
@@ -501,6 +515,7 @@ mod tests {
         // Rust's own slice panic embeds the string it choked on, and what this
         // program slices is what the person wrote.
         assert!(!said.contains("the sky fell"), "{said}");
+        stops();
     }
 
     /// A sync folder is picked by hand, so its spelling of the account name is
@@ -553,5 +568,6 @@ mod tests {
             seen.iter().any(|one| one.contains("before the tear")),
             "{seen:?}"
         );
+        stops();
     }
 }

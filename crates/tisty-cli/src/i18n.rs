@@ -146,12 +146,14 @@ fn first_spoken(preferred: Vec<String>) -> Option<String> {
         .find(|code| Lang::known(code).is_some())
 }
 
-#[cfg(windows)]
+/// macOS too: an app bundle launched from Finder or `launchd` inherits no
+/// `LANG`, so the POSIX variables are not the whole answer there either.
+#[cfg(any(windows, target_os = "macos"))]
 fn preferred_languages() -> Vec<String> {
     sys_locale::get_locales().collect()
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 fn preferred_languages() -> Vec<String> {
     Vec::new()
 }

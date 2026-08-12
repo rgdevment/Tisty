@@ -14,7 +14,15 @@ publish = false
 tisty-core = { path = "crates/tisty-core" }
 tisty-nl = { path = "crates/tisty-nl" }
 tisty-sync = { path = "crates/tisty-sync" }
-tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png"] }
+# `macos-private-api` pairs with `macOSPrivateApi` in tauri.conf.json, and the
+# build script refuses to run without both: the quick window asks to be
+# transparent, and macOS drops that silently otherwise.
+tauri = { version = "2", features = [
+  "protocol-asset",
+  "tray-icon",
+  "image-png",
+  "macos-private-api",
+] }
 tauri-build = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
