@@ -317,7 +317,7 @@ jobs:
             echo "::error::the bundler produced no installer"
             exit 1
           fi
-          cp "$setup" "dist/Tisty-$v-windows-x86_64-setup.exe"
+          cp "$setup" "dist/tisty-installer-$v-windows-x86_64.exe"
           ls -l dist
 
       - uses: actions/upload-artifact@v4
@@ -399,7 +399,7 @@ jobs:
             echo "::error::the bundler produced no disk image"
             exit 1
           fi
-          cp "$dmg" "dist/Tisty-$v-macos-universal.dmg"
+          cp "$dmg" "dist/tisty-installer-$v-macos-universal.dmg"
           ls -l dist
 
       - uses: actions/upload-artifact@v4
@@ -513,7 +513,7 @@ jobs:
 
           $v = "${{ needs.version.outputs.version }}"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          & "$($sdk.FullName)\x64\makeappx.exe" pack /d msix /p "dist/Tisty-$v-windows-x86_64.msix" /o
+          & "$($sdk.FullName)\x64\makeappx.exe" pack /d msix /p "dist/tisty-$v-windows-x86_64.msix" /o
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - uses: actions/upload-artifact@v4
@@ -555,7 +555,7 @@ jobs:
       # archives and have never run in anger: a tag must not be burned by one.
       - name: Say which installers made it
         run: |
-          for f in dist/Tisty-*-setup.exe dist/Tisty-*.dmg dist/Tisty-*.msix; do
+          for f in dist/tisty-installer-*.exe dist/tisty-installer-*.dmg dist/tisty-*.msix; do
             if [ -s "$f" ]; then echo "$f"; else echo "::warning::no installer at $f"; fi
           done
 
@@ -566,8 +566,8 @@ jobs:
         run: |
           v="${{ needs.version.outputs.version }}"
           status=0
-          for f in "tisty-$v-macos-universal.tar.gz" \
-                   "tisty-$v-windows-x86_64.zip"; do
+          for f in "tisty-cli-$v-macos-universal.tar.gz" \
+                   "tisty-cli-$v-windows-x86_64.zip"; do
             if [ -s "dist/$f" ]; then
               echo "$f"
             else
@@ -674,8 +674,8 @@ jobs:
           VERSION="${{ needs.version.outputs.version }}"
           BASE="https://github.com/${{ github.repository }}/releases/download/${TAG}"
 
-          DMG="Tisty-${VERSION}-macos-universal.dmg"
-          CLI="tisty-${VERSION}-macos-universal.tar.gz"
+          DMG="tisty-installer-${VERSION}-macos-universal.dmg"
+          CLI="tisty-cli-${VERSION}-macos-universal.tar.gz"
 
           if [[ "$VERSION" == *-* ]]; then
             CASK="tisty-beta";     CASK_OTHER="tisty"
