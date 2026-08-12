@@ -108,6 +108,52 @@ impl Op {
         }
     }
 
+    pub fn composed(self) -> Self {
+        use crate::text::composed;
+        let one = |text: String| composed(&text);
+        let maybe = |text: Option<String>| text.map(|one| composed(&one));
+
+        match self {
+            Op::TaskAdd { id, mut d } => {
+                d.title = one(d.title);
+                Op::TaskAdd { id, d }
+            }
+            Op::TaskUpdate { id, mut d } => {
+                d.title = maybe(d.title);
+                Op::TaskUpdate { id, d }
+            }
+            Op::TaskDescribe { id, mut d } => {
+                d.body = maybe(d.body);
+                Op::TaskDescribe { id, d }
+            }
+            Op::TaskLog { id, mut d } => {
+                d.body = one(d.body);
+                Op::TaskLog { id, d }
+            }
+            Op::TaskLogEdit { id, mut d } => {
+                d.body = one(d.body);
+                Op::TaskLogEdit { id, d }
+            }
+            Op::StepAdd { id, mut d } => {
+                d.text = one(d.text);
+                Op::StepAdd { id, d }
+            }
+            Op::StepText { id, mut d } => {
+                d.text = one(d.text);
+                Op::StepText { id, d }
+            }
+            Op::ListAdd { id, mut d } => {
+                d.name = one(d.name);
+                Op::ListAdd { id, d }
+            }
+            Op::ListRename { id, mut d } => {
+                d.name = one(d.name);
+                Op::ListRename { id, d }
+            }
+            plain => plain,
+        }
+    }
+
     pub fn about_whom(&self) -> TaskId {
         match self {
             Op::TaskAdd { id, .. }

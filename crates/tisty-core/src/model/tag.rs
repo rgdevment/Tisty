@@ -13,7 +13,7 @@ pub struct Tag(String);
 
 impl Tag {
     pub fn new(raw: &str) -> Result<Self, InvalidTag> {
-        let normalised: String = raw
+        let normalised: String = crate::text::composed(raw)
             .trim()
             .to_lowercase()
             .chars()
@@ -99,6 +99,13 @@ mod tests {
         assert_eq!(tag("mi etiqueta"), "mi-etiqueta");
         assert_eq!(tag("mi_etiqueta"), "mi-etiqueta");
         assert_eq!(tag("mi   etiqueta"), "mi-etiqueta");
+    }
+
+    #[test]
+    fn an_accent_written_apart_from_its_letter_is_still_that_letter() {
+        assert_eq!(tag("disen\u{0303}o"), "diseño");
+        assert_eq!(tag("disen\u{0303}o"), tag("diseño"));
+        assert_eq!(tag("gestio\u{0301}n"), "gestión");
     }
 
     #[test]

@@ -11,6 +11,7 @@ export default function WindowChrome() {
     { key: "maximise", glyph: "□", act: () => void win.toggleMaximize() },
     { key: "close", glyph: "✕", act: () => void win.close(), danger: true },
   ];
+  if (onMac) buttons.reverse();
 
   return (
     <div

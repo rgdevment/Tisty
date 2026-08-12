@@ -26,12 +26,28 @@ pub enum Route {
     Download,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Kept {
+    pub route: Route,
+    pub package: Option<&'static str>,
+}
+
+impl Kept {
+    const fn plain(route: Route) -> Self {
+        Self {
+            route,
+            package: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Ready {
     pub version: String,
     pub route: Route,
     pub url: &'static str,
+    pub package: Option<&'static str>,
 }
 
 #[derive(serde::Deserialize)]
@@ -45,7 +61,7 @@ struct Manifest {
 /// A candidate is only offered to somebody already running one, and then only
 /// if it beats the stable release too: whatever supersedes an `rc` is what they
 /// want, stable or not.
-pub fn newer(now: &str, manifest: &str, route: Route) -> Option<Ready> {
+pub fn newer(now: &str, manifest: &str, kept: Kept) -> Option<Ready> {
     let here: semver::Version = now.parse().ok()?;
     let read: Manifest = serde_json::from_str(manifest).ok()?;
 
@@ -60,8 +76,9 @@ pub fn newer(now: &str, manifest: &str, route: Route) -> Option<Ready> {
 
     (best > here).then(|| Ready {
         version: best.to_string(),
-        route,
+        route: kept.route,
         url: RELEASES,
+        package: kept.package,
     })
 }
 
@@ -71,11 +88,15 @@ pub fn due(last: Option<jiff::Timestamp>, now: jiff::Timestamp) -> bool {
 
 /// Asked of the running program, never of a setting: whoever installed it is
 /// not always whoever is using it, and a wrong instruction is worse than none.
-pub fn route() -> Route {
+pub fn route() -> Kept {
     chosen(std::env::current_exe().ok().as_deref(), |at| at.is_dir())
 }
 
-fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) -> bool) -> Route {
+const PREFIXES: [&str; 2] = ["/opt/homebrew", "/usr/local"];
+const CASKS: [&str; 2] = ["tisty", "tisty-beta"];
+const FORMULAE: [&str; 2] = ["tisty-cli", "tisty-cli-beta"];
+
+fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) -> bool) -> Kept {
     // Read as text, not as a path: `components` splits on a backslash only on
     // Windows, so the question would answer itself wrong anywhere else.
     let packaged = running.is_some_and(|at| {
@@ -84,18 +105,26 @@ fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) ->
             .any(|part| part.eq_ignore_ascii_case("WindowsApps"))
     });
     if packaged {
-        return Route::Store;
+        return Kept::plain(Route::Store);
     }
 
-    for (cask, route) in [("tisty", Route::Brew), ("tisty-cli", Route::BrewCli)] {
-        let brewed = ["/opt/homebrew/Caskroom/", "/usr/local/Caskroom/"]
-            .iter()
-            .any(|root| there(std::path::Path::new(&format!("{root}{cask}"))));
-        if brewed {
-            return route;
+    for (shelf, names, route) in [
+        ("Caskroom", CASKS, Route::Brew),
+        ("Cellar", FORMULAE, Route::BrewCli),
+    ] {
+        for package in names {
+            let brewed = PREFIXES
+                .iter()
+                .any(|root| there(std::path::Path::new(&format!("{root}/{shelf}/{package}"))));
+            if brewed {
+                return Kept {
+                    route,
+                    package: Some(package),
+                };
+            }
         }
     }
-    Route::Download
+    Kept::plain(Route::Download)
 }
 
 pub fn fetch() -> Option<String> {
@@ -129,7 +158,7 @@ mod tests {
 
     #[test]
     fn a_stable_copy_is_never_pointed_at_a_candidate() {
-        let found = newer("0.2.0", FEED, Route::Download).expect("0.3.0 is newer");
+        let found = newer("0.2.0", FEED, Kept::plain(Route::Download)).expect("0.3.0 is newer");
 
         assert_eq!(found.version, "0.3.0");
     }
@@ -137,7 +166,9 @@ mod tests {
     #[test]
     fn a_candidate_is_offered_the_newest_of_either() {
         assert_eq!(
-            newer("0.3.0-rc1", FEED, Route::Download).unwrap().version,
+            newer("0.3.0-rc1", FEED, Kept::plain(Route::Download))
+                .unwrap()
+                .version,
             "0.4.0-rc1"
         );
     }
@@ -148,21 +179,30 @@ mod tests {
         let feed = r#"{"latest":"0.5.0","latestPrerelease":"0.4.0-rc1"}"#;
 
         assert_eq!(
-            newer("0.4.0-rc1", feed, Route::Download).unwrap().version,
+            newer("0.4.0-rc1", feed, Kept::plain(Route::Download))
+                .unwrap()
+                .version,
             "0.5.0"
         );
     }
 
     #[test]
     fn the_same_version_is_not_an_update() {
-        assert!(newer("0.3.0", FEED, Route::Download).is_none());
-        assert!(newer("0.4.0-rc1", FEED, Route::Download).is_none());
+        assert!(newer("0.3.0", FEED, Kept::plain(Route::Download)).is_none());
+        assert!(newer("0.4.0-rc1", FEED, Kept::plain(Route::Download)).is_none());
     }
 
     #[test]
     fn a_manifest_that_makes_no_sense_says_nothing() {
-        assert!(newer("0.1.0", "not json", Route::Download).is_none());
-        assert!(newer("0.1.0", r#"{"latest":"tomorrow"}"#, Route::Download).is_none());
+        assert!(newer("0.1.0", "not json", Kept::plain(Route::Download)).is_none());
+        assert!(
+            newer(
+                "0.1.0",
+                r#"{"latest":"tomorrow"}"#,
+                Kept::plain(Route::Download)
+            )
+            .is_none()
+        );
     }
 
     #[test]
@@ -170,7 +210,9 @@ mod tests {
         let feed = r#"{"latest":"0.3.0"}"#;
 
         assert_eq!(
-            newer("0.2.0-rc1", feed, Route::Download).unwrap().version,
+            newer("0.2.0-rc1", feed, Kept::plain(Route::Download))
+                .unwrap()
+                .version,
             "0.3.0"
         );
     }
@@ -180,10 +222,12 @@ mod tests {
         let feed = r#"{"schema":1,"latest":"0.0.0","latestPrerelease":"0.2.0-rc6"}"#;
 
         assert_eq!(
-            newer("0.2.0-rc5", feed, Route::Download).unwrap().version,
+            newer("0.2.0-rc5", feed, Kept::plain(Route::Download))
+                .unwrap()
+                .version,
             "0.2.0-rc6"
         );
-        assert!(newer("0.1.0", feed, Route::Download).is_none());
+        assert!(newer("0.1.0", feed, Kept::plain(Route::Download)).is_none());
     }
 
     fn nowhere(_: &std::path::Path) -> bool {
@@ -194,89 +238,136 @@ mod tests {
         Some(std::path::Path::new(said))
     }
 
+    fn only(named: &'static str) -> impl Fn(&std::path::Path) -> bool {
+        move |what| what == std::path::Path::new(named)
+    }
+
+    const APP: &str = "/Applications/Tisty.app/Contents/MacOS/tisty";
+
     const MSIX: &str =
         r"C:\Program Files\WindowsApps\rgdevment.Tisty_0.2.0.0_x64__8wekyb3d8bbwe\tisty.exe";
 
     #[test]
     fn a_copy_under_windowsapps_is_kept_by_the_store() {
-        assert_eq!(chosen(at(MSIX), nowhere), Route::Store);
+        assert_eq!(chosen(at(MSIX), nowhere), Kept::plain(Route::Store));
     }
 
     #[test]
     fn the_separator_is_read_the_same_on_every_system() {
-        assert_eq!(chosen(at(&MSIX.replace('\\', "/")), nowhere), Route::Store);
+        assert_eq!(
+            chosen(at(&MSIX.replace('\\', "/")), nowhere),
+            Kept::plain(Route::Store)
+        );
     }
 
     #[test]
     fn a_folder_is_named_windowsapps_or_it_is_not() {
         let alike = r"C:\Program Files\WindowsAppsBackup\Tisty\tisty.exe";
 
-        assert_eq!(chosen(at(alike), nowhere), Route::Download);
+        assert_eq!(chosen(at(alike), nowhere), Kept::plain(Route::Download));
         assert_eq!(
             chosen(at(&MSIX.to_lowercase()), nowhere),
-            Route::Store,
+            Kept::plain(Route::Store),
             "Windows does not distinguish the case of a folder"
         );
     }
 
     #[test]
     fn a_cask_answers_with_its_own_command() {
-        let plain = "/Applications/Tisty.app/Contents/MacOS/tisty";
-
         assert_eq!(
-            chosen(at(plain), |what| what
-                == std::path::Path::new("/opt/homebrew/Caskroom/tisty")),
-            Route::Brew
+            chosen(at(APP), only("/opt/homebrew/Caskroom/tisty")),
+            Kept {
+                route: Route::Brew,
+                package: Some("tisty")
+            }
+        );
+    }
+
+    #[test]
+    fn the_command_line_is_a_formula_and_lives_where_formulas_do() {
+        assert_eq!(
+            chosen(
+                at("/opt/homebrew/bin/tisty"),
+                only("/opt/homebrew/Cellar/tisty-cli")
+            ),
+            Kept {
+                route: Route::BrewCli,
+                package: Some("tisty-cli")
+            }
         );
         assert_eq!(
-            chosen(at(plain), |what| what
-                == std::path::Path::new("/opt/homebrew/Caskroom/tisty-cli")),
-            Route::BrewCli
+            chosen(at(APP), only("/opt/homebrew/Caskroom/tisty-cli")),
+            Kept::plain(Route::Download),
+            "no formula is ever kept under Caskroom"
+        );
+    }
+
+    #[test]
+    fn a_candidate_is_upgraded_by_the_name_it_was_installed_under() {
+        assert_eq!(
+            chosen(at(APP), only("/opt/homebrew/Caskroom/tisty-beta")),
+            Kept {
+                route: Route::Brew,
+                package: Some("tisty-beta")
+            }
+        );
+        assert_eq!(
+            chosen(
+                at("/opt/homebrew/bin/tisty"),
+                only("/opt/homebrew/Cellar/tisty-cli-beta")
+            ),
+            Kept {
+                route: Route::BrewCli,
+                package: Some("tisty-cli-beta")
+            }
         );
     }
 
     #[test]
     fn the_older_homebrew_root_answers_too() {
-        let plain = "/Applications/Tisty.app/Contents/MacOS/tisty";
-
         assert_eq!(
-            chosen(at(plain), |what| what
-                == std::path::Path::new("/usr/local/Caskroom/tisty")),
-            Route::Brew
+            chosen(at(APP), only("/usr/local/Caskroom/tisty")),
+            Kept {
+                route: Route::Brew,
+                package: Some("tisty")
+            }
         );
         assert_eq!(
-            chosen(at(plain), |what| what
-                == std::path::Path::new("/usr/local/Caskroom/tisty-cli")),
-            Route::BrewCli
+            chosen(
+                at("/usr/local/bin/tisty"),
+                only("/usr/local/Cellar/tisty-cli")
+            ),
+            Kept {
+                route: Route::BrewCli,
+                package: Some("tisty-cli")
+            }
         );
     }
 
     #[test]
     fn the_window_is_the_window_even_beside_its_own_command_line() {
         assert_eq!(
-            chosen(at("/Applications/Tisty.app/Contents/MacOS/tisty"), |what| {
-                what.starts_with("/opt/homebrew/Caskroom")
-            }),
-            Route::Brew
+            chosen(at(APP), |_| true),
+            Kept {
+                route: Route::Brew,
+                package: Some("tisty")
+            }
         );
     }
 
     #[test]
     fn what_is_running_wins_over_what_is_merely_installed() {
-        assert_eq!(chosen(at(MSIX), |_| true), Route::Store);
+        assert_eq!(chosen(at(MSIX), |_| true), Kept::plain(Route::Store));
     }
 
     #[test]
     fn everything_else_gets_the_page() {
         assert_eq!(
             chosen(at(r"C:\Program Files\Tisty\tisty.exe"), nowhere),
-            Route::Download
+            Kept::plain(Route::Download)
         );
-        assert_eq!(
-            chosen(at("/Applications/Tisty.app/Contents/MacOS/tisty"), nowhere),
-            Route::Download
-        );
-        assert_eq!(chosen(None, nowhere), Route::Download);
+        assert_eq!(chosen(at(APP), nowhere), Kept::plain(Route::Download));
+        assert_eq!(chosen(None, nowhere), Kept::plain(Route::Download));
     }
 
     #[test]

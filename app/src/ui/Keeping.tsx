@@ -28,6 +28,7 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { stamped, weigh } from "../format";
 import { written } from "../report";
+import { onMac } from "./WindowChrome";
 
 const carried = { came: "syncCame", same: "syncSame", busy: "syncBusy" } as const;
 
@@ -523,7 +524,13 @@ export default function Keeping({ onChanged }: Props) {
                         setReach(now);
                         setSaid({
                           card: "terminal",
-                          text: t(now.withinReach ? "terminalFresh" : "terminalGone"),
+                          text: t(
+                            now.withinReach
+                              ? onMac
+                                ? "terminalFreshNow"
+                                : "terminalFresh"
+                              : "terminalGone",
+                          ),
                         });
                       })
                     }

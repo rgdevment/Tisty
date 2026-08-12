@@ -87,7 +87,10 @@ pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R
     #[cfg(target_os = "macos")]
     // Without this the white art is painted white, which is nothing at all on
     // a light menu bar — and that never shows up while developing on Windows.
-    let _ = tray.set_icon_as_template(true);
+    kept(
+        tray.set_icon_as_template(true),
+        "the tray icon would not be a template",
+    );
 
     app.manage(Said(Mutex::new(vec![capture, show, quit])));
 
@@ -120,7 +123,10 @@ pub fn repaint<R: Runtime>(app: &AppHandle<R>) {
     {
         let _ = tray.set_icon(Some(icon));
         #[cfg(target_os = "macos")]
-        let _ = tray.set_icon_as_template(true);
+        kept(
+            tray.set_icon_as_template(true),
+            "the tray icon would not be a template",
+        );
     }
 }
 

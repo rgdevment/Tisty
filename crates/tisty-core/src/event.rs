@@ -53,7 +53,7 @@ impl Event {
             undo: false,
             redo: false,
             seq: 0,
-            op,
+            op: op.composed(),
         }
     }
 
@@ -255,5 +255,133 @@ mod tests {
         let mut sorted = events.clone();
         sorted.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
         assert_eq!(events, sorted);
+    }
+
+    fn made(op: Op) -> Op {
+        Event::new(DeviceId("dev_a3f1".into()), at(1), op).op
+    }
+
+    #[test]
+    fn every_kind_of_prose_reaches_the_log_in_one_spelling() {
+        let apart = "disen\u{0303}o";
+        let together = "diseño";
+
+        let kinds: Vec<(Op, String)> = vec![
+            (
+                Op::TaskAdd {
+                    id: id(),
+                    d: TaskAdd::new(apart, "a0"),
+                },
+                together.into(),
+            ),
+            (
+                Op::TaskUpdate {
+                    id: id(),
+                    d: TaskPatch {
+                        title: Some(apart.into()),
+                        ..Default::default()
+                    },
+                },
+                together.into(),
+            ),
+            (
+                Op::TaskDescribe {
+                    id: id(),
+                    d: Body {
+                        body: Some(apart.into()),
+                    },
+                },
+                together.into(),
+            ),
+            (
+                Op::TaskLog {
+                    id: id(),
+                    d: LogAdd::new(Ulid::generate(), apart),
+                },
+                together.into(),
+            ),
+            (
+                Op::TaskLogEdit {
+                    id: id(),
+                    d: LogEdit {
+                        entry: Ulid::generate(),
+                        body: apart.into(),
+                    },
+                },
+                together.into(),
+            ),
+            (
+                Op::StepAdd {
+                    id: id(),
+                    d: StepAdd {
+                        step: Ulid::generate(),
+                        text: apart.into(),
+                        order: "a0".into(),
+                    },
+                },
+                together.into(),
+            ),
+            (
+                Op::StepText {
+                    id: id(),
+                    d: StepText {
+                        step: Ulid::generate(),
+                        text: apart.into(),
+                    },
+                },
+                together.into(),
+            ),
+            (
+                Op::ListAdd {
+                    id: id(),
+                    d: ListAdd {
+                        name: apart.into(),
+                        order: "a0".into(),
+                        color: None,
+                    },
+                },
+                together.into(),
+            ),
+            (
+                Op::ListRename {
+                    id: id(),
+                    d: Name { name: apart.into() },
+                },
+                together.into(),
+            ),
+        ];
+
+        for (op, wanted) in kinds {
+            let written = serde_json::to_string(&made(op)).unwrap();
+            assert!(
+                written.contains(&wanted),
+                "a decomposed accent survived into {written}"
+            );
+            assert!(
+                !written.contains("\\u0303"),
+                "a bare combining mark reached the log: {written}"
+            );
+        }
+    }
+
+    #[test]
+    fn an_event_that_arrived_from_another_machine_is_written_untouched() {
+        let theirs = Event {
+            version: SCHEMA_VERSION,
+            timestamp: at(1),
+            device: DeviceId("dev_b7c2".into()),
+            batch: None,
+            undo: false,
+            redo: false,
+            seq: 0,
+            op: Op::TaskAdd {
+                id: id(),
+                d: TaskAdd::new("disen\u{0303}o", "a0"),
+            },
+        };
+
+        let read: Event = serde_json::from_str(&serde_json::to_string(&theirs).unwrap()).unwrap();
+
+        assert_eq!(read, theirs);
     }
 }

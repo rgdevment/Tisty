@@ -301,6 +301,7 @@ export interface Ready {
   version: string;
   route: Route;
   url: string;
+  package: string | null;
 }
 
 /** Null when it is switched off, not due yet, or nothing newer exists. */
