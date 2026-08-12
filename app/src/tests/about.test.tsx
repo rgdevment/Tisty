@@ -39,7 +39,7 @@ beforeEach(() => {
 
 describe("the about screen", () => {
   it("says what this build is", async () => {
-    render(<About onError={() => {}} />);
+    render(<About ready={null} onError={() => {}} />);
 
     expect(await screen.findByText("0.1.0")).toBeTruthy();
   });
@@ -49,7 +49,7 @@ describe("the about screen", () => {
   /// sister screen has had an error card with a retry all along.
   it("recovers from its own failure", async () => {
     ipc.answer = () => Promise.reject(new Error("the store is not readable"));
-    render(<About onError={() => {}} />);
+    render(<About ready={null} onError={() => {}} />);
 
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByText(/not readable/)).toBeTruthy();
@@ -65,7 +65,7 @@ describe("the about screen", () => {
 
 describe("the other tools", () => {
   it("points each one at its own repository", async () => {
-    render(<About onError={() => {}} />);
+    render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");
 
     await userEvent.click(screen.getByRole("button", { name: /CopyPaste/ }));
@@ -78,7 +78,7 @@ describe("the other tools", () => {
   });
 
   it("draws an icon for each, not a bullet", async () => {
-    const { container } = render(<About onError={() => {}} />);
+    const { container } = render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");
 
     expect(container.querySelectorAll("img").length).toBe(2);
@@ -87,7 +87,7 @@ describe("the other tools", () => {
   /// It used to call `served`, which resolves a reference inside the store and
   /// refuses anything that leaves it: the button could never have worked.
   it("opens Tisty's own repository as a url", async () => {
-    render(<About onError={() => {}} />);
+    render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");
 
     await userEvent.click(screen.getByRole("button", { name: /repository/i }));
