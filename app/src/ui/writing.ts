@@ -147,3 +147,12 @@ export const asMarkdown = (editor: Writing): string | null => {
 const RUINED = /^\s*\[(table|image|tableRow|tableCell|tableHeader)\]\s*$/m;
 
 export const ruined = (markdown: string): boolean => RUINED.test(markdown);
+
+/// Strict Markdown, for pasting where inline html is not welcome. A declared
+/// loss: reading it back with html off escapes the tags instead of dropping
+/// them, so the tags are removed here rather than reinterpreted.
+export const bared = (markdown: string): string =>
+  markdown
+    .replace(/<\/?u>/gi, "")
+    .replace(/<p style="text-align:[^"]*">([\s\S]*?)<\/p>/gi, "$1")
+    .replace(/<p style='text-align:[^']*'>([\s\S]*?)<\/p>/gi, "$1");

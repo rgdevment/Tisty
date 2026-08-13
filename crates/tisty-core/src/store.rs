@@ -428,6 +428,11 @@ fn declared_count(segment: &Path) -> Option<usize> {
     }
 }
 
+#[derive(serde::Deserialize)]
+struct Stamped {
+    v: u32,
+}
+
 fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
     for (i, line) in BufReader::new(File::open(path)?).lines().enumerate() {
         let line = line?;
@@ -435,15 +440,24 @@ fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
             continue;
         }
 
+        // Version before shape: a newer Tisty writing an op this build has no
+        // name for would otherwise fail to parse, and one line nobody can read
+        // would take every task in the store down with it.
+        let stamp: Stamped =
+            serde_json::from_str(&line).map_err(|source| Error::MalformedEvent {
+                file: path.display().to_string(),
+                line: i + 1,
+                source,
+            })?;
+        if stamp.v > SCHEMA_VERSION {
+            return Err(Error::UnsupportedVersion(stamp.v));
+        }
+
         let event: Event = serde_json::from_str(&line).map_err(|source| Error::MalformedEvent {
             file: path.display().to_string(),
             line: i + 1,
             source,
         })?;
-
-        if event.version > SCHEMA_VERSION {
-            return Err(Error::UnsupportedVersion(event.version));
-        }
         out.push(event);
     }
     Ok(())
@@ -460,13 +474,59 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
         file.write_all(contents)?;
         file.sync_all()?;
     }
-    std::fs::rename(&tmp, path)?;
+    // On Windows this fails while an indexer or a cloud client holds the file,
+    // and the leftover would sit in a synced folder that nothing ever lists.
+    if let Err(e) = std::fs::rename(&tmp, path) {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e.into());
+    }
     Ok(())
 }
 
 #[cfg(test)]
 mod atomic_tests {
     use super::*;
+
+    /// A newer Tisty writes ops this build has no name for. Saying so is a
+    /// message somebody can act on; «malformed event» sends them looking for
+    /// corruption that is not there.
+    #[test]
+    fn an_event_from_a_newer_tisty_says_so_instead_of_looking_broken() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path().join("000001.tisty");
+        std::fs::write(
+            &at,
+            format!(
+                "{{\"v\":{},\"ts\":\"2026-08-13T00:00:00Z\",\"by\":\"dev_a\",\"op\":\"folder.colour\",\"id\":\"01J\",\"d\":{{}}}}\n",
+                SCHEMA_VERSION + 1
+            ),
+        )
+        .unwrap();
+
+        let mut out = Vec::new();
+        let why = read_segment(&at, &mut out).unwrap_err();
+
+        assert!(
+            matches!(why, Error::UnsupportedVersion(_)),
+            "it read as corruption: {why:?}"
+        );
+    }
+
+    #[test]
+    fn a_rename_that_fails_takes_its_temporary_with_it() {
+        let room = tempfile::tempdir().unwrap();
+        let blocked = room.path().join("busy.md");
+        std::fs::create_dir(&blocked).unwrap();
+
+        assert!(write_atomic(&blocked, b"x").is_err());
+
+        let left: Vec<_> = std::fs::read_dir(room.path())
+            .unwrap()
+            .filter_map(|one| one.ok())
+            .filter(|one| one.path().extension().is_some_and(|e| e == "tmp"))
+            .collect();
+        assert!(left.is_empty(), "a temporary was left behind: {left:?}");
+    }
 
     #[test]
     fn two_writers_of_one_file_do_not_share_a_temporary() {

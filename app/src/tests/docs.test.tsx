@@ -10,6 +10,17 @@ const store = vi.hoisted(() => ({
   delays: [] as number[],
 }));
 
+const parting = vi.hoisted(() => ({ fire: null as null | (() => void) }));
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: (name: string, run: () => void) => {
+    if (name === "parting") parting.fire = run;
+    return Promise.resolve(() => {
+      if (parting.fire === run) parting.fire = null;
+    });
+  },
+}));
+
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     switch (cmd) {
@@ -57,6 +68,20 @@ describe("the document being written", () => {
 
   const show = (open?: string, onKept = vi.fn()) =>
     render(<Docs open={open} known={known} onKept={onKept} onError={vi.fn()} />);
+
+  it("finishes writing before the app is allowed to leave", async () => {
+    store.delays = [120];
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    const editor = await screen.findByLabelText("editor");
+    await userEvent.clear(editor);
+    await userEvent.type(editor, "sin guardar todavía");
+
+    await waitFor(() => expect(parting.fire).toBeTruthy());
+    parting.fire?.();
+
+    await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("sin guardar todavía"));
+    await waitFor(() => expect(store.writes.some((one) => one.id === "parted")).toBe(false));
+  });
 
   it("keeps the last keystroke when a slow save lands after it", async () => {
     store.delays = [250];

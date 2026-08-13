@@ -23,6 +23,7 @@ describe("the panel that appears over a selection", () => {
       "Underline",
       "Strikethrough",
       "Code",
+      "Link",
       "Align left",
       "Centre",
       "Align right",
@@ -75,6 +76,43 @@ describe("the panel that appears over a selection", () => {
     await userEvent.click(screen.getByRole("button", { name: "Align left" }));
 
     expect(md(editor)).toBe("uno\n\ndos");
+    editor.destroy();
+  });
+
+  it("takes an address and ties it to the words that were picked", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    await userEvent.type(screen.getByLabelText(/Address/), "ejemplo.org{Enter}");
+
+    expect(md(editor)).toBe("[hola](https://ejemplo.org) mundo");
+    editor.destroy();
+  });
+
+  it("takes an address whole when it already says how to reach it", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    await userEvent.type(screen.getByLabelText(/Address/), "mailto:a@b.test{Enter}");
+
+    expect(md(editor)).toContain("mailto:a@b.test");
+    editor.destroy();
+  });
+
+  it("unties the link when the address is left empty", async () => {
+    const editor = made("[hola](https://ejemplo.org) mundo");
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    await userEvent.clear(screen.getByLabelText(/Address/));
+    await userEvent.keyboard("{Enter}");
+
+    expect(md(editor)).toBe("hola mundo");
     editor.destroy();
   });
 

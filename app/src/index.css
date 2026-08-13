@@ -346,3 +346,39 @@ body {
   height: 0;
   pointer-events: none;
 }
+
+/* Saving to PDF goes through the system print dialog, so what it prints has to
+   be the document alone: no rail, no menus, no clipped scroller. */
+@media print {
+  html,
+  body,
+  #root {
+    height: auto;
+    overflow: visible;
+    background: #fff;
+    color: #000;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .tisty-doc,
+  .tisty-doc * {
+    visibility: visible;
+  }
+  .tisty-doc {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+    font-size: 11pt;
+  }
+  .tisty-doc a {
+    color: #000;
+    text-decoration: underline;
+  }
+  .tisty-doc pre,
+  .tisty-doc blockquote,
+  .tisty-doc table {
+    break-inside: avoid;
+  }
+}

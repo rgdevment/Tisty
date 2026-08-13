@@ -2026,6 +2026,37 @@ fn proofread(window: &tauri::WebviewWindow) {
 #[cfg(not(target_os = "macos"))]
 fn proofread(_window: &tauri::WebviewWindow) {}
 
+/// Killing the process outright threw away whatever the editor had not written
+/// yet. The window is asked to finish first, and answers with `parted` — but
+/// the timer leaves anyway, so a window that never answers cannot trap anybody
+/// inside the app.
+pub fn parting<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::{Emitter, Manager};
+
+    if app
+        .state::<Leaving>()
+        .0
+        .swap(true, std::sync::atomic::Ordering::SeqCst)
+    {
+        return;
+    }
+    let _ = app.emit("parting", ());
+
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        handle.exit(0);
+    });
+}
+
+#[derive(Default)]
+struct Leaving(std::sync::atomic::AtomicBool);
+
+#[tauri::command]
+fn parted(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 #[tauri::command]
 fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
     let session = held(&session);
@@ -2501,6 +2532,9 @@ fn runnable(at: &std::path::Path) -> bool {
         .and_then(|e| e.to_str())
         .unwrap_or_default()
         .to_lowercase();
+    // Never launched, only shown. Attachments travel between machines, so this
+    // list answers «what could another machine make this one run», not «what
+    // does this machine consider a program».
     matches!(
         ext.as_str(),
         "exe"
@@ -2510,14 +2544,35 @@ fn runnable(at: &std::path::Path) -> bool {
             | "msi"
             | "scr"
             | "ps1"
+            | "psm1"
             | "vbs"
+            | "vbe"
             | "js"
+            | "jse"
+            | "wsf"
+            | "wsh"
+            | "hta"
             | "jar"
             | "sh"
+            | "bash"
+            | "zsh"
             | "app"
             | "lnk"
+            | "url"
             | "reg"
-            | "hta"
+            | "msc"
+            | "cpl"
+            | "scf"
+            | "pif"
+            | "command"
+            | "terminal"
+            | "workflow"
+            | "pkg"
+            | "dmg"
+            | "webloc"
+            | "desktop"
+            | "appimage"
+            | "run"
     )
 }
 
@@ -2837,13 +2892,17 @@ pub fn run() {
             // process outlives the main window: letting the close through
             // would leave an invisible Tisty holding the global shortcut.
             if !app.state::<Perched>().0 {
-                app.exit(0);
+                api.prevent_close();
+                parting(app);
                 return;
             }
 
             let asked = held(&app.state::<Mutex<Session>>()).config.on_close;
             match asked {
-                Some(tisty_core::config::Closing::Quit) => app.exit(0),
+                Some(tisty_core::config::Closing::Quit) => {
+                    api.prevent_close();
+                    parting(app);
+                }
                 Some(tisty_core::config::Closing::Hide) => {
                     api.prevent_close();
                     let _ = window.hide();
@@ -2857,6 +2916,7 @@ pub fn run() {
             }
         })
         .manage(OneAtATime::default())
+        .manage(Leaving::default())
         .invoke_handler(tauri::generate_handler![
             snapshot,
             close_window,
@@ -2912,6 +2972,7 @@ pub fn run() {
             doc_import,
             doc_copy,
             doc_away,
+            parted,
             folder_file
         ])
         .run(tauri::generate_context!())
@@ -2921,6 +2982,70 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// An attachment arrives from another machine, so the question is not what
+    /// this system runs but what any of them would.
+    #[test]
+    fn nothing_another_machine_could_make_this_one_run_is_ever_opened() {
+        for name in [
+            "x.exe",
+            "x.bat",
+            "x.cmd",
+            "x.com",
+            "x.msi",
+            "x.scr",
+            "x.ps1",
+            "x.psm1",
+            "x.vbs",
+            "x.vbe",
+            "x.js",
+            "x.jse",
+            "x.wsf",
+            "x.hta",
+            "x.jar",
+            "x.sh",
+            "x.bash",
+            "x.app",
+            "x.lnk",
+            "x.url",
+            "x.reg",
+            "x.msc",
+            "x.cpl",
+            "x.scf",
+            "x.pif",
+            "x.command",
+            "x.terminal",
+            "x.pkg",
+            "x.dmg",
+            "x.webloc",
+            "x.desktop",
+            "x.appimage",
+            "x.run",
+        ] {
+            assert!(
+                runnable(std::path::Path::new(name)),
+                "{name} would be opened"
+            );
+        }
+    }
+
+    #[test]
+    fn the_files_a_person_actually_attaches_still_open() {
+        for name in [
+            "informe.pdf",
+            "foto.png",
+            "hoja.xlsx",
+            "notas.md",
+            "musica.mp3",
+            "video.mp4",
+            "datos.csv",
+            "archivo.zip",
+            "diagrama.svg",
+            "carta.docx",
+        ] {
+            assert!(!runnable(std::path::Path::new(name)), "{name} was refused");
+        }
+    }
 
     /// A synced document can name any path; showing it in the file manager on
     /// request would leak whatever another machine wrote into a link.
@@ -2988,10 +3113,10 @@ mod tests {
             1,
             "unsafe is allowed in more than the one audited place: {allowed:?}"
         );
-        assert!(
-            allowed[0].ends_with("app/src-tauri/src/lib.rs"),
-            "{allowed:?}"
-        );
+        // Compared by its parts: Windows hands back `\\?\D:\…\lib.rs`, so a
+        // path is never the same string twice across platforms.
+        let mine = std::path::Path::new(&allowed[0]);
+        assert!(mine.ends_with("src-tauri/src/lib.rs"), "{allowed:?}");
     }
 
     fn now() -> jiff::Zoned {

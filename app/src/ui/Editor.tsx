@@ -264,26 +264,32 @@ export default function Editor({
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     let live = true;
-    const dress = () => {
-      editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]").forEach((img) => {
-        const at = img.getAttribute("src") ?? "";
-        if (!at || at.startsWith("http") || at.startsWith("data:")) return;
-        const cached = urls.current.get(at);
-        if (cached) return void img.setAttribute("src", cached);
-        served(at)
-          .then((real) => {
-            const url = convertFileSrc(real);
-            urls.current.set(at, url);
-            if (live) img.setAttribute("src", url);
-          })
-          .catch(() => undefined);
+    // On `transaction`, not `update`: ProseMirror repaints a node when only the
+    // selection moved, and the repaint puts the document's own path back. And
+    // in a frame, or the picture is not in the DOM yet when it is asked for.
+    const dress = () =>
+      requestAnimationFrame(() => {
+        if (editor.isDestroyed) return;
+        editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]").forEach((img) => {
+          const at = img.getAttribute("src") ?? "";
+          if (!at || /^(https?|data|asset|blob|file):/i.test(at)) return;
+          const cached = urls.current.get(at);
+          if (cached) return void img.setAttribute("src", cached);
+          served(at)
+            .then((real) => {
+              const url = convertFileSrc(real);
+              urls.current.set(at, url);
+              if (live) img.setAttribute("src", url);
+            })
+            .catch(() => undefined);
+        });
       });
-    };
+
     dress();
-    editor.on("update", dress);
+    editor.on("transaction", dress);
     return () => {
       live = false;
-      editor.off("update", dress);
+      editor.off("transaction", dress);
     };
   }, [editor, value]);
 
