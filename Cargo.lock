@@ -4718,6 +4718,7 @@ name = "tisty-gui"
 version = "0.1.0"
 dependencies = [
  "jiff",
+ "objc2",
  "reqwest",
  "semver",
  "serde",

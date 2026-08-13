@@ -1,5 +1,22 @@
 use unicode_normalization::UnicodeNormalization;
 
+/// Bidi overrides flip the reading of everything after them, so a name can
+/// turn a delete dialog into a sentence about another folder.
+pub fn plainly(text: &str) -> String {
+    composed(
+        &text
+            .chars()
+            .filter(|c| {
+                !c.is_control() && !matches!(*c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')
+            })
+            .collect::<String>(),
+    )
+    .trim()
+    .chars()
+    .take(120)
+    .collect()
+}
+
 pub fn composed(text: &str) -> String {
     if text.is_ascii() {
         return text.to_string();
@@ -10,6 +27,24 @@ pub fn composed(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_name_cannot_carry_something_that_rewrites_the_line_around_it() {
+        assert_eq!(
+            plainly("linea\u{7}uno\u{202e}txet\u{202c}"),
+            "lineauno txet".replace(' ', "")
+        );
+    }
+
+    #[test]
+    fn a_name_is_cut_before_it_can_fill_the_rail() {
+        assert_eq!(plainly(&"a".repeat(500)).chars().count(), 120);
+    }
+
+    #[test]
+    fn an_ordinary_name_comes_back_untouched() {
+        assert_eq!(plainly("  Diseño técnico  "), "Diseño técnico");
+    }
 
     const DECOMPOSED: &str = "man\u{0303}ana revisar el disen\u{0303}o";
     const COMPOSED: &str = "mañana revisar el diseño";

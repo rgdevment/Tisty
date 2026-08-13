@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
-import { docRead, docWrite, type Filed } from "../core";
+import { open as pick } from "@tauri-apps/plugin-dialog";
+import { attach, docRead, docWrite, type Filed } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 
@@ -20,21 +21,26 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
   const [saving, setSaving] = useState(false);
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
-  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const queues = useRef(new Map<string, Promise<unknown>>());
   const turn = useRef(0);
 
   const keep = useCallback(
     (id: string, text: string) => {
       setSaving(true);
-      const mine = queue.current
+      const before = queues.current.get(id) ?? Promise.resolve();
+      const mine = before
         .catch(() => {})
         .then(() => docWrite(id, text))
-        .then((fresh) => onKept(fresh))
+        .then((fresh) => {
+          if (held.current?.id === id && held.current.body === text) held.current = null;
+          onKept(fresh);
+        })
         .catch((e) => onError(saidPlainly(e)))
         .finally(() => {
-          if (queue.current === mine) setSaving(false);
+          if (queues.current.get(id) === mine) setSaving(false);
         });
-      queue.current = mine;
+      queues.current.set(id, mine);
+      return mine;
     },
     [onError, onKept],
   );
@@ -42,7 +48,6 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
   const flush = useCallback(() => {
     if (settling.current) clearTimeout(settling.current);
     const waiting = held.current;
-    held.current = null;
     if (waiting) keep(waiting.id, waiting.body);
   }, [keep]);
 
@@ -77,12 +82,15 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
   }, [asked, known, open, drop]);
 
   useEffect(() => {
-    if (!asked || asked === open?.file) return;
+    if (!asked || asked === open?.file) {
+      turn.current += 1;
+      return;
+    }
     const wanted = known.find((one) => one.file === asked);
     if (!wanted) return;
     flush();
     const mine = ++turn.current;
-    queue.current
+    (queues.current.get(wanted.file) ?? Promise.resolve())
       .catch(() => {})
       .then(() => docRead(wanted.file))
       .then((text) => {
@@ -112,6 +120,15 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
               value={body}
               taking
               label={open.title || t("untitledDoc")}
+              onAttach={() =>
+                pick({ multiple: false })
+                  .then((at) => (typeof at === "string" ? attach(at) : null))
+                  .catch((e) => {
+                    onError(saidPlainly(e));
+                    return null;
+                  })
+              }
+              onRuin={() => onError(t("wouldRuin"))}
               onWrite={wrote}
             />
           </Suspense>

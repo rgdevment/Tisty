@@ -155,23 +155,42 @@ export default function App() {
       })
       .catch((e) => setError(saidPlainly(e)));
 
-  const destinations = (skip: string | null, land: (folder?: string) => void): Choice[] => [
-    {
-      key: "unfiled",
-      icon: "↥",
-      label: t("unfiled"),
-      off: skip === null,
-      onPick: () => land(undefined),
-    },
-    ...papers.folders
-      .filter((one) => one.id !== skip)
-      .map((one) => ({
-        key: one.id,
-        icon: one.parent ? "↳" : "▸",
-        label: one.name,
-        onPick: () => land(one.id),
-      })),
-  ];
+  /// Offering a destination the core will refuse turns a menu into a guessing
+  /// game: a folder cannot hold itself, its own children, or anything that
+  /// would push its deepest branch past the ceiling.
+  const destinations = (
+    skip: string | null,
+    land: (folder?: string) => void,
+    moving?: Folded,
+  ): Choice[] => {
+    const under = (at: string): string[] => {
+      const kids = papers.folders.filter((one) => one.parent === at);
+      return kids.flatMap((one) => [one.id, ...under(one.id)]);
+    };
+    const forbidden = moving ? new Set([moving.id, ...under(moving.id)]) : new Set<string>();
+    const tall = moving ? (under(moving.id).length > 0 ? 2 : 1) : 0;
+
+    return [
+      {
+        key: "unfiled",
+        icon: "↥",
+        label: t("unfiled"),
+        off: skip === null,
+        onPick: () => land(undefined),
+      },
+      ...papers.folders
+        .filter((one) => one.id !== skip && !forbidden.has(one.id))
+        .filter((one) => !moving || (one.parent === null ? 1 : 2) + tall <= 2)
+        .map((one) => ({
+          key: one.id,
+          icon: one.parent ? "↳" : "▸",
+          label: one.parent
+            ? `${papers.folders.find((up) => up.id === one.parent)?.name ?? ""} / ${one.name}`
+            : one.name,
+          onPick: () => land(one.id),
+        })),
+    ];
+  };
 
   const roomBelow =
     here != null && !papers.folders.some((one) => one.id === here && one.parent !== null);
@@ -479,10 +498,13 @@ export default function App() {
                 label: t("moveTo"),
                 into: {
                   label: t("moveHere"),
-                  choices: destinations(folder.id, (parent) =>
-                    folderFile(folder.id, parent)
-                      .then(lookPapers)
-                      .catch((e) => setError(saidPlainly(e))),
+                  choices: destinations(
+                    folder.id,
+                    (parent) =>
+                      folderFile(folder.id, parent)
+                        .then(lookPapers)
+                        .catch((e) => setError(saidPlainly(e))),
+                    folder,
                   ),
                 },
               },
