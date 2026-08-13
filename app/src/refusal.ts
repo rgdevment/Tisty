@@ -47,6 +47,7 @@ const KNOWN = [
   "tooDeep",
   "intoItself",
   "notACadence",
+  "noClipboard",
 ] as const;
 
 type Known = (typeof KNOWN)[number];

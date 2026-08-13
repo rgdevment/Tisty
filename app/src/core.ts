@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 export type Status = "open" | "done" | "dropped";
 
@@ -328,6 +329,8 @@ export const backUp = (into: string): Promise<number> => invoke("back_up", { int
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });
+
+export const copied = (text: string): Promise<void> => writeText(text);
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
 export const discard = (id: string): Promise<Task> => invoke("discard", { id });
 
