@@ -2,20 +2,14 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import { Markdown } from "tiptap-markdown";
+import { asMarkdown, written } from "../ui/writing";
 import Floats from "../ui/Floats";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
-const made = () =>
-  new Editor({
-    extensions: [StarterKit, Markdown.configure({ html: true, breaks: true })],
-    content: "hola mundo",
-  });
+const made = (content = "hola mundo") => new Editor({ extensions: written(), content });
 
-const md = (e: Editor) =>
-  (e.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
+const md = (e: Editor) => asMarkdown(e) ?? "";
 
 describe("the panel that appears over a selection", () => {
   it("offers only what the document can keep", () => {
@@ -23,7 +17,17 @@ describe("the panel that appears over a selection", () => {
     render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
 
     const names = screen.getAllByRole("button").map((one) => one.getAttribute("aria-label"));
-    expect(names).toEqual(["Bold", "Italic", "Underline", "Strikethrough", "Code"]);
+    expect(names).toEqual([
+      "Bold",
+      "Italic",
+      "Underline",
+      "Strikethrough",
+      "Code",
+      "Align left",
+      "Centre",
+      "Align right",
+      "Justify",
+    ]);
 
     editor.destroy();
   });
@@ -49,6 +53,28 @@ describe("the panel that appears over a selection", () => {
     await userEvent.click(screen.getByRole("button", { name: "Underline" }));
 
     expect(md(editor)).toBe("<u>hola mundo</u>");
+    editor.destroy();
+  });
+
+  it("writes alignment as the html markdown admits, since it has no syntax for it", async () => {
+    const editor = made();
+    editor.commands.selectAll();
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Centre" }));
+
+    expect(md(editor)).toBe('<p style="text-align: center">hola mundo</p>');
+    editor.destroy();
+  });
+
+  it("leaves a paragraph nobody aligned as plain markdown", async () => {
+    const editor = made("uno\n\ndos");
+    editor.commands.selectAll();
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Align left" }));
+
+    expect(md(editor)).toBe("uno\n\ndos");
     editor.destroy();
   });
 
