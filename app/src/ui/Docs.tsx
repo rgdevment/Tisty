@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { open as pick } from "@tauri-apps/plugin-dialog";
-import { listen } from "@tauri-apps/api/event";
-import { attach, docRead, docWrite, opened, parted, type Filed } from "../core";
+import { attach, docRead, docWrite, opened, type Filed } from "../core";
+import { busy, holds, queued } from "../saving";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 
@@ -22,25 +22,18 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
   const [saving, setSaving] = useState(false);
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
-  const queues = useRef(new Map<string, Promise<unknown>>());
   const turn = useRef(0);
 
   const keep = useCallback(
     (id: string, text: string) => {
       setSaving(true);
-      const before = queues.current.get(id) ?? Promise.resolve();
-      const mine = before
-        .catch(() => {})
-        .then(() => docWrite(id, text))
+      const mine = queued(id, () => docWrite(id, text))
         .then((fresh) => {
           if (held.current?.id === id && held.current.body === text) held.current = null;
           onKept(fresh);
         })
         .catch((e) => onError(saidPlainly(e)))
-        .finally(() => {
-          if (queues.current.get(id) === mine) setSaving(false);
-        });
-      queues.current.set(id, mine);
+        .finally(() => setSaving(false));
       return mine;
     },
     [onError, onKept],
@@ -69,21 +62,9 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
     };
   }, []);
 
-  // Tauri kills the process rather than navigating away, so `beforeunload`
-  // never runs: the backend asks first and waits for the answer.
-  useEffect(() => {
-    const off = listen("parting", () => {
-      leaving.current();
-      queues.current
-        .get(open?.file ?? "")
-        ?.catch(() => {})
-        .finally(() => void parted());
-      if (!open) void parted();
-    });
-    return () => {
-      void off.then((stop) => stop());
-    };
-  }, [open]);
+  // Registered where the pending text lives, awaited from wherever the app is
+  // told to leave: whoever answers must not have to be this component.
+  useEffect(() => holds(() => leaving.current()), []);
 
   useEffect(() => {
     if (!open) return;
@@ -105,7 +86,7 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
     if (!wanted) return;
     flush();
     const mine = ++turn.current;
-    (queues.current.get(wanted.file) ?? Promise.resolve())
+    (busy(wanted.file) ?? Promise.resolve())
       .catch(() => {})
       .then(() => docRead(wanted.file))
       .then((text) => {
@@ -143,7 +124,6 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
                     return null;
                   })
               }
-              onRuin={() => onError(t("wouldRuin"))}
               onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
               onWrite={wrote}
             />

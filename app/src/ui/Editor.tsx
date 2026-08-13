@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor as Writing } from "@tiptap/core";
-import { asMarkdown, ruined, written } from "./writing";
+import { asMarkdown, written } from "./writing";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { served } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
@@ -31,7 +31,6 @@ interface Props {
   taking?: boolean;
   label?: string;
   onAttach?: () => Promise<string | null>;
-  onRuin?: () => void;
   onOpen?: (reference: string) => void;
   onWrite: (text: string) => void;
 }
@@ -41,7 +40,6 @@ export default function Editor({
   taking,
   label,
   onAttach,
-  onRuin,
   onOpen,
   onWrite,
 }: Props) {
@@ -131,11 +129,6 @@ export default function Editor({
     },
     onUpdate: ({ editor }) => {
       const text = asMarkdown(editor);
-      if (text !== null && ruined(text)) {
-        onRuin?.();
-        look(editor);
-        return;
-      }
       if (text !== null) onWrite(text);
       look(editor);
     },
