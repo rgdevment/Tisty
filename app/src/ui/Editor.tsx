@@ -48,6 +48,7 @@ export default function Editor({
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
   const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
+  const [tying, setTying] = useState<{ x: number; y: number } | null>(null);
   const urls = useRef(new Map<string, string>());
   const now = useRef<{ open: boolean; count: number; take: () => void }>({
     open: false,
@@ -201,6 +202,13 @@ export default function Editor({
             editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
         },
         {
+          key: "link",
+          label: t("linkIt"),
+          hint: "[ ]( )",
+          icon: "⚭",
+          run: () => setTying(caret(editor, editor.state.selection.from)),
+        },
+        {
           key: "rule",
           label: t("divider"),
           hint: "---",
@@ -299,7 +307,10 @@ export default function Editor({
       {asking && shown.length > 0 && (
         <Slash at={asking.at} blocks={shown} active={active} onPick={take} />
       )}
-      {picked && editor && !asking && <Floats editor={editor} at={picked.at} />}
+      {picked && editor && !asking && !tying && <Floats editor={editor} at={picked.at} />}
+      {tying && editor && (
+        <Floats editor={editor} at={tying} asking onDone={() => setTying(null)} />
+      )}
     </>
   );
 }

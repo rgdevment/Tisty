@@ -116,6 +116,53 @@ describe("the panel that appears over a selection", () => {
     editor.destroy();
   });
 
+  it("shows the words that were picked, ready to be changed", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+
+    expect((screen.getByLabelText(/Text to show/) as HTMLInputElement).value).toBe("hola");
+    editor.destroy();
+  });
+
+  it("writes the words when they were changed, and links those", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    await userEvent.clear(screen.getByLabelText(/Text to show/));
+    await userEvent.type(screen.getByLabelText(/Text to show/), "el sitio");
+    await userEvent.type(screen.getByLabelText(/Address/), "ejemplo.org{Enter}");
+
+    expect(md(editor)).toBe("[el sitio](https://ejemplo.org) mundo");
+    editor.destroy();
+  });
+
+  it("opens straight into the address when the slash menu asked for it", () => {
+    const editor = made();
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} asking />);
+
+    expect(screen.getByLabelText(/Address/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Bold" })).toBeNull();
+
+    editor.destroy();
+  });
+
+  it("says it is done so the menu that opened it can let go", async () => {
+    const onDone = vi.fn();
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} asking onDone={onDone} />);
+
+    await userEvent.type(screen.getByLabelText(/Address/), "ejemplo.org{Enter}");
+
+    expect(onDone).toHaveBeenCalled();
+    editor.destroy();
+  });
+
   it("never steals the selection it is acting on", async () => {
     const editor = made();
     editor.commands.setTextSelection({ from: 1, to: 5 });

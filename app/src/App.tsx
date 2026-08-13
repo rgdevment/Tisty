@@ -12,6 +12,7 @@ import {
   docCopy,
   docRead,
   parted,
+  printed,
   docDrop,
   docImport,
   folderFile,
@@ -384,7 +385,7 @@ export default function App() {
       {note && !error && (
         <p
           role="status"
-          className="pointer-events-none fixed inset-x-0 top-11 z-[60] mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-xs text-accent"
+          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-fit -translate-x-1/2 rounded-lg border border-hair bg-rail px-3.5 py-2 text-xs text-ink shadow-xl"
         >
           {note}
         </p>
@@ -572,7 +573,7 @@ export default function App() {
                     .then((body) => navigator.clipboard.writeText(bared(body)))
                     .then(() => {
                       setNote(t("copied"));
-                      setTimeout(() => setNote(null), 2200);
+                      setTimeout(() => setNote(null), 3200);
                     })
                     .catch((e) => setError(saidPlainly(e))),
               },
@@ -581,7 +582,7 @@ export default function App() {
                 icon: "▤",
                 label: t("toPdf"),
                 off: chosen.doc !== doc.file,
-                onPick: () => window.print(),
+                onPick: () => printed().catch((e) => setError(saidPlainly(e))),
               },
               {
                 key: "copy",
