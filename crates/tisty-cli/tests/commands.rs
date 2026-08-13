@@ -120,6 +120,73 @@ fn a_date_in_the_phrase_leaves_the_title_clean() {
 
 /// The bug this guards against completed an unrelated task in silence.
 #[test]
+fn a_bare_list_with_only_future_work_says_where_it_is() {
+    let cli = Cli::new();
+    cli.ok(&["buy lemons tomorrow at 8am"]);
+
+    let out = cli.ok(&["ls"]);
+
+    assert!(out.contains("further on"), "{out}");
+    assert!(out.contains("1 task"), "{out}");
+    assert!(out.contains("tisty ls week"), "{out}");
+    assert!(!out.contains("nothing here"), "{out}");
+}
+
+#[test]
+fn the_count_is_of_what_is_actually_ahead() {
+    let cli = Cli::new();
+    cli.ok(&["buy lemons tomorrow"]);
+    cli.ok(&["renew the certificate tomorrow"]);
+
+    let out = cli.ok(&["ls"]);
+
+    assert!(out.contains("2 tasks"), "{out}");
+}
+
+#[test]
+fn asking_for_today_on_purpose_still_gets_the_plain_answer() {
+    let cli = Cli::new();
+    cli.ok(&["buy lemons tomorrow at 8am"]);
+
+    let out = cli.ok(&["ls", "today"]);
+
+    assert!(out.contains("nothing here"), "{out}");
+    assert!(!out.contains("further on"), "{out}");
+}
+
+#[test]
+fn work_with_no_date_is_listed_rather_than_pointed_at() {
+    let cli = Cli::new();
+    cli.ok(&["buy lemons tomorrow"]);
+    cli.ok(&["book a haircut"]);
+
+    let out = cli.ok(&["ls"]);
+
+    assert!(out.contains("book a haircut"), "{out}");
+    assert!(!out.contains("further on"), "{out}");
+}
+
+#[test]
+fn an_empty_store_is_not_told_about_work_it_does_not_have() {
+    let cli = Cli::new();
+
+    let out = cli.ok(&["ls"]);
+
+    assert!(out.contains("nothing here"), "{out}");
+    assert!(!out.contains("further on"), "{out}");
+}
+
+#[test]
+fn what_json_answers_does_not_change() {
+    let cli = Cli::new();
+    cli.ok(&["buy lemons tomorrow at 8am"]);
+
+    let out = cli.ok(&["ls", "--json"]);
+
+    assert_eq!(out.trim(), "[]", "{out}");
+}
+
+#[test]
 fn a_number_from_a_listing_that_no_longer_applies_is_refused() {
     let cli = Cli::new();
     cli.ok(&["first task"]);
