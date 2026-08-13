@@ -96,9 +96,9 @@ export default function Sidebar({
             onClick={onNewFolder}
             aria-label={t("newFolder")}
             title={t("newFolder")}
-            className="grid h-5 w-5 place-items-center rounded text-[11px] text-faint hover:bg-hover hover:text-ink"
+            className="grid h-5 w-5 place-items-center rounded text-[13px] text-faint hover:bg-hover hover:text-ink"
           >
-            🗂
+            +
           </button>
           <button
             type="button"

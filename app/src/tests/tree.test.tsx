@@ -72,13 +72,31 @@ describe("the document tree", () => {
     ).toBe("false");
   });
 
-  it("picks a folder without folding it away", async () => {
+  it("picks a folder and folds it in the same click", async () => {
     const { onHere } = show();
 
     await userEvent.click(screen.getByRole("button", { name: "trabajo" }));
 
     expect(onHere).toHaveBeenCalledWith("01F");
+    expect(screen.queryByRole("button", { name: "corporativo" })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "trabajo" }));
+
     expect(screen.getByRole("button", { name: "corporativo" })).toBeTruthy();
+  });
+
+  it("folds unfiled away too, and says so", async () => {
+    const { onHere } = show();
+    const loose = screen.getByRole("button", { name: /Unfiled/ });
+    expect(loose.getAttribute("aria-expanded")).toBe("true");
+
+    await userEvent.click(loose);
+
+    expect(onHere).toHaveBeenCalledWith(undefined);
+    expect(screen.queryByRole("button", { name: "Suelto" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Unfiled/ }).getAttribute("aria-expanded"),
+    ).toBe("false");
   });
 
   it("lets unfiled be picked like any other place", async () => {

@@ -175,11 +175,7 @@ export default function Tree({
           {...dropOn(folder.id)}
           className={`rounded-md ${over === folder.id ? "bg-accent-soft" : ""}`}
         >
-          <div
-            className={`group/folder flex items-center rounded-md ${
-              here === folder.id ? "bg-active text-ink" : ""
-            }`}
-          >
+          <div className="group/folder flex items-center rounded-md">
             <button
               type="button"
               onClick={() => fold(folder.id)}
@@ -201,11 +197,15 @@ export default function Tree({
               }
               aria-keyshortcuts={shortcuts("folder")}
               onDragStart={(e) => e.dataTransfer.setData("text/tisty-folder", folder.id)}
-              onClick={() => onHere?.(folder.id)}
+              onClick={() => {
+                onHere?.(folder.id);
+                fold(folder.id);
+              }}
+              aria-expanded={!closed}
               aria-label={lifted?.id === folder.id ? fill("liftedIs", folder.name) : folder.name}
               aria-current={here === folder.id ? "true" : undefined}
-              className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 text-left text-[12.5px] ${
-                here === folder.id ? "text-ink" : "text-soft hover:bg-hover"
+              className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[12.5px] ${
+                here === folder.id ? "text-ink" : "text-soft"
               }`}
             >
               <span className="shrink-0">{drawn(icons, folder.icon ?? undefined) ?? "🗂"}</span>
@@ -274,10 +274,14 @@ export default function Tree({
             onFocus={() => setReached("unfiled")}
             onKeyDown={(e) => typed(e, { id: "unfiled", kind: "folder", name: t("unfiled") })}
             aria-keyshortcuts={shortcuts("folder")}
-            onClick={() => onHere?.(undefined)}
+            onClick={() => {
+              onHere?.(undefined);
+              fold("unfiled");
+            }}
+            aria-expanded={!shut.has("unfiled")}
             aria-current={here === null ? "true" : undefined}
-            className={`flex w-full items-center gap-1.5 rounded-md py-1 pr-2 pl-[26px] text-left text-[12.5px] ${
-              here === null ? "bg-active text-ink" : "text-faint hover:bg-hover"
+            className={`flex w-full items-center gap-1.5 py-1 pr-2 pl-[26px] text-left text-[12.5px] ${
+              here === null ? "text-ink" : "text-faint"
             }`}
           >
             <span className="shrink-0">📥</span>
@@ -285,7 +289,9 @@ export default function Tree({
             <span className="ml-auto text-[11px]">{loose.length || ""}</span>
           </button>
         </div>
-        <ul {...dropOn(undefined)}>{loose.map((doc) => paper(doc, 1))}</ul>
+        {!shut.has("unfiled") && (
+          <ul {...dropOn(undefined)}>{loose.map((doc) => paper(doc, 1))}</ul>
+        )}
       </li>
     </ul>
   );

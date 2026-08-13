@@ -9,8 +9,12 @@ import { TaskItem } from "@tiptap/extension-task-item";
 import { Markdown } from "tiptap-markdown";
 import type { Editor as Writing } from "@tiptap/core";
 
-const asMarkdown = (editor: Writing): string =>
-  (editor.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
+// Null while the editor is being torn down: its storage is already gone.
+const asMarkdown = (editor: Writing): string | null => {
+  if (editor.isDestroyed) return null;
+  const kept = (editor.storage as unknown as { markdown?: { getMarkdown?: () => string } }).markdown;
+  return typeof kept?.getMarkdown === "function" ? kept.getMarkdown() : null;
+};
 
 interface Props {
   value: string;
@@ -43,13 +47,16 @@ export default function Editor({ value, taking, label, onWrite }: Props) {
         ...(label ? { "aria-label": label } : {}),
       },
     },
-    onUpdate: ({ editor }) => onWrite(asMarkdown(editor)),
+    onUpdate: ({ editor }) => {
+      const text = asMarkdown(editor);
+      if (text !== null) onWrite(text);
+    },
   });
 
   useEffect(() => {
-    if (!editor || asMarkdown(editor) === value) return;
+    if (!editor || editor.isDestroyed || asMarkdown(editor) === value) return;
     editor.commands.setContent(value, { emitUpdate: false });
   }, [editor, value]);
 
-  return <EditorContent editor={editor} className="scroller h-full" />;
+  return <EditorContent editor={editor} className="scroller min-h-0 flex-1" />;
 }
