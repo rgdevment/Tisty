@@ -10,6 +10,7 @@ import { Markdown } from "tiptap-markdown";
 import type { Editor as Writing } from "@tiptap/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { served } from "../core";
+import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import Slash, { asked, narrowed, type Block } from "./Slash";
 
@@ -61,10 +62,19 @@ interface Props {
   label?: string;
   onAttach?: () => Promise<string | null>;
   onRuin?: () => void;
+  onOpen?: (reference: string) => void;
   onWrite: (text: string) => void;
 }
 
-export default function Editor({ value, taking, label, onAttach, onRuin, onWrite }: Props) {
+export default function Editor({
+  value,
+  taking,
+  label,
+  onAttach,
+  onRuin,
+  onOpen,
+  onWrite,
+}: Props) {
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
   const urls = useRef(new Map<string, string>());
@@ -104,10 +114,34 @@ export default function Editor({ value, taking, label, onAttach, onRuin, onWrite
     editorProps: {
       attributes: {
         class: "tisty-doc",
+        [CATCHES]: "",
         role: "textbox",
         "aria-multiline": "true",
         spellcheck: "true",
         ...(label ? { "aria-label": label } : {}),
+      },
+      transformPastedHTML: (html) =>
+        // A pasted picture carries the path it came from — often an absolute
+        // one with the person's name — and that would be written into a file
+        // that travels between machines.
+        html.replace(/<img\b[^>]*>/gi, (tag) =>
+          /\bsrc\s*=\s*["'](?!https?:|attachments\/)/i.test(tag) ? "" : tag,
+        ),
+      handleClick: (view, pos) => {
+        // Read from the document, never from the DOM: dressing a mark's node
+        // would propagate into the saved markdown, unlike an image, which is a
+        // leaf ProseMirror refuses to read back.
+        const at = view.state.doc.resolve(pos);
+        const picture = view.state.doc.nodeAt(pos);
+        const src = picture?.type.name === "image" ? String(picture.attrs.src ?? "") : "";
+        const link = at
+          .marks()
+          .find((one) => one.type.name === "link")
+          ?.attrs.href;
+        const target = src || String(link ?? "");
+        if (!target || /^(https?|mailto|tel):/i.test(target)) return false;
+        onOpen?.(target);
+        return true;
       },
       handleKeyDown: (_, e) => {
         if (!now.current.open) return false;
@@ -252,6 +286,15 @@ export default function Editor({ value, taking, label, onAttach, onRuin, onWrite
     if (!editor || editor.isDestroyed || asMarkdown(editor) === value) return;
     editor.commands.setContent(value, { emitUpdate: false });
   }, [editor, value]);
+
+  // The file lands outside React: the window hands it to whatever element under
+  // the cursor registered itself, the same way a task's field does.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    return takesFiles(editor.view.dom, (written) => {
+      editor.chain().focus().insertContent(written).run();
+    });
+  }, [editor]);
 
   // The document keeps the reference a person can read; only the pixels on
   // screen need the servable url, so the markdown is never touched.

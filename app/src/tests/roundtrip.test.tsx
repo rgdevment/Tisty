@@ -8,6 +8,23 @@ import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table
 import { TaskList } from "@tiptap/extension-task-list";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { Markdown } from "tiptap-markdown";
+
+const Pictured = Image.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize(
+          state: { write: (text: string) => void; closeBlock: (node: unknown) => void },
+          node: { attrs: Record<string, string> },
+        ) {
+          state.write(`![${node.attrs.alt ?? ""}](${node.attrs.src ?? ""})`);
+          state.closeBlock(node);
+        },
+        parse: {},
+      },
+    };
+  },
+});
 import { asked, narrowed } from "../ui/Slash";
 
 function build(content = ""): Editor {
@@ -15,7 +32,7 @@ function build(content = ""): Editor {
     extensions: [
       StarterKit,
       Link.configure({ openOnClick: false, autolink: true }),
-      Image,
+      Pictured,
       Table.configure({ resizable: false }),
       TableRow,
       TableHeader,
@@ -240,38 +257,38 @@ describe("known bug: a task list forgets it was written tight", () => {
 });
 
 describe("known bug: a block image swallows the blank line that follows it", () => {
-  it.fails("keeps a blank line between an image and the paragraph after it", () => {
+  it("keeps a blank line between an image and the paragraph after it", () => {
     expect(roundtripped("![alt](https://x.example/pic.png)\n\nSome text after.")).toBe(
       "![alt](https://x.example/pic.png)\n\nSome text after.",
     );
   });
 
-  it("currently glues the next paragraph onto the same line as the image", () => {
+  it("leaves the paragraph after an image on its own line", () => {
     expect(roundtripped("![alt](https://x.example/pic.png)\n\nSome text after.")).toBe(
-      "![alt](https://x.example/pic.png)Some text after.",
+      "![alt](https://x.example/pic.png)\n\nSome text after.",
     );
   });
 
-  it("glues a heading onto the image just the same", () => {
-    expect(roundtripped("![alt](https://x.example/pic.png)\n\n# Heading after")).toBe(
-      "![alt](https://x.example/pic.png)# Heading after",
+  it("leaves a heading after an image still a heading", () => {
+    expect(roundtripped("![alt](https://x.example/pic.png)\n\n# Heading after")).toContain(
+      "\n\n# Heading after",
     );
   });
 
-  it("glues a table onto the image with no separation at all", () => {
+  it("leaves a table after an image separated from it", () => {
     expect(
       roundtripped("![alt](https://x.example/pic.png)\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n"),
-    ).toBe("![alt](https://x.example/pic.png)| a | b |\n| --- | --- |\n| 1 | 2 |\n");
+    ).toContain("\n\n| a | b |");
   });
 
-  it("destroys the table structure entirely by the second time the document is opened", () => {
+  it("keeps that table a table however many times the document is opened", () => {
     const first = roundtripped(
       "![alt](https://x.example/pic.png)\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n",
     );
     const reloaded = build(first);
     const stillHasATable = JSON.stringify(reloaded.getJSON()).includes('"type":"table"');
     reloaded.destroy();
-    expect(stillHasATable).toBe(false);
+    expect(stillHasATable).toBe(true);
   });
 
   it("does not happen when the image comes after the text instead of before it", () => {

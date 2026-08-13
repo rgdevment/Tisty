@@ -1849,6 +1849,15 @@ fn doc_copy(
 
     let root = session.paths.docs();
     let body = tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
+    // Two rows with the same name and nothing to tell them apart is worse than
+    // no copy at all: the title lives in the first line, so that is where it goes.
+    let body = match body.split_once('\n') {
+        Some((first, rest)) if !first.trim().is_empty() => {
+            format!("{first}{}\n{rest}", worded(&session.locale, "copy"))
+        }
+        _ if !body.trim().is_empty() => format!("{body}{}", worded(&session.locale, "copy")),
+        _ => body,
+    };
     let made = tisty_core::docs::create(&root, &session.config.device_id, &body)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be copied", e))?;
 
@@ -1860,14 +1869,18 @@ fn doc_copy(
             .filter(|one| one.folder == kept.folder)
             .map(|one| one.order.as_str()),
     );
+    let twin = ulid::Ulid::generate();
     session.commit(Op::DocAdd {
-        id: ulid::Ulid::generate(),
+        id: twin,
         d: tisty_core::event::DocAdd {
             file: made.id.clone(),
             order,
             folder: kept.folder,
         },
     })?;
+    if kept.archived {
+        session.commit(Op::DocArchive { id: twin })?;
+    }
     Ok(made)
 }
 
@@ -2651,6 +2664,8 @@ fn worded(locale: &Option<String>, key: &str) -> String {
         .is_some_and(|code| code.to_lowercase().starts_with("es"));
 
     match (key, spanish) {
+        ("copy", true) => " (copia)".into(),
+        ("copy", false) => " (copy)".into(),
         ("show", true) => "Abrir Tisty".into(),
         ("show", false) => "Open Tisty".into(),
         ("capture", true) => "Capturar…".into(),

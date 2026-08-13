@@ -34,6 +34,7 @@ function bar(ready: boolean) {
         onFolderMenu={vi.fn()}
         onDocMenu={vi.fn()}
         onDocsMenu={vi.fn()}
+        onHereMenu={vi.fn()}
       />,
     );
 }

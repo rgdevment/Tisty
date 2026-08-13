@@ -338,7 +338,21 @@ describe("the document tree", () => {
     expect(screen.queryByRole("button", { name: "Viejo" })).toBeNull();
   });
 
-  it("gives the place unfiled documents land no menu of its own", async () => {
+  it("offers making something on the shelf itself, not only on a folder", () => {
+    const onHereMenu = vi.fn();
+    render(
+      <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHereMenu={onHereMenu} />,
+    );
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: /Unfiled/ }), {
+      clientX: 5,
+      clientY: 9,
+    });
+
+    expect(onHereMenu).toHaveBeenCalledWith({ x: 5, y: 9 });
+  });
+
+  it("never treats the unfiled shelf as a folder that can be renamed or deleted", async () => {
     const { onFolderMenu } = show();
     screen.getByRole("button", { name: /Unfiled/ }).focus();
 

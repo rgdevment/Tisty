@@ -95,6 +95,33 @@ describe("the row menu", () => {
     expect(screen.getByRole("menu", { name: "Opciones" })).toBeTruthy();
   });
 
+  it("lands on the first destination, not on the way back", async () => {
+    render(
+      <Menu
+        at={{ x: 20, y: 30 }}
+        label="Opciones"
+        onClose={vi.fn()}
+        choices={[
+          {
+            key: "move",
+            label: "Mover a…",
+            into: {
+              label: "Mover a",
+              choices: [
+                { key: "a", label: "trabajo", onPick: vi.fn() },
+                { key: "b", label: "personal", onPick: vi.fn() },
+              ],
+            },
+          },
+        ]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("menuitem", { name: /Mover a…/ }));
+
+    expect((document.activeElement as HTMLElement).textContent).toContain("trabajo");
+  });
+
   it("picks a destination from the nested menu", async () => {
     const land = vi.fn();
     const onClose = vi.fn();

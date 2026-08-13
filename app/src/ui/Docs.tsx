@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { open as pick } from "@tauri-apps/plugin-dialog";
-import { attach, docRead, docWrite, type Filed } from "../core";
+import { attach, docRead, docWrite, opened, type Filed } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 
@@ -129,6 +129,7 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
                   })
               }
               onRuin={() => onError(t("wouldRuin"))}
+              onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
               onWrite={wrote}
             />
           </Suspense>
