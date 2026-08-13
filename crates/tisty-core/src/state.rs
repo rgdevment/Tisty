@@ -96,6 +96,16 @@ impl State {
                     list.name = d.name.clone();
                 }
             }
+            Op::ListLook { id, d } => {
+                if let Some(list) = self.lists.get_mut(id) {
+                    if let Some(icon) = &d.icon {
+                        list.icon = icon.clone().filter(|key| crate::model::icon::known(key));
+                    }
+                    if let Some(color) = &d.color {
+                        list.color = color.clone();
+                    }
+                }
+            }
             Op::ListArchive { id } => {
                 if let Some(list) = self.lists.get_mut(id) {
                     list.archived = true;
@@ -2336,5 +2346,145 @@ mod tests {
         let ops = state.completing(id, "2026-08-12T10:00:00[Europe/Madrid]".parse().unwrap());
 
         assert!(ops.iter().any(|op| matches!(op, crate::Op::TaskAdd { .. })));
+    }
+
+    #[test]
+    fn a_list_takes_an_icon_and_gives_it_back() {
+        let mut state = State::default();
+        let list = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListAdd {
+                id: list,
+                d: ListAdd {
+                    name: "Casa".into(),
+                    order: "a0".into(),
+                    color: None,
+                },
+            },
+        ));
+
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListLook {
+                id: list,
+                d: crate::event::Look {
+                    icon: Some(Some("home".into())),
+                    color: Some(Some("green".into())),
+                },
+            },
+        ));
+
+        assert_eq!(state.lists[&list].icon.as_deref(), Some("home"));
+        assert_eq!(state.lists[&list].color.as_deref(), Some("green"));
+    }
+
+    #[test]
+    fn an_icon_nobody_ships_never_reaches_the_list() {
+        let mut state = State::default();
+        let list = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListAdd {
+                id: list,
+                d: ListAdd {
+                    name: "Casa".into(),
+                    order: "a0".into(),
+                    color: None,
+                },
+            },
+        ));
+
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListLook {
+                id: list,
+                d: crate::event::Look {
+                    icon: Some(Some("dragon".into())),
+                    color: None,
+                },
+            },
+        ));
+
+        assert_eq!(state.lists[&list].icon, None);
+    }
+
+    #[test]
+    fn changing_the_icon_leaves_the_colour_where_it_was() {
+        let mut state = State::default();
+        let list = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListAdd {
+                id: list,
+                d: ListAdd {
+                    name: "Casa".into(),
+                    order: "a0".into(),
+                    color: Some("green".into()),
+                },
+            },
+        ));
+
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListLook {
+                id: list,
+                d: crate::event::Look {
+                    icon: Some(Some("home".into())),
+                    color: None,
+                },
+            },
+        ));
+
+        assert_eq!(state.lists[&list].color.as_deref(), Some("green"));
+    }
+
+    #[test]
+    fn an_icon_can_be_taken_off_again() {
+        let mut state = State::default();
+        let list = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListAdd {
+                id: list,
+                d: ListAdd {
+                    name: "Casa".into(),
+                    order: "a0".into(),
+                    color: None,
+                },
+            },
+        ));
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListLook {
+                id: list,
+                d: crate::event::Look {
+                    icon: Some(Some("home".into())),
+                    color: None,
+                },
+            },
+        ));
+
+        state.apply(&ev(
+            1,
+            "a",
+            Op::ListLook {
+                id: list,
+                d: crate::event::Look {
+                    icon: Some(None),
+                    color: None,
+                },
+            },
+        ));
+
+        assert_eq!(state.lists[&list].icon, None);
     }
 }

@@ -4,6 +4,7 @@ import {
   capture,
   complete,
   discard,
+  docs,
   fold,
   dropStep,
   markStep,
@@ -18,6 +19,7 @@ import {
   type Task,
   updateReady,
   type Ready,
+  type Doc,
 } from "./core";
 import { listen } from "@tauri-apps/api/event";
 import { heard, play } from "./chime";
@@ -41,6 +43,8 @@ import Closing from "./ui/Closing";
 import Detail from "./ui/Detail";
 import About from "./ui/About";
 import Keeping from "./ui/Keeping";
+import Docs from "./ui/Docs";
+import Lists from "./ui/Lists";
 import Notice from "./ui/Notice";
 import Search from "./ui/Search";
 import Sidebar from "./ui/Sidebar";
@@ -88,6 +92,12 @@ export default function App() {
     slice: (localStorage.getItem("tisty.slice") as Slice) ?? "today",
   }));
   const [found, setFound] = useState<Found | null>(null);
+  const [allDocs, setAllDocs] = useState<Doc[]>([]);
+  useEffect(() => {
+    docs()
+      .then((found) => setAllDocs(found ?? []))
+      .catch(() => {});
+  }, []);
   const [held, setHeld] = useState<Task | undefined>();
   const [greet, setGreet] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -295,6 +305,7 @@ export default function App() {
 
       <Sidebar
         lists={data.lists}
+        docs={allDocs}
         counts={data.counts}
         chosen={chosen}
         ready={ready !== null}
@@ -308,6 +319,20 @@ export default function App() {
 
       {chosen.named === "aboutScreen" ? (
         <About ready={ready} onError={(e) => setError(saidPlainly(e))} />
+      ) : chosen.named === "docs" ? (
+        <Docs
+          open={chosen.doc}
+          onKnown={setAllDocs}
+          onError={(e) => setError(saidPlainly(e))}
+        />
+      ) : chosen.named === "lists" && !chosen.list ? (
+        <Lists
+          lists={data.lists}
+          counts={data.counts}
+          onOpen={(id) => setChosen({ named: "lists", list: id })}
+          onChanged={load}
+          onError={(e) => setError(saidPlainly(e))}
+        />
       ) : chosen.named === "keeping" ? (
         <Keeping
           onChanged={() => {

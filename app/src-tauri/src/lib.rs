@@ -1321,6 +1321,9 @@ const REFUSALS: &[&str] = &[
     "restoreFailed",
     "stillCarrying",
     "sandboxCannotMerge",
+    "noSuchDoc",
+    "noSuchIcon",
+    "manyLists",
     "internal",
     "internalNamed",
 ];
@@ -1465,6 +1468,125 @@ fn keep_settings(
     // «Saved» and the tone kept sounding until the app was restarted.
     herald::respeak(&app, &now.quiet);
     Ok(now)
+}
+
+#[tauri::command]
+fn icons() -> Vec<(&'static str, &'static str)> {
+    tisty_core::model::icon::ICONS.to_vec()
+}
+
+#[tauri::command]
+fn list_add(
+    session: tauri::State<'_, Mutex<Session>>,
+    name: String,
+    icon: Option<String>,
+) -> Answer<List> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err(Refusal::of("untitled"));
+    }
+    let mut session = held(&session);
+    if !session.state.list_called(&name).is_empty() {
+        return Err(Refusal::about("manyLists", name));
+    }
+
+    let id = ulid::Ulid::generate();
+    let order = session.state.next_list_order();
+    session.commit(Op::ListAdd {
+        id,
+        d: tisty_core::event::ListAdd {
+            name,
+            order,
+            color: None,
+        },
+    })?;
+    if let Some(icon) = icon.filter(|key| tisty_core::model::icon::known(key)) {
+        session.commit(Op::ListLook {
+            id,
+            d: tisty_core::event::Look {
+                icon: Some(Some(icon)),
+                color: None,
+            },
+        })?;
+    }
+    session
+        .state
+        .lists
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notAListId"))
+}
+
+#[tauri::command]
+fn list_look(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    icon: Option<String>,
+) -> Answer<List> {
+    let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
+    let kept = match icon {
+        Some(key) => Some(
+            tisty_core::model::icon::kept(&key)
+                .map(str::to_string)
+                .ok_or_else(|| Refusal::about("noSuchIcon", key))?,
+        ),
+        None => None,
+    };
+
+    let mut session = held(&session);
+    session.commit(Op::ListLook {
+        id,
+        d: tisty_core::event::Look {
+            icon: Some(kept),
+            color: None,
+        },
+    })?;
+    session
+        .state
+        .lists
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notAListId"))
+}
+
+#[tauri::command]
+fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core::docs::Doc>> {
+    Ok(tisty_core::docs::all(&held(&session).paths.docs()))
+}
+
+#[tauri::command]
+fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
+    let root = held(&session).paths.docs();
+    tisty_core::docs::read(&root, &id).map_err(|_| Refusal::about("noSuchDoc", id))
+}
+
+#[tauri::command(async)]
+fn doc_write(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    body: String,
+) -> Answer<tisty_core::docs::Doc> {
+    let root = held(&session).paths.docs();
+    tisty_core::docs::write(&root, &id, &body)
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be written", e))?;
+    Ok(tisty_core::docs::Doc {
+        title: tisty_core::docs::titled(&body),
+        id,
+    })
+}
+
+#[tauri::command]
+fn doc_new(session: tauri::State<'_, Mutex<Session>>) -> Answer<tisty_core::docs::Doc> {
+    let session = held(&session);
+    tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "")
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))
+}
+
+#[tauri::command]
+fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    let root = held(&session).paths.docs();
+    tisty_core::docs::remove(&root, &id)
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be removed", e))
 }
 
 /// Nobody could say which version they hit a problem with: it existed only in
@@ -2297,7 +2419,15 @@ pub fn run() {
             note_trouble,
             note_break,
             update_ready,
-            logs
+            logs,
+            icons,
+            list_add,
+            list_look,
+            docs,
+            doc_read,
+            doc_write,
+            doc_new,
+            doc_drop
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

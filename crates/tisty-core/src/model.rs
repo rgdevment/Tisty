@@ -1,4 +1,5 @@
 mod date;
+pub mod icon;
 mod list;
 mod repeat;
 mod tag;

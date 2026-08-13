@@ -1,11 +1,12 @@
 import { useState } from "react";
-import type { List } from "../core";
+import type { Doc, List } from "../core";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
 import mark from "../assets/tisty.png";
 
 interface Props {
   lists: List[];
+  docs: Doc[];
   counts: Record<string, number>;
   chosen: Chosen;
   /// A newer Tisty exists. A dot and nothing else: it is worth noticing once,
@@ -18,14 +19,12 @@ const NAMED: { key: Named; icon: string }[] = [
   { key: "search", icon: "⌕" },
   { key: "tasks", icon: "☀" },
   { key: "tags", icon: "◈" },
+  { key: "lists", icon: "▤" },
   { key: "archive", icon: "▣" },
 ];
 
-export default function Sidebar({ lists, counts, chosen, ready, onChoose }: Props) {
-  const [openLists, setOpenLists] = useState(true);
-
-  const settled = lists.filter((list) => !counts[list.id]);
-  const working = lists.filter((list) => counts[list.id]);
+export default function Sidebar({ lists, docs, counts, chosen, ready, onChoose }: Props) {
+  const [openDocs, setOpenDocs] = useState(true);
 
   return (
     <aside className="flex flex-col overflow-hidden border-r border-hair bg-rail">
@@ -37,7 +36,7 @@ export default function Sidebar({ lists, counts, chosen, ready, onChoose }: Prop
               key={key}
               icon={icon}
               label={t(key)}
-              count={counts[key]}
+              count={key === "lists" ? lists.length || undefined : counts[key]}
               on={!chosen.list && !chosen.tags?.length && chosen.named === key}
               onClick={() => onChoose({ named: key })}
             />
@@ -46,37 +45,25 @@ export default function Sidebar({ lists, counts, chosen, ready, onChoose }: Prop
       </div>
 
       <div className="scroller flex-1 px-2.5 pb-4">
+        <div className="mx-1 mt-3 mb-1 h-px bg-hair" />
         <button
-          onClick={() => setOpenLists((open) => !open)}
-          className="flex w-full items-center gap-1.5 px-2.5 pt-4 pb-1.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
+          onClick={() => setOpenDocs((open) => !open)}
+          className="flex w-full items-center gap-1.5 px-2.5 pt-1 pb-1.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
         >
-          <span className={`text-[9px] transition-transform ${openLists ? "" : "-rotate-90"}`}>▼</span>
-          {t("lists")}
-          <span className="ml-auto text-[11px] font-normal">{lists.length || ""}</span>
+          <span className={`text-[9px] transition-transform ${openDocs ? "" : "-rotate-90"}`}>▼</span>
+          {t("docs")}
+          <span className="ml-auto text-[11px] font-normal">{docs.length || ""}</span>
         </button>
 
-        {openLists && (
+        {openDocs && (
           <nav className="flex flex-col gap-px">
-            {working.map((list) => (
+            {docs.map((doc) => (
               <Entry
-                key={list.id}
-                label={list.name}
-                count={counts[list.id]}
-                on={chosen.list === list.id}
-                onClick={() => onChoose({ list: list.id })}
-              />
-            ))}
-            {settled.length > 0 && working.length > 0 && (
-              <div className="mx-3 my-1.5 h-px bg-hair" />
-            )}
-            {settled.map((list) => (
-              <Entry
-                key={list.id}
-                label={list.name}
-                count="✓"
-                muted
-                on={chosen.list === list.id}
-                onClick={() => onChoose({ list: list.id })}
+                key={doc.id}
+                icon="▸"
+                label={doc.title || t("untitledDoc")}
+                on={chosen.doc === doc.id}
+                onClick={() => onChoose({ named: "docs", doc: doc.id })}
               />
             ))}
           </nav>

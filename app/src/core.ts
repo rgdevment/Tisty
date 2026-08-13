@@ -67,6 +67,7 @@ export interface List {
   name: string;
   order: string;
   color?: string;
+  icon?: string;
   archived?: boolean;
 }
 
@@ -368,3 +369,21 @@ export const restore = (from: string): Promise<number> => invoke("restore", { fr
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
 export const discard = (id: string): Promise<Task> => invoke("discard", { id });
+
+export interface Doc {
+  id: string;
+  title: string;
+}
+
+export const docs = (): Promise<Doc[]> => invoke("docs");
+export const docRead = (id: string): Promise<string> => invoke("doc_read", { id });
+export const docWrite = (id: string, body: string): Promise<Doc> =>
+  invoke("doc_write", { id, body });
+export const docNew = (): Promise<Doc> => invoke("doc_new");
+export const docDrop = (id: string): Promise<void> => invoke("doc_drop", { id });
+
+export const icons = (): Promise<[string, string][]> => invoke("icons");
+export const listAdd = (name: string, icon?: string): Promise<List> =>
+  invoke("list_add", { name, icon });
+export const listLook = (id: string, icon?: string): Promise<List> =>
+  invoke("list_look", { id, icon });
