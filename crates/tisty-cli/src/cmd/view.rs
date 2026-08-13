@@ -20,7 +20,33 @@ pub fn ls(
     let filter = Filter::parse(tokens, app, today, lang)?;
     let tasks = app.state.matching(&filter.inner, today);
 
+    if !json && tasks.is_empty() && tokens.is_empty() {
+        let ahead = ahead_of_today(app, today);
+        if ahead > 0 {
+            println!(
+                "\n  {}\n",
+                crate::style::dim(
+                    &lang.fill("nothing-ahead", &[("n", &lang.plural("tasks", ahead))],)
+                )
+            );
+            Selection::save(&app.paths, &tasks)?;
+            return Ok(ExitCode::SUCCESS);
+        }
+    }
+
     show_many(app, &tasks, filter.heading(), json, today, lang)
+}
+
+fn ahead_of_today(app: &App, today: Date) -> usize {
+    app.state
+        .matching(
+            &tisty_core::view::Filter {
+                window: Some(tisty_core::view::Window::After(today)),
+                ..Default::default()
+            },
+            today,
+        )
+        .len()
 }
 
 pub fn show(
