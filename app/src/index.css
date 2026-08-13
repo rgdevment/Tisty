@@ -348,29 +348,47 @@ body {
 }
 
 /* Saving to PDF goes through the system print dialog, so what it prints has to
-   be the document alone: no rail, no menus, no clipped scroller. */
+   be the document alone. Hiding the rest with `visibility` left it holding its
+   space and the page came out blank: the parts have to leave the flow, and
+   every scroller above the text has to stop clipping it. */
 @media print {
   html,
   body,
   #root {
-    height: auto;
-    overflow: visible;
+    height: auto !important;
+    overflow: visible !important;
     background: #fff;
     color: #000;
   }
-  body * {
-    visibility: hidden;
+  aside,
+  [role="toolbar"],
+  [role="menu"],
+  [role="listbox"],
+  [role="alert"],
+  [role="status"],
+  [data-tauri-drag-region] {
+    display: none !important;
   }
-  .tisty-doc,
-  .tisty-doc * {
-    visibility: visible;
+  #root > div {
+    display: block !important;
+    height: auto !important;
+  }
+  main {
+    display: block !important;
+    overflow: visible !important;
+  }
+  main > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .scroller {
+    max-height: none !important;
+    overflow: visible !important;
   }
   .tisty-doc {
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
-    padding: 0;
+    padding: 0 !important;
     font-size: 11pt;
+    color: #000;
   }
   .tisty-doc a {
     color: #000;
@@ -378,7 +396,8 @@ body {
   }
   .tisty-doc pre,
   .tisty-doc blockquote,
-  .tisty-doc table {
+  .tisty-doc table,
+  .tisty-doc img {
     break-inside: avoid;
   }
 }

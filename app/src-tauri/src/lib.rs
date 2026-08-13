@@ -2052,6 +2052,21 @@ pub fn parting<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 #[derive(Default)]
 struct Leaving(std::sync::atomic::AtomicBool);
 
+/// `window.print()` from the page does nothing: WKWebView never implemented it.
+/// The webview itself can print, and the system dialog is what offers «save as
+/// PDF» on both platforms.
+#[tauri::command]
+fn printed(window: tauri::WebviewWindow) -> Answer<()> {
+    window.print().map_err(|e| {
+        witness::warn(
+            channel::WINDOW,
+            "the document would not print",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        Refusal::of("cannotOpen")
+    })
+}
+
 #[tauri::command]
 fn parted(app: tauri::AppHandle) {
     app.exit(0);
@@ -2973,6 +2988,7 @@ pub fn run() {
             doc_copy,
             doc_away,
             parted,
+            printed,
             folder_file
         ])
         .run(tauri::generate_context!())
