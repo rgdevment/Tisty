@@ -545,7 +545,10 @@ export default function App() {
                 label: t("duplicate"),
                 onPick: () =>
                   docCopy(doc.id)
-                    .then(lookPapers)
+                    .then((made) => {
+                      lookPapers();
+                      if (!doc.archived) setChosen({ named: "docs", doc: made.id });
+                    })
                     .catch((e) => setError(saidPlainly(e))),
               },
               {
@@ -565,6 +568,17 @@ export default function App() {
                 danger: true,
                 onPick: () => dropDoc(doc),
               },
+            ],
+          })
+        }
+        onHereMenu={(at) =>
+          setMenu({
+            at,
+            label: t("docsActions"),
+            choices: [
+              { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(undefined) },
+              { key: "newFolder", icon: "+", label: t("newFolder"), onPick: () => setMakingFolder(true) },
+              { key: "import", icon: "↧", label: t("importDoc"), apart: true, onPick: () => bringIn(undefined) },
             ],
           })
         }

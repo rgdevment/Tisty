@@ -22,6 +22,7 @@ interface Props {
   onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
+  onHereMenu: (at: { x: number; y: number }) => void;
 }
 
 const NAMED: { key: Named; icon: string }[] = [
@@ -46,6 +47,7 @@ export default function Sidebar({
   onFolderMenu,
   onDocMenu,
   onDocsMenu,
+  onHereMenu,
 }: Props) {
   const [openDocs, setOpenDocs] = useState(true);
 
@@ -110,6 +112,7 @@ export default function Sidebar({
             onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
             onFile={onFile}
             onFolderMenu={onFolderMenu}
+            onHereMenu={onHereMenu}
             onDocMenu={onDocMenu}
           />
         )}

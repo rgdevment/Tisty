@@ -32,10 +32,11 @@ export default function Menu({ at, choices, label, onClose }: Props) {
       x: Math.max(6, Math.min(at.x, window.innerWidth - box.width - 6)),
       y: Math.max(6, Math.min(at.y, window.innerHeight - box.height - 6)),
     });
-  }, [at]);
+  }, [at, deeper]);
 
   useEffect(() => {
-    card.current?.querySelector<HTMLElement>("[role=menuitem]")?.focus();
+    const items = card.current?.querySelectorAll<HTMLElement>("[role=menuitem]");
+    items?.[deeper ? 1 : 0]?.focus();
   }, [deeper]);
 
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function Menu({ at, choices, label, onClose }: Props) {
           walk(e.target as HTMLElement, e.key === "ArrowDown" ? 1 : -1);
         }
       }}
-      className="fixed z-[70] min-w-[210px] rounded-lg border border-hair bg-rail py-1 shadow-lg"
+      className="scroller fixed z-[70] max-h-[min(420px,80vh)] min-w-[210px] rounded-lg border border-hair bg-rail py-1 shadow-lg"
     >
       {deeper && (
         <button

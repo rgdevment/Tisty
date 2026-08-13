@@ -12,6 +12,7 @@ interface Props {
   onHere?: (folder?: string) => void;
   onMove?: (folder: string, parent?: string) => void;
   onFolderMenu?: (folder: Folded, at: { x: number; y: number }) => void;
+  onHereMenu?: (at: { x: number; y: number }) => void;
   onDocMenu?: (doc: Filed, at: { x: number; y: number }) => void;
 }
 
@@ -24,6 +25,7 @@ export default function Tree({
   onHere,
   onMove,
   onFolderMenu,
+  onHereMenu,
   onDocMenu,
 }: Props) {
   const icons = useIcons();
@@ -254,6 +256,9 @@ export default function Tree({
 
   const tree = (
     <ul ref={listed} aria-label={t("docs")} className="flex flex-col gap-px">
+      {papers.folders.length === 0 && papers.docs.length === 0 && (
+        <li className="px-2.5 py-2 text-[12px] text-faint">{t("noDocsYet")}</li>
+      )}
       {lifted && (
         <li
           role="status"
@@ -271,6 +276,11 @@ export default function Tree({
         >
           <button
             type="button"
+            onContextMenu={(e) => {
+              if (!onHereMenu) return;
+              e.preventDefault();
+              onHereMenu({ x: e.clientX, y: e.clientY });
+            }}
             data-row="unfiled"
             tabIndex={stops("unfiled") ? 0 : -1}
             onFocus={() => setReached("unfiled")}
@@ -303,6 +313,11 @@ export default function Tree({
     <div className="mt-2">
       <button
         type="button"
+        onContextMenu={(e) => {
+          if (!onHereMenu) return;
+          e.preventDefault();
+          onHereMenu({ x: e.clientX, y: e.clientY });
+        }}
         onClick={() => fold("away")}
         aria-expanded={!shut.has("away")}
         aria-label={t("archived")}

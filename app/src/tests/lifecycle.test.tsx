@@ -365,12 +365,13 @@ describe("nothing filed yet", () => {
 
     expect(screen.getByRole("button", { name: new RegExp(t("unfiled")) })).toBeTruthy();
     expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getByText(t("noDocsYet"))).toBeTruthy();
   });
 
-  it("carries an unused message for having nothing filed, which nothing on screen ever shows", () => {
+  it("says there is nothing yet, rather than showing an empty shelf and no words", () => {
     render(<Tree papers={{ folders: [], docs: [] }} onOpen={vi.fn()} onFile={vi.fn()} />);
 
-    expect(screen.queryByText(t("noDocsYet"))).toBeNull();
+    expect(screen.getByText(t("noDocsYet"))).toBeTruthy();
   });
 
   it("shows only what was archived, when that is all there ever was", () => {
