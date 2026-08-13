@@ -53,7 +53,6 @@ describe("carrying on its own", () => {
     expect(sent("sync_now").length).toBe(0);
   });
 
-  /** A burst of edits is one push, or every keystroke would reach the disk. */
   it("waits for the typing to stop before pushing", async () => {
     carried = carrying(() => {});
     await settle();
@@ -101,7 +100,6 @@ describe("carrying on its own", () => {
     expect(brought).not.toHaveBeenCalled();
   });
 
-  /** An unreachable folder is retried in silence, never thrown at the user. */
   it("swallows a folder that is not there", async () => {
     ipc.answer = (cmd) =>
       cmd === "sync_state"
@@ -130,8 +128,6 @@ describe("carrying on its own", () => {
     expect(sent("sync_now").length).toBe(0);
   });
 
-  /// Relaunching a remembered pull as a push leaves the other machine's work
-  /// sitting in the folder until the next focus or the quarter-hour beat.
   it("remembers which direction it owed, not just that it owed one", async () => {
     let release: (answer: string) => void = () => {};
     ipc.answer = (cmd) =>
@@ -178,7 +174,6 @@ describe("carrying on its own", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  /// «Busy» means another carry holds the lock, which is not «nothing new».
   it("does not treat a busy backend as a finished sync", async () => {
     const brought = vi.fn();
     ipc.answer = (cmd) =>

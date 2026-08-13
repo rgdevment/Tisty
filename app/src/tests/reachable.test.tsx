@@ -1,9 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Modal from "../ui/Modal";
 import Fields from "../ui/Fields";
 import type { Task } from "../core";
+
+const watching = vi.hoisted(() => ({ tell: null as ((e: { payload: boolean }) => void) | null }));
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 vi.mock("@tauri-apps/api/window", () => ({
@@ -12,6 +14,10 @@ vi.mock("@tauri-apps/api/window", () => ({
     minimize: () => Promise.resolve(),
     toggleMaximize: () => Promise.resolve(),
     close: () => Promise.resolve(),
+    onFocusChanged: (fn: (e: { payload: boolean }) => void) => {
+      watching.tell = fn;
+      return Promise.resolve(() => {});
+    },
   }),
 }));
 
@@ -34,7 +40,6 @@ describe("a modal holds the keyboard while it is up", () => {
       </Modal>,
     );
 
-  /// Otherwise the first Tab lands behind the veil, on controls nobody can see.
   it("starts with the focus inside it", () => {
     show();
 
@@ -47,7 +52,6 @@ describe("a modal holds the keyboard while it is up", () => {
     expect(screen.getByRole("dialog", { name: "Close the window?" })).toBeTruthy();
   });
 
-  /// While a modal is up nothing behind it is reachable, by mouse or otherwise.
   it("wraps around instead of tabbing out of the back", async () => {
     show();
 
@@ -75,7 +79,6 @@ describe("a modal holds the keyboard while it is up", () => {
     expect(closed).toHaveBeenCalled();
   });
 
-  /// The welcome has to be answered before anything else can be reached.
   it("ignores Escape where there is nothing to back out to", async () => {
     show();
 
@@ -84,8 +87,6 @@ describe("a modal holds the keyboard while it is up", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
-  /// A dialog that drops focus on the body sends the next Tab to the top of
-  /// the window, nowhere near what the person was doing.
   it("hands the focus back where it came from", async () => {
     render(
       <>
@@ -121,7 +122,6 @@ describe("the field sheets in the detail", () => {
     expect(chip.getAttribute("aria-expanded")).toBe("true");
   });
 
-  /// The catcher behind it is for the mouse only.
   it("closes on Escape", async () => {
     show();
 
@@ -143,7 +143,6 @@ describe("the field sheets in the detail", () => {
 });
 
 describe("what a screen reader is told", () => {
-  /// The buttons are glyphs: without a label a reader announced «─» and «□».
   it("names the window buttons instead of reading their glyph", async () => {
     const { default: WindowChrome } = await import("../ui/WindowChrome");
     render(<WindowChrome />);
@@ -157,7 +156,6 @@ describe("the window buttons sit where the system puts them", () => {
   const named = () =>
     screen.getAllByRole("button").map((one) => one.getAttribute("aria-label"));
 
-  /// `onMac` is read once, when the module is first imported.
   const chrome = async (agent: string) => {
     vi.resetModules();
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue(agent);
@@ -171,18 +169,45 @@ describe("the window buttons sit where the system puts them", () => {
     expect(named()).toEqual(["Minimise", "Maximise", "Close"]);
   });
 
-  /// Closing is the outermost button on both, and macOS puts the group on the
-  /// left: the same order there would leave it pointing at the middle.
-  it("puts closing on the far left on macOS", async () => {
+  it("puts them in the order macOS puts them", async () => {
     await chrome("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
 
-    expect(named()).toEqual(["Close", "Maximise", "Minimise"]);
+    expect(named()).toEqual(["Close", "Minimise", "Maximise"]);
+  });
+
+  it("wears the three colours of the system on macOS", async () => {
+    await chrome("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+    const lit = named().map(
+      (name) => screen.getByRole("button", { name: name as string }).className,
+    );
+
+    expect(lit[0]).toContain("bg-[#ff5f57]");
+    expect(lit[1]).toContain("bg-[#febc2e]");
+    expect(lit[2]).toContain("bg-[#28c840]");
+  });
+
+  it("leaves Windows the thin glyphs that belong there", async () => {
+    await chrome("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+
+    expect(screen.getByRole("button", { name: "Close" }).className).not.toContain("#ff5f57");
+    expect(screen.getByRole("button", { name: "Close" }).textContent).toBe("✕");
+  });
+
+  it("goes grey when the window is not the one in front", async () => {
+    await chrome("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+    await act(async () => {});
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.classList.contains("bg-[#ff5f57]")).toBe(true);
+
+    await act(async () => watching.tell?.({ payload: false }));
+
+    expect(close.classList.contains("bg-[#ff5f57]")).toBe(false);
+    expect(close.classList.contains("bg-line")).toBe(true);
+    expect(close.classList.contains("group-hover:bg-[#ff5f57]")).toBe(true);
   });
 });
 
 describe("opening a task", () => {
-  /// It moved the eye and left the keyboard back in the list, so the next Tab
-  /// went nowhere near what had just been opened.
   it("takes the focus with it", async () => {
     const { default: Detail } = await import("../ui/Detail");
     render(
@@ -210,8 +235,6 @@ describe("opening a task", () => {
 });
 
 describe("the / menu says which row is live", () => {
-  /// Arrow keys move a highlight the eye can follow and a reader could not:
-  /// the focus never leaves the text field, so without this nothing is said.
   it("points at the highlighted option, and moves the pointer with it", async () => {
     const { default: SlashMenu } = await import("../ui/SlashMenu");
     render(

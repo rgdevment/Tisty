@@ -1,6 +1,3 @@
-//! Up goes ours, down comes everyone else's. One writer per directory, so
-//! there is nothing to merge and nothing to choose.
-
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -14,24 +11,13 @@ const HELD: &str = "attachments";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Trouble {
     NotThere(String),
-    /// Merging two histories into an append-only log cannot be undone.
-    OtherStore {
-        theirs: String,
-    },
+    OtherStore { theirs: String },
     Unreadable(String),
-    /// The folder is there and the system says no. On macOS that is a decision
-    /// somebody made in a dialog, not a fault to hunt for.
     Refused(String),
     Broke(String),
-    /// Two histories, both with something to lose. Joining them cannot be
-    /// undone, and only the person knows whether it is their own other machine.
-    WouldMerge {
-        theirs: String,
-    },
+    WouldMerge { theirs: String },
 }
 
-/// Asked once, and never assumed: the same gesture picks your own laptop's
-/// folder and a stranger's, and the two cannot be told apart from here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Join {
     Ask,
@@ -51,8 +37,6 @@ pub struct Moved {
     pub brought: usize,
 }
 
-/// `data` holds `store/` and `attachments/`; both travel, because an attachment
-/// is named after its own sha-256 and two machines cannot disagree about one.
 pub fn carry(
     data: &Path,
     device: &str,
@@ -79,30 +63,22 @@ pub fn carry(
     Ok(moved)
 }
 
-/// A machine that has never met the folder adopts its name; one that has met a
-/// different one is refused. Adopting is only safe while there is nothing of
-/// ours to lose: an unmarked store with history is a store, not a blank.
 fn settled(store: &Path, dest: &Path, join: Join) -> Result<String, Trouble> {
     let ours = tisty_core::store::peek_identity(store);
     let theirs = theirs(dest);
     let we_are_new = ours.is_none() && !tisty_core::store::inhabited(store);
     let they_are_new = theirs.is_none() && !tisty_core::store::inhabited(dest.join(STORE));
 
-    // Two stores that have already been named and disagree is the one case with
-    // no innocent reading: nobody ends up here by picking their own folder.
     if let (Some(ours), Some(theirs)) = (&ours, &theirs) {
         claims(theirs, ours)?;
         return Ok(ours.clone());
     }
     match (&ours, &theirs) {
-        // Nothing of ours to lose, and the folder says who it is.
         (None, Some(theirs)) if we_are_new => {
             write(&store.join(MARKER), theirs.as_bytes())?;
             return Ok(theirs.clone());
         }
-        // Ours has a name and the folder is genuinely empty.
         (Some(ours), None) if they_are_new => return Ok(ours.clone()),
-        // An empty folder has nothing to merge with, whatever we are carrying.
         (None, None) if they_are_new => {
             return tisty_core::store::identity(store)
                 .map_err(|e| Trouble::Unreadable(e.to_string()));
@@ -110,9 +86,6 @@ fn settled(store: &Path, dest: &Path, join: Join) -> Result<String, Trouble> {
         _ => {}
     }
 
-    // Someone has something to lose and no name pairs them up. A folder full of
-    // history whose `.store-id` has not arrived yet reads exactly like an empty
-    // one, and a hidden file is what a cloud client syncs last, or never.
     if join == Join::Ask {
         return Err(Trouble::WouldMerge {
             theirs: theirs.unwrap_or_else(|| dest.display().to_string()),
@@ -164,15 +137,9 @@ fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
         let Some(named) = named.to_str() else {
             continue;
         };
-        // Byte equality is not enough: on Windows and macOS `DEV_A` and `dev_a`
-        // are the same directory, so a stranger's name would land on our own.
         if named.eq_ignore_ascii_case(device) || !entry.path().is_dir() {
             continue;
         }
-        // What arrives is read before it is written, or a half-downloaded
-        // segment takes down the whole store — every device, ours included.
-        // Skipped when nothing changed: this reparses their whole history, and
-        // it runs on every window focus.
         let mine = store.join(named);
         if !settled_already(&entry.path(), &mine) {
             tisty_core::store::check_device(&entry.path())
@@ -181,16 +148,12 @@ fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
         brought += copy_segments(&entry.path(), &mine)?;
     }
 
-    // Only when something landed: replaying every machine's history to prove
-    // that nothing changed is the most expensive way to learn it.
     if brought > 0 {
         tisty_core::store::read_all(store).map_err(|e| Trouble::Unreadable(e.to_string()))?;
     }
     Ok(brought)
 }
 
-/// Every segment of theirs already here, byte for byte: nothing to validate,
-/// because what we hold was validated when it arrived.
 fn settled_already(theirs: &Path, mine: &Path) -> bool {
     let Ok(offered) = tisty_core::store::segments_in(theirs) else {
         return false;
@@ -202,7 +165,6 @@ fn settled_already(theirs: &Path, mine: &Path) -> bool {
         })
 }
 
-/// In order: a `000002` without its `000001` stops the whole store, not one device.
 fn copy_segments(from: &Path, into: &Path) -> Result<usize, Trouble> {
     let mut carried = match tisty_core::store::segments_in(from) {
         Ok(carried) => carried,
@@ -230,8 +192,6 @@ fn copy_segments(from: &Path, into: &Path) -> Result<usize, Trouble> {
         let Some(named) = at.file_name() else {
             continue;
         };
-        // Always, even when the segment itself is skipped: a sealed segment
-        // whose `.count` never followed it can be truncated with nobody noticing.
         let counter = at.with_extension("count");
         if let Some(tally) = counter.file_name().filter(|_| counter.is_file()) {
             let target = into.join(tally);
@@ -250,15 +210,10 @@ fn copy_segments(from: &Path, into: &Path) -> Result<usize, Trouble> {
     Ok(done)
 }
 
-/// A crash between write and rename leaves the user's log, in the clear, in a
-/// folder that syncs to a provider. Nothing else ever reads or removes them.
 fn sweep(dir: &Path) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
-    // Ours alone: the window and the terminal can be pushing at the same time,
-    // and taking another process's temp file makes its rename fail as if the
-    // folder had gone missing.
     let mine = format!(".{}.", std::process::id());
     for at in entries.filter_map(|e| e.ok()).map(|e| e.path()) {
         let ours = at
@@ -278,8 +233,6 @@ fn sweep(dir: &Path) {
     }
 }
 
-/// Content addressed by sha-256: a name that matches is a file that matches,
-/// so what is already there is never rewritten and nothing can conflict.
 fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
     let mut done = 0;
     let shelves = match std::fs::read_dir(from) {
@@ -315,9 +268,6 @@ fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
                 continue;
             };
             let target = into.join(rest);
-            // Not `exists`: a cloud placeholder is a real file of zero bytes
-            // with exactly the right name, and the name is the hash, so a
-            // short copy would never be repaired from the good side.
             if std::fs::metadata(&at).map(|m| m.len()).ok()
                 == std::fs::metadata(&target).map(|m| m.len()).ok()
             {
@@ -330,8 +280,6 @@ fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
     Ok(done)
 }
 
-/// Length alone calls a corrupted copy identical, and the local store is the
-/// only original: without the timestamp nothing would ever repair it.
 fn same(from: &Path, to: &Path) -> bool {
     let (Ok(a), Ok(b)) = (std::fs::metadata(from), std::fs::metadata(to)) else {
         return false;
@@ -339,8 +287,6 @@ fn same(from: &Path, to: &Path) -> bool {
     if a.len() != b.len() {
         return false;
     }
-    // Within a couple of seconds: exFAT rounds to even seconds and SMB to one,
-    // so demanding equality would recopy the whole store on every carry.
     match (a.modified(), b.modified()) {
         (Ok(a), Ok(b)) => a
             .duration_since(b)
@@ -356,8 +302,6 @@ fn write(at: &Path, body: &[u8]) -> Result<(), Trouble> {
     written(at, body, None)
 }
 
-/// Copies the source's timestamp along with its bytes, which is what lets
-/// `same` tell an untouched copy from one somebody else overwrote.
 fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     let body = std::fs::read(from).map_err(io)?;
     let when = std::fs::metadata(from).and_then(|m| m.modified()).ok();
@@ -368,7 +312,6 @@ fn written(at: &Path, body: &[u8], when: Option<std::time::SystemTime>) -> Resul
     if let Some(parent) = at.parent() {
         std::fs::create_dir_all(parent).map_err(io)?;
     }
-    // Per call, not per process: two carries can run at once in one window.
     let mine = ROUND.fetch_add(1, Ordering::Relaxed);
     let tmp = at.with_extension(format!("{}.{mine}.part", std::process::id()));
 
@@ -397,8 +340,6 @@ fn written(at: &Path, body: &[u8], when: Option<std::time::SystemTime>) -> Resul
     Ok(())
 }
 
-/// «Not there» is a folder that is not there, never a disk that filled up:
-/// the two need different answers and only one of them is worth retrying.
 fn io(e: std::io::Error) -> Trouble {
     match e.kind() {
         std::io::ErrorKind::NotFound => Trouble::NotThere(e.to_string()),
@@ -510,8 +451,6 @@ mod tests {
         assert_eq!(titles(&one.store).len(), 1, "the emptied copy came home");
     }
 
-    /// On Windows and macOS `DEV_A` and `dev_a` are one directory, so a
-    /// stranger's copy would land on the only original this machine has.
     #[test]
     fn a_directory_that_differs_only_in_case_is_still_our_own() {
         let one = machine("dev_a");
@@ -582,8 +521,6 @@ mod tests {
         );
     }
 
-    /// Your own second machine and a stranger's folder are the same gesture:
-    /// picking a directory. Joining is irreversible, so it gets asked.
     #[test]
     fn two_histories_are_never_joined_without_being_asked() {
         let one = machine("dev_a");
@@ -621,8 +558,6 @@ mod tests {
         assert_eq!(titles(&one.store).len(), 2, "saying yes did not join them");
     }
 
-    /// The marker is newer than the store: a machine that predates it has
-    /// months of history and no name, and that is not a blank to write over.
     #[test]
     fn a_store_with_history_and_no_marker_is_not_adopted() {
         let one = machine("dev_a");
@@ -646,7 +581,6 @@ mod tests {
         assert_eq!(titles(&one.store), vec!["lo de dev_a".to_string()]);
     }
 
-    /// A hidden file is what a cloud client syncs last, or not at all.
     #[test]
     fn a_folder_full_of_history_with_no_marker_is_refused() {
         let one = machine("dev_a");
@@ -716,8 +650,6 @@ mod tests {
         assert_eq!(titles(&one.store).len(), 2);
     }
 
-    /// A second machine of the same person is not a second store: it takes the
-    /// name the folder already has instead of insisting on its own.
     #[test]
     fn a_machine_meeting_the_folder_for_the_first_time_adopts_its_name() {
         let one = machine("dev_a");
@@ -775,8 +707,6 @@ mod tests {
         assert_eq!(again.sent, 0, "it copied what was already identical");
     }
 
-    /// Half a download is not history: reading it takes down every device,
-    /// so it has to be refused before a single byte lands on this machine.
     #[test]
     fn a_gap_in_what_is_offered_is_refused_without_importing_it() {
         let one = machine("dev_a");
@@ -798,7 +728,6 @@ mod tests {
         assert_eq!(titles(&one.store).len(), 1, "our own store still reads");
     }
 
-    /// Dropbox and Drive name their conflict copies keeping the extension.
     #[test]
     fn a_conflict_copy_is_not_a_segment() {
         let one = machine("dev_a");
@@ -833,8 +762,6 @@ mod tests {
         );
     }
 
-    /// A pull that finds nothing new must not replay every machine's history:
-    /// it runs on every window focus.
     #[test]
     fn a_pull_with_nothing_to_bring_does_not_reread_everything() {
         let one = machine("dev_a");
@@ -857,8 +784,6 @@ mod tests {
         )
         .unwrap();
 
-        // Unreadable now, and still unread: what is already here was checked
-        // when it arrived, so a second pull must not look at it again.
         std::fs::write(
             shared.path().join("store/dev_b/000001.tisty"),
             b"not json at all",

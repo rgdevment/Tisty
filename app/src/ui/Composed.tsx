@@ -2,22 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { opened, revealed, served } from "../core";
-import { INSIDE } from "../markdown";
+import { INSIDE, docOf } from "../markdown";
 import { t } from "../locales";
 
 interface Props {
   html: string;
   label?: string;
-  /** Click, Enter or Space — never mere focus, or tabbing past would edit. */
   onEnter?: () => void;
   onError?: (problem: unknown) => void;
-  /** Cuts a long body down to a preview and offers the full screen instead. */
   onWhole?: () => void;
+  onDoc?: (id: string) => void;
   className: string;
   tabIndex?: number;
 }
 
-/** The source column re-composes on every keystroke, and resolving hits the disk. */
 const known = new Map<string, string>();
 
 export default function Composed({
@@ -26,6 +24,7 @@ export default function Composed({
   onEnter,
   onError,
   onWhole,
+  onDoc,
   className,
   tabIndex,
 }: Props) {
@@ -33,8 +32,6 @@ export default function Composed({
   const [long, setLong] = useState(false);
   const cut = onWhole !== undefined;
 
-  // Not `dangerouslySetInnerHTML`: React compares it by object identity, so
-  // every render rewrote the markup and threw away the resolved sources.
   useEffect(() => {
     const holder = box.current;
     if (!holder) return;
@@ -42,8 +39,6 @@ export default function Composed({
     setLong(false);
     let live = true;
 
-    // Latched, never lowered: the clamp changes the height it measures, so a
-    // two-way answer oscillates and the text flickers.
     const measure = () => {
       if (live && holder.scrollHeight > holder.clientHeight + 4) setLong(true);
     };
@@ -98,9 +93,11 @@ export default function Composed({
 
           const inside = (picture ?? link)?.getAttribute(INSIDE);
           const target = link?.getAttribute("href") ?? "";
+          const paper = docOf(target);
           const away = () =>
             /^(https?|mailto|tel):/i.test(target) ? openUrl(target) : revealed(decodeURI(target));
 
+          if (paper) return onDoc?.(paper);
           (inside ? opened(inside) : away()).catch((problem) => onError?.(problem));
         }}
         className={`${className} ${cut ? "clamped" : ""}`}

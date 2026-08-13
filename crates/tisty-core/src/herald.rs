@@ -1,27 +1,12 @@
-//! Telling someone that something happened, without deciding how.
-
 use serde::{Deserialize, Serialize};
 
-/// Something worth telling someone about, named for what happened rather than
-/// for how it would be told.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "what")]
 pub enum Happening {
-    Filed {
-        title: String,
-    },
-    Due {
-        title: String,
-        task: String,
-    },
-    /// A lid closed at ten and opened at eight owes a dozen at once. One line
-    /// beats a dozen notifications and a dozen overlapping tones.
-    Missed {
-        count: usize,
-    },
-    Carried {
-        brought: usize,
-    },
+    Filed { title: String },
+    Due { title: String, task: String },
+    Missed { count: usize },
+    Carried { brought: usize },
 }
 
 impl Happening {
@@ -33,11 +18,6 @@ impl Happening {
     }
 }
 
-/// Reminders that came due in `(since, now]`, oldest first.
-///
-/// A machine that was off for a month must not wake up to two hundred popups,
-/// so nothing older than `LOOKBACK` is told — the task is still sitting overdue
-/// in the list, which is the honest place for it.
 pub fn owed(
     state: &crate::State,
     since: jiff::Timestamp,
@@ -66,10 +46,6 @@ pub fn owed(
     owed
 }
 
-/// When a task repeats, its reminder is a rule and not a date. The successor is
-/// only born on completion, so a habit skipped once would go quiet for ever —
-/// which is the day it is needed most. It rings while the task stays open, and
-/// completing or dropping it is what stops the ringing.
 fn rings(
     task: &crate::model::Task,
     one: &crate::DateSpec,
@@ -90,9 +66,6 @@ fn rings(
     let cadence = repeat.cadence();
     let mut said = Vec::new();
     let mut at = one.at;
-    // A reminder abandoned years ago would otherwise be walked one day at a
-    // time on every tick. Past the cap it stops — and says so, because a habit
-    // that quietly goes silent is the thing this whole function came to fix.
     let mut walked = 0;
     for _ in 0..STEPS {
         walked += 1;
@@ -130,11 +103,8 @@ pub struct Due {
     pub what: Happening,
 }
 
-/// How many owed reminders are worth one notification each.
 pub const ONE_BY_ONE: usize = 3;
 
-/// Told one by one while there are few, gathered into a single line when a
-/// suspended machine wakes up owing a night's worth.
 pub fn gathered(owed: Vec<Due>) -> Vec<Happening> {
     if owed.len() <= ONE_BY_ONE {
         return owed.into_iter().map(|one| one.what).collect();
@@ -142,7 +112,6 @@ pub fn gathered(owed: Vec<Due>) -> Vec<Happening> {
     vec![Happening::Missed { count: owed.len() }]
 }
 
-/// A way of telling. Register one and it hears every happening it wants.
 pub trait Channel: Send + Sync {
     fn named(&self) -> &'static str;
 
@@ -174,7 +143,6 @@ impl Heralds {
         self.channels.iter().map(|one| one.named()).collect()
     }
 
-    /// One channel failing must not silence the rest.
     pub fn tell(&self, what: &Happening) -> Told {
         let mut told = Told::default();
         for one in self.channels.iter().filter(|one| one.wants(what)) {
@@ -190,16 +158,12 @@ impl Heralds {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Told {
-    /// Channels that wanted it. Zero is an answer, not a failure.
     pub asked: usize,
     pub heard: usize,
     pub trouble: Vec<Trouble>,
 }
 
 impl Told {
-    /// Nobody wanting to hear it is fine. Everybody wanting to and failing is
-    /// not: that is a reminder nobody will ever see, and it must not be
-    /// written off as said.
     pub fn lost(&self) -> bool {
         self.asked > 0 && self.heard == 0
     }
@@ -329,7 +293,6 @@ mod tests {
         );
     }
 
-    /// Otherwise every tick of the watcher tells you the same thing again.
     #[test]
     fn one_already_told_is_not_told_twice() {
         let state = with(vec![at("2026-08-11T09:45:00")]);
@@ -345,7 +308,6 @@ mod tests {
         );
     }
 
-    /// A machine off for a month must not wake up to two hundred popups.
     #[test]
     fn nothing_older_than_the_lookback_is_told() {
         let state = with(vec![at("2026-07-11T09:45:00")]);
@@ -427,7 +389,6 @@ mod tests {
         assert!(!heralds.tell(&Happening::Carried { brought: 2 }).lost());
     }
 
-    /// A reminder nobody could deliver must not be written off as said.
     #[test]
     fn a_happening_no_channel_could_deliver_is_lost() {
         let mut broken = Counting::new("screen");
@@ -437,7 +398,6 @@ mod tests {
         assert!(heralds.tell(&filed("comprar pan")).lost());
     }
 
-    /// Otherwise every quiet happening would be retried for ever.
     #[test]
     fn nobody_wanting_it_is_not_the_same_as_losing_it() {
         let mut picky = Counting::new("phone");
@@ -452,8 +412,6 @@ mod tests {
         assert!(!Heralds::default().tell(&filed("comprar pan")).lost());
     }
 
-    /// The reason the whole thing changed: a daily medicine whose successor was
-    /// never born, because the day it was skipped is the day it matters.
     #[test]
     fn a_habit_skipped_yesterday_still_rings_today() {
         let state = every_day(vec![at("2026-08-11T09:00:00")]);
@@ -482,8 +440,6 @@ mod tests {
         assert_eq!(told.len(), 1, "{told:?}");
     }
 
-    /// The cadence still decides: a reminder that does not fall on today rings
-    /// on none of the days in between.
     #[test]
     fn a_habit_says_nothing_at_an_hour_that_is_not_its_own() {
         let state = every_day(vec![at("2026-08-11T09:00:00")]);
@@ -499,7 +455,6 @@ mod tests {
         );
     }
 
-    /// Without a cadence nothing changes: one reminder, one ring, once.
     #[test]
     fn a_plain_reminder_still_rings_only_the_once() {
         let state = with(vec![at("2026-08-11T09:00:00")]);

@@ -11,39 +11,29 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-/// `None` means nobody has been asked yet, which is what shows the assistant.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase", tag = "how", content = "at")]
 pub enum Sync {
     Local,
-    /// A folder both machines reach; whoever keeps it in step is not our problem.
     Folder(std::path::PathBuf),
 }
 
 impl Config {
-    /// Named channels this machine has been told to keep quiet.
     pub fn muted(&self) -> &[String] {
         self.quiet.as_deref().unwrap_or_default()
     }
 
-    /// Clamped, not trusted: a hand-edited zero would copy nothing at all and a
-    /// huge one would put a film inside the store.
     pub fn copies_up_to(&self) -> u64 {
         self.attach_up_to
             .unwrap_or(crate::attach::COPIED_UP_TO)
             .clamp(crate::attach::COPIED_LEAST, crate::attach::COPIED_MOST)
     }
 
-    /// The shared folder already holds every machine's history, so a second
-    /// snapshot beside it would be a rival truth nobody asked for.
     pub fn backs_up(&self) -> bool {
         !matches!(self.sync, Some(Sync::Folder(_)))
     }
 }
 
-/// `None` means nobody has been asked yet, which is what asks on first close.
-/// Not a system convention: whoever knows how they use it is the person, not
-/// the operating system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Closing {
@@ -53,39 +43,25 @@ pub enum Closing {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
-    /// Never synced — a shared id would put two machines in one segment file.
     pub device_id: DeviceId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,
-    /// The version that last opened this store. A different one means the
-    /// program was just installed or updated, and the store may have been
-    /// written by another machine since — or by an older Tisty.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub opened_by: Option<String>,
-    /// What closing the window does. Ignored where there is no tray to hide in.
-    /// Kept above `sync`, which becomes a TOML table: the serialiser floats
-    /// tables to the end on its own, but a hand-edited file will not.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on_close: Option<Closing>,
-    /// So the screen can say when the last copy was made. Never synced: a copy
-    /// is a thing one machine did.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub backed_up_at: Option<jiff::Timestamp>,
-    /// Never synced either: where this machine sends its own directory.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync: Option<Sync>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub synced_at: Option<jiff::Timestamp>,
-    /// Which channels may speak. Absent means every one of them, so a new
-    /// channel starts on without anyone having to opt in to it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quiet: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checked_at: Option<jiff::Timestamp>,
-    /// Bytes above which an attachment is pointed at instead of copied in.
-    /// §9 G3 promised this configurable and it had stayed a constant.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attach_up_to: Option<u64>,
 }
@@ -123,8 +99,6 @@ impl Config {
 
     pub fn save(&self, paths: &Paths) -> Result<()> {
         std::fs::create_dir_all(paths.config())?;
-        // Where the device id and `private/` live, so a mode nobody narrowed
-        // leaves both within reach of every other account on the machine.
         if let Err(e) = crate::paths::ours_alone(paths.config()) {
             witness::warn(
                 channel::CONFIG,

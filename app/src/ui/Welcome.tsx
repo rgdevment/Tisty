@@ -11,8 +11,6 @@ interface Props {
 
 export default function Welcome({ onDone }: Props) {
   const [busy, setBusy] = useState(false);
-  // Its own, not the window's banner: that one paints under this veil, so the
-  // refusal would be unreadable and the assistant would just sit there mute.
   const [trouble, setTrouble] = useState<string>();
 
   const settle = (dest?: string) => {

@@ -129,7 +129,6 @@ function formats() {
   return cached;
 }
 
-/** First day of the week varies by locale (Sunday in the US, Monday elsewhere). */
 function opens(): number {
   const info = new Intl.Locale(locale()) as Intl.Locale & { weekInfo?: { firstDay: number } };
   return (info.weekInfo?.firstDay ?? 1) % 7;
@@ -139,9 +138,6 @@ const first = (iso: string): Date => {
   const [y, m] = iso.split("-").map(Number);
   const at = new Date(y, m - 1, 1);
   if (!Number.isNaN(at.getTime())) return at;
-  // Empty or half-typed must not become an Invalid Date. Every formatter below
-  // throws a RangeError on one, and a throw while rendering takes the whole
-  // window to a blank screen — which is how this was found.
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), 1);
 };
@@ -152,7 +148,6 @@ const shifted = (days: number): Date => {
   return on;
 };
 
-/** Built by hand, not `toISOString` — that reports UTC, not the reader's local day. */
 function civil(on: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${on.getFullYear()}-${pad(on.getMonth() + 1)}-${pad(on.getDate())}`;
@@ -163,7 +158,6 @@ function week(): Date[] {
   return Array.from({ length: 7 }, (_, i) => new Date(2024, 0, from.getDate() + i));
 }
 
-/** Six rows always, so the popover does not jump height between months. */
 function days(month: Date): Date[] {
   const lead = (month.getDay() - opens() + 7) % 7;
   const from = new Date(month.getFullYear(), month.getMonth(), 1 - lead);

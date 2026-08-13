@@ -25,7 +25,6 @@ jobs:
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       prerelease: ${{ steps.resolve.outputs.prerelease }}
-      # A job's `if` cannot read `env`.
       macos: ${{ steps.resolve.outputs.macos }}
     env:
       MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
@@ -37,7 +36,6 @@ jobs:
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
     steps:
-      # Half a set passes every `!= ''` guard downstream and dies inside the import.
       - name: Signing secrets come in pairs
         run: |
           fail() { echo "::error::$1"; exit 1; }
@@ -64,7 +62,6 @@ jobs:
             version="${{ inputs.version }}"
           fi
 
-          # The `v*` filter admits tags cargo will reject much later, like `vlatest`.
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
             echo "::error::«$version» is not a version cargo accepts (1.2.3 or 1.2.3-rc1)"
             exit 1
@@ -138,8 +135,6 @@ jobs:
           rm -f "$CERT_PATH"
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
 
-      # `lipo` strips the linker's ad-hoc signature, and Apple Silicon refuses to
-      # run a binary with none at all.
       - name: Sign binary
         run: |
           BIN="target/$TARGET/release/tisty"
@@ -159,7 +154,6 @@ jobs:
             codesign --force --sign - "$BIN"
           fi
 
-      # `notarytool` only accepts archives, hence the zip around a single binary.
       - name: Notarize
         if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
         run: |
@@ -201,7 +195,6 @@ jobs:
         shell: bash
         run: cargo build --release --bin tisty --target "$TARGET"
 
-      # Without `/tr` the signature expires with the certificate.
       - name: Sign executable
         if: env.PFX_BASE64 != ''
         shell: pwsh
@@ -222,8 +215,6 @@ jobs:
 
           Remove-Item signingCert.pfx
 
-          # Not `signtool verify /pa`: it demands a trusted root, which a
-          # self-signed certificate can never reach.
           $sig = Get-AuthenticodeSignature $exe
           Write-Host "status:  $($sig.Status)"
           Write-Host "subject: $($sig.SignerCertificate.Subject)"
@@ -275,8 +266,6 @@ jobs:
         working-directory: app
         run: npm ci
 
-      # The window carries the command line: the installer's PATH entry has to
-      # have something to point at.
       - name: The CLI rides along
         shell: bash
         run: |
@@ -369,9 +358,6 @@ jobs:
           cargo build --release --bin tisty --target aarch64-apple-darwin
           cargo build --release --bin tisty --target x86_64-apple-darwin
           mkdir -p app/src-tauri/binaries
-          # Three files, not one. The bundler asks for the universal sidecar,
-          # but a universal build is two `cargo build`s and each resolves the
-          # sidecar for its own triple, long before the bundler is reached.
           cp target/aarch64-apple-darwin/release/tisty \
             app/src-tauri/binaries/tisty-aarch64-apple-darwin
           cp target/x86_64-apple-darwin/release/tisty \
@@ -381,8 +367,6 @@ jobs:
             target/x86_64-apple-darwin/release/tisty
           lipo -archs app/src-tauri/binaries/tisty-universal-apple-darwin
 
-      # Tauri imports the certificate itself when these are set, and signs the
-      # bundle as it builds it; signing afterwards would break the .app seal.
       - name: Bundle
         working-directory: app
         env:
@@ -435,10 +419,6 @@ jobs:
     timeout-minutes: 60
     env:
       TARGET: x86_64-pc-windows-msvc
-      # Reserved once in Partner Center. Without them there is nothing to build:
-      # a package with an invented identity is a package that has to be thrown
-      # away, and writing one to «leave it ready» is how ficticious values end
-      # up shipped.
       MSIX_IDENTITY: ${{ vars.MSIX_IDENTITY }}
       MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
       MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
@@ -483,7 +463,6 @@ jobs:
           mkdir -p app/src-tauri/binaries
           cp "target/$TARGET/release/tisty.exe" "app/src-tauri/binaries/tisty-$TARGET.exe"
 
-      # No bundle: MSIX wants the executable and its resources, laid out by us.
       - name: Build
         if: steps.gate.outputs.go == 'yes'
         working-directory: app
@@ -494,14 +473,9 @@ jobs:
         shell: bash
         run: |
           v="${{ needs.version.outputs.version }}"
-          # Four numbers and no suffix, which is all MSIX takes.
           quad="${v%%-*}.0"
 
           mkdir -p msix/Assets msix/cli
-          # `tisty-gui.exe`, not `Tisty.exe`: Tauri renames the binary when it
-          # bundles, and this job does not bundle. On a case-insensitive
-          # filesystem `Tisty.exe` resolves to the CLI sitting beside it, so the
-          # wrong copy would have succeeded in silence and shipped no app at all.
           cp target/release/tisty-gui.exe msix/Tisty.exe
           cp "target/$TARGET/release/tisty.exe" msix/cli/tisty.exe
           for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
@@ -520,8 +494,6 @@ jobs:
           fi
           cat msix/AppxManifest.xml
 
-      # Never signed here: the Store signs it, and a signature of ours would be
-      # rejected on upload.
       - name: Pack
         if: steps.gate.outputs.go == 'yes'
         shell: pwsh
@@ -545,9 +517,6 @@ jobs:
 
   publish:
     name: GitHub Release
-    # Waits for the installers without depending on them. The warning below is
-    # only honest if they have had their chance to finish, and a tag must not be
-    # burned by a bundler — nor published behind its back.
     needs:
       [version, build-macos, build-windows, bundle-windows, bundle-macos, bundle-msix]
     if: >-
@@ -571,8 +540,6 @@ jobs:
           path: dist
           merge-multiple: true
 
-      # The installers ride along when they made it. They are newer than the
-      # archives and have never run in anger: a tag must not be burned by one.
       - name: Say which installers made it
         run: |
           want="dist/tisty-installer-*.exe dist/tisty-*.msix"
@@ -604,11 +571,8 @@ jobs:
 
       - uses: actions/attest-build-provenance@v4
         with:
-          # One pattern, so a platform that is switched off leaves no glob
-          # matching nothing. Catches everything but SHA256SUMS.
           subject-path: dist/tisty-*
 
-      # The first `sed` drops the signature block `git tag -s` leaves in the body.
       - name: Notes from the tag
         id: notes
         run: |
@@ -631,9 +595,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # On a branch of its own: the default one takes changes only through a
-      # pull request, and this file has to be written by the release that
-      # produces it.
       - name: Release manifest
         run: |
           v="${{ needs.version.outputs.version }}"
@@ -718,9 +679,6 @@ jobs:
     env:
       GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
     steps:
-      # Two packages, because they install two different things: the cask is the
-      # application, and the formula is the command line for whoever wants only
-      # that. Installing the app already brings the command line inside it.
       - name: Update the tap
         if: env.GIST_TOKEN != ''
         run: |
@@ -758,8 +716,6 @@ jobs:
           fetch "$CLI"
           CLI_SHA=$(sha256sum "/tmp/$CLI" | awk '{print $1}')
 
-          # The disk image rides along when it was made. A bundler that failed
-          # must not also cost the command line its update.
           DMG_SHA=""
           if fetch "$DMG"; then
             DMG_SHA=$(sha256sum "/tmp/$DMG" | awk '{print $1}')
@@ -825,9 +781,6 @@ jobs:
           	end
           FORMULA
 
-          # `tisty` and `tisty-beta` were formulas that installed the command
-          # line, from before there was an application. They are casks now, and
-          # a tap cannot hold a cask and a formula under one name.
           for stale in Formula/tisty.rb Formula/tisty-beta.rb; do
             if [ -f "$stale" ]; then
               git rm -q "$stale"

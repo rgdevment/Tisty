@@ -12,7 +12,6 @@ pub enum Unit {
     Year,
 }
 
-/// The weekday or day of month comes from the date it is anchored to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Cadence {
     pub every: u16,
@@ -26,9 +25,6 @@ pub enum From {
     Done,
 }
 
-/// The bin goes out every Tuesday; the plants are watered three days after you
-/// last watered them. `until` lives here, not beside it, so a last day cannot
-/// outlive the cadence it was ending.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Repeat {
     pub from: From,
@@ -62,7 +58,6 @@ impl Repeat {
         self.until.is_some_and(|last| at > last)
     }
 
-    /// `None` when there is nothing to count from.
     pub fn next(
         self,
         due: Option<&DateSpec>,
@@ -76,22 +71,14 @@ impl Repeat {
         }
 
         match self.from {
-            // A month or a year counts off the calendar even when it was said
-            // as an interval: rent paid on the 4th, the 13th and the 30th would
-            // otherwise walk down the month and skip one entirely.
             From::Done if matches!(step.unit, Unit::Month | Unit::Year) && due.is_some() => {
                 self.off_the_calendar(step, due?, done, today)
             }
             From::Done => {
                 let at = step.after(done)?;
                 let Some(spec) = due else {
-                    // No date to inherit a shape from: a whole day, not the
-                    // minute the box happened to be ticked.
                     return Some(DateSpec::all_day(at.date(), zone));
                 };
-                // «cada día a las 10» is at ten. Counting the interval from the
-                // moment it was ticked would walk the time down the day: taken
-                // at 08:04, the next one would be at 08:04 for ever after.
                 let at = if spec.has_time {
                     at.date().to_datetime(spec.at.time())
                 } else {
@@ -103,9 +90,6 @@ impl Repeat {
         }
     }
 
-    /// Past both today and the day it was finished: a fortnight away must not
-    /// come back owing a fortnight, and finishing today's must not hand back
-    /// another one for today.
     fn off_the_calendar(
         self,
         step: Cadence,
@@ -123,14 +107,11 @@ impl Repeat {
 }
 
 impl Cadence {
-    /// Built rather than added directly: `ToSpan` panics outside its range, and
-    /// a cadence read off a line of text can hold any number at all.
     pub fn after(self, from: DateTime) -> Option<DateTime> {
         let n = i64::from(self.every);
         let span = match self.unit {
             Unit::Day => jiff::Span::new().try_days(n),
             Unit::Week => jiff::Span::new().try_weeks(n),
-            // Clamped to the last day of a shorter month, not refused.
             Unit::Month => jiff::Span::new().try_months(n),
             Unit::Year => jiff::Span::new().try_years(n),
         };
@@ -201,9 +182,6 @@ mod tests {
         assert_eq!(next.at, date(2026, 9, 1).at(9, 0, 0, 0));
     }
 
-    /// Rent is the archetype of a fixed date even when it is said as «every
-    /// month»: paid on the 4th, then the 13th, then the 30th, a relative count
-    /// walks it down the month and eventually skips one.
     #[test]
     fn a_monthly_one_stays_on_its_day_however_late_it_is_paid() {
         let monthly = Repeat::done(Cadence {
@@ -246,13 +224,9 @@ mod tests {
             )
             .unwrap();
 
-        // Three days on from the doing, at the hour that was asked for: the
-        // interval counts in days, the time of day is not up for negotiation.
         assert_eq!(next.at, date(2026, 8, 12).at(9, 0, 0, 0));
     }
 
-    /// Taken at 08:04, tomorrow's would otherwise be at 08:04 as well, and the
-    /// hour would drift a little further every day.
     #[test]
     fn a_time_of_day_stays_where_it_was_asked_for() {
         let daily = Repeat::done(Cadence {
@@ -287,8 +261,6 @@ mod tests {
             )
             .unwrap();
 
-        // A whole day, not the minute the box happened to be ticked: a task
-        // that never had a time of day must not grow one.
         assert_eq!(next.at, date(2026, 8, 10).at(0, 0, 0, 0));
         assert!(!next.has_time);
     }

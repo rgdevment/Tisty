@@ -29,8 +29,6 @@ export default function About({
   onError: (problem: unknown) => void;
 }) {
   const [build, setBuild] = useState<Build | null>(null);
-  // In the card, like its sister screen: a version that cannot be read is not a
-  // reason to leave the page blank with no way to ask again.
   const [trouble, setTrouble] = useState<string | null>(null);
 
   const look = useCallback(() => {
@@ -106,8 +104,6 @@ export default function About({
                 </p>
               )}
               <div className="mt-2.5">
-                {/* Not `served`, which resolves a reference inside the store and
-                    refuses anything that leaves it — a URL always failed. */}
                 <button
                   type="button"
                   onClick={() => openUrl(build.repository).catch(onError)}

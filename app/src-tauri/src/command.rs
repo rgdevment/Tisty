@@ -1,6 +1,3 @@
-//! Deciding the new PATH is kept apart from writing it, so the part that once
-//! destroyed one can be tested without a registry.
-
 use std::path::{Path, PathBuf};
 
 use tisty_core::witness::{self, Fact, channel};
@@ -26,7 +23,6 @@ fn same(a: &str, b: &str) -> bool {
     !a.trim().is_empty() && tidy(a) == tidy(b)
 }
 
-/// `None` when it is already there, so a reinstall cannot grow the variable.
 #[cfg(windows)]
 pub fn with(path: &str, dir: &str) -> Option<String> {
     if path.split(SEPARATOR).any(|one| same(one, dir)) {
@@ -39,7 +35,6 @@ pub fn with(path: &str, dir: &str) -> Option<String> {
     })
 }
 
-/// `None` when it was not there. Everything else keeps its order and spelling.
 #[cfg(windows)]
 pub fn without(path: &str, dir: &str) -> Option<String> {
     if !path.split(SEPARATOR).any(|one| same(one, dir)) {
@@ -52,8 +47,6 @@ pub fn without(path: &str, dir: &str) -> Option<String> {
     Some(kept.join(&SEPARATOR.to_string()))
 }
 
-// Windows only, like everything it separates: elsewhere `tisty` is reached by
-// a symlink and no PATH is ever edited.
 #[cfg(windows)]
 const SEPARATOR: char = ';';
 
@@ -67,22 +60,16 @@ pub fn beside() -> Option<PathBuf> {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Reach {
-    /// False when the build has no `tisty` beside it — a dev run, mostly.
     pub shipped: bool,
     pub within_reach: bool,
     pub at: Option<String>,
     pub through: Option<String>,
-    /// False when the link exists but nothing would find it. macOS builds its
-    /// PATH from `/etc/paths`, which does not include `~/.local/bin`, so «done»
-    /// and «works» are not the same answer there.
     pub on_path: bool,
 }
 
 pub fn reach() -> Reach {
     let folder = beside();
     Reach {
-        // Inside a container the link would be made, reported as ready, and
-        // found by no shell on the machine. Better to not offer it at all.
         shipped: folder.is_some(),
         within_reach: folder.as_deref().is_some_and(already),
         at: folder.map(|at| at.display().to_string()),
@@ -91,7 +78,6 @@ pub fn reach() -> Reach {
     }
 }
 
-/// Whether the directory the command ends up in is one the shell searches.
 #[cfg(windows)]
 fn on_path() -> bool {
     true
@@ -157,8 +143,6 @@ fn write(value: &str) -> std::io::Result<()> {
 fn write_to(at: &str, value: &str) -> std::io::Result<()> {
     use winreg::enums::{HKEY_CURRENT_USER, KEY_WRITE, REG_EXPAND_SZ};
     let key = winreg::RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(at, KEY_WRITE)?;
-    // Expandable, like the one Windows itself writes: plain would freeze any
-    // `%USERPROFILE%` the person has in there.
     let mut held = winreg::RegValue {
         bytes: Vec::new(),
         vtype: REG_EXPAND_SZ,
@@ -172,8 +156,6 @@ fn write_to(at: &str, value: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-/// A link, not the PATH: that lives in whichever shell file the person uses,
-/// and editing those by guesswork is worse than not offering it.
 #[cfg(not(windows))]
 fn shelf() -> Option<PathBuf> {
     std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local").join("bin"))
@@ -207,8 +189,6 @@ fn tie_at(shelf: &Path, link: &Path, folder: &Path, wanted: bool) -> std::io::Re
         if mine {
             return Ok(false);
         }
-        // A link of ours pointing elsewhere is stale — the app moved, or macOS
-        // ran it from a translocated copy — and repointing it is the repair.
         if link.symlink_metadata().is_ok() {
             if !is_our_own_link(link) {
                 return Err(std::io::Error::new(
@@ -235,14 +215,12 @@ fn points_at(link: &Path, folder: &Path) -> bool {
         && std::fs::read_link(link).is_ok_and(|to| to == folder.join("tisty"))
 }
 
-/// A symlink whose target is a `tisty` of ours, wherever this build now lives.
 #[cfg(not(windows))]
 fn is_our_own_link(at: &Path) -> bool {
     at.symlink_metadata().is_ok_and(|it| it.is_symlink())
         && std::fs::read_link(at).is_ok_and(|to| to.file_name().is_some_and(|n| n == "tisty"))
 }
 
-/// True when the change went in.
 #[cfg(windows)]
 pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
     let Some(folder) = beside() else {
@@ -438,7 +416,6 @@ mod tests {
         assert_eq!(without(&path, "C:\\Programs\\Tisty").unwrap(), "C:\\one");
     }
 
-    /// Against a real registry, and never the person's `Environment`.
     #[cfg(windows)]
     #[test]
     fn the_registry_keeps_a_value_longer_than_nsis_could_read() {

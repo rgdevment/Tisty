@@ -111,8 +111,6 @@ body {
   animation: arrive 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Vestibular disorders are set off by any movement, not only by the one that
-   happens to be called an animation. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -193,9 +191,6 @@ body {
   cursor: zoom-in;
 }
 
-/* No mask and no gradient: a mask makes its own compositing layer and WebView2
-   repaints it wrong inside a scroller, and a gradient needs the background
-   colour, which differs between the panel and the full screen. */
 .clamped {
   max-height: 22rem;
   overflow: hidden;
@@ -225,7 +220,6 @@ body {
   background: var(--tisty-accent-soft);
 }
 
-/* The quick window is a floating card: the page behind it has to be see-through. */
 .quick,
 .quick body,
 .quick #root {
@@ -347,10 +341,6 @@ body {
   pointer-events: none;
 }
 
-/* Saving to PDF goes through the system print dialog, so what it prints has to
-   be the document alone. Hiding the rest with `visibility` left it holding its
-   space and the page came out blank: the parts have to leave the flow, and
-   every scroller above the text has to stop clipping it. */
 @page {
   margin: 22mm 20mm;
 }
@@ -390,8 +380,6 @@ body {
     max-height: none !important;
     overflow: visible !important;
   }
-  /* On paper a screen face reads thin and the measure runs too wide, so the
-     document takes a serif and the size a printed page expects. */
   .tisty-doc {
     padding: 0 !important;
     color: #000;

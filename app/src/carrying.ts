@@ -2,7 +2,6 @@ import { syncNow, syncState, type Carried } from "./core";
 
 const AFTER_A_CHANGE = 4_000;
 const EVERY_SO_OFTEN = 15 * 60_000;
-/** A hung share must not silence the carrier for the rest of the session. */
 const GIVE_UP_AFTER = 60_000;
 
 type Way = "push" | "pull" | undefined;
@@ -10,10 +9,6 @@ type Way = "push" | "pull" | undefined;
 const owing = (held: Way | null, next: Way): Way =>
   held === null || held === next ? next : undefined;
 
-/**
- * Never blocks a local write and never interrupts: a folder that is not there
- * is retried in silence, and what happened is read in the maintenance panel.
- */
 export function carrying(brought: () => void) {
   let folder: string | undefined;
   let gone = false;
@@ -24,7 +19,6 @@ export function carrying(brought: () => void) {
 
   const go = (way: Way) => {
     if (gone || folder === undefined) return;
-    // Remembered as what it was: relaunching a pull as a push strands theirs.
     if (running) {
       owed = owing(owed, way);
       return;
@@ -69,12 +63,10 @@ export function carrying(brought: () => void) {
   const beat = setInterval(both, EVERY_SO_OFTEN);
 
   return {
-    /** Debounced: a burst of edits is one push, not one per keystroke. */
     changed() {
       clearTimeout(soon);
       soon = setTimeout(() => go("push"), AFTER_A_CHANGE);
     },
-    /** A folder just turned on, or swapped for another, has to be read now. */
     recheck() {
       settings((was) => was !== folder && both());
     },

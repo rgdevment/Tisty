@@ -33,7 +33,6 @@ pub fn to_date(anchor: Anchor, now: &Zoned) -> Option<Date> {
     Some(date)
 }
 
-/// Always forward: "monday" on a Monday means the next one, never today.
 fn next_weekday(today: Date, target: usize) -> Option<Date> {
     let current = weekday_index(today.weekday());
     let ahead = (target + 7 - current) % 7;
@@ -66,7 +65,6 @@ fn weekend(today: Date) -> Option<Date> {
 fn explicit(today: Date, day: u8, written: Option<u8>, year: Option<i16>) -> Option<Date> {
     let month = written.unwrap_or(today.month() as u8) as i8;
 
-    // A written year is a decision, not a hint: never roll it forward.
     if let Some(year) = year {
         return Date::new(year, month, day as i8).ok();
     }
@@ -75,7 +73,6 @@ fn explicit(today: Date, day: u8, written: Option<u8>, year: Option<i16>) -> Opt
     if candidate >= today {
         return Some(candidate);
     }
-    // A bare day of the month rolls to the next month; a written month, to the next year.
     if written.is_none() {
         return today
             .checked_add(jiff::Span::new().months(1))
@@ -89,7 +86,6 @@ fn explicit(today: Date, day: u8, written: Option<u8>, year: Option<i16>) -> Opt
     Date::new(today.year() + 1, month, day as i8).ok()
 }
 
-/// A time already past today means tomorrow.
 pub fn place_time(date: Option<Date>, time: Time, now: &Zoned) -> Option<Date> {
     match date {
         Some(d) => Some(d),

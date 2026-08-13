@@ -49,8 +49,6 @@ describe("the report a bug gets attached to", () => {
     expect(paper).toContain("1481");
   });
 
-  /// The counts stand whether or not the names do: a fault in the filters can
-  /// be reproduced from «three lists», never from three words.
   it("puts placeholders where the names would be", () => {
     const paper = written(seen, at);
 
@@ -69,8 +67,6 @@ describe("the report a bug gets attached to", () => {
     expect(paper).not.toContain("lista#1");
   });
 
-  /// The store keeps the muted ones. A report that listed those would read as
-  /// the list of what works.
   it("says which notices are on, not which are off", () => {
     const paper = written(seen, at);
 
@@ -84,8 +80,6 @@ describe("the report a bug gets attached to", () => {
     expect(paper).toMatch(/notices\s+none/);
   });
 
-  /// Every line is «label  value», so a reader — and a person pasting it into
-  /// an issue — can find a field without knowing the order.
   it("lines the values up under one another", () => {
     const paper = written(seen, at);
     const block = paper.slice(paper.indexOf("[system]"), paper.indexOf("[store]"));
@@ -107,8 +101,6 @@ describe("the report a bug gets attached to", () => {
     expect(written(seen, at)).not.toContain("sandbox");
   });
 
-  /// A shared folder IS the backup, so «none yet» there would read as a warning
-  /// about something that is not missing.
   it("does not ask for a backup that the shared folder already is", () => {
     const paper = written(seen, at);
 
@@ -132,7 +124,6 @@ describe("the report a bug gets attached to", () => {
     expect(paper).toContain("none yet");
   });
 
-  /// The line that matters most, and the cheapest to lose in a refactor.
   it("says on its face that nothing has been sent", () => {
     expect(written(seen, at)).toContain("none of this leaves your machine");
   });

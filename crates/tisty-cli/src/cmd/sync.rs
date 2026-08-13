@@ -38,8 +38,6 @@ pub fn sync(
     };
 
     app.edit_config(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
-    // What was sent counts too: a push that carried a change reported «nothing
-    // new», because only the local store was being looked at.
     let told = match (moved.sent > 0, moved.brought > 0) {
         (true, true) => "synced-both",
         (true, false) => "synced-sent",

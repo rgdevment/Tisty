@@ -7,7 +7,6 @@ use crate::filter::Filter;
 use crate::i18n::Lang;
 use crate::{ConfigAction, EXIT_NOT_FOUND, render, style};
 
-/// `device_id` is absent on purpose: editing it orphans what this machine wrote.
 const KEYS: &[&str] = &["locale", "editor", "remote"];
 const READABLE: &[&str] = &["device_id", "locale", "editor", "remote"];
 
@@ -134,8 +133,6 @@ pub fn export(
 ) -> anyhow::Result<ExitCode> {
     let mut filter = Filter::parse(tokens, app, today, lang)?;
 
-    // Without a filter this is the way out of the format, so it carries
-    // everything; anything omitted here is data the person cannot get back.
     if tokens.is_empty() {
         filter.inner.scope = tisty_core::view::Scope::Either;
         filter.inner.window = None;

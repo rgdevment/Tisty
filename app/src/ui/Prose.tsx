@@ -14,13 +14,11 @@ interface Props {
   rows?: number;
   onWrite: (text: string) => void;
   onError?: (problem: unknown) => void;
-  /** Given only where there is somewhere roomier to send the reader. */
   onWhole?: () => void;
-  /** True on the field a dropped file should land in. */
+  onDoc?: (id: string) => void;
   catches?: boolean;
 }
 
-/** Source where the cursor is, composed where it is not: no preview button, no mode to learn. */
 export default function Prose({
   value,
   hint,
@@ -31,6 +29,7 @@ export default function Prose({
   onWrite,
   onError,
   onWhole,
+  onDoc,
   catches,
 }: Props) {
   const [text, setText] = useState(value);
@@ -41,12 +40,10 @@ export default function Prose({
 
   useEffect(() => setText(value), [value]);
 
-  // The two faces are different elements, so focus goes after the swap.
   useEffect(() => {
     if (writing) box.current?.focus();
   }, [writing]);
 
-  // The file arrives from outside React, so the field registers its element.
   const [mine, setMine] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (!mine || !catches) return;
@@ -130,6 +127,7 @@ export default function Prose({
         onEnter={() => setWriting(true)}
         onError={onError}
         onWhole={onWhole}
+        onDoc={onDoc}
         className="prose cursor-text rounded-md px-1.5 py-1 text-[13.5px] leading-relaxed outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
       />
     </div>
@@ -144,6 +142,7 @@ export default function Prose({
       <Composed
         label={t("composed")}
         onError={onError}
+        onDoc={onDoc}
         html={composed(text, steps)}
         className="prose px-1.5 py-1 text-[13.5px] leading-relaxed"
       />

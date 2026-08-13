@@ -90,11 +90,9 @@ describe("capturing without the window", () => {
     expect(await screen.findByText(/buy milk/)).toBeTruthy();
   });
 
-  /// A capture window that stays up is a window in the way.
   it("goes away when it loses the focus", async () => {
     render(<Quick />);
     await screen.findByRole("textbox");
-    // Counted from here, or a timer left by an earlier case answers for us.
     win.hidden = 0;
 
     win.focus?.({ payload: false });
@@ -112,8 +110,6 @@ describe("capturing without the window", () => {
     await waitFor(() => expect(win.hidden).toBeGreaterThan(0));
   });
 
-  /// Hidden, never closed: without rereading, its lists would be as old as
-  /// the last time somebody opened it.
   it("reads again every time it comes back", async () => {
     render(<Quick />);
     await screen.findByRole("textbox");
@@ -124,10 +120,6 @@ describe("capturing without the window", () => {
     await waitFor(() => expect(sent("snapshot").length).toBe(2));
   });
 
-  /// Pressing keys that belong to an editor is a poor way to find out.
-  /// No footer: Enter and Esc are what every field on every system already does,
-  /// and 132 pixels are worth more given to the sentence. The keys belong in the
-  /// help menu, with the rest of what can be typed.
   it("spends its height on the sentence, not on instructions", async () => {
     render(<Quick />);
     await screen.findByRole("textbox");

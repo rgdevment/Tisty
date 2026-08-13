@@ -60,8 +60,6 @@ describe("the chime", () => {
     vi.resetModules();
   });
 
-  /// A single beep reads as a system error. Filing plays a major triad that
-  /// climbs, which is what makes a sound lift rather than merely ping.
   it("plays a rising figure when a task is filed", async () => {
     const { play } = await import("../chime");
 
@@ -73,8 +71,6 @@ describe("the chime", () => {
     expect(pitches).toEqual([...pitches].sort((a, b) => a - b));
   });
 
-  /// The notes overlap instead of following one another — that is the whole
-  /// difference between a chord opening out and three separate beeps.
   it("lets each note still be ringing when the next arrives", async () => {
     const { play } = await import("../chime");
 
@@ -86,7 +82,6 @@ describe("the chime", () => {
     expect(stopped[0]).toBeGreaterThan(started[2]);
   });
 
-  /// A reminder has to carry further than the tick of a capture.
   it("plays a longer figure for a reminder", async () => {
     const { play } = await import("../chime");
 
@@ -106,8 +101,6 @@ describe("the chime", () => {
     expect(FakeAudio.made).toBe(1);
   });
 
-  /// Chrome suspends the context until a gesture; without this the first
-  /// reminder of the session is silent.
   it("wakes a suspended context", async () => {
     class Asleep extends FakeAudio {
       state = "suspended";
@@ -138,7 +131,6 @@ describe("the chime", () => {
     expect(heard(undefined)).toBe(false);
   });
 
-  /// Told apart across a room: filing opens out, a reminder ticks.
   it("keeps the two shapes distinct", async () => {
     const { play } = await import("../chime");
 

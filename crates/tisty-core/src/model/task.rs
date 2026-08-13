@@ -13,7 +13,6 @@ pub type LogId = Ulid;
 pub enum Status {
     Open,
     Done,
-    /// Kept apart from `Done` — unreconstructable once merged.
     Dropped,
 }
 
@@ -21,7 +20,6 @@ pub enum Status {
 #[error("priority must be between 1 and 4")]
 pub struct InvalidPriority;
 
-/// Ordered so that `P1 < P4`: the most urgent sorts first.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "u8", into = "u8")]
 pub enum Priority {
@@ -65,19 +63,16 @@ pub struct Step {
     pub order: String,
 }
 
-/// Entries accumulate; they are never overwritten.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogEntry {
     pub id: LogId,
     pub at: Timestamp,
-    /// The author's zone, or the entry renders on the reader's day instead.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tz: Option<String>,
     pub body: String,
 }
 
 impl LogEntry {
-    /// Falls back to the reader's zone so older entries still render.
     pub fn zoned(&self) -> jiff::Zoned {
         let zone = self
             .tz
@@ -117,13 +112,11 @@ pub struct Task {
     pub repeat: Option<crate::model::Repeat>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub after: Option<TaskId>,
-    /// Noise the user put away by hand. Never removed, only folded.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completed_at: Option<Timestamp>,
 
-    /// Stored, not derived — a summary loaded without its body must still know how much body there is.
     #[serde(default, skip_serializing_if = "Volume::is_empty")]
     pub volume: Volume,
 }
@@ -138,8 +131,6 @@ pub struct Volume {
     pub journal: usize,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub described: bool,
-    /// Substance of what was written, capped. A summary is loaded without its
-    /// bodies, so the weight has to be stored rather than recomputed from them.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub prose: usize,
     #[serde(default, skip_serializing_if = "is_zero")]
@@ -180,7 +171,6 @@ impl Task {
         }
     }
 
-    /// Derived from the ULID's embedded timestamp; not stored separately.
     pub fn created_at(&self) -> Timestamp {
         Timestamp::from_millisecond(self.id.timestamp_ms() as i64).unwrap_or(Timestamp::UNIX_EPOCH)
     }
@@ -189,7 +179,6 @@ impl Task {
         self.status == Status::Open
     }
 
-    /// True for both `Done` and `Dropped` — archived tasks stay searchable.
     pub fn is_archived(&self) -> bool {
         !self.is_open()
     }
@@ -198,7 +187,6 @@ impl Task {
         self.status == Status::Dropped
     }
 
-    /// Put away by hand, or decided against: the archive is what you did.
     pub fn folded(&self) -> bool {
         self.hidden || self.is_dropped()
     }
@@ -211,8 +199,6 @@ impl Task {
         self.volume.journal
     }
 
-    /// Pulled from the prose of the description and the journal, in that order;
-    /// a step is one line and holds no references of its own.
     pub fn references(&self) -> Vec<crate::refs::Ref> {
         let bodies = self
             .description
@@ -229,7 +215,6 @@ impl Task {
         all
     }
 
-    /// Recomputed from the vectors after any change to them.
     pub fn retally(&mut self) {
         let written: usize = self
             .description
@@ -260,7 +245,6 @@ impl Task {
         self.log.iter().find(|e| e.id == id)
     }
 
-    /// Skips entries emptied by an undo, which are kept so a later edit finds them.
     pub fn journal(&self) -> impl Iterator<Item = &LogEntry> {
         self.log.iter().filter(|e| !e.body.trim().is_empty())
     }
@@ -272,9 +256,6 @@ impl Task {
 
 const PROSE_CAP: usize = 8;
 
-/// Words, not entries: twelve «ok» say nothing and two paragraphs say a lot.
-/// Blind to scripts that do not space their words, which only ever costs a
-/// place in the ranking and never touches stored data.
 fn substance(body: &str) -> usize {
     match body.split_whitespace().count() {
         0..=2 => 0,
@@ -284,9 +265,6 @@ fn substance(body: &str) -> usize {
 }
 
 impl Volume {
-    /// What a task is worth being found by, months later. Date, deadline, list,
-    /// tags, priority and reminders say WHEN and WHERE, and say nothing at all
-    /// by then, so none of them count.
     pub fn weight(&self) -> usize {
         let plan = match self.steps {
             0..=2 => 0,
@@ -392,8 +370,6 @@ mod tests {
         assert!(rich.weight() > trivial.weight());
     }
 
-    /// The old formula counted date, list and tags, so «reunión con Pepe mañana»
-    /// outranked a task with three journal entries — backwards.
     #[test]
     fn the_agenda_never_outweighs_the_history() {
         let mut agenda = task();
@@ -414,7 +390,6 @@ mod tests {
         assert!(history.weight() > agenda.weight());
     }
 
-    /// Twelve «ok» are not documentation; two paragraphs are.
     #[test]
     fn weight_counts_substance_and_not_entries() {
         let mut noisy = task();
@@ -464,7 +439,6 @@ mod tests {
         assert_eq!(t.volume.refs, 2);
     }
 
-    /// A task that points somewhere carries more than one that points nowhere.
     #[test]
     fn a_reference_adds_to_the_weight() {
         let mut bare = task();

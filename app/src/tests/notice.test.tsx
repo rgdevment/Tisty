@@ -39,8 +39,6 @@ describe("the capture notice", () => {
     expect(gone).toHaveBeenCalled();
   });
 
-  /// Six seconds is plenty to read and nowhere near enough to reach by keyboard,
-  /// so it used to be gone before anyone tabbing to it arrived.
   it("waits while the keyboard is on it", async () => {
     const gone = vi.fn();
     render(<Notice task={task} lists={[]} onOpen={() => {}} onDismiss={gone} />);
@@ -58,7 +56,6 @@ describe("the capture notice", () => {
     expect(open.textContent).toContain("tomar la pastilla");
   });
 
-  /// Clicking the body opens the task; only the ✕ dismisses it.
   it("opens the task when the body is clicked", async () => {
     const opened = vi.fn();
     const gone = vi.fn();
@@ -69,9 +66,6 @@ describe("the capture notice", () => {
     expect(opened).toHaveBeenCalled();
   });
 
-  /// Written from «upcoming» or «repeating», a task with no date lands on today
-  /// and vanishes from the list the instant it is typed. The card said the
-  /// title and nothing about where it went.
   it("says so when what was filed is not in the list behind it", () => {
     render(
       <Notice task={task} lists={[]} elsewhere onOpen={() => {}} onDismiss={() => {}} />,

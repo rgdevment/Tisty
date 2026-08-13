@@ -1,5 +1,3 @@
-//! Domain core: never prints — the GUI is a client too, not just the terminal.
-
 pub mod attach;
 pub mod backup;
 pub mod cache;
@@ -101,8 +99,6 @@ impl Error {
         }
     }
 
-    /// What is safe to write down. `Display` is not: serde quotes the value it
-    /// choked on, and a malformed event carries a task title.
     pub fn told(&self) -> Vec<(&'static str, witness::Fact)> {
         use witness::Fact;
         let mut facts = vec![("code", Fact::Code(self.coded()))];

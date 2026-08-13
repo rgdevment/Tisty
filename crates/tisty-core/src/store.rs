@@ -16,7 +16,6 @@ const LOCK_WAIT_MS: u64 = 500;
 const LOCK_POLL_MS: u64 = 5;
 const SEGMENT_MAX_EVENTS: usize = 5_000;
 
-/// Writes only to this device's directory, which makes merging a concatenation.
 #[derive(Debug)]
 pub struct Store {
     root: PathBuf,
@@ -25,9 +24,7 @@ pub struct Store {
     active_events: usize,
     head: jiff::Timestamp,
     seq: u64,
-    /// Size of the active log when counters were last read; tells our writes from another process's.
     seen: u64,
-    /// Someone else appended between our last look and this write.
     overtaken: bool,
     lock: Option<File>,
 }
@@ -37,8 +34,6 @@ impl Store {
         let root = store_root.as_ref().to_path_buf();
         let dir = root.join(&device.0);
         std::fs::create_dir_all(&dir)?;
-        // Every task's own words sit under here, and a home directory is 0755
-        // on most distributions.
         if let Err(e) = crate::paths::ours_alone(&dir) {
             witness::warn(
                 channel::STORE,
@@ -69,7 +64,6 @@ impl Store {
         })
     }
 
-    /// Taken on write, not on open, so reads work while another process holds it.
     fn acquire(&mut self) -> Result<()> {
         if self.lock.is_some() {
             return Ok(());
@@ -80,9 +74,7 @@ impl Store {
             .truncate(false)
             .open(self.dir.join(LOCK))?;
 
-        // A busy lock means collision, not a long hold — worth waiting out.
         let mut waited = 0;
-        // fs4 signals failure with `Ok(false)`, not `Err`.
         while !file.try_lock_exclusive()? {
             if waited >= LOCK_WAIT_MS {
                 return Err(Error::AlreadyRunning);
@@ -95,7 +87,6 @@ impl Store {
         self.catch_up()
     }
 
-    /// Refreshes counters a long-lived process would otherwise hold stale, avoiding a `(ts, seq)` collision with another writer.
     fn catch_up(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
         let size = active_size(&active);
@@ -114,7 +105,6 @@ impl Store {
         Ok(())
     }
 
-    /// Released as soon as the write ends — held longer, a GUI would lock the CLI out.
     fn locked<T>(&mut self, write: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
         self.acquire()?;
         let out = write(self);
@@ -126,7 +116,6 @@ impl Store {
         &self.device
     }
 
-    /// True once another process appended since this one last looked; in-memory state is then incomplete.
     pub fn overtaken(&self) -> bool {
         self.overtaken
     }
@@ -141,7 +130,6 @@ impl Store {
         })
     }
 
-    /// Monotonic — a clock that steps back would let a device rewrite its own past.
     fn stamp(&mut self) -> (jiff::Timestamp, u64) {
         let now = jiff::Timestamp::now();
         if now > self.head {
@@ -153,7 +141,6 @@ impl Store {
         (self.head, self.seq)
     }
 
-    /// One user action, however many events it takes.
     pub fn append_batch(&mut self, ops: Vec<Op>) -> Result<Vec<Event>> {
         self.append_batch_marked(ops, false)
     }
@@ -170,7 +157,6 @@ impl Store {
     ) -> Result<Vec<Event>> {
         let batch = (ops.len() > 1).then(ulid::Ulid::generate);
 
-        // One lock for the whole batch; releasing between events would let another process interleave writes.
         self.locked(|s| {
             let mut written = Vec::with_capacity(ops.len());
             for op in ops {
@@ -211,7 +197,6 @@ impl Store {
         Ok(())
     }
 
-    /// Sealed segments are immutable; the sibling `.count` file catches a half-downloaded one that would otherwise look valid.
     fn rotate(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
         if active.try_exists()? {
@@ -219,7 +204,6 @@ impl Store {
             let sealed = self.dir.join(format!("{next:06}.tisty"));
             std::fs::rename(&active, &sealed)?;
 
-            // Counted off the file, not the in-memory tally — the file is what another machine will receive.
             let (lines, _, _) = tail_of(&sealed)?;
             write_atomic(
                 &sealed.with_extension("count"),
@@ -231,7 +215,6 @@ impl Store {
         Ok(())
     }
 
-    /// Reads every device, not just this one.
     pub fn read_all(&self) -> Result<Vec<Event>> {
         read_all(&self.root)
     }
@@ -239,9 +222,6 @@ impl Store {
 
 pub const MARKER: &str = ".store-id";
 
-/// Names this store, not this machine. Pointing two different stores at one
-/// remote would merge two histories into an append-only log, which is the only
-/// mistake of the whole transport that cannot be undone.
 pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
     if let Some(held) = peek_identity(&store_root) {
         return Ok(held);
@@ -250,9 +230,6 @@ pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
     let fresh = ulid::Ulid::generate().to_string();
     std::fs::create_dir_all(store_root.as_ref())?;
 
-    // Created, not written over: the window and the terminal minting at the
-    // same moment would each keep their own name, and from then on the store
-    // would refuse its own folder forever.
     match File::create_new(&at) {
         Ok(mut file) => {
             file.write_all(fresh.as_bytes())?;
@@ -264,8 +241,6 @@ pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
             if let Some(held) = peek_identity(&store_root) {
                 return Ok(held);
             }
-            // An empty or unreadable marker claims nothing, so it is replaced;
-            // reading back afterwards settles it if two of us did the same.
             write_atomic(&at, fresh.as_bytes())?;
             Ok(peek_identity(&store_root).unwrap_or(fresh))
         }
@@ -273,8 +248,6 @@ pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
     }
 }
 
-/// Reads without writing. A restore has to ask before it decides, and asking
-/// with `identity` invents a name and then refuses the one in the backup.
 pub fn peek_identity(store_root: impl AsRef<Path>) -> Option<String> {
     let held = std::fs::read_to_string(store_root.as_ref().join(MARKER)).ok()?;
     let held = held.trim().to_string();
@@ -309,7 +282,6 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
             if closed {
                 let found = events.len() - before;
                 let declared = declared_count(&segment);
-                // Empty means a cloud placeholder or unfinished download; short means half-written.
                 if found == 0 || declared.is_some_and(|n| n != found) {
                     return Err(Error::TruncatedSegment {
                         file: segment.display().to_string(),
@@ -322,21 +294,13 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
     }
 
     events.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-    // A push caught mid-rotation leaves the sealed segment and the identical
-    // `active.tisty` side by side for as long as the cloud client takes. The
-    // key is unique per writer, and `apply` appends steps and journal entries
-    // without asking, so reading both would double every one of them.
     events.dedup_by(|a, b| a.sort_key() == b.sort_key());
     Ok(events)
 }
 
-/// A cloud client names its conflict copies `000001 (conflicted copy).tisty`,
-/// which keeps the extension: reading one duplicates every event it holds.
 pub fn is_segment(name: &str) -> bool {
     name == ACTIVE
         || name.strip_suffix(".tisty").is_some_and(|stem| {
-            // Six is what `rotate` writes, but `{:06}` does not truncate: past
-            // 999999 it grows, and a lower bound alone would drop the segment.
             (6..=10).contains(&stem.len()) && stem.bytes().all(|b| b.is_ascii_digit())
         })
 }
@@ -352,7 +316,6 @@ pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
         .collect())
 }
 
-/// True once any machine has left a directory here, marker or no marker.
 pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
     std::fs::read_dir(store_root.as_ref()).is_ok_and(|entries| {
         entries.filter_map(|e| e.ok()).any(|e| {
@@ -362,8 +325,6 @@ pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
     })
 }
 
-/// Everything `read_all` demands of one device, without reading the others:
-/// what a transport needs before it copies a stranger's directory home.
 pub fn check_device(device_dir: &Path) -> Result<usize> {
     let mut segments = segments_in(device_dir)?;
     segments.sort();
@@ -388,7 +349,6 @@ pub fn check_device(device_dir: &Path) -> Result<usize> {
     Ok(events.len())
 }
 
-/// Sealed segments are numbered from one without gaps; a gap silently drops that slice of history.
 fn contiguous(segments: &[PathBuf]) -> Result<()> {
     let mut numbers: Vec<usize> = segments
         .iter()
@@ -412,7 +372,6 @@ fn contiguous(segments: &[PathBuf]) -> Result<()> {
     Ok(())
 }
 
-/// How many events the segment held when sealed; `None` for segments predating this check.
 fn declared_count(segment: &Path) -> Option<usize> {
     let at = segment.with_extension("count");
     match std::fs::read_to_string(&at).ok()?.trim().parse() {
@@ -440,9 +399,6 @@ fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
             continue;
         }
 
-        // Version before shape: a newer Tisty writing an op this build has no
-        // name for would otherwise fail to parse, and one line nobody can read
-        // would take every task in the store down with it.
         let stamp: Stamped =
             serde_json::from_str(&line).map_err(|source| Error::MalformedEvent {
                 file: path.display().to_string(),
@@ -463,7 +419,6 @@ fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
     Ok(())
 }
 
-/// Temp plus rename: a crash mid-write leaves the previous contents.
 pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     static TURN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let turn = TURN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -474,8 +429,6 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
         file.write_all(contents)?;
         file.sync_all()?;
     }
-    // On Windows this fails while an indexer or a cloud client holds the file,
-    // and the leftover would sit in a synced folder that nothing ever lists.
     if let Err(e) = std::fs::rename(&tmp, path) {
         let _ = std::fs::remove_file(&tmp);
         return Err(e.into());
@@ -487,9 +440,6 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
 mod atomic_tests {
     use super::*;
 
-    /// A newer Tisty writes ops this build has no name for. Saying so is a
-    /// message somebody can act on; «malformed event» sends them looking for
-    /// corruption that is not there.
     #[test]
     fn an_event_from_a_newer_tisty_says_so_instead_of_looking_broken() {
         let room = tempfile::tempdir().unwrap();
@@ -600,7 +550,6 @@ fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {
                 seq = event.seq;
             }
             Ok(_) => {}
-            // Never the parser's words: it quotes the value it choked on.
             Err(_) => witness::warn(
                 channel::STORE,
                 "segment line unreadable",
@@ -995,7 +944,6 @@ mod tests {
         assert_ne!(identity(other.path()).unwrap(), first);
     }
 
-    /// A blank marker is nobody's, and asking again has to fill it.
     #[test]
     fn an_empty_marker_is_replaced_rather_than_trusted() {
         let dir = tempfile::tempdir().unwrap();

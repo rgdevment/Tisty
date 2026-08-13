@@ -81,10 +81,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | undefined>();
   const [captured, setCaptured] = useState<Task | undefined>();
-  // Everything that happens is answered by something moving on screen, which
-  // is no answer at all to someone who is not looking at it.
   const [aloud, setAloud] = useState("");
-  // Asked once, shown in two places. Quiet on failure: nobody asked for this.
   const [ready, setReady] = useState<Ready | null>(null);
 
   useEffect(() => {
@@ -93,21 +90,15 @@ export default function App() {
       .catch(() => {});
   }, []);
   const twice = useRef(0);
-  // A reader skips a live region whose text did not change, so completing two
-  // tasks with the same title said it once. The zero-width space alternates.
   const say = (words: string) => {
     twice.current += 1;
     setAloud(words + "\u200b".repeat(twice.current % 2));
   };
   const [reveal, setReveal] = useState<string | undefined>();
-  // Closing the panel used to drop the keyboard on the body: the row it was
-  // opened from takes it back once the list has drawn without the panel.
   const [returning, setReturning] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(
     () => (localStorage.getItem("detail") as Mode) ?? "columns",
   );
-  // Opens on today, and on whatever slice was last chosen: «all» is forty rows
-  // the moment you arrive, which is the wall «today» existed to avoid.
   const [chosen, setChosen] = useState<Chosen>(() => ({
     named: "tasks",
     slice: (localStorage.getItem("tisty.slice") as Slice) ?? "today",
@@ -161,9 +152,6 @@ export default function App() {
       })
       .catch((e) => setError(saidPlainly(e)));
 
-  /// Offering a destination the core will refuse turns a menu into a guessing
-  /// game: a folder cannot hold itself, its own children, or anything that
-  /// would push its deepest branch past the ceiling.
   const destinations = (
     skip: string | null,
     land: (folder?: string) => void,
@@ -222,8 +210,6 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
   }, [chosen]);
 
-  // Before the first read: a fresh install may find a store another machine
-  // has been writing, and a cache an older version built.
   useEffect(() => {
     settleIn()
       .then((done) => done.brought && latest.current())
@@ -237,8 +223,6 @@ export default function App() {
     return () => window.removeEventListener("focus", load);
   }, [load]);
 
-  // Through a ref, and started once: a carrier per view would reset its
-  // timers, and one holding the first `load` would reload the first view.
   const latest = useRef(load);
   latest.current = load;
   useEffect(() => {
@@ -253,8 +237,6 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // One answer, from one place. Two listeners raced: this one replied at once
-  // while the editor, unmounting, had just started a write nobody waited for.
   useEffect(() => {
     const off = listen("parting", () => {
       void settled().finally(() => void parted());
@@ -272,7 +254,6 @@ export default function App() {
 
   useEffect(() => {
     const stop = listen("closing", () => setLeaving(true));
-    // Captured from the quick window, which the main one never hears about.
     const caught = listen("captured", () => latest.current());
     const sound = listen<unknown>("chime", (rung) => {
       if (heard(rung.payload)) play(rung.payload);
@@ -290,8 +271,6 @@ export default function App() {
         setError(null);
         Promise.all(paths.map((one) => attach(one)))
           .then((written) => {
-            // The field can be gone by the time the copy finishes; saying so
-            // beats leaving the file in the store with nothing pointing at it.
             const put = handTo(target, written.join("\n\n"));
             if (!put) setError(t("attachmentLost"));
           })
@@ -300,8 +279,6 @@ export default function App() {
     [],
   );
 
-  // Not `null`: with the frame drawn by us, an empty render leaves a window
-  // with no way to close it and nothing saying why.
   if (!data) {
     return (
       <div className="grid h-full font-sans" style={{ gridTemplateColumns: "1fr" }}>
@@ -325,8 +302,6 @@ export default function App() {
     setMode(next);
   };
 
-  // An action that pushes the task out of the view leaves `fresh` empty, so
-  // the held copy has to come from the answer or the panel shows a stale one.
   const act = (work: Promise<Task>) => {
     setError(null);
     work
@@ -464,8 +439,6 @@ export default function App() {
           lists={data.lists}
           elsewhere={!data.tasks.some((one) => one.id === captured.id)}
           onOpen={() => {
-            // Taking it to a view that shows it: selecting a task the list is
-            // not drawing would open a panel next to a list without it.
             if (!data.tasks.some((one) => one.id === captured.id)) {
               setChosen({ named: "tasks", slice: "all" });
             }
@@ -706,6 +679,11 @@ export default function App() {
           onReopen={() => act(reopen(task.id))}
           onClose={shut}
           onError={(e) => setError(saidPlainly(e))}
+          onDoc={(paper) =>
+            papers.docs.some((one) => one.file === paper)
+              ? setChosen({ named: "docs", doc: paper })
+              : setError(t("goneDoc"))
+          }
         />
       ) : (
         <TaskList
@@ -755,8 +733,6 @@ export default function App() {
                       aria-pressed={on}
                       onClick={() => {
                         setSelected(undefined);
-                        // Remembered, not reset: a filter that forgets what it
-                        // was told is a filter people stop reaching for.
                         window.localStorage.setItem("tisty.slice", slice);
                         setChosen({ named: "tasks", slice });
                       }}
@@ -838,8 +814,6 @@ export default function App() {
           onMark={(step, done) => act(markStep(task.id, step, done))}
           onDropStep={(step) => act(dropStep(task.id, step))}
           onLog={(body, entry) => act(writeLog(task.id, body, entry))}
-          // Same as the full-screen panel: the task leaves the list, so the
-          // column that was showing it has nothing left to show.
           onDiscard={() => {
             act(discard(task.id));
             setSelected(undefined);
@@ -847,6 +821,11 @@ export default function App() {
           onReopen={() => act(reopen(task.id))}
           onClose={shut}
           onError={(e) => setError(saidPlainly(e))}
+          onDoc={(paper) =>
+            papers.docs.some((one) => one.file === paper)
+              ? setChosen({ named: "docs", doc: paper })
+              : setError(t("goneDoc"))
+          }
         />
       )}
     </div>

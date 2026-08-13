@@ -40,8 +40,6 @@ const show = (expanded = false) => {
 };
 
 describe("getting back out of an open task", () => {
-  /// The column had no close button at all: «‹ Back» only exists full-screen,
-  /// so beside the list the panel was a room with no door.
   it("offers a close button in the column", async () => {
     const closed = show();
 
@@ -68,8 +66,6 @@ describe("getting back out of an open task", () => {
     expect(closed).toHaveBeenCalled();
   });
 
-  /// Escape inside a field already means «drop what I typed». Closing the panel
-  /// on the same key would throw away the edit and the panel in one press.
   it("leaves Escape alone inside a field", async () => {
     const closed = show();
 
@@ -79,8 +75,6 @@ describe("getting back out of an open task", () => {
     expect(closed).not.toHaveBeenCalled();
   });
 
-  /// Focus lands on the panel itself when a task opens, and the panel drew no
-  /// ring: the keyboard was somewhere invisible.
   it("shows where the focus went", () => {
     show();
 
@@ -91,8 +85,6 @@ describe("getting back out of an open task", () => {
 });
 
 describe("what only the mouse used to see", () => {
-  /// It is a tab stop and it was drawn at zero opacity: the keyboard could land
-  /// on a button nobody could see, and pressing it deleted a step.
   it("draws the remove button of a step once it has focus", () => {
     show();
 
@@ -100,7 +92,6 @@ describe("what only the mouse used to see", () => {
     expect(remove.className).toContain("focus-visible:opacity-100");
   });
 
-  /// The composed description is a tab stop too, and it drew no ring at all.
   it("rings the description when the keyboard reaches it", () => {
     show();
 

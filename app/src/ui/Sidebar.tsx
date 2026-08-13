@@ -10,8 +10,6 @@ interface Props {
   papers: Papers;
   counts: Record<string, number>;
   chosen: Chosen;
-  /// A newer Tisty exists. A dot and nothing else: it is worth noticing once,
-  /// never worth interrupting for.
   ready: boolean;
   onChoose: (chosen: Chosen) => void;
 
@@ -145,8 +143,6 @@ export default function Sidebar({
               className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-accent"
             />
           )}
-          {/* The mark itself: what is behind it is what Tisty is, its version
-              and its licence. A glyph would have to stand for that; this is it. */}
           <img
             src={mark}
             alt=""

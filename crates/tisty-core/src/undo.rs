@@ -4,7 +4,6 @@ use crate::{
     state::State,
 };
 
-/// Computed against the state before the event, or a field cannot be restored.
 pub fn inverse(event: &Event, before: &State) -> Option<Op> {
     match &event.op {
         Op::TaskAdd { id, .. } => Some(Op::TaskDelete { id: *id }),
@@ -166,14 +165,11 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             },
         }),
 
-        // What hung from it went to the root, and putting the folder back would
-        // not put them back inside it.
         Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),
 
         Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
 
-        // Recovering the payload would mean replaying the log, which purge prevents.
         Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
     }
 }
@@ -412,8 +408,6 @@ mod tests {
         assert!(inverse(&ev(2, Op::TaskDelete { id }), &state).is_none());
     }
 
-    /// Folding what is already folded changed nothing, so undoing it must not
-    /// unfold: the inverse has to look at the state, not at the op.
     #[test]
     fn undoing_a_redundant_fold_leaves_it_folded() {
         let mut before = State::default();
@@ -477,7 +471,6 @@ mod dropping {
         (state, id)
     }
 
-    /// Undoing has to put back what was there, not what is usually there.
     #[test]
     fn discarding_a_completed_task_undoes_back_to_completed() {
         let (before, id) = settled(Status::Done);

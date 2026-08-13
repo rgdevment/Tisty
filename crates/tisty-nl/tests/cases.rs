@@ -1,5 +1,3 @@
-//! Guards the corpus itself: a malformed or duplicated case is a silent hole.
-
 use std::collections::BTreeSet;
 
 use serde::Deserialize;
@@ -12,13 +10,10 @@ struct Case {
     time: Option<String>,
     deadline: Option<String>,
     priority: Option<u8>,
-    /// «due:1w» is a fixed schedule; «done:3d» counts from the doing.
     repeat: Option<String>,
     #[serde(default)]
     tags: Vec<String>,
-    /// Absent means «sure»; a dated case has to say when it is guessing.
     certainty: Option<String>,
-    /// The date the parser saw and did not take, waiting for a click.
     offer: Option<String>,
     offer_title: Option<String>,
     #[allow(dead_code)]
@@ -145,8 +140,6 @@ fn the_parser_matches_every_case() {
         let got_certainty = got
             .spans
             .iter()
-            // «cada martes» carries its own first occurrence, so a date that
-            // came from it is vouched for by the repeat marker.
             .find(|s| {
                 matches!(s.mark, tisty_nl::Mark::Date | tisty_nl::Mark::Deadline)
                     || (matches!(s.mark, tisty_nl::Mark::Repeat) && got.date.is_some())
@@ -319,8 +312,6 @@ fn assumptions_explain_themselves() {
     }
 }
 
-/// English rides on the same rules, so a hole there is invisible until a real
-/// sentence hits it: «3 days ago» was offering a date three days ahead.
 #[test]
 fn both_locales_cover_the_same_ground() {
     type Kind = (&'static str, fn(&Case) -> bool);
@@ -376,8 +367,6 @@ fn deadline_cases_explain_themselves() {
     }
 }
 
-/// The window highlights these ranges and lets one be un-marked, so a range
-/// that starts or ends inside a letter would slice a title mid-character.
 #[test]
 fn every_span_lands_on_a_letter_boundary() {
     for locale in ["es", "en"] {

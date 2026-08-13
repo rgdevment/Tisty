@@ -5,7 +5,6 @@ pub struct Vocabulary {
     pub today: &'static [&'static str],
     pub tomorrow: &'static [&'static str],
     pub day_after: &'static [&'static str],
-    /// The noun «day» where the phrase spells it out: «the DAY after tomorrow».
     pub spelled_day: &'static [&'static str],
     pub weekdays: [&'static [&'static str]; 7],
     pub months: [&'static [&'static str]; 12],
@@ -13,48 +12,34 @@ pub struct Vocabulary {
     pub article: &'static [&'static str],
     pub date_prep: &'static [&'static str],
     pub deadline_prep: &'static [&'static str],
-    /// Of those, the ones that end a series rather than date one occurrence.
     pub ends_prep: &'static [&'static str],
     pub time_prep: &'static [&'static str],
-    /// Only these turn a bare integer into a clock: «a 12» is a volume.
     pub clock_prep: &'static [&'static str],
-    /// «hace 3 días» looks ahead otherwise, and the past has no date here.
     pub past_prep: &'static [&'static str],
-    /// «por la mañana» is a part of the day, not the day after.
     pub day_part: &'static [&'static str],
     pub pm_part: &'static [&'static str],
-    /// Where twelve means midnight, not noon.
     pub night_part: &'static [&'static str],
     pub part_prep: &'static [&'static str],
-    /// What can follow a temporal phrase without being described by it.
     pub linker: &'static [&'static str],
-    /// «mañana de verano» is a noun with a complement, not the day after.
     pub genitive: &'static [&'static str],
-    /// Words a title must not be left ending on once a reading is cut out.
     pub loose_ends: &'static [&'static str],
-    /// Fixed expressions shaped like a date.
     pub idioms: &'static [&'static str],
     pub noon: &'static [&'static str],
     pub in_prep: &'static [&'static str],
-    /// Marks a duration — «por 30 días» — which is not a date.
     pub spans_prep: &'static [&'static str],
     pub days_unit: &'static [&'static str],
     pub weeks_unit: &'static [&'static str],
     pub months_unit: &'static [&'static str],
     pub years_unit: &'static [&'static str],
-    /// What opens a cadence, one or two words: «cada», «todos los», «every».
     pub every: &'static [&'static [&'static str]],
-    /// A whole cadence in one word: «diariamente», «weekly».
     pub cadences: &'static [(&'static [&'static str], Unit)],
     pub one: &'static [&'static str],
     pub this_week: &'static [&'static [&'static str]],
     pub next_week: &'static [&'static [&'static str]],
     pub next_month: &'static [&'static [&'static str]],
-    /// The only ordinal spelled out often enough to be worth a word.
     pub first: &'static [&'static str],
     pub end_of_month: &'static [&'static [&'static str]],
     pub weekend: &'static [&'static [&'static str]],
-    /// Ordered P1 to P4; an empty slot has no spoken name.
     pub priorities: [&'static [&'static str]; 4],
 }
 
@@ -234,7 +219,6 @@ pub const EN: Vocabulary = Vocabulary {
     priorities: [&["high", "urgent"], &["medium"], &["low"], &[]],
 };
 
-/// What a system reports — `es-CL` — must not silently get English.
 pub fn for_locale(code: &str) -> &'static Vocabulary {
     let tag = code.split(['_', '-', '.']).next().unwrap_or_default();
     match tag.to_lowercase().as_str() {

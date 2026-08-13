@@ -11,7 +11,6 @@ use crate::{
     order,
 };
 
-/// Whether descriptions, journals and steps came along.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Fill {
     #[default]
@@ -19,7 +18,6 @@ pub enum Fill {
     Summary,
 }
 
-/// Replaying in canonical order is what yields last-write-wins per field.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct State {
     pub tasks: BTreeMap<TaskId, Task>,
@@ -58,8 +56,6 @@ impl State {
             Op::TaskReopen { id } => self.with_task(*id, |t| {
                 t.status = Status::Open;
                 t.completed_at = None;
-                // Open and hidden is a state no view reaches: it would vanish
-                // from the interface, from `tisty ls` and from `tisty export`.
                 t.hidden = false;
             }),
             Op::TaskHide { id } => self.with_task(*id, |t| t.hidden = true),
@@ -114,8 +110,6 @@ impl State {
                 );
             }
             Op::FolderRename { id, d } => {
-                // Cleaned where the event lands, not only where a person types:
-                // a name arriving from another machine is the one nobody vetted.
                 if let Some(folder) = self.folders.get_mut(id) {
                     folder.name = crate::text::plainly(&d.name);
                 }
@@ -222,13 +216,11 @@ impl State {
         }
     }
 
-    /// False when descriptions, journals and steps were left behind; such a state must never be cached.
     pub fn has_bodies(&self) -> bool {
         self.fill == Fill::Whole
     }
 
     fn with_task(&mut self, id: TaskId, f: impl FnOnce(&mut Task)) {
-        // Retallying without the bodies counts empty vectors and zeroes the volume.
         let whole = self.has_bodies();
         if let Some(task) = self.tasks.get_mut(&id) {
             f(task);
@@ -262,7 +254,6 @@ impl State {
         self.open_tasks().filter(move |t| t.list == Some(list))
     }
 
-    /// Permanent — a late event cannot resurrect what this marks.
     pub fn is_erased(&self, id: Ulid) -> bool {
         self.tombstones.contains(&id)
     }
@@ -271,13 +262,6 @@ impl State {
         self.tombstones.iter()
     }
 
-    /// The same batch, with any entity its own undo buried given a fresh id.
-    ///
-    /// A tombstone is permanent by design — that is what makes a deletion
-    /// converge between machines — so `apply` drops every event about a buried
-    /// id, including the `TaskAdd` that would bring it back. Replaying a redo
-    /// verbatim therefore did nothing at all and reported that it had worked.
-    /// The occurrence a repeat gives birth to is the case that hits people.
     pub fn afresh(&self, ops: Vec<Op>) -> Vec<Op> {
         let born: std::collections::HashMap<Ulid, Ulid> = ops
             .iter()
@@ -324,8 +308,6 @@ impl State {
         self.docs.values().filter(|one| one.archived).collect()
     }
 
-    /// A reference whose target arrives later in the log is not a mistake to
-    /// erase: repairing on read keeps the intent and still shows everything.
     fn adrift(&self, folder: &Folder) -> bool {
         folder
             .parent
@@ -419,13 +401,10 @@ impl State {
         false
     }
 
-    /// For restoring a projection stored elsewhere; omitting tombstones lets deletions resurrect.
     pub fn mark_erased(&mut self, id: Ulid) {
         self.tombstones.insert(id);
     }
 
-    /// Every task, not only the open ones: an archived key still holds its
-    /// place, and reopening one must not land on a key already taken.
     fn ordered_keys(&self, list: Option<ListId>) -> Vec<&str> {
         self.tasks
             .values()
@@ -434,17 +413,11 @@ impl State {
             .collect()
     }
 
-    /// Last place in a list, for a task that arrived without neighbours —
-    /// dropped on the sidebar, where there was nothing to land between.
-    /// Completing a repeating task emits the next one, in the same batch: undo
-    /// has to take back both or the series grows a copy every time.
     pub fn completing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
         let done = vec![Op::TaskDone { id }];
         let Some(task) = self.tasks.get(&id) else {
             return done;
         };
-        // Completing was idempotent until it started emitting a task: a second
-        // click, or the terminal and the window at once, would make two.
         if task.status != crate::model::Status::Open {
             return done;
         }
@@ -461,15 +434,10 @@ impl State {
         ) else {
             return done;
         };
-        // Past the last day the series was given: this one is completed and no
-        // successor follows it.
         if repeat.ended(next.at.date()) {
             return done;
         }
 
-        // Everything that was pinned to the old date moves with it. A deadline
-        // left where it was would be overdue before the task exists, and a
-        // reminder left behind is the only reason to put one on a habit.
         let along = task
             .date
             .as_ref()
@@ -478,10 +446,6 @@ impl State {
         let mut fresh =
             crate::event::TaskAdd::new(task.title.clone(), self.order_last_in(task.list));
         fresh.deadline = shifted(task.deadline.as_ref(), along.as_ref());
-        // With no old date there is nothing to measure the move against, so the
-        // cadence itself moves them: a reminder on «cada 3 días» that was left
-        // where it was would be in the past from the second occurrence on, and
-        // stay there for ever.
         fresh.reminders = task
             .reminders
             .iter()
@@ -501,9 +465,6 @@ impl State {
         let born = ulid::Ulid::generate();
         ops.push(Op::TaskAdd { id: born, d: fresh });
 
-        // The recipe is the task. A weekly «water the plants» that came back
-        // without its rooms, or a monthly report without the instructions that
-        // took an afternoon to write, is a different task wearing the name.
         if let Some(body) = &task.description {
             ops.push(Op::TaskDescribe {
                 id: born,
@@ -512,7 +473,6 @@ impl State {
                 },
             });
         }
-        // Unticked: what was done belongs to the occurrence that was closed.
         for step in &task.steps {
             ops.push(Op::StepAdd {
                 id: born,
@@ -526,9 +486,6 @@ impl State {
         ops
     }
 
-    /// Reopening a completed occurrence takes its successor back with it, or
-    /// the series would run twice from then on — and undoing a tick is the
-    /// commonest way to say «I pressed that by mistake».
     pub fn reopening(&self, id: TaskId) -> Vec<Op> {
         let mut ops = vec![Op::TaskReopen { id }];
         if let Some(born) = self
@@ -546,22 +503,18 @@ impl State {
         order::last_of(self.ordered_keys(list))
     }
 
-    /// The client says which two tasks it was dropped between; the key is the
-    /// core's to compute, as it is the only place that knows what an order is.
     pub fn order_between(&self, after: Option<TaskId>, before: Option<TaskId>) -> String {
         let key = |id: Option<TaskId>| {
             id.and_then(|id| self.tasks.get(&id))
                 .map(|task| task.order.clone())
         };
         let (a, b) = (key(after), key(before));
-        // A stale neighbour would put the task somewhere nobody pointed at.
         match (a, b) {
             (Some(a), Some(b)) if a >= b => order::after(&a),
             (a, b) => order::between(a.as_deref(), b.as_deref()),
         }
     }
 
-    /// Steps carry an order of their own, and nothing sorts before it.
     pub fn step_order_between(
         &self,
         task: TaskId,
@@ -578,9 +531,6 @@ impl State {
         }
     }
 
-    /// Backlinks: the index is derived on read, so nothing can fall out of step
-    /// with the prose it came from. Matches the label as well as the address,
-    /// because a ticket is a link and what people ask for is its code.
     pub fn linking_to(&self, target: &str) -> Vec<&Task> {
         let wanted = target.trim().to_lowercase();
         self.tasks
@@ -598,8 +548,6 @@ impl State {
             .collect()
     }
 
-    /// Every internal reference in use, for offering back what already exists
-    /// instead of a second spelling of the same thing.
     pub fn references(&self) -> Vec<String> {
         let mut seen: BTreeSet<String> = BTreeSet::new();
         for task in self.tasks.values().filter(|t| t.volume.refs > 0) {
@@ -669,16 +617,10 @@ impl State {
         }
     }
 
-    /// Sorted open-first, then archived newest-first.
     pub fn search(&self, query: &str, scope: crate::view::Scope) -> Vec<&Task> {
         self.searching(query, scope, usize::MAX).0
     }
 
-    /// The best `most` of them, and how many there were in all.
-    ///
-    /// A client that draws every row and ships every body over an IPC boundary
-    /// cannot afford «everything»: one letter against a store with years of
-    /// archive matches most of it, and the cost lands on each keystroke.
     pub fn searching(
         &self,
         query: &str,
@@ -703,10 +645,6 @@ impl State {
             .filter_map(|t| crate::view::matches_query(t, &query).map(|hit| (hit, t)))
             .collect();
 
-        // What is still open first, or what remains to do ends up buried under
-        // what is already done. Then how it matched, then how much it carries.
-        // Folded last, not gone: hiding is not deleting, so what was put away
-        // stays findable — just never above what was not.
         hits.sort_by_key(|(hit, t)| {
             (
                 t.folded(),
@@ -727,7 +665,6 @@ impl State {
         lists
     }
 
-    /// Exact name wins over substring matches; accepts a leading `@` like the rest of the interface.
     pub fn find_list(&self, needle: &str) -> Vec<&List> {
         let needle = loose(needle.trim_start_matches('@'));
         let exact: Vec<&List> = self
@@ -744,13 +681,7 @@ impl State {
             .collect()
     }
 
-    /// Named exactly, ignoring case and accents. `find_list` falls back to
-    /// substring so a half-typed `@mark` still lands, which is the opposite of
-    /// what naming a new list wants: «Tra» would file into «Trabajo» instead of
-    /// making the list that was asked for.
     pub fn list_called(&self, name: &str) -> Vec<&List> {
-        // Trimmed first: `loose` turns a space into a hyphen, so an untrimmed
-        // name would match nothing and quietly make a second list.
         let wanted = loose(name.trim().trim_start_matches('@').trim());
         self.lists
             .values()
@@ -770,36 +701,24 @@ impl State {
         self.tasks_in(list).next().is_none()
     }
 
-    /// Derived from tasks in use; there is no separate tag catalogue.
     pub fn tags(&self) -> BTreeSet<&Tag> {
         self.tasks.values().flat_map(|t| &t.tags).collect()
     }
 }
 
-/// Listings print «Mi Lista» as `@mi-lista`, which has to be typeable back.
 fn loose(name: &str) -> String {
     name.to_lowercase().replace([' ', '_'], "-")
 }
 
-/// Nothing was written into it since it was born.
-///
-/// `TaskDelete` cannot be undone, so taking the successor back is only safe
-/// while it holds nothing of the person's: an entry in its journal or a ticked
-/// step means work that reopening must not destroy, and running the series
-/// twice is the lesser of the two.
 fn untouched(born: &Task) -> bool {
     born.log.is_empty() && !born.steps.iter().any(|step| step.done)
 }
 
-/// Carried the same distance the date moved, so what was two days before it
-/// stays two days before it.
 fn shifted(
     spec: Option<&crate::DateSpec>,
     along: Option<&Result<jiff::Span, jiff::Error>>,
 ) -> Option<crate::DateSpec> {
     let spec = spec?;
-    // Nothing to move it by — a repeat with no date of its own — is not a
-    // reason to drop the deadline or the reminder on the floor.
     let Some(Ok(span)) = along else {
         return Some(spec.clone());
     };
@@ -865,7 +784,6 @@ fn add_log_entry(task: &mut Task, d: &LogAdd, at: jiff::Timestamp) {
     });
 }
 
-/// Editing an entry changes what it says, never when it happened.
 fn edit_log_entry(task: &mut Task, d: &LogEdit) {
     if let Some(entry) = task.log.iter_mut().find(|e| e.id == d.entry) {
         entry.body = d.body.clone();
@@ -933,8 +851,6 @@ mod tests {
         }))
     }
 
-    /// A deadline left where it was would be overdue before the task exists,
-    /// and a reminder left behind is the only reason to put one on a habit.
     #[test]
     fn what_was_pinned_to_the_old_date_moves_with_it() {
         let mut state = State::default();
@@ -1039,8 +955,6 @@ mod tests {
         "2026-08-09".parse().unwrap()
     }
 
-    /// A weekly «water the plants» that came back without its rooms is a
-    /// different task wearing the same name.
     #[test]
     fn the_next_occurrence_carries_the_recipe() {
         let mut state = State::default();
@@ -1106,7 +1020,6 @@ mod tests {
         );
     }
 
-    /// What was ticked belongs to the occurrence that was closed.
     #[test]
     fn the_steps_come_back_unticked() {
         let mut state = State::default();
@@ -1157,7 +1070,6 @@ mod tests {
         assert_ne!(born.steps[0].id, step, "both share one step id");
     }
 
-    /// A task with no repeat must emit nothing but the completion.
     #[test]
     fn nothing_is_copied_when_there_is_no_repeat() {
         let mut state = State::default();
@@ -1182,8 +1094,6 @@ mod tests {
         assert_eq!(state.completing(id, now).len(), 1);
     }
 
-    /// It was copied verbatim, so from the second occurrence on it sat in the
-    /// past and never fired again.
     #[test]
     fn a_reminder_on_a_dateless_repeat_moves_with_the_cadence() {
         let mut state = State::default();
@@ -1219,8 +1129,6 @@ mod tests {
         );
     }
 
-    /// The commonest way to say «I pressed that by mistake» must not cost
-    /// anything, so a successor nobody has touched goes back with it.
     #[test]
     fn reopening_takes_back_a_successor_nobody_wrote_in() {
         let (mut state, id) = repeating();
@@ -1233,8 +1141,6 @@ mod tests {
         assert!(!state.tasks.contains_key(&born));
     }
 
-    /// `TaskDelete` cannot be undone: an entry written into the successor is
-    /// work, and running the series twice is the lesser of the two.
     #[test]
     fn reopening_leaves_a_successor_that_was_written_in() {
         let (mut state, id) = repeating();
@@ -1319,8 +1225,6 @@ mod tests {
             .id
     }
 
-    /// A tombstone is permanent, so replaying the batch verbatim applied
-    /// nothing at all — and said it had worked.
     #[test]
     fn a_redo_rebuilds_what_its_undo_buried() {
         let mut state = State::default();
@@ -1354,7 +1258,6 @@ mod tests {
         );
     }
 
-    /// Renaming what was never buried would break every other redo.
     #[test]
     fn nothing_is_renamed_when_nothing_was_buried() {
         let state = State::default();
@@ -1364,8 +1267,6 @@ mod tests {
         assert_eq!(state.afresh(ops.clone()), ops);
     }
 
-    /// A client that draws every row and ships every body over IPC cannot
-    /// afford «everything» on each keystroke.
     #[test]
     fn a_search_hands_back_the_top_and_says_how_many_there_were() {
         let mut state = State::default();
@@ -1402,7 +1303,6 @@ mod tests {
         assert_eq!(total, 1);
     }
 
-    /// The uncapped call is what the terminal uses, and it must not change.
     #[test]
     fn the_plain_search_still_returns_everything() {
         let mut state = State::default();
@@ -2062,7 +1962,6 @@ mod tests {
         assert_eq!(state.tasks[&b].status, Status::Dropped);
     }
 
-    /// §3.1: «la tarea con historia sale antes que las quince triviales».
     #[test]
     fn search_puts_the_documented_before_the_trivial() {
         let mut state = State::default();
@@ -2086,7 +1985,6 @@ mod tests {
         assert_eq!(found[0].id, heavy);
     }
 
-    /// Naming it beats mentioning it, whatever it weighs.
     #[test]
     fn a_title_match_outranks_a_heavier_body_match() {
         let mut state = State::default();
@@ -2122,8 +2020,6 @@ mod tests {
         }
     }
 
-    /// Searching a ticket finds the task that points at it, above the one that
-    /// merely says the same letters.
     #[test]
     fn a_reference_named_whole_outranks_the_same_letters_in_prose() {
         let mut state = State::default();
@@ -2143,8 +2039,6 @@ mod tests {
         assert_eq!(found[0].id, points);
     }
 
-    /// A ticket is written as a link, so its code is the label and the address
-    /// is a URL nobody types into a search box.
     #[test]
     fn a_ticket_written_as_a_link_is_found_by_its_code() {
         let mut state = State::default();
@@ -2234,7 +2128,6 @@ mod tests {
         assert!(!state.order_between(None, None).is_empty());
     }
 
-    /// A neighbour deleted on another machine while the drag was in flight.
     #[test]
     fn a_neighbour_that_is_gone_does_not_drop_the_task_somewhere_else() {
         let mut state = State::default();
@@ -2247,7 +2140,6 @@ mod tests {
         assert!(state.order_between(Some(vanished), Some(here)).as_str() < "a5");
     }
 
-    /// Neighbours arriving the wrong way round would panic the midpoint.
     #[test]
     fn neighbours_out_of_order_land_after_the_first_instead_of_panicking() {
         let mut state = State::default();
@@ -2260,8 +2152,6 @@ mod tests {
         assert!(state.order_between(Some(one), Some(two)).as_str() > "a9");
     }
 
-    /// Filing from the sidebar arrives without neighbours, and the midpoint of
-    /// nothing is always the same key: every task would pile on the first one.
     #[test]
     fn a_task_filed_without_neighbours_goes_last_in_its_list() {
         let mut state = State::default();
@@ -2355,8 +2245,6 @@ mod tests {
         );
     }
 
-    /// Folded by the view, never by touching the data: mutating `hidden` on a
-    /// drop cost the export, the whole CLI and a correct undo.
     #[test]
     fn a_discarded_task_folds_without_being_marked_hidden() {
         let mut state = State::default();
@@ -2404,8 +2292,6 @@ mod tests {
         assert_eq!(found[0].id, kept);
     }
 
-    /// Open and hidden is a state no view reaches: neither the open ones, which
-    /// ask for `hidden == false`, nor the archive, which asks for archived.
     #[test]
     fn reopening_a_hidden_task_brings_it_back_into_sight() {
         let mut state = State::default();
@@ -2472,9 +2358,6 @@ mod tests {
         state
     }
 
-    /// `find_list` matches a substring on purpose, so a half-typed `@mark`
-    /// still lands. Naming a NEW list wants the opposite: «Tra» must make
-    /// «Tra», not quietly file the task under «Trabajo».
     #[test]
     fn naming_a_list_does_not_settle_for_a_longer_one() {
         let state = holding(&["Trabajo"]);
@@ -2487,8 +2370,6 @@ mod tests {
         );
     }
 
-    /// Reusing the same list under another casing is right: two lists called
-    /// «Trabajo» and «trabajo» would be the same list to a reader.
     #[test]
     fn naming_a_list_reuses_the_one_already_there_whatever_the_case() {
         let state = holding(&["Trabajo"]);
@@ -2962,8 +2843,6 @@ mod tests {
         assert_eq!(state.unfiled().len(), 1);
     }
 
-    /// The filter lived in the command, so a name arriving through the log —
-    /// the one source nobody vetted — walked in untouched.
     #[test]
     fn a_name_that_arrives_from_another_machine_is_cleaned_too() {
         let mut state = State::default();

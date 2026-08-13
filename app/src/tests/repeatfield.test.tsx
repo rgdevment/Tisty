@@ -27,8 +27,6 @@ const show = (one: Task, onPatch = () => {}) =>
 const weekly: Repeat = { from: "due", each: { every: 1, unit: "week" } };
 
 describe("the repeat field in the detail", () => {
-  /// Until now a cadence could be written on capture and never seen again:
-  /// the detail had no field for it and `patch` sent `repeat: None`.
   it("shows the cadence a task already carries", () => {
     show(task(weekly));
 
@@ -47,8 +45,6 @@ describe("the repeat field in the detail", () => {
     });
   });
 
-  /// With no date there is no calendar to anchor to, so the only thing left to
-  /// count from is the day it gets completed.
   it("counts from completion when the task has no date", async () => {
     const patched = vi.fn();
     show(task(undefined, false), patched);
@@ -61,7 +57,6 @@ describe("the repeat field in the detail", () => {
     });
   });
 
-  /// Changing the cadence must not silently flip a habit into a calendar date.
   it("keeps how it counts when only the cadence changes", async () => {
     const patched = vi.fn();
     show(task({ from: "done", each: { every: 3, unit: "day" } }), patched);

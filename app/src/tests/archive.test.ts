@@ -28,7 +28,6 @@ describe("the archive by month", () => {
     if (rows[0].kind === "many") expect(rows[0].tasks).toHaveLength(3);
   });
 
-  /// The same habit in two months is two lines, not one of six.
   it("never folds across months", () => {
     const rows = grouped([
       done("1", "sacar la basura", "2026-09-01T09:00:00Z"),
@@ -49,8 +48,6 @@ describe("the archive by month", () => {
     expect(rows.map((row) => row.kind)).toEqual(["one", "many"]);
   });
 
-  /// The archive is ordered by when things closed, so repetitions of one month
-  /// arrive with other work in between.
   it("gathers repetitions that are not next to each other", () => {
     const rows = grouped([
       done("1", "sacar la basura", "2026-08-25T09:00:00Z"),
@@ -63,14 +60,11 @@ describe("the archive by month", () => {
     expect(rows[1].kind).toBe("one");
   });
 
-  /// Folding by title alone would put a bin from August under one from July.
   it("keeps the first closing of the group as its month", () => {
     const rows = grouped([done("1", "sacar la basura", "2026-08-25T09:00:00Z")]);
     expect(rows[0].band).toBe(grouped([done("2", "x", "2026-08-01T09:00:00Z")])[0].band);
   });
 
-  /// «March» + «2025 informe» and «March 2025» + «informe» are the same string
-  /// once joined by a space, and they are not the same group.
   it("does not confuse a title that starts with a year", () => {
     const rows = grouped([
       done("1", "2025 informe", "2026-03-10T09:00:00Z"),

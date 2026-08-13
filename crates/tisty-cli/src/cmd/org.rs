@@ -105,7 +105,6 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
     }
 }
 
-/// Two lists a selector cannot tell apart leave both unreachable by name.
 fn taken(app: &App, name: &str, except: Option<ListId>, lang: Lang) -> anyhow::Result<()> {
     if app
         .state
@@ -135,7 +134,6 @@ struct Counted {
     tasks: usize,
 }
 
-/// Tags have no catalogue: renaming one rewrites every task that carries it.
 pub fn tag(app: &mut App, action: Option<TagAction>, lang: Lang) -> anyhow::Result<ExitCode> {
     match action.unwrap_or(TagAction::Ls { json: false }) {
         TagAction::Ls { json } => {
@@ -239,7 +237,6 @@ fn missing_tag(tag: &Tag, lang: Lang) -> ExitCode {
     ExitCode::from(EXIT_NOT_FOUND)
 }
 
-/// Works off the log, not a stack: only this device's last write comes back.
 pub fn undo(app: &mut App, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     step_history(app, false, today, lang)
 }
@@ -248,7 +245,6 @@ pub fn redo(app: &mut App, today: Date, lang: Lang) -> anyhow::Result<ExitCode> 
     step_history(app, true, today, lang)
 }
 
-/// Replays the original change rather than inverting the compensation — a creation's inverse has none of its own.
 fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let (entity, ops) = if redoing {
         let change = app.last_undone_change()?;
@@ -271,7 +267,6 @@ fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow
             return Ok(ExitCode::SUCCESS);
         }
 
-        // Later events first, or an inverse restores what a newer one replaced.
         let mut ops = Vec::with_capacity(change.len());
         for (event, before) in change.iter().rev() {
             match inverse(event, before) {

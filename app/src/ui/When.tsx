@@ -6,9 +6,6 @@ interface Props {
   value?: string;
   clock?: string;
   never?: boolean;
-  /// Names the button that applies it. Without one, touching a day applies
-  /// straight away — fine for a due date, wrong for a reminder, where the hour
-  /// is the point and gets typed after the day.
   confirm?: string;
   onPick: (at: string) => void;
   onClear: () => void;
@@ -19,9 +16,6 @@ export default function When({ value, clock, never, confirm, onPick, onClear, on
   const [at, setAt] = useState(clock ?? "");
   const [day, setDay] = useState(value ?? "");
   const said = (iso: string) => onPick(at ? `${iso}T${at}:00` : iso);
-  /// An hour is typed digit by digit, so nothing in it says «that is the one I
-  /// meant» — without a button, changing 10:00 to 09:00 could not be applied at
-  /// all. A bare day still lands on the touch, which is what makes it quick.
   const asks = confirm ?? (at ? t("setWhen") : undefined);
 
   return (

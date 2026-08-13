@@ -6,16 +6,12 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
-# Not `workspace = true`: this is the only crate that talks to the platform,
-# and turning on macOS spell checking has no safe path. The core keeps `forbid`.
 [lints.rust]
 unsafe_code = "deny"
 
 [lints.clippy]
 all = { level = "deny", priority = -1 }
 
-# The `_lib` suffix keeps the library name from colliding with the binary on
-# Windows: https://github.com/rust-lang/cargo/issues/8519
 [lib]
 name = "tisty_gui_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]

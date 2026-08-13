@@ -125,6 +125,10 @@ const en = {
   repeating: "Repeating",
   insertAttach: "Attach",
   sayAttach: "a file, copied in",
+  insertDoc: "A document",
+  sayDoc: "of this Tisty",
+  pickADocToLink: "Which document",
+  goneDoc: "That document is no longer here",
   settingsTitle: "Notices and attachments",
   settingsKept: "Saved",
   noticesWhy: "How Tisty tells you a reminder came due.",
@@ -429,7 +433,6 @@ const en = {
   welcomeRedundancy: "Syncing gives you redundancy, not a way back in time: delete a task and the deletion travels too.",
 };
 
-// Missing a key in another catalogue is a compile error, not a runtime «⟨?⟩».
 type Catalog = typeof en;
 
 const es: Catalog = {
@@ -559,6 +562,10 @@ const es: Catalog = {
   repeating: "Se repiten",
   insertAttach: "Adjuntar",
   sayAttach: "un archivo, copiado",
+  insertDoc: "Un documento",
+  sayDoc: "de este Tisty",
+  pickADocToLink: "Qué documento",
+  goneDoc: "Ese documento ya no está aquí",
   settingsTitle: "Avisos y adjuntos",
   settingsKept: "Guardado",
   noticesWhy: "Cómo te avisa Tisty de que vence un recordatorio.",

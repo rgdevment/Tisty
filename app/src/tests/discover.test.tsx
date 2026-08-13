@@ -36,8 +36,6 @@ const show = () =>
 describe("what the capture field teaches", () => {
   afterEach(() => vi.useRealTimers());
 
-  /// Writing «every tuesday» is the thing this product does that the clones do
-  /// not, and nothing in the window said it was possible.
   it("names the cadence among the things you can write", () => {
     show();
 
@@ -52,15 +50,12 @@ describe("what the capture field teaches", () => {
     expect(screen.getByText("priority")).toBeTruthy();
   });
 
-  /// It used to be replaced by the chips on the first thing that parsed, which
-  /// is exactly when someone is still learning what else they could write.
   it("does not vanish the moment something is understood", async () => {
     vi.setSystemTime(new Date("2026-08-11T09:00:00"));
     read.mockResolvedValue(seen("meeting", true));
     show();
 
     await userEvent.type(screen.getByRole("textbox"), "meeting tomorrow");
-    // The chip is what used to push the hint out; wait for it, not for the hint.
     await screen.findAllByRole("button", { name: /tomorrow/i }, { timeout: 2000 });
 
     expect(screen.getByText("every tuesday")).toBeTruthy();
@@ -68,9 +63,6 @@ describe("what the capture field teaches", () => {
 });
 
 describe("the / menu on a fresh install", () => {
-  /// Zero lists and zero tags used to mean a menu with nothing in it, which
-  /// rendered as nothing at all — and there is no other place that says typing
-  /// the name is what creates one.
   it("says how a list is made when there are none", async () => {
     const { default: SlashMenu } = await import("../ui/SlashMenu");
     render(
@@ -105,7 +97,6 @@ describe("the / menu on a fresh install", () => {
     expect(screen.getByRole("status").textContent).toMatch(/No tags yet/i);
   });
 
-  /// The top level with nothing matching is still nothing to show.
   it("stays out of the way when the query matches no field", async () => {
     const { default: SlashMenu } = await import("../ui/SlashMenu");
     const { container } = render(

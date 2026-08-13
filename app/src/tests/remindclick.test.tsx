@@ -3,8 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
 import Fields from "../ui/Fields";
 
-/// Tomorrow at nine, which is what «tomar la paroxetina cada día a las 9am»
-/// captures: a repeating task with a time and no reminder yet.
 function habit(): Task {
   const at = new Date(Date.now() + 86_400_000);
   const pad = (n: number) => String(n).padStart(2, "0");

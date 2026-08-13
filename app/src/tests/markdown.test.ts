@@ -29,8 +29,6 @@ describe("what gets composed", () => {
     expect(outside).toContain('href="https://jira.example/browse/OPS-3465"');
   });
 
-  /// Over the threshold only the path is kept, and it is a file of yours —
-  /// not something the store holds, so it never goes through `resolve`.
   it("leaves an absolute path alone, whatever the platform writes", () => {
     for (const at of ["C:/Users/Mario/clip.mkv", "/home/mario/clip.mkv", "//server/share/clip.mkv"]) {
       expect(composed(`[clip](<${at}>)`)).not.toContain("data-inside");
@@ -51,8 +49,6 @@ describe("what does not get through", () => {
   });
 
   it("refuses a script scheme behind a well-behaved label", () => {
-    // Left as the literal text it was written as, which is why «javascript:»
-    // still shows: what must not exist is an anchor carrying it.
     const html = composed("[press me](javascript:alert(1))");
     expect(html).not.toContain("<a");
     expect(html).toContain("[press me]");

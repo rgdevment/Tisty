@@ -8,7 +8,6 @@ use tisty_core::{
 use crate::app::App;
 use crate::i18n::{self, Lang};
 
-/// The written form of a view: what the core selects, plus how it reads back.
 #[derive(Debug, Default)]
 pub struct Filter {
     pub inner: view::Filter,
@@ -16,7 +15,6 @@ pub struct Filter {
 }
 
 impl Filter {
-    /// Bare `ls` means today; naming any filter widens the scope to everything open.
     pub fn parse(tokens: &[String], app: &App, today: Date, lang: Lang) -> anyhow::Result<Self> {
         let mut f = Self {
             heading: heading(tokens, lang),
@@ -94,7 +92,6 @@ impl Filter {
         }
     }
 
-    /// Refuses a second one: «tomorrow overdue» has no answer to narrow.
     fn take_window(&mut self, window: Window, lang: Lang) -> anyhow::Result<()> {
         if self.inner.window.is_some() {
             anyhow::bail!("{}", lang.get("one-window-only"));
@@ -115,7 +112,6 @@ fn named_priority(raw: &str, lang: Lang) -> anyhow::Result<Priority> {
     }
 }
 
-/// One named filter reads back translated; anything composed, as it was typed.
 fn heading(tokens: &[String], lang: Lang) -> String {
     match tokens {
         [] => lang.get("today").to_string(),

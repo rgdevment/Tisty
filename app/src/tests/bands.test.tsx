@@ -31,7 +31,6 @@ describe("the day headings", () => {
   beforeEach(() => vi.setSystemTime(NOW));
   afterEach(() => vi.useRealTimers());
 
-  /// «Today» used to be overdue + today + everything undated as one flat wall.
   it("separates what is late from what is due today", () => {
     show([
       task("1", "pagar la luz", "2026-08-04"),
@@ -42,7 +41,6 @@ describe("the day headings", () => {
     expect(screen.getByText("Today")).toBeTruthy();
   });
 
-  /// A heading per late day would be the same wall with more lines in it.
   it("puts every late day under one heading", () => {
     show([
       task("1", "pagar la luz", "2026-08-01"),
@@ -66,7 +64,6 @@ describe("the day headings", () => {
     expect(screen.getByText("Someday")).toBeTruthy();
   });
 
-  /// One heading over the whole list says nothing and costs a line.
   it("stays out of the way when everything sits in one band", () => {
     show([task("1", "leer el libro"), task("2", "ordenar el cajón")]);
 
@@ -91,8 +88,6 @@ describe("banded", () => {
   beforeEach(() => vi.setSystemTime(NOW));
   afterEach(() => vi.useRealTimers());
 
-  /// The core sorts dated before undated, so labelling in place is enough —
-  /// and reordering here would fight the drag-and-drop indices.
   it("keeps the order the core gave it", () => {
     const rows = banded([
       task("1", "pagar la luz", "2026-08-04"),

@@ -55,11 +55,9 @@ function open(task: Task = written) {
   return on;
 }
 
-// A step labels its checkbox and its remove button with its own text too.
 const box = (name: string) =>
   screen.getByRole("textbox", { name }) as HTMLTextAreaElement | HTMLInputElement;
 
-/** Prose reads as composed text until the cursor lands in it. */
 const into = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
   await user.click(screen.getByLabelText(name));
   return box(name);

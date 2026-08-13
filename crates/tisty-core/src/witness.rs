@@ -1,6 +1,3 @@
-//! Nothing here prints. A binary that wants a record installs a destination
-//! with [`keeps`]; until then every note is dropped.
-
 use std::cell::Cell;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -26,8 +23,6 @@ impl Gravity {
     }
 }
 
-/// No variant carries prose: a task title cannot reach the file through here,
-/// and `said` being `&'static str` keeps it out of the message too.
 #[derive(Debug, Clone)]
 pub enum Fact {
     Count(usize),
@@ -74,7 +69,6 @@ static ALL: AtomicBool = AtomicBool::new(false);
 static HOOKED: Once = Once::new();
 
 thread_local! {
-    /// A panic inside here would come back through the hook. Once is enough.
     static INSIDE: Cell<bool> = const { Cell::new(false) };
 }
 
@@ -84,8 +78,6 @@ fn held() -> &'static Mutex<Option<Kept>> {
 
 pub const ROLLS_AT: u64 = 256 * 1024;
 
-/// Outside the store: this is one machine's account of its own troubles, and
-/// syncing it would mix two.
 pub fn file(paths: &crate::paths::Paths) -> PathBuf {
     paths.private().join("tisty.log")
 }
@@ -94,9 +86,6 @@ fn rolled(at: &Path) -> PathBuf {
     at.with_extension("log.1")
 }
 
-/// Stops writing anywhere. Only the tests need it: they install a destination
-/// in a temporary directory, and the one left behind would take every note the
-/// rest of the suite makes — into a folder that no longer exists.
 #[cfg(test)]
 fn stops() {
     *held().lock().unwrap_or_else(|e| e.into_inner()) = None;
@@ -151,8 +140,6 @@ fn write(
         return;
     }
 
-    // The lock is held for the copy and nothing else: formatting and io can
-    // both panic, and the hook comes straight back here on the same thread.
     let at = {
         let kept = held().lock().unwrap_or_else(|e| e.into_inner());
         kept.as_ref().map(|one| one.at.clone())
@@ -193,9 +180,6 @@ fn lined(
     line
 }
 
-/// Two processes share this file, and `metadata` then `rename` is a race whose
-/// loser overwrites the history the winner just rolled. Whoever takes the lock
-/// rolls; whoever cannot, does not — the next line will find room anyway.
 fn roll(at: &Path) {
     let Ok(meta) = std::fs::metadata(at) else {
         return;
@@ -222,9 +206,6 @@ fn roll(at: &Path) {
     let _ = FileExt::unlock(&gate);
 }
 
-/// The location, never the payload: Rust's own slice panic embeds up to 256
-/// characters of the string it choked on, and what this program slices is what
-/// the person wrote. The runtime still prints the whole of it to stderr.
 pub fn catches(channel: &'static str) {
     HOOKED.call_once(|| {
         let before = std::panic::take_hook();
@@ -241,7 +222,6 @@ pub fn catches(channel: &'static str) {
 
 pub fn recent(paths: &crate::paths::Paths, most: usize) -> Vec<String> {
     let at = file(paths);
-    // Lossy: one torn multi-byte character used to read the whole file as empty.
     let older = readable(&rolled(&at));
     let live = readable(&at);
     let mut lines: Vec<String> = older
@@ -282,8 +262,6 @@ pub fn forget(paths: &crate::paths::Paths) -> crate::Result<()> {
     Ok(())
 }
 
-/// The account name wherever it appears: a sync folder under `G:\Mario\…`
-/// gives it away as surely as a store path does.
 pub fn hidden(text: &str) -> String {
     match who() {
         Some(name) => without(text, &name),
@@ -291,11 +269,7 @@ pub fn hidden(text: &str) -> String {
     }
 }
 
-/// Case-insensitive: a sync folder the person picked by hand is as likely to
-/// be `D:\\Dropbox\\mario\\tisty` as `C:\\Users\\Mario`, and an exact match would
-/// leave the second one in the clear.
 fn without(text: &str, who: &str) -> String {
-    // Three at least: a short home basename would eat every «ab» in every path.
     if who.chars().count() < 3 {
         return text.to_string();
     }
@@ -316,9 +290,6 @@ fn without(text: &str, who: &str) -> String {
     out
 }
 
-/// A file the person attached is named by them — «informe-despido-juan.pdf»
-/// says as much as a title. Cut here rather than at each call site, so no
-/// future one can forget.
 fn kept_short(at: &Path) -> String {
     let mut said = std::path::PathBuf::new();
     for part in at.components() {
@@ -335,10 +306,6 @@ fn kept_short(at: &Path) -> String {
     said.display().to_string()
 }
 
-/// Not `$HOME` on macOS: inside an App Sandbox container that points at
-/// `…/Containers/dev.rgdevment.tisty/Data`, so the name to hide would come out
-/// as «Data» and the account would be left in the clear — which is the one
-/// thing this is for.
 #[cfg(target_os = "macos")]
 fn who() -> Option<String> {
     let name = std::env::var("USER").ok().filter(|one| !one.is_empty());
@@ -405,7 +372,6 @@ mod tests {
         assert!(line.contains("code=badJson"), "{line}");
     }
 
-    /// Why a log is safe to attach to a public issue.
     #[test]
     fn the_account_name_never_reaches_the_file() {
         assert_eq!(
@@ -431,12 +397,8 @@ mod tests {
         assert!(line.contains("expected a table at line 3"), "{line}");
     }
 
-    /// The promise the log makes, and the one place it could quietly break:
-    /// what somebody attached is named by them.
     #[test]
     fn nothing_under_attachments_is_named() {
-        // Built from parts, not spelled: `\` separates nothing on Unix, so a
-        // literal Windows path arrives as one component and nothing is cut.
         let at: PathBuf = ["store", "attachments", "2026-08", "severance-juan.pdf"]
             .iter()
             .collect();
@@ -460,8 +422,6 @@ mod tests {
         assert_eq!(without(r"C:\data\attachments", "a"), r"C:\data\attachments");
     }
 
-    /// Nothing installs a destination in a library test, and that is the reason
-    /// the core stays silent by default.
     #[test]
     fn notes_go_nowhere_until_somewhere_is_named() {
         let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
@@ -483,8 +443,6 @@ mod tests {
         );
     }
 
-    /// The destination is one per process, so the tests that install one cannot
-    /// run beside each other.
     static ALONE: Mutex<()> = Mutex::new(());
 
     #[test]
@@ -510,7 +468,6 @@ mod tests {
         stops();
     }
 
-    /// The whole reason the hook exists: a fault nobody was watching.
     #[test]
     fn a_panic_leaves_a_line_behind() {
         let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
@@ -529,14 +486,10 @@ mod tests {
         assert!(said.contains("FATAL"), "{said}");
         assert!(said.contains("panicked"), "{said}");
         assert!(said.contains("witness.rs:"), "{said}");
-        // Rust's own slice panic embeds the string it choked on, and what this
-        // program slices is what the person wrote.
         assert!(!said.contains("the sky fell"), "{said}");
         stops();
     }
 
-    /// A sync folder is picked by hand, so its spelling of the account name is
-    /// whatever the person typed.
     #[test]
     fn the_account_name_goes_whatever_case_it_is_written_in() {
         let said = without(r"D:\Dropbox\MARIO\tisty and C:\Users\mario\x", "Mario");
@@ -544,7 +497,6 @@ mod tests {
         assert!(!said.to_lowercase().contains("mario"), "{said}");
     }
 
-    /// «ab» as a home basename would eat every «ab» in every path.
     #[test]
     fn a_name_too_short_to_replace_safely_is_left_whole() {
         assert_eq!(
@@ -560,7 +512,6 @@ mod tests {
         assert_eq!(line.matches('\n').count(), 1, "{line}");
     }
 
-    /// The offset carries its colon; a bare `%z` would read as four digits.
     #[test]
     fn the_moment_is_written_with_its_offset_in_full() {
         let line = lined(now(), Gravity::Warn, channel::STORE, "x", &[]);

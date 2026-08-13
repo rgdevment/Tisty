@@ -10,8 +10,6 @@ describe("saidPlainly", () => {
     expect(saidPlainly({ code: "untitled" })).toBe("A title is required");
   });
 
-  /// The Rust text is English and technical; it stays, because it is what makes
-  /// a report worth anything, but never as the whole message.
   it("keeps an unknown code but puts a human sentence in front of it", () => {
     expect(saidPlainly({ code: "somethingNewer" })).toBe("Something went wrong — somethingNewer");
     expect(saidPlainly({ code: "somethingNewer", name: "the detail" })).toBe(
@@ -25,8 +23,6 @@ describe("saidPlainly", () => {
     expect(saidPlainly({ code: 7 })).toMatch(/^Something went wrong/);
   });
 
-  /// This was the whole message before: the raw Display of a Rust error, in
-  /// English, at the worst possible moment.
   it("never hands over a bare Rust error", () => {
     const said = saidPlainly({ code: "internalNamed", name: "i/o error: access denied" });
 

@@ -27,7 +27,6 @@ function field() {
   return box;
 }
 
-// jsdom has no layout, so the lookup is stubbed rather than spied on.
 let looked: (x: number, y: number) => Element | null = () => null;
 beforeEach(() => {
   document.elementFromPoint = ((x: number, y: number) => looked(x, y)) as typeof document.elementFromPoint;
@@ -49,7 +48,6 @@ describe("a file drag from the system", () => {
     whenFilesLand(caught);
     await settled();
 
-    // `enter` carries the paths too, which is the whole trap.
     webview.fire({ type: "enter", paths: ["/a.png"], position: { x: 10, y: 10 } });
     expect(caught).not.toHaveBeenCalled();
     expect(box.classList.contains("catching")).toBe(true);

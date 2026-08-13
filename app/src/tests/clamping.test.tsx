@@ -7,7 +7,6 @@ vi.mock("@tauri-apps/api/core", () => ({ convertFileSrc: (at: string) => at, inv
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn(), openPath: vi.fn() }));
 vi.mock("../core", () => ({ served: vi.fn(), opened: vi.fn() }));
 
-/** jsdom reports every height as zero, so the overflow is declared by hand. */
 function tall(overflowing: boolean) {
   Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
     configurable: true,
@@ -51,7 +50,6 @@ describe("a body longer than the space it has", () => {
     await user.click(offer()!);
 
     expect(onWhole).toHaveBeenCalled();
-    // Asking for the rest is not asking to edit.
     expect(onEnter).not.toHaveBeenCalled();
   });
 

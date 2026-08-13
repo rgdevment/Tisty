@@ -62,7 +62,6 @@ describe("what About suggests", () => {
     package: named,
   });
 
-  /// Nothing to ask of somebody whose store does it for them.
   it("asks nothing of a Store install", async () => {
     render(<About ready={ready("store")} onError={vi.fn()} />);
 
@@ -77,8 +76,6 @@ describe("what About suggests", () => {
     expect(await screen.findByText(/brew upgrade --cask tisty/)).toBeTruthy();
   });
 
-  /// A candidate installs under its own name, and the stable command upgrades
-  /// nothing there.
   it("names the package a candidate was installed under", async () => {
     render(<About ready={ready("brew", "tisty-beta")} onError={vi.fn()} />);
 

@@ -1,8 +1,5 @@
 use std::path::Path;
 
-/// What the window needs to describe this install in a bug report. Gathered
-/// here, worded by the window: it already speaks both languages, and a report
-/// nobody can read is not worth the strings it would cost to duplicate.
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Facts {
@@ -21,8 +18,6 @@ pub struct Facts {
     pub archived: usize,
     pub lists: usize,
     pub tags: usize,
-    /// Empty unless they were asked for. The counts above stand either way, so
-    /// what redacting costs is the names, never the shape of the store.
     pub list_names: Vec<String>,
     pub tag_names: Vec<String>,
     pub cache: &'static str,
@@ -37,17 +32,11 @@ pub struct Facts {
     pub quiet: Vec<String>,
     pub attach_up_to: u64,
     pub in_path: bool,
-    /// None when nothing could be bound — another program holds the keys, which
-    /// is the usual reason quick capture «does nothing».
     pub shortcut: Option<String>,
 }
 
-/// The core's, not a second copy: the redaction that keeps a log safe to attach
-/// to a public issue is the same one that keeps the report safe, and two
-/// implementations of it would drift.
 pub use tisty_core::witness::hidden;
 
-/// Every file under the data root, which is what a backup would have to carry.
 pub fn weighed(root: &Path) -> u64 {
     let Ok(entries) = std::fs::read_dir(root) else {
         return 0;
@@ -84,7 +73,6 @@ pub fn attachments(root: &Path) -> Held {
     held
 }
 
-/// One directory per device, which is also how many machines have written here.
 pub fn devices(store: &Path) -> usize {
     std::fs::read_dir(store)
         .map(|entries| {
@@ -96,8 +84,6 @@ pub fn devices(store: &Path) -> usize {
         .unwrap_or(0)
 }
 
-/// «Windows 10 Pro» is what the registry says on Windows 11 too — Microsoft
-/// never updated the key, and the build number is the only honest answer.
 #[cfg(windows)]
 pub fn os() -> String {
     use winreg::RegKey;

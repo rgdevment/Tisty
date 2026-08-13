@@ -1,7 +1,5 @@
 type Tone = "filed" | "due";
 
-/// `apart` shorter than `tail` makes the notes overlap into a chord rather than
-/// three separate beeps.
 type Shape = { hz: number[]; apart: number; tail: number; peak: number };
 
 const NOTES: Record<Tone, Shape> = {
@@ -18,8 +16,6 @@ function context(): AudioContext | undefined {
   return shared;
 }
 
-/// A sine with an envelope: a bare gate on an oscillator clicks at both ends,
-/// and the click is louder than the note.
 export function play(tone: Tone): void {
   const audio = context();
   if (!audio) return;

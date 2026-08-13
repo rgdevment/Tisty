@@ -44,9 +44,6 @@ describe("the about screen", () => {
     expect(await screen.findByText("0.1.0")).toBeTruthy();
   });
 
-  /// It used to hand the failure to the window banner and draw nothing: the one
-  /// screen you go to when something is wrong had no way to ask again. Its
-  /// sister screen has had an error card with a retry all along.
   it("recovers from its own failure", async () => {
     ipc.answer = () => Promise.reject(new Error("the store is not readable"));
     render(<About ready={null} onError={() => {}} />);
@@ -84,8 +81,6 @@ describe("the other tools", () => {
     expect(container.querySelectorAll("img").length).toBe(2);
   });
 
-  /// It used to call `served`, which resolves a reference inside the store and
-  /// refuses anything that leaves it: the button could never have worked.
   it("opens Tisty's own repository as a url", async () => {
     render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");

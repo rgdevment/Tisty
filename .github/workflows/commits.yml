@@ -1,9 +1,5 @@
 name: Commits
 
-# Conventional commits, checked with a regex rather than a Node toolchain:
-# pulling in commitlint and its config would be the only JavaScript dependency
-# in a Rust repository.
-
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -29,7 +25,6 @@ jobs:
           pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .+'
           failed=0
 
-          # Merge commits carry GitHub's own subject and are not authored here.
           while read -r sha; do
             subject=$(git log -1 --format=%s "$sha")
 

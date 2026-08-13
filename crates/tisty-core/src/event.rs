@@ -8,12 +8,8 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-/// Raised with the folder and document ops: a build that predates them reads
-/// their lines as corruption and refuses to open the store at all, tasks
-/// included. The bump is what turns that into «a newer Tisty wrote this».
 pub const SCHEMA_VERSION: u32 = 2;
 
-/// Never synced — a shared id would put two machines in one segment file.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct DeviceId(pub String);
@@ -26,16 +22,12 @@ pub struct Event {
     pub timestamp: jiff::Timestamp,
     #[serde(rename = "by")]
     pub device: DeviceId,
-    /// Groups the events of one user action so undo takes back all of them.
     #[serde(rename = "tx", default, skip_serializing_if = "Option::is_none")]
     pub batch: Option<Ulid>,
-    /// Marks a compensation so the next undo steps further back instead of oscillating.
     #[serde(rename = "un", default, skip_serializing_if = "std::ops::Not::not")]
     pub undo: bool,
-    /// Without this, redo would clear the stack it is walking and only the first redo would work.
     #[serde(rename = "re", default, skip_serializing_if = "std::ops::Not::not")]
     pub redo: bool,
-    /// Tiebreak within a device; does not rely on stable sort or file-name ordering.
     #[serde(rename = "n", default, skip_serializing_if = "is_zero")]
     pub seq: u64,
     #[serde(flatten)]
@@ -65,7 +57,6 @@ impl Event {
         self
     }
 
-    /// Device tiebreak guarantees every machine replays into the same state.
     pub fn sort_key(&self) -> (jiff::Timestamp, &DeviceId, u64) {
         (self.timestamp, &self.device, self.seq)
     }

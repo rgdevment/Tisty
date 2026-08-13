@@ -57,7 +57,6 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
     Ok(ExitCode::SUCCESS)
 }
 
-/// The sentence with markers removed but the date left in — the title if nobody had guessed.
 fn as_written(text: &str, read: &tisty_nl::Parsed, lang: Lang) -> String {
     let markers: Vec<_> = read
         .spans
@@ -98,8 +97,6 @@ pub fn done(
     })
 }
 
-/// Read by the same parser the sentence goes through, so «cada 3 días» means
-/// here exactly what it means when it is typed into a capture.
 fn cadence_flag(
     said: Option<&str>,
     cleared: bool,
@@ -111,10 +108,6 @@ fn cadence_flag(
     let Some(said) = said else {
         return Ok(None);
     };
-    // A flag is a specification, not a capture: with nothing left over the
-    // reader takes it for a title and gives back neither date nor cadence, so
-    // «cada mes hasta el 15» lost its last day without a word. The stand-in
-    // title is thrown away with the rest of the reading.
     let read = tisty_nl::parse(&format!("· {said}"), &jiff::Zoned::now(), lang.code());
     match read.repeat {
         Some(over) if over.ended(jiff::Zoned::now().date()) => {
@@ -138,8 +131,6 @@ pub fn undone(app: &mut App, selector: &str, today: Date, lang: Lang) -> anyhow:
 pub fn drop(app: &mut App, selector: &str, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let open = app.state.ordered_open();
     resolved!(app, Some(selector), open, lang, |id| {
-        // Dropping a repeating task ends the whole series, and that is not what
-        // «not doing it» sounds like.
         let repeats = app
             .state
             .tasks
@@ -202,7 +193,6 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
     })
 }
 
-/// A task that is due before it starts is legal, and almost always a slip.
 fn warn_if_backwards(
     date: Option<&tisty_core::DateSpec>,
     deadline: Option<&tisty_core::DateSpec>,
@@ -386,7 +376,6 @@ pub fn step(
     })
 }
 
-/// Steps are addressed by the number `show` prints, not by their id.
 fn nth_step(app: &App, id: TaskId, number: usize, lang: Lang) -> anyhow::Result<Ulid> {
     match number
         .checked_sub(1)

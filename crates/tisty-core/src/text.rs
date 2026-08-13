@@ -1,7 +1,5 @@
 use unicode_normalization::UnicodeNormalization;
 
-/// Bidi overrides flip the reading of everything after them, so a name can
-/// turn a delete dialog into a sentence about another folder.
 pub fn plainly(text: &str) -> String {
     composed(
         &text

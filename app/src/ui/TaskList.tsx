@@ -11,16 +11,13 @@ interface Props {
   fresh?: string;
   reveal?: string;
   title: string;
-  /** Left out where the chips above carry a number each and this one would read as their sum. */
   count?: number;
   bands?: "month" | "day";
   empty?: string;
-  /// Said above the rows: what the list is not showing.
   note?: string;
   onSelect: (id: string) => void;
   onComplete?: (id: string) => void;
   onFold?: (id: string, away: boolean) => void;
-  /** Undefined where the order is not the user's to set — the archive, a search. */
   onDrop?: (task: string, after?: string, before?: string) => void;
   above?: React.ReactNode;
   children?: React.ReactNode;
@@ -53,8 +50,6 @@ export default function TaskList({
           : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
     [tasks, bands],
   );
-  // One heading over the whole list says nothing and costs a line: «Someday»
-  // above a list where nothing is dated is noise, not structure.
   const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
   const opens = useMemo(() => {
     const said = new Set<string>();
@@ -69,12 +64,8 @@ export default function TaskList({
   const columns = onFold
     ? "grid-cols-[20px_minmax(0,1fr)_auto_16px]"
     : "grid-cols-[20px_minmax(0,1fr)_auto]";
-  // Centred whether or not the panel is open: dropping the centring at the same
-  // frame the column narrows moved the list twice, and the row under the cursor
-  // slid out from under it.
   const width = "mx-auto w-full max-w-[780px]";
 
-  // Never on capture: scrolling under someone who is still typing loses them.
   const asked = useRef<HTMLDivElement>(null);
   useEffect(() => {
     asked.current?.scrollIntoView({
@@ -85,14 +76,9 @@ export default function TaskList({
     });
   }, [reveal]);
 
-  // One stop for the whole list, not one per task: tabbing through ninety rows
-  // to reach the sidebar is not navigation.
   const listed = useRef<HTMLDivElement>(null);
   const [reached, setReached] = useState<string | null>(null);
 
-  // Only the rows that are actually drawn: a task inside a folded group is not
-  // in the DOM, and one that was completed is not in the list any more. Anchor
-  // the stop on either and the whole list becomes unreachable by keyboard.
   const drawn = useMemo(
     () =>
       rows.flatMap((row) =>
@@ -117,8 +103,6 @@ export default function TaskList({
   };
 
   const typed = (event: React.KeyboardEvent, task: Task) => {
-    // The verb this product exists for, and it was mouse-only: the circle is
-    // out of the tab order on purpose, so without this there was no way at all.
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
       event.preventDefault();
       if (onComplete && task.status === "open") {
@@ -126,8 +110,6 @@ export default function TaskList({
         onComplete(task.id);
         return;
       }
-      // In the archive the row's verb is folding it away, and its button was
-      // out of the tab order and drawn only under the mouse.
       if (onFold) {
         walk(task.id, 1);
         onFold(task.id, !task.hidden);

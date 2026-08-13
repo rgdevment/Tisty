@@ -40,7 +40,6 @@ const open = (one: Task) =>
   );
 
 describe("ending a repeat", () => {
-  /// «Not doing it» reads as «not this one», and it ends the whole series.
   it("says what it does when the task repeats", () => {
     open(task({ from: "due", each: { every: 1, unit: "week" } }));
 

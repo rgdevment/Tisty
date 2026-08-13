@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import { accepts, asView, invite, nothing, SLICES } from "../views";
 
 describe("Tasks, the view that replaced Today and Upcoming", () => {
-  /// They were two names for one thing: a date filter with a fixed seat in the
-  /// sidebar. Opening on «all» would be forty rows the moment you arrive.
   it("means today when nothing was chosen", () => {
     expect(asView({ named: "tasks" })).toEqual({ window: "today" });
   });
@@ -17,27 +15,20 @@ describe("Tasks, the view that replaced Today and Upcoming", () => {
     expect(asView({ named: "tasks", slice })).toEqual(view);
   });
 
-  /// «Today» already carries what has no date, so there is no «undated» chip.
   it("offers the four the author settled on", () => {
     expect(SLICES).toEqual(["today", "upcoming", "repeating", "all"]);
   });
 
-  /// It cuts across the calendar, not along it, which is exactly why «all»
-  /// earns its place: the other three no longer cover the whole.
   it("asks for habits without asking for a day", () => {
     expect(asView({ named: "tasks", slice: "repeating" })).not.toHaveProperty("window");
   });
 
-  /// A list still outranks it, as it always did.
   it("lets a chosen list win over the slice", () => {
     expect(asView({ named: "tasks", slice: "all", list: "01L" })).toEqual({ list: "01L" });
   });
 });
 
 describe("capturing from a slice", () => {
-  /// It used to be refused anywhere but «today», reasoning that a task written
-  /// with no day would vanish. It does not: the notice after a capture shows
-  /// what was filed and opens it, wherever the list happens to be looking.
   it.each(["today", "upcoming", "repeating", "all"] as const)("is offered on %s", (slice) => {
     expect(accepts({ named: "tasks", slice })).toBe(true);
   });

@@ -1,5 +1,3 @@
-//! One file you can keep anywhere. A plain zip, so it opens without Tisty.
-
 use std::io::{Read, Seek, Write};
 use std::path::{Component, Path, PathBuf};
 
@@ -8,9 +6,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-/// Never the configuration: a shared `device_id` puts two machines in one file.
 const CARRIED: [&str; 2] = ["store", "attachments"];
-/// A backup is history, not a filesystem: past this it is somebody's zip bomb.
 const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
 const AT_MOST_FILES: usize = 200_000;
 
@@ -27,15 +23,10 @@ pub struct Restored {
     pub devices: usize,
 }
 
-/// Built under another name and moved at the end, beside the destination when
-/// that folder takes a file. `aside` is the fallback for a macOS save panel,
-/// which grants the chosen path and nothing next to it.
 pub fn write(data: &Path, into: &Path, aside: &Path) -> Result<Made> {
     let store_id = store::identity(data.join("store"))?;
     store::read_all(data.join("store"))?;
 
-    // Named after the destination, not just the process: two at once in one
-    // process would otherwise build into the same file.
     let named = into
         .file_name()
         .map(|one| one.to_string_lossy().into_owned())
@@ -52,8 +43,6 @@ pub fn write(data: &Path, into: &Path, aside: &Path) -> Result<Made> {
 
     match fill(data, &part, store_id) {
         Ok(made) => {
-            // Kept when it could not be placed: it is the only whole zip left
-            // if the destination was torn getting there.
             place(&part, into)?;
             let _ = std::fs::remove_file(&part);
             Ok(made)
@@ -65,9 +54,6 @@ pub fn write(data: &Path, into: &Path, aside: &Path) -> Result<Made> {
     }
 }
 
-/// `copy` truncates the destination before writing a byte, so one that dies
-/// halfway destroys the previous backup. Three tries, in order of how much they
-/// ask for; only the last can leave a torn file, and only it works in a sandbox.
 fn place(part: &Path, into: &Path) -> std::io::Result<()> {
     if std::fs::rename(part, into).is_ok() {
         return Ok(());
@@ -101,8 +87,6 @@ fn place(part: &Path, into: &Path) -> std::io::Result<()> {
 
 fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
     let file = std::fs::File::create(into)?;
-    // The zip is the whole history in one file, and it often lands somewhere
-    // shared like /tmp.
     let _ = crate::paths::ours_alone(into);
     let mut zip = zip::ZipWriter::new(file);
     let mut made = Made {
@@ -117,15 +101,12 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
             let Ok(rest) = at.strip_prefix(data) else {
                 continue;
             };
-            // A lock is a live claim on this machine, not history to carry.
             if rest.file_name().is_some_and(|n| n == ".lock") {
                 continue;
             }
             let named = rest.to_string_lossy().replace('\\', "/");
             let body = std::fs::read(&at)?;
 
-            // The same ceiling as reading: a backup nobody can restore is worse
-            // than none, because it is only found out on the bad day.
             made.files += 1;
             made.bytes += body.len() as u64;
             if made.bytes > AT_MOST || made.files > AT_MOST_FILES {
@@ -141,12 +122,6 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
     Ok(made)
 }
 
-/// A photograph: back to that moment, and what came after is lost on purpose.
-/// The machine takes a new identity so it can never shrink what others hold.
-///
-/// Nothing of yours is touched until the whole backup has been unpacked beside
-/// it and read back: a zip that turns out to be corrupt, truncated or somebody
-/// else's must cost you nothing, and the only way to be sure is to try it first.
 pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
     within(paths, from, AT_MOST)
 }
@@ -163,8 +138,6 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
         && store::read_all(&root)
             .map(|all| all.is_empty())
             .unwrap_or(false);
-    // An unmarked backup is only safe onto an unmarked, empty machine: taken
-    // the other way round it is a stranger's history replacing your own.
     match (&ours, theirs.is_empty()) {
         (_, false) if ours.as_ref() == Some(&theirs) || free => {}
         (None, true) if free => {}
@@ -198,8 +171,6 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
         }
     };
 
-    // Named before anything moves: writing under the old one into a store that
-    // just went back in time is what shrinks a directory other machines hold.
     let was = Config::load_or_init(paths)?;
     let mut config = was.clone();
     config.device_id = crate::DeviceId(crate::config::new_device_id());
@@ -210,8 +181,6 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     let _ = std::fs::remove_dir_all(&old);
     std::fs::create_dir_all(&old)?;
     if let Err(e) = swap(data, &staged, &old) {
-        // Half a restore is the one outcome worth more than either whole: put
-        // everything back, including the name, and let the person try again.
         if was.save(paths).is_err() {
             witness::error(channel::BACKUP, "device name not put back", &[]);
         }
@@ -235,9 +204,6 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     })
 }
 
-/// Every old folder steps aside before a single new one steps in, and a failure
-/// walks all of them back: a machine left with half a photograph and half of
-/// what it had is worse off than with either one whole.
 fn swap(data: &Path, staged: &Path, old: &Path) -> Result<()> {
     let mut moved: Vec<&str> = Vec::new();
     for folder in CARRIED {
@@ -291,8 +257,6 @@ fn undo(data: &Path, old: &Path, moved: &[&str]) {
     }
 }
 
-/// Left by a restore that died: `.replaced-*` is the only copy of what was
-/// swapped out, so a machine that crashed mid-swap still has its history here.
 pub fn leftovers(data: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(data) else {
         return Vec::new();
@@ -337,8 +301,6 @@ fn unpack<R: Read + Seek>(
         if let Some(parent) = at.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        // Streamed, and capped: a declared size is what the zip claims, not
-        // what it holds, so the ceiling has to hold on the way out too.
         let mut file = std::fs::File::create(&at)?;
         let _ = crate::paths::ours_alone(&at);
         let room = at_most.saturating_sub(bytes).saturating_add(1);
@@ -414,9 +376,6 @@ fn zipped(e: zip::result::ZipError) -> Error {
 mod tests {
     use super::*;
 
-    /// Where the zip is built before it is copied where it was asked for. One
-    /// per call: these tests share a process and all name their destination
-    /// the same, so a shared workspace has them building over each other.
     fn tmp() -> tempfile::TempDir {
         tempfile::tempdir().unwrap()
     }
@@ -509,8 +468,6 @@ mod tests {
         );
     }
 
-    /// After a format the machine is new and the history is old, and that is
-    /// exactly what one directory per device already means.
     #[test]
     fn restoring_onto_an_empty_machine_keeps_the_old_devices_history() {
         let (_src, data) = filled("lo de antes");
@@ -535,9 +492,6 @@ mod tests {
         assert!(quarters(&fresh).store().join("dev_b").is_dir());
     }
 
-    /// A photograph, and what came after it is lost on purpose. The machine
-    /// takes a new name so its directory starts empty and can never shrink
-    /// what the others already hold.
     #[test]
     fn restoring_goes_back_to_the_moment_and_loses_what_came_after() {
         let dir = tempfile::tempdir().unwrap();
@@ -615,8 +569,6 @@ mod tests {
         }
     }
 
-    /// The file picker filters by `*.zip`, and every machine has a zip that is
-    /// not a backup. Choosing one must cost nothing at all.
     #[test]
     fn a_zip_that_is_not_a_backup_leaves_everything_where_it_was() {
         let (_src, data) = filled("lo mio");
@@ -662,7 +614,6 @@ mod tests {
         );
     }
 
-    /// An unmarked backup used to walk straight past the guard.
     #[test]
     fn a_backup_with_no_marker_is_refused_onto_a_store_that_has_one() {
         let (_src, data) = filled("lo mio");
@@ -699,8 +650,6 @@ mod tests {
         assert_eq!(store::read_all(paths.store()).unwrap().len(), 1);
     }
 
-    /// The old id would keep writing into a directory that just went back in
-    /// time, shrinking what the other machines already hold.
     #[test]
     fn the_machine_is_renamed_before_anything_is_replaced() {
         let dir = tempfile::tempdir().unwrap();
@@ -727,7 +676,6 @@ mod tests {
         );
     }
 
-    /// A hundred megabytes from a hundred kilobytes, and the store gone first.
     #[test]
     fn a_zip_bomb_is_refused_and_costs_nothing() {
         let (_src, data) = filled("lo mio");
@@ -763,9 +711,6 @@ mod tests {
         );
     }
 
-    /// Windows refuses to rename a directory holding an open file; here the
-    /// same refusal is forced on purpose, because half a restore is the one
-    /// outcome worth less than either whole.
     #[test]
     fn a_swap_that_cannot_finish_puts_everything_back() {
         let dir = tempfile::tempdir().unwrap();
@@ -783,8 +728,6 @@ mod tests {
         std::fs::write(data.join("store/mine.txt"), b"what was here").unwrap();
         std::fs::write(staged.join("store/theirs.txt"), b"the photograph").unwrap();
 
-        // `old/attachments` already taken by a directory that is not empty, so
-        // its rename is refused and the swap walks `store` back on its own.
         std::fs::create_dir_all(old.join("attachments/busy")).unwrap();
         std::fs::write(old.join("attachments/busy/x"), b"in the way").unwrap();
 

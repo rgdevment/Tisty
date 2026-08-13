@@ -10,15 +10,12 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
-  # Runs the tests, not just the build: path and locking bugs only show at runtime.
   test:
     name: test / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # Linux is a phase of its own and nothing is shipped for it yet, so the
-        # runners are the two platforms that are.
         os: [windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v6
@@ -28,7 +25,6 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - run: cargo nextest run --workspace --no-tests=pass
       - run: cargo test --doc --workspace
-      # Catches a suite that reads the locale off the runner instead of setting it.
       - run: cargo nextest run --workspace --no-tests=pass
         env:
           LC_ALL: es_ES.UTF-8
@@ -36,7 +32,6 @@ jobs:
 
   lint:
     name: fmt + clippy
-    # `--all-targets` reaches tisty-gui, which is only built where it ships.
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6

@@ -20,7 +20,6 @@ const OPENS: Record<string, "list" | "tag" | null> = { "/": null, "@": "list", "
 
 const SETTLES = 120;
 
-/** The parse trails the keystrokes; its offsets are only safe against the text it read (`of`). */
 interface Read {
   of: string;
   seen: Parsed;
@@ -35,12 +34,9 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
 
   const asked = picking === null ? CALLED.exec(text) : null;
   const before = asked ? text.slice(0, text.length - asked[3].length - 1) : text;
-  // Escape leaves the slash where it was typed: «leer /docs» is a title.
   const called = asked && before.length !== dismissed ? asked : null;
   const rewritten = (typed: string) => {
     setText(typed);
-    // Removals point at spans of the old sentence; a picked date does not.
-    // An emptied field keeps nothing: an invisible date would ride the next one.
     setEdits(({ date, deadline, takeOffer }) =>
       typed.trim() ? { date, deadline, takeOffer } : {},
     );
@@ -121,7 +117,6 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
   );
 }
 
-/** Removing a chip unmarks its words in the text too; an accepted offer renders like any other date. */
 function marks(text: string, seen: Parsed, edits: Edits): Mark[] {
   const letters = Array.from(text);
   const gone = (span: Span) => {
@@ -141,7 +136,6 @@ function marks(text: string, seen: Parsed, edits: Edits): Mark[] {
     }
   };
 
-  // Picking another day does not put the words back, but they stopped deciding.
   const overruled = (span: Span) =>
     (span.mark === "date" && edits.date !== undefined) ||
     (span.mark === "deadline" && edits.deadline !== undefined);
@@ -155,7 +149,6 @@ function marks(text: string, seen: Parsed, edits: Edits): Mark[] {
   return [...taken, ...offered];
 }
 
-/// The span carries what was typed; the edit carries what the core normalised.
 const alike = (tag: string, written: string): boolean =>
   written
     .replace(/^#/, "")

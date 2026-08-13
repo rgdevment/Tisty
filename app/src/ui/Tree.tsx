@@ -106,8 +106,6 @@ export default function Tree({
     }
   };
 
-  // A folder spends an icon a document has no room for, so matching depths
-  // alone leave the child starting to the left of its own parent.
   const ICON = 20;
 
   const shortcuts = (kind: "doc" | "folder") =>

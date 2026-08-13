@@ -4,19 +4,14 @@ use crate::model::{ListId, Priority, Tag, Task};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Window {
-    /// Includes undated work: it is not waiting for a later day.
     Today,
     On(Date),
     Until(Date),
-    /// What is still ahead, so it never repeats what «today» already showed.
     After(Date),
     Overdue,
-    /// Waiting for no particular day. `Today` shows it too, on purpose; this is
-    /// for looking at it on its own.
     Undated,
 }
 
-/// `Either` exists for tag views, which cross the open/archived boundary.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum Scope {
     #[default]
@@ -29,18 +24,12 @@ pub enum Scope {
 pub struct Filter {
     pub scope: Scope,
     pub inbox: bool,
-    /// A task has one list, so several mean «any of».
     pub lists: Vec<ListId>,
-    /// A task has many tags, so several mean «all of».
     pub tags: Vec<Tag>,
-    /// True for any tag; empty `tags` then means «what I filed», not «everything».
     pub tagged: bool,
-    /// Folded noise stays out unless it is asked for by name.
     pub hidden: bool,
     pub priority: Option<Priority>,
     pub window: Option<Window>,
-    /// Cuts across the calendar rather than along it: a habit is a habit
-    /// whatever day its next occurrence falls on.
     pub repeating: bool,
 }
 
@@ -90,25 +79,18 @@ impl Filter {
     }
 }
 
-/// Naming it beats mentioning it: a heavy task that says «brasil» in passing
-/// must not outrank one that is called «…en BR».
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Hit {
     Named,
     Mentioned,
 }
 
-/// Searches both open and archived tasks by default.
 pub fn matches_query(task: &Task, query: &str) -> Option<Hit> {
     let contains = |text: &str| text.to_lowercase().contains(query);
 
     if contains(&task.title) || task.tags.iter().any(|t| contains(t.as_str())) {
         return Some(Hit::Named);
     }
-    // A reference is a declared pointer, so naming one whole names the task —
-    // «OPS-3465» is what the task is about, not something it says in passing.
-    // The label counts as much as the target: a ticket is written as a link, and
-    // what gets searched is its code, never the address behind it.
     if task.volume.refs > 0
         && task.references().iter().any(|one| {
             one.target.to_lowercase() == query
@@ -167,7 +149,6 @@ mod tests {
         assert!(!f.matches(&task("sin fecha"), today()));
     }
 
-    /// It is a filter, not a window: a habit due next month is still a habit.
     #[test]
     fn repeating_says_nothing_about_the_day() {
         let f = filter(|f| f.repeating = true);

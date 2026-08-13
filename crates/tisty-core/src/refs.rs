@@ -1,11 +1,6 @@
-//! References are written in prose and pulled back out of it, never kept as a
-//! field: what reaches the file is ordinary Markdown, readable without Tisty.
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Kind {
-    /// `[[name]]` — something inside Tisty: a document, a ticket, a task.
     Doc,
-    /// `[label](url)` or a bare address.
     Link,
 }
 
@@ -16,7 +11,6 @@ pub struct Ref {
     pub label: Option<String>,
 }
 
-/// In order of appearance, without repeats; code spans are read as text.
 pub fn extract(text: &str) -> Vec<Ref> {
     let mut found: Vec<Ref> = Vec::new();
     let mut keep = |one: Ref| {
@@ -53,7 +47,6 @@ fn next_char(bytes: &[u8], at: usize) -> usize {
     step
 }
 
-/// An unclosed run is just backticks; only a matching run closes a code span.
 fn past_code(text: &str, at: usize) -> usize {
     let fence = text[at..].bytes().take_while(|b| *b == b'`').count();
     let mut from = at + fence;
@@ -99,8 +92,6 @@ fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     }
     let tail = &text[after + 1..];
 
-    // Angle brackets are the only way to write a destination with a space, and
-    // an attachment path is full of them — so they close it, not the paren.
     let (target, close) = match tail.trim_start().strip_prefix('<') {
         Some(_) => {
             let opened = tail.find('<').unwrap_or(0);
@@ -116,7 +107,6 @@ fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
             let Some(close) = tail.find(')') else {
                 return at + 1;
             };
-            // A target may carry a title: [a](https://x "why").
             (tail[..close].split_whitespace().next().unwrap_or(""), close)
         }
     };
@@ -137,7 +127,6 @@ fn bare(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
         .unwrap_or(rest.len());
     let url = unpunctuated(&rest[..end]);
 
-    // The scheme alone points nowhere.
     if url.len() > url.find("//").map_or(0, |n| n + 2) {
         keep(Ref {
             kind: Kind::Link,
@@ -148,8 +137,6 @@ fn bare(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     at + end
 }
 
-/// Prose punctuation clings to the end of an address; a closing bracket only
-/// belongs to the address when something opened it.
 fn unpunctuated(url: &str) -> &str {
     let mut end = url.len();
     while let Some(last) = url[..end].chars().next_back() {
@@ -259,8 +246,6 @@ mod tests {
         assert!(targets("[etiqueta]()").is_empty());
     }
 
-    /// Angle brackets are how a destination with a space is written, and an
-    /// attachment path is full of them.
     #[test]
     fn a_wrapped_destination_loses_its_brackets() {
         assert_eq!(

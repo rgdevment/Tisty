@@ -1,24 +1,19 @@
 import { useEffect, useState } from "react";
 import { useEdge } from "./edge";
 import { open } from "@tauri-apps/plugin-dialog";
-import { attach } from "../core";
+import { attach, docs, type Filed } from "../core";
+import { docLink } from "../markdown";
 import { t } from "../locales";
 
 interface Props {
-  /// The steps of the task this prose belongs to, in the order they are drawn,
-  /// so «#3» in a journal entry means the third line of the list above it.
   steps?: string[];
   onPut: (snippet: string) => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
 }
 
-/** A ticket is a link, so it goes in with its code as the text — that is why
- * there is no third row for one. Attaching IS a third thing: it copies a file
- * into the store, and until now the only way in was dragging one onto the
- * window, which left out anyone not using a mouse. */
 export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
-  const [step, setStep] = useState<"pick" | "link" | "step">("pick");
+  const [step, setStep] = useState<"pick" | "link" | "step" | "doc">("pick");
   const [busy, setBusy] = useState(false);
   const { box, away } = useEdge<HTMLDivElement>();
 
@@ -64,6 +59,9 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
             <Row first glyph="🔗" say={t("sayLink")} onPick={() => setStep("link")}>
               {t("insertLink")}
             </Row>
+            <Row glyph="📄" say={t("sayDoc")} onPick={() => setStep("doc")}>
+              {t("insertDoc")}
+            </Row>
             <Row glyph="📎" say={busy ? "…" : t("sayAttach")} onPick={pickFile}>
               {t("insertAttach")}
             </Row>
@@ -75,6 +73,9 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
           </>
         )}
         {step === "link" && <Linking onLink={(text, url) => onPut(`[${text}](${url})`)} />}
+        {step === "doc" && (
+          <Papers onPick={(doc) => onPut(docLink(doc.file, doc.title))} onError={onError} />
+        )}
         {step === "step" &&
           steps.map((text, at) => (
             <Row key={at} glyph={`${at + 1}`} onPick={() => onPut(`[[#${at + 1}]]`)}>
@@ -113,6 +114,55 @@ function Row({
   );
 }
 
+
+function Papers({
+  onPick,
+  onError,
+}: {
+  onPick: (doc: Filed) => void;
+  onError?: (problem: unknown) => void;
+}) {
+  const [all, setAll] = useState<Filed[] | null>(null);
+  const [word, setWord] = useState("");
+
+  useEffect(() => {
+    docs()
+      .then((papers) => setAll(papers.docs.filter((one) => !one.archived)))
+      .catch((problem) => {
+        setAll([]);
+        onError?.(problem);
+      });
+  }, [onError]);
+
+  const named = (doc: Filed) => doc.title.trim() || t("untitledDoc");
+  const shown = (all ?? []).filter((one) =>
+    named(one).toLowerCase().includes(word.trim().toLowerCase()),
+  );
+
+  return (
+    <>
+      <input
+        autoFocus
+        value={word}
+        aria-label={t("pickADocToLink")}
+        placeholder={t("pickADocToLink")}
+        onChange={(e) => setWord(e.target.value)}
+        className="mb-1 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none placeholder:text-faint"
+      />
+      <div className="scroller max-h-[168px]">
+        {all === null && <p className="px-2.5 py-1.5 text-faint">{t("opening")}</p>}
+        {all !== null && shown.length === 0 && (
+          <p className="px-2.5 py-1.5 text-faint">{all.length ? t("noneHere") : t("noDocsYet")}</p>
+        )}
+        {shown.map((doc) => (
+          <Row key={doc.id} glyph="📄" onPick={() => onPick(doc)}>
+            <span className="min-w-0 truncate">{named(doc)}</span>
+          </Row>
+        ))}
+      </div>
+    </>
+  );
+}
 
 function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
   const [label, setLabel] = useState("");

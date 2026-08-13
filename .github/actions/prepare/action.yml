@@ -18,14 +18,11 @@ runs:
 
     - uses: Swatinem/rust-cache@v2
 
-    # After the cache, whose key hashes Cargo.lock: stamping first misses it.
     - name: Stamp the version
       shell: bash
       run: |
         version="${{ inputs.version }}"
 
-        # Downloads what the lock pins while it still matches the manifest, so the
-        # update below resolves from a populated registry instead of the network.
         cargo fetch --locked
 
         sed -i.bak -e "s/^version = .*/version = \"$version\"/" Cargo.toml
@@ -36,5 +33,4 @@ runs:
           exit 1
         fi
 
-        # The lock pins the workspace versions too, so `--locked` builds fail without this.
         cargo update --workspace --offline

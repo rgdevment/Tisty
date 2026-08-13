@@ -1,11 +1,7 @@
-//! The channels this window can speak through, and the watch that feeds them.
-
 use tauri::{Emitter, Manager};
 use tisty_core::herald::{Channel, Due, Happening, Heralds, Told, Trouble};
 use tisty_core::witness::{self, Fact, channel};
 
-/// A notification handed to the operating system, so it arrives with the window
-/// closed, minimised or behind everything else.
 pub struct Screen {
     app: tauri::AppHandle,
     words: Words,
@@ -46,8 +42,6 @@ impl Channel for Screen {
     }
 }
 
-/// A short tone, played by the webview because the sound a desktop application
-/// makes is not worth an audio stack in the bundle.
 pub struct Chime {
     app: tauri::AppHandle,
 }
@@ -68,8 +62,6 @@ impl Channel for Chime {
     }
 }
 
-/// Filing is already answered by the strip under the field; a second, slower
-/// copy from the system would only arrive after you had moved on.
 fn on_screen(what: &Happening) -> bool {
     matches!(what, Happening::Due { .. } | Happening::Missed { .. })
 }
@@ -82,8 +74,6 @@ fn tone_for(what: &Happening) -> Option<&'static str> {
     }
 }
 
-/// Every channel is registered; the ones this machine asked to keep quiet are
-/// left out. A channel added later starts on, without anyone opting in to it.
 pub struct Speaking {
     words: Words,
     now: std::sync::Mutex<Heralds>,
@@ -105,8 +95,6 @@ impl Speaking {
     }
 }
 
-/// Registered once at startup was not enough: a channel switched off from the
-/// settings screen said «Saved» and kept sounding until the app was restarted.
 pub fn respeak(app: &tauri::AppHandle, quiet: &[String]) {
     let Some(speaking) = app.try_state::<Speaking>() else {
         return;
@@ -140,11 +128,6 @@ fn speaks(channel: &str, quiet: &[String]) -> bool {
 
 const EVERY: std::time::Duration = std::time::Duration::from_secs(30);
 
-/// Wakes on its own thread and tells whatever came due since the last look.
-///
-/// The mark moves even when nothing was owed, so a window left open overnight
-/// does not hand the whole night to the lookback at the first reminder — but
-/// it never moves past something no channel could deliver.
 pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
     std::thread::spawn(move || {
         let mut watching = Watching::default();
@@ -160,8 +143,6 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
             ) else {
                 continue;
             };
-            // Grouped happenings lose their own timestamps, so the batch is
-            // owed from its oldest — but only the batch that actually failed.
             let oldest = owed.iter().map(|one| one.at).min();
             for what in tisty_core::herald::gathered(owed) {
                 if told(&app, what).lost() {
@@ -171,13 +152,6 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
                     };
                 }
             }
-            // Left just before the oldest one that failed, so the next round
-            // picks it up again. The lookback still caps how long it is worth
-            // retrying, which is what keeps this from running for ever.
-            // A half-written segment — the shape of a sync still coming down —
-            // leaves the projection frozen. Moving the mark then walks over
-            // reminders that were never read, which is the very loss this
-            // whole retry exists to close.
             since = if read { onward(now, kept) } else { since };
         }
     });
@@ -193,11 +167,6 @@ fn survived<T>(work: impl FnOnce() -> T, said: &'static str) -> Option<T> {
     }
 }
 
-/// The watch keeps a projection of its own and never touches the session lock.
-///
-/// It used to `reload()` with the lock held, and a reprojection of a long log
-/// is not cheap: Tauri's synchronous commands run on the main thread, so
-/// `snapshot`, `capture`, `complete` and the close handler all waited on it.
 #[derive(Default)]
 struct Watching {
     print: String,
@@ -205,21 +174,16 @@ struct Watching {
 }
 
 impl Watching {
-    /// The second half of the answer is whether the store could be read at all.
     fn owed(
         &mut self,
         paths: &tisty_core::Paths,
         since: jiff::Timestamp,
         now: jiff::Timestamp,
     ) -> (Vec<Due>, bool) {
-        // Cheap: it only stats the segment files. The replay below happens at
-        // most once per tick, and never with anyone waiting on it.
         let print = tisty_core::cache::fingerprint(&paths.store());
         let mut read = true;
         if print != self.print {
             match tisty_core::store::read_all(paths.store()) {
-                // Deliberately not `cache::project`: that writes the shared
-                // cache, and the window is the only thing that should.
                 Ok(events) => {
                     self.state = tisty_core::State::replay(&events);
                     self.print = print;
@@ -232,21 +196,16 @@ impl Watching {
     }
 }
 
-/// Where the next round starts: `now`, unless something could not be delivered
-/// — then just before the oldest of those, so it is picked up again.
 fn onward(now: jiff::Timestamp, kept: Option<jiff::Timestamp>) -> jiff::Timestamp {
     kept.map_or(now, |at| at - jiff::SignedDuration::from_secs(1))
 }
 
-/// Nothing listening is not a failure; every channel failing is, and the caller
-/// decides what to do about it.
 pub fn told(app: &tauri::AppHandle, what: Happening) -> Told {
     let Some(speaking) = app.try_state::<Speaking>() else {
         return Told::default();
     };
     let told = speaking.tell(&what);
     if told.lost() {
-        // Never `what`: a happening carries the title of the task it is about.
         let why: Vec<String> = told
             .trouble
             .iter()
@@ -285,14 +244,11 @@ mod tests {
         jiff::Timestamp::from_second(secs).unwrap()
     }
 
-    /// Nothing failed: the mark moves, so a window open all night does not hand
-    /// the whole night to the lookback at the first reminder of the morning.
     #[test]
     fn the_mark_moves_when_everything_was_delivered() {
         assert_eq!(onward(moment(1000), None), moment(1000));
     }
 
-    /// A reminder no channel could deliver is not written off as said.
     #[test]
     fn the_mark_waits_behind_what_could_not_be_told() {
         let kept = moment(940);
@@ -312,7 +268,6 @@ mod tests {
         assert!(onward(moment(1000), kept) < oldest);
     }
 
-    /// A lid closed at ten and opened at eight owes a dozen at once.
     #[test]
     fn a_nights_worth_arrives_as_one_line() {
         let owed: Vec<Due> = (0..12)
@@ -328,7 +283,6 @@ mod tests {
         assert!(matches!(said[0], Happening::Missed { count: 12 }));
     }
 
-    /// Two or three still deserve their own titles.
     #[test]
     fn a_few_are_still_told_one_by_one() {
         let owed: Vec<Due> = (0..3)
@@ -349,8 +303,6 @@ mod tests {
         assert_eq!(tone_for(&many), Some("due"));
     }
 
-    /// The old test for this reimplemented the filter inside the test file and
-    /// would have passed with `built` ignoring `quiet` entirely.
     #[test]
     fn a_muted_channel_is_not_registered() {
         assert_eq!(would_speak(&[]), vec!["screen", "chime"]);

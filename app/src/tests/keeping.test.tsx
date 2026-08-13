@@ -132,7 +132,6 @@ beforeEach(() => {
 
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
-/// The screen holds four sections now; a card only exists once its own is open.
 const go = (tab: RegExp) => userEvent.click(screen.getByRole("tab", { name: tab }));
 
 describe("the maintenance panel", () => {
@@ -155,7 +154,6 @@ describe("the maintenance panel", () => {
     expect(sent("choose_sync")[0].args.dest).toBe("G:/My Drive/tisty");
   });
 
-  /** The whole point of the exclusion: two truths beside each other. */
   it("hides backing up once a shared folder holds every machine", async () => {
     carrying.chosen = "G:/My Drive/tisty";
     carrying.backsUp = false;
@@ -188,9 +186,6 @@ describe("the maintenance panel", () => {
     expect(sent("restore")[0].args.from).toBe("C:/keep/tisty-backup.zip");
   });
 
-  /// Work anywhere on the screen holds every button on it — restoring on top of
-  /// a running carry is the pair that must never overlap — and only the card
-  /// that started it said anything. The rest looked broken.
   it("says why the other cards went quiet", async () => {
     carrying.chosen = "G:/My Drive/tisty";
     const otherwise = ipc.answer;
@@ -207,9 +202,6 @@ describe("the maintenance panel", () => {
     );
   });
 
-  /// `disabled:opacity-50` put the ink at 2:1 and left the dropdown looking
-  /// perfectly usable while it was not. Work started in one section holds the
-  /// controls in every other one, so the state travels across the tabs.
   it("draws what cannot be pressed as such, in a colour the palette declares", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
@@ -254,7 +246,6 @@ describe("the first-run assistant", () => {
     expect(sent("choose_sync")[0].args.dest).toBeUndefined();
   });
 
-  /** Closing it must not be filed as a choice, or the folder is never offered again. */
   it("decides nothing when it is put off", async () => {
     const done = vi.fn();
     render(<Welcome onDone={done} />);
@@ -265,8 +256,6 @@ describe("the first-run assistant", () => {
     expect(sent("choose_sync").length).toBe(0);
   });
 
-  /// The installer used to do this and wiped a whole PATH; from here it is
-  /// asked for, and the reply says a new terminal is needed.
   it("offers the command line, and says what to do next", async () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
@@ -292,7 +281,6 @@ describe("the first-run assistant", () => {
     await waitFor(() => expect(sent("reach_for")[0].args.wanted).toBe(false));
   });
 
-  /// A dev run has no CLI beside the window; offering it would be a lie.
   it("says nothing when there is no command line to offer", async () => {
     standing.shipped = false;
     render(<Keeping onChanged={() => {}} />);
@@ -310,8 +298,6 @@ describe("the report a bug gets attached to", () => {
     await go(/maintenance/i);
   };
 
-  /// The log is not something to administer: it is material for a report, and
-  /// the only question is whether it goes in.
   it("offers the log as one more answer, on by default", async () => {
     await upkeep();
 
@@ -338,7 +324,6 @@ describe("the report a bug gets attached to", () => {
     await waitFor(() => expect(screen.queryByText(/folder unreachable/)).toBeNull());
   });
 
-  /// One file, not a text file beside a log file beside a screenshot.
   it("writes one zip, and says whether the log goes in it", async () => {
     asked.file = "D:/issues/tisty-report.zip";
     await upkeep();
@@ -352,8 +337,6 @@ describe("the report a bug gets attached to", () => {
 });
 
 describe("the command line on a Mac", () => {
-  /// macOS builds its PATH from /etc/paths, which does not list ~/.local/bin:
-  /// the link gets made and the terminal still says «command not found».
   it("says so when the link lands where no shell looks", async () => {
     standing.withinReach = true;
     standing.onPath = false;

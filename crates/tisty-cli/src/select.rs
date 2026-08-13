@@ -25,8 +25,6 @@ impl Selection {
         let Ok(text) = std::fs::read_to_string(paths.selection_file()) else {
             return Self::default();
         };
-        // Not having it is ordinary; having it and not understanding it turns
-        // every `done 2` into «no match», with nothing said about why.
         serde_json::from_str(&text).unwrap_or_else(|why| {
             witness::warn(
                 channel::TERMINAL,
@@ -60,7 +58,6 @@ impl Selection {
 }
 
 pub fn resolve(selector: &str, selection: &Selection, tasks: &[&Task]) -> Resolved {
-    // Falling through would let `done 7` match an id ending in 7, silently.
     if let Ok(n) = selector.parse::<usize>() {
         return match selection.number(n) {
             Some(id) if tasks.iter().any(|t| t.id == id) => Resolved::One(id),
@@ -75,7 +72,6 @@ pub fn resolve(selector: &str, selection: &Selection, tasks: &[&Task]) -> Resolv
         };
     }
 
-    // Tail, not head: a ULID leads with its timestamp.
     let upper = selector.to_uppercase();
     let by_id: Vec<_> = if selector.len() >= MIN_ID_FRAGMENT {
         tasks
@@ -105,7 +101,6 @@ pub fn resolve(selector: &str, selection: &Selection, tasks: &[&Task]) -> Resolv
     }
 }
 
-/// Bails without a TTY: blocking on a prompt would hang any script.
 pub fn prompt(tasks: &[&Task], lang: crate::i18n::Lang) -> anyhow::Result<Option<TaskId>> {
     if tasks.is_empty() {
         return Ok(None);

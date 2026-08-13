@@ -47,7 +47,6 @@ describe("source where the cursor is, composed where it is not", () => {
     await user.tab();
     expect(region()).toBe(document.activeElement);
 
-    // Focus alone must not open it, or tabbing past a task would edit it.
     expect(screen.queryByRole("textbox")).toBeNull();
     await user.keyboard("{Enter}");
     expect(box()).toBe(document.activeElement);
@@ -83,9 +82,6 @@ describe("the / menu", () => {
     await user.type(box(), "{End} /");
   };
 
-  /// A ticket is a link, so it never had a row of its own. And «Document» is
-  /// gone until documents exist: `[[…]]` now reads as a step reference, so
-  /// offering it taught the wrong thing.
   it("offers what can actually be written, and nothing else", async () => {
     const user = userEvent.setup();
     field();

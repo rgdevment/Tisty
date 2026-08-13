@@ -10,7 +10,6 @@ interface Props {
   onSubmit?: () => void;
 }
 
-/** A span the parser took, one it only offers, or one the user overruled. */
 export interface Mark {
   span: Span;
   offered: boolean;

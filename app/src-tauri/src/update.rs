@@ -1,13 +1,3 @@
-//! Whether a newer Tisty exists, and how this copy would get it.
-//!
-//! One read-only request for a small file, nothing sent but the headers a
-//! request needs. Silent when it fails: a check that interrupts is worse than
-//! one that never happens.
-//!
-//! The manifest says only which versions exist. Every address this program can
-//! open is a constant compiled in, so nothing downloaded can point anyone
-//! anywhere — which is what a signature would otherwise be for.
-
 use tisty_core::witness::{self, Fact, channel};
 
 const MANIFEST: &str =
@@ -16,7 +6,6 @@ pub const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 
-/// How this copy is kept up to date, which depends on where it came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Route {
@@ -58,9 +47,6 @@ struct Manifest {
     latest_prerelease: Option<String>,
 }
 
-/// A candidate is only offered to somebody already running one, and then only
-/// if it beats the stable release too: whatever supersedes an `rc` is what they
-/// want, stable or not.
 pub fn newer(now: &str, manifest: &str, kept: Kept) -> Option<Ready> {
     let here: semver::Version = now.parse().ok()?;
     let read: Manifest = serde_json::from_str(manifest).ok()?;
@@ -86,8 +72,6 @@ pub fn due(last: Option<jiff::Timestamp>, now: jiff::Timestamp) -> bool {
     last.is_none_or(|at| now.duration_since(at) >= APART)
 }
 
-/// Asked of the running program, never of a setting: whoever installed it is
-/// not always whoever is using it, and a wrong instruction is worse than none.
 pub fn route() -> Kept {
     chosen(std::env::current_exe().ok().as_deref(), |at| at.is_dir())
 }
@@ -97,8 +81,6 @@ const CASKS: [&str; 2] = ["tisty", "tisty-beta"];
 const FORMULAE: [&str; 2] = ["tisty-cli", "tisty-cli-beta"];
 
 fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) -> bool) -> Kept {
-    // Read as text, not as a path: `components` splits on a backslash only on
-    // Windows, so the question would answer itself wrong anywhere else.
     let packaged = running.is_some_and(|at| {
         at.to_string_lossy()
             .split(['/', '\\'])
@@ -130,8 +112,6 @@ fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) ->
 pub fn fetch() -> Option<String> {
     let asked = reqwest::blocking::Client::builder()
         .timeout(PATIENCE)
-        // GitHub refuses a request without one. It names the program and its
-        // version, which the download itself already reveals; nothing else.
         .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
         .build()
         .ok()?
@@ -173,7 +153,6 @@ mod tests {
         );
     }
 
-    /// A candidate older than the stable release is superseded by it.
     #[test]
     fn a_candidate_takes_the_stable_one_when_it_is_ahead() {
         let feed = r#"{"latest":"0.5.0","latestPrerelease":"0.4.0-rc1"}"#;

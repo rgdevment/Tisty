@@ -36,8 +36,6 @@ pub struct Kept {
     pub order: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
-    /// Out of the way without being gone: it keeps its folder so unarchiving
-    /// puts it back where it was.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub archived: bool,
 }

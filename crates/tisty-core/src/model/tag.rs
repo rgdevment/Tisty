@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 #[error("a tag needs at least one letter or digit")]
 pub struct InvalidTag;
 
-/// Normalised on construction, or the archive splits into near-duplicates.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Tag(String);

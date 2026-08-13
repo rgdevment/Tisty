@@ -1,7 +1,5 @@
 import { useEffect, useRef } from "react";
 
-/// The word being typed after a slash, or null when there is no menu to show.
-/// A slash mid-word is a path or a date, not a command.
 export const asked = (before: string): string | null => {
   const found = /(?:^|\s)\/([\p{L}\p{N}_]*)$/u.exec(before);
   return found ? found[1] : null;

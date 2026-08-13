@@ -15,7 +15,6 @@ use tisty_core::{
     witness::{self, Fact, channel},
 };
 
-/// The CLI writes to the same store while the window is open, so this can go stale under it.
 struct Session {
     paths: Paths,
     config: Config,
@@ -66,14 +65,10 @@ impl Session {
         })
     }
 
-    /// Read from disk before writing: the terminal edits the same file while
-    /// the window is open, and saving a copy from startup would undo it.
     fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
         let mut fresh = match Config::load(&self.paths.config_file()) {
             Ok(Some(kept)) => kept,
             Ok(None) => self.config.clone(),
-            // What is about to be written over cannot be read: worth a record,
-            // because the settings that vanish are the ones nobody saw go.
             Err(why) => {
                 witness::warn(
                     channel::CONFIG,
@@ -100,8 +95,6 @@ impl Session {
         Ok(true)
     }
 
-    /// A local write during a pull already folded the arrived files into the
-    /// fingerprint, so comparing it would report «nothing new» and hide them.
     fn reproject(&mut self) -> tisty_core::Result<()> {
         self.state = tisty_core::cache::project(&self.paths.store(), self.paths.cache())?;
         self.print = tisty_core::cache::fingerprint(&self.paths.store());
@@ -135,15 +128,12 @@ impl Session {
     }
 }
 
-/// Counted with the same filter the views use, or the sidebar would promise a number the list does not deliver.
 fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
     let mut counts = std::collections::BTreeMap::new();
     let mut count = |key: &str, filter: Filter| {
         counts.insert(key.to_string(), state.matching(&filter, today()).len());
     };
 
-    // Keyed by what the sidebar actually paints. They used to be «inbox» and
-    // «today», which no entry asks for, so every count up there was blank.
     count(
         "tasks",
         Filter {
@@ -151,8 +141,6 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             ..Default::default()
         },
     );
-    // One number beside a title that always says «Tasks» reads as the whole of
-    // them. Each slice carries its own instead.
     count(
         "upcoming",
         Filter {
@@ -175,7 +163,6 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             ..Default::default()
         },
     );
-    // Folded work must still say it is there, or putting it away is losing it.
     count(
         "folded",
         Filter {
@@ -199,15 +186,12 @@ struct Counted {
     tasks: usize,
 }
 
-/// Derived from tasks in use; the count reaches into the archive too.
 fn tags_in_use(state: &State) -> Vec<Counted> {
     state
         .tags()
         .into_iter()
         .map(|tag| Counted {
             tag: tag.to_string(),
-            // Folded work is not counted, or the chip promises more than the
-            // list delivers.
             tasks: state.tasks_tagged(tag).filter(|t| !t.hidden).count(),
         })
         .collect()
@@ -218,14 +202,11 @@ struct Snapshot {
     tasks: Vec<Task>,
     lists: Vec<List>,
     tags: Vec<Counted>,
-    /// Internal references already in use, for the `/` menu to offer back.
     refs: Vec<String>,
     counts: std::collections::BTreeMap<String, usize>,
-    /// Set only when configured, or the window would speak a different language than `tisty`.
     locale: Option<String>,
 }
 
-/// `code` is untranslated; each client renders it in the language it speaks.
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Refusal {
@@ -265,25 +246,19 @@ impl From<tisty_core::Error> for Refusal {
     }
 }
 
-/// Written down before it becomes a `Refusal`: the window shows a code, and
-/// this is the only place the cause survives.
 fn blamed(channel: &'static str, said: &'static str, error: tisty_core::Error) -> Refusal {
-    // The banner gets the whole of it — it is on the person's own screen. The
-    // log gets only what cannot carry what they wrote.
     witness::error(channel, said, &error.told());
     Refusal::about("internalNamed", error.to_string())
 }
 
 type Answer<T> = std::result::Result<T, Refusal>;
 
-/// Recovers the guard, or one panicked command would refuse every command after it.
 fn held<'a>(session: &'a tauri::State<'_, Mutex<Session>>) -> std::sync::MutexGuard<'a, Session> {
     session
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-/// The day is decided where the user is, never in UTC.
 fn today() -> jiff::civil::Date {
     jiff::Zoned::now().date()
 }
@@ -301,7 +276,6 @@ fn zone() -> String {
 struct View {
     #[serde(default)]
     archive: bool,
-    /// A tag reaches across the archive: «everything I did with #istio».
     #[serde(default)]
     everything: bool,
     #[serde(default)]
@@ -310,7 +284,6 @@ struct View {
     list: Option<String>,
     #[serde(default)]
     tags: Vec<String>,
-    /// The tag view with nothing picked lists what carries a tag, not everything.
     #[serde(default)]
     tagged: bool,
     #[serde(default)]
@@ -364,8 +337,6 @@ fn snapshot(
 ) -> Answer<Snapshot> {
     let mut session = held(&session);
     session.reload()?;
-    // Reread from disk on every snapshot, so a language changed from the
-    // terminal reaches the tray as well as the window.
     let spoken = Config::load(&session.paths.config_file())
         .ok()
         .flatten()
@@ -395,7 +366,6 @@ fn snapshot(
     })
 }
 
-/// Same knobs the CLI exposes as flags; the window may not store anything `tisty add` cannot.
 #[derive(serde::Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 struct Edits {
@@ -417,7 +387,6 @@ struct Edits {
     deadline: Option<String>,
     #[serde(default)]
     priority: Option<u8>,
-    /// The offered phrase was accepted, so it stops being part of the title.
     #[serde(default)]
     take_offer: bool,
 }
@@ -463,7 +432,6 @@ impl Edits {
         Ok(())
     }
 
-    /// A reading the user unmarked goes back into the title; picking a different date is not unmarking.
     fn retitled(&self, text: &str, read: &tisty_nl::Parsed, spoken: &str) -> Option<String> {
         let undone = self.no_date
             || self.no_deadline
@@ -510,8 +478,6 @@ impl Edits {
     }
 }
 
-/// A bare day first, or `civil::DateTime` reads it as midnight and every date
-/// picked in the calendar comes back stamped «00:00».
 fn dated(raw: &str, now: &jiff::Zoned, spoken: &str) -> Result<tisty_core::DateSpec, Refusal> {
     if let Ok(day) = raw.parse::<jiff::civil::Date>() {
         return Ok(tisty_core::DateSpec::all_day(day, zone()));
@@ -522,8 +488,6 @@ fn dated(raw: &str, now: &jiff::Zoned, spoken: &str) -> Result<tisty_core::DateS
     tisty_nl::parse_date(raw, now, spoken).ok_or_else(|| Refusal::about("notADate", raw))
 }
 
-/// A deadline or a reminder in the past is not a mistake to store and explain
-/// later: it can never fire and it can never be met.
 fn ahead(
     spec: &tisty_core::DateSpec,
     now: &jiff::Zoned,
@@ -540,7 +504,6 @@ fn ahead(
     Ok(())
 }
 
-/// `locale` is the system's, via the webview; the configured one still wins.
 #[tauri::command]
 fn capture(
     app: tauri::AppHandle,
@@ -575,7 +538,6 @@ fn capture(
         }
     }
 
-    // Last, or removing the date inside «Hoy» would hand it straight back.
     let edits = edits.unwrap_or_default();
     edits.apply(&mut draft, &now, &spoken)?;
     if let Some(spec) = &draft.deadline {
@@ -634,8 +596,6 @@ struct Change {
     untag: Option<String>,
     #[serde(default)]
     list: Option<String>,
-    /// By name, and made if there is none: with no lists yet the window had
-    /// nowhere to file a task and no way to make anywhere either.
     #[serde(default)]
     list_named: Option<String>,
     #[serde(default)]
@@ -652,7 +612,6 @@ struct Change {
     no_repeat: bool,
 }
 
-/// One batch: an undo has to take back the whole edit, not half of it.
 #[tauri::command]
 fn patch(
     session: tauri::State<'_, Mutex<Session>>,
@@ -704,8 +663,6 @@ fn patch(
     let named = match change.list_named.as_deref().map(str::trim) {
         Some(name) if !name.is_empty() => Some(match session.state.list_called(name).as_slice() {
             [one] => one.id,
-            // Ambiguity is the one case worth refusing: picking either of two
-            // lists on the person's behalf is the wrong kind of helpful.
             [_, _, ..] => return Err(Refusal::about("manyLists", name)),
             [] => {
                 let made = ulid::Ulid::generate();
@@ -762,8 +719,6 @@ fn patch(
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
-/// Built from the task as it is now, not from a vector the window sent: two
-/// quick clicks would otherwise undo each other.
 fn tagged(task: &Task, change: &Change) -> Result<Option<Vec<Tag>>, Refusal> {
     if change.add_tag.is_none() && change.untag.is_none() {
         return Ok(None);
@@ -782,8 +737,6 @@ fn tagged(task: &Task, change: &Change) -> Result<Option<Vec<Tag>>, Refusal> {
     Ok(Some(tags))
 }
 
-/// A cadence of zero would make the next occurrence land on the same day for
-/// ever; the parser refuses it too.
 fn repeated(
     change: &Change,
     now: &jiff::Zoned,
@@ -798,8 +751,6 @@ fn repeated(
     if every == 0 || every > 999 {
         return Err(Refusal::of("notACadence"));
     }
-    // A last day already gone by would end the series at the next completion,
-    // silently: the task simply stops coming back and nothing ever said why.
     if over.ended(now.date()) {
         return Err(Refusal::of("pastEnd"));
     }
@@ -974,7 +925,6 @@ fn write_log(
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
-/// Searches through the core, or it would find different things than `tisty search` does.
 #[tauri::command]
 fn search(
     session: tauri::State<'_, Mutex<Session>>,
@@ -996,8 +946,6 @@ fn search(
     })
 }
 
-/// Enough to scroll through; far short of what a one-letter query matches in a
-/// store with years of archive, which is what used to be cloned and shipped.
 const MOST: usize = 200;
 
 #[derive(serde::Serialize)]
@@ -1036,12 +984,6 @@ fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> An
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
-/// An error nobody caught used to leave nothing behind at all: the window goes
-/// blank and the log stays empty, so the one failure that needs a trace is the
-/// only one without one.
-///
-/// Where it broke, never what it said. A render error carries the props that
-/// caused it, and props carry titles — the same rule the panic hook follows.
 #[tauri::command]
 fn note_break(kind: String, frames: String) {
     let cut = |text: String, most: usize| text.chars().take(most).collect::<String>();
@@ -1063,8 +1005,6 @@ struct Carrying {
     backs_up: bool,
     last: Option<String>,
     loose: usize,
-    /// What a copy would carry and what it would weigh, said before the dialog
-    /// asks for a folder rather than after the file is written.
     open: usize,
     archived: usize,
     lists: usize,
@@ -1073,8 +1013,6 @@ struct Carrying {
     backed_up_at: Option<String>,
 }
 
-/// Reporting that the cache disagrees without offering to redo it leaves the
-/// only screen you go to when something is wrong with nothing to press.
 #[tauri::command(async)]
 fn rebuild(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
     let mut session = held(&session);
@@ -1135,8 +1073,6 @@ struct Reviewed {
     devices: usize,
 }
 
-/// Gathered on demand and never sent anywhere: the window writes it to a file
-/// the person picked, and they decide whether it is worth sharing.
 #[tauri::command(async)]
 fn facts(
     session: tauri::State<'_, Mutex<Session>>,
@@ -1227,8 +1163,6 @@ fn facts(
     })
 }
 
-/// Written by us and not by a file plugin: the only thing the window may put on
-/// disk unasked is the report it just showed, at the path the dialog returned.
 #[tauri::command(async)]
 fn keep_report(
     session: tauri::State<'_, Mutex<Session>>,
@@ -1286,9 +1220,6 @@ fn bundled(
     Ok(())
 }
 
-/// Every code a refusal can carry. A `Fact::Code` is a `&'static str`, and one
-/// the webview typed must never become one: the code that arrives is matched
-/// against these and it is ours that is written down, or nothing.
 const REFUSALS: &[&str] = &[
     "untitled",
     "noSuchList",
@@ -1333,8 +1264,6 @@ fn refusal_code(said: &str) -> Option<&'static str> {
     REFUSALS.iter().copied().find(|one| *one == said)
 }
 
-/// What the window put in front of the person, which is the half of the story
-/// the log never had: the cause is recorded where it happened, the banner here.
 #[tauri::command]
 fn note_trouble(code: String) {
     let Some(code) = refusal_code(&code) else {
@@ -1369,7 +1298,6 @@ fn logs(session: tauri::State<'_, Mutex<Session>>, most: usize) -> Answer<Logs> 
     })
 }
 
-/// The terminal can change the language while the window is open.
 fn language<R: tauri::Runtime>(app: &tauri::AppHandle<R>, locale: &Option<String>) {
     tray::reword(
         app,
@@ -1381,8 +1309,6 @@ fn language<R: tauri::Runtime>(app: &tauri::AppHandle<R>, locale: &Option<String
     );
 }
 
-/// Sync before reviewing: a store about to change would be reviewed for a
-/// state nobody keeps.
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Settling {
@@ -1396,25 +1322,19 @@ struct Settling {
 #[serde(rename_all = "camelCase")]
 struct About {
     version: String,
-    /// Named when this is a sandbox, so nothing here is mistaken for real.
     sandbox: Option<String>,
     repository: &'static str,
     license: &'static str,
-    /// Where the log actually lives, so a report can say it without guessing.
     store: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Settings {
-    /// Channels told to keep quiet, by name.
     quiet: Vec<String>,
-    /// In bytes, already clamped to what the core will accept.
     attach_up_to: u64,
 }
 
-/// Nothing is asked when it is switched off, and nothing is asked twice within
-/// the interval: the answer is remembered, not the request repeated.
 #[tauri::command]
 async fn update_ready(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<update::Ready>> {
     let last = held(&session).config.checked_at;
@@ -1441,9 +1361,6 @@ fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     })
 }
 
-/// Writes only what this screen owns. It used to carry the locale along, and
-/// the window's copy of it is read once at startup: a language set from the
-/// terminal afterwards was silently written back to what it had been.
 #[tauri::command]
 fn keep_settings(
     app: tauri::AppHandle,
@@ -1465,8 +1382,6 @@ fn keep_settings(
         attach_up_to: session.config.copies_up_to(),
     };
     drop(session);
-    // Channels are registered once at startup, so without this the switch said
-    // «Saved» and the tone kept sounding until the app was restarted.
     herald::respeak(&app, &now.quiet);
     Ok(now)
 }
@@ -1849,8 +1764,6 @@ fn doc_copy(
 
     let root = session.paths.docs();
     let body = tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
-    // Two rows with the same name and nothing to tell them apart is worse than
-    // no copy at all: the title lives in the first line, so that is where it goes.
     let body = match body.split_once('\n') {
         Some((first, rest)) if !first.trim().is_empty() => {
             format!("{first}{}\n{rest}", worded(&session.locale, "copy"))
@@ -1984,11 +1897,6 @@ fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()>
     Ok(())
 }
 
-/// Nobody could say which version they hit a problem with: it existed only in
-/// `CARGO_PKG_VERSION` and was never shown anywhere in the window.
-/// `spellcheck` on the element is not enough on macOS: WKWebView keeps
-/// continuous checking off until something turns it on, so nothing is ever
-/// underlined and the menu offers no dictionary. Windows has it on already.
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 fn proofread(window: &tauri::WebviewWindow) {
@@ -2026,10 +1934,6 @@ fn proofread(window: &tauri::WebviewWindow) {
 #[cfg(not(target_os = "macos"))]
 fn proofread(_window: &tauri::WebviewWindow) {}
 
-/// macOS wires the default Quit straight to `terminate:`, which no handler can
-/// intercept — so the most common way to leave was the only one that never
-/// waited for the editor to finish. This replaces just that item; everything
-/// else stays predefined, including the edit entries the spell checker hangs on.
 #[cfg(target_os = "macos")]
 fn menued(
     app: &tauri::AppHandle,
@@ -2079,10 +1983,6 @@ fn menued(
     tauri::menu::Menu::with_items(app, &[&app_menu, &edit, &window])
 }
 
-/// Killing the process outright threw away whatever the editor had not written
-/// yet. The window is asked to finish first, and answers with `parted` — but
-/// the timer leaves anyway, so a window that never answers cannot trap anybody
-/// inside the app.
 pub fn parting<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     use tauri::{Emitter, Manager};
 
@@ -2105,9 +2005,6 @@ pub fn parting<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 #[derive(Default)]
 struct Leaving(std::sync::atomic::AtomicBool);
 
-/// `window.print()` from the page does nothing: WKWebView never implemented it.
-/// The webview itself can print, and the system dialog is what offers «save as
-/// PDF» on both platforms.
 #[tauri::command]
 fn printed(window: tauri::WebviewWindow) -> Answer<()> {
     window.print().map_err(|e| {
@@ -2174,7 +2071,6 @@ async fn settle_in(
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
-        // A folder that is not there is not a reason to refuse to start.
         let carried = tauri::async_runtime::spawn_blocking(move || {
             tisty_sync::carry(
                 &data,
@@ -2207,7 +2103,6 @@ async fn settle_in(
             )
         })?;
     }
-    // A version that changed how the cache is built cannot be trusted with it.
     let audit =
         tisty_core::cache::audit(&session.paths.store(), session.paths.cache()).map_err(|e| {
             witness::error(
@@ -2229,8 +2124,6 @@ async fn settle_in(
         })?;
     }
 
-    // Not sealed when the carry never ran — the automatic one had the lock —
-    // or the next start would skip settling in for good.
     if carried {
         session.keep(|c| c.opened_by = Some(here.to_string()))?;
     }
@@ -2247,7 +2140,6 @@ fn reachable() -> command::Reach {
     command::reach()
 }
 
-/// Here and not in the installer, which read the value truncated and wiped it.
 #[tauri::command]
 fn reach_for(wanted: bool) -> Answer<command::Reach> {
     command::within_reach(wanted).map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
@@ -2308,7 +2200,6 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
     {
         Some(dest) => {
             let at = std::path::PathBuf::from(&dest);
-            // The panel would count them loose, and each backup carry itself.
             let data = session.paths.data();
             let tangled = at.starts_with(data)
                 || data.starts_with(&at)
@@ -2327,7 +2218,6 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
     session.keep(|c| c.sync = Some(chosen))
 }
 
-/// `None` is «not now»: unanswered, so the question comes again.
 #[tauri::command]
 fn close_window(
     window: tauri::Window,
@@ -2348,8 +2238,6 @@ fn close_window(
         tisty_core::config::Closing::Hide => {
             let _ = window.hide();
         }
-        // The fourth way out, and the most common one: this dialog appears
-        // every time until «remember» is ticked.
         tisty_core::config::Closing::Quit => parting(window.app_handle()),
     }
     Ok(())
@@ -2362,8 +2250,6 @@ async fn sync_now(
     way: Option<String>,
     merge: Option<bool>,
 ) -> Answer<&'static str> {
-    // Busy is not «nothing new»: reporting the second as the first tells the
-    // person a sync happened when what happened was that one was already going.
     let Some(_done) = alone.inner().claim() else {
         return Ok("busy");
     };
@@ -2419,20 +2305,16 @@ async fn sync_now(
         "a carry finished",
         &[("moved", Fact::Word(if moved { "yes" } else { "no" }))],
     );
-    // Last: «synced a moment ago» over a store that will not project is a lie.
     session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
     Ok(if moved { "came" } else { "same" })
 }
 
-/// Off the main thread: this window has no system title bar to keep dragging.
 #[tauri::command]
 async fn back_up(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
     into: String,
 ) -> Answer<u64> {
-    // The same lock as carrying: a restore renaming the store while a carry
-    // writes into it is the pair that must never overlap.
     let _done = alone.inner().taken()?;
     let (data, aside) = {
         let session = held(&session);
@@ -2459,8 +2341,6 @@ async fn back_up(
                 Refusal::about("cannotWrite", into)
             })?;
 
-    // Remembered so the screen can say when the last one was made — the question
-    // that decides whether anyone makes the next.
     let now = jiff::Timestamp::now();
     held(&session).keep(|config| config.backed_up_at = Some(now))?;
     Ok(made.bytes)
@@ -2491,8 +2371,6 @@ async fn restore(
             _ => Refusal::about("cannotRead", from.clone()),
         })?;
 
-    // Not `reload`: the restore minted a new device id, and a Store still open
-    // on the old one would write into a directory that just went back in time.
     *held(&session) = Session::open().map_err(|e| {
         blamed(
             channel::BACKUP,
@@ -2522,8 +2400,6 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
     }
 }
 
-/// Guarded by `attach::resolve`: without it a description could name any file
-/// on the disk and the window would show it.
 #[tauri::command]
 fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<String> {
     let root = held(&session).paths.data().to_path_buf();
@@ -2535,8 +2411,6 @@ fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answe
     Ok(at.to_string_lossy().into_owned())
 }
 
-/// Uses the free function, not the plugin command: its scope is empty and would
-/// refuse every path. `attach::resolve` is the guard, and a tighter one.
 #[tauri::command]
 fn opened(
     app: tauri::AppHandle,
@@ -2549,7 +2423,6 @@ fn opened(
     if !at.is_file() {
         return Err(Refusal::about("cannotRead", reference));
     }
-    // Never launched, only shown: a description can arrive from another machine.
     if !safe_to_open(&at) {
         return show(&at, &reference);
     }
@@ -2558,15 +2431,10 @@ fn opened(
     Ok(())
 }
 
-/// A file the store does not hold: over the threshold only its path was kept,
-/// so it is shown in its folder rather than opened from a path we cannot vouch for.
 #[tauri::command]
 fn revealed(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answer<()> {
     let at = std::path::Path::new(&path);
 
-    // Refused before canonicalising, not after: on Windows canonicalising a UNC
-    // path already dials the share and authenticates. Anything but a plain local
-    // path is somebody else's idea of where to look.
     let plain = at.components().next().is_none_or(|first| {
         !matches!(first, std::path::Component::Prefix(at) if !matches!(at.kind(), std::path::Prefix::Disk(_)))
     });
@@ -2591,8 +2459,6 @@ fn revealed(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answer<(
     if !ours {
         return Err(Refusal::about("cannotOpen", path));
     }
-    // Checked against the canonical path, shown as the original: the `\\?\`
-    // prefix canonicalising adds is one the Windows shell refuses to parse.
     show(at, &path)
 }
 
@@ -2606,11 +2472,6 @@ fn show(at: &std::path::Path, said: &str) -> Answer<()> {
         .map_err(|_| Refusal::about("cannotOpen", said.to_string()))
 }
 
-/// A denylist of extensions lost: `.exe` as a whole name has no extension for
-/// Rust but is a program for Windows, and a trailing dot or space is trimmed by
-/// Win32 before the shell looks. Attachments arrive from other machines, which
-/// choose the name, so the question is what any system would run — and the only
-/// answer that holds is a list of what is safe to hand over.
 fn safe_to_open(at: &std::path::Path) -> bool {
     let name = at
         .file_name()
@@ -2681,7 +2542,6 @@ fn safe_to_open(at: &std::path::Path) -> bool {
     )
 }
 
-/// Does not touch the task: what makes it an attachment is the reference in the prose.
 #[tauri::command]
 fn attach(
     session: tauri::State<'_, Mutex<Session>>,
@@ -2698,8 +2558,6 @@ fn attach(
         })
         .unwrap_or_default();
 
-    // The root is read and the lock released before any file work: copying
-    // megabytes with the session held would freeze every other command.
     let (root, ceiling) = {
         let session = held(&session);
         (
@@ -2709,8 +2567,6 @@ fn attach(
     };
     let kept = tisty_core::attach::keep(&source, &root, ceiling).map_err(|e| {
         witness::warn(channel::ATTACH, "the file could not be kept", &e.told());
-        // Its own refusal: «could not be read» would send somebody looking for a
-        // broken file when what happened is that it does not fit.
         match e {
             tisty_core::Error::AttachmentTooBig { limit, .. } => {
                 Refusal::about("attachmentTooBig", weighed(limit))
@@ -2722,7 +2578,6 @@ fn attach(
     Ok(kept.written(&name))
 }
 
-/// In the steps a person reads, not bytes.
 fn weighed(bytes: u64) -> String {
     let units = ["B", "kB", "MB", "GB"];
     let mut step = 0;
@@ -2768,14 +2623,8 @@ fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task>
 
 struct Perched(bool);
 
-/// Which combination answered, so the window can say it instead of leaving the
-/// person pressing keys that belong to their editor.
 struct Bound(Option<String>);
 
-/// A shortcut another program already holds is not an error worth stopping
-/// for: the tray still opens the same window. Which one answered is worth
-/// saying — `Ctrl+Shift+Space` is Trigger Parameter Hints in VS Code and Smart
-/// Type Completion in the JetBrains IDEs, so it does get taken.
 fn listen_for<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<String> {
     use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
@@ -2784,9 +2633,6 @@ fn listen_for<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<String> {
             "Ctrl+Shift+Space",
             Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space),
         ),
-        // Not on macOS: `Ctrl+Alt+Space` and `Ctrl+Space` are «select the next
-        // input source» on any Mac with two keyboard layouts, so a fallback
-        // that lands there is taken before Tisty asks.
         #[cfg(not(target_os = "macos"))]
         (
             "Ctrl+Alt+Space",
@@ -2815,8 +2661,6 @@ fn listen_for<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<String> {
     None
 }
 
-/// The tray menu is drawn before the window exists, so it cannot ask the
-/// frontend for its words.
 fn worded(locale: &Option<String>, key: &str) -> String {
     let spanish = locale
         .as_deref()
@@ -2845,14 +2689,10 @@ fn worded(locale: &Option<String>, key: &str) -> String {
     }
 }
 
-/// Only one at a time: the automatic carrier and the panel's button cannot see
-/// each other, and two carries would copy the same files over one another.
 #[derive(Default)]
 struct OneAtATime(std::sync::atomic::AtomicBool);
 
 impl OneAtATime {
-    /// `None` while another one holds it: the caller decides whether that is
-    /// «already going» or a reason to refuse.
     fn claim(&self) -> Option<Releasing<'_>> {
         use std::sync::atomic::Ordering;
         self.0
@@ -2886,10 +2726,6 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
         .setup(move |app| {
-            // Opened here, not before the builder: with syncing on, other
-            // machines write this store, so failing to read it stopped being
-            // impossible — and a window that dies without a word leaves
-            // nothing to act on, while the path and the reason do.
             let session = match Session::open() {
                 Ok(session) => session,
                 Err(why) => {
@@ -2907,10 +2743,6 @@ pub fn run() {
                 }
             };
 
-            // The store lives outside the bundle, so the asset scope has to be
-            // opened at runtime: the path is only known once data is resolved.
-            // A restore that died left the only copy of what it swapped out;
-            // once the store reads, it is over and can go.
             for at in tisty_core::backup::leftovers(session.paths.data()) {
                 if let Err(why) = std::fs::remove_dir_all(&at) {
                     witness::warn(
@@ -2950,14 +2782,10 @@ pub fn run() {
             app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
             herald::watch(app.handle().clone(), watched);
 
-            // No tray on this desktop means closing keeps its plain meaning,
-            // and the preference is ignored rather than hiding the app away.
             let perched = tray::raise(app.handle(), &words).is_some();
             app.manage(Perched(perched));
             app.manage(Bound(listen_for(app.handle())));
 
-            // The asset protocol ships with an empty scope, so without this the
-            // webview is forbidden to read any path and every image is broken.
             {
                 let held = app.state::<Mutex<Session>>();
                 let held = crate::held(&held);
@@ -2993,8 +2821,6 @@ pub fn run() {
                 }
             }
 
-            // Shown only now: the window is created before `setup` runs, and
-            // projecting a long log would leave a blank frame on screen.
             if let Some(window) = app.get_webview_window("main") {
                 proofread(&window);
                 let _ = window.show();
@@ -3002,13 +2828,9 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // The quick window is hidden, never closed, and asking there would
-            // put the question in front of a capture nobody finished.
             if window.label() != "main" {
                 return;
             }
-            // Windows 11 switches the taskbar theme while running, so the
-            // colour art has to be chosen again, not only at startup.
             if let tauri::WindowEvent::ThemeChanged(_) = event {
                 tray::repaint(window.app_handle());
                 return;
@@ -3019,9 +2841,6 @@ pub fn run() {
             };
 
             let app = window.app_handle();
-            // The quick window is created at startup and never closed, so the
-            // process outlives the main window: letting the close through
-            // would leave an invisible Tisty holding the global shortcut.
             if !app.state::<Perched>().0 {
                 api.prevent_close();
                 parting(app);
@@ -3038,8 +2857,6 @@ pub fn run() {
                     api.prevent_close();
                     let _ = window.hide();
                 }
-                // Asked once, where the answer matters, instead of buried in a
-                // settings screen nobody opens.
                 None => {
                     api.prevent_close();
                     let _ = window.emit("closing", ());
@@ -3115,8 +2932,6 @@ pub fn run() {
 mod tests {
     use super::*;
 
-    /// The names that beat a denylist: no extension at all for Rust, and the
-    /// trailing dot or space that Win32 trims before the shell decides.
     #[test]
     fn a_name_that_only_windows_reads_as_a_program_is_never_opened() {
         for name in [
@@ -3170,8 +2985,6 @@ mod tests {
         }
     }
 
-    /// A synced document can name any path;    /// A synced document can name any path; showing it in the file manager on
-    /// request would leak whatever another machine wrote into a link.
     #[test]
     fn only_paths_inside_the_store_can_be_shown() {
         let home = tempfile::tempdir().unwrap();
@@ -3192,8 +3005,6 @@ mod tests {
         assert!(!ours(&outside), "a path outside the store was shown");
     }
 
-    /// This crate is the only one out of the workspace's `forbid`, so the
-    /// exception has to stay a single audited spot rather than an open door.
     #[test]
     fn nothing_else_in_the_project_is_allowed_to_be_unsafe() {
         fn rust(at: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
@@ -3236,8 +3047,6 @@ mod tests {
             1,
             "unsafe is allowed in more than the one audited place: {allowed:?}"
         );
-        // Compared by its parts: Windows hands back `\\?\D:\…\lib.rs`, so a
-        // path is never the same string twice across platforms.
         let mine = std::path::Path::new(&allowed[0]);
         assert!(mine.ends_with("src-tauri/src/lib.rs"), "{allowed:?}");
     }
@@ -3246,8 +3055,6 @@ mod tests {
         "2026-08-05T09:00:00[America/Santiago]".parse().unwrap()
     }
 
-    /// The window sends the list it is looking at as an id; routing that through
-    /// the name lookup refused every capture inside a list.
     #[test]
     fn a_capture_inside_a_list_is_filed_by_id() {
         let mut state = State::default();
@@ -3329,8 +3136,6 @@ mod tests {
         );
     }
 
-    /// A code the window made up would have to be leaked to become a
-    /// `&'static str`, so it is dropped instead.
     #[test]
     fn only_a_code_we_ship_is_written_down() {
         assert_eq!(refusal_code("pastDeadline"), Some("pastDeadline"));
@@ -3349,7 +3154,6 @@ mod tests {
         assert_eq!(edits.retitled(text, &read, "es"), None);
     }
 
-    /// One file to attach to an issue, and the log only if it was asked for.
     #[test]
     fn a_report_is_one_zip_that_carries_what_was_ticked() {
         let tmp = tempfile::tempdir().unwrap();
@@ -3409,8 +3213,6 @@ version 0.1.0
         }
     }
 
-    /// Silent before this: the series simply stopped coming back at the next
-    /// completion, and nothing ever said why.
     #[test]
     fn a_series_cannot_be_told_to_have_ended_already() {
         let past = repeated(&every_day(Some(jiff::civil::date(2026, 8, 4))), &now());

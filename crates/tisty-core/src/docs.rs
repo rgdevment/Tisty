@@ -7,7 +7,6 @@ use crate::{Error, Result, event::DeviceId, store::write_atomic};
 const EXTENSION: &str = "md";
 const DIGITS: usize = 4;
 const MOST_DIGITS: u64 = 999_999_999_999;
-/// A title is one line; without a ceiling a file with no newline is read whole.
 const TITLE_AT_MOST: u64 = 4 * 1024;
 const BODY_AT_MOST: u64 = 32 * 1024 * 1024;
 
@@ -42,8 +41,6 @@ pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
     write_atomic(&at, body.as_bytes())
 }
 
-/// Imports read with the same ceiling as opens, or a bigger file is written
-/// whole and then truncated the first time it is saved.
 pub fn read_outside(at: &Path) -> Result<String> {
     let file = std::fs::File::open(at)?;
     if !file.metadata()?.is_file() {
@@ -133,8 +130,6 @@ fn next(root: &Path, device: &DeviceId) -> u64 {
     highest.map_or(1, |last| last + 1)
 }
 
-/// A hand-edited `device_id` with nothing usable left would name every file
-/// `-0001`, which `well_formed` refuses: no document could ever be created.
 fn stem(device: &DeviceId) -> String {
     let plain = device.0.strip_prefix("dev_").unwrap_or(&device.0);
     let kept: String = plain

@@ -20,8 +20,6 @@ const middle = (editor: Writing, from: number, to: number) => {
   return { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) };
 };
 
-/// Where the menu should hang. Only cosmetic, and it throws in environments
-/// with no layout, so a miss must not take the menu down with it.
 const caret = (editor: Writing, at: number) => {
   try {
     const spot = editor.view.coordsAtPos(at);
@@ -64,7 +62,6 @@ export default function Editor({
     setPicked(
       empty || editor.isActive("codeBlock") ? null : { at: middle(editor, $from.pos, $to.pos) },
     );
-    // A slash inside code is a path or a division, never a command.
     if (!empty || editor.isActive("codeBlock") || editor.isActive("code")) {
       return setAsking(null);
     }
@@ -89,9 +86,6 @@ export default function Editor({
       },
       transformPastedHTML: stripped,
       handleClick: (view, pos) => {
-        // Read from the document, never from the DOM: dressing a mark's node
-        // would propagate into the saved markdown, unlike an image, which is a
-        // leaf ProseMirror refuses to read back.
         const at = view.state.doc.resolve(pos);
         const picture = view.state.doc.nodeAt(pos);
         const src = picture?.type.name === "image" ? String(picture.attrs.src ?? "") : "";
@@ -265,8 +259,6 @@ export default function Editor({
     dom.setAttribute("aria-activedescendant", `slash-${current}`);
   }, [editor, opened, current]);
 
-  // The file lands outside React: the window hands it to whatever element under
-  // the cursor registered itself, the same way a task's field does.
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     return takesFiles(editor.view.dom, (put) => {
@@ -274,14 +266,9 @@ export default function Editor({
     });
   }, [editor]);
 
-  // The document keeps the reference a person can read; only the pixels on
-  // screen need the servable url, so the markdown is never touched.
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     let live = true;
-    // On `transaction`, not `update`: ProseMirror repaints a node when only the
-    // selection moved, and the repaint puts the document's own path back. And
-    // in a frame, or the picture is not in the DOM yet when it is asked for.
     const dress = () =>
       requestAnimationFrame(() => {
         if (editor.isDestroyed) return;

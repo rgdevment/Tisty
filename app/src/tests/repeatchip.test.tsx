@@ -27,8 +27,6 @@ const show = (repeat?: Parsed["repeat"], edits: Edits = {}, onEdit = () => {}) =
 const daily = { from: "done", each: { every: 1, unit: "day" } } as const;
 
 describe("the repeat chip", () => {
-  /// Without it the cadence is read, stored, and looks lost: the strip below
-  /// the field confirmed everything else and said nothing about the repeat.
   it("says the cadence next to the date", () => {
     show(daily);
 
@@ -65,8 +63,6 @@ describe("the repeat chip", () => {
 });
 
 describe("the repeat mark in the text", () => {
-  /// It shared the list tint, so «cada martes» looked like a filing under a
-  /// list called «martes».
   it("does not borrow the tint of another mark", () => {
     const { container } = render(
       <Field

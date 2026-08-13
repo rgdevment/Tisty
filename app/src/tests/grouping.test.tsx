@@ -47,7 +47,6 @@ describe("the archive folds repetitions", () => {
     expect(screen.getAllByText("sacar la basura").length).toBeGreaterThan(1);
   });
 
-  /// A one-off must not grow a counter it does not need.
   it("leaves a single closing as a plain row", () => {
     archive([done("1", "comprar pan", "2026-08-25T09:00:00Z")]);
 
@@ -55,7 +54,6 @@ describe("the archive folds repetitions", () => {
     expect(screen.queryByText(/\d+ times/i)).toBeNull();
   });
 
-  /// Without the month heading the fold would read as one long streak.
   it("keeps two months apart", () => {
     archive([
       done("1", "sacar la basura", "2026-09-01T09:00:00Z"),
