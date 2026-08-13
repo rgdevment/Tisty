@@ -4,6 +4,7 @@ import {
   capture,
   complete,
   discard,
+  docNew,
   docs,
   fold,
   dropStep,
@@ -309,6 +310,14 @@ export default function App() {
         counts={data.counts}
         chosen={chosen}
         ready={ready !== null}
+        onNewDoc={() =>
+          docNew()
+            .then((made) => {
+              setAllDocs((were) => [...were, made]);
+              setChosen({ named: "docs", doc: made.id });
+            })
+            .catch((e) => setError(saidPlainly(e)))
+        }
         onChoose={(next) => {
           setChosen(next);
           setSelected(undefined);
@@ -322,7 +331,10 @@ export default function App() {
       ) : chosen.named === "docs" ? (
         <Docs
           open={chosen.doc}
-          onKnown={setAllDocs}
+          known={allDocs}
+          onKept={(fresh) =>
+            setAllDocs((were) => were.map((one) => (one.id === fresh.id ? fresh : one)))
+          }
           onError={(e) => setError(saidPlainly(e))}
         />
       ) : chosen.named === "lists" && !chosen.list ? (
