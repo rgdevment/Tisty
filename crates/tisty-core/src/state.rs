@@ -163,6 +163,7 @@ impl State {
                         file: d.file.clone(),
                         order: d.order.clone(),
                         folder: d.folder,
+                        archived: false,
                     },
                 );
             }
@@ -176,6 +177,16 @@ impl State {
             Op::DocDelete { id } => {
                 self.docs.remove(id);
                 self.tombstones.insert(*id);
+            }
+            Op::DocArchive { id } => {
+                if let Some(doc) = self.docs.get_mut(id) {
+                    doc.archived = true;
+                }
+            }
+            Op::DocUnarchive { id } => {
+                if let Some(doc) = self.docs.get_mut(id) {
+                    doc.archived = false;
+                }
             }
             Op::ListLook { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {
@@ -295,6 +306,7 @@ impl State {
     pub fn unfiled(&self) -> Vec<&Kept> {
         self.docs
             .values()
+            .filter(|one| !one.archived)
             .filter(|one| one.folder.is_none_or(|at| !self.folders.contains_key(&at)))
             .collect()
     }
@@ -302,8 +314,12 @@ impl State {
     pub fn inside(&self, folder: FolderId) -> Vec<&Kept> {
         self.docs
             .values()
-            .filter(|one| one.folder == Some(folder))
+            .filter(|one| !one.archived && one.folder == Some(folder))
             .collect()
+    }
+
+    pub fn put_away(&self) -> Vec<&Kept> {
+        self.docs.values().filter(|one| one.archived).collect()
     }
 
     /// A reference whose target arrives later in the log is not a mistake to
@@ -2882,6 +2898,51 @@ mod tests {
         }]);
 
         assert!(matches!(again.first(), Some(Op::FolderAdd { id, .. }) if *id != work));
+    }
+
+    #[test]
+    fn an_archived_document_leaves_the_tree_without_leaving_its_folder() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let one = doc(&mut state, "a3f1-0001", Some(work));
+
+        state.apply(&ev(2, "a", Op::DocArchive { id: one }));
+
+        assert!(state.inside(work).is_empty(), "it still crowds the tree");
+        assert_eq!(state.held_by(work), 0, "it still counts");
+        assert!(state.unfiled().is_empty(), "it fell out of its folder");
+        assert_eq!(state.put_away().len(), 1);
+        assert_eq!(
+            state.docs[&one].folder,
+            Some(work),
+            "it forgot where it was"
+        );
+    }
+
+    #[test]
+    fn unarchiving_puts_it_back_where_it_was() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let one = doc(&mut state, "a3f1-0001", Some(work));
+        state.apply(&ev(2, "a", Op::DocArchive { id: one }));
+
+        state.apply(&ev(3, "a", Op::DocUnarchive { id: one }));
+
+        assert_eq!(state.inside(work).len(), 1);
+        assert!(state.put_away().is_empty());
+    }
+
+    #[test]
+    fn unarchiving_into_a_folder_that_is_gone_lands_in_unfiled() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let one = doc(&mut state, "a3f1-0001", Some(work));
+        state.apply(&ev(2, "a", Op::DocArchive { id: one }));
+        state.apply(&ev(3, "a", Op::FolderDelete { id: work }));
+
+        state.apply(&ev(4, "a", Op::DocUnarchive { id: one }));
+
+        assert_eq!(state.unfiled().len(), 1, "nobody could reach it");
     }
 
     #[test]

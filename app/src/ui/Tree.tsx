@@ -11,9 +11,8 @@ interface Props {
   onFile: (doc: string, folder?: string) => void;
   onHere?: (folder?: string) => void;
   onMove?: (folder: string, parent?: string) => void;
-  onRename?: (folder: Folded) => void;
-  onDrop?: (folder: Folded) => void;
-  onDropDoc?: (doc: Filed) => void;
+  onFolderMenu?: (folder: Folded, at: { x: number; y: number }) => void;
+  onDocMenu?: (doc: Filed, at: { x: number; y: number }) => void;
 }
 
 export default function Tree({
@@ -24,9 +23,8 @@ export default function Tree({
   onFile,
   onHere,
   onMove,
-  onRename,
-  onDrop,
-  onDropDoc,
+  onFolderMenu,
+  onDocMenu,
 }: Props) {
   const icons = useIcons();
   const [shut, setShut] = useState<Set<string>>(new Set());
@@ -93,6 +91,11 @@ export default function Tree({
     }
   };
 
+  const spot = (from: HTMLElement) => {
+    const box = from.getBoundingClientRect();
+    return { x: box.right - 8, y: box.bottom + 4 };
+  };
+
   const shortcuts = (kind: "doc" | "folder") =>
     lifted && kind === "folder" ? "Control+V Control+X" : "Control+X";
 
@@ -106,7 +109,10 @@ export default function Tree({
 
   const under = (parent: string | null) => papers.folders.filter((one) => one.parent === parent);
 
-  const inside = (folder: string | null) => papers.docs.filter((one) => one.folder === folder);
+  const inside = (folder: string | null) =>
+    papers.docs.filter((one) => !one.archived && one.folder === folder);
+
+  const away = papers.docs.filter((one) => one.archived);
 
   const dropOn = (folder?: string) => ({
     onDragOver: (e: React.DragEvent) => {
@@ -125,7 +131,15 @@ export default function Tree({
   });
 
   const paper = (doc: Filed, depth: number) => (
-    <li key={doc.id} className="group/paper flex items-center focus-within:bg-hover">
+    <li
+      key={doc.id}
+      className="group/paper flex items-center focus-within:bg-hover"
+      onContextMenu={(e) => {
+        if (!onDocMenu) return;
+        e.preventDefault();
+        onDocMenu(doc, { x: e.clientX, y: e.clientY });
+      }}
+    >
       <button
         type="button"
         draggable
@@ -144,24 +158,26 @@ export default function Tree({
             : doc.title || t("untitledDoc")
         }
         aria-current={open === doc.file ? "true" : undefined}
-        style={{ paddingLeft: `${8 + depth * 13}px` }}
+        style={{ paddingLeft: `${8 + depth * 17}px` }}
         className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[12.5px] ${
           lifted?.id === doc.id ? "ring-1 ring-accent " : ""
-        }${open === doc.file ? "bg-active text-ink" : "text-soft hover:bg-hover"}`}
+        }${doc.archived ? "opacity-55 " : ""}${
+          open === doc.file ? "bg-active text-ink" : "text-soft hover:bg-hover"
+        }`}
       >
         <span className="w-3 shrink-0 text-center text-[9px] text-faint">▸</span>
         <span className="truncate">{doc.title || t("untitledDoc")}</span>
       </button>
-      {onDropDoc && (
+      {onDocMenu && (
         <button
           type="button"
-          onClick={() => onDropDoc(doc)}
-          aria-label={fill("dropDoc", doc.title || t("untitledDoc"))}
-          title={t("dropDocShort")}
+          onClick={(e) => onDocMenu(doc, spot(e.currentTarget))}
+          aria-label={fill("moreOn", doc.title || t("untitledDoc"))}
+          aria-haspopup="menu"
           tabIndex={-1}
-          className="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-[11px] text-faint opacity-0 group-hover/paper:opacity-100 group-focus-within/paper:opacity-100 hover:bg-urgent hover:text-bg focus:opacity-100"
+          className="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-[12px] text-faint opacity-0 group-hover/paper:opacity-100 group-focus-within/paper:opacity-100 hover:bg-hover hover:text-ink focus:opacity-100"
         >
-          ✕
+          ⋯
         </button>
       )}
     </li>
@@ -175,13 +191,20 @@ export default function Tree({
           {...dropOn(folder.id)}
           className={`rounded-md ${over === folder.id ? "bg-accent-soft" : ""}`}
         >
-          <div className="group/folder flex items-center rounded-md">
+          <div
+            className="group/folder flex items-center rounded-md"
+            onContextMenu={(e) => {
+              if (!onFolderMenu) return;
+              e.preventDefault();
+              onFolderMenu(folder, { x: e.clientX, y: e.clientY });
+            }}
+          >
             <button
               type="button"
               onClick={() => fold(folder.id)}
               aria-label={fill(closed ? "openFolder" : "closeFolder", folder.name)}
               aria-expanded={!closed}
-              style={{ marginLeft: `${8 + depth * 13}px` }}
+              style={{ marginLeft: `${8 + depth * 17}px` }}
               className="grid h-5 w-3 shrink-0 place-items-center rounded text-[9px] text-faint hover:text-ink"
             >
               <span className={`transition-transform ${closed ? "-rotate-90" : ""}`}>▼</span>
@@ -212,28 +235,16 @@ export default function Tree({
               <span className="truncate">{folder.name}</span>
               <span className="ml-auto pr-1 text-[11px] text-faint">{folder.holds || ""}</span>
             </button>
-            {onRename && (
+            {onFolderMenu && (
               <button
                 type="button"
-                onClick={() => onRename(folder)}
-                aria-label={fill("renameFolder", folder.name)}
-                title={t("rename")}
+                onClick={(e) => onFolderMenu(folder, spot(e.currentTarget))}
+                aria-label={fill("moreOn", folder.name)}
+                aria-haspopup="menu"
                 tabIndex={-1}
-                className="mr-0.5 grid h-5 w-5 shrink-0 place-items-center rounded text-[11px] text-faint opacity-0 group-hover/folder:opacity-100 group-focus-within/folder:opacity-100 hover:bg-hover hover:text-ink focus:opacity-100"
+                className="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-[12px] text-faint opacity-0 group-hover/folder:opacity-100 group-focus-within/folder:opacity-100 hover:bg-hover hover:text-ink focus:opacity-100"
               >
-                ✎
-              </button>
-            )}
-            {onDrop && (
-              <button
-                type="button"
-                onClick={() => onDrop(folder)}
-                aria-label={fill("dropFolder", folder.name)}
-                title={t("dropFolderShort")}
-                tabIndex={-1}
-                className="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-[11px] text-faint opacity-0 group-hover/folder:opacity-100 group-focus-within/folder:opacity-100 hover:bg-urgent hover:text-bg focus:opacity-100"
-              >
-                ✕
+                ⋯
               </button>
             )}
           </div>
@@ -248,9 +259,12 @@ export default function Tree({
     );
   };
 
-  const loose = inside(null);
+  const loose = papers.docs.filter(
+    (one) =>
+      !one.archived && (one.folder === null || !papers.folders.some((at) => at.id === one.folder)),
+  );
 
-  return (
+  const tree = (
     <ul ref={listed} aria-label={t("docs")} className="flex flex-col gap-px">
       {lifted && (
         <li
@@ -293,6 +307,40 @@ export default function Tree({
           <ul {...dropOn(undefined)}>{loose.map((doc) => paper(doc, 1))}</ul>
         )}
       </li>
+
     </ul>
+  );
+
+  const kept = away.length > 0 && (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => fold("away")}
+        aria-expanded={!shut.has("away")}
+        aria-label={t("archived")}
+        className="flex w-full items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
+      >
+        <span
+          aria-hidden
+          className={`text-[9px] transition-transform ${shut.has("away") ? "-rotate-90" : ""}`}
+        >
+          ▼
+        </span>
+        {t("archived")}
+        <span className="ml-auto text-[11px] font-normal">{away.length}</span>
+      </button>
+      {!shut.has("away") && (
+        <ul aria-label={t("archived")} className="flex flex-col gap-px">
+          {away.map((doc) => paper(doc, 0))}
+        </ul>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      {tree}
+      {kept}
+    </>
   );
 }

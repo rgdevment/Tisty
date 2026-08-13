@@ -15,20 +15,20 @@ const papers: Papers = {
     { id: "01H", name: "personal", parent: null, icon: null, holds: 0 },
   ],
   docs: [
-    { id: "01A", file: "a3f1-0001", title: "Compras", folder: "01F" },
-    { id: "01B", file: "a3f1-0002", title: "Contrato", folder: "01G" },
-    { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null },
-    { id: "01D", file: "a3f1-0004", title: "", folder: null },
+    { id: "01A", file: "a3f1-0001", title: "Compras", folder: "01F" , archived: false },
+    { id: "01B", file: "a3f1-0002", title: "Contrato", folder: "01G" , archived: false },
+    { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null , archived: false },
+    { id: "01D", file: "a3f1-0004", title: "", folder: null, archived: false },
+    { id: "01E", file: "a3f1-0005", title: "Viejo", folder: "01F", archived: true },
   ],
 };
 
 describe("the document tree", () => {
   const show = (onFile = vi.fn(), onOpen = vi.fn(), here?: string | null) => {
-    const onRename = vi.fn();
-    const onDrop = vi.fn();
+    const onFolderMenu = vi.fn();
+    const onDocMenu = vi.fn();
     const onHere = vi.fn();
     const onMove = vi.fn();
-    const onDropDoc = vi.fn();
     render(
       <Tree
         papers={papers}
@@ -37,12 +37,11 @@ describe("the document tree", () => {
         onFile={onFile}
         onHere={onHere}
         onMove={onMove}
-        onRename={onRename}
-        onDrop={onDrop}
-        onDropDoc={onDropDoc}
+        onFolderMenu={onFolderMenu}
+        onDocMenu={onDocMenu}
       />,
     );
-    return { onFile, onOpen, onRename, onDrop, onHere, onMove, onDropDoc };
+    return { onFile, onOpen, onFolderMenu, onDocMenu, onHere, onMove };
   };
 
   it("hangs each folder from the one it belongs to", () => {
@@ -173,22 +172,30 @@ describe("the document tree", () => {
     expect(onOpen.mock.calls[0][0].file).toBe("a3f1-0001");
   });
 
-  it("offers renaming and deleting on the folder they belong to", async () => {
-    const { onRename, onDrop } = show();
+  it("opens the folder menu from its own row", async () => {
+    const { onFolderMenu } = show();
 
-    await userEvent.click(screen.getByRole("button", { name: "Rename corporativo" }));
-    expect(onRename.mock.calls[0][0].id).toBe("01G");
+    await userEvent.click(screen.getByRole("button", { name: "More options for corporativo" }));
 
-    await userEvent.click(screen.getByRole("button", { name: "Delete trabajo" }));
-    expect(onDrop.mock.calls[0][0].id).toBe("01F");
+    expect(onFolderMenu.mock.calls[0][0].id).toBe("01G");
   });
 
-  it("offers deleting a document too, by the entry that owns it", async () => {
-    const { onDropDoc } = show();
+  it("opens a menu on right click without the browser one", () => {
+    const { onFolderMenu } = show();
+    const row = screen.getByRole("button", { name: "trabajo" }).parentElement as HTMLElement;
 
-    await userEvent.click(screen.getByRole("button", { name: "Delete Compras" }));
+    fireEvent.contextMenu(row, { clientX: 40, clientY: 90 });
 
-    expect(onDropDoc.mock.calls[0][0].id).toBe("01A");
+    expect(onFolderMenu.mock.calls[0][0].id).toBe("01F");
+    expect(onFolderMenu.mock.calls[0][1]).toEqual({ x: 40, y: 90 });
+  });
+
+  it("opens the document menu from its own row", async () => {
+    const { onDocMenu } = show();
+
+    await userEvent.click(screen.getByRole("button", { name: "More options for Compras" }));
+
+    expect(onDocMenu.mock.calls[0][0].id).toBe("01A");
   });
 
   it("moves a document into a folder with no mouse at all", async () => {
@@ -276,7 +283,7 @@ describe("the document tree", () => {
   it("keeps the row actions out of the tab order", () => {
     show();
 
-    for (const name of ["Rename trabajo", "Delete trabajo", "Delete Compras"]) {
+    for (const name of ["More options for trabajo", "More options for Compras"]) {
       expect(screen.getByRole("button", { name }).getAttribute("tabindex")).toBe("-1");
     }
   });
@@ -290,10 +297,28 @@ describe("the document tree", () => {
     expect(onFile).toHaveBeenCalledWith("01A", undefined);
   });
 
-  it("never offers to delete the place unfiled documents land", () => {
+  it("keeps what was archived out of its folder and in its own place", () => {
     show();
 
-    expect(screen.queryByRole("button", { name: /Delete Unfiled/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "trabajo" }).textContent).toContain("3");
+    expect(screen.getByRole("button", { name: "Viejo" })).toBeTruthy();
+    expect(
+      screen.getByRole("list", { name: "Documents" }).contains(screen.getByRole("button", { name: "Viejo" })),
+    ).toBe(false);
+  });
+
+  it("folds the archived away, since that is the point of it", async () => {
+    show();
+
+    await userEvent.click(screen.getByRole("button", { name: "Archived" }));
+
+    expect(screen.queryByRole("button", { name: "Viejo" })).toBeNull();
+  });
+
+  it("gives the place unfiled documents land no menu of its own", () => {
+    show();
+
+    expect(screen.queryByRole("button", { name: /More options for Unfiled/ })).toBeNull();
   });
 
   it("files a document into the folder it was dropped on", () => {

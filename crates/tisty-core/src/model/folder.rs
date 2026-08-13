@@ -36,6 +36,10 @@ pub struct Kept {
     pub order: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
+    /// Out of the way without being gone: it keeps its folder so unarchiving
+    /// puts it back where it was.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub archived: bool,
 }
 
 #[cfg(test)]
@@ -57,10 +61,12 @@ mod tests {
             file: "a3f1-0001".into(),
             order: "a0".into(),
             folder: None,
+            archived: false,
         };
         let json = serde_json::to_string(&kept).unwrap();
 
         assert!(!json.contains("folder"), "{json}");
+        assert!(!json.contains("archived"), "{json}");
         assert_eq!(serde_json::from_str::<Kept>(&json).unwrap(), kept);
     }
 }

@@ -8,6 +8,8 @@ import {
   docNew,
   docs,
   folderAdd,
+  docAway,
+  docCopy,
   docDrop,
   docImport,
   folderFile,
@@ -15,6 +17,7 @@ import {
   folderLook,
   folderRename,
   type Folded,
+  type Filed,
   type Papers,
   fold,
   dropStep,
@@ -55,6 +58,7 @@ import About from "./ui/About";
 import Keeping from "./ui/Keeping";
 import Docs from "./ui/Docs";
 import Naming from "./ui/Naming";
+import Menu, { type Choice } from "./ui/Menu";
 import { ask, open as pick } from "@tauri-apps/plugin-dialog";
 import Lists from "./ui/Lists";
 import Notice from "./ui/Notice";
@@ -107,7 +111,67 @@ export default function App() {
   const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
+  const [menu, setMenu] = useState<{ at: { x: number; y: number }; label: string; choices: Choice[] } | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
+
+  const newDoc = (folder?: string) =>
+    docNew(folder)
+      .then((made) => {
+        lookPapers();
+        setChosen({ named: "docs", doc: made.id });
+      })
+      .catch((e) => setError(saidPlainly(e)));
+
+  const bringIn = (folder?: string) =>
+    pick({
+      multiple: false,
+      filters: [{ name: "Markdown", extensions: ["md", "markdown", "txt"] }],
+    })
+      .then((at) => (typeof at === "string" ? docImport(at, folder) : null))
+      .then((made) => {
+        if (!made) return;
+        lookPapers();
+        setChosen({ named: "docs", doc: made.id });
+      })
+      .catch((e) => setError(saidPlainly(e)));
+
+  const dropFolder = (folder: Folded) =>
+    ask(fill("dropFolderSure", folder.name), { kind: "warning" })
+      .then((yes) => {
+        if (!yes) return;
+        if (here === folder.id) setHere(undefined);
+        setReturning(folder.parent ?? "unfiled");
+        return folderDrop(folder.id).then(lookPapers);
+      })
+      .catch((e) => setError(saidPlainly(e)));
+
+  const dropDoc = (doc: Filed) =>
+    ask(fill("dropDocSure", doc.title || t("untitledDoc")), { kind: "warning" })
+      .then((yes) => {
+        if (!yes) return;
+        if (chosen.doc === doc.file) setChosen({ named: "docs" });
+        setReturning(doc.folder ?? "unfiled");
+        return docDrop(doc.id).then(lookPapers);
+      })
+      .catch((e) => setError(saidPlainly(e)));
+
+  const destinations = (skip: string | null, land: (folder?: string) => void): Choice[] => [
+    {
+      key: "unfiled",
+      icon: "↥",
+      label: t("unfiled"),
+      off: skip === null,
+      onPick: () => land(undefined),
+    },
+    ...papers.folders
+      .filter((one) => one.id !== skip)
+      .map((one) => ({
+        key: one.id,
+        icon: one.parent ? "↳" : "▸",
+        label: one.name,
+        onPick: () => land(one.id),
+      })),
+  ];
 
   const roomBelow =
     here != null && !papers.folders.some((one) => one.id === here && one.parent !== null);
@@ -251,8 +315,8 @@ export default function App() {
       style={{
         gridTemplateColumns:
           open && mode === "columns" && chosen.named !== "keeping"
-            ? "232px minmax(0,1fr) 380px"
-            : "232px minmax(0,1fr)",
+            ? "268px minmax(0,1fr) 380px"
+            : "268px minmax(0,1fr)",
       }}
     >
       <WindowChrome />
@@ -335,6 +399,10 @@ export default function App() {
         />
       )}
 
+      {menu && (
+        <Menu at={menu.at} choices={menu.choices} label={menu.label} onClose={() => setMenu(null)} />
+      )}
+
       {greet && (
         <Welcome
           onDone={() => {
@@ -377,51 +445,129 @@ export default function App() {
             .then(lookPapers)
             .catch((e) => setError(saidPlainly(e)))
         }
-        onNewDoc={() =>
-          docNew(here ?? undefined)
-            .then((made) => {
-              lookPapers();
-              setChosen({ named: "docs", doc: made.id });
-            })
-            .catch((e) => setError(saidPlainly(e)))
-        }
-        onNewFolder={() => setMakingFolder(true)}
-        onImport={() =>
-          pick({ multiple: false, filters: [{ name: "Markdown", extensions: ["md", "markdown", "txt"] }] })
-            .then((at) => (typeof at === "string" ? docImport(at, here ?? undefined) : null))
-            .then((made) => {
-              if (!made) return;
-              lookPapers();
-              setChosen({ named: "docs", doc: made.id });
-            })
-            .catch((e) => setError(saidPlainly(e)))
-        }
         onFile={(doc, folder) =>
           docFile(doc, folder)
             .then(lookPapers)
             .catch((e) => setError(saidPlainly(e)))
         }
-        onRename={setRenaming}
-        onDrop={(folder) => {
-          ask(fill("dropFolderSure", folder.name), { kind: "warning" })
-            .then((yes) => {
-              if (!yes) return;
-              if (here === folder.id) setHere(undefined);
-              setReturning(folder.parent ?? "unfiled");
-              return folderDrop(folder.id).then(lookPapers);
-            })
-            .catch((e) => setError(saidPlainly(e)));
-        }}
-        onDropDoc={(doc) => {
-          ask(fill("dropDocSure", doc.title || t("untitledDoc")), { kind: "warning" })
-            .then((yes) => {
-              if (!yes) return;
-              if (chosen.doc === doc.file) setChosen({ named: "docs" });
-              setReturning(doc.folder ?? "unfiled");
-              return docDrop(doc.id).then(lookPapers);
-            })
-            .catch((e) => setError(saidPlainly(e)));
-        }}
+        onFolderMenu={(folder, at) =>
+          setMenu({
+            at,
+            label: t("folderActions"),
+            choices: [
+              { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(folder.id) },
+              {
+                key: "newFolder",
+                icon: "+",
+                label: t("newFolder"),
+                off: folder.parent !== null,
+                onPick: () => {
+                  setHere(folder.id);
+                  setMakingFolder(true);
+                },
+              },
+              {
+                key: "rename",
+                icon: "✎",
+                label: t("rename"),
+                apart: true,
+                onPick: () => setRenaming(folder),
+              },
+              {
+                key: "move",
+                icon: "⇢",
+                label: t("moveTo"),
+                into: {
+                  label: t("moveHere"),
+                  choices: destinations(folder.id, (parent) =>
+                    folderFile(folder.id, parent)
+                      .then(lookPapers)
+                      .catch((e) => setError(saidPlainly(e))),
+                  ),
+                },
+              },
+              { key: "import", icon: "↧", label: t("importDoc"), onPick: () => bringIn(folder.id) },
+              {
+                key: "drop",
+                icon: "✕",
+                label: t("deleteIt"),
+                danger: true,
+                apart: true,
+                onPick: () => dropFolder(folder),
+              },
+            ],
+          })
+        }
+        onDocMenu={(doc, at) =>
+          setMenu({
+            at,
+            label: t("docActions"),
+            choices: [
+              {
+                key: "move",
+                icon: "⇢",
+                label: t("moveTo"),
+                off: doc.archived,
+                into: {
+                  label: t("moveHere"),
+                  choices: destinations(doc.folder, (folder) =>
+                    docFile(doc.id, folder)
+                      .then(lookPapers)
+                      .catch((e) => setError(saidPlainly(e))),
+                  ),
+                },
+              },
+              {
+                key: "copy",
+                icon: "⧉",
+                label: t("duplicate"),
+                onPick: () =>
+                  docCopy(doc.id)
+                    .then(lookPapers)
+                    .catch((e) => setError(saidPlainly(e))),
+              },
+              {
+                key: "away",
+                icon: doc.archived ? "▢" : "▣",
+                label: doc.archived ? t("bringBack") : t("putAway"),
+                apart: true,
+                onPick: () =>
+                  docAway(doc.id, !doc.archived)
+                    .then(lookPapers)
+                    .catch((e) => setError(saidPlainly(e))),
+              },
+              {
+                key: "drop",
+                icon: "✕",
+                label: t("deleteIt"),
+                danger: true,
+                onPick: () => dropDoc(doc),
+              },
+            ],
+          })
+        }
+        onDocsMenu={(at) =>
+          setMenu({
+            at,
+            label: t("docsActions"),
+            choices: [
+              { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(here ?? undefined) },
+              {
+                key: "newFolder",
+                icon: "+",
+                label: t("newFolder"),
+                onPick: () => setMakingFolder(true),
+              },
+              {
+                key: "import",
+                icon: "↧",
+                label: t("importDoc"),
+                apart: true,
+                onPick: () => bringIn(here ?? undefined),
+              },
+            ],
+          })
+        }
         onChoose={(next) => {
           setChosen(next);
           setSelected(undefined);
