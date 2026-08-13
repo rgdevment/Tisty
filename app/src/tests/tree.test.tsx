@@ -52,6 +52,17 @@ describe("the document tree", () => {
     expect(inside.style.marginLeft).not.toBe(work.style.marginLeft);
   });
 
+  it("starts a document to the right of the folder holding it", () => {
+    show();
+    const work = screen.getByRole("button", { name: "Close trabajo" });
+    const inside = screen.getByRole("button", { name: "Compras" });
+
+    const folderText = parseInt(work.style.marginLeft) + 12 + 6 + 21;
+    const docText = parseInt(inside.style.paddingLeft) + 12 + 6;
+
+    expect(docText).toBeGreaterThan(folderText);
+  });
+
   it("counts what hangs below a folder, not only what it holds", () => {
     show();
 
@@ -172,10 +183,11 @@ describe("the document tree", () => {
     expect(onOpen.mock.calls[0][0].file).toBe("a3f1-0001");
   });
 
-  it("opens the folder menu from its own row", async () => {
+  it("opens the folder menu from the keyboard, with no mouse anywhere", async () => {
     const { onFolderMenu } = show();
+    screen.getByRole("button", { name: "corporativo" }).focus();
 
-    await userEvent.click(screen.getByRole("button", { name: "More options for corporativo" }));
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
 
     expect(onFolderMenu.mock.calls[0][0].id).toBe("01G");
   });
@@ -190,10 +202,20 @@ describe("the document tree", () => {
     expect(onFolderMenu.mock.calls[0][1]).toEqual({ x: 40, y: 90 });
   });
 
-  it("opens the document menu from its own row", async () => {
+  it("opens the document menu from the keyboard too", async () => {
     const { onDocMenu } = show();
+    screen.getByRole("button", { name: "Compras" }).focus();
 
-    await userEvent.click(screen.getByRole("button", { name: "More options for Compras" }));
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+
+    expect(onDocMenu.mock.calls[0][0].id).toBe("01A");
+  });
+
+  it("opens a document menu on right click", () => {
+    const { onDocMenu } = show();
+    const row = screen.getByRole("button", { name: "Compras" }).parentElement as HTMLElement;
+
+    fireEvent.contextMenu(row, { clientX: 12, clientY: 34 });
 
     expect(onDocMenu.mock.calls[0][0].id).toBe("01A");
   });
@@ -280,12 +302,13 @@ describe("the document tree", () => {
     expect(screen.getByRole("button", { name: "corporativo" })).toBeTruthy();
   });
 
-  it("keeps the row actions out of the tab order", () => {
+  it("leaves no stray buttons in the rows", () => {
     show();
 
-    for (const name of ["More options for trabajo", "More options for Compras"]) {
-      expect(screen.getByRole("button", { name }).getAttribute("tabindex")).toBe("-1");
-    }
+    expect(screen.queryByRole("button", { name: /More options/ })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Compras" }).getAttribute("aria-keyshortcuts"),
+    ).toContain("Shift+F10");
   });
 
   it("takes a document dropped anywhere on the unfiled list", () => {
@@ -315,10 +338,13 @@ describe("the document tree", () => {
     expect(screen.queryByRole("button", { name: "Viejo" })).toBeNull();
   });
 
-  it("gives the place unfiled documents land no menu of its own", () => {
-    show();
+  it("gives the place unfiled documents land no menu of its own", async () => {
+    const { onFolderMenu } = show();
+    screen.getByRole("button", { name: /Unfiled/ }).focus();
 
-    expect(screen.queryByRole("button", { name: /More options for Unfiled/ })).toBeNull();
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+
+    expect(onFolderMenu).not.toHaveBeenCalled();
   });
 
   it("files a document into the folder it was dropped on", () => {

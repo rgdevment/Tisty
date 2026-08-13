@@ -67,6 +67,19 @@ export default function Tree({
       e.preventDefault();
       return walk(row.id, e.key === "ArrowDown" ? 1 : -1);
     }
+    if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
+      e.preventDefault();
+      const box = (e.target as HTMLElement).getBoundingClientRect();
+      const at = { x: box.left + 24, y: box.bottom };
+      if (row.kind === "doc") {
+        const doc = papers.docs.find((one) => one.id === row.id);
+        if (doc) onDocMenu?.(doc, at);
+      } else if (row.id !== "unfiled") {
+        const folder = papers.folders.find((one) => one.id === row.id);
+        if (folder) onFolderMenu?.(folder, at);
+      }
+      return;
+    }
     if (e.key === "Escape" && lifted) {
       e.preventDefault();
       return setLifted(null);
@@ -91,13 +104,12 @@ export default function Tree({
     }
   };
 
-  const spot = (from: HTMLElement) => {
-    const box = from.getBoundingClientRect();
-    return { x: box.right - 8, y: box.bottom + 4 };
-  };
+  // A folder spends an icon a document has no room for, so matching depths
+  // alone leave the child starting to the left of its own parent.
+  const ICON = 20;
 
   const shortcuts = (kind: "doc" | "folder") =>
-    lifted && kind === "folder" ? "Control+V Control+X" : "Control+X";
+    lifted && kind === "folder" ? "Control+V Control+X Shift+F10" : "Control+X Shift+F10";
 
   const fold = (id: string) =>
     setShut((were) => {
@@ -158,7 +170,7 @@ export default function Tree({
             : doc.title || t("untitledDoc")
         }
         aria-current={open === doc.file ? "true" : undefined}
-        style={{ paddingLeft: `${8 + depth * 17}px` }}
+        style={{ paddingLeft: `${8 + depth * 17 + ICON}px` }}
         className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[12.5px] ${
           lifted?.id === doc.id ? "ring-1 ring-accent " : ""
         }${doc.archived ? "opacity-55 " : ""}${
@@ -168,18 +180,6 @@ export default function Tree({
         <span className="w-3 shrink-0 text-center text-[9px] text-faint">▸</span>
         <span className="truncate">{doc.title || t("untitledDoc")}</span>
       </button>
-      {onDocMenu && (
-        <button
-          type="button"
-          onClick={(e) => onDocMenu(doc, spot(e.currentTarget))}
-          aria-label={fill("moreOn", doc.title || t("untitledDoc"))}
-          aria-haspopup="menu"
-          tabIndex={-1}
-          className="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-[12px] text-faint opacity-0 group-hover/paper:opacity-100 group-focus-within/paper:opacity-100 hover:bg-hover hover:text-ink focus:opacity-100"
-        >
-          ⋯
-        </button>
-      )}
     </li>
   );
 
@@ -235,18 +235,6 @@ export default function Tree({
               <span className="truncate">{folder.name}</span>
               <span className="ml-auto pr-1 text-[11px] text-faint">{folder.holds || ""}</span>
             </button>
-            {onFolderMenu && (
-              <button
-                type="button"
-                onClick={(e) => onFolderMenu(folder, spot(e.currentTarget))}
-                aria-label={fill("moreOn", folder.name)}
-                aria-haspopup="menu"
-                tabIndex={-1}
-                className="mr-1 grid h-5 w-5 shrink-0 place-items-center rounded text-[12px] text-faint opacity-0 group-hover/folder:opacity-100 group-focus-within/folder:opacity-100 hover:bg-hover hover:text-ink focus:opacity-100"
-              >
-                ⋯
-              </button>
-            )}
           </div>
         </div>
         {!closed && (
