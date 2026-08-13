@@ -52,7 +52,7 @@ const Barred = Text.extend({
 /// same list, or they would be proving a copy of the configuration rather than
 /// the editor a person types into.
 export const written = () => [
-  StarterKit.configure({ link: { openOnClick: false, autolink: true } }),
+  StarterKit.configure({ link: { openOnClick: false, autolink: true }, text: false }),
   Pictured,
   Table.configure({ resizable: false }),
   TableRow,

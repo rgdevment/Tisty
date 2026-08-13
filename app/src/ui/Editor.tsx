@@ -9,6 +9,11 @@ import { t } from "../locales";
 import Slash, { asked, narrowed, type Block } from "./Slash";
 import Floats from "./Floats";
 
+export const stripped = (html: string): string =>
+  html.replace(/<img\b[^>]*>/gi, (tag) =>
+    /\bsrc\s*=\s*["'](?!https?:|attachments\/)/i.test(tag) ? "" : tag,
+  );
+
 const middle = (editor: Writing, from: number, to: number) => {
   const a = caret(editor, from);
   const b = caret(editor, to);
@@ -82,13 +87,7 @@ export default function Editor({
         spellcheck: "true",
         ...(label ? { "aria-label": label } : {}),
       },
-      transformPastedHTML: (html) =>
-        // A pasted picture carries the path it came from — often an absolute
-        // one with the person's name — and that would be written into a file
-        // that travels between machines.
-        html.replace(/<img\b[^>]*>/gi, (tag) =>
-          /\bsrc\s*=\s*["'](?!https?:|attachments\/)/i.test(tag) ? "" : tag,
-        ),
+      transformPastedHTML: stripped,
       handleClick: (view, pos) => {
         // Read from the document, never from the DOM: dressing a mark's node
         // would propagate into the saved markdown, unlike an image, which is a
@@ -250,6 +249,21 @@ export default function Editor({
     if (!editor || editor.isDestroyed || asMarkdown(editor) === value) return;
     editor.commands.setContent(value, { emitUpdate: false });
   }, [editor, value]);
+
+  const opened = Boolean(asking) && shown.length > 0;
+  const current = Math.min(active, shown.length - 1);
+
+  useEffect(() => {
+    const dom = editor && !editor.isDestroyed ? editor.view.dom : null;
+    if (!dom) return;
+    dom.setAttribute("aria-expanded", String(opened));
+    if (!opened) {
+      dom.removeAttribute("aria-controls");
+      return dom.removeAttribute("aria-activedescendant");
+    }
+    dom.setAttribute("aria-controls", "slash-menu");
+    dom.setAttribute("aria-activedescendant", `slash-${current}`);
+  }, [editor, opened, current]);
 
   // The file lands outside React: the window hands it to whatever element under
   // the cursor registered itself, the same way a task's field does.

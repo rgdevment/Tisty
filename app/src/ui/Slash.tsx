@@ -38,6 +38,7 @@ export default function Slash({ at, blocks, active, onPick }: Props) {
   return (
     <div
       ref={card}
+      id="slash-menu"
       role="listbox"
       aria-label="/"
       style={{ left: Math.min(at.x, window.innerWidth - 232), top: Math.max(8, room) }}
@@ -46,6 +47,7 @@ export default function Slash({ at, blocks, active, onPick }: Props) {
       {blocks.map((one, i) => (
         <button
           key={one.key}
+          id={`slash-${i}`}
           type="button"
           data-block
           role="option"

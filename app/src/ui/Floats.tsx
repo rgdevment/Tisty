@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Editor as Writing } from "@tiptap/core";
 import { t } from "../locales";
 
@@ -9,11 +9,24 @@ interface Props {
   onDone?: () => void;
 }
 
-export default function Floats({ editor, at, asking, onDone }: Props) {
+type Span = { from: number; to: number; words: string };
+
+const spanOf = (editor: Writing): Span => {
   const { from, to } = editor.state.selection;
-  const [linking, setLinking] = useState<{ words: string; where: string } | null>(
-    asking ? { words: editor.state.doc.textBetween(from, to), where: "" } : null,
+  return { from, to, words: editor.state.doc.textBetween(from, to) };
+};
+
+export default function Floats({ editor, at, asking, onDone }: Props) {
+  const live = spanOf(editor);
+  const [linking, setLinking] = useState<{ words: string; where: string; held: Span } | null>(
+    asking ? { words: live.words, where: "", held: live } : null,
   );
+  const [wrong, setWrong] = useState(false);
+  const [reached, setReached] = useState(0);
+  const card = useRef<HTMLDivElement | null>(null);
+
+  const locked = editor.isActive("codeBlock");
+
   const marks = [
     { key: "bold", glyph: "B", name: t("bold"), weight: "font-bold" },
     { key: "italic", glyph: "I", name: t("italic"), weight: "italic font-serif" },
@@ -23,7 +36,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
   ] as const;
 
   const turn = (key: string) => {
-    const chain = editor.chain().focus();
+    const chain = editor.chain().focus().setTextSelection(live);
     if (key === "bold") return chain.toggleBold().run();
     if (key === "italic") return chain.toggleItalic().run();
     if (key === "underline") return chain.toggleUnderline().run();
@@ -31,37 +44,68 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
     chain.toggleCode().run();
   };
 
-  const tie = (words: string, where: string) => {
+  const leave = (held: Span) => {
+    setLinking(null);
+    editor.chain().focus().setTextSelection(held).run();
+    onDone?.();
+  };
+
+  const tie = (words: string, where: string, held: Span) => {
     const target = where.trim();
+    if (!target) {
+      editor.chain().focus().setTextSelection(held).unsetLink().run();
+      setLinking(null);
+      return onDone?.();
+    }
+    if (/\s/.test(target)) return setWrong(true);
+    const spelt = /:\/\//.test(target) || /^(mailto|tel):/i.test(target);
+    const full = spelt ? target : `https://${target}`;
+
+    const said = words.trim() || (held.from === held.to ? target : "");
+    const chain = editor.chain().focus().setTextSelection(held);
+    if (said && said !== held.words) {
+      chain
+        .insertContentAt(held, { type: "text", text: said })
+        .setTextSelection({ from: held.from, to: held.from + said.length });
+    }
+    if (!chain.setLink({ href: full }).run()) return setWrong(true);
     setLinking(null);
     onDone?.();
-    if (!target) return editor.chain().focus().unsetLink().run();
-    const full = /^[a-z][a-z0-9+.-]*:/i.test(target) ? target : `https://${target}`;
-    const said = words.trim();
-    const chain = editor.chain().focus();
-    if (said && said !== editor.state.doc.textBetween(from, to)) {
-      chain.insertContent(said).setTextSelection({ from, to: from + said.length });
+  };
+
+  useEffect(() => {
+    if (!linking) return;
+    const away = (e: MouseEvent) => {
+      if (!card.current?.contains(e.target as Node)) leave(linking.held);
+    };
+    document.addEventListener("mousedown", away);
+    return () => document.removeEventListener("mousedown", away);
+  });
+
+  const walk = (by: number) => {
+    const all = [...(card.current?.querySelectorAll<HTMLElement>("[data-tool]") ?? [])];
+    for (let step = 1; step <= all.length; step += 1) {
+      const next = (reached + by * step + all.length * step) % all.length;
+      if ((all[next] as HTMLButtonElement).disabled) continue;
+      setReached(next);
+      return all[next].focus();
     }
-    chain.setLink({ href: full }).run();
   };
 
   if (linking !== null) {
     return (
       <form
+        ref={card as unknown as React.RefObject<HTMLFormElement>}
         style={{
           left: Math.max(8, Math.min(at.x, window.innerWidth - 300)),
           top: Math.max(8, at.y - 76),
         }}
         onSubmit={(e) => {
           e.preventDefault();
-          tie(linking.words, linking.where);
+          tie(linking.words, linking.where, linking.held);
         }}
-        onKeyDown={(e) => {
-          if (e.key !== "Escape") return;
-          setLinking(null);
-          onDone?.();
-        }}
-        className="fixed z-[70] flex w-[276px] flex-col gap-1 rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
+        onKeyDown={(e) => e.key === "Escape" && leave(linking.held)}
+        className="fixed z-40 flex w-[276px] flex-col gap-1 rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
       >
         <input
           autoFocus
@@ -74,10 +118,16 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
         <div className="flex items-center gap-1">
           <input
             value={linking.where}
-            onChange={(e) => setLinking({ ...linking, where: e.target.value })}
+            onChange={(e) => {
+              setWrong(false);
+              setLinking({ ...linking, where: e.target.value });
+            }}
             placeholder={t("linkTo")}
             aria-label={t("linkTo")}
-            className="min-w-0 flex-1 rounded-md bg-hover px-2 py-1 text-[12.5px] outline-none placeholder:text-faint"
+            aria-invalid={wrong || undefined}
+            className={`min-w-0 flex-1 rounded-md px-2 py-1 text-[12.5px] outline-none placeholder:text-faint ${
+              wrong ? "bg-urgent/15 text-urgent" : "bg-hover"
+            }`}
           />
           <button
             type="submit"
@@ -87,36 +137,45 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
             ↵
           </button>
         </div>
+        {wrong && <p className="px-1 text-[11px] leading-tight text-urgent">{t("notAnAddress")}</p>}
       </form>
     );
   }
 
   return (
     <div
+      ref={card}
       role="toolbar"
       aria-label={t("formatting")}
       style={{
         left: Math.max(8, Math.min(at.x, window.innerWidth - 190)),
         top: Math.max(8, at.y - 44),
       }}
-      className="fixed z-[70] flex items-center gap-0.5 rounded-[10px] border border-hair bg-rail p-1 shadow-xl"
+      onKeyDown={(e) => {
+        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+        e.preventDefault();
+        walk(e.key === "ArrowRight" ? 1 : -1);
+      }}
+      className="fixed z-40 flex items-center gap-0.5 rounded-[10px] border border-hair bg-rail p-1 shadow-xl"
     >
-      {marks.map((one) => {
+      {marks.map((one, i) => {
         const on = editor.isActive(one.key);
         return (
           <button
             key={one.key}
             type="button"
+            data-tool
+            tabIndex={reached === i ? 0 : -1}
+            disabled={locked && one.key !== "code"}
             aria-label={one.name}
             aria-pressed={on}
             title={one.name}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              turn(one.key);
-            }}
+            onMouseDown={(e) => e.preventDefault()}
+            onFocus={() => setReached(i)}
+            onClick={() => turn(one.key)}
             className={`grid h-7 w-7 place-items-center rounded-md text-[12.5px] ${one.weight} ${
               on ? "bg-accent-soft text-accent" : "text-soft hover:bg-hover hover:text-ink"
-            }`}
+            } disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent`}
           >
             {one.glyph}
           </button>
@@ -125,25 +184,30 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
 
       <button
         type="button"
+        data-tool
+        tabIndex={reached === marks.length ? 0 : -1}
+        disabled={locked}
         aria-label={t("linkIt")}
         aria-pressed={editor.isActive("link")}
+        aria-haspopup="dialog"
         title={t("linkIt")}
-        onMouseDown={(e) => {
-          e.preventDefault();
+        onMouseDown={(e) => e.preventDefault()}
+        onFocus={() => setReached(marks.length)}
+        onClick={() =>
           setLinking({
-            words: editor.state.doc.textBetween(from, to),
+            words: live.words,
             where: String(editor.getAttributes("link").href ?? ""),
-          });
-        }}
+            held: live,
+          })
+        }
         className={`grid h-7 w-7 place-items-center rounded-md text-[12px] ${
           editor.isActive("link")
             ? "bg-accent-soft text-accent"
             : "text-soft hover:bg-hover hover:text-ink"
-        }`}
+        } disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent`}
       >
         ⚭
       </button>
-
     </div>
   );
 }
