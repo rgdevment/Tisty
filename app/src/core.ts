@@ -412,6 +412,8 @@ export const docWrite = (id: string, body: string): Promise<Doc> =>
 export const folderFile = (id: string, parent?: string): Promise<void> =>
   invoke("folder_file", { id, parent });
 
+export const parted = (): Promise<void> => invoke("parted");
+
 export const docAway = (id: string, away: boolean): Promise<void> =>
   invoke("doc_away", { id, away });
 

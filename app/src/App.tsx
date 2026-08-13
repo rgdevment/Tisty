@@ -10,6 +10,8 @@ import {
   folderAdd,
   docAway,
   docCopy,
+  docRead,
+  parted,
   docDrop,
   docImport,
   folderFile,
@@ -59,6 +61,7 @@ import Keeping from "./ui/Keeping";
 import Docs from "./ui/Docs";
 import Naming from "./ui/Naming";
 import Menu, { type Choice } from "./ui/Menu";
+import { bared } from "./ui/writing";
 import { ask, open as pick } from "@tauri-apps/plugin-dialog";
 import Lists from "./ui/Lists";
 import Notice from "./ui/Notice";
@@ -111,6 +114,7 @@ export default function App() {
   const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ at: { x: number; y: number }; label: string; choices: Choice[] } | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
 
@@ -247,6 +251,16 @@ export default function App() {
       .catch(() => {});
   }, []);
 
+  // Nobody is editing, so there is nothing to finish: answer at once rather
+  // than making the person wait out the backend's timer.
+  useEffect(() => {
+    if (chosen.named === "docs") return;
+    const off = listen("parting", () => void parted());
+    return () => {
+      void off.then((stop) => stop());
+    };
+  }, [chosen.named]);
+
   useEffect(() => {
     if (!returning) return;
     document.querySelector<HTMLElement>(`[data-row="${returning}"]`)?.focus();
@@ -364,6 +378,15 @@ export default function App() {
       {settling && !error && (
         <p className="pointer-events-none fixed inset-x-0 top-11 z-[60] mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-xs text-accent">
           {t("settlingIn")}
+        </p>
+      )}
+
+      {note && !error && (
+        <p
+          role="status"
+          className="pointer-events-none fixed inset-x-0 top-11 z-[60] mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-xs text-accent"
+        >
+          {note}
         </p>
       )}
 
@@ -540,9 +563,31 @@ export default function App() {
                 },
               },
               {
+                key: "asPlain",
+                icon: "⌘",
+                label: t("copyPlain"),
+                apart: true,
+                onPick: () =>
+                  docRead(doc.file)
+                    .then((body) => navigator.clipboard.writeText(bared(body)))
+                    .then(() => {
+                      setNote(t("copied"));
+                      setTimeout(() => setNote(null), 2200);
+                    })
+                    .catch((e) => setError(saidPlainly(e))),
+              },
+              {
+                key: "asPdf",
+                icon: "▤",
+                label: t("toPdf"),
+                off: chosen.doc !== doc.file,
+                onPick: () => window.print(),
+              },
+              {
                 key: "copy",
                 icon: "⧉",
                 label: t("duplicate"),
+                apart: true,
                 onPick: () =>
                   docCopy(doc.id)
                     .then((made) => {

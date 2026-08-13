@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { open as pick } from "@tauri-apps/plugin-dialog";
-import { attach, docRead, docWrite, opened, type Filed } from "../core";
+import { listen } from "@tauri-apps/api/event";
+import { attach, docRead, docWrite, opened, parted, type Filed } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 
@@ -62,13 +63,27 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
   useEffect(() => {
     const now = () => leaving.current();
     window.addEventListener("blur", now);
-    window.addEventListener("beforeunload", now);
     return () => {
       window.removeEventListener("blur", now);
-      window.removeEventListener("beforeunload", now);
       now();
     };
   }, []);
+
+  // Tauri kills the process rather than navigating away, so `beforeunload`
+  // never runs: the backend asks first and waits for the answer.
+  useEffect(() => {
+    const off = listen("parting", () => {
+      leaving.current();
+      queues.current
+        .get(open?.file ?? "")
+        ?.catch(() => {})
+        .finally(() => void parted());
+      if (!open) void parted();
+    });
+    return () => {
+      void off.then((stop) => stop());
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
