@@ -375,6 +375,8 @@ body {
     background: #fff;
     color: #000;
   }
+  .fixed,
+  [aria-live],
   aside,
   [role="toolbar"],
   [role="menu"],
@@ -427,6 +429,19 @@ body {
   .tisty-doc pre {
     font-family: "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.86em;
+  }
+  .tisty-doc code {
+    background: #f4f4f5;
+    color: #18181b;
+  }
+  .tisty-doc hr {
+    border-top: 1px solid #a1a1aa;
+  }
+  .tisty-doc li::marker {
+    color: #000;
+  }
+  .tisty-doc th {
+    background: #f4f4f5;
   }
   .tisty-doc pre {
     background: #f4f4f5;
