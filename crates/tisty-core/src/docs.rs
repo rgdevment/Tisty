@@ -42,6 +42,18 @@ pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
     write_atomic(&at, body.as_bytes())
 }
 
+/// Imports read with the same ceiling as opens, or a bigger file is written
+/// whole and then truncated the first time it is saved.
+pub fn read_outside(at: &Path) -> Result<String> {
+    let file = std::fs::File::open(at)?;
+    if !file.metadata()?.is_file() {
+        return Err(Error::OutsideTheStore(at.display().to_string()));
+    }
+    let mut body = String::new();
+    file.take(BODY_AT_MOST).read_to_string(&mut body)?;
+    Ok(body)
+}
+
 pub fn read(root: &Path, id: &str) -> Result<String> {
     let at = resolve(root, id)?;
     let file = std::fs::File::open(&at)?;
@@ -186,6 +198,21 @@ mod tests {
             title.len() <= TITLE_AT_MOST as usize,
             "read {} bytes of a body with no newline",
             title.len()
+        );
+    }
+
+    #[test]
+    fn an_imported_file_is_cut_where_reading_would_cut_it() {
+        let room = tempfile::tempdir().unwrap();
+        let big = room.path().join("big.md");
+        std::fs::write(&big, "z".repeat(BODY_AT_MOST as usize + 8192)).unwrap();
+
+        let body = read_outside(&big).unwrap();
+
+        assert_eq!(
+            body.len(),
+            BODY_AT_MOST as usize,
+            "it would truncate on save"
         );
     }
 

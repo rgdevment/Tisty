@@ -98,11 +98,10 @@ export default function Composed({
 
           const inside = (picture ?? link)?.getAttribute(INSIDE);
           const target = link?.getAttribute("href") ?? "";
-          const outside = /^(https?|mailto|tel):/i.test(target)
-            ? openUrl(target)
-            : revealed(decodeURI(target));
+          const away = () =>
+            /^(https?|mailto|tel):/i.test(target) ? openUrl(target) : revealed(decodeURI(target));
 
-          (inside ? opened(inside) : outside).catch((problem) => onError?.(problem));
+          (inside ? opened(inside) : away()).catch((problem) => onError?.(problem));
         }}
         className={`${className} ${cut ? "clamped" : ""}`}
       />

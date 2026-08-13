@@ -1633,7 +1633,7 @@ fn folder_add(
     parent: Option<String>,
     icon: Option<String>,
 ) -> Answer<()> {
-    let name = name.trim().to_string();
+    let name = tisty_core::text::plainly(&name);
     if name.is_empty() {
         return Err(Refusal::of("untitled"));
     }
@@ -1676,7 +1676,7 @@ fn folder_rename(
     name: String,
 ) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
-    let name = name.trim().to_string();
+    let name = tisty_core::text::plainly(&name);
     if name.is_empty() {
         return Err(Refusal::of("untitled"));
     }
@@ -1880,7 +1880,8 @@ fn doc_import(
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
-    let body = std::fs::read_to_string(&from).map_err(|_| Refusal::about("cannotRead", from))?;
+    let body = tisty_core::docs::read_outside(std::path::Path::new(&from))
+        .map_err(|_| Refusal::about("cannotRead", from))?;
 
     let mut session = held(&session);
     if let Some(at) = folder
@@ -1919,6 +1920,11 @@ fn doc_new(
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
     let mut session = held(&session);
+    if let Some(at) = folder
+        && !session.state.folders.contains_key(&at)
+    {
+        return Err(Refusal::of("noSuchFolder"));
+    }
     let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "")
         .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))?;
 
@@ -1967,6 +1973,46 @@ fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()>
 
 /// Nobody could say which version they hit a problem with: it existed only in
 /// `CARGO_PKG_VERSION` and was never shown anywhere in the window.
+/// `spellcheck` on the element is not enough on macOS: WKWebView keeps
+/// continuous checking off until something turns it on, so nothing is ever
+/// underlined and the menu offers no dictionary. Windows has it on already.
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+fn proofread(window: &tauri::WebviewWindow) {
+    let done = window.with_webview(|webview| {
+        use objc2::runtime::AnyObject;
+        use objc2::{msg_send, sel};
+
+        let wk = webview.inner().cast::<AnyObject>();
+        if wk.is_null() {
+            return;
+        }
+        // Asked before told: these are private selectors, and a missing one
+        // raises an Objective-C exception that Rust cannot catch.
+        unsafe {
+            let spelling: bool =
+                msg_send![wk, respondsToSelector: sel!(setContinuousSpellCheckingEnabled:)];
+            if spelling {
+                let _: () = msg_send![wk, setContinuousSpellCheckingEnabled: true];
+            }
+            let grammar: bool = msg_send![wk, respondsToSelector: sel!(setGrammarCheckingEnabled:)];
+            if grammar {
+                let _: () = msg_send![wk, setGrammarCheckingEnabled: true];
+            }
+        }
+    });
+    if let Err(e) = done {
+        witness::warn(
+            channel::WINDOW,
+            "spell checking stayed off",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn proofread(_window: &tauri::WebviewWindow) {}
+
 #[tauri::command]
 fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
     let session = held(&session);
@@ -2401,8 +2447,29 @@ fn opened(
 /// A file the store does not hold: over the threshold only its path was kept,
 /// so it is shown in its folder rather than opened from a path we cannot vouch for.
 #[tauri::command]
-fn revealed(path: String) -> Answer<()> {
-    show(std::path::Path::new(&path), &path)
+fn revealed(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answer<()> {
+    let at = std::path::Path::new(&path);
+    let (data, config) = {
+        let session = held(&session);
+        (
+            session.paths.data().to_path_buf(),
+            session.paths.config().to_path_buf(),
+        )
+    };
+    // Unvalidated, this opened the file manager on any path a synced document
+    // named — another machine's `[note](/Users/you/.ssh/id_rsa)`, or a UNC
+    // share that Windows would reach out to.
+    let real = at
+        .canonicalize()
+        .map_err(|_| Refusal::about("cannotOpen", path.clone()))?;
+    let ours = [data, config]
+        .iter()
+        .filter_map(|one| one.canonicalize().ok())
+        .any(|one| real.starts_with(&one));
+    if !ours {
+        return Err(Refusal::about("cannotOpen", path));
+    }
+    show(&real, &path)
 }
 
 fn handed(at: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -2708,9 +2775,27 @@ pub fn run() {
             app.manage(Perched(perched));
             app.manage(Bound(listen_for(app.handle())));
 
+            // The asset protocol ships with an empty scope, so without this the
+            // webview is forbidden to read any path and every image is broken.
+            {
+                let held = app.state::<Mutex<Session>>();
+                let held = crate::held(&held);
+                let seen = app.asset_protocol_scope();
+                for at in [held.paths.attachments(), held.paths.docs()] {
+                    if let Err(e) = seen.allow_directory(&at, true) {
+                        witness::warn(
+                            channel::WINDOW,
+                            "attachments will not show",
+                            &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
+                        );
+                    }
+                }
+            }
+
             // Shown only now: the window is created before `setup` runs, and
             // projecting a long log would leave a blank frame on screen.
             if let Some(window) = app.get_webview_window("main") {
+                proofread(&window);
                 let _ = window.show();
             }
             Ok(())
@@ -2821,6 +2906,78 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A synced document can name any path; showing it in the file manager on
+    /// request would leak whatever another machine wrote into a link.
+    #[test]
+    fn only_paths_inside_the_store_can_be_shown() {
+        let home = tempfile::tempdir().unwrap();
+        let data = home.path().join("data");
+        std::fs::create_dir_all(data.join("attachments")).unwrap();
+        let mine = data.join("attachments/kept.pdf");
+        std::fs::write(&mine, b"x").unwrap();
+
+        let outside = home.path().join("id_rsa");
+        std::fs::write(&outside, b"x").unwrap();
+
+        let ours = |at: &std::path::Path| {
+            let real = at.canonicalize().unwrap();
+            real.starts_with(data.canonicalize().unwrap())
+        };
+
+        assert!(ours(&mine));
+        assert!(!ours(&outside), "a path outside the store was shown");
+    }
+
+    /// This crate is the only one out of the workspace's `forbid`, so the
+    /// exception has to stay a single audited spot rather than an open door.
+    #[test]
+    fn nothing_else_in_the_project_is_allowed_to_be_unsafe() {
+        fn rust(at: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
+            let Ok(entries) = std::fs::read_dir(at) else {
+                return;
+            };
+            for one in entries.filter_map(|e| e.ok()) {
+                let path = one.path();
+                if path.is_dir() {
+                    if path.file_name().is_some_and(|n| n == "target") {
+                        continue;
+                    }
+                    rust(&path, found);
+                } else if path.extension().is_some_and(|e| e == "rs") {
+                    found.push(path);
+                }
+            }
+        }
+
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .canonicalize()
+            .expect("the repository");
+        let mut files = Vec::new();
+        rust(&root.join("crates"), &mut files);
+        rust(&root.join("app/src-tauri/src"), &mut files);
+
+        let allowed: Vec<String> = files
+            .iter()
+            .filter(|at| {
+                std::fs::read_to_string(at)
+                    .map(|body| body.contains("allow(unsafe_code)"))
+                    .unwrap_or(false)
+            })
+            .map(|at| at.display().to_string())
+            .collect();
+
+        assert_eq!(
+            allowed.len(),
+            1,
+            "unsafe is allowed in more than the one audited place: {allowed:?}"
+        );
+        assert!(
+            allowed[0].ends_with("app/src-tauri/src/lib.rs"),
+            "{allowed:?}"
+        );
+    }
 
     fn now() -> jiff::Zoned {
         "2026-08-05T09:00:00[America/Santiago]".parse().unwrap()
