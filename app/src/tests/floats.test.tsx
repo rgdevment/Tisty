@@ -125,6 +125,16 @@ describe("the panel that appears over a selection", () => {
     editor.destroy();
   });
 
+  it("writes the address itself when there were no words to link", async () => {
+    const editor = made("");
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} asking />);
+
+    await userEvent.type(screen.getByLabelText(/Address/), "ejemplo.org{Enter}");
+
+    expect(md(editor)).toBe("[ejemplo.org](https://ejemplo.org)");
+    editor.destroy();
+  });
+
   it("says it is done so the menu that opened it can let go", async () => {
     const onDone = vi.fn();
     const editor = made();
@@ -145,6 +155,132 @@ describe("the panel that appears over a selection", () => {
     await userEvent.click(screen.getByRole("button", { name: "Bold" }));
 
     expect(md(editor)).toBe("**hola** mundo");
+    editor.destroy();
+  });
+
+  it("answers to a keyboard, which never sends a mouse press", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    screen.getByRole("button", { name: "Bold" }).focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(md(editor)).toBe("**hola** mundo");
+    editor.destroy();
+  });
+
+  it("is one stop away, and the arrows walk the rest", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.tab();
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Bold");
+
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Underline");
+
+    await userEvent.keyboard("{ArrowLeft}{ArrowLeft}{ArrowLeft}");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Link");
+
+    await userEvent.tab();
+    expect(document.activeElement?.tagName).toBe("BODY");
+
+    editor.destroy();
+  });
+
+  it("follows the selection when it moves without the panel going away", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    const { rerender } = render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    editor.commands.setTextSelection({ from: 6, to: 11 });
+    rerender(<Floats editor={editor} at={{ x: 20, y: 40 }} />);
+    await userEvent.click(screen.getByRole("button", { name: "Bold" }));
+
+    expect(md(editor)).toBe("hola **mundo**");
+    editor.destroy();
+  });
+
+  it("ties the link where it was opened, not where the caret drifted to", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    editor.commands.setTextSelection({ from: 6, to: 11 });
+    await userEvent.type(screen.getByLabelText(/Address/), "ejemplo.org{Enter}");
+
+    expect(md(editor)).toBe("[hola](https://ejemplo.org) mundo");
+    editor.destroy();
+  });
+
+  it("puts the words in as words, never as markup", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    await userEvent.clear(screen.getByLabelText(/Text to show/));
+    await userEvent.type(screen.getByLabelText(/Text to show/), "<b>ojo</b>");
+    await userEvent.type(screen.getByLabelText(/Address/), "ejemplo.org{Enter}");
+
+    expect(editor.getText()).toContain("<b>ojo</b>");
+    expect(editor.getHTML()).not.toContain("<b>ojo</b>");
+    editor.destroy();
+  });
+
+  it("refuses an address with a space instead of writing a broken one", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    await userEvent.type(screen.getByLabelText(/Address/), "ejem plo.org{Enter}");
+
+    expect(screen.getByLabelText(/Address/).getAttribute("aria-invalid")).toBe("true");
+    expect(md(editor)).toBe("hola mundo");
+    editor.destroy();
+  });
+
+  it("lets a bare host through, port and all", async () => {
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    await userEvent.type(screen.getByLabelText(/Address/), "localhost:3000{Enter}");
+
+    expect(md(editor)).toContain("localhost:3000");
+    editor.destroy();
+  });
+
+  it("closes and gives the selection back when the press lands elsewhere", async () => {
+    const onDone = vi.fn();
+    const editor = made();
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} onDone={onDone} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    await userEvent.click(document.body);
+
+    expect(screen.queryByLabelText(/Address/)).toBeNull();
+    expect(onDone).toHaveBeenCalled();
+    expect(editor.state.selection.from).toBe(1);
+    expect(editor.state.selection.to).toBe(5);
+    editor.destroy();
+  });
+
+  it("does not offer what a code block cannot hold", () => {
+    const editor = made();
+    editor.chain().selectAll().setCodeBlock().run();
+    editor.commands.setTextSelection({ from: 2, to: 5 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    expect((screen.getByRole("button", { name: "Bold" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Link" }) as HTMLButtonElement).disabled).toBe(true);
+
     editor.destroy();
   });
 });

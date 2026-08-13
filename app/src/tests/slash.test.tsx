@@ -70,6 +70,14 @@ describe("the slash menu itself", () => {
     expect(screen.getByRole("option", { name: /Quote/ }).textContent).toContain(">");
   });
 
+  it("names itself and its options, so the editor can point a reader at them", () => {
+    render(<Slash at={{ x: 0, y: 0 }} blocks={blocks()} active={1} onPick={vi.fn()} />);
+
+    expect(screen.getByRole("listbox").id).toBe("slash-menu");
+    expect(screen.getAllByRole("option").map((one) => one.id)).toEqual(["slash-0", "slash-1"]);
+    expect(document.getElementById("slash-1")?.getAttribute("aria-selected")).toBe("true");
+  });
+
   it("picks without stealing the cursor from the text", async () => {
     const onPick = vi.fn();
     render(<Slash at={{ x: 0, y: 0 }} blocks={blocks()} active={0} onPick={onPick} />);

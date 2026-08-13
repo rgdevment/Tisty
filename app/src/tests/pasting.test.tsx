@@ -1,22 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import { Image } from "@tiptap/extension-image";
-import { Markdown } from "tiptap-markdown";
+import { asMarkdown, written } from "../ui/writing";
+import { stripped } from "../ui/Editor";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
-const strip = (html: string) =>
-  html.replace(/<img\b[^>]*>/gi, (tag) =>
-    /\bsrc\s*=\s*["'](?!https?:|attachments\/)/i.test(tag) ? "" : tag,
-  );
-
 const md = (html: string) => {
-  const editor = new Editor({
-    extensions: [StarterKit, Image, Markdown.configure({ html: true, breaks: true })],
-    content: strip(html),
-  });
-  const out = (editor.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
+  const editor = new Editor({ extensions: written(), content: stripped(html) });
+  const out = asMarkdown(editor) ?? "";
   editor.destroy();
   return out;
 };
