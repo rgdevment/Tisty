@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { Link } from "@tiptap/extension-link";
-import { Image } from "@tiptap/extension-image";
-import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
-import { TaskList } from "@tiptap/extension-task-list";
-import { TaskItem } from "@tiptap/extension-task-item";
-import { Markdown } from "tiptap-markdown";
 import type { Editor as Writing } from "@tiptap/core";
+import { asMarkdown, ruined, written } from "./writing";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { served } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import Slash, { asked, narrowed, type Block } from "./Slash";
+import Floats from "./Floats";
+
+const middle = (editor: Writing, from: number, to: number) => {
+  const a = caret(editor, from);
+  const b = caret(editor, to);
+  return { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) };
+};
 
 /// Where the menu should hang. Only cosmetic, and it throws in environments
 /// with no layout, so a miss must not take the menu down with it.
@@ -23,37 +24,6 @@ const caret = (editor: Writing, at: number) => {
   } catch {
     return { x: 0, y: 0 };
   }
-};
-
-/// Its own serialiser never closes the block, so whatever follows an image ends
-/// up glued to it — and a table glued to an image stops being a table on the
-/// next read.
-const Pictured = Image.extend({
-  addStorage() {
-    return {
-      markdown: {
-        serialize(
-          state: { write: (text: string) => void; closeBlock: (node: unknown) => void },
-          node: { attrs: Record<string, string> },
-        ) {
-          state.write(`![${node.attrs.alt ?? ""}](${node.attrs.src ?? ""})`);
-          state.closeBlock(node);
-        },
-        parse: {},
-      },
-    };
-  },
-});
-
-/// tiptap-markdown writes `[nodeName]` and drops the content when it cannot
-/// serialise a node, so saving that would put the loss on disk for good.
-const RUINED = /\[(table|hardBreak|image|tableRow|tableCell|tableHeader)\]/;
-
-// Null while the editor is being torn down: its storage is already gone.
-const asMarkdown = (editor: Writing): string | null => {
-  if (editor.isDestroyed) return null;
-  const kept = (editor.storage as unknown as { markdown?: { getMarkdown?: () => string } }).markdown;
-  return typeof kept?.getMarkdown === "function" ? kept.getMarkdown() : null;
 };
 
 interface Props {
@@ -77,6 +47,7 @@ export default function Editor({
 }: Props) {
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
+  const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
   const urls = useRef(new Map<string, string>());
   const now = useRef<{ open: boolean; count: number; take: () => void }>({
     open: false,
@@ -85,7 +56,10 @@ export default function Editor({
   });
 
   const look = (editor: Writing) => {
-    const { $from, empty } = editor.state.selection;
+    const { $from, $to, empty } = editor.state.selection;
+    setPicked(
+      empty || editor.isActive("codeBlock") ? null : { at: middle(editor, $from.pos, $to.pos) },
+    );
     // A slash inside code is a path or a division, never a command.
     if (!empty || editor.isActive("codeBlock") || editor.isActive("code")) {
       return setAsking(null);
@@ -98,18 +72,7 @@ export default function Editor({
 
   const editor = useEditor({
     autofocus: taking,
-    extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false, autolink: true }),
-      Pictured,
-      Table.configure({ resizable: false }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Markdown.configure({ html: true, linkify: true, breaks: true, transformPastedText: false }),
-    ],
+    extensions: written(),
     content: value,
     editorProps: {
       attributes: {
@@ -167,7 +130,7 @@ export default function Editor({
     },
     onUpdate: ({ editor }) => {
       const text = asMarkdown(editor);
-      if (text !== null && RUINED.test(text)) {
+      if (text !== null && ruined(text)) {
         onRuin?.();
         look(editor);
         return;
@@ -291,8 +254,8 @@ export default function Editor({
   // the cursor registered itself, the same way a task's field does.
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    return takesFiles(editor.view.dom, (written) => {
-      editor.chain().focus().insertContent(written).run();
+    return takesFiles(editor.view.dom, (put) => {
+      editor.chain().focus().insertContent(put).run();
     });
   }, [editor]);
 
@@ -330,6 +293,7 @@ export default function Editor({
       {asking && shown.length > 0 && (
         <Slash at={asking.at} blocks={shown} active={active} onPick={take} />
       )}
+      {picked && editor && !asking && <Floats editor={editor} at={picked.at} />}
     </>
   );
 }

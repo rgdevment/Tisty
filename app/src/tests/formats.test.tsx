@@ -1,45 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
-import { Image } from "@tiptap/extension-image";
-import { Markdown } from "tiptap-markdown";
+import { asMarkdown, ruined, written } from "../ui/writing";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
+const make = (content = "") => new Editor({ extensions: written(), content });
 
-const Pictured = Image.extend({
-  addStorage() {
-    return {
-      markdown: {
-        serialize(
-          state: { write: (text: string) => void; closeBlock: (node: unknown) => void },
-          node: { attrs: Record<string, string> },
-        ) {
-          state.write(`![${node.attrs.alt ?? ""}](${node.attrs.src ?? ""})`);
-          state.closeBlock(node);
-        },
-        parse: {},
-      },
-    };
-  },
-});
-
-const make = (content = "") =>
-  new Editor({
-    extensions: [
-      StarterKit,
-      Pictured,
-      Table.configure({ resizable: false }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      Markdown.configure({ html: true, linkify: true, breaks: true, transformPastedText: false }),
-    ],
-    content,
-  });
-
-const md = (e: Editor) =>
-  (e.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
+const md = (e: Editor) => asMarkdown(e) ?? "";
 
 const through = (text: string) => {
   const editor = make(text);
@@ -47,6 +12,26 @@ const through = (text: string) => {
   editor.destroy();
   return out;
 };
+
+describe("the guard that refuses to write a gutted document", () => {
+  it("catches every shape the serialiser gives up on", () => {
+    for (const gutted of ["[table]", "texto\n\n[table]\n\nmás", "[tableRow]", "  [image]  "]) {
+      expect(ruined(gutted)).toBe(true);
+    }
+  });
+
+  it("lets ordinary writing through, brackets and all", () => {
+    for (const fine of [
+      "un [enlace](https://x.test) normal",
+      "una nota sobre [table] stakes en la misma línea",
+      "ver [table](https://x.test) en el enlace",
+      "| a | b |\n| --- | --- |",
+      "",
+    ]) {
+      expect(ruined(fine)).toBe(false);
+    }
+  });
+});
 
 describe("a picture with something after it", () => {
   it("does not swallow the block that follows", () => {
