@@ -44,8 +44,8 @@ vi.mock("../ui/Editor", () => ({
 }));
 
 const known: Filed[] = [
-  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null },
-  { id: "01G", file: "a3f1-0002", title: "Notas", folder: "01H" },
+  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null , archived: false },
+  { id: "01G", file: "a3f1-0002", title: "Notas", folder: "01H" , archived: false },
 ];
 
 describe("the document being written", () => {

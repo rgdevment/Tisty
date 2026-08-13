@@ -1574,6 +1574,7 @@ struct Filed {
     file: String,
     title: String,
     folder: Option<String>,
+    archived: bool,
 }
 
 #[tauri::command(async)]
@@ -1598,6 +1599,7 @@ fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
             file: kept.file.clone(),
             title: found.title.clone(),
             folder: kept.folder.map(|at| at.to_string()),
+            archived: kept.archived,
         });
     }
     Ok(Papers {
@@ -1814,6 +1816,59 @@ fn doc_write(
         title: tisty_core::docs::titled(&body),
         id,
     })
+}
+
+#[tauri::command]
+fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let mut session = held(&session);
+    if !session.state.docs.contains_key(&id) {
+        return Err(Refusal::of("noSuchDoc"));
+    }
+    session.commit(if away {
+        Op::DocArchive { id }
+    } else {
+        Op::DocUnarchive { id }
+    })?;
+    Ok(())
+}
+
+#[tauri::command(async)]
+fn doc_copy(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<tisty_core::docs::Doc> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let mut session = held(&session);
+    let kept = session
+        .state
+        .docs
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+
+    let root = session.paths.docs();
+    let body = tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
+    let made = tisty_core::docs::create(&root, &session.config.device_id, &body)
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be copied", e))?;
+
+    let order = tisty_core::order::last_of(
+        session
+            .state
+            .docs
+            .values()
+            .filter(|one| one.folder == kept.folder)
+            .map(|one| one.order.as_str()),
+    );
+    session.commit(Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            file: made.id.clone(),
+            order,
+            folder: kept.folder,
+        },
+    })?;
+    Ok(made)
 }
 
 #[tauri::command(async)]
@@ -2755,6 +2810,8 @@ pub fn run() {
             doc_new,
             doc_drop,
             doc_import,
+            doc_copy,
+            doc_away,
             folder_file
         ])
         .run(tauri::generate_context!())

@@ -100,7 +100,9 @@ impl Event {
             | Op::FolderDelete { id }
             | Op::DocAdd { id, .. }
             | Op::DocMove { id, .. }
-            | Op::DocDelete { id } => *id,
+            | Op::DocDelete { id }
+            | Op::DocArchive { id }
+            | Op::DocUnarchive { id } => *id,
         }
     }
 }

@@ -13,7 +13,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-const known: Filed[] = [{ id: "01A", file: "914kqe8z-0001", title: "", folder: null }];
+const known: Filed[] = [{ id: "01A", file: "914kqe8z-0001", title: "", folder: null , archived: false }];
 const papers: Papers = { folders: [], docs: known };
 
 describe("a document that was left with no title", () => {
@@ -26,7 +26,7 @@ describe("a document that was left with no title", () => {
   it("survives being swapped for another document", async () => {
     const second: Filed[] = [
       ...known,
-      { id: "01B", file: "914kqe8z-0002", title: "Notas", folder: null },
+      { id: "01B", file: "914kqe8z-0002", title: "Notas", folder: null , archived: false },
     ];
     const { rerender } = render(
       <Docs open="914kqe8z-0001" known={second} onKept={vi.fn()} onError={vi.fn()} />,

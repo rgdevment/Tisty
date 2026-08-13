@@ -14,16 +14,14 @@ interface Props {
   /// never worth interrupting for.
   ready: boolean;
   onChoose: (chosen: Chosen) => void;
-  onNewDoc: () => void;
-  onNewFolder: () => void;
-  onImport: () => void;
+
   here?: string | null;
   onHere: (folder?: string) => void;
   onMove: (folder: string, parent?: string) => void;
   onFile: (doc: string, folder?: string) => void;
-  onRename: (folder: Folded) => void;
-  onDrop: (folder: Folded) => void;
-  onDropDoc: (doc: Filed) => void;
+  onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
+  onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
+  onDocsMenu: (at: { x: number; y: number }) => void;
 }
 
 const NAMED: { key: Named; icon: string }[] = [
@@ -41,16 +39,13 @@ export default function Sidebar({
   chosen,
   ready,
   onChoose,
-  onNewDoc,
-  onNewFolder,
-  onImport,
   here,
   onHere,
   onMove,
   onFile,
-  onRename,
-  onDrop,
-  onDropDoc,
+  onFolderMenu,
+  onDocMenu,
+  onDocsMenu,
 }: Props) {
   const [openDocs, setOpenDocs] = useState(true);
 
@@ -93,28 +88,13 @@ export default function Sidebar({
           </button>
           <button
             type="button"
-            onClick={onNewFolder}
-            aria-label={t("newFolder")}
-            title={t("newFolder")}
-            className="grid h-5 w-5 place-items-center rounded text-[13px] text-faint hover:bg-hover hover:text-ink"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={onImport}
-            aria-label={t("importDoc")}
-            title={t("importDoc")}
-            className="grid h-5 w-5 place-items-center rounded text-[11px] text-faint hover:bg-hover hover:text-ink"
-          >
-            ↧
-          </button>
-          <button
-            type="button"
-            onClick={onNewDoc}
-            aria-label={t("newDoc")}
-            title={t("newDoc")}
-            className="mr-1 grid h-5 w-5 place-items-center rounded text-[13px] text-faint hover:bg-hover hover:text-ink"
+            onClick={(e) => {
+              const box = e.currentTarget.getBoundingClientRect();
+              onDocsMenu({ x: box.right - 8, y: box.bottom + 4 });
+            }}
+            aria-label={t("docsActions")}
+            aria-haspopup="menu"
+            className="mr-1 grid h-5 w-5 place-items-center rounded text-[14px] text-faint hover:bg-hover hover:text-ink"
           >
             +
           </button>
@@ -129,9 +109,8 @@ export default function Sidebar({
             onMove={onMove}
             onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
             onFile={onFile}
-            onRename={onRename}
-            onDrop={onDrop}
-            onDropDoc={onDropDoc}
+            onFolderMenu={onFolderMenu}
+            onDocMenu={onDocMenu}
           />
         )}
       </div>

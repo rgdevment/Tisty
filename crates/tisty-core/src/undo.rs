@@ -168,6 +168,9 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
 
         // What hung from it went to the root, and putting the folder back would
         // not put them back inside it.
+        Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
+        Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),
+
         Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
 
         // Recovering the payload would mean replaying the log, which purge prevents.

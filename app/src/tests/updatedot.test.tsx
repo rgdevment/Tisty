@@ -28,15 +28,12 @@ function bar(ready: boolean) {
         chosen={chosen}
         ready={ready}
         onChoose={vi.fn()}
-        onNewDoc={vi.fn()}
-        onNewFolder={vi.fn()}
         onFile={vi.fn()}
         onHere={vi.fn()}
         onMove={vi.fn()}
-        onImport={vi.fn()}
-        onDropDoc={vi.fn()}
-        onRename={vi.fn()}
-        onDrop={vi.fn()}
+        onFolderMenu={vi.fn()}
+        onDocMenu={vi.fn()}
+        onDocsMenu={vi.fn()}
       />,
     );
 }

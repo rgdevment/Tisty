@@ -388,6 +388,7 @@ export interface Filed {
   file: string;
   title: string;
   folder: string | null;
+  archived: boolean;
 }
 
 export interface Papers {
@@ -410,6 +411,11 @@ export const docWrite = (id: string, body: string): Promise<Doc> =>
   invoke("doc_write", { id, body });
 export const folderFile = (id: string, parent?: string): Promise<void> =>
   invoke("folder_file", { id, parent });
+
+export const docAway = (id: string, away: boolean): Promise<void> =>
+  invoke("doc_away", { id, away });
+
+export const docCopy = (id: string): Promise<Doc> => invoke("doc_copy", { id });
 
 export const docImport = (from: string, folder?: string): Promise<Doc> =>
   invoke("doc_import", { from, folder });

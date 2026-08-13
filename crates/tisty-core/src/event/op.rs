@@ -97,6 +97,10 @@ pub enum Op {
     DocMove { id: DocId, d: Filed },
     #[serde(rename = "doc.delete")]
     DocDelete { id: DocId },
+    #[serde(rename = "doc.archive")]
+    DocArchive { id: DocId },
+    #[serde(rename = "doc.unarchive")]
+    DocUnarchive { id: DocId },
 }
 
 impl Op {
@@ -136,6 +140,8 @@ impl Op {
             Op::DocAdd { d, .. } => Op::DocAdd { id, d },
             Op::DocMove { d, .. } => Op::DocMove { id, d },
             Op::DocDelete { .. } => Op::DocDelete { id },
+            Op::DocArchive { .. } => Op::DocArchive { id },
+            Op::DocUnarchive { .. } => Op::DocUnarchive { id },
         }
     }
 
@@ -226,7 +232,9 @@ impl Op {
             | Op::FolderDelete { id }
             | Op::DocAdd { id, .. }
             | Op::DocMove { id, .. }
-            | Op::DocDelete { id } => *id,
+            | Op::DocDelete { id }
+            | Op::DocArchive { id }
+            | Op::DocUnarchive { id } => *id,
         }
     }
 }
