@@ -10,7 +10,6 @@ import {
   folderAdd,
   docAway,
   docCopy,
-  docRead,
   parted,
   printed,
   docDrop,
@@ -63,7 +62,7 @@ import Docs from "./ui/Docs";
 import Naming from "./ui/Naming";
 import Menu, { type Choice } from "./ui/Menu";
 import { settled } from "./saving";
-import { bared } from "./ui/writing";
+import { asPlain } from "./copying";
 import { ask, open as pick } from "@tauri-apps/plugin-dialog";
 import Lists from "./ui/Lists";
 import Notice from "./ui/Notice";
@@ -544,8 +543,7 @@ export default function App() {
                 label: t("copyPlain"),
                 apart: true,
                 onPick: () =>
-                  docRead(doc.file)
-                    .then((body) => navigator.clipboard.writeText(bared(body)))
+                  asPlain(doc.file)
                     .then(() => {
                       setNote(t("copied"));
                       setTimeout(() => setNote(null), 3200);

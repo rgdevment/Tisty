@@ -23,6 +23,7 @@ import {
   type Reach,
   type Settings,
   type Reviewed,
+  copied,
 } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -256,7 +257,7 @@ export default function Keeping({ onChanged }: Props) {
     (paper !== null ? Promise.resolve(paper) : compose())
       .then((text) => {
         setPaper(text);
-        return navigator.clipboard.writeText(text);
+        return copied(text);
       })
       .then(() => setSaid({ card: "report", text: t("reportCopied") }))
       .catch(() => setTrouble({ card: "report", text: t("reportNoClipboard") }));
