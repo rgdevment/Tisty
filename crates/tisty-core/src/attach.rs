@@ -18,6 +18,8 @@ pub const COPIED_UP_TO: u64 = 5 * 1024 * 1024;
 
 /// The band the setting may move in. Below the floor nothing would ever be
 /// copied; above the ceiling the store stops being a thing you can move.
+const SHORTENS_TO: usize = 56;
+
 pub const COPIED_LEAST: u64 = 64 * 1024;
 pub const COPIED_MOST: u64 = 200 * 1024 * 1024;
 
@@ -88,22 +90,79 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
         .unwrap_or_default();
 
     let (shelf, rest) = sha256.split_at(2);
-    let name = format!("{rest}{ext}");
+    let stamp = &rest[..8];
     let folder = root.join("attachments").join(shelf);
     std::fs::create_dir_all(&folder)?;
     let _ = crate::paths::ours_alone(root);
     let _ = crate::paths::ours_alone(&root.join("attachments"));
     let _ = crate::paths::ours_alone(&folder);
 
-    let target = folder.join(&name);
-    if !target.exists() {
-        std::fs::write(&target, &bytes)?;
-        let _ = crate::paths::ours_alone(&target);
-    }
+    let name = match already(&folder, stamp) {
+        Some(kept) => kept,
+        None => {
+            let name = named(source, stamp, &ext);
+            let target = folder.join(&name);
+            std::fs::write(&target, &bytes)?;
+            let _ = crate::paths::ours_alone(&target);
+            name
+        }
+    };
     Ok(Kept {
         at: format!("attachments/{shelf}/{name}"),
         sha256,
     })
+}
+
+fn named(source: &Path, stamp: &str, ext: &str) -> String {
+    let slug: String = source
+        .file_stem()
+        .and_then(|one| one.to_str())
+        .map(|one| crate::text::composed(one).to_lowercase())
+        .unwrap_or_default()
+        .chars()
+        .map(plainly)
+        .collect();
+
+    let slug: String = slug
+        .split('-')
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("-")
+        .chars()
+        .take(SHORTENS_TO)
+        .collect();
+    let slug = slug.trim_matches('-');
+
+    if slug.is_empty() {
+        format!("{stamp}{ext}")
+    } else {
+        format!("{slug}-{stamp}{ext}")
+    }
+}
+
+fn plainly(c: char) -> char {
+    match c {
+        'a'..='z' | '0'..='9' => c,
+        'á' | 'à' | 'ä' | 'â' | 'ã' => 'a',
+        'é' | 'è' | 'ë' | 'ê' => 'e',
+        'í' | 'ì' | 'ï' | 'î' => 'i',
+        'ó' | 'ò' | 'ö' | 'ô' | 'õ' => 'o',
+        'ú' | 'ù' | 'ü' | 'û' => 'u',
+        'ñ' => 'n',
+        'ç' => 'c',
+        _ => '-',
+    }
+}
+
+fn already(folder: &Path, stamp: &str) -> Option<String> {
+    std::fs::read_dir(folder)
+        .ok()?
+        .filter_map(|one| one.ok())
+        .find_map(|one| {
+            let name = one.file_name().to_str()?.to_string();
+            let stem = name.split('.').next().unwrap_or(&name);
+            (stem == stamp || stem.ends_with(&format!("-{stamp}"))).then_some(name)
+        })
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -424,12 +483,100 @@ mod tests {
     }
 
     #[test]
-    fn a_file_without_an_extension_keeps_its_hash_alone() {
+    fn a_file_without_an_extension_keeps_its_name_and_its_stamp() {
         let (_src, file) = dropped("README", b"no extension here");
         let root = tempfile::tempdir().unwrap();
 
         let Kept { at, sha256 } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
-        assert!(at.ends_with(&sha256[2..]), "{at}");
+
+        assert!(at.ends_with(&format!("readme-{}", &sha256[2..10])), "{at}");
+    }
+
+    fn stored(name: &str, bytes: &[u8]) -> String {
+        let (_src, file) = dropped(name, bytes);
+        let root = tempfile::tempdir().unwrap();
+        let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+        kept.at.rsplit('/').next().unwrap().to_string()
+    }
+
+    #[test]
+    fn the_name_on_disk_is_the_one_a_person_would_recognise() {
+        assert!(stored("Informe final.pdf", b"a").starts_with("informe-final-"));
+        assert!(stored("captura de pantalla.png", b"b").starts_with("captura-de-pantalla-"));
+    }
+
+    #[test]
+    fn nothing_a_system_argues_about_survives_in_the_name() {
+        let kept = stored("Diseño Técnico: v2 <final>.PDF", b"c");
+
+        assert!(kept.starts_with("diseno-tecnico-v2-final-"), "{kept}");
+        assert!(kept.ends_with(".pdf"), "{kept}");
+        assert!(
+            kept.chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '.'),
+            "{kept}"
+        );
+    }
+
+    #[test]
+    fn a_name_windows_reserves_stops_being_reserved() {
+        let kept = stored("CON.txt", b"d");
+
+        assert!(kept.starts_with("con-"), "{kept}");
+        assert_ne!(kept, "con.txt");
+    }
+
+    #[test]
+    fn a_name_nobody_could_shorten_falls_back_to_the_stamp() {
+        let kept = stored("привет мир.txt", b"e");
+
+        assert!(kept.ends_with(".txt"), "{kept}");
+        assert_eq!(kept.len(), "12345678.txt".len(), "{kept}");
+    }
+
+    #[test]
+    fn a_very_long_name_is_cut_without_losing_the_stamp() {
+        let (_src, file) = dropped(&format!("{}.pdf", "nombre-larguisimo-".repeat(10)), b"f");
+        let root = tempfile::tempdir().unwrap();
+
+        let Kept { at, sha256 } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+        let kept = at.rsplit('/').next().unwrap();
+
+        assert!(kept.len() < 80, "{} chars: {kept}", kept.len());
+        assert!(
+            kept.ends_with(&format!("-{}.pdf", &sha256[2..10])),
+            "the stamp was cut off with the name: {kept}"
+        );
+        assert!(kept.starts_with("nombre-larguisimo-"), "{kept}");
+    }
+
+    #[test]
+    fn what_a_real_name_looks_like_on_disk() {
+        for (given, wanted) in [
+            ("Informe Técnico Final v2.pdf", "informe-tecnico-final-v2"),
+            (
+                "Captura de pantalla 2026-08-13.png",
+                "captura-de-pantalla-2026-08-13",
+            ),
+            ("presupuesto (copia).xlsx", "presupuesto-copia"),
+            ("Diseño & Maquetación.sketch", "diseno-maquetacion"),
+        ] {
+            let kept = stored(given, given.as_bytes());
+            assert!(kept.starts_with(wanted), "«{given}» quedó como «{kept}»");
+        }
+    }
+
+    #[test]
+    fn the_same_bytes_under_two_names_are_still_one_file() {
+        let root = tempfile::tempdir().unwrap();
+        let (_a, first) = dropped("informe.pdf", b"same bytes");
+        let (_b, second) = dropped("copia del informe.pdf", b"same bytes");
+
+        let one = keep(&first, root.path(), COPIED_UP_TO).unwrap();
+        let two = keep(&second, root.path(), COPIED_UP_TO).unwrap();
+
+        assert_eq!(one.at, two.at, "kept twice");
+        assert_eq!(one.sha256, two.sha256);
     }
 
     #[test]
