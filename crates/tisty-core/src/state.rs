@@ -4,7 +4,10 @@ use ulid::Ulid;
 
 use crate::{
     event::{Event, LogAdd, LogEdit, Op, StepAdd, TaskAdd, TaskMove, TaskPatch},
-    model::{List, ListId, LogEntry, Status, Step, StepId, Tag, Task, TaskId},
+    model::{
+        DocId, Folder, FolderId, Kept, List, ListId, LogEntry, Status, Step, StepId, Tag, Task,
+        TaskId,
+    },
     order,
 };
 
@@ -21,6 +24,8 @@ pub enum Fill {
 pub struct State {
     pub tasks: BTreeMap<TaskId, Task>,
     pub lists: BTreeMap<ListId, List>,
+    pub folders: BTreeMap<FolderId, Folder>,
+    pub docs: BTreeMap<DocId, Kept>,
     pub(crate) fill: Fill,
     tombstones: BTreeSet<Ulid>,
 }
@@ -95,6 +100,82 @@ impl State {
                 if let Some(list) = self.lists.get_mut(id) {
                     list.name = d.name.clone();
                 }
+            }
+            Op::FolderAdd { id, d } => {
+                self.folders.insert(
+                    *id,
+                    Folder {
+                        id: *id,
+                        name: d.name.clone(),
+                        order: d.order.clone(),
+                        parent: d.parent.filter(|at| at != id),
+                        icon: d.icon.clone().filter(|key| crate::model::icon::known(key)),
+                    },
+                );
+            }
+            Op::FolderRename { id, d } => {
+                if let Some(folder) = self.folders.get_mut(id) {
+                    folder.name = d.name.clone();
+                }
+            }
+            Op::FolderLook { id, d } => {
+                if let Some(folder) = self.folders.get_mut(id)
+                    && let Some(icon) = &d.icon
+                {
+                    folder.icon = icon.clone().filter(|key| crate::model::icon::known(key));
+                }
+            }
+            Op::FolderMove { id, d } => {
+                if let Some(parent) = d.folder
+                    && parent.is_none_or(|at| self.has_room_under(at))
+                    && !self.would_loop(*id, parent)
+                    && self.depth(parent) + self.tallest_under(*id) <= crate::model::DEEPEST
+                    && let Some(folder) = self.folders.get_mut(id)
+                {
+                    folder.parent = parent;
+                }
+            }
+            Op::FolderDelete { id } => {
+                self.folders.remove(id);
+                self.tombstones.insert(*id);
+                let orphaned: Vec<FolderId> = self
+                    .folders
+                    .values()
+                    .filter(|one| one.parent == Some(*id))
+                    .map(|one| one.id)
+                    .collect();
+                for child in orphaned {
+                    if let Some(folder) = self.folders.get_mut(&child) {
+                        folder.parent = None;
+                    }
+                }
+                for doc in self.docs.values_mut() {
+                    if doc.folder == Some(*id) {
+                        doc.folder = None;
+                    }
+                }
+            }
+            Op::DocAdd { id, d } => {
+                self.docs.insert(
+                    *id,
+                    Kept {
+                        id: *id,
+                        file: d.file.clone(),
+                        order: d.order.clone(),
+                        folder: d.folder,
+                    },
+                );
+            }
+            Op::DocMove { id, d } => {
+                if let Some(folder) = d.folder
+                    && let Some(doc) = self.docs.get_mut(id)
+                {
+                    doc.folder = folder;
+                }
+            }
+            Op::DocDelete { id } => {
+                self.docs.remove(id);
+                self.tombstones.insert(*id);
             }
             Op::ListLook { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {
@@ -188,7 +269,12 @@ impl State {
         let born: std::collections::HashMap<Ulid, Ulid> = ops
             .iter()
             .filter_map(|op| match op {
-                Op::TaskAdd { id, .. } | Op::ListAdd { id, .. } if self.is_erased(*id) => {
+                Op::TaskAdd { id, .. }
+                | Op::ListAdd { id, .. }
+                | Op::FolderAdd { id, .. }
+                | Op::DocAdd { id, .. }
+                    if self.is_erased(*id) =>
+                {
                     Some((*id, Ulid::generate()))
                 }
                 _ => None,
@@ -204,6 +290,115 @@ impl State {
                 None => op,
             })
             .collect()
+    }
+
+    pub fn unfiled(&self) -> Vec<&Kept> {
+        self.docs
+            .values()
+            .filter(|one| one.folder.is_none_or(|at| !self.folders.contains_key(&at)))
+            .collect()
+    }
+
+    pub fn inside(&self, folder: FolderId) -> Vec<&Kept> {
+        self.docs
+            .values()
+            .filter(|one| one.folder == Some(folder))
+            .collect()
+    }
+
+    /// A reference whose target arrives later in the log is not a mistake to
+    /// erase: repairing on read keeps the intent and still shows everything.
+    fn adrift(&self, folder: &Folder) -> bool {
+        folder
+            .parent
+            .is_some_and(|at| !self.folders.contains_key(&at))
+    }
+
+    pub fn under(&self, parent: Option<FolderId>) -> Vec<&Folder> {
+        let mut found: Vec<&Folder> = self
+            .folders
+            .values()
+            .filter(|one| match parent {
+                None => one.parent.is_none() || self.adrift(one),
+                at => one.parent == at,
+            })
+            .collect();
+        found.sort_by(|a, b| {
+            a.order
+                .cmp(&b.order)
+                .then(a.name.cmp(&b.name))
+                .then(a.id.cmp(&b.id))
+        });
+        found
+    }
+
+    pub fn held_by(&self, folder: FolderId) -> usize {
+        self.counting(folder, &mut std::collections::BTreeSet::new())
+    }
+
+    fn counting(&self, folder: FolderId, seen: &mut std::collections::BTreeSet<FolderId>) -> usize {
+        if !seen.insert(folder) {
+            return 0;
+        }
+        self.inside(folder).len()
+            + self
+                .under(Some(folder))
+                .iter()
+                .map(|one| self.counting(one.id, seen))
+                .sum::<usize>()
+    }
+
+    fn has_room_under(&self, at: FolderId) -> bool {
+        self.folders.contains_key(&at) && self.depth(Some(at)) < crate::model::DEEPEST
+    }
+
+    pub fn depth(&self, at: Option<FolderId>) -> usize {
+        let mut deep = 0;
+        let mut walk = at;
+        while let Some(one) = walk {
+            deep += 1;
+            walk = self.folders.get(&one).and_then(|folder| folder.parent);
+            if deep > crate::model::DEEPEST {
+                break;
+            }
+        }
+        deep
+    }
+
+    pub fn tall_under(&self, at: FolderId) -> usize {
+        self.tallest_under(at)
+    }
+
+    pub fn would_swallow(&self, moving: FolderId, under: FolderId) -> bool {
+        self.would_loop(moving, Some(under))
+    }
+
+    fn tallest_under(&self, at: FolderId) -> usize {
+        self.tallest(at, &mut std::collections::BTreeSet::new())
+    }
+
+    fn tallest(&self, at: FolderId, seen: &mut std::collections::BTreeSet<FolderId>) -> usize {
+        if !seen.insert(at) {
+            return 0;
+        }
+        1 + self
+            .under(Some(at))
+            .iter()
+            .map(|one| self.tallest(one.id, seen))
+            .max()
+            .unwrap_or(0)
+    }
+
+    fn would_loop(&self, moving: FolderId, under: Option<FolderId>) -> bool {
+        let mut at = under;
+        let mut seen = std::collections::BTreeSet::new();
+        while let Some(one) = at {
+            if one == moving || !seen.insert(one) {
+                return true;
+            }
+            at = self.folders.get(&one).and_then(|folder| folder.parent);
+        }
+        false
     }
 
     /// For restoring a projection stored elsewhere; omitting tombstones lets deletions resurrect.
@@ -2486,5 +2681,418 @@ mod tests {
         ));
 
         assert_eq!(state.lists[&list].icon, None);
+    }
+
+    fn folder(state: &mut State, name: &str, parent: Option<FolderId>) -> FolderId {
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::FolderAdd {
+                id,
+                d: crate::event::FolderAdd {
+                    name: name.into(),
+                    order: "a0".into(),
+                    parent,
+                    icon: None,
+                },
+            },
+        ));
+        id
+    }
+
+    fn doc(state: &mut State, file: &str, folder: Option<FolderId>) -> DocId {
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::DocAdd {
+                id,
+                d: crate::event::DocAdd {
+                    file: file.into(),
+                    order: "a0".into(),
+                    folder,
+                },
+            },
+        ));
+        id
+    }
+
+    #[test]
+    fn a_folder_hangs_where_it_was_told_to() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let inside = folder(&mut state, "corporativo", Some(work));
+
+        assert_eq!(state.folders[&work].parent, None);
+        assert_eq!(state.folders[&inside].parent, Some(work));
+    }
+
+    #[test]
+    fn renaming_a_folder_moves_nothing() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let filed = doc(&mut state, "a3f1-0001", Some(work));
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::FolderRename {
+                id: work,
+                d: crate::event::Name {
+                    name: "Work".into(),
+                },
+            },
+        ));
+
+        assert_eq!(state.folders[&work].name, "Work");
+        assert_eq!(state.docs[&filed].folder, Some(work));
+        assert_eq!(state.docs[&filed].file, "a3f1-0001");
+    }
+
+    #[test]
+    fn a_document_with_no_folder_is_unfiled() {
+        let mut state = State::default();
+        let loose = doc(&mut state, "a3f1-0001", None);
+
+        assert_eq!(state.docs[&loose].folder, None);
+    }
+
+    #[test]
+    fn filing_a_document_never_touches_its_file() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let one = doc(&mut state, "a3f1-0001", None);
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::DocMove {
+                id: one,
+                d: crate::event::Filed {
+                    folder: Some(Some(work)),
+                },
+            },
+        ));
+
+        assert_eq!(state.docs[&one].folder, Some(work));
+        assert_eq!(state.docs[&one].file, "a3f1-0001");
+    }
+
+    #[test]
+    fn a_document_can_be_taken_back_out_of_every_folder() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let one = doc(&mut state, "a3f1-0001", Some(work));
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::DocMove {
+                id: one,
+                d: crate::event::Filed { folder: Some(None) },
+            },
+        ));
+
+        assert_eq!(state.docs[&one].folder, None);
+    }
+
+    #[test]
+    fn counting_what_hangs_below_a_knot_still_ends() {
+        let mut state = State::default();
+        let a = folder(&mut state, "a", None);
+        let b = folder(&mut state, "b", Some(a));
+        state.folders.get_mut(&a).unwrap().parent = Some(b);
+
+        assert_eq!(state.held_by(a), 0);
+        assert!(state.under(None).is_empty());
+    }
+
+    #[test]
+    fn a_document_hung_from_nothing_is_shown_as_unfiled() {
+        let mut state = State::default();
+        let gone = Ulid::generate();
+
+        let one = doc(&mut state, "a3f1-0001", Some(gone));
+
+        assert_eq!(state.docs[&one].folder, Some(gone), "the filing was erased");
+        assert_eq!(state.unfiled().len(), 1, "nobody could reach it");
+    }
+
+    #[test]
+    fn a_folder_that_was_deleted_never_comes_back() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        state.apply(&ev(2, "a", Op::FolderDelete { id: work }));
+
+        state.apply(&ev(
+            3,
+            "b",
+            Op::FolderAdd {
+                id: work,
+                d: crate::event::FolderAdd {
+                    name: "trabajo".into(),
+                    order: "a0".into(),
+                    parent: None,
+                    icon: None,
+                },
+            },
+        ));
+
+        assert!(!state.folders.contains_key(&work), "it rose again");
+        assert!(state.is_erased(work));
+    }
+
+    #[test]
+    fn a_document_that_was_deleted_never_comes_back() {
+        let mut state = State::default();
+        let one = doc(&mut state, "a3f1-0001", None);
+        state.apply(&ev(2, "a", Op::DocDelete { id: one }));
+
+        state.apply(&ev(
+            3,
+            "b",
+            Op::DocAdd {
+                id: one,
+                d: crate::event::DocAdd {
+                    file: "a3f1-0001".into(),
+                    order: "a0".into(),
+                    folder: None,
+                },
+            },
+        ));
+
+        assert!(!state.docs.contains_key(&one), "it rose again");
+    }
+
+    #[test]
+    fn making_a_folder_again_after_undoing_it_takes_a_fresh_id() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        state.apply(&ev(2, "a", Op::FolderDelete { id: work }));
+
+        let again = state.afresh(vec![Op::FolderAdd {
+            id: work,
+            d: crate::event::FolderAdd {
+                name: "trabajo".into(),
+                order: "a0".into(),
+                parent: None,
+                icon: None,
+            },
+        }]);
+
+        assert!(matches!(again.first(), Some(Op::FolderAdd { id, .. }) if *id != work));
+    }
+
+    #[test]
+    fn deleting_a_folder_leaves_its_documents_unfiled() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let inside = folder(&mut state, "corporativo", Some(work));
+        let one = doc(&mut state, "a3f1-0001", Some(work));
+
+        state.apply(&ev(2, "a", Op::FolderDelete { id: work }));
+
+        assert!(!state.folders.contains_key(&work));
+        assert_eq!(state.folders[&inside].parent, None, "a child was orphaned");
+        assert_eq!(state.docs[&one].folder, None, "a document was orphaned");
+        assert_eq!(state.unfiled().len(), 1);
+    }
+
+    #[test]
+    fn a_folder_whose_parent_never_arrives_is_still_reachable() {
+        let mut state = State::default();
+        let gone = Ulid::generate();
+        let orphan = folder(&mut state, "corporativo", Some(gone));
+        let one = doc(&mut state, "a3f1-0001", Some(orphan));
+
+        assert!(
+            state.under(None).iter().any(|f| f.id == orphan),
+            "nobody could reach it"
+        );
+        assert_eq!(state.docs[&one].folder, Some(orphan), "it was torn out");
+        assert_eq!(state.inside(orphan).len(), 1);
+    }
+
+    #[test]
+    fn a_document_filed_before_its_folder_arrives_stays_inside_it() {
+        let mut state = State::default();
+        let late = Ulid::generate();
+        let one = doc(&mut state, "a3f1-0001", Some(late));
+
+        assert_eq!(state.unfiled().len(), 1, "it hides until the folder lands");
+
+        state.apply(&ev(
+            2,
+            "b",
+            Op::FolderAdd {
+                id: late,
+                d: crate::event::FolderAdd {
+                    name: "trabajo".into(),
+                    order: "a0".into(),
+                    parent: None,
+                    icon: None,
+                },
+            },
+        ));
+
+        assert_eq!(state.docs[&one].folder, Some(late), "the filing was erased");
+        assert_eq!(state.inside(late).len(), 1);
+        assert!(state.unfiled().is_empty());
+    }
+
+    #[test]
+    fn a_folder_born_before_its_parent_arrives_ends_up_inside_it() {
+        let mut state = State::default();
+        let late = Ulid::generate();
+        let child = folder(&mut state, "corporativo", Some(late));
+
+        assert!(state.under(None).iter().any(|f| f.id == child));
+
+        state.apply(&ev(
+            2,
+            "b",
+            Op::FolderAdd {
+                id: late,
+                d: crate::event::FolderAdd {
+                    name: "trabajo".into(),
+                    order: "a0".into(),
+                    parent: None,
+                    icon: None,
+                },
+            },
+        ));
+
+        assert_eq!(state.under(Some(late)).len(), 1, "the nesting was erased");
+        assert!(!state.under(None).iter().any(|f| f.id == child));
+    }
+
+    #[test]
+    fn a_folder_moved_into_one_that_is_gone_stays_where_it_was() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let inside = folder(&mut state, "corporativo", Some(work));
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::FolderMove {
+                id: inside,
+                d: crate::event::Filed {
+                    folder: Some(Some(Ulid::generate())),
+                },
+            },
+        ));
+
+        assert_eq!(state.folders[&inside].parent, Some(work));
+    }
+
+    #[test]
+    fn the_ceiling_is_measured_from_the_root() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let inside = folder(&mut state, "corporativo", Some(work));
+
+        assert_eq!(state.depth(Some(work)), 1);
+        assert_eq!(state.depth(Some(inside)), 2);
+    }
+
+    #[test]
+    fn a_folder_cannot_be_moved_where_it_would_push_a_child_too_deep() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let other = folder(&mut state, "personal", None);
+        let inside = folder(&mut state, "corporativo", Some(work));
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::FolderMove {
+                id: work,
+                d: crate::event::Filed {
+                    folder: Some(Some(other)),
+                },
+            },
+        ));
+
+        assert_eq!(
+            state.folders[&work].parent, None,
+            "its child fell to a third level"
+        );
+        assert_eq!(state.folders[&inside].parent, Some(work));
+    }
+
+    #[test]
+    fn a_childless_folder_can_still_be_moved_one_level_down() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let alone = folder(&mut state, "personal", None);
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::FolderMove {
+                id: alone,
+                d: crate::event::Filed {
+                    folder: Some(Some(work)),
+                },
+            },
+        ));
+
+        assert_eq!(state.folders[&alone].parent, Some(work));
+    }
+
+    #[test]
+    fn a_folder_cannot_be_moved_into_its_own_descendant() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let inside = folder(&mut state, "corporativo", Some(work));
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::FolderMove {
+                id: work,
+                d: crate::event::Filed {
+                    folder: Some(Some(inside)),
+                },
+            },
+        ));
+
+        assert_eq!(state.folders[&work].parent, None, "it swallowed itself");
+        assert_eq!(state.folders[&inside].parent, Some(work));
+    }
+
+    #[test]
+    fn what_a_folder_holds_counts_what_hangs_below_it() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let inside = folder(&mut state, "corporativo", Some(work));
+        doc(&mut state, "a3f1-0001", Some(work));
+        doc(&mut state, "a3f1-0002", Some(inside));
+        doc(&mut state, "a3f1-0003", None);
+
+        assert_eq!(state.held_by(work), 2, "the tree shows what hangs below");
+        assert_eq!(state.held_by(inside), 1);
+        assert_eq!(state.unfiled().len(), 1);
+    }
+
+    #[test]
+    fn a_folder_cannot_be_moved_into_itself() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::FolderMove {
+                id: work,
+                d: crate::event::Filed {
+                    folder: Some(Some(work)),
+                },
+            },
+        ));
+
+        assert_eq!(state.folders[&work].parent, None);
     }
 }

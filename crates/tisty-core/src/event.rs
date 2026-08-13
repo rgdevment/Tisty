@@ -1,8 +1,8 @@
 mod op;
 
 pub use op::{
-    Body, ListAdd, LogAdd, LogEdit, Look, Name, Op, StepAdd, StepRef, StepReorder, StepText,
-    TaskAdd, TaskMove, TaskPatch,
+    Body, DocAdd, Filed, FolderAdd, ListAdd, LogAdd, LogEdit, Look, Name, Op, StepAdd, StepRef,
+    StepReorder, StepText, TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
@@ -92,7 +92,15 @@ impl Event {
             | Op::ListLook { id, .. }
             | Op::ListArchive { id }
             | Op::ListUnarchive { id }
-            | Op::ListDelete { id } => *id,
+            | Op::ListDelete { id }
+            | Op::FolderAdd { id, .. }
+            | Op::FolderRename { id, .. }
+            | Op::FolderLook { id, .. }
+            | Op::FolderMove { id, .. }
+            | Op::FolderDelete { id }
+            | Op::DocAdd { id, .. }
+            | Op::DocMove { id, .. }
+            | Op::DocDelete { id } => *id,
         }
     }
 }

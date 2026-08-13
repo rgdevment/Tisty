@@ -1,6 +1,8 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::model::{DateSpec, ListId, LogId, Priority, Repeat, StepId, Tag, TaskId};
+use crate::model::{
+    DateSpec, DocId, FolderId, ListId, LogId, Priority, Repeat, StepId, Tag, TaskId,
+};
 
 /// Serde folds `null` into `None`, making "clear" and "leave alone" the same.
 mod null_clears {
@@ -77,6 +79,24 @@ pub enum Op {
     ListUnarchive { id: ListId },
     #[serde(rename = "list.delete")]
     ListDelete { id: ListId },
+
+    #[serde(rename = "folder.add")]
+    FolderAdd { id: FolderId, d: FolderAdd },
+    #[serde(rename = "folder.rename")]
+    FolderRename { id: FolderId, d: Name },
+    #[serde(rename = "folder.look")]
+    FolderLook { id: FolderId, d: Look },
+    #[serde(rename = "folder.move")]
+    FolderMove { id: FolderId, d: Filed },
+    #[serde(rename = "folder.delete")]
+    FolderDelete { id: FolderId },
+
+    #[serde(rename = "doc.add")]
+    DocAdd { id: DocId, d: DocAdd },
+    #[serde(rename = "doc.move")]
+    DocMove { id: DocId, d: Filed },
+    #[serde(rename = "doc.delete")]
+    DocDelete { id: DocId },
 }
 
 impl Op {
@@ -108,6 +128,14 @@ impl Op {
             Op::ListArchive { .. } => Op::ListArchive { id },
             Op::ListUnarchive { .. } => Op::ListUnarchive { id },
             Op::ListDelete { .. } => Op::ListDelete { id },
+            Op::FolderAdd { d, .. } => Op::FolderAdd { id, d },
+            Op::FolderRename { d, .. } => Op::FolderRename { id, d },
+            Op::FolderLook { d, .. } => Op::FolderLook { id, d },
+            Op::FolderMove { d, .. } => Op::FolderMove { id, d },
+            Op::FolderDelete { .. } => Op::FolderDelete { id },
+            Op::DocAdd { d, .. } => Op::DocAdd { id, d },
+            Op::DocMove { d, .. } => Op::DocMove { id, d },
+            Op::DocDelete { .. } => Op::DocDelete { id },
         }
     }
 
@@ -149,6 +177,14 @@ impl Op {
                 d.name = one(d.name);
                 Op::ListAdd { id, d }
             }
+            Op::FolderAdd { id, mut d } => {
+                d.name = one(d.name);
+                Op::FolderAdd { id, d }
+            }
+            Op::FolderRename { id, mut d } => {
+                d.name = one(d.name);
+                Op::FolderRename { id, d }
+            }
             Op::ListRename { id, mut d } => {
                 d.name = one(d.name);
                 Op::ListRename { id, d }
@@ -182,7 +218,15 @@ impl Op {
             | Op::ListLook { id, .. }
             | Op::ListArchive { id }
             | Op::ListUnarchive { id }
-            | Op::ListDelete { id } => *id,
+            | Op::ListDelete { id }
+            | Op::FolderAdd { id, .. }
+            | Op::FolderRename { id, .. }
+            | Op::FolderLook { id, .. }
+            | Op::FolderMove { id, .. }
+            | Op::FolderDelete { id }
+            | Op::DocAdd { id, .. }
+            | Op::DocMove { id, .. }
+            | Op::DocDelete { id } => *id,
         }
     }
 }
@@ -333,6 +377,31 @@ pub struct ListAdd {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Name {
     pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FolderAdd {
+    pub name: String,
+    pub order: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<FolderId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DocAdd {
+    pub file: String,
+    pub order: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder: Option<FolderId>,
+}
+
+/// `null` files it at the root, absent leaves it where it was.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Filed {
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub folder: Option<Option<FolderId>>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

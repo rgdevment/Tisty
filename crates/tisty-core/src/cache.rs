@@ -9,7 +9,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-const SCHEMA: i64 = 3;
+const SCHEMA: i64 = 4;
 
 pub struct Cache {
     db: Connection,
@@ -47,6 +47,8 @@ impl Cache {
                  CREATE TABLE IF NOT EXISTS task(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS task_body(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS list(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
+                 CREATE TABLE IF NOT EXISTS folder(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
+                 CREATE TABLE IF NOT EXISTS doc(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY);",
         ) {
             witness::warn(
@@ -87,6 +89,27 @@ impl Cache {
                 }
             }
         }
+        {
+            let mut q = self.db.prepare("SELECT doc FROM folder").ok()?;
+            let rows = q
+                .query_map([], |r| r.get::<_, String>(0))
+                .ok()?
+                .filter_map(|r| r.ok());
+            for doc in rows {
+                let folder: crate::model::Folder = serde_json::from_str(&doc).ok()?;
+                state.folders.insert(folder.id, folder);
+            }
+            let mut q = self.db.prepare("SELECT doc FROM doc").ok()?;
+            let rows = q
+                .query_map([], |r| r.get::<_, String>(0))
+                .ok()?
+                .filter_map(|r| r.ok());
+            for doc in rows {
+                let kept: crate::model::Kept = serde_json::from_str(&doc).ok()?;
+                state.docs.insert(kept.id, kept);
+            }
+        }
+
         if bodies {
             let mut q = self.db.prepare("SELECT id, doc FROM task_body").ok()?;
             let rows = q
@@ -132,6 +155,8 @@ impl Cache {
             tx.execute("DELETE FROM task", [])?;
             tx.execute("DELETE FROM task_body", [])?;
             tx.execute("DELETE FROM list", [])?;
+            tx.execute("DELETE FROM folder", [])?;
+            tx.execute("DELETE FROM doc", [])?;
             tx.execute("DELETE FROM tombstone", [])?;
             {
                 let mut task = tx.prepare("INSERT INTO task VALUES (?,?)")?;
@@ -147,6 +172,16 @@ impl Cache {
                 for l in state.lists.values() {
                     let doc = serde_json::to_string(l).unwrap_or_default();
                     list.execute(rusqlite::params![l.id.to_string(), doc])?;
+                }
+                let mut folder = tx.prepare("INSERT INTO folder VALUES (?,?)")?;
+                for f in state.folders.values() {
+                    let doc = serde_json::to_string(f).unwrap_or_default();
+                    folder.execute(rusqlite::params![f.id.to_string(), doc])?;
+                }
+                let mut kept = tx.prepare("INSERT INTO doc VALUES (?,?)")?;
+                for d in state.docs.values() {
+                    let doc = serde_json::to_string(d).unwrap_or_default();
+                    kept.execute(rusqlite::params![d.id.to_string(), doc])?;
                 }
             }
             {
@@ -178,6 +213,30 @@ impl Cache {
         }
         let carried = (|| -> rusqlite::Result<()> {
             let id = entity.to_string();
+            if let Some(folder) = state.folders.get(&entity) {
+                let doc = serde_json::to_string(folder).unwrap_or_default();
+                self.db.execute(
+                    "INSERT OR REPLACE INTO folder VALUES (?,?)",
+                    rusqlite::params![id, doc],
+                )?;
+                self.db.execute(
+                    "INSERT OR REPLACE INTO meta VALUES ('fingerprint', ?)",
+                    [fingerprint],
+                )?;
+                return Ok(());
+            }
+            if let Some(kept) = state.docs.get(&entity) {
+                let doc = serde_json::to_string(kept).unwrap_or_default();
+                self.db.execute(
+                    "INSERT OR REPLACE INTO doc VALUES (?,?)",
+                    rusqlite::params![id, doc],
+                )?;
+                self.db.execute(
+                    "INSERT OR REPLACE INTO meta VALUES ('fingerprint', ?)",
+                    [fingerprint],
+                )?;
+                return Ok(());
+            }
             match (state.tasks.get(&entity), state.lists.get(&entity)) {
                 (Some(task), _) => {
                     let (summary, detail) = split(task);
@@ -207,6 +266,8 @@ impl Cache {
                     self.db
                         .execute("DELETE FROM task_body WHERE id = ?", [&id])?;
                     self.db.execute("DELETE FROM list WHERE id = ?", [&id])?;
+                    self.db.execute("DELETE FROM folder WHERE id = ?", [&id])?;
+                    self.db.execute("DELETE FROM doc WHERE id = ?", [&id])?;
                     if state.is_erased(entity) {
                         self.db
                             .execute("INSERT OR REPLACE INTO tombstone VALUES (?)", [&id])?;
@@ -376,10 +437,13 @@ pub fn advance(
     }
 
     // ListDelete cascades to every task it held; touch() only updates one entity.
-    if events
-        .iter()
-        .any(|e| matches!(e.op, crate::Op::ListDelete { .. }))
-    {
+    // FolderDelete does the same to its children and to what it filed.
+    if events.iter().any(|e| {
+        matches!(
+            e.op,
+            crate::Op::ListDelete { .. } | crate::Op::FolderDelete { .. }
+        )
+    }) {
         cache.invalidate();
         return print;
     }
@@ -471,6 +535,43 @@ mod tests {
             cache_dir,
             task,
         }
+    }
+
+    #[test]
+    fn a_second_launch_still_has_its_folders_and_documents() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let folder = Ulid::generate();
+        store
+            .append(Op::FolderAdd {
+                id: folder,
+                d: crate::event::FolderAdd {
+                    name: "trabajo".into(),
+                    order: "a0".into(),
+                    parent: None,
+                    icon: None,
+                },
+            })
+            .unwrap();
+        store
+            .append(Op::DocAdd {
+                id: Ulid::generate(),
+                d: crate::event::DocAdd {
+                    file: "a3f1-0001".into(),
+                    order: "a0".into(),
+                    folder: Some(folder),
+                },
+            })
+            .unwrap();
+
+        let first = project(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(first.folders.len(), 1, "the log itself lost them");
+
+        let second = project(&f.store_root, &f.cache_dir).unwrap();
+
+        assert_eq!(second.folders.len(), 1, "the tree emptied itself");
+        assert_eq!(second.docs.len(), 1, "every document came back unfiled");
+        assert_eq!(second.inside(folder).len(), 1);
     }
 
     #[test]

@@ -4,8 +4,18 @@ import {
   capture,
   complete,
   discard,
+  docFile,
   docNew,
   docs,
+  folderAdd,
+  docDrop,
+  docImport,
+  folderFile,
+  folderDrop,
+  folderLook,
+  folderRename,
+  type Folded,
+  type Papers,
   fold,
   dropStep,
   markStep,
@@ -20,7 +30,6 @@ import {
   type Task,
   updateReady,
   type Ready,
-  type Doc,
 } from "./core";
 import { listen } from "@tauri-apps/api/event";
 import { heard, play } from "./chime";
@@ -45,6 +54,8 @@ import Detail from "./ui/Detail";
 import About from "./ui/About";
 import Keeping from "./ui/Keeping";
 import Docs from "./ui/Docs";
+import Naming from "./ui/Naming";
+import { ask, open as pick } from "@tauri-apps/plugin-dialog";
 import Lists from "./ui/Lists";
 import Notice from "./ui/Notice";
 import Search from "./ui/Search";
@@ -93,12 +104,19 @@ export default function App() {
     slice: (localStorage.getItem("tisty.slice") as Slice) ?? "today",
   }));
   const [found, setFound] = useState<Found | null>(null);
-  const [allDocs, setAllDocs] = useState<Doc[]>([]);
-  useEffect(() => {
+  const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
+  const [makingFolder, setMakingFolder] = useState(false);
+  const [renaming, setRenaming] = useState<Folded | null>(null);
+  const [here, setHere] = useState<string | null | undefined>(undefined);
+
+  const roomBelow =
+    here != null && !papers.folders.some((one) => one.id === here && one.parent !== null);
+  const lookPapers = useCallback(() => {
     docs()
-      .then((found) => setAllDocs(found ?? []))
+      .then((found) => setPapers(found ?? { folders: [], docs: [] }))
       .catch(() => {});
   }, []);
+  useEffect(lookPapers, [lookPapers]);
   const [held, setHeld] = useState<Task | undefined>();
   const [greet, setGreet] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -246,10 +264,8 @@ export default function App() {
       {error && (
         <div
           role="alert"
-          className="fixed inset-x-0 top-11 z-40 mx-auto flex w-fit max-w-[70%] items-start gap-2 rounded-md bg-urgent/12 px-3 py-1.5 text-xs text-urgent"
+          className="fixed inset-x-0 top-11 z-[60] mx-auto flex w-fit max-w-[70%] items-start gap-2 rounded-md bg-urgent/12 px-3 py-1.5 text-xs text-urgent"
         >
-          {/* Selectable and closable: it used to sit there unreadable and
-              unremovable until some later action happened to succeed. */}
           <span className="select-text">{error}</span>
           <button
             type="button"
@@ -263,7 +279,7 @@ export default function App() {
       )}
 
       {settling && !error && (
-        <p className="pointer-events-none fixed inset-x-0 top-11 z-40 mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-xs text-accent">
+        <p className="pointer-events-none fixed inset-x-0 top-11 z-[60] mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-xs text-accent">
           {t("settlingIn")}
         </p>
       )}
@@ -272,6 +288,50 @@ export default function App() {
         <Closing
           onDismiss={() => setLeaving(false)}
           onError={(e) => setError(saidPlainly(e))}
+        />
+      )}
+
+      {makingFolder && (
+        <Naming
+          title={
+            roomBelow
+              ? fill("newFolderIn", papers.folders.find((one) => one.id === here)?.name ?? "")
+              : t("newFolder")
+          }
+          invite={t("folderName")}
+          onClose={() => setMakingFolder(false)}
+          onName={(name, icon) =>
+            folderAdd(name, roomBelow ? (here ?? undefined) : undefined, icon)
+              .then(() => {
+                setMakingFolder(false);
+                lookPapers();
+              })
+              .catch((e) => setError(saidPlainly(e)))
+          }
+        />
+      )}
+
+      {renaming && (
+        <Naming
+          title={t("renameIt")}
+          invite={t("folderName")}
+          called={renaming.name}
+          drawn={renaming.icon ?? undefined}
+          action={t("renameIt")}
+          onClose={() => setRenaming(null)}
+          onName={(name, icon) =>
+            Promise.all([
+              folderRename(renaming.id, name),
+              icon === (renaming.icon ?? undefined)
+                ? Promise.resolve()
+                : folderLook(renaming.id, icon),
+            ])
+              .then(() => {
+                setRenaming(null);
+                lookPapers();
+              })
+              .catch((e) => setError(saidPlainly(e)))
+          }
         />
       )}
 
@@ -306,18 +366,62 @@ export default function App() {
 
       <Sidebar
         lists={data.lists}
-        docs={allDocs}
+        papers={papers}
         counts={data.counts}
         chosen={chosen}
         ready={ready !== null}
+        here={here}
+        onHere={(folder) => setHere(folder ?? null)}
+        onMove={(folder, parent) =>
+          folderFile(folder, parent)
+            .then(lookPapers)
+            .catch((e) => setError(saidPlainly(e)))
+        }
         onNewDoc={() =>
-          docNew()
+          docNew(here ?? undefined)
             .then((made) => {
-              setAllDocs((were) => [...were, made]);
+              lookPapers();
               setChosen({ named: "docs", doc: made.id });
             })
             .catch((e) => setError(saidPlainly(e)))
         }
+        onNewFolder={() => setMakingFolder(true)}
+        onImport={() =>
+          pick({ multiple: false, filters: [{ name: "Markdown", extensions: ["md", "markdown", "txt"] }] })
+            .then((at) => (typeof at === "string" ? docImport(at, here ?? undefined) : null))
+            .then((made) => {
+              if (!made) return;
+              lookPapers();
+              setChosen({ named: "docs", doc: made.id });
+            })
+            .catch((e) => setError(saidPlainly(e)))
+        }
+        onFile={(doc, folder) =>
+          docFile(doc, folder)
+            .then(lookPapers)
+            .catch((e) => setError(saidPlainly(e)))
+        }
+        onRename={setRenaming}
+        onDrop={(folder) => {
+          ask(fill("dropFolderSure", folder.name), { kind: "warning" })
+            .then((yes) => {
+              if (!yes) return;
+              if (here === folder.id) setHere(undefined);
+              setReturning(folder.parent ?? "unfiled");
+              return folderDrop(folder.id).then(lookPapers);
+            })
+            .catch((e) => setError(saidPlainly(e)));
+        }}
+        onDropDoc={(doc) => {
+          ask(fill("dropDocSure", doc.title || t("untitledDoc")), { kind: "warning" })
+            .then((yes) => {
+              if (!yes) return;
+              if (chosen.doc === doc.file) setChosen({ named: "docs" });
+              setReturning(doc.folder ?? "unfiled");
+              return docDrop(doc.id).then(lookPapers);
+            })
+            .catch((e) => setError(saidPlainly(e)));
+        }}
         onChoose={(next) => {
           setChosen(next);
           setSelected(undefined);
@@ -331,10 +435,8 @@ export default function App() {
       ) : chosen.named === "docs" ? (
         <Docs
           open={chosen.doc}
-          known={allDocs}
-          onKept={(fresh) =>
-            setAllDocs((were) => were.map((one) => (one.id === fresh.id ? fresh : one)))
-          }
+          known={papers.docs}
+          onKept={lookPapers}
           onError={(e) => setError(saidPlainly(e))}
         />
       ) : chosen.named === "lists" && !chosen.list ? (

@@ -23,12 +23,20 @@ function bar(ready: boolean) {
   render(
       <Sidebar
         lists={[]}
-        docs={[]}
+        papers={{ folders: [], docs: [] }}
         counts={{}}
         chosen={chosen}
         ready={ready}
         onChoose={vi.fn()}
         onNewDoc={vi.fn()}
+        onNewFolder={vi.fn()}
+        onFile={vi.fn()}
+        onHere={vi.fn()}
+        onMove={vi.fn()}
+        onImport={vi.fn()}
+        onDropDoc={vi.fn()}
+        onRename={vi.fn()}
+        onDrop={vi.fn()}
       />,
     );
 }

@@ -1323,6 +1323,7 @@ const REFUSALS: &[&str] = &[
     "sandboxCannotMerge",
     "noSuchDoc",
     "noSuchIcon",
+    "noSuchFolder",
     "manyLists",
     "internal",
     "internalNamed",
@@ -1549,12 +1550,252 @@ fn list_look(
         .ok_or_else(|| Refusal::of("notAListId"))
 }
 
-#[tauri::command]
-fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core::docs::Doc>> {
-    Ok(tisty_core::docs::all(&held(&session).paths.docs()))
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Papers {
+    folders: Vec<Folded>,
+    docs: Vec<Filed>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Folded {
+    id: String,
+    name: String,
+    parent: Option<String>,
+    icon: Option<String>,
+    holds: usize,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Filed {
+    id: String,
+    file: String,
+    title: String,
+    folder: Option<String>,
+}
+
+#[tauri::command(async)]
+fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
+    let session = held(&session);
+    let root = session.paths.docs();
+    let on_disk = tisty_core::docs::all(&root);
+
+    let mut docs: Vec<Filed> = Vec::new();
+    let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
+        on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
+
+    let mut kept_in_order: Vec<&tisty_core::model::Kept> = session.state.docs.values().collect();
+    kept_in_order.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
+
+    for kept in kept_in_order {
+        let Some(found) = named.get(kept.file.as_str()) else {
+            continue;
+        };
+        docs.push(Filed {
+            id: kept.id.to_string(),
+            file: kept.file.clone(),
+            title: found.title.clone(),
+            folder: kept.folder.map(|at| at.to_string()),
+        });
+    }
+    Ok(Papers {
+        folders: hanging(&session.state, None),
+        docs,
+    })
+}
+
+fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Folded> {
+    state
+        .under(parent)
+        .into_iter()
+        .flat_map(|one| {
+            let mut branch = vec![Folded {
+                id: one.id.to_string(),
+                name: one.name.clone(),
+                parent: one.parent.map(|at| at.to_string()),
+                icon: one.icon.clone(),
+                holds: state.held_by(one.id),
+            }];
+            branch.append(&mut hanging(state, Some(one.id)));
+            branch
+        })
+        .collect()
 }
 
 #[tauri::command]
+fn folder_add(
+    session: tauri::State<'_, Mutex<Session>>,
+    name: String,
+    parent: Option<String>,
+    icon: Option<String>,
+) -> Answer<()> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err(Refusal::of("untitled"));
+    }
+    let parent = parent
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+
+    let mut session = held(&session);
+    if let Some(at) = parent {
+        if !session.state.folders.contains_key(&at) {
+            return Err(Refusal::of("noSuchFolder"));
+        }
+        if session.state.depth(Some(at)) >= tisty_core::model::DEEPEST {
+            return Err(Refusal::of("tooDeep"));
+        }
+    }
+    let order = tisty_core::order::last_of(
+        session
+            .state
+            .under(parent)
+            .iter()
+            .map(|one| one.order.as_str()),
+    );
+    session.commit(Op::FolderAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::FolderAdd {
+            name,
+            order,
+            parent,
+            icon: icon.filter(|key| tisty_core::model::icon::known(key)),
+        },
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+fn folder_rename(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    name: String,
+) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err(Refusal::of("untitled"));
+    }
+    let mut session = held(&session);
+    if !session.state.folders.contains_key(&id) {
+        return Err(Refusal::of("noSuchFolder"));
+    }
+    session.commit(Op::FolderRename {
+        id,
+        d: tisty_core::event::Name { name },
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+fn folder_look(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    icon: Option<String>,
+) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
+    let kept = match icon {
+        Some(key) => Some(
+            tisty_core::model::icon::kept(&key)
+                .map(str::to_string)
+                .ok_or_else(|| Refusal::about("noSuchIcon", key))?,
+        ),
+        None => None,
+    };
+    let mut session = held(&session);
+    if !session.state.folders.contains_key(&id) {
+        return Err(Refusal::of("noSuchFolder"));
+    }
+    session.commit(Op::FolderLook {
+        id,
+        d: tisty_core::event::Look {
+            icon: Some(kept),
+            color: None,
+        },
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+fn folder_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
+    let mut session = held(&session);
+    if !session.state.folders.contains_key(&id) {
+        return Err(Refusal::of("noSuchFolder"));
+    }
+    session.commit(Op::FolderDelete { id })?;
+    Ok(())
+}
+
+#[tauri::command]
+fn folder_file(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    parent: Option<String>,
+) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
+    let parent = parent
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+
+    let mut session = held(&session);
+    if !session.state.folders.contains_key(&id) {
+        return Err(Refusal::of("noSuchFolder"));
+    }
+    if let Some(at) = parent {
+        if !session.state.folders.contains_key(&at) {
+            return Err(Refusal::of("noSuchFolder"));
+        }
+        if session.state.would_swallow(id, at) {
+            return Err(Refusal::of("intoItself"));
+        }
+        if session.state.depth(Some(at)) + session.state.tall_under(id) > tisty_core::model::DEEPEST
+        {
+            return Err(Refusal::of("tooDeep"));
+        }
+    }
+    session.commit(Op::FolderMove {
+        id,
+        d: tisty_core::event::Filed {
+            folder: Some(parent),
+        },
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+fn doc_file(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    folder: Option<String>,
+) -> Answer<()> {
+    let folder = folder
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+    let mut session = held(&session);
+
+    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    if !session.state.docs.contains_key(&id) {
+        return Err(Refusal::of("noSuchDoc"));
+    }
+    if let Some(at) = folder
+        && !session.state.folders.contains_key(&at)
+    {
+        return Err(Refusal::of("noSuchFolder"));
+    }
+
+    session.commit(Op::DocMove {
+        id,
+        d: tisty_core::event::Filed {
+            folder: Some(folder),
+        },
+    })?;
+    Ok(())
+}
+
+#[tauri::command(async)]
 fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
     let root = held(&session).paths.docs();
     tisty_core::docs::read(&root, &id).map_err(|_| Refusal::about("noSuchDoc", id))
@@ -1575,18 +1816,98 @@ fn doc_write(
     })
 }
 
+#[tauri::command(async)]
+fn doc_import(
+    session: tauri::State<'_, Mutex<Session>>,
+    from: String,
+    folder: Option<String>,
+) -> Answer<tisty_core::docs::Doc> {
+    let folder = folder
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+    let body = std::fs::read_to_string(&from).map_err(|_| Refusal::about("cannotRead", from))?;
+
+    let mut session = held(&session);
+    if let Some(at) = folder
+        && !session.state.folders.contains_key(&at)
+    {
+        return Err(Refusal::of("noSuchFolder"));
+    }
+    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be imported", e))?;
+
+    let order = tisty_core::order::last_of(
+        session
+            .state
+            .docs
+            .values()
+            .filter(|one| one.folder == folder)
+            .map(|one| one.order.as_str()),
+    );
+    session.commit(Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            file: made.id.clone(),
+            order,
+            folder,
+        },
+    })?;
+    Ok(made)
+}
+
 #[tauri::command]
-fn doc_new(session: tauri::State<'_, Mutex<Session>>) -> Answer<tisty_core::docs::Doc> {
-    let session = held(&session);
-    tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "")
-        .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))
+fn doc_new(
+    session: tauri::State<'_, Mutex<Session>>,
+    folder: Option<String>,
+) -> Answer<tisty_core::docs::Doc> {
+    let folder = folder
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+    let mut session = held(&session);
+    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "")
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))?;
+
+    let order = tisty_core::order::last_of(
+        session
+            .state
+            .docs
+            .values()
+            .filter(|one| one.folder == folder)
+            .map(|one| one.order.as_str()),
+    );
+    session.commit(Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            file: made.id.clone(),
+            order,
+            folder,
+        },
+    })?;
+    Ok(made)
 }
 
 #[tauri::command]
 fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let root = held(&session).paths.docs();
-    tisty_core::docs::remove(&root, &id)
-        .map_err(|e| blamed(channel::WINDOW, "a document could not be removed", e))
+    let mut session = held(&session);
+
+    let file = match id.parse() {
+        Ok(id) => {
+            let file = session
+                .state
+                .docs
+                .get(&id)
+                .map(|one| one.file.clone())
+                .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+            session.commit(Op::DocDelete { id })?;
+            file
+        }
+        Err(_) => id,
+    };
+
+    let root = session.paths.docs();
+    tisty_core::docs::remove(&root, &file)
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be removed", e))?;
+    Ok(())
 }
 
 /// Nobody could say which version they hit a problem with: it existed only in
@@ -2424,10 +2745,17 @@ pub fn run() {
             list_add,
             list_look,
             docs,
+            folder_add,
+            folder_rename,
+            folder_look,
+            folder_drop,
+            doc_file,
             doc_read,
             doc_write,
             doc_new,
-            doc_drop
+            doc_drop,
+            doc_import,
+            folder_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -15,10 +15,11 @@ const asMarkdown = (editor: Writing): string =>
 interface Props {
   value: string;
   taking?: boolean;
+  label?: string;
   onWrite: (text: string) => void;
 }
 
-export default function Editor({ value, taking, onWrite }: Props) {
+export default function Editor({ value, taking, label, onWrite }: Props) {
   const editor = useEditor({
     autofocus: taking,
     extensions: [
@@ -35,7 +36,12 @@ export default function Editor({ value, taking, onWrite }: Props) {
     ],
     content: value,
     editorProps: {
-      attributes: { class: "tisty-doc" },
+      attributes: {
+        class: "tisty-doc",
+        role: "textbox",
+        "aria-multiline": "true",
+        ...(label ? { "aria-label": label } : {}),
+      },
     },
     onUpdate: ({ editor }) => onWrite(asMarkdown(editor)),
   });

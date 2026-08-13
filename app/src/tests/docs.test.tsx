@@ -2,11 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Docs from "../ui/Docs";
-import type { Doc } from "../core";
+import type { Filed } from "../core";
 
 const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
   writes: [] as { id: string; body: string }[],
+  delays: [] as number[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -18,12 +19,17 @@ vi.mock("@tauri-apps/api/core", () => ({
         const id = String(args?.id);
         const body = String(args?.body);
         store.writes.push({ id, body });
-        store.bodies[id] = body;
         const title = body
           .split("\n")[0]
           .replace(/^#+\s*/, "")
           .trim();
-        return Promise.resolve({ id, title });
+        const waits = store.delays.shift() ?? 0;
+        return new Promise((go) =>
+          setTimeout(() => {
+            store.bodies[id] = body;
+            go({ id, title });
+          }, waits),
+        );
       }
       default:
         return Promise.resolve(null);
@@ -37,19 +43,93 @@ vi.mock("../ui/Editor", () => ({
   ),
 }));
 
-const known: Doc[] = [
-  { id: "a3f1-0001", title: "Compras" },
-  { id: "a3f1-0002", title: "Notas" },
+const known: Filed[] = [
+  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null },
+  { id: "01G", file: "a3f1-0002", title: "Notas", folder: "01H" },
 ];
 
 describe("the document being written", () => {
   beforeEach(() => {
     store.bodies = { "a3f1-0001": "# Compras\n\nleche", "a3f1-0002": "# Notas" };
     store.writes = [];
+    store.delays = [];
   });
 
   const show = (open?: string, onKept = vi.fn()) =>
     render(<Docs open={open} known={known} onKept={onKept} onError={vi.fn()} />);
+
+  it("keeps the last keystroke when a slow save lands after it", async () => {
+    store.delays = [250];
+    const { rerender } = render(
+      <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />,
+    );
+    const editor = await screen.findByLabelText("editor");
+
+    await userEvent.clear(editor);
+    await userEvent.type(editor, "uno");
+    await new Promise((go) => setTimeout(go, 720));
+    await userEvent.type(editor, " dos");
+    await new Promise((go) => setTimeout(go, 300));
+
+    rerender(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("uno dos"));
+  });
+
+  it("never lands two saves of one document out of order", async () => {
+    store.delays = [250, 10];
+    show("a3f1-0001");
+    const editor = await screen.findByLabelText("editor");
+
+    await userEvent.clear(editor);
+    await userEvent.type(editor, "uno");
+    await new Promise((go) => setTimeout(go, 720));
+    await userEvent.type(editor, " dos");
+    await new Promise((go) => setTimeout(go, 750));
+
+    await waitFor(() => expect(store.writes.length).toBeGreaterThan(1));
+    await new Promise((go) => setTimeout(go, 400));
+    expect(store.bodies["a3f1-0001"]).toBe("uno dos");
+  });
+
+  it("closes a document the sidebar stopped pointing at, and stops writing to it", async () => {
+    const { rerender } = render(
+      <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />,
+    );
+    const editor = await screen.findByLabelText("editor");
+    await userEvent.type(editor, "!");
+
+    rerender(<Docs known={known} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => expect(screen.queryByLabelText("editor")).toBeNull());
+    await new Promise((go) => setTimeout(go, 900));
+    expect(store.writes.filter((one) => one.id === "a3f1-0001")).toHaveLength(0);
+  });
+
+  it("lets go of a document that is no longer there", async () => {
+    const { rerender } = render(
+      <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />,
+    );
+    await screen.findByLabelText("editor");
+
+    rerender(
+      <Docs
+        open="a3f1-0001"
+        known={known.filter((one) => one.file !== "a3f1-0001")}
+        onKept={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(screen.queryByLabelText("editor")).toBeNull());
+  });
+
+  it("opens the file a registry entry points at, not the entry itself", async () => {
+    show("a3f1-0002");
+
+    const editor = await screen.findByLabelText("editor");
+    expect((editor as HTMLTextAreaElement).value).toBe("# Notas");
+  });
 
   it("opens the one the sidebar asked for", async () => {
     show("a3f1-0001");

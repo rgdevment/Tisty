@@ -42,6 +42,12 @@ const KNOWN = [
   "sandboxCannotMerge",
   "internal",
   "internalNamed",
+  "noSuchFolder",
+  "noSuchDoc",
+  "noSuchIcon",
+  "tooDeep",
+  "intoItself",
+  "notACadence",
 ] as const;
 
 type Known = (typeof KNOWN)[number];
