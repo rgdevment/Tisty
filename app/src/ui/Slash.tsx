@@ -33,15 +33,15 @@ export default function Slash({ at, blocks, active, onPick }: Props) {
     one?.scrollIntoView?.({ block: "nearest" });
   }, [active]);
 
-  const room = Math.min(at.y + 8, window.innerHeight - 260);
+  const room = Math.min(at.y + 6, window.innerHeight - 210);
 
   return (
     <div
       ref={card}
       role="listbox"
       aria-label="/"
-      style={{ left: Math.min(at.x, window.innerWidth - 260), top: Math.max(8, room) }}
-      className="scroller fixed z-[70] max-h-[248px] w-[240px] rounded-lg border border-hair bg-rail py-1 shadow-lg"
+      style={{ left: Math.min(at.x, window.innerWidth - 232), top: Math.max(8, room) }}
+      className="scroller fixed z-[70] max-h-[204px] w-[212px] rounded-[10px] border border-hair bg-rail p-1 shadow-xl"
     >
       {blocks.map((one, i) => (
         <button
@@ -54,16 +54,24 @@ export default function Slash({ at, blocks, active, onPick }: Props) {
             e.preventDefault();
             onPick(one);
           }}
-          className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left ${
-            i === active ? "bg-hover" : ""
+          className={`flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-left ${
+            i === active ? "bg-accent-soft" : ""
           }`}
         >
-          <span aria-hidden className="w-4 shrink-0 text-center text-[12px] text-faint">
+          <span
+            aria-hidden
+            className={`w-4 shrink-0 text-center text-[11px] ${
+              i === active ? "text-accent" : "text-faint"
+            }`}
+          >
             {one.icon}
           </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[12.5px] text-ink">{one.label}</span>
-            <span className="block truncate text-[11px] text-faint">{one.hint}</span>
+          <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink">{one.label}</span>
+          <span
+            aria-hidden
+            className="shrink-0 font-mono text-[10px] text-faint tabular-nums opacity-70"
+          >
+            {one.hint}
           </span>
         </button>
       ))}

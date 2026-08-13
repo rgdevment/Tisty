@@ -1,72 +1,34 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import { Link } from "@tiptap/extension-link";
-import { Image } from "@tiptap/extension-image";
-import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
-import { TaskList } from "@tiptap/extension-task-list";
-import { TaskItem } from "@tiptap/extension-task-item";
-import { Markdown } from "tiptap-markdown";
-
-const Pictured = Image.extend({
-  addStorage() {
-    return {
-      markdown: {
-        serialize(
-          state: { write: (text: string) => void; closeBlock: (node: unknown) => void },
-          node: { attrs: Record<string, string> },
-        ) {
-          state.write(`![${node.attrs.alt ?? ""}](${node.attrs.src ?? ""})`);
-          state.closeBlock(node);
-        },
-        parse: {},
-      },
-    };
-  },
-});
+import { asMarkdown, written } from "../ui/writing";
 import { asked, narrowed } from "../ui/Slash";
 
-function build(content = ""): Editor {
-  return new Editor({
-    extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false, autolink: true }),
-      Pictured,
-      Table.configure({ resizable: false }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Markdown.configure({ html: true, linkify: true, breaks: true, transformPastedText: false }),
-    ],
-    content,
-  });
-}
+const build = (content: string) => new Editor({ extensions: written(), content });
 
-function markdown(editor: Editor): string {
-  return (editor.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
-}
+const markdown = (editor: Editor) => asMarkdown(editor) ?? "";
 
-function formatted(content: string, run: (editor: Editor) => void): string {
+const formatted = (content: string, apply: (editor: Editor) => void) => {
   const editor = build(content);
-  run(editor);
+  apply(editor);
   const out = markdown(editor);
   editor.destroy();
   return out;
-}
+};
 
-function roundtripped(content: string): string {
-  return formatted(content, () => {});
-}
+const roundtripped = (content: string) => {
+  const editor = build(content);
+  const out = markdown(editor);
+  editor.destroy();
+  return out;
+};
 
-describe("keeping this file honest about matching Editor.tsx", () => {
-  it("still configures the real editor with the same Markdown options this suite assumes", () => {
-    const source = readFileSync("src/ui/Editor.tsx", "utf8");
-    expect(source).toContain(
-      "Markdown.configure({ html: true, linkify: true, breaks: true, transformPastedText: false })",
-    );
+describe("what this suite is measuring", () => {
+  it("builds its editors from the very list the window uses, not from a copy", () => {
+    const names = written().map((one) => (one as { name: string }).name);
+
+    expect(names).toContain("markdown");
+    expect(names).toContain("table");
+    expect(names).toContain("image");
   });
 });
 
