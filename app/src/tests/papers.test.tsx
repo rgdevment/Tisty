@@ -48,6 +48,12 @@ describe("a reference to a document of this Tisty", () => {
     expect(composed(written)).not.toContain("tisty:doc/mac0-0001)");
   });
 
+  it("is dressed apart from an address that leaves the app", () => {
+    expect(composed(docLink("mac0-0001", "Informe"))).toContain('class="paper"');
+    expect(composed("[Fuera](https://ejemplo.org)")).not.toContain("paper");
+    expect(composed("[Un archivo](attachments/foto.png)")).not.toContain("paper");
+  });
+
   it("opens the document instead of asking the system to open a file", async () => {
     const onDoc = vi.fn();
     render(

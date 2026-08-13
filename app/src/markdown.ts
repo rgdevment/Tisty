@@ -50,6 +50,7 @@ const open = md.renderer.rules.link_open;
 md.renderer.rules.link_open = (tokens, i, options, env, self) => {
   const target = String(tokens[i].attrGet("href") ?? "");
   if (ours(target)) tokens[i].attrSet(INSIDE, target);
+  if (docOf(target)) tokens[i].attrJoin("class", "paper");
   return open ? open(tokens, i, options, env, self) : self.renderToken(tokens, i, options);
 };
 
