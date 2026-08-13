@@ -172,7 +172,7 @@ invoice` — the date is still applied, but **marked as a guess**: the terminal
 says so and prints the command that undoes just that, and the window underlines
 it so one click drops it.
 
-Every sentence above is a test. The parser ships with a contract of 253 cases in
+Every sentence above is a test. The parser ships with a contract of 261 cases in
 Spanish and English that says what it must read and, just as often, what it must
 leave alone.
 
@@ -199,8 +199,15 @@ chips before it is saved, and a chip is one click away from being wrong on
 purpose. A global shortcut opens a small field over whatever you are doing, so
 a task that occurs to you mid-something does not cost you the something.
 
-**Reminders** arrive as a system notification and a short sound, and either can
-be turned off. Repeating tasks come back on their own, one occurrence at a time.
+**Documents** live beside the tasks, for the reference material that has no date
+and never gets ticked. They are Markdown files in your store, edited as
+documents rather than as source: tables, checklists, code and images, and
+whatever you paste from a page or a ticket keeps its shape. A task can point at
+a document; a document never creates tasks.
+
+**Lists** get their own screen, each with an icon you pick from a set, and
+**reminders** arrive as a system notification and a short sound that can be
+turned off. Repeating tasks come back on their own, one occurrence at a time.
 
 **Settings** hold your data (sync, backup, where the store lives), notices,
 writing, and maintenance — including a report you can attach to a bug, which
@@ -247,8 +254,9 @@ A directory of text files, in your documents folder when the system names one:
 <application data>/tisty/data/
 └── store/
     └── dev_a3f1/
-        ├── 000001.jsonl      closed segment, never changes again
-        └── active.jsonl      one line per event
+        ├── 000001.tisty      closed segment, never changes again
+        ├── 000001.count      how many lines it holds, to catch a half-download
+        └── active.tisty      one line per event
 ```
 
 It lives in your system's local application data directory, and that is not
@@ -272,7 +280,7 @@ directory**, so merging two histories is concatenating them.
 
 That is one list, not one per machine. Every device reads every directory and
 replays them in order; it only writes to its own. Which is also why a synced
-folder never produces one of those `file (conflicted copy).jsonl` — no two
+folder never produces one of those `active (conflicted copy).tisty` — no two
 writers ever touch the same file.
 
 ## Two machines
@@ -311,8 +319,10 @@ history, so a snapshot beside it would only be a rival truth.
 | ✅ | Repeating tasks, one per occurrence, folded in the archive |
 | ✅ | Reminders, with a system notification and a sound you can turn off |
 | ✅ | An error log, and a report you can attach to an issue |
+| ✅ | macOS: universal disk image, signed and notarised, and Homebrew |
+| ◐ | Documents: the store and the editor are in; folders and sync are not |
 | ◐ | Daily use, which is what turns up the bugs tests do not |
-| ◐ | Signed builds: DMG and `.exe` are wired; the Store package waits on a name |
+| ◐ | Signed builds: DMG and `.exe` ship; the Store package waits on a name |
 | ⬜ | Linux, its own phase, not started |
 
 Two things are known and accepted rather than pending: there is no way to
@@ -341,6 +351,31 @@ your machine.
 - **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — a browser
   selector for Windows and macOS: it asks which browser should open a link
   instead of assuming.
+
+## Standing on
+
+Tisty is small because other people's work does the heavy lifting. These are the
+ones it would not exist without, each under a licence that allows it:
+
+**The core, in Rust** — [Tauri](https://tauri.app) puts a native window around
+it without shipping a browser; [serde](https://serde.rs) reads and writes every
+line of the log; [jiff](https://github.com/BurntSushi/jiff) does the dates and
+the time zones, which is the part nobody should write twice;
+[SQLite](https://sqlite.org), through
+[rusqlite](https://github.com/rusqlite/rusqlite), holds the read cache;
+[clap](https://github.com/clap-rs/clap) is the command line;
+[ULID](https://github.com/dylanhart/ulid-rs) gives every task an identifier that
+sorts by time and needs no coordination.
+
+**The window** — [React](https://react.dev) draws it and
+[Tailwind CSS](https://tailwindcss.com) styles it;
+[TipTap](https://tiptap.dev) and [ProseMirror](https://prosemirror.net) are the
+document editor; [markdown-it](https://github.com/markdown-it/markdown-it)
+renders the prose everywhere else; [Vite](https://vite.dev) builds it and
+[Vitest](https://vitest.dev) tests it.
+
+The full list, with versions and licences, is in `Cargo.lock` and
+`app/package-lock.json`.
 
 ## Contributing
 

@@ -175,7 +175,7 @@ medio sin nada que la respalde —`llamar mañana al banco`— la fecha **se apl
 igual, pero marcada como suposición**: la terminal lo dice e imprime el comando
 que deshace solo eso, y la ventana la subraya para que un clic la quite.
 
-Cada frase de arriba es un test. El parser lleva detrás un contrato de 253 casos
+Cada frase de arriba es un test. El parser lleva detrás un contrato de 261 casos
 en español e inglés que fija qué debe leer y, con la misma frecuencia, qué debe
 dejar en paz.
 
@@ -202,9 +202,16 @@ fichas antes de guardarse, y una ficha está a un clic de estar equivocada a
 propósito. Un atajo global abre un campo pequeño sobre lo que estés haciendo,
 para que una tarea que se te ocurre a media cosa no te cueste la cosa.
 
-**Los recordatorios** llegan como notificación del sistema y un sonido corto, y
-cualquiera de los dos se puede apagar. Las tareas que se repiten vuelven solas,
-una ocurrencia cada vez.
+**Los documentos** viven al lado de las tareas, para el material de consulta que
+no tiene fecha y nunca se tacha. Son ficheros Markdown en tu almacén, y se editan
+como documentos, no como código fuente: tablas, listas de comprobación, código e
+imágenes, y lo que pegues de una página o de un ticket conserva su forma. Una
+tarea puede apuntar a un documento; un documento nunca crea tareas.
+
+**Las listas** tienen pantalla propia, cada una con un icono que eliges de un
+juego, y **los recordatorios** llegan como notificación del sistema y un sonido
+corto que se puede apagar. Las tareas que se repiten vuelven solas, una
+ocurrencia cada vez.
 
 **Configuración** guarda tus datos (sincronización, respaldo, dónde vive el
 almacén), los avisos, la escritura y el mantenimiento — incluido un informe que
@@ -253,8 +260,9 @@ Un directorio con archivos de texto:
 <datos de aplicación>/tisty/data/
 └── store/
     └── dev_a3f1/
-        ├── 000001.jsonl      segmento cerrado, ya no cambia
-        └── active.jsonl      una línea por evento
+        ├── 000001.tisty      segmento cerrado, ya no cambia
+        ├── 000001.count      cuántas líneas trae, para cazar una descarga a medias
+        └── active.tisty      una línea por evento
 ```
 
 ```jsonl
@@ -317,8 +325,10 @@ así que una foto al lado solo sería una verdad rival.
 | ✅ | Tareas que se repiten, una por ocurrencia, plegadas en el archivo |
 | ✅ | Recordatorios, con notificación del sistema y un sonido que puedes apagar |
 | ✅ | Un registro de errores, y un informe que puedes adjuntar a un issue |
+| ✅ | macOS: imagen de disco universal, firmada y notarizada, y Homebrew |
+| ◐ | Documentos: el almacén y el editor están; las carpetas y el transporte no |
 | ◐ | Uso diario, que es lo que saca los fallos que los tests no |
-| ◐ | Builds firmadas: el DMG y el `.exe` están cableados; el paquete de la Store espera un nombre |
+| ◐ | Builds firmadas: el DMG y el `.exe` se publican; el paquete de la Store espera un nombre |
 | ⬜ | Linux, fase propia, sin empezar |
 
 Dos cosas son sabidas y aceptadas, no pendientes: no se puede reordenar a mano
@@ -347,6 +357,31 @@ telemetría, todo en tu máquina.
 - **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — un selector de
   navegadores para Windows y macOS: pregunta con cuál abrir un enlace en vez de
   suponerlo.
+
+## Sobre hombros ajenos
+
+Tisty es pequeño porque el trabajo pesado lo hace gente que no soy yo. Estas son
+las piezas sin las que no existiría, cada una con una licencia que lo permite:
+
+**El núcleo, en Rust** — [Tauri](https://tauri.app) le pone una ventana nativa
+sin cargar con un navegador; [serde](https://serde.rs) lee y escribe cada línea
+del registro; [jiff](https://github.com/BurntSushi/jiff) resuelve las fechas y
+las zonas horarias, que es la parte que nadie debería escribir dos veces;
+[SQLite](https://sqlite.org), a través de
+[rusqlite](https://github.com/rusqlite/rusqlite), sostiene la caché de lectura;
+[clap](https://github.com/clap-rs/clap) es la línea de comandos;
+[ULID](https://github.com/dylanhart/ulid-rs) da a cada tarea un identificador
+que ordena por tiempo y no necesita coordinar nada con nadie.
+
+**La ventana** — [React](https://react.dev) la dibuja y
+[Tailwind CSS](https://tailwindcss.com) la viste;
+[TipTap](https://tiptap.dev) y [ProseMirror](https://prosemirror.net) son el
+editor de documentos; [markdown-it](https://github.com/markdown-it/markdown-it)
+compone la prosa del resto; [Vite](https://vite.dev) la construye y
+[Vitest](https://vitest.dev) la prueba.
+
+La lista completa, con versiones y licencias, está en `Cargo.lock` y
+`app/package-lock.json`.
 
 ## Contribuir
 
