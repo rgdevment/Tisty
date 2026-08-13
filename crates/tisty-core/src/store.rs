@@ -451,8 +451,9 @@ fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
 
 /// Temp plus rename: a crash mid-write leaves the previous contents.
 pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
-    // Unique: two processes saving the same file would otherwise share it.
-    let tmp = path.with_extension(format!("{}.tmp", std::process::id()));
+    static TURN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let turn = TURN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = path.with_extension(format!("{}.{turn}.tmp", std::process::id()));
     {
         let mut file = File::create(&tmp)?;
         let _ = crate::paths::ours_alone(&tmp);
@@ -461,6 +462,53 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     }
     std::fs::rename(&tmp, path)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod atomic_tests {
+    use super::*;
+
+    #[test]
+    fn two_writers_of_one_file_do_not_share_a_temporary() {
+        let tmp = tempfile::tempdir().unwrap();
+        let at = tmp.path().join("a3f1-0001.md");
+        std::fs::write(&at, b"before").unwrap();
+
+        std::thread::scope(|threads| {
+            let mut hands = Vec::new();
+            for n in 0..8 {
+                let at = at.clone();
+                hands.push(
+                    threads.spawn(move || write_atomic(&at, format!("written by {n}").as_bytes())),
+                );
+            }
+            for hand in hands {
+                hand.join()
+                    .unwrap()
+                    .expect("a concurrent save must not fail");
+            }
+        });
+
+        let kept = std::fs::read_to_string(&at).unwrap();
+        assert!(kept.starts_with("written by"), "{kept}");
+    }
+
+    #[test]
+    fn nothing_temporary_is_left_behind() {
+        let tmp = tempfile::tempdir().unwrap();
+        let at = tmp.path().join("a3f1-0001.md");
+
+        write_atomic(&at, b"one").unwrap();
+        write_atomic(&at, b"two").unwrap();
+
+        let left: Vec<_> = std::fs::read_dir(tmp.path())
+            .unwrap()
+            .filter_map(|one| one.ok())
+            .map(|one| one.file_name().to_string_lossy().into_owned())
+            .filter(|named| named.contains("tmp"))
+            .collect();
+        assert!(left.is_empty(), "{left:?}");
+    }
 }
 
 fn active_size(path: &Path) -> u64 {

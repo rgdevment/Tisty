@@ -231,3 +231,118 @@ body {
 .quick #root {
   background: transparent;
 }
+
+.tisty-doc {
+  outline: none;
+  font-size: 15px;
+  line-height: 1.75;
+  padding-bottom: 40vh;
+}
+.tisty-doc > :first-child {
+  margin-top: 0;
+}
+.tisty-doc h1 {
+  font-size: 1.65em;
+  font-weight: 640;
+  line-height: 1.25;
+  margin: 26px 0 8px;
+}
+.tisty-doc h2 {
+  font-size: 1.3em;
+  font-weight: 640;
+  margin: 22px 0 6px;
+}
+.tisty-doc h3 {
+  font-size: 1.13em;
+  font-weight: 640;
+  margin: 18px 0 4px;
+}
+.tisty-doc p {
+  margin: 10px 0;
+}
+.tisty-doc ul,
+.tisty-doc ol {
+  margin: 10px 0;
+  padding-left: 22px;
+  list-style: revert;
+}
+.tisty-doc li::marker {
+  color: var(--tisty-faint);
+}
+.tisty-doc li p {
+  margin: 2px 0;
+}
+.tisty-doc blockquote {
+  margin: 12px 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--tisty-line);
+  color: var(--tisty-soft);
+}
+.tisty-doc code {
+  font-size: 0.88em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--tisty-hover);
+}
+.tisty-doc pre {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--tisty-hover);
+  overflow-x: auto;
+  font-size: 0.88em;
+}
+.tisty-doc pre code {
+  padding: 0;
+  background: none;
+}
+.tisty-doc a {
+  color: var(--tisty-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tisty-doc hr {
+  margin: 22px 0;
+  border: 0;
+  border-top: 1px solid var(--tisty-line);
+}
+.tisty-doc img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+.tisty-doc table {
+  margin: 14px 0;
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.92em;
+}
+.tisty-doc th,
+.tisty-doc td {
+  border: 1px solid var(--tisty-line);
+  padding: 6px 10px;
+  text-align: left;
+}
+.tisty-doc th {
+  background: var(--tisty-hover);
+  font-weight: 600;
+}
+.tisty-doc ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 2px;
+}
+.tisty-doc ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.tisty-doc ul[data-type="taskList"] input {
+  margin-top: 6px;
+  accent-color: var(--tisty-accent);
+}
+.tisty-doc p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--tisty-faint);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

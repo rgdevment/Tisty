@@ -13,6 +13,7 @@ interface Props {
   /// never worth interrupting for.
   ready: boolean;
   onChoose: (chosen: Chosen) => void;
+  onNewDoc: () => void;
 }
 
 const NAMED: { key: Named; icon: string }[] = [
@@ -23,7 +24,7 @@ const NAMED: { key: Named; icon: string }[] = [
   { key: "archive", icon: "▣" },
 ];
 
-export default function Sidebar({ lists, docs, counts, chosen, ready, onChoose }: Props) {
+export default function Sidebar({ lists, docs, counts, chosen, ready, onChoose, onNewDoc }: Props) {
   const [openDocs, setOpenDocs] = useState(true);
 
   return (
@@ -46,14 +47,27 @@ export default function Sidebar({ lists, docs, counts, chosen, ready, onChoose }
 
       <div className="scroller flex-1 px-2.5 pb-4">
         <div className="mx-1 mt-3 mb-1 h-px bg-hair" />
-        <button
-          onClick={() => setOpenDocs((open) => !open)}
-          className="flex w-full items-center gap-1.5 px-2.5 pt-1 pb-1.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
-        >
-          <span className={`text-[9px] transition-transform ${openDocs ? "" : "-rotate-90"}`}>▼</span>
-          {t("docs")}
-          <span className="ml-auto text-[11px] font-normal">{docs.length || ""}</span>
-        </button>
+        <div className="flex items-center pt-1 pb-1.5">
+          <button
+            onClick={() => setOpenDocs((open) => !open)}
+            className="flex flex-1 items-center gap-1.5 px-2.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
+          >
+            <span className={`text-[9px] transition-transform ${openDocs ? "" : "-rotate-90"}`}>
+              ▼
+            </span>
+            {t("docs")}
+            <span className="ml-auto text-[11px] font-normal">{docs.length || ""}</span>
+          </button>
+          <button
+            type="button"
+            onClick={onNewDoc}
+            aria-label={t("newDoc")}
+            title={t("newDoc")}
+            className="mr-1 grid h-5 w-5 place-items-center rounded text-[13px] text-faint hover:bg-hover hover:text-ink"
+          >
+            +
+          </button>
+        </div>
 
         {openDocs && (
           <nav className="flex flex-col gap-px">

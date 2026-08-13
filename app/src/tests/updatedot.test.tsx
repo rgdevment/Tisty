@@ -21,7 +21,15 @@ const chosen = { named: "aboutScreen" } as Parameters<typeof Sidebar>[0]["chosen
 
 function bar(ready: boolean) {
   render(
-      <Sidebar lists={[]} docs={[]} counts={{}} chosen={chosen} ready={ready} onChoose={vi.fn()} />,
+      <Sidebar
+        lists={[]}
+        docs={[]}
+        counts={{}}
+        chosen={chosen}
+        ready={ready}
+        onChoose={vi.fn()}
+        onNewDoc={vi.fn()}
+      />,
     );
 }
 

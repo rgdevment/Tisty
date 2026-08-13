@@ -2,19 +2,16 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Docs from "../ui/Docs";
+import type { Doc } from "../core";
 
 const store = vi.hoisted(() => ({
-  docs: [] as { id: string; title: string }[],
   bodies: {} as Record<string, string>,
   writes: [] as { id: string; body: string }[],
-  made: 0,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     switch (cmd) {
-      case "docs":
-        return Promise.resolve(store.docs);
       case "doc_read":
         return Promise.resolve(store.bodies[String(args?.id)] ?? "");
       case "doc_write": {
@@ -22,15 +19,11 @@ vi.mock("@tauri-apps/api/core", () => ({
         const body = String(args?.body);
         store.writes.push({ id, body });
         store.bodies[id] = body;
-        const title = body.split("\n")[0].replace(/^#+\s*/, "").trim();
-        store.docs = store.docs.map((one) => (one.id === id ? { id, title } : one));
+        const title = body
+          .split("\n")[0]
+          .replace(/^#+\s*/, "")
+          .trim();
         return Promise.resolve({ id, title });
-      }
-      case "doc_new": {
-        store.made += 1;
-        const made = { id: `a3f1-000${store.made}`, title: "" };
-        store.docs = [...store.docs, made];
-        return Promise.resolve(made);
       }
       default:
         return Promise.resolve(null);
@@ -44,50 +37,36 @@ vi.mock("../ui/Editor", () => ({
   ),
 }));
 
-describe("the documents view", () => {
+const known: Doc[] = [
+  { id: "a3f1-0001", title: "Compras" },
+  { id: "a3f1-0002", title: "Notas" },
+];
+
+describe("the document being written", () => {
   beforeEach(() => {
-    store.docs = [
-      { id: "a3f1-0001", title: "Compras" },
-      { id: "a3f1-0002", title: "" },
-    ];
-    store.bodies = { "a3f1-0001": "# Compras\n\nleche", "a3f1-0002": "" };
+    store.bodies = { "a3f1-0001": "# Compras\n\nleche", "a3f1-0002": "# Notas" };
     store.writes = [];
-    store.made = 0;
-    vi.useRealTimers();
   });
 
-  const show = () => render(<Docs onKnown={vi.fn()} onError={vi.fn()} />);
+  const show = (open?: string, onKept = vi.fn()) =>
+    render(<Docs open={open} known={known} onKept={onKept} onError={vi.fn()} />);
 
-  it("lists what is there, by title", async () => {
-    show();
-
-    expect(await screen.findByRole("button", { name: "Compras" })).toBeTruthy();
-  });
-
-  it("names a document that has nothing written in it yet", async () => {
-    show();
-
-    expect(await screen.findByRole("button", { name: "Untitled" })).toBeTruthy();
-  });
-
-  it("opens what you pick", async () => {
-    show();
-    await userEvent.click(await screen.findByRole("button", { name: "Compras" }));
+  it("opens the one the sidebar asked for", async () => {
+    show("a3f1-0001");
 
     const editor = await screen.findByLabelText("editor");
     expect((editor as HTMLTextAreaElement).value).toBe("# Compras\n\nleche");
   });
 
-  it("says nothing is open until you pick one", async () => {
+  it("waits to be asked, rather than opening something on its own", async () => {
     show();
 
     expect(await screen.findByText(/Pick a document/)).toBeTruthy();
     expect(screen.queryByLabelText("editor")).toBeNull();
   });
 
-  it("keeps what was typed, once the typing settles", async () => {
-    show();
-    await userEvent.click(await screen.findByRole("button", { name: "Compras" }));
+  it("keeps what was written once the typing settles", async () => {
+    show("a3f1-0001");
     const editor = await screen.findByLabelText("editor");
 
     await userEvent.clear(editor);
@@ -97,23 +76,29 @@ describe("the documents view", () => {
     expect(store.writes[store.writes.length - 1]?.body).toBe("# Compras del mes");
   });
 
-  it("takes the new title into the list without asking the disk again", async () => {
-    show();
-    await userEvent.click(await screen.findByRole("button", { name: "Compras" }));
+  it("hands the new title back, so the sidebar can follow", async () => {
+    const kept = vi.fn();
+    show("a3f1-0001", kept);
     const editor = await screen.findByLabelText("editor");
 
     await userEvent.clear(editor);
     await userEvent.type(editor, "# Otra cosa");
 
-    expect(await screen.findByRole("button", { name: "Otra cosa" })).toBeTruthy();
+    await waitFor(() => expect(kept).toHaveBeenCalled(), { timeout: 3000 });
+    expect(kept.mock.calls[kept.mock.calls.length - 1][0]).toEqual({
+      id: "a3f1-0001",
+      title: "Otra cosa",
+    });
   });
 
-  it("makes a new one and opens it empty", async () => {
-    show();
-    await userEvent.click(await screen.findByRole("button", { name: "New document" }));
-
+  it("writes what was pending before opening another one", async () => {
+    const view = show("a3f1-0001");
     const editor = await screen.findByLabelText("editor");
-    expect((editor as HTMLTextAreaElement).value).toBe("");
-    expect(store.made).toBe(1);
+    await userEvent.clear(editor);
+    await userEvent.type(editor, "a medias");
+
+    view.rerender(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("a medias"), { timeout: 3000 });
   });
 });
