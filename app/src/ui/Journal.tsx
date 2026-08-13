@@ -9,10 +9,11 @@ interface Props {
   steps?: string[];
   onError?: (problem: unknown) => void;
   onWhole?: () => void;
+  onDoc?: (id: string) => void;
   onWrite: (body: string, entry?: string) => void;
 }
 
-export default function Journal({ entries, steps, onError, onWhole, onWrite }: Props) {
+export default function Journal({ entries, steps, onError, onWhole, onDoc, onWrite }: Props) {
   const [draft, setDraft] = useState(0);
 
   return (
@@ -24,6 +25,7 @@ export default function Journal({ entries, steps, onError, onWhole, onWrite }: P
         label={t("journal")}
         steps={steps}
         onError={onError}
+        onDoc={onDoc}
         rows={1}
         catches
         onWrite={(body) => {
@@ -44,6 +46,7 @@ export default function Journal({ entries, steps, onError, onWhole, onWrite }: P
         steps={steps}
             onError={onError}
             onWhole={onWhole}
+            onDoc={onDoc}
             rows={1}
             onWrite={(body) => body.trim() && onWrite(body, entry.id)}
           />

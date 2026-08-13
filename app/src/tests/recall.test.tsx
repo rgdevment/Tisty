@@ -7,7 +7,6 @@ function spec(at: string, has_time: boolean): DateSpec {
   return { at, has_time, tz: "Europe/Madrid" } as DateSpec;
 }
 
-/// Far enough ahead that no offset lands in the past, which would filter it out.
 const SOON = () => {
   const at = new Date(Date.now() + 6 * 3600_000);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -40,8 +39,6 @@ describe("Recall", () => {
   });
 
   it("says nothing about a time an all-day task does not have", () => {
-    // Days ahead, not hours: an all-day task is measured from nine in the
-    // morning, which today is already gone and would filter every row away.
     const at = new Date(Date.now() + 3 * 86_400_000);
     const pad = (n: number) => String(n).padStart(2, "0");
     put(spec(`${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`, false));

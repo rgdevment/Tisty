@@ -62,8 +62,6 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
     };
   }, []);
 
-  // Registered where the pending text lives, awaited from wherever the app is
-  // told to leave: whoever answers must not have to be this component.
   useEffect(() => holds(() => leaving.current()), []);
 
   useEffect(() => {

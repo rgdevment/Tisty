@@ -12,9 +12,7 @@ interface Chip {
   value: string;
   tint: string;
   guessed: boolean;
-  /** The day it stands on, so the calendar opens on its month and not on this one. */
   on?: string;
-  /** Seen but not taken; its button applies it instead of removing it. */
   offer?: Edits;
 }
 
@@ -63,8 +61,6 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
               className={`ml-1 flex h-4 w-4 items-center justify-center rounded ${
                 chip.offer
                   ? "text-accent hover:bg-accent-soft"
-                  // On a tint, not on the panel: the faintest grey cannot
-                  // reach AA there, and this is a control, not a whisper.
                   : "text-soft hover:bg-line hover:text-ink"
               }`}
             >
@@ -93,7 +89,6 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
 
 const name = (slot: Slot): string => (typeof slot === "string" ? slot : `tag:${slot.tag}`);
 
-/** Same glyphs as the `/` menu and the same tints as the marks in the text. */
 function shown(seen: Parsed, edits: Edits): Chip[] {
   const chips: Chip[] = [];
   const guessed = seen.spans.some(
@@ -157,7 +152,6 @@ function shown(seen: Parsed, edits: Edits): Chip[] {
     });
   }
 
-  // Only while still an offer; once accepted it becomes a date chip above.
   if (!edits.date && !edits.deadline) {
     for (const offer of seen.offers) {
       chips.push({
@@ -199,6 +193,5 @@ function without(edits: Edits, slot: Slot): Edits {
 const set = (slot: Slot, iso: string): Edits =>
   slot === "deadline" ? { noDeadline: false, deadline: iso } : { noDate: false, date: iso };
 
-/** A picked day has no clock and no zone, so it is read where the user is. */
 const plainly = (iso: string): string =>
   whenLabel({ at: `${iso}T00:00:00`, tz: "", floating: true, has_time: false });

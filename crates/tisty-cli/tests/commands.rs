@@ -1,6 +1,3 @@
-//! End to end: the binary is run the way a person runs it. Unit tests never
-//! caught the selector bugs; using the thing did.
-
 use std::process::{Command, Output, Stdio};
 
 use tempfile::TempDir;
@@ -17,7 +14,6 @@ struct Run {
 }
 
 impl Cli {
-    /// A fixed zone, or the suite drifts with whoever runs it.
     fn new() -> Self {
         Self::in_zone("America/Santiago")
     }
@@ -37,7 +33,6 @@ impl Cli {
         self.as_device(self.home.path(), self.zone, args, stdin)
     }
 
-    /// Clears `LC_ALL` too: it outranks `LANG` and would pick the language here.
     fn command(&self, config: &std::path::Path, zone: &str) -> Command {
         let root = self.home.path();
         let mut command = Command::new(env!("CARGO_BIN_EXE_tisty"));
@@ -53,7 +48,6 @@ impl Cli {
         command
     }
 
-    /// Two configs over one data directory is two devices sharing a store.
     fn as_device(
         &self,
         config: &std::path::Path,
@@ -118,7 +112,6 @@ fn a_date_in_the_phrase_leaves_the_title_clean() {
     assert!(out.contains("tomorrow"), "{out}");
 }
 
-/// The bug this guards against completed an unrelated task in silence.
 #[test]
 fn a_bare_list_with_only_future_work_says_where_it_is() {
     let cli = Cli::new();
@@ -337,7 +330,6 @@ fn redo_walks_the_same_ladder_as_undo() {
     assert!(cli.ok(&["ls", "archive"]).contains("water the plants"));
 }
 
-/// Undoing a creation erases the task, and erasing is the one thing with no way back.
 #[test]
 fn redoing_an_undone_creation_is_refused_instead_of_pretending() {
     let cli = Cli::new();
@@ -439,7 +431,6 @@ fn config_tells_an_unset_key_from_an_unknown_one_and_agrees_on_the_code() {
     assert_eq!(read.code, write.code, "same error, different exit codes");
 }
 
-/// Listing loads no bodies, so the counts have to stand on their own.
 #[test]
 fn a_listing_reports_its_counts_without_loading_the_bodies() {
     let cli = Cli::new();
@@ -463,7 +454,6 @@ fn a_listing_reports_its_counts_without_loading_the_bodies() {
     );
 }
 
-/// Deleting the cache must never change an answer, only how fast it arrives.
 #[test]
 fn every_read_says_the_same_with_the_cache_and_without_it() {
     let cli = Cli::new();
@@ -519,7 +509,6 @@ fn doctor_agrees_with_the_log_when_nothing_is_wrong() {
     assert!(out.contains("agrees"), "{out}");
 }
 
-/// The cache is a photograph; the log wins. This is what makes that checkable.
 #[test]
 fn doctor_catches_a_cache_that_disagrees_and_repair_clears_it() {
     let cli = Cli::new();
@@ -711,7 +700,6 @@ fn undo_on_an_empty_store_says_so_instead_of_failing() {
     assert!(run.out.contains("nothing to undo"), "{}", run.out);
 }
 
-/// A journal entry emptied by an undo must not linger as a dated blank.
 #[test]
 fn undoing_a_journal_entry_leaves_no_trace_in_the_journal() {
     let cli = Cli::new();
@@ -898,7 +886,6 @@ fn an_unknown_filter_names_the_ones_that_exist() {
     assert!(run.err.contains("inbox"), "{}", run.err);
 }
 
-/// Kiritimati is already on the next date while UTC has not turned over.
 #[test]
 fn tomorrow_is_tomorrow_where_the_user_is() {
     for zone in ["Pacific/Kiritimati", "Pacific/Niue", "UTC"] {
@@ -909,7 +896,6 @@ fn tomorrow_is_tomorrow_where_the_user_is() {
         let stored: serde_json::Value = serde_json::from_str(stored.trim()).unwrap();
         let at = stored[0]["date"]["at"].as_str().unwrap();
 
-        // Naming the zone keeps this independent of what the binary resolves.
         let today = jiff::Timestamp::now()
             .to_zoned(jiff::tz::TimeZone::get(zone).unwrap())
             .date();
@@ -922,7 +908,6 @@ fn tomorrow_is_tomorrow_where_the_user_is() {
     }
 }
 
-/// The sync design rests on this: order is `(ts, by)` in UTC.
 #[test]
 fn two_devices_in_opposite_zones_agree_on_everything() {
     let cli = Cli::in_zone("UTC");
@@ -940,7 +925,6 @@ fn two_devices_in_opposite_zones_agree_on_everything() {
     assert_eq!(from_east.out, from_west.out, "the two devices disagree");
 }
 
-/// A bare `05:46` in an archived document cannot be placed on a timeline.
 #[test]
 fn an_exported_journal_entry_says_which_zone_it_was_written_in() {
     let cli = Cli::in_zone("Asia/Kolkata");
@@ -952,7 +936,6 @@ fn an_exported_journal_entry_says_which_zone_it_was_written_in() {
     assert!(md.contains("+05:30"), "{md}");
 }
 
-/// «It was 5am when I wrote this» is part of what the entry says.
 #[test]
 fn a_journal_entry_keeps_the_hour_its_author_wrote_it_at() {
     let cli = Cli::in_zone("UTC");
@@ -1004,10 +987,6 @@ fn filters_combine_and_each_one_narrows_the_result() {
     assert!(!out.contains("access logs"), "{out}");
 }
 
-/// Far enough ahead that no view calls it «today» and no renderer spells it as
-/// a weekday: `short()` only prints the number outside the -1..7 day band. A
-/// literal date would have started failing on its own, which is how the two
-/// tests below were written.
 fn far_ahead() -> jiff::civil::Date {
     jiff::Zoned::now()
         .date()
@@ -1039,8 +1018,6 @@ fn a_list_is_filtered_by_the_name_the_listing_prints() {
     assert!(!out.contains("something else"), "{out}");
 }
 
-/// The capture takes `!urgent`, so a filter that only took digits contradicted
-/// the vocabulary the app itself teaches.
 #[test]
 fn a_filter_takes_the_priority_by_name_too() {
     let cli = Cli::new();
@@ -1056,7 +1033,6 @@ fn a_filter_takes_the_priority_by_name_too() {
     assert!(run.err.contains("nonsense"), "{}", run.err);
 }
 
-/// Every listing prints `@work`, so typing it back must not be refused.
 #[test]
 fn the_marker_the_listing_prints_is_accepted_wherever_a_list_is_named() {
     let cli = Cli::new();
@@ -1076,7 +1052,6 @@ fn two_time_filters_are_refused_rather_than_one_being_dropped() {
     assert_eq!(run.code, 1, "{}{}", run.out, run.err);
 }
 
-/// A written year is a decision, never rolled forward.
 #[test]
 fn a_date_that_already_passed_stays_where_it_was_written() {
     let cli = Cli::new();
@@ -1101,7 +1076,6 @@ fn settings_are_read_written_and_validated() {
     assert!(cli.ok(&["config"]).contains("device_id"));
 }
 
-/// Changing it by hand orphans the directory this machine already wrote to.
 #[test]
 fn the_device_id_cannot_be_edited() {
     let cli = Cli::new();
@@ -1127,7 +1101,6 @@ fn export_hands_the_data_back_in_both_shapes() {
     assert!(md.contains("the cache never expired"), "{md}");
 }
 
-/// «tomorrow» is meaningless in a document read months later.
 #[test]
 fn an_exported_document_carries_absolute_dates() {
     let cli = Cli::new();
@@ -1157,8 +1130,6 @@ fn syncing_without_a_folder_says_which_command_sets_one() {
     assert!(run.err.contains("config set remote"), "{}", run.err);
 }
 
-/// The whole point, end to end and with the real binary: two machines meeting
-/// in one folder, which is what a synced cloud folder or a mounted share is.
 #[test]
 fn two_machines_meeting_in_a_folder_end_up_with_the_same_tasks() {
     let shared = tempfile::tempdir().unwrap();
@@ -1172,8 +1143,6 @@ fn two_machines_meeting_in_a_folder_end_up_with_the_same_tasks() {
     let second = Cli::new();
     second.ok(&["config", "set", "remote", &met]);
     second.ok(&["call the bank"]);
-    // Both have history, so joining them is the one irreversible step: it is
-    // asked for rather than assumed, because a stranger's folder looks the same.
     let asked = second.run(&["sync"]);
     assert_ne!(asked.code, 0, "{}", asked.out);
     second.ok(&["sync", "--merge"]);
@@ -1212,7 +1181,6 @@ fn the_remote_is_remembered_and_can_be_taken_back() {
     );
 }
 
-/// An export that omits what was folded away is silent data loss.
 #[test]
 fn an_export_carries_what_the_views_fold_away() {
     let cli = Cli::new();
@@ -1247,12 +1215,10 @@ impl Cli {
         self.home.path().join("data").join("store")
     }
 
-    /// Upload: only ever this machine's own directory.
     fn sends(&self, remote: &TempDir) {
         copy_dirs(&self.store(), remote.path());
     }
 
-    /// Download: everyone else's, and never over our own.
     fn receives(&self, remote: &TempDir) {
         copy_dirs(remote.path(), &self.store());
     }
@@ -1274,8 +1240,6 @@ fn copy_dirs(from: &std::path::Path, to: &std::path::Path) {
     }
 }
 
-/// A machine joining a remote that already has history has to work on the
-/// first try, not on the retry.
 #[test]
 fn a_second_machine_joins_an_existing_remote_on_the_first_try() {
     let remote = shared();
@@ -1293,8 +1257,6 @@ fn a_second_machine_joins_an_existing_remote_on_the_first_try() {
     assert!(out.contains("call the bank"), "{out}");
 }
 
-/// The whole guarantee in one test: two machines, no merge, no conflict —
-/// each one only ever wrote to its own directory.
 #[test]
 fn what_one_machine_writes_the_other_reads_back() {
     let remote = shared();
@@ -1418,7 +1380,6 @@ fn a_cadence_can_be_taken_off_again() {
     assert!(!out.contains("every"), "{out}");
 }
 
-/// Read by the same parser the sentence goes through, so nonsense is nonsense.
 #[test]
 fn a_cadence_that_is_not_one_is_refused() {
     let cli = Cli::new();
@@ -1429,9 +1390,6 @@ fn a_cadence_that_is_not_one_is_refused() {
     assert_ne!(run.code, 0, "{}", run.out);
 }
 
-/// Undo tombstoned the occurrence completing had just given birth to, and the
-/// redo replayed the same id: the series ended there, silently, and the redo
-/// reported success.
 #[test]
 fn undoing_and_redoing_a_completion_keeps_the_series_alive() {
     let cli = Cli::new();
@@ -1448,10 +1406,6 @@ fn undoing_and_redoing_a_completion_keeps_the_series_alive() {
     );
 }
 
-/// Redoing a chain of completions means rebuilding what each undo buried, and
-/// the second step cannot see the rename the first one had to do. It stops
-/// there — and the part that matters is that it now says something true: the
-/// old wording claimed the task had been erased while it sat in the list.
 #[test]
 fn a_chained_redo_of_completions_stops_and_tells_the_truth() {
     let cli = Cli::new();
@@ -1508,7 +1462,6 @@ fn undoing_a_tick_does_not_leave_the_series_running_twice() {
     cli.ok(&["ls", "all"]);
     cli.ok(&["done", "1"]);
 
-    // The commonest way to say «I pressed that by mistake».
     cli.ok(&["ls", "archive"]);
     cli.ok(&["undone", "1"]);
 

@@ -9,31 +9,15 @@ pub struct Took {
     pub repeat: Option<Repeat>,
     pub from: usize,
     pub to: usize,
-    /// Where the right-hand side starts in the cut text, and how far it moved:
-    /// a reading at or past `head` sat at `head + shift` in what was typed.
     pub head: usize,
     pub shift: usize,
-    /// The first occurrence, when the phrase named a weekday. A fixed repeat
-    /// with no date never fires, and a weekday at the start of a sentence is
-    /// not read as one — so it is settled here rather than left to luck.
     pub first: Option<DateSpec>,
 }
 
-/// Naming a day makes it fixed; naming only an interval makes it relative.
-///
-/// «cada martes» is the bin, and it goes out on Tuesday whether or not you took
-/// it out last week. «cada 3 días» is a habit, and three days start counting
-/// when you actually did it. The distinction G1 asked for falls out of how the
-/// sentence is said, so neither form needs a syntax of its own.
-/// `masked` is `text` with anything inside quotes blanked out, same length:
-/// «leer "El Diario de Ana Frank"» is a title, not a daily habit.
 pub fn take(text: &str, masked: &str, now: &Zoned, v: &Vocabulary) -> Took {
     let words = crate::words(masked);
 
     for (i, (at, word)) in words.iter().enumerate() {
-        // «weekly» is a cadence at the end of a sentence and an adjective in the
-        // middle of one: «send the report weekly» against «buy a weekly pass».
-        // Taking it wherever it appears both invents a repeat and eats the word.
         if words.get(i + 1).is_none()
             && let Some(unit) = v
                 .cadences
@@ -76,7 +60,6 @@ pub fn take(text: &str, masked: &str, now: &Zoned, v: &Vocabulary) -> Took {
     }
 }
 
-/// How many words the opening took: «cada» is one, «todos los» is two.
 fn opens(from: &[(usize, &str)], v: &Vocabulary) -> Option<usize> {
     v.every
         .iter()
@@ -91,16 +74,12 @@ fn opens(from: &[(usize, &str)], v: &Vocabulary) -> Option<usize> {
 
 fn weekly(rest: &[(usize, &str)], v: &Vocabulary) -> Option<(Repeat, usize)> {
     let (_, word) = rest.first()?;
-    // «todos los domingos» is the ordinary way to say it, and only the days
-    // that do not already end in «s» have a plural to strip.
     let bare = word.strip_suffix('s').unwrap_or(word);
     let which = v.weekdays.iter().position(|day| {
         day.iter()
             .any(|one| one.eq_ignore_ascii_case(word) || one.eq_ignore_ascii_case(bare))
     })?;
 
-    // «cada lunes y jueves» is two days a week. Reading one of them and
-    // dropping the other silently is worse than reading nothing.
     if let Some((_, next)) = rest.get(1)
         && v.linker.iter().any(|one| one.eq_ignore_ascii_case(next))
         && rest.get(2).is_some_and(|(_, after)| {
@@ -153,8 +132,6 @@ fn interval(rest: &[(usize, &str)], v: &Vocabulary) -> Option<(Repeat, usize)> {
     let unit = unit_of(word, v)?;
     taken += 1;
 
-    // «cada 0 días» would store a repeat that never fires, and nobody writes a
-    // cadence in the thousands: both are likelier to be a typo than a wish.
     if every == 0 || every > 999 {
         return None;
     }
@@ -193,9 +170,6 @@ fn cut(
     } else {
         trimmed.to_string()
     };
-    // Measured, not guessed from the total: the whole string is trimmed at the
-    // end too, and counting those bytes as part of the cut pushes later
-    // readings into the middle of a character.
     let head = left.len();
     Took {
         head,

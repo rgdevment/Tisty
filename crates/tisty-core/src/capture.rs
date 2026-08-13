@@ -6,12 +6,10 @@ use crate::{
     model::{DateSpec, ListId, Priority, Tag, TaskId},
 };
 
-/// `Marked` creates the list if it is missing; `Named` demands it exists.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Filing {
     Marked(String),
     Named(String),
-    /// The window already knows which list: it is the one being looked at.
     Kept(ListId),
 }
 
@@ -38,7 +36,6 @@ pub enum Rejected {
     EndedAlready,
 }
 
-/// Applied and undone as one batch.
 pub struct Plan {
     pub task: TaskId,
     pub ops: Vec<Op>,
@@ -49,8 +46,6 @@ pub fn plan(state: &State, draft: Draft) -> Result<Plan, Rejected> {
     if title.is_empty() {
         return Err(Rejected::Untitled);
     }
-    // Otherwise the series ends at the first completion and nothing ever says
-    // why: the task simply stops coming back.
     if draft
         .repeat
         .is_some_and(|over| over.ended(jiff::Zoned::now().date()))

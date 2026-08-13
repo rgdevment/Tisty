@@ -7,8 +7,6 @@ interface Props {
 }
 
 export default function Tags({ tags, chosen, onToggle }: Props) {
-  // Nothing to filter by, and the list below already says the view is empty:
-  // two stacked empty messages read as a fault.
   if (tags.length === 0) return null;
 
   return (

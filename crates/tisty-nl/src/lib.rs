@@ -1,5 +1,3 @@
-//! Natural language capture. Nothing reaches a model, so it stays reproducible.
-
 mod repeat;
 mod resolve;
 mod scan;
@@ -25,7 +23,6 @@ pub enum Mark {
     Priority,
 }
 
-/// Applied like any certainty, only marked as one — otherwise the same sentence would store differently depending on where it was typed.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Certainty {
@@ -34,7 +31,6 @@ pub enum Certainty {
     Assumed,
 }
 
-/// Offsets are code points.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Span {
     pub from: usize,
@@ -47,7 +43,6 @@ pub struct Span {
 pub struct Offer {
     pub spans: Vec<Span>,
     pub date: DateSpec,
-    /// What the title would become if it were taken.
     pub title: String,
 }
 
@@ -60,7 +55,6 @@ pub struct Parsed {
     pub tags: Vec<Tag>,
     pub list: Option<String>,
     pub repeat: Option<tisty_core::model::Repeat>,
-    /// Where each reading came from in the input, so a client can point at it.
     pub spans: Vec<Span>,
     pub offers: Vec<Offer>,
 }
@@ -107,8 +101,6 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
             });
         }
         let mut read = timed(&over.text, now, tz, v);
-        // The weekday wins the day, the scanner keeps the hour: «cada lunes a
-        // las 9» read as a bare time would anchor the series to today.
         if let Some(first) = &over.first {
             read.date = Some(match read.date.take() {
                 Some(said) if said.has_time => {
@@ -117,8 +109,6 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
                 _ => first.clone(),
             });
         }
-        // The cut moved everything after it: put the readings back where the
-        // person actually typed them, or the highlight lands on the wrong word.
         if over.repeat.is_some() {
             let shift = |at: &mut usize| {
                 if *at >= over.head {
@@ -163,7 +153,6 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
     parsed
 }
 
-/// `!1` or `!urgente`, the same two forms the capture accepts.
 pub fn parse_priority(raw: &str, locale: &str) -> Option<Priority> {
     raw.parse::<u8>()
         .ok()
@@ -171,7 +160,6 @@ pub fn parse_priority(raw: &str, locale: &str) -> Option<Priority> {
         .or_else(|| vocab::for_locale(locale).priority(raw))
 }
 
-/// A flag value is a date on its own, with no title to separate it from.
 pub fn parse_date(input: &str, now: &Zoned, locale: &str) -> Option<DateSpec> {
     let input = input.trim();
     let tz = now.time_zone().iana_name().unwrap_or("UTC");
@@ -180,7 +168,6 @@ pub fn parse_date(input: &str, now: &Zoned, locale: &str) -> Option<DateSpec> {
         return Some(DateSpec::all_day(date, tz));
     }
 
-    // A flag value is explicitly a date, so the ambiguity that holds an offer back does not apply.
     let parsed = parse(&format!("· {input}"), now, locale);
     parsed
         .date
@@ -302,8 +289,6 @@ fn resolved(
     Some(Read { spec, spans })
 }
 
-/// A marker inside the phrase keeps its own colour and its own words: blanking
-/// it left a hole the scanner walked across, so one range covered them both.
 fn carved(spans: Vec<Span>, markers: &[Span], text: &str, v: &vocab::Vocabulary) -> Vec<Span> {
     let mut out = Vec::new();
 
@@ -331,8 +316,6 @@ fn carved(spans: Vec<Span>, markers: &[Span], text: &str, v: &vocab::Vocabulary)
         }
     }
 
-    // A piece left with nothing but particles is what the swallow dragged in,
-    // not a reading: «llamar a @juan mañana» would paint the «a» blue.
     out.retain_mut(|span| {
         let (from, to) = pared(text, span.from, span.to);
         span.from = from;
@@ -352,7 +335,6 @@ fn droppable(word: &str, v: &vocab::Vocabulary) -> bool {
         || v.in_prep.contains(&word)
 }
 
-/// Punctuation around the phrase is not part of the reading: «mañana,» would otherwise draw its comma inside the highlight.
 fn pared(text: &str, from: usize, to: usize) -> (usize, usize) {
     let edge = |c: char| !c.is_alphanumeric();
     let slice = &text[from..to];
@@ -372,7 +354,6 @@ struct Taken {
     spans: Vec<Span>,
 }
 
-/// Markers are blanked instead of removed, so every offset downstream still points at the text the user typed.
 fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
     let mut taken = Taken {
         text: String::with_capacity(input.len()),
@@ -386,7 +367,6 @@ fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
     let mut at = 0;
 
     for (start, word) in words(input) {
-        // Between quotes nothing is interpreted, markers included.
         let quotes = word.matches('"').count();
         let quoted = inside;
         if quotes % 2 == 1 {
@@ -397,7 +377,6 @@ fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
         }
 
         let mark = if let Some(raw) = word.strip_prefix('#') {
-            // A bare `#42` is a written reference — «review PR #42» — not a marker.
             match Tag::new(raw) {
                 Ok(tag) if raw.parse::<u64>().is_err() => {
                     taken.tags.push(tag);
@@ -406,7 +385,6 @@ fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
                 _ => continue,
             }
         } else if let Some(raw) = word.strip_prefix('!') {
-            // `!1` is what fits in a terminal; `!urgente` is what the window shows.
             match raw
                 .parse::<u8>()
                 .ok()
@@ -420,7 +398,6 @@ fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
                 None => continue,
             }
         } else if let Some(raw) = word.strip_prefix('@') {
-            // Trailing punctuation would create «juan,» next to «juan».
             let raw = raw.trim_end_matches(|c: char| !c.is_alphanumeric());
             if raw.is_empty() || raw.parse::<u64>().is_ok() {
                 continue;
@@ -446,8 +423,6 @@ fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
     taken
 }
 
-/// Whitespace-separated, each with the byte it starts at. The one place
-/// that walks the text; everything else layers on top.
 pub(crate) fn words(input: &str) -> Vec<(usize, &str)> {
     let mut out = Vec::new();
     let mut start = None;
@@ -467,7 +442,6 @@ pub(crate) fn words(input: &str) -> Vec<(usize, &str)> {
     out
 }
 
-/// The title with these readings removed; public so a client can preview unmarking one.
 pub fn title_without(input: &str, spans: &[Span], locale: &str) -> String {
     let letters: Vec<char> = input.chars().collect();
     let mut ordered: Vec<&Span> = spans.iter().collect();
@@ -486,7 +460,6 @@ pub fn title_without(input: &str, spans: &[Span], locale: &str) -> String {
     sewn(kept, vocab::for_locale(locale))
 }
 
-/// The temporal phrase can sit mid-sentence, so both sides of the hole are the title.
 fn without_spans(
     text: &str,
     tokens: &[scan::Token],
@@ -535,7 +508,6 @@ fn fully_quoted(text: &str) -> Option<String> {
     (!inner.contains('"')).then(|| inner.to_string())
 }
 
-/// Placeholders keep the same byte length, or the offsets stop matching.
 fn protect_quoted(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut inside = false;
@@ -558,7 +530,6 @@ fn unquote(text: &str) -> String {
     text.trim().to_string()
 }
 
-/// Read as a deadline it would travel to the next occurrence and never arrive.
 fn ends_the_series(parsed: &mut Parsed, input: &str, v: &vocab::Vocabulary) {
     let (Some(over), Some(last)) = (parsed.repeat, parsed.deadline.as_ref()) else {
         return;
@@ -770,8 +741,6 @@ mod tests {
         );
     }
 
-    /// A blanked marker left a hole the scanner walked across, so one date span
-    /// covered the tag too: it painted over it and unmarking lost the word.
     #[test]
     fn a_marker_inside_the_phrase_keeps_its_own_span() {
         assert_eq!(
@@ -843,7 +812,6 @@ mod tests {
         assert!(p.spans.is_empty());
     }
 
-    /// `app/src/core.ts` mirrors these names by hand; a rename here is silent there until something stops lighting up.
     #[test]
     fn a_span_reaches_the_window_under_the_names_it_declares() {
         let span = Span {

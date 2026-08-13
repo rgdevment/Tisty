@@ -5,13 +5,8 @@ use crate::{Error, Result, event::DeviceId};
 pub const DATA_ENV: &str = "TISTY_DATA";
 pub const CONFIG_ENV: &str = "TISTY_CONFIG";
 pub const CACHE_ENV: &str = "TISTY_CACHE";
-/// A named sandbox, for both the terminal and the window. The three variables
-/// above only ever helped the terminal: the window resolves its own paths, so
-/// there was no way to point it anywhere but at the real store — and trying
-/// things by hand meant trying them on your own data.
 pub const PROFILE_ENV: &str = "TISTY_PROFILE";
 
-/// Apart on purpose: a synced device id would break one-writer-per-directory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Paths {
     data: PathBuf,
@@ -25,10 +20,6 @@ impl Paths {
         let under = profile();
 
         Ok(Self {
-            // Local, never roaming: a Windows domain profile copies %APPDATA%
-            // at logon and logoff. For the store that is another process
-            // touching the log; for the config it is the device id — and the
-            // `private/` folder — leaving the machine for a company server.
             data: aside(
                 env_path(DATA_ENV).unwrap_or_else(|| dirs.data_local_dir().to_path_buf()),
                 under.as_deref(),
@@ -65,7 +56,6 @@ impl Paths {
         self.config.join("config.toml")
     }
 
-    /// Outside the synced directory, so no cloud client ever carries it away.
     pub fn private(&self) -> PathBuf {
         self.config.join("private")
     }
@@ -74,7 +64,6 @@ impl Paths {
         &self.cache
     }
 
-    /// Disposable: only outlives the seconds between reading a list and typing.
     pub fn selection_file(&self) -> PathBuf {
         self.cache.join("selection.json")
     }
@@ -96,9 +85,6 @@ impl Paths {
     }
 }
 
-/// macOS gives config and data the same directory, and a config sitting where
-/// the store lives reads as something that travels. It does not — only `store/`
-/// and `attachments/` ever do — but the separation is worth being visible.
 fn local_config(dirs: &directories::ProjectDirs) -> PathBuf {
     let config = dirs.config_local_dir();
     if config == dirs.data_local_dir() {
@@ -108,8 +94,6 @@ fn local_config(dirs: &directories::ProjectDirs) -> PathBuf {
     }
 }
 
-/// A home directory is 0755 on most distributions, so the default 0644 puts
-/// every task on the machine within reach of any other local account.
 #[cfg(unix)]
 pub fn ours_alone(at: &Path) -> std::io::Result<()> {
     use std::os::unix::fs::PermissionsExt;
@@ -123,9 +107,6 @@ pub fn ours_alone(at: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-/// The sandbox in force, if any. Anything but letters, digits, `-` and `_` is
-/// dropped: this ends up in a path, and a name carrying `..` would reach out of
-/// the sandbox it exists to stay inside.
 pub fn profile() -> Option<String> {
     named(&std::env::var(PROFILE_ENV).ok()?)
 }
@@ -157,8 +138,6 @@ mod tests {
     use super::{aside, named};
     use std::path::PathBuf;
 
-    /// A name lands in a path, so one carrying `..` would climb out of the very
-    /// sandbox it exists to stay inside.
     #[test]
     fn a_profile_name_cannot_escape_its_own_directory() {
         for raw in ["../..", "..", "/etc", "a/../../b", r"..\..\windows"] {
@@ -175,7 +154,6 @@ mod tests {
         assert_eq!(named("dos-maquinas_2"), Some("dos-maquinas_2".into()));
     }
 
-    /// Empty, or nothing but punctuation, is no sandbox at all.
     #[test]
     fn a_name_with_nothing_usable_in_it_is_no_profile() {
         assert_eq!(named(""), None);
@@ -199,8 +177,6 @@ mod tests {
         Paths::new("/data/Tisty", "/config/tisty")
     }
 
-    /// Against the real resolver, not two invented paths: the old version of
-    /// this test compared `/data/Tisty` with `/config/tisty` and could not fail.
     #[test]
     fn nothing_private_lives_where_the_transports_look() {
         let p = Paths::resolve().unwrap();
@@ -211,8 +187,6 @@ mod tests {
         }
     }
 
-    /// A roaming profile copies `%APPDATA%` to a company server at logoff,
-    /// which would take the device id and `private/` with it.
     #[test]
     fn the_config_never_lands_in_a_roaming_profile() {
         let p = Paths::resolve().unwrap();

@@ -1,7 +1,3 @@
-//! Files brought in from outside. What reaches the prose is an ordinary
-//! Markdown link to a path under the data root, so the file stays readable
-//! without Tisty and a Windows path never travels to a Linux machine.
-
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
@@ -12,30 +8,20 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-/// Above this the file is left where it is and only its path is kept: a 40 MB
-/// video inside the store is a store nobody can move again.
 pub const COPIED_UP_TO: u64 = 5 * 1024 * 1024;
 
-/// The band the setting may move in. Below the floor nothing would ever be
-/// copied; above the ceiling the store stops being a thing you can move.
 const SHORTENS_TO: usize = 56;
 
 pub const COPIED_LEAST: u64 = 64 * 1024;
 pub const COPIED_MOST: u64 = 200 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Always copied in. Pointing at a file where it already lives made an
-/// attachment that existed on one machine and nowhere else, and that survived
-/// exactly until somebody moved it.
 pub struct Kept {
-    /// Relative to the data root.
     pub at: String,
     pub sha256: String,
 }
 
 impl Kept {
-    /// The Markdown that goes into the description or the journal entry. The
-    /// target is wrapped, or a Windows path with a space stops being a link.
     pub fn written(&self, label: &str) -> String {
         let name = spoken(label);
         let target = self.at.clone();
@@ -47,7 +33,6 @@ impl Kept {
     }
 }
 
-/// Brackets and line breaks in a file name would cut the link in half.
 fn spoken(label: &str) -> String {
     let flat: String = label
         .split_whitespace()
@@ -59,10 +44,8 @@ fn spoken(label: &str) -> String {
     if flat.is_empty() { "file".into() } else { flat }
 }
 
-/// Copies under the threshold, points above it.
 pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
     let mut file = std::fs::File::open(source)?;
-    // Not `metadata(path)`: a pipe reports nothing and then hands over anything.
     let opened = file.metadata()?;
     if !opened.is_file() {
         return Err(Error::OutsideTheStore(source.display().to_string()));
@@ -171,8 +154,6 @@ pub struct Loose {
     pub bytes: u64,
 }
 
-/// Files under `attachments/` that no prose names any more. Collecting them is
-/// a separate decision: another machine may still reference what this one dropped.
 pub fn loose(root: &Path, referenced: &[String]) -> Loose {
     let held: std::collections::BTreeSet<&str> = referenced
         .iter()
@@ -215,7 +196,6 @@ pub fn loose(root: &Path, referenced: &[String]) -> Loose {
     found
 }
 
-/// Rejects anything that climbs out of the data root, whoever wrote it.
 pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
     let cleaned = reference.split(['?', '#']).next().unwrap_or("");
     let refused = || Err(Error::OutsideTheStore(reference.to_string()));
@@ -223,17 +203,12 @@ pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
         return refused();
     }
 
-    // A reference is written with `/` wherever it was made. Windows eats a
-    // backslash as a separator and everywhere else it is an ordinary
-    // letter, so one left in would name two different things.
     if cleaned.contains('\\') {
         return refused();
     }
 
     let mut walked = root.to_path_buf();
     let mut steps = 0;
-    // By component, not by substring: `C:foo` carries a prefix and no root, so
-    // `is_absolute` says no and `join` would still replace the whole path.
     for part in Path::new(cleaned).components() {
         let Component::Normal(name) = part else {
             return refused();
@@ -241,7 +216,6 @@ pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
         let Some(name) = name.to_str() else {
             return refused();
         };
-        // A colon opens an NTFS stream; the rest name devices, not files.
         if name.contains(':') || reserved(name) {
             return refused();
         }
@@ -262,7 +236,6 @@ fn reserved(name: &str) -> bool {
             && stem.as_bytes()[3].is_ascii_digit())
 }
 
-/// An extension is letters and digits. Anything else is someone being clever.
 fn plain(ext: &str) -> bool {
     !ext.is_empty() && ext.len() <= 16 && ext.chars().all(|c| c.is_ascii_alphanumeric())
 }
@@ -328,9 +301,6 @@ mod tests {
         assert_eq!(shelves.count(), 1);
     }
 
-    /// Pointing at a file where it lives made an attachment that existed on one
-    /// machine and nowhere else, and only until somebody moved it. It is
-    /// refused now, and the refusal says both numbers.
     #[test]
     fn a_heavy_file_is_refused_and_never_copied() {
         let (_src, file) = dropped("recording.mkv", b"pretend this is fifteen gigabytes");
@@ -368,7 +338,6 @@ mod tests {
         );
     }
 
-    /// The usual Windows path has spaces and brackets, and both cut a link.
     #[test]
     fn a_path_with_spaces_is_still_a_link() {
         let kept = Kept {
@@ -418,8 +387,6 @@ mod tests {
         }
     }
 
-    /// Windows keeps a per-drive current directory, so `C:foo` has a prefix
-    /// and no root: `is_absolute` says no and `join` replaces everything.
     #[test]
     fn a_drive_letter_without_a_root_is_still_a_way_out() {
         let root = Path::new("/data");
@@ -428,8 +395,6 @@ mod tests {
         }
     }
 
-    /// One store is opened from more than one machine, so a reference has to
-    /// mean the same thing on all of them.
     #[test]
     fn a_backslash_is_refused_wherever_it_is_read() {
         let root = Path::new("/data");
@@ -446,7 +411,6 @@ mod tests {
         }
     }
 
-    /// The old guard matched the substring, so an ordinary name was refused.
     #[test]
     fn two_dots_inside_a_name_are_not_a_climb() {
         let root = Path::new("/data");
@@ -473,7 +437,6 @@ mod tests {
         assert!(resolve("docs/notes.md", root).is_ok());
     }
 
-    /// The threshold is «up to», so the exact size is still copied in.
     #[test]
     fn a_file_the_exact_size_of_the_limit_is_copied() {
         let (_src, file) = dropped("shot.png", b"1234");
@@ -609,7 +572,6 @@ mod tests {
         assert_eq!(loose(root.path(), &[]), Loose::default());
     }
 
-    /// A query string is not part of the path and would hide a climb.
     #[test]
     fn what_follows_a_question_mark_is_not_the_file() {
         let root = Path::new("/data");

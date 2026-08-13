@@ -25,8 +25,6 @@ const stops = () =>
   screen.getAllByRole("listitem").filter((row) => row.getAttribute("tabindex") === "0");
 
 describe("the list never loses its way in", () => {
-  /// Completing the focused task took it out of the list, and every remaining
-  /// row was left at tabindex -1: the list became unreachable by keyboard.
   it("keeps a tab stop when the focused task leaves the list", () => {
     const three = [task("1", "una"), task("2", "dos"), task("3", "tres")];
     const shown = render(
@@ -46,8 +44,6 @@ describe("the list never loses its way in", () => {
     expect(stops().length).toBe(1);
   });
 
-  /// The archive folds repeats, so the first task can be inside a closed group
-  /// and never rendered — the fallback pointed at a row that is not there.
   it("keeps a tab stop when the first task sits inside a folded group", () => {
     render(
       <TaskList
@@ -68,8 +64,6 @@ describe("the list never loses its way in", () => {
 });
 
 describe("day bands", () => {
-  /// Archived tasks are appended after the open ones, so a band that already
-  /// appeared came back a second time.
   it("never repeats a heading when open and closed tasks are mixed", () => {
     render(
       <TaskList
@@ -93,8 +87,6 @@ describe("day bands", () => {
 });
 
 describe("what an empty tag view says", () => {
-  /// Choosing tags sets `named` AND `tags`, and the order of the checks made
-  /// the screen say «no tags yet» with the chosen tags drawn right above it.
   it("talks about the filter, not about having no tags", () => {
     expect(nothing({ named: "tags", tags: ["work", "home"] }, false)).not.toMatch(/no tags/i);
   });
@@ -103,7 +95,6 @@ describe("what an empty tag view says", () => {
     expect(nothing({ named: "tags" }, false)).toMatch(/no tags/i);
   });
 
-  /// The archive hides the scope chips it tells you to widen.
   it("does not send you to a control the archive hides", () => {
     expect(nothing({ named: "archive" }, true)).not.toMatch(/scope/i);
     expect(nothing({ named: "search" }, true)).toMatch(/scope/i);

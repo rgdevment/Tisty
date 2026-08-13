@@ -40,7 +40,6 @@ describe("the closing question", () => {
     expect(sent()[0].args).toMatchObject({ how: "quit", remember: false });
   });
 
-  /// Backing out is not an answer: the question has to come again.
   it("decides nothing when it is dismissed", async () => {
     const dismissed = vi.fn();
     render(<Closing onDismiss={dismissed} onError={() => {}} />);

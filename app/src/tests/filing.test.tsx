@@ -17,8 +17,6 @@ function put(lists: List[]) {
   return onPatch;
 }
 
-/// A store with no lists left this sheet completely empty: nothing to file
-/// under, and no way to make anywhere either.
 describe("filing a task with no lists yet", () => {
   it("offers to name one", () => {
     const onPatch = put([]);

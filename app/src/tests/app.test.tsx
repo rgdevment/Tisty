@@ -152,10 +152,6 @@ describe("the full screen", () => {
     expect(screen.getByText("call the bank")).toBeTruthy();
   });
 
-  /// Asked for by the author: the task leaves the list, so the column showing
-  /// it has nothing left to show. The cost is real and accepted — the Reopen
-  /// button went away with it, so undoing a mistaken discard now means finding
-  /// the task in the archive.
   it("closes the side panel too, once the task has left the list", async () => {
     const user = userEvent.setup();
     await started();
@@ -197,9 +193,6 @@ describe("a refusal", () => {
 });
 
 describe("what the numbers on screen refer to", () => {
-  /// One number beside a title that always says «Tasks» reads as the whole of
-  /// them, while it only ever counted the slice on show — and the chips said
-  /// nothing about what was behind them.
   it("puts each count on its own chip, and none beside the title", async () => {
     counts = { tasks: 2, upcoming: 5, repeating: 1, all: 8 };
     await started();
@@ -210,7 +203,6 @@ describe("what the numbers on screen refer to", () => {
     expect(screen.getByRole("heading", { level: 1 }).parentElement?.textContent).toBe("Tasks");
   });
 
-  /// The archive is one view with one number, so there it still belongs there.
   it("keeps the count beside a title that names one list", async () => {
     await started();
 
@@ -222,8 +214,6 @@ describe("what the numbers on screen refer to", () => {
 });
 
 describe("closing an open task", () => {
-  /// It dropped the keyboard on the body, so the next Tab started over from the
-  /// top of the window.
   it("hands the keyboard back to the row it was opened from", async () => {
     const user = userEvent.setup();
     await started();
@@ -239,9 +229,6 @@ describe("closing an open task", () => {
 });
 
 describe("opening a task beside the list", () => {
-  /// The list lost its centring and its column narrowed in the same frame, so
-  /// it jumped left and the row that had just been clicked slid out from under
-  /// the cursor.
   it("does not throw the list to the left", async () => {
     const user = userEvent.setup();
     await started();

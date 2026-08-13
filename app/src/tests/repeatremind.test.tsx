@@ -32,8 +32,6 @@ describe("a reminder on a repeating task", () => {
     expect(screen.getByText(/9:00/)).toBeTruthy();
   });
 
-  /// Without a cadence it is a one-off, and naming a day is the honest label.
-  /// Matched on the pair, because the repeat field carries a bare ↻ of its own.
   it("still names the day when the task does not repeat", () => {
     put(task({}));
 

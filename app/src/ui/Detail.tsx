@@ -11,7 +11,6 @@ interface Props {
   lists: List[];
   known: string[];
   expanded: boolean;
-  /** Where the reader came from, so «back» names a place and not a layout. */
   from?: string;
   onExpand: () => void;
   onCollapse: () => void;
@@ -24,6 +23,7 @@ interface Props {
   onReopen: () => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
+  onDoc?: (id: string) => void;
 }
 
 export default function Detail({
@@ -43,16 +43,13 @@ export default function Detail({
   onReopen,
   onClose,
   onError,
+  onDoc,
 }: Props) {
-  // Opening a task moved the eye and left the keyboard back in the list; the
-  // next Tab went nowhere near what had just been opened.
   const opened = useRef<HTMLElement>(null);
   useEffect(() => {
     opened.current?.focus({ preventScroll: true });
   }, [task.id]);
 
-  // Escape already cancels an edit inside a field, so it only closes the panel
-  // when it is not being typed into.
   const leave = (event: React.KeyboardEvent) => {
     if (event.key !== "Escape") return;
     const at = event.target as HTMLElement;
@@ -74,6 +71,7 @@ export default function Detail({
         beside={expanded}
         catches
         onError={onError}
+        onDoc={onDoc}
         onWhole={expanded ? undefined : onExpand}
         onWrite={(description) => onPatch({ description })}
       />
@@ -94,6 +92,7 @@ export default function Detail({
         entries={task.log ?? []}
         steps={task.steps?.map((one) => one.text)}
         onError={onError}
+        onDoc={onDoc}
         onWhole={expanded ? undefined : onExpand}
         onWrite={onLog}
       />
@@ -168,8 +167,6 @@ function Settled({
   onError?: (problem: unknown) => void;
 }) {
   const shut = task.status !== "open";
-  // On a repeating task «not doing it» reads as «not this one», and it ends
-  // the whole series. The button says what it does.
   const away = task.repeat ? t("endRepeat") : t("discardIt");
   return (
     <button

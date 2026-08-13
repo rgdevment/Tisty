@@ -1,8 +1,5 @@
 name: Rules
 
-# The project's own conventions, checked mechanically. Without this they hold
-# only as long as someone remembers them during review.
-
 on:
   push:
     branches: [main]
@@ -47,10 +44,6 @@ jobs:
       - name: Locales define the same keys
         run: cargo test -p tisty-cli --bin tisty i18n
 
-      # Not `--workspace`: that reaches tisty-gui, which needs the whole GTK
-      # stack here and ships nothing on Linux. What repeats twenty times is
-      # what can vary between runs — dates, ordering, locks — and all of it
-      # lives in these three.
       - name: Tests are deterministic
         run: |
           for i in $(seq 1 20); do

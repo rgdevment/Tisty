@@ -237,7 +237,6 @@ pub fn captured(
         meta.push(format!("@{}", slug(&list.name)));
     }
     meta.extend(task.tags.iter().map(|t| format!("#{t}")));
-    // A capture that stays quiet about the cadence is not showing what it read.
     if let Some(over) = task.repeat {
         meta.push(format!("↻ {}", cadence(over, lang)));
     }
@@ -287,7 +286,6 @@ pub fn lists(state: &State, lang: Lang) -> String {
     out
 }
 
-/// Absolute dates, never «tomorrow»: an export is read months later.
 pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> String {
     let mut out = format!("# {heading}\n\n");
     if tasks.is_empty() {
@@ -349,7 +347,6 @@ pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> St
         if !journal.is_empty() {
             out.push_str(&format!("### {}\n\n", lang.get("journal")));
             for entry in journal {
-                // The offset places the entry on a timeline without a lookup.
                 let at = entry.zoned();
                 out.push_str(&format!("**{}**\n\n", at.strftime("%Y-%m-%d %H:%M %:z")));
                 out.push_str(&format!("{}\n", body(&entry.body)));
@@ -359,7 +356,6 @@ pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> St
     out
 }
 
-/// An open fence swallows the tasks after it, and a heading outranks the document's.
 fn body(text: &str) -> String {
     let mut out = String::with_capacity(text.len() + 8);
     let mut open = false;

@@ -4,7 +4,6 @@ import { fill, t } from "./locales";
 
 type Line = [string, string];
 
-/// Worded here, not in Rust: the window already speaks both languages.
 export function written(facts: Facts, now = new Date()): string {
   const said: string[] = [
     `# ${t("reportHead")}`,
@@ -73,14 +72,12 @@ const CACHE = {
   none: "cacheNone",
 } as const;
 
-/// The count and the position are what a filter fault needs; the words are not.
 function named(count: number, names: string[], kind: string): string {
   if (count === 0) return "0";
   const shown = names.length > 0 ? names : Array.from({ length: count }, (_, at) => `${kind}#${at + 1}`);
   return `${count}   (${shown.join(", ")})`;
 }
 
-/// The store keeps the muted ones; listing those would read as what works.
 function speaking(quiet: string[]): string {
   const on = ["screen", "chime"].filter((one) => !quiet.includes(one));
   return on.length === 0 ? t("wordNone") : on.map((one) => t(WORDED[one])).join(", ");

@@ -8,8 +8,6 @@ function put(over: { value?: string; clock?: string }) {
   return onPick;
 }
 
-/// «Tomar la pastilla cada día a las 10am», moved to nine. There was no way to
-/// do it: the sheet applies on touching a day, and the hour alone touches none.
 describe("changing only the hour", () => {
   it("can be applied, because an hour asks for a button", () => {
     const onPick = put({ value: "2026-08-20", clock: "10:00" });
@@ -30,8 +28,6 @@ describe("changing only the hour", () => {
     expect(onPick).toHaveBeenCalledWith("2026-08-20T07:30:00");
   });
 
-  /// A plain day still lands on the touch: that is what makes a due date quick,
-  /// and putting a button in the way would cost a click every single time.
   it("still applies a bare day without one", () => {
     const onPick = put({ value: "2026-08-20" });
 

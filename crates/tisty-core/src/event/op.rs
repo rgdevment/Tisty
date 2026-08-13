@@ -4,7 +4,6 @@ use crate::model::{
     DateSpec, DocId, FolderId, ListId, LogId, Priority, Repeat, StepId, Tag, TaskId,
 };
 
-/// Serde folds `null` into `None`, making "clear" and "leave alone" the same.
 mod null_clears {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -104,8 +103,6 @@ pub enum Op {
 }
 
 impl Op {
-    /// The same operation, aimed at another entity. Only a redo needs this: it
-    /// has to rebuild what its own undo buried under a tombstone.
     pub fn about(self, id: TaskId) -> Self {
         match self {
             Op::TaskAdd { d, .. } => Op::TaskAdd { id, d },
@@ -257,8 +254,6 @@ pub struct TaskAdd {
     pub reminders: Vec<DateSpec>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repeat: Option<Repeat>,
-    /// The occurrence this one was born from, so undoing that completion can
-    /// find its successor instead of leaving two of the series alive.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub after: Option<TaskId>,
 }
@@ -280,7 +275,6 @@ impl TaskAdd {
     }
 }
 
-/// Only changed fields travel: last-write-wins per field, not per entity.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct TaskPatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -323,7 +317,6 @@ where
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogAdd {
     pub entry: LogId,
-    /// The author's zone, or the entry reads as another hour elsewhere.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tz: Option<String>,
     pub body: String,
@@ -405,7 +398,6 @@ pub struct DocAdd {
     pub folder: Option<FolderId>,
 }
 
-/// `null` files it at the root, absent leaves it where it was.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Filed {
     #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]

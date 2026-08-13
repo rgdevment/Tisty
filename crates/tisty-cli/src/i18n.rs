@@ -3,7 +3,6 @@ use std::sync::OnceLock;
 
 use serde::Deserialize;
 
-/// Adding a language: drop a file in `locales/` and add it here. Nothing else.
 const LOCALES: &[(&str, &str)] = &[
     ("en", include_str!("../locales/en.toml")),
     ("es", include_str!("../locales/es.toml")),
@@ -64,7 +63,6 @@ impl Lang {
         self.0
     }
 
-    /// Unlike `from_code`, an unknown code is refused rather than silently English.
     pub fn known(code: &str) -> Option<Self> {
         let code = code.to_lowercase();
         let tag = code.split(['_', '-', '.']).next().unwrap_or_default();
@@ -82,7 +80,6 @@ impl Lang {
             .join(" · ")
     }
 
-    /// A missing key renders visibly; a broken translation must not panic.
     pub fn get(self, key: &str) -> &'static str {
         catalog(self.0)
             .and_then(|c| c.messages.get(key))
@@ -102,7 +99,6 @@ impl Lang {
         }
     }
 
-    /// strftime does not localise, so day and month names come from here.
     pub fn weekday(self, index: u8) -> &'static str {
         self.from(|c| c.weekday.get(&index.to_string()))
     }
@@ -127,7 +123,6 @@ impl Lang {
     }
 }
 
-/// POSIX precedence, then the system: a Windows terminal sets none of these.
 fn machine() -> Option<String> {
     ["LC_ALL", "LC_MESSAGES", "LANG"]
         .iter()
@@ -139,15 +134,12 @@ fn system() -> Option<String> {
     first_spoken(preferred_languages())
 }
 
-/// Windows returns a ranked list; the first one Tisty speaks beats the fallback.
 fn first_spoken(preferred: Vec<String>) -> Option<String> {
     preferred
         .into_iter()
         .find(|code| Lang::known(code).is_some())
 }
 
-/// macOS too: an app bundle launched from Finder or `launchd` inherits no
-/// `LANG`, so the POSIX variables are not the whole answer there either.
 #[cfg(any(windows, target_os = "macos"))]
 fn preferred_languages() -> Vec<String> {
     sys_locale::get_locales().collect()
@@ -170,11 +162,9 @@ fn catalog(code: &str) -> Option<&'static Catalog> {
         .get(code)
 }
 
-/// Canonical names only: the aliases would triple the line.
 pub const FILTERS: &str =
     "today · tomorrow · week · overdue · inbox · archive · all · @list · #tag · !1";
 
-/// Accepts every language, so scripts written in either keep working.
 pub fn canonical_filter(raw: &str) -> Option<&'static str> {
     let raw = raw.to_lowercase();
     for (canonical, aliases) in [

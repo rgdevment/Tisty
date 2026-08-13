@@ -1,9 +1,6 @@
-//! Fractional indexing: string positions let an insert avoid renumbering the rest.
-
 const DIGITS: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const BASE: usize = 62;
 
-/// Keys never end in the lowest digit, or there is no room to insert before them.
 pub fn between(before: Option<&str>, after: Option<&str>) -> String {
     let (a, b) = (before.unwrap_or(""), after.filter(|s| !s.is_empty()));
     debug_assert!(b.is_none_or(|b| a < b), "{a} is not before {b:?}");
@@ -34,7 +31,6 @@ fn midpoint(a: &str, b: Option<&str>) -> String {
         return append_after(a);
     };
 
-    // Past the end of `a`, compare against the lowest digit, not nothing.
     let shared = b
         .bytes()
         .enumerate()
@@ -60,7 +56,6 @@ fn midpoint(a: &str, b: Option<&str>) -> String {
     format!("{}{}", digit(low), midpoint(tail(a, 1), None))
 }
 
-/// Raises the last digit with room instead of bisecting toward nothing, to avoid growing a character every few keys.
 fn append_after(a: &str) -> String {
     let Some(i) = a.bytes().rposition(|d| index(d) + 1 < BASE) else {
         return format!("{a}{}", digit(BASE / 2));

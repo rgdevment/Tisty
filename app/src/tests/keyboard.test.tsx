@@ -25,7 +25,6 @@ const show = (onSelect = () => {}, onComplete?: (id: string) => void) =>
 const rows = () => screen.getAllByRole("listitem");
 
 describe("moving through the list without a mouse", () => {
-  /// The rows were plain divs with onClick: nothing in them took focus at all.
   it("lets a row take focus", async () => {
     show();
 
@@ -34,7 +33,6 @@ describe("moving through the list without a mouse", () => {
     expect(document.activeElement).toBe(rows()[0]);
   });
 
-  /// Ninety rows between the list and the sidebar is not navigation.
   it("offers one tab stop for the whole list", () => {
     show();
 
@@ -84,9 +82,6 @@ describe("moving through the list without a mouse", () => {
     expect(opened).toHaveBeenCalledWith("1");
   });
 
-  /// THE DANGEROUS ONE: the only focusable thing per row used to be the
-  /// complete button, labelled with the task title. Whoever tabbed to what read
-  /// like «the task» and pressed Enter CLOSED it — and the window has no undo.
   it("never lets Enter on a row complete the task", async () => {
     const opened = vi.fn();
     const completed = vi.fn();
@@ -117,9 +112,6 @@ describe("moving through the list without a mouse", () => {
     expect(completed).toHaveBeenCalledWith("1");
   });
 
-  /// Completing is the verb this product exists for, and until now it was
-  /// mouse-only: the circle is out of the tab order on purpose, and the detail
-  /// only offers «Not doing it», which discards.
   it("completes the focused task with Ctrl+Enter", async () => {
     const completed = vi.fn();
     show(() => {}, completed);
@@ -130,8 +122,6 @@ describe("moving through the list without a mouse", () => {
     expect(completed).toHaveBeenCalledWith("1");
   });
 
-  /// Plain Enter still opens: the destructive-by-accident shape is what the
-  /// whole keyboard work was about.
   it("does not complete on plain Enter", async () => {
     const opened = vi.fn();
     const completed = vi.fn();
@@ -144,7 +134,6 @@ describe("moving through the list without a mouse", () => {
     expect(opened).toHaveBeenCalled();
   });
 
-  /// So a run of them can be ticked off without reaching for the mouse.
   it("moves to the next one after completing", async () => {
     show(() => {}, vi.fn());
 
@@ -159,8 +148,6 @@ describe("folding a row away in the archive", () => {
   const shelf = (onFold: (id: string, away: boolean) => void) =>
     render(<TaskList tasks={three} lists={[]} title="Archive" onSelect={() => {}} onFold={onFold} />);
 
-  /// Its button is out of the tab order AND drawn only under the mouse, so the
-  /// archive's one verb did not exist without one.
   it("folds the focused row with Ctrl+Enter", async () => {
     const folded = vi.fn();
     shelf(folded);
@@ -177,7 +164,6 @@ describe("folding a row away in the archive", () => {
     expect(rows()[0].getAttribute("aria-keyshortcuts")).toBe("Control+Enter");
   });
 
-  /// Hidden until hovered is hidden for good to whoever is on the keyboard.
   it("draws the fold button when the row has focus", () => {
     shelf(vi.fn());
 

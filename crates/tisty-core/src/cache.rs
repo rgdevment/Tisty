@@ -61,7 +61,6 @@ impl Cache {
         Ok(Some(Self { db }))
     }
 
-    /// `None` if the log moved past `fingerprint`; `bodies` includes descriptions, journals and steps.
     pub fn load(&self, fingerprint: &str, bodies: bool) -> Option<State> {
         if self.meta("schema")? != SCHEMA.to_string() || self.meta("fingerprint")? != fingerprint {
             return None;
@@ -142,7 +141,6 @@ impl Cache {
         Some(state)
     }
 
-    /// Call only after the log is durably written, so a crash between the two leaves the cache behind, not ahead.
     pub fn store(&mut self, state: &State, fingerprint: &str) -> Result<()> {
         if !state.has_bodies() {
             return Ok(());
@@ -293,7 +291,6 @@ impl Cache {
         Ok(())
     }
 
-    /// Use when an event's effects reach beyond its own entity (e.g. a list deletion cascades to its tasks).
     pub fn invalidate(&mut self) {
         if let Err(e) = self
             .db
@@ -337,7 +334,6 @@ struct Body {
     steps: Vec<crate::Step>,
 }
 
-/// Cheap proxy for log contents; only ever false-negatives toward stale, never toward fresh.
 pub fn fingerprint(store_root: &Path) -> String {
     let mut parts: Vec<String> = Vec::new();
     let Ok(devices) = std::fs::read_dir(store_root) else {
@@ -361,7 +357,6 @@ pub fn fingerprint(store_root: &Path) -> String {
     parts.join("|")
 }
 
-/// Compares cache to log; reports divergence, never repairs it.
 pub fn audit(store_root: &Path, cache_dir: &Path) -> Result<Audit> {
     let truth = State::replay(&store::read_all(store_root)?);
     let Some(cache) = Cache::open(cache_dir)? else {
@@ -413,7 +408,6 @@ pub fn discard(cache_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Returns the fingerprint it settled on.
 pub fn advance(
     cache: Option<&mut Cache>,
     state: &State,
@@ -424,20 +418,16 @@ pub fn advance(
     let print = fingerprint(store_root);
     let Some(cache) = cache else { return print };
 
-    // Overtaken: this state is missing events another process appended meanwhile; don't cache it.
     if overtaken {
         cache.invalidate();
         return print;
     }
 
-    // A summary carries no bodies, so writing it would erase the cached ones.
     if !state.has_bodies() {
         cache.invalidate();
         return print;
     }
 
-    // ListDelete cascades to every task it held; touch() only updates one entity.
-    // FolderDelete does the same to its children and to what it filed.
     if events.iter().any(|e| {
         matches!(
             e.op,
@@ -454,12 +444,10 @@ pub fn advance(
     print
 }
 
-/// Falls back to reading the log on any cache failure.
 pub fn project(store_root: &Path, cache_dir: &Path) -> Result<State> {
     projected(store_root, cache_dir, true)
 }
 
-/// Like `project`, without descriptions, journals or steps.
 pub fn summarised(store_root: &Path, cache_dir: &Path) -> Result<State> {
     projected(store_root, cache_dir, false)
 }

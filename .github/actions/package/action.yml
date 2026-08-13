@@ -15,7 +15,6 @@ inputs:
 runs:
   using: composite
   steps:
-    # Compiling on three runners proves nothing until one of them runs.
     - name: Smoke test
       shell: bash
       run: |

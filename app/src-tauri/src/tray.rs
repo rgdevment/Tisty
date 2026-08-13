@@ -1,5 +1,3 @@
-//! Where no tray exists nothing here runs, and closing keeps its plain meaning.
-
 use std::sync::Mutex;
 
 use tauri::{
@@ -23,8 +21,6 @@ fn kept<T, E: std::fmt::Display>(what: Result<T, E>, said: &'static str) -> Opti
     }
 }
 
-/// Kept so the menu can be reworded: the terminal can change the language
-/// while the window is open, and the tray would keep the startup one.
 pub struct Said<R: Runtime>(pub Mutex<Vec<MenuItem<R>>>);
 
 #[cfg(target_os = "macos")]
@@ -40,9 +36,6 @@ pub struct Words {
     pub quit: String,
 }
 
-/// `None` where the desktop has no tray, and Linux counts as none: the GTK
-/// backend reports success whether or not anything is listening, and hiding
-/// into a tray that is not there loses the app with no way back.
 pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R>> {
     let item = "a tray menu item was refused";
     let show = kept(
@@ -85,8 +78,6 @@ pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R
     let tray = kept(building.build(app), "the tray would not build")?;
 
     #[cfg(target_os = "macos")]
-    // Without this the white art is painted white, which is nothing at all on
-    // a light menu bar — and that never shows up while developing on Windows.
     kept(
         tray.set_icon_as_template(true),
         "the tray icon would not be a template",
@@ -115,8 +106,6 @@ pub fn reword<R: Runtime>(app: &AppHandle<R>, words: &Words) {
     }
 }
 
-/// Windows 11 switches the taskbar theme while running, so the icon has to be
-/// chosen again, not only at startup.
 pub fn repaint<R: Runtime>(app: &AppHandle<R>) {
     if let Some(tray) = app.tray_by_id("tisty")
         && let Some(icon) = art(app)
@@ -141,17 +130,11 @@ fn art<R: Runtime>(app: &AppHandle<R>) -> Option<tauri::image::Image<'static>> {
     tauri::image::Image::from_bytes(for_bar(dark_bar())).ok()
 }
 
-/// Named after the bar each one goes on, not the ink it carries: `ON_DARK` is
-/// the pale one. Reading the pair the other way round puts each icon exactly
-/// where it cannot be seen.
 #[cfg(not(target_os = "macos"))]
 fn for_bar(dark: bool) -> &'static [u8] {
     if dark { ON_DARK } else { ON_LIGHT }
 }
 
-/// The taskbar follows `SystemUsesLightTheme`, which is a different setting
-/// from the one a window reports: «Windows dark, apps light» is a stock choice
-/// in Windows 11, and reading the window would ink the icon to vanish.
 #[cfg(windows)]
 fn dark_bar() -> bool {
     winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
@@ -166,8 +149,6 @@ fn dark_bar() -> bool {
     true
 }
 
-/// Toggles: the same shortcut that opens it puts it away, so a capture begun
-/// by mistake costs one keystroke rather than a trip to the mouse.
 pub fn quicken<R: Runtime>(app: &AppHandle<R>) {
     let Some(window) = app.get_webview_window("quick") else {
         return;
@@ -181,8 +162,6 @@ pub fn quicken<R: Runtime>(app: &AppHandle<R>) {
     let _ = window.set_focus();
 }
 
-/// The main window only: the quick one has its own way of appearing, and
-/// raising it here would put a capture field in front of every tray click.
 pub fn surface<R: Runtime>(app: &AppHandle<R>) {
     let Some(window) = app.get_webview_window("main") else {
         return;
@@ -196,7 +175,6 @@ pub fn surface<R: Runtime>(app: &AppHandle<R>) {
 mod tests {
     use super::{ON_DARK, ON_LIGHT, for_bar};
 
-    /// Mean brightness of what is actually painted, ignoring what is see-through.
     fn ink(png: &[u8]) -> u32 {
         let art = tauri::image::Image::from_bytes(png).expect("tray icon is a png");
         let (sum, seen) = art
@@ -223,8 +201,6 @@ mod tests {
         );
     }
 
-    /// The bug this replaces: a pale icon was handed to a light taskbar, where
-    /// it is not there at all. Checking the files alone would not have caught it.
     #[test]
     fn a_light_taskbar_gets_the_dark_icon() {
         assert!(ink(for_bar(false)) < 96, "a light bar needs dark ink");

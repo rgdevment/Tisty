@@ -49,8 +49,6 @@ export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, 
     return () => document.removeEventListener("keydown", key, true);
   }, [shown, on, onClose]);
 
-  // An empty menu drawn as nothing is the only place a first user would learn
-  // that typing the name is what creates the list or tag.
   if (shown.length === 0) {
     if (step === null) return null;
     return (
@@ -159,8 +157,6 @@ function within(
       run: () => onInsert(`#${counted.tag}`),
     }));
   }
-  // Words, not a code: the sentence stays something a person wrote, and the
-  // parser reads it back exactly as if it had been typed by hand.
   if (step === "repeat") {
     return CADENCES.map(({ every, unit }) => {
       const said = cadence({ from: "due", each: { every, unit } });

@@ -65,7 +65,6 @@ export default function Keeping({ onChanged }: Props) {
   const [build, setBuild] = useState<About | null>(null);
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
-  // In the card, not the window banner, which would hang over every view.
   const [trouble, setTrouble] = useState<Word>();
   const [told, setTold] = useState({ names: false, paths: false, logs: true });
   const [paper, setPaper] = useState<string | null>(null);
@@ -107,7 +106,6 @@ export default function Keeping({ onChanged }: Props) {
       .finally(() => setBusy(null));
   };
 
-  /// Reads and changes nothing, so the window behind it is not reloaded.
   const quietly = <T,>(card: Which, work: Promise<T>, then: (answer: T) => void) => {
     setBusy(card);
     setSaid(undefined);
@@ -118,8 +116,6 @@ export default function Keeping({ onChanged }: Props) {
       .finally(() => setBusy(null));
   };
 
-  // Below the title and the retry: a failed read used to leave a grey panel
-  // with nothing to press.
   if (!state) {
     return (
       <main className="flex flex-col overflow-hidden">
@@ -149,10 +145,8 @@ export default function Keeping({ onChanged }: Props) {
   }
 
   const carrying = busy === "sync";
-  // Restoring on top of a running carry is the pair that must never overlap.
   const held = busy !== null;
 
-  // Joining two histories cannot be undone, so the answer is the person's.
   const carryNow = async () => {
     if (held) return;
     setBusy("sync");
@@ -221,13 +215,10 @@ export default function Keeping({ onChanged }: Props) {
       .catch((e) => setTrouble({ card: "backup", text: saidPlainly(e) }));
   };
 
-  // Counting every event is not free, so it waits to be asked for.
   const compose = () => facts(told.names, told.paths).then(written);
 
   const showReport = () => {
     if (held || paper !== null) return;
-    // What is on screen is what goes in the file, log included: «it is redacted»
-    // is a promise, and the text underneath is the proof.
     quietly(
       "report",
       Promise.all([compose(), told.logs ? logs(TAIL) : Promise.resolve(null)]).then(
@@ -239,7 +230,6 @@ export default function Keeping({ onChanged }: Props) {
 
   const changeTold = (next: typeof told) => {
     setTold(next);
-    // Or the screen would show one redaction while saving another.
     setPaper(null);
   };
 
@@ -372,7 +362,6 @@ export default function Keeping({ onChanged }: Props) {
                   </div>
                 </Card>
 
-                {/* Its own card: one of the two replaces everything you have. */}
                 <section className="mb-3 rounded-[10px] border border-urgent/35 bg-urgent/8 px-4 py-3.5">
                   <h3 className="mb-0.5 text-[13.5px] font-semibold">{t("restoreTitle")}</h3>
                   <p className="text-[12.5px] leading-relaxed text-urgent">{t("restoreWhat")}</p>
@@ -499,8 +488,6 @@ export default function Keeping({ onChanged }: Props) {
                     : t("terminalOff")}
                 </p>
 
-                {/* «Done» and «works» are different answers: macOS builds its
-                    PATH from /etc/paths, which does not include ~/.local/bin. */}
                 {reach.withinReach && !reach.onPath && (
                   <div className="mt-2 rounded-lg bg-mark-priority px-3 py-2.5">
                     <p className="text-[12.5px] leading-relaxed text-ink">
@@ -673,8 +660,6 @@ export default function Keeping({ onChanged }: Props) {
   );
 }
 
-// Not `opacity-50`: half-strength ink lands at 2:1, and no test can measure a
-// colour that is only ever computed by the compositor.
 const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
 const mild = `rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
 const strong = `rounded-[7px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
@@ -698,7 +683,6 @@ interface CardProps {
   children: React.ReactNode;
 }
 
-/// Work anywhere holds every button here, so every card names what it waits on.
 const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
   backup: "backup",

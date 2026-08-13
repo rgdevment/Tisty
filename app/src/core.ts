@@ -2,7 +2,6 @@ import { invoke } from "@tauri-apps/api/core";
 
 export type Status = "open" | "done" | "dropped";
 
-/** 1 is the most urgent; the core sorts ascending. */
 export type Priority = 1 | 2 | 3 | 4;
 
 export interface DateSpec {
@@ -26,7 +25,6 @@ export interface LogEntry {
   body: string;
 }
 
-/** Counts kept apart from the vectors, so a summary can report a body it never loaded. */
 export interface Volume {
   steps?: number;
   steps_done?: number;
@@ -54,11 +52,9 @@ export interface Task {
   volume?: Volume;
 }
 
-/** «due» counts off the calendar, «done» counts from when you finished it. */
 export interface Repeat {
   from: "due" | "done";
   each: { every: number; unit: "day" | "week" | "month" | "year" };
-  /** The last day of the series, as YYYY-MM-DD. */
   until?: string | null;
 }
 
@@ -80,19 +76,15 @@ export interface Snapshot {
   tasks: Task[];
   lists: List[];
   tags: Counted[];
-  /** Internal references already in use, so the `/` menu offers them back. */
   refs: string[];
-  /** Per view and per list id, counted by the core with the same filter. */
   counts: Record<string, number>;
   locale?: string;
 }
 
 export type Mark = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
 
-/** `assumed` is applied all the same; the window only says so. */
 export type Certainty = "sure" | "assumed";
 
-/** Offsets count code points, so slice with `Array.from`, never with indexes. */
 export interface Span {
   from: number;
   to: number;
@@ -100,15 +92,12 @@ export interface Span {
   certainty: Certainty;
 }
 
-/** A reading the parser saw and did not take; offered rather than applied. */
 export interface Offer {
   spans: Span[];
   date: DateSpec;
-  /** What the title becomes if it is taken. */
   title: string;
 }
 
-/** What the parser made of the text, without writing anything. */
 export interface Parsed {
   title: string;
   date?: DateSpec | null;
@@ -121,15 +110,12 @@ export interface Parsed {
   offers: Offer[];
 }
 
-/** What the sidebar asks for. The core decides which tasks answer. */
 export interface View {
   archive?: boolean;
-  /** A tag reaches across the archive, unlike every other view. */
   everything?: boolean;
   inbox?: boolean;
   list?: string;
   tags?: string[];
-  /** Anything carrying a tag: the tag view with nothing picked. */
   tagged?: boolean;
   hidden?: boolean;
   window?: "today" | "upcoming" | "overdue" | "undated";
@@ -141,8 +127,6 @@ export type Scope = "either" | "open" | "archived";
 
 export interface Found {
   tasks: Task[];
-  /// Before the cap: a result list that quietly stops at 200 reads as «that is
-  /// all there is».
   total: number;
 }
 
@@ -150,7 +134,6 @@ export const search = (query: string, scope?: Scope): Promise<Found> =>
   invoke("search", { query, scope });
 export const read = (text: string): Promise<Parsed> =>
   invoke("read", { text, locale: navigator.language });
-/** What the chips changed by hand. Same knobs `tisty add` takes as flags. */
 export interface Edits {
   noDate?: boolean;
   noDeadline?: boolean;
@@ -161,7 +144,6 @@ export interface Edits {
   date?: string;
   deadline?: string;
   priority?: Priority;
-  /** The offered reading was accepted, so its words leave the title. */
   takeOffer?: boolean;
 }
 
@@ -177,7 +159,6 @@ export interface Change {
   addTag?: string;
   untag?: string;
   list?: string;
-  /** By name, and made if there is none yet. */
   listNamed?: string;
   inbox?: boolean;
   description?: string;
@@ -200,23 +181,17 @@ export const writeLog = (id: string, body: string, entry?: string): Promise<Task
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
 export const complete = (id: string): Promise<Task> => invoke("complete", { id });
 
-/** Brings the file in and answers with the Markdown that references it. */
 export const attach = (path: string, label?: string): Promise<string> =>
   invoke("attach", { path, label });
 
-/** Turns a reference written in the prose into an absolute path, or refuses. */
 export const served = (reference: string): Promise<string> =>
   invoke("served", { reference });
 
-/** Hands the reference to the system: its viewer, its reader, its browser. */
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 
-/** What the maintenance area needs to say, in one answer. */
 export interface Carrying {
   chosen?: string;
-  /** False until somebody chose; that is what opens the assistant. */
   asked: boolean;
-  /** False once a shared folder is set: it already is the backup. */
   backsUp: boolean;
   last?: string;
   loose: number;
@@ -238,7 +213,6 @@ export interface Reviewed {
   devices: number;
 }
 
-/** Everything a bug report needs, gathered on demand and sent nowhere. */
 export interface Facts {
   version: string;
   dev: boolean;
@@ -255,7 +229,6 @@ export interface Facts {
   archived: number;
   lists: number;
   tags: number;
-  /** Empty unless asked for; the counts above stand either way. */
   listNames: string[];
   tagNames: string[];
   cache: "agrees" | "stale" | "diverged" | "none";
@@ -289,7 +262,6 @@ export interface Settings {
 export interface Logs {
   at: string;
   bytes: number;
-  /** Newest last, so the end of the list is what just happened. */
   lines: string[];
 }
 
@@ -305,7 +277,6 @@ export interface Ready {
   package: string | null;
 }
 
-/** Null when it is switched off, not due yet, or nothing newer exists. */
 export const updateReady = (): Promise<Ready | null> => invoke("update_ready");
 
 export const noteBreak = (kind: string, frames: string): Promise<void> =>
@@ -323,30 +294,23 @@ export const keepReport = (at: string, text: string, logs: boolean): Promise<voi
 export const rebuild = (): Promise<void> => invoke("rebuild");
 export const checked = (): Promise<Reviewed> => invoke("checked");
 export const syncState = (): Promise<Carrying> => invoke("sync_state");
-/** No destination means «only on this machine», which is an answer, not a blank. */
 export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
-/** «busy» is another carry already running, which is not «nothing new». */
 export type Carried = "came" | "same" | "busy";
 
 export const syncNow = (way?: "push" | "pull", merge?: boolean): Promise<Carried> =>
   invoke("sync_now", { way, merge });
 
-/** Whether a terminal can find `tisty`, and where it would look. */
 export interface Reach {
-  /** False in a dev run: there is no CLI beside the window to point at. */
   shipped: boolean;
-  /** False when the link exists but no shell would look there. */
   onPath: boolean;
   withinReach: boolean;
   at?: string;
-  /** Where a terminal would find it, which is not where it lives. */
   through?: string;
 }
 
 export const reachable = (): Promise<Reach> => invoke("reachable");
 export const reachFor = (wanted: boolean): Promise<Reach> => invoke("reach_for", { wanted });
 
-/** What the first run after an install or an update had to put right. */
 export interface Settling {
   ran: boolean;
   brought: boolean;
@@ -356,16 +320,13 @@ export interface Settling {
 
 export const settleIn = (): Promise<Settling> => invoke("settle_in");
 
-/** Which combination answered, or none if every one was already taken. */
 export const shortcut = (): Promise<string | null> => invoke("shortcut");
 
-/** No answer leaves it unasked, so the question comes again next time. */
 export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<void> =>
   invoke("close_window", { how, remember });
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 
-/** Shows a file in its folder: for what the store never held, and for anything runnable. */
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
 export const discard = (id: string): Promise<Task> => invoke("discard", { id });

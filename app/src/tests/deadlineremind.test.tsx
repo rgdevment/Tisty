@@ -32,8 +32,6 @@ describe("what a reminder counts back from", () => {
     expect(screen.getByText("An hour before")).toBeTruthy();
   });
 
-  /// The date wins: it is when you meant to do it, and the deadline is only
-  /// the wall behind it.
   it("uses the date when there is one, deadline or not", () => {
     put({ date: spec(ahead(6)) as Task["date"], deadline: spec(ahead(30)) as Task["deadline"] });
 

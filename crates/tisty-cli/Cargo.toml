@@ -26,14 +26,9 @@ toml.workspace = true
 jiff.workspace = true
 ulid.workspace = true
 
-# Neither Windows nor a macOS bundle sets a POSIX locale variable, so the
-# language has to be asked for on both.
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 sys-locale.workspace = true
 
 [dev-dependencies]
-# The cache is SQLite, and reaching it through the `sqlite3` command meant the
-# test only ran where that command exists — which is not Windows. `bundled`
-# carries its own engine, so the test runs everywhere it is compiled.
 rusqlite.workspace = true
 tempfile.workspace = true

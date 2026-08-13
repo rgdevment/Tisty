@@ -34,7 +34,6 @@ describe("the mirror", () => {
   });
 
   it("counts code points, the only unit Rust and JS agree on", () => {
-    // The emoji is two UTF-16 units, so raw slicing lands one short of the word.
     expect(painted("🎉 fiesta mañana", [at(9, 15)]).map((run) => run.text)).toEqual([
       "🎉 fiesta ",
       "mañana",

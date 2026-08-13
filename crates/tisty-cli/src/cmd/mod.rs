@@ -121,7 +121,6 @@ pub fn not_found(app: &App, selector: &str, lang: Lang) -> ExitCode {
     ExitCode::from(EXIT_NOT_FOUND)
 }
 
-/// A number that outlived its listing needs its own message, not «no match».
 fn report_missing(selection: &Selection, selector: &str, lang: Lang) {
     let stale = selector
         .parse::<usize>()
@@ -143,7 +142,6 @@ fn report_missing(selection: &Selection, selector: &str, lang: Lang) {
     }
 }
 
-/// Reads stdin when no words were given; prompting would hang a script.
 pub fn text_or_stdin(words: Vec<String>, lang: Lang) -> anyhow::Result<String> {
     let joined = words.join(" ").trim().to_string();
     if !joined.is_empty() {
@@ -163,7 +161,6 @@ pub fn text_or_stdin(words: Vec<String>, lang: Lang) -> anyhow::Result<String> {
     Ok(buffer)
 }
 
-/// A script that cannot answer is refused, never assumed to agree.
 pub fn confirm(question: &str, force: bool, lang: Lang) -> anyhow::Result<bool> {
     if force {
         return Ok(true);

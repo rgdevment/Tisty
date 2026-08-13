@@ -1,7 +1,6 @@
 use jiff::civil::DateTime;
 use serde::{Deserialize, Serialize};
 
-/// `floating` stays 10:00 in any zone; `has_time` keeps "tomorrow" off midnight.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DateSpec {
     pub at: DateTime,
@@ -38,7 +37,6 @@ impl DateSpec {
         }
     }
 
-    /// Same zone, same «has a time of day», new moment.
     pub fn moved(&self, at: DateTime) -> Self {
         Self {
             at: if self.has_time {
@@ -54,7 +52,6 @@ impl DateSpec {
         self.at.date()
     }
 
-    /// A floating spec resolves in `now_tz`; a fixed one keeps its own zone.
     pub fn instant(&self, now_tz: &jiff::tz::TimeZone) -> Result<jiff::Timestamp, jiff::Error> {
         let zone = if self.floating {
             now_tz.clone()

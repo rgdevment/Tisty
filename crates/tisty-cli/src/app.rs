@@ -21,12 +21,10 @@ impl App {
         Self::build(paths, Load::Full)
     }
 
-    /// Without journals and steps; use `at` for anything that shows or searches content.
     pub fn listing(paths: Paths) -> tisty_core::Result<Self> {
         Self::build(paths, Load::Summary)
     }
 
-    /// One malformed line must not lock the user out of `config`.
     pub fn without_store(paths: Paths) -> tisty_core::Result<Self> {
         Self::build(paths, Load::None)
     }
@@ -64,15 +62,10 @@ impl App {
         &self.config
     }
 
-    /// Re-read before writing, like the window does. A long `sync` used to
-    /// save the config it had loaded minutes earlier, quietly undoing whatever
-    /// had been changed from the window meanwhile.
     pub fn edit_config(&mut self, f: impl FnOnce(&mut Config)) -> tisty_core::Result<()> {
         let mut fresh = match Config::load(&self.paths.config_file()) {
             Ok(Some(kept)) => kept,
             Ok(None) => self.config.clone(),
-            // Nothing is printed and the file is written anyway: whatever could
-            // not be read is about to be replaced by what this run remembers.
             Err(why) => {
                 witness::warn(
                     channel::CONFIG,
@@ -126,7 +119,6 @@ impl App {
         );
     }
 
-    /// Whole batch or nothing, never another device's — half an undone rename leaves tasks disagreeing.
     pub fn last_own_change(&self) -> tisty_core::Result<Vec<(Event, State)>> {
         self.reachable_change(false)
     }
@@ -175,7 +167,6 @@ impl App {
                 .collect(),
         };
 
-        // Another device's event can sort between two of ours.
         let mut state = State::default();
         let mut found = Vec::with_capacity(wanted.len());
         for (i, event) in events.iter().enumerate() {
@@ -187,7 +178,6 @@ impl App {
         Ok(found)
     }
 
-    /// The change the last undo took back, replayed as-is — a creation's inverse (deletion) has none of its own.
     pub fn last_undone_change(&self) -> tisty_core::Result<Vec<Event>> {
         let events = self.store.read_all()?;
         let mut live: Vec<Vec<Event>> = Vec::new();
@@ -203,7 +193,6 @@ impl App {
                 live.push(group);
             } else {
                 live.push(group);
-                // Doing something new is what empties the redo stack everywhere.
                 undone.clear();
             }
         }

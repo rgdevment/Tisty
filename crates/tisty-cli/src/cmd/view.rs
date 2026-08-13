@@ -82,7 +82,6 @@ pub fn show(
     Ok(ExitCode::SUCCESS)
 }
 
-/// Reaches description, journal and steps, not just the title.
 pub fn search(
     app: &App,
     query: &str,
@@ -110,7 +109,6 @@ pub fn search(
     show_many(app, &hits, &heading, json, today, lang)
 }
 
-/// Records what was shown, so `done 2` means the second line on screen.
 fn show_many(
     app: &App,
     tasks: &[&Task],

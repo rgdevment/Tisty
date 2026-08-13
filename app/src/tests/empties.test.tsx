@@ -13,8 +13,6 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 describe("what an empty screen says", () => {
-  /// One line for six situations told the reader nothing at the only moment
-  /// they were going to read.
   it("says something different on each of them", () => {
     const said = [
       nothing({ named: "tasks" }, false),
@@ -29,17 +27,14 @@ describe("what an empty screen says", () => {
     expect(said.every((one) => one.length > 0)).toBe(true);
   });
 
-  /// In the archive «Nothing here» reads as a fault; it is where things arrive.
   it("says the archive is a destination, not a failure", () => {
     expect(nothing({ named: "archive" }, false)).toMatch(/close/i);
   });
 
-  /// A search that found nothing is about the search, not about the place.
   it("talks about the search when a search came back empty", () => {
     expect(nothing({ named: "search" }, true)).toMatch(/match/i);
   });
 
-  /// The first screen after installing is an empty «Today».
   it("teaches the syntax where a new reader lands", () => {
     expect(nothing({ named: "tasks" }, false)).toMatch(/tomorrow/i);
   });
@@ -60,12 +55,6 @@ describe("what an empty screen says", () => {
 });
 
 describe("the search scope", () => {
-  /// The placeholder promised the archive and the default reached only what
-  /// was open: a ticket from six months ago read as lost.
-  /// A two-letter query matches just as much of a long archive as a one-letter
-  /// one, so the gate bought nothing the 200-result cap had not bought already
-  /// — while refusing «会», any single digit, and telling someone who had just
-  /// typed a letter to «type to search».
   it("asks on the first letter, whatever alphabet it is", async () => {
     searched.mockClear();
     render(<Search onFound={() => {}} onError={() => {}} />);

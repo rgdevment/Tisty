@@ -6,7 +6,6 @@ import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import CaptureField from "./ui/CaptureField";
 
-/** Capture without the window: one field, and it is gone again. */
 export default function Quick() {
   const [data, setData] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,14 +25,11 @@ export default function Quick() {
         })
         .catch((e) => setError(saidPlainly(e)));
 
-    // Read again every time it appears: this window is hidden, never closed,
-    // so its lists and tags would otherwise be as old as the last showing.
     const stop = window.onFocusChanged(({ payload: focused }) => {
       if (!focused) {
         away();
         return;
       }
-      // Outlives the hiding: uncancelled, it takes the next capture down.
       if (going.current) clearTimeout(going.current);
       setKept(undefined);
       setError(null);
@@ -55,7 +51,6 @@ export default function Quick() {
     };
   }, []);
 
-  // Frameless: an empty render is an invisible rectangle eating clicks.
   if (!data) {
     return (
       <Frame>
@@ -95,9 +90,6 @@ export default function Quick() {
   );
 }
 
-/// No footer: `Enter` and `Esc` are what every field on every system already
-/// does, and 132 pixels are worth more given to the sentence. The keys belong
-/// in the help menu, with the rest of what can be typed.
 function Frame({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg/85 px-[22px] py-5 shadow-lift-tall backdrop-blur-xl">

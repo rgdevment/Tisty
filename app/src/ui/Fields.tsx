@@ -42,8 +42,6 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
               {one.name}
             </Row>
           ))}
-          {/* Until now this sheet was empty on a store with no lists yet: no
-              list to file under, and nowhere to make one either. */}
           <Filing onName={(name) => apply({ listNamed: name })} />
         </Sheet>
       </Held>
@@ -164,9 +162,6 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
       {task.reminders?.map((at) => (
         <Worn
           key={at.at}
-          // A reminder on a repeating task comes back with it, so it wears the
-          // repeat's own glyph and tint: a date alone reads as «once, and then
-          // never again», which is the opposite of what it does.
           tint={task.repeat ? "bg-mark-repeat" : "bg-hover"}
           label={
             task.repeat
@@ -187,9 +182,6 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
       >
         <Sheet roomy onClose={close}>
           <Recall
-            // The deadline stands in when there is no date: something has to
-            // be counted back from, and «a las seis menos cuarto» is the same
-            // wish whichever of the two the task happens to carry.
             on={task.date ?? task.deadline}
             due={!task.date && !!task.deadline}
             taken={(task.reminders ?? []).map((one) => civil(one.at))}
@@ -261,10 +253,6 @@ function Sheet({
 
   useEffect(() => {
     const came = document.activeElement as HTMLElement | null;
-    // Only if nothing inside asked for it first: the tag sheet autofocuses its
-    // input, and grabbing the first button put the focus on a suggestion —
-    // where Space applied a tag nobody chose. In the date sheet the first
-    // button is «previous month», which is nobody's destination either.
     const wants = box.current?.querySelector<HTMLElement>("input, textarea");
     if (wants) {
       wants.focus();
@@ -276,8 +264,6 @@ function Sheet({
 
   return (
     <>
-      {/* The catcher is for the mouse; Escape is what closes this for anyone
-          who never touched it. */}
       <span className="fixed inset-0 z-10" onClick={onClose} />
       <div
         ref={box}
@@ -311,8 +297,6 @@ function Row({ children, onPick }: { children: React.ReactNode; onPick: () => vo
   );
 }
 
-/// Lists keep the case they were typed in — «Trabajo» is a name, not a tag,
-/// and the ones already made are the rows above this.
 function Filing({ onName }: { onName: (name: string) => void }) {
   const [text, setText] = useState("");
 

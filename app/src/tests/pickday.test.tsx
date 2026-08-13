@@ -3,8 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { DateSpec } from "../core";
 import Recall from "../ui/Recall";
 
-/// A task with no date offers only «pick a day», because there is nothing to
-/// count an offset back from. That is the path that blanked the window.
 describe("picking a day for a reminder", () => {
   it("opens the calendar on a task that has no date", () => {
     render(<Recall on={undefined} taken={[]} onAdd={vi.fn()} onClose={vi.fn()} />);
