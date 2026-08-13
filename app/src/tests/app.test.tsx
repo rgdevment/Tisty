@@ -81,7 +81,7 @@ beforeEach(() => {
       case "settle_in":
         return Promise.resolve({ ran: false, brought: false, agrees: true });
       case "docs":
-        return Promise.resolve([]);
+        return Promise.resolve({ folders: [], docs: [] });
       case "sync_state":
         return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
       case "snapshot":
@@ -245,7 +245,7 @@ describe("opening a task beside the list", () => {
   it("does not throw the list to the left", async () => {
     const user = userEvent.setup();
     await started();
-    const list = screen.getByRole("list");
+    const list = screen.getByRole("list", { name: "Tasks" });
     expect(list.className).toContain("mx-auto");
 
     await user.click(screen.getByText("write the report"));

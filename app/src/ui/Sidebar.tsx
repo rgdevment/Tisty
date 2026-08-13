@@ -1,12 +1,13 @@
 import { useState } from "react";
-import type { Doc, List } from "../core";
+import type { Folded, List, Papers, Filed } from "../core";
+import Tree from "./Tree";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
 import mark from "../assets/tisty.png";
 
 interface Props {
   lists: List[];
-  docs: Doc[];
+  papers: Papers;
   counts: Record<string, number>;
   chosen: Chosen;
   /// A newer Tisty exists. A dot and nothing else: it is worth noticing once,
@@ -14,6 +15,15 @@ interface Props {
   ready: boolean;
   onChoose: (chosen: Chosen) => void;
   onNewDoc: () => void;
+  onNewFolder: () => void;
+  onImport: () => void;
+  here?: string | null;
+  onHere: (folder?: string) => void;
+  onMove: (folder: string, parent?: string) => void;
+  onFile: (doc: string, folder?: string) => void;
+  onRename: (folder: Folded) => void;
+  onDrop: (folder: Folded) => void;
+  onDropDoc: (doc: Filed) => void;
 }
 
 const NAMED: { key: Named; icon: string }[] = [
@@ -24,7 +34,24 @@ const NAMED: { key: Named; icon: string }[] = [
   { key: "archive", icon: "▣" },
 ];
 
-export default function Sidebar({ lists, docs, counts, chosen, ready, onChoose, onNewDoc }: Props) {
+export default function Sidebar({
+  lists,
+  papers,
+  counts,
+  chosen,
+  ready,
+  onChoose,
+  onNewDoc,
+  onNewFolder,
+  onImport,
+  here,
+  onHere,
+  onMove,
+  onFile,
+  onRename,
+  onDrop,
+  onDropDoc,
+}: Props) {
   const [openDocs, setOpenDocs] = useState(true);
 
   return (
@@ -49,14 +76,38 @@ export default function Sidebar({ lists, docs, counts, chosen, ready, onChoose, 
         <div className="mx-1 mt-3 mb-1 h-px bg-hair" />
         <div className="flex items-center pt-1 pb-1.5">
           <button
+            type="button"
             onClick={() => setOpenDocs((open) => !open)}
+            aria-expanded={openDocs}
+            aria-label={t("docs")}
             className="flex flex-1 items-center gap-1.5 px-2.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
           >
-            <span className={`text-[9px] transition-transform ${openDocs ? "" : "-rotate-90"}`}>
+            <span
+              aria-hidden
+              className={`text-[9px] transition-transform ${openDocs ? "" : "-rotate-90"}`}
+            >
               ▼
             </span>
             {t("docs")}
-            <span className="ml-auto text-[11px] font-normal">{docs.length || ""}</span>
+            <span className="ml-auto text-[11px] font-normal">{papers.docs.length || ""}</span>
+          </button>
+          <button
+            type="button"
+            onClick={onNewFolder}
+            aria-label={t("newFolder")}
+            title={t("newFolder")}
+            className="grid h-5 w-5 place-items-center rounded text-[11px] text-faint hover:bg-hover hover:text-ink"
+          >
+            🗂
+          </button>
+          <button
+            type="button"
+            onClick={onImport}
+            aria-label={t("importDoc")}
+            title={t("importDoc")}
+            className="grid h-5 w-5 place-items-center rounded text-[11px] text-faint hover:bg-hover hover:text-ink"
+          >
+            ↧
           </button>
           <button
             type="button"
@@ -70,17 +121,18 @@ export default function Sidebar({ lists, docs, counts, chosen, ready, onChoose, 
         </div>
 
         {openDocs && (
-          <nav className="flex flex-col gap-px">
-            {docs.map((doc) => (
-              <Entry
-                key={doc.id}
-                icon="▸"
-                label={doc.title || t("untitledDoc")}
-                on={chosen.doc === doc.id}
-                onClick={() => onChoose({ named: "docs", doc: doc.id })}
-              />
-            ))}
-          </nav>
+          <Tree
+            papers={papers}
+            open={chosen.doc}
+            here={here}
+            onHere={onHere}
+            onMove={onMove}
+            onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
+            onFile={onFile}
+            onRename={onRename}
+            onDrop={onDrop}
+            onDropDoc={onDropDoc}
+          />
         )}
       </div>
 

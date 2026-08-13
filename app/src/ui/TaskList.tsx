@@ -231,7 +231,12 @@ export default function TaskList({
       )}
       {above && <div className={`shrink-0 px-5 ${width}`}>{above}</div>}
 
-      <div ref={listed} role="list" className={`scroller flex-1 px-5 pb-6 ${width}`}>
+      <div
+        ref={listed}
+        role="list"
+        aria-label={t("tasks")}
+        className={`scroller flex-1 px-5 pb-6 ${width}`}
+      >
         {tasks.length === 0 && (
           <p className="px-2.5 py-4 text-sm leading-relaxed text-soft">
             {empty ?? t("nothingOpen")}

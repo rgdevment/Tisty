@@ -1,0 +1,300 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import Tree from "../ui/Tree";
+import type { Papers } from "../core";
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: () => Promise.resolve([["work", "💼"]]),
+}));
+
+const papers: Papers = {
+  folders: [
+    { id: "01F", name: "trabajo", parent: null, icon: "work", holds: 3 },
+    { id: "01G", name: "corporativo", parent: "01F", icon: null, holds: 1 },
+    { id: "01H", name: "personal", parent: null, icon: null, holds: 0 },
+  ],
+  docs: [
+    { id: "01A", file: "a3f1-0001", title: "Compras", folder: "01F" },
+    { id: "01B", file: "a3f1-0002", title: "Contrato", folder: "01G" },
+    { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null },
+    { id: "01D", file: "a3f1-0004", title: "", folder: null },
+  ],
+};
+
+describe("the document tree", () => {
+  const show = (onFile = vi.fn(), onOpen = vi.fn(), here?: string | null) => {
+    const onRename = vi.fn();
+    const onDrop = vi.fn();
+    const onHere = vi.fn();
+    const onMove = vi.fn();
+    const onDropDoc = vi.fn();
+    render(
+      <Tree
+        papers={papers}
+        here={here}
+        onOpen={onOpen}
+        onFile={onFile}
+        onHere={onHere}
+        onMove={onMove}
+        onRename={onRename}
+        onDrop={onDrop}
+        onDropDoc={onDropDoc}
+      />,
+    );
+    return { onFile, onOpen, onRename, onDrop, onHere, onMove, onDropDoc };
+  };
+
+  it("hangs each folder from the one it belongs to", () => {
+    show();
+
+    const work = screen.getByRole("button", { name: "Close trabajo" });
+    const inside = screen.getByRole("button", { name: "Close corporativo" });
+    expect(inside.style.marginLeft).not.toBe(work.style.marginLeft);
+  });
+
+  it("counts what hangs below a folder, not only what it holds", () => {
+    show();
+
+    expect(screen.getByRole("button", { name: "trabajo" }).textContent).toContain("3");
+  });
+
+  it("says whether a branch is open, for a reader that cannot see it", async () => {
+    show();
+    expect(
+      screen.getByRole("button", { name: "Close trabajo" }).getAttribute("aria-expanded"),
+    ).toBe("true");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close trabajo" }));
+
+    expect(
+      screen.getByRole("button", { name: "Open trabajo" }).getAttribute("aria-expanded"),
+    ).toBe("false");
+  });
+
+  it("picks a folder without folding it away", async () => {
+    const { onHere } = show();
+
+    await userEvent.click(screen.getByRole("button", { name: "trabajo" }));
+
+    expect(onHere).toHaveBeenCalledWith("01F");
+    expect(screen.getByRole("button", { name: "corporativo" })).toBeTruthy();
+  });
+
+  it("lets unfiled be picked like any other place", async () => {
+    const { onHere } = show();
+
+    await userEvent.click(screen.getByRole("button", { name: /Unfiled/ }));
+
+    expect(onHere).toHaveBeenCalledWith(undefined);
+  });
+
+  it("marks the place being looked at", () => {
+    show(vi.fn(), vi.fn(), null);
+
+    expect(
+      screen.getByRole("button", { name: /Unfiled/ }).getAttribute("aria-current"),
+    ).toBe("true");
+  });
+
+  it("hangs a folder from the one it was dropped on", () => {
+    const { onMove } = show();
+    const work = screen.getByRole("button", { name: "trabajo" }).parentElement
+      ?.parentElement as HTMLElement;
+
+    fireEvent.drop(work, {
+      dataTransfer: { getData: (kind: string) => (kind === "text/tisty-folder" ? "01H" : "") },
+    });
+
+    expect(onMove).toHaveBeenCalledWith("01H", "01F");
+  });
+
+  it("never hangs a folder from itself", () => {
+    const { onMove } = show();
+    const work = screen.getByRole("button", { name: "trabajo" }).parentElement
+      ?.parentElement as HTMLElement;
+
+    fireEvent.drop(work, {
+      dataTransfer: { getData: (kind: string) => (kind === "text/tisty-folder" ? "01F" : "") },
+    });
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("always offers somewhere for what is not filed", () => {
+    show();
+
+    expect(screen.getByText("Unfiled")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Suelto" })).toBeTruthy();
+  });
+
+  it("names a document that has nothing written in it yet", () => {
+    show();
+
+    expect(screen.getByRole("button", { name: "Untitled" })).toBeTruthy();
+  });
+
+  it("folds a branch away and brings it back", async () => {
+    show();
+    expect(screen.getByRole("button", { name: "corporativo" })).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close trabajo" }));
+
+    expect(screen.queryByRole("button", { name: "corporativo" })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Open trabajo" }));
+
+    expect(screen.getByRole("button", { name: "corporativo" })).toBeTruthy();
+  });
+
+  it("opens a document by the file a reference points at", async () => {
+    const { onOpen } = show();
+
+    await userEvent.click(screen.getByRole("button", { name: "Compras" }));
+
+    expect(onOpen.mock.calls[0][0].file).toBe("a3f1-0001");
+  });
+
+  it("offers renaming and deleting on the folder they belong to", async () => {
+    const { onRename, onDrop } = show();
+
+    await userEvent.click(screen.getByRole("button", { name: "Rename corporativo" }));
+    expect(onRename.mock.calls[0][0].id).toBe("01G");
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete trabajo" }));
+    expect(onDrop.mock.calls[0][0].id).toBe("01F");
+  });
+
+  it("offers deleting a document too, by the entry that owns it", async () => {
+    const { onDropDoc } = show();
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete Compras" }));
+
+    expect(onDropDoc.mock.calls[0][0].id).toBe("01A");
+  });
+
+  it("moves a document into a folder with no mouse at all", async () => {
+    const { onFile } = show();
+
+    screen.getByRole("button", { name: "Compras" }).focus();
+    await userEvent.keyboard("{Control>}x{/Control}");
+    expect(screen.getByRole("status").textContent).toContain("Compras");
+
+    screen.getByRole("button", { name: "personal" }).focus();
+    await userEvent.keyboard("{Control>}v{/Control}");
+
+    expect(onFile).toHaveBeenCalledWith("01A", "01H");
+  });
+
+  it("takes a document out of every folder onto unfiled with the keyboard", async () => {
+    const { onFile } = show();
+
+    screen.getByRole("button", { name: "Compras" }).focus();
+    await userEvent.keyboard("{Control>}x{/Control}");
+    screen.getByRole("button", { name: /Unfiled/ }).focus();
+    await userEvent.keyboard("{Control>}v{/Control}");
+
+    expect(onFile).toHaveBeenCalledWith("01A", undefined);
+  });
+
+  it("nests a folder with the keyboard, and never inside itself", async () => {
+    const { onMove } = show();
+
+    screen.getByRole("button", { name: "personal" }).focus();
+    await userEvent.keyboard("{Control>}x{/Control}");
+
+    const lifted = screen.getByRole("button", { name: "personal, lifted" });
+    lifted.focus();
+    await userEvent.keyboard("{Control>}v{/Control}");
+
+    expect(onMove).not.toHaveBeenCalled();
+
+    screen.getByRole("button", { name: "trabajo" }).focus();
+    await userEvent.keyboard("{Control>}v{/Control}");
+
+    expect(onMove).toHaveBeenCalledWith("01H", "01F");
+  });
+
+  it("lets go of what it lifted when told to", async () => {
+    const { onFile } = show();
+
+    screen.getByRole("button", { name: "Compras" }).focus();
+    await userEvent.keyboard("{Control>}x{/Control}");
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("status")).toBeNull();
+
+    screen.getByRole("button", { name: "personal" }).focus();
+    await userEvent.keyboard("{Control>}v{/Control}");
+
+    expect(onFile).not.toHaveBeenCalled();
+  });
+
+  it("walks the tree with the arrow keys", async () => {
+    show();
+    const work = screen.getByRole("button", { name: "trabajo" });
+    work.focus();
+
+    await userEvent.keyboard("{ArrowDown}");
+
+    expect(document.activeElement).not.toBe(work);
+    expect((document.activeElement as HTMLElement).dataset.row).toBeTruthy();
+  });
+
+  it("opens and closes a branch with the side arrows", async () => {
+    show();
+    screen.getByRole("button", { name: "trabajo" }).focus();
+
+    await userEvent.keyboard("{ArrowLeft}");
+
+    expect(screen.queryByRole("button", { name: "corporativo" })).toBeNull();
+
+    screen.getByRole("button", { name: "trabajo" }).focus();
+    await userEvent.keyboard("{ArrowRight}");
+
+    expect(screen.getByRole("button", { name: "corporativo" })).toBeTruthy();
+  });
+
+  it("keeps the row actions out of the tab order", () => {
+    show();
+
+    for (const name of ["Rename trabajo", "Delete trabajo", "Delete Compras"]) {
+      expect(screen.getByRole("button", { name }).getAttribute("tabindex")).toBe("-1");
+    }
+  });
+
+  it("takes a document dropped anywhere on the unfiled list", () => {
+    const { onFile } = show();
+    const list = screen.getByRole("button", { name: "Suelto" }).closest("ul") as HTMLElement;
+
+    fireEvent.drop(list, { dataTransfer: { getData: () => "01A" } });
+
+    expect(onFile).toHaveBeenCalledWith("01A", undefined);
+  });
+
+  it("never offers to delete the place unfiled documents land", () => {
+    show();
+
+    expect(screen.queryByRole("button", { name: /Delete Unfiled/ })).toBeNull();
+  });
+
+  it("files a document into the folder it was dropped on", () => {
+    const { onFile } = show();
+    const work = screen.getByRole("button", { name: "trabajo" }).parentElement
+      ?.parentElement as HTMLElement;
+
+    fireEvent.drop(work, { dataTransfer: { getData: () => "01C" } });
+
+    expect(onFile).toHaveBeenCalledWith("01C", "01F");
+  });
+
+  it("takes a document out of every folder when dropped on unfiled", () => {
+    const { onFile } = show();
+    const loose = screen.getByRole("button", { name: /Unfiled/ })
+      .parentElement as HTMLElement;
+
+    fireEvent.drop(loose, { dataTransfer: { getData: () => "01A" } });
+
+    expect(onFile).toHaveBeenCalledWith("01A", undefined);
+  });
+});

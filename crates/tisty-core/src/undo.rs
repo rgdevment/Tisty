@@ -135,6 +135,41 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
 
         Op::ListAdd { id, .. } => Some(Op::ListDelete { id: *id }),
 
+        Op::FolderAdd { id, .. } => Some(Op::FolderDelete { id: *id }),
+        Op::FolderRename { id, .. } => Some(Op::FolderRename {
+            id: *id,
+            d: crate::event::Name {
+                name: before.folders.get(id)?.name.clone(),
+            },
+        }),
+        Op::FolderLook { id, d } => {
+            let was = before.folders.get(id)?;
+            Some(Op::FolderLook {
+                id: *id,
+                d: crate::event::Look {
+                    icon: d.icon.as_ref().map(|_| was.icon.clone()),
+                    color: None,
+                },
+            })
+        }
+        Op::FolderMove { id, .. } => Some(Op::FolderMove {
+            id: *id,
+            d: crate::event::Filed {
+                folder: Some(before.folders.get(id)?.parent),
+            },
+        }),
+        Op::DocAdd { id, .. } => Some(Op::DocDelete { id: *id }),
+        Op::DocMove { id, .. } => Some(Op::DocMove {
+            id: *id,
+            d: crate::event::Filed {
+                folder: Some(before.docs.get(id)?.folder),
+            },
+        }),
+
+        // What hung from it went to the root, and putting the folder back would
+        // not put them back inside it.
+        Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
+
         // Recovering the payload would mean replaying the log, which purge prevents.
         Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
     }

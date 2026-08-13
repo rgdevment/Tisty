@@ -1,9 +1,15 @@
 use std::path::{Path, PathBuf};
 
+use std::io::{BufRead, Read};
+
 use crate::{Error, Result, event::DeviceId, store::write_atomic};
 
 const EXTENSION: &str = "md";
 const DIGITS: usize = 4;
+const MOST_DIGITS: u64 = 999_999_999_999;
+/// A title is one line; without a ceiling a file with no newline is read whole.
+const TITLE_AT_MOST: u64 = 4 * 1024;
+const BODY_AT_MOST: u64 = 32 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Doc {
@@ -17,12 +23,11 @@ pub fn titled(body: &str) -> String {
 }
 
 pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
-    let id = format!(
-        "{}-{:0width$}",
-        stem(device),
-        next(root, device),
-        width = DIGITS
-    );
+    let number = next(root, device);
+    if number > MOST_DIGITS {
+        return Err(Error::OutsideTheStore(format!("{}-{number}", stem(device))));
+    }
+    let id = format!("{}-{number:0width$}", stem(device), width = DIGITS);
     write(root, &id, body)?;
     Ok(Doc {
         title: titled(body),
@@ -38,7 +43,14 @@ pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
 }
 
 pub fn read(root: &Path, id: &str) -> Result<String> {
-    Ok(std::fs::read_to_string(resolve(root, id)?)?)
+    let at = resolve(root, id)?;
+    let file = std::fs::File::open(&at)?;
+    if !file.metadata()?.is_file() {
+        return Err(Error::OutsideTheStore(id.to_string()));
+    }
+    let mut body = String::new();
+    file.take(BODY_AT_MOST).read_to_string(&mut body)?;
+    Ok(body)
 }
 
 pub fn remove(root: &Path, id: &str) -> Result<()> {
@@ -56,11 +68,12 @@ pub fn all(root: &Path) -> Vec<Doc> {
     };
     let mut found: Vec<Doc> = entries
         .filter_map(|one| one.ok())
+        .filter(|one| one.file_type().map(|kind| kind.is_file()).unwrap_or(false))
         .filter_map(|one| {
             let at = one.path();
             let id = named(&at)?;
             Some(Doc {
-                title: titled(&std::fs::read_to_string(&at).ok()?),
+                title: opening(&at),
                 id,
             })
         })
@@ -108,13 +121,36 @@ fn next(root: &Path, device: &DeviceId) -> u64 {
     highest.map_or(1, |last| last + 1)
 }
 
+/// A hand-edited `device_id` with nothing usable left would name every file
+/// `-0001`, which `well_formed` refuses: no document could ever be created.
 fn stem(device: &DeviceId) -> String {
     let plain = device.0.strip_prefix("dev_").unwrap_or(&device.0);
-    plain
+    let kept: String = plain
         .chars()
-        .filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '_')
+        .flat_map(|c| c.to_lowercase())
+        .map(|c| {
+            if c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .take(48)
-        .collect()
+        .collect();
+    if kept.is_empty() {
+        "device".to_string()
+    } else {
+        kept
+    }
+}
+
+fn opening(at: &Path) -> String {
+    let Ok(file) = std::fs::File::open(at) else {
+        return String::new();
+    };
+    let mut first = String::new();
+    let _ = std::io::BufReader::new(file.take(TITLE_AT_MOST)).read_line(&mut first);
+    titled(&first)
 }
 
 #[cfg(test)]
@@ -127,6 +163,80 @@ mod tests {
 
     fn root() -> tempfile::TempDir {
         tempfile::tempdir().unwrap()
+    }
+
+    #[test]
+    fn a_device_name_with_nothing_usable_still_makes_documents() {
+        let root = root();
+
+        let made = create(root.path(), &device("dev_ÁÉÍ"), "").expect("a document");
+
+        assert!(named(&root.path().join(format!("{}.md", made.id))).is_some());
+    }
+
+    #[test]
+    fn a_title_is_read_without_pulling_in_the_whole_body() {
+        let root = root();
+        let body = "x".repeat(2 * 1024 * 1024);
+        create(root.path(), &device("dev_a"), &body).unwrap();
+
+        let title = all(root.path())[0].title.clone();
+
+        assert!(
+            title.len() <= TITLE_AT_MOST as usize,
+            "read {} bytes of a body with no newline",
+            title.len()
+        );
+    }
+
+    #[test]
+    fn a_body_with_no_end_is_read_up_to_a_ceiling() {
+        let root = root();
+        let made = create(root.path(), &device("dev_a"), "").unwrap();
+        std::fs::write(
+            root.path().join(format!("{}.md", made.id)),
+            "y".repeat(BODY_AT_MOST as usize + 4096),
+        )
+        .unwrap();
+
+        let body = read(root.path(), &made.id).unwrap();
+
+        assert_eq!(body.len(), BODY_AT_MOST as usize);
+    }
+
+    #[test]
+    fn a_name_that_is_not_a_regular_file_is_never_listed() {
+        let root = root();
+        create(root.path(), &device("dev_a"), "# Compras").unwrap();
+        std::fs::create_dir(root.path().join("dev_b-0001.md")).unwrap();
+
+        let found = all(root.path());
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].title, "Compras");
+    }
+
+    #[test]
+    fn a_file_at_the_last_number_refuses_instead_of_naming_one_too_long() {
+        let root = root();
+        std::fs::create_dir_all(root.path()).unwrap();
+        std::fs::write(root.path().join("a-999999999999.md"), "").unwrap();
+
+        assert!(create(root.path(), &device("dev_a"), "").is_err());
+    }
+
+    #[test]
+    fn two_device_names_that_differ_never_collapse_to_one_prefix() {
+        let mine = root();
+        let yours = root();
+
+        let a = create(mine.path(), &device("dev_a3f1"), "").unwrap();
+        let b = create(yours.path(), &device("dev_a-3f1"), "").unwrap();
+
+        assert_ne!(
+            a.id.rsplit_once('-').unwrap().0,
+            b.id.rsplit_once('-').unwrap().0
+        );
     }
 
     #[test]

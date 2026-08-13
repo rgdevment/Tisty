@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
-import { docRead, docWrite, type Doc } from "../core";
+import { docRead, docWrite, type Filed } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 
@@ -9,28 +9,32 @@ const SETTLES = 700;
 
 interface Props {
   open?: string;
-  known: Doc[];
-  onKept: (doc: Doc) => void;
+  known: Filed[];
+  onKept: (doc: { id: string; title: string }) => void;
   onError: (problem: unknown) => void;
 }
 
 export default function Docs({ open: asked, known, onKept, onError }: Props) {
-  const [open, setOpen] = useState<Doc | null>(null);
+  const [open, setOpen] = useState<Filed | null>(null);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const turn = useRef(0);
 
   const keep = useCallback(
     (id: string, text: string) => {
       setSaving(true);
-      docWrite(id, text)
-        .then((fresh) => {
-          onKept(fresh);
-          held.current = null;
-        })
+      const mine = queue.current
+        .catch(() => {})
+        .then(() => docWrite(id, text))
+        .then((fresh) => onKept(fresh))
         .catch((e) => onError(saidPlainly(e)))
-        .finally(() => setSaving(false));
+        .finally(() => {
+          if (queue.current === mine) setSaving(false);
+        });
+      queue.current = mine;
     },
     [onError, onKept],
   );
@@ -38,18 +42,51 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
   const flush = useCallback(() => {
     if (settling.current) clearTimeout(settling.current);
     const waiting = held.current;
+    held.current = null;
     if (waiting) keep(waiting.id, waiting.body);
   }, [keep]);
 
-  useEffect(() => flush, [flush]);
+  const drop = useCallback(() => {
+    if (settling.current) clearTimeout(settling.current);
+    held.current = null;
+  }, []);
+
+  const leaving = useRef(flush);
+  leaving.current = flush;
 
   useEffect(() => {
-    if (!asked || asked === open?.id) return;
-    const wanted = known.find((one) => one.id === asked);
+    const now = () => leaving.current();
+    window.addEventListener("blur", now);
+    window.addEventListener("beforeunload", now);
+    return () => {
+      window.removeEventListener("blur", now);
+      window.removeEventListener("beforeunload", now);
+      now();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const still = known.some((one) => one.file === open.file);
+    if (!still || !asked) {
+      drop();
+      turn.current += 1;
+      setOpen(null);
+      setBody("");
+    }
+  }, [asked, known, open, drop]);
+
+  useEffect(() => {
+    if (!asked || asked === open?.file) return;
+    const wanted = known.find((one) => one.file === asked);
     if (!wanted) return;
     flush();
-    docRead(wanted.id)
+    const mine = ++turn.current;
+    queue.current
+      .catch(() => {})
+      .then(() => docRead(wanted.file))
       .then((text) => {
+        if (turn.current !== mine) return;
         setOpen(wanted);
         setBody(text);
       })
@@ -59,9 +96,9 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
   const wrote = (text: string) => {
     if (!open) return;
     setBody(text);
-    held.current = { id: open.id, body: text };
+    held.current = { id: open.file, body: text };
     if (settling.current) clearTimeout(settling.current);
-    settling.current = setTimeout(() => keep(open.id, text), SETTLES);
+    settling.current = setTimeout(flush, SETTLES);
   };
 
   return (
@@ -70,7 +107,13 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
       {open ? (
         <div className="mx-auto min-h-0 w-full max-w-[820px] flex-1 px-10">
           <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
-            <Editor key={open.id} value={body} taking onWrite={wrote} />
+            <Editor
+              key={open.file}
+              value={body}
+              taking
+              label={open.title || t("untitledDoc")}
+              onWrite={wrote}
+            />
           </Suspense>
         </div>
       ) : (
@@ -78,7 +121,10 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
           {t("pickADoc")}
         </p>
       )}
-      <div className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint">
+      <div
+        aria-live="polite"
+        className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint"
+      >
         {saving ? t("saving") : ""}
       </div>
     </main>
