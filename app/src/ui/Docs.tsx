@@ -102,10 +102,10 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
   };
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col">
+    <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
       <div data-tauri-drag-region className="h-9 shrink-0" />
       {open ? (
-        <div className="mx-auto min-h-0 w-full max-w-[820px] flex-1 px-10">
+        <div className="mx-auto flex min-h-0 w-full max-w-[820px] flex-1 flex-col px-10">
           <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
             <Editor
               key={open.file}
