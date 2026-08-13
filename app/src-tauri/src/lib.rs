@@ -2026,6 +2026,59 @@ fn proofread(window: &tauri::WebviewWindow) {
 #[cfg(not(target_os = "macos"))]
 fn proofread(_window: &tauri::WebviewWindow) {}
 
+/// macOS wires the default Quit straight to `terminate:`, which no handler can
+/// intercept — so the most common way to leave was the only one that never
+/// waited for the editor to finish. This replaces just that item; everything
+/// else stays predefined, including the edit entries the spell checker hangs on.
+#[cfg(target_os = "macos")]
+fn menued(
+    app: &tauri::AppHandle,
+    locale: &Option<String>,
+) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use tauri::menu::{AboutMetadata, MenuItem, PredefinedMenuItem, Submenu};
+
+    let leave = MenuItem::with_id(app, "leave", worded(locale, "quit"), true, Some("Cmd+Q"))?;
+    let app_menu = Submenu::with_items(
+        app,
+        "Tisty",
+        true,
+        &[
+            &PredefinedMenuItem::about(app, None, Some(AboutMetadata::default()))?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::show_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &leave,
+        ],
+    )?;
+    let edit = Submenu::with_items(
+        app,
+        worded(locale, "edit"),
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+    let window = Submenu::with_items(
+        app,
+        worded(locale, "windowMenu"),
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::fullscreen(app, None)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )?;
+    tauri::menu::Menu::with_items(app, &[&app_menu, &edit, &window])
+}
+
 /// Killing the process outright threw away whatever the editor had not written
 /// yet. The window is asked to finish first, and answers with `parted` — but
 /// the timer leaves anyway, so a window that never answers cannot trap anybody
@@ -2295,7 +2348,9 @@ fn close_window(
         tisty_core::config::Closing::Hide => {
             let _ = window.hide();
         }
-        tisty_core::config::Closing::Quit => window.app_handle().exit(0),
+        // The fourth way out, and the most common one: this dialog appears
+        // every time until «remember» is ticked.
+        tisty_core::config::Closing::Quit => parting(window.app_handle()),
     }
     Ok(())
 }
@@ -2495,7 +2550,7 @@ fn opened(
         return Err(Refusal::about("cannotRead", reference));
     }
     // Never launched, only shown: a description can arrive from another machine.
-    if runnable(&at) {
+    if !safe_to_open(&at) {
         return show(&at, &reference);
     }
     handed(&at).map_err(|_| Refusal::about("cannotOpen", reference))?;
@@ -2508,6 +2563,17 @@ fn opened(
 #[tauri::command]
 fn revealed(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answer<()> {
     let at = std::path::Path::new(&path);
+
+    // Refused before canonicalising, not after: on Windows canonicalising a UNC
+    // path already dials the share and authenticates. Anything but a plain local
+    // path is somebody else's idea of where to look.
+    let plain = at.components().next().is_none_or(|first| {
+        !matches!(first, std::path::Component::Prefix(at) if !matches!(at.kind(), std::path::Prefix::Disk(_)))
+    });
+    if !plain || !at.is_absolute() {
+        return Err(Refusal::about("cannotOpen", path));
+    }
+
     let (data, config) = {
         let session = held(&session);
         (
@@ -2515,9 +2581,6 @@ fn revealed(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answer<(
             session.paths.config().to_path_buf(),
         )
     };
-    // Unvalidated, this opened the file manager on any path a synced document
-    // named — another machine's `[note](/Users/you/.ssh/id_rsa)`, or a UNC
-    // share that Windows would reach out to.
     let real = at
         .canonicalize()
         .map_err(|_| Refusal::about("cannotOpen", path.clone()))?;
@@ -2528,7 +2591,9 @@ fn revealed(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answer<(
     if !ours {
         return Err(Refusal::about("cannotOpen", path));
     }
-    show(&real, &path)
+    // Checked against the canonical path, shown as the original: the `\\?\`
+    // prefix canonicalising adds is one the Windows shell refuses to parse.
+    show(at, &path)
 }
 
 fn handed(at: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -2541,53 +2606,78 @@ fn show(at: &std::path::Path, said: &str) -> Answer<()> {
         .map_err(|_| Refusal::about("cannotOpen", said.to_string()))
 }
 
-fn runnable(at: &std::path::Path) -> bool {
-    let ext = at
-        .extension()
-        .and_then(|e| e.to_str())
+/// A denylist of extensions lost: `.exe` as a whole name has no extension for
+/// Rust but is a program for Windows, and a trailing dot or space is trimmed by
+/// Win32 before the shell looks. Attachments arrive from other machines, which
+/// choose the name, so the question is what any system would run — and the only
+/// answer that holds is a list of what is safe to hand over.
+fn safe_to_open(at: &std::path::Path) -> bool {
+    let name = at
+        .file_name()
+        .and_then(|n| n.to_str())
         .unwrap_or_default()
+        .trim_end_matches(['.', ' '])
         .to_lowercase();
-    // Never launched, only shown. Attachments travel between machines, so this
-    // list answers «what could another machine make this one run», not «what
-    // does this machine consider a program».
+    let ext = name.rsplit_once('.').map(|(_, e)| e).unwrap_or_default();
     matches!(
-        ext.as_str(),
-        "exe"
-            | "bat"
-            | "cmd"
-            | "com"
-            | "msi"
-            | "scr"
-            | "ps1"
-            | "psm1"
-            | "vbs"
-            | "vbe"
-            | "js"
-            | "jse"
-            | "wsf"
-            | "wsh"
-            | "hta"
-            | "jar"
-            | "sh"
-            | "bash"
-            | "zsh"
-            | "app"
-            | "lnk"
-            | "url"
-            | "reg"
-            | "msc"
-            | "cpl"
-            | "scf"
-            | "pif"
-            | "command"
-            | "terminal"
-            | "workflow"
-            | "pkg"
-            | "dmg"
-            | "webloc"
-            | "desktop"
-            | "appimage"
-            | "run"
+        ext,
+        "pdf"
+            | "txt"
+            | "md"
+            | "markdown"
+            | "rtf"
+            | "csv"
+            | "tsv"
+            | "json"
+            | "xml"
+            | "yaml"
+            | "yml"
+            | "toml"
+            | "log"
+            | "png"
+            | "jpg"
+            | "jpeg"
+            | "gif"
+            | "webp"
+            | "avif"
+            | "bmp"
+            | "tiff"
+            | "tif"
+            | "heic"
+            | "svg"
+            | "ico"
+            | "mp3"
+            | "wav"
+            | "flac"
+            | "aac"
+            | "ogg"
+            | "opus"
+            | "m4a"
+            | "mp4"
+            | "m4v"
+            | "mov"
+            | "webm"
+            | "mkv"
+            | "avi"
+            | "doc"
+            | "docx"
+            | "xls"
+            | "xlsx"
+            | "ppt"
+            | "pptx"
+            | "odt"
+            | "ods"
+            | "odp"
+            | "pages"
+            | "numbers"
+            | "key"
+            | "epub"
+            | "zip"
+            | "gz"
+            | "tar"
+            | "bz2"
+            | "xz"
+            | "7z"
     )
 }
 
@@ -2734,6 +2824,12 @@ fn worded(locale: &Option<String>, key: &str) -> String {
         .is_some_and(|code| code.to_lowercase().starts_with("es"));
 
     match (key, spanish) {
+        ("quit", true) => "Salir de Tisty".into(),
+        ("quit", false) => "Quit Tisty".into(),
+        ("edit", true) => "Edición".into(),
+        ("edit", false) => "Edit".into(),
+        ("windowMenu", true) => "Ventana".into(),
+        ("windowMenu", false) => "Window".into(),
         ("copy", true) => " (copia)".into(),
         ("copy", false) => " (copy)".into(),
         ("show", true) => "Abrir Tisty".into(),
@@ -2877,6 +2973,26 @@ pub fn run() {
                 }
             }
 
+            #[cfg(target_os = "macos")]
+            {
+                let locale = held(&app.state::<Mutex<Session>>()).locale.clone();
+                match menued(app.handle(), &locale) {
+                    Ok(menu) => {
+                        let _ = app.set_menu(menu);
+                        app.on_menu_event(|app, event| {
+                            if event.id() == "leave" {
+                                parting(app);
+                            }
+                        });
+                    }
+                    Err(e) => witness::warn(
+                        channel::WINDOW,
+                        "the menu would not build",
+                        &[("why", Fact::Why(e.to_string()))],
+                    ),
+                }
+            }
+
             // Shown only now: the window is created before `setup` runs, and
             // projecting a long log would leave a blank frame on screen.
             if let Some(window) = app.get_webview_window("main") {
@@ -2999,47 +3115,34 @@ pub fn run() {
 mod tests {
     use super::*;
 
-    /// An attachment arrives from another machine, so the question is not what
-    /// this system runs but what any of them would.
+    /// The names that beat a denylist: no extension at all for Rust, and the
+    /// trailing dot or space that Win32 trims before the shell decides.
     #[test]
-    fn nothing_another_machine_could_make_this_one_run_is_ever_opened() {
+    fn a_name_that_only_windows_reads_as_a_program_is_never_opened() {
         for name in [
+            ".exe",
+            ".bat",
+            ".cmd",
+            "pay.exe.",
+            "pay.exe ",
+            "pay.exe...",
             "x.exe",
-            "x.bat",
-            "x.cmd",
-            "x.com",
             "x.msi",
-            "x.scr",
-            "x.ps1",
-            "x.psm1",
-            "x.vbs",
-            "x.vbe",
-            "x.js",
-            "x.jse",
-            "x.wsf",
-            "x.hta",
-            "x.jar",
-            "x.sh",
-            "x.bash",
-            "x.app",
-            "x.lnk",
-            "x.url",
-            "x.reg",
-            "x.msc",
-            "x.cpl",
-            "x.scf",
-            "x.pif",
+            "x.settingcontent-ms",
+            "x.appref-ms",
+            "x.jnlp",
+            "x.py",
+            "x.inf",
+            "x.scpt",
+            "x.mobileconfig",
+            "x.inetloc",
             "x.command",
-            "x.terminal",
-            "x.pkg",
-            "x.dmg",
-            "x.webloc",
             "x.desktop",
-            "x.appimage",
-            "x.run",
+            "x.EXE",
+            "x.Bat",
         ] {
             assert!(
-                runnable(std::path::Path::new(name)),
+                !safe_to_open(std::path::Path::new(name)),
                 "{name} would be opened"
             );
         }
@@ -3058,12 +3161,16 @@ mod tests {
             "archivo.zip",
             "diagrama.svg",
             "carta.docx",
+            "FOTO.JPEG",
         ] {
-            assert!(!runnable(std::path::Path::new(name)), "{name} was refused");
+            assert!(
+                safe_to_open(std::path::Path::new(name)),
+                "{name} was refused"
+            );
         }
     }
 
-    /// A synced document can name any path; showing it in the file manager on
+    /// A synced document can name any path;    /// A synced document can name any path; showing it in the file manager on
     /// request would leak whatever another machine wrote into a link.
     #[test]
     fn only_paths_inside_the_store_can_be_shown() {

@@ -62,6 +62,7 @@ import Keeping from "./ui/Keeping";
 import Docs from "./ui/Docs";
 import Naming from "./ui/Naming";
 import Menu, { type Choice } from "./ui/Menu";
+import { settled } from "./saving";
 import { bared } from "./ui/writing";
 import { ask, open as pick } from "@tauri-apps/plugin-dialog";
 import Lists from "./ui/Lists";
@@ -252,15 +253,16 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // Nobody is editing, so there is nothing to finish: answer at once rather
-  // than making the person wait out the backend's timer.
+  // One answer, from one place. Two listeners raced: this one replied at once
+  // while the editor, unmounting, had just started a write nobody waited for.
   useEffect(() => {
-    if (chosen.named === "docs") return;
-    const off = listen("parting", () => void parted());
+    const off = listen("parting", () => {
+      void settled().finally(() => void parted());
+    });
     return () => {
       void off.then((stop) => stop());
     };
-  }, [chosen.named]);
+  }, []);
 
   useEffect(() => {
     if (!returning) return;

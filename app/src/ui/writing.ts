@@ -4,9 +4,6 @@ import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table
 import { TaskList } from "@tiptap/extension-task-list";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { Text } from "@tiptap/extension-text";
-import { Paragraph } from "@tiptap/extension-paragraph";
-import { Heading } from "@tiptap/extension-heading";
-import { TextAlign } from "@tiptap/extension-text-align";
 import { Markdown } from "tiptap-markdown";
 import type { Editor as Writing } from "@tiptap/core";
 
@@ -51,69 +48,6 @@ const Barred = Text.extend({
   },
 });
 
-/// Markdown has no syntax for alignment, so an aligned block is written as the
-/// html it admits. An unaligned one must still come out as plain Markdown, or
-/// every paragraph in every document would turn into a tag.
-const leaning = (
-  state: {
-    write: (text: string) => void;
-    renderInline: (node: unknown) => void;
-    closeBlock: (node: unknown) => void;
-  },
-  node: { attrs: Record<string, string> },
-  plain: () => void,
-) => {
-  const how = node.attrs.textAlign;
-  if (!how || how === "left") return plain();
-  state.write(`<p style="text-align: ${how}">`);
-  state.renderInline(node);
-  state.write("</p>");
-  state.closeBlock(node);
-};
-
-const Leaning = Paragraph.extend({
-  addStorage() {
-    return {
-      markdown: {
-        serialize(state: never, node: never) {
-          leaning(state, node, () => {
-            const write = state as unknown as {
-              renderInline: (n: unknown) => void;
-              closeBlock: (n: unknown) => void;
-            };
-            write.renderInline(node);
-            write.closeBlock(node);
-          });
-        },
-        parse: {},
-      },
-    };
-  },
-});
-
-const Titled = Heading.extend({
-  addStorage() {
-    return {
-      markdown: {
-        serialize(state: never, node: never) {
-          leaning(state, node, () => {
-            const write = state as unknown as {
-              write: (t: string) => void;
-              renderInline: (n: unknown) => void;
-              closeBlock: (n: unknown) => void;
-            };
-            const deep = (node as unknown as { attrs: { level: number } }).attrs.level;
-            write.write(`${"#".repeat(deep)} `);
-            write.renderInline(node);
-            write.closeBlock(node);
-          });
-        },
-        parse: {},
-      },
-    };
-  },
-});
-
 /// The one place the document's shape is decided. Tests build editors from this
 /// same list, or they would be proving a copy of the configuration rather than
 /// the editor a person types into.
@@ -127,9 +61,6 @@ export const written = () => [
   TaskList,
   TaskItem.configure({ nested: true }),
   Barred,
-  Leaning,
-  Titled,
-  TextAlign.configure({ types: ["heading", "paragraph"] }),
   Markdown.configure({ html: true, linkify: true, breaks: true, transformPastedText: false }),
 ];
 
@@ -140,19 +71,21 @@ export const asMarkdown = (editor: Writing): string | null => {
   return typeof kept?.getMarkdown === "function" ? kept.getMarkdown() : null;
 };
 
-/// tiptap-markdown writes `[nodeName]` and drops the content when it cannot
-/// serialise a node, so saving that would put the loss on disk for good. The
-/// fallback always leaves it alone on its line, which is what keeps a person
-/// writing the words `[table]` from being refused a save.
-const RUINED = /^\s*\[(table|image|tableRow|tableCell|tableHeader)\]\s*$/m;
-
-export const ruined = (markdown: string): boolean => RUINED.test(markdown);
-
 /// Strict Markdown, for pasting where inline html is not welcome. A declared
 /// loss: reading it back with html off escapes the tags instead of dropping
 /// them, so the tags are removed here rather than reinterpreted.
-export const bared = (markdown: string): string =>
-  markdown
-    .replace(/<\/?u>/gi, "")
-    .replace(/<p style="text-align:[^"]*">([\s\S]*?)<\/p>/gi, "$1")
-    .replace(/<p style='text-align:[^']*'>([\s\S]*?)<\/p>/gi, "$1");
+export const bared = (markdown: string): string => {
+  const fence = /^\s*(?:```|~~~)/;
+  let inside = false;
+  return markdown
+    .split("\n")
+    .map((line) => {
+      if (fence.test(line)) {
+        inside = !inside;
+        return line;
+      }
+      if (inside) return line;
+      return line.replace(/<\/?u\b[^>]*>/gi, "");
+    })
+    .join("\n");
+};

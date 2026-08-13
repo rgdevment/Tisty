@@ -2,23 +2,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Docs from "../ui/Docs";
+import { settled } from "../saving";
 import type { Filed } from "../core";
 
 const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
   writes: [] as { id: string; body: string }[],
   delays: [] as number[],
-}));
-
-const parting = vi.hoisted(() => ({ fire: null as null | (() => void) }));
-
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: (name: string, run: () => void) => {
-    if (name === "parting") parting.fire = run;
-    return Promise.resolve(() => {
-      if (parting.fire === run) parting.fire = null;
-    });
-  },
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -76,11 +66,31 @@ describe("the document being written", () => {
     await userEvent.clear(editor);
     await userEvent.type(editor, "sin guardar todavía");
 
-    await waitFor(() => expect(parting.fire).toBeTruthy());
-    parting.fire?.();
+    await settled();
 
-    await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("sin guardar todavía"));
-    await waitFor(() => expect(store.writes.some((one) => one.id === "parted")).toBe(false));
+    expect(store.bodies["a3f1-0001"]).toBe("sin guardar todavía");
+  });
+
+  it("waits for a document left behind, not only the one on screen", async () => {
+    store.delays = [400, 10];
+    const { rerender } = render(
+      <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />,
+    );
+    const first = await screen.findByLabelText("editor");
+    await userEvent.clear(first);
+    await userEvent.type(first, "lo de A");
+
+    rerender(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    await waitFor(() =>
+      expect((screen.getByLabelText("editor") as HTMLTextAreaElement).value).toBe("# Notas"),
+    );
+    await userEvent.clear(screen.getByLabelText("editor"));
+    await userEvent.type(screen.getByLabelText("editor"), "lo de B");
+
+    await settled();
+
+    expect(store.bodies["a3f1-0002"]).toBe("lo de B");
+    expect(store.bodies["a3f1-0001"]).toBe("lo de A");
   });
 
   it("keeps the last keystroke when a slow save lands after it", async () => {

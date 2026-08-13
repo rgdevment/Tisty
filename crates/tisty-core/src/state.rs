@@ -92,13 +92,13 @@ impl State {
             Op::StepRemove { id, d } => self.with_task(*id, |t| t.steps.retain(|s| s.id != d.step)),
 
             Op::ListAdd { id, d } => {
-                let mut list = List::new(*id, d.name.clone(), d.order.clone());
+                let mut list = List::new(*id, crate::text::plainly(&d.name), d.order.clone());
                 list.color = d.color.clone();
                 self.lists.insert(*id, list);
             }
             Op::ListRename { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {
-                    list.name = d.name.clone();
+                    list.name = crate::text::plainly(&d.name);
                 }
             }
             Op::FolderAdd { id, d } => {
@@ -106,7 +106,7 @@ impl State {
                     *id,
                     Folder {
                         id: *id,
-                        name: d.name.clone(),
+                        name: crate::text::plainly(&d.name),
                         order: d.order.clone(),
                         parent: d.parent.filter(|at| at != id),
                         icon: d.icon.clone().filter(|key| crate::model::icon::known(key)),
@@ -114,8 +114,10 @@ impl State {
                 );
             }
             Op::FolderRename { id, d } => {
+                // Cleaned where the event lands, not only where a person types:
+                // a name arriving from another machine is the one nobody vetted.
                 if let Some(folder) = self.folders.get_mut(id) {
-                    folder.name = d.name.clone();
+                    folder.name = crate::text::plainly(&d.name);
                 }
             }
             Op::FolderLook { id, d } => {
@@ -2958,6 +2960,33 @@ mod tests {
         assert_eq!(state.folders[&inside].parent, None, "a child was orphaned");
         assert_eq!(state.docs[&one].folder, None, "a document was orphaned");
         assert_eq!(state.unfiled().len(), 1);
+    }
+
+    /// The filter lived in the command, so a name arriving through the log —
+    /// the one source nobody vetted — walked in untouched.
+    #[test]
+    fn a_name_that_arrives_from_another_machine_is_cleaned_too() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "b",
+            Op::FolderAdd {
+                id,
+                d: crate::event::FolderAdd {
+                    name: "trabajo\u{202e}odajabart".into(),
+                    order: "a0".into(),
+                    parent: None,
+                    icon: None,
+                },
+            },
+        ));
+
+        assert!(
+            !state.folders[&id].name.contains('\u{202e}'),
+            "{:?}",
+            state.folders[&id].name
+        );
     }
 
     #[test]

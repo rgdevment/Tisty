@@ -8,8 +8,14 @@ describe("copying a document as strict markdown", () => {
     expect(bared("<u>subrayado</u> y **fuerte**")).toBe("subrayado y **fuerte**");
   });
 
-  it("gives up the alignment and keeps the words", () => {
-    expect(bared('<p style="text-align: center">centrado</p>')).toBe("centrado");
+  it("gives up an underline that carries attributes, closing tag and all", () => {
+    expect(bared('<u class="x">hola</u>')).toBe("hola");
+  });
+
+  it("leaves alone what a person wrote inside a code block", () => {
+    const teaching = "Así se subraya:\n\n```html\n<u>hola</u>\n```";
+
+    expect(bared(teaching)).toBe(teaching);
   });
 
   it("keeps everything markdown can say, untouched", () => {

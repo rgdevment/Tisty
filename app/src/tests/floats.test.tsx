@@ -24,10 +24,6 @@ describe("the panel that appears over a selection", () => {
       "Strikethrough",
       "Code",
       "Link",
-      "Align left",
-      "Centre",
-      "Align right",
-      "Justify",
     ]);
 
     editor.destroy();
@@ -54,28 +50,6 @@ describe("the panel that appears over a selection", () => {
     await userEvent.click(screen.getByRole("button", { name: "Underline" }));
 
     expect(md(editor)).toBe("<u>hola mundo</u>");
-    editor.destroy();
-  });
-
-  it("writes alignment as the html markdown admits, since it has no syntax for it", async () => {
-    const editor = made();
-    editor.commands.selectAll();
-    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
-
-    await userEvent.click(screen.getByRole("button", { name: "Centre" }));
-
-    expect(md(editor)).toBe('<p style="text-align: center">hola mundo</p>');
-    editor.destroy();
-  });
-
-  it("leaves a paragraph nobody aligned as plain markdown", async () => {
-    const editor = made("uno\n\ndos");
-    editor.commands.selectAll();
-    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
-
-    await userEvent.click(screen.getByRole("button", { name: "Align left" }));
-
-    expect(md(editor)).toBe("uno\n\ndos");
     editor.destroy();
   });
 

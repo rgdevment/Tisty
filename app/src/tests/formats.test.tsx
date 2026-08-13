@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
-import { asMarkdown, ruined, written } from "../ui/writing";
+import { asMarkdown, written } from "../ui/writing";
 
 const make = (content = "") => new Editor({ extensions: written(), content });
 
@@ -12,26 +12,6 @@ const through = (text: string) => {
   editor.destroy();
   return out;
 };
-
-describe("the guard that refuses to write a gutted document", () => {
-  it("catches every shape the serialiser gives up on", () => {
-    for (const gutted of ["[table]", "texto\n\n[table]\n\nmás", "[tableRow]", "  [image]  "]) {
-      expect(ruined(gutted)).toBe(true);
-    }
-  });
-
-  it("lets ordinary writing through, brackets and all", () => {
-    for (const fine of [
-      "un [enlace](https://x.test) normal",
-      "una nota sobre [table] stakes en la misma línea",
-      "ver [table](https://x.test) en el enlace",
-      "| a | b |\n| --- | --- |",
-      "",
-    ]) {
-      expect(ruined(fine)).toBe(false);
-    }
-  });
-});
 
 describe("a picture with something after it", () => {
   it("does not swallow the block that follows", () => {
@@ -91,31 +71,6 @@ describe("underline, which markdown has no syntax for", () => {
     expect(editor.getHTML()).toContain("<u>subrayado</u>");
 
     editor.destroy();
-  });
-});
-
-describe("alignment, which markdown has no syntax for", () => {
-  it("survives the round trip as the html markdown admits", () => {
-    const once = through('<p style="text-align: center">centrado</p>');
-
-    expect(once).toBe('<p style="text-align: center">centrado</p>');
-    expect(through(once)).toBe(once);
-  });
-
-  it("comes back as a real attribute, not as letters", () => {
-    const editor = make('<p style="text-align: right">derecha</p>');
-
-    expect(editor.isActive({ textAlign: "right" })).toBe(true);
-
-    editor.destroy();
-  });
-
-  it("keeps a heading a heading when it is not aligned", () => {
-    expect(through("## Sin alinear")).toBe("## Sin alinear");
-  });
-
-  it("never turns an ordinary document into a wall of tags", () => {
-    expect(through("uno\n\ndos\n\n- tres")).toBe("uno\n\ndos\n\n- tres");
   });
 });
 

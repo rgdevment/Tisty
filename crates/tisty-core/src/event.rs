@@ -8,7 +8,10 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 1;
+/// Raised with the folder and document ops: a build that predates them reads
+/// their lines as corruption and refuses to open the store at all, tasks
+/// included. The bump is what turns that into «a newer Tisty wrote this».
+pub const SCHEMA_VERSION: u32 = 2;
 
 /// Never synced — a shared id would put two machines in one segment file.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
