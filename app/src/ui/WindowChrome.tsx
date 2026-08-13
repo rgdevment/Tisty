@@ -15,6 +15,7 @@ export default function WindowChrome() {
 
   return (
     <div
+      data-chrome
       className={`fixed top-0 z-50 flex h-9 items-center gap-0.5 px-2 ${onMac ? "left-0" : "right-0"}`}
     >
       {buttons.map((button) => (
