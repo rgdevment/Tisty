@@ -20,7 +20,9 @@ vi.mock("@tauri-apps/api/core", () => ({
 const chosen = { named: "aboutScreen" } as Parameters<typeof Sidebar>[0]["chosen"];
 
 function bar(ready: boolean) {
-  render(<Sidebar lists={[]} counts={{}} chosen={chosen} ready={ready} onChoose={vi.fn()} />);
+  render(
+      <Sidebar lists={[]} docs={[]} counts={{}} chosen={chosen} ready={ready} onChoose={vi.fn()} />,
+    );
 }
 
 describe("the update dot", () => {

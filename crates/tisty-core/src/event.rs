@@ -1,8 +1,8 @@
 mod op;
 
 pub use op::{
-    Body, ListAdd, LogAdd, LogEdit, Name, Op, StepAdd, StepRef, StepReorder, StepText, TaskAdd,
-    TaskMove, TaskPatch,
+    Body, ListAdd, LogAdd, LogEdit, Look, Name, Op, StepAdd, StepRef, StepReorder, StepText,
+    TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
@@ -89,6 +89,7 @@ impl Event {
             | Op::StepReorder { id, .. } => *id,
             Op::ListAdd { id, .. }
             | Op::ListRename { id, .. }
+            | Op::ListLook { id, .. }
             | Op::ListArchive { id }
             | Op::ListUnarchive { id }
             | Op::ListDelete { id } => *id,

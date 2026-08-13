@@ -122,6 +122,17 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             },
         }),
 
+        Op::ListLook { id, d } => {
+            let was = before.lists.get(id)?;
+            Some(Op::ListLook {
+                id: *id,
+                d: crate::event::Look {
+                    icon: d.icon.as_ref().map(|_| was.icon.clone()),
+                    color: d.color.as_ref().map(|_| was.color.clone()),
+                },
+            })
+        }
+
         Op::ListAdd { id, .. } => Some(Op::ListDelete { id: *id }),
 
         // Recovering the payload would mean replaying the log, which purge prevents.

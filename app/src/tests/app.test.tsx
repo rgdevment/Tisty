@@ -80,6 +80,8 @@ beforeEach(() => {
     switch (cmd) {
       case "settle_in":
         return Promise.resolve({ ran: false, brought: false, agrees: true });
+      case "docs":
+        return Promise.resolve([]);
       case "sync_state":
         return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
       case "snapshot":

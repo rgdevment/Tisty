@@ -5,6 +5,7 @@ pub mod backup;
 pub mod cache;
 pub mod capture;
 pub mod config;
+pub mod docs;
 pub mod event;
 pub mod herald;
 pub mod model;

@@ -69,6 +69,8 @@ pub enum Op {
     ListAdd { id: ListId, d: ListAdd },
     #[serde(rename = "list.rename")]
     ListRename { id: ListId, d: Name },
+    #[serde(rename = "list.look")]
+    ListLook { id: ListId, d: Look },
     #[serde(rename = "list.archive")]
     ListArchive { id: ListId },
     #[serde(rename = "list.unarchive")]
@@ -102,6 +104,7 @@ impl Op {
             Op::StepReorder { d, .. } => Op::StepReorder { id, d },
             Op::ListAdd { d, .. } => Op::ListAdd { id, d },
             Op::ListRename { d, .. } => Op::ListRename { id, d },
+            Op::ListLook { d, .. } => Op::ListLook { id, d },
             Op::ListArchive { .. } => Op::ListArchive { id },
             Op::ListUnarchive { .. } => Op::ListUnarchive { id },
             Op::ListDelete { .. } => Op::ListDelete { id },
@@ -176,6 +179,7 @@ impl Op {
             | Op::StepReorder { id, .. }
             | Op::ListAdd { id, .. }
             | Op::ListRename { id, .. }
+            | Op::ListLook { id, .. }
             | Op::ListArchive { id }
             | Op::ListUnarchive { id }
             | Op::ListDelete { id } => *id,
@@ -329,4 +333,12 @@ pub struct ListAdd {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Name {
     pub name: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Look {
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub icon: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub color: Option<Option<String>>,
 }

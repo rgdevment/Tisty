@@ -10,6 +10,8 @@ pub struct List {
     pub order: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub archived: bool,
 }
@@ -21,6 +23,7 @@ impl List {
             name: name.into(),
             order: order.into(),
             color: None,
+            icon: None,
             archived: false,
         }
     }

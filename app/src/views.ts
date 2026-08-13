@@ -1,7 +1,7 @@
 import type { List, View } from "./core";
 import { fill, t } from "./locales";
 
-export type Named = "search" | "tasks" | "tags" | "archive" | "keeping" | "aboutScreen";
+export type Named = "search" | "tasks" | "lists" | "docs" | "tags" | "archive" | "keeping" | "aboutScreen";
 
 /// «Hoy» and «Próximo» were two names for one thing: a date filter with a fixed
 /// seat in the sidebar. They are the same view now, and this is what it filters
@@ -16,6 +16,7 @@ export const SLICES: Slice[] = ["today", "upcoming", "repeating", "all"];
 
 export interface Chosen {
   named?: Named;
+  doc?: string;
   list?: string;
   tags?: string[];
   folded?: boolean;
