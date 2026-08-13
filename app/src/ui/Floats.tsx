@@ -24,6 +24,15 @@ export default function Floats({ editor, at }: Props) {
     chain.toggleCode().run();
   };
 
+  const leans = [
+    { key: "left", glyph: "≡", name: t("alignLeft") },
+    { key: "center", glyph: "≡", name: t("alignCentre") },
+    { key: "right", glyph: "≡", name: t("alignRight") },
+    { key: "justify", glyph: "≡", name: t("alignBoth") },
+  ] as const;
+
+  const lean = (key: string) => editor.chain().focus().setTextAlign(key).run();
+
   return (
     <div
       role="toolbar"
@@ -52,6 +61,34 @@ export default function Floats({ editor, at }: Props) {
             }`}
           >
             {one.glyph}
+          </button>
+        );
+      })}
+
+      <span aria-hidden className="mx-0.5 h-4 w-px bg-hair" />
+
+      {leans.map((one) => {
+        const on = editor.isActive({ textAlign: one.key });
+        return (
+          <button
+            key={one.key}
+            type="button"
+            aria-label={one.name}
+            aria-pressed={on}
+            title={one.name}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              lean(one.key);
+            }}
+            className={`grid h-7 w-7 place-items-center rounded-md text-[11px] ${
+              one.key === "center"
+                ? "[text-align:center]"
+                : one.key === "right"
+                  ? "[text-align:right]"
+                  : ""
+            } ${on ? "bg-accent-soft text-accent" : "text-soft hover:bg-hover hover:text-ink"}`}
+          >
+            <span className={one.key === "justify" ? "tracking-tighter" : ""}>{one.glyph}</span>
           </button>
         );
       })}

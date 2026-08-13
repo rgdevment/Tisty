@@ -94,6 +94,64 @@ describe("underline, which markdown has no syntax for", () => {
   });
 });
 
+describe("alignment, which markdown has no syntax for", () => {
+  it("survives the round trip as the html markdown admits", () => {
+    const once = through('<p style="text-align: center">centrado</p>');
+
+    expect(once).toBe('<p style="text-align: center">centrado</p>');
+    expect(through(once)).toBe(once);
+  });
+
+  it("comes back as a real attribute, not as letters", () => {
+    const editor = make('<p style="text-align: right">derecha</p>');
+
+    expect(editor.isActive({ textAlign: "right" })).toBe(true);
+
+    editor.destroy();
+  });
+
+  it("keeps a heading a heading when it is not aligned", () => {
+    expect(through("## Sin alinear")).toBe("## Sin alinear");
+  });
+
+  it("never turns an ordinary document into a wall of tags", () => {
+    expect(through("uno\n\ndos\n\n- tres")).toBe("uno\n\ndos\n\n- tres");
+  });
+});
+
+describe("a pipe typed inside a cell", () => {
+  const barred =
+    "<table><tbody><tr><th>a</th><th>b</th></tr><tr><td>x|y</td><td>2</td></tr></tbody></table>";
+
+  it("stays in its own cell instead of starting a new column", () => {
+    const editor = make(through(barred));
+    const cells = editor.getText().split("\n").filter(Boolean);
+    editor.destroy();
+
+    expect(cells).toContain("x|y");
+    expect(cells).toContain("2");
+  });
+
+  it("does not take the rest of the row with it on a second save", () => {
+    const once = through(barred);
+    const twice = through(once);
+
+    expect(twice).toBe(once);
+  });
+
+  it("leaves formatting inside the same cell alone", () => {
+    const editor = make(
+      through(
+        "<table><tbody><tr><th>a</th></tr><tr><td>x|y con <em>énfasis</em></td></tr></tbody></table>",
+      ),
+    );
+    const back = editor.getHTML();
+    editor.destroy();
+
+    expect(back).toContain("<em>énfasis</em>");
+  });
+});
+
 describe("a table markdown has no syntax for", () => {
   const joined =
     '<table><tbody><tr><th colspan="2">wide</th></tr><tr><td>1</td><td>2</td></tr></tbody></table>';
