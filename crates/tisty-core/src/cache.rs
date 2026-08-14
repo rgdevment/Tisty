@@ -439,7 +439,9 @@ pub fn advance(
     }
 
     for event in events {
-        let _ = cache.touch(state, event.entity_id(), &print);
+        if let Some(id) = event.entity_id() {
+            let _ = cache.touch(state, id, &print);
+        }
     }
     print
 }

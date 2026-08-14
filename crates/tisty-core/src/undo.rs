@@ -171,6 +171,8 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
         Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
 
         Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
+
+        Op::DeviceJoin { .. } | Op::DeviceRemove { .. } => None,
     }
 }
 

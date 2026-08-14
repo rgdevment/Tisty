@@ -15,13 +15,8 @@ pub enum Trouble {
     Unreadable(String),
     Refused(String),
     Broke(String),
-    WouldMerge { theirs: String },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Join {
-    Ask,
-    Agreed,
+    WouldReset { theirs: String },
+    NotAllowed(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,33 +32,33 @@ pub struct Moved {
     pub brought: usize,
 }
 
-pub fn carry(
-    data: &Path,
-    device: &str,
-    dest: &Path,
-    way: Way,
-    join: Join,
-) -> Result<Moved, Trouble> {
+pub fn carry(data: &Path, device: &str, dest: &Path, way: Way) -> Result<Moved, Trouble> {
     if !dest.is_dir() {
         return Err(Trouble::NotThere(dest.display().to_string()));
     }
     let store = data.join(STORE);
-    let ours = settled(&store, dest, join)?;
+    let ours = settled(&store, dest)?;
 
     let mut moved = Moved::default();
-    if matches!(way, Way::Both | Way::Push) {
-        write(&dest.join(STORE).join(MARKER), ours.as_bytes())?;
-        moved.sent = copy_segments(&store.join(device), &dest.join(STORE).join(device))?;
-        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD))?;
-    }
     if matches!(way, Way::Both | Way::Pull) {
         moved.brought = bring(&store, device, dest)?;
         moved.brought += copy_held(&dest.join(HELD), &data.join(HELD))?;
     }
+    if matches!(way, Way::Both | Way::Push) {
+        let who = tisty_core::event::DeviceId(device.to_string());
+        let said =
+            tisty_core::store::ledger(&store).map_err(|e| Trouble::Unreadable(e.to_string()))?;
+        if !said.may_write(&who) {
+            return Err(Trouble::NotAllowed(device.to_string()));
+        }
+        write(&dest.join(STORE).join(MARKER), ours.as_bytes())?;
+        moved.sent = copy_segments(&store.join(device), &dest.join(STORE).join(device))?;
+        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD))?;
+    }
     Ok(moved)
 }
 
-fn settled(store: &Path, dest: &Path, join: Join) -> Result<String, Trouble> {
+fn settled(store: &Path, dest: &Path) -> Result<String, Trouble> {
     let ours = tisty_core::store::peek_identity(store);
     let theirs = theirs(dest);
     let we_are_new = ours.is_none() && !tisty_core::store::inhabited(store);
@@ -86,18 +81,9 @@ fn settled(store: &Path, dest: &Path, join: Join) -> Result<String, Trouble> {
         _ => {}
     }
 
-    if join == Join::Ask {
-        return Err(Trouble::WouldMerge {
-            theirs: theirs.unwrap_or_else(|| dest.display().to_string()),
-        });
-    }
-    match theirs {
-        Some(theirs) => {
-            write(&store.join(MARKER), theirs.as_bytes())?;
-            Ok(theirs)
-        }
-        None => tisty_core::store::identity(store).map_err(|e| Trouble::Unreadable(e.to_string())),
-    }
+    Err(Trouble::WouldReset {
+        theirs: theirs.unwrap_or_else(|| dest.display().to_string()),
+    })
 }
 
 pub fn claims(theirs: &str, ours: &str) -> Result<(), Trouble> {
@@ -363,22 +349,35 @@ mod tests {
         device: String,
     }
 
-    fn machine(named: &str) -> Machine {
+    fn blank(named: &str) -> Machine {
         let dir = tempfile::tempdir().unwrap();
         let data = dir.path().join("data");
         let store = data.join("store");
-        let mut held = Store::open(&store, DeviceId(named.into())).unwrap();
-        held.append(Op::TaskAdd {
-            id: Ulid::generate(),
-            d: TaskAdd::new(format!("lo de {named}"), "a0"),
-        })
-        .unwrap();
         Machine {
             _dir: dir,
             data,
             store,
             device: named.into(),
         }
+    }
+
+    fn machine(named: &str) -> Machine {
+        let one = blank(named);
+        wrote(&one, format!("lo de {named}"));
+        one
+    }
+
+    fn wrote(who: &Machine, title: String) {
+        let mut held = Store::open(&who.store, DeviceId(who.device.clone())).unwrap();
+        held.append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new(title, "a0"),
+        })
+        .unwrap();
+    }
+
+    fn joined(who: &Machine, shared: &Path) {
+        carry(&who.data, &who.device, shared, Way::Pull).unwrap();
     }
 
     fn titles(store: &Path) -> Vec<String> {
@@ -389,36 +388,180 @@ mod tests {
             .collect()
     }
 
+    fn says(who: &Machine, op: Op) {
+        let mut held = Store::open(&who.store, DeviceId(who.device.clone())).unwrap();
+        held.append(op).unwrap();
+    }
+
+    #[test]
+    fn a_store_with_no_list_yet_lets_everyone_write() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+
+        let moved = carry(&one.data, &one.device, shared.path(), Way::Both).unwrap();
+
+        assert!(moved.sent > 0, "an older store must not be locked out");
+    }
+
+    #[test]
+    fn a_machine_on_the_list_writes_as_it_always_did() {
+        let one = machine("dev_a");
+        says(
+            &one,
+            Op::DeviceJoin {
+                d: DeviceId("dev_a".into()),
+            },
+        );
+        let shared = tempfile::tempdir().unwrap();
+
+        let moved = carry(&one.data, &one.device, shared.path(), Way::Both).unwrap();
+
+        assert!(moved.sent > 0);
+    }
+
+    #[test]
+    fn a_machine_nobody_ever_named_is_not_locked_out_by_someone_elses_list() {
+        let one = machine("dev_a");
+        says(
+            &one,
+            Op::DeviceJoin {
+                d: DeviceId("dev_b".into()),
+            },
+        );
+        let shared = tempfile::tempdir().unwrap();
+
+        let moved = carry(&one.data, &one.device, shared.path(), Way::Both).unwrap();
+
+        assert!(
+            moved.sent > 0,
+            "the first machine to join shut the door on the rest"
+        );
+    }
+
+    #[test]
+    fn being_named_once_and_dropped_is_not_the_same_as_never_being_named() {
+        let said = tisty_core::store::Ledger {
+            allowed: [DeviceId("dev_b".into())].into(),
+            named: [DeviceId("dev_a".into()), DeviceId("dev_b".into())].into(),
+        };
+
+        assert!(!said.may_write(&DeviceId("dev_a".into())));
+        assert!(said.may_write(&DeviceId("dev_b".into())));
+        assert!(said.may_write(&DeviceId("dev_c".into())));
+        assert!(said.was_removed(&DeviceId("dev_a".into())));
+        assert!(!said.was_removed(&DeviceId("dev_c".into())));
+    }
+
+    #[test]
+    fn a_machine_that_was_removed_writes_nothing_at_all() {
+        let one = machine("dev_a");
+        says(
+            &one,
+            Op::DeviceJoin {
+                d: DeviceId("dev_a".into()),
+            },
+        );
+        says(
+            &one,
+            Op::DeviceJoin {
+                d: DeviceId("dev_b".into()),
+            },
+        );
+        says(
+            &one,
+            Op::DeviceRemove {
+                d: DeviceId("dev_a".into()),
+            },
+        );
+        let shared = tempfile::tempdir().unwrap();
+
+        let why = carry(&one.data, &one.device, shared.path(), Way::Both).unwrap_err();
+
+        assert!(
+            matches!(why, Trouble::NotAllowed(_)),
+            "it went through: {why:?}"
+        );
+        assert!(
+            !shared.path().join(STORE).join("dev_a").exists(),
+            "it wrote before refusing"
+        );
+    }
+
+    #[test]
+    fn a_machine_that_was_removed_still_brings_what_is_there() {
+        let other = machine("dev_b");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&other.data, &other.device, shared.path(), Way::Push).unwrap();
+
+        let one = blank("dev_a");
+        joined(&one, shared.path());
+        says(
+            &one,
+            Op::DeviceJoin {
+                d: DeviceId("dev_b".into()),
+            },
+        );
+        says(
+            &one,
+            Op::DeviceRemove {
+                d: DeviceId("dev_a".into()),
+            },
+        );
+
+        wrote(&other, "lo dicho despues".into());
+        carry(&other.data, &other.device, shared.path(), Way::Push).unwrap();
+        let moved = carry(&one.data, &one.device, shared.path(), Way::Pull).unwrap();
+
+        assert!(moved.brought > 0, "being removed is not being cut off");
+        assert!(
+            titles(&one.store).contains(&"lo dicho despues".to_string()),
+            "{:?}",
+            titles(&one.store)
+        );
+    }
+
+    #[test]
+    fn the_word_that_removes_it_is_read_before_it_writes() {
+        let other = machine("dev_b");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&other.data, &other.device, shared.path(), Way::Push).unwrap();
+
+        let one = blank("dev_a");
+        joined(&one, shared.path());
+
+        says(
+            &other,
+            Op::DeviceJoin {
+                d: DeviceId("dev_b".into()),
+            },
+        );
+        says(
+            &other,
+            Op::DeviceRemove {
+                d: DeviceId("dev_a".into()),
+            },
+        );
+        carry(&other.data, &other.device, shared.path(), Way::Push).unwrap();
+
+        let why = carry(&one.data, &one.device, shared.path(), Way::Both).unwrap_err();
+
+        assert!(
+            matches!(why, Trouble::NotAllowed(_)),
+            "it pushed on stale news: {why:?}"
+        );
+    }
+
     #[test]
     fn what_one_machine_leaves_the_other_takes_home() {
         let one = machine("dev_a");
-        let other = machine("dev_b");
+        let other = blank("dev_b");
         let shared = tempfile::tempdir().unwrap();
 
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Both,
-            Join::Agreed,
-        )
-        .unwrap();
-        carry(
-            &other.data,
-            &other.device,
-            shared.path(),
-            Way::Both,
-            Join::Agreed,
-        )
-        .unwrap();
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Both,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Both).unwrap();
+        joined(&other, shared.path());
+        wrote(&other, "lo de dev_b".into());
+        carry(&other.data, &other.device, shared.path(), Way::Both).unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Both).unwrap();
 
         let mine = titles(&one.store);
         assert!(mine.contains(&"lo de dev_a".to_string()), "{mine:?}");
@@ -430,24 +573,11 @@ mod tests {
     fn nobody_ever_writes_over_their_own_directory() {
         let one = machine("dev_a");
         let shared = tempfile::tempdir().unwrap();
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Both,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Both).unwrap();
 
         std::fs::write(shared.path().join("store/dev_a/active.tisty"), b"").unwrap();
 
-        let _ = carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Pull,
-            Join::Agreed,
-        );
+        let _ = carry(&one.data, &one.device, shared.path(), Way::Pull);
         assert_eq!(titles(&one.store).len(), 1, "the emptied copy came home");
     }
 
@@ -455,26 +585,13 @@ mod tests {
     fn a_directory_that_differs_only_in_case_is_still_our_own() {
         let one = machine("dev_a");
         let shared = tempfile::tempdir().unwrap();
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push).unwrap();
 
         let theirs = shared.path().join("store/DEV_A");
         std::fs::create_dir_all(&theirs).unwrap();
         std::fs::write(theirs.join("active.tisty"), b"").unwrap();
 
-        let _ = carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Pull,
-            Join::Agreed,
-        );
+        let _ = carry(&one.data, &one.device, shared.path(), Way::Pull);
         assert_eq!(titles(&one.store).len(), 1, "our own log was overwritten");
     }
 
@@ -486,14 +603,7 @@ mod tests {
         std::fs::create_dir_all(&stranger).unwrap();
         std::fs::write(stranger.join("keep.txt"), b"not ours").unwrap();
 
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push).unwrap();
         assert!(stranger.join("keep.txt").exists());
     }
 
@@ -505,13 +615,9 @@ mod tests {
         std::fs::create_dir_all(shared.path().join("store")).unwrap();
         std::fs::write(shared.path().join("store").join(MARKER), b"01THEIRS").unwrap();
 
-        let Err(Trouble::OtherStore { theirs }) = carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Both,
-            Join::Agreed,
-        ) else {
+        let Err(Trouble::OtherStore { theirs }) =
+            carry(&one.data, &one.device, shared.path(), Way::Both)
+        else {
             panic!("two histories were about to be merged");
         };
         assert_eq!(theirs, "01THEIRS");
@@ -522,40 +628,31 @@ mod tests {
     }
 
     #[test]
-    fn two_histories_are_never_joined_without_being_asked() {
+    fn two_histories_are_never_joined_at_all() {
         let one = machine("dev_a");
         std::fs::remove_file(one.store.join(MARKER)).ok();
         let other = machine("dev_b");
         let shared = tempfile::tempdir().unwrap();
-        carry(
-            &other.data,
-            &other.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&other.data, &other.device, shared.path(), Way::Push).unwrap();
 
-        let Err(Trouble::WouldMerge { .. }) =
-            carry(&one.data, &one.device, shared.path(), Way::Both, Join::Ask)
+        let Err(Trouble::WouldReset { .. }) =
+            carry(&one.data, &one.device, shared.path(), Way::Both)
         else {
-            panic!("two histories were joined without a word");
+            panic!("two histories were joined");
         };
+
         assert_eq!(titles(&one.store), vec!["lo de dev_a".to_string()]);
         assert!(
             !shared.path().join("store/dev_a").exists(),
             "something moved"
         );
 
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Both,
-            Join::Agreed,
-        )
-        .unwrap();
-        assert_eq!(titles(&one.store).len(), 2, "saying yes did not join them");
+        let again = carry(&one.data, &one.device, shared.path(), Way::Both);
+        assert!(
+            matches!(again, Err(Trouble::WouldReset { .. })),
+            "asking twice is not consent: {again:?}"
+        );
+        assert_eq!(titles(&one.store).len(), 1, "it joined them anyway");
     }
 
     #[test]
@@ -564,17 +661,10 @@ mod tests {
         std::fs::remove_file(one.store.join(MARKER)).ok();
         let other = machine("dev_b");
         let shared = tempfile::tempdir().unwrap();
-        carry(
-            &other.data,
-            &other.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&other.data, &other.device, shared.path(), Way::Push).unwrap();
 
-        let Err(Trouble::WouldMerge { .. }) =
-            carry(&one.data, &one.device, shared.path(), Way::Both, Join::Ask)
+        let Err(Trouble::WouldReset { .. }) =
+            carry(&one.data, &one.device, shared.path(), Way::Both)
         else {
             panic!("an unmarked store merged into a stranger's history");
         };
@@ -586,18 +676,11 @@ mod tests {
         let one = machine("dev_a");
         let other = machine("dev_b");
         let shared = tempfile::tempdir().unwrap();
-        carry(
-            &other.data,
-            &other.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&other.data, &other.device, shared.path(), Way::Push).unwrap();
         std::fs::remove_file(shared.path().join("store").join(MARKER)).unwrap();
 
-        let Err(Trouble::WouldMerge { .. }) =
-            carry(&one.data, &one.device, shared.path(), Way::Both, Join::Ask)
+        let Err(Trouble::WouldReset { .. }) =
+            carry(&one.data, &one.device, shared.path(), Way::Both)
         else {
             panic!("a folder with history and no marker was treated as empty");
         };
@@ -610,44 +693,26 @@ mod tests {
         let gone = one.store.join("unplugged");
 
         assert!(matches!(
-            carry(&one.data, &one.device, &gone, Way::Both, Join::Agreed),
+            carry(&one.data, &one.device, &gone, Way::Both),
             Err(Trouble::NotThere(_))
         ));
     }
 
     #[test]
     fn one_direction_only_does_one_direction() {
-        let one = machine("dev_a");
+        let one = blank("dev_a");
         let other = machine("dev_b");
         let shared = tempfile::tempdir().unwrap();
-        carry(
-            &other.data,
-            &other.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&other.data, &other.device, shared.path(), Way::Push).unwrap();
 
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
-        assert_eq!(titles(&one.store).len(), 1, "a push brought something back");
+        carry(&one.data, &one.device, shared.path(), Way::Push).unwrap();
+        assert!(
+            titles(&one.store).is_empty(),
+            "a push brought something back"
+        );
 
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Pull,
-            Join::Agreed,
-        )
-        .unwrap();
-        assert_eq!(titles(&one.store).len(), 2);
+        carry(&one.data, &one.device, shared.path(), Way::Pull).unwrap();
+        assert_eq!(titles(&one.store).len(), 1);
     }
 
     #[test]
@@ -657,23 +722,9 @@ mod tests {
         std::fs::remove_file(other.store.join(MARKER)).ok();
         let shared = tempfile::tempdir().unwrap();
 
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Both,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Both).unwrap();
         std::fs::remove_dir_all(other.store.join(&other.device)).unwrap();
-        carry(
-            &other.data,
-            &other.device,
-            shared.path(),
-            Way::Both,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&other.data, &other.device, shared.path(), Way::Both).unwrap();
 
         assert_eq!(
             tisty_core::store::peek_identity(&other.store),
@@ -686,22 +737,8 @@ mod tests {
         let one = machine("dev_a");
         let shared = tempfile::tempdir().unwrap();
 
-        let first = carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
-        let again = carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
+        let first = carry(&one.data, &one.device, shared.path(), Way::Push).unwrap();
+        let again = carry(&one.data, &one.device, shared.path(), Way::Push).unwrap();
 
         assert!(first.sent > 0);
         assert_eq!(again.sent, 0, "it copied what was already identical");
@@ -709,80 +746,48 @@ mod tests {
 
     #[test]
     fn a_gap_in_what_is_offered_is_refused_without_importing_it() {
-        let one = machine("dev_a");
+        let one = blank("dev_a");
         let shared = tempfile::tempdir().unwrap();
         let theirs = shared.path().join("store/dev_b");
         std::fs::create_dir_all(&theirs).unwrap();
         std::fs::write(theirs.join("000002.tisty"), b"").unwrap();
+        std::fs::write(shared.path().join("store").join(MARKER), b"01M0THEIRSTORE").unwrap();
 
-        let Err(Trouble::Unreadable(_)) = carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Pull,
-            Join::Agreed,
-        ) else {
+        let Err(Trouble::Unreadable(_)) = carry(&one.data, &one.device, shared.path(), Way::Pull)
+        else {
             panic!("a segment with no predecessor was imported");
         };
         assert!(!one.store.join("dev_b").exists(), "it landed anyway");
-        assert_eq!(titles(&one.store).len(), 1, "our own store still reads");
+        assert!(titles(&one.store).is_empty(), "our own store still reads");
     }
 
     #[test]
     fn a_conflict_copy_is_not_a_segment() {
         let one = machine("dev_a");
         let shared = tempfile::tempdir().unwrap();
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push).unwrap();
 
         let mine = shared.path().join("store/dev_a");
         let held = std::fs::read(mine.join("active.tisty")).unwrap();
         std::fs::write(mine.join("active (conflicted copy).tisty"), &held).unwrap();
 
-        let other = machine("dev_b");
-        carry(
-            &other.data,
-            &other.device,
-            shared.path(),
-            Way::Pull,
-            Join::Agreed,
-        )
-        .unwrap();
+        let other = blank("dev_b");
+        carry(&other.data, &other.device, shared.path(), Way::Pull).unwrap();
 
         assert_eq!(
             titles(&other.store).len(),
-            2,
+            1,
             "the conflict copy was read as history"
         );
     }
 
     #[test]
     fn a_pull_with_nothing_to_bring_does_not_reread_everything() {
-        let one = machine("dev_a");
+        let one = blank("dev_a");
         let other = machine("dev_b");
         let shared = tempfile::tempdir().unwrap();
-        carry(
-            &other.data,
-            &other.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Pull,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&other.data, &other.device, shared.path(), Way::Push).unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Pull).unwrap();
 
         std::fs::write(
             shared.path().join("store/dev_b/000001.tisty"),
@@ -791,15 +796,9 @@ mod tests {
         .unwrap();
         std::fs::write(shared.path().join("store/dev_b/000001.count"), b"1").unwrap();
 
-        let again = carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Pull,
-            Join::Agreed,
-        );
+        let again = carry(&one.data, &one.device, shared.path(), Way::Pull);
         assert!(again.is_err(), "a changed segment went unchecked");
-        assert_eq!(titles(&one.store).len(), 2, "our store still reads");
+        assert_eq!(titles(&one.store).len(), 1, "our store still reads");
     }
 
     #[test]
@@ -810,24 +809,10 @@ mod tests {
         std::fs::write(shelf.join("cd.png"), b"a picture").unwrap();
 
         let shared = tempfile::tempdir().unwrap();
-        carry(
-            &one.data,
-            &one.device,
-            shared.path(),
-            Way::Push,
-            Join::Agreed,
-        )
-        .unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push).unwrap();
 
-        let other = machine("dev_b");
-        carry(
-            &other.data,
-            &other.device,
-            shared.path(),
-            Way::Pull,
-            Join::Agreed,
-        )
-        .unwrap();
+        let other = blank("dev_b");
+        carry(&other.data, &other.device, shared.path(), Way::Pull).unwrap();
 
         assert_eq!(
             std::fs::read(other.data.join("attachments/ab/cd.png")).unwrap(),

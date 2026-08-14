@@ -101,6 +101,17 @@ impl Session {
         Ok(())
     }
 
+    fn take_a_seat(&mut self) -> tisty_core::Result<()> {
+        let who = self.config.device_id.clone();
+        if tisty_core::store::ledger(self.paths.store())?
+            .allowed
+            .contains(&who)
+        {
+            return Ok(());
+        }
+        self.commit(Op::DeviceJoin { d: who })
+    }
+
     fn commit(&mut self, op: Op) -> tisty_core::Result<()> {
         let event = self.store.append(op)?;
         self.state.apply(&event);
@@ -2116,13 +2127,7 @@ async fn settle_in(
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
         let carried = tauri::async_runtime::spawn_blocking(move || {
-            tisty_sync::carry(
-                &data,
-                &device,
-                &dest,
-                tisty_sync::Way::Both,
-                tisty_sync::Join::Ask,
-            )
+            tisty_sync::carry(&data, &device, &dest, tisty_sync::Way::Both)
         })
         .await;
         match carried {
@@ -2293,7 +2298,6 @@ async fn sync_now(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
     way: Option<String>,
-    merge: Option<bool>,
 ) -> Answer<&'static str> {
     let Some(_done) = alone.inner().claim() else {
         return Ok("busy");
@@ -2319,20 +2323,10 @@ async fn sync_now(
         _ => tisty_sync::Way::Both,
     };
 
-    if merge == Some(true) && tisty_core::paths::profile().is_some() {
-        return Err(Refusal::of("sandboxCannotMerge"));
-    }
-    let join = if merge == Some(true) {
-        tisty_sync::Join::Agreed
-    } else {
-        tisty_sync::Join::Ask
-    };
-    tauri::async_runtime::spawn_blocking(move || {
-        tisty_sync::carry(&data, &device, &dest, way, join)
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))?
-    .map_err(said)?;
+    tauri::async_runtime::spawn_blocking(move || tisty_sync::carry(&data, &device, &dest, way))
+        .await
+        .map_err(|_| Refusal::of("internal"))?
+        .map_err(said)?;
 
     let mut session = held(&session);
     let moved = tisty_core::cache::fingerprint(&store) != before;
@@ -2344,6 +2338,13 @@ async fn sync_now(
                 e,
             )
         })?;
+    }
+    if let Err(e) = session.take_a_seat() {
+        witness::warn(
+            channel::SYNC,
+            "this machine could not put itself on the list",
+            &[("why", Fact::Why(e.to_string()))],
+        );
     }
     witness::note(
         channel::SYNC,
@@ -2388,6 +2389,82 @@ async fn back_up(
 
     let now = jiff::Timestamp::now();
     held(&session).keep(|config| config.backed_up_at = Some(now))?;
+    Ok(made.bytes)
+}
+
+#[tauri::command]
+fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    let mut session = held(&session);
+    let who = tisty_core::event::DeviceId(id.clone());
+    if who == session.config.device_id {
+        return Err(Refusal::of("notThisMachine"));
+    }
+
+    session
+        .commit(Op::DeviceRemove { d: who })
+        .map_err(|e| blamed(channel::STORE, "the machine could not be removed", e))?;
+
+    if let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone()
+        && let Some(theirs) = named_in(&dest.join("store"), &id)
+        && let Err(e) = std::fs::remove_dir_all(&theirs)
+    {
+        witness::warn(
+            channel::SYNC,
+            "what the removed machine left in the shared folder is still there",
+            &[
+                ("at", Fact::Path(theirs)),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+    }
+    Ok(())
+}
+
+fn named_in(store: &std::path::Path, id: &str) -> Option<std::path::PathBuf> {
+    std::fs::read_dir(store)
+        .ok()?
+        .filter_map(|one| one.ok())
+        .find(|one| one.file_name().to_str() == Some(id) && one.path().is_dir())
+        .map(|one| one.path())
+}
+
+#[tauri::command]
+async fn join_them(
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    into: String,
+) -> Answer<u64> {
+    let _done = alone.inner().taken()?;
+    if tisty_core::paths::profile().is_some() {
+        return Err(Refusal::of("sandboxCannotJoin"));
+    }
+    let (paths, aside) = {
+        let session = held(&session);
+        (session.paths.clone(), session.paths.cache().to_path_buf())
+    };
+
+    let at = std::path::PathBuf::from(&into);
+    let made = tauri::async_runtime::spawn_blocking(move || {
+        tisty_core::backup::reset(&paths, &at, &aside)
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(|e| {
+        witness::error(
+            channel::BACKUP,
+            "nothing was reset because the backup did not land",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        Refusal::about("cannotWrite", into)
+    })?;
+
+    *held(&session) = Session::open().map_err(|e| {
+        blamed(
+            channel::BACKUP,
+            "the session would not reopen after being reset",
+            e,
+        )
+    })?;
     Ok(made.bytes)
 }
 
@@ -2441,7 +2518,8 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
         tisty_sync::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
         tisty_sync::Trouble::Refused(why) => Refusal::about("syncRefused", why),
         tisty_sync::Trouble::Broke(why) => Refusal::about("syncBroke", why),
-        tisty_sync::Trouble::WouldMerge { theirs } => Refusal::about("wouldMerge", theirs),
+        tisty_sync::Trouble::WouldReset { theirs } => Refusal::about("wouldReset", theirs),
+        tisty_sync::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
     }
 }
 
@@ -2967,6 +3045,8 @@ pub fn run() {
             sync_now,
             back_up,
             restore,
+            join_them,
+            remove_machine,
             checked,
             rebuild,
             about,

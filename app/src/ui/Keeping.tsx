@@ -15,6 +15,8 @@ import {
   revealed,
   settings as readSettings,
   shortcut,
+  joinThem,
+  removeMachine,
   restore,
   syncNow,
   syncState,
@@ -158,17 +160,23 @@ export default function Keeping({ onChanged }: Props) {
     setSaid(undefined);
     setTrouble(undefined);
     try {
-      let answer = await syncNow().catch(async (problem) => {
+      const answer = await syncNow().catch(async (problem) => {
         const refusal = problem as { code?: string; name?: string };
-        if (refusal?.code !== "wouldMerge") throw problem;
+        if (refusal?.code !== "wouldReset") throw problem;
         if (!(await ask(fill("joinThem", refusal.name ?? ""), { kind: "warning" }))) {
           return "declined" as const;
         }
-        return syncNow(undefined, true);
+        const at = await save({
+          defaultPath: "tisty-before-joining.zip",
+          filters: [{ name: "Tisty", extensions: ["zip"] }],
+        });
+        if (typeof at !== "string") return "declined" as const;
+        await joinThem(at);
+        return syncNow();
       });
 
       if (answer === "declined") {
-        setTrouble({ card: "sync", text: t("wouldMerge") });
+        setTrouble({ card: "sync", text: t("wouldReset") });
         return;
       }
       setSaid({ card: "sync", text: t(carried[answer]) });
@@ -205,6 +213,20 @@ export default function Keeping({ onChanged }: Props) {
           ),
       )
       .catch((e) => setTrouble({ card: "backup", text: saidPlainly(e) }));
+  };
+
+  const dropMachine = (id: string) => {
+    if (held) return;
+    ask(fill("machineDropSure", id), { kind: "warning" })
+      .then(
+        (sure) =>
+          sure &&
+          run("review", removeMachine(id).then(checked), (now) => {
+            setAudit(now);
+            setSaid({ card: "review", text: t("machineDropped") });
+          }),
+      )
+      .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
   };
 
   const takeBackup = () => {
@@ -605,8 +627,20 @@ export default function Keeping({ onChanged }: Props) {
                         {one.id}
                         {one.mine && <span className="ml-1.5 text-faint">{t("machineHere")}</span>}
                       </span>
-                      <span className={behind(one) ? "text-urgent" : "text-faint"}>
-                        {one.when === 0 ? t("machineNever") : dated(one.when)}
+                      <span className="flex shrink-0 items-baseline gap-2.5">
+                        <span className={behind(one) ? "text-urgent" : "text-faint"}>
+                          {one.when === 0 ? t("machineNever") : dated(one.when)}
+                        </span>
+                        {!one.mine && (
+                          <button
+                            type="button"
+                            disabled={held}
+                            onClick={() => dropMachine(one.id)}
+                            className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
+                          >
+                            {t("machineDrop")}
+                          </button>
+                        )}
                       </span>
                     </li>
                   ))}

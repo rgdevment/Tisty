@@ -8,7 +8,7 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 2;
+pub const SCHEMA_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -61,7 +61,7 @@ impl Event {
         (self.timestamp, &self.device, self.seq)
     }
 
-    pub fn entity_id(&self) -> Ulid {
+    pub fn entity_id(&self) -> Option<Ulid> {
         match &self.op {
             Op::TaskAdd { id, .. }
             | Op::TaskUpdate { id, .. }
@@ -80,7 +80,7 @@ impl Event {
             | Op::StepUndone { id, .. }
             | Op::StepText { id, .. }
             | Op::StepRemove { id, .. }
-            | Op::StepReorder { id, .. } => *id,
+            | Op::StepReorder { id, .. } => Some(*id),
             Op::ListAdd { id, .. }
             | Op::ListRename { id, .. }
             | Op::ListLook { id, .. }
@@ -96,7 +96,8 @@ impl Event {
             | Op::DocMove { id, .. }
             | Op::DocDelete { id }
             | Op::DocArchive { id }
-            | Op::DocUnarchive { id } => *id,
+            | Op::DocUnarchive { id } => Some(*id),
+            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } => None,
         }
     }
 }
@@ -180,7 +181,7 @@ mod tests {
         ];
         for op in ops {
             let ev = Event::new(DeviceId("dev_a3f1".into()), at(1), op);
-            assert_eq!(ev.entity_id(), id());
+            assert_eq!(ev.entity_id(), Some(id()));
         }
     }
 

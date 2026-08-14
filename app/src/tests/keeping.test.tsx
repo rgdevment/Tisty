@@ -297,6 +297,46 @@ describe("the maintenance panel", () => {
     expect(screen.queryByText(/have not synced in a while/i)).toBeNull();
   });
 
+  it("offers to remove another machine, never this one", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    await screen.findByText("win1-0002");
+    expect(screen.getAllByRole("button", { name: /^remove$/i })).toHaveLength(1);
+  });
+
+  it("never removes a machine without being told twice", async () => {
+    asked.sure = false;
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await screen.findByText("win1-0002");
+
+    await userEvent.click(screen.getByRole("button", { name: /^remove$/i }));
+
+    await waitFor(() => expect(sent("remove_machine")).toHaveLength(0));
+  });
+
+  it("removes the machine it was pointed at, and looks again afterwards", async () => {
+    asked.sure = true;
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await screen.findByText("win1-0002");
+    const looks = sent("checked").length;
+
+    await userEvent.click(screen.getByRole("button", { name: /^remove$/i }));
+
+    await waitFor(() => expect(sent("remove_machine")).toHaveLength(1));
+    expect(sent("remove_machine")[0].args.id).toBe("win1-0002");
+    await waitFor(() => expect(sent("checked").length).toBeGreaterThan(looks));
+  });
+
   it("tells you to settle the machines before judging what is left over", async () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
@@ -357,6 +397,66 @@ describe("the maintenance panel", () => {
     expect(await screen.findByText(/the log weighs/i)).toBeTruthy();
     expect(screen.getByText(/the documents weigh/i)).toBeTruthy();
     expect(screen.getByText(/the attachments weigh/i)).toBeTruthy();
+  });
+
+  it("never empties this machine without being told twice", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.reject({ code: "wouldReset", name: "01MOTHER" })
+        : otherwise(cmd, args);
+    asked.sure = false;
+    asked.file = "C:/keep/tisty-before-joining.zip";
+    carrying.chosen = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/leaving copies in/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
+
+    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
+    expect(sent("join_them")).toHaveLength(0);
+  });
+
+  it("empties nothing when there is nowhere to put the backup", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.reject({ code: "wouldReset", name: "01MOTHER" })
+        : otherwise(cmd, args);
+    asked.sure = true;
+    asked.file = null;
+    carrying.chosen = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/leaving copies in/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
+
+    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
+    expect(sent("join_them")).toHaveLength(0);
+  });
+
+  it("backs this machine up before it joins the other history", async () => {
+    let refused = true;
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd !== "sync_now") return otherwise(cmd, args);
+      if (refused) {
+        refused = false;
+        return Promise.reject({ code: "wouldReset", name: "01MOTHER" });
+      }
+      return Promise.resolve("came");
+    };
+    asked.sure = true;
+    asked.file = "C:/keep/tisty-before-joining.zip";
+    carrying.chosen = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/leaving copies in/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
+
+    await waitFor(() => expect(sent("join_them")).toHaveLength(1));
+    expect(sent("join_them")[0].args.into).toBe("C:/keep/tisty-before-joining.zip");
+    expect(sent("sync_now")).toHaveLength(2);
   });
 
   it("names the documents that would open read only, and what each brings", async () => {

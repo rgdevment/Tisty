@@ -143,8 +143,8 @@ pub enum Command {
         push: bool,
         #[arg(long, conflicts_with = "push")]
         pull: bool,
-        #[arg(long)]
-        merge: bool,
+        #[arg(long, value_name = "BACKUP", conflicts_with_all = ["push", "pull"])]
+        join: Option<std::path::PathBuf>,
     },
     Doctor {
         #[arg(long)]

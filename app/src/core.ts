@@ -315,8 +315,7 @@ export const syncState = (): Promise<Carrying> => invoke("sync_state");
 export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
 export type Carried = "came" | "same" | "busy";
 
-export const syncNow = (way?: "push" | "pull", merge?: boolean): Promise<Carried> =>
-  invoke("sync_now", { way, merge });
+export const syncNow = (way?: "push" | "pull"): Promise<Carried> => invoke("sync_now", { way });
 
 export interface Reach {
   shipped: boolean;
@@ -343,6 +342,8 @@ export const shortcut = (): Promise<string | null> => invoke("shortcut");
 export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<void> =>
   invoke("close_window", { how, remember });
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
+export const removeMachine = (id: string): Promise<void> => invoke("remove_machine", { id });
+export const joinThem = (into: string): Promise<number> => invoke("join_them", { into });
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });

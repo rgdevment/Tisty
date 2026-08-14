@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use ulid::Ulid;
 
 use crate::{
-    event::{Event, LogAdd, LogEdit, Op, StepAdd, TaskAdd, TaskMove, TaskPatch},
+    event::{DeviceId, Event, LogAdd, LogEdit, Op, StepAdd, TaskAdd, TaskMove, TaskPatch},
     model::{
         DocId, Folder, FolderId, Kept, List, ListId, LogEntry, Status, Step, StepId, Tag, Task,
         TaskId,
@@ -24,6 +24,7 @@ pub struct State {
     pub lists: BTreeMap<ListId, List>,
     pub folders: BTreeMap<FolderId, Folder>,
     pub docs: BTreeMap<DocId, Kept>,
+    pub devices: BTreeSet<DeviceId>,
     pub(crate) fill: Fill,
     tombstones: BTreeSet<Ulid>,
 }
@@ -50,7 +51,10 @@ impl State {
     }
 
     pub fn apply(&mut self, event: &Event) {
-        if self.tombstones.contains(&event.entity_id()) {
+        if event
+            .entity_id()
+            .is_some_and(|id| self.tombstones.contains(&id))
+        {
             return;
         }
 
@@ -196,6 +200,12 @@ impl State {
                     doc.archived = false;
                 }
             }
+            Op::DeviceJoin { d } => {
+                self.devices.insert(d.clone());
+            }
+            Op::DeviceRemove { d } => {
+                self.devices.remove(d);
+            }
             Op::ListLook { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {
                     if let Some(icon) = &d.icon {
@@ -294,10 +304,12 @@ impl State {
             return ops;
         }
         ops.into_iter()
-            .map(|op| match born.get(&op.about_whom()) {
-                Some(&fresh) => op.about(fresh),
-                None => op,
-            })
+            .map(
+                |op| match op.about_whom().and_then(|whom| born.get(&whom).copied()) {
+                    Some(fresh) => op.about(fresh),
+                    None => op,
+                },
+            )
             .collect()
     }
 
@@ -1284,9 +1296,13 @@ mod tests {
         let again = state.afresh(ops);
 
         assert_eq!(again.len(), 2);
-        let fresh = again[0].about_whom();
+        let fresh = again[0].about_whom().expect("a task op knows whose it is");
         assert_ne!(fresh, gone, "it reused the buried id");
-        assert_eq!(again[1].about_whom(), fresh, "the batch was torn apart");
+        assert_eq!(
+            again[1].about_whom(),
+            Some(fresh),
+            "the batch was torn apart"
+        );
         for op in &again {
             state.apply(&ev(9, "a", op.clone()));
         }
@@ -1364,6 +1380,76 @@ mod tests {
 
     fn ev(ms: i64, device: &str, op: Op) -> Event {
         Event::new(DeviceId(device.into()), at(ms), op)
+    }
+
+    #[test]
+    fn a_machine_that_joined_is_allowed_to_write() {
+        let mut state = State::default();
+
+        state.apply(&ev(
+            1,
+            "mac0",
+            Op::DeviceJoin {
+                d: DeviceId("mac0".into()),
+            },
+        ));
+
+        assert!(state.devices.contains(&DeviceId("mac0".into())));
+    }
+
+    #[test]
+    fn a_machine_that_was_removed_is_no_longer_allowed() {
+        let mut state = State::default();
+        let who = DeviceId("win1".into());
+
+        state.apply(&ev(1, "mac0", Op::DeviceJoin { d: who.clone() }));
+        state.apply(&ev(2, "mac0", Op::DeviceRemove { d: who.clone() }));
+
+        assert!(!state.devices.contains(&who));
+    }
+
+    #[test]
+    fn a_machine_that_comes_back_is_allowed_again_because_the_later_word_wins() {
+        let mut state = State::default();
+        let who = DeviceId("win1".into());
+
+        state.apply(&ev(1, "mac0", Op::DeviceJoin { d: who.clone() }));
+        state.apply(&ev(2, "mac0", Op::DeviceRemove { d: who.clone() }));
+        state.apply(&ev(3, "win1", Op::DeviceJoin { d: who.clone() }));
+
+        assert!(state.devices.contains(&who));
+    }
+
+    #[test]
+    fn removing_one_machine_says_nothing_about_the_others() {
+        let mut state = State::default();
+        let one = DeviceId("mac0".into());
+        let other = DeviceId("win1".into());
+
+        state.apply(&ev(1, "mac0", Op::DeviceJoin { d: one.clone() }));
+        state.apply(&ev(2, "mac0", Op::DeviceJoin { d: other.clone() }));
+        state.apply(&ev(3, "mac0", Op::DeviceRemove { d: other }));
+
+        assert_eq!(state.devices.len(), 1);
+        assert!(state.devices.contains(&one));
+    }
+
+    #[test]
+    fn a_word_about_a_machine_is_never_buried_by_a_tombstone() {
+        let mut state = State::default();
+        let one = Ulid::generate();
+        state.apply(&ev(1, "mac0", add(one, "una tarea")));
+        state.apply(&ev(2, "mac0", Op::TaskDelete { id: one }));
+
+        state.apply(&ev(
+            3,
+            "mac0",
+            Op::DeviceJoin {
+                d: DeviceId("win1".into()),
+            },
+        ));
+
+        assert!(state.devices.contains(&DeviceId("win1".into())));
     }
 
     fn add(id: TaskId, title: &str) -> Op {
