@@ -1806,8 +1806,13 @@ fn doc_import(
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
-    let body = tisty_core::docs::read_outside(std::path::Path::new(&from))
-        .map_err(|_| Refusal::about("cannotRead", from))?;
+    let body =
+        tisty_core::docs::read_outside(std::path::Path::new(&from)).map_err(|e| match e {
+            tisty_core::Error::DocumentTooBig { limit, .. } => {
+                Refusal::about("documentTooBig", weighed(limit))
+            }
+            _ => Refusal::about("cannotRead", from),
+        })?;
 
     let mut session = held(&session);
     if let Some(at) = folder
@@ -2416,7 +2421,8 @@ fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answe
     let root = held(&session).paths.data().to_path_buf();
     let at = tisty_core::attach::resolve(&reference, &root)
         .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
-    let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
+    let told =
+        std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
     if !told.is_file() {
         return Err(Refusal::about("cannotRead", reference));
     }

@@ -109,6 +109,7 @@ export default function App() {
   const [note, setNote] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ at: { x: number; y: number }; label: string; choices: Choice[] } | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
+  const [showing, setShowing] = useState<string | null>(null);
 
   const newDoc = (folder?: string) =>
     docNew(folder)
@@ -554,7 +555,7 @@ export default function App() {
                 key: "asPdf",
                 icon: "▤",
                 label: t("toPdf"),
-                off: chosen.doc !== doc.file,
+                off: showing !== doc.file,
                 onPick: () => printed().catch((e) => setError(saidPlainly(e))),
               },
               {
@@ -639,6 +640,7 @@ export default function App() {
           known={papers.docs}
           onKept={lookPapers}
           onError={(e) => setError(saidPlainly(e))}
+          onShown={setShowing}
           onDoc={(paper) =>
             papers.docs.some((one) => one.file === paper)
               ? setChosen({ named: "docs", doc: paper })

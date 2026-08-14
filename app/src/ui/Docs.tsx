@@ -15,9 +15,10 @@ interface Props {
   onKept: (doc: { id: string; title: string }) => void;
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
+  onShown?: (file: string | null) => void;
 }
 
-export default function Docs({ open: asked, known, onKept, onError, onDoc }: Props) {
+export default function Docs({ open: asked, known, onKept, onError, onDoc, onShown }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
@@ -95,6 +96,10 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc }: Pro
       })
       .catch((e) => onError(saidPlainly(e)));
   }, [asked, known, open, flush, onError]);
+
+  useEffect(() => {
+    onShown?.(open?.file ?? null);
+  }, [open, onShown]);
 
   const wrote = (text: string) => {
     if (!open) return;
