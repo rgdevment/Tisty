@@ -3,14 +3,17 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { EditorState } from "@tiptap/pm/state";
 import type { Node as Written } from "@tiptap/pm/model";
-import { named, previewOf, weighed, type Preview } from "../previews";
+import { ending, named, previewOf, weighed, type Preview } from "../previews";
 import { t } from "../locales";
 
 export interface Reach {
   url: (reference: string) => string | null;
   weight: (reference: string) => number | null;
   title: (id: string) => string | null;
+  gone?: (reference: string) => boolean;
   onDoc?: (id: string) => void;
+  onOpen?: (reference: string) => void;
+  onAgain?: (reference: string) => void;
 }
 
 const key = new PluginKey("previewing");
@@ -67,7 +70,9 @@ const built = (seen: Preview, reach: Reach): HTMLElement => {
     return box;
   }
 
-  if (seen.as === "video" || seen.as === "audio") {
+  const lost = Boolean(reach.gone?.(seen.at));
+
+  if (!lost && (seen.as === "video" || seen.as === "audio")) {
     const player = document.createElement(seen.as);
     player.controls = true;
     player.preload = "metadata";
@@ -84,14 +89,40 @@ const built = (seen: Preview, reach: Reach): HTMLElement => {
   name.textContent = named(seen.at);
   const said = document.createElement("span");
   said.className = "preview-said";
-  const bytes = reach.weight(seen.at);
-  said.textContent = bytes === null ? seen.kind.toUpperCase() : `${seen.kind.toUpperCase()} · ${weighed(bytes)}`;
+  if (lost) {
+    box.classList.add("preview-gone");
+    said.textContent = t("lookAgain");
+    box.title = t("goneFile");
+    box.setAttribute("role", "button");
+    box.setAttribute("tabindex", "0");
+    const again = () => reach.onAgain?.(seen.at);
+    box.addEventListener("click", again);
+    box.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      again();
+    });
+  } else {
+    const bytes = reach.weight(seen.at);
+    said.textContent =
+      bytes === null ? ending(seen.at).toUpperCase() : `${ending(seen.at).toUpperCase()} · ${weighed(bytes)}`;
+    box.setAttribute("role", "button");
+    box.setAttribute("tabindex", "0");
+    const go = () => reach.onOpen?.(seen.at);
+    box.addEventListener("click", go);
+    box.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      go();
+    });
+  }
   box.append(name, said);
   return box;
 };
 
 const settled = (seen: Preview, reach: Reach): string => {
   if (seen.as === "doc") return reach.title(seen.id) ?? "";
+  if (reach.gone?.(seen.at)) return "gone";
   if (seen.as === "file") return String(reach.weight(seen.at) ?? "");
   return reach.url(seen.at) ?? "";
 };

@@ -17,6 +17,40 @@ const made = (content: string, how: Partial<Reach> = {}) =>
     content,
   });
 
+describe("clicking a link inside the editor", () => {
+  const clicked = async (md: string, at: number, how: { metaKey?: boolean } = {}) => {
+    const { clicking } = await import("../ui/Editor");
+    const opened = vi.fn();
+    const editor = made(md);
+    const took = clicking(opened)({ state: editor.state }, at, how);
+    editor.destroy();
+    return { took, opened };
+  };
+
+  it("lets a plain click place the caret, or the words could never be edited", async () => {
+    const { took, opened } = await clicked("[charla](<attachments/charla-a3f9.mp4>)", 3);
+
+    expect(took).toBe(false);
+    expect(opened).not.toHaveBeenCalled();
+  });
+
+  it("opens the attachment when the click is held with the command key", async () => {
+    const { took, opened } = await clicked("[charla](<attachments/charla-a3f9.mp4>)", 3, {
+      metaKey: true,
+    });
+
+    expect(took).toBe(true);
+    expect(opened).toHaveBeenCalledWith("attachments/charla-a3f9.mp4");
+  });
+
+  it("leaves an address of the world to the system, held key or not", async () => {
+    const { took, opened } = await clicked("[fuera](https://ejemplo.org)", 3, { metaKey: true });
+
+    expect(took).toBe(false);
+    expect(opened).not.toHaveBeenCalled();
+  });
+});
+
 describe("what the editor shows beside a link", () => {
   it("puts a player under a video, without touching the markdown", () => {
     const editor = made("[charla](<attachments/charla-a3f9.mp4>)");
@@ -78,6 +112,28 @@ describe("what the editor shows beside a link", () => {
     const editor = made("[una **charla** larga](<attachments/charla-a3f9.mp4>)");
 
     expect(editor.view.dom.querySelectorAll("video").length).toBe(1);
+
+    editor.destroy();
+  });
+
+  it("says a file is not there instead of leaving a black player", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)", { gone: () => true });
+
+    expect(editor.view.dom.querySelector("video")).toBeNull();
+    expect(editor.view.dom.querySelector(".preview-gone")?.textContent).toContain("look again");
+
+    editor.destroy();
+  });
+
+  it("offers another look, because a file can arrive after the first try failed", () => {
+    const onAgain = vi.fn();
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)", { gone: () => true, onAgain });
+
+    const card = editor.view.dom.querySelector<HTMLElement>(".preview-gone");
+    expect(card?.getAttribute("role")).toBe("button");
+    card?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(onAgain).toHaveBeenCalledWith("attachments/charla-a3f9.mp4");
 
     editor.destroy();
   });
