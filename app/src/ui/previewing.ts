@@ -227,11 +227,20 @@ const shed = (
 };
 
 export const alone = (block: Written): boolean => {
-  if (block.childCount !== 1) return false;
-  const only = block.child(0);
-  if (!only.isText) return false;
-  const link = only.marks.find((one) => one.type.name === "link");
-  return Boolean(link && previewOf(String(link.attrs.href ?? "")));
+  let held = false;
+  let more = false;
+  block.forEach((child) => {
+    const link = child.isText
+      ? child.marks.find((one) => one.type.name === "link")
+      : undefined;
+    if (link && previewOf(String(link.attrs.href ?? ""))) {
+      if (held) more = true;
+      held = true;
+      return;
+    }
+    if (!child.isText || child.text?.trim()) more = true;
+  });
+  return held && !more;
 };
 
 export const eats = (key: string, at: number, room: number, whole: boolean): boolean => {

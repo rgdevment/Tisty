@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
 import { asMarkdown, written } from "../ui/writing";
-import { plugged, previewing, type Reach } from "../ui/previewing";
+import { alone, plugged, previewing, type Reach } from "../ui/previewing";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -341,6 +341,57 @@ describe("what the editor shows beside a link", () => {
 
     expect(rubs(editor, "Delete")).toBe(true);
     expect(asMarkdown(editor)?.trim()).toBe("queda esto");
+
+    editor.destroy();
+  });
+
+  it("goes whole from the end of its name, the way a hand reaches for it", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)\n\nqueda esto");
+
+    editor.commands.setTextSelection(7);
+    const took = editor.view.someProp("handleKeyDown", (f) =>
+      f(editor.view, new KeyboardEvent("keydown", { key: "Backspace" })),
+    );
+
+    expect(took).toBe(true);
+    expect(asMarkdown(editor)?.trim()).toBe("queda esto");
+    expect(editor.view.dom.querySelector(".preview")).toBeNull();
+
+    editor.destroy();
+  });
+
+  const block = (editor: Editor, tail: string) => {
+    const link = editor.schema.marks.link.create({ href: "attachments/charla-a3f9.mp4" });
+    return editor.schema.nodes.paragraph.create(null, [
+      editor.schema.text("charla", [link]),
+      editor.schema.text(tail),
+    ]);
+  };
+
+  it("is not stopped by the blank space that rides along with a name", () => {
+    const editor = made("nada");
+
+    expect(alone(block(editor, " "))).toBe(true);
+
+    editor.destroy();
+  });
+
+  it("is stopped by anything a person actually wrote there", () => {
+    const editor = made("nada");
+
+    expect(alone(block(editor, " y lo que dije"))).toBe(false);
+
+    editor.destroy();
+  });
+
+  it("still refuses when two references share one line", () => {
+    const editor = made(
+      "[charla](<attachments/charla-a3f9.mp4>) [notas](<attachments/notas-b1c2.pdf>)",
+    );
+
+    editor.commands.setTextSelection(5);
+
+    expect(rubs(editor, "Backspace")).toBeFalsy();
 
     editor.destroy();
   });

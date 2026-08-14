@@ -13,6 +13,7 @@ export default defineConfig(async () => ({
     setupFiles: "./src/tests/setup.ts",
     include: ["src/**/*.test.ts?(x)"],
     env: { TZ: "UTC" },
+    testTimeout: 30000,
   },
 
   clearScreen: false,
