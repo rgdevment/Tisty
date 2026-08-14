@@ -35,6 +35,14 @@ pub fn read_before(data: &Path, id: &str) -> Option<String> {
 }
 
 pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
+    match std::fs::metadata(at) {
+        Ok(one) if one.len() > BODY_AT_MOST => {
+            return Err(std::io::Error::other("a body past the ceiling"));
+        }
+        Ok(_) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e),
+    }
     match std::fs::read(at) {
         Ok(bytes) => Ok(Some(crate::attach::printed(&bytes))),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
@@ -416,6 +424,27 @@ mod tests {
         let room = tempfile::tempdir().unwrap();
 
         assert_eq!(Carried::read(room.path()).of("mac0-0001"), None);
+    }
+
+    #[test]
+    fn a_body_past_the_ceiling_is_refused_before_it_can_replace_a_readable_one() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path().join("huge.md");
+        std::fs::write(&at, vec![b'x'; (BODY_AT_MOST + 1) as usize]).unwrap();
+
+        assert!(
+            print_of(&at).is_err(),
+            "a body the reader will refuse was carried in anyway"
+        );
+    }
+
+    #[test]
+    fn a_body_right_up_to_the_ceiling_still_travels() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path().join("big.md");
+        std::fs::write(&at, vec![b'x'; BODY_AT_MOST as usize]).unwrap();
+
+        assert!(print_of(&at).unwrap().is_some());
     }
 
     #[test]
@@ -803,6 +832,213 @@ mod tests {
             assert!(read(root.path(), id).is_err(), "{id} was allowed");
             assert!(write(root.path(), id, "x").is_err(), "{id} was allowed");
         }
+    }
+
+    #[test]
+    fn an_id_written_the_windows_way_still_cannot_climb_out() {
+        let root = root();
+        for id in [
+            "..\\escaped",
+            "..\\..\\escaped",
+            "a3f1\\..\\..\\x-0001",
+            "docs\\..\\a3f1-0001",
+        ] {
+            assert!(resolve(root.path(), id).is_err(), "{id} was allowed");
+            assert!(read(root.path(), id).is_err(), "{id} was allowed");
+            assert!(write(root.path(), id, "x").is_err(), "{id} was allowed");
+        }
+    }
+
+    #[test]
+    fn an_id_naming_an_absolute_path_on_either_platform_is_refused() {
+        let root = root();
+        for id in [
+            "/etc/passwd",
+            "/etc/passwd-0001",
+            "C:\\Windows\\System32\\config\\SAM-0001",
+            "C:/Windows/System32-0001",
+            "c:secret-0001",
+            "D:-0001",
+            "\\\\server\\share\\secret-0001",
+        ] {
+            assert!(resolve(root.path(), id).is_err(), "{id} was allowed");
+            assert!(read(root.path(), id).is_err(), "{id} was allowed");
+        }
+    }
+
+    #[test]
+    fn an_id_that_is_only_a_windows_reserved_device_name_is_refused() {
+        let root = root();
+        for id in [
+            "CON", "con", "NUL", "PRN", "AUX", "COM1", "com9", "LPT1", "lpt3",
+        ] {
+            assert!(resolve(root.path(), id).is_err(), "{id} was allowed");
+        }
+    }
+
+    #[test]
+    fn a_device_stem_that_reads_like_a_reserved_name_never_lands_on_disk_as_one() {
+        let root = root();
+        let made = create(root.path(), &device("dev_con"), "").unwrap();
+
+        assert_eq!(made.id, "con-0001");
+        assert!(root.path().join("con-0001.md").is_file());
+        assert!(!root.path().join("con.md").exists());
+    }
+
+    #[test]
+    fn an_id_with_a_control_character_or_a_null_byte_is_refused() {
+        let root = root();
+        for id in [
+            "a3f1\0-0001",
+            "\0-0001",
+            "a3f1-00\u{0}0",
+            "a3f1\t-0001",
+            "a3f1\n-0001",
+            "a3f1\u{1b}-0001",
+        ] {
+            assert!(resolve(root.path(), id).is_err(), "{id:?} was allowed");
+        }
+    }
+
+    #[test]
+    fn an_id_with_a_trailing_space_or_dot_is_refused() {
+        let root = root();
+        for id in [
+            "a3f1 -0001",
+            "a3f1-0001 ",
+            "a3f1.-0001",
+            "a3f1-0001.",
+            " a3f1-0001",
+        ] {
+            assert!(resolve(root.path(), id).is_err(), "{id:?} was allowed");
+        }
+    }
+
+    #[test]
+    fn an_id_far_longer_than_any_filesystem_would_carry_is_refused() {
+        let root = root();
+        for id in [
+            format!("{}-0001", "a".repeat(255)),
+            format!("{}-0001", "a".repeat(4096)),
+            format!("a3f1-{}", "1".repeat(255)),
+        ] {
+            assert!(
+                resolve(root.path(), &id).is_err(),
+                "an id {} characters long was allowed",
+                id.len()
+            );
+        }
+    }
+
+    #[test]
+    fn two_spellings_of_the_same_letter_are_both_refused_rather_than_collapsed_into_one_file() {
+        let root = root();
+        let composed_form = "dispositivo_caf\u{e9}-0001";
+        let decomposed_form = "dispositivo_cafe\u{301}-0001";
+
+        assert!(resolve(root.path(), composed_form).is_err());
+        assert!(resolve(root.path(), decomposed_form).is_err());
+    }
+
+    #[test]
+    fn an_id_carrying_a_text_direction_override_is_refused() {
+        let root = root();
+        for id in [
+            "\u{202e}0001-1f3a-0001",
+            "a3f1\u{200f}-0001",
+            "\u{2066}a3f1\u{2069}-0001",
+        ] {
+            assert!(resolve(root.path(), id).is_err(), "{id:?} was allowed");
+        }
+    }
+
+    #[test]
+    fn what_was_before_stays_unreadable_under_every_shape_of_hostile_name() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path();
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        let long = "a".repeat(300);
+
+        for id in [
+            "../escaped",
+            "..\\escaped",
+            "/etc/passwd",
+            "C:\\Windows\\loot",
+            "CON",
+            "a3f1\0-0001",
+            "a3f1-0001 ",
+            long.as_str(),
+        ] {
+            assert!(
+                kept_before(data, id, "x").is_err(),
+                "{id:?} was written before"
+            );
+            assert_eq!(read_before(data, id), None, "{id:?} answered for something");
+        }
+    }
+
+    #[test]
+    fn what_a_document_looked_like_before_keeps_embedded_null_bytes_without_flinching() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path();
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        let body = "antes\0del cero\0despues";
+
+        kept_before(data, "mac0-0001", body).unwrap();
+
+        assert_eq!(read_before(data, "mac0-0001").as_deref(), Some(body));
+    }
+
+    #[test]
+    fn a_shared_original_that_is_not_valid_utf8_reads_as_absent_not_as_garbage() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path();
+        let originals = data.join("originals");
+        std::fs::create_dir_all(&originals).unwrap();
+        std::fs::write(
+            originals.join("mac0-0001.md"),
+            [0x66, 0x6f, 0xff, 0xfe, 0x62, 0x61, 0x72],
+        )
+        .unwrap();
+
+        assert_eq!(read_before(data, "mac0-0001"), None);
+    }
+
+    #[test]
+    fn what_was_before_reads_back_whole_even_across_forty_thousand_lines() {
+        let room = tempfile::tempdir().unwrap();
+        let many = "una linea\n".repeat(40_000);
+
+        kept_before(room.path(), "mac0-0001", &many).unwrap();
+
+        assert_eq!(
+            read_before(room.path(), "mac0-0001").as_deref(),
+            Some(many.as_str())
+        );
+    }
+
+    #[test]
+    fn a_document_full_of_null_bytes_is_read_back_whole_not_treated_as_empty() {
+        let root = root();
+        let made = create(root.path(), &device("dev_a"), "").unwrap();
+        let body = "antes\0en medio\0al final\0";
+        std::fs::write(root.path().join(format!("{}.md", made.id)), body).unwrap();
+
+        assert_eq!(read(root.path(), &made.id).unwrap(), body);
+    }
+
+    #[test]
+    fn a_document_that_is_not_valid_utf8_is_refused_when_opened_not_read_as_garbage() {
+        let root = root();
+        let made = create(root.path(), &device("dev_a"), "").unwrap();
+        std::fs::write(
+            root.path().join(format!("{}.md", made.id)),
+            [0x66, 0x6f, 0xff, 0xfe],
+        )
+        .unwrap();
+
+        assert!(read(root.path(), &made.id).is_err());
     }
 
     #[test]

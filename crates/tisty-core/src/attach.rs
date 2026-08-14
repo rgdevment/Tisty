@@ -344,6 +344,9 @@ fn bin_ledger(root: &Path) -> PathBuf {
 }
 
 pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
+    if !reference.starts_with("attachments/") {
+        return Err(Error::OutsideTheStore(reference.to_string()));
+    }
     let from = resolve(reference, root)?;
     if !from.is_file() {
         return Err(Error::OutsideTheStore(reference.to_string()));
@@ -417,6 +420,20 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
         .collect();
     let _ = std::fs::write(bin_ledger(root), left);
     gone
+}
+
+pub fn shelved(shelf: &str, leaf: &str) -> bool {
+    if shelf.len() != 2 || !shelf.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return false;
+    }
+    let stem = leaf.split('.').next().unwrap_or_default();
+    let stamp = stem.rsplit('-').next().unwrap_or_default();
+    (8..=16).contains(&stamp.len())
+        && stamp.bytes().all(|b| b.is_ascii_hexdigit())
+        && leaf.len() <= 255
+        && !leaf.contains('/')
+        && !leaf.contains('\\')
+        && leaf.chars().all(|c| !c.is_control())
 }
 
 pub fn sweep(
