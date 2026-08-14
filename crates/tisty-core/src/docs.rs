@@ -8,7 +8,8 @@ const EXTENSION: &str = "md";
 const DIGITS: usize = 4;
 const MOST_DIGITS: u64 = 999_999_999_999;
 const TITLE_AT_MOST: u64 = 4 * 1024;
-const BODY_AT_MOST: u64 = 32 * 1024 * 1024;
+pub const BODY_AT_MOST: u64 = 500 * 1024;
+pub const BODY_ROOMY: u64 = 300 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Doc {
@@ -290,6 +291,25 @@ mod tests {
             title.len() <= TITLE_AT_MOST as usize,
             "read {} bytes of a body with no newline",
             title.len()
+        );
+    }
+
+    #[test]
+    fn the_ceiling_is_what_the_editor_can_hold_not_what_the_disk_can() {
+        let room = tempfile::tempdir().unwrap();
+        let write = |name: &str, size: usize| {
+            let at = room.path().join(name);
+            std::fs::write(&at, "x".repeat(size)).unwrap();
+            read_outside(&at)
+        };
+
+        assert!(write("half.md", 250 * 1024).is_ok(), "a long note still opens");
+        assert!(
+            matches!(
+                write("huge.md", 900 * 1024),
+                Err(Error::DocumentTooBig { .. })
+            ),
+            "typing in it would cost more than a frame"
         );
     }
 

@@ -9,12 +9,14 @@ const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
   writes: [] as { id: string; body: string }[],
   delays: [] as number[],
+  reads: 0,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     switch (cmd) {
       case "doc_read":
+        store.reads += 1;
         return Promise.resolve(store.bodies[String(args?.id)] ?? "");
       case "doc_write": {
         const id = String(args?.id);
@@ -53,11 +55,56 @@ describe("the document being written", () => {
   beforeEach(() => {
     store.bodies = { "a3f1-0001": "# Compras\n\nleche", "a3f1-0002": "# Notas" };
     store.writes = [];
+    store.reads = 0;
     store.delays = [];
   });
 
   const show = (open?: string, onKept = vi.fn()) =>
     render(<Docs open={open} known={known} onKept={onKept} onError={vi.fn()} />);
+
+  it("does not read the document again when the parent renders with the same words", async () => {
+    store.delays = [];
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs {...props} />);
+    await waitFor(() => expect(store.reads).toBeGreaterThan(0));
+    await waitFor(() => screen.getByLabelText("editor"));
+    const reads = store.reads;
+
+    for (let turn = 0; turn < 5; turn += 1) rerender(<Docs {...props} />);
+
+    expect(store.reads).toBe(reads);
+  });
+
+  it("warns before touching a document that brings what it cannot keep", async () => {
+    store.bodies["a3f1-0001"] = "# Compras\n\n<details>\n<summary>ver</summary>\nalgo\n</details>";
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => screen.getByRole("dialog"));
+
+    expect(screen.getByText(/no sabe guardar|cannot keep/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Edit anyway|Editar igual/ })).toBeTruthy();
+  });
+
+  it("writes nothing at all while it is only being read", async () => {
+    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    await waitFor(() => screen.getByRole("dialog"));
+
+    await userEvent.click(screen.getByRole("button", { name: /Open to read|Abrir para leer/ }));
+    const editor = await screen.findByLabelText("editor");
+    await userEvent.type(editor, "esto no debe guardarse");
+    await settled();
+
+    expect(store.writes).toHaveLength(0);
+  });
+
+  it("says nothing when the document is made of what the editor writes", async () => {
+    store.bodies["a3f1-0001"] = "# Compras\n\nleche y pan";
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    await waitFor(() => screen.getByLabelText("editor"));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
 
   it("says which document is on screen, not which one was asked for", async () => {
     const onShown = vi.fn();
