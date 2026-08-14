@@ -9,12 +9,13 @@ use crate::{
 };
 
 pub const COPIED_UP_TO: u64 = 50 * 1024 * 1024;
+pub const COPIED_AT_FIRST: u64 = 5 * 1024 * 1024;
 pub const COPIED_IN_DOC: u64 = 500 * 1024 * 1024;
 
 const SHORTENS_TO: usize = 56;
 
 pub const COPIED_LEAST: u64 = 64 * 1024;
-pub const COPIED_MOST: u64 = COPIED_IN_DOC;
+pub const COPIED_MOST: u64 = COPIED_UP_TO;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Kept {

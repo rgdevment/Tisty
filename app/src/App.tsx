@@ -296,13 +296,16 @@ export default function App() {
     };
   }, []);
 
+  const where = useRef(chosen);
+  where.current = chosen;
+
   useEffect(
     () =>
-      whenFilesLand((target, paths) => {
+      whenFilesLand((target, paths, at) => {
         setError(null);
-        Promise.all(paths.map((one) => attach(one, undefined, chosen.named === "docs")))
+        Promise.all(paths.map((one) => attach(one, undefined, where.current.named === "docs")))
           .then((written) => {
-            const put = handTo(target, written.join("\n\n"));
+            const put = handTo(target, written.join("\n\n"), at);
             if (!put) setError(t("attachmentLost"));
           })
           .catch((e) => setError(saidPlainly(e)));
@@ -370,7 +373,7 @@ export default function App() {
       {error && (
         <div
           role="alert"
-          className="fixed inset-x-0 top-11 z-[60] mx-auto flex w-fit max-w-[70%] items-start gap-2 rounded-md bg-urgent/12 px-3 py-1.5 text-xs text-urgent"
+          className="shadow-lift fixed inset-x-0 top-11 z-[60] mx-auto flex w-fit max-w-[70%] items-start gap-2.5 rounded-[10px] border border-urgent/45 bg-bg px-3.5 py-2 text-[12.5px] leading-snug text-urgent"
         >
           <span className="select-text">{error}</span>
           <button

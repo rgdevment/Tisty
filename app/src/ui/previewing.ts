@@ -228,6 +228,20 @@ const shed = (
   view.dispatch(view.state.tr.delete($at.before($at.depth), $at.after($at.depth)));
 };
 
+export const spanned = (block: Written, at: number): { from: number; to: number } | null => {
+    let found: { from: number; to: number } | null = null;
+    let walked = 0;
+    block.forEach((child) => {
+      const start = walked;
+      walked += child.nodeSize;
+      if (found || at < start || at > walked) return;
+      const href = linked(child);
+      if (href === null || !previewOf(href)) return;
+      found = { from: start, to: walked };
+    });
+    return found;
+};
+
 export const alone = (block: Written): boolean => {
   let held = false;
   let more = false;
@@ -283,13 +297,23 @@ export const previewing = (reach: () => Reach) => {
             handleKeyDown(view, event) {
               if (event.key !== "Backspace" && event.key !== "Delete") return false;
               const { $from, $to, empty } = view.state.selection;
-              if (!$from.depth || !$from.sameParent($to) || !alone($from.parent)) return false;
-              if (!eats(event.key, $from.parentOffset, $from.parent.content.size, !empty)) {
+              if (!$from.depth || !$from.sameParent($to)) return false;
+              if (alone($from.parent)) {
+                if (!eats(event.key, $from.parentOffset, $from.parent.content.size, !empty)) {
+                  return false;
+                }
+                view.dispatch(
+                  view.state.tr.delete($from.before($from.depth), $from.after($from.depth)),
+                );
+                return true;
+              }
+              const held = spanned($from.parent, $from.parentOffset);
+              if (!held) return false;
+              if (!eats(event.key, $from.parentOffset - held.from, held.to - held.from, !empty)) {
                 return false;
               }
-              view.dispatch(
-                view.state.tr.delete($from.before($from.depth), $from.after($from.depth)),
-              );
+              const start = $from.start($from.depth);
+              view.dispatch(view.state.tr.delete(start + held.from, start + held.to));
               return true;
             },
             decorations(state) {

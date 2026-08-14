@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { t } from "../locales";
 
@@ -26,7 +26,9 @@ const Grown = () => (
 );
 
 export default function WindowChrome() {
-  const win = getCurrentWindow();
+  const held = useRef<ReturnType<typeof getCurrentWindow>>(null);
+  held.current ??= getCurrentWindow();
+  const win = held.current;
   const [awake, setAwake] = useState(true);
 
   useEffect(() => {
@@ -35,13 +37,19 @@ export default function WindowChrome() {
     let gone = false;
     void Promise.resolve(
       win.onFocusChanged?.(({ payload }: { payload: boolean }) => setAwake(payload)),
-    ).then((off) => {
-      if (gone) return (off as (() => void) | undefined)?.();
-      drop = off as (() => void) | undefined;
-    });
+    )
+      .then((off) => {
+        if (gone) return (off as (() => void) | undefined)?.();
+        drop = off as (() => void) | undefined;
+      })
+      .catch(() => {});
     return () => {
       gone = true;
-      drop?.();
+      try {
+        void Promise.resolve(drop?.()).catch(() => {});
+      } catch {
+        void 0;
+      }
     };
   }, [win]);
 
