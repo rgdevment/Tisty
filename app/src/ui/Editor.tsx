@@ -13,6 +13,8 @@ import Slash, { asked, narrowed, type Block } from "./Slash";
 import Floats from "./Floats";
 import Papers from "./Papers";
 import Glyphs from "./Glyphs";
+import Asking from "./Asking";
+import { spawned } from "../making";
 
 export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
@@ -77,6 +79,7 @@ interface Props {
   value: string;
   taking?: boolean;
   reading?: boolean;
+  folder?: string | null;
   label?: string;
   papers?: Filed[];
   onAttach?: () => Promise<string | null>;
@@ -89,6 +92,7 @@ export default function Editor({
   value,
   taking,
   reading,
+  folder,
   label,
   papers,
   onAttach,
@@ -102,6 +106,7 @@ export default function Editor({
   const [tying, setTying] = useState<{ x: number; y: number } | null>(null);
   const [choosing, setChoosing] = useState<{ x: number; y: number } | null>(null);
   const [glyphing, setGlyphing] = useState<{ x: number; y: number } | null>(null);
+  const [naming, setNaming] = useState<{ x: number; y: number } | null>(null);
   const mine = useRef(value);
   const urls = useRef(new Map<string, string>());
   const weights = useRef(new Map<string, number>());
@@ -282,6 +287,13 @@ export default function Editor({
           hint: "[[ ]]",
           icon: "▤",
           run: () => setChoosing(caret(editor, editor.state.selection.from)),
+        },
+        {
+          key: "newpaper",
+          label: t("insertNewDoc"),
+          hint: "\u271a",
+          icon: "\u271a",
+          run: () => setNaming(caret(editor, editor.state.selection.from)),
         },
         {
           key: "icon",
@@ -472,6 +484,40 @@ export default function Editor({
       {picked && editor && !asking && !tying && <Floats editor={editor} at={picked.at} />}
       {tying && editor && (
         <Floats editor={editor} at={tying} asking onDone={() => setTying(null)} />
+      )}
+      {naming && editor && (
+        <>
+          <span
+            className="fixed inset-0 z-30"
+            onMouseDown={() => {
+              setNaming(null);
+              editor.commands.focus();
+            }}
+          />
+          <div
+            style={{
+              left: Math.max(8, Math.min(naming.x, window.innerWidth - 290)),
+              top: Math.max(8, naming.y + 6),
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Escape") return;
+              e.preventDefault();
+              e.stopPropagation();
+              setNaming(null);
+              editor.commands.focus();
+            }}
+            className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
+          >
+            <Asking
+              onName={(name) => {
+                setNaming(null);
+                spawned(name, folder ?? undefined)
+                  .then((said) => editor.chain().focus().insertContent(said).run())
+                  .catch(() => editor.commands.focus());
+              }}
+            />
+          </div>
+        </>
       )}
       {glyphing && editor && (
         <>

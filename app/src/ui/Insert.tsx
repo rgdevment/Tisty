@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useEdge } from "./edge";
 import { open } from "@tauri-apps/plugin-dialog";
-import { attach, docNew, docWrite } from "../core";
+import { attach } from "../core";
 import { docLink } from "../markdown";
 import { addressed } from "../linking";
 import Papers from "./Papers";
+import Asking from "./Asking";
+import { spawned } from "../making";
 import Row from "./Row";
 import { t } from "../locales";
 
@@ -83,13 +85,12 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
           <Papers onPick={(doc) => onPut(docLink(doc.file, doc.title))} onError={onError} />
         )}
         {step === "newdoc" && (
-          <Naming
+          <Asking
             onName={(name) => {
               if (busy) return;
               setBusy(true);
-              docNew()
-                .then((made) => docWrite(made.id, `# ${name}\n\n`).then(() => made))
-                .then((made) => onPut(docLink(made.id, name)))
+              spawned(name)
+                .then(onPut)
                 .catch((problem) => {
                   onClose();
                   onError?.(problem);
@@ -106,34 +107,6 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
           ))}
       </div>
     </>
-  );
-}
-
-function Naming({ onName }: { onName: (name: string) => void }) {
-  const [name, setName] = useState("");
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        const said = name.trim();
-        if (said) onName(said);
-      }}
-    >
-      <label className="block px-2.5 pt-1 text-[11px] tracking-[0.04em] text-faint uppercase">
-        {t("docName")}
-      </label>
-      <input
-        autoFocus
-        value={name}
-        aria-label={t("docName")}
-        onChange={(e) => setName(e.target.value)}
-        className="mt-0.5 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none"
-      />
-      <button type="submit" className="sr-only">
-        {t("insertNewDoc")}
-      </button>
-    </form>
   );
 }
 

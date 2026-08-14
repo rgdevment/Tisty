@@ -169,6 +169,7 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
               reading={reading}
               label={open.title || t("untitledDoc")}
               papers={known}
+              folder={open.folder}
               onDoc={onDoc}
               onAttach={() =>
                 pick({ multiple: false })
