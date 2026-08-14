@@ -17,6 +17,7 @@ import {
   shortcut,
   joinThem,
   removeMachine,
+  retireAttachment,
   restore,
   syncNow,
   syncState,
@@ -213,6 +214,20 @@ export default function Keeping({ onChanged }: Props) {
           ),
       )
       .catch((e) => setTrouble({ card: "backup", text: saidPlainly(e) }));
+  };
+
+  const letGo = (reference: string) => {
+    if (held) return;
+    ask(fill("looseDropSure", reference.split("/").pop() ?? reference), { kind: "warning" })
+      .then(
+        (sure) =>
+          sure &&
+          run("review", retireAttachment(reference).then(checked), (now) => {
+            setAudit(now);
+            setSaid({ card: "review", text: t("looseDropped") });
+          }),
+      )
+      .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
   };
 
   const dropMachine = (id: string) => {
@@ -677,8 +692,18 @@ export default function Keeping({ onChanged }: Props) {
                         <span className="font-mono text-[11.5px] break-all text-soft">
                           {one.at.split("/").pop()}
                         </span>
-                        <span className="shrink-0 tabular-nums text-faint">
-                          {`${weigh(one.bytes)} · ${dated(one.when)}`}
+                        <span className="flex shrink-0 items-baseline gap-2.5 tabular-nums">
+                          <span className="text-faint">
+                            {`${weigh(one.bytes)} · ${dated(one.when)}`}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={held}
+                            onClick={() => letGo(one.at)}
+                            className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
+                          >
+                            {t("looseDrop")}
+                          </button>
                         </span>
                       </li>
                     ))}

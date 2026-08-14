@@ -327,6 +327,125 @@ pub fn loose(root: &Path, referenced: &[String]) -> Loose {
     found
 }
 
+pub const BIN_HOLDS_FOR: i64 = 30 * 24 * 60 * 60;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct Binned {
+    at: String,
+    when: i64,
+}
+
+fn bin(root: &Path) -> PathBuf {
+    root.join("bin")
+}
+
+fn bin_ledger(root: &Path) -> PathBuf {
+    root.join("bin.jsonl")
+}
+
+pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
+    let from = resolve(reference, root)?;
+    let rest = reference.trim_start_matches("attachments/");
+    let into = bin(root).join(rest);
+    if let Some(folder) = into.parent() {
+        std::fs::create_dir_all(folder)?;
+        let _ = crate::paths::ours_alone(folder);
+    }
+    std::fs::rename(&from, &into)?;
+
+    let line = serde_json::to_string(&Binned {
+        at: reference.to_string(),
+        when: now,
+    })
+    .map_err(|e| Error::Io(std::io::Error::other(e)))?;
+    let ledger = bin_ledger(root);
+    let whole = if tailed(&ledger) {
+        format!("{line}\n")
+    } else {
+        format!("\n{line}\n")
+    };
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&ledger)
+        .and_then(|mut file| std::io::Write::write_all(&mut file, whole.as_bytes()))?;
+    let _ = crate::paths::ours_alone(&ledger);
+    Ok(())
+}
+
+pub fn empty_the_bin(root: &Path, now: i64) -> usize {
+    let Ok(text) = std::fs::read_to_string(bin_ledger(root)) else {
+        return 0;
+    };
+    let all: Vec<Binned> = text
+        .lines()
+        .filter_map(|line| serde_json::from_str(line).ok())
+        .collect();
+
+    let (stale, held): (Vec<Binned>, Vec<Binned>) = all
+        .into_iter()
+        .partition(|one| now - one.when >= BIN_HOLDS_FOR);
+    if stale.is_empty() {
+        return 0;
+    }
+
+    let mut gone = 0;
+    for one in &stale {
+        let rest = one.at.trim_start_matches("attachments/");
+        let Ok(at) = resolve(&format!("bin/{rest}"), root) else {
+            continue;
+        };
+        match std::fs::remove_file(&at) {
+            Ok(()) => gone += 1,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => witness::warn(
+                channel::ATTACH,
+                "the bin could not be emptied",
+                &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
+            ),
+        }
+    }
+
+    let left: String = held
+        .iter()
+        .filter_map(|one| serde_json::to_string(one).ok())
+        .map(|line| format!("{line}\n"))
+        .collect();
+    let _ = std::fs::write(bin_ledger(root), left);
+    gone
+}
+
+pub fn sweep(root: &Path, retired: &std::collections::BTreeSet<String>) -> usize {
+    let mut gone = 0;
+    for one in retired {
+        let Ok(at) = resolve(one, root) else {
+            witness::warn(
+                channel::ATTACH,
+                "a retirement named something outside the store",
+                &[("at", Fact::Id(one.clone()))],
+            );
+            continue;
+        };
+        match std::fs::remove_file(&at) {
+            Ok(()) => {
+                gone += 1;
+                witness::note(
+                    channel::ATTACH,
+                    "a retired attachment was taken out",
+                    &[("at", Fact::Path(at))],
+                );
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => witness::warn(
+                channel::ATTACH,
+                "a retired attachment could not be taken out",
+                &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
+            ),
+        }
+    }
+    gone
+}
+
 fn since_epoch(when: std::time::SystemTime) -> i64 {
     when.duration_since(std::time::UNIX_EPOCH)
         .map(|gone| gone.as_secs() as i64)
@@ -805,6 +924,150 @@ mod tests {
         assert_eq!(counted.bytes, b"nobody points here".len() as u64);
 
         assert_eq!(loose(root.path(), &[]).files(), 2);
+    }
+
+    #[test]
+    fn what_is_let_go_waits_in_the_bin_instead_of_vanishing() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+
+        set_aside(root.path(), &at, 1_000).unwrap();
+
+        assert!(!root.path().join(&at).exists(), "it is still in the way");
+        let rest = at.trim_start_matches("attachments/");
+        assert_eq!(
+            std::fs::read(root.path().join("bin").join(rest)).unwrap(),
+            b"the bytes of a talk",
+            "letting go threw the bytes away"
+        );
+    }
+
+    #[test]
+    fn the_bin_is_not_counted_as_something_adrift() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+
+        set_aside(root.path(), &at, 1_000).unwrap();
+
+        assert_eq!(
+            loose(root.path(), &[]),
+            Loose::default(),
+            "the bin was read as attachments"
+        );
+    }
+
+    #[test]
+    fn the_bin_holds_for_thirty_days_and_not_a_day_less() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        set_aside(root.path(), &at, 1_000).unwrap();
+        let rest = at.trim_start_matches("attachments/").to_string();
+        let held = root.path().join("bin").join(&rest);
+
+        assert_eq!(empty_the_bin(root.path(), 1_000 + BIN_HOLDS_FOR - 1), 0);
+        assert!(held.exists(), "it emptied a day early");
+
+        assert_eq!(empty_the_bin(root.path(), 1_000 + BIN_HOLDS_FOR), 1);
+        assert!(!held.exists(), "it never emptied");
+    }
+
+    #[test]
+    fn emptying_the_bin_leaves_what_is_still_within_its_time() {
+        let (_a, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let (_b, two) = dropped("notas.pdf", b"other bytes entirely");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at: old, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let Kept { at: fresh, .. } = keep(&two, root.path(), COPIED_UP_TO).unwrap();
+        set_aside(root.path(), &old, 1_000).unwrap();
+        set_aside(root.path(), &fresh, 1_000 + BIN_HOLDS_FOR).unwrap();
+
+        let gone = empty_the_bin(root.path(), 1_000 + BIN_HOLDS_FOR);
+
+        assert_eq!(gone, 1);
+        let rest = fresh.trim_start_matches("attachments/");
+        assert!(
+            root.path().join("bin").join(rest).exists(),
+            "it took what was still waiting"
+        );
+
+        let said = std::fs::read_to_string(root.path().join("bin.jsonl")).unwrap();
+        assert!(!said.contains(&old), "the ledger still names what is gone");
+        assert!(said.contains(&fresh), "the ledger forgot what is waiting");
+    }
+
+    #[test]
+    fn emptying_the_bin_twice_says_nothing_the_second_time() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        set_aside(root.path(), &at, 1_000).unwrap();
+
+        assert_eq!(empty_the_bin(root.path(), 1_000 + BIN_HOLDS_FOR), 1);
+        assert_eq!(empty_the_bin(root.path(), 1_000 + BIN_HOLDS_FOR), 0);
+    }
+
+    #[test]
+    fn what_was_retired_is_taken_out_wherever_it_is_read() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+
+        let gone = sweep(root.path(), &[at.clone()].into());
+
+        assert_eq!(gone, 1);
+        assert!(!root.path().join(&at).exists());
+    }
+
+    #[test]
+    fn a_retirement_that_already_happened_here_is_not_an_error() {
+        let root = tempfile::tempdir().unwrap();
+
+        let gone = sweep(
+            root.path(),
+            &["attachments/ab/nada-a3f9.pdf".to_string()].into(),
+        );
+
+        assert_eq!(gone, 0, "it counted what was not there");
+    }
+
+    #[test]
+    fn a_retirement_can_never_name_its_way_out_of_the_store() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(root.path().join("attachments").join("ab")).unwrap();
+        let outside = root.path().join("mine.txt");
+        std::fs::write(&outside, b"not yours to take").unwrap();
+        let far = root.path().join("far.txt");
+        std::fs::write(&far, b"nor this one").unwrap();
+
+        let gone = sweep(
+            root.path(),
+            &[
+                "attachments/../mine.txt".to_string(),
+                "attachments/ab/../../mine.txt".to_string(),
+                far.display().to_string(),
+            ]
+            .into(),
+        );
+
+        assert_eq!(gone, 0, "a retirement reached outside the store");
+        assert!(outside.exists(), "climbing out of attachments worked");
+        assert!(far.exists(), "an absolute path was followed");
+    }
+
+    #[test]
+    fn what_is_retired_leaves_the_rest_alone() {
+        let (_a, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let (_b, two) = dropped("notas.pdf", b"other bytes entirely");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let Kept { at: kept, .. } = keep(&two, root.path(), COPIED_UP_TO).unwrap();
+
+        sweep(root.path(), &[at].into());
+
+        assert!(root.path().join(&kept).exists(), "it took the wrong one");
     }
 
     #[test]

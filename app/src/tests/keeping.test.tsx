@@ -297,6 +297,57 @@ describe("the maintenance panel", () => {
     expect(screen.queryByText(/have not synced in a while/i)).toBeNull();
   });
 
+  it("never lets go of an attachment without being told twice", async () => {
+    asked.sure = false;
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await screen.findByText("charla-a3f9.mp4");
+
+    await userEvent.click(screen.getAllByRole("button", { name: /let go/i })[0]);
+
+    await waitFor(() => expect(sent("retire_attachment")).toHaveLength(0));
+  });
+
+  it("lets go of the one it was pointed at, and looks again afterwards", async () => {
+    asked.sure = true;
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await screen.findByText("charla-a3f9.mp4");
+    const looks = sent("checked").length;
+
+    await userEvent.click(screen.getAllByRole("button", { name: /let go/i })[0]);
+
+    await waitFor(() => expect(sent("retire_attachment")).toHaveLength(1));
+    expect(sent("retire_attachment")[0].args.reference).toBe("attachments/ab/charla-a3f9.mp4");
+    await waitFor(() => expect(sent("checked").length).toBeGreaterThan(looks));
+  });
+
+  it("says what letting go means before it happens", async () => {
+    asked.sure = false;
+    const said: string[] = [];
+    const dialog = await import("@tauri-apps/plugin-dialog");
+    const was = dialog.ask;
+    vi.spyOn(dialog, "ask").mockImplementation((text: string) => {
+      said.push(text);
+      return was(text);
+    });
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await screen.findByText("charla-a3f9.mp4");
+
+    await userEvent.click(screen.getAllByRole("button", { name: /let go/i })[0]);
+
+    await waitFor(() => expect(said).toHaveLength(1));
+    expect(said[0]).toMatch(/30 days/i);
+    expect(said[0]).toMatch(/does not get it back/i);
+  });
+
   it("offers to remove another machine, never this one", async () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);

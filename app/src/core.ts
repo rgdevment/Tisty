@@ -342,6 +342,8 @@ export const shortcut = (): Promise<string | null> => invoke("shortcut");
 export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<void> =>
   invoke("close_window", { how, remember });
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
+export const retireAttachment = (reference: string): Promise<void> =>
+  invoke("retire_attachment", { reference });
 export const removeMachine = (id: string): Promise<void> => invoke("remove_machine", { id });
 export const joinThem = (into: string): Promise<number> => invoke("join_them", { into });
 export const restore = (from: string): Promise<number> => invoke("restore", { from });

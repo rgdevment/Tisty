@@ -97,7 +97,7 @@ impl Event {
             | Op::DocDelete { id }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id } => Some(*id),
-            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } => None,
+            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } | Op::AttachRetire { .. } => None,
         }
     }
 }
