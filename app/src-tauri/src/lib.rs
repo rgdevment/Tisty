@@ -114,13 +114,27 @@ impl Session {
         Ok(())
     }
 
+    fn referenced(&self) -> Vec<String> {
+        let mut held: Vec<String> = self
+            .state
+            .tasks
+            .values()
+            .flat_map(|task| task.references())
+            .map(|one| one.target)
+            .collect();
+        held.extend(tisty_core::docs::referenced(&self.paths.docs()));
+        held
+    }
+
     fn take_out_the_retired(&mut self) {
         if self.state.retired.is_empty() {
             return;
         }
-        let mut gone = tisty_core::attach::sweep(self.paths.data(), &self.state.retired);
+        let named = self.referenced();
+        let held: std::collections::BTreeSet<&str> = named.iter().map(|one| one.as_str()).collect();
+        let mut gone = tisty_core::attach::sweep(self.paths.data(), &self.state.retired, &held);
         if let Some(tisty_core::config::Sync::Folder(dest)) = self.config.sync.clone() {
-            gone += tisty_core::attach::sweep(&dest, &self.state.retired);
+            gone += tisty_core::attach::sweep(&dest, &self.state.retired, &held);
         }
         if gone > 0 {
             witness::note(

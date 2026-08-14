@@ -345,6 +345,9 @@ fn bin_ledger(root: &Path) -> PathBuf {
 
 pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
     let from = resolve(reference, root)?;
+    if !from.is_file() {
+        return Err(Error::OutsideTheStore(reference.to_string()));
+    }
     let rest = reference.trim_start_matches("attachments/");
     let into = bin(root).join(rest);
     if let Some(folder) = into.parent() {
@@ -416,9 +419,16 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
     gone
 }
 
-pub fn sweep(root: &Path, retired: &std::collections::BTreeSet<String>) -> usize {
+pub fn sweep(
+    root: &Path,
+    retired: &std::collections::BTreeSet<String>,
+    held: &std::collections::BTreeSet<&str>,
+) -> usize {
     let mut gone = 0;
     for one in retired {
+        if held.contains(one.as_str()) {
+            continue;
+        }
         let Ok(at) = resolve(one, root) else {
             witness::warn(
                 channel::ATTACH,
@@ -945,6 +955,57 @@ mod tests {
     }
 
     #[test]
+    fn attaching_again_what_was_retired_does_not_hand_it_to_the_sweeper() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        set_aside(root.path(), &at, 1_000).unwrap();
+        let retired: std::collections::BTreeSet<String> = [at.clone()].into();
+        sweep(root.path(), &retired, &Default::default());
+
+        let again = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        sweep(root.path(), &retired, &[again.at.as_str()].into());
+
+        assert!(
+            root.path().join(&again.at).exists(),
+            "attaching it again put it straight back in front of the sweeper"
+        );
+    }
+
+    #[test]
+    fn a_retirement_never_outranks_a_reference_that_exists_now() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+
+        let gone = sweep(root.path(), &[at.clone()].into(), &[at.as_str()].into());
+
+        assert_eq!(gone, 0);
+        assert!(
+            root.path().join(&at).exists(),
+            "a tombstone took something that is in use right now"
+        );
+    }
+
+    #[test]
+    fn what_the_bin_holds_is_not_taken_twice_when_it_is_retired_again() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        set_aside(root.path(), &at, 1_000).unwrap();
+
+        let why = set_aside(root.path(), &at, 2_000);
+
+        assert!(why.is_err(), "it wrote a second word about the same file");
+        let said = std::fs::read_to_string(root.path().join("bin.jsonl")).unwrap();
+        assert_eq!(
+            said.matches("charla").count(),
+            1,
+            "the bin ledger grew a duplicate that empties nothing"
+        );
+    }
+
+    #[test]
     fn nothing_lands_in_the_bin_without_the_ledger_knowing() {
         let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
         let root = tempfile::tempdir().unwrap();
@@ -1031,7 +1092,7 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
 
-        let gone = sweep(root.path(), &[at.clone()].into());
+        let gone = sweep(root.path(), &[at.clone()].into(), &Default::default());
 
         assert_eq!(gone, 1);
         assert!(!root.path().join(&at).exists());
@@ -1044,6 +1105,7 @@ mod tests {
         let gone = sweep(
             root.path(),
             &["attachments/ab/nada-a3f9.pdf".to_string()].into(),
+            &Default::default(),
         );
 
         assert_eq!(gone, 0, "it counted what was not there");
@@ -1066,6 +1128,7 @@ mod tests {
                 far.display().to_string(),
             ]
             .into(),
+            &Default::default(),
         );
 
         assert_eq!(gone, 0, "a retirement reached outside the store");
@@ -1081,7 +1144,7 @@ mod tests {
         let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
         let Kept { at: kept, .. } = keep(&two, root.path(), COPIED_UP_TO).unwrap();
 
-        sweep(root.path(), &[at].into());
+        sweep(root.path(), &[at].into(), &Default::default());
 
         assert!(root.path().join(&kept).exists(), "it took the wrong one");
     }
