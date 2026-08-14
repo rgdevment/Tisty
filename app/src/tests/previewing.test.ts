@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
 import { asMarkdown, written } from "../ui/writing";
-import { previewing, type Reach } from "../ui/previewing";
+import { plugged, previewing, type Reach } from "../ui/previewing";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -129,11 +129,30 @@ describe("what the editor shows beside a link", () => {
     editor.destroy();
   });
 
+  it("says a card points at the very document you are reading, instead of doing nothing", () => {
+    const editor = made("[Informe](tisty:doc/mac0-0007)", { here: "mac0-0007" });
+
+    const card = editor.view.dom.querySelector<HTMLElement>(".card-doc");
+    expect(card?.textContent).toContain("This very document");
+    expect(card?.getAttribute("role")).toBeNull();
+    expect(card?.getAttribute("tabindex")).toBeNull();
+
+    editor.destroy();
+  });
+
+  it("still opens a card that points somewhere else", () => {
+    const editor = made("[Informe](tisty:doc/mac0-0007)", { here: "mac0-0001" });
+
+    expect(editor.view.dom.querySelector(".card-doc")?.getAttribute("role")).toBe("button");
+
+    editor.destroy();
+  });
+
   it("says a document is gone rather than saying it is opening for ever", () => {
     const editor = made("[Informe](tisty:doc/borrado)");
 
     expect(editor.view.dom.querySelector(".card-under")?.textContent).toBe(
-      "That document has not arrived on this machine yet",
+      "That document is not on this machine",
     );
 
     editor.destroy();
@@ -279,6 +298,150 @@ describe("what the editor shows beside a link", () => {
     const sheet = readFileSync("src/index.css", "utf8");
 
     expect(sheet).toContain("p:has(> a:only-child):has(+ .preview)");
+  });
+
+  it("leaves the words above a preview on screen, so there is a line to write in", () => {
+    const sheet = readFileSync("src/index.css", "utf8");
+    const rule = sheet.slice(sheet.indexOf(".tisty-doc p:has(> a:only-child):has(+ .preview)"));
+
+    expect(rule.slice(0, rule.indexOf("}"))).not.toMatch(/display:\s*none/);
+  });
+
+  it("stands the words above the preview in the middle, over what they name", () => {
+    const sheet = readFileSync("src/index.css", "utf8");
+    const rule = sheet.slice(sheet.indexOf(".tisty-doc p:has(> a:only-child):has(+ .preview)"));
+
+    expect(rule.slice(0, rule.indexOf("}"))).toMatch(/text-align:\s*center/);
+  });
+
+  const rubs = (editor: Editor, key: string) => {
+    const mine = plugged.get(editor.state);
+    return mine?.props.handleKeyDown?.call(
+      mine,
+      editor.view,
+      new KeyboardEvent("keydown", { key }),
+    );
+  };
+
+  it("takes the whole reference when a single letter of its name is rubbed out", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)\n\nqueda esto");
+
+    editor.commands.setTextSelection(4);
+
+    expect(rubs(editor, "Backspace")).toBe(true);
+    expect(asMarkdown(editor)?.trim()).toBe("queda esto");
+
+    editor.destroy();
+  });
+
+  it("takes it whole with the forward key too", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)\n\nqueda esto");
+
+    editor.commands.setTextSelection(1);
+
+    expect(rubs(editor, "Delete")).toBe(true);
+    expect(asMarkdown(editor)?.trim()).toBe("queda esto");
+
+    editor.destroy();
+  });
+
+  it("keeps the words a person wrote beside the reference", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>) y lo que dije");
+
+    editor.commands.setTextSelection(12);
+
+    expect(rubs(editor, "Backspace")).toBeFalsy();
+    expect(asMarkdown(editor)).toContain("y lo que dije");
+
+    editor.destroy();
+  });
+
+  it("says nothing about an empty line, where there is no name to rub out", () => {
+    const editor = made("");
+
+    editor.commands.setTextSelection(1);
+
+    expect(() => rubs(editor, "Backspace")).not.toThrow();
+
+    editor.destroy();
+  });
+
+  it("takes it whole when letters were picked from the very start of the name", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)\n\nqueda esto");
+
+    editor.commands.setTextSelection({ from: 1, to: 4 });
+
+    expect(rubs(editor, "Backspace")).toBe(true);
+    expect(asMarkdown(editor)?.trim()).toBe("queda esto");
+
+    editor.destroy();
+  });
+
+  it("does not touch a plain link, which has no preview to stand for it", () => {
+    const editor = made("[la web](https://ejemplo.org)");
+
+    editor.commands.setTextSelection(4);
+
+    expect(rubs(editor, "Backspace")).toBeFalsy();
+    expect(asMarkdown(editor)).toContain("ejemplo.org");
+
+    editor.destroy();
+  });
+
+  it("leaves the far edge of the name to the editor's own keys as well", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)\n\ny esto");
+
+    editor.commands.setTextSelection(7);
+
+    expect(rubs(editor, "Delete")).toBeFalsy();
+    expect(asMarkdown(editor)).toContain("charla-a3f9.mp4");
+
+    editor.destroy();
+  });
+
+  it("leaves the caret at the edge of the name to the editor's own keys", () => {
+    const editor = made("antes\n\n[charla](<attachments/charla-a3f9.mp4>)");
+
+    editor.commands.setTextSelection(8);
+
+    expect(rubs(editor, "Backspace")).toBeFalsy();
+    expect(asMarkdown(editor)).toContain("charla-a3f9.mp4");
+
+    editor.destroy();
+  });
+
+  it("leaves ordinary words alone when they are rubbed out", () => {
+    const editor = made("un parrafo cualquiera");
+
+    editor.commands.setTextSelection(5);
+
+    expect(rubs(editor, "Backspace")).toBeFalsy();
+
+    editor.destroy();
+  });
+
+  it("does not swallow a sweep that reaches past the reference", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)\n\ny esto");
+
+    editor.commands.setTextSelection({ from: 3, to: editor.state.doc.content.size - 2 });
+
+    expect(rubs(editor, "Backspace")).toBeFalsy();
+
+    editor.destroy();
+  });
+
+  it("keeps one line between two attachments in a row", () => {
+    const editor = made(
+      "[charla](<attachments/charla-a3f9.mp4>)\n\n[notas](<attachments/notas-b1c2.pdf>)",
+    );
+
+    const shown = editor.view.dom.querySelectorAll("p");
+    const above = [...shown].filter((one) => one.querySelector("a"));
+
+    expect(above).toHaveLength(2);
+    expect(editor.view.dom.querySelectorAll(".preview")).toHaveLength(2);
+
+    editor.destroy();
   });
 
   it("sits after a heading rather than inside it", () => {

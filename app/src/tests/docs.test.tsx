@@ -106,6 +106,24 @@ describe("the document being written", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("opens the other document when a reference asks for it", async () => {
+    store.bodies = {
+      "a3f1-0001": "# Compras\n\nver [Notas](tisty:doc/a3f1-0002)",
+      "a3f1-0002": "# Notas\n\nlo otro",
+    };
+    const props = { known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs open="a3f1-0001" {...props} />);
+    await waitFor(() =>
+      expect((screen.getByLabelText("editor") as HTMLTextAreaElement).value).toContain("Compras"),
+    );
+
+    rerender(<Docs open="a3f1-0002" {...props} />);
+
+    await waitFor(() =>
+      expect((screen.getByLabelText("editor") as HTMLTextAreaElement).value).toContain("Notas"),
+    );
+  });
+
   it("says which document is on screen, not which one was asked for", async () => {
     const onShown = vi.fn();
     store.delays = [];

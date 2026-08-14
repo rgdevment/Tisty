@@ -90,7 +90,7 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
               if (busy) return;
               setBusy(true);
               spawned(name)
-                .then(onPut)
+                .then((born) => onPut(born.said))
                 .catch((problem) => {
                   onClose();
                   onError?.(problem);

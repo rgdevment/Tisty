@@ -170,6 +170,8 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
               label={open.title || t("untitledDoc")}
               papers={known}
               folder={open.folder}
+              paper={open.file}
+              onMade={(id, name) => onKept({ id, title: name })}
               onDoc={onDoc}
               onAttach={() =>
                 pick({ multiple: false })

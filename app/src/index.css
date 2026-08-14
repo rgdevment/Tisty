@@ -428,8 +428,10 @@ body {
 }
 
 .tisty-doc p:has(> a:only-child):has(+ .preview) {
-  display: none;
+  margin-bottom: 0.2rem;
+  text-align: center;
 }
+.tisty-doc p:has(> a:only-child):has(+ .preview) > a,
 .tisty-doc h1:has(> a:only-child):has(+ .preview) > a,
 .tisty-doc h2:has(> a:only-child):has(+ .preview) > a,
 .tisty-doc h3:has(> a:only-child):has(+ .preview) > a {

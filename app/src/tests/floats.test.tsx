@@ -11,6 +11,27 @@ const made = (content = "hola mundo") => new Editor({ extensions: written(), con
 
 const md = (e: Editor) => asMarkdown(e) ?? "";
 
+describe("when the panel is allowed on screen at all", () => {
+  it("rides over words that were picked", async () => {
+    const { perched } = await import("../ui/Editor");
+
+    expect(perched(false, false, false)).toBe(true);
+  });
+
+  it("stays away from a caret sitting on nothing, and from code", async () => {
+    const { perched } = await import("../ui/Editor");
+
+    expect(perched(true, false, false)).toBe(false);
+    expect(perched(false, true, false)).toBe(false);
+  });
+
+  it("gives way to the menu the right button opened, selection or not", async () => {
+    const { perched } = await import("../ui/Editor");
+
+    expect(perched(false, false, true)).toBe(false);
+  });
+});
+
 describe("the panel that appears over a selection", () => {
   it("offers only what the document can keep", () => {
     const editor = made();
