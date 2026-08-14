@@ -44,6 +44,7 @@ const KNOWN = [
   "stillCarrying",
   "sandboxCannotJoin",
   "notThisMachine",
+  "stillReferenced",
   "internal",
   "internalNamed",
   "noSuchFolder",

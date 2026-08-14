@@ -133,10 +133,7 @@ impl Session {
 
     fn take_a_seat(&mut self) -> tisty_core::Result<()> {
         let who = self.config.device_id.clone();
-        if tisty_core::store::ledger(self.paths.store())?
-            .allowed
-            .contains(&who)
-        {
+        if self.state.devices.contains(&who) {
             return Ok(());
         }
         self.commit(Op::DeviceJoin { d: who })
@@ -2427,6 +2424,18 @@ async fn back_up(
 fn retire_attachment(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<()> {
     let mut session = held(&session);
     let now = jiff::Timestamp::now().as_second();
+
+    let mut held_by: Vec<String> = session
+        .state
+        .tasks
+        .values()
+        .flat_map(|task| task.references())
+        .map(|one| one.target)
+        .collect();
+    held_by.extend(tisty_core::docs::referenced(&session.paths.docs()));
+    if held_by.iter().any(|one| one == &reference) {
+        return Err(Refusal::about("stillReferenced", reference));
+    }
 
     tisty_core::attach::set_aside(session.paths.data(), &reference, now).map_err(|e| {
         witness::warn(
