@@ -54,6 +54,18 @@ describe("a reference to a document of this Tisty", () => {
     expect(composed("[Un archivo](attachments/foto.png)")).not.toContain("paper");
   });
 
+  it("survives the document editor, which drops schemes it was not told about", async () => {
+    const { Editor } = await import("@tiptap/core");
+    const { written, asMarkdown } = await import("../ui/writing");
+    const written_ = docLink("mac0-0007", "Informe");
+    const editor = new Editor({ extensions: written(), content: written_ });
+
+    expect(asMarkdown(editor)).toBe(written_);
+    expect(editor.getHTML()).toContain('href="tisty:doc/mac0-0007"');
+
+    editor.destroy();
+  });
+
   it("opens the document instead of asking the system to open a file", async () => {
     const onDoc = vi.fn();
     render(

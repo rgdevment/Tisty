@@ -42,7 +42,7 @@ const Barred = Text.extend({
 });
 
 export const written = () => [
-  StarterKit.configure({ link: { openOnClick: false, autolink: true }, text: false }),
+  StarterKit.configure({ link: { openOnClick: false, autolink: true, protocols: ["tisty"] }, text: false }),
   Pictured,
   Table.configure({ resizable: false }),
   TableRow,

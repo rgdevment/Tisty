@@ -14,9 +14,10 @@ interface Props {
   known: Filed[];
   onKept: (doc: { id: string; title: string }) => void;
   onError: (problem: unknown) => void;
+  onDoc?: (id: string) => void;
 }
 
-export default function Docs({ open: asked, known, onKept, onError }: Props) {
+export default function Docs({ open: asked, known, onKept, onError, onDoc }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
@@ -114,6 +115,8 @@ export default function Docs({ open: asked, known, onKept, onError }: Props) {
               value={body}
               taking
               label={open.title || t("untitledDoc")}
+              papers={known}
+              onDoc={onDoc}
               onAttach={() =>
                 pick({ multiple: false })
                   .then((at) => (typeof at === "string" ? attach(at) : null))
