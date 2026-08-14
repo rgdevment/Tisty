@@ -2002,6 +2002,13 @@ fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()>
     let root = session.paths.docs();
     tisty_core::docs::remove(&root, &file)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be removed", e))?;
+
+    if let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() {
+        tisty_sync::forget_paper(&dest, &file);
+    }
+    let mut said = tisty_core::docs::Carried::read(session.paths.data());
+    said.forget(&file);
+    let _ = said.save(session.paths.data());
     Ok(())
 }
 

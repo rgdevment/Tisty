@@ -114,6 +114,7 @@ export default function App() {
   const [menu, setMenu] = useState<{ at: { x: number; y: number }; label: string; choices: Choice[] } | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
   const [showing, setShowing] = useState<string | null>(null);
+  const [carried, setCarried] = useState(0);
 
   const newDoc = (folder?: string) =>
     docNew(folder)
@@ -249,7 +250,10 @@ export default function App() {
   latest.current = load;
   useEffect(() => {
     const carrier = carrying(
-      () => latest.current(),
+      () => {
+        setCarried((was) => was + 1);
+        latest.current();
+      },
       (ids) => {
         decideAll(ids).finally(() => latest.current());
       },
@@ -669,6 +673,7 @@ export default function App() {
           onError={told}
           onShown={setShowing}
           onDoc={openDoc}
+          fresh={carried}
         />
       ) : chosen.named === "lists" && !chosen.list ? (
         <Lists

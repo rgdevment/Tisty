@@ -18,14 +18,24 @@ interface Props {
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onShown?: (file: string | null) => void;
+  fresh?: number;
 }
 
-export default function Docs({ open: asked, known, onKept, onError, onDoc, onShown }: Props) {
+export default function Docs({
+  open: asked,
+  known,
+  onKept,
+  onError,
+  onDoc,
+  onShown,
+  fresh = 0,
+}: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [packed, setPacked] = useState(0);
   const shaped = useRef("");
+  const seen = useRef(0);
   const [stuck, setStuck] = useState(false);
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
@@ -85,10 +95,15 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
   }, [asked, known, open, drop]);
 
   useEffect(() => {
-    if (!asked || asked === open?.file) {
+    if (!asked) {
       turn.current += 1;
       return;
     }
+    if (asked === open?.file && (fresh === seen.current || held.current)) {
+      turn.current += 1;
+      return;
+    }
+    seen.current = fresh;
     const wanted = known.find((one) => one.file === asked);
     if (!wanted) return;
     flush();
@@ -107,7 +122,7 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
         setStuck(false);
       })
       .catch((e) => onError(saidPlainly(e)));
-  }, [asked, known, open, flush, onError]);
+  }, [asked, known, open, flush, onError, fresh]);
 
   useEffect(() => {
     onShown?.(open?.file ?? null);

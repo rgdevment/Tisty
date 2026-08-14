@@ -39,7 +39,7 @@ impl Fact {
         match self {
             Fact::Count(n) => n.to_string(),
             Fact::Bytes(n) => n.to_string(),
-            Fact::Id(id) => one_line(id),
+            Fact::Id(id) => one_line(&kept_short(Path::new(id))),
             Fact::Code(code) => (*code).to_string(),
             Fact::Path(at) => format!("{:?}", hidden(&one_line(&kept_short(at)))),
             Fact::Why(why) => format!("{:?}", hidden(&one_line(why))),
@@ -408,6 +408,21 @@ mod tests {
         assert!(!said.contains("severance"), "{said}");
         assert!(said.contains("attachments"), "{said}");
         assert!(said.ends_with('…'), "{said}");
+    }
+
+    #[test]
+    fn nothing_under_attachments_is_named_however_it_is_handed_over() {
+        let said = Fact::Id("attachments/ab/severance-juan-perez-91f2.pdf".into()).shown();
+
+        assert!(!said.contains("severance"), "{said}");
+        assert!(said.contains("attachments"), "{said}");
+    }
+
+    #[test]
+    fn an_identifier_that_names_nobody_is_still_readable() {
+        let said = Fact::Id("01JBQ0000000000000000000AA".into()).shown();
+
+        assert_eq!(said, "01JBQ0000000000000000000AA");
     }
 
     #[test]

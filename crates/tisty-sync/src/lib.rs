@@ -50,6 +50,9 @@ pub fn carry(
     if !dest.is_dir() {
         return Err(Trouble::NotThere(dest.display().to_string()));
     }
+    for folder in [STORE, HELD, PAPERS] {
+        straight(&dest.join(folder), dest)?;
+    }
     let store = data.join(STORE);
     let ours = settled(&store, dest)?;
 
@@ -69,7 +72,7 @@ pub fn carry(
         moved.sent = copy_segments(&store.join(device), &dest.join(STORE).join(device))?;
         moved.sent += copy_held(&data.join(HELD), &dest.join(HELD))?;
     }
-    if matches!(way, Way::Both) && !alive.is_empty() {
+    if !alive.is_empty() {
         let papers = carry_papers(data, dest, alive)?;
         moved.sent += papers.sent;
         moved.brought += papers.brought;
@@ -270,6 +273,30 @@ fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
             if !at.is_file() {
                 continue;
             }
+            let named = at
+                .file_name()
+                .and_then(|one| one.to_str())
+                .unwrap_or_default();
+            let under = shelf.file_name();
+            let under = under.to_str().unwrap_or_default();
+            if !tisty_core::attach::shelved(under, named) {
+                witness::warn(
+                    channel::SYNC,
+                    "something in the shared folder is not shaped like an attachment",
+                    &[("at", Fact::Id(format!("attachments/{under}/{named}")))],
+                );
+                continue;
+            }
+            if std::fs::metadata(&at).map(|m| m.len()).unwrap_or(0)
+                > tisty_core::attach::COPIED_IN_DOC
+            {
+                witness::warn(
+                    channel::SYNC,
+                    "something in the shared folder is past what any attachment may weigh",
+                    &[("at", Fact::Id(format!("attachments/{under}/{named}")))],
+                );
+                continue;
+            }
             let Some(rest) = at.strip_prefix(from).ok() else {
                 continue;
             };
@@ -315,9 +342,19 @@ pub enum Keep {
     Both,
 }
 
+pub fn forget_paper(dest: &Path, id: &str) {
+    let Ok(theirs) = tisty_core::docs::resolve(&dest.join(PAPERS), id) else {
+        return;
+    };
+    match std::fs::remove_file(&theirs) {
+        Ok(()) | Err(_) => {}
+    }
+}
+
 pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
     use tisty_core::docs::{Carried, print_of};
 
+    straight(&dest.join(PAPERS), dest)?;
     let mine = tisty_core::docs::resolve(&data.join(PAPERS), id)
         .map_err(|_| Trouble::Refused(id.to_string()))?;
     let theirs = tisty_core::docs::resolve(&dest.join(PAPERS), id)
@@ -354,6 +391,7 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
 
     let here = data.join(PAPERS);
     let there = dest.join(PAPERS);
+    straight(&there, dest)?;
     let mut said = Carried::read(data);
     let mut done = Moved::default();
 
@@ -426,9 +464,29 @@ fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     written(at, &body, when)
 }
 
+fn straight(at: &Path, under: &Path) -> Result<(), Trouble> {
+    let mut walk = at;
+    while walk != under {
+        if std::fs::symlink_metadata(walk).is_ok_and(|one| one.file_type().is_symlink()) {
+            witness::warn(
+                channel::SYNC,
+                "the meeting place points somewhere else, so nothing was written",
+                &[("at", Fact::Path(walk.to_path_buf()))],
+            );
+            return Err(Trouble::Refused(walk.display().to_string()));
+        }
+        match walk.parent() {
+            Some(up) => walk = up,
+            None => break,
+        }
+    }
+    Ok(())
+}
+
 fn written(at: &Path, body: &[u8], when: Option<std::time::SystemTime>) -> Result<(), Trouble> {
     if let Some(parent) = at.parent() {
         std::fs::create_dir_all(parent).map_err(io)?;
+        let _ = tisty_core::paths::ours_alone(parent);
     }
     let mine = ROUND.fetch_add(1, Ordering::Relaxed);
     let tmp = at.with_extension(format!("{}.{mine}.part", std::process::id()));
@@ -661,6 +719,166 @@ mod tests {
         assert_eq!(body(shared.path(), "dev_a-0001"), "# Minuta\n\nlo mio");
         let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
         assert!(done.undecided.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_meeting_place_that_points_somewhere_else_is_refused_before_anything_leaves() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let elsewhere = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(elsewhere.path(), shared.path().join(STORE)).unwrap();
+
+        let why = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap_err();
+
+        assert!(
+            matches!(why, Trouble::Refused(_)),
+            "it followed the link out of the folder: {why:?}"
+        );
+        assert!(
+            std::fs::read_dir(elsewhere.path())
+                .unwrap()
+                .next()
+                .is_none(),
+            "the log was copied where the link pointed"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_documents_folder_that_points_somewhere_else_never_receives_a_body() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let elsewhere = tempfile::tempdir().unwrap();
+        std::os::unix::fs::symlink(elsewhere.path(), shared.path().join(PAPERS)).unwrap();
+        paper(&one, "dev_a-0001", "# Lo que dije");
+
+        let why = carry_papers(&one.data, shared.path(), &["dev_a-0001".into()]).unwrap_err();
+
+        assert!(matches!(why, Trouble::Refused(_)), "{why:?}");
+        assert!(
+            std::fs::read_dir(elsewhere.path())
+                .unwrap()
+                .next()
+                .is_none(),
+            "the body was written where the link pointed"
+        );
+    }
+
+    #[test]
+    fn a_body_the_reader_would_refuse_never_replaces_the_one_that_is_here() {
+        let one = blank("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let alive = ["dev_a-0001".to_string()];
+        paper(&one, "dev_a-0001", "# Lo mio, breve");
+        theirs(shared.path(), "dev_a-0001", &"x".repeat(600 * 1024));
+
+        let done = carry_papers(&one.data, shared.path(), &alive);
+
+        assert!(done.is_err() || done.unwrap().brought == 0);
+        assert_eq!(
+            body(&one.data, "dev_a-0001"),
+            "# Lo mio, breve",
+            "a body nobody can open replaced one that could be read"
+        );
+    }
+
+    #[test]
+    fn what_the_folder_offers_that_is_not_shaped_like_an_attachment_stays_there() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let shelf = shared.path().join(HELD).join("ab");
+        std::fs::create_dir_all(&shelf).unwrap();
+        std::fs::write(shelf.join("factura.exe"), b"not yours").unwrap();
+        std::fs::write(shelf.join("nota.command"), b"nor this").unwrap();
+        std::fs::write(shelf.join("contrato-91f2ab00.pdf"), b"a real one").unwrap();
+        let odd = shared.path().join(HELD).join("not-a-shelf");
+        std::fs::create_dir_all(&odd).unwrap();
+        std::fs::write(odd.join("mapa-91f2ab00.svg"), b"wrong shelf").unwrap();
+
+        carry(&one.data, &one.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        let here = one.data.join(HELD).join("ab");
+        assert!(
+            here.join("contrato-91f2ab00.pdf").exists(),
+            "it kept nothing"
+        );
+        assert!(
+            !here.join("factura.exe").exists(),
+            "an executable was let in"
+        );
+        assert!(!here.join("nota.command").exists());
+        assert!(!one.data.join(HELD).join("not-a-shelf").exists());
+    }
+
+    #[test]
+    fn a_document_deleted_here_stops_being_readable_in_the_shared_folder() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        paper(&one, "dev_a-0001", "# Lo que dije");
+        carry_papers(&one.data, shared.path(), &["dev_a-0001".into()]).unwrap();
+
+        forget_paper(shared.path(), "dev_a-0001");
+
+        assert!(
+            !shared.path().join("docs").join("dev_a-0001.md").exists(),
+            "the body stayed legible in someone else's cloud folder"
+        );
+    }
+
+    #[test]
+    fn forgetting_a_paper_can_never_name_its_way_out_of_the_folder() {
+        let shared = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(shared.path().join(PAPERS)).unwrap();
+        let loot = shared.path().join("loot.md");
+        std::fs::write(&loot, "no es tuyo").unwrap();
+
+        forget_paper(shared.path(), "../loot");
+
+        assert!(loot.exists(), "it deleted a file outside the folder");
+    }
+
+    #[test]
+    fn a_body_travels_even_when_only_one_direction_was_asked_for() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        paper(&one, "dev_a-0001", "# Lo que dije");
+
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Push,
+            &["dev_a-0001".to_string()],
+        )
+        .unwrap();
+
+        assert_eq!(
+            body(shared.path(), "dev_a-0001"),
+            "# Lo que dije",
+            "a document written here waited for a full round to leave"
+        );
+    }
+
+    #[test]
+    fn nothing_moving_still_leaves_the_two_sides_on_common_ground() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let alive = vec!["dev_a-0001".to_string()];
+        paper(&one, "dev_a-0001", "# Iguales");
+        theirs(shared.path(), "dev_a-0001", "# Iguales");
+
+        let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+        assert_eq!(done.sent + done.brought, 0);
+
+        paper(&one, "dev_a-0001", "# Iguales, y algo mas");
+        let after = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+        assert!(
+            after.undecided.is_empty(),
+            "agreeing was not written down, so the next edit looked like a quarrel"
+        );
+        assert_eq!(after.sent, 1);
     }
 
     #[test]
@@ -971,11 +1189,11 @@ mod tests {
 
     #[test]
     fn content_no_editor_would_be_proud_of_still_crosses_byte_for_byte() {
-        let long = "y".repeat(600 * 1024);
+        let long = "y".repeat(400 * 1024);
         let cases: [(&str, &str); 6] = [
             ("empty", ""),
             ("blank", "   \n\t  \n  "),
-            ("long, well past what the editor would ever open", &long),
+            ("long, but still within what the editor will open", &long),
             ("accented", "café ñandú 日本語 🎉 texto con acentós"),
             ("windows line endings", "una linea\r\notra linea\r\n"),
             ("a byte order mark up front", "\u{FEFF}# Titulo\n\ncuerpo"),
@@ -1414,12 +1632,104 @@ mod tests {
         assert_eq!(titles(&one.store).len(), 1, "our store still reads");
     }
 
+    fn hostile_ids() -> Vec<String> {
+        vec![
+            "../secret".to_string(),
+            "../../secret".to_string(),
+            "..\\secret".to_string(),
+            "/etc/passwd".to_string(),
+            "C:\\Windows\\System32\\loot".to_string(),
+            "c:loot".to_string(),
+            "\\\\server\\share\\loot".to_string(),
+            "CON".to_string(),
+            "a3f1\0-0001".to_string(),
+            "a3f1-0001 ".to_string(),
+            "a".repeat(300),
+            "a".repeat(5000),
+            "dispositivo_caf\u{e9}-0001".to_string(),
+            "dispositivo_cafe\u{301}-0001".to_string(),
+            "\u{202e}evil-0001".to_string(),
+            String::new(),
+        ]
+    }
+
+    #[test]
+    fn a_hostile_identifier_in_the_alive_list_never_reaches_a_file_outside_docs() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(one.data.join(PAPERS)).unwrap();
+        std::fs::create_dir_all(shared.path().join(PAPERS)).unwrap();
+        let local_bystander = one.data.join("secret.md");
+        std::fs::write(&local_bystander, "no es tuyo").unwrap();
+        let shared_bystander = shared.path().join("secret.md");
+        std::fs::write(&shared_bystander, "tampoco es tuyo").unwrap();
+
+        let attacks = hostile_ids();
+        let done = carry_papers(&one.data, shared.path(), &attacks).unwrap();
+
+        assert_eq!(
+            done.sent + done.brought,
+            0,
+            "a hostile identifier moved something"
+        );
+        assert_eq!(
+            std::fs::read_to_string(&local_bystander).unwrap(),
+            "no es tuyo"
+        );
+        assert_eq!(
+            std::fs::read_to_string(&shared_bystander).unwrap(),
+            "tampoco es tuyo"
+        );
+        let said = std::fs::read_to_string(one.data.join("carried.json")).unwrap_or_default();
+        assert!(
+            !said.contains("secret"),
+            "the ledger learned a name it must not know"
+        );
+    }
+
+    #[test]
+    fn settling_any_hostile_identifier_is_always_refused_before_anything_moves() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(one.data.join(PAPERS)).unwrap();
+        std::fs::create_dir_all(shared.path().join(PAPERS)).unwrap();
+
+        for id in hostile_ids() {
+            assert!(
+                settle(&one.data, shared.path(), &id, Keep::Theirs).is_err(),
+                "{id:?} settled with theirs"
+            );
+            assert!(
+                settle(&one.data, shared.path(), &id, Keep::Mine).is_err(),
+                "{id:?} settled with mine"
+            );
+            assert!(
+                settle(&one.data, shared.path(), &id, Keep::Both).is_err(),
+                "{id:?} settled with both"
+            );
+        }
+    }
+
+    #[test]
+    fn forgetting_any_hostile_identifier_never_deletes_a_file_outside_docs() {
+        let shared = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(shared.path().join(PAPERS)).unwrap();
+        let bystander = shared.path().join("secret.md");
+        std::fs::write(&bystander, "no es tuyo").unwrap();
+
+        for id in hostile_ids() {
+            forget_paper(shared.path(), &id);
+        }
+
+        assert_eq!(std::fs::read_to_string(&bystander).unwrap(), "no es tuyo");
+    }
+
     #[test]
     fn attachments_travel_with_the_tasks_that_name_them() {
         let one = machine("dev_a");
         let shelf = one.data.join("attachments").join("ab");
         std::fs::create_dir_all(&shelf).unwrap();
-        std::fs::write(shelf.join("cd.png"), b"a picture").unwrap();
+        std::fs::write(shelf.join("cd91f2ab.png"), b"a picture").unwrap();
 
         let shared = tempfile::tempdir().unwrap();
         carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
@@ -1428,7 +1738,7 @@ mod tests {
         carry(&other.data, &other.device, shared.path(), Way::Pull, &[]).unwrap();
 
         assert_eq!(
-            std::fs::read(other.data.join("attachments/ab/cd.png")).unwrap(),
+            std::fs::read(other.data.join("attachments/ab/cd91f2ab.png")).unwrap(),
             b"a picture"
         );
     }
