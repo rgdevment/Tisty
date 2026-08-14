@@ -348,6 +348,26 @@ describe("the maintenance panel", () => {
     expect(said[0]).toMatch(/does not get it back/i);
   });
 
+  it("says so instead of letting go of something that got referenced meanwhile", async () => {
+    asked.sure = true;
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "retire_attachment"
+        ? Promise.reject({ code: "stillReferenced", name: "charla-a3f9.mp4" })
+        : otherwise(cmd, args);
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await screen.findByText("charla-a3f9.mp4");
+
+    await userEvent.click(screen.getAllByRole("button", { name: /let go/i })[0]);
+
+    await waitFor(() =>
+      expect(screen.getAllByText(/references that attachment now/i).length).toBeGreaterThan(0),
+    );
+  });
+
   it("offers to remove another machine, never this one", async () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
