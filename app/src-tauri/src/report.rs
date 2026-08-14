@@ -81,7 +81,11 @@ pub struct Machine {
     pub mine: bool,
 }
 
-pub fn machines(store: &Path, mine: &str) -> Vec<Machine> {
+pub fn machines(
+    store: &Path,
+    mine: &str,
+    gone: &std::collections::BTreeSet<tisty_core::DeviceId>,
+) -> Vec<Machine> {
     let Ok(entries) = std::fs::read_dir(store) else {
         return Vec::new();
     };
@@ -98,6 +102,9 @@ pub fn machines(store: &Path, mine: &str) -> Vec<Machine> {
                 .map(|gone| gone.as_secs() as i64)
                 .max()
                 .unwrap_or(0);
+            if gone.contains(&tisty_core::DeviceId(id.clone())) {
+                return None;
+            }
             let mine = id == mine;
             Some(Machine { id, when, mine })
         })
@@ -228,7 +235,7 @@ mod tests {
             std::fs::write(at.join("active.tisty"), b"an event").unwrap();
         }
 
-        let all = machines(tmp.path(), "mac0");
+        let all = machines(tmp.path(), "mac0", &Default::default());
 
         assert_eq!(all.len(), 2);
         assert_eq!(all.iter().filter(|one| one.mine).count(), 1);
@@ -239,11 +246,34 @@ mod tests {
     }
 
     #[test]
+    fn a_machine_that_was_removed_stops_being_listed_even_though_its_history_stays() {
+        let tmp = tempfile::tempdir().unwrap();
+        for who in ["mac0", "win1"] {
+            let at = tmp.path().join(who);
+            std::fs::create_dir_all(&at).unwrap();
+            std::fs::write(at.join("active.tisty"), b"an event").unwrap();
+        }
+
+        let all = machines(
+            tmp.path(),
+            "mac0",
+            &[tisty_core::DeviceId("win1".into())].into(),
+        );
+
+        assert_eq!(all.len(), 1, "removing did not remove it from the list");
+        assert_eq!(all[0].id, "mac0");
+        assert!(
+            tmp.path().join("win1").join("active.tisty").exists(),
+            "removing a machine threw away its history"
+        );
+    }
+
+    #[test]
     fn a_machine_that_never_wrote_still_shows_up_with_nothing_to_show() {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(tmp.path().join("win1")).unwrap();
 
-        let all = machines(tmp.path(), "mac0");
+        let all = machines(tmp.path(), "mac0", &Default::default());
 
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].when, 0);
@@ -267,7 +297,7 @@ mod tests {
             .set_modified(older)
             .unwrap();
 
-        let all = machines(tmp.path(), "new1");
+        let all = machines(tmp.path(), "new1", &Default::default());
 
         assert_eq!(all[0].id, "new1");
         assert!(
@@ -292,7 +322,7 @@ mod tests {
             .set_modified(older)
             .unwrap();
 
-        let when = machines(tmp.path(), "mac0")[0].when;
+        let when = machines(tmp.path(), "mac0", &Default::default())[0].when;
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -311,7 +341,7 @@ mod tests {
         std::fs::create_dir_all(&at).unwrap();
         std::fs::write(at.join("notes.txt"), b"not a segment").unwrap();
 
-        assert_eq!(machines(tmp.path(), "mac0")[0].when, 0);
+        assert_eq!(machines(tmp.path(), "mac0", &Default::default())[0].when, 0);
     }
 
     #[test]

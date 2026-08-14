@@ -306,7 +306,7 @@ pub struct Ledger {
 
 impl Ledger {
     pub fn may_write(&self, who: &DeviceId) -> bool {
-        self.allowed.contains(who) || !self.named.contains(who)
+        self.allowed.is_empty() || self.allowed.contains(who) || !self.named.contains(who)
     }
 
     pub fn was_removed(&self, who: &DeviceId) -> bool {

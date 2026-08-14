@@ -1111,7 +1111,11 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         events: tisty_core::store::read_all(session.paths.store())
             .map(|all| all.len())
             .unwrap_or(0),
-        machines: report::machines(&session.paths.store(), session.config.device_id.0.as_str()),
+        machines: report::machines(
+            &session.paths.store(),
+            session.config.device_id.0.as_str(),
+            &session.state.dropped,
+        ),
         log_bytes: report::weighed(&session.paths.store()),
         docs_bytes: report::weighed(&session.paths.docs()),
         held_bytes: kept.bytes,

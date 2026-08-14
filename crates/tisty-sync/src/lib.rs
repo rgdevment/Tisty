@@ -453,6 +453,20 @@ mod tests {
     }
 
     #[test]
+    fn two_machines_removing_each_other_at_once_do_not_brick_the_store() {
+        let said = tisty_core::store::Ledger {
+            allowed: Default::default(),
+            named: [DeviceId("dev_a".into()), DeviceId("dev_b".into())].into(),
+        };
+
+        assert!(
+            said.may_write(&DeviceId("dev_a".into())),
+            "nobody could ever write here again"
+        );
+        assert!(said.may_write(&DeviceId("dev_b".into())));
+    }
+
+    #[test]
     fn a_machine_that_was_removed_writes_nothing_at_all() {
         let one = machine("dev_a");
         says(

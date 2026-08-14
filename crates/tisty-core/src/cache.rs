@@ -67,6 +67,18 @@ impl Cache {
         }
 
         let mut state = State::default();
+        state.devices = self
+            .meta("devices")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
+        state.dropped = self
+            .meta("dropped")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
+        state.retired = self
+            .meta("retired")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -189,8 +201,14 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?)",
-                rusqlite::params![SCHEMA.to_string(), fingerprint],
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?)",
+                rusqlite::params![
+                    SCHEMA.to_string(),
+                    fingerprint,
+                    serde_json::to_string(&state.devices).unwrap_or_default(),
+                    serde_json::to_string(&state.dropped).unwrap_or_default(),
+                    serde_json::to_string(&state.retired).unwrap_or_default(),
+                ],
             )?;
             tx.commit()
         })();
@@ -431,7 +449,11 @@ pub fn advance(
     if events.iter().any(|e| {
         matches!(
             e.op,
-            crate::Op::ListDelete { .. } | crate::Op::FolderDelete { .. }
+            crate::Op::ListDelete { .. }
+                | crate::Op::FolderDelete { .. }
+                | crate::Op::DeviceJoin { .. }
+                | crate::Op::DeviceRemove { .. }
+                | crate::Op::AttachRetire { .. }
         )
     }) {
         cache.invalidate();
@@ -525,6 +547,45 @@ mod tests {
             cache_dir,
             task,
         }
+    }
+
+    #[test]
+    fn a_word_about_a_machine_never_leaves_the_cache_claiming_to_be_current() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+        let state = State::default();
+        cache.store(&state, "before").unwrap();
+
+        let said = crate::Event::new(
+            crate::DeviceId("mac0".into()),
+            jiff::Timestamp::from_second(1).unwrap(),
+            crate::Op::DeviceRemove {
+                d: crate::DeviceId("win1".into()),
+            },
+        );
+        advance(Some(&mut cache), &state, &[said], dir.path(), false);
+
+        assert!(
+            cache.load("before", true).is_none(),
+            "the cache still says it holds what it never saw"
+        );
+    }
+
+    #[test]
+    fn what_the_cache_gives_back_still_knows_which_machines_write() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+        let mut state = State::default();
+        state.devices.insert(crate::DeviceId("mac0".into()));
+        state
+            .retired
+            .insert("attachments/ab/charla-a3f9.mp4".into());
+
+        cache.store(&state, "print").unwrap();
+        let back = cache.load("print", true).expect("the cache had it");
+
+        assert_eq!(back.devices, state.devices, "the list of machines was lost");
+        assert_eq!(back.retired, state.retired, "the retirements were lost");
     }
 
     #[test]

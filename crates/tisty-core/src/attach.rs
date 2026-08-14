@@ -351,7 +351,6 @@ pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
         std::fs::create_dir_all(folder)?;
         let _ = crate::paths::ours_alone(folder);
     }
-    std::fs::rename(&from, &into)?;
 
     let line = serde_json::to_string(&Binned {
         at: reference.to_string(),
@@ -370,6 +369,8 @@ pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
         .open(&ledger)
         .and_then(|mut file| std::io::Write::write_all(&mut file, whole.as_bytes()))?;
     let _ = crate::paths::ours_alone(&ledger);
+
+    std::fs::rename(&from, &into)?;
     Ok(())
 }
 
@@ -940,6 +941,21 @@ mod tests {
             std::fs::read(root.path().join("bin").join(rest)).unwrap(),
             b"the bytes of a talk",
             "letting go threw the bytes away"
+        );
+    }
+
+    #[test]
+    fn nothing_lands_in_the_bin_without_the_ledger_knowing() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        set_aside(root.path(), &at, 1_000).unwrap();
+
+        let said = std::fs::read_to_string(root.path().join("bin.jsonl")).unwrap();
+
+        assert!(
+            said.contains(&at),
+            "a file in the bin that nothing names is a file nothing will ever empty"
         );
     }
 
