@@ -47,7 +47,13 @@ pub fn read_outside(at: &Path) -> Result<String> {
         return Err(Error::OutsideTheStore(at.display().to_string()));
     }
     let mut body = String::new();
-    file.take(BODY_AT_MOST).read_to_string(&mut body)?;
+    let read = file.take(BODY_AT_MOST + 1).read_to_string(&mut body)? as u64;
+    if read > BODY_AT_MOST {
+        return Err(Error::DocumentTooBig {
+            bytes: read,
+            limit: BODY_AT_MOST,
+        });
+    }
     Ok(body)
 }
 
@@ -197,17 +203,25 @@ mod tests {
     }
 
     #[test]
-    fn an_imported_file_is_cut_where_reading_would_cut_it() {
+    fn an_imported_file_right_at_the_limit_still_comes_in_whole() {
+        let room = tempfile::tempdir().unwrap();
+        let big = room.path().join("edge.md");
+        std::fs::write(&big, "z".repeat(BODY_AT_MOST as usize)).unwrap();
+
+        assert_eq!(read_outside(&big).unwrap().len(), BODY_AT_MOST as usize);
+    }
+
+    #[test]
+    fn an_imported_file_too_big_to_hold_is_refused_whole() {
         let room = tempfile::tempdir().unwrap();
         let big = room.path().join("big.md");
         std::fs::write(&big, "z".repeat(BODY_AT_MOST as usize + 8192)).unwrap();
 
-        let body = read_outside(&big).unwrap();
+        let refused = read_outside(&big);
 
-        assert_eq!(
-            body.len(),
-            BODY_AT_MOST as usize,
-            "it would truncate on save"
+        assert!(
+            matches!(refused, Err(Error::DocumentTooBig { .. })),
+            "half a document imported in silence is worse than none"
         );
     }
 

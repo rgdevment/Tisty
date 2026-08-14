@@ -423,16 +423,18 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     static TURN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let turn = TURN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let tmp = path.with_extension(format!("{}.{turn}.tmp", std::process::id()));
-    {
-        let mut file = File::create(&tmp)?;
-        let _ = crate::paths::ours_alone(&tmp);
-        file.write_all(contents)?;
-        file.sync_all()?;
-    }
-    if let Err(e) = std::fs::rename(&tmp, path) {
+    let wrote = poured(&tmp, contents).and_then(|()| Ok(std::fs::rename(&tmp, path)?));
+    if wrote.is_err() {
         let _ = std::fs::remove_file(&tmp);
-        return Err(e.into());
     }
+    wrote
+}
+
+fn poured(tmp: &Path, contents: &[u8]) -> Result<()> {
+    let mut file = File::create(tmp)?;
+    let _ = crate::paths::ours_alone(tmp);
+    file.write_all(contents)?;
+    file.sync_all()?;
     Ok(())
 }
 

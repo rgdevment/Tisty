@@ -59,6 +59,23 @@ describe("the document being written", () => {
   const show = (open?: string, onKept = vi.fn()) =>
     render(<Docs open={open} known={known} onKept={onKept} onError={vi.fn()} />);
 
+  it("says which document is on screen, not which one was asked for", async () => {
+    const onShown = vi.fn();
+    store.delays = [];
+    const { rerender } = render(
+      <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} onShown={onShown} />,
+    );
+    await waitFor(() => expect(onShown).toHaveBeenCalledWith("a3f1-0001"));
+
+    onShown.mockClear();
+    rerender(
+      <Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} onShown={onShown} />,
+    );
+
+    expect(onShown).not.toHaveBeenCalledWith("a3f1-0002");
+    await waitFor(() => expect(onShown).toHaveBeenCalledWith("a3f1-0002"));
+  });
+
   it("finishes writing before the app is allowed to leave", async () => {
     store.delays = [120];
     render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);

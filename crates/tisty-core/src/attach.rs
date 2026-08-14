@@ -80,20 +80,71 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
     let _ = crate::paths::ours_alone(&root.join("attachments"));
     let _ = crate::paths::ours_alone(&folder);
 
-    let name = match already(&folder, stamp) {
+    if let Some(at) = listed(root, &sha256)
+        && root.join(&at).is_file()
+    {
+        return Ok(Kept { at, sha256 });
+    }
+
+    let name = match already(&folder, stamp, &bytes) {
         Some(kept) => kept,
         None => {
-            let name = named(source, stamp, &ext);
+            let mut name = named(source, stamp, &ext);
+            if folder.join(&name).exists() {
+                name = named(source, &rest[..16], &ext);
+            }
             let target = folder.join(&name);
             std::fs::write(&target, &bytes)?;
             let _ = crate::paths::ours_alone(&target);
             name
         }
     };
-    Ok(Kept {
+    let kept = Kept {
         at: format!("attachments/{shelf}/{name}"),
         sha256,
-    })
+    };
+    note(root, &kept, bytes.len() as u64);
+    Ok(kept)
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct Noted {
+    at: String,
+    sha256: String,
+    bytes: u64,
+}
+
+fn ledger(root: &Path) -> PathBuf {
+    root.join("attachments.jsonl")
+}
+
+fn listed(root: &Path, sha256: &str) -> Option<String> {
+    let text = std::fs::read_to_string(ledger(root)).ok()?;
+    text.lines()
+        .filter_map(|line| serde_json::from_str::<Noted>(line).ok())
+        .find(|one| one.sha256 == sha256)
+        .map(|one| one.at)
+}
+
+fn note(root: &Path, kept: &Kept, bytes: u64) {
+    if listed(root, &kept.sha256).is_some() {
+        return;
+    }
+    let line = match serde_json::to_string(&Noted {
+        at: kept.at.clone(),
+        sha256: kept.sha256.clone(),
+        bytes,
+    }) {
+        Ok(line) => line,
+        Err(_) => return,
+    };
+    let at = ledger(root);
+    let _ = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&at)
+        .and_then(|mut file| std::io::Write::write_all(&mut file, format!("{line}\n").as_bytes()));
+    let _ = crate::paths::ours_alone(&at);
 }
 
 fn named(source: &Path, stamp: &str, ext: &str) -> String {
@@ -137,14 +188,21 @@ fn plainly(c: char) -> char {
     }
 }
 
-fn already(folder: &Path, stamp: &str) -> Option<String> {
+fn already(folder: &Path, stamp: &str, bytes: &[u8]) -> Option<String> {
     std::fs::read_dir(folder)
         .ok()?
         .filter_map(|one| one.ok())
         .find_map(|one| {
             let name = one.file_name().to_str()?.to_string();
             let stem = name.split('.').next().unwrap_or(&name);
-            (stem == stamp || stem.ends_with(&format!("-{stamp}"))).then_some(name)
+            if stem != stamp && !stem.ends_with(&format!("-{stamp}")) {
+                return None;
+            }
+            let held = one.metadata().ok()?;
+            if held.len() != bytes.len() as u64 {
+                return None;
+            }
+            (std::fs::read(one.path()).ok()? == bytes).then_some(name)
         })
 }
 
@@ -299,6 +357,69 @@ mod tests {
         );
         let shelves = std::fs::read_dir(root.path().join("attachments")).unwrap();
         assert_eq!(shelves.count(), 1);
+    }
+
+    #[test]
+    fn a_stamp_worn_by_unlike_bytes_does_not_hand_back_the_wrong_file() {
+        let root = tempfile::tempdir().unwrap();
+        let (_src, file) = dropped("mine.bin", b"the bytes that are mine");
+        let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        let stem = kept.at.rsplit('/').next().unwrap().to_string();
+        let stamp = stem
+            .split('.')
+            .next()
+            .unwrap()
+            .rsplit('-')
+            .next()
+            .unwrap()
+            .to_string();
+        let shelf = kept.at.split('/').nth(1).unwrap().to_string();
+        let impostor = root
+            .path()
+            .join("attachments")
+            .join(&shelf)
+            .join(format!("impostor-{stamp}.bin"));
+        std::fs::write(&impostor, b"entirely other bytes, same stamp").unwrap();
+        std::fs::remove_file(root.path().join("attachments.jsonl")).unwrap();
+
+        let again = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        assert_eq!(again.at, kept.at, "the bytes decide, never the name");
+        assert_eq!(
+            std::fs::read(root.path().join(&again.at)).unwrap(),
+            b"the bytes that are mine"
+        );
+    }
+
+    #[test]
+    fn the_digest_is_written_down_whole_so_it_can_be_asked_for() {
+        let root = tempfile::tempdir().unwrap();
+        let (_src, file) = dropped("mine.bin", b"some bytes worth keeping");
+
+        let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        let noted = std::fs::read_to_string(root.path().join("attachments.jsonl")).unwrap();
+        assert!(
+            noted.contains(&kept.sha256),
+            "the whole digest, not ten characters"
+        );
+        assert_eq!(kept.sha256.len(), 64);
+        assert!(noted.contains(&kept.at));
+        assert!(noted.contains("24"), "the weight travels with it");
+    }
+
+    #[test]
+    fn what_is_written_down_spares_reading_the_file_again() {
+        let root = tempfile::tempdir().unwrap();
+        let (_src, file) = dropped("mine.bin", b"kept once");
+        let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        std::fs::write(root.path().join(&kept.at), b"changed underneath").unwrap();
+        let (_other, again) = dropped("elsewhere.bin", b"kept once");
+        let second = keep(&again, root.path(), COPIED_UP_TO).unwrap();
+
+        assert_eq!(second.at, kept.at);
     }
 
     #[test]
