@@ -75,6 +75,30 @@ describe("the document being written", () => {
     expect(store.reads).toBe(reads);
   });
 
+  it("says when a document carries more attachments than it can draw briskly", async () => {
+    const { MANY } = await import("../previews");
+    store.bodies["a3f1-0001"] = Array.from(
+      { length: MANY + 1 },
+      (_, i) => `[uno ${i}](<attachments/ab/uno${i}.pdf>)`,
+    ).join("\n\n");
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => screen.getByText(/adjuntos a la vista|attachments in view/));
+  });
+
+  it("says nothing about a document that carries only a few", async () => {
+    const { MANY } = await import("../previews");
+    store.bodies["a3f1-0001"] = Array.from(
+      { length: MANY },
+      (_, i) => `[uno ${i}](<attachments/ab/uno${i}.pdf>)`,
+    ).join("\n\n");
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => screen.getByLabelText("editor"));
+
+    expect(screen.queryByText(/adjuntos a la vista|attachments in view/)).toBeNull();
+  });
+
   it("warns before touching a document that brings what it cannot keep", async () => {
     store.bodies["a3f1-0001"] = "# Compras\n\n<details>\n<summary>ver</summary>\nalgo\n</details>";
     render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);

@@ -74,3 +74,18 @@ export const weighed = (bytes: number): string => {
   }
   return step === 0 ? `${Math.round(left)} ${units[step]}` : `${left.toFixed(1)} ${units[step]}`;
 };
+
+export const MANY = 150;
+
+export const crowd = (body: string): number => {
+  let count = 0;
+  let at = body.indexOf("](");
+  while (at >= 0) {
+    const end = body.indexOf(")", at + 2);
+    if (end < 0) break;
+    const href = body.slice(at + 2, end).trim().replace(/^<|>$/g, "");
+    if (previewOf(href)) count += 1;
+    at = body.indexOf("](", end + 1);
+  }
+  return count;
+};

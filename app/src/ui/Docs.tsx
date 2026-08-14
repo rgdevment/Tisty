@@ -6,7 +6,7 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { frail } from "../frail";
 import Modal from "./Modal";
-import { weighed } from "../previews";
+import { MANY, crowd, weighed } from "../previews";
 
 const Editor = lazy(() => import("./Editor"));
 
@@ -25,6 +25,7 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
   const [open, setOpen] = useState<Filed | null>(null);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
+  const [packed, setPacked] = useState(0);
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
@@ -47,7 +48,9 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
   const flush = useCallback(() => {
     if (settling.current) clearTimeout(settling.current);
     const waiting = held.current;
-    if (waiting) keep(waiting.id, waiting.body);
+    if (!waiting) return;
+    setPacked(crowd(waiting.body));
+    keep(waiting.id, waiting.body);
   }, [keep]);
 
   const drop = useCallback(() => {
@@ -96,6 +99,7 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
         if (turn.current !== mine) return;
         setOpen(wanted);
         setBody(text);
+        setPacked(crowd(text));
         const brittle = frail(text);
         setWarned(brittle.length ? brittle : null);
         setReading(brittle.length > 0);
@@ -201,7 +205,9 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
             ? t("saving")
             : brimming
               ? fill("docBrimming", weighed(body.length))
-              : ""}
+              : packed > MANY
+                ? fill("docCrowded", String(packed))
+                : ""}
       </div>
     </main>
   );

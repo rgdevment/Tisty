@@ -20,32 +20,34 @@ export interface Reach {
 
 export const plugged = new PluginKey("previewing");
 
-const ends = (doc: Written, pos: number, node: Written, href: string): boolean => {
-  const after = doc.resolve(pos + node.nodeSize).nodeAfter;
-  if (!after?.isText) return true;
-  return !after.marks.some((one) => one.type.name === "link" && one.attrs.href === href);
+interface Spot {
+  at: number;
+  seen: Preview;
+  href: string;
+  label: string;
+}
+
+const linked = (node: Written): string | null => {
+  if (!node.isText) return null;
+  const link = node.marks.find((one) => one.type.name === "link");
+  return link ? String(link.attrs.href ?? "") : null;
 };
 
-const found = (
-  state: EditorState,
-): { at: number; seen: Preview; href: string; label: string }[] => {
-  const all: { at: number; seen: Preview; href: string; label: string }[] = [];
-  state.doc.descendants((node, pos) => {
-    if (!node.isText) return;
-    const link = node.marks.find((one) => one.type.name === "link");
-    if (!link) return;
-    const href = String(link.attrs.href ?? "");
-    if (!ends(state.doc, pos, node, href)) return;
-    const seen = previewOf(href);
-    if (!seen) return;
-    const at = state.doc.resolve(pos);
-    const after = at.depth ? at.after(at.depth) : pos + node.nodeSize;
-    all.push({
-      at: after,
-      seen,
-      href,
-      label: node.text ?? "",
+const found = (doc: Written): Spot[] => {
+  const all: Spot[] = [];
+  doc.descendants((block, at) => {
+    if (!block.isTextblock) return true;
+    const after = at + block.nodeSize;
+    block.forEach((node, _offset, index) => {
+      const href = linked(node);
+      if (href === null) return;
+      const next = block.maybeChild(index + 1);
+      if (next && linked(next) === href) return;
+      const seen = previewOf(href);
+      if (!seen) return;
+      all.push({ at: after, seen, href, label: node.text ?? "" });
     });
+    return false;
   });
   return all;
 };
@@ -261,8 +263,17 @@ const settled = (seen: Preview, reach: Reach): string => {
   return reach.url(seen.at) ?? "";
 };
 
-export const previewing = (reach: () => Reach) =>
-  Extension.create({
+export const previewing = (reach: () => Reach) => {
+  let read: Written | null = null;
+  let spots: Spot[] = [];
+  const scan = (doc: Written): Spot[] => {
+    if (doc === read) return spots;
+    read = doc;
+    spots = found(doc);
+    return spots;
+  };
+
+  return Extension.create({
     name: "previewing",
     addProseMirrorPlugins() {
       return [
@@ -285,7 +296,7 @@ export const previewing = (reach: () => Reach) =>
               const now = reach();
               return DecorationSet.create(
                 state.doc,
-                found(state).map((one) =>
+                scan(state.doc).map((one) =>
                   Decoration.widget(
                     one.at,
                     (view, getPos) =>
@@ -311,3 +322,4 @@ export const previewing = (reach: () => Reach) =>
       ];
     },
   });
+};
