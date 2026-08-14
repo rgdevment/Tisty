@@ -314,6 +314,32 @@ describe("what the editor shows beside a link", () => {
     expect(rule.slice(0, rule.indexOf("}"))).toMatch(/text-align:\s*center/);
   });
 
+  it("does not read the whole document again when only the caret moved", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)\n\nun parrafo largo");
+    const doc = editor.state.doc;
+    const walk = vi.spyOn(doc, "descendants");
+
+    editor.commands.setTextSelection(3);
+    editor.commands.setTextSelection(5);
+
+    expect(walk).not.toHaveBeenCalled();
+    expect(editor.state.doc).toBe(doc);
+
+    editor.destroy();
+  });
+
+  it("reads it again once the words themselves change", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)\n\nun parrafo largo");
+    editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+    const before = editor.view.dom.querySelectorAll(".preview").length;
+
+    editor.commands.insertContent(" y mas");
+
+    expect(editor.view.dom.querySelectorAll(".preview")).toHaveLength(before);
+
+    editor.destroy();
+  });
+
   const rubs = (editor: Editor, key: string) => {
     const mine = plugged.get(editor.state);
     return mine?.props.handleKeyDown?.call(
