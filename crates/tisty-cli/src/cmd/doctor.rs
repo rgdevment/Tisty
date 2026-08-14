@@ -24,13 +24,13 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
             .collect();
         held.extend(tisty_core::docs::referenced(&app.paths.docs()));
         let adrift = tisty_core::attach::loose(app.paths.data(), &held);
-        if adrift.files > 0 {
+        if adrift.files() > 0 {
             line(
                 lang.get("loose-files"),
                 &style::dim(&lang.fill(
                     "loose-files-are",
                     &[
-                        ("count", &adrift.files.to_string()),
+                        ("count", &adrift.files().to_string()),
                         ("size", &weighed(adrift.bytes)),
                     ],
                 )),

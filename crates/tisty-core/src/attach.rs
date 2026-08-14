@@ -253,10 +253,24 @@ fn already(folder: &Path, stamp: &str, bytes: &[u8]) -> Option<String> {
         })
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Astray {
+    pub at: String,
+    pub bytes: u64,
+    pub when: i64,
+}
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Loose {
-    pub files: usize,
+    pub items: Vec<Astray>,
     pub bytes: u64,
+}
+
+impl Loose {
+    pub fn files(&self) -> usize {
+        self.items.len()
+    }
 }
 
 pub fn loose(root: &Path, referenced: &[String]) -> Loose {
@@ -294,11 +308,29 @@ pub fn loose(root: &Path, referenced: &[String]) -> Loose {
             if held.contains(format!("{name}/{leaf}").as_str()) {
                 continue;
             }
-            found.files += 1;
-            found.bytes += file.metadata().map(|m| m.len()).unwrap_or(0);
+            let told = file.metadata().ok();
+            let bytes = told.as_ref().map(|m| m.len()).unwrap_or(0);
+            found.items.push(Astray {
+                at: format!("attachments/{name}/{leaf}"),
+                bytes,
+                when: told
+                    .and_then(|m| m.modified().ok())
+                    .map(since_epoch)
+                    .unwrap_or(0),
+            });
+            found.bytes += bytes;
         }
     }
     found
+        .items
+        .sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.at.cmp(&b.at)));
+    found
+}
+
+fn since_epoch(when: std::time::SystemTime) -> i64 {
+    when.duration_since(std::time::UNIX_EPOCH)
+        .map(|gone| gone.as_secs() as i64)
+        .unwrap_or(0)
 }
 
 pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
@@ -769,10 +801,59 @@ mod tests {
         keep(&two, root.path(), COPIED_UP_TO).unwrap();
 
         let counted = loose(root.path(), &[at]);
-        assert_eq!(counted.files, 1);
+        assert_eq!(counted.files(), 1);
         assert_eq!(counted.bytes, b"nobody points here".len() as u64);
 
-        assert_eq!(loose(root.path(), &[]).files, 2);
+        assert_eq!(loose(root.path(), &[]).files(), 2);
+    }
+
+    #[test]
+    fn what_is_loose_says_where_it_is_and_what_it_weighs() {
+        let (_src, one) = dropped("minuta.pdf", b"nobody points here at all");
+        let root = tempfile::tempdir().unwrap();
+
+        keep(&one, root.path(), COPIED_UP_TO).unwrap();
+
+        let counted = loose(root.path(), &[]);
+        let astray = counted.items.first().expect("the loose one is listed");
+        assert!(
+            astray.at.starts_with("attachments/") && astray.at.ends_with(".pdf"),
+            "a person has to be able to find it by hand: {}",
+            astray.at
+        );
+        assert_eq!(astray.bytes, b"nobody points here at all".len() as u64);
+        assert!(astray.when > 0, "without a date there is nothing to judge");
+    }
+
+    #[test]
+    fn the_heaviest_is_shown_first_because_that_is_what_is_asked() {
+        let (_a, small) = dropped("small.bin", b"tiny");
+        let (_b, big) = dropped("big.bin", &[b'x'; 400]);
+        let (_c, mid) = dropped("mid.bin", &[b'y'; 40]);
+        let root = tempfile::tempdir().unwrap();
+
+        keep(&small, root.path(), COPIED_UP_TO).unwrap();
+        keep(&big, root.path(), COPIED_UP_TO).unwrap();
+        keep(&mid, root.path(), COPIED_UP_TO).unwrap();
+
+        let weights: Vec<u64> = loose(root.path(), &[])
+            .items
+            .iter()
+            .map(|one| one.bytes)
+            .collect();
+
+        assert_eq!(weights, vec![400, 40, 4]);
+    }
+
+    #[test]
+    fn the_ledger_is_never_mistaken_for_something_adrift() {
+        let (_src, one) = dropped("held.png", b"referenced by someone");
+        let root = tempfile::tempdir().unwrap();
+
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+
+        assert!(root.path().join("attachments.jsonl").exists());
+        assert_eq!(loose(root.path(), &[at]), Loose::default());
     }
 
     #[test]

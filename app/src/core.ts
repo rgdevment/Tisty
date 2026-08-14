@@ -204,14 +204,31 @@ export interface Carrying {
   backedUpAt?: string;
 }
 
+export interface Astray {
+  at: string;
+  bytes: number;
+  when: number;
+}
+
+export interface Machine {
+  id: string;
+  when: number;
+  mine: boolean;
+}
+
 export interface Reviewed {
   tasks: number;
   lists: number;
   agrees: boolean;
   loose: number;
   looseBytes: number;
+  astray: Astray[];
   events: number;
-  devices: number;
+  machines: Machine[];
+  logBytes: number;
+  docsBytes: number;
+  heldBytes: number;
+  heldFiles: number;
 }
 
 export interface Facts {
