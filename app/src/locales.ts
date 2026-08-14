@@ -421,6 +421,10 @@ const en = {
   looseWait:
     "Sync the machines listed above, or remove them, before deciding what is left over.",
   looseNone: "Nothing loose",
+  looseDrop: "Let go",
+  looseDropSure:
+    "Let go of {name}?\n\nIt is kept aside here for 30 days in case you change your mind, and taken out of every machine that syncs. One that shows up later does not get it back: it says the file is no longer there.",
+  looseDropped: "Set aside, and taken out of the shared folder",
   looseTotal: "{name} files",
   devicesAre: "Machines",
   thisOne: "this one is {name}",
@@ -915,6 +919,10 @@ const es: Catalog = {
   looseWait:
     "Sincroniza las máquinas de arriba, o remuévelas, antes de decidir qué sobra.",
   looseNone: "Nada suelto",
+  looseDrop: "Soltar",
+  looseDropSure:
+    "¿Soltar {name}?\n\nSe guarda aquí 30 días por si cambias de opinión, y se saca de todas las máquinas que sincronicen. La que aparezca más tarde no lo recupera: dirá que el fichero ya no está.",
+  looseDropped: "Apartado, y sacado de la carpeta compartida",
   looseTotal: "{name} ficheros",
   devicesAre: "Equipos",
   thisOne: "este es {name}",

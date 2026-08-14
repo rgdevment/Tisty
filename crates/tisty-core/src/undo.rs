@@ -172,7 +172,7 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
 
         Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
 
-        Op::DeviceJoin { .. } | Op::DeviceRemove { .. } => None,
+        Op::DeviceJoin { .. } | Op::DeviceRemove { .. } | Op::AttachRetire { .. } => None,
     }
 }
 

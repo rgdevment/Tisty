@@ -106,6 +106,9 @@ pub enum Op {
     DeviceJoin { d: DeviceId },
     #[serde(rename = "device.remove")]
     DeviceRemove { d: DeviceId },
+
+    #[serde(rename = "attach.retire")]
+    AttachRetire { d: String },
 }
 
 impl Op {
@@ -145,7 +148,7 @@ impl Op {
             Op::DocDelete { .. } => Op::DocDelete { id },
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
-            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } => self,
+            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } | Op::AttachRetire { .. } => self,
         }
     }
 
@@ -239,7 +242,7 @@ impl Op {
             | Op::DocDelete { id }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id } => Some(*id),
-            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } => None,
+            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } | Op::AttachRetire { .. } => None,
         }
     }
 }

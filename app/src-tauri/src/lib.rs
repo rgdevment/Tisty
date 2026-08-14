@@ -54,7 +54,7 @@ impl Session {
         let cache = tisty_core::cache::Cache::open(paths.cache())?;
         let print = tisty_core::cache::fingerprint(&paths.store());
 
-        Ok(Self {
+        let mut session = Self {
             locale: config.locale.clone(),
             paths,
             config,
@@ -62,7 +62,20 @@ impl Session {
             store,
             cache,
             print,
-        })
+        };
+        session.take_out_the_retired();
+        let gone = tisty_core::attach::empty_the_bin(
+            session.paths.data(),
+            jiff::Timestamp::now().as_second(),
+        );
+        if gone > 0 {
+            witness::note(
+                channel::ATTACH,
+                "what waited in the bin past its time is gone",
+                &[("count", Fact::Count(gone))],
+            );
+        }
+        Ok(session)
     }
 
     fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
@@ -99,6 +112,23 @@ impl Session {
         self.state = tisty_core::cache::project(&self.paths.store(), self.paths.cache())?;
         self.print = tisty_core::cache::fingerprint(&self.paths.store());
         Ok(())
+    }
+
+    fn take_out_the_retired(&mut self) {
+        if self.state.retired.is_empty() {
+            return;
+        }
+        let mut gone = tisty_core::attach::sweep(self.paths.data(), &self.state.retired);
+        if let Some(tisty_core::config::Sync::Folder(dest)) = self.config.sync.clone() {
+            gone += tisty_core::attach::sweep(&dest, &self.state.retired);
+        }
+        if gone > 0 {
+            witness::note(
+                channel::ATTACH,
+                "what was retired elsewhere is gone from here too",
+                &[("count", Fact::Count(gone))],
+            );
+        }
     }
 
     fn take_a_seat(&mut self) -> tisty_core::Result<()> {
@@ -2339,6 +2369,7 @@ async fn sync_now(
             )
         })?;
     }
+    session.take_out_the_retired();
     if let Err(e) = session.take_a_seat() {
         witness::warn(
             channel::SYNC,
@@ -2390,6 +2421,30 @@ async fn back_up(
     let now = jiff::Timestamp::now();
     held(&session).keep(|config| config.backed_up_at = Some(now))?;
     Ok(made.bytes)
+}
+
+#[tauri::command]
+fn retire_attachment(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<()> {
+    let mut session = held(&session);
+    let now = jiff::Timestamp::now().as_second();
+
+    tisty_core::attach::set_aside(session.paths.data(), &reference, now).map_err(|e| {
+        witness::warn(
+            channel::ATTACH,
+            "an attachment could not be set aside",
+            &[
+                ("at", Fact::Id(reference.clone())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+        Refusal::about("cannotWrite", reference.clone())
+    })?;
+
+    session
+        .commit(Op::AttachRetire { d: reference })
+        .map_err(|e| blamed(channel::ATTACH, "the retirement could not be written", e))?;
+    session.take_out_the_retired();
+    Ok(())
 }
 
 #[tauri::command]
@@ -3047,6 +3102,7 @@ pub fn run() {
             restore,
             join_them,
             remove_machine,
+            retire_attachment,
             checked,
             rebuild,
             about,

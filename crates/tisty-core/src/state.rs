@@ -25,6 +25,7 @@ pub struct State {
     pub folders: BTreeMap<FolderId, Folder>,
     pub docs: BTreeMap<DocId, Kept>,
     pub devices: BTreeSet<DeviceId>,
+    pub retired: BTreeSet<String>,
     pub(crate) fill: Fill,
     tombstones: BTreeSet<Ulid>,
 }
@@ -205,6 +206,9 @@ impl State {
             }
             Op::DeviceRemove { d } => {
                 self.devices.remove(d);
+            }
+            Op::AttachRetire { d } => {
+                self.retired.insert(d.clone());
             }
             Op::ListLook { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {
