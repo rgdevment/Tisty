@@ -305,7 +305,7 @@ describe("the maintenance panel", () => {
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
     await screen.findByText("charla-a3f9.mp4");
 
-    await userEvent.click(screen.getAllByRole("button", { name: /let go/i })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /take it out/i })[0]);
 
     await waitFor(() => expect(sent("retire_attachment")).toHaveLength(0));
   });
@@ -319,7 +319,7 @@ describe("the maintenance panel", () => {
     await screen.findByText("charla-a3f9.mp4");
     const looks = sent("checked").length;
 
-    await userEvent.click(screen.getAllByRole("button", { name: /let go/i })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /take it out/i })[0]);
 
     await waitFor(() => expect(sent("retire_attachment")).toHaveLength(1));
     expect(sent("retire_attachment")[0].args.reference).toBe("attachments/ab/charla-a3f9.mp4");
@@ -341,7 +341,7 @@ describe("the maintenance panel", () => {
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
     await screen.findByText("charla-a3f9.mp4");
 
-    await userEvent.click(screen.getAllByRole("button", { name: /let go/i })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /take it out/i })[0]);
 
     await waitFor(() => expect(said).toHaveLength(1));
     expect(said[0]).toMatch(/30 days/i);
@@ -361,7 +361,7 @@ describe("the maintenance panel", () => {
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
     await screen.findByText("charla-a3f9.mp4");
 
-    await userEvent.click(screen.getAllByRole("button", { name: /let go/i })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /take it out/i })[0]);
 
     await waitFor(() =>
       expect(screen.getAllByText(/references that attachment now/i).length).toBeGreaterThan(0),

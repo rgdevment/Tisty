@@ -25,6 +25,7 @@ pub struct State {
     pub folders: BTreeMap<FolderId, Folder>,
     pub docs: BTreeMap<DocId, Kept>,
     pub devices: BTreeSet<DeviceId>,
+    pub dropped: BTreeSet<DeviceId>,
     pub retired: BTreeSet<String>,
     pub(crate) fill: Fill,
     tombstones: BTreeSet<Ulid>,
@@ -202,10 +203,12 @@ impl State {
                 }
             }
             Op::DeviceJoin { d } => {
+                self.dropped.remove(d);
                 self.devices.insert(d.clone());
             }
             Op::DeviceRemove { d } => {
                 self.devices.remove(d);
+                self.dropped.insert(d.clone());
             }
             Op::AttachRetire { d } => {
                 self.retired.insert(d.clone());
