@@ -16,12 +16,13 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
         line(lang.get("tasks-in-log"), &truth.tasks.len().to_string());
         line(lang.get("lists-in-log"), &truth.lists.len().to_string());
 
-        let held: Vec<String> = truth
+        let mut held: Vec<String> = truth
             .tasks
             .values()
             .flat_map(|task| task.references())
             .map(|one| one.target)
             .collect();
+        held.extend(tisty_core::docs::referenced(&app.paths.docs()));
         let adrift = tisty_core::attach::loose(app.paths.data(), &held);
         if adrift.files > 0 {
             line(

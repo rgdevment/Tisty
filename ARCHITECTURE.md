@@ -259,7 +259,8 @@ down as an idea and not built.
 |---|---|---|
 | Events | `<data>/store/<device>/` | yes |
 | Attachments | `<data>/attachments/` | yes |
-| Documents | `<data>/docs/` | not yet — they do not exist |
+| Documents | `<data>/docs/` | the register does, the bodies not yet |
+| Attachment ledger | `<data>/attachments.jsonl` | **no** — local and rebuilt on demand |
 | Settings and device id | `<config>/config.toml` | **no** |
 | The program itself | `%LOCALAPPDATA%\Programs\Tisty` and friends | **no** |
 | Read cache | `<cache>/read.db` | **no** |

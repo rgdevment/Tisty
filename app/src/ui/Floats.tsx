@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Editor as Writing } from "@tiptap/core";
 import { t } from "../locales";
+import { addressed } from "../linking";
 
 interface Props {
   editor: Writing;
@@ -57,16 +58,23 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
       setLinking(null);
       return onDone?.();
     }
-    if (/\s/.test(target)) return setWrong(true);
-    const spelt = /:\/\//.test(target) || /^(mailto|tel):/i.test(target);
-    const full = spelt ? target : `https://${target}`;
+    const full = addressed(target);
+    if (!full) return setWrong(true);
 
-    const said = words.trim() || (held.from === held.to ? target : "");
-    const chain = editor.chain().focus().setTextSelection(held);
-    if (said && said !== held.words) {
+    const lead = held.words.length - held.words.trimStart().length;
+    const tail = held.words.length - held.words.trimEnd().length;
+    const tight: Span = {
+      from: held.from + lead,
+      to: held.to - tail,
+      words: held.words.trim(),
+    };
+
+    const said = words.trim() || (tight.from === tight.to ? target : "");
+    const chain = editor.chain().focus().setTextSelection(tight);
+    if (said && said !== tight.words) {
       chain
-        .insertContentAt(held, { type: "text", text: said })
-        .setTextSelection({ from: held.from, to: held.from + said.length });
+        .insertContentAt(tight, { type: "text", text: said })
+        .setTextSelection({ from: tight.from, to: tight.from + said.length });
     }
     if (!chain.setLink({ href: full }).run()) return setWrong(true);
     setLinking(null);

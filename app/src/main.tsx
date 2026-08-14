@@ -22,12 +22,12 @@ document.documentElement.lang = locale();
   dark.addEventListener("change", paint);
 }
 
-const framesOf = (stack?: string): string =>
+export const framesOf = (stack?: string): string =>
   (stack ?? "")
     .split("\n")
-    .filter((line) => line.trimStart().startsWith("at "))
-    .slice(0, 4)
     .map((line) => line.trim())
+    .filter((line) => line.startsWith("at ") || /@.*:\d+/.test(line))
+    .slice(0, 4)
     .join(" | ");
 
 const seen = new Set<string>();

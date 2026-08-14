@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useEdge } from "./edge";
 import { open } from "@tauri-apps/plugin-dialog";
-import { attach } from "../core";
+import { attach, docNew, docWrite } from "../core";
 import { docLink } from "../markdown";
+import { addressed } from "../linking";
 import Papers from "./Papers";
 import Row from "./Row";
 import { t } from "../locales";
@@ -15,7 +16,7 @@ interface Props {
 }
 
 export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
-  const [step, setStep] = useState<"pick" | "link" | "step" | "doc">("pick");
+  const [step, setStep] = useState<"pick" | "link" | "step" | "doc" | "newdoc">("pick");
   const [busy, setBusy] = useState(false);
   const { box, away } = useEdge<HTMLDivElement>();
 
@@ -61,8 +62,11 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
             <Row first glyph="🔗" say={t("sayLink")} onPick={() => setStep("link")}>
               {t("insertLink")}
             </Row>
-            <Row glyph="📄" say={t("sayDoc")} onPick={() => setStep("doc")}>
+            <Row glyph="▤" say={t("sayDoc")} onPick={() => setStep("doc")}>
               {t("insertDoc")}
+            </Row>
+            <Row glyph="✚" say={t("sayNewDoc")} onPick={() => setStep("newdoc")}>
+              {t("insertNewDoc")}
             </Row>
             <Row glyph="📎" say={busy ? "…" : t("sayAttach")} onPick={pickFile}>
               {t("insertAttach")}
@@ -78,6 +82,22 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
         {step === "doc" && (
           <Papers onPick={(doc) => onPut(docLink(doc.file, doc.title))} onError={onError} />
         )}
+        {step === "newdoc" && (
+          <Naming
+            onName={(name) => {
+              if (busy) return;
+              setBusy(true);
+              docNew()
+                .then((made) => docWrite(made.id, `# ${name}\n\n`).then(() => made))
+                .then((made) => onPut(docLink(made.id, name)))
+                .catch((problem) => {
+                  onClose();
+                  onError?.(problem);
+                })
+                .finally(() => setBusy(false));
+            }}
+          />
+        )}
         {step === "step" &&
           steps.map((text, at) => (
             <Row key={at} glyph={`${at + 1}`} onPick={() => onPut(`[[#${at + 1}]]`)}>
@@ -89,15 +109,46 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
   );
 }
 
-function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
-  const [label, setLabel] = useState("");
-  const [url, setUrl] = useState("");
+function Naming({ onName }: { onName: (name: string) => void }) {
+  const [name, setName] = useState("");
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (url.trim()) onLink(label.trim() || url.trim(), url.trim());
+        const said = name.trim();
+        if (said) onName(said);
+      }}
+    >
+      <label className="block px-2.5 pt-1 text-[11px] tracking-[0.04em] text-faint uppercase">
+        {t("docName")}
+      </label>
+      <input
+        autoFocus
+        value={name}
+        aria-label={t("docName")}
+        onChange={(e) => setName(e.target.value)}
+        className="mt-0.5 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none"
+      />
+      <button type="submit" className="sr-only">
+        {t("insertNewDoc")}
+      </button>
+    </form>
+  );
+}
+
+function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
+  const [label, setLabel] = useState("");
+  const [url, setUrl] = useState("");
+  const [wrong, setWrong] = useState(false);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const full = addressed(url);
+        if (!full) return setWrong(Boolean(url.trim()));
+        onLink(label.trim() || url.trim(), full);
       }}
     >
       <label className="block px-2.5 pt-1 text-[11px] tracking-[0.04em] text-faint uppercase">
@@ -117,9 +168,16 @@ function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
         value={url}
         placeholder="https://"
         aria-label={t("linkUrl")}
-        onChange={(e) => setUrl(e.target.value)}
-        className="mt-0.5 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none placeholder:text-faint"
+        aria-invalid={wrong || undefined}
+        onChange={(e) => {
+          setWrong(false);
+          setUrl(e.target.value);
+        }}
+        className={`mt-0.5 w-full rounded-md px-2.5 py-1.5 outline-none placeholder:text-faint ${
+          wrong ? "bg-urgent/15 text-urgent" : "bg-hover"
+        }`}
       />
+      {wrong && <p className="px-2.5 pt-1 text-[11px] text-urgent">{t("notAnAddress")}</p>}
       <button type="submit" className="sr-only">
         {t("insertLink")}
       </button>

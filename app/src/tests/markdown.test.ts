@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composed } from "../markdown";
+import { composed, docLink, docOf } from "../markdown";
 
 describe("what gets composed", () => {
   it("keeps the ordinary Markdown a file needs to stay readable without Tisty", () => {
@@ -56,5 +56,66 @@ describe("what does not get through", () => {
 
   it("escapes a reference that carries markup in its name", () => {
     expect(composed("[[<b>bold</b>]]")).not.toContain("<b>");
+  });
+});
+
+describe("a link to a document, built with a title nobody chose carefully", () => {
+  it("still makes a link out of a title with nothing in it", () => {
+    const html = composed(docLink("mac0-0001", ""));
+    expect(html).toContain('href="tisty:doc/mac0-0001"');
+    expect(html).toContain('class="paper"');
+  });
+
+  it("keeps a title made only of spaces instead of collapsing it away", () => {
+    const html = composed(docLink("mac0-0001", "   "));
+    expect(html).toContain('href="tisty:doc/mac0-0001"');
+    expect(html).toContain(">   <");
+  });
+
+  it("survives a title with a loose opening bracket too", () => {
+    const written = docLink("mac0-0001", "Informe [ borrador");
+
+    expect(composed(written)).toContain(">Informe [ borrador<");
+    expect(composed(written)).toContain('href="tisty:doc/mac0-0001"');
+  });
+
+  it("does not need to escape the parentheses a title carries", () => {
+    const written = docLink("mac0-0001", "Nota (borrador)");
+
+    expect(composed(written)).toContain(">Nota (borrador)<");
+  });
+
+  it("keeps one link, not two, when the title has a line break in it", () => {
+    const written = docLink("mac0-0001", "linea uno\nlinea dos");
+    const html = composed(written);
+
+    expect(html.match(/<a /g)).toHaveLength(1);
+    expect(html).toContain('href="tisty:doc/mac0-0001"');
+  });
+
+  it("shows a title that already looks like a link as plain text, not a nested one", () => {
+    const written = docLink("mac0-0001", "[ya es un link](http://evil.com)");
+    const html = composed(written);
+
+    expect(html.match(/<a /g)).toHaveLength(1);
+    expect(html).toContain(">[ya es un link](http://evil.com)<");
+    expect(html).toContain('href="tisty:doc/mac0-0001"');
+    expect(html).not.toContain("evil.com\"");
+  });
+});
+
+describe("what docOf makes of an address", () => {
+  it("says no to anything that is not one of ours", () => {
+    expect(docOf("")).toBeNull();
+    expect(docOf("tisty:do")).toBeNull();
+    expect(docOf("https://tisty:doc/mac0-0001")).toBeNull();
+  });
+
+  it("reads an id with nothing after the scheme as an empty one, not a missing one", () => {
+    expect(docOf("tisty:doc/")).toBe("");
+  });
+
+  it("takes whatever comes after the scheme, slashes included", () => {
+    expect(docOf("tisty:doc/a/b")).toBe("a/b");
   });
 });

@@ -506,6 +506,55 @@ mod atomic_tests {
     }
 
     #[test]
+    fn a_missing_parent_directory_leaves_nothing_temporary_either() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path().join("nope").join("file.md");
+
+        assert!(write_atomic(&at, b"x").is_err());
+
+        let left: Vec<_> = std::fs::read_dir(room.path())
+            .unwrap()
+            .filter_map(|one| one.ok())
+            .collect();
+        assert!(
+            left.is_empty(),
+            "something was created in a directory that was never made: {left:?}"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_read_only_directory_refuses_the_temporary_and_leaves_nothing_behind() {
+        use std::os::unix::fs::PermissionsExt;
+        let room = tempfile::tempdir().unwrap();
+        let locked = room.path().join("locked");
+        std::fs::create_dir(&locked).unwrap();
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).unwrap();
+
+        let result = write_atomic(&locked.join("file.md"), b"x");
+
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(result.is_err());
+        let left: Vec<_> = std::fs::read_dir(&locked)
+            .unwrap()
+            .filter_map(|one| one.ok())
+            .collect();
+        assert!(
+            left.is_empty(),
+            "a temporary survived in a directory with no write permission: {left:?}"
+        );
+    }
+
+    #[test]
+    fn poured_does_not_partially_write_when_the_temporary_path_is_a_directory() {
+        let room = tempfile::tempdir().unwrap();
+        let dir_as_tmp = room.path().join("oops");
+        std::fs::create_dir(&dir_as_tmp).unwrap();
+
+        assert!(poured(&dir_as_tmp, b"x").is_err());
+    }
+
+    #[test]
     fn nothing_temporary_is_left_behind() {
         let tmp = tempfile::tempdir().unwrap();
         let at = tmp.path().join("a3f1-0001.md");

@@ -216,6 +216,20 @@ describe("the panel that appears over a selection", () => {
     editor.destroy();
   });
 
+  it("keeps the format of what it links when a space rides along in the selection", async () => {
+    const editor = new Editor({ extensions: written(), content: "hola **mundo** y adios" });
+    editor.commands.setTextSelection({ from: 1, to: 12 });
+    render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Link" }));
+    await userEvent.type(screen.getByLabelText(/Address/), "ejemplo.org{Enter}");
+
+    expect(md(editor)).toContain("**mundo**");
+    expect(md(editor)).toBe("[hola **mundo**](https://ejemplo.org) y adios");
+
+    editor.destroy();
+  });
+
   it("puts the words in as words, never as markup", async () => {
     const editor = made();
     editor.commands.setTextSelection({ from: 1, to: 5 });

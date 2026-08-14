@@ -22,16 +22,31 @@ pub fn titled(body: &str) -> String {
 }
 
 pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
-    let number = next(root, device);
-    if number > MOST_DIGITS {
-        return Err(Error::OutsideTheStore(format!("{}-{number}", stem(device))));
+    std::fs::create_dir_all(root)?;
+    let _ = crate::paths::ours_alone(root);
+    let mut number = next(root, device);
+    loop {
+        if number > MOST_DIGITS {
+            return Err(Error::OutsideTheStore(format!("{}-{number}", stem(device))));
+        }
+        let id = format!("{}-{number:0width$}", stem(device), width = DIGITS);
+        let at = resolve(root, &id)?;
+        match std::fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(&at)
+        {
+            Ok(_) => {
+                write(root, &id, body)?;
+                return Ok(Doc {
+                    title: titled(body),
+                    id,
+                });
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => number += 1,
+            Err(e) => return Err(Error::Io(e)),
+        }
     }
-    let id = format!("{}-{number:0width$}", stem(device), width = DIGITS);
-    write(root, &id, body)?;
-    Ok(Doc {
-        title: titled(body),
-        id,
-    })
 }
 
 pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
@@ -64,8 +79,36 @@ pub fn read(root: &Path, id: &str) -> Result<String> {
         return Err(Error::OutsideTheStore(id.to_string()));
     }
     let mut body = String::new();
-    file.take(BODY_AT_MOST).read_to_string(&mut body)?;
+    let read = file.take(BODY_AT_MOST + 1).read_to_string(&mut body)? as u64;
+    if read > BODY_AT_MOST {
+        return Err(Error::DocumentTooBig {
+            bytes: read,
+            limit: BODY_AT_MOST,
+        });
+    }
     Ok(body)
+}
+
+pub fn referenced(root: &Path) -> Vec<String> {
+    all(root)
+        .iter()
+        .filter_map(|doc| match read(root, &doc.id) {
+            Ok(body) => Some(body),
+            Err(e) => {
+                crate::witness::warn(
+                    crate::witness::channel::ATTACH,
+                    "a document could not be read while counting what is still named",
+                    &[
+                        ("id", crate::witness::Fact::Id(doc.id.clone())),
+                        ("why", crate::witness::Fact::Why(e.to_string())),
+                    ],
+                );
+                None
+            }
+        })
+        .flat_map(|body| crate::refs::extract(&body))
+        .map(|one| one.target)
+        .collect()
 }
 
 pub fn remove(root: &Path, id: &str) -> Result<()> {
@@ -179,6 +222,54 @@ mod tests {
     }
 
     #[test]
+    fn what_only_a_document_names_is_not_adrift() {
+        let root = root();
+        create(
+            root.path(),
+            &device("dev_a"),
+            "# Notas\n\nver [el informe](<attachments/ab/informe-91f2.pdf>)",
+        )
+        .unwrap();
+
+        let named = referenced(root.path());
+
+        assert!(
+            named.contains(&"attachments/ab/informe-91f2.pdf".to_string()),
+            "counting only tasks called this one loose: {named:?}"
+        );
+    }
+
+    #[test]
+    fn a_document_that_names_nothing_adds_nothing() {
+        let root = root();
+        create(root.path(), &device("dev_a"), "# Solo palabras").unwrap();
+
+        assert!(referenced(root.path()).is_empty());
+    }
+
+    #[test]
+    fn two_documents_made_at_once_never_land_in_one_file() {
+        let root = root();
+        let made: Vec<Doc> = std::thread::scope(|scope| {
+            let hands: Vec<_> = (0..8)
+                .map(|which| {
+                    let at = root.path().to_path_buf();
+                    scope.spawn(move || {
+                        create(&at, &device("dev_a"), &format!("el numero {which}")).unwrap()
+                    })
+                })
+                .collect();
+            hands.into_iter().map(|one| one.join().unwrap()).collect()
+        });
+
+        let mut ids: Vec<String> = made.iter().map(|one| one.id.clone()).collect();
+        ids.sort();
+        ids.dedup();
+        assert_eq!(ids.len(), 8, "two of them share a file: {made:?}");
+        assert_eq!(all(root.path()).len(), 8);
+    }
+
+    #[test]
     fn a_device_name_with_nothing_usable_still_makes_documents() {
         let root = root();
 
@@ -226,7 +317,7 @@ mod tests {
     }
 
     #[test]
-    fn a_body_with_no_end_is_read_up_to_a_ceiling() {
+    fn a_body_too_big_to_hold_is_refused_rather_than_opened_with_its_tail_cut() {
         let root = root();
         let made = create(root.path(), &device("dev_a"), "").unwrap();
         std::fs::write(
@@ -235,9 +326,28 @@ mod tests {
         )
         .unwrap();
 
-        let body = read(root.path(), &made.id).unwrap();
+        let refused = read(root.path(), &made.id);
 
-        assert_eq!(body.len(), BODY_AT_MOST as usize);
+        assert!(
+            matches!(refused, Err(Error::DocumentTooBig { .. })),
+            "opening it cut would have saved it cut seven hundred milliseconds later"
+        );
+    }
+
+    #[test]
+    fn a_body_right_at_the_ceiling_still_opens_whole() {
+        let root = root();
+        let made = create(root.path(), &device("dev_a"), "").unwrap();
+        std::fs::write(
+            root.path().join(format!("{}.md", made.id)),
+            "y".repeat(BODY_AT_MOST as usize),
+        )
+        .unwrap();
+
+        assert_eq!(
+            read(root.path(), &made.id).unwrap().len(),
+            BODY_AT_MOST as usize
+        );
     }
 
     #[test]
@@ -403,5 +513,69 @@ mod tests {
         let root = root();
 
         assert!(remove(root.path(), "a3f1-0001").is_ok());
+    }
+
+    #[test]
+    fn an_imported_file_one_byte_past_the_limit_is_refused_not_truncated() {
+        let room = tempfile::tempdir().unwrap();
+        let big = room.path().join("edge.md");
+        std::fs::write(&big, "z".repeat(BODY_AT_MOST as usize + 1)).unwrap();
+
+        let refused = read_outside(&big);
+
+        assert!(
+            matches!(
+                refused,
+                Err(Error::DocumentTooBig { bytes, limit })
+                    if bytes == BODY_AT_MOST + 1 && limit == BODY_AT_MOST
+            ),
+            "{refused:?}"
+        );
+    }
+
+    #[test]
+    fn a_file_that_is_not_valid_utf8_is_refused_rather_than_read_as_garbage() {
+        let room = tempfile::tempdir().unwrap();
+        let bad = room.path().join("bad.md");
+        std::fs::write(&bad, [0x66, 0x6f, 0xff, 0xfe, 0x62, 0x61, 0x72]).unwrap();
+
+        assert!(matches!(read_outside(&bad), Err(Error::Io(_))));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlink_to_a_real_file_is_read_like_any_other_file() {
+        let room = tempfile::tempdir().unwrap();
+        let real = room.path().join("real.md");
+        std::fs::write(&real, "# contenido real").unwrap();
+        let link = room.path().join("link.md");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+
+        assert_eq!(read_outside(&link).unwrap(), "# contenido real");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlink_to_a_directory_is_refused_like_any_other_directory() {
+        let room = tempfile::tempdir().unwrap();
+        let target_dir = room.path().join("adir");
+        std::fs::create_dir(&target_dir).unwrap();
+        let link = room.path().join("link_to_dir.md");
+        std::os::unix::fs::symlink(&target_dir, &link).unwrap();
+
+        assert!(matches!(
+            read_outside(&link),
+            Err(Error::OutsideTheStore(_))
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_directory_given_as_a_document_is_refused_not_read() {
+        let room = tempfile::tempdir().unwrap();
+        let dir = room.path().join("adir");
+        std::fs::create_dir(&dir).unwrap();
+
+        assert!(matches!(read_outside(&dir), Err(Error::OutsideTheStore(_))));
     }
 }

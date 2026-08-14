@@ -182,8 +182,8 @@ export const writeLog = (id: string, body: string, entry?: string): Promise<Task
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
 export const complete = (id: string): Promise<Task> => invoke("complete", { id });
 
-export const attach = (path: string, label?: string): Promise<string> =>
-  invoke("attach", { path, label });
+export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
+  invoke("attach", { path, label, roomy });
 
 export const served = (reference: string): Promise<string> =>
   invoke("served", { reference });

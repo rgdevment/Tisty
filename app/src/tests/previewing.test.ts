@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
 import { asMarkdown, written } from "../ui/writing";
@@ -52,12 +53,27 @@ describe("clicking a link inside the editor", () => {
 });
 
 describe("what the editor shows beside a link", () => {
-  it("puts a player under a video, without touching the markdown", () => {
+  it("offers to play a video rather than filling the page with it", () => {
     const editor = made("[charla](<attachments/charla-a3f9.mp4>)");
 
-    const player = editor.view.dom.querySelector("video");
-    expect(player).toBeTruthy();
+    const asks = editor.view.dom.querySelector<HTMLElement>(".preview-play");
+    expect(asks?.getAttribute("aria-label")).toBe("Play");
+    expect(editor.view.dom.querySelector("video[controls]")).toBeNull();
+    expect(asMarkdown(editor)).toBe("[charla](attachments/charla-a3f9.mp4)");
+
+    editor.destroy();
+  });
+
+  it("unfolds the player where the offer was, once it is asked for", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)");
+
+    editor.view.dom
+      .querySelector<HTMLElement>(".preview-play")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    const player = editor.view.dom.querySelector("video[controls]");
     expect(player?.getAttribute("src")).toBe("asset://localhost/attachments/charla-a3f9.mp4");
+    expect(editor.view.dom.querySelector(".preview-play")).toBeNull();
     expect(asMarkdown(editor)).toBe("[charla](attachments/charla-a3f9.mp4)");
 
     editor.destroy();
@@ -72,12 +88,35 @@ describe("what the editor shows beside a link", () => {
     editor.destroy();
   });
 
-  it("makes a card of another file, with its kind and its weight", () => {
+  it("folds the player away again, so the offer is not a one way door", () => {
+    const editor = made("[charla](<attachments/charla-a3f9.mp4>)");
+    const play = () =>
+      editor.view.dom
+        .querySelector<HTMLElement>(".preview-play")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    play();
+    expect(editor.view.dom.querySelector("video[controls]")).toBeTruthy();
+
+    editor.view.dom
+      .querySelector<HTMLElement>(".preview-fold")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(editor.view.dom.querySelector("video[controls]")).toBeNull();
+    expect(editor.view.dom.querySelector(".preview-play")).toBeTruthy();
+
+    play();
+    expect(editor.view.dom.querySelector("video[controls]")).toBeTruthy();
+
+    editor.destroy();
+  });
+
+  it("cards a file with the name that was written, not the one on disk", () => {
     const editor = made("[contrato](<attachments/contrato-91f2.pdf>)");
 
-    const card = editor.view.dom.querySelector(".preview-file");
-    expect(card?.textContent).toContain("contrato-91f2.pdf");
-    expect(card?.textContent).toContain("PDF · 2.4 MB");
+    expect(editor.view.dom.querySelector(".card-name")?.textContent).toBe("contrato");
+    expect(editor.view.dom.querySelector(".card-under")?.textContent).toBe("PDF · 2.4 MB");
+    expect(editor.view.dom.querySelector(".card-badge")?.getAttribute("data-kind")).toBe("PDF");
 
     editor.destroy();
   });
@@ -85,17 +124,26 @@ describe("what the editor shows beside a link", () => {
   it("makes a card of a document, named as the document is named now", () => {
     const editor = made("[lo que sea](tisty:doc/mac0-0007)");
 
-    expect(editor.view.dom.querySelector(".preview-doc")?.textContent).toContain(
-      "Informe técnico",
+    expect(editor.view.dom.querySelector(".card-name")?.textContent).toBe("Informe técnico");
+
+    editor.destroy();
+  });
+
+  it("says a document is gone rather than saying it is opening for ever", () => {
+    const editor = made("[Informe](tisty:doc/borrado)");
+
+    expect(editor.view.dom.querySelector(".card-under")?.textContent).toBe(
+      "That document has not arrived on this machine yet",
     );
 
     editor.destroy();
   });
 
-  it("says a document is gone rather than showing a card that leads nowhere", () => {
-    const editor = made("[Informe](tisty:doc/borrado)");
+  it("says it is opening only while the papers are still on their way", () => {
+    const editor = made("[Informe](tisty:doc/mac0-0007)", { title: () => undefined });
 
-    expect(editor.view.dom.querySelector(".preview-gone")).toBeTruthy();
+    expect(editor.view.dom.querySelector(".card-name")?.textContent).toBe("Opening…");
+    expect(editor.view.dom.querySelector(".card-gone")).toBeNull();
 
     editor.destroy();
   });
@@ -111,16 +159,16 @@ describe("what the editor shows beside a link", () => {
   it("shows one player for a link whose words are split by a format", () => {
     const editor = made("[una **charla** larga](<attachments/charla-a3f9.mp4>)");
 
-    expect(editor.view.dom.querySelectorAll("video").length).toBe(1);
+    expect(editor.view.dom.querySelectorAll(".preview-play").length).toBe(1);
 
     editor.destroy();
   });
 
-  it("says a file is not there instead of leaving a black player", () => {
+  it("says a file is not there instead of offering to play nothing", () => {
     const editor = made("[charla](<attachments/charla-a3f9.mp4>)", { gone: () => true });
 
-    expect(editor.view.dom.querySelector("video")).toBeNull();
-    expect(editor.view.dom.querySelector(".preview-gone")?.textContent).toContain("look again");
+    expect(editor.view.dom.querySelector(".preview-play")).toBeNull();
+    expect(editor.view.dom.querySelector(".card-under")?.textContent).toContain("look again");
 
     editor.destroy();
   });
@@ -129,7 +177,7 @@ describe("what the editor shows beside a link", () => {
     const onAgain = vi.fn();
     const editor = made("[charla](<attachments/charla-a3f9.mp4>)", { gone: () => true, onAgain });
 
-    const card = editor.view.dom.querySelector<HTMLElement>(".preview-gone");
+    const card = editor.view.dom.querySelector<HTMLElement>(".card-gone");
     expect(card?.getAttribute("role")).toBe("button");
     card?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
@@ -148,11 +196,11 @@ describe("what the editor shows beside a link", () => {
 
   it("goes away with the link that brought it, so it can be deleted", () => {
     const editor = made("[charla](<attachments/charla-a3f9.mp4>)");
-    expect(editor.view.dom.querySelector("video")).toBeTruthy();
+    expect(editor.view.dom.querySelector(".preview-play")).toBeTruthy();
 
     editor.chain().selectAll().deleteSelection().run();
 
-    expect(editor.view.dom.querySelector("video")).toBeNull();
+    expect(editor.view.dom.querySelector(".preview-play")).toBeNull();
     expect(asMarkdown(editor)).toBe("");
 
     editor.destroy();
@@ -165,5 +213,99 @@ describe("what the editor shows beside a link", () => {
     expect(asMarkdown(editor)).not.toContain("PDF");
 
     editor.destroy();
+  });
+
+  it("shows a card for each reference sharing one paragraph", () => {
+    const editor = made("[uno](<attachments/uno-1111.pdf>) y [dos](<attachments/dos-2222.pdf>)");
+
+    expect(editor.view.dom.querySelectorAll(".card").length).toBe(2);
+
+    editor.destroy();
+  });
+
+  it("shows a card for the reference inside each item of a list", () => {
+    const editor = made("- [uno](<attachments/uno-1111.pdf>)\n- [dos](<attachments/dos-2222.pdf>)");
+
+    const items = editor.view.dom.querySelectorAll("li");
+    expect(items).toHaveLength(2);
+    expect(items[0].querySelector(".card")).toBeTruthy();
+    expect(items[1].querySelector(".card")).toBeTruthy();
+
+    editor.destroy();
+  });
+
+  it("shows a card for a reference sitting inside a quote", () => {
+    const editor = made("> [uno](<attachments/uno-1111.pdf>)");
+
+    const quote = editor.view.dom.querySelector("blockquote");
+    expect(quote?.querySelector(".card")).toBeTruthy();
+
+    editor.destroy();
+  });
+
+  it("shows a card for a reference sitting inside a table cell", () => {
+    const editor = made("| a | b |\n| --- | --- |\n| [uno](<attachments/uno-1111.pdf>) | texto |");
+
+    const table = editor.view.dom.querySelector("table");
+    expect(table?.querySelector(".card")).toBeTruthy();
+
+    editor.destroy();
+  });
+
+  it("can be deleted from the card, since the link that made it is hidden", () => {
+    const editor = made("[contrato](<attachments/contrato-91f2.pdf>)");
+    const card = editor.view.dom.querySelector<HTMLElement>(".card");
+
+    card?.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true }));
+
+    expect(asMarkdown(editor)).toBe("");
+    expect(editor.view.dom.querySelector(".card")).toBeNull();
+
+    editor.destroy();
+  });
+
+  it("leaves the words alone when the link shares its line with other text", () => {
+    const editor = made("mira [contrato](<attachments/contrato-91f2.pdf>) por favor");
+    const card = editor.view.dom.querySelector<HTMLElement>(".card");
+
+    card?.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true }));
+
+    expect(asMarkdown(editor)).toBe("");
+
+    editor.destroy();
+  });
+
+  it("hides only the link that fills its own paragraph", () => {
+    const sheet = readFileSync("src/index.css", "utf8");
+
+    expect(sheet).toContain("p:has(> a:only-child):has(+ .preview)");
+  });
+
+  it("sits after a heading rather than inside it", () => {
+    const editor = made("# [uno](<attachments/uno-1111.pdf>)");
+
+    expect(editor.view.dom.querySelector("h1 .card")).toBeNull();
+    expect(editor.view.dom.querySelector(".card")).toBeTruthy();
+
+    editor.destroy();
+  });
+
+  it("shows a card at every place the same attachment is referenced, not just the first", () => {
+    const editor = made(
+      "primero [uno](<attachments/mismo-1111.pdf>)\n\nsegundo [otra vez](<attachments/mismo-1111.pdf>)",
+    );
+
+    expect(editor.view.dom.querySelectorAll(".card")).toHaveLength(2);
+
+    editor.destroy();
+  });
+
+  it.fails("offers one player, not two, for a link whose text is split by a hard break", () => {
+    const editor = made("[linea uno\nlinea dos](<attachments/charla-a3f9.mp4>)");
+
+    const players = editor.view.dom.querySelectorAll("video");
+
+    editor.destroy();
+    expect(players).toHaveLength(1);
   });
 });
