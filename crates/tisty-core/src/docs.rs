@@ -303,7 +303,10 @@ mod tests {
             read_outside(&at)
         };
 
-        assert!(write("half.md", 250 * 1024).is_ok(), "a long note still opens");
+        assert!(
+            write("half.md", 250 * 1024).is_ok(),
+            "a long note still opens"
+        );
         assert!(
             matches!(
                 write("huge.md", 900 * 1024),
