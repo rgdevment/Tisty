@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor as Writing } from "@tiptap/core";
 import type { Node as Written } from "@tiptap/pm/model";
@@ -76,6 +76,7 @@ const caret = (editor: Writing, at: number) => {
 interface Props {
   value: string;
   taking?: boolean;
+  reading?: boolean;
   label?: string;
   papers?: Filed[];
   onAttach?: () => Promise<string | null>;
@@ -87,6 +88,7 @@ interface Props {
 export default function Editor({
   value,
   taking,
+  reading,
   label,
   papers,
   onAttach,
@@ -107,6 +109,7 @@ export default function Editor({
   const pending = useRef(new Set<string>());
   const missing = useRef(new Set<string>());
   const nudge = useRef(() => {});
+  const waiting = useRef(false);
   const reach = useRef<Reach>({
     url: () => null,
     weight: () => null,
@@ -118,6 +121,7 @@ export default function Editor({
     take: () => {},
   });
 
+  const looked = useRef((_: Writing) => {});
   const look = (editor: Writing) => {
     const { $from, $to, empty } = editor.state.selection;
     setPicked(
@@ -132,11 +136,14 @@ export default function Editor({
     setActive(0);
   };
 
-  const editor = useEditor({
-    autofocus: taking,
-    extensions: [...written(), previewing(() => reach.current)],
-    content: value,
-    editorProps: {
+  const hands = useRef({ onWrite, onOpen, onDoc });
+  hands.current = { onWrite, onOpen, onDoc };
+  looked.current = look;
+
+  const shapes = useMemo(() => [...written(), previewing(() => reach.current)], []);
+
+  const props = useMemo(
+    () => ({
       attributes: {
         class: "tisty-doc",
         [CATCHES]: "",
@@ -153,8 +160,11 @@ export default function Editor({
           return false;
         },
       },
-      handleClick: clicking(onOpen, onDoc),
-      handleKeyDown: (_, e) => {
+      handleClick: clicking(
+        (reference) => hands.current.onOpen?.(reference),
+        (paper) => hands.current.onDoc?.(paper),
+      ),
+      handleKeyDown: (_view: unknown, e: KeyboardEvent) => {
         if (!now.current.open) return false;
         const count = now.current.count;
         if (e.key === "ArrowDown") {
@@ -175,16 +185,29 @@ export default function Editor({
         }
         return false;
       },
-    },
-    onUpdate: ({ editor }) => {
-      const text = asMarkdown(editor);
-      if (text !== null) {
-        mine.current = text;
-        onWrite(text);
-      }
-      look(editor);
-    },
-    onSelectionUpdate: ({ editor }) => look(editor),
+    }),
+    [label],
+  );
+
+  const wrote = useCallback(({ editor }: { editor: Writing }) => {
+    const text = asMarkdown(editor);
+    if (text !== null) {
+      mine.current = text;
+      hands.current.onWrite(text);
+    }
+    looked.current(editor);
+  }, []);
+
+  const moved = useCallback(({ editor }: { editor: Writing }) => looked.current(editor), []);
+
+  const editor = useEditor({
+    autofocus: taking,
+    editable: !reading,
+    extensions: shapes,
+    content: value,
+    editorProps: props,
+    onUpdate: wrote,
+    onSelectionUpdate: moved,
   });
 
   const blocks: Block[] = editor
@@ -320,8 +343,13 @@ export default function Editor({
   }, [editor, value]);
 
   nudge.current = () => {
-    if (!editor || editor.isDestroyed) return;
-    editor.view.dispatch(editor.state.tr.setMeta("preview", true));
+    if (waiting.current) return;
+    waiting.current = true;
+    queueMicrotask(() => {
+      waiting.current = false;
+      if (!editor || editor.isDestroyed) return;
+      editor.view.dispatch(editor.state.tr.setMeta("preview", true));
+    });
   };
 
   const fetches = (reference: string, get: () => Promise<void>) => {
@@ -433,7 +461,7 @@ export default function Editor({
       live = false;
       editor.off("transaction", dress);
     };
-  }, [editor, value]);
+  }, [editor]);
 
   return (
     <>

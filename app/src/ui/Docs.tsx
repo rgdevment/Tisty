@@ -1,9 +1,12 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { open as pick } from "@tauri-apps/plugin-dialog";
-import { attach, docRead, docWrite, opened, type Filed } from "../core";
+import { attach, docRead, docWrite, opened, roomy, type Filed } from "../core";
 import { busy, holds, queued } from "../saving";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { frail } from "../frail";
+import Modal from "./Modal";
+import { weighed } from "../previews";
 
 const Editor = lazy(() => import("./Editor"));
 
@@ -93,6 +96,9 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
         if (turn.current !== mine) return;
         setOpen(wanted);
         setBody(text);
+        const brittle = frail(text);
+        setWarned(brittle.length ? brittle : null);
+        setReading(brittle.length > 0);
       })
       .catch((e) => onError(saidPlainly(e)));
   }, [asked, known, open, flush, onError]);
@@ -101,8 +107,19 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
     onShown?.(open?.file ?? null);
   }, [open, onShown]);
 
+  const [warned, setWarned] = useState<string[] | null>(null);
+  const [reading, setReading] = useState(false);
+
+  const [ceiling, setCeiling] = useState(0);
+  useEffect(() => {
+    roomy()
+      .then(setCeiling)
+      .catch(() => {});
+  }, []);
+  const brimming = ceiling > 0 && body.length > ceiling;
+
   const wrote = (text: string) => {
-    if (!open) return;
+    if (!open || reading) return;
     setBody(text);
     held.current = { id: open.file, body: text };
     if (settling.current) clearTimeout(settling.current);
@@ -111,14 +128,45 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
 
   return (
     <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      {warned && (
+        <Modal title={t("frailTitle")} onClose={() => setWarned(null)}>
+          <p className="text-[13px] text-soft">{t("frailWhy")}</p>
+          <ul className="mt-2 mb-4 list-disc pl-5 text-[13px] text-ink">
+            {warned.map((one) => (
+              <li key={one}>{t(one as Parameters<typeof t>[0])}</li>
+            ))}
+          </ul>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setWarned(null)}
+              className="rounded-md px-3 py-1.5 text-[12.5px] text-soft hover:bg-hover"
+            >
+              {t("frailRead")}
+            </button>
+            <button
+              type="button"
+              autoFocus
+              onClick={() => {
+                setWarned(null);
+                setReading(false);
+              }}
+              className="rounded-md bg-accent px-3 py-1.5 text-[12.5px] text-bg"
+            >
+              {t("frailEdit")}
+            </button>
+          </div>
+        </Modal>
+      )}
       <div data-tauri-drag-region className="h-9 shrink-0" />
       {open ? (
         <div className="mx-auto flex min-h-0 w-full max-w-[820px] flex-1 flex-col px-10">
           <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
             <Editor
-              key={open.file}
+              key={`${open.file}${reading ? ":read" : ""}`}
               value={body}
-              taking
+              taking={!reading}
+              reading={reading}
               label={open.title || t("untitledDoc")}
               papers={known}
               onDoc={onDoc}
@@ -144,7 +192,13 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
         aria-live="polite"
         className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint"
       >
-        {saving ? t("saving") : ""}
+        {reading
+          ? t("frailReading")
+          : saving
+            ? t("saving")
+            : brimming
+              ? fill("docBrimming", weighed(body.length))
+              : ""}
       </div>
     </main>
   );

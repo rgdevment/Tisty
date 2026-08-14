@@ -2445,6 +2445,11 @@ fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answe
 }
 
 #[tauri::command]
+fn roomy() -> u64 {
+    tisty_core::docs::BODY_ROOMY
+}
+
+#[tauri::command]
 fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
     let root = held(&session).paths.data().to_path_buf();
     let at = tisty_core::attach::resolve(&reference, &root)
@@ -2942,6 +2947,7 @@ pub fn run() {
             attach,
             served,
             weighs,
+            roomy,
             opened,
             revealed,
             sync_state,

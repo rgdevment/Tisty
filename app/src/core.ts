@@ -333,6 +333,8 @@ export const revealed = (path: string): Promise<void> => invoke("revealed", { pa
 export const copied = (text: string): Promise<void> => writeText(text);
 
 export const weighs = (reference: string): Promise<number> => invoke("weighs", { reference });
+
+export const roomy = (): Promise<number> => invoke("roomy");
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
 export const discard = (id: string): Promise<Task> => invoke("discard", { id });
 

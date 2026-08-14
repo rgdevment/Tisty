@@ -73,6 +73,9 @@ import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
 
+export const steady = <T,>(was: T, found: T): T =>
+  JSON.stringify(was) === JSON.stringify(found) ? was : found;
+
 type Mode = "columns" | "sheet";
 
 export default function App() {
@@ -194,7 +197,7 @@ export default function App() {
     }
     docs()
       .then((found) => {
-        setPapers(found ?? { folders: [], docs: [] });
+        setPapers((was) => steady(was, found ?? { folders: [], docs: [] }));
         if (found?.docs.some((one) => one.file === paper)) {
           setChosen({ named: "docs", doc: paper });
         } else {
@@ -204,9 +207,11 @@ export default function App() {
       .catch(() => setError(t("goneDoc")));
   };
 
+  const told = useCallback((problem: unknown) => setError(saidPlainly(problem)), []);
+
   const lookPapers = useCallback(() => {
     docs()
-      .then((found) => setPapers(found ?? { folders: [], docs: [] }))
+      .then((found) => setPapers((was) => steady(was, found ?? { folders: [], docs: [] })))
       .catch(() => {});
   }, []);
   useEffect(lookPapers, [lookPapers]);
@@ -655,7 +660,7 @@ export default function App() {
           open={chosen.doc}
           known={papers.docs}
           onKept={lookPapers}
-          onError={(e) => setError(saidPlainly(e))}
+          onError={told}
           onShown={setShowing}
           onDoc={openDoc}
         />

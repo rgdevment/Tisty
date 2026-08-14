@@ -1,0 +1,167 @@
+import { describe, expect, it } from "vitest";
+import { Editor } from "@tiptap/core";
+import { MarkdownSerializerState } from "prosemirror-markdown";
+import { asMarkdown, unaided, written } from "../ui/writing";
+
+const build = (content: string) => new Editor({ extensions: written(), content });
+
+const both = (content: string) => {
+  const editor = build(content);
+  const buffered = asMarkdown(editor) ?? "";
+  const plain = unaided(() => asMarkdown(editor)) ?? "";
+  editor.destroy();
+  return { buffered, plain };
+};
+
+const same = (content: string) => {
+  const { buffered, plain } = both(content);
+  expect(buffered).toBe(plain);
+  return buffered;
+};
+
+const LINE = "Revisar el informe trimestral antes del cierre de mes y anotar los pendientes.";
+
+const mixed = (blocks: number) =>
+  Array.from({ length: blocks }, (_, i) => {
+    const turn = i % 12;
+    if (turn === 0) return `## Seccion ${i}`;
+    if (turn === 3) return `- ${LINE}\n- ${LINE}\n- ${LINE}`;
+    if (turn === 5) return `> ${LINE}`;
+    if (turn === 7) return `${LINE} con **negrita** y *cursiva* y \`codigo\`.`;
+    if (turn === 9) return `${LINE} y un [enlace](https://example.com/a/${i}).`;
+    return `${LINE} ${LINE}`;
+  }).join("\n\n");
+
+const flat = (blocks: number) => Array.from({ length: blocks }, (_, i) => `${LINE} ${i}`).join("\n\n");
+
+const shapes: Record<string, string> = {
+  "spaces stuck inside the marks": "un **texto ** con *espacios * raros",
+  "bold and italic at once": "***todo***",
+  "every mark in one line": "un **texto ** con *espacios * raros y ![img](a.png) y ***todo*** y `x`",
+  "a table with marks in its cells": "| a | b |\n| --- | --- |\n| **x** | y |\n| z | *w* |",
+  "a table cell carrying a pipe": "| a \\| b | c |\n| --- | --- |\n| **x \\| y** | z |",
+  "nested task lists": "- [ ] uno **dos**\n- [x] tres\n  - [ ] anidada\n    - [x] mas honda",
+  "a quote holding a list and a fence": "> cita **fuerte**\n>\n> 1. uno\n> 2. dos\n>\n> ```js\n> const a = 1;\n> ```",
+  "a picture right behind an exclamation": "texto ! ![alt](x.png) y !![](y.png) y \\!![z](z.png)",
+  "a link glued to an exclamation": '<p>hola!<a href="https://x.dev/a">ver</a></p>',
+  "a link glued to an escaped exclamation": '<p>hola\\!<a href="https://x.dev/a">ver</a></p>',
+  "a link glued to an exclamation that opens the document": '<p>!<a href="https://x.dev/a">ver</a></p>',
+  "a link glued to an exclamation of its own": '<p>a<strong>x</strong>!<a href="https://x.dev/a">ver</a></p>',
+  "links into this Tisty": "ver [titulo](tisty:doc/abc) y [[algo]] fin",
+  "front matter above the body": "---\ntitle: cosa\ntags: [a, b]\n---\n\ncuerpo **fuerte**",
+  "windows backslashes": "abre C:\\Users\\Mario\\clip.mkv y [x](<C:\\a\\b.png>) y `D:\\raiz\\x`",
+  "blank lines at both ends": "\n\n\ntexto en medio\n\n\n",
+  "nothing but blank lines": "\n\n\n",
+  "an empty document": "",
+  "every heading depth": "# uno\n## dos\n### tres\n#### cuatro\n##### cinco\n###### seis",
+  "characters that need escaping": "un \\* asterisco, un _guion_bajo_ y un ~~tachado~~",
+  "a rule and a hard break": "uno\n\n---\n\ndos  \ntres",
+  "a fenced block next to prose": "```ts\nconst a = 1;\n```\n\ntexto",
+  "quotes inside lists inside quotes": "> - uno\n>   - dos\n>     - > tres **fuerte**",
+  "marks with no room between them": "**a** **b**_c_`d`~~e~~ y * suelto *",
+  "marks around nothing": "**** y ** ** y * *",
+  "a link wearing a mark": "**[titulo](https://x.dev/a)** y *[b](tisty:doc/z)*",
+  "raw html the editor keeps": "un <u>subrayado</u> y <br> suelto",
+  "accents and emoji": "ñandú 🌵 con **acentós** y *cursivá*",
+};
+
+const PIECES = ["**", "*", "`", "~~", "!", "[", "]", "(", ")", "\\", " ", "\n", "\n\n", "a", "ñ", "#", "-", ">", "|", "_", "1."];
+
+const rolled = (seed: number) => {
+  let at = seed;
+  return () => {
+    at = (at * 1103515245 + 12345) & 0x7fffffff;
+    return at / 0x7fffffff;
+  };
+};
+
+const scrambled = (seed: number, pieces: number) => {
+  const roll = rolled(seed);
+  let text = "";
+  for (let i = 0; i < pieces; i++) text += PIECES[Math.floor(roll() * PIECES.length)];
+  return text;
+};
+
+type Loose = Record<string, unknown>;
+
+const glimpsed = (): Loose => {
+  const proto = MarkdownSerializerState.prototype as unknown as Loose;
+  const esc = proto.esc as (...args: unknown[]) => unknown;
+  let caught: Loose | null = null;
+  proto.esc = function (this: Loose, ...args: unknown[]) {
+    caught ??= this;
+    return esc.apply(this, args);
+  };
+  const editor = build("hola **mundo ** y *algo*");
+  asMarkdown(editor);
+  editor.destroy();
+  proto.esc = esc;
+  if (!caught) throw new Error("no serializer state reached esc()");
+  return caught;
+};
+
+describe("the buffered serializer writes what the plain one writes", () => {
+  it("really lifts the buffer off while it compares, or it would be grading its own work", () => {
+    const proto = MarkdownSerializerState.prototype;
+    expect(typeof Object.getOwnPropertyDescriptor(proto, "out")?.get).toBe("function");
+    unaided(() => {
+      expect(Object.getOwnPropertyDescriptor(proto, "out")).toBeUndefined();
+    });
+    expect(typeof Object.getOwnPropertyDescriptor(proto, "out")?.get).toBe("function");
+  });
+
+  it.each([10, 100, 400])("agrees on a mixed document of %i blocks", (blocks) => {
+    expect(same(mixed(blocks)).length).toBeGreaterThan(0);
+  });
+
+  it("agrees on plain prose with no marks at all", () => {
+    expect(same(flat(120))).not.toContain("*");
+  });
+
+  it.each(Object.entries(shapes))("agrees on %s", (_name, content) => {
+    same(content);
+  });
+
+  it("still reaches the escape a link glued to an exclamation needs, so those cases are not idle", () => {
+    expect(same('<p>hola!<a href="https://x.dev/a">ver</a></p>')).toBe("hola\\![ver](https://x.dev/a)");
+    expect(same('<p>hola\\!<a href="https://x.dev/a">ver</a></p>')).toBe("hola\\\\![ver](https://x.dev/a)");
+    expect(same('<p>a<strong>x</strong>!<a href="https://x.dev/a">ver</a></p>')).toBe(
+      "a**x**\\![ver](https://x.dev/a)",
+    );
+  });
+
+  it("agrees on every length as a shape grows, where the buffer boundaries move", () => {
+    for (let n = 1; n <= 24; n++) {
+      same(Array.from({ length: n }, (_, i) => `parrafo ${i} con **negrita ** y *cursiva * pegadas`).join("\n\n"));
+      same(Array.from({ length: n }, (_, i) => `- item ${i} con ![i](a${i}.png) tras !`).join("\n"));
+      same(Array.from({ length: n }, (_, i) => `> cita ${i} con \`codigo\` y [e](tisty:doc/${i})`).join("\n\n"));
+    }
+  });
+
+  it("agrees on scrambled markup that no sane person would write", () => {
+    for (let seed = 1; seed <= 250; seed++) same(scrambled(seed, 60));
+  });
+
+  it("keeps agreeing when tiptap-markdown's own state stays untouched, the shape an upgrade would leave", () => {
+    const sub = Object.getPrototypeOf(glimpsed()) as Loose;
+    const library: Loose = {};
+    unaided(() => {
+      const plainSub = Object.getPrototypeOf(glimpsed()) as Loose;
+      library.markString = plainSub.markString;
+      library.normalizeInline = plainSub.normalizeInline;
+    });
+    const ours = { markString: sub.markString, normalizeInline: sub.normalizeInline };
+    Object.assign(sub, library);
+    try {
+      for (const content of [mixed(40), ...Object.values(shapes)]) {
+        const editor = build(content);
+        const half = asMarkdown(editor) ?? "";
+        const plain = unaided(() => asMarkdown(editor)) ?? "";
+        editor.destroy();
+        expect(half).toBe(plain);
+      }
+    } finally {
+      Object.assign(sub, ours);
+    }
+  });
+});
