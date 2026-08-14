@@ -29,6 +29,10 @@ impl Config {
             .clamp(crate::attach::COPIED_LEAST, crate::attach::COPIED_MOST)
     }
 
+    pub fn copies_in_a_doc(&self) -> u64 {
+        crate::attach::COPIED_IN_DOC
+    }
+
     pub fn backs_up(&self) -> bool {
         !matches!(self.sync, Some(Sync::Folder(_)))
     }
@@ -78,7 +82,7 @@ impl Config {
             editor: None,
             quiet: None,
             checked_at: None,
-            attach_up_to: None,
+            attach_up_to: Some(crate::attach::COPIED_AT_FIRST),
             opened_by: None,
             on_close: None,
             backed_up_at: None,
@@ -206,5 +210,62 @@ mod tests {
             "round trip lost something:
 {written}"
         );
+    }
+
+    mod ceilings {
+        use super::*;
+
+        fn bare() -> Config {
+            Config {
+                device_id: DeviceId(new_device_id()),
+                locale: None,
+                editor: None,
+                quiet: None,
+                checked_at: None,
+                attach_up_to: None,
+                opened_by: None,
+                on_close: None,
+                backed_up_at: None,
+                sync: None,
+                synced_at: None,
+            }
+        }
+
+        #[test]
+        fn a_task_never_takes_a_file_past_what_the_product_promises() {
+            let mut config = bare();
+            config.attach_up_to = Some(200 * 1024 * 1024);
+
+            assert_eq!(
+                config.copies_up_to(),
+                crate::attach::COPIED_UP_TO,
+                "a setting talked the ceiling above what a task is meant to hold"
+            );
+        }
+
+        #[test]
+        fn a_store_that_never_chose_keeps_the_ceiling_it_always_had() {
+            assert_eq!(bare().copies_up_to(), crate::attach::COPIED_UP_TO);
+        }
+
+        #[test]
+        fn a_machine_starting_today_asks_for_less_until_it_says_otherwise() {
+            let room = tempfile::tempdir().unwrap();
+            let paths = Paths::new(room.path().join("data"), room.path().join("config"));
+
+            let made = Config::load_or_init(&paths).unwrap();
+
+            assert_eq!(made.copies_up_to(), crate::attach::COPIED_AT_FIRST);
+            assert!(made.copies_up_to() < crate::attach::COPIED_UP_TO);
+        }
+
+        #[test]
+        fn a_document_still_holds_five_hundred_megabytes_whatever_a_task_is_set_to() {
+            let mut config = bare();
+            config.attach_up_to = Some(crate::attach::COPIED_AT_FIRST);
+
+            assert_eq!(config.copies_in_a_doc(), 500 * 1024 * 1024);
+            assert!(config.copies_in_a_doc() > config.copies_up_to());
+        }
     }
 }

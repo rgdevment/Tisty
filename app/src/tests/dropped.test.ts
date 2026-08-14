@@ -53,20 +53,34 @@ describe("a file drag from the system", () => {
     expect(box.classList.contains("catching")).toBe(true);
 
     webview.fire({ type: "drop", paths: ["/a.png"], position: { x: 10, y: 10 } });
-    expect(caught).toHaveBeenCalledWith(box, ["/a.png"]);
+    expect(caught).toHaveBeenCalledWith(box, ["/a.png"], expect.anything());
     expect(box.classList.contains("catching")).toBe(false);
   });
 
-  it("looks under the right place on a scaled display", async () => {
+  it("takes macOS at its word, where the position is already in css pixels", async () => {
+    const { asCss } = await import("../dropped");
+
+    expect(asCss(200, 100, true, 2)).toEqual([200, 100]);
+  });
+
+  it("brings the rest down to css pixels, where the position is in real ones", async () => {
+    const { asCss } = await import("../dropped");
+
+    expect(asCss(200, 100, false, 2)).toEqual([100, 50]);
+    expect(asCss(200, 100, false, 1)).toEqual([200, 100]);
+    expect(asCss(200, 100, false, 0)).toEqual([200, 100]);
+  });
+
+  it("hands over where it landed, not only what landed", async () => {
     const box = field();
-    const at = vi.fn(() => box);
-    looked = at;
-    window.devicePixelRatio = 2;
-    whenFilesLand(vi.fn());
+    looked = () => box;
+    const caught = vi.fn();
+    whenFilesLand(caught);
     await settled();
 
     webview.fire({ type: "drop", paths: ["/a.png"], position: { x: 200, y: 100 } });
-    expect(at).toHaveBeenCalledWith(100, 50);
+
+    expect(caught).toHaveBeenCalledWith(box, ["/a.png"], { left: 200, top: 100 });
   });
 
   it("stops highlighting when the drag leaves", async () => {
@@ -105,7 +119,7 @@ describe("handing the file to the field", () => {
     expect(took).not.toHaveBeenCalled();
 
     expect(handTo(one, "![a](<b>)")).toBe(true);
-    expect(took).toHaveBeenCalledWith("![a](<b>)");
+    expect(took).toHaveBeenCalledWith("![a](<b>)", undefined);
   });
 
   it("says no once the field is gone, instead of losing the file", () => {

@@ -217,7 +217,7 @@ export default function TaskList({
         ref={listed}
         role="list"
         aria-label={t("tasks")}
-        className={`scroller flex-1 px-5 pb-6 ${width}`}
+        className={`scroller flex-1 px-5 pt-4 pb-6 ${width}`}
       >
         {tasks.length === 0 && (
           <p className="px-2.5 py-4 text-sm leading-relaxed text-soft">

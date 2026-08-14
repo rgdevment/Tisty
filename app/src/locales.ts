@@ -287,7 +287,8 @@ const en = {
     "That folder holds another history ({name}).\n\nTisty does not merge two histories. To join that one, this machine is backed up first and then emptied: it will hold what the folder holds, and nothing of what it holds now.\n\nPick where the backup goes?",
   sharedIsTheBackup: "Your shared folder already holds every machine's history",
   otherStore: "That belongs to another store ({name})",
-  attachmentTooBig: "That file is over {name}. Please write a document for anything that big and reference it from the task — or raise the limit in Settings.",
+  attachmentTooBig:
+    "That file is over {name}, the most a task takes. Raise it in Settings → Writing, or attach it inside a document, which takes up to 500 MB.",
   attachmentTooBigHere: "That file is over {name}, which is as much as a document will hold.",
   textTooLong: "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
   docBrimming: "{name} — this document is getting long enough to feel it while typing",
@@ -793,7 +794,8 @@ const es: Catalog = {
     "Esa carpeta guarda otro historial ({name}).\n\nTisty no fusiona dos historiales. Para unirse a ese, esta máquina se respalda primero y luego se vacía: pasará a tener lo que tiene la carpeta, y nada de lo que tiene ahora.\n\n¿Eliges dónde va el respaldo?",
   sharedIsTheBackup: "Tu carpeta compartida ya guarda el historial de todos tus equipos",
   otherStore: "Eso es de otro almacén ({name})",
-  attachmentTooBig: "Ese archivo pasa de {name}. Para algo así, crea un documento y referéncialo desde la tarea; o sube el límite en Configuración.",
+  attachmentTooBig:
+    "Ese archivo pasa de {name}, el máximo de una tarea. Súbelo en Configuración → Escribir, o adjúntalo dentro de un documento, que admite hasta 500 MB.",
   attachmentTooBigHere: "Ese archivo pasa de {name}, que es todo lo que un documento admite.",
   textTooLong: "Eso pasa de {name} de texto. Algo tan largo va en un documento y se referencia desde aquí.",
   docBrimming: "{name} — este documento empieza a ser largo y se nota al escribir",

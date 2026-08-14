@@ -2564,6 +2564,13 @@ fn retire_attachment(session: tauri::State<'_, Mutex<Session>>, reference: Strin
         .commit(Op::AttachRetire { d: reference })
         .map_err(|e| blamed(channel::ATTACH, "the retirement could not be written", e))?;
     session.take_out_the_retired();
+    session.reproject().map_err(|e| {
+        blamed(
+            channel::CACHE,
+            "the store would not project after retiring",
+            e,
+        )
+    })?;
     Ok(())
 }
 
@@ -2578,6 +2585,13 @@ fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answ
     session
         .commit(Op::DeviceRemove { d: who })
         .map_err(|e| blamed(channel::STORE, "the machine could not be removed", e))?;
+    session.reproject().map_err(|e| {
+        blamed(
+            channel::CACHE,
+            "the store would not project after removing",
+            e,
+        )
+    })?;
 
     if let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone()
         && let Some(theirs) = named_in(&dest.join("store"), &id)

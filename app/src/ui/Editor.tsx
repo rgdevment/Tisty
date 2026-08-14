@@ -463,8 +463,10 @@ export default function Editor({
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    return takesFiles(editor.view.dom, (put) => {
-      editor.chain().focus().insertContent(put).run();
+    return takesFiles(editor.view.dom, (put, at) => {
+      const landed = at ? editor.view.posAtCoords({ left: at.left, top: at.top })?.pos : undefined;
+      const chain = editor.chain().focus(landed ?? undefined);
+      chain.insertContent(put).run();
     });
   }, [editor]);
 

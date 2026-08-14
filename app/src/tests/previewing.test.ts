@@ -410,12 +410,39 @@ describe("what the editor shows beside a link", () => {
     editor.destroy();
   });
 
-  it("still refuses when two references share one line", () => {
+  it("takes only the reference under the caret when two share one line", () => {
     const editor = made(
       "[charla](<attachments/charla-a3f9.mp4>) [notas](<attachments/notas-b1c2.pdf>)",
     );
 
     editor.commands.setTextSelection(5);
+
+    expect(rubs(editor, "Backspace")).toBe(true);
+    const said = asMarkdown(editor) ?? "";
+    expect(said).not.toContain("charla-a3f9.mp4");
+    expect(said).toContain("notas-b1c2.pdf");
+
+    editor.destroy();
+  });
+
+  it("takes the reference and leaves the words it was sitting among", () => {
+    const editor = made("antes [charla](<attachments/charla-a3f9.mp4>) despues");
+
+    editor.commands.setTextSelection(11);
+
+    expect(rubs(editor, "Backspace")).toBe(true);
+    const said = asMarkdown(editor) ?? "";
+    expect(said).not.toContain("charla-a3f9.mp4");
+    expect(said).toContain("antes");
+    expect(said).toContain("despues");
+
+    editor.destroy();
+  });
+
+  it("leaves ordinary words beside a reference alone", () => {
+    const editor = made("antes [charla](<attachments/charla-a3f9.mp4>) despues");
+
+    editor.commands.setTextSelection(3);
 
     expect(rubs(editor, "Backspace")).toBeFalsy();
 
