@@ -188,6 +188,22 @@ export default function App() {
 
   const roomBelow =
     here != null && !papers.folders.some((one) => one.id === here && one.parent !== null);
+  const openDoc = (paper: string) => {
+    if (papers.docs.some((one) => one.file === paper)) {
+      return setChosen({ named: "docs", doc: paper });
+    }
+    docs()
+      .then((found) => {
+        setPapers(found ?? { folders: [], docs: [] });
+        if (found?.docs.some((one) => one.file === paper)) {
+          setChosen({ named: "docs", doc: paper });
+        } else {
+          setError(t("goneDoc"));
+        }
+      })
+      .catch(() => setError(t("goneDoc")));
+  };
+
   const lookPapers = useCallback(() => {
     docs()
       .then((found) => setPapers(found ?? { folders: [], docs: [] }))
@@ -269,7 +285,7 @@ export default function App() {
     () =>
       whenFilesLand((target, paths) => {
         setError(null);
-        Promise.all(paths.map((one) => attach(one)))
+        Promise.all(paths.map((one) => attach(one, undefined, chosen.named === "docs")))
           .then((written) => {
             const put = handTo(target, written.join("\n\n"));
             if (!put) setError(t("attachmentLost"));
@@ -641,11 +657,7 @@ export default function App() {
           onKept={lookPapers}
           onError={(e) => setError(saidPlainly(e))}
           onShown={setShowing}
-          onDoc={(paper) =>
-            papers.docs.some((one) => one.file === paper)
-              ? setChosen({ named: "docs", doc: paper })
-              : setError(t("goneDoc"))
-          }
+          onDoc={openDoc}
         />
       ) : chosen.named === "lists" && !chosen.list ? (
         <Lists
@@ -684,11 +696,7 @@ export default function App() {
           onReopen={() => act(reopen(task.id))}
           onClose={shut}
           onError={(e) => setError(saidPlainly(e))}
-          onDoc={(paper) =>
-            papers.docs.some((one) => one.file === paper)
-              ? setChosen({ named: "docs", doc: paper })
-              : setError(t("goneDoc"))
-          }
+          onDoc={openDoc}
         />
       ) : (
         <TaskList
@@ -826,11 +834,7 @@ export default function App() {
           onReopen={() => act(reopen(task.id))}
           onClose={shut}
           onError={(e) => setError(saidPlainly(e))}
-          onDoc={(paper) =>
-            papers.docs.some((one) => one.file === paper)
-              ? setChosen({ named: "docs", doc: paper })
-              : setError(t("goneDoc"))
-          }
+          onDoc={openDoc}
         />
       )}
     </div>

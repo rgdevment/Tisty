@@ -4,14 +4,15 @@ import type { Editor as Writing } from "@tiptap/core";
 import type { Node as Written } from "@tiptap/pm/model";
 import { asMarkdown, written } from "./writing";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { served, weighs, type Filed } from "../core";
+import { docRead, noteTrouble, served, weighs, type Filed } from "../core";
 import { previewing, type Reach } from "./previewing";
-import { docLink } from "../markdown";
+import { docLink, docOf } from "../markdown";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import Slash, { asked, narrowed, type Block } from "./Slash";
 import Floats from "./Floats";
 import Papers from "./Papers";
+import Glyphs from "./Glyphs";
 
 export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
@@ -19,7 +20,7 @@ export const stripped = (html: string): string =>
   );
 
 export const clicking =
-  (onOpen?: (reference: string) => void) =>
+  (onOpen?: (reference: string) => void, onDoc?: (id: string) => void) =>
   (
     view: { state: { doc: Written } },
     pos: number,
@@ -34,10 +35,28 @@ export const clicking =
       .find((one) => one.type.name === "link")
       ?.attrs.href;
     const target = src || String(link ?? "");
-    if (!target || /^(https?|mailto|tel):/i.test(target)) return false;
+    if (!target) return false;
+    const paper = docOf(target);
+    if (paper) {
+      onDoc?.(paper);
+      return true;
+    }
+    if (/^(https?|mailto|tel):/i.test(target)) return false;
     onOpen?.(target);
     return true;
   };
+
+export const glimpsed = (body: string): string =>
+  body
+    .split("\n")
+    .slice(1)
+    .map((line) => line.replace(/^[#>\s*+-]+/, "").trim())
+    .filter(Boolean)
+    .join(" · ")
+    .slice(0, 160);
+
+export const stale = (value: string, mine: string, shown: () => string | null): boolean =>
+  value !== mine && shown() !== value;
 
 const middle = (editor: Writing, from: number, to: number) => {
   const a = caret(editor, from);
@@ -80,8 +99,11 @@ export default function Editor({
   const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
   const [tying, setTying] = useState<{ x: number; y: number } | null>(null);
   const [choosing, setChoosing] = useState<{ x: number; y: number } | null>(null);
+  const [glyphing, setGlyphing] = useState<{ x: number; y: number } | null>(null);
+  const mine = useRef(value);
   const urls = useRef(new Map<string, string>());
   const weights = useRef(new Map<string, number>());
+  const blurbs = useRef(new Map<string, string>());
   const pending = useRef(new Set<string>());
   const missing = useRef(new Set<string>());
   const nudge = useRef(() => {});
@@ -124,7 +146,14 @@ export default function Editor({
         ...(label ? { "aria-label": label } : {}),
       },
       transformPastedHTML: stripped,
-      handleClick: clicking(onOpen),
+      handleDOMEvents: {
+        contextmenu: () => {
+          setPicked(null);
+          setAsking(null);
+          return false;
+        },
+      },
+      handleClick: clicking(onOpen, onDoc),
       handleKeyDown: (_, e) => {
         if (!now.current.open) return false;
         const count = now.current.count;
@@ -149,7 +178,10 @@ export default function Editor({
     },
     onUpdate: ({ editor }) => {
       const text = asMarkdown(editor);
-      if (text !== null) onWrite(text);
+      if (text !== null) {
+        mine.current = text;
+        onWrite(text);
+      }
       look(editor);
     },
     onSelectionUpdate: ({ editor }) => look(editor),
@@ -161,56 +193,56 @@ export default function Editor({
           key: "h1",
           label: t("bigTitle"),
           hint: "#",
-          icon: "H",
+          icon: "🔠",
           run: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
         },
         {
           key: "h2",
           label: t("midTitle"),
           hint: "##",
-          icon: "H",
+          icon: "🔡",
           run: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
         },
         {
           key: "bullets",
           label: t("bullets"),
           hint: "-",
-          icon: "•",
+          icon: "🔸",
           run: () => editor.chain().focus().toggleBulletList().run(),
         },
         {
           key: "numbers",
           label: t("numbers"),
           hint: "1.",
-          icon: "1",
+          icon: "🔢",
           run: () => editor.chain().focus().toggleOrderedList().run(),
         },
         {
           key: "todo",
           label: t("checks"),
           hint: "[ ]",
-          icon: "☑",
+          icon: "☑️",
           run: () => editor.chain().focus().toggleTaskList().run(),
         },
         {
           key: "quote",
           label: t("quote"),
           hint: ">",
-          icon: "❝",
+          icon: "💬",
           run: () => editor.chain().focus().toggleBlockquote().run(),
         },
         {
           key: "code",
           label: t("codeBlock"),
           hint: "```",
-          icon: "⌗",
+          icon: "💻",
           run: () => editor.chain().focus().toggleCodeBlock().run(),
         },
         {
           key: "table",
           label: t("table"),
           hint: "|",
-          icon: "⊞",
+          icon: "📊",
           run: () =>
             editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
         },
@@ -218,21 +250,28 @@ export default function Editor({
           key: "link",
           label: t("linkIt"),
           hint: "[ ]( )",
-          icon: "⚭",
+          icon: "🔗",
           run: () => setTying(caret(editor, editor.state.selection.from)),
         },
         {
           key: "paper",
           label: t("insertDoc"),
-          hint: "\u25a4",
-          icon: "\u25a4",
+          hint: "[[ ]]",
+          icon: "▤",
           run: () => setChoosing(caret(editor, editor.state.selection.from)),
+        },
+        {
+          key: "icon",
+          label: t("insertIcon"),
+          hint: "\u{1f600}",
+          icon: "\u{1f600}",
+          run: () => setGlyphing(caret(editor, editor.state.selection.from)),
         },
         {
           key: "rule",
           label: t("divider"),
           hint: "---",
-          icon: "—",
+          icon: "➖",
           run: () => editor.chain().focus().setHorizontalRule().run(),
         },
         ...(onAttach
@@ -241,7 +280,7 @@ export default function Editor({
                 key: "attach",
                 label: t("attachment"),
                 hint: "↧",
-                icon: "◫",
+                icon: "📎",
                 run: () => {
                   onAttach().then((markdown) => {
                     if (markdown) editor.chain().focus().insertContent(markdown).run();
@@ -274,7 +313,9 @@ export default function Editor({
   };
 
   useEffect(() => {
-    if (!editor || editor.isDestroyed || asMarkdown(editor) === value) return;
+    if (!editor || editor.isDestroyed) return;
+    if (!stale(value, mine.current, () => asMarkdown(editor))) return;
+    mine.current = value;
     editor.commands.setContent(value, { emitUpdate: false });
   }, [editor, value]);
 
@@ -287,7 +328,11 @@ export default function Editor({
     if (pending.current.has(reference)) return;
     pending.current.add(reference);
     get()
-      .catch(() => missing.current.add(reference.slice(reference.indexOf(":") + 1)))
+      .catch((problem: unknown) => {
+        missing.current.add(reference.slice(reference.indexOf(":") + 1));
+        const code = (problem as { code?: string } | null)?.code;
+        if (code) void noteTrouble(code).catch(() => {});
+      })
       .then(() => nudge.current());
   };
 
@@ -322,8 +367,19 @@ export default function Editor({
       return null;
     },
     title: (id) => {
-      const one = papers?.find((paper) => paper.file === id);
+      if (!papers) return undefined;
+      const one = papers.find((paper) => paper.file === id);
       return one ? one.title.trim() || t("untitledDoc") : null;
+    },
+    blurb: (id) => {
+      const held = blurbs.current.get(id);
+      if (held !== undefined) return held;
+      fetches(`blurb:${id}`, () =>
+        docRead(id).then((body) => {
+          blurbs.current.set(id, glimpsed(body));
+        }),
+      );
+      return null;
     },
   };
 
@@ -389,22 +445,70 @@ export default function Editor({
       {tying && editor && (
         <Floats editor={editor} at={tying} asking onDone={() => setTying(null)} />
       )}
-      {choosing && editor && (
-        <div
-          style={{
-            left: Math.max(8, Math.min(choosing.x, window.innerWidth - 290)),
-            top: Math.max(8, choosing.y + 6),
-          }}
-          className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
-        >
-          <Papers
-            all={papers}
-            onPick={(paper) => {
-              setChoosing(null);
-              editor.chain().focus().insertContent(docLink(paper.file, paper.title)).run();
+      {glyphing && editor && (
+        <>
+          <span
+            className="fixed inset-0 z-30"
+            onMouseDown={() => {
+              setGlyphing(null);
+              editor.commands.focus();
             }}
           />
-        </div>
+          <div
+            style={{
+              left: Math.max(8, Math.min(glyphing.x, window.innerWidth - 290)),
+              top: Math.max(8, glyphing.y + 6),
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Escape") return;
+              e.preventDefault();
+              e.stopPropagation();
+              setGlyphing(null);
+              editor.commands.focus();
+            }}
+            className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
+          >
+            <Glyphs
+              onPick={(glyph) => {
+                setGlyphing(null);
+                editor.chain().focus().insertContent(glyph).run();
+              }}
+            />
+          </div>
+        </>
+      )}
+      {choosing && editor && (
+        <>
+          <span
+            className="fixed inset-0 z-30"
+            onMouseDown={() => {
+              setChoosing(null);
+              editor.commands.focus();
+            }}
+          />
+          <div
+            style={{
+              left: Math.max(8, Math.min(choosing.x, window.innerWidth - 290)),
+              top: Math.max(8, choosing.y + 6),
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Escape") return;
+              e.preventDefault();
+              e.stopPropagation();
+              setChoosing(null);
+              editor.commands.focus();
+            }}
+            className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
+          >
+            <Papers
+              all={papers}
+              onPick={(paper) => {
+                setChoosing(null);
+                editor.chain().focus().insertContent(docLink(paper.file, paper.title)).run();
+              }}
+            />
+          </div>
+        </>
       )}
     </>
   );

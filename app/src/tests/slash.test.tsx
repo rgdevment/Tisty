@@ -78,6 +78,23 @@ describe("the slash menu itself", () => {
     expect(document.getElementById("slash-1")?.getAttribute("aria-selected")).toBe("true");
   });
 
+  it("answers to a keyboard, which never sends a mouse press", async () => {
+    const onPick = vi.fn();
+    render(<Slash at={{ x: 0, y: 0 }} blocks={blocks()} active={0} onPick={onPick} />);
+
+    screen.getByRole("option", { name: /Table/ }).click();
+
+    expect(onPick.mock.calls[0][0].key).toBe("table");
+  });
+
+  it("keeps its options out of the tab order, which belongs to the text", () => {
+    render(<Slash at={{ x: 0, y: 0 }} blocks={blocks()} active={0} onPick={vi.fn()} />);
+
+    for (const one of screen.getAllByRole("option")) {
+      expect(one.getAttribute("tabindex")).toBe("-1");
+    }
+  });
+
   it("picks without stealing the cursor from the text", async () => {
     const onPick = vi.fn();
     render(<Slash at={{ x: 0, y: 0 }} blocks={blocks()} active={0} onPick={onPick} />);

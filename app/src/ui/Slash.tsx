@@ -49,11 +49,10 @@ export default function Slash({ at, blocks, active, onPick }: Props) {
           type="button"
           data-block
           role="option"
+          tabIndex={-1}
           aria-selected={i === active}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            onPick(one);
-          }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onPick(one)}
           className={`flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-left ${
             i === active ? "bg-accent-soft" : ""
           }`}

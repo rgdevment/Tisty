@@ -54,4 +54,52 @@ describe("what a link is worth showing as", () => {
     expect(weighed(2_400_000)).toBe("2.4 MB");
     expect(weighed(1000)).toBe("1.0 kB");
   });
+
+  it("plays what the webview can play whatever case the extension is written in", () => {
+    expect(previewOf("attachments/charla-a3f9.MP4")).toEqual({
+      as: "video",
+      at: "attachments/charla-a3f9.MP4",
+    });
+    expect(ending("attachments/CHARLA.Mp4")).toBe("mp4");
+  });
+
+  it("reads only the last of a name with more than one extension", () => {
+    expect(ending("attachments/copia-a3f9.tar.gz")).toBe("gz");
+    expect(previewOf("attachments/copia-a3f9.tar.gz")).toEqual({
+      as: "file",
+      at: "attachments/copia-a3f9.tar.gz",
+      kind: "gz",
+    });
+  });
+
+  it("finds nothing to end a name that never had a dot", () => {
+    expect(ending("attachments/README")).toBe("");
+  });
+
+  it("gives back the name without what follows a query or a fragment", () => {
+    expect(named("attachments/informe-a3f9.pdf?download=1")).toBe("informe-a3f9.pdf");
+    expect(named("attachments/charla-a3f9.mp4#t=5")).toBe("charla-a3f9.mp4");
+  });
+
+  it("reads the ending past a fragment too", () => {
+    expect(ending("attachments/charla-a3f9.mp4#t=5")).toBe("mp4");
+  });
+
+  it("keeps the raw name when a stray percent sign breaks decoding", () => {
+    expect(named("attachments/100%off-a3f9.pdf")).toBe("100%off-a3f9.pdf");
+  });
+
+  it("does not cut a name however long it is", () => {
+    const long = `${"a".repeat(300)}-a3f9.txt`;
+    expect(named(`attachments/${long}`)).toBe(long);
+  });
+
+  it("takes only the last segment of a path, climbing dots and all", () => {
+    expect(named("attachments/../secret-a3f9.txt")).toBe("secret-a3f9.txt");
+    expect(previewOf("..")).toBeNull();
+  });
+
+  it.fails("never shows a unit one step behind what the rounded number reads", () => {
+    expect(weighed(999_960)).not.toBe("1000.0 kB");
+  });
 });

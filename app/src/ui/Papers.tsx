@@ -48,7 +48,7 @@ export default function Papers({
           <p className="px-2.5 py-1.5 text-faint">{all.length ? t("noneHere") : t("noDocsYet")}</p>
         )}
         {shown.map((doc) => (
-          <Row key={doc.id} glyph="📄" onPick={() => onPick(doc)}>
+          <Row key={doc.id} glyph="▤" onPick={() => onPick(doc)}>
             <span className="min-w-0 truncate">{named(doc)}</span>
           </Row>
         ))}

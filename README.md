@@ -312,7 +312,7 @@ history, so a snapshot beside it would only be a rival truth.
 | ✅ | Core: model, event log, storage, projection |
 | ✅ | CLI: capture, list, complete, show detail, journal, steps, lists, tags |
 | ✅ | Natural language: `tisty "deploy the API tomorrow at 10"` |
-| ✅ | Search across everything, undo and redo, `--json`, `export`, exit codes |
+| ✅ | Search across tasks, undo and redo, `--json`, `export`, exit codes |
 | ✅ | Window (Tauri): list and detail, Markdown, attachments, keyboard throughout |
 | ✅ | Sync through a folder both machines reach, and backup by hand |
 | ✅ | Tray and menu bar, with quick capture on a global shortcut |

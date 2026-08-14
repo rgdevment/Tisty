@@ -692,6 +692,12 @@ fn patch(
     }
     if let Some(body) = &change.description {
         let kept = body.trim().to_string();
+        tisty_core::state::short_enough(&kept).map_err(|e| match e {
+            tisty_core::Error::TextTooLong { limit, .. } => {
+                Refusal::about("textTooLong", weighed(limit))
+            }
+            _ => Refusal::of("internal"),
+        })?;
         ops.push(Op::TaskDescribe {
             id,
             d: tisty_core::event::Body {
@@ -902,6 +908,12 @@ fn write_log(
     if body.is_empty() {
         return Err(Refusal::of("emptyEntry"));
     }
+    tisty_core::state::short_enough(&body).map_err(|e| match e {
+        tisty_core::Error::TextTooLong { limit, .. } => {
+            Refusal::about("textTooLong", weighed(limit))
+        }
+        _ => Refusal::of("internal"),
+    })?;
     let mut session = held(&session);
 
     session.commit(match entry {
@@ -1039,13 +1051,14 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
             Refusal::of("internal")
         })?;
 
-    let held: Vec<String> = session
+    let mut held: Vec<String> = session
         .state
         .tasks
         .values()
         .flat_map(|task| task.references())
         .map(|one| one.target)
         .collect();
+    held.extend(tisty_core::docs::referenced(&session.paths.docs()));
     let adrift = tisty_core::attach::loose(session.paths.data(), &held);
 
     Ok(Reviewed {
@@ -1084,13 +1097,14 @@ fn facts(
     let store = session.paths.store();
     let audit = tisty_core::cache::audit(&store, session.paths.cache());
 
-    let referenced: Vec<String> = session
+    let mut referenced: Vec<String> = session
         .state
         .tasks
         .values()
         .flat_map(|task| task.references())
         .map(|one| one.target)
         .collect();
+    referenced.extend(tisty_core::docs::referenced(&session.paths.docs()));
     let adrift = tisty_core::attach::loose(session.paths.data(), &referenced);
     let kept = report::attachments(session.paths.data());
 
@@ -1715,7 +1729,20 @@ fn doc_file(
 #[tauri::command(async)]
 fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
     let root = held(&session).paths.docs();
-    tisty_core::docs::read(&root, &id).map_err(|_| Refusal::about("noSuchDoc", id))
+    tisty_core::docs::read(&root, &id).map_err(|e| match e {
+        tisty_core::Error::DocumentTooBig { bytes, limit } => {
+            witness::warn(
+                channel::WINDOW,
+                "a document too big to hold was not opened",
+                &[
+                    ("id", witness::Fact::Id(id)),
+                    ("bytes", witness::Fact::Bytes(bytes)),
+                ],
+            );
+            Refusal::about("documentTooBig", weighed(limit))
+        }
+        _ => Refusal::about("noSuchDoc", id),
+    })
 }
 
 #[tauri::command(async)]
@@ -2161,13 +2188,14 @@ fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
     let session = held(&session);
     let config = &session.config;
 
-    let held: Vec<String> = session
+    let mut held: Vec<String> = session
         .state
         .tasks
         .values()
         .flat_map(|task| task.references())
         .map(|one| one.target)
         .collect();
+    held.extend(tisty_core::docs::referenced(&session.paths.docs()));
 
     Ok(Carrying {
         chosen: match &config.sync {
@@ -2565,6 +2593,7 @@ fn attach(
     session: tauri::State<'_, Mutex<Session>>,
     path: String,
     label: Option<String>,
+    roomy: Option<bool>,
 ) -> Answer<String> {
     let source = std::path::PathBuf::from(&path);
     let name = label
@@ -2578,17 +2607,24 @@ fn attach(
 
     let (root, ceiling) = {
         let session = held(&session);
-        (
-            session.paths.data().to_path_buf(),
-            session.config.copies_up_to(),
-        )
+        let ceiling = if roomy.unwrap_or(false) {
+            tisty_core::attach::COPIED_IN_DOC
+        } else {
+            session.config.copies_up_to()
+        };
+        (session.paths.data().to_path_buf(), ceiling)
     };
     let kept = tisty_core::attach::keep(&source, &root, ceiling).map_err(|e| {
         witness::warn(channel::ATTACH, "the file could not be kept", &e.told());
         match e {
-            tisty_core::Error::AttachmentTooBig { limit, .. } => {
-                Refusal::about("attachmentTooBig", weighed(limit))
-            }
+            tisty_core::Error::AttachmentTooBig { limit, .. } => Refusal::about(
+                if roomy.unwrap_or(false) {
+                    "attachmentTooBigHere"
+                } else {
+                    "attachmentTooBig"
+                },
+                weighed(limit),
+            ),
             _ => Refusal::about("cannotRead", name.clone()),
         }
     })?;

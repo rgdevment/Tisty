@@ -124,7 +124,7 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
               onDoc={onDoc}
               onAttach={() =>
                 pick({ multiple: false })
-                  .then((at) => (typeof at === "string" ? attach(at) : null))
+                  .then((at) => (typeof at === "string" ? attach(at, undefined, true) : null))
                   .catch((e) => {
                     onError(saidPlainly(e));
                     return null;

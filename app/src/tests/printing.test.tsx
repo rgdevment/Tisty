@@ -53,7 +53,7 @@ describe("what the printed sheet leaves out", () => {
     const printed = sheet();
 
     expect(printed).toMatch(/\.preview-video[^{]*\{[^}]*display:\s*none/);
-    expect(printed).toMatch(/\.preview-doc[^{]*\{[^}]*border/);
+    expect(printed).toMatch(/\.beside[^{]*\{[^}]*border/);
   });
 
   it("puts a colour on paper for what the dark theme would leave invisible", () => {

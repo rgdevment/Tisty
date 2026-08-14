@@ -6,6 +6,27 @@ export type Preview =
   | { as: "file"; at: string; kind: string }
   | { as: "doc"; id: string };
 
+export const KINDS: Record<string, string> = {
+  pdf: "PDF",
+  md: "Markdown",
+  txt: "Texto",
+  doc: "Word",
+  docx: "Word",
+  xls: "Excel",
+  xlsx: "Excel",
+  ppt: "PowerPoint",
+  pptx: "PowerPoint",
+  zip: "Archivo comprimido",
+  csv: "Hoja de datos",
+  json: "JSON",
+  png: "Imagen",
+  jpg: "Imagen",
+  jpeg: "Imagen",
+  gif: "Imagen",
+  svg: "Imagen",
+  heic: "Imagen",
+};
+
 const WATCHABLE = ["mp4", "webm", "m4v", "mov", "ogv"];
 const HEARABLE = ["mp3", "m4a", "wav", "ogg", "oga", "aac", "flac"];
 

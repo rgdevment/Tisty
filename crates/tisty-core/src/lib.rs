@@ -45,6 +45,8 @@ pub enum Error {
     AttachmentTooBig { bytes: u64, limit: u64 },
     #[error("that document is {bytes} bytes and the limit is {limit}")]
     DocumentTooBig { bytes: u64, limit: u64 },
+    #[error("that text is {bytes} bytes and the limit is {limit}")]
+    TextTooLong { bytes: u64, limit: u64 },
     #[error("serialization error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("malformed event at {file}:{line}: {source}")]
@@ -88,6 +90,7 @@ impl Error {
             Error::TooBig => "tooBig",
             Error::AttachmentTooBig { .. } => "attachmentTooBig",
             Error::DocumentTooBig { .. } => "documentTooBig",
+            Error::TextTooLong { .. } => "textTooLong",
             Error::Json(_) => "json",
             Error::MalformedEvent { .. } => "malformedEvent",
             Error::TruncatedSegment { .. } => "truncatedSegment",

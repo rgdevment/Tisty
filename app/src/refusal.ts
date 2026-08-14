@@ -36,6 +36,8 @@ const KNOWN = [
   "otherStore",
   "cannotWrite",
   "attachmentTooBig",
+  "attachmentTooBigHere",
+  "textTooLong",
   "documentTooBig",
   "restoreFailed",
   "stillCarrying",

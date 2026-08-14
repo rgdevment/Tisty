@@ -28,6 +28,18 @@ pub struct State {
     tombstones: BTreeSet<Ulid>,
 }
 
+pub const WORDS_AT_MOST: usize = 64 * 1024;
+
+pub fn short_enough(text: &str) -> crate::Result<()> {
+    if text.len() > WORDS_AT_MOST {
+        return Err(crate::Error::TextTooLong {
+            bytes: text.len() as u64,
+            limit: WORDS_AT_MOST as u64,
+        });
+    }
+    Ok(())
+}
+
 impl State {
     pub fn replay(events: &[Event]) -> Self {
         let mut state = Self::default();
@@ -806,6 +818,32 @@ fn sort_steps(task: &mut Task) {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_description_the_size_of_a_book_is_refused_with_the_limit_named() {
+        let refused = short_enough(&"y".repeat(WORDS_AT_MOST + 1));
+
+        assert!(matches!(
+            refused,
+            Err(crate::Error::TextTooLong { limit, .. }) if limit == WORDS_AT_MOST as u64
+        ));
+    }
+
+    #[test]
+    fn a_description_right_at_the_limit_still_goes_in() {
+        assert!(short_enough(&"y".repeat(WORDS_AT_MOST)).is_ok());
+    }
+
+    #[test]
+    fn the_limit_counts_bytes_so_accents_never_smuggle_past_it() {
+        let accented = "á".repeat(WORDS_AT_MOST);
+
+        assert!(accented.chars().count() == WORDS_AT_MOST);
+        assert!(
+            short_enough(&accented).is_err(),
+            "counted characters, not bytes"
+        );
+    }
 
     use crate::model::{Cadence, Repeat, Unit};
 

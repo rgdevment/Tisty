@@ -318,7 +318,7 @@ así que una foto al lado solo sería una verdad rival.
 | ✅ | Núcleo: modelo, registro de eventos, almacenamiento, proyección |
 | ✅ | CLI: capturar, listar, completar, ver detalle, bitácora, pasos, listas, etiquetas |
 | ✅ | Lenguaje natural: `tisty "desplegar la API mañana a las 10"` |
-| ✅ | Búsqueda en todo, deshacer y rehacer, `--json`, `export`, códigos de salida |
+| ✅ | Búsqueda en tareas, deshacer y rehacer, `--json`, `export`, códigos de salida |
 | ✅ | Ventana (Tauri): lista y detalle, Markdown, adjuntos, teclado en todo |
 | ✅ | Sincronización por una carpeta que ambos equipos alcanzan, y respaldo a mano |
 | ✅ | Bandeja y barra de menús, con captura rápida en un atajo global |
@@ -326,7 +326,7 @@ así que una foto al lado solo sería una verdad rival.
 | ✅ | Recordatorios, con notificación del sistema y un sonido que puedes apagar |
 | ✅ | Un registro de errores, y un informe que puedes adjuntar a un issue |
 | ✅ | macOS: imagen de disco universal, firmada y notarizada, y Homebrew |
-| ◐ | Documentos: el almacén y el editor están; las carpetas y el transporte no |
+| ◐ | Documentos: almacén, carpetas, editor y referencias están; el transporte no |
 | ◐ | Uso diario, que es lo que saca los fallos que los tests no |
 | ◐ | Builds firmadas: el DMG y el `.exe` se publican; el paquete de la Store espera un nombre |
 | ⬜ | Linux, fase propia, sin empezar |

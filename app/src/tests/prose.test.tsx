@@ -99,12 +99,37 @@ describe("the / menu", () => {
     await slash(user);
 
     await user.click(screen.getByRole("button", { name: /Link/ }));
-    await user.type(screen.getByLabelText("Text"), "OPS-3465");
-    await user.type(screen.getByLabelText("URL"), "https://jira.example/OPS-3465{Enter}");
+    await user.type(screen.getByLabelText("Text to show"), "OPS-3465");
+    await user.type(screen.getByLabelText("Address"), "https://jira.example/OPS-3465{Enter}");
 
     expect(box().value).toBe(" [OPS-3465](https://jira.example/OPS-3465)");
     await user.tab();
     expect(onWrite).toHaveBeenCalledWith(" [OPS-3465](https://jira.example/OPS-3465)");
+  });
+
+  it("refuses an address with a space, the same as the editor does", async () => {
+    const user = userEvent.setup();
+    field({ value: "" });
+    await user.click(region());
+    await user.type(box(), "/");
+
+    await user.click(screen.getByRole("button", { name: /Link/ }));
+    await user.type(screen.getByLabelText("Address"), "ejem plo.org{Enter}");
+
+    expect(screen.getByLabelText("Address").getAttribute("aria-invalid")).toBe("true");
+    expect(box().value).toBe("/");
+  });
+
+  it("puts https in front of a bare host, port and all", async () => {
+    const user = userEvent.setup();
+    field({ value: "" });
+    await user.click(region());
+    await user.type(box(), "/");
+
+    await user.click(screen.getByRole("button", { name: /Link/ }));
+    await user.type(screen.getByLabelText("Address"), "localhost:3000{Enter}");
+
+    expect(box().value).toBe("[localhost:3000](https://localhost:3000)");
   });
 
   it("falls back to the address when no text is given", async () => {
@@ -113,7 +138,7 @@ describe("the / menu", () => {
     await slash(user);
 
     await user.click(screen.getByRole("button", { name: /Link/ }));
-    await user.type(screen.getByLabelText("URL"), "https://x.example{Enter}");
+    await user.type(screen.getByLabelText("Address"), "https://x.example{Enter}");
 
     expect(box().value).toBe(" [https://x.example](https://x.example)");
   });

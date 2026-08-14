@@ -8,12 +8,13 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-pub const COPIED_UP_TO: u64 = 5 * 1024 * 1024;
+pub const COPIED_UP_TO: u64 = 50 * 1024 * 1024;
+pub const COPIED_IN_DOC: u64 = 500 * 1024 * 1024;
 
 const SHORTENS_TO: usize = 56;
 
 pub const COPIED_LEAST: u64 = 64 * 1024;
-pub const COPIED_MOST: u64 = 200 * 1024 * 1024;
+pub const COPIED_MOST: u64 = COPIED_IN_DOC;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Kept {
@@ -80,10 +81,23 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
     let _ = crate::paths::ours_alone(&root.join("attachments"));
     let _ = crate::paths::ours_alone(&folder);
 
-    if let Some(at) = listed(root, &sha256)
-        && root.join(&at).is_file()
-    {
-        return Ok(Kept { at, sha256 });
+    if let Some(at) = listed(root, &sha256) {
+        match resolve(&at, root) {
+            Ok(held) if holds(&held, &bytes) => return Ok(Kept { at, sha256 }),
+            Ok(held) => witness::warn(
+                channel::ATTACH,
+                "what the ledger points at is not what it says it is",
+                &[
+                    ("at", Fact::Path(held)),
+                    ("sha256", Fact::Id(sha256.clone())),
+                ],
+            ),
+            Err(_) => witness::warn(
+                channel::ATTACH,
+                "the ledger names a path outside the store",
+                &[("at", Fact::Id(at)), ("sha256", Fact::Id(sha256.clone()))],
+            ),
+        }
     }
 
     let name = match already(&folder, stamp, &bytes) {
@@ -126,6 +140,29 @@ fn listed(root: &Path, sha256: &str) -> Option<String> {
         .map(|one| one.at)
 }
 
+fn holds(at: &Path, bytes: &[u8]) -> bool {
+    std::fs::metadata(at).is_ok_and(|held| held.is_file() && held.len() == bytes.len() as u64)
+        && std::fs::read(at).is_ok_and(|held| held == bytes)
+}
+
+fn tailed(at: &Path) -> bool {
+    let Ok(mut file) = std::fs::File::open(at) else {
+        return true;
+    };
+    let Ok(size) = file.metadata().map(|one| one.len()) else {
+        return true;
+    };
+    if size == 0 {
+        return true;
+    }
+    use std::io::{Read, Seek};
+    if file.seek(std::io::SeekFrom::End(-1)).is_err() {
+        return true;
+    }
+    let mut last = [0u8; 1];
+    file.read_exact(&mut last).is_ok_and(|()| last[0] == b'\n')
+}
+
 fn note(root: &Path, kept: &Kept, bytes: u64) {
     if listed(root, &kept.sha256).is_some() {
         return;
@@ -139,11 +176,21 @@ fn note(root: &Path, kept: &Kept, bytes: u64) {
         Err(_) => return,
     };
     let at = ledger(root);
+    let whole = if tailed(&at) {
+        format!("{line}\n")
+    } else {
+        witness::warn(
+            channel::ATTACH,
+            "the ledger had no newline to append after",
+            &[("at", Fact::Path(at.clone()))],
+        );
+        format!("\n{line}\n")
+    };
     let _ = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(&at)
-        .and_then(|mut file| std::io::Write::write_all(&mut file, format!("{line}\n").as_bytes()));
+        .and_then(|mut file| std::io::Write::write_all(&mut file, whole.as_bytes()));
     let _ = crate::paths::ours_alone(&at);
 }
 
@@ -410,16 +457,57 @@ mod tests {
     }
 
     #[test]
-    fn what_is_written_down_spares_reading_the_file_again() {
+    fn what_is_written_down_saves_the_search_but_never_the_checking() {
         let root = tempfile::tempdir().unwrap();
         let (_src, file) = dropped("mine.bin", b"kept once");
         let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
 
-        std::fs::write(root.path().join(&kept.at), b"changed underneath").unwrap();
         let (_other, again) = dropped("elsewhere.bin", b"kept once");
         let second = keep(&again, root.path(), COPIED_UP_TO).unwrap();
 
         assert_eq!(second.at, kept.at);
+        assert_eq!(
+            std::fs::read(root.path().join(&second.at)).unwrap(),
+            b"kept once"
+        );
+    }
+
+    #[test]
+    fn a_kept_file_changed_underneath_is_written_again_rather_than_handed_back() {
+        let root = tempfile::tempdir().unwrap();
+        let (_src, file) = dropped("mine.bin", b"the only copy of my report");
+        let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        std::fs::write(root.path().join(&kept.at), b"junk").unwrap();
+        let again = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        assert_eq!(
+            std::fs::read(root.path().join(&again.at)).unwrap(),
+            b"the only copy of my report",
+            "the ledger said it was kept, but the bytes said otherwise"
+        );
+    }
+
+    #[test]
+    fn a_ledger_that_lost_its_last_newline_does_not_swallow_the_entry_after_it() {
+        let root = tempfile::tempdir().unwrap();
+        let (_src, first) = dropped("uno.bin", b"the first one");
+        let one = keep(&first, root.path(), COPIED_UP_TO).unwrap();
+
+        let ledger = root.path().join("attachments.jsonl");
+        let held = std::fs::read_to_string(&ledger).unwrap();
+        std::fs::write(&ledger, held.trim_end()).unwrap();
+
+        let (_other, second) = dropped("dos.bin", b"the second one");
+        let two = keep(&second, root.path(), COPIED_UP_TO).unwrap();
+
+        let written = std::fs::read_to_string(&ledger).unwrap();
+        let lines: Vec<&str> = written.lines().filter(|one| !one.is_empty()).collect();
+        assert_eq!(lines.len(), 2, "one line ate the other: {lines:?}");
+        for line in lines {
+            serde_json::from_str::<Noted>(line).expect("still readable");
+        }
+        assert_ne!(one.at, two.at);
     }
 
     #[test]
@@ -699,6 +787,202 @@ mod tests {
         assert_eq!(
             resolve("attachments/ab/cd.png?v=2", root).unwrap(),
             root.join("attachments/ab/cd.png")
+        );
+    }
+
+    #[test]
+    fn a_line_that_arrived_half_written_is_skipped_not_fatal() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(
+            root.path().join("attachments.jsonl"),
+            "{\"at\":\"attachments/ab/cut-off\",\"sha256\":\"dead\n{\"at\":\"attachments/ab/real.bin\",\"sha256\":\"beef\",\"bytes\":3}\n",
+        )
+        .unwrap();
+
+        assert_eq!(
+            listed(root.path(), "beef"),
+            Some("attachments/ab/real.bin".to_string())
+        );
+        assert_eq!(listed(root.path(), "dead"), None);
+    }
+
+    #[test]
+    fn a_line_that_is_not_json_at_all_does_not_hide_the_line_beside_it() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(
+            root.path().join("attachments.jsonl"),
+            "not json at all\n{\"at\":\"attachments/ab/real.bin\",\"sha256\":\"beef\",\"bytes\":3}\n",
+        )
+        .unwrap();
+
+        assert_eq!(
+            listed(root.path(), "beef"),
+            Some("attachments/ab/real.bin".to_string())
+        );
+    }
+
+    #[test]
+    fn an_empty_ledger_file_is_read_as_if_nothing_had_been_noted() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("attachments.jsonl"), "").unwrap();
+
+        assert_eq!(listed(root.path(), "anything"), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_ledger_the_process_cannot_read_is_treated_as_unwritten() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = tempfile::tempdir().unwrap();
+        let ledger_at = root.path().join("attachments.jsonl");
+        std::fs::write(
+            &ledger_at,
+            "{\"at\":\"attachments/ab/real.bin\",\"sha256\":\"beef\",\"bytes\":3}\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&ledger_at, std::fs::Permissions::from_mode(0o000)).unwrap();
+
+        let found = listed(root.path(), "beef");
+
+        std::fs::set_permissions(&ledger_at, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(
+            found, None,
+            "unreadable, so nothing was found rather than trusted"
+        );
+    }
+
+    #[test]
+    fn a_ledger_entry_whose_file_is_gone_is_not_trusted_blindly() {
+        let root = tempfile::tempdir().unwrap();
+        let (_src, file) = dropped("informe.pdf", b"the only copy of the report");
+
+        let first = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+        std::fs::remove_file(root.path().join(&first.at)).unwrap();
+
+        let second = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        assert!(
+            root.path().join(&second.at).is_file(),
+            "keep() handed back a path with nothing behind it: {}",
+            second.at
+        );
+        assert_eq!(
+            std::fs::read(root.path().join(&second.at)).unwrap(),
+            b"the only copy of the report"
+        );
+    }
+
+    #[test]
+    fn when_the_ledger_repeats_a_hash_the_first_line_written_is_the_one_trusted() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(
+            root.path().join("attachments.jsonl"),
+            "{\"at\":\"attachments/ab/first.bin\",\"sha256\":\"dupe\",\"bytes\":1}\n{\"at\":\"attachments/ab/second.bin\",\"sha256\":\"dupe\",\"bytes\":1}\n",
+        )
+        .unwrap();
+
+        assert_eq!(
+            listed(root.path(), "dupe"),
+            Some("attachments/ab/first.bin".to_string())
+        );
+    }
+
+    #[test]
+    fn a_name_already_taken_by_other_content_gets_a_longer_stamp_instead_of_being_overwritten() {
+        let root = tempfile::tempdir().unwrap();
+        let bytes = b"the real bytes of the real file";
+        let sha256 = fingerprint(bytes);
+        let (shelf, rest) = sha256.split_at(2);
+        let stamp = &rest[..8];
+        let folder = root.path().join("attachments").join(shelf);
+        std::fs::create_dir_all(&folder).unwrap();
+        let squatted = folder.join(format!("clash-{stamp}.bin"));
+        std::fs::write(&squatted, b"unrelated content squatting the name").unwrap();
+
+        let (_src, file) = dropped("clash.bin", bytes);
+        let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        assert_ne!(
+            kept.at.rsplit('/').next().unwrap(),
+            format!("clash-{stamp}.bin"),
+            "the real file was written under the squatter's name"
+        );
+        assert_eq!(
+            std::fs::read(&squatted).unwrap(),
+            b"unrelated content squatting the name",
+            "the squatter was clobbered"
+        );
+        assert_eq!(std::fs::read(root.path().join(&kept.at)).unwrap(), bytes);
+    }
+
+    #[test]
+    fn a_file_one_byte_over_the_limit_is_refused() {
+        let (_src, file) = dropped("shot.png", b"12345");
+        let root = tempfile::tempdir().unwrap();
+
+        let refused = keep(&file, root.path(), 4).unwrap_err();
+
+        assert!(
+            matches!(refused, Error::AttachmentTooBig { bytes: 5, limit: 4 }),
+            "{refused:?}"
+        );
+    }
+
+    #[test]
+    fn a_name_made_only_of_dots_still_lands_as_a_normal_file() {
+        let kept = stored("...png", b"g");
+
+        assert!(!kept.starts_with('.'), "{kept}");
+        assert!(kept.ends_with(".png"), "{kept}");
+    }
+
+    #[test]
+    fn a_name_of_pure_emoji_falls_back_to_the_stamp_instead_of_writing_pictographs_to_disk() {
+        let kept = stored("😀😀.png", b"h");
+
+        assert!(kept.is_ascii(), "{kept}");
+        assert!(kept.ends_with(".png"), "{kept}");
+    }
+
+    #[test]
+    fn a_name_three_hundred_characters_long_is_still_cut_to_the_limit() {
+        let source = Path::new("").join(format!("{}.txt", "x".repeat(300)));
+
+        let named = named(&source, "12345678", ".txt");
+
+        assert_eq!(named, format!("{}-12345678.txt", "x".repeat(SHORTENS_TO)));
+    }
+
+    #[test]
+    fn a_ledger_entry_is_not_trusted_when_it_climbs_out_of_the_store() {
+        let outside = tempfile::tempdir().unwrap();
+        let root = tempfile::tempdir().unwrap();
+        let (_src, file) = dropped("informe.pdf", b"the only copy of my report");
+
+        let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+        std::fs::remove_file(root.path().join(&kept.at)).unwrap();
+
+        let planted = outside.path().join("not-an-attachment.pdf");
+        std::fs::write(&planted, b"something else entirely").unwrap();
+        let climbing = format!(
+            "../{}/not-an-attachment.pdf",
+            outside.path().file_name().unwrap().to_str().unwrap()
+        );
+        std::fs::write(
+            root.path().join("attachments.jsonl"),
+            format!(
+                "{{\"at\":\"{climbing}\",\"sha256\":\"{}\",\"bytes\":7}}\n",
+                kept.sha256
+            ),
+        )
+        .unwrap();
+
+        let again = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        assert!(
+            !again.at.contains(".."),
+            "a corrupted ledger line handed back a path that climbs out of the store: {}",
+            again.at
         );
     }
 }
