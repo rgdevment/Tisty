@@ -507,6 +507,10 @@ fn plain(ext: &str) -> bool {
     !ext.is_empty() && ext.len() <= 16 && ext.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
+pub fn printed(bytes: &[u8]) -> String {
+    fingerprint(bytes)
+}
+
 fn fingerprint(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);

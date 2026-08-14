@@ -100,6 +100,72 @@ const glimpsed = (): Loose => {
   return caught;
 };
 
+describe("converting a document the editor cannot keep", () => {
+  it("leaves something it will not ask about again", async () => {
+    const { frail } = await import("../frail");
+    const brings = [
+      "# Compras\n\n<div>algo</div>",
+      "# Compras\n\n<details>\n<summary>ver</summary>\nx\n</details>",
+      "---\ntitle: x\n---\n\n# Compras",
+      "una nota[^1]\n\n[^1]: el pie",
+      "mira [esto][uno]\n\n[uno]: https://x.dev",
+      "| a | b |\n| :--- | ---: |\n| 1 | 2 |",
+      "<div><ul><li>uno</li><li>dos<ul><li>anidado</li></ul></li></ul></div>",
+      'mira este video <video src="clip.mp4"></video> antes de seguir',
+      '<figure><img src="a.png"><figcaption>pie</figcaption></figure>',
+    ];
+
+    for (const one of brings) {
+      expect(frail(one).length, one).toBeGreaterThan(0);
+      const editor = new Editor({ extensions: written(), content: one });
+      const after = asMarkdown(editor) ?? "";
+      editor.destroy();
+
+      expect(frail(after), `converting left it frail: ${JSON.stringify(after)}`).toEqual([]);
+    }
+  });
+});
+
+describe("known bug: a second footnote breaks the escape that clears the warning", () => {
+  const twoNotes = "una nota[^1] y otra[^2]\n\n[^1]: primera\n\n[^2]: segunda";
+
+  it.fails("leaves nothing frail behind, the same way converting a single footnote does", async () => {
+    const { frail } = await import("../frail");
+    const editor = build(twoNotes);
+    const after = asMarkdown(editor) ?? "";
+    editor.destroy();
+
+    expect(frail(after)).toEqual([]);
+  });
+
+  it("currently folds the second definition into the reference instead of escaping it, and the result never stops being frail", async () => {
+    const { frail } = await import("../frail");
+    const editor = build(twoNotes);
+    const first = asMarkdown(editor) ?? "";
+    editor.destroy();
+
+    expect(first).toBe("una nota[^1](primera) y otra[^2](segunda)");
+    expect(frail(first)).toContain("frailNotes");
+
+    const again = build(first);
+    const second = asMarkdown(again) ?? "";
+    again.destroy();
+
+    expect(second).toBe(first);
+  });
+});
+
+describe("a table with cells nobody filled in", () => {
+  it("keeps every empty cell exactly where it was, not just the ones with text", () => {
+    const table = "|  |  |\n| --- | --- |\n|  |  |\n";
+    const editor = build(table);
+    const out = asMarkdown(editor) ?? "";
+    editor.destroy();
+
+    expect(out).toBe(table);
+  });
+});
+
 describe("the buffered serializer writes what the plain one writes", () => {
   it("really lifts the buffer off while it compares, or it would be grading its own work", () => {
     const proto = MarkdownSerializerState.prototype;

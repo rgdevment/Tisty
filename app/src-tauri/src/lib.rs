@@ -114,6 +114,14 @@ impl Session {
         Ok(())
     }
 
+    fn alive(&self) -> Vec<String> {
+        self.state
+            .docs
+            .values()
+            .map(|one| one.file.clone())
+            .collect()
+    }
+
     fn referenced(&self) -> Vec<String> {
         let mut held: Vec<String> = self
             .state
@@ -2140,7 +2148,7 @@ async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, dest, data, store, device) = {
+    let (was, dest, data, store, device, alive) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -2161,6 +2169,7 @@ async fn settle_in(
             session.paths.data().to_path_buf(),
             session.paths.store(),
             session.config.device_id.0.clone(),
+            session.alive(),
         )
     };
 
@@ -2172,7 +2181,7 @@ async fn settle_in(
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
         let carried = tauri::async_runtime::spawn_blocking(move || {
-            tisty_sync::carry(&data, &device, &dest, tisty_sync::Way::Both)
+            tisty_sync::carry(&data, &device, &dest, tisty_sync::Way::Both, &alive)
         })
         .await;
         match carried {
@@ -2343,12 +2352,15 @@ async fn sync_now(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
     way: Option<String>,
-) -> Answer<&'static str> {
+) -> Answer<Settled> {
     let Some(_done) = alone.inner().claim() else {
-        return Ok("busy");
+        return Ok(Settled {
+            carried: "busy",
+            undecided: Vec::new(),
+        });
     };
 
-    let (dest, data, store, device) = {
+    let (dest, data, store, device, alive) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
@@ -2358,6 +2370,7 @@ async fn sync_now(
             session.paths.data().to_path_buf(),
             session.paths.store(),
             session.config.device_id.0.clone(),
+            session.alive(),
         )
     };
 
@@ -2368,10 +2381,12 @@ async fn sync_now(
         _ => tisty_sync::Way::Both,
     };
 
-    tauri::async_runtime::spawn_blocking(move || tisty_sync::carry(&data, &device, &dest, way))
-        .await
-        .map_err(|_| Refusal::of("internal"))?
-        .map_err(said)?;
+    let done = tauri::async_runtime::spawn_blocking(move || {
+        tisty_sync::carry(&data, &device, &dest, way, &alive)
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(said)?;
 
     let mut session = held(&session);
     let moved = tisty_core::cache::fingerprint(&store) != before;
@@ -2398,7 +2413,17 @@ async fn sync_now(
         &[("moved", Fact::Word(if moved { "yes" } else { "no" }))],
     );
     session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
-    Ok(if moved { "came" } else { "same" })
+    Ok(Settled {
+        carried: if moved { "came" } else { "same" },
+        undecided: done.undecided.into_iter().map(|one| one.id).collect(),
+    })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Settled {
+    carried: &'static str,
+    undecided: Vec<String>,
 }
 
 #[tauri::command]
@@ -2436,6 +2461,67 @@ async fn back_up(
     let now = jiff::Timestamp::now();
     held(&session).keep(|config| config.backed_up_at = Some(now))?;
     Ok(made.bytes)
+}
+
+#[tauri::command]
+fn convert_paper(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    body: String,
+) -> Answer<()> {
+    let session = held(&session);
+    let papers = session.paths.docs();
+    let was = tisty_core::docs::read(&papers, &id)
+        .map_err(|_| Refusal::about("cannotRead", id.clone()))?;
+
+    tisty_core::docs::kept_before(session.paths.data(), &id, &was)
+        .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
+    tisty_core::docs::write(&papers, &id, &body).map_err(|e| {
+        blamed(
+            channel::SYNC,
+            "the converted document could not be written",
+            e,
+        )
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+fn settle_paper(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    keep: String,
+) -> Answer<Option<String>> {
+    let mut session = held(&session);
+    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+        return Err(Refusal::of("noRemote"));
+    };
+    let keep = match keep.as_str() {
+        "mine" => tisty_sync::Keep::Mine,
+        "theirs" => tisty_sync::Keep::Theirs,
+        _ => tisty_sync::Keep::Both,
+    };
+
+    let data = session.paths.data().to_path_buf();
+    let brought = tisty_sync::settle(&data, &dest, &id, keep).map_err(said)?;
+
+    let Some(body) = brought else { return Ok(None) };
+    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
+        .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
+    let file = made.id.clone();
+    session
+        .commit(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: file.clone(),
+                folder: None,
+                order: made.id.clone(),
+            },
+        })
+        .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;
+
+    tisty_sync::settle(&data, &dest, &id, tisty_sync::Keep::Mine).map_err(said)?;
+    Ok(Some(file))
 }
 
 #[tauri::command]
@@ -3130,6 +3216,8 @@ pub fn run() {
             join_them,
             remove_machine,
             retire_attachment,
+            settle_paper,
+            convert_paper,
             checked,
             rebuild,
             about,

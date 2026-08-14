@@ -315,7 +315,16 @@ export const syncState = (): Promise<Carrying> => invoke("sync_state");
 export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
 export type Carried = "came" | "same" | "busy";
 
-export const syncNow = (way?: "push" | "pull"): Promise<Carried> => invoke("sync_now", { way });
+export interface Settled {
+  carried: Carried;
+  undecided: string[];
+}
+
+export const syncNow = (way?: "push" | "pull"): Promise<Settled> => invoke("sync_now", { way });
+export const convertPaper = (id: string, body: string): Promise<void> =>
+  invoke("convert_paper", { id, body });
+export const settlePaper = (id: string, keep: "mine" | "theirs" | "both"): Promise<string | null> =>
+  invoke("settle_paper", { id, keep });
 
 export interface Reach {
   shipped: boolean;

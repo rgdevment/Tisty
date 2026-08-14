@@ -1,11 +1,10 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { open as pick } from "@tauri-apps/plugin-dialog";
-import { attach, docRead, docWrite, opened, roomy, type Filed } from "../core";
+import { attach, convertPaper, docRead, docWrite, opened, roomy, type Filed } from "../core";
 import { busy, holds, queued } from "../saving";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { frail } from "../frail";
-import Modal from "./Modal";
 import { MANY, crowd, weighed } from "../previews";
 
 const Editor = lazy(() => import("./Editor"));
@@ -26,6 +25,8 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [packed, setPacked] = useState(0);
+  const shaped = useRef("");
+  const [stuck, setStuck] = useState(false);
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
@@ -103,6 +104,7 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
         const brittle = frail(text);
         setWarned(brittle.length ? brittle : null);
         setReading(brittle.length > 0);
+        setStuck(false);
       })
       .catch((e) => onError(saidPlainly(e)));
   }, [asked, known, open, flush, onError]);
@@ -122,6 +124,20 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
   }, []);
   const brimming = ceiling > 0 && body.length > ceiling;
 
+  const convert = (file: string) => {
+    const body = shaped.current;
+    if (!body) return;
+    const left = frail(body);
+    convertPaper(file, body)
+      .then(() => {
+        setBody(body);
+        setWarned(left.length ? left : null);
+        setStuck(left.length > 0);
+        setReading(left.length > 0);
+      })
+      .catch((e) => onError(saidPlainly(e)));
+  };
+
   const wrote = (text: string) => {
     if (!open || reading) return;
     setBody(text);
@@ -132,36 +148,6 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
 
   return (
     <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-      {warned && (
-        <Modal title={t("frailTitle")} onClose={() => setWarned(null)}>
-          <p className="text-[13px] text-soft">{t("frailWhy")}</p>
-          <ul className="mt-2 mb-4 list-disc pl-5 text-[13px] text-ink">
-            {warned.map((one) => (
-              <li key={one}>{t(one as Parameters<typeof t>[0])}</li>
-            ))}
-          </ul>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setWarned(null)}
-              className="rounded-md px-3 py-1.5 text-[12.5px] text-soft hover:bg-hover"
-            >
-              {t("frailRead")}
-            </button>
-            <button
-              type="button"
-              autoFocus
-              onClick={() => {
-                setWarned(null);
-                setReading(false);
-              }}
-              className="rounded-md bg-accent px-3 py-1.5 text-[12.5px] text-bg"
-            >
-              {t("frailEdit")}
-            </button>
-          </div>
-        </Modal>
-      )}
       <div data-tauri-drag-region className="h-9 shrink-0" />
       {open ? (
         <div className="mx-auto flex min-h-0 w-full max-w-[820px] flex-1 flex-col px-10">
@@ -187,6 +173,9 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
               }
               onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
               onWrite={wrote}
+              onShaped={(text) => {
+                shaped.current = text;
+              }}
             />
           </Suspense>
         </div>
@@ -199,9 +188,7 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
         aria-live="polite"
         className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint"
       >
-        {reading
-          ? t("frailReading")
-          : saving
+        {saving
             ? t("saving")
             : brimming
               ? fill("docBrimming", weighed(body.length))
@@ -209,6 +196,20 @@ export default function Docs({ open: asked, known, onKept, onError, onDoc, onSho
                 ? fill("docCrowded", String(packed))
                 : ""}
       </div>
+      {reading && warned && open && (
+        <div className="mx-auto mb-2 flex w-full max-w-[820px] flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]">
+          <span className="text-soft">{t(stuck ? "frailStuck" : "frailNeeds")}</span>
+          {!stuck && (
+            <button
+              type="button"
+              onClick={() => convert(open.file)}
+              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+            >
+              {t("frailConvert")}
+            </button>
+          )}
+        </div>
+      )}
     </main>
   );
 }

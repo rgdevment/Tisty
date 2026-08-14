@@ -39,6 +39,7 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { heard, play } from "./chime";
 import { carrying } from "./carrying";
+import { decideAll } from "./deciding";
 import { settleIn, syncState } from "./core";
 import { handTo, whenFilesLand } from "./dropped";
 import { adopt, fill, t } from "./locales";
@@ -247,7 +248,12 @@ export default function App() {
   const latest = useRef(load);
   latest.current = load;
   useEffect(() => {
-    const carrier = carrying(() => latest.current());
+    const carrier = carrying(
+      () => latest.current(),
+      (ids) => {
+        decideAll(ids).finally(() => latest.current());
+      },
+    );
     carries.current = carrier;
     return () => carrier.stop();
   }, []);

@@ -91,6 +91,7 @@ interface Props {
   onOpen?: (reference: string) => void;
   onDoc?: (id: string) => void;
   onWrite: (text: string) => void;
+  onShaped?: (text: string) => void;
 }
 
 export default function Editor({
@@ -106,6 +107,7 @@ export default function Editor({
   onOpen,
   onDoc,
   onWrite,
+  onShaped,
 }: Props) {
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
@@ -148,8 +150,8 @@ export default function Editor({
     setActive(0);
   };
 
-  const hands = useRef({ onWrite, onOpen, onDoc });
-  hands.current = { onWrite, onOpen, onDoc };
+  const hands = useRef({ onWrite, onOpen, onDoc, onShaped });
+  hands.current = { onWrite, onOpen, onDoc, onShaped };
   looked.current = look;
 
   const shapes = useMemo(() => [...written(), previewing(() => reach.current)], []);
@@ -218,6 +220,11 @@ export default function Editor({
 
   const moved = useCallback(({ editor }: { editor: Writing }) => looked.current(editor), []);
 
+  const shaped = useCallback(({ editor }: { editor: Writing }) => {
+    const text = asMarkdown(editor);
+    if (text !== null) hands.current.onShaped?.(text);
+  }, []);
+
   const editor = useEditor({
     autofocus: taking,
     editable: !reading,
@@ -226,6 +233,7 @@ export default function Editor({
     editorProps: props,
     onUpdate: wrote,
     onSelectionUpdate: moved,
+    onCreate: shaped,
   });
 
   const blocks: Block[] = editor

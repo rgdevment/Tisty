@@ -276,6 +276,10 @@ const en = {
   syncBroke: "The copy could not be finished: {name}",
   notAllowed:
     "This machine was removed from the shared folder, so it no longer writes to it. It brought what is there; to write again it has to join, and joining resets what it holds.",
+  bothChanged:
+    "«{name}» was written in both places since the last sync, and Tisty never merges two texts.\n\nKeep both? The other one comes in as a new document, so nothing is lost.",
+  whoseWins:
+    "Then only one of the two stays.\n\nKeep the one on this machine? Answering no keeps the one from the shared folder, and what is here is lost.",
   wouldReset:
     "That folder holds another history. To join it, this machine has to be backed up and reset — it does not merge.",
   remoteInsideStore: "{name} is inside Tisty's own folder — pick one outside it",
@@ -303,7 +307,11 @@ const en = {
   frailAligned: "The alignment of a table",
   frailEdit: "Edit anyway",
   frailRead: "Open to read",
-  frailReading: "Reading only — nothing you type here is saved",
+  frailReading: "Reading only",
+  frailNeeds: "Tisty needs to convert the format before it can be edited. Try it?",
+  frailStuck: "It could not be converted, so this stays read only. What it was before is kept.",
+  frailConvert: "Try converting it and edit",
+  frailKept: "What it was before is kept on this machine",
   cannotWrite: "{name} could not be written",
   insertLink: "Link",
   sayLink: "text and url",
@@ -395,7 +403,6 @@ const en = {
   restoreFrom: "Restore from a file…",
   storeFixed: "The folder cannot be changed: your tasks are text files, and always knowing where they are is part of them being yours.",
   attachBig: "For anything larger, write a document and reference it from the task instead of dragging the file in.",
-  docsSoon: "What a document holds travels between machines except its text, which does not yet.",
   noticesMore: "Mail and messaging come later: the way notices are handed out is written to take new channels without touching the rest.",
   reviewWhat: "Compares what the log says with what the cache holds. It is the same thing `tisty doctor` does in the terminal.",
   reviewAgain: "Review again",
@@ -775,6 +782,10 @@ const es: Catalog = {
   syncBroke: "No se pudo terminar la copia: {name}",
   notAllowed:
     "Esta máquina fue removida de la carpeta compartida, así que ya no escribe en ella. Trajo lo que había; para volver a escribir tiene que unirse, y unirse reinicia lo que guarda.",
+  bothChanged:
+    "«{name}» se escribió en los dos sitios desde la última sincronización, y Tisty no fusiona dos textos.\n\n¿Quedarte las dos? La otra entra como documento nuevo, así no se pierde nada.",
+  whoseWins:
+    "Entonces solo se queda una de las dos.\n\n¿La de esta máquina? Si respondes que no se queda la de la carpeta compartida, y lo que hay aquí se pierde.",
   wouldReset:
     "Esa carpeta guarda otro historial. Para unirse, esta máquina tiene que respaldarse y reiniciarse — no se fusiona.",
   remoteInsideStore: "{name} está dentro de la carpeta de Tisty — elige una fuera",
@@ -802,7 +813,11 @@ const es: Catalog = {
   frailAligned: "La alineación de una tabla",
   frailEdit: "Editar igual",
   frailRead: "Abrir para leer",
-  frailReading: "Solo lectura — nada de lo que escribas aquí se guarda",
+  frailReading: "Solo lectura",
+  frailNeeds: "Tisty necesita convertir el formato para editar. ¿Quieres intentarlo?",
+  frailStuck: "No se pudo convertir, así que sigue en solo lectura. Lo que era antes queda guardado.",
+  frailConvert: "Intentar convertirlo y editar",
+  frailKept: "Lo que era antes queda guardado en esta máquina",
   cannotWrite: "No se pudo escribir {name}",
   insertLink: "Enlace",
   sayLink: "texto y url",
@@ -894,7 +909,6 @@ const es: Catalog = {
   restoreFrom: "Restaurar desde un archivo…",
   storeFixed: "La carpeta no se puede cambiar: tus tareas son archivos de texto, y saber siempre dónde están es parte de que sean tuyas.",
   attachBig: "Para algo más grande, crea un documento y referéncialo desde la tarea en vez de arrastrar el archivo.",
-  docsSoon: "De un documento viaja todo entre máquinas menos su texto, que todavía no.",
   noticesMore: "Correo y mensajería quedan para más adelante: el reparto de avisos está escrito para admitir canales nuevos sin tocar lo demás.",
   reviewWhat: "Compara lo que dice el registro con lo que tiene la caché. Es lo mismo que hace `tisty doctor` en la terminal.",
   reviewAgain: "Revisar de nuevo",
