@@ -3,11 +3,14 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor as Writing } from "@tiptap/core";
 import { asMarkdown, written } from "./writing";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { served } from "../core";
+import { served, weighs, type Filed } from "../core";
+import { previewing, type Reach } from "./previewing";
+import { docLink } from "../markdown";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import Slash, { asked, narrowed, type Block } from "./Slash";
 import Floats from "./Floats";
+import Papers from "./Papers";
 
 export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
@@ -33,8 +36,10 @@ interface Props {
   value: string;
   taking?: boolean;
   label?: string;
+  papers?: Filed[];
   onAttach?: () => Promise<string | null>;
   onOpen?: (reference: string) => void;
+  onDoc?: (id: string) => void;
   onWrite: (text: string) => void;
 }
 
@@ -42,15 +47,26 @@ export default function Editor({
   value,
   taking,
   label,
+  papers,
   onAttach,
   onOpen,
+  onDoc,
   onWrite,
 }: Props) {
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
   const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
   const [tying, setTying] = useState<{ x: number; y: number } | null>(null);
+  const [choosing, setChoosing] = useState<{ x: number; y: number } | null>(null);
   const urls = useRef(new Map<string, string>());
+  const weights = useRef(new Map<string, number>());
+  const pending = useRef(new Set<string>());
+  const nudge = useRef(() => {});
+  const reach = useRef<Reach>({
+    url: () => null,
+    weight: () => null,
+    title: () => null,
+  });
   const now = useRef<{ open: boolean; count: number; take: () => void }>({
     open: false,
     count: 0,
@@ -73,7 +89,7 @@ export default function Editor({
 
   const editor = useEditor({
     autofocus: taking,
-    extensions: written(),
+    extensions: [...written(), previewing(() => reach.current)],
     content: value,
     editorProps: {
       attributes: {
@@ -195,6 +211,13 @@ export default function Editor({
           run: () => setTying(caret(editor, editor.state.selection.from)),
         },
         {
+          key: "paper",
+          label: t("insertDoc"),
+          hint: "\u25a4",
+          icon: "\u25a4",
+          run: () => setChoosing(caret(editor, editor.state.selection.from)),
+        },
+        {
           key: "rule",
           label: t("divider"),
           hint: "---",
@@ -243,6 +266,48 @@ export default function Editor({
     if (!editor || editor.isDestroyed || asMarkdown(editor) === value) return;
     editor.commands.setContent(value, { emitUpdate: false });
   }, [editor, value]);
+
+  nudge.current = () => {
+    if (!editor || editor.isDestroyed) return;
+    editor.view.dispatch(editor.state.tr.setMeta("preview", true));
+  };
+
+  const fetches = (reference: string, get: () => Promise<void>) => {
+    if (pending.current.has(reference)) return;
+    pending.current.add(reference);
+    get()
+      .then(() => nudge.current())
+      .catch(() => undefined);
+  };
+
+  reach.current = {
+    onDoc,
+    url: (reference) => {
+      const held = urls.current.get(reference);
+      if (held) return held;
+      fetches(`url:${reference}`, () =>
+        served(reference).then((real) => {
+          urls.current.set(reference, convertFileSrc(real));
+        }),
+      );
+      return null;
+    },
+    weight: (reference) => {
+      const held = weights.current.get(reference);
+      if (held !== undefined) return held;
+      fetches(`weight:${reference}`, () =>
+        weighs(reference).then((bytes) => {
+          weights.current.set(reference, bytes);
+        }),
+      );
+      return null;
+    },
+    title: (id) => {
+      const one = papers?.find((paper) => paper.file === id);
+      return one ? one.title.trim() || t("untitledDoc") : null;
+    },
+  };
+
 
   const opened = Boolean(asking) && shown.length > 0;
   const current = Math.min(active, shown.length - 1);
@@ -304,6 +369,23 @@ export default function Editor({
       {picked && editor && !asking && !tying && <Floats editor={editor} at={picked.at} />}
       {tying && editor && (
         <Floats editor={editor} at={tying} asking onDone={() => setTying(null)} />
+      )}
+      {choosing && editor && (
+        <div
+          style={{
+            left: Math.max(8, Math.min(choosing.x, window.innerWidth - 290)),
+            top: Math.max(8, choosing.y + 6),
+          }}
+          className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
+        >
+          <Papers
+            all={papers}
+            onPick={(paper) => {
+              setChoosing(null);
+              editor.chain().focus().insertContent(docLink(paper.file, paper.title)).run();
+            }}
+          />
+        </div>
       )}
     </>
   );

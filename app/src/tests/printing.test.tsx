@@ -49,6 +49,13 @@ describe("what the printed sheet leaves out", () => {
     editor.destroy();
   });
 
+  it("drops the players, which on paper are a black rectangle, and keeps the cards", () => {
+    const printed = sheet();
+
+    expect(printed).toMatch(/\.preview-video[^{]*\{[^}]*display:\s*none/);
+    expect(printed).toMatch(/\.preview-doc[^{]*\{[^}]*border/);
+  });
+
   it("puts a colour on paper for what the dark theme would leave invisible", () => {
     const printed = sheet();
 

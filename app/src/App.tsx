@@ -639,6 +639,11 @@ export default function App() {
           known={papers.docs}
           onKept={lookPapers}
           onError={(e) => setError(saidPlainly(e))}
+          onDoc={(paper) =>
+            papers.docs.some((one) => one.file === paper)
+              ? setChosen({ named: "docs", doc: paper })
+              : setError(t("goneDoc"))
+          }
         />
       ) : chosen.named === "lists" && !chosen.list ? (
         <Lists

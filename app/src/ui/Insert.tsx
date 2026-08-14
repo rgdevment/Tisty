@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useEdge } from "./edge";
 import { open } from "@tauri-apps/plugin-dialog";
-import { attach, docs, type Filed } from "../core";
+import { attach } from "../core";
 import { docLink } from "../markdown";
+import Papers from "./Papers";
+import Row from "./Row";
 import { t } from "../locales";
 
 interface Props {
@@ -82,83 +84,6 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
               {text}
             </Row>
           ))}
-      </div>
-    </>
-  );
-}
-
-function Row({
-  glyph,
-  say,
-  first,
-  children,
-  onPick,
-}: {
-  glyph: string;
-  say?: string;
-  first?: boolean;
-  children: React.ReactNode;
-  onPick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      autoFocus={first}
-      onClick={onPick}
-      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-ink hover:bg-hover"
-    >
-      <span className="w-[15px] text-center">{glyph}</span>
-      {children}
-      <span className="ml-auto text-[11px] text-faint">{say}</span>
-    </button>
-  );
-}
-
-
-function Papers({
-  onPick,
-  onError,
-}: {
-  onPick: (doc: Filed) => void;
-  onError?: (problem: unknown) => void;
-}) {
-  const [all, setAll] = useState<Filed[] | null>(null);
-  const [word, setWord] = useState("");
-
-  useEffect(() => {
-    docs()
-      .then((papers) => setAll(papers.docs.filter((one) => !one.archived)))
-      .catch((problem) => {
-        setAll([]);
-        onError?.(problem);
-      });
-  }, [onError]);
-
-  const named = (doc: Filed) => doc.title.trim() || t("untitledDoc");
-  const shown = (all ?? []).filter((one) =>
-    named(one).toLowerCase().includes(word.trim().toLowerCase()),
-  );
-
-  return (
-    <>
-      <input
-        autoFocus
-        value={word}
-        aria-label={t("pickADocToLink")}
-        placeholder={t("pickADocToLink")}
-        onChange={(e) => setWord(e.target.value)}
-        className="mb-1 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none placeholder:text-faint"
-      />
-      <div className="scroller max-h-[168px]">
-        {all === null && <p className="px-2.5 py-1.5 text-faint">{t("opening")}</p>}
-        {all !== null && shown.length === 0 && (
-          <p className="px-2.5 py-1.5 text-faint">{all.length ? t("noneHere") : t("noDocsYet")}</p>
-        )}
-        {shown.map((doc) => (
-          <Row key={doc.id} glyph="📄" onPick={() => onPick(doc)}>
-            <span className="min-w-0 truncate">{named(doc)}</span>
-          </Row>
-        ))}
       </div>
     </>
   );

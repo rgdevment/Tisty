@@ -2412,6 +2412,18 @@ fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answe
 }
 
 #[tauri::command]
+fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
+    let root = held(&session).paths.data().to_path_buf();
+    let at = tisty_core::attach::resolve(&reference, &root)
+        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
+    let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
+    if !told.is_file() {
+        return Err(Refusal::about("cannotRead", reference));
+    }
+    Ok(told.len())
+}
+
+#[tauri::command]
 fn opened(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
@@ -2887,6 +2899,7 @@ pub fn run() {
             discard,
             attach,
             served,
+            weighs,
             opened,
             revealed,
             sync_state,

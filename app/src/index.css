@@ -341,6 +341,67 @@ body {
   background: var(--tisty-hover);
   font-weight: 600;
 }
+.preview {
+  display: block;
+  margin: 8px 0 14px;
+  user-select: none;
+}
+.preview-video video,
+.preview-audio audio {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 8px;
+  background: #000;
+}
+.preview-audio audio {
+  background: none;
+}
+.preview-doc,
+.preview-file {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: 520px;
+  padding: 9px 12px;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 8px;
+  background: var(--tisty-panel);
+  font-size: 13px;
+  cursor: default;
+}
+.preview-doc {
+  cursor: pointer;
+}
+.preview-doc:hover {
+  background: var(--tisty-hover);
+}
+.preview-doc::before {
+  content: "▤";
+  color: var(--tisty-faint);
+}
+.preview-file::before {
+  content: "◫";
+  color: var(--tisty-faint);
+}
+.preview-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tisty-ink);
+}
+.preview-said {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--tisty-faint);
+  white-space: nowrap;
+}
+.preview-gone .preview-name {
+  color: var(--tisty-faint);
+  font-style: italic;
+}
+
 .tisty-doc ul[data-type="taskList"] {
   list-style: none;
   padding-left: 2px;
@@ -433,6 +494,18 @@ body {
   .tisty-doc code {
     background: #f4f4f5;
     color: #18181b;
+  }
+  .preview-video,
+  .preview-audio {
+    display: none !important;
+  }
+  .preview-doc,
+  .preview-file {
+    border: 1px solid #d4d4d8;
+    background: none;
+  }
+  .preview-said {
+    color: #52525b;
   }
   .tisty-doc hr {
     border-top: 1px solid #a1a1aa;
