@@ -80,7 +80,26 @@ beforeEach(() => {
         standing.withinReach = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
         return Promise.resolve({ ...standing });
       case "checked":
-        return Promise.resolve({ tasks: 7, lists: 2, agrees: true, loose: 3, looseBytes: 311_000 });
+        return Promise.resolve({
+          tasks: 7,
+          lists: 2,
+          agrees: true,
+          loose: 3,
+          looseBytes: 311_000,
+          astray: [
+            { at: "attachments/ab/charla-a3f9.mp4", bytes: 300_000, when: 1_754_000_000 },
+            { at: "attachments/cd/notas-b1c2.pdf", bytes: 11_000, when: 1_754_000_000 },
+          ],
+          events: 42,
+          machines: [
+            { id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true },
+            { id: "win1-0002", when: Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 12, mine: false },
+          ],
+          logBytes: 4_096,
+          docsBytes: 20_480,
+          heldBytes: 900_000,
+          heldFiles: 9,
+        });
       case "back_up":
         return Promise.resolve(4096);
       case "facts":
@@ -124,6 +143,20 @@ beforeEach(() => {
         });
       case "settings":
         return Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024, logsAll: false });
+      case "docs":
+        return Promise.resolve({
+          folders: [],
+          docs: [
+            { id: "1", file: "a-0001", title: "Limpio", folder: null, archived: false },
+            { id: "2", file: "a-0002", title: "Minuta del lunes", folder: null, archived: false },
+          ],
+        });
+      case "doc_read":
+        return Promise.resolve(
+          String(ipc.calls[ipc.calls.length - 1]?.args.id) === "a-0002"
+            ? "---\ntitle: algo\n---\n\n# Minuta"
+            : "# Limpio\n\nun parrafo",
+        );
       default:
         return Promise.resolve(null);
     }
@@ -221,6 +254,134 @@ describe("the maintenance panel", () => {
     await waitFor(() => expect(size.hasAttribute("disabled")).toBe(true));
     expect(size.className).toContain("disabled:text-soft");
     expect(size.className).not.toContain("opacity-50");
+  });
+
+  it("names every machine and when each last wrote", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText(/mac0-0001/)).toBeTruthy();
+    expect(screen.getByText(/win1-0002/)).toBeTruthy();
+    expect(screen.getByText(/this one/i)).toBeTruthy();
+  });
+
+  it("says out loud that a machine has been away, so nothing is judged on stale news", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText(/have not synced in a while/i)).toBeTruthy();
+  });
+
+  it("keeps quiet about machines when every one of them is up to date", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "checked"
+        ? otherwise(cmd, args).then((was) => ({
+            ...(was as Record<string, unknown>),
+            machines: [{ id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true }],
+          }))
+        : otherwise(cmd, args);
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    await screen.findByText(/mac0-0001/);
+    expect(screen.queryByText(/have not synced in a while/i)).toBeNull();
+  });
+
+  it("tells you to settle the machines before judging what is left over", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText(/before deciding what is left over/i)).toBeTruthy();
+  });
+
+  it("stops nagging about the machines once none of them is behind", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "checked"
+        ? otherwise(cmd, args).then((was) => ({
+            ...(was as Record<string, unknown>),
+            machines: [{ id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true }],
+          }))
+        : otherwise(cmd, args);
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    await screen.findByText("charla-a3f9.mp4");
+    expect(screen.queryByText(/before deciding what is left over/i)).toBeNull();
+  });
+
+  it("shows each loose attachment by name, weight and date", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText("charla-a3f9.mp4")).toBeTruthy();
+    expect(screen.getByText("notas-b1c2.pdf")).toBeTruthy();
+  });
+
+  it("says plainly that another machine may still be using them", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText(/another one may still reference them/i)).toBeTruthy();
+  });
+
+  it("breaks the weight down, so the size has somewhere to come from", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText(/the log weighs/i)).toBeTruthy();
+    expect(screen.getByText(/the documents weigh/i)).toBeTruthy();
+    expect(screen.getByText(/the attachments weigh/i)).toBeTruthy();
+  });
+
+  it("names the documents that would open read only, and what each brings", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /go through the documents/i }));
+
+    expect(await screen.findByText("Minuta del lunes")).toBeTruthy();
+    expect(screen.getByText(/the front matter at the top/i)).toBeTruthy();
+    expect(screen.queryByText("Limpio")).toBeNull();
+  });
+
+  it("says so plainly when every document survives being saved", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "doc_read" ? Promise.resolve("# Limpio\n\nun parrafo") : otherwise(cmd, args);
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /go through the documents/i }));
+
+    expect(await screen.findByText(/every document survives being saved/i)).toBeTruthy();
   });
 
   it("says what the review found", async () => {

@@ -73,6 +73,39 @@ pub fn attachments(root: &Path) -> Held {
     held
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Machine {
+    pub id: String,
+    pub when: i64,
+    pub mine: bool,
+}
+
+pub fn machines(store: &Path, mine: &str) -> Vec<Machine> {
+    let Ok(entries) = std::fs::read_dir(store) else {
+        return Vec::new();
+    };
+    let mut all: Vec<Machine> = entries
+        .filter_map(|one| one.ok())
+        .filter(|one| one.file_type().map(|kind| kind.is_dir()).unwrap_or(false))
+        .filter_map(|one| {
+            let id = one.file_name().to_str()?.to_string();
+            let when = tisty_core::store::segments_in(&one.path())
+                .ok()?
+                .iter()
+                .filter_map(|at| std::fs::metadata(at).ok()?.modified().ok())
+                .filter_map(|when| when.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|gone| gone.as_secs() as i64)
+                .max()
+                .unwrap_or(0);
+            let mine = id == mine;
+            Some(Machine { id, when, mine })
+        })
+        .collect();
+    all.sort_by(|a, b| b.when.cmp(&a.when).then_with(|| a.id.cmp(&b.id)));
+    all
+}
+
 pub fn devices(store: &Path) -> usize {
     std::fs::read_dir(store)
         .map(|entries| {
@@ -184,6 +217,101 @@ mod tests {
         let held = attachments(tmp.path());
         assert_eq!(held.files, 2);
         assert_eq!(held.bytes, 8);
+    }
+
+    #[test]
+    fn every_machine_that_ever_wrote_is_named() {
+        let tmp = tempfile::tempdir().unwrap();
+        for who in ["mac0", "win1"] {
+            let at = tmp.path().join(who);
+            std::fs::create_dir_all(&at).unwrap();
+            std::fs::write(at.join("active.tisty"), b"an event").unwrap();
+        }
+
+        let all = machines(tmp.path(), "mac0");
+
+        assert_eq!(all.len(), 2);
+        assert_eq!(all.iter().filter(|one| one.mine).count(), 1);
+        assert!(
+            all.iter().all(|one| one.when > 0),
+            "without a date there is no way to see who is behind"
+        );
+    }
+
+    #[test]
+    fn a_machine_that_never_wrote_still_shows_up_with_nothing_to_show() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join("win1")).unwrap();
+
+        let all = machines(tmp.path(), "mac0");
+
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].when, 0);
+        assert!(!all[0].mine);
+    }
+
+    #[test]
+    fn the_one_that_wrote_last_is_shown_first() {
+        let tmp = tempfile::tempdir().unwrap();
+        for who in ["old0", "new1"] {
+            let at = tmp.path().join(who);
+            std::fs::create_dir_all(&at).unwrap();
+            std::fs::write(at.join("active.tisty"), b"an event").unwrap();
+        }
+        let older =
+            std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24 * 12);
+        std::fs::File::options()
+            .write(true)
+            .open(tmp.path().join("old0").join("active.tisty"))
+            .unwrap()
+            .set_modified(older)
+            .unwrap();
+
+        let all = machines(tmp.path(), "new1");
+
+        assert_eq!(all[0].id, "new1");
+        assert!(
+            all[0].when - all[1].when > 60 * 60 * 24 * 11,
+            "a machine twelve days behind has to look twelve days behind"
+        );
+    }
+
+    #[test]
+    fn a_machine_is_dated_by_its_last_write_and_not_its_first() {
+        let tmp = tempfile::tempdir().unwrap();
+        let at = tmp.path().join("mac0");
+        std::fs::create_dir_all(&at).unwrap();
+        std::fs::write(at.join("000001.tisty"), b"an old event").unwrap();
+        std::fs::write(at.join("active.tisty"), b"what was written just now").unwrap();
+        let older =
+            std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24 * 30);
+        std::fs::File::options()
+            .write(true)
+            .open(at.join("000001.tisty"))
+            .unwrap()
+            .set_modified(older)
+            .unwrap();
+
+        let when = machines(tmp.path(), "mac0")[0].when;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+
+        assert!(
+            now - when < 60 * 60,
+            "an old segment must not make a busy machine look abandoned"
+        );
+    }
+
+    #[test]
+    fn what_is_not_a_segment_never_passes_for_one() {
+        let tmp = tempfile::tempdir().unwrap();
+        let at = tmp.path().join("mac0");
+        std::fs::create_dir_all(&at).unwrap();
+        std::fs::write(at.join("notes.txt"), b"not a segment").unwrap();
+
+        assert_eq!(machines(tmp.path(), "mac0")[0].when, 0);
     }
 
     #[test]

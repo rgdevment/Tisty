@@ -1061,16 +1061,23 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
     held.extend(tisty_core::docs::referenced(&session.paths.docs()));
     let adrift = tisty_core::attach::loose(session.paths.data(), &held);
 
+    let kept = report::attachments(session.paths.data());
+
     Ok(Reviewed {
         tasks: session.state.tasks.len(),
         lists: session.state.lists.len(),
         agrees: matches!(audit, tisty_core::cache::Audit::Agrees { .. }),
-        loose: adrift.files,
+        loose: adrift.files(),
         loose_bytes: adrift.bytes,
+        astray: adrift.items,
         events: tisty_core::store::read_all(session.paths.store())
             .map(|all| all.len())
             .unwrap_or(0),
-        devices: report::devices(&session.paths.store()),
+        machines: report::machines(&session.paths.store(), session.config.device_id.0.as_str()),
+        log_bytes: report::weighed(&session.paths.store()),
+        docs_bytes: report::weighed(&session.paths.docs()),
+        held_bytes: kept.bytes,
+        held_files: kept.files,
     })
 }
 
@@ -1082,8 +1089,13 @@ struct Reviewed {
     agrees: bool,
     loose: usize,
     loose_bytes: u64,
+    astray: Vec<tisty_core::attach::Astray>,
     events: usize,
-    devices: usize,
+    machines: Vec<report::Machine>,
+    log_bytes: u64,
+    docs_bytes: u64,
+    held_bytes: u64,
+    held_files: usize,
 }
 
 #[tauri::command(async)]
@@ -1164,7 +1176,7 @@ fn facts(
         },
         attachments: kept.files,
         attachment_bytes: kept.bytes,
-        loose: adrift.files,
+        loose: adrift.files(),
         loose_bytes: adrift.bytes,
         weight: report::weighed(session.paths.data()),
         syncs: session.config.sync.is_some(),
@@ -2205,7 +2217,7 @@ fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
         asked: config.sync.is_some(),
         backs_up: config.backs_up(),
         last: config.synced_at.map(|at| at.to_string()),
-        loose: tisty_core::attach::loose(session.paths.data(), &held).files,
+        loose: tisty_core::attach::loose(session.paths.data(), &held).files(),
         open: session.state.matching(&Filter::default(), today()).len(),
         archived: session
             .state

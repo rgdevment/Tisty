@@ -23,12 +23,14 @@ import {
   type Reach,
   type Settings,
   type Reviewed,
+  type Machine,
   copied,
 } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { stamped, weigh } from "../format";
 import { written } from "../report";
+import { scanned, type Brittle } from "../scanning";
 import { onMac } from "./WindowChrome";
 
 const carried = { came: "syncCame", same: "syncSame", busy: "syncBusy" } as const;
@@ -41,7 +43,8 @@ type Which =
   | "quick"
   | "settings"
   | "report"
-  | "store";
+  | "store"
+  | "brittle";
 type Word = { card: Which; text: string };
 type Tab = "data" | "notices" | "writing" | "upkeep";
 
@@ -60,6 +63,7 @@ export default function Keeping({ onChanged }: Props) {
   const [tab, setTab] = useState<Tab>("data");
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
+  const [brittle, setBrittle] = useState<Brittle[] | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
   const [keys, setKeys] = useState<string | null>(null);
   const [kept, setKept] = useState<Settings | null>(null);
@@ -534,6 +538,8 @@ export default function Keeping({ onChanged }: Props) {
 
         {tab === "upkeep" && (
           <>
+            <Group label={t("theStore")} />
+
             <Card title={t("review")} which="review" busy={busy} said={said} trouble={trouble}>
               <p className="text-[12.5px] leading-relaxed text-soft">{t("reviewWhat")}</p>
               {audit && (
@@ -550,12 +556,14 @@ export default function Keeping({ onChanged }: Props) {
                   <dd className={audit.agrees ? "text-accent" : "text-urgent"}>
                     {t(audit.agrees ? "cacheAgrees" : "cacheDiverged")}
                   </dd>
-                  <dt className="text-faint">{t("looseAre")}</dt>
+                  <dt className="text-faint">{t("weighsLog")}</dt>
+                  <dd className="tabular-nums text-soft">{weigh(audit.logBytes)}</dd>
+                  <dt className="text-faint">{t("weighsDocs")}</dt>
+                  <dd className="tabular-nums text-soft">{weigh(audit.docsBytes)}</dd>
+                  <dt className="text-faint">{t("weighsHeld")}</dt>
                   <dd className="tabular-nums text-soft">
-                    {audit.loose === 0 ? "0" : `${audit.loose} · ${weigh(audit.looseBytes)}`}
+                    {`${audit.heldFiles} · ${weigh(audit.heldBytes)}`}
                   </dd>
-                  <dt className="text-faint">{t("devicesAre")}</dt>
-                  <dd className="tabular-nums text-soft">{audit.devices}</dd>
                 </dl>
               )}
               <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
@@ -584,6 +592,114 @@ export default function Keeping({ onChanged }: Props) {
                 )}
               </div>
             </Card>
+
+            <Group label={t("theMachines")} />
+
+            <Card title={t("theMachines")} which="review" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("machinesWhat")}</p>
+              {audit && (
+                <ul className="mt-2 flex flex-col gap-1 text-[12.5px]">
+                  {audit.machines.map((one) => (
+                    <li key={one.id} className="flex items-baseline justify-between gap-4">
+                      <span className="font-mono text-[11.5px] break-all text-soft">
+                        {one.id}
+                        {one.mine && <span className="ml-1.5 text-faint">{t("machineHere")}</span>}
+                      </span>
+                      <span className={behind(one) ? "text-urgent" : "text-faint"}>
+                        {one.when === 0 ? t("machineNever") : dated(one.when)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {audit?.machines.some(behind) && (
+                <p className="mt-2 text-[12.5px] leading-relaxed text-urgent">
+                  {t("machineBehind")}
+                </p>
+              )}
+              {audit && audit.machines.length === 0 && (
+                <p className="mt-2 text-[12.5px] text-faint">{t("machinesNone")}</p>
+              )}
+            </Card>
+
+            <Group label={t("looseAre")} />
+
+            <Card title={t("looseAre")} which="review" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("looseWhat")}</p>
+              {audit?.machines.some(behind) && (
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-urgent">{t("looseWait")}</p>
+              )}
+              {audit && audit.loose === 0 && (
+                <p className="mt-2 text-[12.5px] text-faint">{t("looseNone")}</p>
+              )}
+              {audit && audit.loose > 0 && (
+                <>
+                  <p className="mt-2 text-[12.5px] tabular-nums text-soft">
+                    {`${fill("looseTotal", String(audit.loose))} · ${weigh(audit.looseBytes)}`}
+                  </p>
+                  <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
+                    {audit.astray.map((one) => (
+                      <li key={one.at} className="flex items-baseline justify-between gap-4">
+                        <span className="font-mono text-[11.5px] break-all text-soft">
+                          {one.at.split("/").pop()}
+                        </span>
+                        <span className="shrink-0 tabular-nums text-faint">
+                          {`${weigh(one.bytes)} · ${dated(one.when)}`}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-2.5 flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      disabled={!build}
+                      onClick={() =>
+                        build &&
+                        revealed(build.store).catch((e) =>
+                          setTrouble({ card: "review", text: saidPlainly(e) }),
+                        )
+                      }
+                      className={mild}
+                    >
+                      {t("aboutReveal")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </Card>
+
+            <Group label={t("brittleAre")} />
+
+            <Card title={t("brittleAre")} which="brittle" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("brittleWhat")}</p>
+              {brittle?.length === 0 && (
+                <p className="mt-2 text-[12.5px] text-faint">{t("brittleNone")}</p>
+              )}
+              {brittle && brittle.length > 0 && (
+                <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1.5 overflow-y-auto text-[12.5px]">
+                  {brittle.map((one) => (
+                    <li key={one.file}>
+                      <span className="text-soft">{one.title || one.file}</span>
+                      <span className="block text-[11.5px] text-faint">
+                        {one.brings.map((what) => t(what as Parameters<typeof t>[0])).join(" · ")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-2.5 flex items-center gap-2.5">
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={() => run("brittle", scanned(), setBrittle)}
+                  className={mild}
+                >
+                  {t(brittle ? "brittleAgain" : "brittleRun")}
+                </button>
+              </div>
+            </Card>
+
+            <Group label={t("reportTitle")} />
 
             <Card title={t("reportTitle")} which="report" busy={busy} said={said} trouble={trouble}>
               <p className="text-[12.5px] leading-relaxed text-soft">
@@ -661,6 +777,13 @@ export default function Keeping({ onChanged }: Props) {
   );
 }
 
+const BEHIND = 7 * 24 * 60 * 60;
+
+const behind = (one: Machine): boolean =>
+  !one.mine && (one.when === 0 || Date.now() / 1000 - one.when > BEHIND);
+
+const dated = (when: number): string => stamped(new Date(when * 1000).toISOString());
+
 const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
 const mild = `rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
 const strong = `rounded-[7px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
@@ -688,6 +811,7 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
   backup: "backup",
   review: "review",
+  brittle: "brittleAre",
   terminal: "terminal",
   quick: "quick",
   settings: "settingsTitle",
