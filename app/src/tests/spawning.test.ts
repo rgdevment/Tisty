@@ -43,7 +43,10 @@ describe("making a document that another one will point at", () => {
   });
 
   it("gives back the reference already written, ready to insert", async () => {
-    expect(await spawned("Minuta", "01H")).toBe("[Minuta](tisty:doc/mac0-0001)");
+    const born = await spawned("Minuta", "01H");
+
+    expect(born.said).toBe("[Minuta](tisty:doc/mac0-0001)");
+    expect(born.id).toBe("mac0-0001");
   });
 
   it("makes nothing at all when the name is only spaces", async () => {

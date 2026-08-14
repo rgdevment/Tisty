@@ -10,6 +10,7 @@ export interface Reach {
   url: (reference: string) => string | null;
   weight: (reference: string) => number | null;
   title: (id: string) => string | null | undefined;
+  here?: string;
   blurb?: (id: string) => string | null;
   gone?: (reference: string) => boolean;
   onDoc?: (id: string) => void;
@@ -17,7 +18,7 @@ export interface Reach {
   onAgain?: (reference: string) => void;
 }
 
-const key = new PluginKey("previewing");
+export const plugged = new PluginKey("previewing");
 
 const ends = (doc: Written, pos: number, node: Written, href: string): boolean => {
   const after = doc.resolve(pos + node.nodeSize).nodeAfter;
@@ -38,8 +39,9 @@ const found = (
     const seen = previewOf(href);
     if (!seen) return;
     const at = state.doc.resolve(pos);
+    const after = at.depth ? at.after(at.depth) : pos + node.nodeSize;
     all.push({
-      at: at.depth ? at.after(at.depth) : pos + node.nodeSize,
+      at: after,
       seen,
       href,
       label: node.text ?? "",
@@ -161,6 +163,8 @@ const built = (
   const under = document.createElement("span");
   under.className = "card-under";
 
+  const itself = seen.as === "doc" && seen.id === reach.here;
+
   if (seen.as === "doc") {
     const title = reach.title(seen.id);
     box.classList.add("card-doc");
@@ -173,7 +177,7 @@ const built = (
       box.classList.add("card-gone");
     } else {
       name.textContent = title;
-      under.textContent = reach.blurb?.(seen.id) ?? "";
+      under.textContent = itself ? t("docItself") : (reach.blurb?.(seen.id) ?? "");
     }
   } else if (lost) {
     box.classList.add("card-gone");
@@ -192,6 +196,10 @@ const built = (
 
   said.append(name, under);
   box.append(said);
+  if (itself) {
+    box.classList.add("card-itself");
+    return box;
+  }
   box.setAttribute("role", "button");
   box.setAttribute("tabindex", "0");
   const go = () => {
@@ -218,8 +226,24 @@ const shed = (
   view.dispatch(view.state.tr.delete($at.before($at.depth), $at.after($at.depth)));
 };
 
+export const alone = (block: Written): boolean => {
+  if (block.childCount !== 1) return false;
+  const only = block.child(0);
+  if (!only.isText) return false;
+  const link = only.marks.find((one) => one.type.name === "link");
+  return Boolean(link && previewOf(String(link.attrs.href ?? "")));
+};
+
+export const eats = (key: string, at: number, room: number, whole: boolean): boolean => {
+  if (whole) return true;
+  if (key === "Backspace") return at > 0;
+  if (key === "Delete") return at < room;
+  return false;
+};
+
 const settled = (seen: Preview, reach: Reach): string => {
   if (seen.as === "doc") {
+    if (seen.id === reach.here) return "itself";
     const title = reach.title(seen.id);
     return title === undefined ? "" : (title ?? "gone");
   }
@@ -234,8 +258,20 @@ export const previewing = (reach: () => Reach) =>
     addProseMirrorPlugins() {
       return [
         new Plugin({
-          key,
+          key: plugged,
           props: {
+            handleKeyDown(view, event) {
+              if (event.key !== "Backspace" && event.key !== "Delete") return false;
+              const { $from, $to, empty } = view.state.selection;
+              if (!$from.depth || !$from.sameParent($to) || !alone($from.parent)) return false;
+              if (!eats(event.key, $from.parentOffset, $from.parent.content.size, !empty)) {
+                return false;
+              }
+              view.dispatch(
+                view.state.tr.delete($from.before($from.depth), $from.after($from.depth)),
+              );
+              return true;
+            },
             decorations(state) {
               const now = reach();
               return DecorationSet.create(

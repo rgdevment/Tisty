@@ -57,6 +57,9 @@ export const glimpsed = (body: string): string =>
     .join(" · ")
     .slice(0, 160);
 
+export const perched = (empty: boolean, code: boolean, hushed: boolean): boolean =>
+  !hushed && !empty && !code;
+
 export const stale = (value: string, mine: string, shown: () => string | null): boolean =>
   value !== mine && shown() !== value;
 
@@ -80,6 +83,8 @@ interface Props {
   taking?: boolean;
   reading?: boolean;
   folder?: string | null;
+  paper?: string;
+  onMade?: (id: string, name: string) => void;
   label?: string;
   papers?: Filed[];
   onAttach?: () => Promise<string | null>;
@@ -93,6 +98,8 @@ export default function Editor({
   taking,
   reading,
   folder,
+  paper,
+  onMade,
   label,
   papers,
   onAttach,
@@ -127,12 +134,12 @@ export default function Editor({
   });
 
   const looked = useRef((_: Writing) => {});
+  const hushed = useRef(false);
   const look = (editor: Writing) => {
     const { $from, $to, empty } = editor.state.selection;
-    setPicked(
-      empty || editor.isActive("codeBlock") ? null : { at: middle(editor, $from.pos, $to.pos) },
-    );
-    if (!empty || editor.isActive("codeBlock") || editor.isActive("code")) {
+    const code = editor.isActive("codeBlock");
+    setPicked(perched(empty, code, hushed.current) ? { at: middle(editor, $from.pos, $to.pos) } : null);
+    if (hushed.current || !empty || code || editor.isActive("code")) {
       return setAsking(null);
     }
     const word = asked($from.parent.textBetween(0, $from.parentOffset, undefined, " "));
@@ -159,7 +166,12 @@ export default function Editor({
       },
       transformPastedHTML: stripped,
       handleDOMEvents: {
+        mousedown: () => {
+          hushed.current = false;
+          return false;
+        },
         contextmenu: () => {
+          hushed.current = true;
           setPicked(null);
           setAsking(null);
           return false;
@@ -170,6 +182,7 @@ export default function Editor({
         (paper) => hands.current.onDoc?.(paper),
       ),
       handleKeyDown: (_view: unknown, e: KeyboardEvent) => {
+        hushed.current = false;
         if (!now.current.open) return false;
         const count = now.current.count;
         if (e.key === "ArrowDown") {
@@ -377,6 +390,7 @@ export default function Editor({
   };
 
   reach.current = {
+    here: paper,
     onDoc,
     onOpen,
     gone: (reference) => missing.current.has(reference),
@@ -512,7 +526,10 @@ export default function Editor({
               onName={(name) => {
                 setNaming(null);
                 spawned(name, folder ?? undefined)
-                  .then((said) => editor.chain().focus().insertContent(said).run())
+                  .then((born) => {
+                    onMade?.(born.id, name);
+                    editor.chain().focus().insertContent(born.said).run();
+                  })
                   .catch(() => editor.commands.focus());
               }}
             />
@@ -575,7 +592,7 @@ export default function Editor({
             className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
           >
             <Papers
-              all={papers}
+              all={papers?.filter((one) => one.file !== paper)}
               onPick={(paper) => {
                 setChoosing(null);
                 editor.chain().focus().insertContent(docLink(paper.file, paper.title)).run();
