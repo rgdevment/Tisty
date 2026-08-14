@@ -114,7 +114,8 @@ const en = {
   sliceAll: "All",
   repeatingEmpty: "Nothing comes back on its own. Write «water the plants every week» to start a habit.",
   allEmpty: "Nothing open. What you close lives in the archive.",
-  sandboxCannotMerge: "A sandbox never merges: joining two histories cannot be undone, and this store is a test one.",
+  sandboxCannotJoin: "A sandbox never joins another store: it is a test one.",
+  notThisMachine: "A machine cannot remove itself.",
   sandbox: "sandbox",
   inSandbox: "This is the «{name}» sandbox. Nothing here is your real store, and it never merges with it.",
   aboutScreen: "About",
@@ -272,9 +273,13 @@ const en = {
   syncRefused: "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncUnreadable: "What came back does not read: {name}",
   syncBroke: "The copy could not be finished: {name}",
-  wouldMerge: "That folder already holds another history",
+  notAllowed:
+    "This machine was removed from the shared folder, so it no longer writes to it. It brought what is there; to write again it has to join, and joining resets what it holds.",
+  wouldReset:
+    "That folder holds another history. To join it, this machine has to be backed up and reset — it does not merge.",
   remoteInsideStore: "{name} is inside Tisty's own folder — pick one outside it",
-  joinThem: "That folder already holds tasks from another history ({name}).\n\nIf it is your own other machine, joining them is right. If it is not, this cannot be undone.\n\nJoin them?",
+  joinThem:
+    "That folder holds another history ({name}).\n\nTisty does not merge two histories. To join that one, this machine is backed up first and then emptied: it will hold what the folder holds, and nothing of what it holds now.\n\nPick where the backup goes?",
   sharedIsTheBackup: "Your shared folder already holds every machine's history",
   otherStore: "That belongs to another store ({name})",
   attachmentTooBig: "That file is over {name}. Please write a document for anything that big and reference it from the task — or raise the limit in Settings.",
@@ -404,6 +409,10 @@ const en = {
   machinesWhat:
     "Every machine writes its own log into the shared folder. One that has not written in a while may still be using what looks loose here.",
   machineHere: "this one",
+  machineDrop: "Remove",
+  machineDropSure:
+    "Remove {name} from the shared folder?\n\nIt stops writing there, and what it left is taken out. If it comes back, it is backed up and emptied first — it never brings back what it holds now.",
+  machineDropped: "That machine no longer writes here",
   machineNever: "has never written",
   machinesNone: "No machine has written yet",
   machineBehind: "Some machines have not synced in a while. Sync them or remove them.",
@@ -599,7 +608,8 @@ const es: Catalog = {
   sliceAll: "Todas",
   repeatingEmpty: "Nada vuelve solo. Escribe «regar las plantas cada semana» para empezar un hábito.",
   allEmpty: "No hay nada abierto. Lo que cierras vive en el archivo.",
-  sandboxCannotMerge: "Un sandbox no fusiona nunca: unir dos historiales no se puede deshacer, y este almacén es de prueba.",
+  sandboxCannotJoin: "Un sandbox no se une nunca a otro almacén: es de prueba.",
+  notThisMachine: "Una máquina no puede removerse a sí misma.",
   sandbox: "sandbox",
   inSandbox: "Esto es el sandbox «{name}». Nada de aquí es tu almacén real, y nunca se fusiona con él.",
   aboutScreen: "Acerca de",
@@ -757,9 +767,13 @@ const es: Catalog = {
   syncRefused: "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
   syncUnreadable: "Lo que llegó no se puede leer: {name}",
   syncBroke: "No se pudo terminar la copia: {name}",
-  wouldMerge: "Esa carpeta ya guarda otro historial",
+  notAllowed:
+    "Esta máquina fue removida de la carpeta compartida, así que ya no escribe en ella. Trajo lo que había; para volver a escribir tiene que unirse, y unirse reinicia lo que guarda.",
+  wouldReset:
+    "Esa carpeta guarda otro historial. Para unirse, esta máquina tiene que respaldarse y reiniciarse — no se fusiona.",
   remoteInsideStore: "{name} está dentro de la carpeta de Tisty — elige una fuera",
-  joinThem: "Esa carpeta ya guarda tareas de otro historial ({name}).\n\nSi es tu otro equipo, unirlos es lo correcto. Si no lo es, esto no se puede deshacer.\n\n¿Unirlos?",
+  joinThem:
+    "Esa carpeta guarda otro historial ({name}).\n\nTisty no fusiona dos historiales. Para unirse a ese, esta máquina se respalda primero y luego se vacía: pasará a tener lo que tiene la carpeta, y nada de lo que tiene ahora.\n\n¿Eliges dónde va el respaldo?",
   sharedIsTheBackup: "Tu carpeta compartida ya guarda el historial de todos tus equipos",
   otherStore: "Eso es de otro almacén ({name})",
   attachmentTooBig: "Ese archivo pasa de {name}. Para algo así, crea un documento y referéncialo desde la tarea; o sube el límite en Configuración.",
@@ -889,6 +903,10 @@ const es: Catalog = {
   machinesWhat:
     "Cada máquina escribe su propio log en la carpeta compartida. Una que lleva tiempo sin escribir puede seguir usando lo que aquí parece suelto.",
   machineHere: "esta",
+  machineDrop: "Remover",
+  machineDropSure:
+    "¿Remover {name} de la carpeta compartida?\n\nDeja de escribir ahí, y lo que dejó se saca. Si vuelve, primero se respalda y se vacía — nunca devuelve lo que guarda ahora.",
+  machineDropped: "Esa máquina ya no escribe aquí",
   machineNever: "no ha escrito nunca",
   machinesNone: "Ninguna máquina ha escrito todavía",
   machineBehind: "Hay máquinas que llevan tiempo sin sincronizar. Sincronízalas o remuévelas.",

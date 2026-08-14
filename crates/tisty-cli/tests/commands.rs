@@ -1131,7 +1131,25 @@ fn syncing_without_a_folder_says_which_command_sets_one() {
 }
 
 #[test]
-fn two_machines_meeting_in_a_folder_end_up_with_the_same_tasks() {
+fn a_machine_with_nothing_of_its_own_adopts_what_the_folder_holds() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+
+    let first = Cli::new();
+    first.ok(&["config", "set", "remote", &met]);
+    first.ok(&["buy bread"]);
+    first.ok(&["sync"]);
+
+    let second = Cli::new();
+    second.ok(&["config", "set", "remote", &met]);
+    second.ok(&["sync"]);
+
+    let out = second.ok(&["ls", "all"]);
+    assert!(out.contains("buy bread"), "{out}");
+}
+
+#[test]
+fn a_machine_that_already_has_a_history_is_refused_instead_of_merged() {
     let shared = tempfile::tempdir().unwrap();
     let met = shared.path().display().to_string();
 
@@ -1143,16 +1161,90 @@ fn two_machines_meeting_in_a_folder_end_up_with_the_same_tasks() {
     let second = Cli::new();
     second.ok(&["config", "set", "remote", &met]);
     second.ok(&["call the bank"]);
+
     let asked = second.run(&["sync"]);
+
     assert_ne!(asked.code, 0, "{}", asked.out);
-    second.ok(&["sync", "--merge"]);
+    let mine = second.ok(&["ls", "all"]);
+    assert!(mine.contains("call the bank"), "{mine}");
+    assert!(!mine.contains("buy bread"), "it merged anyway: {mine}");
+
+    let theirs = first.ok(&["ls", "all"]);
+    assert!(
+        !theirs.contains("call the bank"),
+        "it pushed anyway: {theirs}"
+    );
+}
+
+#[test]
+fn joining_backs_the_machine_up_and_then_takes_what_the_folder_holds() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+    let kept = tempfile::tempdir().unwrap();
+    let zip = kept.path().join("before-joining.zip");
+
+    let first = Cli::new();
+    first.ok(&["config", "set", "remote", &met]);
+    first.ok(&["buy bread"]);
     first.ok(&["sync"]);
 
-    for cli in [&first, &second] {
-        let out = cli.ok(&["ls", "all"]);
-        assert!(out.contains("buy bread"), "{out}");
-        assert!(out.contains("call the bank"), "{out}");
-    }
+    let second = Cli::new();
+    second.ok(&["config", "set", "remote", &met]);
+    second.ok(&["call the bank"]);
+    second.ok(&["sync", "--join", &zip.display().to_string()]);
+
+    assert!(zip.exists(), "it emptied the machine without a backup");
+    let out = second.ok(&["ls", "all"]);
+    assert!(out.contains("buy bread"), "{out}");
+    assert!(
+        !out.contains("call the bank"),
+        "joining kept what it had: {out}"
+    );
+}
+
+#[test]
+fn a_machine_puts_itself_on_the_list_the_first_time_it_syncs() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+
+    let first = Cli::new();
+    first.ok(&["config", "set", "remote", &met]);
+    first.ok(&["buy bread"]);
+    first.ok(&["sync"]);
+
+    let second = Cli::new();
+    second.ok(&["config", "set", "remote", &met]);
+    second.ok(&["sync"]);
+    second.ok(&["call the bank"]);
+    second.ok(&["sync"]);
+    first.ok(&["sync"]);
+
+    let out = first.ok(&["ls", "all"]);
+    assert!(
+        out.contains("call the bank"),
+        "the first to sync shut the door on the rest: {out}"
+    );
+}
+
+#[test]
+fn joining_with_nowhere_to_put_the_backup_keeps_everything() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+
+    let first = Cli::new();
+    first.ok(&["config", "set", "remote", &met]);
+    first.ok(&["buy bread"]);
+    first.ok(&["sync"]);
+
+    let second = Cli::new();
+    second.ok(&["config", "set", "remote", &met]);
+    second.ok(&["call the bank"]);
+
+    let asked = second.run(&["sync", "--join", "Z:/no/such/place/before.zip"]);
+
+    assert_ne!(asked.code, 0);
+    let out = second.ok(&["ls", "all"]);
+    assert!(out.contains("call the bank"), "it emptied anyway: {out}");
 }
 
 #[test]

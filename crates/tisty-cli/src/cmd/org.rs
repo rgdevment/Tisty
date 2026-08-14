@@ -253,7 +253,7 @@ fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow
             return Ok(ExitCode::SUCCESS);
         }
         let entity = change[0].entity_id();
-        if app.state.is_erased(entity) {
+        if entity.is_some_and(|one| app.state.is_erased(one)) {
             anyhow::bail!("{}", lang.get("cannot-redo"));
         }
         let ops = app
@@ -284,7 +284,7 @@ fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow
     };
     let done = if redoing { "redone" } else { "undone" };
 
-    match app.state.tasks.get(&entity) {
+    match entity.and_then(|one| app.state.tasks.get(&one)) {
         Some(task) if n == 1 => print!("{}", render::line(task, &app.state, today, lang)),
         _ if n == 1 => println!("  {}", style::dim(lang.get(done))),
         _ => println!(

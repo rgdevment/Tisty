@@ -9,7 +9,7 @@ pub fn sync(
     app: &mut App,
     push: bool,
     pull: bool,
-    merge: bool,
+    join: Option<std::path::PathBuf>,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
     let Some(Sync::Folder(dest)) = app.config().sync.clone() else {
@@ -24,18 +24,34 @@ pub fn sync(
         (_, true) => carrier::Way::Pull,
         _ => carrier::Way::Both,
     };
-    if merge && tisty_core::paths::profile().is_some() {
-        anyhow::bail!("{}", lang.get("sandbox-cannot-merge"));
+    if let Some(into) = join {
+        if tisty_core::paths::profile().is_some() {
+            anyhow::bail!("{}", lang.get("sandbox-cannot-join"));
+        }
+        let aside = app.paths.cache().to_path_buf();
+        let made = tisty_core::backup::reset(&app.paths, &into, &aside)?;
+        println!(
+            "  {}",
+            style::dim(&lang.fill(
+                "reset-kept",
+                &[("at", &into.display().to_string()), ("id", &made.store_id)]
+            ))
+        );
+        *app = App::at(app.paths.clone())?;
     }
-    let join = if merge {
-        carrier::Join::Agreed
-    } else {
-        carrier::Join::Ask
-    };
-    let moved = match carrier::carry(&data, &device, &dest, way, join) {
+
+    let moved = match carrier::carry(&data, &device, &dest, way) {
         Ok(moved) => moved,
         Err(trouble) => return Ok(said(&trouble, lang)),
     };
+
+    let who = app.config().device_id.clone();
+    if !tisty_core::store::ledger(app.paths.store())?
+        .allowed
+        .contains(&who)
+    {
+        app.commit(tisty_core::Op::DeviceJoin { d: who })?;
+    }
 
     app.edit_config(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
     let told = match (moved.sent > 0, moved.brought > 0) {
@@ -59,7 +75,8 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
         carrier::Trouble::Unreadable(why) => lang.fill("sync-unreadable", &[("why", why)]),
         carrier::Trouble::Refused(why) => lang.fill("sync-refused", &[("why", why)]),
         carrier::Trouble::Broke(why) => lang.fill("sync-broke", &[("why", why)]),
-        carrier::Trouble::WouldMerge { theirs } => lang.fill("would-merge", &[("id", theirs)]),
+        carrier::Trouble::WouldReset { theirs } => lang.fill("would-reset", &[("id", theirs)]),
+        carrier::Trouble::NotAllowed(who) => lang.fill("not-allowed", &[("id", who)]),
     };
     eprintln!("{text}");
     ExitCode::from(EXIT_ERROR)

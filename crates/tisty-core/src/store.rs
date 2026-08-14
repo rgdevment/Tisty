@@ -298,6 +298,40 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
     Ok(events)
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Ledger {
+    pub allowed: std::collections::BTreeSet<DeviceId>,
+    pub named: std::collections::BTreeSet<DeviceId>,
+}
+
+impl Ledger {
+    pub fn may_write(&self, who: &DeviceId) -> bool {
+        self.allowed.contains(who) || !self.named.contains(who)
+    }
+
+    pub fn was_removed(&self, who: &DeviceId) -> bool {
+        self.named.contains(who) && !self.allowed.contains(who)
+    }
+}
+
+pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
+    let mut said = Ledger::default();
+    for event in read_all(store_root)? {
+        match event.op {
+            Op::DeviceJoin { d } => {
+                said.named.insert(d.clone());
+                said.allowed.insert(d);
+            }
+            Op::DeviceRemove { d } => {
+                said.named.insert(d.clone());
+                said.allowed.remove(&d);
+            }
+            _ => {}
+        }
+    }
+    Ok(said)
+}
+
 pub fn is_segment(name: &str) -> bool {
     name == ACTIVE
         || name.strip_suffix(".tisty").is_some_and(|stem| {
@@ -462,6 +496,23 @@ mod atomic_tests {
             matches!(why, Error::UnsupportedVersion(_)),
             "it read as corruption: {why:?}"
         );
+    }
+
+    #[test]
+    fn a_store_written_before_the_schema_moved_still_opens() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path().join("000001.tisty");
+        std::fs::write(
+            &at,
+            "{\"v\":2,\"ts\":\"2026-08-13T00:00:00Z\",\"by\":\"dev_a\",\"seq\":1,\"op\":\"task.done\",\"id\":\"01JBQ0000000000000000000AA\"}\n",
+        )
+        .unwrap();
+
+        let mut out = Vec::new();
+        read_segment(&at, &mut out).expect("an older store is not a broken store");
+
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].version, 2, "what was written is not rewritten");
     }
 
     #[test]

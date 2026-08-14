@@ -6,7 +6,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-const CARRIED: [&str; 2] = ["store", "attachments"];
+const CARRIED: [&str; 3] = ["store", "docs", "attachments"];
 const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
 const AT_MOST_FILES: usize = 200_000;
 
@@ -257,6 +257,38 @@ fn undo(data: &Path, old: &Path, moved: &[&str]) {
     }
 }
 
+pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
+    let data = paths.data();
+    let made = write(data, into, aside)?;
+
+    let mut config = Config::load_or_init(paths)?;
+    config.device_id = crate::DeviceId(crate::config::new_device_id());
+    config.synced_at = None;
+    config.save(paths)?;
+
+    let old = data.join(format!(".resetting-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&old);
+    std::fs::create_dir_all(&old)?;
+
+    let mut moved: Vec<&str> = Vec::new();
+    for folder in CARRIED {
+        let at = data.join(folder);
+        if !at.exists() {
+            continue;
+        }
+        if let Err(e) = std::fs::rename(&at, old.join(folder)) {
+            undo(data, &old, &moved);
+            let _ = std::fs::remove_dir_all(&old);
+            return Err(Error::Io(e));
+        }
+        moved.push(folder);
+    }
+
+    let _ = std::fs::remove_dir_all(&old);
+    let _ = std::fs::remove_dir_all(paths.cache());
+    Ok(made)
+}
+
 pub fn leftovers(data: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(data) else {
         return Vec::new();
@@ -266,10 +298,11 @@ pub fn leftovers(data: &Path) -> Vec<PathBuf> {
         .map(|e| e.path())
         .filter(|at| {
             at.is_dir()
-                && at
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|n| n.starts_with(".restoring-") || n.starts_with(".replaced-"))
+                && at.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
+                    n.starts_with(".restoring-")
+                        || n.starts_with(".replaced-")
+                        || n.starts_with(".resetting-")
+                })
         })
         .collect()
 }
@@ -402,6 +435,10 @@ mod tests {
         let shelf = data.join("attachments").join("ab");
         std::fs::create_dir_all(&shelf).unwrap();
         std::fs::write(shelf.join("cd.png"), b"a picture").unwrap();
+
+        let papers = data.join("docs");
+        std::fs::create_dir_all(&papers).unwrap();
+        std::fs::write(papers.join("a3f1-0001.md"), b"# Minuta\n\nlo que dije").unwrap();
         (dir, data)
     }
 
@@ -415,6 +452,103 @@ mod tests {
         assert!(made.files >= 2, "{made:?}");
         assert!(made.bytes > 0);
         assert!(file.exists());
+    }
+
+    #[test]
+    fn a_backup_carries_the_documents_too_or_it_does_not_carry_your_work() {
+        let (_src, data) = filled("comprar pan");
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file, tmp().path()).unwrap();
+
+        let fresh = tempfile::tempdir().unwrap();
+        read(&quarters(&fresh), &file).unwrap();
+
+        assert_eq!(
+            std::fs::read_to_string(quarters(&fresh).data().join("docs/a3f1-0001.md")).unwrap(),
+            "# Minuta\n\nlo que dije",
+            "the documents did not travel"
+        );
+    }
+
+    #[test]
+    fn a_reset_leaves_nothing_of_what_was_here() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = quarters(&dir);
+        std::fs::create_dir_all(paths.data()).unwrap();
+        let mut store = Store::open(paths.store(), DeviceId("dev_a".into())).unwrap();
+        store
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new("comprar pan", "a0"),
+            })
+            .unwrap();
+        std::fs::create_dir_all(paths.data().join("docs")).unwrap();
+        std::fs::write(paths.data().join("docs/a3f1-0001.md"), b"# Minuta").unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("before-joining.zip");
+        reset(&paths, &file, tmp().path()).unwrap();
+
+        assert!(store::read_all(paths.store()).unwrap().is_empty());
+        assert!(!paths.data().join("docs/a3f1-0001.md").exists());
+    }
+
+    #[test]
+    fn a_machine_that_rejoins_comes_back_under_a_new_name() {
+        let (_src, data) = filled("comprar pan");
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(data.clone(), dir.path().join("config"));
+        let was = Config::load_or_init(&paths).unwrap().device_id;
+        let out = tempfile::tempdir().unwrap();
+
+        reset(&paths, &out.path().join("before.zip"), tmp().path()).unwrap();
+
+        let now = Config::load_or_init(&paths).unwrap().device_id;
+        assert_ne!(now, was, "it came back carrying its own tombstone");
+    }
+
+    #[test]
+    fn a_reset_cannot_happen_without_the_backup_landing_first() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = quarters(&dir);
+        std::fs::create_dir_all(paths.data()).unwrap();
+        let mut store = Store::open(paths.store(), DeviceId("dev_a".into())).unwrap();
+        store
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new("comprar pan", "a0"),
+            })
+            .unwrap();
+
+        let nowhere = dir.path().join("no/such/place/before-joining.zip");
+        let why = reset(&paths, &nowhere, tmp().path());
+
+        assert!(why.is_err(), "it reset with nowhere to put the backup");
+        assert_eq!(
+            store::read_all(paths.store()).unwrap().len(),
+            1,
+            "it threw away what it could not back up"
+        );
+    }
+
+    #[test]
+    fn what_a_reset_backed_up_can_be_restored_afterwards() {
+        let (_src, data) = filled("comprar pan");
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(data.clone(), dir.path().join("config"));
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("before-joining.zip");
+
+        reset(&paths, &file, tmp().path()).unwrap();
+        let fresh = tempfile::tempdir().unwrap();
+        read(&quarters(&fresh), &file).unwrap();
+
+        assert_eq!(
+            std::fs::read_to_string(quarters(&fresh).data().join("docs/a3f1-0001.md")).unwrap(),
+            "# Minuta\n\nlo que dije",
+            "the reset backup did not hold the documents"
+        );
     }
 
     #[test]

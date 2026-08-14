@@ -54,7 +54,7 @@ pub fn dispatch(
 
         Command::Undo => org::undo(app, today, lang),
         Command::Redo => org::redo(app, today, lang),
-        Command::Sync { push, pull, merge } => sync::sync(app, push, pull, merge, lang),
+        Command::Sync { push, pull, join } => sync::sync(app, push, pull, join, lang),
         Command::Doctor { repair } => doctor::doctor(app, repair, lang),
         Command::Demo { force } => demo::demo(app, force, lang),
         Command::Lists { json } => org::lists(app, json, lang),

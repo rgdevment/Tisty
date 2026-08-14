@@ -1,5 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::event::DeviceId;
 use crate::model::{
     DateSpec, DocId, FolderId, ListId, LogId, Priority, Repeat, StepId, Tag, TaskId,
 };
@@ -100,6 +101,11 @@ pub enum Op {
     DocArchive { id: DocId },
     #[serde(rename = "doc.unarchive")]
     DocUnarchive { id: DocId },
+
+    #[serde(rename = "device.join")]
+    DeviceJoin { d: DeviceId },
+    #[serde(rename = "device.remove")]
+    DeviceRemove { d: DeviceId },
 }
 
 impl Op {
@@ -139,6 +145,7 @@ impl Op {
             Op::DocDelete { .. } => Op::DocDelete { id },
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
+            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } => self,
         }
     }
 
@@ -196,7 +203,7 @@ impl Op {
         }
     }
 
-    pub fn about_whom(&self) -> TaskId {
+    pub fn about_whom(&self) -> Option<TaskId> {
         match self {
             Op::TaskAdd { id, .. }
             | Op::TaskUpdate { id, .. }
@@ -231,7 +238,8 @@ impl Op {
             | Op::DocMove { id, .. }
             | Op::DocDelete { id }
             | Op::DocArchive { id }
-            | Op::DocUnarchive { id } => *id,
+            | Op::DocUnarchive { id } => Some(*id),
+            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } => None,
         }
     }
 }
