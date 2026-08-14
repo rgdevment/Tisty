@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 
 use std::io::{BufRead, Read};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{Error, Result, event::DeviceId, store::write_atomic};
 
 const EXTENSION: &str = "md";
@@ -17,7 +19,92 @@ pub struct Doc {
     pub title: String,
 }
 
+pub fn kept_before(data: &Path, id: &str, body: &str) -> Result<()> {
+    let at = data.join("originals");
+    std::fs::create_dir_all(&at)?;
+    let _ = crate::paths::ours_alone(&at);
+    let into = resolve(&at, id)?;
+    write_atomic(&into, body.as_bytes())?;
+    let _ = crate::paths::ours_alone(&into);
+    Ok(())
+}
+
+pub fn read_before(data: &Path, id: &str) -> Option<String> {
+    let at = resolve(&data.join("originals"), id).ok()?;
+    std::fs::read_to_string(at).ok()
+}
+
+pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
+    match std::fs::read(at) {
+        Ok(bytes) => Ok(Some(crate::attach::printed(&bytes))),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Carried(std::collections::BTreeMap<String, String>);
+
+impl Carried {
+    pub fn read(data: &Path) -> Self {
+        std::fs::read_to_string(ledger(data))
+            .ok()
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default()
+    }
+
+    pub fn save(&self, data: &Path) -> Result<()> {
+        let said = serde_json::to_string(self).map_err(|e| Error::Io(std::io::Error::other(e)))?;
+        write_atomic(&ledger(data), said.as_bytes())?;
+        let _ = crate::paths::ours_alone(&ledger(data));
+        Ok(())
+    }
+
+    pub fn of(&self, id: &str) -> Option<&str> {
+        self.0.get(id).map(String::as_str)
+    }
+
+    pub fn keep(&mut self, id: &str, print: &str) {
+        self.0.insert(id.to_string(), print.to_string());
+    }
+
+    pub fn forget(&mut self, id: &str) {
+        self.0.remove(id);
+    }
+}
+
+fn ledger(data: &Path) -> PathBuf {
+    data.join("carried.json")
+}
+
+pub fn forget_what_was_carried(data: &Path) {
+    let _ = std::fs::remove_file(ledger(data));
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Move {
+    Nothing,
+    Bring,
+    Send,
+    TheyDecide,
+}
+
+pub fn moved(base: Option<&str>, here: Option<&str>, there: Option<&str>) -> Move {
+    match (here, there) {
+        (None, None) => Move::Nothing,
+        (Some(_), None) => Move::Send,
+        (None, Some(_)) => Move::Bring,
+        (Some(here), Some(there)) if here == there => Move::Nothing,
+        (Some(here), Some(there)) => match base {
+            Some(base) if base == here => Move::Bring,
+            Some(base) if base == there => Move::Send,
+            _ => Move::TheyDecide,
+        },
+    }
+}
+
 pub fn titled(body: &str) -> String {
+    let body = body.strip_prefix('\u{feff}').unwrap_or(body);
     let first = body.lines().next().unwrap_or_default();
     crate::text::composed(first.trim_start_matches('#').trim())
 }
@@ -141,7 +228,7 @@ pub fn all(root: &Path) -> Vec<Doc> {
     found
 }
 
-fn resolve(root: &Path, id: &str) -> Result<PathBuf> {
+pub fn resolve(root: &Path, id: &str) -> Result<PathBuf> {
     if !well_formed(id) {
         return Err(Error::OutsideTheStore(id.to_string()));
     }
@@ -220,6 +307,221 @@ mod tests {
 
     fn root() -> tempfile::TempDir {
         tempfile::tempdir().unwrap()
+    }
+
+    #[test]
+    fn what_a_document_was_before_is_kept_beside_the_documents_and_not_among_them() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path();
+        let papers = data.join("docs");
+        std::fs::create_dir_all(&papers).unwrap();
+
+        kept_before(data, "mac0-0001", "---\nx: 1\n---\n\n# Minuta").unwrap();
+
+        assert!(
+            all(&papers).is_empty(),
+            "what it used to be was read as a document of its own"
+        );
+        assert_eq!(
+            read_before(data, "mac0-0001").as_deref(),
+            Some("---\nx: 1\n---\n\n# Minuta")
+        );
+    }
+
+    #[test]
+    fn converting_twice_keeps_what_it_was_the_second_time_not_the_first() {
+        let room = tempfile::tempdir().unwrap();
+
+        kept_before(room.path(), "mac0-0001", "# La primera").unwrap();
+        kept_before(room.path(), "mac0-0001", "# La segunda").unwrap();
+
+        assert_eq!(
+            read_before(room.path(), "mac0-0001").as_deref(),
+            Some("# La segunda"),
+            "it kept a version older than the one just converted"
+        );
+    }
+
+    #[test]
+    fn a_document_that_was_never_converted_has_nothing_before_it() {
+        let room = tempfile::tempdir().unwrap();
+
+        assert_eq!(read_before(room.path(), "mac0-0001"), None);
+    }
+
+    #[test]
+    fn what_was_before_can_never_be_named_outside_the_store() {
+        let room = tempfile::tempdir().unwrap();
+
+        assert!(kept_before(room.path(), "../escaped", "x").is_err());
+        assert_eq!(read_before(room.path(), "../escaped"), None);
+    }
+
+    #[test]
+    fn what_a_document_looked_like_before_is_kept_byte_for_byte_however_uncomfortable_it_is() {
+        let room = tempfile::tempdir().unwrap();
+        let long = "x".repeat(BODY_ROOMY as usize);
+        let cases: [(&str, &str); 6] = [
+            ("empty", ""),
+            ("blank", "   \n\t  \n  "),
+            ("long", &long),
+            ("accented", "café ñandú 日本語 🎉"),
+            ("windows line endings", "una linea\r\notra linea\r\n"),
+            ("a byte order mark up front", "\u{FEFF}# Titulo\n\ncuerpo"),
+        ];
+
+        for (label, body) in cases {
+            kept_before(room.path(), "mac0-0001", body).unwrap();
+            assert_eq!(
+                read_before(room.path(), "mac0-0001").as_deref(),
+                Some(body),
+                "lost what it was before on: {label}"
+            );
+        }
+    }
+
+    #[test]
+    fn what_this_machine_carried_is_written_beside_the_documents_and_not_among_them() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path();
+        let papers = data.join("docs");
+        std::fs::create_dir_all(&papers).unwrap();
+
+        let mut said = Carried::default();
+        said.keep("mac0-0001", "abc123");
+        said.save(data).unwrap();
+
+        assert!(data.join("carried.json").is_file());
+        assert!(
+            !papers.join("carried.json").exists(),
+            "the ledger would travel with the documents"
+        );
+        assert!(all(&papers).is_empty(), "the ledger was read as a document");
+        assert_eq!(Carried::read(data).of("mac0-0001"), Some("abc123"));
+    }
+
+    #[test]
+    fn what_it_forgets_it_no_longer_answers_for() {
+        let room = tempfile::tempdir().unwrap();
+        let mut said = Carried::default();
+        said.keep("mac0-0001", "abc123");
+        said.forget("mac0-0001");
+        said.save(room.path()).unwrap();
+
+        assert_eq!(Carried::read(room.path()).of("mac0-0001"), None);
+    }
+
+    #[test]
+    fn a_ledger_that_is_not_there_answers_for_nothing_instead_of_failing() {
+        let room = tempfile::tempdir().unwrap();
+
+        assert_eq!(Carried::read(room.path()).of("mac0-0001"), None);
+    }
+
+    #[test]
+    fn a_body_that_cannot_be_read_is_never_mistaken_for_one_that_is_not_there() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path().join("locked.md");
+        std::fs::write(&at, b"# Minuta").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut how = std::fs::metadata(&at).unwrap().permissions();
+            how.set_mode(0o000);
+            std::fs::set_permissions(&at, how).unwrap();
+        }
+
+        let said = print_of(&at);
+
+        #[cfg(unix)]
+        assert!(
+            said.is_err(),
+            "an unreadable body read as an absent one, which overwrites"
+        );
+        assert_eq!(
+            print_of(&room.path().join("nada.md")).unwrap(),
+            None,
+            "a body that is truly absent must still read as absent"
+        );
+    }
+
+    #[test]
+    fn two_bodies_that_differ_by_one_letter_do_not_share_a_print() {
+        let room = tempfile::tempdir().unwrap();
+        let one = room.path().join("one.md");
+        let other = room.path().join("other.md");
+        std::fs::write(&one, b"# Minuta\n\nlo que dije").unwrap();
+        std::fs::write(&other, b"# Minuta\n\nlo que dijo").unwrap();
+
+        assert_ne!(print_of(&one).unwrap(), print_of(&other).unwrap());
+        assert_eq!(print_of(&one).unwrap(), print_of(&one).unwrap());
+        assert_eq!(print_of(&room.path().join("nada.md")).unwrap(), None);
+    }
+
+    #[test]
+    fn what_only_one_side_has_travels_without_asking() {
+        assert_eq!(moved(None, Some("a"), None), Move::Send);
+        assert_eq!(moved(None, None, Some("a")), Move::Bring);
+    }
+
+    #[test]
+    fn what_both_sides_already_agree_on_moves_nothing() {
+        assert_eq!(moved(None, Some("a"), Some("a")), Move::Nothing);
+        assert_eq!(moved(Some("a"), Some("a"), Some("a")), Move::Nothing);
+        assert_eq!(moved(None, None, None), Move::Nothing);
+    }
+
+    #[test]
+    fn the_side_that_stayed_still_is_the_one_that_takes() {
+        assert_eq!(moved(Some("a"), Some("a"), Some("b")), Move::Bring);
+        assert_eq!(moved(Some("a"), Some("b"), Some("a")), Move::Send);
+    }
+
+    #[test]
+    fn when_both_moved_nobody_but_the_person_decides() {
+        assert_eq!(moved(Some("a"), Some("b"), Some("c")), Move::TheyDecide);
+    }
+
+    #[test]
+    fn two_sides_that_differ_with_nothing_behind_them_are_not_guessed() {
+        assert_eq!(moved(None, Some("a"), Some("b")), Move::TheyDecide);
+    }
+
+    #[test]
+    fn a_body_that_went_missing_here_is_brought_back_not_buried() {
+        assert_eq!(moved(Some("a"), None, Some("a")), Move::Bring);
+        assert_eq!(moved(Some("a"), None, Some("b")), Move::Bring);
+    }
+
+    #[test]
+    fn presence_on_one_side_alone_is_never_weighed_against_where_a_body_used_to_sit() {
+        assert_eq!(moved(Some("a"), Some("b"), None), Move::Send);
+        assert_eq!(moved(Some("b"), Some("b"), None), Move::Send);
+        assert_eq!(moved(Some("z"), Some("b"), None), Move::Send);
+        assert_eq!(moved(Some("a"), None, Some("b")), Move::Bring);
+        assert_eq!(moved(Some("b"), None, Some("b")), Move::Bring);
+        assert_eq!(moved(Some("z"), None, Some("b")), Move::Bring);
+    }
+
+    #[test]
+    fn two_sides_that_land_on_the_same_words_are_trusted_even_against_a_base_that_matches_neither()
+    {
+        assert_eq!(moved(Some("z"), Some("a"), Some("a")), Move::Nothing);
+    }
+
+    #[test]
+    fn no_clock_ever_enters_the_decision() {
+        let said = std::fs::read_to_string("src/docs.rs").unwrap();
+        let at = said.find("pub fn moved").expect("the decision is there");
+        let end = said[at..].find("\npub fn ").unwrap_or(said.len() - at);
+
+        let body = &said[at..at + end];
+        for clock in ["Timestamp", "SystemTime", "now()", "modified()"] {
+            assert!(
+                !body.contains(clock),
+                "a clock got into the decision: {clock}"
+            );
+        }
     }
 
     #[test]
@@ -424,6 +726,11 @@ mod tests {
     #[test]
     fn a_title_is_read_in_one_spelling() {
         assert_eq!(titled("# Disen\u{0303}o"), "Diseño");
+    }
+
+    #[test]
+    fn a_byte_order_mark_left_by_windows_does_not_stop_the_hash_from_being_stripped() {
+        assert_eq!(titled("\u{FEFF}# Titulo\n\ncuerpo"), "Titulo");
     }
 
     #[test]

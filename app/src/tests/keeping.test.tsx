@@ -49,6 +49,7 @@ const carrying = {
 };
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   ipc.calls = [];
   Object.assign(standing, {
     shipped: true,
@@ -73,7 +74,7 @@ beforeEach(() => {
       case "sync_state":
         return Promise.resolve({ ...carrying });
       case "sync_now":
-        return Promise.resolve("came");
+        return Promise.resolve({ carried: "came", undecided: [] });
       case "reachable":
         return Promise.resolve({ ...standing });
       case "reach_for":
@@ -470,6 +471,63 @@ describe("the maintenance panel", () => {
     expect(screen.getByText(/the attachments weigh/i)).toBeTruthy();
   });
 
+  it("offers keeping both first, because it is the only answer that loses nothing", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.resolve({ carried: "came", undecided: ["dev_a-0001"] })
+        : otherwise(cmd, args);
+    const said: string[] = [];
+    const dialog = await import("@tauri-apps/plugin-dialog");
+    vi.spyOn(dialog, "ask").mockImplementation((text: string) => {
+      said.push(text);
+      return Promise.resolve(true);
+    });
+    carrying.chosen = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/leaving copies in/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
+
+    await waitFor(() => expect(sent("settle_paper")).toHaveLength(1));
+    expect(said[0]).toMatch(/keep both/i);
+    expect(sent("settle_paper")[0].args.keep).toBe("both");
+  });
+
+  it("only asks whose wins after keeping both was turned down", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.resolve({ carried: "came", undecided: ["dev_a-0001"] })
+        : otherwise(cmd, args);
+    const dialog = await import("@tauri-apps/plugin-dialog");
+    let asked = 0;
+    vi.spyOn(dialog, "ask").mockImplementation(() => Promise.resolve(++asked > 1));
+    carrying.chosen = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/leaving copies in/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
+
+    await waitFor(() => expect(sent("settle_paper")).toHaveLength(1));
+    expect(sent("settle_paper")[0].args.keep).toBe("mine");
+    expect(asked).toBe(2);
+  });
+
+  it("asks nothing at all when nothing is at odds", async () => {
+    const dialog = await import("@tauri-apps/plugin-dialog");
+    const spy = vi.spyOn(dialog, "ask");
+    carrying.chosen = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/leaving copies in/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
+
+    await waitFor(() => expect(sent("sync_now").length).toBeGreaterThan(0));
+    expect(sent("settle_paper")).toHaveLength(0);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("never empties this machine without being told twice", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
@@ -515,7 +573,7 @@ describe("the maintenance panel", () => {
         refused = false;
         return Promise.reject({ code: "wouldReset", name: "01MOTHER" });
       }
-      return Promise.resolve("came");
+      return Promise.resolve({ carried: "came", undecided: [] });
     };
     asked.sure = true;
     asked.file = "C:/keep/tisty-before-joining.zip";

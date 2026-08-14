@@ -22,7 +22,9 @@ beforeEach(() => {
   ipc.calls = [];
   state.chosen = "G:/My Drive/tisty";
   ipc.answer = (cmd) =>
-    cmd === "sync_state" ? Promise.resolve({ ...state }) : Promise.resolve("came");
+    cmd === "sync_state"
+      ? Promise.resolve({ ...state })
+      : Promise.resolve({ carried: "came", undecided: [] });
 });
 
 afterEach(() => {
@@ -35,6 +37,34 @@ const settle = () => vi.advanceTimersByTimeAsync(0);
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 describe("carrying on its own", () => {
+  it("hands over the documents at odds instead of dropping them", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : Promise.resolve({ carried: "came", undecided: ["dev_a-0001", "dev_b-0002"] });
+    const said: string[][] = [];
+
+    carried = carrying(
+      () => {},
+      (ids) => said.push(ids),
+    );
+    await settle();
+
+    expect(said).toEqual([["dev_a-0001", "dev_b-0002"]]);
+  });
+
+  it("says nothing about documents when none of them are at odds", async () => {
+    const said: string[][] = [];
+
+    carried = carrying(
+      () => {},
+      (ids) => said.push(ids),
+    );
+    await settle();
+
+    expect(said).toEqual([]);
+  });
+
   it("brings the others home as soon as the window opens", async () => {
     carried = carrying(() => {});
     await settle();

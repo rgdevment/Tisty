@@ -6,7 +6,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-const CARRIED: [&str; 3] = ["store", "docs", "attachments"];
+const CARRIED: [&str; 4] = ["store", "docs", "originals", "attachments"];
 const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
 const AT_MOST_FILES: usize = 200_000;
 
@@ -190,6 +190,7 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     let _ = std::fs::remove_dir_all(&staged);
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
+    crate::docs::forget_what_was_carried(data);
 
     Ok(Restored {
         files,
@@ -286,6 +287,7 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
 
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
+    crate::docs::forget_what_was_carried(data);
     Ok(made)
 }
 
@@ -439,6 +441,10 @@ mod tests {
         let papers = data.join("docs");
         std::fs::create_dir_all(&papers).unwrap();
         std::fs::write(papers.join("a3f1-0001.md"), b"# Minuta\n\nlo que dije").unwrap();
+
+        let before = data.join("originals");
+        std::fs::create_dir_all(&before).unwrap();
+        std::fs::write(before.join("a3f1-0001.md"), b"---\nx: 1\n---\n\n# Minuta").unwrap();
         (dir, data)
     }
 
@@ -452,6 +458,46 @@ mod tests {
         assert!(made.files >= 2, "{made:?}");
         assert!(made.bytes > 0);
         assert!(file.exists());
+    }
+
+    #[test]
+    fn restoring_forgets_what_this_machine_had_carried_instead_of_pushing_it_back() {
+        let (_src, data) = filled("comprar pan");
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(data.clone(), dir.path().join("config"));
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file, tmp().path()).unwrap();
+
+        let mut said = crate::docs::Carried::default();
+        said.keep(
+            "a3f1-0001",
+            "a print of a body that is about to be replaced",
+        );
+        said.save(&data).unwrap();
+
+        read(&paths, &file).unwrap();
+
+        assert_eq!(
+            crate::docs::Carried::read(&data).of("a3f1-0001"),
+            None,
+            "it kept describing a body the restore threw away, which pushes it back out"
+        );
+    }
+
+    #[test]
+    fn joining_forgets_what_this_machine_had_carried() {
+        let (_src, data) = filled("comprar pan");
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(data.clone(), dir.path().join("config"));
+        let mut said = crate::docs::Carried::default();
+        said.keep("a3f1-0001", "a print from the store it is leaving");
+        said.save(&data).unwrap();
+        let out = tempfile::tempdir().unwrap();
+
+        reset(&paths, &out.path().join("before.zip"), tmp().path()).unwrap();
+
+        assert_eq!(crate::docs::Carried::read(&data).of("a3f1-0001"), None);
     }
 
     #[test]
@@ -548,6 +594,24 @@ mod tests {
             std::fs::read_to_string(quarters(&fresh).data().join("docs/a3f1-0001.md")).unwrap(),
             "# Minuta\n\nlo que dije",
             "the reset backup did not hold the documents"
+        );
+    }
+
+    #[test]
+    fn a_backup_carries_what_a_document_looked_like_before_it_was_converted() {
+        let (_src, data) = filled("comprar pan");
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file, tmp().path()).unwrap();
+
+        let fresh = tempfile::tempdir().unwrap();
+        read(&quarters(&fresh), &file).unwrap();
+
+        assert_eq!(
+            std::fs::read_to_string(quarters(&fresh).data().join("originals/a3f1-0001.md"))
+                .unwrap(),
+            "---\nx: 1\n---\n\n# Minuta",
+            "the only copy of what was lost did not travel"
         );
     }
 

@@ -1,4 +1,4 @@
-import { syncNow, syncState, type Carried } from "./core";
+import { syncNow, syncState, type Settled } from "./core";
 
 const AFTER_A_CHANGE = 4_000;
 const EVERY_SO_OFTEN = 15 * 60_000;
@@ -9,7 +9,7 @@ type Way = "push" | "pull" | undefined;
 const owing = (held: Way | null, next: Way): Way =>
   held === null || held === next ? next : undefined;
 
-export function carrying(brought: () => void) {
+export function carrying(brought: () => void, atOdds: (ids: string[]) => void = () => {}) {
   let folder: string | undefined;
   let gone = false;
   let running = false;
@@ -25,12 +25,16 @@ export function carrying(brought: () => void) {
     }
     running = true;
 
-    const patience = new Promise<Carried>((resolve) => {
-      expire = setTimeout(() => resolve("same"), GIVE_UP_AFTER);
+    const patience = new Promise<Settled>((resolve) => {
+      expire = setTimeout(() => resolve({ carried: "same", undecided: [] }), GIVE_UP_AFTER);
     });
 
     Promise.race([syncNow(way), patience])
-      .then((answer) => answer === "came" && !gone && brought())
+      .then((answer) => {
+        if (gone) return;
+        if (answer.undecided.length) atOdds(answer.undecided);
+        if (answer.carried === "came") brought();
+      })
       .catch(() => {})
       .finally(() => {
         clearTimeout(expire);

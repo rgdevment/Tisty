@@ -40,7 +40,13 @@ pub fn sync(
         *app = App::at(app.paths.clone())?;
     }
 
-    let moved = match carrier::carry(&data, &device, &dest, way) {
+    let alive: Vec<String> = app
+        .state
+        .docs
+        .values()
+        .map(|one| one.file.clone())
+        .collect();
+    let moved = match carrier::carry(&data, &device, &dest, way, &alive) {
         Ok(moved) => moved,
         Err(trouble) => return Ok(said(&trouble, lang)),
     };

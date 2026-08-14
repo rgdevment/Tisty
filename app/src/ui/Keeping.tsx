@@ -33,6 +33,7 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { stamped, weigh } from "../format";
 import { written } from "../report";
+import { decideAll } from "../deciding";
 import { scanned, type Brittle } from "../scanning";
 import { onMac } from "./WindowChrome";
 
@@ -180,7 +181,8 @@ export default function Keeping({ onChanged }: Props) {
         setTrouble({ card: "sync", text: t("wouldReset") });
         return;
       }
-      setSaid({ card: "sync", text: t(carried[answer]) });
+      await decideAll(answer.undecided);
+      setSaid({ card: "sync", text: t(carried[answer.carried]) });
       look();
       onChanged();
     } catch (e) {
@@ -517,7 +519,7 @@ export default function Keeping({ onChanged }: Props) {
                   <span className="text-[11.5px] text-faint">{t("attachUpTo")}</span>
                 </div>
                 <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
-                  {t("attachBig")} <span className="text-high">{t("docsSoon")}</span>
+                  {t("attachBig")}
                 </p>
               </Card>
             )}
