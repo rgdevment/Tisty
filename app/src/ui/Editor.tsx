@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor as Writing } from "@tiptap/core";
+import type { Node as Written } from "@tiptap/pm/model";
 import { asMarkdown, written } from "./writing";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { served, weighs, type Filed } from "../core";
@@ -16,6 +17,27 @@ export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
     /\bsrc\s*=\s*["'](?!https?:|attachments\/)/i.test(tag) ? "" : tag,
   );
+
+export const clicking =
+  (onOpen?: (reference: string) => void) =>
+  (
+    view: { state: { doc: Written } },
+    pos: number,
+    event: { metaKey?: boolean; ctrlKey?: boolean },
+  ): boolean => {
+    if (!event.metaKey && !event.ctrlKey) return false;
+    const at = view.state.doc.resolve(pos);
+    const picture = view.state.doc.nodeAt(pos);
+    const src = picture?.type.name === "image" ? String(picture.attrs.src ?? "") : "";
+    const link = at
+      .marks()
+      .find((one) => one.type.name === "link")
+      ?.attrs.href;
+    const target = src || String(link ?? "");
+    if (!target || /^(https?|mailto|tel):/i.test(target)) return false;
+    onOpen?.(target);
+    return true;
+  };
 
 const middle = (editor: Writing, from: number, to: number) => {
   const a = caret(editor, from);
@@ -61,6 +83,7 @@ export default function Editor({
   const urls = useRef(new Map<string, string>());
   const weights = useRef(new Map<string, number>());
   const pending = useRef(new Set<string>());
+  const missing = useRef(new Set<string>());
   const nudge = useRef(() => {});
   const reach = useRef<Reach>({
     url: () => null,
@@ -101,19 +124,7 @@ export default function Editor({
         ...(label ? { "aria-label": label } : {}),
       },
       transformPastedHTML: stripped,
-      handleClick: (view, pos) => {
-        const at = view.state.doc.resolve(pos);
-        const picture = view.state.doc.nodeAt(pos);
-        const src = picture?.type.name === "image" ? String(picture.attrs.src ?? "") : "";
-        const link = at
-          .marks()
-          .find((one) => one.type.name === "link")
-          ?.attrs.href;
-        const target = src || String(link ?? "");
-        if (!target || /^(https?|mailto|tel):/i.test(target)) return false;
-        onOpen?.(target);
-        return true;
-      },
+      handleClick: clicking(onOpen),
       handleKeyDown: (_, e) => {
         if (!now.current.open) return false;
         const count = now.current.count;
@@ -276,12 +287,20 @@ export default function Editor({
     if (pending.current.has(reference)) return;
     pending.current.add(reference);
     get()
-      .then(() => nudge.current())
-      .catch(() => undefined);
+      .catch(() => missing.current.add(reference.slice(reference.indexOf(":") + 1)))
+      .then(() => nudge.current());
   };
 
   reach.current = {
     onDoc,
+    onOpen,
+    gone: (reference) => missing.current.has(reference),
+    onAgain: (reference) => {
+      missing.current.delete(reference);
+      pending.current.delete(`url:${reference}`);
+      pending.current.delete(`weight:${reference}`);
+      nudge.current();
+    },
     url: (reference) => {
       const held = urls.current.get(reference);
       if (held) return held;
