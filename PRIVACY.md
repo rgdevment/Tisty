@@ -111,10 +111,16 @@ repository, and this section was written before the release that carries it.
 | **Timeout** | 5 seconds |
 | **If it fails** | Nothing is said and nothing is retried until tomorrow |
 
-The file it downloads contains version numbers and nothing else. **Every address
-Tisty is able to open is compiled into the program**, so nothing that arrives
-over the network can send you anywhere — which is what a signature would
-otherwise be needed for.
+The file it downloads contains version numbers and nothing else. **No address in
+that file is ever opened**: the download page Tisty offers is compiled into the
+program, so nothing that arrives over the network can send you anywhere — which
+is what a signature would otherwise be needed for.
+
+A link **you write or paste into a document** is a different matter: clicking it
+opens your browser, the way any Markdown reader does. Tisty does not follow it on
+its own, and never opens anything without a click. Worth knowing if a document
+reached you from a shared folder someone else can write to — the words of a link
+and where it goes are not obliged to agree, in Tisty or anywhere else.
 
 **Nothing is ever downloaded or installed for you.** What arrives is a line of
 text you can ignore; Tisty has no updater and does not want one. If a newer

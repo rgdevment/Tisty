@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use std::io::{BufRead, Read};
+use std::io::Read;
 
 use serde::{Deserialize, Serialize};
 
@@ -113,7 +113,21 @@ pub fn moved(base: Option<&str>, here: Option<&str>, there: Option<&str>) -> Mov
 
 pub fn titled(body: &str) -> String {
     let body = body.strip_prefix('\u{feff}').unwrap_or(body);
-    let first = body.lines().next().unwrap_or_default();
+    let mut said: Vec<&str> = body
+        .lines()
+        .map(str::trim)
+        .filter(|one| !one.is_empty())
+        .collect();
+    if said.first() == Some(&"---")
+        && let Some(shuts) = said.iter().skip(1).position(|one| *one == "---")
+    {
+        said.drain(..shuts + 2);
+    }
+    let first = said
+        .iter()
+        .find(|one| !wordless(one))
+        .copied()
+        .unwrap_or_default();
     crate::text::composed(first.trim_start_matches('#').trim())
 }
 
@@ -371,13 +385,233 @@ fn stem(device: &DeviceId) -> String {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Sighting {
+    pub id: String,
+    pub title: String,
+    pub line: String,
+}
+
+pub const SAID_AT_MOST: usize = 160;
+
+fn skipped(chars: &mut std::iter::Peekable<std::str::Chars>, opens: char, shuts: char) {
+    let mut depth = 1;
+    for one in chars.by_ref() {
+        if one == opens {
+            depth += 1;
+        } else if one == shuts {
+            depth -= 1;
+            if depth == 0 {
+                return;
+            }
+        }
+    }
+}
+
+pub fn bare(line: &str) -> String {
+    let said = line
+        .trim()
+        .trim_start_matches(['>', '#', ' '])
+        .trim_start()
+        .trim_start_matches(['-', '*', '+'])
+        .trim_start();
+    let said = said
+        .strip_prefix("[ ] ")
+        .or(said.strip_prefix("[x] "))
+        .unwrap_or(said);
+
+    let mut out = String::with_capacity(said.len());
+    let mut chars = said.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => out.extend(chars.next()),
+            '`' | '*' => {}
+            '~' if chars.peek() == Some(&'~') => {
+                chars.next();
+            }
+            '!' if chars.peek() == Some(&'[') => {
+                chars.next();
+            }
+            '[' => {}
+            ']' => match chars.peek() {
+                Some('(') => {
+                    chars.next();
+                    skipped(&mut chars, '(', ')');
+                }
+                Some('[') => {
+                    chars.next();
+                    skipped(&mut chars, '[', ']');
+                }
+                _ => {}
+            },
+            '|' => out.push(' '),
+            _ => out.push(c),
+        }
+    }
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn wordless(said: &str) -> bool {
+    said.is_empty()
+        || !said
+            .chars()
+            .any(|c| c.is_alphanumeric() || matches!(c, '¿' | '?' | '¡' | '!'))
+}
+
+fn bared(body: &str) -> String {
+    body.lines().map(bare).collect::<Vec<_>>().join("\n")
+}
+
+fn cut(said: String) -> String {
+    said.chars().take(SAID_AT_MOST).collect()
+}
+
+fn shown_around(body: &str, query: &str) -> Option<String> {
+    let mut backup = None;
+    for line in body.lines() {
+        let said = bare(line);
+        if !said.to_lowercase().contains(query) {
+            continue;
+        }
+        if wordless(&said) {
+            backup.get_or_insert(said);
+            continue;
+        }
+        return Some(cut(said));
+    }
+    backup.map(cut)
+}
+
+pub const CORPUS_AT_MOST: usize = 64 * 1024 * 1024;
+
+struct Held {
+    stamp: (u64, u64),
+    lower: String,
+}
+
+pub struct Corpus {
+    kept: std::collections::HashMap<String, Held>,
+    bytes: usize,
+    room: usize,
+}
+
+impl Default for Corpus {
+    fn default() -> Self {
+        Self::holding(CORPUS_AT_MOST)
+    }
+}
+
+fn stamped(at: &Path) -> Option<(u64, u64)> {
+    let told = std::fs::metadata(at).ok()?;
+    let when = told
+        .modified()
+        .ok()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?;
+    Some((told.len(), when.as_nanos() as u64))
+}
+
+impl Corpus {
+    pub fn holding(room: usize) -> Self {
+        Self {
+            kept: std::collections::HashMap::new(),
+            bytes: 0,
+            room,
+        }
+    }
+
+    pub fn forget(&mut self, id: &str) {
+        if let Some(gone) = self.kept.remove(id) {
+            self.bytes -= gone.lower.len();
+        }
+    }
+
+    pub fn held(&self) -> usize {
+        self.bytes
+    }
+
+    fn lowered(&mut self, root: &Path, id: &str) -> Option<&str> {
+        let at = resolve(root, id).ok()?;
+        let stamp = stamped(&at)?;
+        if !self.kept.get(id).is_some_and(|one| one.stamp == stamp) {
+            self.forget(id);
+            let lower = bared(&read(root, id).ok()?).to_lowercase();
+            if self.bytes + lower.len() > self.room {
+                return None;
+            }
+            self.bytes += lower.len();
+            self.kept.insert(id.to_string(), Held { stamp, lower });
+        }
+        self.kept.get(id).map(|one| one.lower.as_str())
+    }
+
+    pub fn searching(
+        &mut self,
+        root: &Path,
+        query: &str,
+        most: usize,
+        wanted: impl Fn(&str) -> bool,
+    ) -> Vec<Sighting> {
+        let query = query.trim().to_lowercase();
+        if query.is_empty() {
+            return Vec::new();
+        }
+
+        let mut found = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        for doc in all(root) {
+            seen.insert(doc.id.clone());
+            if found.len() >= most || !wanted(&doc.id) {
+                continue;
+            }
+            let title = doc.title.clone();
+            if title.to_lowercase().contains(&query) {
+                found.push(Sighting {
+                    id: doc.id,
+                    title,
+                    line: String::new(),
+                });
+                continue;
+            }
+            let sighted = match self.lowered(root, &doc.id) {
+                Some(lower) => lower.lines().any(|one| one.contains(&query)),
+                None => read(root, &doc.id)
+                    .map(|body| {
+                        bared(&body)
+                            .to_lowercase()
+                            .lines()
+                            .any(|one| one.contains(&query))
+                    })
+                    .unwrap_or(false),
+            };
+            if !sighted {
+                continue;
+            }
+            let Ok(body) = read(root, &doc.id) else {
+                continue;
+            };
+            if let Some(line) = shown_around(&body, &query) {
+                found.push(Sighting {
+                    id: doc.id,
+                    title,
+                    line,
+                });
+            }
+        }
+        self.kept.retain(|id, _| seen.contains(id));
+        self.bytes = self.kept.values().map(|one| one.lower.len()).sum();
+        found
+    }
+}
+
 fn opening(at: &Path) -> String {
     let Ok(file) = std::fs::File::open(at) else {
         return String::new();
     };
-    let mut first = String::new();
-    let _ = std::io::BufReader::new(file.take(TITLE_AT_MOST)).read_line(&mut first);
-    titled(&first)
+    let mut head = Vec::new();
+    let _ = file.take(TITLE_AT_MOST).read_to_end(&mut head);
+    titled(&String::from_utf8_lossy(&head))
 }
 
 #[cfg(test)]
@@ -390,6 +624,372 @@ mod tests {
 
     fn root() -> tempfile::TempDir {
         tempfile::tempdir().unwrap()
+    }
+
+    fn papers() -> tempfile::TempDir {
+        let room = root();
+        for (id, body) in [
+            (
+                "mac0-0001",
+                "# Minuta de octubre\n\nHablamos del presupuesto y del riego.\n",
+            ),
+            ("mac0-0002", "# Riego\n\nCambiar la manguera del patio.\n"),
+            (
+                "mac0-0003",
+                "# Recetas\n\nSopa de zapallo con MERKÉN encima.\n",
+            ),
+        ] {
+            write(room.path(), id, body).unwrap();
+        }
+        room
+    }
+
+    #[test]
+    fn a_search_reaches_the_body_of_a_document_and_says_the_line_it_found() {
+        let room = papers();
+
+        let found = Corpus::default().searching(room.path(), "manguera", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].id, "mac0-0002");
+        assert_eq!(found[0].title, "Riego");
+        assert_eq!(found[0].line, "Cambiar la manguera del patio.");
+    }
+
+    #[test]
+    fn a_hit_on_the_title_shows_no_line_because_the_title_is_already_there() {
+        let room = papers();
+
+        let found = Corpus::default().searching(room.path(), "recetas", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].title, "Recetas");
+        assert!(found[0].line.is_empty());
+    }
+
+    #[test]
+    fn the_title_wins_over_the_body_so_one_document_never_lands_twice() {
+        let room = papers();
+
+        let found = Corpus::default().searching(room.path(), "riego", 40, |_| true);
+
+        assert_eq!(found.len(), 2);
+        assert_eq!(found.iter().filter(|one| one.id == "mac0-0002").count(), 1);
+    }
+
+    #[test]
+    fn what_the_caller_does_not_want_never_gets_read() {
+        let room = papers();
+
+        let found = Corpus::default().searching(room.path(), "riego", 40, |id| id != "mac0-0002");
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].id, "mac0-0001");
+    }
+
+    #[test]
+    fn a_search_ignores_case_on_both_sides_accents_included() {
+        let room = papers();
+
+        assert_eq!(
+            Corpus::default()
+                .searching(room.path(), "MERKÉN", 40, |_| true)
+                .len(),
+            1
+        );
+        assert_eq!(
+            Corpus::default()
+                .searching(room.path(), "merkén", 40, |_| true)
+                .len(),
+            1
+        );
+        assert_eq!(
+            Corpus::default()
+                .searching(room.path(), "Zapallo", 40, |_| true)
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn nothing_at_all_comes_back_from_a_query_of_spaces() {
+        let room = papers();
+
+        assert!(
+            Corpus::default()
+                .searching(room.path(), "   ", 40, |_| true)
+                .is_empty()
+        );
+        assert!(
+            Corpus::default()
+                .searching(room.path(), "", 40, |_| true)
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn a_search_stops_at_the_ceiling_it_was_given() {
+        let room = papers();
+
+        assert_eq!(
+            Corpus::default()
+                .searching(room.path(), "a", 2, |_| true)
+                .len(),
+            2
+        );
+    }
+
+    #[test]
+    fn the_line_it_shows_is_cut_and_never_splits_a_character_in_half() {
+        let room = root();
+        let long = "ñ".repeat(400);
+        write(
+            room.path(),
+            "mac0-0009",
+            &format!("# Larga\n\n{long} aguja\n"),
+        )
+        .unwrap();
+
+        let found = Corpus::default().searching(room.path(), "aguja", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].line.chars().count(), SAID_AT_MOST);
+    }
+
+    #[test]
+    fn a_blank_line_is_never_offered_as_the_line_that_matched() {
+        let room = root();
+        write(room.path(), "mac0-0010", "# Hueca\n\n   \n\ncon aguja\n").unwrap();
+
+        let found = Corpus::default().searching(room.path(), "aguja", 40, |_| true);
+
+        assert_eq!(found[0].line, "con aguja");
+    }
+
+    #[test]
+    fn a_document_too_big_to_read_is_skipped_and_the_rest_still_answer() {
+        let room = papers();
+        std::fs::write(
+            room.path().join("mac0-0004.md"),
+            "x".repeat((BODY_AT_MOST + 1) as usize),
+        )
+        .unwrap();
+
+        let found = Corpus::default().searching(room.path(), "riego", 40, |_| true);
+
+        assert_eq!(found.len(), 2);
+    }
+
+    #[test]
+    fn a_body_that_changed_is_read_again_and_not_answered_from_what_was_kept() {
+        let room = papers();
+        let mut corpus = Corpus::default();
+
+        assert!(
+            corpus
+                .searching(room.path(), "azadón", 40, |_| true)
+                .is_empty()
+        );
+        write(
+            room.path(),
+            "mac0-0002",
+            "# Riego\n\nComprar un azadón nuevo.\n",
+        )
+        .unwrap();
+
+        let found = corpus.searching(room.path(), "azadón", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].id, "mac0-0002");
+    }
+
+    #[test]
+    fn a_body_swapped_under_the_same_stamp_is_missed_which_is_the_price_of_keeping_it() {
+        let room = papers();
+        let at = room.path().join("mac0-0002.md");
+        let told = std::fs::metadata(&at).unwrap();
+        let mut corpus = Corpus::default();
+
+        assert!(
+            corpus
+                .searching(room.path(), "azadón", 40, |_| true)
+                .is_empty()
+        );
+
+        let was = std::fs::read_to_string(&at).unwrap();
+        let swapped = format!("{}azadón", &was[..was.len() - "azadón".len()]);
+        assert_eq!(swapped.len(), was.len());
+        std::fs::write(&at, &swapped).unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&at)
+            .unwrap()
+            .set_times(
+                std::fs::FileTimes::new()
+                    .set_modified(told.modified().unwrap())
+                    .set_accessed(told.accessed().unwrap()),
+            )
+            .unwrap();
+
+        assert!(
+            corpus
+                .searching(room.path(), "azadón", 40, |_| true)
+                .is_empty()
+        );
+        corpus.forget("mac0-0002");
+        assert_eq!(
+            corpus.searching(room.path(), "azadón", 40, |_| true).len(),
+            1
+        );
+    }
+
+    #[test]
+    fn a_document_that_is_gone_stops_taking_room() {
+        let room = papers();
+        let mut corpus = Corpus::default();
+
+        corpus.searching(room.path(), "nada de nada", 40, |_| true);
+        let before = corpus.held();
+        assert!(before > 0);
+
+        std::fs::remove_file(room.path().join("mac0-0002.md")).unwrap();
+        corpus.searching(room.path(), "nada de nada", 40, |_| true);
+
+        assert!(corpus.held() < before);
+    }
+
+    #[test]
+    fn what_was_kept_once_is_not_kept_twice() {
+        let room = papers();
+        let mut corpus = Corpus::default();
+
+        corpus.searching(room.path(), "nada de nada", 40, |_| true);
+        let once = corpus.held();
+        corpus.searching(room.path(), "nada de nada", 40, |_| true);
+
+        assert_eq!(corpus.held(), once);
+    }
+
+    #[test]
+    fn a_corpus_with_no_room_left_still_answers_by_reading() {
+        let room = papers();
+        let mut corpus = Corpus::holding(0);
+
+        let found = corpus.searching(room.path(), "manguera", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(corpus.held(), 0);
+    }
+
+    #[test]
+    fn a_title_hit_never_costs_the_body_being_read_or_kept() {
+        let room = papers();
+        let mut corpus = Corpus::default();
+
+        let found = corpus.searching(room.path(), "recetas", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        let others: usize = ["mac0-0001", "mac0-0002"]
+            .iter()
+            .map(|id| bared(&read(room.path(), id).unwrap()).to_lowercase().len())
+            .sum();
+        assert_eq!(corpus.held(), others);
+    }
+
+    #[test]
+    fn what_is_shown_is_the_text_and_never_the_markup_around_it() {
+        assert_eq!(
+            bare("un **texto** con *cursiva* y `codigo`"),
+            "un texto con cursiva y codigo"
+        );
+        assert_eq!(bare("## Un titulo"), "Un titulo");
+        assert_eq!(bare("> una cita"), "una cita");
+        assert_eq!(bare("- [ ] pendiente"), "pendiente");
+        assert_eq!(bare("- [x] hecho"), "hecho");
+        assert_eq!(bare("* una vinieta"), "una vinieta");
+        assert_eq!(bare("un ~~tachado~~ y un ~/home"), "un tachado y un ~/home");
+    }
+
+    #[test]
+    fn a_reference_shows_what_it_says_and_never_where_it_points() {
+        assert_eq!(
+            bare("mira [el informe](tisty:doc/mac0-0001) hoy"),
+            "mira el informe hoy"
+        );
+        assert_eq!(
+            bare("![la terraza](attachments/3f/foto-a1b2c3d4.png)"),
+            "la terraza"
+        );
+        assert_eq!(bare("ver [esto][uno]"), "ver esto");
+    }
+
+    #[test]
+    fn a_search_never_lands_inside_the_path_of_an_attachment() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0020",
+            "# Terraza\n\n![la terraza](attachments/3f/foto-a1b2c3d4.png)\n",
+        )
+        .unwrap();
+
+        let mut corpus = Corpus::default();
+
+        assert!(
+            corpus
+                .searching(room.path(), "attachments", 40, |_| true)
+                .is_empty()
+        );
+        assert!(
+            corpus
+                .searching(room.path(), "a1b2c3d4", 40, |_| true)
+                .is_empty()
+        );
+        assert_eq!(
+            corpus.searching(room.path(), "terraza", 40, |_| true).len(),
+            1
+        );
+    }
+
+    #[test]
+    fn a_table_is_never_shown_as_the_line_that_matched_when_a_real_one_exists() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0021",
+            "# Prueba\n\n|  |  |\n| --- | --- |\n| uno | dos |\n\nel patio con aguja\n",
+        )
+        .unwrap();
+
+        let found = Corpus::default().searching(room.path(), "uno", 40, |_| true);
+
+        assert_eq!(found[0].line, "uno dos");
+    }
+
+    #[test]
+    fn a_document_whose_title_is_a_blank_line_away_is_still_named_by_it() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0022",
+            "\n# Estado Actual\n\nla red de casa\n",
+        )
+        .unwrap();
+
+        let found = Corpus::default().searching(room.path(), "red de casa", 40, |_| true);
+
+        assert_eq!(found[0].title, "Estado Actual");
+    }
+
+    #[test]
+    fn a_document_with_no_title_at_all_is_never_named_after_its_file() {
+        let room = root();
+        write(room.path(), "mac0-0023", "\n\nsolo cuerpo con aguja\n").unwrap();
+
+        let found = Corpus::default().searching(room.path(), "aguja", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert!(!found[0].title.contains("mac0-0023"));
     }
 
     #[test]
@@ -824,7 +1424,25 @@ mod tests {
     #[test]
     fn a_document_with_nothing_written_yet_has_no_title_rather_than_failing() {
         assert_eq!(titled(""), "");
-        assert_eq!(titled("\n\ncuerpo"), "");
+        assert_eq!(titled("\n\n   \n"), "");
+    }
+
+    #[test]
+    fn a_blank_line_before_the_heading_does_not_cost_the_document_its_title() {
+        assert_eq!(titled("\n# Estado Actual\n\ncuerpo"), "Estado Actual");
+        assert_eq!(titled("\n\n\ncuerpo"), "cuerpo");
+    }
+
+    #[test]
+    fn front_matter_is_not_mistaken_for_the_title() {
+        assert_eq!(
+            titled("---\ntitle: x\ntags: [a]\n---\n\n# Compras"),
+            "Compras"
+        );
+        assert_eq!(
+            titled("---\nsolo una raya y nada que la cierre"),
+            "solo una raya y nada que la cierre"
+        );
     }
 
     #[test]

@@ -6,7 +6,7 @@ export const frail = (text: string): string[] => {
 
   if (/^---\r?\n[\s\S]*?\r?\n---\r?\n/.test(text)) found.push("frailFront");
   if (BLOCKS.test(bare)) found.push("frailHtml");
-  if (/(^|[^\\])\[\^[^\]]+\]/m.test(bare)) found.push("frailNotes");
+  if (/(^|[^\\])\[\^[^\]]+\](?![([])/m.test(bare)) found.push("frailNotes");
   if (/^\[[^\\\]]+\]:\s*\S/m.test(bare)) found.push("frailRefs");
   if (/^\|[\s|]*:?-+:[\s|]*\|/m.test(bare) || /\|\s*:-+\s*\|/.test(bare)) found.push("frailAligned");
 

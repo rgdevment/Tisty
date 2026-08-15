@@ -20,6 +20,7 @@ interface Props {
   onFold?: (id: string, away: boolean) => void;
   onDrop?: (task: string, after?: string, before?: string) => void;
   above?: React.ReactNode;
+  below?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -38,6 +39,7 @@ export default function TaskList({
   onComplete,
   onFold,
   above,
+  below,
   children,
 }: Props) {
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -260,6 +262,8 @@ export default function TaskList({
             )}
           </div>
         ))}
+
+        {below}
       </div>
     </main>
   );

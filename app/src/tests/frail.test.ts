@@ -56,6 +56,15 @@ describe("what a document brings that the editor cannot keep", () => {
     expect(frail("Ejemplo:\n\n    <div>x</div>\n")).toEqual([]);
   });
 
+  it("does not mistake a link whose words begin with a caret for a note", () => {
+    expect(frail("una nota[^1](uno) y otra[^2](dos)")).toEqual([]);
+    expect(frail("mira [^arriba][uno]")).toEqual([]);
+  });
+
+  it("still sees a note that is a note", () => {
+    expect(frail("una nota[^1] y su pie\n\n[^1]: el pie")).toContain("frailNotes");
+  });
+
   it("does not mistake two horizontal rules for a front matter", () => {
     expect(frail("# Uno\n\n---\n\ntexto\n\n---\n\nmas")).toEqual([]);
     expect(frail("# Uno\n\n---\n\ntexto")).toEqual([]);

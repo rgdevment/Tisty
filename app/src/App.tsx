@@ -62,6 +62,7 @@ import About from "./ui/About";
 import Keeping from "./ui/Keeping";
 import Docs from "./ui/Docs";
 import Naming from "./ui/Naming";
+import Sightings from "./ui/Sightings";
 import Menu, { type Choice } from "./ui/Menu";
 import { settled } from "./saving";
 import { asPlain } from "./copying";
@@ -741,7 +742,11 @@ export default function App() {
           lists={data.lists}
           title={title(chosen, data.lists)}
           count={chosen.named === "tasks" ? undefined : shown.length}
-          empty={nothing(chosen, found !== null)}
+          empty={
+            found?.papers.length && !shown.length
+              ? t("onlyPapers")
+              : nothing(chosen, found !== null)
+          }
           note={
             found && found.total > found.tasks.length
               ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
@@ -769,6 +774,11 @@ export default function App() {
           }
           onFold={
             chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined
+          }
+          below={
+            found?.papers.length ? (
+              <Sightings papers={found.papers} onOpen={openDoc} />
+            ) : undefined
           }
           above={
             chosen.named === "tasks" ? (

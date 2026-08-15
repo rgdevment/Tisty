@@ -203,7 +203,8 @@ a task that occurs to you mid-something does not cost you the something.
 and never gets ticked. They are Markdown files in your store, edited as
 documents rather than as source: tables, checklists, code and images, and
 whatever you paste from a page or a ticket keeps its shape. A task can point at
-a document; a document never creates tasks.
+a document; a document never creates tasks. **Search reads them too** — title and
+body — so a line you wrote in a document is as findable as a task.
 
 Taking one out comes in two shapes, and they are not the same. **Copy as
 Markdown** puts the text on your clipboard, references and all: paste it wherever
