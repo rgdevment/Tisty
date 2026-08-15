@@ -291,6 +291,31 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
     Ok(made)
 }
 
+pub fn take_over(dest: &Path, into: &Path, aside: &Path) -> Result<Made> {
+    let made = write(dest, into, aside)?;
+
+    let old = dest.join(format!(".taking-over-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&old);
+    std::fs::create_dir_all(&old)?;
+
+    let mut moved: Vec<&str> = Vec::new();
+    for folder in CARRIED {
+        let at = dest.join(folder);
+        if !at.exists() {
+            continue;
+        }
+        if let Err(e) = std::fs::rename(&at, old.join(folder)) {
+            undo(dest, &old, &moved);
+            let _ = std::fs::remove_dir_all(&old);
+            return Err(Error::Io(e));
+        }
+        moved.push(folder);
+    }
+
+    let _ = std::fs::remove_dir_all(&old);
+    Ok(made)
+}
+
 pub fn leftovers(data: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(data) else {
         return Vec::new();
@@ -446,6 +471,65 @@ mod tests {
         std::fs::create_dir_all(&before).unwrap();
         std::fs::write(before.join("a3f1-0001.md"), b"---\nx: 1\n---\n\n# Minuta").unwrap();
         (dir, data)
+    }
+
+    #[test]
+    fn taking_a_folder_over_leaves_it_empty_and_the_backup_holding_what_it_had() {
+        let (_src, folder) = filled("lo que guardaba la carpeta");
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("carpeta.zip");
+
+        let made = take_over(&folder, &file, tmp().path()).unwrap();
+
+        assert!(file.exists());
+        assert!(made.files >= 2, "{made:?}");
+        for folder_named in CARRIED {
+            assert!(
+                !folder.join(folder_named).exists(),
+                "{folder_named} sigue ahi"
+            );
+        }
+    }
+
+    #[test]
+    fn a_folder_is_never_emptied_when_the_backup_could_not_be_written() {
+        let (_src, folder) = filled("lo que no se puede perder");
+        let out = tempfile::tempdir().unwrap();
+        let taken = out.path().join("carpeta.zip");
+        std::fs::create_dir_all(&taken).unwrap();
+
+        let outcome = take_over(&folder, &taken, tmp().path());
+
+        assert!(outcome.is_err(), "dijo que si con el destino ocupado");
+        assert!(
+            folder.join("store").exists(),
+            "vacio la carpeta sin respaldo"
+        );
+        assert!(folder.join("docs").exists());
+        assert!(folder.join("attachments").exists());
+    }
+
+    #[test]
+    fn what_was_taken_over_reads_back_as_a_store_of_its_own() {
+        let (_src, folder) = filled("una tarea que estaba alli");
+        let was = crate::store::identity(folder.join("store")).unwrap();
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("carpeta.zip");
+
+        let made = take_over(&folder, &file, tmp().path()).unwrap();
+
+        assert_eq!(made.store_id, was);
+    }
+
+    #[test]
+    fn a_folder_taken_over_no_longer_claims_the_history_it_had() {
+        let (_src, folder) = filled("algo");
+        let out = tempfile::tempdir().unwrap();
+
+        take_over(&folder, &out.path().join("carpeta.zip"), tmp().path()).unwrap();
+
+        assert!(crate::store::peek_identity(folder.join("store")).is_none());
+        assert!(!crate::store::inhabited(folder.join("store")));
     }
 
     #[test]

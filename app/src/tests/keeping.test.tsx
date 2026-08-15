@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Keeping from "../ui/Keeping";
@@ -563,64 +563,193 @@ describe("the maintenance panel", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it("never empties this machine without being told twice", async () => {
+  const apart = (code = "wouldReset") => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
-      cmd === "sync_now"
-        ? Promise.reject({ code: "wouldReset", name: "01MOTHER" })
-        : otherwise(cmd, args);
-    asked.sure = false;
-    asked.file = "C:/keep/tisty-before-joining.zip";
-    carrying.chosen = "G:/My Drive/tisty";
-    render(<Keeping onChanged={() => {}} />);
-    await screen.findByText(/leaving copies in/i);
+      cmd === "sync_now" ? Promise.reject({ code, name: "01MOTHER" }) : otherwise(cmd, args);
+  };
 
-    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
-
-    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
-    expect(sent("join_them")).toHaveLength(0);
-  });
-
-  it("empties nothing when there is nowhere to put the backup", async () => {
-    const otherwise = ipc.answer;
-    ipc.answer = (cmd, args) =>
-      cmd === "sync_now"
-        ? Promise.reject({ code: "wouldReset", name: "01MOTHER" })
-        : otherwise(cmd, args);
-    asked.sure = true;
-    asked.file = null;
-    carrying.chosen = "G:/My Drive/tisty";
-    render(<Keeping onChanged={() => {}} />);
-    await screen.findByText(/leaving copies in/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
-
-    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
-    expect(sent("join_them")).toHaveLength(0);
-  });
-
-  it("backs this machine up before it joins the other history", async () => {
+  const onceApart = (code = "wouldReset") => {
     let refused = true;
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) => {
       if (cmd !== "sync_now") return otherwise(cmd, args);
       if (refused) {
         refused = false;
-        return Promise.reject({ code: "wouldReset", name: "01MOTHER" });
+        return Promise.reject({ code, name: "01MOTHER" });
       }
       return Promise.resolve({ carried: "came", undecided: [] });
     };
-    asked.sure = true;
-    asked.file = "C:/keep/tisty-before-joining.zip";
+  };
+
+  const carried = async () => {
     carrying.chosen = "G:/My Drive/tisty";
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/leaving copies in/i);
-
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
+  };
+
+  it("carries as soon as a folder is picked, so the doors open there and not later", async () => {
+    asked.folder = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+
+    await waitFor(() => expect(sent("choose_sync")).toHaveLength(1));
+    await waitFor(() => expect(sent("sync_now")).toHaveLength(1));
+  });
+
+  it("opens the doors on picking a folder that already holds another history", async () => {
+    apart();
+    asked.folder = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+
+    expect((await screen.findByRole("dialog")).textContent).toMatch(
+      /already holds another Tisty/i,
+    );
+  });
+
+  it("does not leave you pointing at a folder you walked away from", async () => {
+    apart();
+    asked.folder = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+
+    const doors = await screen.findByRole("dialog");
+    await userEvent.click(within(doors).getByRole("button", { name: /^close$/i }));
+
+    await waitFor(() => expect(sent("choose_sync")).toHaveLength(2));
+    expect(sent("choose_sync")[1].args.dest).toBeUndefined();
+  });
+
+  it("keeps the folder you did accept, and does not undo it", async () => {
+    onceApart();
+    asked.folder = "G:/My Drive/tisty";
+    asked.file = "C:/keep/tisty-folder-before.zip";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /keep this machine/i }));
+
+    await waitFor(() => expect(sent("take_over")).toHaveLength(1));
+    expect(sent("choose_sync")).toHaveLength(1);
+  });
+
+  it("opens the three doors instead of a yes or no", async () => {
+    apart();
+    await carried();
+
+    const said = await screen.findByRole("dialog");
+    expect(said.textContent).toMatch(/already holds another Tisty/i);
+    for (const door of [/merge the two/i, /keep this machine/i, /take what the folder has/i]) {
+      expect(screen.getByRole("button", { name: door })).toBeTruthy();
+    }
+  });
+
+  it("opens them for the other refusal too, which is the one people meet", async () => {
+    apart("otherStore");
+    await carried();
+
+    expect((await screen.findByRole("dialog")).textContent).toMatch(
+      /already holds another Tisty/i,
+    );
+  });
+
+  it("never shows a store identifier where a person reads", async () => {
+    apart();
+    await carried();
+
+    expect((await screen.findByRole("dialog")).textContent).not.toContain("01MOTHER");
+  });
+
+  it("empties nothing when the doors are closed without picking", async () => {
+    apart();
+    asked.file = "C:/keep/tisty-before-joining.zip";
+    await carried();
+
+    const doors = await screen.findByRole("dialog");
+    await userEvent.click(within(doors).getByRole("button", { name: /^close$/i }));
+
+    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
+    expect(sent("join_them")).toHaveLength(0);
+    expect(sent("take_over")).toHaveLength(0);
+  });
+
+  it("empties nothing when there is nowhere to put the backup", async () => {
+    apart();
+    asked.file = null;
+    await carried();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /take what the folder has/i }),
+    );
+
+    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
+    expect(sent("join_them")).toHaveLength(0);
+  });
+
+  it("backs this machine up before it joins the other history", async () => {
+    onceApart();
+    asked.file = "C:/keep/tisty-before-joining.zip";
+    await carried();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /take what the folder has/i }),
+    );
 
     await waitFor(() => expect(sent("join_them")).toHaveLength(1));
     expect(sent("join_them")[0].args.into).toBe("C:/keep/tisty-before-joining.zip");
     expect(sent("sync_now")).toHaveLength(2);
+  });
+
+  it("backs the folder up before this machine takes it over", async () => {
+    onceApart();
+    asked.file = "C:/keep/tisty-folder-before.zip";
+    await carried();
+
+    await userEvent.click(await screen.findByRole("button", { name: /keep this machine/i }));
+
+    await waitFor(() => expect(sent("take_over")).toHaveLength(1));
+    expect(sent("take_over")[0].args.into).toBe("C:/keep/tisty-folder-before.zip");
+    expect(sent("join_them")).toHaveLength(0);
+    expect(sent("sync_now")).toHaveLength(2);
+  });
+
+  it("never empties this machine when the machine is what was kept", async () => {
+    onceApart();
+    asked.file = "C:/keep/tisty-folder-before.zip";
+    await carried();
+
+    await userEvent.click(await screen.findByRole("button", { name: /keep this machine/i }));
+
+    await waitFor(() => expect(sent("take_over")).toHaveLength(1));
+    expect(sent("join_them")).toHaveLength(0);
+  });
+
+  it("leaves the door that is not built yet shut", async () => {
+    apart();
+    await carried();
+
+    const merge = await screen.findByRole("button", { name: /merge the two/i });
+    expect((merge as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("lets someone walk away to another folder instead of choosing", async () => {
+    onceApart();
+    asked.folder = "G:/My Drive/otra";
+    await carried();
+
+    await userEvent.click(await screen.findByRole("button", { name: /pick another folder/i }));
+
+    await waitFor(() => expect(sent("choose_sync")).toHaveLength(1));
+    expect(sent("join_them")).toHaveLength(0);
+    expect(sent("take_over")).toHaveLength(0);
   });
 
   it("names the documents that would open read only, and what each brings", async () => {

@@ -16,6 +16,7 @@ import {
   settings as readSettings,
   shortcut,
   joinThem,
+  takeOver,
   removeMachine,
   twinned,
   retireAttachment,
@@ -38,6 +39,7 @@ import { written } from "../report";
 import { decideAll } from "../deciding";
 import { scanned, type Brittle } from "../scanning";
 import { onMac } from "./WindowChrome";
+import Apart, { type Door } from "./Apart";
 
 const carried = { came: "syncCame", same: "syncSame", busy: "syncBusy" } as const;
 
@@ -128,6 +130,13 @@ export default function Keeping({ onChanged }: Props) {
       .finally(() => setBusy(null));
   };
 
+  const [apart, setApart] = useState<((door: Door | "else" | null) => void) | null>(null);
+
+  const closed = (door: Door | "else" | null) => {
+    apart?.(door);
+    setApart(null);
+  };
+
   if (!state) {
     return (
       <main className="flex flex-col overflow-hidden">
@@ -159,37 +168,44 @@ export default function Keeping({ onChanged }: Props) {
   const carrying = busy === "sync";
   const held = busy !== null;
 
-  const carryNow = async () => {
-    if (held) return;
+  const carryNow = async (): Promise<"done" | "declined" | "failed"> => {
+    if (held) return "failed";
     setBusy("sync");
     setSaid(undefined);
     setTrouble(undefined);
     try {
       const answer = await syncNow().catch(async (problem) => {
         const refusal = problem as { code?: string; name?: string };
-        if (refusal?.code !== "wouldReset") throw problem;
-        if (!(await ask(fill("joinThem", refusal.name ?? ""), { kind: "warning" }))) {
-          return "declined" as const;
+        if (refusal?.code !== "wouldReset" && refusal?.code !== "otherStore") throw problem;
+        const door = await new Promise<Door | "else" | null>((settle) => setApart(() => settle));
+        if (door === null) return "declined" as const;
+        if (door === "else") {
+          const where = await open({ directory: true });
+          if (typeof where !== "string") return "declined" as const;
+          await chooseSync(where);
+          return syncNow();
         }
         const at = await save({
-          defaultPath: "tisty-before-joining.zip",
+          defaultPath: door === "mine" ? "tisty-folder-before.zip" : "tisty-before-joining.zip",
           filters: [{ name: "Tisty", extensions: ["zip"] }],
         });
         if (typeof at !== "string") return "declined" as const;
-        await joinThem(at);
+        await (door === "mine" ? takeOver(at) : joinThem(at));
         return syncNow();
       });
 
       if (answer === "declined") {
         setTrouble({ card: "sync", text: t("wouldReset") });
-        return;
+        return "declined";
       }
       await decideAll(answer.undecided);
       setSaid({ card: "sync", text: t(carried[answer.carried]) });
       look();
       onChanged();
+      return "done";
     } catch (e) {
       setTrouble({ card: "sync", text: saidPlainly(e) });
+      return "failed";
     } finally {
       setBusy(null);
     }
@@ -204,7 +220,17 @@ export default function Keeping({ onChanged }: Props) {
   const pickFolder = () => {
     if (held) return;
     open({ directory: true })
-      .then((at) => typeof at === "string" && run("sync", chooseSync(at), () => {}))
+      .then(async (at) => {
+        if (typeof at !== "string") return;
+        const was = state?.chosen;
+        await chooseSync(at);
+        look();
+        onChanged();
+        if ((await carryNow()) !== "declined") return;
+        await chooseSync(was);
+        look();
+        onChanged();
+      })
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
   };
 
@@ -318,6 +344,13 @@ export default function Keeping({ onChanged }: Props) {
 
   return (
     <main className="flex flex-col overflow-hidden">
+      {apart && (
+        <Apart
+          onPick={(door) => closed(door)}
+          onElse={() => closed("else")}
+          onClose={() => closed(null)}
+        />
+      )}
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="scroller mx-auto w-full max-w-[560px] px-6 pb-12">
         <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>

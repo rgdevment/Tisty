@@ -10,6 +10,7 @@ pub fn sync(
     push: bool,
     pull: bool,
     join: Option<std::path::PathBuf>,
+    take_over: Option<std::path::PathBuf>,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
     let Some(Sync::Folder(dest)) = app.config().sync.clone() else {
@@ -38,6 +39,21 @@ pub fn sync(
             ))
         );
         *app = App::at(app.paths.clone())?;
+    }
+
+    if let Some(into) = take_over {
+        if tisty_core::paths::profile().is_some() {
+            anyhow::bail!("{}", lang.get("sandbox-cannot-join"));
+        }
+        let aside = app.paths.cache().to_path_buf();
+        let made = tisty_core::backup::take_over(&dest, &into, &aside)?;
+        println!(
+            "  {}",
+            style::dim(&lang.fill(
+                "took-over",
+                &[("at", &into.display().to_string()), ("id", &made.store_id)]
+            ))
+        );
     }
 
     let alive: Vec<String> = app

@@ -145,6 +145,8 @@ pub enum Command {
         pull: bool,
         #[arg(long, value_name = "BACKUP", conflicts_with_all = ["push", "pull"])]
         join: Option<std::path::PathBuf>,
+        #[arg(long, value_name = "BACKUP", conflicts_with_all = ["push", "pull", "join"])]
+        take_over: Option<std::path::PathBuf>,
     },
     Doctor {
         #[arg(long)]
