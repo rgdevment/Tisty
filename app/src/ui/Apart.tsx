@@ -18,6 +18,23 @@ const DOORS: { key: Door; name: Word; why: Word; how: Word }[] = [
 ];
 
 export default function Apart({ kin, onPick, onElse, onClose }: Props) {
+  if (kin === "unsure") {
+    return (
+      <Modal title={t("apartUnsureTitle")} onClose={onClose}>
+        <p className="px-1 text-[13px] leading-relaxed text-soft">{t("apartUnsureWhy")}</p>
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-line px-3 py-1 text-[12.5px] hover:bg-hover"
+          >
+            {t("close")}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
   if (kin === "sameLineage") {
     return (
       <Modal title={t("apartHomeTitle")} onClose={onClose}>

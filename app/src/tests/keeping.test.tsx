@@ -669,6 +669,20 @@ describe("the maintenance panel", () => {
     expect(screen.getByRole("button", { name: /keep this machine/i })).toBeTruthy();
   });
 
+  it("refuses to guess when the folder could not be read well enough", async () => {
+    apart();
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_kin" ? Promise.resolve("unsure") : otherwise(cmd, args);
+    await carried();
+
+    const said = await screen.findByRole("dialog");
+    expect(said.textContent).toMatch(/could not be read/i);
+    for (const door of [/merge the two/i, /keep this machine/i, /take what the folder has/i]) {
+      expect(screen.queryByRole("button", { name: door })).toBeNull();
+    }
+  });
+
   it("opens the three doors instead of a yes or no", async () => {
     apart();
     await carried();

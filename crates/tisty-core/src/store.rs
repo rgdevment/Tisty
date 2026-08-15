@@ -270,8 +270,7 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
             continue;
         }
 
-        let mut segments = segments_in(&device.path())?;
-        segments.sort();
+        let segments = segments_in(&device.path())?;
         contiguous(&segments)?;
 
         for segment in segments {
@@ -351,14 +350,16 @@ pub fn is_segment(name: &str) -> bool {
 }
 
 pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
-    Ok(std::fs::read_dir(device_dir)?
+    let mut found: Vec<PathBuf> = std::fs::read_dir(device_dir)?
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|at| {
             at.file_name()
                 .and_then(|n| n.to_str())
                 .is_some_and(is_segment)
         })
-        .collect())
+        .collect();
+    found.sort();
+    Ok(found)
 }
 
 pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
@@ -371,8 +372,7 @@ pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
 }
 
 pub fn distinct_in(device_dir: &Path) -> Result<usize> {
-    let mut segments = segments_in(device_dir)?;
-    segments.sort();
+    let segments = segments_in(device_dir)?;
     let mut events = Vec::new();
     for segment in &segments {
         read_segment(segment, &mut events)?;
@@ -383,8 +383,7 @@ pub fn distinct_in(device_dir: &Path) -> Result<usize> {
 }
 
 pub fn check_device(device_dir: &Path) -> Result<usize> {
-    let mut segments = segments_in(device_dir)?;
-    segments.sort();
+    let segments = segments_in(device_dir)?;
     contiguous(&segments)?;
 
     let mut events = Vec::new();
@@ -704,6 +703,37 @@ fn next_segment_number(dir: &Path) -> Result<u32> {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn the_segments_of_a_machine_always_come_back_in_the_order_they_were_written() {
+        let tmp = tempfile::tempdir().unwrap();
+        let at = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&at).unwrap();
+        for leaf in [
+            "active.tisty",
+            "000002.tisty",
+            "000010.tisty",
+            "000001.tisty",
+        ] {
+            std::fs::write(at.join(leaf), b"x").unwrap();
+        }
+
+        let found: Vec<String> = segments_in(&at)
+            .unwrap()
+            .iter()
+            .filter_map(|one| one.file_name()?.to_str().map(str::to_string))
+            .collect();
+
+        assert_eq!(
+            found,
+            vec![
+                "000001.tisty",
+                "000002.tisty",
+                "000010.tisty",
+                "active.tisty"
+            ]
+        );
+    }
     use super::*;
     use crate::event::TaskAdd;
     use ulid::Ulid;

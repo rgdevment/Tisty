@@ -162,27 +162,45 @@ pub enum Kin {
     Strangers,
     SameLineage,
     Clash(String),
+    Unsure(String),
 }
 
 enum Grew {
     Yes,
     No,
     Cannot,
+    Unread,
 }
 
-fn whole_of(device_dir: &Path) -> Option<Vec<u8>> {
-    let mut segments = tisty_core::store::segments_in(device_dir).ok()?;
-    segments.sort();
+enum Whole {
+    Said(Vec<u8>),
+    Empty,
+    Unread,
+}
+
+fn whole_of(device_dir: &Path) -> Whole {
+    let Ok(segments) = tisty_core::store::segments_in(device_dir) else {
+        return Whole::Unread;
+    };
     let mut said = Vec::new();
     for at in segments {
-        said.extend(std::fs::read(at).ok()?);
+        let Ok(more) = std::fs::read(at) else {
+            return Whole::Unread;
+        };
+        said.extend(more);
     }
-    (!said.is_empty()).then_some(said)
+    if said.is_empty() {
+        Whole::Empty
+    } else {
+        Whole::Said(said)
+    }
 }
 
 fn one_grew_from_the_other(here: &Path, there: &Path) -> Grew {
-    let (Some(ours), Some(theirs)) = (whole_of(here), whole_of(there)) else {
-        return Grew::Cannot;
+    let (ours, theirs) = match (whole_of(here), whole_of(there)) {
+        (Whole::Said(ours), Whole::Said(theirs)) => (ours, theirs),
+        (Whole::Unread, _) | (_, Whole::Unread) => return Grew::Unread,
+        _ => return Grew::Cannot,
     };
     let grew = if ours.len() <= theirs.len() {
         theirs.starts_with(&ours)
@@ -214,6 +232,7 @@ pub fn kinship(store: &Path, dest: &Path) -> Kin {
         match one_grew_from_the_other(&one.path(), &theirs) {
             Grew::Yes => shared = true,
             Grew::No => return Kin::Clash(named.to_string()),
+            Grew::Unread => return Kin::Unsure(named.to_string()),
             Grew::Cannot => {}
         }
     }
@@ -272,8 +291,10 @@ pub fn stitch(data: &Path, device: &str, dest: &Path) -> Result<Stitched, Troubl
     let store = data.join(STORE);
 
     let kin = kinship(&store, dest);
-    if let Kin::Clash(named) = kin {
-        return Err(Trouble::SameName(named));
+    match &kin {
+        Kin::Clash(named) => return Err(Trouble::SameName(named.clone())),
+        Kin::Unsure(named) => return Err(Trouble::Unreadable(named.clone())),
+        _ => {}
     }
 
     let who = tisty_core::event::DeviceId(device.to_string());
@@ -286,6 +307,12 @@ pub fn stitch(data: &Path, device: &str, dest: &Path) -> Result<Stitched, Troubl
         .ok_or_else(|| Trouble::Unreadable("this machine has no identity".into()))?;
     let theirs =
         theirs(dest).ok_or_else(|| Trouble::Unreadable("that folder has no identity".into()))?;
+    if ours == theirs {
+        return Ok(Stitched {
+            kin: Kin::SameLineage,
+            stitch: None,
+        });
+    }
 
     let mine = seats(&store);
     let yours = seats(&dest.join(STORE));
@@ -425,7 +452,7 @@ fn settled_already(theirs: &Path, mine: &Path) -> bool {
 }
 
 fn copy_segments(from: &Path, into: &Path) -> Result<usize, Trouble> {
-    let mut carried = match tisty_core::store::segments_in(from) {
+    let carried = match tisty_core::store::segments_in(from) {
         Ok(carried) => carried,
         Err(e) => {
             if !matches!(&e, tisty_core::Error::Io(io) if io.kind() == std::io::ErrorKind::NotFound)
@@ -442,8 +469,6 @@ fn copy_segments(from: &Path, into: &Path) -> Result<usize, Trouble> {
             return Ok(0);
         }
     };
-    carried.sort();
-
     std::fs::create_dir_all(into).map_err(io)?;
     sweep(into);
     let mut done = 0;
@@ -1214,6 +1239,119 @@ mod tests {
             Some(was.as_str()),
             "adopto un nombre en el que no puede escribir"
         );
+    }
+
+    #[test]
+    fn a_segment_that_cannot_be_read_is_never_called_a_clash() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        assert_eq!(kinship(&one.store, shared.path()), Kin::SameLineage);
+
+        let mine = one.store.join(&one.device);
+        let file = tisty_core::store::segments_in(&mine).unwrap().remove(0);
+        std::fs::remove_file(&file).unwrap();
+        std::fs::create_dir(&file).unwrap();
+
+        assert_eq!(
+            kinship(&one.store, shared.path()),
+            Kin::Unsure(one.device.clone())
+        );
+        assert!(matches!(
+            stitch(&one.data, &one.device, shared.path()),
+            Err(Trouble::Unreadable(_))
+        ));
+    }
+
+    #[test]
+    fn a_clash_is_found_even_when_another_machine_already_proved_the_lineage() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let both = "compartida";
+        for at in [one.store.join(both), shared.path().join(STORE).join(both)] {
+            std::fs::create_dir_all(&at).unwrap();
+        }
+        std::fs::write(one.store.join(both).join("active.tisty"), b"lo de aqui\n").unwrap();
+        std::fs::write(
+            shared.path().join(STORE).join(both).join("active.tisty"),
+            b"lo de alli\n",
+        )
+        .unwrap();
+
+        assert_eq!(
+            kinship(&one.store, shared.path()),
+            Kin::Clash(both.to_string()),
+            "un choque real se perdio porque otra maquina ya habia probado el linaje"
+        );
+    }
+
+    #[test]
+    fn stitching_twice_never_writes_a_seam_that_joins_a_history_to_itself() {
+        let one = machine("uno");
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+        tisty_core::store::identity(&one.store).unwrap();
+
+        stitch(&one.data, &one.device, shared.path()).unwrap();
+        let again = stitch(&one.data, &one.device, shared.path()).unwrap();
+
+        assert!(again.stitch.is_none(), "anoto una costura de si misma");
+        let seams = tisty_core::store::read_all(&one.store)
+            .unwrap()
+            .into_iter()
+            .filter(|one| matches!(one.op, Op::StoresJoined { .. }))
+            .count();
+        assert_eq!(seams, 1);
+    }
+
+    #[test]
+    fn a_seam_says_which_history_was_absorbed_and_which_one_survived() {
+        let one = machine("uno");
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+        let was = tisty_core::store::identity(&one.store).unwrap();
+
+        let done = stitch(&one.data, &one.device, shared.path()).unwrap();
+
+        let seam = done.stitch.unwrap();
+        assert_eq!(seam.absorbed, was);
+        assert_eq!(
+            seam.survivor,
+            tisty_core::store::peek_identity(shared.path().join(STORE)).unwrap()
+        );
+        assert_ne!(seam.absorbed, seam.survivor);
+    }
+
+    #[test]
+    fn a_seam_says_which_machines_came_from_each_side() {
+        let one = machine("uno");
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+        tisty_core::store::identity(&one.store).unwrap();
+
+        let seam = stitch(&one.data, &one.device, shared.path())
+            .unwrap()
+            .stitch
+            .unwrap();
+
+        assert!(seam.ours.contains(&DeviceId(one.device.clone())));
+        assert!(seam.theirs.contains(&DeviceId(two.device.clone())));
+        assert!(!seam.ours.contains(&DeviceId(two.device.clone())));
+    }
+
+    #[test]
+    fn stitching_where_there_is_no_folder_says_so_instead_of_something_else() {
+        let one = machine("uno");
+        let nowhere = tempfile::tempdir().unwrap();
+
+        let outcome = stitch(&one.data, &one.device, &nowhere.path().join("no-esta"));
+
+        assert!(matches!(outcome, Err(Trouble::NotThere(_))), "{outcome:?}");
     }
 
     #[test]

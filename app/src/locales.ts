@@ -302,6 +302,9 @@ const en = {
   apartHomeWhy:
     "It went by another name, which is why syncing stopped. Nothing has to be chosen and nothing is lost: this machine takes the folder's name and keeps everything it has, including what it never sent.",
   apartHomeDo: "Take the folder's name",
+  apartUnsureTitle: "That folder could not be read well enough to tell",
+  apartUnsureWhy:
+    "One machine's history in the folder cannot be opened right now, so Tisty cannot say whether it is yours or someone else's — and it will not guess, because the two answers lead opposite ways. It is usually a file still arriving. Try again in a moment.",
   apartClashWhy:
     "Both hold a machine by the same name that wrote different things under it. Joining them would put two histories into one file, so that door is shut. What is left keeps one of the two sides — and the other side keeps its own, on its own machine.",
   apartWhy:
@@ -852,6 +855,9 @@ const es: Catalog = {
   apartHomeWhy:
     "Iba con otro nombre, y por eso dejó de sincronizar. No hay que elegir nada y no se pierde nada: esta máquina toma el nombre de la carpeta y conserva todo lo que tiene, incluso lo que nunca envió.",
   apartHomeDo: "Tomar el nombre de la carpeta",
+  apartUnsureTitle: "Esa carpeta no se pudo leer lo bastante para saberlo",
+  apartUnsureWhy:
+    "El historial de una máquina de la carpeta no se puede abrir ahora mismo, así que Tisty no puede decir si es tuyo o de otra persona — y no lo va a adivinar, porque las dos respuestas llevan a lados opuestos. Suele ser un fichero que todavía está llegando. Prueba otra vez en un momento.",
   apartClashWhy:
     "Las dos guardan una máquina llamada igual que escribió cosas distintas con ese nombre. Unirlas metería dos historias en el mismo fichero, así que esa puerta está cerrada. Lo que queda conserva uno de los dos lados — y el otro conserva el suyo, en su propia máquina.",
   apartWhy:
