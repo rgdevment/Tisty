@@ -128,7 +128,10 @@ export default function App() {
   const bringIn = (folder?: string) =>
     pick({
       multiple: false,
-      filters: [{ name: "Markdown", extensions: ["md", "markdown", "txt"] }],
+      filters: [
+        { name: "Markdown", extensions: ["md", "markdown", "txt"] },
+        { name: t("anyFile"), extensions: ["*"] },
+      ],
     })
       .then((at) => (typeof at === "string" ? docImport(at, folder) : null))
       .then((made) => {

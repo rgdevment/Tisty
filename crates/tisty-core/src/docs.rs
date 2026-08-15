@@ -155,10 +155,10 @@ pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
 pub const IMPORTS: [&str; 3] = ["md", "markdown", "txt"];
 
 pub fn importable(at: &Path) -> bool {
-    at.extension()
-        .and_then(|one| one.to_str())
-        .map(str::to_lowercase)
-        .is_some_and(|one| IMPORTS.contains(&one.as_str()))
+    match at.extension().and_then(|one| one.to_str()) {
+        None => at.file_name().is_some(),
+        Some(one) => IMPORTS.contains(&one.to_lowercase().as_str()),
+    }
 }
 
 pub fn read_outside(at: &Path) -> Result<String> {
@@ -1350,7 +1350,13 @@ mod tests {
     #[test]
     fn only_what_the_editor_can_open_is_taken_in() {
         let room = tempfile::tempdir().unwrap();
-        for named in ["notas.md", "notas.MARKDOWN", "notas.txt"] {
+        for named in [
+            "notas.md",
+            "notas.MARKDOWN",
+            "notas.txt",
+            "README",
+            "LICENSE",
+        ] {
             let at = room.path().join(named);
             std::fs::write(&at, b"# Hola").unwrap();
             assert_eq!(read_outside(&at).unwrap(), "# Hola", "{named}");
@@ -1359,9 +1365,9 @@ mod tests {
         for named in [
             "archivo.zip",
             "foto.png",
+            "guion.doc",
             "guion.docx",
             "notas.text",
-            "sin-extension",
         ] {
             let at = room.path().join(named);
             std::fs::write(&at, b"# Hola").unwrap();
@@ -1373,6 +1379,21 @@ mod tests {
     }
 
     #[cfg(unix)]
+    #[test]
+    fn a_file_with_no_extension_is_judged_by_what_it_holds() {
+        let room = tempfile::tempdir().unwrap();
+        let plain = room.path().join("README");
+        std::fs::write(&plain, b"# Hola\n\ntexto").unwrap();
+        let binary = room.path().join("CACHEDB");
+        std::fs::write(&binary, [0x89, 0x50, 0x4e, 0x47, 0xff, 0xfe]).unwrap();
+
+        assert_eq!(read_outside(&plain).unwrap(), "# Hola\n\ntexto");
+        assert!(
+            read_outside(&binary).is_err(),
+            "bytes that are not text were taken in as a document"
+        );
+    }
+
     #[test]
     fn a_symlink_to_a_real_file_is_read_like_any_other_file() {
         let room = tempfile::tempdir().unwrap();

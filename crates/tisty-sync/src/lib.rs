@@ -244,6 +244,7 @@ fn sweep(dir: &Path) {
 
 fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
     let mut done = 0;
+    let written_down = tisty_core::attach::digests(into.parent().unwrap_or_else(|| Path::new("")));
     let shelves = match std::fs::read_dir(from) {
         Ok(shelves) => shelves,
         Err(e) => {
@@ -307,11 +308,20 @@ fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
                 continue;
             }
             let body = std::fs::read(&at).map_err(io)?;
+            let reference = format!("attachments/{under}/{named}");
             if !tisty_core::attach::vouched(under, named, &body) {
                 witness::warn(
                     channel::SYNC,
                     "an attachment does not hold the bytes its name vouches for",
-                    &[("at", Fact::Id(format!("attachments/{under}/{named}")))],
+                    &[("at", Fact::Id(reference))],
+                );
+                continue;
+            }
+            if !tisty_core::attach::as_kept(&written_down, &reference, &body) {
+                witness::warn(
+                    channel::SYNC,
+                    "an attachment we already kept came back holding other bytes",
+                    &[("at", Fact::Id(reference))],
                 );
                 continue;
             }
@@ -824,6 +834,37 @@ mod tests {
         assert!(
             !one.data.join(&kept.at).exists(),
             "bytes nobody vouched for were taken in under a trusted name"
+        );
+    }
+
+    #[test]
+    fn what_we_already_kept_is_not_replaced_by_something_the_name_alone_allows() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let kept = planted(
+            shared.path(),
+            "contrato.pdf",
+            b"the bytes whose name this is",
+        );
+
+        let mine = one.data.join(&kept);
+        std::fs::create_dir_all(mine.parent().unwrap()).unwrap();
+        std::fs::write(&mine, b"what we kept, of another length").unwrap();
+        std::fs::write(
+            one.data.join("attachments.jsonl"),
+            format!(
+                "{{\"at\":\"{kept}\",\"sha256\":\"{}\",\"bytes\":31}}\n",
+                "0".repeat(64)
+            ),
+        )
+        .unwrap();
+
+        carry(&one.data, &one.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert_eq!(
+            std::fs::read(&mine).unwrap(),
+            b"what we kept, of another length",
+            "the name alone was enough to replace what we had written down"
         );
     }
 
