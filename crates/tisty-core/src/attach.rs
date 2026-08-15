@@ -463,6 +463,19 @@ pub struct Twins {
     pub at: Vec<String>,
 }
 
+fn one_and_the_same(told: &std::fs::Metadata) -> Option<(u64, u64)> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        Some((told.dev(), told.ino()))
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = told;
+        None
+    }
+}
+
 pub fn twins(root: &Path) -> Vec<Twins> {
     let mut alike: std::collections::BTreeMap<String, Vec<String>> = Default::default();
     let at = root.join("attachments");
@@ -495,6 +508,7 @@ pub fn twins(root: &Path) -> Vec<Twins> {
     let mut found = Vec::new();
     for named in alike.into_values().filter(|named| named.len() > 1) {
         let mut weighed: std::collections::BTreeMap<u64, Vec<String>> = Default::default();
+        let mut standing: std::collections::BTreeSet<(u64, u64)> = Default::default();
         for one in named {
             let Ok(shown) = resolve(&one, root) else {
                 continue;
@@ -503,6 +517,11 @@ pub fn twins(root: &Path) -> Vec<Twins> {
                 continue;
             };
             if told.len() > COPIED_IN_DOC {
+                continue;
+            }
+            if let Some(who) = one_and_the_same(&told)
+                && !standing.insert(who)
+            {
                 continue;
             }
             weighed.entry(told.len()).or_default().push(one);
@@ -540,6 +559,17 @@ pub fn twins(root: &Path) -> Vec<Twins> {
     }
     found.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.at.cmp(&b.at)));
     found
+}
+
+pub fn as_kept(
+    written_down: &std::collections::BTreeMap<String, (String, u64)>,
+    reference: &str,
+    bytes: &[u8],
+) -> bool {
+    match written_down.get(reference) {
+        Some((sha, _)) => *sha == fingerprint(bytes),
+        None => true,
+    }
 }
 
 pub fn vouched(shelf: &str, leaf: &str, bytes: &[u8]) -> bool {
@@ -1140,6 +1170,38 @@ mod tests {
     }
 
     #[test]
+    fn what_we_already_kept_is_measured_against_the_whole_digest() {
+        let mine = "attachments/ab/charla-a3f9bb01.mp4".to_string();
+        let written_down = std::collections::BTreeMap::from([(
+            mine.clone(),
+            (fingerprint(b"the bytes we trusted"), 20),
+        )]);
+
+        assert!(as_kept(&written_down, &mine, b"the bytes we trusted"));
+        assert!(
+            !as_kept(&written_down, &mine, b"bytes that passed the name"),
+            "a swap under a trusted name went through on forty bits"
+        );
+    }
+
+    #[test]
+    fn what_we_never_kept_has_nothing_to_be_measured_against() {
+        let written_down = std::collections::BTreeMap::from([(
+            "attachments/ab/otra-a3f9bb01.mp4".to_string(),
+            (fingerprint(b"something else"), 14),
+        )]);
+
+        assert!(
+            as_kept(
+                &written_down,
+                "attachments/ab/nueva-a3f9bb01.mp4",
+                b"brand new"
+            ),
+            "an attachment arriving for the first time was refused for being unknown"
+        );
+    }
+
+    #[test]
     fn a_name_with_no_stamp_vouches_for_nothing() {
         assert!(!vouched("ab", "", b"anything at all"));
         assert!(!vouched("", "", b"anything at all"));
@@ -1183,6 +1245,22 @@ mod tests {
             said.len(),
             1,
             "the one case this exists for went unseen: {said:?}"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_second_name_for_the_same_bytes_is_not_a_second_copy() {
+        let (_a, one) = dropped("charla.mp4", b"the very same bytes");
+        let root = tempfile::tempdir().unwrap();
+        let first = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mine = root.path().join(&first.at);
+        let other = mine.with_file_name(format!("video-{}.mp4", &first.sha256[2..10]));
+        std::fs::hard_link(&mine, &other).unwrap();
+
+        assert!(
+            twins(root.path()).is_empty(),
+            "a second name was counted as room to win back, and letting it go frees nothing"
         );
     }
 
