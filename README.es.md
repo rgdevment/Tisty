@@ -206,7 +206,9 @@ para que una tarea que se te ocurre a media cosa no te cueste la cosa.
 no tiene fecha y nunca se tacha. Son ficheros Markdown en tu almacén, y se editan
 como documentos, no como código fuente: tablas, listas de comprobación, código e
 imágenes, y lo que pegues de una página o de un ticket conserva su forma. Una
-tarea puede apuntar a un documento; un documento nunca crea tareas.
+tarea puede apuntar a un documento; un documento nunca crea tareas. **La búsqueda
+también los lee** —título y cuerpo—, así una línea que escribiste en un documento
+se encuentra igual que una tarea.
 
 Sacarlo de aquí tiene dos formas, y no son lo mismo. **Copiar como Markdown** deja
 el texto en el portapapeles, referencias incluidas: pégalo donde quieras, pero una

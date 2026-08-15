@@ -108,6 +108,8 @@ describe("converting a document the editor cannot keep", () => {
       "# Compras\n\n<details>\n<summary>ver</summary>\nx\n</details>",
       "---\ntitle: x\n---\n\n# Compras",
       "una nota[^1]\n\n[^1]: el pie",
+      "una nota[^1] y otra[^2]\n\n[^1]: uno\n\n[^2]: dos",
+      "tres[^a] notas[^b] aqui[^c]\n\n[^a]: uno\n\n[^b]: dos\n\n[^c]: tres",
       "mira [esto][uno]\n\n[uno]: https://x.dev",
       "| a | b |\n| :--- | ---: |\n| 1 | 2 |",
       "<div><ul><li>uno</li><li>dos<ul><li>anidado</li></ul></li></ul></div>",
@@ -126,26 +128,31 @@ describe("converting a document the editor cannot keep", () => {
   });
 });
 
-describe("known bug: a second footnote breaks the escape that clears the warning", () => {
+describe("a footnote whose definition is one word becomes a link, not a broken note", () => {
   const twoNotes = "una nota[^1] y otra[^2]\n\n[^1]: primera\n\n[^2]: segunda";
 
-  it.fails("leaves nothing frail behind, the same way converting a single footnote does", async () => {
+  it("turns into plain links, because that is what markdown says they are", async () => {
+    const editor = build(twoNotes);
+    const after = asMarkdown(editor) ?? "";
+    editor.destroy();
+
+    expect(after).toBe("una nota[^1](primera) y otra[^2](segunda)");
+  });
+
+  it("stops being called frail once it is one, so the warning closes", async () => {
     const { frail } = await import("../frail");
     const editor = build(twoNotes);
     const after = asMarkdown(editor) ?? "";
     editor.destroy();
 
+    expect(frail(twoNotes)).toContain("frailNotes");
     expect(frail(after)).toEqual([]);
   });
 
-  it("currently folds the second definition into the reference instead of escaping it, and the result never stops being frail", async () => {
-    const { frail } = await import("../frail");
+  it("settles, so converting it again changes nothing", async () => {
     const editor = build(twoNotes);
     const first = asMarkdown(editor) ?? "";
     editor.destroy();
-
-    expect(first).toBe("una nota[^1](primera) y otra[^2](segunda)");
-    expect(frail(first)).toContain("frailNotes");
 
     const again = build(first);
     const second = asMarkdown(again) ?? "";

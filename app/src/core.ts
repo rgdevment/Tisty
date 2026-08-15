@@ -126,8 +126,16 @@ export interface View {
 export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });
 export type Scope = "either" | "open" | "archived";
 
+export interface Sighting {
+  id: string;
+  title: string;
+  line: string;
+  archived: boolean;
+}
+
 export interface Found {
   tasks: Task[];
+  papers: Sighting[];
   total: number;
 }
 

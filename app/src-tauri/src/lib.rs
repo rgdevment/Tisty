@@ -21,6 +21,7 @@ struct Session {
     state: State,
     store: Store,
     cache: Option<tisty_core::cache::Cache>,
+    corpus: tisty_core::docs::Corpus,
     print: String,
     locale: Option<String>,
 }
@@ -61,6 +62,7 @@ impl Session {
             state,
             store,
             cache,
+            corpus: tisty_core::docs::Corpus::default(),
             print,
         };
         session.take_out_the_retired();
@@ -997,7 +999,7 @@ fn write_log(
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn search(
     session: tauri::State<'_, Mutex<Session>>,
     query: String,
@@ -1012,17 +1014,52 @@ fn search(
         _ => Scope::Either,
     };
     let (hits, total) = session.state.searching(&query, scope, MOST);
+    let tasks: Vec<Task> = hits.into_iter().cloned().collect();
+    let listed: std::collections::BTreeMap<String, bool> = session
+        .state
+        .docs
+        .values()
+        .filter(|one| match scope {
+            Scope::Open => !one.archived,
+            Scope::Archived => one.archived,
+            Scope::Either => true,
+        })
+        .map(|one| (one.file.clone(), one.archived))
+        .collect();
+    let root = session.paths.docs();
+    let papers = session
+        .corpus
+        .searching(&root, &query, PAPERS_MOST, |id| listed.contains_key(id))
+        .into_iter()
+        .map(|one| Paper {
+            archived: listed.get(&one.id).copied().unwrap_or(false),
+            id: one.id,
+            title: one.title,
+            line: one.line,
+        })
+        .collect();
     Ok(Found {
-        tasks: hits.into_iter().cloned().collect(),
+        tasks,
         total,
+        papers,
     })
 }
 
 const MOST: usize = 200;
+const PAPERS_MOST: usize = 40;
+
+#[derive(serde::Serialize)]
+struct Paper {
+    id: String,
+    title: String,
+    line: String,
+    archived: bool,
+}
 
 #[derive(serde::Serialize)]
 struct Found {
     tasks: Vec<Task>,
+    papers: Vec<Paper>,
     total: usize,
 }
 
@@ -1833,9 +1870,11 @@ fn doc_write(
     id: String,
     body: String,
 ) -> Answer<tisty_core::docs::Doc> {
-    let root = held(&session).paths.docs();
+    let mut session = held(&session);
+    let root = session.paths.docs();
     tisty_core::docs::write(&root, &id, &body)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be written", e))?;
+    session.corpus.forget(&id);
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&body),
         id,
