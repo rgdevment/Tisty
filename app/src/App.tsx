@@ -261,11 +261,14 @@ export default function App() {
 
   const latest = useRef(load);
   latest.current = load;
+  const papersAgain = useRef(lookPapers);
+  papersAgain.current = lookPapers;
   useEffect(() => {
     const carrier = carrying(
       () => {
         setCarried((was) => was + 1);
         latest.current();
+        papersAgain.current();
       },
       (ids) => {
         decideAll(ids).finally(() => latest.current());
@@ -731,6 +734,7 @@ export default function App() {
           onChanged={() => {
             load();
             carries.current?.recheck();
+            carries.current?.changed();
           }}
         />
       ) : open && mode === "sheet" ? (

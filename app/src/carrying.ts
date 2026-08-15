@@ -36,7 +36,7 @@ export function carrying(brought: () => void, atOdds: (ids: string[]) => void = 
       .then((answer) => {
         if (gone) return;
         if (answer.undecided.length) atOdds(answer.undecided);
-        if (answer.carried === "came") brought();
+        if (answer.carried === "came" || answer.carried === "both") brought();
       })
       .catch(() => {})
       .finally(() => {

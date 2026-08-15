@@ -19,7 +19,7 @@ pub fn sync(
     };
 
     let data = app.paths.data().to_path_buf();
-    let device = app.config().device_id.0.clone();
+    let mut device = app.config().device_id.0.clone();
 
     let way = match (push, pull) {
         (true, _) => carrier::Way::Push,
@@ -40,6 +40,7 @@ pub fn sync(
             ))
         );
         *app = App::at(app.paths.clone())?;
+        device = app.config().device_id.0.clone();
     }
 
     if let Some(into) = take_over {

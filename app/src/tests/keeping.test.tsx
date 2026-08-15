@@ -506,6 +506,21 @@ describe("the maintenance panel", () => {
     expect(screen.getByText(/the attachments weigh/i)).toBeTruthy();
   });
 
+  it("says the work went out, instead of calling an upload nothing new", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.resolve({ carried: "sent", undecided: [], unreadable: [] })
+        : otherwise(cmd, args);
+    carrying.chosen = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/leaving copies in/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
+
+    expect(await screen.findByText(/changes went out/i)).toBeTruthy();
+  });
+
   it("offers keeping both first, because it is the only answer that loses nothing", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>

@@ -44,7 +44,13 @@ import { scanned, type Brittle } from "../scanning";
 import { onMac } from "./WindowChrome";
 import Apart, { type Door } from "./Apart";
 
-const carried = { came: "syncCame", same: "syncSame", busy: "syncBusy" } as const;
+const carried = {
+  came: "syncCame",
+  sent: "syncSent",
+  both: "syncBoth",
+  same: "syncSame",
+  busy: "syncBusy",
+} as const;
 
 type Which =
   | "sync"

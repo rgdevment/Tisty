@@ -5,12 +5,22 @@ import type { Snapshot, Task } from "../core";
 import App from "../App";
 
 const ipc = vi.hoisted(() => ({
+  calls: [] as { cmd: string; args: Record<string, unknown> }[],
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> =>
     Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: Record<string, unknown>) => ipc.answer(cmd, args ?? {}),
+  invoke: (cmd: string, args?: Record<string, unknown>) => {
+    ipc.calls.push({ cmd, args: args ?? {} });
+    return ipc.answer(cmd, args ?? {});
+  },
+}));
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  open: () => Promise.resolve(null),
+  save: () => Promise.resolve(null),
+  ask: () => Promise.resolve(true),
 }));
 
 vi.mock("@tauri-apps/api/webview", () => ({
@@ -73,6 +83,7 @@ const shot = (view: { archive?: boolean } | undefined): Snapshot => ({
 
 beforeEach(() => {
   localStorage.clear();
+  ipc.calls = [];
   tasks = structuredClone([report, bank, filed]);
   counts = {};
   ipc.answer = (cmd, args) => {
@@ -240,4 +251,97 @@ describe("opening a task beside the list", () => {
 
     expect(list.className).toContain("mx-auto");
   });
+});
+
+describe("what a sync brings in", () => {
+  it("puts a document that arrived from another machine on the list", async () => {
+    const plain = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      switch (cmd) {
+        case "sync_state":
+          return Promise.resolve({
+            chosen: "G:/My Drive/tisty",
+            asked: true,
+            backsUp: false,
+            loose: 0,
+          });
+        case "sync_now":
+          return Promise.resolve({ carried: "came", undecided: [], unreadable: [] });
+        default:
+          return plain(cmd, args);
+      }
+    };
+    await started();
+
+    await waitFor(() =>
+      expect(ipc.calls.filter((one) => one.cmd === "sync_now").length).toBeGreaterThan(0),
+    );
+
+    await waitFor(() =>
+      expect(ipc.calls.filter((one) => one.cmd === "docs").length).toBeGreaterThan(1),
+    );
+  });
+});
+
+describe("what the maintenance screen writes", () => {
+  const withMachines = () => {
+    const plain = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      switch (cmd) {
+        case "sync_state":
+          return Promise.resolve({
+            chosen: "G:/My Drive/tisty",
+            asked: true,
+            backsUp: false,
+            loose: 0,
+          });
+        case "sync_now":
+          return Promise.resolve({ carried: "same", undecided: [], unreadable: [] });
+        case "reachable":
+          return Promise.resolve({ shipped: true, withinReach: false, onPath: true });
+        case "checked":
+          return Promise.resolve({
+            tasks: 1,
+            lists: 0,
+            agrees: true,
+            loose: 0,
+            looseBytes: 0,
+            astray: [],
+            events: 1,
+            machines: [
+              { id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true },
+              { id: "win1-0002", when: Math.floor(Date.now() / 1000), mine: false },
+            ],
+            logBytes: 0,
+            docsBytes: 0,
+            heldBytes: 0,
+            heldFiles: 0,
+          });
+        case "remove_machine":
+          return Promise.resolve(null);
+        default:
+          return plain(cmd, args);
+      }
+    };
+  };
+
+  const pushes = () =>
+    ipc.calls.filter((one) => one.cmd === "sync_now" && one.args.way === "push");
+
+  it("carries a machine removal out without waiting for the quarter-hour beat", async () => {
+    const user = userEvent.setup();
+    withMachines();
+    await started();
+
+    await user.click(screen.getByRole("button", { name: /settings/i }));
+    await user.click(await screen.findByRole("tab", { name: /maintenance/i }));
+    await user.click(screen.getByRole("button", { name: /^review$/i }));
+    await screen.findByText("win1-0002");
+    await user.click(screen.getByRole("button", { name: /^remove$/i }));
+    await waitFor(() =>
+      expect(ipc.calls.filter((one) => one.cmd === "remove_machine")).toHaveLength(1),
+    );
+
+    await waitFor(() => expect(pushes()).toHaveLength(1), { timeout: 8_000 });
+  }, 15_000);
 });
