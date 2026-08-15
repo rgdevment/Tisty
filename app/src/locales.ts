@@ -289,9 +289,26 @@ const en = {
     "Then only one of the two stays.\n\nKeep the one on this machine? Answering no keeps the one from the shared folder, and what is here is lost.",
   wouldReset:
     "That folder holds another history. To join it, this machine has to be backed up and reset — it does not merge.",
+  stuckTakeMe: "Sort it out",
   stuckApart:
     "Nothing is syncing: the shared folder holds another history, so this machine has been keeping to itself. Two histories never merge. In Settings you can join that folder — this machine is backed up first and then holds what the folder holds — or point it somewhere else.",
   remoteInsideStore: "{name} is inside Tisty's own folder — pick one outside it",
+  apartTitle: "That folder already holds another Tisty",
+  apartWhy:
+    "It is not a fault: they are two separate histories, and Tisty never puts two together without asking. Pick what happens.",
+  apartMerge: "Merge the two",
+  apartMergeWhy: "Everything you have here and everything that is there, together.",
+  apartMergeSoon: "Being built. Not ready yet.",
+  apartMine: "Keep this machine",
+  apartMineWhy: "The folder becomes this machine's.",
+  apartMineHow:
+    "The folder is backed up and then holds what this machine holds.\n\nThe other machine will stop syncing and will have to make this same choice next time it opens. Nothing of its own is lost: it still has it.",
+  apartTheirs: "Take what the folder has",
+  apartTheirsWhy: "This machine becomes the one over there.",
+  apartTheirsHow:
+    "This machine is backed up and then holds what the folder holds.\n\nWhat you have here now leaves the app and stays only in the backup, which opens without Tisty.",
+  apartElse: "Pick another folder",
+  apartUndo: "A backup is written first. This cannot be undone from the app.",
   joinThem:
     "That folder holds another history ({name}).\n\nTisty does not merge two histories. To join that one, this machine is backed up first and then emptied: it will hold what the folder holds, and nothing of what it holds now.\n\nPick where the backup goes?",
   sharedIsTheBackup: "Your shared folder already holds every machine's history",
@@ -811,9 +828,26 @@ const es: Catalog = {
     "Entonces solo se queda una de las dos.\n\n¿La de esta máquina? Si respondes que no se queda la de la carpeta compartida, y lo que hay aquí se pierde.",
   wouldReset:
     "Esa carpeta guarda otro historial. Para unirse, esta máquina tiene que respaldarse y reiniciarse — no se fusiona.",
+  stuckTakeMe: "Resolverlo",
   stuckApart:
     "No se está sincronizando nada: la carpeta compartida guarda otro historial, así que esta máquina lleva todo este tiempo a solas. Dos historiales no se fusionan. En Ajustes puedes unirte a esa carpeta —esta máquina se respalda primero y queda con lo que ella guarda— o apuntarla a otro sitio.",
   remoteInsideStore: "{name} está dentro de la carpeta de Tisty — elige una fuera",
+  apartTitle: "Esa carpeta ya guarda otro Tisty",
+  apartWhy:
+    "No es un error: son dos historiales distintos, y Tisty nunca junta dos sin preguntar. Elige qué pasa.",
+  apartMerge: "Fusionar las dos",
+  apartMergeWhy: "Lo que tienes aquí y lo que hay allí, todo junto.",
+  apartMergeSoon: "En construcción. Todavía no está.",
+  apartMine: "Conservar esta máquina",
+  apartMineWhy: "La carpeta pasa a ser de aquí.",
+  apartMineHow:
+    "La carpeta se respalda y queda con lo de esta máquina.\n\nLa otra máquina dejará de sincronizar y tendrá que elegir esto mismo la próxima vez que abra. Lo suyo no se pierde: sigue en ella.",
+  apartTheirs: "Quedarme con lo de la carpeta",
+  apartTheirsWhy: "Esta máquina pasa a ser la de allí.",
+  apartTheirsHow:
+    "Esta máquina se respalda y queda con lo que guarda la carpeta.\n\nLo que tienes aquí ahora deja de estar en la aplicación y queda solo en el respaldo, que se abre sin Tisty.",
+  apartElse: "Elegir otra carpeta",
+  apartUndo: "Se guarda un respaldo antes. No se deshace desde la aplicación.",
   joinThem:
     "Esa carpeta guarda otro historial ({name}).\n\nTisty no fusiona dos historiales. Para unirse a ese, esta máquina se respalda primero y luego se vacía: pasará a tener lo que tiene la carpeta, y nada de lo que tiene ahora.\n\n¿Eliges dónde va el respaldo?",
   sharedIsTheBackup: "Tu carpeta compartida ya guarda el historial de todos tus equipos",
@@ -1055,7 +1089,9 @@ export function adopt(configured?: string) {
 adopt();
 
 export const locale = (): string => code;
-export const t = (key: keyof Catalog): string => spoken[key];
+export type Word = keyof Catalog;
+
+export const t = (key: Word): string => spoken[key];
 
 export const fill = (key: keyof Catalog, name: string): string =>
   spoken[key].replace("{name}", name);

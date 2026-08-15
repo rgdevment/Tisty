@@ -370,6 +370,8 @@ export const retireAttachment = (reference: string): Promise<void> =>
   invoke("retire_attachment", { reference });
 export const removeMachine = (id: string): Promise<void> => invoke("remove_machine", { id });
 export const joinThem = (into: string): Promise<number> => invoke("join_them", { into });
+
+export const takeOver = (into: string): Promise<number> => invoke("take_over", { into });
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });

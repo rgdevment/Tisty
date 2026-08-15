@@ -226,6 +226,7 @@ export default function App() {
   const [greet, setGreet] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [settling, setSettling] = useState(true);
+  const [stuck, setStuck] = useState(false);
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
 
@@ -244,6 +245,7 @@ export default function App() {
         if (done.stuck) {
           const apart = done.stuck.code === "wouldReset" || done.stuck.code === "otherStore";
           setError(apart ? t("stuckApart") : saidPlainly(done.stuck));
+          setStuck(apart);
         }
         return done.brought && latest.current();
       })
@@ -387,6 +389,19 @@ export default function App() {
           className="shadow-lift fixed inset-x-0 top-11 z-[60] mx-auto flex w-fit max-w-[70%] items-start gap-2.5 rounded-[10px] border border-urgent/45 bg-bg px-3.5 py-2 text-[12.5px] leading-snug text-urgent"
         >
           <span className="select-text">{error}</span>
+          {stuck && (
+            <button
+              type="button"
+              onClick={() => {
+                setStuck(false);
+                setError(null);
+                setChosen({ named: "keeping" });
+              }}
+              className="shrink-0 rounded border border-urgent/45 px-1.5 py-0.5 hover:bg-urgent/15"
+            >
+              {t("stuckTakeMe")}
+            </button>
+          )}
           <button
             type="button"
             aria-label={t("close")}

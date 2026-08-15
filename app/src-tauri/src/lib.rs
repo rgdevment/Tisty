@@ -2733,6 +2733,42 @@ async fn join_them(
 }
 
 #[tauri::command]
+async fn take_over(
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    into: String,
+) -> Answer<u64> {
+    let _done = alone.inner().taken()?;
+    if tisty_core::paths::profile().is_some() {
+        return Err(Refusal::of("sandboxCannotJoin"));
+    }
+    let (dest, aside) = {
+        let session = held(&session);
+        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+            return Err(Refusal::of("noRemote"));
+        };
+        (dest, session.paths.cache().to_path_buf())
+    };
+
+    let at = std::path::PathBuf::from(&into);
+    let made = tauri::async_runtime::spawn_blocking(move || {
+        tisty_core::backup::take_over(&dest, &at, &aside)
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(|e| {
+        witness::error(
+            channel::BACKUP,
+            "the folder was left alone because its backup did not land",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        Refusal::about("cannotWrite", into)
+    })?;
+
+    Ok(made.bytes)
+}
+
+#[tauri::command]
 async fn restore(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
@@ -3310,6 +3346,7 @@ pub fn run() {
             back_up,
             restore,
             join_them,
+            take_over,
             remove_machine,
             retire_attachment,
             settle_paper,
