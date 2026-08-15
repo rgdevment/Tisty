@@ -57,8 +57,11 @@ pub fn carry(
     let ours = settled(&store, dest)?;
 
     let mut moved = Moved::default();
+    let mut told_more = false;
     if matches!(way, Way::Both | Way::Pull) {
-        moved.brought = bring(&store, device, dest)?;
+        let came = bring(&store, device, dest)?;
+        told_more = came > 0;
+        moved.brought = came;
         moved.brought += copy_held(&dest.join(HELD), &data.join(HELD))?;
     }
     if matches!(way, Way::Both | Way::Push) {
@@ -72,13 +75,29 @@ pub fn carry(
         moved.sent = copy_segments(&store.join(device), &dest.join(STORE).join(device))?;
         moved.sent += copy_held(&data.join(HELD), &dest.join(HELD))?;
     }
+    let alive = if told_more {
+        still_alive(&store, alive)
+    } else {
+        alive.to_vec()
+    };
     if !alive.is_empty() {
-        let papers = carry_papers(data, dest, alive)?;
+        let papers = carry_papers(data, dest, &alive)?;
         moved.sent += papers.sent;
         moved.brought += papers.brought;
         moved.undecided = papers.undecided;
     }
     Ok(moved)
+}
+
+fn still_alive(store: &Path, told: &[String]) -> Vec<String> {
+    let Ok(events) = tisty_core::store::read_all(store) else {
+        return told.to_vec();
+    };
+    tisty_core::State::replay(&events)
+        .docs
+        .values()
+        .map(|one| one.file.clone())
+        .collect()
 }
 
 fn settled(store: &Path, dest: &Path) -> Result<String, Trouble> {
@@ -575,6 +594,81 @@ mod tests {
         let one = blank(named);
         wrote(&one, format!("lo de {named}"));
         one
+    }
+
+    fn filed(who: &Machine, file: &str, body: &str) {
+        let mut held = Store::open(&who.store, DeviceId(who.device.clone())).unwrap();
+        held.append(Op::DocAdd {
+            id: Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: file.to_string(),
+                order: "a0".into(),
+                folder: None,
+            },
+        })
+        .unwrap();
+        tisty_core::docs::write(&who.data.join(PAPERS), file, body).unwrap();
+    }
+
+    #[test]
+    fn a_document_written_on_the_other_machine_lands_on_the_first_sync_not_the_second() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+        let two = blank("dos");
+
+        filed(&one, "uno-0001", "# Ortografia\n\nla n con virgulilla\n");
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &["uno-0001".into()],
+        )
+        .unwrap();
+
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        let landed = two.data.join(PAPERS).join("uno-0001.md");
+        assert!(
+            landed.is_file(),
+            "el documento no llego en la primera vuelta"
+        );
+        assert_eq!(
+            std::fs::read_to_string(landed).unwrap(),
+            "# Ortografia\n\nla n con virgulilla\n"
+        );
+    }
+
+    #[test]
+    fn a_document_the_other_machine_deleted_is_never_brought_back_by_the_new_reckoning() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+        let two = blank("dos");
+
+        filed(&one, "uno-0001", "# Algo\n");
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &["uno-0001".into()],
+        )
+        .unwrap();
+
+        let mut held = Store::open(&one.store, DeviceId(one.device.clone())).unwrap();
+        let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+            .docs
+            .values()
+            .next()
+            .unwrap()
+            .id;
+        held.append(Op::DocDelete { id }).unwrap();
+        drop(held);
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert!(!two.data.join(PAPERS).join("uno-0001.md").exists());
     }
 
     fn wrote(who: &Machine, title: String) {

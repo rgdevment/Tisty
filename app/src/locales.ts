@@ -289,6 +289,8 @@ const en = {
     "Then only one of the two stays.\n\nKeep the one on this machine? Answering no keeps the one from the shared folder, and what is here is lost.",
   wouldReset:
     "That folder holds another history. To join it, this machine has to be backed up and reset — it does not merge.",
+  stuckApart:
+    "Nothing is syncing: the shared folder holds another history, so this machine has been keeping to itself. Two histories never merge. In Settings you can join that folder — this machine is backed up first and then holds what the folder holds — or point it somewhere else.",
   remoteInsideStore: "{name} is inside Tisty's own folder — pick one outside it",
   joinThem:
     "That folder holds another history ({name}).\n\nTisty does not merge two histories. To join that one, this machine is backed up first and then emptied: it will hold what the folder holds, and nothing of what it holds now.\n\nPick where the backup goes?",
@@ -809,6 +811,8 @@ const es: Catalog = {
     "Entonces solo se queda una de las dos.\n\n¿La de esta máquina? Si respondes que no se queda la de la carpeta compartida, y lo que hay aquí se pierde.",
   wouldReset:
     "Esa carpeta guarda otro historial. Para unirse, esta máquina tiene que respaldarse y reiniciarse — no se fusiona.",
+  stuckApart:
+    "No se está sincronizando nada: la carpeta compartida guarda otro historial, así que esta máquina lleva todo este tiempo a solas. Dos historiales no se fusionan. En Ajustes puedes unirte a esa carpeta —esta máquina se respalda primero y queda con lo que ella guarda— o apuntarla a otro sitio.",
   remoteInsideStore: "{name} está dentro de la carpeta de Tisty — elige una fuera",
   joinThem:
     "Esa carpeta guarda otro historial ({name}).\n\nTisty no fusiona dos historiales. Para unirse a ese, esta máquina se respalda primero y luego se vacía: pasará a tener lo que tiene la carpeta, y nada de lo que tiene ahora.\n\n¿Eliges dónde va el respaldo?",

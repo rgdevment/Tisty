@@ -1449,6 +1449,7 @@ struct Settling {
     brought: bool,
     agrees: bool,
     was: Option<String>,
+    stuck: Option<Refusal>,
 }
 
 #[derive(serde::Serialize)]
@@ -2231,6 +2232,7 @@ async fn settle_in(
                 brought: false,
                 agrees: true,
                 was,
+                stuck: None,
             });
         }
         let dest = match &session.config.sync {
@@ -2248,6 +2250,7 @@ async fn settle_in(
     };
 
     let mut brought = false;
+    let mut stuck = None;
     let mut carried = dest.is_none();
     if let Some(dest) = dest
         && let Some(_done) = alone.inner().claim()
@@ -2259,11 +2262,15 @@ async fn settle_in(
         })
         .await;
         match carried {
-            Ok(Err(why)) => witness::warn(
-                channel::SYNC,
-                "the carry on opening did not finish",
-                &[("code", Fact::Code(said(why).code))],
-            ),
+            Ok(Err(why)) => {
+                let refusal = said(why);
+                witness::warn(
+                    channel::SYNC,
+                    "the carry on opening did not finish",
+                    &[("code", Fact::Code(refusal.code))],
+                );
+                stuck = Some(refusal);
+            }
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
             Ok(Ok(_)) => {}
         }
@@ -2309,6 +2316,7 @@ async fn settle_in(
         brought,
         agrees,
         was,
+        stuck,
     })
 }
 
