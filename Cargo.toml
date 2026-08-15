@@ -38,6 +38,7 @@ directories = "6"
 toml = "0.9"
 rusqlite = { version = "0.37", features = ["bundled"] }
 fs4 = "0.13"
+same-file = "1"
 thiserror = "2"
 sha2 = "0.10"
 zip = { version = "6", default-features = false, features = ["deflate"] }

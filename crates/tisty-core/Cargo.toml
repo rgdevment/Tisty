@@ -23,5 +23,8 @@ sha2.workspace = true
 zip.workspace = true
 unicode-normalization.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+same-file.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true

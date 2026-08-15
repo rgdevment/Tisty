@@ -463,17 +463,23 @@ pub struct Twins {
     pub at: Vec<String>,
 }
 
-fn one_and_the_same(told: &std::fs::Metadata) -> Option<(u64, u64)> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::MetadataExt;
-        Some((told.dev(), told.ino()))
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = told;
-        None
-    }
+#[cfg(unix)]
+fn told_apart(told: &std::fs::Metadata, _at: &Path, _one: &str) -> Option<(u64, u64)> {
+    use std::os::unix::fs::MetadataExt;
+    Some((told.dev(), told.ino()))
+}
+
+#[cfg(windows)]
+fn told_apart(_told: &std::fs::Metadata, at: &Path, one: &str) -> Option<same_file::Handle> {
+    same_file::Handle::from_path(at)
+        .inspect_err(|_| {
+            witness::warn(
+                channel::ATTACH,
+                "an attachment could not be opened while looking for twins",
+                &[("at", Fact::Id(one.to_owned()))],
+            );
+        })
+        .ok()
 }
 
 pub fn twins(root: &Path) -> Vec<Twins> {
@@ -508,7 +514,7 @@ pub fn twins(root: &Path) -> Vec<Twins> {
     let mut found = Vec::new();
     for named in alike.into_values().filter(|named| named.len() > 1) {
         let mut weighed: std::collections::BTreeMap<u64, Vec<String>> = Default::default();
-        let mut standing: std::collections::BTreeSet<(u64, u64)> = Default::default();
+        let mut standing = std::collections::HashSet::new();
         for one in named {
             let Ok(shown) = resolve(&one, root) else {
                 continue;
@@ -519,9 +525,10 @@ pub fn twins(root: &Path) -> Vec<Twins> {
             if told.len() > COPIED_IN_DOC {
                 continue;
             }
-            if let Some(who) = one_and_the_same(&told)
-                && !standing.insert(who)
-            {
+            let Some(who) = told_apart(&told, &shown, &one) else {
+                continue;
+            };
+            if !standing.insert(who) {
                 continue;
             }
             weighed.entry(told.len()).or_default().push(one);
@@ -1248,7 +1255,6 @@ mod tests {
         );
     }
 
-    #[cfg(unix)]
     #[test]
     fn a_second_name_for_the_same_bytes_is_not_a_second_copy() {
         let (_a, one) = dropped("charla.mp4", b"the very same bytes");
@@ -1261,6 +1267,45 @@ mod tests {
         assert!(
             twins(root.path()).is_empty(),
             "a second name was counted as room to win back, and letting it go frees nothing"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_name_that_cannot_be_told_apart_is_not_room_to_win_back() {
+        use std::io::Write;
+        use std::os::windows::fs::OpenOptionsExt;
+        let body = b"the very same bytes";
+        let (_a, one) = dropped("charla.mp4", body);
+        let root = tempfile::tempdir().unwrap();
+        let first = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mine = root.path().join(&first.at);
+        let other = mine.with_file_name(format!("video-{}.mp4", &first.sha256[2..10]));
+        std::fs::copy(&mine, &other).unwrap();
+
+        let leaf = other.file_name().unwrap().to_str().unwrap();
+        let noted = format!(
+            "{{\"at\":\"attachments/{}/{leaf}\",\"sha256\":\"{}\",\"bytes\":{}}}\n",
+            &first.sha256[..2],
+            first.sha256,
+            body.len()
+        );
+        std::fs::OpenOptions::new()
+            .append(true)
+            .open(root.path().join("attachments.jsonl"))
+            .unwrap()
+            .write_all(noted.as_bytes())
+            .unwrap();
+
+        let _shut = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(&other)
+            .unwrap();
+
+        assert!(
+            twins(root.path()).is_empty(),
+            "it promised room back for a name it could not even open to identify"
         );
     }
 

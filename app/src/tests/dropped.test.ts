@@ -83,6 +83,24 @@ describe("a file drag from the system", () => {
     expect(caught).toHaveBeenCalledWith(box, ["/a.png"], { left: 200, top: 100 });
   });
 
+  it("asks the window for the scale instead of assuming one", async () => {
+    const box = field();
+    const asked: Array<[number, number]> = [];
+    looked = (x, y) => {
+      asked.push([x, y]);
+      return box;
+    };
+    window.devicePixelRatio = 2;
+    const caught = vi.fn();
+    whenFilesLand(caught);
+    await settled();
+
+    webview.fire({ type: "drop", paths: ["/a.png"], position: { x: 200, y: 100 } });
+
+    expect(asked).toContainEqual([100, 50]);
+    expect(caught).toHaveBeenCalledWith(box, ["/a.png"], { left: 100, top: 50 });
+  });
+
   it("stops highlighting when the drag leaves", async () => {
     const box = field();
     looked = () => box;
