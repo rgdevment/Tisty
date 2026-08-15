@@ -141,6 +141,16 @@ fn listed(root: &Path, sha256: &str) -> Option<String> {
         .map(|one| one.at)
 }
 
+pub fn digests(root: &Path) -> std::collections::BTreeMap<String, (String, u64)> {
+    let Ok(text) = std::fs::read_to_string(ledger(root)) else {
+        return Default::default();
+    };
+    text.lines()
+        .filter_map(|line| serde_json::from_str::<Noted>(line).ok())
+        .map(|one| (one.at, (one.sha256, one.bytes)))
+        .collect()
+}
+
 fn holds(at: &Path, bytes: &[u8]) -> bool {
     std::fs::metadata(at).is_ok_and(|held| held.is_file() && held.len() == bytes.len() as u64)
         && std::fs::read(at).is_ok_and(|held| held == bytes)
@@ -423,14 +433,23 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
     gone
 }
 
+fn lower_hex(said: &str) -> bool {
+    said.bytes()
+        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+pub fn stamped_by(leaf: &str) -> &str {
+    let stem = leaf.split('.').next().unwrap_or_default();
+    stem.rsplit('-').next().unwrap_or_default()
+}
+
 pub fn shelved(shelf: &str, leaf: &str) -> bool {
-    if shelf.len() != 2 || !shelf.bytes().all(|b| b.is_ascii_hexdigit()) {
+    if shelf.len() != 2 || !lower_hex(shelf) {
         return false;
     }
-    let stem = leaf.split('.').next().unwrap_or_default();
-    let stamp = stem.rsplit('-').next().unwrap_or_default();
+    let stamp = stamped_by(leaf);
     (8..=16).contains(&stamp.len())
-        && stamp.bytes().all(|b| b.is_ascii_hexdigit())
+        && lower_hex(stamp)
         && leaf.len() <= 255
         && !leaf.contains('/')
         && !leaf.contains('\\')
@@ -461,15 +480,10 @@ pub fn twins(root: &Path) -> Vec<Twins> {
             let Some(leaf) = file.file_name().to_str().map(str::to_owned) else {
                 continue;
             };
-            if !shelved(&under, &leaf) {
+            if !file.file_type().is_ok_and(|kind| kind.is_file()) || !shelved(&under, &leaf) {
                 continue;
             }
-            let stem = leaf.split('.').next().unwrap_or_default();
-            let stamp = stem.rsplit('-').next().unwrap_or_default();
-            let stamp: String = stamp.chars().take(8).collect();
-            if !file.file_type().is_ok_and(|kind| kind.is_file()) {
-                continue;
-            }
+            let stamp: String = stamped_by(&leaf).chars().take(8).collect();
             alike
                 .entry(format!("{under}/{stamp}"))
                 .or_default()
@@ -477,26 +491,51 @@ pub fn twins(root: &Path) -> Vec<Twins> {
         }
     }
 
+    let written_down = digests(root);
     let mut found = Vec::new();
     for named in alike.into_values().filter(|named| named.len() > 1) {
-        let mut same: std::collections::BTreeMap<String, (u64, Vec<String>)> = Default::default();
+        let mut weighed: std::collections::BTreeMap<u64, Vec<String>> = Default::default();
         for one in named {
-            let Ok(at) = resolve(&one, root) else {
+            let Ok(shown) = resolve(&one, root) else {
                 continue;
             };
-            let Ok(body) = std::fs::read(&at) else {
+            let Ok(told) = std::fs::metadata(&shown) else {
                 continue;
             };
-            let held = same
-                .entry(fingerprint(&body))
-                .or_insert((body.len() as u64, Vec::new()));
-            held.1.push(one);
+            if told.len() > COPIED_IN_DOC {
+                continue;
+            }
+            weighed.entry(told.len()).or_default().push(one);
         }
-        for (bytes, at) in same.into_values().filter(|(_, at)| at.len() > 1) {
-            found.push(Twins {
-                bytes: bytes * (at.len() as u64 - 1),
-                at,
-            });
+
+        for (bytes, named) in weighed.into_iter().filter(|(_, named)| named.len() > 1) {
+            let mut same: std::collections::BTreeMap<String, Vec<String>> = Default::default();
+            for one in named {
+                let said = match written_down.get(&one) {
+                    Some((sha, held)) if *held == bytes => sha.clone(),
+                    _ => {
+                        let Ok(shown) = resolve(&one, root) else {
+                            continue;
+                        };
+                        let Ok(body) = std::fs::read(&shown) else {
+                            witness::warn(
+                                channel::ATTACH,
+                                "an attachment could not be read while looking for twins",
+                                &[("at", Fact::Id(one.clone()))],
+                            );
+                            continue;
+                        };
+                        fingerprint(&body)
+                    }
+                };
+                same.entry(said).or_default().push(one);
+            }
+            for at in same.into_values().filter(|at| at.len() > 1) {
+                found.push(Twins {
+                    bytes: bytes * (at.len() as u64 - 1),
+                    at,
+                });
+            }
         }
     }
     found.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.at.cmp(&b.at)));
@@ -504,10 +543,11 @@ pub fn twins(root: &Path) -> Vec<Twins> {
 }
 
 pub fn vouched(shelf: &str, leaf: &str, bytes: &[u8]) -> bool {
-    let stem = leaf.split('.').next().unwrap_or_default();
-    let stamp = stem.rsplit('-').next().unwrap_or_default();
+    if !shelved(shelf, leaf) {
+        return false;
+    }
     let said = fingerprint(bytes);
-    said.starts_with(shelf) && said[shelf.len()..].starts_with(stamp)
+    said.starts_with(shelf) && said[shelf.len()..].starts_with(stamped_by(leaf))
 }
 
 pub fn sweep(
@@ -1059,6 +1099,52 @@ mod tests {
             b"the very same bytes".len() as u64,
             "it showed what one weighs, not what letting one go would give back"
         );
+    }
+
+    #[test]
+    fn what_the_ledger_already_knows_is_not_read_from_disk_again() {
+        let (_a, one) = dropped("charla.mp4", b"the very same bytes");
+        let root = tempfile::tempdir().unwrap();
+        let first = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mine = root.path().join(&first.at);
+        let other = mine.with_file_name(format!("video-{}.mp4", &first.sha256[2..10]));
+        std::fs::copy(&mine, &other).unwrap();
+
+        let said = twins(root.path());
+        assert_eq!(said.len(), 1, "{said:?}");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut how = std::fs::metadata(&mine).unwrap().permissions();
+            how.set_mode(0o000);
+            std::fs::set_permissions(&mine, how).unwrap();
+
+            let blind = twins(root.path());
+            eprintln!("ledger={:?}", digests(root.path()));
+            eprintln!("blind={blind:?}");
+
+            assert_eq!(
+                blind.len(),
+                1,
+                "it went to the disk for a digest it had already written down"
+            );
+        }
+    }
+
+    #[test]
+    fn a_stamp_in_capitals_is_not_a_stamp() {
+        assert!(!shelved("ab", "charla-A3F9BB01.mp4"));
+        assert!(!shelved("AB", "charla-a3f9bb01.mp4"));
+        assert!(!vouched("ab", "charla-A3F9BB01.mp4", b"whatever"));
+    }
+
+    #[test]
+    fn a_name_with_no_stamp_vouches_for_nothing() {
+        assert!(!vouched("ab", "", b"anything at all"));
+        assert!(!vouched("", "", b"anything at all"));
+        assert!(!vouched("ab", "charla-.mp4", b"anything at all"));
+        assert!(!vouched("ab", "charla.mp4", b"anything at all"));
     }
 
     #[test]

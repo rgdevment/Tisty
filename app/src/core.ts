@@ -228,7 +228,6 @@ export interface Reviewed {
   loose: number;
   looseBytes: number;
   astray: Astray[];
-  twins: Twins[];
   events: number;
   machines: Machine[];
   logBytes: number;
@@ -317,6 +316,7 @@ export const keepReport = (at: string, text: string, logs: boolean): Promise<voi
   invoke("keep_report", { at, text, logs });
 export const rebuild = (): Promise<void> => invoke("rebuild");
 export const checked = (): Promise<Reviewed> => invoke("checked");
+export const twinned = (): Promise<Twins[]> => invoke("twinned");
 export const syncState = (): Promise<Carrying> => invoke("sync_state");
 export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
 export type Carried = "came" | "same" | "busy";

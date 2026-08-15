@@ -1099,6 +1099,12 @@ fn rebuild(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
 }
 
 #[tauri::command(async)]
+fn twinned(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core::attach::Twins>> {
+    let data = held(&session).paths.data().to_path_buf();
+    Ok(tisty_core::attach::twins(&data))
+}
+
+#[tauri::command(async)]
 fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
     let session = held(&session);
     let audit =
@@ -1130,7 +1136,6 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         loose: adrift.files(),
         loose_bytes: adrift.bytes,
         astray: adrift.items,
-        twins: tisty_core::attach::twins(session.paths.data()),
         events: tisty_core::store::read_all(session.paths.store())
             .map(|all| all.len())
             .unwrap_or(0),
@@ -1155,7 +1160,6 @@ struct Reviewed {
     loose: usize,
     loose_bytes: u64,
     astray: Vec<tisty_core::attach::Astray>,
-    twins: Vec<tisty_core::attach::Twins>,
     events: usize,
     machines: Vec<report::Machine>,
     log_bytes: u64,
@@ -3264,6 +3268,7 @@ pub fn run() {
             settle_paper,
             convert_paper,
             checked,
+            twinned,
             rebuild,
             about,
             settings,
