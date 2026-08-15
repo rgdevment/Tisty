@@ -104,7 +104,7 @@ repository, and this section was written before the release that carries it.
 | | |
 | :--- | :--- |
 | **Why** | To tell you a newer Tisty exists |
-| **What it asks for** | `https://github.com/rgdevment/Tisty/releases/latest/download/release-manifest.json` |
+| **What it asks for** | `https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json` |
 | **Method** | GET. Nothing is uploaded |
 | **What it sends** | The headers a request cannot avoid, and a user agent that says `tisty/<version>` — the same thing the download itself would reveal. No identifier, no store, no task, no name |
 | **How often** | At most once a day, and only while the window is open |

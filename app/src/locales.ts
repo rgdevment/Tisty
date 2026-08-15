@@ -290,12 +290,20 @@ const en = {
   wouldReset:
     "That folder holds another history. To join it, this machine has to be backed up and reset — it does not merge.",
   stuckTakeMe: "Sort it out",
+  someoneUnreadable:
+    "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   sameName:
     "Both hold a machine called {name}, and each wrote something different under that name. Joining them would put two histories into one file, so Tisty refuses. Keep one of the two sides instead.",
   stuckApart:
     "Nothing is syncing: the shared folder holds another history, so this machine has been keeping to itself. Two histories never merge. In Settings you can join that folder — this machine is backed up first and then holds what the folder holds — or point it somewhere else.",
   remoteInsideStore: "{name} is inside Tisty's own folder — pick one outside it",
   apartTitle: "That folder already holds another Tisty",
+  apartHomeTitle: "That folder already holds this machine's history",
+  apartHomeWhy:
+    "It went by another name, which is why syncing stopped. Nothing has to be chosen and nothing is lost: this machine takes the folder's name and keeps everything it has, including what it never sent.",
+  apartHomeDo: "Take the folder's name",
+  apartClashWhy:
+    "Both hold a machine by the same name that wrote different things under it. Joining them would put two histories into one file, so that door is shut. What is left keeps one of the two sides — and the other side keeps its own, on its own machine.",
   apartWhy:
     "It is not a fault: they are two separate histories, and Tisty never puts two together without asking. Pick what happens.",
   apartMerge: "Merge the two",
@@ -832,12 +840,20 @@ const es: Catalog = {
   wouldReset:
     "Esa carpeta guarda otro historial. Para unirse, esta máquina tiene que respaldarse y reiniciarse — no se fusiona.",
   stuckTakeMe: "Resolverlo",
+  someoneUnreadable:
+    "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un fichero que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   sameName:
     "Las dos guardan una máquina llamada {name}, y cada una escribió cosas distintas con ese nombre. Unirlas metería dos historias en el mismo fichero, así que Tisty se niega. Conserva uno de los dos lados.",
   stuckApart:
     "No se está sincronizando nada: la carpeta compartida guarda otro historial, así que esta máquina lleva todo este tiempo a solas. Dos historiales no se fusionan. En Ajustes puedes unirte a esa carpeta —esta máquina se respalda primero y queda con lo que ella guarda— o apuntarla a otro sitio.",
   remoteInsideStore: "{name} está dentro de la carpeta de Tisty — elige una fuera",
   apartTitle: "Esa carpeta ya guarda otro Tisty",
+  apartHomeTitle: "Esa carpeta ya guarda la historia de esta máquina",
+  apartHomeWhy:
+    "Iba con otro nombre, y por eso dejó de sincronizar. No hay que elegir nada y no se pierde nada: esta máquina toma el nombre de la carpeta y conserva todo lo que tiene, incluso lo que nunca envió.",
+  apartHomeDo: "Tomar el nombre de la carpeta",
+  apartClashWhy:
+    "Las dos guardan una máquina llamada igual que escribió cosas distintas con ese nombre. Unirlas metería dos historias en el mismo fichero, así que esa puerta está cerrada. Lo que queda conserva uno de los dos lados — y el otro conserva el suyo, en su propia máquina.",
   apartWhy:
     "No es un error: son dos historiales distintos, y Tisty nunca junta dos sin preguntar. Elige qué pasa.",
   apartMerge: "Fusionar las dos",

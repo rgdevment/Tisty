@@ -47,7 +47,8 @@ pub fn sync(
             anyhow::bail!("{}", lang.get("sandbox-cannot-join"));
         }
         let aside = app.paths.cache().to_path_buf();
-        let made = tisty_core::backup::take_over(&dest, &into, &aside)?;
+        let ours = tisty_core::store::identity(app.paths.store())?;
+        let made = tisty_core::backup::take_over(&dest, &ours, &into, &aside)?;
         println!(
             "  {}",
             style::dim(&lang.fill(
@@ -63,23 +64,19 @@ pub fn sync(
         }
         let aside = app.paths.cache().to_path_buf();
         tisty_core::backup::write(&data, &into, &aside)?;
-        let done = match carrier::stitch(&data, &dest) {
+        let done = match carrier::stitch(&data, &device, &dest) {
             Ok(done) => done,
             Err(trouble) => return Ok(said(&trouble, lang)),
         };
         *app = App::at(app.paths.clone())?;
         match done.stitch {
-            Some(seam) => {
-                let said = lang.fill(
+            Some(seam) => println!(
+                "  {}",
+                style::dim(&lang.fill(
                     "stitched",
-                    &[
-                        ("was", &seam.absorbed.clone()),
-                        ("now", &seam.survivor.clone()),
-                    ],
-                );
-                app.commit(tisty_core::Op::StoresJoined { d: seam })?;
-                println!("  {}", style::dim(&said));
-            }
+                    &[("was", &seam.absorbed), ("now", &seam.survivor)]
+                ))
+            ),
             None => println!("  {}", style::dim(lang.get("same-lineage"))),
         }
     }

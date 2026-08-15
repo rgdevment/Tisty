@@ -256,7 +256,7 @@ Markdown document you can read without Tisty.
 
 ## Your data
 
-A directory of text files, in your documents folder when the system names one:
+A directory of text files, in the place your system keeps application data — never in your documents folder:
 
 ```
 <application data>/tisty/data/

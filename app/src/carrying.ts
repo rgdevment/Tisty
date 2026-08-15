@@ -26,7 +26,10 @@ export function carrying(brought: () => void, atOdds: (ids: string[]) => void = 
     running = true;
 
     const patience = new Promise<Settled>((resolve) => {
-      expire = setTimeout(() => resolve({ carried: "same", undecided: [] }), GIVE_UP_AFTER);
+      expire = setTimeout(
+        () => resolve({ carried: "same", undecided: [], unreadable: [] }),
+        GIVE_UP_AFTER,
+      );
     });
 
     Promise.race([syncNow(way), patience])

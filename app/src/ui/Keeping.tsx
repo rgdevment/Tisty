@@ -18,6 +18,7 @@ import {
   joinThem,
   takeOver,
   mergeStores,
+  syncKin,
   removeMachine,
   twinned,
   retireAttachment,
@@ -32,6 +33,7 @@ import {
   type Twins,
   type Machine,
   copied,
+  type Kin,
 } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -132,6 +134,7 @@ export default function Keeping({ onChanged }: Props) {
   };
 
   const [apart, setApart] = useState<((door: Door | "else" | null) => void) | null>(null);
+  const [kin, setKin] = useState<Kin>("strangers");
 
   const closed = (door: Door | "else" | null) => {
     apart?.(door);
@@ -178,6 +181,7 @@ export default function Keeping({ onChanged }: Props) {
       const answer = await syncNow().catch(async (problem) => {
         const refusal = problem as { code?: string; name?: string };
         if (refusal?.code !== "wouldReset" && refusal?.code !== "otherStore") throw problem;
+        setKin(await syncKin().catch(() => "strangers" as const));
         const door = await new Promise<Door | "else" | null>((settle) => setApart(() => settle));
         if (door === null) return "declined" as const;
         if (door === "else") {
@@ -187,12 +191,13 @@ export default function Keeping({ onChanged }: Props) {
           return syncNow();
         }
         const named = {
-          merge: "tisty-before-joining-both.zip",
-          mine: "tisty-folder-before.zip",
-          theirs: "tisty-before-joining.zip",
+          merge: "tisty-before-joining-both",
+          mine: "tisty-folder-before",
+          theirs: "tisty-before-joining",
         } as const;
+        const day = new Date().toISOString().slice(0, 10);
         const at = await save({
-          defaultPath: named[door],
+          defaultPath: `${named[door]}-${day}.zip`,
           filters: [{ name: "Tisty", extensions: ["zip"] }],
         });
         if (typeof at !== "string") return "declined" as const;
@@ -207,7 +212,11 @@ export default function Keeping({ onChanged }: Props) {
         return "declined";
       }
       await decideAll(answer.undecided);
-      setSaid({ card: "sync", text: t(carried[answer.carried]) });
+      if (answer.unreadable?.length) {
+        setTrouble({ card: "sync", text: t("someoneUnreadable") });
+      } else {
+        setSaid({ card: "sync", text: t(carried[answer.carried]) });
+      }
       look();
       onChanged();
       return "done";
@@ -354,6 +363,7 @@ export default function Keeping({ onChanged }: Props) {
     <main className="flex flex-col overflow-hidden">
       {apart && (
         <Apart
+          kin={kin}
           onPick={(door) => closed(door)}
           onElse={() => closed("else")}
           onClose={() => closed(null)}

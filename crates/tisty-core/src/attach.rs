@@ -354,8 +354,12 @@ fn bin_ledger(root: &Path) -> PathBuf {
     root.join("bin.jsonl")
 }
 
+pub fn names_an_attachment(reference: &str) -> bool {
+    reference.starts_with("attachments/")
+}
+
 pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
-    if !reference.starts_with("attachments/") {
+    if !names_an_attachment(reference) {
         return Err(Error::OutsideTheStore(reference.to_string()));
     }
     let from = resolve(reference, root)?;
@@ -597,6 +601,14 @@ pub fn sweep(
         if held.contains(one.as_str()) {
             continue;
         }
+        if !names_an_attachment(one) {
+            witness::warn(
+                channel::ATTACH,
+                "a retirement named something that is not an attachment at all",
+                &[("at", Fact::Id(one.clone()))],
+            );
+            continue;
+        }
         let Ok(at) = resolve(one, root) else {
             witness::warn(
                 channel::ATTACH,
@@ -698,6 +710,47 @@ fn pictorial(name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_retirement_that_names_the_log_never_deletes_it() {
+        let root = tempfile::tempdir().unwrap();
+        let device = root.path().join("store").join("dev_a");
+        std::fs::create_dir_all(&device).unwrap();
+        let segment = device.join("000001.tisty");
+        std::fs::write(&segment, b"lo que nadie puede borrar").unwrap();
+        let papers = root.path().join("docs");
+        std::fs::create_dir_all(&papers).unwrap();
+        let paper = papers.join("dev_a-0001.md");
+        std::fs::write(&paper, b"# Algo").unwrap();
+
+        let retired: std::collections::BTreeSet<String> = [
+            "store/dev_a/000001.tisty".to_string(),
+            "docs/dev_a-0001.md".to_string(),
+            "attachments.jsonl".to_string(),
+        ]
+        .into();
+        let gone = sweep(root.path(), &retired, &Default::default());
+
+        assert_eq!(gone, 0, "borro algo que no era un adjunto");
+        assert!(segment.is_file(), "se llevo un segmento del log");
+        assert!(paper.is_file(), "se llevo un documento");
+    }
+
+    #[test]
+    fn a_retirement_that_names_a_real_attachment_still_takes_it_out() {
+        let root = tempfile::tempdir().unwrap();
+        let shelf = root.path().join("attachments").join("ab");
+        std::fs::create_dir_all(&shelf).unwrap();
+        let at = shelf.join("foto-a1b2c3d4.png");
+        std::fs::write(&at, b"unos bytes").unwrap();
+
+        let retired: std::collections::BTreeSet<String> =
+            ["attachments/ab/foto-a1b2c3d4.png".to_string()].into();
+        let gone = sweep(root.path(), &retired, &Default::default());
+
+        assert_eq!(gone, 1);
+        assert!(!at.exists());
+    }
     use super::*;
 
     fn dropped(name: &str, bytes: &[u8]) -> (tempfile::TempDir, PathBuf) {

@@ -78,6 +78,7 @@ Reading refuses to continue, rather than returning a smaller history, when:
 
 - a sealed segment is missing from the sequence,
 - a sealed segment is present but empty,
+- a sealed segment holds a different count of events than its `.count` declares,
 - any line fails to parse,
 - an event declares a schema version this build does not know.
 
@@ -188,6 +189,8 @@ tisty sync                         # leave ours, take everyone else's
 tisty sync --push                  # leave only
 tisty sync --pull                  # take only
 tisty sync --join <backup.zip>     # back this machine up, empty it, take the folder's
+tisty sync --take-over <backup.zip> # back the folder up, empty it, leave ours
+tisty sync --merge <backup.zip>    # back up, then hold both histories
 ```
 
 Tisty always works in its own local directory. Syncing **leaves a copy** in that
@@ -221,7 +224,9 @@ two machines cannot produce a conflicting file.
 What arrives is read before it is written. A `000002` without its `000001`, a
 half-downloaded segment, a conflict copy a cloud client left behind — all are
 refused at the door, because reading a broken one takes down the whole store,
-every device included. Files already identical are skipped, so syncing twice
+every device included. **That refusal is that machine's alone**: one unreadable
+device directory in the folder is left out and named in the result, and everything
+else — your own writing above all — still goes through. Files already identical are skipped, so syncing twice
 over moves nothing the second time.
 
 Attachments travel too. They are named after their own sha-256, so a name that
@@ -274,22 +279,35 @@ segments** — one writer, append-only, so one side must be a prefix of the othe
 It is compared whole rather than file by file because rotation renames what it
 seals: the same history can be one file here and two there. A file the reader
 cannot open, or one of zero bytes — what a cloud client leaves before it fills
-one in — proves nothing either way, and where there is no evidence the answer is
-"strangers": a needless seam is harmless bookkeeping, a missed clash is not.
+one in — proves nothing either way. Where there is no evidence the answer turns on
+whether a device name appears on both sides: if none does, "strangers", since a
+needless seam is harmless bookkeeping; if one does, it is refused, because an
+unprovable shared name is the fatal case. Names here means directories **and the
+ids events name**, so an id surviving only inside someone else's `device.remove`
+still counts.
 
 When the same device name exists on both sides having written **different**
 things, nothing is merged. Two writers under one name is the one thing the whole
 design rests on not happening.
 
-**The folder's name is the one that survives.** Not for comfort: `.store-id` is
+**When two histories are merged, the folder's name is the one that survives.** Not for comfort: `.store-id` is
 the only file in the shared folder without a single writer. Minting a new name —
 or imposing the local one — rewrites it, and two machines merging at once would
 write two different contents into one file, which is the exact class of conflict
 everything else here is arranged to make impossible. Adopting the folder's name
 makes that file effectively immutable: concurrent merges write the same bytes.
 
-A merge leaves a `stores.joined` event behind, carrying both names and which
-devices came from which side. It touches no task and no document; like
+A merge writes a `stores.joined` event **before** it takes the folder's name,
+carrying both names and which devices came from which side. That order is not
+taste: taking the name first and dying would leave a store whose name already
+matches, so the question is never asked again and the trail is lost. Writing the
+event first means a death leaves the names still apart, the question comes back,
+and doing it twice only records an ancestor that was already recorded.
+
+That set of ancestors is **written but not yet read**: the lineage question is
+answered from the segments alone today, and the record exists so a machine
+arriving much later can be told what happened rather than only what to choose.
+Until something reads it, this is a claim about the record, not about behaviour. It touches no task and no document; like
 `device.join`, it is an event that projects something other than data — the set
 of ancestor store names, which accumulates, so a machine that arrives much later
 can still recognise its own name as one of them.
@@ -329,7 +347,7 @@ piece of text rather than a broken file path.
 
 ## Backing up by hand
 
-One zip of `store/` and `attachments/`, never the configuration — a shared
+One zip of `store/`, `docs/`, `originals/` and `attachments/`, never the configuration — a shared
 `device_id` would put two machines in one file.
 
 Restoring is **a photograph**: back to that moment, and what came after is lost

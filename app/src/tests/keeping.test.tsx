@@ -641,6 +641,34 @@ describe("the maintenance panel", () => {
     expect(sent("choose_sync")).toHaveLength(1);
   });
 
+  it("asks nothing when the folder already holds this machine's own history", async () => {
+    onceApart();
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_kin" ? Promise.resolve("sameLineage") : otherwise(cmd, args);
+    asked.file = "C:/keep/tisty-before-joining-both.zip";
+    await carried();
+
+    const said = await screen.findByRole("dialog");
+    expect(said.textContent).toMatch(/already holds this machine/i);
+    expect(said.textContent).not.toMatch(/two lists by the same name/i);
+    expect(screen.queryByRole("button", { name: /keep this machine/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /take what the folder has/i })).toBeNull();
+  });
+
+  it("shuts the merging door when the two clash under one machine name", async () => {
+    apart();
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_kin" ? Promise.resolve("clash") : otherwise(cmd, args);
+    await carried();
+
+    const said = await screen.findByRole("dialog");
+    expect(said.textContent).toMatch(/wrote different things/i);
+    expect(screen.queryByRole("button", { name: /merge the two/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /keep this machine/i })).toBeTruthy();
+  });
+
   it("opens the three doors instead of a yes or no", async () => {
     apart();
     await carried();
