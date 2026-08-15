@@ -190,6 +190,9 @@ const en = {
   duplicate: "Duplicate",
   copyPlain: "Copy as Markdown",
   toPdf: "Export to PDF…",
+  takeOut: "Export as Markdown…",
+  takenOut: "Taken out with {name} of its files",
+  takenOutAlone: "Taken out",
   copied: "Copied without the underline",
   bigTitle: "Heading",
   midTitle: "Subheading",
@@ -430,6 +433,10 @@ const en = {
   looseWait:
     "Sync the machines listed above, or remove them, before deciding what is left over.",
   looseNone: "Nothing loose",
+  twinsAre: "The same file kept twice",
+  twinsWhat:
+    "Two machines attached these before they had synced, so each kept it under the name it came with. Nothing is lost — the copies are simply taking up room. The size is what letting the spares go would give back. Tisty does not choose which.",
+  twinsNone: "Nothing is kept twice",
   looseDrop: "Take it out",
   looseDropSure:
     "Take {name} out?\n\nIt is kept aside here for 30 days in case you change your mind, and taken out of every machine that syncs. One that shows up later does not get it back: it says the file is no longer there.",
@@ -697,6 +704,9 @@ const es: Catalog = {
   duplicate: "Duplicar",
   copyPlain: "Copiar como Markdown",
   toPdf: "Exportar a PDF…",
+  takeOut: "Exportar como Markdown…",
+  takenOut: "Exportado con {name} de sus archivos",
+  takenOutAlone: "Exportado",
   copied: "Copiado sin el subrayado",
   bigTitle: "Título",
   midTitle: "Subtítulo",
@@ -937,6 +947,10 @@ const es: Catalog = {
   looseWait:
     "Sincroniza las máquinas de arriba, o remuévelas, antes de decidir qué sobra.",
   looseNone: "Nada suelto",
+  twinsAre: "El mismo archivo guardado dos veces",
+  twinsWhat:
+    "Dos máquinas lo adjuntaron antes de sincronizar, así que cada una lo guardó con el nombre que traía. No se pierde nada: las copias solo ocupan sitio. El tamaño es lo que se recupera soltando las de más. Tisty no elige cuál.",
+  twinsNone: "Nada guardado dos veces",
   looseDrop: "Quitar",
   looseDropSure:
     "¿Quitar {name}?\n\nSe guarda aquí 30 días por si cambias de opinión, y se saca de todas las máquinas que sincronicen. La que aparezca más tarde no lo recupera: dirá que el fichero ya no está.",

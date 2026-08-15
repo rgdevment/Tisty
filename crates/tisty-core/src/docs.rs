@@ -152,7 +152,19 @@ pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
     write_atomic(&at, body.as_bytes())
 }
 
+pub const IMPORTS: [&str; 3] = ["md", "markdown", "txt"];
+
+pub fn importable(at: &Path) -> bool {
+    at.extension()
+        .and_then(|one| one.to_str())
+        .map(str::to_lowercase)
+        .is_some_and(|one| IMPORTS.contains(&one.as_str()))
+}
+
 pub fn read_outside(at: &Path) -> Result<String> {
+    if !importable(at) {
+        return Err(Error::OutsideTheStore(at.display().to_string()));
+    }
     let file = std::fs::File::open(at)?;
     if !file.metadata()?.is_file() {
         return Err(Error::OutsideTheStore(at.display().to_string()));
@@ -183,6 +195,69 @@ pub fn read(root: &Path, id: &str) -> Result<String> {
         });
     }
     Ok(body)
+}
+
+pub fn exported(data: &Path, id: &str, into: &Path) -> Result<usize> {
+    if into.starts_with(data) || data.starts_with(into) {
+        return Err(Error::OutsideTheStore(into.display().to_string()));
+    }
+    let body = read(&data.join("docs"), id)?;
+
+    let named = titled(&body);
+    let named = spelled(if named.is_empty() { id } else { &named });
+    let folder = into.join(&named);
+    std::fs::create_dir_all(into)?;
+    std::fs::create_dir(&folder)?;
+    write_atomic(
+        &folder.join(format!("{named}.{EXTENSION}")),
+        body.as_bytes(),
+    )?;
+
+    let held = data.join("attachments");
+    let mut taken = 0;
+    for one in crate::refs::extract(&body)
+        .into_iter()
+        .map(|one| one.target)
+    {
+        if !one.starts_with("attachments/") {
+            continue;
+        }
+        let Ok(from) = crate::attach::resolve(&one, data) else {
+            continue;
+        };
+        let Ok(rest) = from.strip_prefix(&held) else {
+            continue;
+        };
+        let at = folder.join("attachments").join(rest);
+        if let Some(under) = at.parent() {
+            std::fs::create_dir_all(under)?;
+        }
+        if std::fs::copy(&from, &at).is_ok() {
+            taken += 1;
+        }
+    }
+    Ok(taken)
+}
+
+fn spelled(said: &str) -> String {
+    let flat: String = said
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == ' ' || c == '-' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    let flat = flat.trim().replace(' ', "-");
+    let flat: String = flat.chars().take(60).collect();
+    let flat = flat.trim_matches('-').to_string();
+    if flat.is_empty() || crate::attach::reserved(&flat) {
+        "documento".into()
+    } else {
+        flat
+    }
 }
 
 pub fn referenced(root: &Path) -> Vec<String> {
@@ -1106,6 +1181,195 @@ mod tests {
         std::fs::write(&bad, [0x66, 0x6f, 0xff, 0xfe, 0x62, 0x61, 0x72]).unwrap();
 
         assert!(matches!(read_outside(&bad), Err(Error::Io(_))));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn what_a_document_names_can_never_be_written_outside_the_folder_that_was_chosen() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path().join("data");
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        let shelf = data.join("attachments").join("ab");
+        std::fs::create_dir_all(&shelf).unwrap();
+        std::fs::write(shelf.join("foto-91f2ab00.png"), b"a picture").unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0001.md"),
+            "# Minuta\n\n![x](<attachments/ab/foto-91f2ab00.png?/../../../pwned.txt>)\n\n             ![y](<attachments/ab/foto-91f2ab00.png#/../../../also.txt>)",
+        )
+        .unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let chosen = out.path().join("chosen");
+        exported(&data, "mac0-0001", &chosen).unwrap();
+
+        assert!(
+            !out.path().join("pwned.txt").exists(),
+            "it wrote outside the folder"
+        );
+        assert!(!out.path().join("also.txt").exists());
+        assert!(!room.path().join("pwned.txt").exists());
+    }
+
+    #[test]
+    fn only_what_lives_under_attachments_is_carried_out() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path().join("data");
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        std::fs::write(data.join("attachments.jsonl"), b"the ledger").unwrap();
+        std::fs::write(data.join("docs").join("mac0-0009.md"), b"someone else").unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0001.md"),
+            "# Minuta\n\n[a](<attachments.jsonl>) [b](<docs/mac0-0009.md>)",
+        )
+        .unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let taken = exported(&data, "mac0-0001", &out.path().join("chosen")).unwrap();
+
+        assert_eq!(
+            taken, 0,
+            "it carried out something that is not an attachment"
+        );
+    }
+
+    #[test]
+    fn a_document_is_never_taken_out_into_the_store_it_came_from() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path().join("data");
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        let shelf = data.join("attachments").join("ab");
+        std::fs::create_dir_all(&shelf).unwrap();
+        std::fs::write(shelf.join("foto-91f2ab00.png"), b"a picture").unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0001.md"),
+            "# Minuta\n\n![x](<attachments/ab/foto-91f2ab00.png>)",
+        )
+        .unwrap();
+
+        assert!(exported(&data, "mac0-0001", &data).is_err());
+        assert!(exported(&data, "mac0-0001", &data.join("docs")).is_err());
+        assert_eq!(
+            std::fs::read(shelf.join("foto-91f2ab00.png")).unwrap(),
+            b"a picture",
+            "taking it out into its own store emptied the attachment"
+        );
+    }
+
+    #[test]
+    fn taking_one_out_twice_never_writes_over_what_is_already_there() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path().join("data");
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        std::fs::write(data.join("docs").join("mac0-0001.md"), "# Minuta\n\nlo mio").unwrap();
+        let out = tempfile::tempdir().unwrap();
+
+        exported(&data, "mac0-0001", out.path()).unwrap();
+        let again = exported(&data, "mac0-0001", out.path());
+
+        assert!(again.is_err(), "it wrote over what was already taken out");
+        assert_eq!(
+            std::fs::read_to_string(out.path().join("Minuta").join("Minuta.md")).unwrap(),
+            "# Minuta\n\nlo mio"
+        );
+    }
+
+    #[test]
+    fn a_document_taken_out_carries_the_files_it_names() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path();
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        let shelf = data.join("attachments").join("ab");
+        std::fs::create_dir_all(&shelf).unwrap();
+        std::fs::write(shelf.join("foto-91f2ab00.png"), b"a picture").unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0001.md"),
+            "# Minuta del lunes\n\n![una foto](<attachments/ab/foto-91f2ab00.png>)",
+        )
+        .unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let taken = exported(data, "mac0-0001", out.path()).unwrap();
+
+        assert_eq!(taken, 1);
+        let folder = out.path().join("Minuta-del-lunes");
+        assert_eq!(
+            std::fs::read(folder.join("attachments/ab/foto-91f2ab00.png")).unwrap(),
+            b"a picture"
+        );
+        let said = std::fs::read_to_string(folder.join("Minuta-del-lunes.md")).unwrap();
+        assert!(
+            said.contains("attachments/ab/foto-91f2ab00.png"),
+            "the reference was rewritten when it did not need to be"
+        );
+    }
+
+    #[test]
+    fn what_is_taken_out_is_named_after_the_document_and_not_after_its_file() {
+        let room = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(room.path().join("docs")).unwrap();
+        std::fs::write(
+            room.path().join("docs").join("mac0-0002.md"),
+            "# Cosas / raras: \\ y demas\n\ntexto",
+        )
+        .unwrap();
+        let out = tempfile::tempdir().unwrap();
+
+        exported(room.path(), "mac0-0002", out.path()).unwrap();
+
+        let made: Vec<String> = std::fs::read_dir(out.path())
+            .unwrap()
+            .filter_map(|one| one.ok())
+            .map(|one| one.file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(made.len(), 1, "{made:?}");
+        assert!(!made[0].contains('/'), "{made:?}");
+        assert!(!made[0].contains('\\'), "{made:?}");
+        assert!(
+            std::fs::read_dir(out.path().join(&made[0]))
+                .unwrap()
+                .any(|one| one.unwrap().file_name().to_string_lossy().ends_with(".md")),
+            "{made:?}"
+        );
+    }
+
+    #[test]
+    fn a_document_with_nothing_attached_still_comes_out_whole() {
+        let room = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(room.path().join("docs")).unwrap();
+        std::fs::write(
+            room.path().join("docs").join("mac0-0003.md"),
+            "# Sola\n\nnada mas",
+        )
+        .unwrap();
+        let out = tempfile::tempdir().unwrap();
+
+        assert_eq!(exported(room.path(), "mac0-0003", out.path()).unwrap(), 0);
+        assert!(!out.path().join("Sola").join("attachments").exists());
+    }
+
+    #[test]
+    fn only_what_the_editor_can_open_is_taken_in() {
+        let room = tempfile::tempdir().unwrap();
+        for named in ["notas.md", "notas.MARKDOWN", "notas.txt"] {
+            let at = room.path().join(named);
+            std::fs::write(&at, b"# Hola").unwrap();
+            assert_eq!(read_outside(&at).unwrap(), "# Hola", "{named}");
+        }
+
+        for named in [
+            "archivo.zip",
+            "foto.png",
+            "guion.docx",
+            "notas.text",
+            "sin-extension",
+        ] {
+            let at = room.path().join(named);
+            std::fs::write(&at, b"# Hola").unwrap();
+            assert!(
+                matches!(read_outside(&at), Err(Error::OutsideTheStore(_))),
+                "{named} was taken in as a document"
+            );
+        }
     }
 
     #[cfg(unix)]

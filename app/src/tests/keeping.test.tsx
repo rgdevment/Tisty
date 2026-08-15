@@ -87,6 +87,7 @@ beforeEach(() => {
           agrees: true,
           loose: 3,
           looseBytes: 311_000,
+          twins: [],
           astray: [
             { at: "attachments/ab/charla-a3f9.mp4", bytes: 300_000, when: 1_754_000_000 },
             { at: "attachments/cd/notas-b1c2.pdf", bytes: 11_000, when: 1_754_000_000 },
@@ -447,6 +448,40 @@ describe("the maintenance panel", () => {
 
     expect(await screen.findByText("charla-a3f9.mp4")).toBeTruthy();
     expect(screen.getByText("notas-b1c2.pdf")).toBeTruthy();
+  });
+
+  it("shows the same file kept twice, and says nobody will choose for you", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "checked"
+        ? otherwise(cmd, args).then((was) => ({
+            ...(was as Record<string, unknown>),
+            twins: [
+              {
+                bytes: 300_000,
+                at: ["attachments/ab/charla-a3f9.mp4", "attachments/ab/video-a3f9.mp4"],
+              },
+            ],
+          }))
+        : otherwise(cmd, args);
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText("ab/video-a3f9.mp4")).toBeTruthy();
+    expect(screen.getByText(/does not choose which|no elige cuál/i)).toBeTruthy();
+  });
+
+  it("says nothing is kept twice when nothing is", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText(/nothing is kept twice/i)).toBeTruthy();
   });
 
   it("says plainly that another machine may still be using them", async () => {

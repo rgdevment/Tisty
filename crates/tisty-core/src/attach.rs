@@ -437,6 +437,79 @@ pub fn shelved(shelf: &str, leaf: &str) -> bool {
         && leaf.chars().all(|c| !c.is_control())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Twins {
+    pub bytes: u64,
+    pub at: Vec<String>,
+}
+
+pub fn twins(root: &Path) -> Vec<Twins> {
+    let mut alike: std::collections::BTreeMap<String, Vec<String>> = Default::default();
+    let at = root.join("attachments");
+    let Ok(shelves) = std::fs::read_dir(&at) else {
+        return Vec::new();
+    };
+    for shelf in shelves.filter_map(|one| one.ok()) {
+        let Some(under) = shelf.file_name().to_str().map(str::to_owned) else {
+            continue;
+        };
+        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+            continue;
+        };
+        for file in files.filter_map(|one| one.ok()) {
+            let Some(leaf) = file.file_name().to_str().map(str::to_owned) else {
+                continue;
+            };
+            if !shelved(&under, &leaf) {
+                continue;
+            }
+            let stem = leaf.split('.').next().unwrap_or_default();
+            let stamp = stem.rsplit('-').next().unwrap_or_default();
+            let stamp: String = stamp.chars().take(8).collect();
+            if !file.file_type().is_ok_and(|kind| kind.is_file()) {
+                continue;
+            }
+            alike
+                .entry(format!("{under}/{stamp}"))
+                .or_default()
+                .push(format!("attachments/{under}/{leaf}"));
+        }
+    }
+
+    let mut found = Vec::new();
+    for named in alike.into_values().filter(|named| named.len() > 1) {
+        let mut same: std::collections::BTreeMap<String, (u64, Vec<String>)> = Default::default();
+        for one in named {
+            let Ok(at) = resolve(&one, root) else {
+                continue;
+            };
+            let Ok(body) = std::fs::read(&at) else {
+                continue;
+            };
+            let held = same
+                .entry(fingerprint(&body))
+                .or_insert((body.len() as u64, Vec::new()));
+            held.1.push(one);
+        }
+        for (bytes, at) in same.into_values().filter(|(_, at)| at.len() > 1) {
+            found.push(Twins {
+                bytes: bytes * (at.len() as u64 - 1),
+                at,
+            });
+        }
+    }
+    found.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.at.cmp(&b.at)));
+    found
+}
+
+pub fn vouched(shelf: &str, leaf: &str, bytes: &[u8]) -> bool {
+    let stem = leaf.split('.').next().unwrap_or_default();
+    let stamp = stem.rsplit('-').next().unwrap_or_default();
+    let said = fingerprint(bytes);
+    said.starts_with(shelf) && said[shelf.len()..].starts_with(stamp)
+}
+
 pub fn sweep(
     root: &Path,
     retired: &std::collections::BTreeSet<String>,
@@ -513,7 +586,7 @@ pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
     Ok(walked)
 }
 
-fn reserved(name: &str) -> bool {
+pub fn reserved(name: &str) -> bool {
     let stem = name.split('.').next().unwrap_or(name).to_ascii_uppercase();
     matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
         || (stem.len() == 4
@@ -957,6 +1030,205 @@ mod tests {
         assert_eq!(counted.bytes, b"nobody points here".len() as u64);
 
         assert_eq!(loose(root.path(), &[]).files(), 2);
+    }
+
+    #[test]
+    fn two_names_holding_the_same_bytes_are_shown_together() {
+        let (_a, one) = dropped("charla.mp4", b"the very same bytes");
+        let root = tempfile::tempdir().unwrap();
+        let first = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mine = root.path().join(&first.at);
+        let other = mine.with_file_name(format!(
+            "video-{}",
+            mine.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .rsplit('-')
+                .next()
+                .unwrap()
+        ));
+        std::fs::copy(&mine, &other).unwrap();
+
+        let said = twins(root.path());
+
+        assert_eq!(said.len(), 1, "{said:?}");
+        assert_eq!(said[0].at.len(), 2);
+        assert_eq!(
+            said[0].bytes,
+            b"the very same bytes".len() as u64,
+            "it showed what one weighs, not what letting one go would give back"
+        );
+    }
+
+    #[test]
+    fn three_copies_show_what_two_of_them_are_costing() {
+        let (_a, one) = dropped("charla.mp4", b"ten bytes!");
+        let root = tempfile::tempdir().unwrap();
+        let first = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mine = root.path().join(&first.at);
+        for slug in ["video", "copia"] {
+            let other = mine.with_file_name(format!("{slug}-{}.mp4", &first.sha256[2..10]));
+            std::fs::copy(&mine, &other).unwrap();
+        }
+
+        let said = twins(root.path());
+
+        assert_eq!(said.len(), 1);
+        assert_eq!(said[0].at.len(), 3);
+        assert_eq!(
+            said[0].bytes, 20,
+            "it showed one copy, not the room to win back"
+        );
+    }
+
+    #[test]
+    fn a_long_stamp_and_a_short_one_are_still_the_same_file() {
+        let (_a, one) = dropped("charla.mp4", b"the very same bytes");
+        let root = tempfile::tempdir().unwrap();
+        let first = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mine = root.path().join(&first.at);
+        let other = mine.with_file_name(format!("video-{}.mp4", &first.sha256[2..18]));
+        std::fs::copy(&mine, &other).unwrap();
+
+        let said = twins(root.path());
+
+        assert_eq!(
+            said.len(),
+            1,
+            "the one case this exists for went unseen: {said:?}"
+        );
+    }
+
+    #[test]
+    fn a_store_where_every_name_holds_its_own_bytes_shows_no_twins() {
+        let (_a, one) = dropped("charla.mp4", b"one thing");
+        let (_b, two) = dropped("notas.pdf", b"another thing entirely");
+        let root = tempfile::tempdir().unwrap();
+        keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        keep(&two, root.path(), COPIED_UP_TO).unwrap();
+
+        assert!(twins(root.path()).is_empty());
+    }
+
+    #[test]
+    fn a_shared_stamp_is_not_taken_for_shared_bytes() {
+        let (_a, one) = dropped("charla.mp4", b"the very same bytes");
+        let root = tempfile::tempdir().unwrap();
+        let first = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mine = root.path().join(&first.at);
+        let other = mine.with_file_name(format!(
+            "impostor-{}",
+            mine.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .rsplit('-')
+                .next()
+                .unwrap()
+        ));
+        std::fs::write(&other, b"different bytes wearing the same stamp").unwrap();
+
+        assert!(
+            twins(root.path()).is_empty(),
+            "it called them twins on the strength of the name alone"
+        );
+    }
+
+    #[test]
+    fn the_same_bytes_under_another_name_are_kept_once() {
+        let (_a, one) = dropped("charla.mp4", b"the very same bytes");
+        let (_b, two) = dropped("video-de-la-charla.mp4", b"the very same bytes");
+        let root = tempfile::tempdir().unwrap();
+
+        let first = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let again = keep(&two, root.path(), COPIED_UP_TO).unwrap();
+
+        assert_eq!(
+            first.at, again.at,
+            "a second copy was written under a new name"
+        );
+        let shelf = root.path().join(&first.at).parent().unwrap().to_path_buf();
+        assert_eq!(std::fs::read_dir(shelf).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn the_same_bytes_are_recognised_even_with_no_ledger_to_ask() {
+        let (_a, one) = dropped("charla.mp4", b"the very same bytes");
+        let (_b, two) = dropped("otro-nombre.mp4", b"the very same bytes");
+        let root = tempfile::tempdir().unwrap();
+        let first = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        std::fs::remove_file(root.path().join("attachments.jsonl")).unwrap();
+
+        let again = keep(&two, root.path(), COPIED_UP_TO).unwrap();
+
+        assert_eq!(
+            first.at, again.at,
+            "without the ledger it stopped seeing what the folder already held"
+        );
+    }
+
+    #[test]
+    fn a_name_vouches_for_the_bytes_it_was_given() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mut parts = at.split('/');
+        parts.next();
+        let shelf = parts.next().unwrap();
+        let leaf = parts.next().unwrap();
+
+        assert!(vouched(shelf, leaf, b"the bytes of a talk"));
+    }
+
+    #[test]
+    fn a_name_refuses_to_vouch_for_bytes_that_are_not_the_ones() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mut parts = at.split('/');
+        parts.next();
+        let shelf = parts.next().unwrap();
+        let leaf = parts.next().unwrap();
+
+        assert!(!vouched(shelf, leaf, b"someone else's bytes entirely"));
+        assert!(!vouched(shelf, leaf, b""));
+        assert!(
+            !vouched("00", leaf, b"the bytes of a talk"),
+            "the shelf is not read"
+        );
+    }
+
+    #[test]
+    fn the_right_shelf_alone_vouches_for_nothing() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let shelf = at.split('/').nth(1).unwrap();
+
+        assert!(
+            !vouched(shelf, "charla-00000000.mp4", b"the bytes of a talk"),
+            "the shelf matched and the stamp went unread"
+        );
+        assert!(!vouched(
+            shelf,
+            "charla-ffffffff.mp4",
+            b"the bytes of a talk"
+        ));
+    }
+
+    #[test]
+    fn a_longer_stamp_is_checked_to_its_full_length() {
+        let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
+        let root = tempfile::tempdir().unwrap();
+        let Kept { at, sha256 } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+        let mut parts = at.split('/');
+        parts.next();
+        let shelf = parts.next().unwrap();
+        let long = format!("charla-{}.mp4", &sha256[2..18]);
+
+        assert!(vouched(shelf, &long, b"the bytes of a talk"));
+        assert!(!vouched(shelf, &long, b"other bytes"));
     }
 
     #[test]

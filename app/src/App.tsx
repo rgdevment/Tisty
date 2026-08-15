@@ -13,6 +13,7 @@ import {
   parted,
   printed,
   docDrop,
+  docExport,
   docImport,
   folderFile,
   folderDrop,
@@ -581,6 +582,20 @@ export default function App() {
                   asPlain(doc.file)
                     .then(() => {
                       setNote(t("copied"));
+                      setTimeout(() => setNote(null), 3200);
+                    })
+                    .catch((e) => setError(saidPlainly(e))),
+              },
+              {
+                key: "takeOut",
+                icon: "⇪",
+                label: t("takeOut"),
+                onPick: () =>
+                  pick({ directory: true })
+                    .then((at) => (typeof at === "string" ? docExport(doc.file, at) : null))
+                    .then((taken) => {
+                      if (taken === null) return;
+                      setNote(taken ? fill("takenOut", String(taken)) : t("takenOutAlone"));
                       setTimeout(() => setNote(null), 3200);
                     })
                     .catch((e) => setError(saidPlainly(e))),
