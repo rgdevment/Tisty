@@ -1122,24 +1122,36 @@ mod tests {
         assert!(print_of(&at).unwrap().is_some());
     }
 
+    #[cfg(unix)]
+    fn shut(at: &Path) -> Option<std::fs::File> {
+        use std::os::unix::fs::PermissionsExt;
+        let mut how = std::fs::metadata(at).unwrap().permissions();
+        how.set_mode(0o000);
+        std::fs::set_permissions(at, how).unwrap();
+        None
+    }
+
+    #[cfg(windows)]
+    fn shut(at: &Path) -> Option<std::fs::File> {
+        use std::os::windows::fs::OpenOptionsExt;
+        Some(
+            std::fs::OpenOptions::new()
+                .read(true)
+                .share_mode(0)
+                .open(at)
+                .unwrap(),
+        )
+    }
+
     #[test]
     fn a_body_that_cannot_be_read_is_never_mistaken_for_one_that_is_not_there() {
         let room = tempfile::tempdir().unwrap();
         let at = room.path().join("locked.md");
         std::fs::write(&at, b"# Minuta").unwrap();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mut how = std::fs::metadata(&at).unwrap().permissions();
-            how.set_mode(0o000);
-            std::fs::set_permissions(&at, how).unwrap();
-        }
+        let _held = shut(&at);
 
-        let said = print_of(&at);
-
-        #[cfg(unix)]
         assert!(
-            said.is_err(),
+            print_of(&at).is_err(),
             "an unreadable body read as an absent one, which overwrites"
         );
         assert_eq!(
@@ -2012,6 +2024,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn a_symlink_to_a_real_file_is_read_like_any_other_file() {
         let room = tempfile::tempdir().unwrap();

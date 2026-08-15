@@ -4840,6 +4840,7 @@ dependencies = [
  "fs4",
  "jiff",
  "rusqlite",
+ "same-file",
  "serde",
  "serde_json",
  "sha2",
