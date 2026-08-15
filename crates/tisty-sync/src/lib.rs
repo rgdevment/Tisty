@@ -306,7 +306,17 @@ fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
             {
                 continue;
             }
-            copy_onto(&at, &target)?;
+            let body = std::fs::read(&at).map_err(io)?;
+            if !tisty_core::attach::vouched(under, named, &body) {
+                witness::warn(
+                    channel::SYNC,
+                    "an attachment does not hold the bytes its name vouches for",
+                    &[("at", Fact::Id(format!("attachments/{under}/{named}")))],
+                );
+                continue;
+            }
+            let when = std::fs::metadata(&at).and_then(|m| m.modified()).ok();
+            written(&target, &body, when)?;
             done += 1;
         }
     }
@@ -609,6 +619,15 @@ mod tests {
         assert!(moved.sent > 0);
     }
 
+    fn planted(root: &Path, called: &str, body: &[u8]) -> String {
+        let dir = tempfile::tempdir().unwrap();
+        let at = dir.path().join(called);
+        std::fs::write(&at, body).unwrap();
+        tisty_core::attach::keep(&at, root, tisty_core::attach::COPIED_UP_TO)
+            .unwrap()
+            .at
+    }
+
     fn paper(who: &Machine, id: &str, body: &str) {
         let at = who.data.join("docs");
         std::fs::create_dir_all(&at).unwrap();
@@ -784,25 +803,71 @@ mod tests {
     }
 
     #[test]
+    fn an_attachment_whose_bytes_were_swapped_never_reaches_this_machine() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let (_src, file) = {
+            let dir = tempfile::tempdir().unwrap();
+            let at = dir.path().join("contrato.pdf");
+            std::fs::write(&at, b"what the person really attached").unwrap();
+            (dir, at)
+        };
+        let kept =
+            tisty_core::attach::keep(&file, &one.data, tisty_core::attach::COPIED_UP_TO).unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let theirs = shared.path().join(&kept.at);
+        std::fs::write(&theirs, b"a different file wearing the same name").unwrap();
+        std::fs::remove_file(one.data.join(&kept.at)).unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert!(
+            !one.data.join(&kept.at).exists(),
+            "bytes nobody vouched for were taken in under a trusted name"
+        );
+    }
+
+    #[test]
+    fn an_attachment_that_is_what_it_says_it_is_comes_home() {
+        let one = machine("dev_a");
+        let other = blank("dev_b");
+        let shared = tempfile::tempdir().unwrap();
+        let (_src, file) = {
+            let dir = tempfile::tempdir().unwrap();
+            let at = dir.path().join("contrato.pdf");
+            std::fs::write(&at, b"what the person really attached").unwrap();
+            (dir, at)
+        };
+        let kept =
+            tisty_core::attach::keep(&file, &one.data, tisty_core::attach::COPIED_UP_TO).unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        carry(&other.data, &other.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert_eq!(
+            std::fs::read(other.data.join(&kept.at)).unwrap(),
+            b"what the person really attached",
+            "an honest attachment was turned away"
+        );
+    }
+
+    #[test]
     fn what_the_folder_offers_that_is_not_shaped_like_an_attachment_stays_there() {
         let one = machine("dev_a");
         let shared = tempfile::tempdir().unwrap();
-        let shelf = shared.path().join(HELD).join("ab");
-        std::fs::create_dir_all(&shelf).unwrap();
+        let real = planted(shared.path(), "contrato.pdf", b"a real one");
+        let under = real.split('/').nth(1).unwrap().to_string();
+        let shelf = shared.path().join(HELD).join(&under);
         std::fs::write(shelf.join("factura.exe"), b"not yours").unwrap();
         std::fs::write(shelf.join("nota.command"), b"nor this").unwrap();
-        std::fs::write(shelf.join("contrato-91f2ab00.pdf"), b"a real one").unwrap();
         let odd = shared.path().join(HELD).join("not-a-shelf");
         std::fs::create_dir_all(&odd).unwrap();
         std::fs::write(odd.join("mapa-91f2ab00.svg"), b"wrong shelf").unwrap();
 
         carry(&one.data, &one.device, shared.path(), Way::Pull, &[]).unwrap();
 
-        let here = one.data.join(HELD).join("ab");
-        assert!(
-            here.join("contrato-91f2ab00.pdf").exists(),
-            "it kept nothing"
-        );
+        let here = one.data.join(HELD).join(&under);
+        assert!(one.data.join(&real).exists(), "it kept nothing");
         assert!(
             !here.join("factura.exe").exists(),
             "an executable was let in"
@@ -1727,9 +1792,7 @@ mod tests {
     #[test]
     fn attachments_travel_with_the_tasks_that_name_them() {
         let one = machine("dev_a");
-        let shelf = one.data.join("attachments").join("ab");
-        std::fs::create_dir_all(&shelf).unwrap();
-        std::fs::write(shelf.join("cd91f2ab.png"), b"a picture").unwrap();
+        let kept = planted(&one.data, "foto.png", b"a picture");
 
         let shared = tempfile::tempdir().unwrap();
         carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
@@ -1737,9 +1800,6 @@ mod tests {
         let other = blank("dev_b");
         carry(&other.data, &other.device, shared.path(), Way::Pull, &[]).unwrap();
 
-        assert_eq!(
-            std::fs::read(other.data.join("attachments/ab/cd91f2ab.png")).unwrap(),
-            b"a picture"
-        );
+        assert_eq!(std::fs::read(other.data.join(&kept)).unwrap(), b"a picture");
     }
 }

@@ -208,6 +208,12 @@ como documentos, no como código fuente: tablas, listas de comprobación, códig
 imágenes, y lo que pegues de una página o de un ticket conserva su forma. Una
 tarea puede apuntar a un documento; un documento nunca crea tareas.
 
+Sacarlo de aquí tiene dos formas, y no son lo mismo. **Copiar como Markdown** deja
+el texto en el portapapeles, referencias incluidas: pégalo donde quieras, pero una
+imagen vive en tu almacén y no te sigue. **Exportar como Markdown** escribe una
+carpeta — el documento junto a un `attachments/` propio, con solo los archivos que
+ese documento nombra. Esa sí se abre en cualquier sitio, se comprime y viaja.
+
 **Las listas** tienen pantalla propia, cada una con un icono que eliges de un
 juego, y **los recordatorios** llegan como notificación del sistema y un sonido
 corto que se puede apagar. Las tareas que se repiten vuelven solas, una

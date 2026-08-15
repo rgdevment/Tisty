@@ -210,6 +210,11 @@ export interface Astray {
   when: number;
 }
 
+export interface Twins {
+  bytes: number;
+  at: string[];
+}
+
 export interface Machine {
   id: string;
   when: number;
@@ -223,6 +228,7 @@ export interface Reviewed {
   loose: number;
   looseBytes: number;
   astray: Astray[];
+  twins: Twins[];
   events: number;
   machines: Machine[];
   logBytes: number;
@@ -418,6 +424,8 @@ export const docAway = (id: string, away: boolean): Promise<void> =>
 
 export const docCopy = (id: string): Promise<Doc> => invoke("doc_copy", { id });
 
+export const docExport = (id: string, into: string): Promise<number> =>
+  invoke("doc_export", { id, into });
 export const docImport = (from: string, folder?: string): Promise<Doc> =>
   invoke("doc_import", { from, folder });
 

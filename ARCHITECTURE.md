@@ -179,7 +179,7 @@ tisty config set remote <folder>   # where the copies go
 tisty sync                         # leave ours, take everyone else's
 tisty sync --push                  # leave only
 tisty sync --pull                  # take only
-tisty sync --merge                 # join this history with the folder's
+tisty sync --join <backup.zip>     # back this machine up, empty it, take the folder's
 ```
 
 Tisty always works in its own local directory. Syncing **leaves a copy** in that
@@ -190,6 +190,17 @@ NAS, an external drive you plug in once a week — is not Tisty's business.
 That folder is **not** the data directory, and pointing a cloud client at
 `AppData` is still the wrong thing to do. The store stays on your disk; only
 copies travel.
+
+**Only machines on the list write there.** Being on it is what gives a machine a
+voice; one that was removed keeps its own copy and never pushes again. You join
+by adopting, not by asking — reaching those files is the authorisation — so
+**removing is the only privileged act**. A machine that comes back does not merge:
+it is backed up and emptied first, which is what `--join` does.
+
+The folder is also **someone else's writing**, and is treated that way: nothing is
+written through a symbolic link, an attachment must hold the bytes its name
+vouches for, and a document body past the reader's ceiling is refused rather than
+carried in to replace one that could be opened.
 
 ### Why there is nothing to merge
 
@@ -205,19 +216,28 @@ every device included. Files already identical are skipped, so syncing twice
 over moves nothing the second time.
 
 Attachments travel too. They are named after their own sha-256, so a name that
-matches is a file that matches and two machines cannot disagree about one.
+matches is a file that matches and two machines cannot disagree about one — and
+on the way in the bytes are checked against that name.
 
-### The one mistake that cannot be undone
+Document bodies travel by **three prints and no clock**: the local one, the
+folder's, and the last this machine carried. If one side moved, it is copied
+without asking; if both moved, **the person decides**, and «keep both» is offered
+first because it is the only answer that loses nothing. A clock would be worse
+than useless — a laptop waking up is an hour out, and that has already cost us a
+real bug.
 
-Two different stores merging into one append-only log. A `.store-id` marker
-guards it: a machine that has never met the folder **adopts** its name, an empty
-folder is **given** one, and a machine carrying a different name is **refused
-before anything moves**.
+### Two histories are never joined
 
-When both sides hold history and only one has a name, there is no safe guess —
-your own second machine and a stranger's folder are the same gesture. So it
-**asks**: `tisty sync --merge`, or a confirmation in the window. Joining cannot
-be undone, which is exactly why it is never assumed.
+They used to be, on request. They are not any more: a store carrying a different
+name is **refused before anything moves**, and there is no flag that merges them.
+A `.store-id` marker guards it — a machine that has never met the folder
+**adopts** its name, and an empty folder is **given** one.
+
+When both sides hold history there is no safe guess: your own second machine and
+a stranger's folder are the same gesture. So joining is a different act, not a
+softer one. `--join` backs this machine up, empties it, and takes what the folder
+holds. It also mints a new device id, so the machine comes back as a new
+participant rather than dragging its own removal behind it.
 
 Directory names are compared without case: on Windows and macOS `DEV_A` and
 `dev_a` are one directory, so a stranger's copy would land on the only original
@@ -227,6 +247,30 @@ Syncing runs on its own — pull when the window opens and when it regains focus
 push shortly after each change, and both on a timer. It never blocks a local
 write and never interrupts to complain: an unreachable folder is retried in
 silence and reported in the maintenance panel.
+
+## Taking a document out
+
+A document is a Markdown file, and the whole point is that it survives without
+us. Two ways out, and the difference is not cosmetic.
+
+**Copy as Markdown** hands the text to the clipboard exactly as it is stored,
+references included. Fast, and enough for prose. But an attachment reference
+reads `attachments/<shelf>/<file>`, and those bytes live in the store: paste the
+text into a page or a ticket and the images are not there.
+
+**Export as Markdown** writes a folder — the document beside an `attachments/`
+holding only what that document names. **No reference is rewritten**, and that is
+the point: inside the store a document sits in `docs/`, one level below the
+attachments it names, so the relative path only resolves because we resolve it
+ourselves from the data root. Put the document *beside* its attachments and the
+very same path resolves the way every other reader would expect.
+
+That is why the export does not need a second reference format, and why the store
+does not need migrating. The layout does the work.
+
+What still does not survive the trip is a reference to **another document**
+(`tisty:doc/…`), which means nothing outside Tisty. It stays as written, as a
+piece of text rather than a broken file path.
 
 ## Backing up by hand
 
@@ -259,8 +303,11 @@ down as an idea and not built.
 |---|---|---|
 | Events | `<data>/store/<device>/` | yes |
 | Attachments | `<data>/attachments/` | yes |
-| Documents | `<data>/docs/` | the register does, the bodies not yet |
+| Documents | `<data>/docs/` | yes, by three prints and no clock |
 | Attachment ledger | `<data>/attachments.jsonl` | **no** — local and rebuilt on demand |
+| Carried prints | `<data>/carried.json` | **no** — what this machine last carried |
+| Before a conversion | `<data>/originals/` | **no**, but it is in a backup |
+| Retired attachments | `<data>/bin/` | **no** — thirty days of grace |
 | Settings and device id | `<config>/config.toml` | **no** |
 | The program itself | `%LOCALAPPDATA%\Programs\Tisty` and friends | **no** |
 | Read cache | `<cache>/read.db` | **no** |

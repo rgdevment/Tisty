@@ -205,6 +205,13 @@ documents rather than as source: tables, checklists, code and images, and
 whatever you paste from a page or a ticket keeps its shape. A task can point at
 a document; a document never creates tasks.
 
+Taking one out comes in two shapes, and they are not the same. **Copy as
+Markdown** puts the text on your clipboard, references and all: paste it wherever
+you like, but an image lives in your store and will not follow. **Export as
+Markdown** writes a folder — the document beside an `attachments/` of its own,
+holding only the files that document names. That one opens anywhere, zips, and
+travels.
+
 **Lists** get their own screen, each with an icon you pick from a set, and
 **reminders** arrive as a system notification and a short sound that can be
 turned off. Repeating tasks come back on their own, one occurrence at a time.

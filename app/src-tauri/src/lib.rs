@@ -1130,6 +1130,7 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         loose: adrift.files(),
         loose_bytes: adrift.bytes,
         astray: adrift.items,
+        twins: tisty_core::attach::twins(session.paths.data()),
         events: tisty_core::store::read_all(session.paths.store())
             .map(|all| all.len())
             .unwrap_or(0),
@@ -1154,6 +1155,7 @@ struct Reviewed {
     loose: usize,
     loose_bytes: u64,
     astray: Vec<tisty_core::attach::Astray>,
+    twins: Vec<tisty_core::attach::Twins>,
     events: usize,
     machines: Vec<report::Machine>,
     log_bytes: u64,
@@ -1898,6 +1900,28 @@ fn doc_copy(
         session.commit(Op::DocArchive { id: twin })?;
     }
     Ok(made)
+}
+
+#[tauri::command(async)]
+fn doc_export(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    into: String,
+) -> Answer<usize> {
+    let session = held(&session);
+    tisty_core::docs::exported(session.paths.data(), &id, std::path::Path::new(&into)).map_err(
+        |e| {
+            witness::warn(
+                channel::WINDOW,
+                "a document could not be taken out",
+                &[
+                    ("id", Fact::Id(id.clone())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+            Refusal::about("cannotWrite", into)
+        },
+    )
 }
 
 #[tauri::command(async)]
@@ -3264,6 +3288,7 @@ pub fn run() {
             doc_new,
             doc_drop,
             doc_import,
+            doc_export,
             doc_copy,
             doc_away,
             parted,

@@ -729,6 +729,32 @@ export default function Keeping({ onChanged }: Props) {
               )}
             </Card>
 
+            <Group label={t("twinsAre")} />
+
+            <Card title={t("twinsAre")} which="review" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("twinsWhat")}</p>
+              {audit && audit.twins.length === 0 && (
+                <p className="mt-2 text-[12.5px] text-faint">{t("twinsNone")}</p>
+              )}
+              {audit && audit.twins.length > 0 && (
+                <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-2 overflow-y-auto text-[12.5px]">
+                  {audit.twins.map((one) => (
+                    <li key={one.at.join("|")}>
+                      <span className="tabular-nums text-faint">{weigh(one.bytes)}</span>
+                      {one.at.map((named) => (
+                        <span
+                          key={named}
+                          className="block font-mono text-[11.5px] break-all text-soft"
+                        >
+                          {named.replace("attachments/", "")}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
             <Group label={t("brittleAre")} />
 
             <Card title={t("brittleAre")} which="brittle" busy={busy} said={said} trouble={trouble}>
