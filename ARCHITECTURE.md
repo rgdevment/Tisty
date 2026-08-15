@@ -81,6 +81,14 @@ Reading refuses to continue, rather than returning a smaller history, when:
 - any line fails to parse,
 - an event declares a schema version this build does not know.
 
+Syncing holds the same line from the other end: a device's history that arrives
+**shorter than the one already held** is left where it is. Contiguity alone does
+not catch that — the gap is not *between* sealed segments but *before* `active`,
+and nothing in the folder says how many sealed ones there should be. So the
+counts are compared instead. A cloud client is free to deliver a rotated `active`
+before the sealed segment that carries what it dropped; that ordering must not
+cost anyone their copy.
+
 ## How merging works
 
 Nothing is ever edited. Facts are recorded about an entity, and the entity is
@@ -198,8 +206,9 @@ by adopting, not by asking — reaching those files is the authorisation — so
 it is backed up and emptied first, which is what `--join` does.
 
 The folder is also **someone else's writing**, and is treated that way: nothing is
-written through a symbolic link, an attachment must hold the bytes its name
-vouches for, and a document body past the reader's ceiling is refused rather than
+written through a symbolic link — not into the shared folder itself, and not into
+any device or shelf directory inside it — an attachment must hold the bytes its
+name vouches for, and one that was retired is not carried back in, and a document body past the reader's ceiling is refused rather than
 carried in to replace one that could be opened.
 
 ### Why there is nothing to merge
@@ -226,18 +235,64 @@ first because it is the only answer that loses nothing. A clock would be worse
 than useless — a laptop waking up is an hour out, and that has already cost us a
 real bug.
 
-### Two histories are never joined
+### Two histories are joined only when you say so
 
-They used to be, on request. They are not any more: a store carrying a different
-name is **refused before anything moves**, and there is no flag that merges them.
-A `.store-id` marker guards it — a machine that has never met the folder
-**adopts** its name, and an empty folder is **given** one.
+A store carrying a different name is **refused before anything moves**. A
+`.store-id` marker guards it — a machine that has never met the folder **adopts**
+its name, and an empty folder is **given** one.
 
 When both sides hold history there is no safe guess: your own second machine and
-a stranger's folder are the same gesture. So joining is a different act, not a
-softer one. `--join` backs this machine up, empties it, and takes what the folder
-holds. It also mints a new device id, so the machine comes back as a new
-participant rather than dragging its own removal behind it.
+a stranger's folder are the same gesture. So the refusal is not the end of the
+road, it is a question with four answers. All of them write a backup first, and
+none can be undone from the app.
+
+**Merge them.** The store ends up holding both. This works for the same reason
+syncing works — merging is concatenating — and nothing collides: entities are
+ULIDs, documents are named `<device>-NNNN.md`, attachments are named after their
+own contents. What it costs is said plainly beforehand: two lists by the same
+name stay two lists, because joining them by name is a guess, and a wrong guess
+there goes unnoticed; and ordering keys were minted independently, so lists
+interleave.
+
+**Keep this machine.** The folder is backed up, emptied, and repopulated from
+here. The other machine will be refused next time and will face the same
+question — that consequence is stated up front, because it is not obvious.
+
+**Take what the folder has.** This machine is backed up, emptied, and adopts the
+folder. It mints a new device id, so it returns as a new participant rather than
+dragging its own removal behind it. This is what a removed machine coming back
+does, and what `--join` has always done.
+
+**Adopt without loss** — offered when the folder already holds this machine's own
+history. It is not a fourth mood, it is a different fact: a machine left behind
+before a merge finds its history inside the folder's, and has nothing to decide.
+Without it, such a machine would be refused by every other door and cornered.
+
+Which case applies is read from the segments, not guessed. A device directory
+present on both sides is compared as the **ordered concatenation of its
+segments** — one writer, append-only, so one side must be a prefix of the other.
+It is compared whole rather than file by file because rotation renames what it
+seals: the same history can be one file here and two there. A file the reader
+cannot open, or one of zero bytes — what a cloud client leaves before it fills
+one in — proves nothing either way, and where there is no evidence the answer is
+"strangers": a needless seam is harmless bookkeeping, a missed clash is not.
+
+When the same device name exists on both sides having written **different**
+things, nothing is merged. Two writers under one name is the one thing the whole
+design rests on not happening.
+
+**The folder's name is the one that survives.** Not for comfort: `.store-id` is
+the only file in the shared folder without a single writer. Minting a new name —
+or imposing the local one — rewrites it, and two machines merging at once would
+write two different contents into one file, which is the exact class of conflict
+everything else here is arranged to make impossible. Adopting the folder's name
+makes that file effectively immutable: concurrent merges write the same bytes.
+
+A merge leaves a `stores.joined` event behind, carrying both names and which
+devices came from which side. It touches no task and no document; like
+`device.join`, it is an event that projects something other than data — the set
+of ancestor store names, which accumulates, so a machine that arrives much later
+can still recognise its own name as one of them.
 
 Directory names are compared without case: on Windows and macOS `DEV_A` and
 `dev_a` are one directory, so a stranger's copy would land on the only original

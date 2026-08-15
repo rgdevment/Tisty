@@ -300,8 +300,14 @@ pushes shortly after you change something, and does both on a timer. It never
 blocks a write and never interrupts you; an unreachable folder is retried in
 silence.
 
-There is no merge and no "which one is newer?", because a device directory has
-exactly one writer: yours is authoritative going up, theirs coming down.
+No file is ever merged and nothing asks "which one is newer?", because a device
+directory has exactly one writer: yours is authoritative going up, theirs coming
+down.
+
+Point two machines that were already in use at the same folder and Tisty stops
+and asks, because your own second machine and a stranger's folder are the same
+gesture. You can **join the two histories**, keep this machine, or take what the
+folder holds. Every one of them writes a backup first.
 
 Whoever runs that folder is not Tisty's business, and there is nothing of ours
 in the middle — no account, no server, no daemon. If you sync nothing, Tisty

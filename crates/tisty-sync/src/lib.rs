@@ -58,12 +58,16 @@ pub fn carry(
     let ours = settled(&store, dest)?;
 
     let mut moved = Moved::default();
-    let mut told_more = false;
+    let mut said = None;
     if matches!(way, Way::Both | Way::Pull) {
         let came = bring(&store, device, dest)?;
-        told_more = came > 0;
         moved.brought = came;
-        moved.brought += copy_held(&dest.join(HELD), &data.join(HELD))?;
+        said = as_told(&store);
+        let buried = said
+            .as_ref()
+            .map(|one| one.retired.clone())
+            .unwrap_or_default();
+        moved.brought += copy_held(&dest.join(HELD), &data.join(HELD), &buried)?;
     }
     if matches!(way, Way::Both | Way::Push) {
         let who = tisty_core::event::DeviceId(device.to_string());
@@ -73,13 +77,14 @@ pub fn carry(
             return Err(Trouble::NotAllowed(device.to_string()));
         }
         write(&dest.join(STORE).join(MARKER), ours.as_bytes())?;
-        moved.sent = copy_segments(&store.join(device), &dest.join(STORE).join(device))?;
-        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD))?;
+        let mine = dest.join(STORE).join(device);
+        plainly(&mine)?;
+        moved.sent = copy_segments(&store.join(device), &mine)?;
+        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD), &Default::default())?;
     }
-    let alive = if told_more {
-        still_alive(&store, alive)
-    } else {
-        alive.to_vec()
+    let alive = match &said {
+        Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
+        None => alive.to_vec(),
     };
     if !alive.is_empty() {
         let papers = carry_papers(data, dest, &alive)?;
@@ -90,15 +95,10 @@ pub fn carry(
     Ok(moved)
 }
 
-fn still_alive(store: &Path, told: &[String]) -> Vec<String> {
-    let Ok(events) = tisty_core::store::read_all(store) else {
-        return told.to_vec();
-    };
-    tisty_core::State::replay(&events)
-        .docs
-        .values()
-        .map(|one| one.file.clone())
-        .collect()
+fn as_told(store: &Path) -> Option<tisty_core::State> {
+    tisty_core::store::read_all(store)
+        .ok()
+        .map(|events| tisty_core::State::replay(&events))
 }
 
 fn settled(store: &Path, dest: &Path) -> Result<String, Trouble> {
@@ -293,6 +293,7 @@ fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
             continue;
         }
         let mine = store.join(named);
+        plainly(&mine)?;
         if !settled_already(&entry.path(), &mine) {
             let coming = tisty_core::store::check_device(&entry.path())
                 .map_err(|e| Trouble::Unreadable(e.to_string()))?;
@@ -398,7 +399,11 @@ fn sweep(dir: &Path) {
     }
 }
 
-fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
+fn copy_held(
+    from: &Path,
+    into: &Path,
+    buried: &std::collections::BTreeSet<String>,
+) -> Result<usize, Trouble> {
     let mut done = 0;
     let written_down = tisty_core::attach::digests(into.parent().unwrap_or_else(|| Path::new("")));
     let shelves = match std::fs::read_dir(from) {
@@ -424,7 +429,9 @@ fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
         let Ok(files) = std::fs::read_dir(shelf.path()) else {
             continue;
         };
-        sweep(&into.join(shelf.file_name()));
+        let onto = into.join(shelf.file_name());
+        plainly(&onto)?;
+        sweep(&onto);
         for file in files.filter_map(|e| e.ok()) {
             let at = file.path();
             if !at.is_file() {
@@ -441,6 +448,15 @@ fn copy_held(from: &Path, into: &Path) -> Result<usize, Trouble> {
                     channel::SYNC,
                     "something in the shared folder is not shaped like an attachment",
                     &[("at", Fact::Id(format!("attachments/{under}/{named}")))],
+                );
+                continue;
+            }
+            let reference = format!("attachments/{under}/{named}");
+            if buried.contains(&reference) {
+                witness::note(
+                    channel::SYNC,
+                    "a retired attachment was left where it was instead of coming back",
+                    &[("at", Fact::Id(reference))],
                 );
                 continue;
             }
@@ -640,6 +656,18 @@ fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     written(at, &body, when)
 }
 
+fn plainly(at: &Path) -> Result<(), Trouble> {
+    if std::fs::symlink_metadata(at).is_ok_and(|one| one.file_type().is_symlink()) {
+        witness::warn(
+            channel::SYNC,
+            "a folder inside the meeting place points somewhere else, so nothing was written",
+            &[("at", Fact::Path(at.to_path_buf()))],
+        );
+        return Err(Trouble::Refused(at.display().to_string()));
+    }
+    Ok(())
+}
+
 fn straight(at: &Path, under: &Path) -> Result<(), Trouble> {
     let mut walk = at;
     while walk != under {
@@ -794,6 +822,64 @@ mod tests {
             tisty_core::store::check_device(&two.store.join(&one.device)).unwrap(),
             before + 1
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_machine_folder_that_points_somewhere_else_never_receives_the_log() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        let elsewhere = tempfile::tempdir().unwrap();
+        let there = shared.path().join(STORE);
+        std::fs::create_dir_all(&there).unwrap();
+        std::os::unix::fs::symlink(elsewhere.path(), there.join(&one.device)).unwrap();
+
+        let outcome = carry(&one.data, &one.device, shared.path(), Way::Push, &[]);
+
+        assert!(matches!(outcome, Err(Trouble::Refused(_))), "{outcome:?}");
+        assert!(
+            std::fs::read_dir(elsewhere.path())
+                .unwrap()
+                .next()
+                .is_none(),
+            "el log aterrizo donde apuntaba el enlace"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_shelf_that_points_somewhere_else_never_receives_an_attachment() {
+        let one = machine("uno");
+        let kept = planted(&one.data, "foto.png", b"unos bytes cualesquiera");
+        let shelf = kept.split('/').nth(1).unwrap().to_string();
+        let shared = tempfile::tempdir().unwrap();
+        let elsewhere = tempfile::tempdir().unwrap();
+        let there = shared.path().join(HELD);
+        std::fs::create_dir_all(&there).unwrap();
+        std::os::unix::fs::symlink(elsewhere.path(), there.join(&shelf)).unwrap();
+
+        let outcome = carry(&one.data, &one.device, shared.path(), Way::Push, &[]);
+
+        assert!(matches!(outcome, Err(Trouble::Refused(_))), "{outcome:?}");
+        assert!(
+            std::fs::read_dir(elsewhere.path())
+                .unwrap()
+                .next()
+                .is_none(),
+            "el adjunto aterrizo donde apuntaba el enlace"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_folder_with_no_links_in_it_still_carries_as_it_always_did() {
+        let one = machine("uno");
+        planted(&one.data, "foto.png", b"unos bytes cualesquiera");
+        let shared = tempfile::tempdir().unwrap();
+
+        let moved = carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        assert!(moved.sent > 0);
     }
 
     #[test]
@@ -2599,9 +2685,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "attach::sweep removes the file but leaves it listed in attachments.jsonl, so \
-                copy_held's as_kept check still vouches for it and a later pull copies it back \
-                from the shared folder, resurrecting a retired attachment"]
     fn a_retired_attachment_does_not_come_back_from_the_folder_once_it_is_swept() {
         let one = machine("uno");
         let kept = planted(&one.data, "foto.png", b"una fotografia retirada");
