@@ -437,6 +437,8 @@ const en = {
   twinsWhat:
     "Two machines attached these before they had synced, so each kept it under the name it came with. Nothing is lost — the copies are simply taking up room. The size is what letting the spares go would give back. Tisty does not choose which.",
   twinsNone: "Nothing is kept twice",
+  twinsRun: "Look for copies",
+  twinsAgain: "Look again",
   looseDrop: "Take it out",
   looseDropSure:
     "Take {name} out?\n\nIt is kept aside here for 30 days in case you change your mind, and taken out of every machine that syncs. One that shows up later does not get it back: it says the file is no longer there.",
@@ -951,6 +953,8 @@ const es: Catalog = {
   twinsWhat:
     "Dos máquinas lo adjuntaron antes de sincronizar, así que cada una lo guardó con el nombre que traía. No se pierde nada: las copias solo ocupan sitio. El tamaño es lo que se recupera soltando las de más. Tisty no elige cuál.",
   twinsNone: "Nada guardado dos veces",
+  twinsRun: "Buscar copias",
+  twinsAgain: "Buscar otra vez",
   looseDrop: "Quitar",
   looseDropSure:
     "¿Quitar {name}?\n\nSe guarda aquí 30 días por si cambias de opinión, y se saca de todas las máquinas que sincronicen. La que aparezca más tarde no lo recupera: dirá que el fichero ya no está.",

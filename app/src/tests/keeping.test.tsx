@@ -87,7 +87,6 @@ beforeEach(() => {
           agrees: true,
           loose: 3,
           looseBytes: 311_000,
-          twins: [],
           astray: [
             { at: "attachments/ab/charla-a3f9.mp4", bytes: 300_000, when: 1_754_000_000 },
             { at: "attachments/cd/notas-b1c2.pdf", bytes: 11_000, when: 1_754_000_000 },
@@ -450,36 +449,37 @@ describe("the maintenance panel", () => {
     expect(screen.getByText("notas-b1c2.pdf")).toBeTruthy();
   });
 
-  it("shows the same file kept twice, and says nobody will choose for you", async () => {
+  it("looks for copies only when asked, so opening the tab reads nothing", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
-      cmd === "checked"
-        ? otherwise(cmd, args).then((was) => ({
-            ...(was as Record<string, unknown>),
-            twins: [
-              {
-                bytes: 300_000,
-                at: ["attachments/ab/charla-a3f9.mp4", "attachments/ab/video-a3f9.mp4"],
-              },
-            ],
-          }))
+      cmd === "twinned"
+        ? Promise.resolve([
+            {
+              bytes: 300_000,
+              at: ["attachments/ab/charla-a3f9.mp4", "attachments/ab/video-a3f9.mp4"],
+            },
+          ])
         : otherwise(cmd, args);
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
     await go(/maintenance/i);
 
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    expect(sent("twinned")).toHaveLength(0);
+
+    await userEvent.click(screen.getByRole("button", { name: /look for copies/i }));
 
     expect(await screen.findByText("ab/video-a3f9.mp4")).toBeTruthy();
     expect(screen.getByText(/does not choose which|no elige cuál/i)).toBeTruthy();
   });
 
   it("says nothing is kept twice when nothing is", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) => (cmd === "twinned" ? Promise.resolve([]) : otherwise(cmd, args));
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
     await go(/maintenance/i);
 
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /look for copies/i }));
 
     expect(await screen.findByText(/nothing is kept twice/i)).toBeTruthy();
   });

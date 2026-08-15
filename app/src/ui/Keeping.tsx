@@ -17,6 +17,7 @@ import {
   shortcut,
   joinThem,
   removeMachine,
+  twinned,
   retireAttachment,
   restore,
   syncNow,
@@ -26,6 +27,7 @@ import {
   type Reach,
   type Settings,
   type Reviewed,
+  type Twins,
   type Machine,
   copied,
 } from "../core";
@@ -68,6 +70,7 @@ export default function Keeping({ onChanged }: Props) {
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [brittle, setBrittle] = useState<Brittle[] | null>(null);
+  const [alike, setAlike] = useState<Twins[] | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
   const [keys, setKeys] = useState<string | null>(null);
   const [kept, setKept] = useState<Settings | null>(null);
@@ -733,12 +736,12 @@ export default function Keeping({ onChanged }: Props) {
 
             <Card title={t("twinsAre")} which="review" busy={busy} said={said} trouble={trouble}>
               <p className="text-[12.5px] leading-relaxed text-soft">{t("twinsWhat")}</p>
-              {audit && audit.twins.length === 0 && (
+              {alike?.length === 0 && (
                 <p className="mt-2 text-[12.5px] text-faint">{t("twinsNone")}</p>
               )}
-              {audit && audit.twins.length > 0 && (
+              {alike && alike.length > 0 && (
                 <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-2 overflow-y-auto text-[12.5px]">
-                  {audit.twins.map((one) => (
+                  {alike.map((one) => (
                     <li key={one.at.join("|")}>
                       <span className="tabular-nums text-faint">{weigh(one.bytes)}</span>
                       {one.at.map((named) => (
@@ -753,6 +756,16 @@ export default function Keeping({ onChanged }: Props) {
                   ))}
                 </ul>
               )}
+              <div className="mt-2.5 flex items-center gap-2.5">
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={() => run("review", twinned(), setAlike)}
+                  className={mild}
+                >
+                  {t(alike ? "twinsAgain" : "twinsRun")}
+                </button>
+              </div>
             </Card>
 
             <Group label={t("brittleAre")} />
