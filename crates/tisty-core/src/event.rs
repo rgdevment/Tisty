@@ -2,7 +2,7 @@ mod op;
 
 pub use op::{
     Body, DocAdd, Filed, FolderAdd, ListAdd, LogAdd, LogEdit, Look, Name, Op, StepAdd, StepRef,
-    StepReorder, StepText, TaskAdd, TaskMove, TaskPatch,
+    StepReorder, StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
@@ -97,7 +97,10 @@ impl Event {
             | Op::DocDelete { id }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id } => Some(*id),
-            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } | Op::AttachRetire { .. } => None,
+            Op::DeviceJoin { .. }
+            | Op::DeviceRemove { .. }
+            | Op::AttachRetire { .. }
+            | Op::StoresJoined { .. } => None,
         }
     }
 }

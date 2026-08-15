@@ -315,16 +315,27 @@ impl Ledger {
 }
 
 pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
+    let events = read_all(store_root)?;
+    let gone: std::collections::BTreeSet<&DeviceId> = events
+        .iter()
+        .filter_map(|one| match &one.op {
+            Op::DeviceRemove { d } => Some(d),
+            _ => None,
+        })
+        .collect();
+
     let mut said = Ledger::default();
-    for event in read_all(store_root)? {
-        match event.op {
+    for event in &events {
+        match &event.op {
             Op::DeviceJoin { d } => {
                 said.named.insert(d.clone());
-                said.allowed.insert(d);
+                if !gone.contains(d) {
+                    said.allowed.insert(d.clone());
+                }
             }
             Op::DeviceRemove { d } => {
                 said.named.insert(d.clone());
-                said.allowed.remove(&d);
+                said.allowed.remove(d);
             }
             _ => {}
         }
@@ -690,6 +701,200 @@ mod tests {
             id: Ulid::generate(),
             d: TaskAdd::new(title, "a0"),
         }
+    }
+
+    fn seated(at: &Path, who: &str, ops: Vec<Op>) {
+        let mut store = Store::open(at, DeviceId(who.into())).unwrap();
+        for op in ops {
+            store.append(op).unwrap();
+        }
+    }
+
+    fn poured(from: &Path, into: &Path) {
+        for one in std::fs::read_dir(from).unwrap().filter_map(|e| e.ok()) {
+            if !one.file_type().unwrap().is_dir() {
+                continue;
+            }
+            let there = into.join(one.file_name());
+            std::fs::create_dir_all(&there).unwrap();
+            for file in std::fs::read_dir(one.path())
+                .unwrap()
+                .filter_map(|e| e.ok())
+            {
+                std::fs::copy(file.path(), there.join(file.file_name())).unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn concatenating_two_histories_locks_nobody_who_was_writing_out() {
+        let here = tempfile::tempdir().unwrap();
+        let there = tempfile::tempdir().unwrap();
+        seated(
+            here.path(),
+            "dev_here",
+            vec![
+                Op::DeviceJoin {
+                    d: DeviceId("dev_here".into()),
+                },
+                add("lo de aqui"),
+            ],
+        );
+        seated(
+            there.path(),
+            "dev_there",
+            vec![
+                Op::DeviceJoin {
+                    d: DeviceId("dev_there".into()),
+                },
+                add("lo de alli"),
+            ],
+        );
+
+        poured(there.path(), here.path());
+        let said = ledger(here.path()).unwrap();
+
+        assert!(said.may_write(&DeviceId("dev_here".into())));
+        assert!(said.may_write(&DeviceId("dev_there".into())));
+        assert!(!said.was_removed(&DeviceId("dev_here".into())));
+        assert!(!said.was_removed(&DeviceId("dev_there".into())));
+    }
+
+    #[test]
+    fn a_history_that_never_named_anyone_is_not_shut_out_by_one_that_did() {
+        let here = tempfile::tempdir().unwrap();
+        let there = tempfile::tempdir().unwrap();
+        seated(here.path(), "dev_here", vec![add("lo de aqui, sin alta")]);
+        seated(
+            there.path(),
+            "dev_there",
+            vec![
+                Op::DeviceJoin {
+                    d: DeviceId("dev_there".into()),
+                },
+                Op::DeviceRemove {
+                    d: DeviceId("dev_gone".into()),
+                },
+            ],
+        );
+
+        poured(there.path(), here.path());
+        let said = ledger(here.path()).unwrap();
+
+        assert!(
+            said.may_write(&DeviceId("dev_here".into())),
+            "la maquina que nunca se dio de alta quedo fuera al fusionar"
+        );
+        assert!(said.may_write(&DeviceId("dev_there".into())));
+        assert!(said.was_removed(&DeviceId("dev_gone".into())));
+    }
+
+    #[test]
+    fn once_a_machine_is_removed_no_ordering_of_the_log_lets_it_back_in() {
+        let when: jiff::Timestamp = "2026-08-15T00:00:00Z".parse().unwrap();
+        let stamped = |who: &str, seq: u64, op: Op| Event {
+            version: SCHEMA_VERSION,
+            timestamp: when,
+            device: DeviceId(who.into()),
+            batch: None,
+            undo: false,
+            redo: false,
+            seq,
+            op,
+        };
+
+        let told = |remover: &str, joiner: &str| {
+            let root = tempfile::tempdir().unwrap();
+            for (who, seq, op) in [
+                (
+                    "dev_m",
+                    1,
+                    Op::DeviceJoin {
+                        d: DeviceId("dev_m".into()),
+                    },
+                ),
+                (
+                    remover,
+                    2,
+                    Op::DeviceRemove {
+                        d: DeviceId("dev_both".into()),
+                    },
+                ),
+                (
+                    joiner,
+                    3,
+                    Op::DeviceJoin {
+                        d: DeviceId("dev_both".into()),
+                    },
+                ),
+            ] {
+                let mut store = Store::open(root.path(), DeviceId(who.into())).unwrap();
+                store.append_event(&stamped(who, seq, op)).unwrap();
+            }
+            ledger(root.path())
+                .unwrap()
+                .may_write(&DeviceId("dev_both".into()))
+        };
+
+        assert!(!told("dev_a", "dev_z"), "el alta posterior la resucito");
+        assert!(
+            !told("dev_z", "dev_a"),
+            "el desempate por nombre la resucito"
+        );
+    }
+
+    #[test]
+    fn a_removal_survives_a_clock_that_runs_behind_the_machine_it_removes() {
+        let root = tempfile::tempdir().unwrap();
+        let earlier: jiff::Timestamp = "2026-08-15T00:00:00Z".parse().unwrap();
+        let later: jiff::Timestamp = "2026-08-15T00:00:05Z".parse().unwrap();
+        let stamped = |who: &str, when: jiff::Timestamp, seq: u64, op: Op| Event {
+            version: SCHEMA_VERSION,
+            timestamp: when,
+            device: DeviceId(who.into()),
+            batch: None,
+            undo: false,
+            redo: false,
+            seq,
+            op,
+        };
+
+        for (who, when, seq, op) in [
+            (
+                "dev_keeper",
+                earlier,
+                1,
+                Op::DeviceJoin {
+                    d: DeviceId("dev_keeper".into()),
+                },
+            ),
+            (
+                "dev_gone",
+                later,
+                1,
+                Op::DeviceJoin {
+                    d: DeviceId("dev_gone".into()),
+                },
+            ),
+            (
+                "dev_keeper",
+                earlier,
+                2,
+                Op::DeviceRemove {
+                    d: DeviceId("dev_gone".into()),
+                },
+            ),
+        ] {
+            let mut store = Store::open(root.path(), DeviceId(who.into())).unwrap();
+            store.append_event(&stamped(who, when, seq, op)).unwrap();
+        }
+
+        assert!(
+            ledger(root.path())
+                .unwrap()
+                .was_removed(&DeviceId("dev_gone".into())),
+            "la baja se deshizo sola porque el reloj de quien la dio iba atrasado"
+        );
     }
 
     #[test]

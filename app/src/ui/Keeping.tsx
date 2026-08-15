@@ -17,6 +17,7 @@ import {
   shortcut,
   joinThem,
   takeOver,
+  mergeStores,
   removeMachine,
   twinned,
   retireAttachment,
@@ -185,12 +186,19 @@ export default function Keeping({ onChanged }: Props) {
           await chooseSync(where);
           return syncNow();
         }
+        const named = {
+          merge: "tisty-before-joining-both.zip",
+          mine: "tisty-folder-before.zip",
+          theirs: "tisty-before-joining.zip",
+        } as const;
         const at = await save({
-          defaultPath: door === "mine" ? "tisty-folder-before.zip" : "tisty-before-joining.zip",
+          defaultPath: named[door],
           filters: [{ name: "Tisty", extensions: ["zip"] }],
         });
         if (typeof at !== "string") return "declined" as const;
-        await (door === "mine" ? takeOver(at) : joinThem(at));
+        if (door === "merge") await mergeStores(at);
+        else if (door === "mine") await takeOver(at);
+        else await joinThem(at);
         return syncNow();
       });
 

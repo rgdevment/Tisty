@@ -2769,6 +2769,68 @@ async fn take_over(
 }
 
 #[tauri::command]
+async fn merge_stores(
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    into: String,
+) -> Answer<bool> {
+    let _done = alone.inner().taken()?;
+    if tisty_core::paths::profile().is_some() {
+        return Err(Refusal::of("sandboxCannotJoin"));
+    }
+    let (data, dest, aside, paths) = {
+        let session = held(&session);
+        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+            return Err(Refusal::of("noRemote"));
+        };
+        (
+            session.paths.data().to_path_buf(),
+            dest,
+            session.paths.cache().to_path_buf(),
+            session.paths.clone(),
+        )
+    };
+
+    let at = std::path::PathBuf::from(&into);
+    let seam = tauri::async_runtime::spawn_blocking(move || -> Answer<tisty_sync::Stitched> {
+        tisty_core::backup::write(&data, &at, &aside).map_err(|e| {
+            witness::error(
+                channel::BACKUP,
+                "nothing was joined because the backup did not land",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+            Refusal::about("cannotWrite", into)
+        })?;
+        tisty_sync::stitch(&data, &dest).map_err(|trouble| {
+            let refusal = said(trouble);
+            witness::warn(
+                channel::SYNC,
+                "the two histories were left apart",
+                &[("code", Fact::Code(refusal.code))],
+            );
+            refusal
+        })
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))??;
+
+    *held(&session) = Session::open().map_err(|e| {
+        blamed(
+            channel::BACKUP,
+            "the session would not reopen after joining",
+            e,
+        )
+    })?;
+    let _ = paths;
+
+    let whole = seam.stitch.is_some();
+    if let Some(one) = seam.stitch {
+        held(&session).commit(Op::StoresJoined { d: one })?;
+    }
+    Ok(whole)
+}
+
+#[tauri::command]
 async fn restore(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
@@ -2820,6 +2882,7 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
         tisty_sync::Trouble::Broke(why) => Refusal::about("syncBroke", why),
         tisty_sync::Trouble::WouldReset { theirs } => Refusal::about("wouldReset", theirs),
         tisty_sync::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
+        tisty_sync::Trouble::SameName(who) => Refusal::about("sameName", who),
     }
 }
 
@@ -3347,6 +3410,7 @@ pub fn run() {
             restore,
             join_them,
             take_over,
+            merge_stores,
             remove_machine,
             retire_attachment,
             settle_paper,
