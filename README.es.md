@@ -307,8 +307,14 @@ externo que enchufas los viernes— y el resto lo hace solo: baja al abrir la ve
 rato de que cambies algo, y ambas cada cierto tiempo. Nunca bloquea una
 escritura ni te interrumpe; si la carpeta no está, lo reintenta en silencio.
 
-No hay fusión ni «¿cuál es más nueva?», porque el directorio de un dispositivo
-tiene un único escritor: subiendo manda la tuya, bajando manda la suya.
+Ningún fichero se fusiona nunca y nadie pregunta «¿cuál es más nueva?», porque el
+directorio de un dispositivo tiene un único escritor: subiendo manda la tuya,
+bajando manda la suya.
+
+Apunta a la misma carpeta dos máquinas que ya venías usando y Tisty se para y
+pregunta, porque tu propia segunda máquina y la carpeta de otra persona son el
+mismo gesto. Puedes **unir los dos historiales**, conservar esta máquina, o
+quedarte con lo que guarda la carpeta. Las tres respaldan antes.
 
 Quién mantenga esa carpeta no es asunto de Tisty, y no hay nada nuestro en medio
 —ni cuenta, ni servidor, ni proceso residente—. Si no sincronizas nada, Tisty no
