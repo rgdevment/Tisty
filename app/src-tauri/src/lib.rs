@@ -2766,6 +2766,7 @@ fn sync_kin(session: tauri::State<'_, Mutex<Session>>) -> Answer<&'static str> {
     Ok(match tisty_sync::kinship(&session.paths.store(), &dest) {
         tisty_sync::Kin::SameLineage => "sameLineage",
         tisty_sync::Kin::Clash(_) => "clash",
+        tisty_sync::Kin::Unsure(_) => "unsure",
         tisty_sync::Kin::Strangers => "strangers",
     })
 }

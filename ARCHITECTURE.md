@@ -277,9 +277,11 @@ Which case applies is read from the segments, not guessed. A device directory
 present on both sides is compared as the **ordered concatenation of its
 segments** — one writer, append-only, so one side must be a prefix of the other.
 It is compared whole rather than file by file because rotation renames what it
-seals: the same history can be one file here and two there. A file the reader
-cannot open, or one of zero bytes — what a cloud client leaves before it fills
-one in — proves nothing either way. Where there is no evidence the answer turns on
+seals: the same history can be one file here and two there. A file of zero bytes — what a cloud client
+leaves before it fills one in — proves nothing either way. A file the reader
+**cannot open** is not the same thing and is not treated as such: there the answer
+is that it cannot be told yet, and nothing is offered until it can, because the two
+answers lead opposite ways. Where there is no evidence the answer turns on
 whether a device name appears on both sides: if none does, "strangers", since a
 needless seam is harmless bookkeeping; if one does, it is refused, because an
 unprovable shared name is the fatal case. Names here means directories **and the
