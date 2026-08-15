@@ -370,6 +370,18 @@ pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
     })
 }
 
+pub fn distinct_in(device_dir: &Path) -> Result<usize> {
+    let mut segments = segments_in(device_dir)?;
+    segments.sort();
+    let mut events = Vec::new();
+    for segment in &segments {
+        read_segment(segment, &mut events)?;
+    }
+    events.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    events.dedup_by(|a, b| a.sort_key() == b.sort_key());
+    Ok(events.len())
+}
+
 pub fn check_device(device_dir: &Path) -> Result<usize> {
     let mut segments = segments_in(device_dir)?;
     segments.sort();

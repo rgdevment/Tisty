@@ -1,9 +1,11 @@
+import type { Kin } from "../core";
 import { t, type Word } from "../locales";
 import Modal from "./Modal";
 
 export type Door = "merge" | "mine" | "theirs";
 
 interface Props {
+  kin: Kin;
   onPick: (door: Door) => void;
   onElse: () => void;
   onClose: () => void;
@@ -15,13 +17,42 @@ const DOORS: { key: Door; name: Word; why: Word; how: Word }[] = [
   { key: "theirs", name: "apartTheirs", why: "apartTheirsWhy", how: "apartTheirsHow" },
 ];
 
-export default function Apart({ onPick, onElse, onClose }: Props) {
+export default function Apart({ kin, onPick, onElse, onClose }: Props) {
+  if (kin === "sameLineage") {
+    return (
+      <Modal title={t("apartHomeTitle")} onClose={onClose}>
+        <p className="px-1 text-[13px] leading-relaxed text-soft">{t("apartHomeWhy")}</p>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md px-2.5 py-1 text-[12.5px] text-faint hover:bg-hover"
+          >
+            {t("close")}
+          </button>
+          <button
+            type="button"
+            onClick={() => onPick("merge")}
+            className="rounded-md border border-ink bg-ink px-3 py-1 text-[12.5px] text-bg"
+          >
+            {t("apartHomeDo")}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  const shown = kin === "clash" ? DOORS.filter((one) => one.key !== "merge") : DOORS;
+
   return (
     <Modal title={t("apartTitle")} onClose={onClose}>
-      <p className="px-1 text-[13px] leading-relaxed text-soft">{t("apartWhy")}</p>
+      <p className="px-1 text-[13px] leading-relaxed text-soft">
+        {t(kin === "clash" ? "apartClashWhy" : "apartWhy")}
+      </p>
 
       <ul className="mt-3 flex flex-col gap-2">
-        {DOORS.map((door) => (
+        {shown.map((door) => (
           <li key={door.key}>
             <button
               type="button"

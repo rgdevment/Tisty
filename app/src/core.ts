@@ -332,6 +332,7 @@ export type Carried = "came" | "same" | "busy";
 export interface Settled {
   carried: Carried;
   undecided: string[];
+  unreadable: string[];
 }
 
 export const syncNow = (way?: "push" | "pull"): Promise<Settled> => invoke("sync_now", { way });
@@ -375,6 +376,10 @@ export const takeOver = (into: string): Promise<number> => invoke("take_over", {
 
 export const mergeStores = (into: string): Promise<boolean> =>
   invoke("merge_stores", { into });
+
+export type Kin = "sameLineage" | "clash" | "strangers";
+
+export const syncKin = (): Promise<Kin> => invoke("sync_kin");
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });

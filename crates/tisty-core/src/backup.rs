@@ -291,7 +291,7 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
     Ok(made)
 }
 
-pub fn take_over(dest: &Path, into: &Path, aside: &Path) -> Result<Made> {
+pub fn take_over(dest: &Path, ours: &str, into: &Path, aside: &Path) -> Result<Made> {
     let made = write(dest, into, aside)?;
 
     let old = dest.join(format!(".taking-over-{}", std::process::id()));
@@ -313,6 +313,10 @@ pub fn take_over(dest: &Path, into: &Path, aside: &Path) -> Result<Made> {
     }
 
     let _ = std::fs::remove_dir_all(&old);
+
+    let store = dest.join("store");
+    std::fs::create_dir_all(&store)?;
+    store::write_atomic(&store.join(store::MARKER), ours.as_bytes())?;
     Ok(made)
 }
 
@@ -479,16 +483,24 @@ mod tests {
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("carpeta.zip");
 
-        let made = take_over(&folder, &file, tmp().path()).unwrap();
+        let made = take_over(&folder, "01KEPT", &file, tmp().path()).unwrap();
 
         assert!(file.exists());
         assert!(made.files >= 2, "{made:?}");
         for folder_named in CARRIED {
+            if folder_named == "store" {
+                continue;
+            }
             assert!(
                 !folder.join(folder_named).exists(),
                 "{folder_named} sigue ahi"
             );
         }
+        assert!(
+            crate::store::segments_in(&folder.join("store"))
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -498,7 +510,7 @@ mod tests {
         let taken = out.path().join("carpeta.zip");
         std::fs::create_dir_all(&taken).unwrap();
 
-        let outcome = take_over(&folder, &taken, tmp().path());
+        let outcome = take_over(&folder, "01KEPT", &taken, tmp().path());
 
         assert!(outcome.is_err(), "dijo que si con el destino ocupado");
         assert!(
@@ -516,7 +528,7 @@ mod tests {
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("carpeta.zip");
 
-        let made = take_over(&folder, &file, tmp().path()).unwrap();
+        let made = take_over(&folder, "01KEPT", &file, tmp().path()).unwrap();
 
         assert_eq!(made.store_id, was);
     }
@@ -526,9 +538,19 @@ mod tests {
         let (_src, folder) = filled("algo");
         let out = tempfile::tempdir().unwrap();
 
-        take_over(&folder, &out.path().join("carpeta.zip"), tmp().path()).unwrap();
+        take_over(
+            &folder,
+            "01KEPT",
+            &out.path().join("carpeta.zip"),
+            tmp().path(),
+        )
+        .unwrap();
 
-        assert!(crate::store::peek_identity(folder.join("store")).is_none());
+        assert_eq!(
+            crate::store::peek_identity(folder.join("store")).as_deref(),
+            Some("01KEPT"),
+            "la carpeta quedo sin dueno y cualquiera la reclama"
+        );
         assert!(!crate::store::inhabited(folder.join("store")));
     }
 

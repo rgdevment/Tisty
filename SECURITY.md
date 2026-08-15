@@ -27,8 +27,11 @@ report will never be dismissed for being inconvenient.
 ## What the design protects
 
 - **The data never leaves your machine unless you tell it to.** No account, no
-  telemetry, no remote server, no phone-home. There is no cloud service to
-  breach because there is no cloud service.
+  telemetry, no remote server. There is no cloud service to breach because there
+  is no cloud service. Tisty makes exactly one request of its own — a daily GET
+  for a version manifest, which you can turn off, and which carries nothing but
+  the version you are running. It is written out in full in
+  [PRIVACY.md](PRIVACY.md), down to the headers.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
   them. There is no Tisty-operated backend at any tier, and no transport of ours

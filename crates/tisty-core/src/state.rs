@@ -212,7 +212,9 @@ impl State {
                 self.dropped.insert(d.clone());
             }
             Op::AttachRetire { d } => {
-                self.retired.insert(d.clone());
+                if crate::attach::names_an_attachment(d) {
+                    self.retired.insert(d.clone());
+                }
             }
             Op::StoresJoined { d } => {
                 self.forebears.insert(d.absorbed.clone());

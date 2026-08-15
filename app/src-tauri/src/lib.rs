@@ -2439,6 +2439,7 @@ async fn sync_now(
         return Ok(Settled {
             carried: "busy",
             undecided: Vec::new(),
+            unreadable: Vec::new(),
         });
     };
 
@@ -2498,6 +2499,7 @@ async fn sync_now(
     Ok(Settled {
         carried: if moved { "came" } else { "same" },
         undecided: done.undecided.into_iter().map(|one| one.id).collect(),
+        unreadable: done.unreadable,
     })
 }
 
@@ -2506,6 +2508,7 @@ async fn sync_now(
 struct Settled {
     carried: &'static str,
     undecided: Vec<String>,
+    unreadable: Vec<String>,
 }
 
 #[tauri::command]
@@ -2668,28 +2671,12 @@ fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answ
         )
     })?;
 
-    if let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone()
-        && let Some(theirs) = named_in(&dest.join("store"), &id)
-        && let Err(e) = std::fs::remove_dir_all(&theirs)
-    {
-        witness::warn(
-            channel::SYNC,
-            "what the removed machine left in the shared folder is still there",
-            &[
-                ("at", Fact::Path(theirs)),
-                ("why", Fact::Why(e.to_string())),
-            ],
-        );
-    }
+    witness::note(
+        channel::SYNC,
+        "a machine was removed and what it wrote was left where everyone can still read it",
+        &[("at", Fact::Id(id))],
+    );
     Ok(())
-}
-
-fn named_in(store: &std::path::Path, id: &str) -> Option<std::path::PathBuf> {
-    std::fs::read_dir(store)
-        .ok()?
-        .filter_map(|one| one.ok())
-        .find(|one| one.file_name().to_str() == Some(id) && one.path().is_dir())
-        .map(|one| one.path())
 }
 
 #[tauri::command]
@@ -2742,17 +2729,19 @@ async fn take_over(
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }
-    let (dest, aside) = {
+    let (dest, aside, ours) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
         };
-        (dest, session.paths.cache().to_path_buf())
+        let ours = tisty_core::store::identity(session.paths.store())
+            .map_err(|e| blamed(channel::SYNC, "this machine has no name of its own", e))?;
+        (dest, session.paths.cache().to_path_buf(), ours)
     };
 
     let at = std::path::PathBuf::from(&into);
     let made = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::backup::take_over(&dest, &at, &aside)
+        tisty_core::backup::take_over(&dest, &ours, &at, &aside)
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
@@ -2768,6 +2757,19 @@ async fn take_over(
     Ok(made.bytes)
 }
 
+#[tauri::command(async)]
+fn sync_kin(session: tauri::State<'_, Mutex<Session>>) -> Answer<&'static str> {
+    let session = held(&session);
+    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+        return Err(Refusal::of("noRemote"));
+    };
+    Ok(match tisty_sync::kinship(&session.paths.store(), &dest) {
+        tisty_sync::Kin::SameLineage => "sameLineage",
+        tisty_sync::Kin::Clash(_) => "clash",
+        tisty_sync::Kin::Strangers => "strangers",
+    })
+}
+
 #[tauri::command]
 async fn merge_stores(
     session: tauri::State<'_, Mutex<Session>>,
@@ -2778,7 +2780,7 @@ async fn merge_stores(
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }
-    let (data, dest, aside, paths) = {
+    let (data, dest, aside, device) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
@@ -2787,7 +2789,7 @@ async fn merge_stores(
             session.paths.data().to_path_buf(),
             dest,
             session.paths.cache().to_path_buf(),
-            session.paths.clone(),
+            session.config.device_id.0.clone(),
         )
     };
 
@@ -2801,7 +2803,7 @@ async fn merge_stores(
             );
             Refusal::about("cannotWrite", into)
         })?;
-        tisty_sync::stitch(&data, &dest).map_err(|trouble| {
+        tisty_sync::stitch(&data, &device, &dest).map_err(|trouble| {
             let refusal = said(trouble);
             witness::warn(
                 channel::SYNC,
@@ -2821,13 +2823,7 @@ async fn merge_stores(
             e,
         )
     })?;
-    let _ = paths;
-
-    let whole = seam.stitch.is_some();
-    if let Some(one) = seam.stitch {
-        held(&session).commit(Op::StoresJoined { d: one })?;
-    }
-    Ok(whole)
+    Ok(seam.stitch.is_some())
 }
 
 #[tauri::command]
@@ -3411,6 +3407,7 @@ pub fn run() {
             join_them,
             take_over,
             merge_stores,
+            sync_kin,
             remove_machine,
             retire_attachment,
             settle_paper,
