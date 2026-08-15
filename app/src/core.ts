@@ -356,6 +356,7 @@ export interface Settling {
   brought: boolean;
   agrees: boolean;
   was?: string;
+  stuck?: { code: string; name?: string };
 }
 
 export const settleIn = (): Promise<Settling> => invoke("settle_in");

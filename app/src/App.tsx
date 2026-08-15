@@ -240,7 +240,13 @@ export default function App() {
 
   useEffect(() => {
     settleIn()
-      .then((done) => done.brought && latest.current())
+      .then((done) => {
+        if (done.stuck) {
+          const apart = done.stuck.code === "wouldReset" || done.stuck.code === "otherStore";
+          setError(apart ? t("stuckApart") : saidPlainly(done.stuck));
+        }
+        return done.brought && latest.current();
+      })
       .catch(() => {})
       .finally(() => setSettling(false));
   }, []);

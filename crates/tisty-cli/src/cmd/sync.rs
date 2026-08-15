@@ -77,7 +77,7 @@ pub fn sync(
 fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
     let text = match trouble {
         carrier::Trouble::NotThere(at) => lang.fill("no-meeting-place", &[("at", at)]),
-        carrier::Trouble::OtherStore { theirs } => lang.fill("other-store", &[("id", theirs)]),
+        carrier::Trouble::OtherStore { theirs } => lang.fill("would-reset", &[("id", theirs)]),
         carrier::Trouble::Unreadable(why) => lang.fill("sync-unreadable", &[("why", why)]),
         carrier::Trouble::Refused(why) => lang.fill("sync-refused", &[("why", why)]),
         carrier::Trouble::Broke(why) => lang.fill("sync-broke", &[("why", why)]),
