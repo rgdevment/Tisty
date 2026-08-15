@@ -327,7 +327,7 @@ export const checked = (): Promise<Reviewed> => invoke("checked");
 export const twinned = (): Promise<Twins[]> => invoke("twinned");
 export const syncState = (): Promise<Carrying> => invoke("sync_state");
 export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
-export type Carried = "came" | "same" | "busy";
+export type Carried = "came" | "sent" | "both" | "same" | "busy";
 
 export interface Settled {
   carried: Carried;

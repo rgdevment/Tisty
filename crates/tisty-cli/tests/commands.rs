@@ -1565,3 +1565,64 @@ fn undoing_a_tick_does_not_leave_the_series_running_twice() {
 {open}"
     );
 }
+
+fn named(cli: &Cli) -> String {
+    let at = cli.ok(&["config", "path"]);
+    let body = std::fs::read_to_string(at.trim()).unwrap();
+    body.lines()
+        .find_map(|line| line.strip_prefix("device_id = "))
+        .unwrap()
+        .trim_matches('"')
+        .to_string()
+}
+
+fn dropped(cli: &Cli, who: &str) {
+    let by = named(cli);
+    let at = cli
+        .home
+        .path()
+        .join("data")
+        .join("store")
+        .join(&by)
+        .join("active.tisty");
+    let mut body = std::fs::read_to_string(&at).unwrap();
+    body.push_str(&format!(
+        "{{\"v\":3,\"ts\":\"2026-08-15T15:53:21.5029266Z\",\"by\":\"{by}\",\"op\":\"device.remove\",\"d\":\"{who}\"}}\n"
+    ));
+    std::fs::write(&at, body).unwrap();
+}
+
+#[test]
+fn a_removed_machine_comes_back_under_a_new_name_in_one_go() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+    let kept = tempfile::tempdir().unwrap();
+    let zip = kept.path().join("before-coming-back.zip");
+
+    let first = Cli::new();
+    first.ok(&["config", "set", "remote", &met]);
+    first.ok(&["buy bread"]);
+    first.ok(&["sync"]);
+
+    let second = Cli::new();
+    second.ok(&["config", "set", "remote", &met]);
+    second.ok(&["sync"]);
+    second.ok(&["call the bank"]);
+    second.ok(&["sync"]);
+
+    dropped(&first, &named(&second));
+    first.ok(&["sync"]);
+
+    let back = second.run(&["sync", "--join", &zip.display().to_string()]);
+    assert_eq!(back.code, 0, "out={} err={}", back.out, back.err);
+
+    second.ok(&["water the plants"]);
+    second.ok(&["sync"]);
+    first.ok(&["sync"]);
+
+    let out = first.ok(&["ls", "all"]);
+    assert!(
+        out.contains("water the plants"),
+        "the machine that came back never reached the folder: {out}"
+    );
+}

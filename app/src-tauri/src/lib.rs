@@ -2497,7 +2497,12 @@ async fn sync_now(
     );
     session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
     Ok(Settled {
-        carried: if moved { "came" } else { "same" },
+        carried: match (done.sent > 0, moved || done.brought > 0) {
+            (true, true) => "both",
+            (true, false) => "sent",
+            (false, true) => "came",
+            (false, false) => "same",
+        },
         undecided: done.undecided.into_iter().map(|one| one.id).collect(),
         unreadable: done.unreadable,
     })
