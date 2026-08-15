@@ -18,6 +18,7 @@ pub enum Trouble {
     Broke(String),
     WouldReset { theirs: String },
     NotAllowed(String),
+    SameName(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -143,6 +144,129 @@ pub fn theirs(dest: &Path) -> Option<String> {
     tisty_core::store::peek_identity(dest.join(STORE))
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Kin {
+    Strangers,
+    SameLineage,
+    Clash(String),
+}
+
+enum Grew {
+    Yes,
+    No,
+    Cannot,
+}
+
+fn whole_of(device_dir: &Path) -> Option<Vec<u8>> {
+    let mut segments = tisty_core::store::segments_in(device_dir).ok()?;
+    segments.sort();
+    let mut said = Vec::new();
+    for at in segments {
+        said.extend(std::fs::read(at).ok()?);
+    }
+    (!said.is_empty()).then_some(said)
+}
+
+fn one_grew_from_the_other(here: &Path, there: &Path) -> Grew {
+    let (Some(ours), Some(theirs)) = (whole_of(here), whole_of(there)) else {
+        return Grew::Cannot;
+    };
+    let grew = if ours.len() <= theirs.len() {
+        theirs.starts_with(&ours)
+    } else {
+        ours.starts_with(&theirs)
+    };
+    if grew { Grew::Yes } else { Grew::No }
+}
+
+pub fn kinship(store: &Path, dest: &Path) -> Kin {
+    let there = dest.join(STORE);
+    let mut shared = false;
+
+    let Ok(mine) = std::fs::read_dir(store) else {
+        return Kin::Strangers;
+    };
+    for one in mine.filter_map(|e| e.ok()) {
+        let named = one.file_name();
+        let Some(named) = named.to_str() else {
+            continue;
+        };
+        if !one.path().is_dir() {
+            continue;
+        }
+        let theirs = there.join(named);
+        if !theirs.is_dir() {
+            continue;
+        }
+        match one_grew_from_the_other(&one.path(), &theirs) {
+            Grew::Yes => shared = true,
+            Grew::No => return Kin::Clash(named.to_string()),
+            Grew::Cannot => {}
+        }
+    }
+
+    if shared {
+        Kin::SameLineage
+    } else {
+        Kin::Strangers
+    }
+}
+
+pub struct Stitched {
+    pub kin: Kin,
+    pub stitch: Option<tisty_core::event::Stitch>,
+}
+
+pub fn stitch(data: &Path, dest: &Path) -> Result<Stitched, Trouble> {
+    if !dest.is_dir() {
+        return Err(Trouble::NotThere(dest.display().to_string()));
+    }
+    for folder in [STORE, HELD, PAPERS] {
+        straight(&dest.join(folder), dest)?;
+    }
+    let store = data.join(STORE);
+
+    let kin = kinship(&store, dest);
+    if let Kin::Clash(named) = kin {
+        return Err(Trouble::SameName(named));
+    }
+
+    let ours = tisty_core::store::peek_identity(&store)
+        .ok_or_else(|| Trouble::Unreadable("this machine has no identity".into()))?;
+    let theirs =
+        theirs(dest).ok_or_else(|| Trouble::Unreadable("that folder has no identity".into()))?;
+
+    let mine = seats(&store);
+    let yours = seats(&dest.join(STORE));
+
+    write(&store.join(MARKER), theirs.as_bytes())?;
+    if kin == Kin::SameLineage {
+        return Ok(Stitched { kin, stitch: None });
+    }
+
+    Ok(Stitched {
+        kin,
+        stitch: Some(tisty_core::event::Stitch {
+            absorbed: ours,
+            survivor: theirs,
+            ours: mine,
+            theirs: yours,
+        }),
+    })
+}
+
+fn seats(store: &Path) -> std::collections::BTreeSet<tisty_core::event::DeviceId> {
+    let Ok(entries) = std::fs::read_dir(store) else {
+        return Default::default();
+    };
+    entries
+        .filter_map(|e| e.ok())
+        .filter(|one| one.path().is_dir())
+        .filter_map(|one| one.file_name().to_str().map(str::to_string))
+        .map(tisty_core::event::DeviceId)
+        .collect()
+}
+
 fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
     let mut brought = 0;
     let at = dest.join(STORE);
@@ -170,8 +294,21 @@ fn bring(store: &Path, device: &str, dest: &Path) -> Result<usize, Trouble> {
         }
         let mine = store.join(named);
         if !settled_already(&entry.path(), &mine) {
-            tisty_core::store::check_device(&entry.path())
+            let coming = tisty_core::store::check_device(&entry.path())
                 .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+            let held = tisty_core::store::check_device(&mine).unwrap_or(0);
+            if coming < held {
+                witness::warn(
+                    channel::SYNC,
+                    "a shorter history for a machine was left where it was",
+                    &[
+                        ("at", Fact::Id(named.to_string())),
+                        ("held", Fact::Count(held)),
+                        ("coming", Fact::Count(coming)),
+                    ],
+                );
+                continue;
+            }
         }
         brought += copy_segments(&entry.path(), &mine)?;
     }
@@ -608,6 +745,117 @@ mod tests {
         })
         .unwrap();
         tisty_core::docs::write(&who.data.join(PAPERS), file, body).unwrap();
+    }
+
+    #[test]
+    fn a_shorter_history_arriving_first_never_replaces_the_longer_one_we_hold() {
+        let one = machine("uno");
+        for said in ["dos", "tres", "cuatro"] {
+            wrote(&one, said.into());
+        }
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let two = blank("dos");
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+        let held = tisty_core::store::check_device(&two.store.join(&one.device)).unwrap();
+        assert!(held >= 4);
+
+        let theirs = shared.path().join(STORE).join(&one.device);
+        let at = theirs.join("active.tisty");
+        let whole = std::fs::read_to_string(&at).unwrap();
+        let first = whole.lines().next().unwrap();
+        std::fs::write(&at, format!("{first}\n")).unwrap();
+
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert_eq!(
+            tisty_core::store::check_device(&two.store.join(&one.device)).unwrap(),
+            held,
+            "una historia mas corta piso la que ya teniamos"
+        );
+    }
+
+    #[test]
+    fn a_history_that_grew_on_the_other_side_still_comes_across() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let two = blank("dos");
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+        let before = tisty_core::store::check_device(&two.store.join(&one.device)).unwrap();
+
+        wrote(&one, "algo mas".into());
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert_eq!(
+            tisty_core::store::check_device(&two.store.join(&one.device)).unwrap(),
+            before + 1
+        );
+    }
+
+    #[test]
+    fn two_histories_that_never_met_are_strangers() {
+        let one = machine("uno");
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        assert_eq!(kinship(&one.store, shared.path()), Kin::Strangers);
+    }
+
+    #[test]
+    fn a_folder_that_already_holds_everything_of_ours_is_the_same_lineage() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        assert_eq!(kinship(&one.store, shared.path()), Kin::SameLineage);
+    }
+
+    #[test]
+    fn a_tail_we_never_sent_is_still_the_same_lineage_not_a_clash() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        wrote(&one, "algo que se quedo aqui".into());
+
+        assert_eq!(kinship(&one.store, shared.path()), Kin::SameLineage);
+    }
+
+    #[test]
+    fn the_same_name_writing_two_different_things_is_the_clash_that_is_refused() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let theirs = shared.path().join(STORE).join(&one.device);
+        let file = tisty_core::store::segments_in(&theirs).unwrap().remove(0);
+        let mut said = std::fs::read(&file).unwrap();
+        said[0] ^= 0xff;
+        std::fs::write(&file, said).unwrap();
+
+        assert_eq!(
+            kinship(&one.store, shared.path()),
+            Kin::Clash(one.device.clone())
+        );
+    }
+
+    #[test]
+    fn a_folder_ahead_of_us_is_the_same_lineage_because_only_the_end_grows() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let theirs = shared.path().join(STORE).join(&one.device);
+        let file = tisty_core::store::segments_in(&theirs).unwrap().remove(0);
+        let mut said = std::fs::read(&file).unwrap();
+        said.extend_from_slice(b"{\"v\":3}\n");
+        std::fs::write(&file, said).unwrap();
+
+        assert_eq!(kinship(&one.store, shared.path()), Kin::SameLineage);
     }
 
     #[test]
@@ -1936,5 +2184,440 @@ mod tests {
         carry(&other.data, &other.device, shared.path(), Way::Pull, &[]).unwrap();
 
         assert_eq!(std::fs::read(other.data.join(&kept)).unwrap(), b"a picture");
+    }
+
+    #[test]
+    fn merging_two_unrelated_histories_loses_nothing_from_either_side() {
+        let one = machine("uno");
+        tisty_core::store::identity(&one.store).unwrap();
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let merged = stitch(&one.data, shared.path()).unwrap();
+        assert_eq!(merged.kin, Kin::Strangers);
+        says(
+            &one,
+            Op::StoresJoined {
+                d: merged.stitch.unwrap(),
+            },
+        );
+
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        for who in [titles(&one.store), titles(&two.store)] {
+            assert!(who.contains(&"lo de uno".to_string()), "{who:?}");
+            assert!(who.contains(&"lo de dos".to_string()), "{who:?}");
+        }
+    }
+
+    #[test]
+    fn merging_adopts_the_folders_store_id_never_the_local_one_nor_a_new_one() {
+        let one = machine("uno");
+        let local_before = tisty_core::store::identity(&one.store).unwrap();
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+        let folder_id = super::theirs(shared.path()).unwrap();
+
+        stitch(&one.data, shared.path()).unwrap();
+
+        let adopted = tisty_core::store::peek_identity(&one.store).unwrap();
+        assert_eq!(adopted, folder_id);
+        assert_ne!(adopted, local_before);
+    }
+
+    #[test]
+    fn the_other_machine_of_the_surviving_history_syncs_after_a_merge_without_being_asked() {
+        let one = machine("uno");
+        tisty_core::store::identity(&one.store).unwrap();
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let seam = stitch(&one.data, shared.path()).unwrap().stitch.unwrap();
+        says(&one, Op::StoresJoined { d: seam });
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        let done = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert!(
+            done.brought > 0,
+            "the survivor's own machine was not offered the merge"
+        );
+        assert!(titles(&two.store).contains(&"lo de uno".to_string()));
+    }
+
+    #[test]
+    fn a_straggler_with_the_old_identity_is_recognized_as_the_same_lineage() {
+        let one = machine("uno");
+        let old_shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, old_shared.path(), Way::Push, &[]).unwrap();
+        let straggler = blank("tres");
+        carry(
+            &straggler.data,
+            &straggler.device,
+            old_shared.path(),
+            Way::Pull,
+            &[],
+        )
+        .unwrap();
+
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+        let seam = stitch(&one.data, shared.path()).unwrap().stitch.unwrap();
+        says(&one, Op::StoresJoined { d: seam });
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert_eq!(kinship(&straggler.store, shared.path()), Kin::SameLineage);
+    }
+
+    #[test]
+    fn a_straggler_adopts_the_merged_identity_while_keeping_its_unsent_tail() {
+        let one = machine("uno");
+        let old_shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, old_shared.path(), Way::Push, &[]).unwrap();
+        let straggler = blank("tres");
+        carry(
+            &straggler.data,
+            &straggler.device,
+            old_shared.path(),
+            Way::Pull,
+            &[],
+        )
+        .unwrap();
+
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+        let seam = stitch(&one.data, shared.path()).unwrap().stitch.unwrap();
+        says(&one, Op::StoresJoined { d: seam });
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        wrote(&straggler, "lo que tres no habia mandado".into());
+
+        let merged = stitch(&straggler.data, shared.path()).unwrap();
+        assert_eq!(merged.kin, Kin::SameLineage);
+        assert!(merged.stitch.is_none());
+
+        let moved = carry(
+            &straggler.data,
+            &straggler.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap();
+
+        assert!(moved.sent > 0, "the straggler's unsent tail never left");
+        assert!(shared.path().join(STORE).join(&straggler.device).exists());
+        let mine = titles(&straggler.store);
+        assert!(mine.contains(&"lo que tres no habia mandado".to_string()));
+        assert!(mine.contains(&"lo de dos".to_string()));
+    }
+
+    #[test]
+    fn two_machines_that_happen_to_share_a_device_name_but_wrote_different_things_are_a_clash() {
+        let one = blank("portable");
+        wrote(&one, "lo de la primera portable".into());
+        let two = blank("portable");
+        wrote(&two, "lo de la otra portable".into());
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        assert_eq!(
+            kinship(&one.store, shared.path()),
+            Kin::Clash("portable".to_string())
+        );
+    }
+
+    #[test]
+    fn merging_refuses_with_same_name_when_two_machines_clash_under_one_device_name() {
+        let one = blank("portable");
+        wrote(&one, "lo de la primera portable".into());
+        let two = blank("portable");
+        wrote(&two, "lo de la otra portable".into());
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let Err(why) = stitch(&one.data, shared.path()) else {
+            panic!("two machines clashing under one name were merged");
+        };
+
+        assert_eq!(why, Trouble::SameName("portable".to_string()));
+    }
+
+    #[test]
+    fn merging_leaves_the_local_identity_untouched_when_it_refuses_a_clash() {
+        let one = blank("portable");
+        wrote(&one, "lo de la primera portable".into());
+        let before = tisty_core::store::identity(&one.store).unwrap();
+        let two = blank("portable");
+        wrote(&two, "lo de la otra portable".into());
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let _ = stitch(&one.data, shared.path());
+
+        assert_eq!(
+            tisty_core::store::peek_identity(&one.store).unwrap(),
+            before
+        );
+    }
+
+    #[test]
+    fn an_empty_segment_proves_nothing_so_it_is_neither_kinship_nor_a_clash() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let mine = one.store.join(&one.device);
+        let file = tisty_core::store::segments_in(&mine).unwrap().remove(0);
+        std::fs::write(&file, b"").unwrap();
+
+        assert_eq!(kinship(&one.store, shared.path()), Kin::Strangers);
+    }
+
+    #[test]
+    fn a_placeholder_the_cloud_has_not_filled_in_cannot_pass_for_the_same_history() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let theirs = shared.path().join(STORE).join(&one.device);
+        for at in tisty_core::store::segments_in(&theirs).unwrap() {
+            std::fs::write(&at, b"").unwrap();
+        }
+
+        assert_eq!(kinship(&one.store, shared.path()), Kin::Strangers);
+    }
+
+    #[test]
+    fn a_side_that_rotated_into_a_second_segment_is_still_the_same_lineage() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let mine = one.store.join(&one.device);
+        std::fs::rename(mine.join("active.tisty"), mine.join("000001.tisty")).unwrap();
+        std::fs::write(mine.join("000001.count"), b"1").unwrap();
+        std::fs::write(mine.join("active.tisty"), b"").unwrap();
+
+        assert_eq!(kinship(&one.store, shared.path()), Kin::SameLineage);
+    }
+
+    #[test]
+    fn a_directory_present_on_only_one_side_never_turns_a_shared_directory_into_a_clash() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let mut solo_local = Store::open(&one.store, DeviceId("solo-local".into())).unwrap();
+        solo_local
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new("solo aqui", "a0"),
+            })
+            .unwrap();
+
+        let mut solo_remote =
+            Store::open(shared.path().join(STORE), DeviceId("solo-remoto".into())).unwrap();
+        solo_remote
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new("solo alla", "a0"),
+            })
+            .unwrap();
+
+        assert_eq!(kinship(&one.store, shared.path()), Kin::SameLineage);
+    }
+
+    #[test]
+    fn an_empty_store_directory_is_a_stranger_not_the_same_lineage() {
+        let empty = blank("solitario");
+        std::fs::create_dir_all(&empty.store).unwrap();
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        assert_eq!(kinship(&empty.store, shared.path()), Kin::Strangers);
+    }
+
+    #[test]
+    fn merging_two_histories_lands_the_documents_of_both_sides_under_their_own_names() {
+        let one = machine("uno");
+        tisty_core::store::identity(&one.store).unwrap();
+        filed(&one, "uno-0001", "# Lo de uno");
+        let two = machine("dos");
+        filed(&two, "dos-0001", "# Lo de dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(
+            &two.data,
+            &two.device,
+            shared.path(),
+            Way::Both,
+            &["dos-0001".into()],
+        )
+        .unwrap();
+
+        let seam = stitch(&one.data, shared.path()).unwrap().stitch.unwrap();
+        says(&one, Op::StoresJoined { d: seam });
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &["uno-0001".into(), "dos-0001".into()],
+        )
+        .unwrap();
+
+        assert_eq!(body(shared.path(), "uno-0001"), "# Lo de uno");
+        assert_eq!(body(shared.path(), "dos-0001"), "# Lo de dos");
+        assert_eq!(body(&one.data, "dos-0001"), "# Lo de dos");
+
+        carry(
+            &two.data,
+            &two.device,
+            shared.path(),
+            Way::Both,
+            &["uno-0001".into(), "dos-0001".into()],
+        )
+        .unwrap();
+        assert_eq!(body(&two.data, "uno-0001"), "# Lo de uno");
+    }
+
+    #[test]
+    fn the_same_attachment_kept_independently_on_both_sides_of_a_merge_is_not_duplicated() {
+        let one = machine("uno");
+        tisty_core::store::identity(&one.store).unwrap();
+        let two = machine("dos");
+        let bytes: &[u8] = b"la misma fotografia, bit por bit";
+        let kept_one = planted(&one.data, "foto.png", bytes);
+        let kept_two = planted(&two.data, "foto.png", bytes);
+        assert_eq!(
+            kept_one, kept_two,
+            "identical bytes under the same name must land at the same address"
+        );
+
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        let seam = stitch(&one.data, shared.path()).unwrap().stitch.unwrap();
+        says(&one, Op::StoresJoined { d: seam });
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        let shelf = shared
+            .path()
+            .join(&kept_one)
+            .parent()
+            .unwrap()
+            .to_path_buf();
+        let landed = std::fs::read_dir(&shelf).unwrap().count();
+        assert_eq!(
+            landed, 1,
+            "the same picture landed twice under different names"
+        );
+        assert_eq!(std::fs::read(shared.path().join(&kept_one)).unwrap(), bytes);
+    }
+
+    #[test]
+    fn a_document_deleted_in_one_history_never_comes_back_once_the_histories_are_merged() {
+        let one = machine("uno");
+        tisty_core::store::identity(&one.store).unwrap();
+        filed(&one, "uno-0001", "# Efimero");
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let seam = stitch(&one.data, shared.path()).unwrap().stitch.unwrap();
+        says(&one, Op::StoresJoined { d: seam });
+        carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &["uno-0001".into()],
+        )
+        .unwrap();
+
+        let mut held = Store::open(&one.store, DeviceId(one.device.clone())).unwrap();
+        let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+            .docs
+            .values()
+            .next()
+            .unwrap()
+            .id;
+        held.append(Op::DocDelete { id }).unwrap();
+        drop(held);
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert!(!two.data.join(PAPERS).join("uno-0001.md").exists());
+    }
+
+    #[test]
+    fn a_device_removed_before_a_merge_is_still_removed_after_it() {
+        let one = machine("uno");
+        tisty_core::store::identity(&one.store).unwrap();
+        says(
+            &one,
+            Op::DeviceJoin {
+                d: DeviceId("uno".into()),
+            },
+        );
+        says(
+            &one,
+            Op::DeviceJoin {
+                d: DeviceId("vieja".into()),
+            },
+        );
+        says(
+            &one,
+            Op::DeviceRemove {
+                d: DeviceId("vieja".into()),
+            },
+        );
+
+        let two = machine("dos");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let seam = stitch(&one.data, shared.path()).unwrap().stitch.unwrap();
+        says(&one, Op::StoresJoined { d: seam });
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        let said = tisty_core::store::ledger(shared.path().join(STORE)).unwrap();
+        assert!(said.was_removed(&DeviceId("vieja".into())));
+        assert!(!said.may_write(&DeviceId("vieja".into())));
+
+        let vieja = blank("vieja");
+        let why = carry(&vieja.data, &vieja.device, shared.path(), Way::Both, &[]).unwrap_err();
+        assert!(matches!(why, Trouble::NotAllowed(_)), "{why:?}");
+    }
+
+    #[test]
+    #[ignore = "attach::sweep removes the file but leaves it listed in attachments.jsonl, so \
+                copy_held's as_kept check still vouches for it and a later pull copies it back \
+                from the shared folder, resurrecting a retired attachment"]
+    fn a_retired_attachment_does_not_come_back_from_the_folder_once_it_is_swept() {
+        let one = machine("uno");
+        let kept = planted(&one.data, "foto.png", b"una fotografia retirada");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        says(&one, Op::AttachRetire { d: kept.clone() });
+        let retired: std::collections::BTreeSet<String> = [kept.clone()].into();
+        tisty_core::attach::sweep(&one.data, &retired, &Default::default());
+        assert!(!one.data.join(&kept).exists(), "sweep did not remove it");
+
+        carry(&one.data, &one.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert!(
+            !one.data.join(&kept).exists(),
+            "a retired attachment came back from the shared folder"
+        );
     }
 }

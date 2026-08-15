@@ -732,12 +732,38 @@ describe("the maintenance panel", () => {
     expect(sent("join_them")).toHaveLength(0);
   });
 
-  it("leaves the door that is not built yet shut", async () => {
+  it("joins the two histories when that is the door taken", async () => {
+    onceApart();
+    asked.file = "C:/keep/tisty-before-joining-both.zip";
+    await carried();
+
+    await userEvent.click(await screen.findByRole("button", { name: /merge the two/i }));
+
+    await waitFor(() => expect(sent("merge_stores")).toHaveLength(1));
+    expect(sent("merge_stores")[0].args.into).toBe("C:/keep/tisty-before-joining-both.zip");
+    expect(sent("join_them")).toHaveLength(0);
+    expect(sent("take_over")).toHaveLength(0);
+    expect(sent("sync_now")).toHaveLength(2);
+  });
+
+  it("says what merging costs before it is taken, not after", async () => {
     apart();
     await carried();
 
-    const merge = await screen.findByRole("button", { name: /merge the two/i });
-    expect((merge as HTMLButtonElement).disabled).toBe(true);
+    const said = (await screen.findByRole("dialog")).textContent ?? "";
+    expect(said).toMatch(/without losing anything/i);
+    expect(said).toMatch(/two lists by the same name stay as two/i);
+  });
+
+  it("empties nothing when there is nowhere to put the backup for a merge", async () => {
+    apart();
+    asked.file = null;
+    await carried();
+
+    await userEvent.click(await screen.findByRole("button", { name: /merge the two/i }));
+
+    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
+    expect(sent("merge_stores")).toHaveLength(0);
   });
 
   it("lets someone walk away to another folder instead of choosing", async () => {

@@ -27,6 +27,7 @@ pub struct State {
     pub devices: BTreeSet<DeviceId>,
     pub dropped: BTreeSet<DeviceId>,
     pub retired: BTreeSet<String>,
+    pub forebears: BTreeSet<String>,
     pub(crate) fill: Fill,
     tombstones: BTreeSet<Ulid>,
 }
@@ -212,6 +213,10 @@ impl State {
             }
             Op::AttachRetire { d } => {
                 self.retired.insert(d.clone());
+            }
+            Op::StoresJoined { d } => {
+                self.forebears.insert(d.absorbed.clone());
+                self.forebears.insert(d.survivor.clone());
             }
             Op::ListLook { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {
@@ -837,6 +842,72 @@ fn sort_steps(task: &mut Task) {
 
 #[cfg(test)]
 mod tests {
+
+    fn seam(was: &str, now: &str) -> crate::Op {
+        crate::Op::StoresJoined {
+            d: crate::event::Stitch {
+                absorbed: was.into(),
+                survivor: now.into(),
+                ours: [crate::event::DeviceId("dev_mine".into())].into(),
+                theirs: [crate::event::DeviceId("dev_yours".into())].into(),
+            },
+        }
+    }
+
+    fn told(ops: Vec<crate::Op>) -> State {
+        let when: jiff::Timestamp = "2026-08-15T00:00:00Z".parse().unwrap();
+        let events: Vec<crate::event::Event> = ops
+            .into_iter()
+            .enumerate()
+            .map(|(at, op)| crate::event::Event {
+                version: crate::event::SCHEMA_VERSION,
+                timestamp: when,
+                device: crate::event::DeviceId("dev_mine".into()),
+                batch: None,
+                undo: false,
+                redo: false,
+                seq: at as u64,
+                op,
+            })
+            .collect();
+        State::replay(&events)
+    }
+
+    #[test]
+    fn a_seam_leaves_both_names_of_the_history_behind_it() {
+        let said = told(vec![seam("01OLD", "01NEW")]);
+
+        assert!(said.forebears.contains("01OLD"));
+        assert!(said.forebears.contains("01NEW"));
+    }
+
+    #[test]
+    fn seams_pile_up_so_a_machine_left_far_behind_still_finds_itself() {
+        let said = told(vec![
+            seam("01FIRST", "01SECOND"),
+            seam("01SECOND", "01THIRD"),
+        ]);
+
+        for one in ["01FIRST", "01SECOND", "01THIRD"] {
+            assert!(said.forebears.contains(one), "{one} no quedo en el linaje");
+        }
+    }
+
+    #[test]
+    fn a_history_that_was_never_joined_carries_no_forebears() {
+        assert!(told(Vec::new()).forebears.is_empty());
+    }
+
+    #[test]
+    fn a_seam_touches_nothing_that_belongs_to_the_data() {
+        let said = told(vec![seam("01OLD", "01NEW")]);
+
+        assert!(said.tasks.is_empty());
+        assert!(said.docs.is_empty());
+        assert!(said.lists.is_empty());
+        assert!(said.devices.is_empty());
+        assert!(said.retired.is_empty());
+    }
 
     #[test]
     fn a_description_the_size_of_a_book_is_refused_with_the_limit_named() {

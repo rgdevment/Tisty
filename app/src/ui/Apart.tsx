@@ -9,13 +9,8 @@ interface Props {
   onClose: () => void;
 }
 
-const DOORS: { key: Door; name: Word; why: Word; how?: Word; soon?: boolean }[] = [
-  {
-    key: "merge",
-    name: "apartMerge",
-    why: "apartMergeWhy",
-    soon: true,
-  },
+const DOORS: { key: Door; name: Word; why: Word; how: Word }[] = [
+  { key: "merge", name: "apartMerge", why: "apartMergeWhy", how: "apartMergeHow" },
   { key: "mine", name: "apartMine", why: "apartMineWhy", how: "apartMineHow" },
   { key: "theirs", name: "apartTheirs", why: "apartTheirsWhy", how: "apartTheirsHow" },
 ];
@@ -30,20 +25,14 @@ export default function Apart({ onPick, onElse, onClose }: Props) {
           <li key={door.key}>
             <button
               type="button"
-              disabled={door.soon}
               onClick={() => onPick(door.key)}
-              className="w-full rounded-lg border border-line px-3 py-2.5 text-left enabled:hover:border-ink enabled:hover:bg-hover disabled:opacity-45"
+              className="w-full rounded-lg border border-line px-3 py-2.5 text-left hover:border-ink hover:bg-hover"
             >
               <span className="block text-[13.5px] font-semibold">{t(door.name)}</span>
               <span className="mt-0.5 block text-[12px] text-faint">{t(door.why)}</span>
-              {door.how && (
-                <span className="mt-1.5 block text-[12px] leading-relaxed whitespace-pre-line text-soft">
-                  {t(door.how)}
-                </span>
-              )}
-              {door.soon && (
-                <span className="mt-1 block text-[11.5px] text-faint">{t("apartMergeSoon")}</span>
-              )}
+              <span className="mt-1.5 block text-[12px] leading-relaxed whitespace-pre-line text-soft">
+                {t(door.how)}
+              </span>
             </button>
           </li>
         ))}

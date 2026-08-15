@@ -290,6 +290,8 @@ const en = {
   wouldReset:
     "That folder holds another history. To join it, this machine has to be backed up and reset — it does not merge.",
   stuckTakeMe: "Sort it out",
+  sameName:
+    "Both hold a machine called {name}, and each wrote something different under that name. Joining them would put two histories into one file, so Tisty refuses. Keep one of the two sides instead.",
   stuckApart:
     "Nothing is syncing: the shared folder holds another history, so this machine has been keeping to itself. Two histories never merge. In Settings you can join that folder — this machine is backed up first and then holds what the folder holds — or point it somewhere else.",
   remoteInsideStore: "{name} is inside Tisty's own folder — pick one outside it",
@@ -298,7 +300,8 @@ const en = {
     "It is not a fault: they are two separate histories, and Tisty never puts two together without asking. Pick what happens.",
   apartMerge: "Merge the two",
   apartMergeWhy: "Everything you have here and everything that is there, together.",
-  apartMergeSoon: "Being built. Not ready yet.",
+  apartMergeHow:
+    "You keep the tasks and the documents of both, without losing anything.\n\nTwo lists by the same name stay as two lists: Tisty does not join them by name, because getting that wrong goes unnoticed. The order of your lists interleaves and will not be as you left it in either one.",
   apartMine: "Keep this machine",
   apartMineWhy: "The folder becomes this machine's.",
   apartMineHow:
@@ -829,6 +832,8 @@ const es: Catalog = {
   wouldReset:
     "Esa carpeta guarda otro historial. Para unirse, esta máquina tiene que respaldarse y reiniciarse — no se fusiona.",
   stuckTakeMe: "Resolverlo",
+  sameName:
+    "Las dos guardan una máquina llamada {name}, y cada una escribió cosas distintas con ese nombre. Unirlas metería dos historias en el mismo fichero, así que Tisty se niega. Conserva uno de los dos lados.",
   stuckApart:
     "No se está sincronizando nada: la carpeta compartida guarda otro historial, así que esta máquina lleva todo este tiempo a solas. Dos historiales no se fusionan. En Ajustes puedes unirte a esa carpeta —esta máquina se respalda primero y queda con lo que ella guarda— o apuntarla a otro sitio.",
   remoteInsideStore: "{name} está dentro de la carpeta de Tisty — elige una fuera",
@@ -837,7 +842,8 @@ const es: Catalog = {
     "No es un error: son dos historiales distintos, y Tisty nunca junta dos sin preguntar. Elige qué pasa.",
   apartMerge: "Fusionar las dos",
   apartMergeWhy: "Lo que tienes aquí y lo que hay allí, todo junto.",
-  apartMergeSoon: "En construcción. Todavía no está.",
+  apartMergeHow:
+    "Quedas con las tareas y los documentos de las dos, sin perder nada.\n\nDos listas que se llamen igual quedan como dos listas: Tisty no las junta por el nombre, porque equivocarse ahí no se nota. El orden de tus listas se entrelaza y no queda como estaba en ninguna de las dos.",
   apartMine: "Conservar esta máquina",
   apartMineWhy: "La carpeta pasa a ser de aquí.",
   apartMineHow:

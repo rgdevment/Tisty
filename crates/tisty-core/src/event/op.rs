@@ -109,6 +109,21 @@ pub enum Op {
 
     #[serde(rename = "attach.retire")]
     AttachRetire { d: String },
+
+    #[serde(rename = "stores.joined")]
+    StoresJoined { d: Stitch },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Stitch {
+    #[serde(rename = "was")]
+    pub absorbed: String,
+    #[serde(rename = "now")]
+    pub survivor: String,
+    #[serde(rename = "mine")]
+    pub ours: std::collections::BTreeSet<DeviceId>,
+    #[serde(rename = "theirs")]
+    pub theirs: std::collections::BTreeSet<DeviceId>,
 }
 
 impl Op {
@@ -148,7 +163,10 @@ impl Op {
             Op::DocDelete { .. } => Op::DocDelete { id },
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
-            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } | Op::AttachRetire { .. } => self,
+            Op::DeviceJoin { .. }
+            | Op::DeviceRemove { .. }
+            | Op::AttachRetire { .. }
+            | Op::StoresJoined { .. } => self,
         }
     }
 
@@ -242,7 +260,10 @@ impl Op {
             | Op::DocDelete { id }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id } => Some(*id),
-            Op::DeviceJoin { .. } | Op::DeviceRemove { .. } | Op::AttachRetire { .. } => None,
+            Op::DeviceJoin { .. }
+            | Op::DeviceRemove { .. }
+            | Op::AttachRetire { .. }
+            | Op::StoresJoined { .. } => None,
         }
     }
 }

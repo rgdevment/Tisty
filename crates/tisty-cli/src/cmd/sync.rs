@@ -11,6 +11,7 @@ pub fn sync(
     pull: bool,
     join: Option<std::path::PathBuf>,
     take_over: Option<std::path::PathBuf>,
+    merge: Option<std::path::PathBuf>,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
     let Some(Sync::Folder(dest)) = app.config().sync.clone() else {
@@ -56,6 +57,33 @@ pub fn sync(
         );
     }
 
+    if let Some(into) = merge {
+        if tisty_core::paths::profile().is_some() {
+            anyhow::bail!("{}", lang.get("sandbox-cannot-join"));
+        }
+        let aside = app.paths.cache().to_path_buf();
+        tisty_core::backup::write(&data, &into, &aside)?;
+        let done = match carrier::stitch(&data, &dest) {
+            Ok(done) => done,
+            Err(trouble) => return Ok(said(&trouble, lang)),
+        };
+        *app = App::at(app.paths.clone())?;
+        match done.stitch {
+            Some(seam) => {
+                let said = lang.fill(
+                    "stitched",
+                    &[
+                        ("was", &seam.absorbed.clone()),
+                        ("now", &seam.survivor.clone()),
+                    ],
+                );
+                app.commit(tisty_core::Op::StoresJoined { d: seam })?;
+                println!("  {}", style::dim(&said));
+            }
+            None => println!("  {}", style::dim(lang.get("same-lineage"))),
+        }
+    }
+
     let alive: Vec<String> = app
         .state
         .docs
@@ -99,6 +127,7 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
         carrier::Trouble::Broke(why) => lang.fill("sync-broke", &[("why", why)]),
         carrier::Trouble::WouldReset { theirs } => lang.fill("would-reset", &[("id", theirs)]),
         carrier::Trouble::NotAllowed(who) => lang.fill("not-allowed", &[("id", who)]),
+        carrier::Trouble::SameName(who) => lang.fill("same-name", &[("id", who)]),
     };
     eprintln!("{text}");
     ExitCode::from(EXIT_ERROR)
