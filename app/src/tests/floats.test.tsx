@@ -15,20 +15,26 @@ describe("when the panel is allowed on screen at all", () => {
   it("rides over words that were picked", async () => {
     const { perched } = await import("../ui/Editor");
 
-    expect(perched(false, false, false)).toBe(true);
+    expect(perched(false, false, false, false)).toBe(true);
   });
 
   it("stays away from a caret sitting on nothing, and from code", async () => {
     const { perched } = await import("../ui/Editor");
 
-    expect(perched(true, false, false)).toBe(false);
-    expect(perched(false, true, false)).toBe(false);
+    expect(perched(true, false, false, false)).toBe(false);
+    expect(perched(false, true, false, false)).toBe(false);
   });
 
   it("gives way to the menu the right button opened, selection or not", async () => {
     const { perched } = await import("../ui/Editor");
 
-    expect(perched(false, false, true)).toBe(false);
+    expect(perched(false, false, true, false)).toBe(false);
+  });
+
+  it("stays away from a whole thing picked, which has no words to dress", async () => {
+    const { perched } = await import("../ui/Editor");
+
+    expect(perched(false, false, false, true)).toBe(false);
   });
 });
 
