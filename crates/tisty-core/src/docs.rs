@@ -43,8 +43,10 @@ pub fn keep_carried(data: &Path, id: &str, body: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn carried_there(data: &Path, id: &str) -> bool {
-    resolve(&base(data), id).is_ok_and(|at| std::fs::metadata(at).is_ok())
+pub fn carried_print(data: &Path, id: &str) -> Option<String> {
+    resolve(&base(data), id)
+        .ok()
+        .and_then(|at| print_of(&at).ok()?)
 }
 
 pub fn read_carried(data: &Path, id: &str) -> Option<String> {

@@ -320,16 +320,38 @@ fn rescued(dest: &Path) {
                 );
             }
         }
-        let _ = std::fs::remove_dir_all(&at);
+        if std::fs::remove_dir(&at).is_err() {
+            witness::warn(
+                channel::BACKUP,
+                "an interrupted take-over left things behind that could not be put back, so they were kept where they are",
+                &[("at", Fact::Path(at.clone()))],
+            );
+        }
     }
 }
 
+fn only_one_taking_over(dest: &Path) -> Result<std::fs::File> {
+    use fs4::fs_std::FileExt;
+    let gate = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(dest.join(".taking-over.lock"))?;
+    if !gate.try_lock_exclusive()? {
+        return Err(Error::AlreadyRunning);
+    }
+    Ok(gate)
+}
+
 pub fn take_over(dest: &Path, ours: &str, into: &Path, aside: &Path) -> Result<Made> {
+    let _gate = only_one_taking_over(dest)?;
     rescued(dest);
     let made = write(dest, into, aside)?;
 
     let old = dest.join(format!(".taking-over-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&old);
+    if old.exists() {
+        return Err(Error::AlreadyRunning);
+    }
     std::fs::create_dir_all(&old)?;
 
     let mut moved: Vec<&str> = Vec::new();
@@ -1080,6 +1102,36 @@ mod tests {
             "half the photograph stayed"
         );
         assert!(data.join("attachments").is_dir());
+    }
+
+    #[test]
+    fn what_could_not_be_put_back_is_kept_where_it_is_instead_of_destroyed() {
+        let dest = tempfile::tempdir().unwrap();
+        let stale = dest.path().join(".taking-over-333");
+        std::fs::create_dir_all(stale.join("docs")).unwrap();
+        std::fs::write(stale.join("docs").join("importante.md"), "no me borres").unwrap();
+        std::fs::write(dest.path().join("docs"), "algo ocupa el sitio").unwrap();
+
+        super::rescued(dest.path());
+
+        assert_eq!(
+            std::fs::read_to_string(stale.join("docs").join("importante.md")).unwrap(),
+            "no me borres",
+            "se destruyo lo que no pudo devolver"
+        );
+    }
+
+    #[test]
+    fn two_take_overs_at_once_never_walk_over_each_other() {
+        let dest = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dest.path().join("store")).unwrap();
+        let held = super::only_one_taking_over(dest.path()).unwrap();
+
+        let second = super::only_one_taking_over(dest.path());
+
+        assert!(second.is_err(), "dos tomas de control a la vez");
+        drop(held);
+        assert!(super::only_one_taking_over(dest.path()).is_ok());
     }
 
     #[test]
