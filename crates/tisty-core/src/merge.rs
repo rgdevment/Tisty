@@ -58,7 +58,7 @@ struct Edit {
     said: Vec<String>,
 }
 
-pub const CELLS_AT_MOST: usize = 4_000_000;
+pub const CELLS_AT_MOST: usize = 16_000_000;
 
 fn shared(base: &[String], other: &[String]) -> Vec<(usize, usize)> {
     let wide = other.len() + 1;
@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn a_paper_with_more_blocks_than_we_can_weave_is_handed_back_to_the_person() {
-        let many = 2_100;
+        let many = CELLS_AT_MOST.isqrt() + 1;
         let base: String = (0..many).map(|at| format!("b{at}\n\n")).collect();
         let mine = base.replace("b7\n", "cambiado\n");
         let theirs = base.replace("b9\n", "otro\n");
@@ -476,7 +476,7 @@ mod tests {
 
     #[test]
     fn the_widest_paper_we_accept_is_woven_without_eating_the_machine() {
-        let many = 1_900;
+        let many = CELLS_AT_MOST.isqrt();
         let base: String = (0..many).map(|at| format!("b{at}\n\n")).collect();
         let mine = base.replace("b7\n", "cambiado\n");
         let theirs = base.replace("b9\n", "otro\n");
