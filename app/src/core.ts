@@ -334,13 +334,17 @@ export interface Settled {
   carried: Carried;
   undecided: string[];
   unreadable: string[];
+  astray: string[];
 }
 
 export const syncNow = (way?: "push" | "pull"): Promise<Settled> => invoke("sync_now", { way });
 export const convertPaper = (id: string, body: string): Promise<void> =>
   invoke("convert_paper", { id, body });
-export const settlePaper = (id: string, keep: "mine" | "theirs" | "both"): Promise<string | null> =>
-  invoke("settle_paper", { id, keep });
+export const settlePaper = (
+  id: string,
+  keep: "mine" | "theirs" | "both",
+  marked?: string,
+): Promise<string | null> => invoke("settle_paper", { id, keep, marked });
 
 export interface Reach {
   shipped: boolean;

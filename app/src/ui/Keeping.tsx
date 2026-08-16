@@ -218,7 +218,9 @@ export default function Keeping({ onChanged }: Props) {
         return "declined";
       }
       await decideAll(answer.undecided);
-      if (answer.unreadable?.length) {
+      if (answer.astray?.length) {
+        setTrouble({ card: "sync", text: t("someDocsAstray") });
+      } else if (answer.unreadable?.length) {
         setTrouble({ card: "sync", text: t("someoneUnreadable") });
       } else {
         setSaid({ card: "sync", text: t(carried[answer.carried]) });

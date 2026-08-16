@@ -162,6 +162,59 @@ describe("a footnote whose definition is one word becomes a link, not a broken n
   });
 });
 
+describe("what comes out of the editor goes back in unchanged", () => {
+  const settled = (content: string) => {
+    const first = build(content);
+    const once = asMarkdown(first) ?? "";
+    first.destroy();
+    const again = build(once);
+    const twice = asMarkdown(again) ?? "";
+    again.destroy();
+    return { once, twice };
+  };
+
+  const DRIFTS = ["front matter above the body", "a link glued to an escaped exclamation"];
+
+  it.each(Object.entries(shapes).filter(([name]) => !DRIFTS.includes(name)))(
+    "settles after one pass on %s",
+    (_name, content) => {
+      const { once, twice } = settled(content);
+      expect(twice).toBe(once);
+    },
+  );
+
+  it("settles on a mixed document of any length, which is what a merge needs", () => {
+    for (const blocks of [1, 5, 40, 200]) {
+      const { once, twice } = settled(mixed(blocks));
+      expect(twice, `${blocks} bloques`).toBe(once);
+    }
+  });
+
+  it("front matter drifts, and it is the one frail already refuses", async () => {
+    const { frail } = await import("../frail");
+    const { once, twice } = settled(shapes["front matter above the body"]);
+
+    expect(twice).not.toBe(once);
+    expect(frail(shapes["front matter above the body"])).toContain("frailFront");
+  });
+
+  it("settles after two passes rather than one, everywhere it drifts at all", () => {
+    for (const name of DRIFTS) {
+      const { twice } = settled(shapes[name]);
+      const again = build(twice);
+      const thrice = asMarkdown(again) ?? "";
+      again.destroy();
+      expect(thrice, name).toBe(twice);
+    }
+  });
+
+  it.fails("a literal backslash before an exclamation does not turn the link into an image", () => {
+    const { twice } = settled(shapes["a link glued to an escaped exclamation"]);
+
+    expect(twice).not.toMatch(/!\[ver\]/);
+  });
+});
+
 describe("a table with cells nobody filled in", () => {
   it("keeps every empty cell exactly where it was, not just the ones with text", () => {
     const table = "|  |  |\n| --- | --- |\n|  |  |\n";

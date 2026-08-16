@@ -10,7 +10,7 @@ export const decide = async (id: string, called?: string): Promise<void> => {
   const said = called?.trim() || t("untitledDoc");
   try {
     if (await ask(fill("bothChanged", said), { kind: "warning" })) {
-      await settlePaper(id, "both");
+      await settlePaper(id, "both", t("otherVersion"));
       return;
     }
     const mine = await ask(fill("whoseWins", said), { kind: "warning" });
