@@ -427,18 +427,6 @@ body {
   margin-inline: auto;
 }
 
-.tisty-doc p:has(> a:only-child):has(+ .preview) {
-  margin-bottom: 0.2rem;
-  text-align: center;
-}
-.tisty-doc p:has(> a:only-child):has(+ .preview) > a,
-.tisty-doc h1:has(> a:only-child):has(+ .preview) > a,
-.tisty-doc h2:has(> a:only-child):has(+ .preview) > a,
-.tisty-doc h3:has(> a:only-child):has(+ .preview) > a {
-  color: var(--tisty-soft);
-  text-decoration: none;
-}
-
 .card {
   display: flex;
   align-items: center;
@@ -505,6 +493,22 @@ body {
   white-space: nowrap;
   font-size: 12px;
   color: var(--tisty-faint);
+}
+.card-source {
+  display: none;
+}
+.card-swap {
+  margin-left: auto;
+  align-self: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: var(--tisty-faint);
+  font-size: 12px;
+  line-height: 1;
+}
+.card-swap:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
 }
 .card-gone .card-under {
   color: var(--tisty-urgent);

@@ -27,6 +27,8 @@ export const KINDS: Record<string, string> = {
   heic: "Imagen",
 };
 
+export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "heic", "avif"];
+
 const WATCHABLE = ["mp4", "webm", "m4v", "mov", "ogv"];
 const HEARABLE = ["mp3", "m4a", "wav", "ogg", "oga", "aac", "flac"];
 
@@ -63,6 +65,9 @@ export const previewOf = (href: string): Preview | null => {
   if (!kind) return null;
   return { as: "file", at, kind };
 };
+
+export const pictured = (href: string): boolean =>
+  !href.startsWith(DOC) && SEEABLE.includes(ending(href));
 
 export const weighed = (bytes: number): string => {
   const units = ["B", "kB", "MB", "GB"];

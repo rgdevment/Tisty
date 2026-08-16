@@ -44,7 +44,7 @@ describe("writing help the system provides", () => {
     const { noteTrouble } = await import("../core");
     render(
       <Editor
-        value="[charla](<attachments/ab/ausente.mp4>)"
+        value="![charla](<attachments/ab/ausente.mp4>)"
         papers={[]}
         onWrite={vi.fn()}
       />,
