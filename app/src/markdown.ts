@@ -57,7 +57,7 @@ md.renderer.rules.link_open = (tokens, i, options, env, self) => {
 md.renderer.rules.image = (tokens, i, options, env, self) => {
   const target = String(tokens[i].attrGet("src") ?? "");
   tokens[i].attrSet("alt", self.renderInlineAsText(tokens[i].children ?? [], options, env));
-  if (ours(target)) {
+  if (ours(target) || docOf(target)) {
     tokens[i].attrSet(INSIDE, target);
     tokens[i].attrSet("src", "");
   }

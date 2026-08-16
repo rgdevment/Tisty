@@ -27,11 +27,7 @@ impl Kept {
     pub fn written(&self, label: &str) -> String {
         let name = spoken(label);
         let target = self.at.clone();
-        if pictorial(&target) {
-            format!("![{name}](<{target}>)")
-        } else {
-            format!("[{name}](<{target}>)")
-        }
+        format!("![{name}](<{target}>)")
     }
 }
 
@@ -701,13 +697,6 @@ fn fingerprint(bytes: &[u8]) -> String {
         .collect()
 }
 
-fn pictorial(name: &str) -> bool {
-    let lower = name.to_lowercase();
-    [".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".svg"]
-        .iter()
-        .any(|ext| lower.ends_with(ext))
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -918,7 +907,7 @@ mod tests {
     }
 
     #[test]
-    fn a_picture_is_shown_and_everything_else_is_linked() {
+    fn everything_that_is_kept_comes_in_as_a_card() {
         let held = |at: &str| Kept {
             at: at.into(),
             sha256: "ab".into(),
@@ -930,18 +919,19 @@ mod tests {
         );
         assert_eq!(
             held("attachments/ab/cd.pdf").written("the invoice"),
-            "[the invoice](<attachments/ab/cd.pdf>)"
+            "![the invoice](<attachments/ab/cd.pdf>)",
+            "what cannot be drawn still deserves a card, not a bare link"
         );
     }
 
     #[test]
-    fn a_path_with_spaces_is_still_a_link() {
+    fn a_path_with_spaces_is_still_held_together() {
         let kept = Kept {
             at: "attachments/ab/clip (1).mkv".into(),
             sha256: "ab".into(),
         };
         let written = kept.written("clip (1).mkv");
-        assert!(written.starts_with("[clip (1).mkv](<"), "{written}");
+        assert!(written.starts_with("![clip (1).mkv](<"), "{written}");
         assert!(written.ends_with(">)"), "{written}");
     }
 

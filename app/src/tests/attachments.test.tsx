@@ -64,3 +64,44 @@ describe("the description field, which is the one that takes files", () => {
     await waitFor(() => expect(resolved()).toBe(2));
   });
 });
+
+describe("an attachment that cannot be drawn, inside a task", () => {
+  const chip = () => document.querySelector<HTMLAnchorElement>("a.chip");
+
+  it("becomes a chip rather than a picture that will never load", async () => {
+    render(<Composed html={composed("![el contrato](<attachments/ab/cd.pdf>)")} className="prose" />);
+
+    await waitFor(() => expect(chip()).toBeTruthy());
+    expect(chip()?.textContent).toContain("el contrato");
+    expect(document.querySelector("img")).toBeNull();
+  });
+
+  it("says what kind of thing it is", async () => {
+    render(<Composed html={composed("![el contrato](<attachments/ab/cd.pdf>)")} className="prose" />);
+
+    await waitFor(() => expect(chip()).toBeTruthy());
+    expect(chip()?.querySelector(".chip-badge")?.textContent).toBe("PDF");
+  });
+
+  it("falls back to the file name when nobody wrote one", async () => {
+    render(<Composed html={composed("![](<attachments/ab/cd.pdf>)")} className="prose" />);
+
+    await waitFor(() => expect(chip()).toBeTruthy());
+    expect(chip()?.textContent).toContain("cd.pdf");
+  });
+
+  it("points a document chip at the document, not at a file to open", async () => {
+    render(<Composed html={composed("![el informe](tisty:doc/mac0-0007)")} className="prose" />);
+
+    await waitFor(() => expect(chip()).toBeTruthy());
+    expect(chip()?.getAttribute("href")).toBe("tisty:doc/mac0-0007");
+    expect(chip()?.querySelector(".chip-badge")?.textContent).toBe("DOC");
+  });
+
+  it("leaves a real picture alone", async () => {
+    render(<Composed html={composed("![una foto](<attachments/aa/1.png>)")} className="prose" />);
+
+    await waitFor(() => expect(resolved()).toBe(1));
+    expect(chip()).toBeNull();
+  });
+});

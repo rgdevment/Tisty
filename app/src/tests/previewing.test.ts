@@ -225,10 +225,30 @@ describe("a picture is still a picture", () => {
 });
 
 describe("swapping one for the other", () => {
-  it("turns a card back into a link, keeping the name and the address", () => {
-    const editor = made("![contrato](<attachments/contrato-91f2.pdf>)");
-
+  const menued = (md: string) => {
+    let held: { untie: () => void; drop: () => void } | null = null;
+    const editor = made(md, {
+      onMenu: (_at, untie, drop) => {
+        held = { untie, drop };
+      },
+    });
     editor.view.dom.querySelector<HTMLElement>(".card-swap")?.click();
+    return { editor, said: () => held };
+  };
+
+  it("asks what to do instead of deciding on one click", () => {
+    const { editor, said } = menued("![contrato](<attachments/contrato-91f2.pdf>)");
+
+    expect(said()).not.toBeNull();
+    expect(asMarkdown(editor)?.trim()).toBe("![contrato](attachments/contrato-91f2.pdf)");
+
+    editor.destroy();
+  });
+
+  it("turns a card back into a link, keeping the name and the address", () => {
+    const { editor, said } = menued("![contrato](<attachments/contrato-91f2.pdf>)");
+
+    said()?.untie();
 
     expect(asMarkdown(editor)?.trim()).toBe("[contrato](attachments/contrato-91f2.pdf)");
     expect(editor.view.dom.querySelector(".preview")).toBeNull();
@@ -236,25 +256,38 @@ describe("swapping one for the other", () => {
     editor.destroy();
   });
 
-  it("says what the swap does, so it is not a bare glyph", () => {
+  it("says what the button does, so it is not a bare glyph", () => {
     const editor = made("![contrato](<attachments/contrato-91f2.pdf>)");
 
     const swap = editor.view.dom.querySelector<HTMLElement>(".card-swap");
 
     expect(swap?.getAttribute("aria-label")).toBeTruthy();
     expect(swap?.getAttribute("title")).toBeTruthy();
+    expect(swap?.getAttribute("aria-haspopup")).toBe("menu");
 
     editor.destroy();
   });
 
   it("falls back to the file name when the card carried none", () => {
-    const editor = made("![](<attachments/contrato-91f2.pdf>)");
+    const { editor, said } = menued("![](<attachments/contrato-91f2.pdf>)");
 
-    editor.view.dom.querySelector<HTMLElement>(".card-swap")?.click();
+    said()?.untie();
 
     expect(asMarkdown(editor)?.trim()).toBe(
       "[contrato-91f2.pdf](attachments/contrato-91f2.pdf)",
     );
+
+    editor.destroy();
+  });
+
+  it("takes the card away from the same menu", () => {
+    const { editor, said } = menued(
+      "![contrato](<attachments/contrato-91f2.pdf>)\n\nqueda esto",
+    );
+
+    said()?.drop();
+
+    expect(asMarkdown(editor)?.trim()).toBe("queda esto");
 
     editor.destroy();
   });
@@ -272,16 +305,15 @@ describe("swapping one for the other", () => {
 });
 
 describe("what a reference picked from the list becomes", () => {
-  const picked = async (content: string, at: number) => {
+  const shaped = async (content: string, at: number, how: "card" | "link") => {
     const { docLink, DOC } = await import("../markdown");
     const editor = made(content);
     editor.commands.setTextSelection(at);
-    const blank = editor.state.selection.$from.parent.content.size === 0;
     editor
       .chain()
       .focus()
       .insertContent(
-        blank
+        how === "card"
           ? { type: "image", attrs: { src: `${DOC}mac0-0007`, alt: "Informe técnico" } }
           : docLink("mac0-0007", "Informe técnico"),
       )
@@ -291,14 +323,54 @@ describe("what a reference picked from the list becomes", () => {
     return said;
   };
 
-  it("becomes a card when it is put on a line of its own", async () => {
-    expect(await picked("", 1)).toContain("![Informe técnico](tisty:doc/mac0-0007)");
+  it("becomes a card when a card is what was asked for, wherever the caret was", async () => {
+    expect(await shaped("mira aqui", 5, "card")).toContain(
+      "![Informe técnico](tisty:doc/mac0-0007)",
+    );
   });
 
-  it("becomes a link when it is put among words already written", async () => {
-    const said = await picked("mira aqui", 5);
+  it("becomes a link when a link is what was asked for, even on a line of its own", async () => {
+    const said = await shaped("", 1, "link");
 
     expect(said).toContain("[Informe técnico](tisty:doc/mac0-0007)");
     expect(said).not.toContain("![Informe");
+  });
+});
+
+describe("what lands when a file is attached or dropped in", () => {
+  const dropped = (into: string, at: number, said: string) => {
+    const editor = made(into);
+    editor.commands.setTextSelection(at);
+    editor.chain().focus().insertContent(said).run();
+    const cards = editor.view.dom.querySelectorAll(".card").length;
+    const md = asMarkdown(editor) ?? "";
+    editor.destroy();
+    return { cards, md };
+  };
+
+  it("gives a card for something that cannot be drawn", () => {
+    const { cards, md } = dropped("", 1, "![el contrato](<attachments/ab/cd.pdf>)");
+
+    expect(cards).toBe(1);
+    expect(md).toContain("![el contrato](attachments/ab/cd.pdf)");
+  });
+
+  it("gives a player for a video, not a bare link", () => {
+    const editor = made("");
+    editor.chain().focus().insertContent("![charla](<attachments/charla-a3f9.mp4>)").run();
+
+    expect(editor.view.dom.querySelector(".preview-play")).toBeTruthy();
+
+    editor.destroy();
+  });
+
+  it("still draws a picture as a picture", () => {
+    const editor = made("");
+    editor.chain().focus().insertContent("![foto](<attachments/aa/1.png>)").run();
+
+    expect(editor.view.dom.querySelector("img")?.className).not.toContain("card-source");
+    expect(editor.view.dom.querySelector(".card")).toBeNull();
+
+    editor.destroy();
   });
 });

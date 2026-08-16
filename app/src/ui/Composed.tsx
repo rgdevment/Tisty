@@ -3,6 +3,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { opened, revealed, served } from "../core";
 import { INSIDE, docOf } from "../markdown";
+import { ending, named, pictured } from "../previews";
 import { t } from "../locales";
 
 interface Props {
@@ -46,6 +47,7 @@ export default function Composed({
     holder.querySelectorAll<HTMLImageElement>(`img[${INSIDE}]`).forEach((img) => {
       const reference = img.getAttribute(INSIDE);
       if (!reference) return;
+      if (!pictured(reference)) return img.replaceWith(chipped(img.alt, reference));
       img.addEventListener("load", measure);
 
       const cached = known.get(reference);
@@ -116,6 +118,21 @@ export default function Composed({
       )}
     </div>
   );
+}
+
+function chipped(label: string, reference: string): HTMLElement {
+  const chip = document.createElement("a");
+  chip.className = "chip";
+  chip.setAttribute(INSIDE, reference);
+  chip.href = reference;
+  const kind = docOf(reference) ? "DOC" : ending(reference).toUpperCase();
+  const badge = document.createElement("span");
+  badge.className = "chip-badge";
+  badge.textContent = kind.slice(0, 4) || "?";
+  const name = document.createElement("span");
+  name.textContent = label || named(reference);
+  chip.append(badge, name);
+  return chip;
 }
 
 function missing(name: string): HTMLElement {
