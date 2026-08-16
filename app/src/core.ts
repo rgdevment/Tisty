@@ -341,6 +341,19 @@ export interface Settled {
 export const syncNow = (way?: "push" | "pull"): Promise<Settled> => invoke("sync_now", { way });
 export const convertPaper = (id: string, body: string): Promise<void> =>
   invoke("convert_paper", { id, body });
+export interface Rift {
+  was: string[];
+  mine: string[];
+  theirs: string[];
+}
+
+export type Pick = "mine" | "theirs" | "both";
+
+export const paperRifts = (id: string): Promise<Rift[]> => invoke("paper_rifts", { id });
+
+export const weavePaper = (id: string, picks: Pick[]): Promise<void> =>
+  invoke("weave_paper", { id, picks });
+
 export const settlePaper = (
   id: string,
   keep: "mine" | "theirs" | "both",

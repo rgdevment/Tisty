@@ -40,8 +40,8 @@ import {
 import { listen } from "@tauri-apps/api/event";
 import { heard, play } from "./chime";
 import { carrying } from "./carrying";
-import { decideAll } from "./deciding";
-import { settleIn, syncState } from "./core";
+import { decideAll, decidesByBlock } from "./deciding";
+import { settleIn, syncState, type Pick, type Rift } from "./core";
 import { handTo, whenFilesLand } from "./dropped";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
@@ -62,6 +62,7 @@ import About from "./ui/About";
 import Keeping from "./ui/Keeping";
 import Docs from "./ui/Docs";
 import Naming from "./ui/Naming";
+import Rifts from "./ui/Rifts";
 import Sightings from "./ui/Sightings";
 import Menu, { type Choice } from "./ui/Menu";
 import { settled } from "./saving";
@@ -227,6 +228,16 @@ export default function App() {
   const [leaving, setLeaving] = useState(false);
   const [settling, setSettling] = useState(true);
   const [stuck, setStuck] = useState(false);
+  const [torn, setTorn] = useState<{
+    named: string;
+    rifts: Rift[];
+    answer: (picks: Pick[] | null) => void;
+  } | null>(null);
+
+  useEffect(() => {
+    decidesByBlock((named, rifts) => new Promise((answer) => setTorn({ named, rifts, answer })));
+    return () => decidesByBlock(null);
+  }, []);
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
 
@@ -385,6 +396,21 @@ export default function App() {
       <p role="status" aria-live="polite" className="sr-only">
         {aloud}
       </p>
+
+      {torn && (
+        <Rifts
+          named={torn.named}
+          rifts={torn.rifts}
+          onDone={(picks) => {
+            torn.answer(picks);
+            setTorn(null);
+          }}
+          onClose={() => {
+            torn.answer(null);
+            setTorn(null);
+          }}
+        />
+      )}
 
       {error && (
         <div
