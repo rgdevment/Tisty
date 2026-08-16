@@ -3,7 +3,7 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import type { Node as Written } from "@tiptap/pm/model";
-import { KINDS, ending, named, previewOf, weighed, type Preview } from "../previews";
+import { KINDS, ending, named, pictured, previewOf, weighed, type Preview } from "../previews";
 import { t } from "../locales";
 
 export interface Reach {
@@ -27,26 +27,20 @@ interface Spot {
   label: string;
 }
 
-const linked = (node: Written): string | null => {
-  if (!node.isText) return null;
-  const link = node.marks.find((one) => one.type.name === "link");
-  return link ? String(link.attrs.href ?? "") : null;
+export const asCard = (node: Written): { href: string; seen: Preview; label: string } | null => {
+  if (node.type.name !== "image") return null;
+  const href = String(node.attrs.src ?? "");
+  if (pictured(href)) return null;
+  const seen = previewOf(href);
+  return seen ? { href, seen, label: String(node.attrs.alt ?? "") } : null;
 };
 
 const found = (doc: Written): Spot[] => {
   const all: Spot[] = [];
-  doc.descendants((block, at) => {
-    if (!block.isTextblock) return true;
-    const after = at + block.nodeSize;
-    block.forEach((node, _offset, index) => {
-      const href = linked(node);
-      if (href === null) return;
-      const next = block.maybeChild(index + 1);
-      if (next && linked(next) === href) return;
-      const seen = previewOf(href);
-      if (!seen) return;
-      all.push({ at: after, seen, href, label: node.text ?? "" });
-    });
+  doc.descendants((node, at) => {
+    const card = asCard(node);
+    if (!card) return true;
+    all.push({ at, seen: card.seen, href: card.href, label: card.label });
     return false;
   });
   return all;
@@ -126,6 +120,7 @@ const built = (
   label: string,
   back: () => void,
   drop: () => void,
+  untie: () => void,
 ): HTMLElement => {
   const lost = seen.as !== "doc" && Boolean(reach.gone?.(seen.at));
 
@@ -198,6 +193,18 @@ const built = (
 
   said.append(name, under);
   box.append(said);
+
+  const swap = document.createElement("button");
+  swap.type = "button";
+  swap.className = "card-swap";
+  swap.textContent = "↩";
+  swap.title = t("showAsLink");
+  swap.setAttribute("aria-label", t("showAsLink"));
+  swap.addEventListener("click", (e) => {
+    e.stopPropagation();
+    untie();
+  });
+  box.append(swap);
   if (itself) {
     box.classList.add("card-itself");
     return box;
@@ -223,47 +230,20 @@ const shed = (
   at: number | undefined,
 ) => {
   if (at === undefined) return;
-  const $at = view.state.doc.resolve(Math.max(1, at - 1));
-  if (!$at.depth) return;
-  view.dispatch(view.state.tr.delete($at.before($at.depth), $at.after($at.depth)));
+  view.dispatch(view.state.tr.delete(at, at + 1));
 };
 
-export const spanned = (block: Written, at: number): { from: number; to: number } | null => {
-    let found: { from: number; to: number } | null = null;
-    let walked = 0;
-    block.forEach((child) => {
-      const start = walked;
-      walked += child.nodeSize;
-      if (found || at < start || at > walked) return;
-      const href = linked(child);
-      if (href === null || !previewOf(href)) return;
-      found = { from: start, to: walked };
-    });
-    return found;
-};
-
-export const alone = (block: Written): boolean => {
-  let held = false;
-  let more = false;
-  block.forEach((child) => {
-    const link = child.isText
-      ? child.marks.find((one) => one.type.name === "link")
-      : undefined;
-    if (link && previewOf(String(link.attrs.href ?? ""))) {
-      if (held) more = true;
-      held = true;
-      return;
-    }
-    if (!child.isText || child.text?.trim()) more = true;
-  });
-  return held && !more;
-};
-
-export const eats = (key: string, at: number, room: number, whole: boolean): boolean => {
-  if (whole) return true;
-  if (key === "Backspace") return at > 0;
-  if (key === "Delete") return at < room;
-  return false;
+const untied = (
+  view: { state: EditorState; dispatch: (tr: Transaction) => void },
+  at: number | undefined,
+  href: string,
+  label: string,
+) => {
+  if (at === undefined) return;
+  const { schema } = view.state;
+  const said = label.trim() || named(href);
+  const words = schema.text(said, [schema.marks.link.create({ href })]);
+  view.dispatch(view.state.tr.replaceWith(at, at + 1, schema.nodes.paragraph.create(null, words)));
 };
 
 const settled = (seen: Preview, reach: Reach): string => {
@@ -294,33 +274,12 @@ export const previewing = (reach: () => Reach) => {
         new Plugin({
           key: plugged,
           props: {
-            handleKeyDown(view, event) {
-              if (event.key !== "Backspace" && event.key !== "Delete") return false;
-              const { $from, $to, empty } = view.state.selection;
-              if (!$from.depth || !$from.sameParent($to)) return false;
-              if (alone($from.parent)) {
-                if (!eats(event.key, $from.parentOffset, $from.parent.content.size, !empty)) {
-                  return false;
-                }
-                view.dispatch(
-                  view.state.tr.delete($from.before($from.depth), $from.after($from.depth)),
-                );
-                return true;
-              }
-              const held = spanned($from.parent, $from.parentOffset);
-              if (!held) return false;
-              if (!eats(event.key, $from.parentOffset - held.from, held.to - held.from, !empty)) {
-                return false;
-              }
-              const start = $from.start($from.depth);
-              view.dispatch(view.state.tr.delete(start + held.from, start + held.to));
-              return true;
-            },
             decorations(state) {
               const now = reach();
               return DecorationSet.create(
                 state.doc,
-                scan(state.doc).map((one) =>
+                scan(state.doc).flatMap((one) => [
+                  Decoration.node(one.at, one.at + 1, { class: "card-source" }),
                   Decoration.widget(
                     one.at,
                     (view, getPos) =>
@@ -330,6 +289,7 @@ export const previewing = (reach: () => Reach) => {
                         one.label,
                         () => view.focus(),
                         () => shed(view, getPos()),
+                        () => untied(view, getPos(), one.href, one.label),
                       ),
                     {
                       key: `${one.seen.as}:${one.href}:${settled(one.seen, now)}`,
@@ -338,7 +298,7 @@ export const previewing = (reach: () => Reach) => {
                       stopEvent: () => true,
                     },
                   ),
-                ),
+                ]),
               );
             },
           },

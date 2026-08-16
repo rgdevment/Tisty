@@ -6,7 +6,7 @@ import { asMarkdown, written } from "./writing";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { docRead, noteTrouble, served, weighs, type Filed } from "../core";
 import { previewing, type Reach } from "./previewing";
-import { docLink, docOf } from "../markdown";
+import { DOC, docLink, docOf } from "../markdown";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import Slash, { asked, narrowed, type Block } from "./Slash";
@@ -605,7 +605,16 @@ export default function Editor({
               all={papers?.filter((one) => one.file !== paper)}
               onPick={(paper) => {
                 setChoosing(null);
-                editor.chain().focus().insertContent(docLink(paper.file, paper.title)).run();
+                const blank = editor.state.selection.$from.parent.content.size === 0;
+                editor
+                  .chain()
+                  .focus()
+                  .insertContent(
+                    blank
+                      ? { type: "image", attrs: { src: DOC + paper.file, alt: paper.title } }
+                      : docLink(paper.file, paper.title),
+                  )
+                  .run();
               }}
             />
           </div>

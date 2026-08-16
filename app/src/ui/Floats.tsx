@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Editor as Writing } from "@tiptap/core";
 import { t } from "../locales";
 import { addressed } from "../linking";
+import { named, pictured, previewOf } from "../previews";
 
 interface Props {
   editor: Writing;
@@ -27,6 +28,20 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
   const card = useRef<HTMLDivElement | null>(null);
 
   const locked = editor.isActive("codeBlock");
+  const href = String(editor.getAttributes("link").href ?? "");
+  const cardable = Boolean(href) && !pictured(href) && Boolean(previewOf(href));
+
+  const asCard = () => {
+    const said = live.words.trim() || named(href);
+    editor
+      .chain()
+      .focus()
+      .setTextSelection(live)
+      .deleteSelection()
+      .insertContent({ type: "image", attrs: { src: href, alt: said } })
+      .run();
+    onDone?.();
+  };
 
   const marks = [
     { key: "bold", glyph: "B", name: t("bold"), weight: "font-bold" },
@@ -216,6 +231,23 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
       >
         ⚭
       </button>
+
+      {cardable && (
+        <button
+          type="button"
+          data-tool
+          tabIndex={reached === marks.length + 1 ? 0 : -1}
+          disabled={locked}
+          aria-label={t("showAsCard")}
+          title={t("showAsCard")}
+          onMouseDown={(e) => e.preventDefault()}
+          onFocus={() => setReached(marks.length + 1)}
+          onClick={asCard}
+          className="grid h-7 w-7 place-items-center rounded-md text-[12px] text-soft hover:bg-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          ▤
+        </button>
+      )}
     </div>
   );
 }

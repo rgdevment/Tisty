@@ -75,7 +75,7 @@ describe("previewOf nunca trata como interno lo que sale de la máquina", () => 
 
 describe("el DOM que construye previewing", () => {
   it("no deja escapar html desde el nombre del fichero", () => {
-    const box = drawn("[x](<attachments/ab/%3Cimg%20src=x%20onerror=alert(1)%3E.pdf>)");
+    const box = drawn("![x](<attachments/ab/%3Cimg%20src=x%20onerror=alert(1)%3E.pdf>)");
 
     expect(box.querySelector(".card-under")?.innerHTML).toBe("PDF · 10 B");
     expect(box.querySelector("[onerror]")).toBeNull();
@@ -83,11 +83,12 @@ describe("el DOM que construye previewing", () => {
   });
 
   it("no deja escapar html desde el título de un documento", () => {
-    const box = drawn("[x](<tisty:doc/mac0-0001>)", {
+    const box = drawn("![x](<tisty:doc/mac0-0001>)", {
       title: () => "<img src=x onerror=alert(1)>",
     });
 
-    expect(box.querySelectorAll("img").length).toBe(0);
+    expect(box.querySelectorAll(".card img").length).toBe(0);
+    expect(box.querySelector("[onerror]")).toBeNull();
     expect(box.textContent).toContain("<img src=x onerror=alert(1)>");
   });
 
@@ -100,7 +101,7 @@ describe("el DOM que construye previewing", () => {
           url: (at) => (at === "attachments/ab/clip.mp4" ? "asset://localhost/real.mp4" : null),
         })),
       ],
-      content: "[x](<attachments/ab/clip.mp4>)",
+      content: "![x](<attachments/ab/clip.mp4>)",
     });
 
     editor.view.dom
@@ -114,7 +115,7 @@ describe("el DOM que construye previewing", () => {
   });
 
   it("no dibuja reproductor para un href remoto", () => {
-    const box = drawn("[x](<https://evil.example/x.mp4>)");
+    const box = drawn("![x](<https://evil.example/x.mp4>)");
 
     expect(box.querySelector(".preview-play")).toBeNull();
     expect(box.querySelector("video")).toBeNull();
