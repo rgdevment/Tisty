@@ -17,6 +17,7 @@ import {
   shortcut,
   joinThem,
   takeOver,
+  docs,
   mergeStores,
   syncKin,
   removeMachine,
@@ -178,6 +179,15 @@ export default function Keeping({ onChanged }: Props) {
   const carrying = busy === "sync";
   const held = busy !== null;
 
+  const namedDocs = async (files: string[]): Promise<string> => {
+    const titled = await docs()
+      .then((found) => new Map(found.docs.map((one) => [one.file, one.title])))
+      .catch(() => new Map<string, string>());
+    return files
+      .map((one) => `«${titled.get(one)?.trim() || t("untitledDoc")}»`)
+      .join(", ");
+  };
+
   const carryNow = async (): Promise<"done" | "declined" | "failed"> => {
     if (held) return "failed";
     setBusy("sync");
@@ -222,6 +232,8 @@ export default function Keeping({ onChanged }: Props) {
         setTrouble({ card: "sync", text: t("someDocsAstray") });
       } else if (answer.unreadable?.length) {
         setTrouble({ card: "sync", text: t("someoneUnreadable") });
+      } else if (answer.joined?.length) {
+        setSaid({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
       } else {
         setSaid({ card: "sync", text: t(carried[answer.carried]) });
       }

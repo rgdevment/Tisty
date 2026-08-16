@@ -291,6 +291,8 @@ const en = {
   wouldReset:
     "That folder holds another history. To join it, this machine has to be backed up and reset — it does not merge.",
   stuckTakeMe: "Sort it out",
+  someJoined:
+    "Changes made on both machines were put together in {name}. Nothing was asked because they did not touch the same place.",
   someDocsAstray:
     "A document was left out of this sync because it could not be read — usually one past the size a document may weigh. It is still on this machine; it just did not travel.",
   someoneUnreadable:
@@ -851,6 +853,8 @@ const es: Catalog = {
   wouldReset:
     "Esa carpeta guarda otro historial. Para unirse, esta máquina tiene que respaldarse y reiniciarse — no se fusiona.",
   stuckTakeMe: "Resolverlo",
+  someJoined:
+    "Se juntaron los cambios de las dos máquinas en {name}. No se preguntó nada porque no tocaban el mismo sitio.",
   someDocsAstray:
     "Un documento se quedó fuera de esta sincronización porque no se pudo leer — normalmente uno que pasa del tamaño que puede pesar un documento. Sigue en esta máquina; solo no viajó.",
   someoneUnreadable:

@@ -2441,6 +2441,7 @@ async fn sync_now(
             undecided: Vec::new(),
             unreadable: Vec::new(),
             astray: Vec::new(),
+            joined: Vec::new(),
         });
     };
 
@@ -2507,6 +2508,7 @@ async fn sync_now(
         undecided: done.undecided.into_iter().map(|one| one.id).collect(),
         unreadable: done.unreadable,
         astray: done.astray,
+        joined: done.joined,
     })
 }
 
@@ -2517,6 +2519,7 @@ struct Settled {
     undecided: Vec<String>,
     unreadable: Vec<String>,
     astray: Vec<String>,
+    joined: Vec<String>,
 }
 
 #[tauri::command]
