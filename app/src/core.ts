@@ -225,6 +225,7 @@ export interface Twins {
 
 export interface Machine {
   id: string;
+  called: string;
   when: number;
   mine: boolean;
 }

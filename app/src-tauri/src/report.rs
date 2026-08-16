@@ -77,6 +77,7 @@ pub fn attachments(root: &Path) -> Held {
 #[serde(rename_all = "camelCase")]
 pub struct Machine {
     pub id: String,
+    pub called: String,
     pub when: i64,
     pub mine: bool,
 }
@@ -106,7 +107,13 @@ pub fn machines(
                 return None;
             }
             let mine = id == mine;
-            Some(Machine { id, when, mine })
+            let called = tisty_core::config::nicknamed(&id);
+            Some(Machine {
+                id,
+                called,
+                when,
+                mine,
+            })
         })
         .collect();
     all.sort_by(|a, b| b.when.cmp(&a.when).then_with(|| a.id.cmp(&b.id)));

@@ -284,13 +284,17 @@ export default function Keeping({ onChanged }: Props) {
       .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
   };
 
-  const dropMachine = (id: string) => {
+  const dropMachine = (one: Machine) => {
     if (held) return;
-    ask(fill("machineDropSure", id), { kind: "warning" })
+    const said = `${fill("machineDropSure", one.called)}\n\n${fill(
+      "machineDropWhen",
+      one.when === 0 ? t("machineNever") : dated(one.when),
+    )}`;
+    ask(said, { kind: "warning" })
       .then(
         (sure) =>
           sure &&
-          run("review", removeMachine(id).then(checked), (now) => {
+          run("review", removeMachine(one.id).then(checked), (now) => {
             setAudit(now);
             setSaid({ card: "review", text: t("machineDropped") });
           }),
@@ -699,21 +703,37 @@ export default function Keeping({ onChanged }: Props) {
               {audit && (
                 <ul className="mt-2 flex flex-col gap-1 text-[12.5px]">
                   {audit.machines.map((one) => (
-                    <li key={one.id} className="flex items-baseline justify-between gap-4">
-                      <span className="font-mono text-[11.5px] break-all text-soft">
-                        {one.id}
-                        {one.mine && <span className="ml-1.5 text-faint">{t("machineHere")}</span>}
-                      </span>
-                      <span className="flex shrink-0 items-baseline gap-2.5">
-                        <span className={behind(one) ? "text-urgent" : "text-faint"}>
+                    <li
+                      key={one.id}
+                      className={`flex items-center justify-between gap-3 rounded-lg px-2.5 py-2 ${
+                        one.mine ? "bg-accent-soft" : ""
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-[13.5px] font-semibold">
+                          {one.called}
+                          {one.mine && (
+                            <span className="ml-2 rounded-full border border-accent px-1.5 py-px align-[1px] text-[10.5px] font-semibold tracking-wide text-accent uppercase">
+                              {t("machineHere")}
+                            </span>
+                          )}
+                        </span>
+                        <span className={`block text-[12px] ${behind(one) ? "text-urgent" : "text-soft"}`}>
                           {one.when === 0 ? t("machineNever") : dated(one.when)}
                         </span>
-                        {!one.mine && (
+                        <span className="block font-mono text-[10.5px] break-all text-faint">
+                          {one.id}
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2.5">
+                        {one.mine ? (
+                          <span className="text-[12px] text-faint">{t("machineNeverDrop")}</span>
+                        ) : (
                           <button
                             type="button"
                             disabled={held}
-                            onClick={() => dropMachine(one.id)}
-                            className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
+                            onClick={() => dropMachine(one)}
+                            className="rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-urgent hover:text-urgent disabled:text-faint"
                           >
                             {t("machineDrop")}
                           </button>

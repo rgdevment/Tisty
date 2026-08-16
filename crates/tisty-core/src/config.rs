@@ -120,6 +120,81 @@ impl Config {
     }
 }
 
+const TREES: [&str; 64] = [
+    "abeto",
+    "acacia",
+    "alamo",
+    "alerce",
+    "algarrobo",
+    "aliso",
+    "almendro",
+    "arce",
+    "arrayan",
+    "avellano",
+    "azahar",
+    "boj",
+    "brezo",
+    "cactus",
+    "canelo",
+    "carrasco",
+    "castano",
+    "cedro",
+    "cerezo",
+    "cipres",
+    "ciruelo",
+    "coihue",
+    "drago",
+    "encina",
+    "enebro",
+    "espino",
+    "eucalipto",
+    "fresno",
+    "ginkgo",
+    "granado",
+    "haya",
+    "helecho",
+    "hiedra",
+    "higuera",
+    "jacaranda",
+    "jazmin",
+    "laurel",
+    "lavanda",
+    "lentisco",
+    "lila",
+    "madrono",
+    "magnolio",
+    "manzano",
+    "membrillo",
+    "menta",
+    "mirto",
+    "moral",
+    "musgo",
+    "nogal",
+    "olivo",
+    "olmo",
+    "orquidea",
+    "palmera",
+    "peral",
+    "pino",
+    "quillay",
+    "roble",
+    "romero",
+    "salvia",
+    "sauce",
+    "tejo",
+    "tomillo",
+    "trebol",
+    "yuca",
+];
+
+pub fn nicknamed(device: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let said = Sha256::digest(device.as_bytes());
+    let word = TREES[(said[0] as usize) % TREES.len()];
+    let number = (u16::from(said[1]) * 100 / 256) + 1;
+    format!("{word} {number}")
+}
+
 pub fn new_device_id() -> String {
     let ulid = Ulid::generate().to_string().to_lowercase();
     format!("dev_{}", &ulid[ulid.len() - 8..])
@@ -127,6 +202,63 @@ pub fn new_device_id() -> String {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn the_same_machine_is_called_the_same_thing_on_every_machine_that_asks() {
+        for id in ["dev_a657da33", "dev_jtntzhbx", "dev_ej8mf31b"] {
+            assert_eq!(nicknamed(id), nicknamed(id));
+        }
+        assert_eq!(nicknamed("dev_a657da33"), nicknamed("dev_a657da33"));
+    }
+
+    #[test]
+    fn the_whole_dictionary_is_used_and_not_a_corner_of_it() {
+        let said: std::collections::BTreeSet<String> = (0..60_000)
+            .map(|n| nicknamed(&format!("dev_{n:08x}")))
+            .collect();
+
+        assert!(
+            said.len() > 6_000,
+            "solo {} nombres de los 6400 posibles",
+            said.len()
+        );
+    }
+
+    #[test]
+    fn a_handful_of_machines_can_be_told_apart_by_name_alone() {
+        let mut twice = 0;
+        for round in 0..500 {
+            let names: std::collections::BTreeSet<String> = (0..5)
+                .map(|n| nicknamed(&format!("dev_{round:04x}{n:04x}")))
+                .collect();
+            if names.len() < 5 {
+                twice += 1;
+            }
+        }
+
+        assert!(twice < 15, "{twice} de 500 flotas con dos nombres iguales");
+    }
+
+    #[test]
+    fn a_nickname_is_a_word_and_a_number_that_can_be_said_out_loud() {
+        for n in 0..500 {
+            let said = nicknamed(&format!("dev_{n:08x}"));
+            let (word, number) = said.split_once(' ').expect("una palabra y un numero");
+            assert!(TREES.contains(&word), "{word} no esta en el diccionario");
+            let number: u16 = number.parse().expect("un numero");
+            assert!((1..=100).contains(&number), "{number} fuera de rango");
+            assert!(word.chars().all(|c| c.is_ascii_lowercase()));
+        }
+    }
+
+    #[test]
+    fn the_nickname_never_carries_anything_of_the_identifier_it_came_from() {
+        let said = nicknamed("dev_a657da33");
+
+        assert!(!said.contains("a657"));
+        assert!(!said.contains("da33"));
+        assert!(!said.contains("dev"));
+    }
     use super::*;
 
     fn paths(tmp: &tempfile::TempDir) -> Paths {
