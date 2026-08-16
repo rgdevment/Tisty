@@ -57,6 +57,17 @@ pub fn carry(
     way: Way,
     alive: &[String],
 ) -> Result<Moved, Trouble> {
+    carry_leaning_on(data, None, device, dest, way, alive)
+}
+
+pub fn carry_leaning_on(
+    data: &Path,
+    aside: Option<&Path>,
+    device: &str,
+    dest: &Path,
+    way: Way,
+    alive: &[String],
+) -> Result<Moved, Trouble> {
     if !dest.is_dir() {
         return Err(Trouble::NotThere(dest.display().to_string()));
     }
@@ -71,7 +82,7 @@ pub fn carry(
     if matches!(way, Way::Both | Way::Pull) {
         let came = bring(&store, device, dest, &mut moved.unreadable)?;
         moved.brought = came;
-        said = as_told(&store);
+        said = as_told(&store, aside);
         match &said {
             Some(one) => {
                 moved.brought += copy_held(&dest.join(HELD), &data.join(HELD), &one.retired)?;
@@ -87,7 +98,7 @@ pub fn carry(
         let Some(buried) = said
             .as_ref()
             .map(|one| one.retired.clone())
-            .or_else(|| as_told(&store).map(|one| one.retired))
+            .or_else(|| as_told(&store, aside).map(|one| one.retired))
         else {
             return Err(Trouble::Unreadable(store.display().to_string()));
         };
@@ -118,7 +129,12 @@ pub fn carry(
     Ok(moved)
 }
 
-fn as_told(store: &Path) -> Option<tisty_core::State> {
+fn as_told(store: &Path, aside: Option<&Path>) -> Option<tisty_core::State> {
+    if let Some(at) = aside
+        && let Ok(state) = tisty_core::cache::project(store, at)
+    {
+        return Some(state);
+    }
     tisty_core::store::read_all(store)
         .ok()
         .map(|events| tisty_core::State::replay(&events))
@@ -720,8 +736,14 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
     }
 
     match print_of(&mine) {
-        Ok(Some(print)) => said.keep(id, &print),
-        Ok(None) => said.forget(id),
+        Ok(Some(print)) => {
+            settled_body(data, id, &mine, &theirs);
+            said.keep(id, &print);
+        }
+        Ok(None) => {
+            tisty_core::docs::forget_carried(data, id);
+            said.forget(id);
+        }
         Err(e) => return Err(io(e)),
     }
     said.save(data)
@@ -833,7 +855,8 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
                 Move::Nothing => {
                     if let Some(print) = ours.or(yours) {
                         let steady = said.of(id) == Some(print.as_str())
-                            && tisty_core::docs::carried_there(data, id);
+                            && tisty_core::docs::carried_print(data, id).as_deref()
+                                == Some(print.as_str());
                         if !steady {
                             settled_body(data, id, &mine, &theirs);
                         }
@@ -2545,6 +2568,202 @@ mod tests {
             done.sent + done.brought,
             0,
             "it moved something nobody had changed anywhere"
+        );
+    }
+
+    #[test]
+    fn leaning_on_the_cache_still_sees_what_was_retired_a_moment_ago() {
+        let one = machine("uno");
+        let kept = planted(&one.data, "foto.png", b"una fotografia retirada");
+        let shared = tempfile::tempdir().unwrap();
+        let cache = tempfile::tempdir().unwrap();
+        let at = cache.path().to_path_buf();
+
+        carry_leaning_on(
+            &one.data,
+            Some(&at),
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap();
+        std::fs::remove_file(shared.path().join(&kept)).unwrap();
+
+        says(&one, Op::AttachRetire { d: kept.clone() });
+        carry_leaning_on(
+            &one.data,
+            Some(&at),
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap();
+
+        assert!(
+            !shared.path().join(&kept).exists(),
+            "la cache sirvio un estado viejo y lo retirado volvio a subir"
+        );
+    }
+
+    #[test]
+    fn leaning_on_the_cache_lands_exactly_where_reading_it_all_lands() {
+        let run = |aside: bool| -> (Vec<String>, usize) {
+            let one = machine("dev_a");
+            let two = blank("dev_b");
+            let shared = tempfile::tempdir().unwrap();
+            let cache = tempfile::tempdir().unwrap();
+            let at = aside.then(|| cache.path().to_path_buf());
+
+            carry_leaning_on(
+                &one.data,
+                at.as_deref(),
+                &one.device,
+                shared.path(),
+                Way::Both,
+                &[],
+            )
+            .unwrap();
+            carry_leaning_on(
+                &two.data,
+                at.as_deref(),
+                &two.device,
+                shared.path(),
+                Way::Both,
+                &[],
+            )
+            .unwrap();
+
+            for _ in 0..3 {
+                carry_leaning_on(
+                    &one.data,
+                    at.as_deref(),
+                    &one.device,
+                    shared.path(),
+                    Way::Both,
+                    &[],
+                )
+                .unwrap();
+                carry_leaning_on(
+                    &two.data,
+                    at.as_deref(),
+                    &two.device,
+                    shared.path(),
+                    Way::Both,
+                    &[],
+                )
+                .unwrap();
+                wrote(&one, "algo mas de a".to_string());
+                wrote(&two, "algo mas de b".to_string());
+            }
+            carry_leaning_on(
+                &one.data,
+                at.as_deref(),
+                &one.device,
+                shared.path(),
+                Way::Both,
+                &[],
+            )
+            .unwrap();
+
+            let told = tisty_core::store::read_all(&one.store).unwrap();
+            let state = tisty_core::State::replay(&told);
+            let mut said: Vec<String> = state.tasks.values().map(|one| one.title.clone()).collect();
+            said.sort();
+            (said, told.len())
+        };
+
+        let plain = run(false);
+        let leaned = run(true);
+
+        assert_eq!(
+            leaned, plain,
+            "la cache llevo la sincronizacion a otro sitio"
+        );
+        assert!(plain.1 > 0, "el sorteo no llego a mover nada");
+    }
+
+    #[test]
+    fn after_a_decision_by_hand_the_base_on_disk_is_what_the_ledger_says_it_is() {
+        let one = blank("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let alive = ["dev_a-0001".to_string()];
+        let base = "# Minuta\n\nparrafo uno\n\nparrafo dos\n";
+        paper(&one, "dev_a-0001", base);
+        carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+        paper(
+            &one,
+            "dev_a-0001",
+            "# Minuta\n\nparrafo uno del mac\n\nparrafo dos\n",
+        );
+        theirs(
+            shared.path(),
+            "dev_a-0001",
+            "# Minuta\n\nparrafo uno de windows\n\nparrafo dos\n",
+        );
+        let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+        assert_eq!(done.undecided.len(), 1, "no llego a preguntar");
+
+        settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine).unwrap();
+        carry_papers(&one.data, shared.path(), &alive).unwrap();
+        carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+        let said = tisty_core::docs::Carried::read(&one.data);
+        assert_eq!(
+            tisty_core::docs::carried_print(&one.data, "dev_a-0001").as_deref(),
+            said.of("dev_a-0001"),
+            "la base en disco dejo de ser la que el ledger dice"
+        );
+    }
+
+    #[test]
+    fn a_stale_base_left_by_a_decision_does_not_turn_a_silent_merge_into_a_question() {
+        let one = blank("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let alive = ["dev_a-0001".to_string()];
+        paper(
+            &one,
+            "dev_a-0001",
+            "# Minuta\n\nparrafo uno\n\nparrafo dos\n",
+        );
+        carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+        paper(
+            &one,
+            "dev_a-0001",
+            "# Minuta\n\nparrafo uno del mac\n\nparrafo dos\n",
+        );
+        theirs(
+            shared.path(),
+            "dev_a-0001",
+            "# Minuta\n\nparrafo uno de windows\n\nparrafo dos\n",
+        );
+        carry_papers(&one.data, shared.path(), &alive).unwrap();
+        settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine).unwrap();
+        carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+        paper(
+            &one,
+            "dev_a-0001",
+            "# Minuta del mac\n\nparrafo uno del mac\n\nparrafo dos\n",
+        );
+        theirs(
+            shared.path(),
+            "dev_a-0001",
+            "# Minuta\n\nparrafo uno del mac\n\nparrafo dos\n\nparrafo tres\n",
+        );
+        let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+        assert_eq!(
+            done.undecided.len(),
+            0,
+            "volvio a preguntar algo que se juntaba solo"
+        );
+        assert_eq!(
+            body(&one.data, "dev_a-0001"),
+            "# Minuta del mac\n\nparrafo uno del mac\n\nparrafo dos\n\nparrafo tres\n"
         );
     }
 

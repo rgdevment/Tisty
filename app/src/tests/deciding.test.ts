@@ -8,6 +8,7 @@ const ipc = vi.hoisted(() => ({
 
 const torn = vi.hoisted(() => ({
   said: { rifts: [] as Rift[], print: "" },
+  refuses: false,
 }));
 
 const asked = vi.hoisted(() => ({
@@ -34,6 +35,7 @@ vi.mock("@tauri-apps/api/core", () => ({
       });
     }
     if (cmd === "paper_rifts") return Promise.resolve(torn.said);
+    if (cmd === "weave_paper" && torn.refuses) return Promise.reject(new Error("cannotWeave"));
     return Promise.resolve(null);
   },
 }));
@@ -49,6 +51,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 beforeEach(() => {
   torn.said = { rifts: [], print: "" };
+  torn.refuses = false;
   decidesByBlock(null);
   ipc.calls = [];
   asked.held = [];
@@ -82,6 +85,16 @@ describe("deciding a document block by block", () => {
 
     expect(woven()).toHaveLength(0);
     expect(settled()).toHaveLength(0);
+  });
+
+  it("asks outright rather than leaving the person stuck when the weave is refused", async () => {
+    torn.said = { rifts: [rift], print: "huella-1" };
+    torn.refuses = true;
+    decidesByBlock(async () => ["mine"] as Pick[]);
+
+    await decideAll(["dev_a-0001"]);
+
+    expect(settled()).toHaveLength(1);
   });
 
   it("falls back to asking outright when the blocks cannot be worked out", async () => {

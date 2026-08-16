@@ -22,9 +22,14 @@ export const decide = async (id: string, called?: string): Promise<void> => {
       if (torn?.rifts.length) {
         const picks = await byBlock(said, torn.rifts);
         if (!picks) return;
-        await weavePaper(id, picks, torn.print);
-        await settlePaper(id, "mine");
-        return;
+        const wove = await weavePaper(id, picks, torn.print).then(
+          () => true,
+          () => false,
+        );
+        if (wove) {
+          await settlePaper(id, "mine");
+          return;
+        }
       }
     }
     if (await ask(fill("bothChanged", said), { kind: "warning" })) {

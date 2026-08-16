@@ -88,7 +88,8 @@ pub fn sync(
         .values()
         .map(|one| one.file.clone())
         .collect();
-    let moved = match carrier::carry(&data, &device, &dest, way, &alive) {
+    let aside = app.paths.cache().to_path_buf();
+    let moved = match carrier::carry_leaning_on(&data, Some(&aside), &device, &dest, way, &alive) {
         Ok(moved) => moved,
         Err(trouble) => return Ok(said(&trouble, lang)),
     };

@@ -252,12 +252,46 @@ fn woven(steps: &[Step], picks: &[Pick]) -> String {
     format!("{}\n", out.join("\n\n"))
 }
 
+fn tally(said: &[String]) -> std::collections::HashMap<&str, usize> {
+    let mut many = std::collections::HashMap::new();
+    for one in said {
+        *many.entry(one.as_str()).or_default() += 1;
+    }
+    many
+}
+
+fn sound(out: &str, mine: &str, theirs: &str) -> bool {
+    let (out, mine, theirs) = (blocks(out), blocks(mine), blocks(theirs));
+    let (out, mine, theirs) = (tally(&out), tally(&mine), tally(&theirs));
+
+    for (block, many) in &out {
+        let most = mine
+            .get(block)
+            .copied()
+            .unwrap_or(0)
+            .max(theirs.get(block).copied().unwrap_or(0));
+        if *many > most {
+            return false;
+        }
+    }
+    for (block, here) in &mine {
+        let Some(there) = theirs.get(block) else {
+            continue;
+        };
+        if out.get(block).copied().unwrap_or(0) < *here.min(there) {
+            return false;
+        }
+    }
+    true
+}
+
 pub fn merged(base: &str, mine: &str, theirs: &str) -> Option<String> {
     let steps = plan(base, mine, theirs)?;
     if steps.iter().any(|one| matches!(one, Step::Torn(_))) {
         return None;
     }
-    Some(woven(&steps, &[]))
+    let whole = woven(&steps, &[]);
+    sound(&whole, mine, theirs).then_some(whole)
 }
 
 pub fn rifts(base: &str, mine: &str, theirs: &str) -> Vec<Rift> {
@@ -282,7 +316,8 @@ pub fn woven_with(base: &str, mine: &str, theirs: &str, picks: &[Pick]) -> Optio
     if picks.len() != torn {
         return None;
     }
-    Some(woven(&steps, picks))
+    let whole = woven(&steps, picks);
+    sound(&whole, mine, theirs).then_some(whole)
 }
 
 #[cfg(test)]
@@ -465,6 +500,49 @@ mod tests {
 
         assert!(front_matter(base));
         assert!(merged(base, mine, theirs).is_none());
+    }
+
+    #[test]
+    fn a_block_that_both_sides_moved_is_never_quietly_doubled() {
+        let base = told(&["a", "b", "c"]);
+        let mine = told(&["c", "b"]);
+        let theirs = told(&["a", "c", "b"]);
+
+        assert!(rifts(&base, &mine, &theirs).is_empty());
+        assert_eq!(
+            merged(&base, &mine, &theirs),
+            None,
+            "escribio el documento con un bloque repetido sin preguntar"
+        );
+    }
+
+    #[test]
+    fn keeping_a_side_never_hands_back_a_document_missing_what_both_sides_held() {
+        let base = told(&["a", "b", "c"]);
+        let mine = told(&["c"]);
+        let theirs = told(&["c", "b"]);
+
+        assert_eq!(rifts(&base, &mine, &theirs).len(), 1);
+        assert_eq!(
+            woven_with(&base, &mine, &theirs, &[Pick::Mine]),
+            None,
+            "devolvio un documento sin el bloque que las dos conservaban"
+        );
+    }
+
+    #[test]
+    fn keeping_a_side_never_hands_back_the_same_block_twice() {
+        let base = told(&["a", "b", "c"]);
+        let mine = told(&["b"]);
+        let theirs = told(&["b", "a"]);
+
+        for pick in [Pick::Mine, Pick::Both] {
+            assert_eq!(
+                woven_with(&base, &mine, &theirs, &[pick]),
+                None,
+                "devolvio el mismo bloque dos veces"
+            );
+        }
     }
 
     #[test]

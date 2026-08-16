@@ -2224,7 +2224,7 @@ async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, dest, data, store, device, alive) = {
+    let (was, dest, data, store, aside, device, alive) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -2245,6 +2245,7 @@ async fn settle_in(
             dest,
             session.paths.data().to_path_buf(),
             session.paths.store(),
+            session.paths.cache().to_path_buf(),
             session.config.device_id.0.clone(),
             session.alive(),
         )
@@ -2259,7 +2260,14 @@ async fn settle_in(
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
         let carried = tauri::async_runtime::spawn_blocking(move || {
-            tisty_sync::carry(&data, &device, &dest, tisty_sync::Way::Both, &alive)
+            tisty_sync::carry_leaning_on(
+                &data,
+                Some(&aside),
+                &device,
+                &dest,
+                tisty_sync::Way::Both,
+                &alive,
+            )
         })
         .await;
         match carried {
@@ -2446,7 +2454,7 @@ async fn sync_now(
         });
     };
 
-    let (dest, data, store, device, alive) = {
+    let (dest, data, store, aside, device, alive) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
@@ -2455,6 +2463,7 @@ async fn sync_now(
             dest,
             session.paths.data().to_path_buf(),
             session.paths.store(),
+            session.paths.cache().to_path_buf(),
             session.config.device_id.0.clone(),
             session.alive(),
         )
@@ -2468,7 +2477,7 @@ async fn sync_now(
     };
 
     let done = tauri::async_runtime::spawn_blocking(move || {
-        tisty_sync::carry(&data, &device, &dest, way, &alive)
+        tisty_sync::carry_leaning_on(&data, Some(&aside), &device, &dest, way, &alive)
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
