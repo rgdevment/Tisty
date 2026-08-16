@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor as Writing } from "@tiptap/core";
 import type { Node as Written } from "@tiptap/pm/model";
+import { NodeSelection } from "@tiptap/pm/state";
 import { asMarkdown, written } from "./writing";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { docRead, noteTrouble, served, weighs, type Filed } from "../core";
@@ -58,8 +59,12 @@ export const glimpsed = (body: string): string =>
     .join(" · ")
     .slice(0, 160);
 
-export const perched = (empty: boolean, code: boolean, hushed: boolean): boolean =>
-  !hushed && !empty && !code;
+export const perched = (
+  empty: boolean,
+  code: boolean,
+  hushed: boolean,
+  whole: boolean,
+): boolean => !hushed && !empty && !code && !whole;
 
 export const stale = (value: string, mine: string, shown: () => string | null): boolean =>
   value !== mine && shown() !== value;
@@ -150,7 +155,13 @@ export default function Editor({
   const look = (editor: Writing) => {
     const { $from, $to, empty } = editor.state.selection;
     const code = editor.isActive("codeBlock");
-    setPicked(perched(empty, code, hushed.current) ? { at: middle(editor, $from.pos, $to.pos) } : null);
+    const whole =
+      editor.state.selection instanceof NodeSelection && editor.state.selection.node.isAtom;
+    setPicked(
+      perched(empty, code, hushed.current, whole)
+        ? { at: middle(editor, $from.pos, $to.pos) }
+        : null,
+    );
     if (hushed.current || !empty || code || editor.isActive("code")) {
       return setAsking(null);
     }

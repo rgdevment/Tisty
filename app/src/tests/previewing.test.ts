@@ -374,3 +374,35 @@ describe("what lands when a file is attached or dropped in", () => {
     editor.destroy();
   });
 });
+
+describe("what the floating panel makes of a card", () => {
+  const held = async (md: string, at: number) => {
+    const { NodeSelection } = await import("@tiptap/pm/state");
+    const { perched } = await import("../ui/Editor");
+    const editor = made(md);
+    editor.commands.setNodeSelection(at);
+    const sel = editor.state.selection;
+    const whole = sel instanceof NodeSelection && sel.node.isAtom;
+    const shown = perched(sel.empty, false, false, whole);
+    editor.destroy();
+    return shown;
+  };
+
+  it("keeps the panel away from a card, which has no words to underline", async () => {
+    expect(await held("![contrato](<attachments/contrato-91f2.pdf>)", 0)).toBe(false);
+  });
+
+  it("keeps it away from a picture too", async () => {
+    expect(await held("![foto](<attachments/aa/1.png>)", 0)).toBe(false);
+  });
+
+  it("still brings it over words that were picked", async () => {
+    const { perched } = await import("../ui/Editor");
+    const editor = made("mira [contrato](<attachments/contrato-91f2.pdf>) aqui");
+    editor.commands.setTextSelection({ from: 1, to: 5 });
+
+    expect(perched(editor.state.selection.empty, false, false, false)).toBe(true);
+
+    editor.destroy();
+  });
+});
