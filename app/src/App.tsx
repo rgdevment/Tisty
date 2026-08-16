@@ -793,6 +793,19 @@ export default function App() {
           lists={data.lists}
           title={title(chosen, data.lists)}
           count={chosen.named === "tasks" ? undefined : shown.length}
+          onBack={
+            chosen.list
+              ? () => {
+                  setChosen({ named: "lists" });
+                  setSelected(undefined);
+                }
+              : chosen.named === "tags"
+                ? () => {
+                    setChosen({ named: "tasks" });
+                    setSelected(undefined);
+                  }
+                : undefined
+          }
           empty={
             found?.papers.length && !shown.length
               ? t("onlyPapers")

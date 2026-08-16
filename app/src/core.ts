@@ -435,6 +435,7 @@ export interface Filed {
   title: string;
   folder: string | null;
   archived: boolean;
+  gone?: boolean;
 }
 
 export interface Papers {

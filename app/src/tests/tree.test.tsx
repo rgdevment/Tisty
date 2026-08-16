@@ -20,6 +20,7 @@ const papers: Papers = {
     { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null , archived: false },
     { id: "01D", file: "a3f1-0004", title: "", folder: null, archived: false },
     { id: "01E", file: "a3f1-0005", title: "Viejo", folder: "01F", archived: true },
+    { id: "01J", file: "a3f1-0006", title: "", folder: null, archived: false, gone: true },
   ],
 };
 
@@ -159,7 +160,10 @@ describe("the document tree", () => {
   it("names a document that has nothing written in it yet", () => {
     show();
 
-    expect(screen.getByRole("button", { name: "Untitled" })).toBeTruthy();
+    const row = document.querySelector('[data-row="01D"]');
+
+    expect(row?.getAttribute("aria-label")).toBe("Untitled");
+    expect(row?.textContent).not.toMatch(/⚠/);
   });
 
   it("folds a branch away and brings it back", async () => {
@@ -379,5 +383,25 @@ describe("the document tree", () => {
     fireEvent.drop(loose, { dataTransfer: { getData: () => "01A" } });
 
     expect(onFile).toHaveBeenCalledWith("01A", undefined);
+  });
+
+  it("still shows a document whose file is not here, so it can be seen and removed", () => {
+    show();
+
+    const rows = screen.getAllByRole("button", { name: /untitled/i });
+
+    expect(rows.length).toBe(2);
+    expect(rows.some((one) => one.textContent?.includes("⚠"))).toBe(true);
+  });
+
+  it("marks only the one whose file is missing", () => {
+    show();
+
+    const marked = screen
+      .getAllByRole("button", { name: /untitled/i })
+      .filter((one) => one.textContent?.includes("⚠"));
+
+    expect(marked).toHaveLength(1);
+    expect(marked[0].querySelector("[title]")?.getAttribute("title")).toMatch(/not on this machine/i);
   });
 });

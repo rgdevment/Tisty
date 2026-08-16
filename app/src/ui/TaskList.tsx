@@ -12,6 +12,7 @@ interface Props {
   reveal?: string;
   title: string;
   count?: number;
+  onBack?: () => void;
   bands?: "month" | "day";
   empty?: string;
   note?: string;
@@ -32,6 +33,7 @@ export default function TaskList({
   reveal,
   title,
   count,
+  onBack,
   bands,
   empty,
   note,
@@ -205,6 +207,17 @@ export default function TaskList({
     <main className="flex flex-col overflow-hidden">
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <header className={`flex items-baseline gap-2.5 px-8 pb-3.5 ${width}`}>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label={t("goBack")}
+            title={t("goBack")}
+            className="-ml-5 shrink-0 self-center rounded-md px-1.5 py-0.5 text-[15px] text-faint hover:bg-hover hover:text-ink"
+          >
+            ‹
+          </button>
+        )}
         <h1 className="text-[21px] font-semibold -tracking-[0.01em]">{title}</h1>
         <span className="text-[13px] tabular-nums text-faint">{count || ""}</span>
       </header>
