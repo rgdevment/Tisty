@@ -1,4 +1,5 @@
 pub fn blocks(body: &str) -> Vec<String> {
+    let body = body.strip_prefix('\u{feff}').unwrap_or(body);
     let mut out: Vec<String> = Vec::new();
     let mut held: Vec<&str> = Vec::new();
     let mut fenced: Option<String> = None;
@@ -543,6 +544,23 @@ mod tests {
                 "devolvio el mismo bloque dos veces"
             );
         }
+    }
+
+    #[test]
+    fn a_byte_order_mark_does_not_turn_the_same_heading_into_two_different_ones() {
+        let base = told(&["# Kit", "el cuerpo"]);
+        let mine = format!("\u{feff}{}", told(&["# Kit", "el cuerpo del mac"]));
+        let theirs = told(&["# Kit", "el cuerpo", "algo de windows"]);
+
+        assert_eq!(blocks(&mine).first().map(String::as_str), Some("# Kit"));
+        assert!(
+            rifts(&base, &mine, &theirs).is_empty(),
+            "un encabezado identico a la vista salio como desacuerdo"
+        );
+        assert_eq!(
+            merged(&base, &mine, &theirs),
+            Some(told(&["# Kit", "el cuerpo del mac", "algo de windows"]))
+        );
     }
 
     #[test]
