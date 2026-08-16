@@ -349,10 +349,15 @@ export interface Rift {
 
 export type Pick = "mine" | "theirs" | "both";
 
-export const paperRifts = (id: string): Promise<Rift[]> => invoke("paper_rifts", { id });
+export interface Torn {
+  rifts: Rift[];
+  print: string;
+}
 
-export const weavePaper = (id: string, picks: Pick[]): Promise<void> =>
-  invoke("weave_paper", { id, picks });
+export const paperRifts = (id: string): Promise<Torn> => invoke("paper_rifts", { id });
+
+export const weavePaper = (id: string, picks: Pick[], print: string): Promise<void> =>
+  invoke("weave_paper", { id, picks, print });
 
 export const settlePaper = (
   id: string,

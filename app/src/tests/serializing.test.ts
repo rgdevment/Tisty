@@ -173,7 +173,7 @@ describe("what comes out of the editor goes back in unchanged", () => {
     return { once, twice };
   };
 
-  const DRIFTS = ["front matter above the body", "a link glued to an escaped exclamation"];
+  const DRIFTS = ["front matter above the body"];
 
   it.each(Object.entries(shapes).filter(([name]) => !DRIFTS.includes(name)))(
     "settles after one pass on %s",
@@ -208,10 +208,12 @@ describe("what comes out of the editor goes back in unchanged", () => {
     }
   });
 
-  it.fails("a literal backslash before an exclamation does not turn the link into an image", () => {
-    const { twice } = settled(shapes["a link glued to an escaped exclamation"]);
+  it("keeps a literal backslash before a link from turning that link into an image", () => {
+    const { once, twice } = settled(shapes["a link glued to an escaped exclamation"]);
 
-    expect(twice).not.toMatch(/!\[ver\]/);
+    expect(twice).toBe(once);
+    expect(twice).toMatch(/\\!\[ver\]/);
+    expect(twice).not.toMatch(/[^\\]!\[ver\]/);
   });
 });
 
@@ -244,13 +246,50 @@ describe("the buffered serializer writes what the plain one writes", () => {
     expect(same(flat(120))).not.toContain("*");
   });
 
-  it.each(Object.entries(shapes))("agrees on %s", (_name, content) => {
-    same(content);
+  const REPAIRED = ["a link glued to an escaped exclamation"];
+
+  it.each(Object.entries(shapes).filter(([name]) => !REPAIRED.includes(name)))(
+    "agrees on %s",
+    (_name, content) => {
+      same(content);
+    },
+  );
+
+  it("parts from the plain one only where the plain one corrupts, and the repair is the point", () => {
+    const content = shapes["a link glued to an escaped exclamation"];
+    const { buffered, plain } = both(content);
+
+    expect(plain).toBe("hola\\\\![ver](https://x.dev/a)");
+    expect(buffered).toBe("hola\\\\\\![ver](https://x.dev/a)");
+
+    const settle = (said: string) => {
+      const editor = build(said);
+      const out = asMarkdown(editor) ?? "";
+      editor.destroy();
+      return out;
+    };
+
+    expect(settle(plain)).not.toBe(plain);
+    expect(settle(buffered)).toBe(buffered);
+  });
+
+  it("turns a link into an image when the plain serializer is left to it, which is the bug", () => {
+    const editor = build(shapes["a link glued to an escaped exclamation"]);
+    const plain = unaided(() => asMarkdown(editor)) ?? "";
+    editor.destroy();
+
+    const again = build(plain);
+    const twice = asMarkdown(again) ?? "";
+    again.destroy();
+
+    expect(twice).toMatch(/!\[ver\]/);
   });
 
   it("still reaches the escape a link glued to an exclamation needs, so those cases are not idle", () => {
     expect(same('<p>hola!<a href="https://x.dev/a">ver</a></p>')).toBe("hola\\![ver](https://x.dev/a)");
-    expect(same('<p>hola\\!<a href="https://x.dev/a">ver</a></p>')).toBe("hola\\\\![ver](https://x.dev/a)");
+    expect(both('<p>hola\\!<a href="https://x.dev/a">ver</a></p>').buffered).toBe(
+      "hola\\\\\\![ver](https://x.dev/a)",
+    );
     expect(same('<p>a<strong>x</strong>!<a href="https://x.dev/a">ver</a></p>')).toBe(
       "a**x**\\![ver](https://x.dev/a)",
     );
@@ -279,7 +318,10 @@ describe("the buffered serializer writes what the plain one writes", () => {
     const ours = { markString: sub.markString, normalizeInline: sub.normalizeInline };
     Object.assign(sub, library);
     try {
-      for (const content of [mixed(40), ...Object.values(shapes)]) {
+      const held = Object.entries(shapes)
+        .filter(([name]) => !REPAIRED.includes(name))
+        .map(([, content]) => content);
+      for (const content of [mixed(40), ...held]) {
         const editor = build(content);
         const half = asMarkdown(editor) ?? "";
         const plain = unaided(() => asMarkdown(editor)) ?? "";

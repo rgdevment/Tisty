@@ -141,7 +141,7 @@ export default function Keeping({ onChanged }: Props) {
   };
 
   const [apart, setApart] = useState<((door: Door | "else" | null) => void) | null>(null);
-  const [kin, setKin] = useState<Kin>("strangers");
+  const [kin, setKin] = useState<Kin>("unsure");
 
   const closed = (door: Door | "else" | null) => {
     apart?.(door);
@@ -197,7 +197,7 @@ export default function Keeping({ onChanged }: Props) {
       const answer = await syncNow().catch(async (problem) => {
         const refusal = problem as { code?: string; name?: string };
         if (refusal?.code !== "wouldReset" && refusal?.code !== "otherStore") throw problem;
-        setKin(await syncKin().catch(() => "strangers" as const));
+        setKin(await syncKin().catch(() => "unsure" as const));
         const door = await new Promise<Door | "else" | null>((settle) => setApart(() => settle));
         if (door === null) return "declined" as const;
         if (door === "else") {

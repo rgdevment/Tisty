@@ -284,12 +284,12 @@ const en = {
   notAllowed:
     "This machine was removed from the shared folder, so it no longer writes to it. It brought what is there; to write again it has to join, and joining resets what it holds.",
   bothChanged:
-    "«{name}» was written in both places since the last sync, and Tisty never merges two texts.\n\nKeep both? The other version comes in beside this one, in the same folder and marked, so nothing is lost and nothing wanders off.",
+    "«{name}» was written in both places since the last sync, and could not be put together on its own.\n\nKeep both? The other version comes in beside this one, in the same folder and marked, so nothing is lost and nothing wanders off.",
   otherVersion: "other version",
   whoseWins:
     "Then only one of the two stays.\n\nKeep the one on this machine? Answering no keeps the one from the shared folder, and what is here is lost.",
   wouldReset:
-    "That folder holds another history. To join it, this machine has to be backed up and reset — it does not merge.",
+    "That folder holds another history, and nothing was changed. Sync again when you want to decide how the two come together.",
   stuckTakeMe: "Sort it out",
   someJoined:
     "Changes made on both machines were put together in {name}. Nothing was asked because they did not touch the same place.",
@@ -299,6 +299,7 @@ const en = {
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   noBase: "There is nothing to compare against yet, so this one is decided whole",
   cannotWeave: "That document changed while you were deciding — look again",
+  movedUnderfoot: "That document changed while you were deciding — look again",
   riftTitle: "Two versions of «{name}»",
   riftWhy:
     "Everything the two machines did not both touch is already together. What is below is the part each wrote differently, and only you know which one is right.",
@@ -341,8 +342,6 @@ const en = {
     "This machine is backed up and then holds what the folder holds.\n\nWhat you have here now leaves the app and stays only in the backup, which opens without Tisty.",
   apartElse: "Pick another folder",
   apartUndo: "A backup is written first. This cannot be undone from the app.",
-  joinThem:
-    "That folder holds another history ({name}).\n\nTisty does not merge two histories. To join that one, this machine is backed up first and then emptied: it will hold what the folder holds, and nothing of what it holds now.\n\nPick where the backup goes?",
   sharedIsTheBackup: "Your shared folder already holds every machine's history",
   otherStore: "That belongs to another store ({name})",
   attachmentTooBig:
@@ -859,12 +858,12 @@ const es: Catalog = {
   notAllowed:
     "Esta máquina fue removida de la carpeta compartida, así que ya no escribe en ella. Trajo lo que había; para volver a escribir tiene que unirse, y unirse reinicia lo que guarda.",
   bothChanged:
-    "«{name}» se escribió en los dos sitios desde la última sincronización, y Tisty no fusiona dos textos.\n\n¿Quedarte las dos? La otra entra al lado de esta, en la misma carpeta y marcada, así no se pierde nada ni se va nada por ahí.",
+    "«{name}» se escribió en los dos sitios desde la última sincronización, y no se pudo juntar solo.\n\n¿Quedarte las dos? La otra entra al lado de esta, en la misma carpeta y marcada, así no se pierde nada ni se va nada por ahí.",
   otherVersion: "otra versión",
   whoseWins:
     "Entonces solo se queda una de las dos.\n\n¿La de esta máquina? Si respondes que no se queda la de la carpeta compartida, y lo que hay aquí se pierde.",
   wouldReset:
-    "Esa carpeta guarda otro historial. Para unirse, esta máquina tiene que respaldarse y reiniciarse — no se fusiona.",
+    "Esa carpeta guarda otro historial y no se cambió nada. Sincroniza otra vez cuando quieras decidir cómo se juntan los dos.",
   stuckTakeMe: "Resolverlo",
   someJoined:
     "Se juntaron los cambios de las dos máquinas en {name}. No se preguntó nada porque no tocaban el mismo sitio.",
@@ -874,6 +873,7 @@ const es: Catalog = {
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un fichero que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   noBase: "Todavía no hay con qué comparar, así que este se decide entero",
   cannotWeave: "Ese documento cambió mientras decidías — míralo otra vez",
+  movedUnderfoot: "Ese documento cambió mientras decidías — míralo otra vez",
   riftTitle: "Dos versiones de «{name}»",
   riftWhy:
     "Todo lo que las dos máquinas no tocaron a la vez ya está junto. Lo de abajo es la parte que cada una escribió distinta, y solo tú sabes cuál vale.",
@@ -916,8 +916,6 @@ const es: Catalog = {
     "Esta máquina se respalda y queda con lo que guarda la carpeta.\n\nLo que tienes aquí ahora deja de estar en la aplicación y queda solo en el respaldo, que se abre sin Tisty.",
   apartElse: "Elegir otra carpeta",
   apartUndo: "Se guarda un respaldo antes. No se deshace desde la aplicación.",
-  joinThem:
-    "Esa carpeta guarda otro historial ({name}).\n\nTisty no fusiona dos historiales. Para unirse a ese, esta máquina se respalda primero y luego se vacía: pasará a tener lo que tiene la carpeta, y nada de lo que tiene ahora.\n\n¿Eliges dónde va el respaldo?",
   sharedIsTheBackup: "Tu carpeta compartida ya guarda el historial de todos tus equipos",
   otherStore: "Eso es de otro almacén ({name})",
   attachmentTooBig:

@@ -808,7 +808,7 @@ describe("the maintenance panel", () => {
     const doors = await screen.findByRole("dialog");
     await userEvent.click(within(doors).getByRole("button", { name: /^close$/i }));
 
-    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/nothing was changed/i)).toBeTruthy());
     expect(sent("join_them")).toHaveLength(0);
     expect(sent("take_over")).toHaveLength(0);
   });
@@ -822,7 +822,7 @@ describe("the maintenance panel", () => {
       await screen.findByRole("button", { name: /take what the folder has/i }),
     );
 
-    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/nothing was changed/i)).toBeTruthy());
     expect(sent("join_them")).toHaveLength(0);
   });
 
@@ -894,7 +894,7 @@ describe("the maintenance panel", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /merge the two/i }));
 
-    await waitFor(() => expect(screen.getByText(/does not merge/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/nothing was changed/i)).toBeTruthy());
     expect(sent("merge_stores")).toHaveLength(0);
   });
 

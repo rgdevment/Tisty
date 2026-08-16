@@ -46,6 +46,7 @@ fn opening(bare: &str) -> Option<String> {
 }
 
 pub fn front_matter(body: &str) -> bool {
+    let body = body.strip_prefix('\u{feff}').unwrap_or(body);
     let mut lines = body.lines().map(str::trim).filter(|one| !one.is_empty());
     lines.next() == Some("---") && lines.any(|one| one == "---")
 }
@@ -57,14 +58,17 @@ struct Edit {
     said: Vec<String>,
 }
 
+pub const CELLS_AT_MOST: usize = 4_000_000;
+
 fn shared(base: &[String], other: &[String]) -> Vec<(usize, usize)> {
-    let mut grid = vec![vec![0usize; other.len() + 1]; base.len() + 1];
+    let wide = other.len() + 1;
+    let mut grid = vec![0u32; (base.len() + 1) * wide];
     for (a, one) in base.iter().enumerate() {
         for (b, two) in other.iter().enumerate() {
-            grid[a + 1][b + 1] = if one == two {
-                grid[a][b] + 1
+            grid[(a + 1) * wide + b + 1] = if one == two {
+                grid[a * wide + b] + 1
             } else {
-                grid[a][b + 1].max(grid[a + 1][b])
+                grid[a * wide + b + 1].max(grid[(a + 1) * wide + b])
             };
         }
     }
@@ -76,7 +80,7 @@ fn shared(base: &[String], other: &[String]) -> Vec<(usize, usize)> {
             pairs.push((a - 1, b - 1));
             a -= 1;
             b -= 1;
-        } else if grid[a - 1][b] >= grid[a][b - 1] {
+        } else if grid[(a - 1) * wide + b] >= grid[a * wide + b - 1] {
             a -= 1;
         } else {
             b -= 1;
@@ -136,8 +140,15 @@ fn plan(base: &str, mine: &str, theirs: &str) -> Option<Vec<Step>> {
         return None;
     }
     let base = blocks(base);
-    let ours = edits(&base, &blocks(mine));
-    let yours = edits(&base, &blocks(theirs));
+    let mine = blocks(mine);
+    let theirs = blocks(theirs);
+    if base.len().saturating_mul(mine.len()) > CELLS_AT_MOST
+        || base.len().saturating_mul(theirs.len()) > CELLS_AT_MOST
+    {
+        return None;
+    }
+    let ours = edits(&base, &mine);
+    let yours = edits(&base, &theirs);
 
     let mut all: Vec<(bool, Edit)> = ours
         .into_iter()
@@ -166,20 +177,13 @@ fn plan(base: &str, mine: &str, theirs: &str) -> Option<Vec<Step>> {
             out.push(Step::Kept(base[at..from].to_vec()));
         }
 
-        let ours: Vec<String> = group
-            .iter()
-            .filter(|(ours, _)| *ours)
-            .flat_map(|(_, one)| one.said.clone())
-            .collect();
-        let yours: Vec<String> = group
-            .iter()
-            .filter(|(ours, _)| !*ours)
-            .flat_map(|(_, one)| one.said.clone())
-            .collect();
+        let ours = rebuilt(&base, from, ends, true, group);
+        let yours = rebuilt(&base, from, ends, false, group);
         let both = group.iter().any(|(ours, _)| *ours) && group.iter().any(|(ours, _)| !*ours);
 
         if !both || ours == yours {
-            out.push(Step::One(if ours.is_empty() { yours } else { ours }));
+            let touched = group.iter().any(|(ours, _)| *ours);
+            out.push(Step::One(if touched { ours } else { yours }));
         } else {
             out.push(Step::Torn(Rift {
                 was: base[from..ends].to_vec(),
@@ -192,6 +196,28 @@ fn plan(base: &str, mine: &str, theirs: &str) -> Option<Vec<Step>> {
     }
     out.push(Step::Kept(base[at..].to_vec()));
     Some(out)
+}
+
+fn rebuilt(
+    base: &[String],
+    from: usize,
+    ends: usize,
+    mine: bool,
+    group: &[(bool, Edit)],
+) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut at = from;
+    for (_, one) in group.iter().filter(|(ours, _)| *ours == mine) {
+        if one.from > at {
+            out.extend(base[at..one.from].iter().cloned());
+        }
+        out.extend(one.said.iter().cloned());
+        at = at.max(one.upto);
+    }
+    if at < ends {
+        out.extend(base[at..ends].iter().cloned());
+    }
+    out
 }
 
 fn touching(group: &[(bool, Edit)], one: &Edit) -> bool {
@@ -264,6 +290,182 @@ mod tests {
     use super::*;
 
     const BASE: &str = "# Kit\n\nprimer parrafo\n\nsegundo parrafo\n\ntercer parrafo\n";
+
+    fn told(said: &[&str]) -> String {
+        format!("{}\n", said.join("\n\n"))
+    }
+
+    #[test]
+    fn a_clash_says_what_each_side_holds_for_the_whole_stretch_not_only_what_it_replaced() {
+        let base = told(&["b0", "b1", "b2", "b3", "b4", "b5"]);
+        let mine = told(&["b0", "M0", "M1", "b5"]);
+        let theirs = told(&["b0", "b1", "T0", "T1", "b4", "b5"]);
+
+        let said = rifts(&base, &mine, &theirs);
+
+        assert_eq!(said.len(), 1);
+        assert_eq!(said[0].mine, vec!["M0", "M1"]);
+        assert_eq!(
+            said[0].theirs,
+            vec!["b1", "T0", "T1", "b4"],
+            "el dialogo enseñaria menos de lo que esa maquina tiene"
+        );
+    }
+
+    #[test]
+    fn keeping_one_side_of_a_wide_clash_gives_back_that_side_whole() {
+        let base = told(&["b0", "b1", "b2", "b3", "b4", "b5"]);
+        let mine = told(&["b0", "M0", "M1", "b5"]);
+        let theirs = told(&["b0", "b1", "T0", "T1", "b4", "b5"]);
+
+        assert_eq!(
+            woven_with(&base, &mine, &theirs, &[Pick::Mine]).unwrap(),
+            mine
+        );
+        assert_eq!(
+            woven_with(&base, &mine, &theirs, &[Pick::Theirs]).unwrap(),
+            theirs
+        );
+    }
+
+    #[test]
+    fn keeping_your_own_side_never_empties_a_document_that_had_blocks() {
+        let base = told(&["b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7"]);
+        let mine = told(&["b0", "b1", "b2"]);
+        let theirs = told(&["T0", "b6", "b7"]);
+
+        let said = woven_with(&base, &mine, &theirs, &[Pick::Mine]).unwrap();
+
+        assert_eq!(
+            said, mine,
+            "quedarse con la propia dejo el documento en nada"
+        );
+    }
+
+    #[test]
+    fn a_side_that_kept_a_block_inside_a_clash_still_has_it_afterwards() {
+        let base = told(&["uno", "dos", "tres", "cuatro"]);
+        let mine = told(&["uno", "dos cambiado", "tres", "cuatro"]);
+        let theirs = told(&["uno", "dos", "tres cambiado", "cuatro"]);
+
+        let whole = merged(&base, &mine, &theirs).expect("no se solapan");
+
+        assert!(whole.contains("dos cambiado"));
+        assert!(whole.contains("tres cambiado"));
+        assert_eq!(whole.matches("uno").count(), 1);
+    }
+
+    #[test]
+    fn when_both_only_touched_the_torn_stretch_keeping_a_side_hands_it_back_word_for_word() {
+        let mut seed: u64 = 0x2545_F491_4F6C_DD1D;
+        let mut roll = move |upto: u64| {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed % upto
+        };
+        let mut tried = 0;
+
+        for _ in 0..20_000 {
+            let many = 6 + roll(4) as usize;
+            let base: Vec<String> = (0..many).map(|at| format!("b{at}")).collect();
+            let from = roll(3) as usize + 1;
+            let upto = (from + 2 + roll(3) as usize).min(many);
+            let carve = |roll: &mut dyn FnMut(u64) -> u64, tag: &str| -> Vec<String> {
+                base.iter()
+                    .enumerate()
+                    .filter_map(|(at, block)| {
+                        if at < from || at >= upto {
+                            return Some(block.clone());
+                        }
+                        match roll(3) {
+                            0 => None,
+                            1 => Some(format!("{tag}{at}")),
+                            _ => Some(block.clone()),
+                        }
+                    })
+                    .collect()
+            };
+            let mine = told(
+                &carve(&mut roll, "m")
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>(),
+            );
+            let theirs = told(
+                &carve(&mut roll, "t")
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>(),
+            );
+            let was = told(&base.iter().map(String::as_str).collect::<Vec<_>>());
+
+            let said = rifts(&was, &mine, &theirs);
+            if said.len() != 1 || said[0].was != base[from..upto] {
+                continue;
+            }
+            tried += 1;
+
+            assert_eq!(
+                woven_with(&was, &mine, &theirs, &[Pick::Mine]).unwrap(),
+                mine,
+                "base {was:?} mia {mine:?} suya {theirs:?}"
+            );
+            assert_eq!(
+                woven_with(&was, &mine, &theirs, &[Pick::Theirs]).unwrap(),
+                theirs,
+                "base {was:?} mia {mine:?} suya {theirs:?}"
+            );
+        }
+
+        assert!(tried > 500, "el sorteo no llego a probar nada: {tried}");
+    }
+
+    #[test]
+    fn a_paper_with_more_blocks_than_we_can_weave_is_handed_back_to_the_person() {
+        let many = 2_100;
+        let base: String = (0..many).map(|at| format!("b{at}\n\n")).collect();
+        let mine = base.replace("b7\n", "cambiado\n");
+        let theirs = base.replace("b9\n", "otro\n");
+
+        let now = std::time::Instant::now();
+        let said = merged(&base, &mine, &theirs);
+
+        assert!(said.is_none(), "se puso a tejer algo que no puede");
+        assert!(
+            now.elapsed() < std::time::Duration::from_millis(200),
+            "tardo {:?} en decir que no",
+            now.elapsed()
+        );
+    }
+
+    #[test]
+    fn the_widest_paper_we_accept_is_woven_without_eating_the_machine() {
+        let many = 1_900;
+        let base: String = (0..many).map(|at| format!("b{at}\n\n")).collect();
+        let mine = base.replace("b7\n", "cambiado\n");
+        let theirs = base.replace("b9\n", "otro\n");
+
+        let now = std::time::Instant::now();
+        let said = merged(&base, &mine, &theirs).expect("cabe de sobra");
+
+        assert!(said.contains("cambiado") && said.contains("otro"));
+        assert!(
+            now.elapsed() < std::time::Duration::from_secs(5),
+            "tardo {:?}",
+            now.elapsed()
+        );
+    }
+
+    #[test]
+    fn a_byte_order_mark_does_not_smuggle_front_matter_past_the_gate() {
+        let base = "\u{feff}---\ntitle: uno\n---\n\ncuerpo\n";
+        let mine = "\u{feff}---\ntitle: uno\n---\n\notro cuerpo\n";
+        let theirs = "\u{feff}---\ntitle: dos\n---\n\ncuerpo\n";
+
+        assert!(front_matter(base));
+        assert!(merged(base, mine, theirs).is_none());
+    }
 
     #[test]
     fn a_clash_says_what_each_side_wrote_and_what_was_there_before() {
