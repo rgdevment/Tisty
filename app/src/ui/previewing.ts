@@ -14,6 +14,7 @@ export interface Reach {
   blurb?: (id: string) => string | null;
   gone?: (reference: string) => boolean;
   onDoc?: (id: string) => void;
+  onMenu?: (at: { x: number; y: number }, untie: () => void, drop: () => void) => void;
   onOpen?: (reference: string) => void;
   onAgain?: (reference: string) => void;
 }
@@ -194,17 +195,19 @@ const built = (
   said.append(name, under);
   box.append(said);
 
-  const swap = document.createElement("button");
-  swap.type = "button";
-  swap.className = "card-swap";
-  swap.textContent = "↩";
-  swap.title = t("showAsLink");
-  swap.setAttribute("aria-label", t("showAsLink"));
-  swap.addEventListener("click", (e) => {
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "card-swap";
+  more.textContent = "⋯";
+  more.title = t("moreOnIt");
+  more.setAttribute("aria-label", t("moreOnIt"));
+  more.setAttribute("aria-haspopup", "menu");
+  more.addEventListener("click", (e) => {
     e.stopPropagation();
-    untie();
+    const box = more.getBoundingClientRect();
+    reach.onMenu?.({ x: box.left, y: box.bottom + 4 }, untie, drop);
   });
-  box.append(swap);
+  box.append(more);
   if (itself) {
     box.classList.add("card-itself");
     return box;

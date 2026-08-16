@@ -11,6 +11,7 @@ import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import Slash, { asked, narrowed, type Block } from "./Slash";
 import Floats from "./Floats";
+import Menu from "./Menu";
 import Papers from "./Papers";
 import Glyphs from "./Glyphs";
 import Asking from "./Asking";
@@ -114,6 +115,15 @@ export default function Editor({
   const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
   const [tying, setTying] = useState<{ x: number; y: number } | null>(null);
   const [choosing, setChoosing] = useState<{ x: number; y: number } | null>(null);
+  const [shaping, setShaping] = useState<{
+    at: { x: number; y: number };
+    doc: { file: string; title: string };
+  } | null>(null);
+  const [swapping, setSwapping] = useState<{
+    at: { x: number; y: number };
+    untie: () => void;
+    drop: () => void;
+  } | null>(null);
   const [glyphing, setGlyphing] = useState<{ x: number; y: number } | null>(null);
   const [naming, setNaming] = useState<{ x: number; y: number } | null>(null);
   const mine = useRef(value);
@@ -401,6 +411,7 @@ export default function Editor({
     here: paper,
     onDoc,
     onOpen,
+    onMenu: (at, untie, drop) => setSwapping({ at, untie, drop }),
     gone: (reference) => missing.current.has(reference),
     onAgain: (reference) => {
       missing.current.delete(reference);
@@ -578,6 +589,53 @@ export default function Editor({
           </div>
         </>
       )}
+      {swapping && (
+        <Menu
+          at={swapping.at}
+          label={t("moreOnIt")}
+          choices={[
+            { key: "link", label: t("showAsLink"), icon: "↩", onPick: swapping.untie },
+            { key: "drop", label: t("remove"), icon: "✕", danger: true, onPick: swapping.drop },
+          ]}
+          onClose={() => setSwapping(null)}
+        />
+      )}
+
+      {shaping && editor && (
+        <Menu
+          at={{ x: shaping.at.x, y: shaping.at.y + 6 }}
+          label={t("howToShowIt")}
+          choices={[
+            {
+              key: "card",
+              label: t("asACard"),
+              icon: "▤",
+              onPick: () =>
+                editor
+                  .chain()
+                  .focus()
+                  .insertContent({
+                    type: "image",
+                    attrs: { src: DOC + shaping.doc.file, alt: shaping.doc.title },
+                  })
+                  .run(),
+            },
+            {
+              key: "link",
+              label: t("asALink"),
+              icon: "↩",
+              onPick: () =>
+                editor
+                  .chain()
+                  .focus()
+                  .insertContent(docLink(shaping.doc.file, shaping.doc.title))
+                  .run(),
+            },
+          ]}
+          onClose={() => setShaping(null)}
+        />
+      )}
+
       {choosing && editor && (
         <>
           <span
@@ -603,18 +661,9 @@ export default function Editor({
           >
             <Papers
               all={papers?.filter((one) => one.file !== paper)}
-              onPick={(paper) => {
+              onPick={(picked) => {
                 setChoosing(null);
-                const blank = editor.state.selection.$from.parent.content.size === 0;
-                editor
-                  .chain()
-                  .focus()
-                  .insertContent(
-                    blank
-                      ? { type: "image", attrs: { src: DOC + paper.file, alt: paper.title } }
-                      : docLink(paper.file, paper.title),
-                  )
-                  .run();
+                setShaping({ at: choosing, doc: picked });
               }}
             />
           </div>

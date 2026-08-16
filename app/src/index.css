@@ -494,6 +494,27 @@ body {
   font-size: 12px;
   color: var(--tisty-faint);
 }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px 1px 3px;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 999px;
+  color: var(--tisty-soft);
+  text-decoration: none;
+  vertical-align: baseline;
+}
+.chip:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.chip-badge {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--tisty-faint);
+}
+
 .card-source {
   display: none;
 }
