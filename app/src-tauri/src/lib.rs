@@ -1624,6 +1624,7 @@ struct Filed {
     title: String,
     folder: Option<String>,
     archived: bool,
+    gone: bool,
 }
 
 #[tauri::command(async)]
@@ -1640,15 +1641,14 @@ fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
     kept_in_order.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
 
     for kept in kept_in_order {
-        let Some(found) = named.get(kept.file.as_str()) else {
-            continue;
-        };
+        let found = named.get(kept.file.as_str());
         docs.push(Filed {
             id: kept.id.to_string(),
             file: kept.file.clone(),
-            title: found.title.clone(),
+            title: found.map(|one| one.title.clone()).unwrap_or_default(),
             folder: kept.folder.map(|at| at.to_string()),
             archived: kept.archived,
+            gone: found.is_none(),
         });
     }
     Ok(Papers {

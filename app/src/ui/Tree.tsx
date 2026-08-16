@@ -179,6 +179,11 @@ export default function Tree({
       >
         <span className="w-3 shrink-0 text-center text-[9px] text-faint">▸</span>
         <span className="truncate">{doc.title || t("untitledDoc")}</span>
+        {doc.gone && (
+          <span title={t("goneDoc")} className="shrink-0 text-[9px] text-urgent">
+            ⚠
+          </span>
+        )}
       </button>
     </li>
   );
