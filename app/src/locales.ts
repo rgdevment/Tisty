@@ -284,12 +284,15 @@ const en = {
   notAllowed:
     "This machine was removed from the shared folder, so it no longer writes to it. It brought what is there; to write again it has to join, and joining resets what it holds.",
   bothChanged:
-    "«{name}» was written in both places since the last sync, and Tisty never merges two texts.\n\nKeep both? The other one comes in as a new document, so nothing is lost.",
+    "«{name}» was written in both places since the last sync, and Tisty never merges two texts.\n\nKeep both? The other version comes in beside this one, in the same folder and marked, so nothing is lost and nothing wanders off.",
+  otherVersion: "other version",
   whoseWins:
     "Then only one of the two stays.\n\nKeep the one on this machine? Answering no keeps the one from the shared folder, and what is here is lost.",
   wouldReset:
     "That folder holds another history. To join it, this machine has to be backed up and reset — it does not merge.",
   stuckTakeMe: "Sort it out",
+  someDocsAstray:
+    "A document was left out of this sync because it could not be read — usually one past the size a document may weigh. It is still on this machine; it just did not travel.",
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   sameName:
@@ -841,12 +844,15 @@ const es: Catalog = {
   notAllowed:
     "Esta máquina fue removida de la carpeta compartida, así que ya no escribe en ella. Trajo lo que había; para volver a escribir tiene que unirse, y unirse reinicia lo que guarda.",
   bothChanged:
-    "«{name}» se escribió en los dos sitios desde la última sincronización, y Tisty no fusiona dos textos.\n\n¿Quedarte las dos? La otra entra como documento nuevo, así no se pierde nada.",
+    "«{name}» se escribió en los dos sitios desde la última sincronización, y Tisty no fusiona dos textos.\n\n¿Quedarte las dos? La otra entra al lado de esta, en la misma carpeta y marcada, así no se pierde nada ni se va nada por ahí.",
+  otherVersion: "otra versión",
   whoseWins:
     "Entonces solo se queda una de las dos.\n\n¿La de esta máquina? Si respondes que no se queda la de la carpeta compartida, y lo que hay aquí se pierde.",
   wouldReset:
     "Esa carpeta guarda otro historial. Para unirse, esta máquina tiene que respaldarse y reiniciarse — no se fusiona.",
   stuckTakeMe: "Resolverlo",
+  someDocsAstray:
+    "Un documento se quedó fuera de esta sincronización porque no se pudo leer — normalmente uno que pasa del tamaño que puede pesar un documento. Sigue en esta máquina; solo no viajó.",
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un fichero que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   sameName:

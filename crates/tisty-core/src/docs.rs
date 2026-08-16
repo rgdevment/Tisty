@@ -29,6 +29,31 @@ pub fn kept_before(data: &Path, id: &str, body: &str) -> Result<()> {
     Ok(())
 }
 
+fn base(data: &Path) -> PathBuf {
+    data.join("carried")
+}
+
+pub fn keep_carried(data: &Path, id: &str, body: &str) -> Result<()> {
+    let at = base(data);
+    std::fs::create_dir_all(&at)?;
+    let _ = crate::paths::ours_alone(&at);
+    let into = resolve(&at, id)?;
+    write_atomic(&into, body.as_bytes())?;
+    let _ = crate::paths::ours_alone(&into);
+    Ok(())
+}
+
+pub fn read_carried(data: &Path, id: &str) -> Option<String> {
+    let at = resolve(&base(data), id).ok()?;
+    std::fs::read_to_string(at).ok()
+}
+
+pub fn forget_carried(data: &Path, id: &str) {
+    if let Ok(at) = resolve(&base(data), id) {
+        let _ = std::fs::remove_file(at);
+    }
+}
+
 pub fn read_before(data: &Path, id: &str) -> Option<String> {
     let at = resolve(&data.join("originals"), id).ok()?;
     std::fs::read_to_string(at).ok()
@@ -87,6 +112,7 @@ fn ledger(data: &Path) -> PathBuf {
 
 pub fn forget_what_was_carried(data: &Path) {
     let _ = std::fs::remove_file(ledger(data));
+    let _ = std::fs::remove_dir_all(base(data));
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,6 +155,54 @@ pub fn titled(body: &str) -> String {
         .copied()
         .unwrap_or_default();
     crate::text::composed(first.trim_start_matches('#').trim())
+}
+
+pub fn marked(body: &str, said: &str) -> String {
+    let bare = body.strip_prefix('\u{feff}').unwrap_or(body);
+    let mut shut = false;
+    let mut seen = 0;
+    let mut out: Vec<String> = Vec::new();
+    let mut done = false;
+
+    for line in bare.lines() {
+        let trimmed = line.trim();
+        if done || trimmed.is_empty() {
+            out.push(line.to_string());
+            continue;
+        }
+        if trimmed == "---"
+            && seen == 0
+            && bare.lines().filter(|one| one.trim() == "---").count() > 1
+        {
+            seen = 1;
+            out.push(line.to_string());
+            continue;
+        }
+        if seen == 1 {
+            if trimmed == "---" {
+                seen = 2;
+            }
+            out.push(line.to_string());
+            continue;
+        }
+        if wordless(trimmed) {
+            out.push(line.to_string());
+            continue;
+        }
+        out.push(format!("{} ({said})", line.trim_end()));
+        done = true;
+        let _ = shut;
+        shut = true;
+    }
+
+    if !done {
+        return format!("# {said}\n\n{bare}");
+    }
+    let mut whole = out.join("\n");
+    if bare.ends_with('\n') {
+        whole.push('\n');
+    }
+    whole
 }
 
 pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
@@ -990,6 +1064,42 @@ mod tests {
 
         assert_eq!(found.len(), 1);
         assert!(!found[0].title.contains("mac0-0023"));
+    }
+
+    #[test]
+    fn the_other_version_is_marked_on_the_line_the_title_comes_from() {
+        assert_eq!(
+            marked("# Kit de transmision\n\ncuerpo\n", "sin combinar"),
+            "# Kit de transmision (sin combinar)\n\ncuerpo\n"
+        );
+        assert_eq!(
+            titled(&marked("# Kit\n\ncuerpo", "sin combinar")),
+            "Kit (sin combinar)"
+        );
+    }
+
+    #[test]
+    fn a_blank_line_before_the_title_does_not_send_the_mark_somewhere_else() {
+        assert_eq!(
+            titled(&marked("\n\n# Estado Actual\n\ncuerpo", "otra version")),
+            "Estado Actual (otra version)"
+        );
+    }
+
+    #[test]
+    fn front_matter_is_stepped_over_before_marking() {
+        let said = marked("---\ntitle: x\n---\n\n# Compras\n\nleche", "otra version");
+
+        assert!(said.starts_with("---\ntitle: x\n---"), "{said}");
+        assert_eq!(titled(&said), "Compras (otra version)");
+    }
+
+    #[test]
+    fn a_body_with_no_title_at_all_gets_one_instead_of_losing_the_mark() {
+        let said = marked("   \n\n---\n", "otra version");
+
+        assert_eq!(titled(&said), "otra version");
+        assert!(said.contains("---"), "se comio el cuerpo: {said}");
     }
 
     #[test]

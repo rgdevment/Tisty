@@ -40,6 +40,7 @@ pub struct Moved {
     pub brought: usize,
     pub undecided: Vec<Undecided>,
     pub unreadable: Vec<String>,
+    pub astray: Vec<String>,
 }
 
 pub fn carry(
@@ -104,6 +105,7 @@ pub fn carry(
         moved.sent += papers.sent;
         moved.brought += papers.brought;
         moved.undecided = papers.undecided;
+        moved.astray = papers.astray;
     }
     Ok(moved)
 }
@@ -703,6 +705,24 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
     Ok(None)
 }
 
+fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
+    let said = std::fs::read_to_string(mine)
+        .or_else(|_| std::fs::read_to_string(theirs))
+        .ok();
+    let Some(said) = said else {
+        tisty_core::docs::forget_carried(data, id);
+        return;
+    };
+    if tisty_core::docs::keep_carried(data, id, &said).is_err() {
+        witness::warn(
+            channel::SYNC,
+            "the settled body could not be kept, so the next round has no base to lean on",
+            &[("at", Fact::Id(id.to_string()))],
+        );
+        tisty_core::docs::forget_carried(data, id);
+    }
+}
+
 pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
     use tisty_core::docs::{Carried, Move, moved, print_of};
 
@@ -726,6 +746,7 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
                 continue;
             };
             if plainly(&theirs).is_err() || plainly(&mine).is_err() {
+                done.astray.push(id.clone());
                 continue;
             }
             let (ours, yours) = match (print_of(&mine), print_of(&theirs)) {
@@ -737,6 +758,7 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
                         &[("at", Fact::Id(id.clone()))],
                     );
                     let _ = (here, there);
+                    done.astray.push(id.clone());
                     continue;
                 }
             };
@@ -744,6 +766,7 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
             match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
                 Move::Nothing => {
                     if let Some(print) = ours.or(yours) {
+                        settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
                     }
                 }
@@ -752,6 +775,7 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
                     copy_onto(&mine, &theirs)?;
                     done.sent += 1;
                     if let Some(print) = ours {
+                        settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
                     }
                 }
@@ -760,6 +784,7 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
                     copy_onto(&theirs, &mine)?;
                     done.brought += 1;
                     if let Some(print) = yours {
+                        settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
                     }
                 }
@@ -1352,6 +1377,92 @@ mod tests {
         let outcome = stitch(&one.data, &one.device, &nowhere.path().join("no-esta"));
 
         assert!(matches!(outcome, Err(Trouble::NotThere(_))), "{outcome:?}");
+    }
+
+    #[test]
+    fn a_document_too_big_to_read_is_named_instead_of_vanishing_from_the_sync() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        let here = one.data.join(PAPERS);
+        std::fs::create_dir_all(&here).unwrap();
+        let there = shared.path().join(PAPERS);
+        std::fs::create_dir_all(&there).unwrap();
+        let huge = "x".repeat((tisty_core::docs::BODY_AT_MOST + 1) as usize);
+        std::fs::write(here.join("uno-0001.md"), &huge).unwrap();
+        std::fs::write(there.join("uno-0001.md"), "# Lo de alli\n").unwrap();
+
+        let moved = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert_eq!(moved.astray, vec!["uno-0001".to_string()]);
+        assert!(moved.undecided.is_empty());
+    }
+
+    #[test]
+    fn a_document_that_reads_fine_is_never_called_astray() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        let here = one.data.join(PAPERS);
+        std::fs::create_dir_all(&here).unwrap();
+        std::fs::write(here.join("uno-0001.md"), "# Lo mio\n").unwrap();
+
+        let moved = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert!(moved.astray.is_empty());
+    }
+
+    #[test]
+    fn the_body_that_settled_is_kept_so_the_next_round_has_a_base() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        filed(&one, "uno-0001", "# Kit\n\nlo que quedo asentado\n");
+
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert_eq!(
+            tisty_core::docs::read_carried(&one.data, "uno-0001").as_deref(),
+            Some("# Kit\n\nlo que quedo asentado\n")
+        );
+    }
+
+    #[test]
+    fn the_base_follows_the_body_when_the_other_side_wins() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        let there = shared.path().join(PAPERS);
+        std::fs::create_dir_all(&there).unwrap();
+        filed(&one, "uno-0001", "# Kit\n\nlo mio\n");
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        std::fs::write(there.join("uno-0001.md"), "# Kit\n\nlo de alli\n").unwrap();
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert_eq!(
+            tisty_core::docs::read_carried(&one.data, "uno-0001").as_deref(),
+            Some("# Kit\n\nlo de alli\n"),
+            "la base se quedo con lo viejo"
+        );
+    }
+
+    #[test]
+    fn a_base_is_never_kept_for_a_document_neither_side_has() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert!(tisty_core::docs::read_carried(&one.data, "uno-0001").is_none());
+    }
+
+    #[test]
+    fn the_base_never_travels_to_the_shared_folder() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        filed(&one, "uno-0001", "# Kit\n\ncuerpo\n");
+
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert!(!shared.path().join("carried").exists());
+        assert!(one.data.join("carried").is_dir());
     }
 
     #[test]

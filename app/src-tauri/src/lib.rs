@@ -2440,6 +2440,7 @@ async fn sync_now(
             carried: "busy",
             undecided: Vec::new(),
             unreadable: Vec::new(),
+            astray: Vec::new(),
         });
     };
 
@@ -2505,6 +2506,7 @@ async fn sync_now(
         },
         undecided: done.undecided.into_iter().map(|one| one.id).collect(),
         unreadable: done.unreadable,
+        astray: done.astray,
     })
 }
 
@@ -2514,6 +2516,7 @@ struct Settled {
     carried: &'static str,
     undecided: Vec<String>,
     unreadable: Vec<String>,
+    astray: Vec<String>,
 }
 
 #[tauri::command]
@@ -2576,11 +2579,22 @@ fn convert_paper(
     Ok(())
 }
 
+fn placed(
+    beside: Option<(Option<ulid::Ulid>, String)>,
+    fresh: &str,
+) -> (Option<ulid::Ulid>, String) {
+    match beside {
+        Some((folder, order)) => (folder, tisty_core::order::after(&order)),
+        None => (None, fresh.to_string()),
+    }
+}
+
 #[tauri::command]
 fn settle_paper(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     keep: String,
+    marked: Option<String>,
 ) -> Answer<Option<String>> {
     let mut session = held(&session);
     let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
@@ -2596,16 +2610,27 @@ fn settle_paper(
     let brought = tisty_sync::settle(&data, &dest, &id, keep).map_err(said)?;
 
     let Some(body) = brought else { return Ok(None) };
+    let beside = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .map(|one| (one.folder, one.order.clone()));
+    let body = match &marked {
+        Some(said) => tisty_core::docs::marked(&body, said),
+        None => body,
+    };
     let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     let file = made.id.clone();
+    let (folder, order) = placed(beside, &made.id);
     session
         .commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
                 file: file.clone(),
-                folder: None,
-                order: made.id.clone(),
+                folder,
+                order,
             },
         })
         .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;
@@ -3457,6 +3482,32 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn the_other_version_lands_in_the_same_folder_as_the_one_it_came_from() {
+        let folder = ulid::Ulid::generate();
+
+        let (where_at, order) = placed(Some((Some(folder), "a0".into())), "dev_a-0009");
+
+        assert_eq!(where_at, Some(folder));
+        assert!(order.as_str() > "a0", "no quedo despues del original");
+    }
+
+    #[test]
+    fn the_other_version_stays_loose_only_when_the_original_is_loose() {
+        let (where_at, order) = placed(Some((None, "a0".into())), "dev_a-0009");
+
+        assert_eq!(where_at, None);
+        assert!(order.as_str() > "a0");
+    }
+
+    #[test]
+    fn an_original_nobody_can_find_does_not_stop_the_other_version_from_landing() {
+        let (where_at, order) = placed(None, "dev_a-0009");
+
+        assert_eq!(where_at, None);
+        assert_eq!(order, "dev_a-0009");
+    }
     use super::*;
 
     #[test]

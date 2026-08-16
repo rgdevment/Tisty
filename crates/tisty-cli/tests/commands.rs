@@ -1203,7 +1203,7 @@ fn joining_backs_the_machine_up_and_then_takes_what_the_folder_holds() {
 }
 
 #[test]
-fn a_machine_puts_itself_on_the_list_the_first_time_it_syncs() {
+fn the_first_machine_to_sync_does_not_shut_the_door_on_the_rest() {
     let shared = tempfile::tempdir().unwrap();
     let met = shared.path().display().to_string();
 
@@ -1224,6 +1224,26 @@ fn a_machine_puts_itself_on_the_list_the_first_time_it_syncs() {
         out.contains("call the bank"),
         "the first to sync shut the door on the rest: {out}"
     );
+}
+
+#[test]
+fn a_machine_reaches_the_list_on_its_second_sync_because_taking_comes_before_leaving() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+    let seat = |at: &str| {
+        tisty_core::store::ledger(std::path::Path::new(at).join("store"))
+            .map(|said| said.allowed.len())
+            .unwrap_or(0)
+    };
+
+    let one = Cli::new();
+    one.ok(&["config", "set", "remote", &met]);
+    one.ok(&["buy bread"]);
+    one.ok(&["sync"]);
+    assert_eq!(seat(&met), 0, "se dio de alta antes de leer la carpeta");
+
+    one.ok(&["sync"]);
+    assert_eq!(seat(&met), 1, "no llego a la lista en la segunda vuelta");
 }
 
 #[test]
