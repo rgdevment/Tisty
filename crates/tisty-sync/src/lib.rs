@@ -44,6 +44,12 @@ pub struct Moved {
     pub joined: Vec<String>,
 }
 
+impl Moved {
+    pub fn undecided_ids(&self) -> Vec<String> {
+        self.undecided.iter().map(|one| one.id.clone()).collect()
+    }
+}
+
 pub fn carry(
     data: &Path,
     device: &str,

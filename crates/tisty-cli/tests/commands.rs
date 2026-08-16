@@ -1247,6 +1247,32 @@ fn a_machine_reaches_the_list_on_its_second_sync_because_taking_comes_before_lea
 }
 
 #[test]
+fn a_document_written_in_both_places_is_named_instead_of_going_quiet() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+    let body = "# Kit\n\nla introduccion\n\nel cierre\n";
+
+    let one = Cli::new();
+    one.ok(&["config", "set", "remote", &met]);
+    one.ok(&["buy bread"]);
+    one.ok(&["sync"]);
+
+    let here = one.home.path().join("data").join("docs");
+    std::fs::create_dir_all(&here).unwrap();
+    std::fs::write(here.join("dev_a-0001.md"), body).unwrap();
+    let there = shared.path().join("docs");
+    std::fs::create_dir_all(&there).unwrap();
+    std::fs::write(there.join("dev_a-0001.md"), body).unwrap();
+
+    let out = one.ok(&["sync"]);
+
+    assert!(
+        !out.contains("dev_a-0001"),
+        "nombro un documento que nadie discute: {out}"
+    );
+}
+
+#[test]
 fn joining_with_nowhere_to_put_the_backup_keeps_everything() {
     let shared = tempfile::tempdir().unwrap();
     let met = shared.path().display().to_string();
