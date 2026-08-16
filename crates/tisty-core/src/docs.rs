@@ -43,6 +43,10 @@ pub fn keep_carried(data: &Path, id: &str, body: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn carried_there(data: &Path, id: &str) -> bool {
+    resolve(&base(data), id).is_ok_and(|at| std::fs::metadata(at).is_ok())
+}
+
 pub fn read_carried(data: &Path, id: &str) -> Option<String> {
     let at = resolve(&base(data), id).ok()?;
     std::fs::read_to_string(at).ok()
@@ -75,7 +79,7 @@ pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Carried(std::collections::BTreeMap<String, String>);
 
 impl Carried {
@@ -159,7 +163,6 @@ pub fn titled(body: &str) -> String {
 
 pub fn marked(body: &str, said: &str) -> String {
     let bare = body.strip_prefix('\u{feff}').unwrap_or(body);
-    let mut shut = false;
     let mut seen = 0;
     let mut out: Vec<String> = Vec::new();
     let mut done = false;
@@ -191,8 +194,6 @@ pub fn marked(body: &str, said: &str) -> String {
         }
         out.push(format!("{} ({said})", line.trim_end()));
         done = true;
-        let _ = shut;
-        shut = true;
     }
 
     if !done {

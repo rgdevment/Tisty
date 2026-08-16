@@ -291,7 +291,41 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
     Ok(made)
 }
 
+fn rescued(dest: &Path) {
+    let Ok(entries) = std::fs::read_dir(dest) else {
+        return;
+    };
+    for at in entries.filter_map(|e| e.ok()).map(|e| e.path()) {
+        let stale = at.is_dir()
+            && at
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with(".taking-over-"));
+        if !stale {
+            continue;
+        }
+        for folder in CARRIED {
+            let back = dest.join(folder);
+            if !back.exists()
+                && at.join(folder).is_dir()
+                && let Err(e) = std::fs::rename(at.join(folder), &back)
+            {
+                witness::error(
+                    channel::BACKUP,
+                    "a folder left behind by an interrupted take-over could not be put back",
+                    &[
+                        ("at", Fact::Path(back.clone())),
+                        ("why", Fact::Why(e.to_string())),
+                    ],
+                );
+            }
+        }
+        let _ = std::fs::remove_dir_all(&at);
+    }
+}
+
 pub fn take_over(dest: &Path, ours: &str, into: &Path, aside: &Path) -> Result<Made> {
+    rescued(dest);
     let made = write(dest, into, aside)?;
 
     let old = dest.join(format!(".taking-over-{}", std::process::id()));
@@ -1046,6 +1080,24 @@ mod tests {
             "half the photograph stayed"
         );
         assert!(data.join("attachments").is_dir());
+    }
+
+    #[test]
+    fn a_take_over_cut_short_leaves_nothing_stranded_in_the_shared_folder() {
+        let dest = tempfile::tempdir().unwrap();
+        let stale = dest.path().join(".taking-over-999");
+        std::fs::create_dir_all(stale.join("docs")).unwrap();
+        std::fs::write(stale.join("docs").join("uno.md"), "un cuerpo").unwrap();
+        std::fs::create_dir_all(dest.path().join("store")).unwrap();
+
+        super::rescued(dest.path());
+
+        assert!(!stale.exists(), "el resto quedo ahi para siempre");
+        assert_eq!(
+            std::fs::read_to_string(dest.path().join("docs").join("uno.md")).unwrap(),
+            "un cuerpo",
+            "los documentos no volvieron a su sitio"
+        );
     }
 
     #[test]

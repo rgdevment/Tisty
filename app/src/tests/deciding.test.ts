@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { decideAll } from "../deciding";
+import { decideAll, decidesByBlock } from "../deciding";
+import type { Pick, Rift } from "../core";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
+}));
+
+const torn = vi.hoisted(() => ({
+  said: { rifts: [] as Rift[], print: "" },
 }));
 
 const asked = vi.hoisted(() => ({
@@ -28,6 +33,7 @@ vi.mock("@tauri-apps/api/core", () => ({
         ],
       });
     }
+    if (cmd === "paper_rifts") return Promise.resolve(torn.said);
     return Promise.resolve(null);
   },
 }));
@@ -42,6 +48,8 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 }));
 
 beforeEach(() => {
+  torn.said = { rifts: [], print: "" };
+  decidesByBlock(null);
   ipc.calls = [];
   asked.held = [];
   asked.said = [];
@@ -49,6 +57,43 @@ beforeEach(() => {
 });
 
 const settled = () => ipc.calls.filter((one) => one.cmd === "settle_paper");
+
+const woven = () => ipc.calls.filter((one) => one.cmd === "weave_paper");
+
+describe("deciding a document block by block", () => {
+  const rift: Rift = { was: ["antes"], mine: ["lo mio"], theirs: ["lo suyo"] };
+
+  it("carries the print of what was shown back with the answers", async () => {
+    torn.said = { rifts: [rift], print: "huella-1" };
+    decidesByBlock(async () => ["mine"] as Pick[]);
+
+    await decideAll(["dev_a-0001"]);
+
+    expect(woven()).toHaveLength(1);
+    expect(woven()[0].args.print).toBe("huella-1");
+    expect(woven()[0].args.picks).toEqual(["mine"]);
+  });
+
+  it("writes nothing when the person closes without answering", async () => {
+    torn.said = { rifts: [rift], print: "huella-1" };
+    decidesByBlock(async () => null);
+
+    await decideAll(["dev_a-0001"]);
+
+    expect(woven()).toHaveLength(0);
+    expect(settled()).toHaveLength(0);
+  });
+
+  it("falls back to asking outright when the blocks cannot be worked out", async () => {
+    torn.said = { rifts: [], print: "" };
+    decidesByBlock(async () => ["mine"] as Pick[]);
+
+    await decideAll(["dev_a-0001"]);
+
+    expect(woven()).toHaveLength(0);
+    expect(settled()).toHaveLength(1);
+  });
+});
 
 describe("deciding what to do with a document written on both sides", () => {
   it("keeps both when that is the answer", async () => {

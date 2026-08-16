@@ -18,11 +18,11 @@ export const decide = async (id: string, called?: string): Promise<void> => {
   const said = called?.trim() || t("untitledDoc");
   try {
     if (byBlock) {
-      const rifts = await paperRifts(id).catch(() => [] as Rift[]);
-      if (rifts.length) {
-        const picks = await byBlock(said, rifts);
+      const torn = await paperRifts(id).catch(() => null);
+      if (torn?.rifts.length) {
+        const picks = await byBlock(said, torn.rifts);
         if (!picks) return;
-        await weavePaper(id, picks);
+        await weavePaper(id, picks, torn.print);
         await settlePaper(id, "mine");
         return;
       }

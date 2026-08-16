@@ -225,7 +225,7 @@ pub fn kinship(store: &Path, dest: &Path) -> Kin {
     let mut shared = false;
 
     let Ok(mine) = std::fs::read_dir(store) else {
-        return Kin::Strangers;
+        return Kin::Unsure(String::new());
     };
     for one in mine.filter_map(|e| e.ok()) {
         let named = one.file_name();
@@ -367,7 +367,7 @@ fn bring(
     store: &Path,
     device: &str,
     dest: &Path,
-    astray: &mut Vec<String>,
+    unreadable: &mut Vec<String>,
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
     let at = dest.join(STORE);
@@ -409,7 +409,7 @@ fn bring(
                             ("why", Fact::Why(why.to_string())),
                         ],
                     );
-                    astray.push(named.to_string());
+                    unreadable.push(named.to_string());
                     continue;
                 }
             };
@@ -671,6 +671,22 @@ pub fn forget_paper(dest: &Path, id: &str) {
     }
 }
 
+pub fn both_papers(data: &Path, dest: &Path, id: &str) -> Result<(String, String), Trouble> {
+    straight(&dest.join(PAPERS), dest)?;
+    let mine = tisty_core::docs::resolve(&data.join(PAPERS), id)
+        .map_err(|_| Trouble::Refused(id.to_string()))?;
+    let theirs = tisty_core::docs::resolve(&dest.join(PAPERS), id)
+        .map_err(|_| Trouble::Refused(id.to_string()))?;
+    plainly(&theirs)?;
+    plainly(&mine)?;
+
+    let mine = tisty_core::docs::read(&data.join(PAPERS), id)
+        .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+    let theirs = tisty_core::docs::read(&dest.join(PAPERS), id)
+        .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+    Ok((mine, theirs))
+}
+
 pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
     use tisty_core::docs::{Carried, print_of};
 
@@ -772,7 +788,8 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
     let here = data.join(PAPERS);
     let there = dest.join(PAPERS);
     straight(&there, dest)?;
-    let mut said = Carried::read(data);
+    let was = Carried::read(data);
+    let mut said = was.clone();
     let mut done = Moved::default();
 
     let outcome = (|| -> Result<(), Trouble> {
@@ -795,12 +812,18 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
             let (ours, yours) = match (print_of(&mine), print_of(&theirs)) {
                 (Ok(ours), Ok(yours)) => (ours, yours),
                 (here, there) => {
+                    let why = here.err().or(there.err());
                     witness::warn(
                         channel::SYNC,
                         "a document could not be read, so this turn leaves it alone",
-                        &[("at", Fact::Id(id.clone()))],
+                        &[
+                            ("at", Fact::Id(id.clone())),
+                            (
+                                "why",
+                                Fact::Why(why.map(|e| e.to_string()).unwrap_or_else(|| "?".into())),
+                            ),
+                        ],
                     );
-                    let _ = (here, there);
                     done.astray.push(id.clone());
                     continue;
                 }
@@ -809,7 +832,11 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
             match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
                 Move::Nothing => {
                     if let Some(print) = ours.or(yours) {
-                        settled_body(data, id, &mine, &theirs);
+                        let steady = said.of(id) == Some(print.as_str())
+                            && tisty_core::docs::carried_there(data, id);
+                        if !steady {
+                            settled_body(data, id, &mine, &theirs);
+                        }
                         said.keep(id, &print);
                     }
                 }
@@ -861,8 +888,10 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
         Ok(())
     })();
 
-    said.save(data)
-        .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+    if said != was {
+        said.save(data)
+            .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+    }
     outcome?;
     Ok(done)
 }
@@ -2517,6 +2546,50 @@ mod tests {
             0,
             "it moved something nobody had changed anywhere"
         );
+    }
+
+    #[test]
+    fn a_round_where_nothing_moved_writes_nothing_at_all() {
+        let one = blank("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let alive = ["dev_a-0001".to_string()];
+        paper(&one, "dev_a-0001", "# Notas\n\nun cuerpo cualquiera");
+
+        carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+        let watched = [
+            one.data.join("carried").join("dev_a-0001.md"),
+            one.data.join("carried.json"),
+        ];
+        let before: Vec<_> = watched
+            .iter()
+            .map(|at| std::fs::metadata(at).and_then(|m| m.modified()).unwrap())
+            .collect();
+
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        let still = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+        assert_eq!(still.sent + still.brought, 0);
+        for (at, was) in watched.iter().zip(before) {
+            let now = std::fs::metadata(at).and_then(|m| m.modified()).unwrap();
+            assert_eq!(now, was, "se reescribio sin que nada cambiara: {at:?}");
+        }
+    }
+
+    #[test]
+    fn a_base_wiped_from_under_us_is_written_again_on_the_next_round() {
+        let one = blank("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let alive = ["dev_a-0001".to_string()];
+        paper(&one, "dev_a-0001", "# Notas\n\nun cuerpo cualquiera");
+
+        carry_papers(&one.data, shared.path(), &alive).unwrap();
+        let at = one.data.join("carried").join("dev_a-0001.md");
+        std::fs::remove_file(&at).unwrap();
+
+        carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+        assert!(at.exists(), "la base para fusionar quedo perdida");
     }
 
     #[test]

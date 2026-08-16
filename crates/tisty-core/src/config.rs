@@ -205,10 +205,17 @@ mod tests {
 
     #[test]
     fn the_same_machine_is_called_the_same_thing_on_every_machine_that_asks() {
-        for id in ["dev_a657da33", "dev_jtntzhbx", "dev_ej8mf31b"] {
-            assert_eq!(nicknamed(id), nicknamed(id));
+        for (id, called) in [
+            ("dev_a657da33", "carrasco 75"),
+            ("dev_jtntzhbx", "acacia 1"),
+            ("dev_ej8mf31b", "roble 60"),
+        ] {
+            assert_eq!(
+                nicknamed(id),
+                called,
+                "dos maquinas dejarian de llamar igual a la misma"
+            );
         }
-        assert_eq!(nicknamed("dev_a657da33"), nicknamed("dev_a657da33"));
     }
 
     #[test]

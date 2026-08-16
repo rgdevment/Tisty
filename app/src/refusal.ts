@@ -34,6 +34,7 @@ const KNOWN = [
   "sameName",
   "noBase",
   "cannotWeave",
+  "movedUnderfoot",
   "notAllowed",
   "remoteInsideStore",
   "sharedIsTheBackup",

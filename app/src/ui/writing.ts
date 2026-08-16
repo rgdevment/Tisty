@@ -59,6 +59,24 @@ class Ink {
     return older.charCodeAt(older.length - 1);
   }
 
+  priorSlashes(): number {
+    let at = this.parts.length - 1;
+    if (at < 0) return 0;
+    let idx = this.parts[at].length - 2;
+    let seen = 0;
+    while (at >= 0) {
+      while (idx >= 0) {
+        if (this.parts[at].charCodeAt(idx) !== 92) return seen;
+        seen += 1;
+        idx -= 1;
+      }
+      at -= 1;
+      if (at < 0) break;
+      idx = this.parts[at].length - 1;
+    }
+    return seen;
+  }
+
   escapeLast(): void {
     const at = this.parts.length - 1;
     const tail = this.parts[at];
@@ -169,7 +187,9 @@ const swift = {
     const lines = value.split("\n");
     for (let i = 0; i < lines.length; i++) {
       this.write();
-      if (!escape && lines[i][0] === "[" && ink.last === 33 && ink.prior() !== 92) ink.escapeLast();
+      if (!escape && lines[i][0] === "[" && ink.last === 33 && ink.priorSlashes() % 2 === 0) {
+        ink.escapeLast();
+      }
       ink.add(escape ? this.esc(lines[i], this.atBlockStart) : lines[i]);
       if (i !== lines.length - 1) ink.add("\n");
     }

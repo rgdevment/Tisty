@@ -2077,6 +2077,7 @@ fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()>
     let mut said = tisty_core::docs::Carried::read(session.paths.data());
     said.forget(&file);
     let _ = said.save(session.paths.data());
+    tisty_core::docs::forget_carried(session.paths.data(), &file);
     Ok(())
 }
 
@@ -2592,39 +2593,59 @@ fn placed(
     }
 }
 
-#[tauri::command(async)]
-fn paper_rifts(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-) -> Answer<Vec<tisty_core::merge::Rift>> {
-    let session = held(&session);
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Torn {
+    rifts: Vec<tisty_core::merge::Rift>,
+    print: String,
+}
+
+fn three_bodies(session: &Session, id: &str) -> Answer<Option<(String, String, String)>> {
     let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
         return Err(Refusal::of("noRemote"));
     };
-    let data = session.paths.data();
-    let Some(base) = tisty_core::docs::read_carried(data, &id) else {
-        return Ok(Vec::new());
+    let Some(base) = tisty_core::docs::read_carried(session.paths.data(), id) else {
+        return Ok(None);
     };
-    let (Ok(mine), Ok(theirs)) = (
-        tisty_core::docs::read(&session.paths.docs(), &id),
-        tisty_core::docs::read(&dest.join("docs"), &id),
-    ) else {
-        return Ok(Vec::new());
-    };
-    Ok(tisty_core::merge::rifts(&base, &mine, &theirs))
+    match tisty_sync::both_papers(session.paths.data(), &dest, id) {
+        Ok((mine, theirs)) => Ok(Some((base, mine, theirs))),
+        Err(_) => Ok(None),
+    }
 }
 
-#[tauri::command]
+fn print_of_three(base: &str, mine: &str, theirs: &str) -> String {
+    tisty_core::attach::printed(format!("{base}\u{0}{mine}\u{0}{theirs}").as_bytes())
+}
+
+#[tauri::command(async)]
+fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Torn> {
+    let session = held(&session);
+    let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
+        return Ok(Torn {
+            rifts: Vec::new(),
+            print: String::new(),
+        });
+    };
+    Ok(Torn {
+        print: print_of_three(&base, &mine, &theirs),
+        rifts: tisty_core::merge::rifts(&base, &mine, &theirs),
+    })
+}
+
+#[tauri::command(async)]
 fn weave_paper(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     picks: Vec<String>,
+    print: String,
 ) -> Answer<()> {
     let session = held(&session);
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
+    let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
+        return Err(Refusal::of("noBase"));
     };
-    let data = session.paths.data().to_path_buf();
+    if print_of_three(&base, &mine, &theirs) != print {
+        return Err(Refusal::of("movedUnderfoot"));
+    }
     let picked: Vec<tisty_core::merge::Pick> = picks
         .iter()
         .map(|one| match one.as_str() {
@@ -2633,26 +2654,12 @@ fn weave_paper(
             _ => tisty_core::merge::Pick::Both,
         })
         .collect();
-
-    let base = tisty_core::docs::read_carried(&data, &id).ok_or_else(|| Refusal::of("noBase"))?;
-    let papers = session.paths.docs();
-    let mine = tisty_core::docs::read(&papers, &id).map_err(|e| {
-        blamed(
-            channel::SYNC,
-            "the local body could not be read to weave",
-            e,
-        )
-    })?;
-    let theirs = tisty_core::docs::read(&dest.join("docs"), &id).map_err(|e| {
-        blamed(
-            channel::SYNC,
-            "the folder body could not be read to weave",
-            e,
-        )
-    })?;
     let whole = tisty_core::merge::woven_with(&base, &mine, &theirs, &picked)
         .ok_or_else(|| Refusal::of("cannotWeave"))?;
 
+    let papers = session.paths.docs();
+    tisty_core::docs::kept_before(session.paths.data(), &id, &mine)
+        .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
     tisty_core::docs::write(&papers, &id, &whole)
         .map_err(|e| blamed(channel::SYNC, "the woven body could not be written", e))?;
     Ok(())
@@ -2978,7 +2985,9 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
         tisty_sync::Trouble::Broke(why) => Refusal::about("syncBroke", why),
         tisty_sync::Trouble::WouldReset { theirs } => Refusal::about("wouldReset", theirs),
         tisty_sync::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
-        tisty_sync::Trouble::SameName(who) => Refusal::about("sameName", who),
+        tisty_sync::Trouble::SameName(who) => {
+            Refusal::about("sameName", tisty_core::config::nicknamed(&who))
+        }
     }
 }
 
@@ -3511,8 +3520,6 @@ pub fn run() {
             remove_machine,
             retire_attachment,
             settle_paper,
-            paper_rifts,
-            weave_paper,
             paper_rifts,
             weave_paper,
             convert_paper,
