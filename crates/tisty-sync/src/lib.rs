@@ -41,6 +41,7 @@ pub struct Moved {
     pub undecided: Vec<Undecided>,
     pub unreadable: Vec<String>,
     pub astray: Vec<String>,
+    pub joined: Vec<String>,
 }
 
 pub fn carry(
@@ -106,6 +107,7 @@ pub fn carry(
         moved.brought += papers.brought;
         moved.undecided = papers.undecided;
         moved.astray = papers.astray;
+        moved.joined = papers.joined;
     }
     Ok(moved)
 }
@@ -705,6 +707,41 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
     Ok(None)
 }
 
+fn landed(mine: &Path, theirs: &Path) -> bool {
+    use tisty_core::docs::print_of;
+    match (print_of(mine), print_of(theirs)) {
+        (Ok(Some(ours)), Ok(Some(yours))) => ours == yours,
+        _ => false,
+    }
+}
+
+fn joined(data: &Path, id: &str, mine: &Path, theirs: &Path) -> Option<String> {
+    let base = tisty_core::docs::read_carried(data, id)?;
+    let ours = std::fs::read_to_string(mine).ok()?;
+    let yours = std::fs::read_to_string(theirs).ok()?;
+    let whole = tisty_core::merge::merged(&base, &ours, &yours)?;
+
+    let held = data.join(HELD);
+    for one in tisty_core::refs::extract(&whole)
+        .into_iter()
+        .map(|one| one.target)
+    {
+        if !one.starts_with("attachments/") {
+            continue;
+        }
+        let there = tisty_core::attach::resolve(&one, data).ok()?;
+        if !there.starts_with(&held) || !there.is_file() {
+            witness::warn(
+                channel::SYNC,
+                "a joined document would name an attachment this machine does not hold",
+                &[("at", Fact::Id(one))],
+            );
+            return None;
+        }
+    }
+    Some(whole)
+}
+
 fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
     let said = std::fs::read_to_string(mine)
         .or_else(|_| std::fs::read_to_string(theirs))
@@ -788,10 +825,31 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
                         said.keep(id, &print);
                     }
                 }
-                Move::TheyDecide => done.undecided.push(Undecided {
-                    id: id.clone(),
-                    theirs: yours.unwrap_or_default(),
-                }),
+                Move::TheyDecide => match joined(data, id, &mine, &theirs) {
+                    Some(whole) => {
+                        write(&mine, whole.as_bytes())?;
+                        copy_onto(&mine, &theirs)?;
+                        done.sent += 1;
+                        done.brought += 1;
+                        done.joined.push(id.clone());
+                        if landed(&mine, &theirs) {
+                            if let Ok(Some(print)) = print_of(&mine) {
+                                settled_body(data, id, &mine, &theirs);
+                                said.keep(id, &print);
+                            }
+                        } else {
+                            witness::warn(
+                                channel::SYNC,
+                                "another machine wrote while this one joined, so the base stays put",
+                                &[("at", Fact::Id(id.clone()))],
+                            );
+                        }
+                    }
+                    None => done.undecided.push(Undecided {
+                        id: id.clone(),
+                        theirs: yours.unwrap_or_default(),
+                    }),
+                },
             }
         }
         Ok(())
@@ -1463,6 +1521,157 @@ mod tests {
 
         assert!(!shared.path().join("carried").exists());
         assert!(one.data.join("carried").is_dir());
+    }
+
+    fn wrote_body(at: &Path, id: &str, body: &str) {
+        std::fs::create_dir_all(at).unwrap();
+        std::fs::write(at.join(format!("{id}.md")), body).unwrap();
+    }
+
+    #[test]
+    fn two_machines_touching_different_parts_end_up_with_one_document_and_no_question() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        let here = one.data.join(PAPERS);
+        let there = shared.path().join(PAPERS);
+        let base = "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n";
+        filed(&one, "uno-0001", base);
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        wrote_body(
+            &here,
+            "uno-0001",
+            "# Kit\n\nla introduccion del mac\n\nel cuerpo\n\nel cierre\n",
+        );
+        wrote_body(
+            &there,
+            "uno-0001",
+            "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n\nlo de windows\n",
+        );
+
+        let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert!(done.undecided.is_empty(), "pregunto pudiendo juntarlo");
+        assert_eq!(done.joined, vec!["uno-0001".to_string()]);
+        let whole = std::fs::read_to_string(here.join("uno-0001.md")).unwrap();
+        assert!(whole.contains("del mac"), "{whole}");
+        assert!(whole.contains("lo de windows"), "{whole}");
+        assert_eq!(
+            whole,
+            std::fs::read_to_string(there.join("uno-0001.md")).unwrap()
+        );
+    }
+
+    #[test]
+    fn the_same_paragraph_written_two_ways_still_asks() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        let here = one.data.join(PAPERS);
+        let there = shared.path().join(PAPERS);
+        filed(&one, "uno-0001", "# Kit\n\nla introduccion\n\nel cierre\n");
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        wrote_body(
+            &here,
+            "uno-0001",
+            "# Kit\n\nla introduccion del mac\n\nel cierre\n",
+        );
+        wrote_body(
+            &there,
+            "uno-0001",
+            "# Kit\n\nla introduccion de windows\n\nel cierre\n",
+        );
+
+        let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert_eq!(done.undecided.len(), 1);
+        assert!(done.joined.is_empty());
+    }
+
+    #[test]
+    fn without_a_base_nothing_is_joined_and_the_person_still_decides() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        let here = one.data.join(PAPERS);
+        let there = shared.path().join(PAPERS);
+        filed(&one, "uno-0001", "# Kit\n\nuno\n\ndos\n");
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+        tisty_core::docs::forget_carried(&one.data, "uno-0001");
+
+        wrote_body(&here, "uno-0001", "# Kit del mac\n\nuno\n\ndos\n");
+        wrote_body(&there, "uno-0001", "# Kit\n\nuno\n\ndos\n\ntres\n");
+
+        let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert_eq!(done.undecided.len(), 1);
+        assert!(done.joined.is_empty());
+    }
+
+    #[test]
+    fn a_join_that_would_name_an_attachment_we_do_not_hold_is_never_written() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        let here = one.data.join(PAPERS);
+        let there = shared.path().join(PAPERS);
+        filed(&one, "uno-0001", "# Kit\n\nuno\n\ndos\n");
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        wrote_body(&here, "uno-0001", "# Kit del mac\n\nuno\n\ndos\n");
+        wrote_body(
+            &there,
+            "uno-0001",
+            "# Kit\n\nuno\n\ndos\n\n![foto](attachments/ab/foto-a1b2c3d4.png)\n",
+        );
+
+        let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert!(done.joined.is_empty(), "junto una referencia rota");
+        assert_eq!(done.undecided.len(), 1);
+    }
+
+    #[test]
+    fn a_join_leaves_the_base_on_what_both_sides_now_hold() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        let here = one.data.join(PAPERS);
+        let there = shared.path().join(PAPERS);
+        filed(&one, "uno-0001", "# Kit\n\nuno\n\ndos\n");
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        wrote_body(&here, "uno-0001", "# Kit del mac\n\nuno\n\ndos\n");
+        wrote_body(&there, "uno-0001", "# Kit\n\nuno\n\ndos\n\ntres\n");
+        carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+        assert!(done.joined.is_empty(), "volvio a juntar lo ya junto");
+        assert_eq!(
+            tisty_core::docs::read_carried(&one.data, "uno-0001"),
+            Some(std::fs::read_to_string(here.join("uno-0001.md")).unwrap())
+        );
+    }
+
+    #[test]
+    fn a_body_the_other_side_no_longer_matches_is_not_taken_as_landed() {
+        let room = tempfile::tempdir().unwrap();
+        let mine = room.path().join("mio.md");
+        let theirs = room.path().join("suyo.md");
+        std::fs::write(&mine, "# Kit\n\njunto\n").unwrap();
+        std::fs::write(&theirs, "# Kit\n\notra cosa\n").unwrap();
+
+        assert!(!landed(&mine, &theirs));
+
+        std::fs::write(&theirs, "# Kit\n\njunto\n").unwrap();
+        assert!(landed(&mine, &theirs));
+    }
+
+    #[test]
+    fn a_side_that_is_not_there_at_all_is_never_taken_as_landed() {
+        let room = tempfile::tempdir().unwrap();
+        let mine = room.path().join("mio.md");
+        std::fs::write(&mine, "# Kit\n").unwrap();
+
+        assert!(!landed(&mine, &room.path().join("no-esta.md")));
     }
 
     #[test]

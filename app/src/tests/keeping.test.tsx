@@ -750,6 +750,29 @@ describe("the maintenance panel", () => {
     }
   });
 
+  it("says which document was put together, by its title", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.resolve({
+            carried: "came",
+            undecided: [],
+            unreadable: [],
+            astray: [],
+            joined: ["a-0002"],
+          })
+        : otherwise(cmd, args);
+    carrying.chosen = "G:/My Drive/tisty";
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/leaving copies in/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
+
+    const said = await screen.findByText(/put together/i);
+    expect(said.textContent).toMatch(/Minuta del lunes/);
+    expect(said.textContent).not.toMatch(/a-0002/);
+  });
+
   it("opens the three doors instead of a yes or no", async () => {
     apart();
     await carried();

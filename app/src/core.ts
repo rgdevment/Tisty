@@ -335,6 +335,7 @@ export interface Settled {
   undecided: string[];
   unreadable: string[];
   astray: string[];
+  joined: string[];
 }
 
 export const syncNow = (way?: "push" | "pull"): Promise<Settled> => invoke("sync_now", { way });
