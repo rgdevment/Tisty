@@ -459,10 +459,12 @@ const en = {
   theMachines: "The machines",
   machinesWhat:
     "Every machine writes its own log into the shared folder. One that has not written in a while may still be using what looks loose here.",
-  machineHere: "this one",
+  machineHere: "This machine",
+  machineNeverDrop: "not removable",
   machineDrop: "Remove",
   machineDropSure:
-    "Remove {name} from the shared folder?\n\nIt stops writing there, and what it left is taken out. If it comes back, it is backed up and emptied first — it never brings back what it holds now.",
+    "Remove {name}?\n\nIt stops being able to write in the shared folder, but what it already wrote stays there and every machine still sees it.\n\nIf it comes back, it returns as a new machine: it is backed up and emptied first, so whatever it has unsynced by then is left in the backup alone.",
+  machineDropWhen: "It last wrote {name}.",
   machineDropped: "That machine no longer writes here",
   machineNever: "has never written",
   machinesNone: "No machine has written yet",
@@ -1014,10 +1016,12 @@ const es: Catalog = {
   theMachines: "Las máquinas",
   machinesWhat:
     "Cada máquina escribe su propio log en la carpeta compartida. Una que lleva tiempo sin escribir puede seguir usando lo que aquí parece suelto.",
-  machineHere: "esta",
+  machineHere: "Esta máquina",
+  machineNeverDrop: "no se remueve",
   machineDrop: "Remover",
   machineDropSure:
-    "¿Remover {name} de la carpeta compartida?\n\nDeja de escribir ahí, y lo que dejó se saca. Si vuelve, primero se respalda y se vacía — nunca devuelve lo que guarda ahora.",
+    "¿Remover {name}?\n\nDeja de poder escribir en la carpeta compartida, pero lo que ya escribió se queda ahí y todas las máquinas lo siguen viendo.\n\nSi vuelve, entra como máquina nueva: se respalda y se vacía antes, así que lo que tenga sin sincronizar en ese momento queda solo en el respaldo.",
+  machineDropWhen: "Escribió por última vez {name}.",
   machineDropped: "Esa máquina ya no escribe aquí",
   machineNever: "no ha escrito nunca",
   machinesNone: "Ninguna máquina ha escrito todavía",

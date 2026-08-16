@@ -14,6 +14,7 @@ const asked = vi.hoisted(() => ({
   folder: null as string | null,
   file: null as string | null,
   sure: false,
+  said: "",
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -27,7 +28,10 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: (opts: { directory?: boolean }) =>
     Promise.resolve(opts.directory ? asked.folder : asked.file),
   save: () => Promise.resolve(asked.file),
-  ask: () => Promise.resolve(asked.sure),
+  ask: (said: string) => {
+    asked.said = said;
+    return Promise.resolve(asked.sure);
+  },
 }));
 
 const standing = {
@@ -93,8 +97,18 @@ beforeEach(() => {
           ],
           events: 42,
           machines: [
-            { id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true },
-            { id: "win1-0002", when: Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 12, mine: false },
+            {
+              id: "mac0-0001",
+              called: "cedro 14",
+              when: Math.floor(Date.now() / 1000),
+              mine: true,
+            },
+            {
+              id: "win1-0002",
+              called: "salvia 07",
+              when: Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 12,
+              mine: false,
+            },
           ],
           logBytes: 4_096,
           docsBytes: 20_480,
@@ -266,7 +280,45 @@ describe("the maintenance panel", () => {
 
     expect(await screen.findByText(/mac0-0001/)).toBeTruthy();
     expect(screen.getByText(/win1-0002/)).toBeTruthy();
-    expect(screen.getByText(/this one/i)).toBeTruthy();
+    expect(screen.getByText("This machine")).toBeTruthy();
+  });
+
+  it("calls every machine something a person can read out loud", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText("cedro 14")).toBeTruthy();
+    expect(screen.getByText("salvia 07")).toBeTruthy();
+  });
+
+  it("never offers to remove the machine you are on", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    await screen.findByText("This machine");
+    expect(screen.getAllByRole("button", { name: /^remove$/i })).toHaveLength(1);
+    expect(screen.getByText(/not removable/i)).toBeTruthy();
+  });
+
+  it("names the machine and when it last wrote before removing it", async () => {
+    asked.sure = false;
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await screen.findByText("salvia 07");
+
+    await userEvent.click(screen.getByRole("button", { name: /^remove$/i }));
+
+    await waitFor(() => expect(asked.said).toMatch(/salvia 07/));
+    expect(asked.said).toMatch(/last wrote/i);
+    expect(asked.said).not.toMatch(/win1-0002/);
   });
 
   it("says out loud that a machine has been away, so nothing is judged on stale news", async () => {
