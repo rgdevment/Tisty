@@ -32,6 +32,8 @@ const KNOWN = [
   "syncBroke",
   "wouldReset",
   "sameName",
+  "noBase",
+  "cannotWeave",
   "notAllowed",
   "remoteInsideStore",
   "sharedIsTheBackup",

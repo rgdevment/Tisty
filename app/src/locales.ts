@@ -297,6 +297,19 @@ const en = {
     "A document was left out of this sync because it could not be read — usually one past the size a document may weigh. It is still on this machine; it just did not travel.",
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
+  noBase: "There is nothing to compare against yet, so this one is decided whole",
+  cannotWeave: "That document changed while you were deciding — look again",
+  riftTitle: "Two versions of «{name}»",
+  riftWhy:
+    "Everything the two machines did not both touch is already together. What is below is the part each wrote differently, and only you know which one is right.",
+  riftWas: "Before",
+  riftMine: "On this machine",
+  riftTheirs: "On the other one",
+  riftKeepMine: "This one",
+  riftKeepTheirs: "The other",
+  riftKeepBoth: "Both",
+  riftDone: "Done",
+  riftLeft: "{name} left",
   sameName:
     "Both hold a machine called {name}, and each wrote something different under that name. Joining them would put two histories into one file, so Tisty refuses. Keep one of the two sides instead.",
   stuckApart:
@@ -859,6 +872,19 @@ const es: Catalog = {
     "Un documento se quedó fuera de esta sincronización porque no se pudo leer — normalmente uno que pasa del tamaño que puede pesar un documento. Sigue en esta máquina; solo no viajó.",
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un fichero que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
+  noBase: "Todavía no hay con qué comparar, así que este se decide entero",
+  cannotWeave: "Ese documento cambió mientras decidías — míralo otra vez",
+  riftTitle: "Dos versiones de «{name}»",
+  riftWhy:
+    "Todo lo que las dos máquinas no tocaron a la vez ya está junto. Lo de abajo es la parte que cada una escribió distinta, y solo tú sabes cuál vale.",
+  riftWas: "Antes",
+  riftMine: "En esta máquina",
+  riftTheirs: "En la otra",
+  riftKeepMine: "Esta",
+  riftKeepTheirs: "La otra",
+  riftKeepBoth: "Las dos",
+  riftDone: "Listo",
+  riftLeft: "quedan {name}",
   sameName:
     "Las dos guardan una máquina llamada {name}, y cada una escribió cosas distintas con ese nombre. Unirlas metería dos historias en el mismo fichero, así que Tisty se niega. Conserva uno de los dos lados.",
   stuckApart:

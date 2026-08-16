@@ -109,17 +109,29 @@ fn edits(base: &[String], other: &[String]) -> Vec<Edit> {
     out
 }
 
-fn clashes(one: &Edit, two: &Edit) -> bool {
-    if one.said == two.said {
-        return false;
-    }
-    if one.from == one.upto && two.from == two.upto {
-        return one.from == two.from;
-    }
-    one.from < two.upto && two.from < one.upto
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Rift {
+    pub was: Vec<String>,
+    pub mine: Vec<String>,
+    pub theirs: Vec<String>,
 }
 
-pub fn merged(base: &str, mine: &str, theirs: &str) -> Option<String> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Pick {
+    Mine,
+    Theirs,
+    Both,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Step {
+    Kept(Vec<String>),
+    One(Vec<String>),
+    Torn(Rift),
+}
+
+fn plan(base: &str, mine: &str, theirs: &str) -> Option<Vec<Step>> {
     if front_matter(base) || front_matter(mine) || front_matter(theirs) {
         return None;
     }
@@ -127,31 +139,124 @@ pub fn merged(base: &str, mine: &str, theirs: &str) -> Option<String> {
     let ours = edits(&base, &blocks(mine));
     let yours = edits(&base, &blocks(theirs));
 
-    for one in &ours {
-        for two in &yours {
-            if clashes(one, two) {
-                return None;
+    let mut all: Vec<(bool, Edit)> = ours
+        .into_iter()
+        .map(|one| (true, one))
+        .chain(yours.into_iter().map(|one| (false, one)))
+        .collect();
+    all.sort_by_key(|(ours, one)| (one.from, one.upto, !*ours));
+
+    let mut out = Vec::new();
+    let mut at = 0usize;
+    let mut seen = 0usize;
+
+    while seen < all.len() {
+        let mut upto = seen + 1;
+        let mut ends = all[seen].1.upto;
+        while upto < all.len() && touching(&all[seen..upto], &all[upto].1) {
+            ends = ends.max(all[upto].1.upto);
+            upto += 1;
+        }
+        let group = &all[seen..upto];
+        let from = group.iter().map(|(_, one)| one.from).min()?;
+        if from < at {
+            return None;
+        }
+        if at < from {
+            out.push(Step::Kept(base[at..from].to_vec()));
+        }
+
+        let ours: Vec<String> = group
+            .iter()
+            .filter(|(ours, _)| *ours)
+            .flat_map(|(_, one)| one.said.clone())
+            .collect();
+        let yours: Vec<String> = group
+            .iter()
+            .filter(|(ours, _)| !*ours)
+            .flat_map(|(_, one)| one.said.clone())
+            .collect();
+        let both = group.iter().any(|(ours, _)| *ours) && group.iter().any(|(ours, _)| !*ours);
+
+        if !both || ours == yours {
+            out.push(Step::One(if ours.is_empty() { yours } else { ours }));
+        } else {
+            out.push(Step::Torn(Rift {
+                was: base[from..ends].to_vec(),
+                mine: ours,
+                theirs: yours,
+            }));
+        }
+        at = ends;
+        seen = upto;
+    }
+    out.push(Step::Kept(base[at..].to_vec()));
+    Some(out)
+}
+
+fn touching(group: &[(bool, Edit)], one: &Edit) -> bool {
+    group.iter().any(|(_, held)| {
+        if held.from == held.upto && one.from == one.upto {
+            held.from == one.from
+        } else {
+            held.from < one.upto && one.from < held.upto
+        }
+    })
+}
+
+fn woven(steps: &[Step], picks: &[Pick]) -> String {
+    let mut out: Vec<String> = Vec::new();
+    let mut torn = 0usize;
+    for step in steps {
+        match step {
+            Step::Kept(said) | Step::One(said) => out.extend(said.iter().cloned()),
+            Step::Torn(rift) => {
+                match picks.get(torn).copied().unwrap_or(Pick::Both) {
+                    Pick::Mine => out.extend(rift.mine.iter().cloned()),
+                    Pick::Theirs => out.extend(rift.theirs.iter().cloned()),
+                    Pick::Both => {
+                        out.extend(rift.mine.iter().cloned());
+                        out.extend(rift.theirs.iter().cloned());
+                    }
+                }
+                torn += 1;
             }
         }
     }
+    format!("{}\n", out.join("\n\n"))
+}
 
-    let mut all: Vec<&Edit> = ours.iter().chain(yours.iter()).collect();
-    all.sort_by_key(|one| (one.from, one.upto));
-    all.dedup_by(|a, b| a == b);
-
-    let mut out: Vec<String> = Vec::new();
-    let mut at = 0usize;
-    for one in all {
-        if one.from < at {
-            return None;
-        }
-        out.extend(base[at..one.from].iter().cloned());
-        out.extend(one.said.iter().cloned());
-        at = one.upto;
+pub fn merged(base: &str, mine: &str, theirs: &str) -> Option<String> {
+    let steps = plan(base, mine, theirs)?;
+    if steps.iter().any(|one| matches!(one, Step::Torn(_))) {
+        return None;
     }
-    out.extend(base[at..].iter().cloned());
+    Some(woven(&steps, &[]))
+}
 
-    Some(format!("{}\n", out.join("\n\n")))
+pub fn rifts(base: &str, mine: &str, theirs: &str) -> Vec<Rift> {
+    let Some(steps) = plan(base, mine, theirs) else {
+        return Vec::new();
+    };
+    steps
+        .into_iter()
+        .filter_map(|one| match one {
+            Step::Torn(rift) => Some(rift),
+            _ => None,
+        })
+        .collect()
+}
+
+pub fn woven_with(base: &str, mine: &str, theirs: &str, picks: &[Pick]) -> Option<String> {
+    let steps = plan(base, mine, theirs)?;
+    let torn = steps
+        .iter()
+        .filter(|one| matches!(one, Step::Torn(_)))
+        .count();
+    if picks.len() != torn {
+        return None;
+    }
+    Some(woven(&steps, picks))
 }
 
 #[cfg(test)]
@@ -159,6 +264,90 @@ mod tests {
     use super::*;
 
     const BASE: &str = "# Kit\n\nprimer parrafo\n\nsegundo parrafo\n\ntercer parrafo\n";
+
+    #[test]
+    fn a_clash_says_what_each_side_wrote_and_what_was_there_before() {
+        let mine = "# Kit\n\nprimer parrafo del mac\n\nsegundo parrafo\n\ntercer parrafo\n";
+        let theirs = "# Kit\n\nprimer parrafo de windows\n\nsegundo parrafo\n\ntercer parrafo\n";
+
+        let said = rifts(BASE, mine, theirs);
+
+        assert_eq!(said.len(), 1);
+        assert_eq!(said[0].was, vec!["primer parrafo"]);
+        assert_eq!(said[0].mine, vec!["primer parrafo del mac"]);
+        assert_eq!(said[0].theirs, vec!["primer parrafo de windows"]);
+    }
+
+    #[test]
+    fn what_merged_on_its_own_is_never_offered_as_something_to_decide() {
+        let mine = "# Kit\n\nprimer parrafo del mac\n\nsegundo parrafo\n\ntercer parrafo\n";
+        let theirs = "# Kit\n\nprimer parrafo\n\nsegundo parrafo\n\ntercer parrafo de windows\n";
+
+        assert!(rifts(BASE, mine, theirs).is_empty());
+    }
+
+    #[test]
+    fn two_clashes_far_apart_come_back_as_two_and_in_order() {
+        let mine = "# Kit del mac\n\nprimer parrafo\n\nsegundo parrafo\n\ntercero del mac\n";
+        let theirs =
+            "# Kit de windows\n\nprimer parrafo\n\nsegundo parrafo\n\ntercero de windows\n";
+
+        let said = rifts(BASE, mine, theirs);
+
+        assert_eq!(said.len(), 2);
+        assert_eq!(said[0].mine, vec!["# Kit del mac"]);
+        assert_eq!(said[1].theirs, vec!["tercero de windows"]);
+    }
+
+    #[test]
+    fn keeping_one_side_of_a_clash_leaves_the_rest_of_the_document_alone() {
+        let mine = "# Kit\n\nprimer parrafo del mac\n\nsegundo parrafo\n\ntercer parrafo\n";
+        let theirs = "# Kit\n\nprimer parrafo de windows\n\nsegundo parrafo\n\ntercer parrafo\n";
+
+        let said = woven_with(BASE, mine, theirs, &[Pick::Mine]).unwrap();
+
+        assert_eq!(said, mine);
+    }
+
+    #[test]
+    fn keeping_the_other_side_gives_exactly_what_the_other_side_wrote() {
+        let mine = "# Kit\n\nprimer parrafo del mac\n\nsegundo parrafo\n\ntercer parrafo\n";
+        let theirs = "# Kit\n\nprimer parrafo de windows\n\nsegundo parrafo\n\ntercer parrafo\n";
+
+        assert_eq!(
+            woven_with(BASE, mine, theirs, &[Pick::Theirs]).unwrap(),
+            theirs
+        );
+    }
+
+    #[test]
+    fn keeping_both_puts_them_one_after_the_other_and_loses_neither() {
+        let mine = "# Kit\n\nprimer parrafo del mac\n\nsegundo parrafo\n\ntercer parrafo\n";
+        let theirs = "# Kit\n\nprimer parrafo de windows\n\nsegundo parrafo\n\ntercer parrafo\n";
+
+        let said = woven_with(BASE, mine, theirs, &[Pick::Both]).unwrap();
+
+        assert!(said.contains("del mac"));
+        assert!(said.contains("de windows"));
+        assert_eq!(said.matches("segundo parrafo").count(), 1);
+    }
+
+    #[test]
+    fn deciding_with_the_wrong_number_of_answers_is_refused_instead_of_guessed() {
+        let mine = "# Kit\n\nprimer parrafo del mac\n\nsegundo parrafo\n\ntercer parrafo\n";
+        let theirs = "# Kit\n\nprimer parrafo de windows\n\nsegundo parrafo\n\ntercer parrafo\n";
+
+        assert!(woven_with(BASE, mine, theirs, &[]).is_none());
+        assert!(woven_with(BASE, mine, theirs, &[Pick::Mine, Pick::Mine]).is_none());
+    }
+
+    #[test]
+    fn a_document_that_cannot_be_read_as_blocks_offers_nothing_to_decide() {
+        let base = "---\ntitle: x\n---\n\n# Kit\n\nuno\n";
+
+        assert!(rifts(base, base, base).is_empty());
+        assert!(woven_with(base, base, base, &[]).is_none());
+    }
 
     #[test]
     fn a_body_is_split_where_a_blank_line_says_so() {
