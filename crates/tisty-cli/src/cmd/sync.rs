@@ -108,11 +108,23 @@ pub fn sync(
         (false, true) => "synced-new",
         (false, false) => "synced-same",
     };
-    println!(
-        "\n  {} {}\n",
-        style::paint(style::GREEN, "✓"),
-        lang.get(told)
-    );
+    println!("\n  {} {}", style::paint(style::GREEN, "✓"), lang.get(told));
+
+    for (many, word) in [
+        (&moved.joined, "papers-joined"),
+        (&moved.undecided_ids(), "papers-undecided"),
+        (&moved.astray, "papers-astray"),
+        (&moved.unreadable, "machines-unreadable"),
+    ] {
+        if many.is_empty() {
+            continue;
+        }
+        println!(
+            "  {}",
+            style::dim(&lang.fill(word, &[("names", &many.join(", "))]))
+        );
+    }
+    println!();
     Ok(ExitCode::SUCCESS)
 }
 
