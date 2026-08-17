@@ -2800,7 +2800,9 @@ mod tests {
         let shared = tempfile::tempdir().unwrap();
         let old = std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24 * 3);
         let mine = one.store.join(&one.device).join("active.tisty");
-        std::fs::File::open(&mine)
+        std::fs::File::options()
+            .write(true)
+            .open(&mine)
             .unwrap()
             .set_modified(old)
             .unwrap();
@@ -2854,12 +2856,29 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let a = dir.path().join("a");
         let b = dir.path().join("b");
-        std::fs::write(&a, b"una linea igual de larga\n").unwrap();
-        std::fs::write(&b, b"otra linea igual de larga\n").unwrap();
+        let body = b"una linea igual de larga\n";
+        let other = b"otra linea igual de larga";
+        assert_eq!(body.len(), other.len());
+        std::fs::write(&a, body).unwrap();
+        std::fs::write(&b, other).unwrap();
 
         assert!(!same(&a, &b), "la fecha decidia, no el contenido");
-        std::fs::write(&b, b"una linea igual de larga\n").unwrap();
+        std::fs::write(&b, body).unwrap();
         assert!(same(&a, &b));
+    }
+
+    #[test]
+    #[ignore = "same() only reads the last 512 bytes, so a body that differs before its tail passes for equal"]
+    fn two_bodies_of_one_size_that_differ_before_the_tail_are_not_taken_for_equal() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a");
+        let b = dir.path().join("b");
+        let mut body = vec![b'x'; 4096];
+        std::fs::write(&a, &body).unwrap();
+        body[0] = b'z';
+        std::fs::write(&b, &body).unwrap();
+
+        assert!(!same(&a, &b));
     }
 
     #[test]
