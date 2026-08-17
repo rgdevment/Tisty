@@ -44,6 +44,8 @@ const KNOWN = [
   "attachmentTooBigHere",
   "textTooLong",
   "documentTooBig",
+  "documentTooLong",
+  "archivedList",
   "restoreFailed",
   "stillCarrying",
   "sandboxCannotJoin",

@@ -65,6 +65,7 @@ impl Session {
             corpus: tisty_core::docs::Corpus::default(),
             print,
         };
+        session.take_out_the_shed();
         session.take_out_the_retired();
         let gone = tisty_core::attach::empty_the_bin(
             session.paths.data(),
@@ -134,6 +135,23 @@ impl Session {
             .collect();
         held.extend(tisty_core::docs::referenced(&self.paths.docs()));
         held
+    }
+
+    fn take_out_the_shed(&mut self) {
+        if self.state.shed.is_empty() {
+            return;
+        }
+        let mut gone = tisty_core::docs::sweep(&self.paths.docs(), &self.state.shed);
+        if let Some(tisty_core::config::Sync::Folder(dest)) = self.config.sync.clone() {
+            gone += tisty_core::docs::sweep(&dest.join("docs"), &self.state.shed);
+        }
+        if gone > 0 {
+            witness::note(
+                channel::SYNC,
+                "a document deleted elsewhere is gone from here too",
+                &[("count", Fact::Count(gone))],
+            );
+        }
     }
 
     fn take_out_the_retired(&mut self) {
@@ -297,6 +315,7 @@ impl From<tisty_core::capture::Rejected> for Refusal {
             Rejected::Untitled => Refusal::of("untitled"),
             Rejected::EndedAlready => Refusal::of("pastEnd"),
             Rejected::NoSuchList(name) => Refusal::about("noSuchList", name),
+            Rejected::ArchivedList(name) => Refusal::about("archivedList", name),
             Rejected::AmbiguousList(name) => Refusal::about("ambiguousList", name),
         }
     }
@@ -1173,6 +1192,16 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         loose: adrift.files(),
         loose_bytes: adrift.bytes,
         astray: adrift.items,
+        stranded: tisty_core::docs::loose(
+            &session.paths.docs(),
+            &session
+                .state
+                .docs
+                .values()
+                .map(|one| one.file.clone())
+                .collect::<Vec<_>>(),
+        )
+        .len(),
         events: tisty_core::store::read_all(session.paths.store())
             .map(|all| all.len())
             .unwrap_or(0),
@@ -1197,6 +1226,7 @@ struct Reviewed {
     loose: usize,
     loose_bytes: u64,
     astray: Vec<tisty_core::attach::Astray>,
+    stranded: usize,
     events: usize,
     machines: Vec<report::Machine>,
     log_bytes: u64,
@@ -1873,8 +1903,12 @@ fn doc_write(
 ) -> Answer<tisty_core::docs::Doc> {
     let mut session = held(&session);
     let root = session.paths.docs();
-    tisty_core::docs::write(&root, &id, &body)
-        .map_err(|e| blamed(channel::WINDOW, "a document could not be written", e))?;
+    tisty_core::docs::write(&root, &id, &body).map_err(|e| match e {
+        tisty_core::Error::DocumentTooBig { limit, .. } => {
+            Refusal::about("documentTooLong", weighed(limit))
+        }
+        _ => blamed(channel::WINDOW, "a document could not be written", e),
+    })?;
     session.corpus.forget(&id);
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&body),
@@ -2494,6 +2528,7 @@ async fn sync_now(
             )
         })?;
     }
+    session.take_out_the_shed();
     session.take_out_the_retired();
     if let Err(e) = session.take_a_seat() {
         witness::warn(
@@ -2756,6 +2791,7 @@ fn retire_attachment(session: tauri::State<'_, Mutex<Session>>, reference: Strin
     session
         .commit(Op::AttachRetire { d: reference })
         .map_err(|e| blamed(channel::ATTACH, "the retirement could not be written", e))?;
+    session.take_out_the_shed();
     session.take_out_the_retired();
     session.reproject().map_err(|e| {
         blamed(

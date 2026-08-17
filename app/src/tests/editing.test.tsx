@@ -56,7 +56,9 @@ function open(task: Task = written) {
 }
 
 const box = (name: string) =>
-  screen.getByRole("textbox", { name }) as HTMLTextAreaElement | HTMLInputElement;
+  screen.getByRole("textbox", {
+    name: new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+  }) as HTMLTextAreaElement | HTMLInputElement;
 
 const into = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
   await user.click(screen.getByLabelText(name));

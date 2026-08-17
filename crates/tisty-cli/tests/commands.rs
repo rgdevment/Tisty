@@ -253,14 +253,18 @@ fn undo_brings_an_archived_list_back() {
     let cli = Cli::new();
     cli.ok(&["list", "add", "errands"]);
     cli.ok(&["list", "archive", "errands"]);
-    assert!(!cli.ok(&["lists"]).contains("errands"));
+    assert!(
+        cli.ok(&["lists"]).contains("archived"),
+        "it was not put away"
+    );
 
     cli.ok(&["undo"]);
 
     assert!(
-        cli.ok(&["lists"]).contains("errands"),
+        !cli.ok(&["lists"]).contains("archived"),
         "the list stayed archived"
     );
+    assert!(cli.ok(&["lists"]).contains("errands"));
 }
 
 #[test]
@@ -331,14 +335,19 @@ fn redo_walks_the_same_ladder_as_undo() {
 }
 
 #[test]
-fn redoing_an_undone_creation_is_refused_instead_of_pretending() {
+fn redoing_an_undone_creation_brings_it_back_under_a_fresh_name() {
     let cli = Cli::new();
     cli.ok(&["a task"]);
     cli.ok(&["undo"]);
+    assert!(!cli.ok(&["ls", "all"]).contains("a task"));
 
     let run = cli.run(&["redo"]);
-    assert_ne!(run.code, 0, "{}", run.out);
-    assert!(run.err.contains("cannot be redone"), "{}", run.err);
+
+    assert_eq!(run.code, 0, "{}{}", run.out, run.err);
+    assert!(
+        cli.ok(&["ls", "all"]).contains("a task"),
+        "undoing by mistake would lose the task for ever"
+    );
 }
 
 #[test]
@@ -1670,5 +1679,47 @@ fn a_removed_machine_comes_back_under_a_new_name_in_one_go() {
     assert!(
         out.contains("water the plants"),
         "the machine that came back never reached the folder: {out}"
+    );
+}
+
+#[test]
+fn a_list_put_away_can_be_brought_back() {
+    let cli = Cli::new();
+    cli.ok(&["list", "add", "Oficina"]);
+    cli.ok(&["list", "archive", "Oficina"]);
+
+    cli.ok(&["list", "unarchive", "Oficina"]);
+
+    let run = cli.run(&["a task", "--list", "Oficina"]);
+    assert_eq!(run.code, 0, "{}{}", run.out, run.err);
+}
+
+#[test]
+fn a_list_put_away_still_shows_up_so_it_can_be_named() {
+    let cli = Cli::new();
+    cli.ok(&["list", "add", "Oficina"]);
+    cli.ok(&["list", "archive", "Oficina"]);
+
+    let said = cli.ok(&["list", "ls"]);
+
+    assert!(
+        said.contains("Oficina"),
+        "guardada y ademas invisible, no habria forma de recuperarla: {said}"
+    );
+}
+
+#[test]
+fn a_list_put_away_refuses_new_tasks_instead_of_swallowing_them() {
+    let cli = Cli::new();
+    cli.ok(&["list", "add", "Oficina"]);
+    cli.ok(&["list", "archive", "Oficina"]);
+
+    let run = cli.run(&["a task", "--list", "Oficina"]);
+
+    assert_ne!(run.code, 0, "{}", run.out);
+    assert!(
+        run.err.contains("unarchive"),
+        "el mensaje no dice como salir: {}",
+        run.err
     );
 }

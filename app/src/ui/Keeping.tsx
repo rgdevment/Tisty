@@ -777,6 +777,11 @@ export default function Keeping({ onChanged }: Props) {
               {audit && audit.loose === 0 && (
                 <p className="mt-2 text-[12.5px] text-faint">{t("looseNone")}</p>
               )}
+              {audit && audit.stranded > 0 && (
+                <p className="mt-2 text-[12.5px] leading-relaxed text-urgent">
+                  {fill("strandedPapers", String(audit.stranded))}
+                </p>
+              )}
               {audit && audit.loose > 0 && (
                 <>
                   <p className="mt-2 text-[12.5px] tabular-nums text-soft">
@@ -973,7 +978,10 @@ const BEHIND = 7 * 24 * 60 * 60;
 const behind = (one: Machine): boolean =>
   !one.mine && (one.when === 0 || Date.now() / 1000 - one.when > BEHIND);
 
-const dated = (when: number): string => stamped(new Date(when * 1000).toISOString());
+const dated = (when: number): string => {
+  const at = new Date(when * 1000);
+  return Number.isNaN(at.getTime()) ? "—" : stamped(at.toISOString());
+};
 
 const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
 const mild = `rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;

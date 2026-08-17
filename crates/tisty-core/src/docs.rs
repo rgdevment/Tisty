@@ -160,7 +160,7 @@ pub fn titled(body: &str) -> String {
         .find(|one| !wordless(one))
         .copied()
         .unwrap_or_default();
-    crate::text::composed(first.trim_start_matches('#').trim())
+    crate::text::plainly(first.trim_start_matches('#').trim())
 }
 
 pub fn marked(body: &str, said: &str) -> String {
@@ -225,6 +225,7 @@ pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
         {
             Ok(_) => {
                 write(root, &id, body)?;
+                spend(root, device, number);
                 return Ok(Doc {
                     title: titled(body),
                     id,
@@ -236,11 +237,26 @@ pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
     }
 }
 
+pub fn settled(body: &str) -> String {
+    if body.is_empty() || body.ends_with('\n') {
+        return body.to_string();
+    }
+    format!("{body}\n")
+}
+
 pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
+    let whole = settled(body);
+    let bytes = whole.len() as u64;
+    if bytes > BODY_AT_MOST {
+        return Err(Error::DocumentTooBig {
+            bytes,
+            limit: BODY_AT_MOST,
+        });
+    }
     let at = resolve(root, id)?;
     std::fs::create_dir_all(root)?;
     let _ = crate::paths::ours_alone(root);
-    write_atomic(&at, body.as_bytes())
+    write_atomic(&at, whole.as_bytes())
 }
 
 pub const IMPORTS: [&str; 3] = ["md", "markdown", "txt"];
@@ -382,6 +398,28 @@ pub fn remove(root: &Path, id: &str) -> Result<()> {
     }
 }
 
+pub fn loose(root: &Path, alive: &[String]) -> Vec<Doc> {
+    let held: std::collections::BTreeSet<&str> = alive.iter().map(String::as_str).collect();
+    all(root)
+        .into_iter()
+        .filter(|one| !held.contains(one.id.as_str()))
+        .collect()
+}
+
+pub fn sweep(root: &Path, shed: &std::collections::BTreeSet<String>) -> usize {
+    let mut gone = 0;
+    for id in shed {
+        let Ok(at) = resolve(root, id) else {
+            continue;
+        };
+        if std::fs::remove_file(&at).is_ok() {
+            gone += 1;
+        }
+        forget_carried(root.parent().unwrap_or(root), id);
+    }
+    gone
+}
+
 pub fn all(root: &Path) -> Vec<Doc> {
     let Ok(entries) = std::fs::read_dir(root) else {
         return Vec::new();
@@ -431,14 +469,34 @@ fn named(at: &Path) -> Option<String> {
     well_formed(&id).then_some(id)
 }
 
+fn spent(root: &Path, device: &DeviceId) -> PathBuf {
+    root.join(format!(".spent-{}", stem(device)))
+}
+
+fn spend(root: &Path, device: &DeviceId, number: u64) {
+    let at = spent(root, device);
+    if let Err(e) = write_atomic(&at, number.to_string().as_bytes()) {
+        crate::witness::warn(
+            crate::witness::channel::STORE,
+            "the highest document name given out could not be kept, so a deleted one could come back",
+            &[("why", crate::witness::Fact::Why(e.to_string()))],
+        );
+    }
+}
+
 fn next(root: &Path, device: &DeviceId) -> u64 {
     let mine = format!("{}-", stem(device));
-    let highest = all(root)
+    let on_disk = all(root)
         .iter()
         .filter_map(|doc| doc.id.strip_prefix(&mine))
         .filter_map(|number| number.parse::<u64>().ok())
-        .max();
-    highest.map_or(1, |last| last + 1)
+        .max()
+        .unwrap_or(0);
+    let given = std::fs::read_to_string(spent(root, device))
+        .ok()
+        .and_then(|said| said.trim().parse::<u64>().ok())
+        .unwrap_or(0);
+    on_disk.max(given) + 1
 }
 
 fn stem(device: &DeviceId) -> String {
@@ -1414,7 +1472,8 @@ mod tests {
     fn a_title_is_read_without_pulling_in_the_whole_body() {
         let root = root();
         let body = "x".repeat(2 * 1024 * 1024);
-        create(root.path(), &device("dev_a"), &body).unwrap();
+        std::fs::create_dir_all(root.path()).unwrap();
+        std::fs::write(root.path().join("a-0001.md"), &body).unwrap();
 
         let title = all(root.path())[0].title.clone();
 
@@ -1556,6 +1615,115 @@ mod tests {
     fn a_blank_line_before_the_heading_does_not_cost_the_document_its_title() {
         assert_eq!(titled("\n# Estado Actual\n\ncuerpo"), "Estado Actual");
         assert_eq!(titled("\n\n\ncuerpo"), "cuerpo");
+    }
+
+    #[test]
+    fn a_document_a_machine_deleted_stops_taking_room_on_the_others() {
+        let root = root();
+        let who = device("dev_a");
+        let one = create(root.path(), &who, "# Uno").unwrap();
+        let two = create(root.path(), &who, "# Dos").unwrap();
+        let shed: std::collections::BTreeSet<String> = [two.id.clone()].into();
+
+        let gone = sweep(root.path(), &shed);
+
+        assert_eq!(gone, 1);
+        assert!(
+            resolve(root.path(), &two.id).is_ok_and(|at| !at.exists()),
+            "el fichero se quedo ahi para siempre"
+        );
+        assert!(resolve(root.path(), &one.id).is_ok_and(|at| at.exists()));
+    }
+
+    #[test]
+    fn sweeping_twice_is_quiet_the_second_time() {
+        let root = root();
+        let who = device("dev_a");
+        let one = create(root.path(), &who, "# Uno").unwrap();
+        let shed: std::collections::BTreeSet<String> = [one.id.clone()].into();
+
+        assert_eq!(sweep(root.path(), &shed), 1);
+        assert_eq!(sweep(root.path(), &shed), 0);
+    }
+
+    #[test]
+    fn a_body_past_the_ceiling_is_refused_where_it_is_written_not_where_it_is_read() {
+        let root = root();
+        let who = device("dev_a");
+        let made = create(root.path(), &who, "# Uno").unwrap();
+        let huge = "x".repeat((BODY_AT_MOST + 1) as usize);
+
+        let said = write(root.path(), &made.id, &huge);
+
+        assert!(
+            matches!(said, Err(Error::DocumentTooBig { .. })),
+            "escribiendo se dejaria un documento que ya no se puede leer ni exportar ni llevar"
+        );
+        assert_eq!(read(root.path(), &made.id).unwrap(), "# Uno\n");
+    }
+
+    #[test]
+    fn a_body_right_at_the_ceiling_still_goes_in() {
+        let root = root();
+        let who = device("dev_a");
+        let made = create(root.path(), &who, "# Uno").unwrap();
+        let full = "x".repeat((BODY_AT_MOST - 1) as usize);
+
+        write(root.path(), &made.id, &full).expect("cabe justo");
+
+        assert_eq!(
+            read(root.path(), &made.id).unwrap().len(),
+            BODY_AT_MOST as usize
+        );
+    }
+
+    #[test]
+    fn a_title_is_cut_like_a_task_title_instead_of_filling_the_rail() {
+        let long = "a".repeat(10_000);
+
+        let said = titled(&format!("# {long}"));
+
+        assert_eq!(said.chars().count(), 120, "un titulo de 10 000 letras");
+    }
+
+    #[test]
+    fn a_paper_the_log_never_heard_of_is_counted_as_stranded() {
+        let root = root();
+        let who = device("dev_a");
+        let mine = create(root.path(), &who, "# Mio").unwrap();
+        std::fs::write(root.path().join("otro-0001.md"), "# De otra maquina").unwrap();
+
+        let said = loose(root.path(), std::slice::from_ref(&mine.id));
+
+        assert_eq!(said.len(), 1, "el huerfano no se ve por ningun sitio");
+        assert_eq!(said[0].id, "otro-0001");
+    }
+
+    #[test]
+    fn nothing_is_stranded_when_the_log_knows_them_all() {
+        let root = root();
+        let who = device("dev_a");
+        let one = create(root.path(), &who, "# Uno").unwrap();
+        let two = create(root.path(), &who, "# Dos").unwrap();
+
+        assert!(loose(root.path(), &[one.id, two.id]).is_empty());
+    }
+
+    #[test]
+    fn a_number_once_given_out_is_never_given_again() {
+        let root = root();
+        let who = device("dev_a");
+        let first = create(root.path(), &who, "# Uno").unwrap();
+        let second = create(root.path(), &who, "# Dos").unwrap();
+        std::fs::remove_file(resolve(root.path(), &second.id).unwrap()).unwrap();
+
+        let third = create(root.path(), &who, "# Tres").unwrap();
+
+        assert_ne!(
+            third.id, second.id,
+            "una referencia colgada apuntaria ahora a otro documento"
+        );
+        assert_ne!(third.id, first.id);
     }
 
     #[test]

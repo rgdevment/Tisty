@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { t } from "../locales";
 
 export const asked = (before: string): string | null => {
   const found = /(?:^|\s)\/([\p{L}\p{N}_]*)$/u.exec(before);
@@ -42,6 +43,9 @@ export default function Slash({ at, blocks, active, onPick }: Props) {
       style={{ left: Math.min(at.x, window.innerWidth - 232), top: Math.max(8, room) }}
       className="scroller fixed z-[70] max-h-[204px] w-[212px] rounded-[10px] border border-hair bg-rail p-1 shadow-xl"
     >
+      {blocks.length === 0 && (
+        <p className="px-2.5 py-1.5 text-[12.5px] text-faint">{t("noneHere")}</p>
+      )}
       {blocks.map((one, i) => (
         <button
           key={one.key}

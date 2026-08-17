@@ -313,6 +313,12 @@ const Barred = Text.extend({
   },
 });
 
+const Tightened = TaskList.extend({
+  addAttributes() {
+    return { ...this.parent?.(), tight: { default: true, rendered: false } };
+  },
+});
+
 export const written = () => [
   StarterKit.configure({ link: { openOnClick: false, autolink: true, protocols: ["tisty"] }, text: false }),
   Pictured,
@@ -320,7 +326,7 @@ export const written = () => [
   TableRow,
   TableHeader,
   TableCell,
-  TaskList,
+  Tightened,
   TaskItem.configure({ nested: true }),
   Barred,
   Markdown.configure({ html: true, linkify: true, breaks: true, transformPastedText: false }),

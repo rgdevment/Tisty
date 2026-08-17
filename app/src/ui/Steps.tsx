@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Step } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 
 interface Props {
   steps: Step[];
@@ -64,7 +64,9 @@ function Line({
     >
       <button
         type="button"
-        aria-label={step.text}
+        role="checkbox"
+        aria-checked={step.done}
+        aria-label={fill(step.done ? "unmarkStep" : "markStep", step.text)}
         onClick={() => onMark(step.id, !step.done)}
         className={`mt-0.5 h-[15px] w-[15px] shrink-0 rounded border-[1.5px] ${
           step.done ? "border-accent bg-accent" : "border-faint hover:border-accent"
@@ -72,7 +74,7 @@ function Line({
       />
       <input
         value={text}
-        aria-label={step.text}
+        aria-label={fill("editStep", step.text)}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => {
           if (dropped.current) {

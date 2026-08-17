@@ -231,10 +231,31 @@ fn touching(group: &[(bool, Edit)], one: &Edit) -> bool {
     })
 }
 
-fn woven(steps: &[Step], picks: &[Pick]) -> String {
+fn listing(block: &str) -> bool {
+    let first = block.lines().next().unwrap_or("").trim_start();
+    let bullet = first.starts_with("- ") || first.starts_with("* ") || first.starts_with("+ ");
+    let numbered = first.split_once(['.', ')']).is_some_and(|(head, tail)| {
+        !head.is_empty() && head.bytes().all(|c| c.is_ascii_digit()) && tail.starts_with(' ')
+    });
+    bullet || numbered
+}
+
+fn shaped(said: &[String], seams: &[usize]) -> Option<String> {
+    for at in seams {
+        if *at > 0 && *at < said.len() && listing(&said[at - 1]) && listing(&said[*at]) {
+            return None;
+        }
+    }
+    let whole = format!("{}\n", said.join("\n\n"));
+    (blocks(&whole) == said).then_some(whole)
+}
+
+fn woven(steps: &[Step], picks: &[Pick]) -> Option<String> {
     let mut out: Vec<String> = Vec::new();
+    let mut seams: Vec<usize> = Vec::new();
     let mut torn = 0usize;
     for step in steps {
+        seams.push(out.len());
         match step {
             Step::Kept(said) | Step::One(said) => out.extend(said.iter().cloned()),
             Step::Torn(rift) => {
@@ -243,6 +264,7 @@ fn woven(steps: &[Step], picks: &[Pick]) -> String {
                     Pick::Theirs => out.extend(rift.theirs.iter().cloned()),
                     Pick::Both => {
                         out.extend(rift.mine.iter().cloned());
+                        seams.push(out.len());
                         out.extend(rift.theirs.iter().cloned());
                     }
                 }
@@ -250,7 +272,7 @@ fn woven(steps: &[Step], picks: &[Pick]) -> String {
             }
         }
     }
-    format!("{}\n", out.join("\n\n"))
+    shaped(&out, &seams)
 }
 
 fn tally(said: &[String]) -> std::collections::HashMap<&str, usize> {
@@ -291,7 +313,7 @@ pub fn merged(base: &str, mine: &str, theirs: &str) -> Option<String> {
     if steps.iter().any(|one| matches!(one, Step::Torn(_))) {
         return None;
     }
-    let whole = woven(&steps, &[]);
+    let whole = woven(&steps, &[])?;
     sound(&whole, mine, theirs).then_some(whole)
 }
 
@@ -317,7 +339,7 @@ pub fn woven_with(base: &str, mine: &str, theirs: &str, picks: &[Pick]) -> Optio
     if picks.len() != torn {
         return None;
     }
-    let whole = woven(&steps, picks);
+    let whole = woven(&steps, picks)?;
     sound(&whole, mine, theirs).then_some(whole)
 }
 
@@ -564,6 +586,143 @@ mod tests {
     }
 
     #[test]
+    fn a_fence_left_open_never_swallows_the_paragraph_that_follows() {
+        let base = "M\n\nmedio\n";
+        let mine = "M\n\n```\nx\n";
+        let theirs = "M\n\nT\n";
+
+        assert_eq!(
+            blocks(mine),
+            vec!["M", "```\nx"],
+            "el caso no es el que creo"
+        );
+        assert_eq!(rifts(base, mine, theirs).len(), 1);
+
+        let said = woven_with(base, mine, theirs, &[Pick::Both]);
+
+        assert_eq!(
+            said, None,
+            "el parrafo de la otra maquina quedo dentro de un bloque de codigo"
+        );
+    }
+
+    #[test]
+    fn whatever_is_woven_reads_back_as_the_very_blocks_it_was_made_of() {
+        let mut seed: u64 = 0x9E37_79B9_7F4A_7C15;
+        let mut roll = move |upto: u64| {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed % upto
+        };
+        let bits = [
+            "un parrafo",
+            "# titulo",
+            "- uno",
+            "| a | b |",
+            "texto   ",
+            "1. uno",
+            ">",
+            "```\ncerrado\n```",
+            "\u{feff}marca",
+        ];
+        let mut tried = 0;
+
+        for _ in 0..5_000 {
+            let pick = |roll: &mut dyn FnMut(u64) -> u64| {
+                let many = 2 + roll(4) as usize;
+                (0..many)
+                    .map(|_| bits[roll(bits.len() as u64) as usize])
+                    .collect::<Vec<_>>()
+            };
+            let ragged = |roll: &mut dyn FnMut(u64) -> u64| {
+                let mut said = pick(roll);
+                if roll(3) == 0 {
+                    said.push("```\nsin cerrar");
+                }
+                told(&said)
+            };
+            let base = ragged(&mut roll);
+            let mine = ragged(&mut roll);
+            let theirs = ragged(&mut roll);
+
+            for picks in [
+                vec![],
+                vec![Pick::Mine],
+                vec![Pick::Theirs],
+                vec![Pick::Both],
+            ] {
+                let Some(whole) = woven_with(&base, &mine, &theirs, &picks) else {
+                    continue;
+                };
+                tried += 1;
+                assert_eq!(
+                    format!("{}\n", blocks(&whole).join("\n\n")),
+                    whole,
+                    "base {base:?} mia {mine:?} suya {theirs:?} elecciones {picks:?}"
+                );
+            }
+        }
+
+        assert!(tried > 200, "el sorteo no llego a tejer nada: {tried}");
+    }
+
+    #[test]
+    fn the_weave_always_comes_out_with_one_kind_of_line_ending_so_two_machines_agree() {
+        let base = "# Kit\r\n\r\nuno\r\n";
+        let mine = "# Kit\r\n\r\nuno del mac\r\n";
+        let theirs = "# Kit\r\n\r\nuno\r\n\r\ndos\r\n";
+
+        let said = merged(base, mine, theirs).expect("se junta solo");
+
+        assert!(
+            !said.contains('\r'),
+            "conservar el final de linea de cada maquina las dejaria en desacuerdo para siempre"
+        );
+        assert_eq!(said, "# Kit\n\nuno del mac\n\ndos\n");
+    }
+
+    #[test]
+    fn the_same_body_written_two_ways_weaves_to_the_very_same_bytes() {
+        let flat = |said: &str| said.replace("\r\n", "\n");
+        let base = "# Kit\r\n\r\nuno\r\n";
+        let mine = "# Kit\r\n\r\nuno del mac\r\n";
+        let theirs = "# Kit\r\n\r\nuno\r\n\r\ndos\r\n";
+
+        assert_eq!(
+            merged(base, mine, theirs),
+            merged(&flat(base), &flat(mine), &flat(theirs)),
+            "windows y mac llegarian a bytes distintos desde el mismo texto"
+        );
+    }
+
+    #[test]
+    fn two_lists_the_weave_would_glue_together_are_handed_back_instead() {
+        let base = told(&["intro", "- uno\n- dos", "cierre"]);
+        let mine = told(&["intro", "- uno\n- dos", "- [ ] pendiente", "cierre"]);
+        let theirs = told(&["intro", "- uno\n- dos", "1. otra", "cierre"]);
+
+        let said = woven_with(&base, &mine, &theirs, &[Pick::Both]);
+
+        assert_eq!(
+            said, None,
+            "markdown leeria las dos listas como una sola, con un item inventado"
+        );
+    }
+
+    #[test]
+    fn a_list_the_person_already_had_beside_another_is_not_refused() {
+        let base = told(&["- uno\n- dos", "1. tres", "cierre"]);
+        let mine = told(&["- uno\n- dos", "1. tres", "cierre del mac"]);
+        let theirs = told(&["- uno\n- dos", "1. tres", "cierre", "algo mas"]);
+
+        assert!(
+            merged(&base, &mine, &theirs).is_some(),
+            "se nego por una vecindad que ya estaba en el documento"
+        );
+    }
+
+    #[test]
     fn a_clash_says_what_each_side_wrote_and_what_was_there_before() {
         let mine = "# Kit\n\nprimer parrafo del mac\n\nsegundo parrafo\n\ntercer parrafo\n";
         let theirs = "# Kit\n\nprimer parrafo de windows\n\nsegundo parrafo\n\ntercer parrafo\n";
@@ -742,6 +901,11 @@ mod tests {
         let theirs = "---\ntitle: x\n---\n\n# Kit\n\nuno\n\ntres\n";
 
         assert!(merged(base, mine, theirs).is_none());
+        assert!(
+            rifts(base, mine, theirs).is_empty(),
+            "sin desacuerdos que enseñar, la ventana pregunta de frente en vez de encallarse"
+        );
+        assert!(woven_with(base, mine, theirs, &[]).is_none());
     }
 
     #[test]

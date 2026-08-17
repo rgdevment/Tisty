@@ -72,6 +72,9 @@ fn meta(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     for tag in &task.tags {
         meta.push(style::dim(&format!("#{tag}")));
     }
+    if task.repeat.is_some() {
+        meta.push(style::dim("↻"));
+    }
     let (done, total) = task.steps_done();
     if total > 0 {
         meta.push(style::dim(&format!("{done}/{total}")));
@@ -262,10 +265,12 @@ pub fn captured(
 
 pub fn lists(state: &State, lang: Lang) -> String {
     let mut active: Vec<&List> = state.active_lists().collect();
-    if active.is_empty() {
+    let mut away: Vec<&List> = state.lists.values().filter(|one| one.archived).collect();
+    if active.is_empty() && away.is_empty() {
         return format!("\n  {}\n\n", style::dim(lang.get("no-lists-yet")));
     }
     active.sort_by(|a, b| a.order.cmp(&b.order));
+    away.sort_by(|a, b| a.order.cmp(&b.order));
 
     let mut out = format!("\n  {}\n\n", style::bold(lang.get("lists")));
     for list in active {
@@ -280,6 +285,12 @@ pub fn lists(state: &State, lang: Lang) -> String {
             list.name,
             style::dim(&open.to_string()),
             settled
+        ));
+    }
+    for list in away {
+        out.push_str(&format!(
+            "    {}\n",
+            style::dim(&format!("{:<32}{}", list.name, lang.get("archived-list")))
         ));
     }
     out.push('\n');

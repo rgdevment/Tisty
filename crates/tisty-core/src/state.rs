@@ -27,6 +27,7 @@ pub struct State {
     pub devices: BTreeSet<DeviceId>,
     pub dropped: BTreeSet<DeviceId>,
     pub retired: BTreeSet<String>,
+    pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
     pub(crate) fill: Fill,
     tombstones: BTreeSet<Ulid>,
@@ -190,7 +191,9 @@ impl State {
                 }
             }
             Op::DocDelete { id } => {
-                self.docs.remove(id);
+                if let Some(gone) = self.docs.remove(id) {
+                    self.shed.insert(gone.file);
+                }
                 self.tombstones.insert(*id);
             }
             Op::DocArchive { id } => {
@@ -2944,6 +2947,32 @@ mod tests {
 
         assert!(!state.folders.contains_key(&work), "it rose again");
         assert!(state.is_erased(work));
+    }
+
+    #[test]
+    fn a_deleted_document_leaves_the_name_of_its_file_behind_so_it_can_be_swept() {
+        let mut state = State::default();
+        let one = ulid::Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::DocAdd {
+                id: one,
+                d: crate::event::DocAdd {
+                    file: "a-0001".into(),
+                    order: "a0".into(),
+                    folder: None,
+                },
+            },
+        ));
+
+        state.apply(&ev(2, "a", Op::DocDelete { id: one }));
+
+        assert!(
+            state.shed.contains("a-0001"),
+            "sin el nombre, el fichero se queda huerfano en las otras maquinas"
+        );
+        assert!(!state.docs.contains_key(&one));
     }
 
     #[test]

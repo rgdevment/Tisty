@@ -170,6 +170,17 @@ fn tailed(at: &Path) -> bool {
     file.read_exact(&mut last).is_ok_and(|()| last[0] == b'\n')
 }
 
+pub fn noted(root: &Path, reference: &str, body: &[u8]) {
+    note(
+        root,
+        &Kept {
+            at: reference.to_string(),
+            sha256: printed(body),
+        },
+        body.len() as u64,
+    );
+}
+
 fn note(root: &Path, kept: &Kept, bytes: u64) {
     if listed(root, &kept.sha256).is_some() {
         return;

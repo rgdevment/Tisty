@@ -15,6 +15,14 @@ pub fn plainly(text: &str) -> String {
     .collect()
 }
 
+pub fn folded(text: &str) -> String {
+    use unicode_normalization::UnicodeNormalization;
+    text.to_lowercase()
+        .nfd()
+        .filter(|c| !matches!(*c as u32, 0x0300..=0x036F))
+        .collect()
+}
+
 pub fn composed(text: &str) -> String {
     if text.is_ascii() {
         return text.to_string();

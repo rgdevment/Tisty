@@ -111,7 +111,7 @@ export default function Detail({
         <div className="flex items-center gap-1 px-6 text-[13px] text-faint">
           <button
             onClick={onCollapse}
-            aria-label={t("collapse")}
+            aria-label={from ? `${t("collapse")} — ${from}` : t("collapse")}
             className="-ml-2 rounded-md px-2 py-1 text-accent hover:bg-hover"
           >
             <span aria-hidden="true">‹</span> {from || t("collapse")}
