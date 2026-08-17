@@ -973,7 +973,7 @@ describe("the first-run assistant", () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
     await go(/writing/i);
-    expect(await screen.findByText(/no terminal can find it yet/i)).toBeTruthy();
+    expect(await screen.findByText(/cannot find it yet/i)).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: /make it reachable/i }));
 
@@ -987,7 +987,7 @@ describe("the first-run assistant", () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
     await go(/writing/i);
-    expect(await screen.findByText(/a terminal can find/i)).toBeTruthy();
+    expect(await screen.findByText(/already finds/i)).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: /take it back out/i }));
 
@@ -1069,7 +1069,7 @@ describe("the command line on a Mac", () => {
     await screen.findByText(/only on this machine/i);
     await go(/writing/i);
 
-    await screen.findByText(/a terminal can find/i);
+    await screen.findByText(/already finds/i);
     expect(screen.queryByText(/no shell looks in that folder/i)).toBeNull();
   });
 });

@@ -58,12 +58,23 @@ Being explicit here matters more than sounding reassuring.
   That is the trade you make when you turn it on, and Tisty states it rather
   than hiding it.
 - **Anyone with access to your user account has access to your data.** Tisty
-  adds no second authentication layer on top of your operating system's, and
-  on Unix the files carry the default permissions of your account, so another
-  local account with a readable home directory can reach them.
+  adds no second authentication layer on top of your operating system's. On
+  Unix it does narrow the permissions it controls — its directories to `0700`
+  and its files to `0600`, owner only — but that stops another local account,
+  not you, and not anything running as you.
 - **Whoever can write to the shared folder can write to your history.** The
-  transport reads what it finds there. It refuses what does not parse and it
-  refuses a second store, but it cannot tell a genuine event from a forged one.
+  transport reads what it finds there. It cannot tell a genuine event from a
+  forged one, and no signature would help while the folder is shared with
+  whoever holds it.
+
+  What it does check is narrower and worth stating: it never writes through a
+  symbolic link, into the folder or into any directory inside it; an attachment
+  must hold the bytes its own name vouches for; one that was retired is not
+  carried back in; a document body past the reader's ceiling is refused rather
+  than swapped in for one that opens; a store carrying a different name stops
+  everything until you decide; and a machine that was removed is refused
+  outright — that removal is absorbing, so a removed identifier is never valid
+  again and a machine that returns comes back as a new one.
 
 ## Supported versions
 

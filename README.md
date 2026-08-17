@@ -300,9 +300,14 @@ pushes shortly after you change something, and does both on a timer. It never
 blocks a write and never interrupts you; an unreachable folder is retried in
 silence.
 
-No file is ever merged and nothing asks "which one is newer?", because a device
-directory has exactly one writer: yours is authoritative going up, theirs coming
-down.
+Nothing ever asks "which one is newer?", because a device directory has exactly
+one writer: yours is authoritative going up, theirs coming down.
+
+Documents are the one thing two machines can genuinely write at once, and there
+Tisty merges them **block by block** — you edit the introduction on the Mac,
+someone edits the closing paragraph on Windows, and both land with nothing to
+answer. Only an overlap becomes a question, and when it does you decide, with
+"keep both" offered first because it is the only answer that loses nothing.
 
 Point two machines that were already in use at the same folder and Tisty stops
 and asks, because your own second machine and a stranger's folder are the same
@@ -334,7 +339,8 @@ history, so a snapshot beside it would only be a rival truth.
 | ✅ | Reminders, with a system notification and a sound you can turn off |
 | ✅ | An error log, and a report you can attach to an issue |
 | ✅ | macOS: universal disk image, signed and notarised, and Homebrew |
-| ◐ | Documents: the store and the editor are in; folders and sync are not |
+| ✅ | Documents: editor, folders, attachments, and sync that merges block by block |
+| ✅ | Two histories that meet: join them, keep one side, or adopt the folder's |
 | ◐ | Daily use, which is what turns up the bugs tests do not |
 | ◐ | Signed builds: DMG and `.exe` ship; the Store package waits on a name |
 | ⬜ | Linux, its own phase, not started |
@@ -392,6 +398,10 @@ The full list, with versions and licences, is in `Cargo.lock` and
 `app/package-lock.json`.
 
 ## Contributing
+
+How the store, the merge and the sync actually work is written down in
+[ARCHITECTURE.md](ARCHITECTURE.md) — a reference for the behaviour, not a tour
+of the code.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). Open an issue before writing code for
 anything beyond a fix: Tisty is deliberately minimal, and a well-written feature
