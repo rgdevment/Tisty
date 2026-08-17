@@ -416,7 +416,8 @@ const en = {
   syncLast: "last: {name}",
   syncNow: "Sync now",
   syncAgain: "Send everything again",
-  syncAgainWhy: "Copies everything of this machine's to the folder again, without asking whether it is already there. For a folder that lost a file, or a cloud client that missed one.",
+  syncAgainWhy:
+    "Copies everything of this machine's to the folder again, without asking whether it is already there. For a folder that lost a file, or a cloud client that missed one.",
   syncing_: "Syncing…",
   syncCame: "something came back",
   syncSent: "this machine's changes went out",
@@ -1042,7 +1043,8 @@ const es: Catalog = {
   syncLast: "última vez: {name}",
   syncNow: "Sincronizar ahora",
   syncAgain: "Mandar todo de nuevo",
-  syncAgainWhy: "Copia otra vez a la carpeta todo lo de este equipo, sin preguntar si ya está. Para una carpeta que perdió un archivo, o un cliente de nube que se saltó uno.",
+  syncAgainWhy:
+    "Copia otra vez a la carpeta todo lo de este equipo, sin preguntar si ya está. Para una carpeta que perdió un archivo, o un cliente de nube que se saltó uno.",
   syncing_: "Sincronizando…",
   syncCame: "llegó algo",
   syncSent: "se envió lo de aquí",
