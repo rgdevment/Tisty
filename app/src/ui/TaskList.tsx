@@ -72,7 +72,7 @@ export default function TaskList({
 
   const asked = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    asked.current?.scrollIntoView({
+    asked.current?.scrollIntoView?.({
       block: "nearest",
       behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
         ? "auto"
@@ -140,7 +140,9 @@ export default function TaskList({
             data-row={task.id}
             role="listitem"
             tabIndex={stops(task.id) ? 0 : -1}
-            aria-label={task.title}
+            aria-label={
+              task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`
+            }
             aria-keyshortcuts={
               (onComplete && task.status === "open") || onFold ? "Control+Enter" : undefined
             }

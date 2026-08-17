@@ -75,6 +75,10 @@ impl Cache {
             .meta("dropped")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
+        state.shed = self
+            .meta("shed")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
         state.retired = self
             .meta("retired")
             .and_then(|said| serde_json::from_str(&said).ok())
@@ -201,13 +205,14 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
                     serde_json::to_string(&state.devices).unwrap_or_default(),
                     serde_json::to_string(&state.dropped).unwrap_or_default(),
                     serde_json::to_string(&state.retired).unwrap_or_default(),
+                    serde_json::to_string(&state.shed).unwrap_or_default(),
                 ],
             )?;
             tx.commit()
@@ -491,6 +496,9 @@ fn projected(store_root: &Path, cache_dir: &Path, bodies: bool) -> Result<State>
 
     if let Some(cache) = &mut cache {
         let _ = cache.store(&state, &print);
+        if !bodies && let Some(light) = cache.load(&print, false) {
+            return Ok(light);
+        }
     }
     Ok(state)
 }
@@ -577,6 +585,7 @@ mod tests {
         let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
         let mut state = State::default();
         state.devices.insert(crate::DeviceId("mac0".into()));
+        state.shed.insert("a-0009".into());
         state
             .retired
             .insert("attachments/ab/charla-a3f9.mp4".into());
@@ -586,6 +595,10 @@ mod tests {
 
         assert_eq!(back.devices, state.devices, "the list of machines was lost");
         assert_eq!(back.retired, state.retired, "the retirements were lost");
+        assert_eq!(
+            back.shed, state.shed,
+            "sin esto el barrido de documentos borrados no correria nunca con la cache caliente"
+        );
     }
 
     #[test]
@@ -623,6 +636,26 @@ mod tests {
         assert_eq!(second.folders.len(), 1, "the tree emptied itself");
         assert_eq!(second.docs.len(), 1, "every document came back unfiled");
         assert_eq!(second.inside(folder).len(), 1);
+    }
+
+    #[test]
+    fn a_summary_asked_for_on_a_cold_cache_is_as_light_as_on_a_warm_one() {
+        let f = loaded();
+        let cold = summarised(&f.store_root, &f.cache_dir).unwrap();
+        let warm = summarised(&f.store_root, &f.cache_dir).unwrap();
+
+        assert!(
+            !cold.has_bodies(),
+            "el primer resumen tras vaciar la cache traia el cuerpo entero"
+        );
+        assert!(
+            cold.tasks[&f.task].steps.is_empty() && cold.tasks[&f.task].log.is_empty(),
+            "el cuerpo viajo en el resumen"
+        );
+        assert_eq!(
+            cold, warm,
+            "el resumen depende de si la cache estaba caliente"
+        );
     }
 
     #[test]

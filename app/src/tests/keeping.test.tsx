@@ -110,6 +110,7 @@ beforeEach(() => {
               mine: false,
             },
           ],
+          stranded: 0,
           logBytes: 4_096,
           docsBytes: 20_480,
           heldBytes: 900_000,
@@ -1070,5 +1071,31 @@ describe("the command line on a Mac", () => {
 
     await screen.findByText(/a terminal can find/i);
     expect(screen.queryByText(/no shell looks in that folder/i)).toBeNull();
+  });
+});
+
+describe("stranded document files", () => {
+  it("says when the log does not know about a file on disk", async () => {
+    const was = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "checked"
+        ? was(cmd, args).then((one) => ({ ...(one as object), stranded: 3 }))
+        : was(cmd, args);
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    expect(await screen.findByText(/does not know about/i)).toBeTruthy();
+  });
+
+  it("says nothing when every file on disk is in the log", async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    await screen.findByText(/mac0-0001/);
+    expect(screen.queryByText(/does not know about/i)).toBeNull();
   });
 });

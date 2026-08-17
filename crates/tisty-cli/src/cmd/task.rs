@@ -71,6 +71,7 @@ fn refused(e: Rejected, lang: Lang) -> anyhow::Error {
     let message = match &e {
         Rejected::Untitled => lang.get("needs-title").to_string(),
         Rejected::NoSuchList(name) => lang.fill("no-such-list", &[("selector", name)]),
+        Rejected::ArchivedList(name) => lang.fill("archived-list-refuses", &[("name", name)]),
         Rejected::AmbiguousList(name) => lang.fill("ambiguous-list", &[("selector", name)]),
         Rejected::EndedAlready => lang.get("past-end").to_string(),
     };

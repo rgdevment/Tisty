@@ -182,9 +182,10 @@ export function wroteAt(at: string, tz?: string, now = new Date(), reader = here
 const cityOf = (tz: string): string => (tz.split("/").pop() ?? tz).replace(/_/g, " ");
 
 export function weigh(bytes: number): string {
-  const units = ["B", "kB", "MB", "GB"];
+  if (!Number.isFinite(bytes)) return "—";
+  const units = ["B", "kB", "MB", "GB", "TB"];
   let step = 0;
-  let left = bytes;
+  let left = Math.max(0, bytes);
   while (left >= 1000 && step < units.length - 1) {
     left /= 1000;
     step += 1;

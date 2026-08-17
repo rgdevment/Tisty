@@ -108,7 +108,10 @@ pub fn carry_leaning_on(
         if !told.may_write(&who) {
             return Err(Trouble::NotAllowed(device.to_string()));
         }
-        write(&dest.join(STORE).join(MARKER), ours.as_bytes())?;
+        let marker = dest.join(STORE).join(MARKER);
+        if std::fs::read_to_string(&marker).ok().as_deref() != Some(ours.as_str()) {
+            write(&marker, ours.as_bytes())?;
+        }
         let mine = dest.join(STORE).join(device);
         plainly(&mine)?;
         moved.sent = copy_segments(&store.join(device), &mine)?;
@@ -643,6 +646,7 @@ fn copy_held(
             }
             let when = std::fs::metadata(&at).and_then(|m| m.modified()).ok();
             written(&target, &body, when)?;
+            tisty_core::attach::noted(into.parent().unwrap_or(into), &reference, &body);
             done += 1;
         }
     }
@@ -2768,6 +2772,38 @@ mod tests {
     }
 
     #[test]
+    fn an_attachment_that_came_from_elsewhere_is_written_down_like_our_own() {
+        let one = machine("uno");
+        let two = blank("dos");
+        let shared = tempfile::tempdir().unwrap();
+        let kept = planted(&one.data, "foto.png", b"una fotografia que viaja");
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        let written = tisty_core::attach::digests(&two.data);
+        assert!(
+            written.contains_key(&kept),
+            "lo que llega de fuera queda sin huella larga, solo con la corta del nombre"
+        );
+    }
+
+    #[test]
+    fn a_round_that_moved_nothing_leaves_the_marker_untouched() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+        let at = shared.path().join(STORE).join(MARKER);
+        let was = std::fs::metadata(&at).and_then(|m| m.modified()).unwrap();
+
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        let now = std::fs::metadata(&at).and_then(|m| m.modified()).unwrap();
+        assert_eq!(now, was, "la carpeta de nube ve un cambio donde no lo hay");
+    }
+
+    #[test]
     fn a_round_where_nothing_moved_writes_nothing_at_all() {
         let one = blank("dev_a");
         let shared = tempfile::tempdir().unwrap();
@@ -3717,9 +3753,9 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(body(shared.path(), "uno-0001"), "# Lo de uno");
-        assert_eq!(body(shared.path(), "dos-0001"), "# Lo de dos");
-        assert_eq!(body(&one.data, "dos-0001"), "# Lo de dos");
+        assert_eq!(body(shared.path(), "uno-0001"), "# Lo de uno\n");
+        assert_eq!(body(shared.path(), "dos-0001"), "# Lo de dos\n");
+        assert_eq!(body(&one.data, "dos-0001"), "# Lo de dos\n");
 
         carry(
             &two.data,
@@ -3729,7 +3765,7 @@ mod tests {
             &["uno-0001".into(), "dos-0001".into()],
         )
         .unwrap();
-        assert_eq!(body(&two.data, "uno-0001"), "# Lo de uno");
+        assert_eq!(body(&two.data, "uno-0001"), "# Lo de uno\n");
     }
 
     #[test]

@@ -13,6 +13,9 @@ interface Props {
 
 type Span = { from: number; to: number; words: string };
 
+const within = (y: number, tall: number): number =>
+  Math.max(8, Math.min(y, window.innerHeight - tall - 8));
+
 const spanOf = (editor: Writing): Span => {
   const { from, to } = editor.state.selection;
   return { from, to, words: editor.state.doc.textBetween(from, to) };
@@ -121,7 +124,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
         ref={card as unknown as React.RefObject<HTMLFormElement>}
         style={{
           left: Math.max(8, Math.min(at.x, window.innerWidth - 300)),
-          top: Math.max(8, at.y - 76),
+          top: within(at.y - 76, 190),
         }}
         onSubmit={(e) => {
           e.preventDefault();
@@ -172,7 +175,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
       aria-label={t("formatting")}
       style={{
         left: Math.max(8, Math.min(at.x, window.innerWidth - 190)),
-        top: Math.max(8, at.y - 44),
+        top: within(at.y - 44, 44),
       }}
       onKeyDown={(e) => {
         if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;

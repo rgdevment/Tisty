@@ -198,15 +198,16 @@ describe("content that gets rewritten the first time it is saved, then holds sti
   });
 });
 
-describe("known bug: a task list forgets it was written tight", () => {
-  it.fails("keeps a tight task list tight, the same way a plain bulleted list does", () => {
+describe("a task list stays as tight as it was written", () => {
+  it("keeps a tight task list tight, the same way a plain bulleted list does", () => {
     expect(roundtripped("- [x] done\n- [ ] pending\n")).toBe("- [x] done\n- [ ] pending");
   });
 
-  it("currently inserts a blank line between every task, even when none was there", () => {
-    const first = roundtripped("- [x] done\n- [ ] pending\n");
-    expect(first).toBe("- [x] done\n\n- [ ] pending");
-    expect(roundtripped(first)).toBe(first);
+  it("keeps it whole, which is what lets a merge treat it as one block", () => {
+    const said = roundtripped("- [x] done\n- [ ] pending\n- [ ] third\n");
+
+    expect(said).not.toMatch(/\n\n/);
+    expect(roundtripped(said)).toBe(said);
   });
 
   it("does not have the same problem with a plain bulleted list", () => {

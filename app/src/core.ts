@@ -237,6 +237,7 @@ export interface Reviewed {
   loose: number;
   looseBytes: number;
   astray: Astray[];
+  stranded: number;
   events: number;
   machines: Machine[];
   logBytes: number;

@@ -35,6 +35,11 @@ export default function Menu({ at, choices, label, onClose }: Props) {
   }, [at, deeper]);
 
   useEffect(() => {
+    const came = document.activeElement as HTMLElement | null;
+    return () => came?.focus?.();
+  }, []);
+
+  useEffect(() => {
     const items = card.current?.querySelectorAll<HTMLElement>("[role=menuitem]");
     items?.[deeper ? 1 : 0]?.focus();
   }, [deeper]);

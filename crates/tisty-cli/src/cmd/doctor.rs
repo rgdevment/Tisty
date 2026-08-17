@@ -36,6 +36,18 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
                 )),
             );
         }
+
+        let alive: Vec<String> = truth.docs.values().map(|one| one.file.clone()).collect();
+        let stranded = tisty_core::docs::loose(&app.paths.docs(), &alive);
+        if !stranded.is_empty() {
+            line(
+                lang.get("loose-papers"),
+                &style::dim(&lang.fill(
+                    "loose-papers-are",
+                    &[("count", &stranded.len().to_string())],
+                )),
+            );
+        }
     }
 
     let verdict = match &audit {

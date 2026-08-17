@@ -86,18 +86,20 @@ pub enum Hit {
 }
 
 pub fn matches_query(task: &Task, query: &str) -> Option<Hit> {
-    let contains = |text: &str| text.to_lowercase().contains(query);
+    let query = crate::text::folded(query);
+    let query = query.as_str();
+    let contains = |text: &str| crate::text::folded(text).contains(query);
 
     if contains(&task.title) || task.tags.iter().any(|t| contains(t.as_str())) {
         return Some(Hit::Named);
     }
     if task.volume.refs > 0
         && task.references().iter().any(|one| {
-            one.target.to_lowercase() == query
+            crate::text::folded(&one.target) == query
                 || one
                     .label
                     .as_deref()
-                    .is_some_and(|l| l.to_lowercase() == query)
+                    .is_some_and(|l| crate::text::folded(l) == query)
         })
     {
         return Some(Hit::Named);
@@ -133,6 +135,21 @@ mod tests {
         let mut filter = Filter::default();
         f(&mut filter);
         filter
+    }
+
+    #[test]
+    fn a_word_is_found_whether_or_not_the_accent_was_typed() {
+        let mut task = task("Llamar al médico");
+        task.description = Some("y pedir la analítica".into());
+
+        assert!(
+            matches_query(&task, "medico").is_some(),
+            "sin tilde no aparece"
+        );
+        assert!(matches_query(&task, "médico").is_some());
+        assert!(matches_query(&task, "MEDICO").is_some());
+        assert!(matches_query(&task, "analitica").is_some());
+        assert!(matches_query(&task, "nada de eso").is_none());
     }
 
     #[test]

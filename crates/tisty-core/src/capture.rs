@@ -32,6 +32,8 @@ pub enum Rejected {
     NoSuchList(String),
     #[error("several lists match «{0}»")]
     AmbiguousList(String),
+    #[error("the list «{0}» is put away")]
+    ArchivedList(String),
     #[error("a series cannot end before today")]
     EndedAlready,
 }
@@ -59,6 +61,7 @@ pub fn plan(state: &State, draft: Draft) -> Result<Plan, Rejected> {
         Some(Filing::Kept(id)) => Some(*id),
         Some(Filing::Named(name)) => Some(existing(state, name)?),
         Some(Filing::Marked(name)) => Some(match state.find_list(name).as_slice() {
+            [one] if one.archived => return Err(Rejected::ArchivedList(name.clone())),
             [one] => one.id,
             [] => {
                 let id = Ulid::generate();
@@ -95,6 +98,7 @@ pub fn plan(state: &State, draft: Draft) -> Result<Plan, Rejected> {
 
 fn existing(state: &State, name: &str) -> Result<ListId, Rejected> {
     match state.find_list(name).as_slice() {
+        [one] if one.archived => Err(Rejected::ArchivedList(name.to_string())),
         [one] => Ok(one.id),
         [] => Err(Rejected::NoSuchList(name.to_string())),
         _ => Err(Rejected::AmbiguousList(name.to_string())),

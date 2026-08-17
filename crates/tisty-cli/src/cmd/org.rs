@@ -78,6 +78,17 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
             Ok(ExitCode::SUCCESS)
         }
 
+        ListAction::Unarchive { selector } => {
+            let Some(id) = one_list(app, &selector, lang)? else {
+                return Ok(ExitCode::from(EXIT_NOT_FOUND));
+            };
+
+            let name = app.state.lists[&id].name.clone();
+            app.commit(Op::ListUnarchive { id })?;
+            println!("  {} {name}", style::paint(GREEN, "✓"));
+            Ok(ExitCode::SUCCESS)
+        }
+
         ListAction::Rm { selector, force } => {
             let Some(id) = one_list(app, &selector, lang)? else {
                 return Ok(ExitCode::from(EXIT_NOT_FOUND));
@@ -252,13 +263,13 @@ fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow
             println!("  {}", style::dim(lang.get("nothing-to-redo")));
             return Ok(ExitCode::SUCCESS);
         }
-        let entity = change[0].entity_id();
-        if entity.is_some_and(|one| app.state.is_erased(one)) {
-            anyhow::bail!("{}", lang.get("cannot-redo"));
-        }
         let ops = app
             .state
             .afresh(change.into_iter().map(|e| e.op).collect::<Vec<_>>());
+        let entity = ops.first().and_then(|op| op.about_whom());
+        if entity.is_some_and(|one| app.state.is_erased(one)) {
+            anyhow::bail!("{}", lang.get("cannot-redo"));
+        }
         (entity, ops)
     } else {
         let change = app.last_own_change()?;

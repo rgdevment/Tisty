@@ -210,6 +210,9 @@ pub enum ListAction {
     Archive {
         selector: String,
     },
+    Unarchive {
+        selector: String,
+    },
     Rm {
         selector: String,
         #[arg(long, short)]
