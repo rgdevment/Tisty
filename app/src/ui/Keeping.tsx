@@ -186,9 +186,7 @@ export default function Keeping({ onChanged }: Props) {
     return files.map((one) => `«${titled.get(one)?.trim() || t("untitledDoc")}»`).join(", ");
   };
 
-  const carryNow = async (
-    way?: "again",
-  ): Promise<"done" | "declined" | "failed"> => {
+  const carryNow = async (way?: "again"): Promise<"done" | "declined" | "failed"> => {
     if (held) return "failed";
     setBusy("sync");
     setSaid(undefined);
@@ -425,7 +423,12 @@ export default function Keeping({ onChanged }: Props) {
               <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
                 {state.chosen ? (
                   <>
-                    <button type="button" disabled={held} onClick={() => carryNow()} className={strong}>
+                    <button
+                      type="button"
+                      disabled={held}
+                      onClick={() => carryNow()}
+                      className={strong}
+                    >
                       {carrying ? t("syncing_") : t("syncNow")}
                     </button>
                     <button
