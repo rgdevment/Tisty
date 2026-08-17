@@ -26,6 +26,7 @@ pub enum Way {
     Both,
     Push,
     Pull,
+    Again,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,15 +78,16 @@ pub fn carry_leaning_on(
     let store = data.join(STORE);
     let ours = settled(&store, dest)?;
 
+    let again = matches!(way, Way::Again);
     let mut moved = Moved::default();
     let mut said = None;
-    if matches!(way, Way::Both | Way::Pull) {
+    if matches!(way, Way::Both | Way::Pull | Way::Again) {
         let came = bring(&store, device, dest, &mut moved.unreadable)?;
         moved.brought = came;
         said = as_told(&store, aside);
         match &said {
             Some(one) => {
-                moved.brought += copy_held(&dest.join(HELD), &data.join(HELD), &one.retired)?;
+                moved.brought += copy_held(&dest.join(HELD), &data.join(HELD), &one.retired, false)?;
             }
             None => witness::warn(
                 channel::SYNC,
@@ -94,7 +96,7 @@ pub fn carry_leaning_on(
             ),
         }
     }
-    if matches!(way, Way::Both | Way::Push) {
+    if matches!(way, Way::Both | Way::Push | Way::Again) {
         let Some(buried) = said
             .as_ref()
             .map(|one| one.retired.clone())
@@ -114,15 +116,15 @@ pub fn carry_leaning_on(
         }
         let mine = dest.join(STORE).join(device);
         plainly(&mine)?;
-        moved.sent = copy_segments(&store.join(device), &mine)?;
-        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD), &buried)?;
+        moved.sent = copy_segments(&store.join(device), &mine, again)?;
+        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD), &buried, again)?;
     }
     let alive = match &said {
         Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
         None => alive.to_vec(),
     };
     if !alive.is_empty() {
-        let papers = carry_papers(data, dest, &alive)?;
+        let papers = carry_papers_leaning_on(data, dest, &alive, again)?;
         moved.sent += papers.sent;
         moved.brought += papers.brought;
         moved.undecided = papers.undecided;
@@ -460,7 +462,7 @@ fn bring(
                 continue;
             }
         }
-        brought += copy_segments(&entry.path(), &mine)?;
+        brought += copy_segments(&entry.path(), &mine, false)?;
     }
 
     if brought > 0 {
@@ -480,7 +482,7 @@ fn settled_already(theirs: &Path, mine: &Path) -> bool {
         })
 }
 
-fn copy_segments(from: &Path, into: &Path) -> Result<usize, Trouble> {
+fn copy_segments(from: &Path, into: &Path, again: bool) -> Result<usize, Trouble> {
     let carried = match tisty_core::store::segments_in(from) {
         Ok(carried) => carried,
         Err(e) => {
@@ -508,13 +510,13 @@ fn copy_segments(from: &Path, into: &Path) -> Result<usize, Trouble> {
         let counter = at.with_extension("count");
         if let Some(tally) = counter.file_name().filter(|_| counter.is_file()) {
             let target = into.join(tally);
-            if !same(&counter, &target) {
+            if again || !same(&counter, &target) {
                 copy_onto(&counter, &target)?;
             }
         }
 
         let target = into.join(named);
-        if same(&at, &target) {
+        if !again && same(&at, &target) {
             continue;
         }
         copy_onto(&at, &target)?;
@@ -550,6 +552,7 @@ fn copy_held(
     from: &Path,
     into: &Path,
     buried: &std::collections::BTreeSet<String>,
+    again: bool,
 ) -> Result<usize, Trouble> {
     let mut done = 0;
     let written_down = tisty_core::attach::digests(into.parent().unwrap_or_else(|| Path::new("")));
@@ -621,8 +624,9 @@ fn copy_held(
                 continue;
             };
             let target = into.join(rest);
-            if std::fs::metadata(&at).map(|m| m.len()).ok()
-                == std::fs::metadata(&target).map(|m| m.len()).ok()
+            if !again
+                && std::fs::metadata(&at).map(|m| m.len()).ok()
+                    == std::fs::metadata(&target).map(|m| m.len()).ok()
             {
                 continue;
             }
@@ -819,6 +823,15 @@ fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
 }
 
 pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
+    carry_papers_leaning_on(data, dest, alive, false)
+}
+
+fn carry_papers_leaning_on(
+    data: &Path,
+    dest: &Path,
+    alive: &[String],
+    again: bool,
+) -> Result<Moved, Trouble> {
     use tisty_core::docs::{Carried, Move, moved, print_of};
 
     let here = data.join(PAPERS);
@@ -867,6 +880,10 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
 
             match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
                 Move::Nothing => {
+                    if again && mine.is_file() {
+                        std::fs::create_dir_all(&there).map_err(io)?;
+                        copy_onto(&mine, &theirs)?;
+                    }
                     if let Some(print) = ours.or(yours) {
                         let steady = said.of(id) == Some(print.as_str())
                             && tisty_core::docs::carried_print(data, id).as_deref()
@@ -2848,6 +2865,47 @@ mod tests {
                 .unwrap(),
             was,
             "lo reescribio sin motivo"
+        );
+    }
+
+    #[test]
+    fn asking_again_writes_what_a_plain_round_leaves_alone() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let landed = shared
+            .path()
+            .join(STORE)
+            .join(&one.device)
+            .join("active.tisty");
+        let stuck = std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24 * 3);
+        std::fs::File::options()
+            .write(true)
+            .open(&landed)
+            .unwrap()
+            .set_modified(stuck)
+            .unwrap();
+
+        let plain = carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        assert_eq!(plain.sent, 0);
+        assert_eq!(
+            std::fs::metadata(&landed)
+                .and_then(|m| m.modified())
+                .unwrap(),
+            stuck,
+            "una ronda normal deberia dejar quieto lo que ya tiene los mismos bytes"
+        );
+
+        let forced = carry(&one.data, &one.device, shared.path(), Way::Again, &[]).unwrap();
+
+        assert_eq!(forced.sent, 1, "pedirlo otra vez no reenvio el segmento");
+        let when = std::fs::metadata(&landed)
+            .and_then(|m| m.modified())
+            .unwrap();
+        let apart = std::time::SystemTime::now().duration_since(when).unwrap();
+        assert!(
+            apart < std::time::Duration::from_secs(60),
+            "aterrizo con fecha de hace {apart:?}: sigue atascado"
         );
     }
 
