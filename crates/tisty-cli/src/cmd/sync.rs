@@ -5,16 +5,24 @@ use tisty_sync as carrier;
 
 use crate::{EXIT_ERROR, app::App, i18n::Lang, style};
 
-pub fn sync(
-    app: &mut App,
-    push: bool,
-    pull: bool,
-    again: bool,
-    join: Option<std::path::PathBuf>,
-    take_over: Option<std::path::PathBuf>,
-    merge: Option<std::path::PathBuf>,
-    lang: Lang,
-) -> anyhow::Result<ExitCode> {
+pub struct Asked {
+    pub push: bool,
+    pub pull: bool,
+    pub again: bool,
+    pub join: Option<std::path::PathBuf>,
+    pub take_over: Option<std::path::PathBuf>,
+    pub merge: Option<std::path::PathBuf>,
+}
+
+pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode> {
+    let Asked {
+        push,
+        pull,
+        again,
+        join,
+        take_over,
+        merge,
+    } = asked;
     let Some(Sync::Folder(dest)) = app.config().sync.clone() else {
         anyhow::bail!("{}", lang.get("no-remote"));
     };
@@ -105,12 +113,12 @@ pub fn sync(
     }
 
     app.edit_config(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
-    let told = match (again, moved.sent > 0, moved.brought > 0) {
-        (true, _, _) => "synced-again",
-        (_, true, true) => "synced-both",
-        (_, true, false) => "synced-sent",
-        (_, false, true) => "synced-new",
-        (_, false, false) => "synced-same",
+    let told = match (moved.sent > 0, moved.brought > 0) {
+        (true, true) => "synced-both",
+        (true, false) if again => "synced-again",
+        (true, false) => "synced-sent",
+        (false, true) => "synced-new",
+        (false, false) => "synced-same",
     };
     println!("\n  {} {}", style::paint(style::GREEN, "✓"), lang.get(told));
 

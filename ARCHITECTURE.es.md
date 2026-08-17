@@ -212,6 +212,7 @@ tisty sync --pull                  # solo traer
 tisty sync --join <backup.zip>     # respalda esta máquina, la vacía, toma la de la carpeta
 tisty sync --take-over <backup.zip> # respalda la carpeta, la vacía, deja la nuestra
 tisty sync --merge <backup.zip>    # respalda, y después se queda con las dos historias
+tisty sync --again                 # manda todo lo nuestro, sin saltarse nada
 ```
 
 Tisty siempre trabaja en su propio directorio local. Sincronizar **deja una
@@ -252,8 +253,33 @@ segmento descargado a medias, una copia en conflicto que dejó un cliente de nub
 entero, con todos los dispositivos dentro. **Ese rechazo es solo de esa
 máquina**: un directorio de dispositivo ilegible en la carpeta se queda afuera y
 se nombra en el resultado, y todo lo demás —tu propia escritura sobre todo— pasa
-igual. Los archivos que ya son idénticos se saltan, así que sincronizar dos
-veces seguidas no mueve nada la segunda vez.
+igual.
+
+**Los archivos que ya son idénticos se saltan**, así que sincronizar dos veces
+seguidas no mueve nada la segunda vez. Idéntico significa el mismo largo y los
+mismos últimos 512 bytes, no la misma fecha: un segmento solo crece por el final,
+así que una cola que coincide es un archivo que coincide. La fecha se deja fuera
+a propósito, porque puede ser igual con el contenido distinto, y al revés.
+
+El punto ciego se dice en vez de esconderse: dos archivos del mismo largo que
+difieren **antes** de su cola se leen como idénticos. Llegar ahí desde un registro
+que solo crece por el final pediría corrupción, no uso, y leer más lejos costaría
+hidratar el archivo entero en un disco proyectado — que es lo que es una carpeta
+de nube.
+
+**Nada que importe lo decide la fecha de un archivo.** Una copia lleva la fecha
+en que se hizo, no la de aquello de lo que salió, así que un archivo siempre responde
+«cuándo apareció esto acá» — que es lo que una caché local necesita saber. La otra
+pregunta, «cuándo escribió por última vez esa máquina», se responde desde el
+registro: el panel toma el `ts` más alto de cada dispositivo.
+Preguntárselo a un archivo copiado hacía que una máquina pareciera activa en el
+momento en que traías su historia, y eso callaba el aviso de las que se quedaron
+atrás.
+
+`tisty sync --again` es la salida cuando algo tiene que moverse igual. Manda todo
+lo de esta máquina sin preguntar si ya está. Es para una carpeta que perdió un
+archivo, o un cliente de nube que se saltó uno; no forma parte de la ronda
+normal.
 
 Los adjuntos también viajan. Se llaman por su propio sha-256, así que un nombre
 que coincide es un archivo que coincide y dos máquinas no pueden discrepar sobre

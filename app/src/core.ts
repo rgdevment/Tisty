@@ -338,7 +338,8 @@ export interface Settled {
   joined: string[];
 }
 
-export const syncNow = (way?: "push" | "pull"): Promise<Settled> => invoke("sync_now", { way });
+export const syncNow = (way?: "push" | "pull" | "again"): Promise<Settled> =>
+  invoke("sync_now", { way });
 export const convertPaper = (id: string, body: string): Promise<void> =>
   invoke("convert_paper", { id, body });
 export interface Rift {

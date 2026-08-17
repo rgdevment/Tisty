@@ -199,6 +199,7 @@ tisty sync --pull                  # take only
 tisty sync --join <backup.zip>     # back this machine up, empty it, take the folder's
 tisty sync --take-over <backup.zip> # back the folder up, empty it, leave ours
 tisty sync --merge <backup.zip>    # back up, then hold both histories
+tisty sync --again                 # send everything of ours, skipping nothing
 ```
 
 Tisty always works in its own local directory. Syncing **leaves a copy** in that
@@ -235,8 +236,31 @@ half-downloaded segment, a conflict copy a cloud client left behind — all are
 refused at the door, because reading a broken one takes down the whole store,
 every device included. **That refusal is that machine's alone**: one unreadable
 device directory in the folder is left out and named in the result, and
-everything else — your own writing above all — still goes through. Files already
-identical are skipped, so syncing twice over moves nothing the second time.
+everything else — your own writing above all — still goes through.
+
+**Files already identical are skipped**, so syncing twice over moves nothing the
+second time. Identical means the same length and the same last 512 bytes, not
+the same timestamp: a segment only ever grows at the end, so a tail that matches
+is a file that matches. The date is deliberately no part of that answer: a date
+can be equal while the content is not, and the other way round.
+
+The blind spot is stated rather than hidden: two files of the same length that
+differ **before** their tail read as identical. Reaching that from an append-only
+log would take corruption, not use, and reading further would cost a full
+hydration on a projected drive — which is what a cloud folder is.
+
+**Nothing that matters is decided by a file's date.** A copy carries the date it
+was made, not the date of what it came from, so a file always answers «when did
+this appear here» — which is what a local cache needs to know. The other
+question, «when did that machine last write», is answered from the log: the
+maintenance panel takes the highest `ts` per device. Asking a copied file that
+made a machine look busy the moment you pulled its history, which silenced the
+warning about machines that have fallen behind.
+
+`tisty sync --again` is the way out when something must move regardless. It sends
+everything of this machine's without asking whether it is already there. It is
+for a folder that lost a file, or a cloud client that missed one — not part of
+the normal round.
 
 Attachments travel too. They are named after their own sha-256, so a name that
 matches is a file that matches and two machines cannot disagree about one — and
