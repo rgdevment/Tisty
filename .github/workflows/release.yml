@@ -440,8 +440,11 @@ jobs:
   bundle-msix:
     name: tisty-windows-msix
     needs: version
+    if: needs.version.outputs.prerelease == 'false'
     runs-on: windows-latest
     timeout-minutes: 60
+    outputs:
+      made: ${{ steps.gate.outputs.go }}
     env:
       TARGET: x86_64-pc-windows-msvc
       MSIX_IDENTITY: ${{ vars.MSIX_IDENTITY }}
@@ -567,7 +570,8 @@ jobs:
 
       - name: Say which installers made it
         run: |
-          want="dist/tisty-installer-*.exe dist/tisty-*.msix"
+          want="dist/tisty-installer-*.exe"
+          if [ "${{ needs.version.outputs.prerelease }}" = "false" ]; then want="$want dist/tisty-*.msix"; fi
           if [ "${BUILD_MACOS}" = "true" ]; then want="$want dist/tisty-installer-*.dmg"; fi
           for f in $want; do
             if [ -s "$f" ]; then echo "$f"; else echo "::warning::no installer at $f"; fi
@@ -658,14 +662,25 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     env:
+      STORE_PUBLISH: ${{ vars.STORE_PUBLISH }}
       STORE_APP_ID: ${{ vars.STORE_APP_ID }}
       STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
+      STORE_SELLER_ID: ${{ secrets.STORE_SELLER_ID }}
+      STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
+      STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
     steps:
       - name: Nothing to publish without a listing
         id: gate
         shell: bash
         run: |
-          if [ -z "$STORE_APP_ID" ] || [ -z "$STORE_TENANT_ID" ]; then
+          if [ "$STORE_PUBLISH" != "true" ]; then
+            echo "::notice::STORE_PUBLISH is not true; the Store gets nothing until it is"
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          elif [ "${{ needs.bundle-msix.outputs.made }}" != "yes" ]; then
+            echo "::notice::no MSIX was built this run; skipping"
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          elif [ -z "$STORE_APP_ID" ] || [ -z "$STORE_TENANT_ID" ] || [ -z "$STORE_SELLER_ID" ] \
+            || [ -z "$STORE_CLIENT_ID" ] || [ -z "$STORE_CLIENT_SECRET" ]; then
             echo "::notice::no Store credentials; skipping"
             echo "go=no" >> "$GITHUB_OUTPUT"
           else
@@ -688,9 +703,9 @@ jobs:
           msix=$(ls dist/*.msix | head -1)
           msstore reconfigure \
             --tenantId "$STORE_TENANT_ID" \
-            --sellerId "${{ secrets.STORE_SELLER_ID }}" \
-            --clientId "${{ secrets.STORE_CLIENT_ID }}" \
-            --clientSecret "${{ secrets.STORE_CLIENT_SECRET }}"
+            --sellerId "$STORE_SELLER_ID" \
+            --clientId "$STORE_CLIENT_ID" \
+            --clientSecret "$STORE_CLIENT_SECRET"
           msstore publish "$msix" --appId "$STORE_APP_ID"
 
   homebrew:
