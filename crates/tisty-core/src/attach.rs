@@ -1212,13 +1212,12 @@ mod tests {
             std::fs::set_permissions(&mine, how).unwrap();
 
             let blind = twins(root.path());
-            eprintln!("ledger={:?}", digests(root.path()));
-            eprintln!("blind={blind:?}");
 
             assert_eq!(
                 blind.len(),
                 1,
-                "it went to the disk for a digest it had already written down"
+                "it went to the disk for a digest it had already written down: {blind:?} against {:?}",
+                digests(root.path())
             );
         }
     }

@@ -68,16 +68,18 @@ jobs:
 
       - name: Both languages carry the same documents
         run: |
-          for pair in "README.md README.es.md" "ARCHITECTURE.md ARCHITECTURE.es.md"; do
-            set -- $pair
+          same() {
             for mark in '^#' '```' '^|'; do
-              a=$(grep -c "$mark" "$1"); b=$(grep -c "$mark" "$2")
+              a=$(grep -c "$mark" "$1" || true)
+              b=$(grep -c "$mark" "$2" || true)
               if [ "$a" != "$b" ]; then
                 echo "::error::$1 and $2 differ in '$mark': $a vs $b"
                 exit 1
               fi
             done
-          done
+          }
+          same README.md README.es.md
+          same ARCHITECTURE.md ARCHITECTURE.es.md
 
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
