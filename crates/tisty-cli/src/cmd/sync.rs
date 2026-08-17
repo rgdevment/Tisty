@@ -9,6 +9,7 @@ pub fn sync(
     app: &mut App,
     push: bool,
     pull: bool,
+    again: bool,
     join: Option<std::path::PathBuf>,
     take_over: Option<std::path::PathBuf>,
     merge: Option<std::path::PathBuf>,
@@ -21,9 +22,10 @@ pub fn sync(
     let data = app.paths.data().to_path_buf();
     let mut device = app.config().device_id.0.clone();
 
-    let way = match (push, pull) {
-        (true, _) => carrier::Way::Push,
-        (_, true) => carrier::Way::Pull,
+    let way = match (push, pull, again) {
+        (true, _, _) => carrier::Way::Push,
+        (_, true, _) => carrier::Way::Pull,
+        (_, _, true) => carrier::Way::Again,
         _ => carrier::Way::Both,
     };
     if let Some(into) = join {
@@ -103,11 +105,12 @@ pub fn sync(
     }
 
     app.edit_config(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
-    let told = match (moved.sent > 0, moved.brought > 0) {
-        (true, true) => "synced-both",
-        (true, false) => "synced-sent",
-        (false, true) => "synced-new",
-        (false, false) => "synced-same",
+    let told = match (again, moved.sent > 0, moved.brought > 0) {
+        (true, _, _) => "synced-again",
+        (_, true, true) => "synced-both",
+        (_, true, false) => "synced-sent",
+        (_, false, true) => "synced-new",
+        (_, false, false) => "synced-same",
     };
     println!("\n  {} {}", style::paint(style::GREEN, "✓"), lang.get(told));
 
