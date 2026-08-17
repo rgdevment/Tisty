@@ -1,5 +1,7 @@
 # Architecture
 
+**English** · [Español](ARCHITECTURE.es.md)
+
 How Tisty stores, merges and reads its data. This is a reference for how the
 system behaves, not a record of why it was designed this way.
 
@@ -19,7 +21,8 @@ system behaves, not a record of why it was designed this way.
 The store is a log of events. The cache is the state those events produce.
 Deleting the cache costs one slow read; deleting the store loses data.
 
-Neither lives in the documents folder, and the path is not configurable.
+Neither lives in the operating system's Documents folder — which is a different
+thing from Tisty's own `docs/` — and the path is not configurable.
 
 ## The event log
 
@@ -86,7 +89,7 @@ Syncing holds the same line from the other end: a device's history that arrives
 **shorter than the one already held** is left where it is. Contiguity alone does
 not catch that — the gap is not *between* sealed segments but *before* `active`,
 and nothing in the folder says how many sealed ones there should be. So the
-counts are compared instead. A cloud client is free to deliver a rotated `active`
+counts are compared instead. A cloud client may well deliver a rotated `active`
 before the sealed segment that carries what it dropped; that ordering must not
 cost anyone their copy.
 
@@ -141,11 +144,11 @@ How the next date is worked out depends on how it was written. Naming a day
 fixes it to the calendar — the bin goes out on Tuesday whether or not it went
 last week — and naming only an interval counts from the doing, which is what a
 habit means. Either way the next one lands past today **and** past the day it
-was finished: a fortnight away does not come back owing a fortnight of bins, and
-finishing today's does not hand you another one for today. A time of day is kept
-as asked — taking the pills at 08:04 does not move them to 08:04 for ever — and
-months and years count off the calendar even when said as an interval, or the
-rent would walk down the month.
+was finished: coming back from a fortnight away does not owe you a fortnight of
+bins at once, and finishing today's does not hand you another one for today. A
+time of day is kept as asked — finishing the 09:00 pill at 08:04 does not move
+it to 08:04 for ever — and months and years count off the calendar even when
+said as an interval, or the rent would drift a few days later every month.
 
 Nothing is ever created ahead of time. There is no timer and no scheduler: a
 task can only come from you writing one or from finishing a repeat. Skip a day
@@ -205,14 +208,15 @@ copies travel.
 **Only machines on the list write there.** Being on it is what gives a machine a
 voice; one that was removed keeps its own copy and never pushes again. You join
 by adopting, not by asking — reaching those files is the authorisation — so
-**removing is the only privileged act**. A machine that comes back does not merge:
-it is backed up and emptied first, which is what `--join` does.
+**removing is the only privileged act**. A machine that comes back does not
+merge: it is backed up and emptied first, which is what `--join` does.
 
-The folder is also **someone else's writing**, and is treated that way: nothing is
-written through a symbolic link — not into the shared folder itself, and not into
-any device or shelf directory inside it — an attachment must hold the bytes its
-name vouches for, and one that was retired is not carried back in, and a document body past the reader's ceiling is refused rather than
-carried in to replace one that could be opened.
+The folder is also **someone else's writing**, and is treated that way: nothing
+is written through a symbolic link — not into the shared folder itself, and not
+into any device or shelf directory inside it — an attachment must hold the bytes
+its name vouches for, and one that was retired is not carried back in, and a
+document body past the reader's ceiling is refused rather than carried in to
+replace one that could be opened.
 
 ### Why there is nothing to merge
 
@@ -225,9 +229,9 @@ What arrives is read before it is written. A `000002` without its `000001`, a
 half-downloaded segment, a conflict copy a cloud client left behind — all are
 refused at the door, because reading a broken one takes down the whole store,
 every device included. **That refusal is that machine's alone**: one unreadable
-device directory in the folder is left out and named in the result, and everything
-else — your own writing above all — still goes through. Files already identical are skipped, so syncing twice
-over moves nothing the second time.
+device directory in the folder is left out and named in the result, and
+everything else — your own writing above all — still goes through. Files already
+identical are skipped, so syncing twice over moves nothing the second time.
 
 Attachments travel too. They are named after their own sha-256, so a name that
 matches is a file that matches and two machines cannot disagree about one — and
@@ -235,16 +239,40 @@ on the way in the bytes are checked against that name.
 
 Document bodies travel by **three prints and no clock**: the local one, the
 folder's, and the last this machine carried. If one side moved, it is copied
-without asking; if both moved, **the person decides**, and «keep both» is offered
-first because it is the only answer that loses nothing. A clock would be worse
-than useless — a laptop waking up is an hour out, and that has already cost us a
-real bug.
+without asking. A clock would be worse than useless — a laptop waking up is an
+hour out, and that has already cost us a real bug.
+
+If both moved, the two versions are **merged block by block** before anyone is
+asked. The unit is the block — text between blank lines — which buys atomicity
+for free: a table and an ordered list carry no blank line inside, so each is one
+whole block and cannot be spliced half from each side. Fenced code keeps its
+blanks, because there a blank line is content. Only overlapping edits are a
+question; two adjacent ones are simply both taken.
+
+The engine refuses rather than guess, and every refusal lands on the same tested
+road: the merge returns nothing, the document is left undecided, and **the
+person decides**, with «keep both» offered first because it is the only answer
+that loses nothing. It refuses when the two sides rewrote the same block
+differently, when the comparison would cost more than four million cells, when
+the result would hold a block more times than either side has it or fewer than
+both kept, when the woven text would not split back into the very blocks it was
+made of, and when the weave would place two lists next to each other — Markdown
+reads those as one list, and the seam is only refused when the merge is what
+created it.
+
+A document with YAML front matter is not merged at all: the editor cannot write
+it back unchanged, so merging it would only churn. It goes straight to the
+question.
+
+Line endings are normalised on the way out. That is deliberate: if each machine
+kept its own, their prints would never agree and the document would sit in
+conflict for ever.
 
 ### Two histories are joined only when you say so
 
 A store carrying a different name is **refused before anything moves**. A
-`.store-id` marker guards it — a machine that has never met the folder **adopts**
-its name, and an empty folder is **given** one.
+`.store-id` marker guards it — a machine that has never met the folder
+**adopts** its name, and an empty folder is **given** one.
 
 When both sides hold history there is no safe guess: your own second machine and
 a stranger's folder are the same gesture. So the refusal is not the end of the
@@ -268,36 +296,38 @@ folder. It mints a new device id, so it returns as a new participant rather than
 dragging its own removal behind it. This is what a removed machine coming back
 does, and what `--join` has always done.
 
-**Adopt without loss** — offered when the folder already holds this machine's own
-history. It is not a fourth mood, it is a different fact: a machine left behind
-before a merge finds its history inside the folder's, and has nothing to decide.
-Without it, such a machine would be refused by every other door and cornered.
+**Adopt without loss** — offered when the folder already holds this machine's
+own history. It is not a fourth stance, it is a different fact: a machine left
+behind before a merge finds its history inside the folder's, and has nothing to
+decide. Without it, such a machine would be refused by every other door and
+cornered.
 
 Which case applies is read from the segments, not guessed. A device directory
 present on both sides is compared as the **ordered concatenation of its
 segments** — one writer, append-only, so one side must be a prefix of the other.
 It is compared whole rather than file by file because rotation renames what it
-seals: the same history can be one file here and two there. A file of zero bytes — what a cloud client
-leaves before it fills one in — proves nothing either way. A file the reader
-**cannot open** is not the same thing and is not treated as such: there the answer
-is that it cannot be told yet, and nothing is offered until it can, because the two
-answers lead opposite ways. Where there is no evidence the answer turns on
-whether a device name appears on both sides: if none does, "strangers", since a
-needless seam is harmless bookkeeping; if one does, it is refused, because an
-unprovable shared name is the fatal case. Names here means directories **and the
-ids events name**, so an id surviving only inside someone else's `device.remove`
-still counts.
+seals: the same history can be one file here and two there. A file of zero bytes
+— what a cloud client leaves before it fills one in — proves nothing either way.
+A file the reader **cannot open** is not the same thing and is not treated as
+such: there the answer is that it cannot be told yet, and nothing is offered
+until it can, because the two answers lead opposite ways. Where there is no
+evidence the answer turns on whether a device name appears on both sides: if
+none does, "strangers", since a needless seam is harmless bookkeeping; if one
+does, it is refused, because an unprovable shared name is the fatal case.
+«Names» here covers directories **and the ids events name**, so an id surviving
+only inside someone else's `device.remove` still counts.
 
 When the same device name exists on both sides having written **different**
 things, nothing is merged. Two writers under one name is the one thing the whole
 design rests on not happening.
 
-**When two histories are merged, the folder's name is the one that survives.** Not for comfort: `.store-id` is
-the only file in the shared folder without a single writer. Minting a new name —
-or imposing the local one — rewrites it, and two machines merging at once would
-write two different contents into one file, which is the exact class of conflict
-everything else here is arranged to make impossible. Adopting the folder's name
-makes that file effectively immutable: concurrent merges write the same bytes.
+**When two histories are merged, the folder's name is the one that survives.**
+Not for comfort: `.store-id` is the only file in the shared folder without a
+single writer. Minting a new name — or imposing the local one — rewrites it, and
+two machines merging at once would write two different contents into one file,
+which is the exact class of conflict everything else here is arranged to make
+impossible. Adopting the folder's name makes that file effectively immutable:
+concurrent merges write the same bytes.
 
 A merge writes a `stores.joined` event **before** it takes the folder's name,
 carrying both names and which devices came from which side. That order is not
@@ -309,10 +339,11 @@ and doing it twice only records an ancestor that was already recorded.
 That set of ancestors is **written but not yet read**: the lineage question is
 answered from the segments alone today, and the record exists so a machine
 arriving much later can be told what happened rather than only what to choose.
-Until something reads it, this is a claim about the record, not about behaviour. It touches no task and no document; like
-`device.join`, it is an event that projects something other than data — the set
-of ancestor store names, which accumulates, so a machine that arrives much later
-can still recognise its own name as one of them.
+Until something reads it, this is a claim about the record, not about behaviour.
+It touches no task and no document; like `device.join`, it is an event that
+projects something other than data — the set of ancestor store names, which
+accumulates, so a machine that arrives much later can still recognise its own
+name as one of them.
 
 Directory names are compared without case: on Windows and macOS `DEV_A` and
 `dev_a` are one directory, so a stranger's copy would land on the only original
@@ -322,6 +353,31 @@ Syncing runs on its own — pull when the window opens and when it regains focus
 push shortly after each change, and both on a timer. It never blocks a local
 write and never interrupts to complain: an unreachable folder is retried in
 silence and reported in the maintenance panel.
+
+## What a document is named, and what happens when it goes
+
+A document file is `<device>-NNNN.md`. The device prefix is what lets two
+machines create documents at the same time without agreeing on anything, so only
+the owning machine ever mints its own numbers.
+
+**A number is never handed out twice.** Taking the highest number on disk and
+adding one is not enough: deleting the last document would free its name, and a
+`tisty:doc/…` reference left pointing at it would quietly resolve to whatever
+took the name next. A local high-water mark, which only ever rises, is what
+prevents that. It is local because only this machine mints these names.
+
+**A body is refused above the reader's ceiling.** Writing had no limit while
+reading, exporting and printing all stopped at 500 KB, so pasting enough text
+produced a document that could no longer be opened, exported or carried — with
+no warning until it was too late. The refusal now happens where the writing
+does.
+
+**A deletion is carried out, not inferred.** Deleting a document names its file
+in the log, and every machine that reads that event removes its own copy — the
+same treatment a retired attachment gets. What is left over from before this
+existed, or from a copy that stopped halfway, is not deleted on a guess: `tisty
+doctor` and the maintenance panel **count** the document files on disk that the
+log does not know about, and leave them where they are.
 
 ## Taking a document out
 
@@ -334,14 +390,14 @@ reads `attachments/<shelf>/<file>`, and those bytes live in the store: paste the
 text into a page or a ticket and the images are not there.
 
 **Export as Markdown** writes a folder — the document beside an `attachments/`
-holding only what that document names. **No reference is rewritten**, and that is
-the point: inside the store a document sits in `docs/`, one level below the
+holding only what that document names. **No reference is rewritten**, and that
+is the point: inside the store a document sits in `docs/`, one level below the
 attachments it names, so the relative path only resolves because we resolve it
 ourselves from the data root. Put the document *beside* its attachments and the
 very same path resolves the way every other reader would expect.
 
-That is why the export does not need a second reference format, and why the store
-does not need migrating. The layout does the work.
+That is why the export does not need a second reference format, and why the
+store does not need migrating. The layout does the work.
 
 What still does not survive the trip is a reference to **another document**
 (`tisty:doc/…`), which means nothing outside Tisty. It stays as written, as a
@@ -349,8 +405,8 @@ piece of text rather than a broken file path.
 
 ## Backing up by hand
 
-One zip of `store/`, `docs/`, `originals/` and `attachments/`, never the configuration — a shared
-`device_id` would put two machines in one file.
+One zip of `store/`, `docs/`, `originals/` and `attachments/`, never the
+configuration — a shared `device_id` would put two machines in one file.
 
 Restoring is **a photograph**: back to that moment, and what came after is lost
 on purpose. The machine **takes a new device id** so its directory starts empty
@@ -381,6 +437,8 @@ down as an idea and not built.
 | Documents | `<data>/docs/` | yes, by three prints and no clock |
 | Attachment ledger | `<data>/attachments.jsonl` | **no** — local and rebuilt on demand |
 | Carried prints | `<data>/carried.json` | **no** — what this machine last carried |
+| Merge bases | `<data>/carried/` | **no** — the body each print stands for |
+| Highest name given out | `<data>/docs/.spent-<device>` | **no** — so a name is never reused |
 | Before a conversion | `<data>/originals/` | **no**, but it is in a backup |
 | Retired attachments | `<data>/bin/` | **no** — thirty days of grace |
 | Settings and device id | `<config>/config.toml` | **no** |

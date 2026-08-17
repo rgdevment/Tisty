@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** August 12, 2026
+**Last updated:** August 16, 2026
 
 ## The short version
 
@@ -65,8 +65,9 @@ visible instead of making it for you.
 
 **Nothing is encrypted at rest.** Your operating system's file permissions are
 the only protection. This was a deliberate decision, not an oversight:
-encryption breaks three-way merges of documents, which is precisely where
-synchronisation needs them most. The reasoning is in
+encryption breaks the three-way merge of documents, which is precisely where
+synchronisation needs it most — two machines editing the same document are
+reconciled block by block, and that cannot be done on bytes nobody can read. The reasoning is in
 [SECURITY.md](SECURITY.md).
 
 **Nothing is obfuscated.** If Tisty disappeared tomorrow, your data would

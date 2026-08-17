@@ -203,7 +203,7 @@ propósito. Un atajo global abre un campo pequeño sobre lo que estés haciendo,
 para que una tarea que se te ocurre a media cosa no te cueste la cosa.
 
 **Los documentos** viven al lado de las tareas, para el material de consulta que
-no tiene fecha y nunca se tacha. Son ficheros Markdown en tu almacén, y se editan
+no tiene fecha y nunca se tacha. Son archivos Markdown en tu almacén, y se editan
 como documentos, no como código fuente: tablas, listas de comprobación, código e
 imágenes, y lo que pegues de una página o de un ticket conserva su forma. Una
 tarea puede apuntar a un documento; un documento nunca crea tareas. **La búsqueda
@@ -233,7 +233,7 @@ donde vaya.
 ## Y una línea de comandos, si la usas
 
 No es la vía principal —esa es la ventana—, pero todo lo que hace la ventana lo
-hace también la terminal. Lo que cambia es cuántas pulsaciones cuesta, no lo que
+hace también la terminal. Lo que cambia es cuántas teclas cuesta, no lo que
 se puede.
 
 ```console
@@ -284,7 +284,7 @@ es otra cosa: Tisty **deja copias** en una carpeta que tus dos equipos alcancen
 y **se trae las que dejaron los demás**. Son dos rutas distintas, y solo una la
 eliges tú.
 
-Tu configuración nunca viaja con ellos. El identificador de dispositivo vive en
+Tu configuración nunca viaja con ellos. El identificador de cada equipo vive en
 el archivo de configuración precisamente para quedarse en esta máquina: si
 viajara, dos equipos lo compartirían, escribirían en el mismo archivo y la
 garantía de abajo se vendría abajo.
@@ -294,7 +294,7 @@ deshacer, y también una sincronización sin conflictos cuando llegue: **cada
 máquina escribe únicamente en su propio directorio**, así que fusionar dos
 historias es concatenarlas.
 
-Eso es una sola lista, no una por máquina. Cada dispositivo lee todos los
+Eso es una sola lista, no una por máquina. Cada equipo lee todos los
 directorios y los reproduce en orden; solo escribe en el suyo. Por eso una
 carpeta sincronizada nunca produce uno de esos `archivo (copia en conflicto)`:
 dos escritores jamás tocan el mismo archivo.
@@ -303,27 +303,34 @@ dos escritores jamás tocan el mismo archivo.
 
 Apunta Tisty a una carpeta que tus dos equipos ya alcancen —la que mantiene al
 día tu cliente de Google Drive, OneDrive o iCloud; un NAS montado; un disco
-externo que enchufas los viernes— y el resto lo hace solo: baja al abrir la ventana, sube al
-rato de que cambies algo, y ambas cada cierto tiempo. Nunca bloquea una
-escritura ni te interrumpe; si la carpeta no está, lo reintenta en silencio.
+externo que enchufas los viernes— y el resto lo hace solo: baja al abrir la ventana, sube
+un rato después de que cambies algo, y hace las dos cosas cada cierto tiempo.
+Nunca bloquea lo que estás escribiendo ni te interrumpe; si la carpeta no está
+disponible, lo vuelve a intentar en silencio.
 
-Ningún fichero se fusiona nunca y nadie pregunta «¿cuál es más nueva?», porque el
-directorio de un dispositivo tiene un único escritor: subiendo manda la tuya,
-bajando manda la suya.
+Nadie pregunta nunca «¿cuál es más nueva?», porque el directorio de cada equipo
+tiene un único escritor: subiendo manda la tuya, bajando manda la suya.
+
+Los documentos son lo único que dos equipos pueden escribir de verdad a la vez, y
+ahí Tisty los junta **bloque a bloque**: editas la introducción en el Mac,
+alguien edita el cierre en Windows, y las dos cosas llegan sin que tengas que
+responder nada. Solo cuando los cambios se pisan hay una pregunta, y ahí decides
+tú, con «quedarme las dos» ofrecido primero porque es la única respuesta que no
+pierde nada.
 
 Apunta a la misma carpeta dos máquinas que ya venías usando y Tisty se para y
 pregunta, porque tu propia segunda máquina y la carpeta de otra persona son el
 mismo gesto. Puedes **unir los dos historiales**, conservar esta máquina, o
-quedarte con lo que guarda la carpeta. Las tres respaldan antes.
+quedarte con lo que guarda la carpeta. Todas respaldan antes.
 
 Quién mantenga esa carpeta no es asunto de Tisty, y no hay nada nuestro en medio
 —ni cuenta, ni servidor, ni proceso residente—. Si no sincronizas nada, Tisty no
-abre un socket en su vida.
+abre una conexión en su vida.
 
-**O respalda a mano.** Un zip, guardado donde quieras. Restaurar es una foto:
-vuelves a ese momento y lo posterior se pierde a propósito. Las dos cosas se
-excluyen — la carpeta compartida ya contiene la historia de todas las máquinas,
-así que una foto al lado solo sería una verdad rival.
+**O respalda a mano.** Un zip, guardado donde quieras. Restaurar es como volver a
+una fotografía: vuelves a ese momento y lo posterior se pierde a propósito. Las
+dos cosas se excluyen, porque la carpeta compartida ya guarda la historia de
+todos tus equipos y una copia al lado sería otra verdad compitiendo con ella.
 
 ## En qué punto está
 
@@ -340,7 +347,8 @@ así que una foto al lado solo sería una verdad rival.
 | ✅ | Recordatorios, con notificación del sistema y un sonido que puedes apagar |
 | ✅ | Un registro de errores, y un informe que puedes adjuntar a un issue |
 | ✅ | macOS: imagen de disco universal, firmada y notarizada, y Homebrew |
-| ◐ | Documentos: almacén, carpetas, editor y referencias están; el transporte no |
+| ✅ | Documentos: editor, carpetas, adjuntos, y transporte que junta bloque a bloque |
+| ✅ | Dos historiales que se encuentran: unirlos, conservar un lado, o adoptar el de la carpeta |
 | ◐ | Uso diario, que es lo que saca los fallos que los tests no |
 | ◐ | Builds firmadas: el DMG y el `.exe` se publican; el paquete de la Store espera un nombre |
 | ⬜ | Linux, fase propia, sin empezar |
@@ -398,6 +406,10 @@ La lista completa, con versiones y licencias, está en `Cargo.lock` y
 `app/package-lock.json`.
 
 ## Contribuir
+
+Cómo funcionan de verdad el almacén, la fusión y el transporte está escrito en
+[ARCHITECTURE.es.md](ARCHITECTURE.es.md) — una referencia del comportamiento, no
+un paseo por el código.
 
 Lee [CONTRIBUTING.md](CONTRIBUTING.md). Abre un issue antes de escribir código
 para cualquier cosa que no sea una corrección: Tisty es deliberadamente
