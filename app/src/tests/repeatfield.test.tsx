@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import Fields from "../ui/Fields";
 import type { Repeat, Task } from "../core";
+import Fields from "../ui/Fields";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 

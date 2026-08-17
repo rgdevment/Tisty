@@ -43,7 +43,7 @@ export default function Journal({ entries, steps, onError, onWhole, onDoc, onWri
             value={entry.body}
             hint={t("writeLog")}
             label={entry.body}
-        steps={steps}
+            steps={steps}
             onError={onError}
             onWhole={onWhole}
             onDoc={onDoc}

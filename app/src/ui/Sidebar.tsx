@@ -1,9 +1,9 @@
 import { useState } from "react";
-import type { Folded, List, Papers, Filed } from "../core";
-import Tree from "./Tree";
+import mark from "../assets/tisty.png";
+import type { Filed, Folded, List, Papers } from "../core";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
-import mark from "../assets/tisty.png";
+import Tree from "./Tree";
 
 interface Props {
   lists: List[];
@@ -168,13 +168,16 @@ interface EntryProps {
 function Entry({ icon, label, count, on, muted, onClick }: EntryProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`flex items-center gap-2.5 rounded-[7px] px-2.5 py-1.5 text-left text-[13.5px] hover:bg-hover ${
         on ? "bg-active font-semibold" : ""
       } ${muted ? "text-faint" : "text-ink"}`}
     >
       {icon && (
-        <span className={`w-4 shrink-0 text-center text-[13px] ${on ? "text-accent" : "text-soft"}`}>
+        <span
+          className={`w-4 shrink-0 text-center text-[13px] ${on ? "text-accent" : "text-soft"}`}
+        >
           {icon}
         </span>
       )}

@@ -1,5 +1,5 @@
 import { ask } from "@tauri-apps/plugin-dialog";
-import { docs, paperRifts, settlePaper, weavePaper, type Pick, type Rift } from "./core";
+import { docs, type Pick, paperRifts, type Rift, settlePaper, weavePaper } from "./core";
 import { fill, t } from "./locales";
 
 const settling = new Set<string>();

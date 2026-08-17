@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useIcons } from "./Icons";
 import { t } from "../locales";
+import { useIcons } from "./Icons";
 
 export default function Glyphs({ onPick }: { onPick: (glyph: string) => void }) {
   const all = useIcons();

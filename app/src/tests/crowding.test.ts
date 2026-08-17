@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MANY, crowd } from "../previews";
+import { crowd, MANY } from "../previews";
 
 describe("counting what a document will have to draw", () => {
   it("counts nothing in words alone", () => {

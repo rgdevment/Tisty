@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
-import { useEdge } from "./edge";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useEffect, useState } from "react";
 import { attach } from "../core";
-import { docLink } from "../markdown";
 import { addressed } from "../linking";
-import Papers from "./Papers";
-import Asking from "./Asking";
-import { spawned } from "../making";
-import Row from "./Row";
 import { t } from "../locales";
+import { spawned } from "../making";
+import { docLink } from "../markdown";
+import Asking from "./Asking";
+import { useEdge } from "./edge";
+import Papers from "./Papers";
+import Row from "./Row";
 
 interface Props {
   steps?: string[];

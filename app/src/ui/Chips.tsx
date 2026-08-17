@@ -39,7 +39,9 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
             key={key}
             title={chip.offer ? t("offered") : chip.guessed ? t("guessed") : undefined}
             className={`relative inline-flex items-center rounded-md ${
-              chip.offer ? "border border-dashed border-line py-px pr-0.5 pl-1.5" : `${chip.tint} py-0.5 pr-0.5 pl-1.5`
+              chip.offer
+                ? "border border-dashed border-line py-px pr-0.5 pl-1.5"
+                : `${chip.tint} py-0.5 pr-0.5 pl-1.5`
             }`}
           >
             <span className="mr-1 w-3 text-center text-[11px] text-soft">{chip.glyph}</span>

@@ -43,11 +43,7 @@ describe("writing help the system provides", () => {
   it("says in the log when an attachment cannot be reached, instead of swallowing it", async () => {
     const { noteTrouble } = await import("../core");
     render(
-      <Editor
-        value="![charla](<attachments/ab/ausente.mp4>)"
-        papers={[]}
-        onWrite={vi.fn()}
-      />,
+      <Editor value="![charla](<attachments/ab/ausente.mp4>)" papers={[]} onWrite={vi.fn()} />,
     );
 
     await waitFor(() => expect(noteTrouble).toHaveBeenCalledWith("cannotRead"));

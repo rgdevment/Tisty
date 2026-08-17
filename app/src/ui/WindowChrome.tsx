@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useEffect, useRef, useState } from "react";
 import { t } from "../locales";
 
 export const onMac = navigator.userAgent.includes("Macintosh");
@@ -8,7 +8,12 @@ const ink = "rgb(0 0 0 / 0.58)";
 
 const Crossed = () => (
   <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true">
-    <path d="M3.1 3.1l3.8 3.8M6.9 3.1L3.1 6.9" stroke={ink} strokeWidth="1.15" strokeLinecap="round" />
+    <path
+      d="M3.1 3.1l3.8 3.8M6.9 3.1L3.1 6.9"
+      stroke={ink}
+      strokeWidth="1.15"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -73,6 +78,7 @@ export default function WindowChrome() {
       >
         {lights.map((one) => (
           <button
+            type="button"
             key={one.key}
             onClick={acts[one.key]}
             aria-label={t(one.key)}
@@ -98,6 +104,7 @@ export default function WindowChrome() {
     <div data-chrome className="fixed top-0 right-0 z-50 flex h-9 items-center gap-0.5 px-2">
       {buttons.map((button) => (
         <button
+          type="button"
           key={button.key}
           onClick={acts[button.key]}
           aria-label={t(button.key)}

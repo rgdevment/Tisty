@@ -193,8 +193,7 @@ export const complete = (id: string): Promise<Task> => invoke("complete", { id }
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });
 
-export const served = (reference: string): Promise<string> =>
-  invoke("served", { reference });
+export const served = (reference: string): Promise<string> => invoke("served", { reference });
 
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 
@@ -399,8 +398,7 @@ export const joinThem = (into: string): Promise<number> => invoke("join_them", {
 
 export const takeOver = (into: string): Promise<number> => invoke("take_over", { into });
 
-export const mergeStores = (into: string): Promise<boolean> =>
-  invoke("merge_stores", { into });
+export const mergeStores = (into: string): Promise<boolean> => invoke("merge_stores", { into });
 
 export type Kin = "sameLineage" | "clash" | "unsure" | "strangers";
 

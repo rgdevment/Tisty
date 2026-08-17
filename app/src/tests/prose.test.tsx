@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Prose from "../ui/Prose";
 
-
 function field(over: Partial<React.ComponentProps<typeof Prose>> = {}) {
   const onWrite = vi.fn();
   render(
@@ -142,7 +141,6 @@ describe("the / menu", () => {
 
     expect(box().value).toBe(" [https://x.example](https://x.example)");
   });
-
 
   it("closes on Escape without discarding what was written", async () => {
     const user = userEvent.setup();

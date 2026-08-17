@@ -76,13 +76,17 @@ const BIG = 3;
 describe("the palette holds up where it is actually painted", () => {
   it("soft clears AA on every tint it sits on", () => {
     for (const block of [LIGHT, DARK]) {
-      expect(worst(declared(block, "soft").rgb, groundsOf(block, MARKS))).toBeGreaterThanOrEqual(AA);
+      expect(worst(declared(block, "soft").rgb, groundsOf(block, MARKS))).toBeGreaterThanOrEqual(
+        AA,
+      );
     }
   });
 
   it("faint clears AA on plain and selected rows", () => {
     for (const block of [LIGHT, DARK]) {
-      expect(worst(declared(block, "faint").rgb, groundsOf(block, ROWS))).toBeGreaterThanOrEqual(AA);
+      expect(worst(declared(block, "faint").rgb, groundsOf(block, ROWS))).toBeGreaterThanOrEqual(
+        AA,
+      );
     }
   });
 

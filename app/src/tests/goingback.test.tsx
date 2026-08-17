@@ -8,15 +8,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 const shown = (onBack?: () => void) =>
-  render(
-    <TaskList
-      tasks={[]}
-      lists={[]}
-      title="Compras"
-      onBack={onBack}
-      onSelect={vi.fn()}
-    />,
-  );
+  render(<TaskList tasks={[]} lists={[]} title="Compras" onBack={onBack} onSelect={vi.fn()} />);
 
 describe("getting out of a list or a tag without the menu", () => {
   it("offers a way back when there is somewhere to go back to", async () => {

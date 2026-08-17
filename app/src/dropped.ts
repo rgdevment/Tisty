@@ -25,12 +25,8 @@ export function handTo(
   return put !== undefined;
 }
 
-export const asCss = (
-  x: number,
-  y: number,
-  mac: boolean,
-  scale: number,
-): [number, number] => (mac ? [x, y] : [x / (scale || 1), y / (scale || 1)]);
+export const asCss = (x: number, y: number, mac: boolean, scale: number): [number, number] =>
+  mac ? [x, y] : [x / (scale || 1), y / (scale || 1)];
 
 export function whenFilesLand(onCaught: Caught): () => void {
   let stop: (() => void) | undefined;

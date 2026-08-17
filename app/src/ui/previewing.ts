@@ -1,10 +1,10 @@
 import { Extension } from "@tiptap/core";
+import type { Node as Written } from "@tiptap/pm/model";
+import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import type { EditorState, Transaction } from "@tiptap/pm/state";
-import type { Node as Written } from "@tiptap/pm/model";
-import { KINDS, ending, named, pictured, previewOf, weighed, type Preview } from "../previews";
 import { t } from "../locales";
+import { ending, KINDS, named, type Preview, pictured, previewOf, weighed } from "../previews";
 
 export interface Reach {
   url: (reference: string) => string | null;

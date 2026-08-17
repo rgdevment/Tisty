@@ -6,8 +6,7 @@ import Welcome from "../ui/Welcome";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
-  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> =>
-    Promise.resolve(null),
+  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
 const asked = vi.hoisted(() => ({
@@ -238,8 +237,7 @@ describe("the maintenance panel", () => {
   it("says why the other cards went quiet", async () => {
     carrying.chosen = "G:/My Drive/tisty";
     const otherwise = ipc.answer;
-    ipc.answer = (cmd, args) =>
-      cmd === "sync_now" ? new Promise(() => {}) : otherwise(cmd, args);
+    ipc.answer = (cmd, args) => (cmd === "sync_now" ? new Promise(() => {}) : otherwise(cmd, args));
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/leaving copies in/i);
 
@@ -676,9 +674,7 @@ describe("the maintenance panel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
 
-    expect((await screen.findByRole("dialog")).textContent).toMatch(
-      /already holds another Tisty/i,
-    );
+    expect((await screen.findByRole("dialog")).textContent).toMatch(/already holds another Tisty/i);
   });
 
   it("does not leave you pointing at a folder you walked away from", async () => {
@@ -789,9 +785,7 @@ describe("the maintenance panel", () => {
     apart("otherStore");
     await carried();
 
-    expect((await screen.findByRole("dialog")).textContent).toMatch(
-      /already holds another Tisty/i,
-    );
+    expect((await screen.findByRole("dialog")).textContent).toMatch(/already holds another Tisty/i);
   });
 
   it("never shows a store identifier where a person reads", async () => {
@@ -819,9 +813,7 @@ describe("the maintenance panel", () => {
     asked.file = null;
     await carried();
 
-    await userEvent.click(
-      await screen.findByRole("button", { name: /take what the folder has/i }),
-    );
+    await userEvent.click(await screen.findByRole("button", { name: /take what the folder has/i }));
 
     await waitFor(() => expect(screen.getByText(/nothing was changed/i)).toBeTruthy());
     expect(sent("join_them")).toHaveLength(0);
@@ -832,9 +824,7 @@ describe("the maintenance panel", () => {
     asked.file = "C:/keep/tisty-before-joining.zip";
     await carried();
 
-    await userEvent.click(
-      await screen.findByRole("button", { name: /take what the folder has/i }),
-    );
+    await userEvent.click(await screen.findByRole("button", { name: /take what the folder has/i }));
 
     await waitFor(() => expect(sent("join_them")).toHaveLength(1));
     expect(sent("join_them")[0].args.into).toBe("C:/keep/tisty-before-joining.zip");

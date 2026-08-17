@@ -67,8 +67,8 @@ visible instead of making it for you.
 the only protection. This was a deliberate decision, not an oversight:
 encryption breaks the three-way merge of documents, which is precisely where
 synchronisation needs it most — two machines editing the same document are
-reconciled block by block, and that cannot be done on bytes nobody can read. The reasoning is in
-[SECURITY.md](SECURITY.md).
+reconciled block by block, and that cannot be done on bytes nobody can read. The
+reasoning is in [SECURITY.md](SECURITY.md).
 
 **Nothing is obfuscated.** If Tisty disappeared tomorrow, your data would
 still be readable with tools you already have. That is the point.
@@ -118,17 +118,17 @@ program, so nothing that arrives over the network can send you anywhere — whic
 is what a signature would otherwise be needed for.
 
 A link **you write or paste into a document** is a different matter: clicking it
-opens your browser, the way any Markdown reader does. Tisty does not follow it on
-its own, and never opens anything without a click. Worth knowing if a document
-reached you from a shared folder someone else can write to — the words of a link
-and where it goes are not obliged to agree, in Tisty or anywhere else.
+opens your browser, the way any Markdown reader does. Tisty does not follow it
+on its own, and never opens anything without a click. Worth knowing if a
+document reached you from a shared folder someone else can write to — the words
+of a link and where it goes are not obliged to agree, in Tisty or anywhere else.
 
 **Nothing is ever downloaded or installed for you.** What arrives is a line of
 text you can ignore; Tisty has no updater and does not want one. If a newer
 version exists, a line appears in *About*, and what it suggests depends on how
 this copy was installed: the Microsoft Store updates itself, a Homebrew install
-gets the command to run, and everything else gets a link you choose to open. Opening it is a normal
-browser navigation that you started.
+gets the command to run, and everything else gets a link you choose to open.
+Opening it is a normal browser navigation that you started.
 
 ## Children's privacy
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { scanned } from "../scanning";
 import type { Filed } from "../core";
+import { scanned } from "../scanning";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -73,8 +73,11 @@ describe("looking through every document for what the editor cannot keep", () =>
   });
 
   it("does not choke on a store with no documents at all", async () => {
-    expect(await scanned(() => Promise.resolve(""), () => Promise.resolve({ docs: [] }))).toEqual(
-      [],
-    );
+    expect(
+      await scanned(
+        () => Promise.resolve(""),
+        () => Promise.resolve({ docs: [] }),
+      ),
+    ).toEqual([]);
   });
 });

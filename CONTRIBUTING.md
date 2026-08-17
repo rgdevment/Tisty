@@ -6,18 +6,18 @@ Bug reports, feature discussions and pull requests are all welcome.
 
 **Open an issue first for anything beyond a bug fix.** Tisty is deliberately
 minimal and has an explicit list of things it will never do — task
-collaboration, kanban boards, time tracking, databases with typed
-properties, AI in the critical path. A pull request that adds one of those will be
-declined no matter how well it is written, and that is a waste of your
-evening. Asking first costs nothing.
+collaboration, kanban boards, time tracking, databases with typed properties, AI
+in the critical path. A pull request that adds one of those will be declined no
+matter how well it is written, and that is a waste of your evening. Asking first
+costs nothing.
 
 ## The CLA
 
-Tisty is released under the AGPL-3.0 **and** offered under separate
-[commercial terms](COMMERCIAL.md) to organisations that cannot comply with it.
-Because of that dual model, every contributor signs a one-time [CLA](CLA.md)
-before their code can be merged. Offering commercial terms requires the right to license the whole
-codebase that way, and that right has to come from each author explicitly.
+Tisty is released under the AGPL-3.0 **and** offered under separate [commercial
+terms](COMMERCIAL.md) to organisations that cannot comply with it. Because of
+that dual model, every contributor signs a one-time [CLA](CLA.md) before their
+code can be merged. Offering commercial terms requires the right to license the
+whole codebase that way, and that right has to come from each author explicitly.
 
 **You keep the copyright on your work.** The CLA is a licence you grant, not a
 transfer of ownership.

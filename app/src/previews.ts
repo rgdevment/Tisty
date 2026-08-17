@@ -88,7 +88,10 @@ export const crowd = (body: string): number => {
   while (at >= 0) {
     const end = body.indexOf(")", at + 2);
     if (end < 0) break;
-    const href = body.slice(at + 2, end).trim().replace(/^<|>$/g, "");
+    const href = body
+      .slice(at + 2, end)
+      .trim()
+      .replace(/^<|>$/g, "");
     if (previewOf(href)) count += 1;
     at = body.indexOf("](", end + 1);
   }

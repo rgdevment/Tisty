@@ -3,8 +3,7 @@ import { carrying } from "../carrying";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
-  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> =>
-    Promise.resolve(null),
+  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({

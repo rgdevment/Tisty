@@ -29,7 +29,9 @@ describe("following a link inside a document", () => {
     render(
       <Composed
         className=""
-        html={'<p><a data-inside="attachments/bb/report-9999.pdf" href="attachments/bb/report-9999.pdf">the report</a></p>'}
+        html={
+          '<p><a data-inside="attachments/bb/report-9999.pdf" href="attachments/bb/report-9999.pdf">the report</a></p>'
+        }
       />,
     );
 

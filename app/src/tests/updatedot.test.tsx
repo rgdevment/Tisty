@@ -21,22 +21,22 @@ const chosen = { named: "aboutScreen" } as Parameters<typeof Sidebar>[0]["chosen
 
 function bar(ready: boolean) {
   render(
-      <Sidebar
-        lists={[]}
-        papers={{ folders: [], docs: [] }}
-        counts={{}}
-        chosen={chosen}
-        ready={ready}
-        onChoose={vi.fn()}
-        onFile={vi.fn()}
-        onHere={vi.fn()}
-        onMove={vi.fn()}
-        onFolderMenu={vi.fn()}
-        onDocMenu={vi.fn()}
-        onDocsMenu={vi.fn()}
-        onHereMenu={vi.fn()}
-      />,
-    );
+    <Sidebar
+      lists={[]}
+      papers={{ folders: [], docs: [] }}
+      counts={{}}
+      chosen={chosen}
+      ready={ready}
+      onChoose={vi.fn()}
+      onFile={vi.fn()}
+      onHere={vi.fn()}
+      onMove={vi.fn()}
+      onFolderMenu={vi.fn()}
+      onDocMenu={vi.fn()}
+      onDocsMenu={vi.fn()}
+      onHereMenu={vi.fn()}
+    />,
+  );
 }
 
 describe("the update dot", () => {

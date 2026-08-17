@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { decideAll, decidesByBlock } from "../deciding";
 import type { Pick, Rift } from "../core";
+import { decideAll, decidesByBlock } from "../deciding";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],

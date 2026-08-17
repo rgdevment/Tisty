@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { useEffect, useRef, useState } from "react";
 import { opened, revealed, served } from "../core";
-import { INSIDE, docOf } from "../markdown";
-import { ending, named, pictured } from "../previews";
 import { t } from "../locales";
+import { docOf, INSIDE } from "../markdown";
+import { ending, named, pictured } from "../previews";
 
 interface Props {
   html: string;

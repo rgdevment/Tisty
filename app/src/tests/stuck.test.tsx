@@ -1,11 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Settling, Snapshot } from "../core";
 import App from "../App";
+import type { Settling, Snapshot } from "../core";
 
 const ipc = vi.hoisted(() => ({
-  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> =>
-    Promise.resolve(null),
+  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({

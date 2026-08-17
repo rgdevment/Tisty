@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import App from "../App";
 import type { Papers } from "../core";
 import { t } from "../locales";
-import App from "../App";
 import Docs from "../ui/Docs";
 import Tree from "../ui/Tree";
 
@@ -31,8 +31,7 @@ const store = vi.hoisted(() => ({
 }));
 
 const ipc = vi.hoisted(() => ({
-  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> =>
-    Promise.resolve(null),
+  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -97,7 +96,14 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
     case "sync_state":
       return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
     case "snapshot":
-      return Promise.resolve({ tasks: [], lists: [], tags: [], refs: [], counts: {}, locale: "en" });
+      return Promise.resolve({
+        tasks: [],
+        lists: [],
+        tags: [],
+        refs: [],
+        counts: {},
+        locale: "en",
+      });
     case "icons":
       return Promise.resolve([]);
     case "docs":
@@ -116,7 +122,10 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
       const body = String(args.body);
       store.writes.push({ id, body });
       store.bodies[id] = body;
-      const title = body.split("\n")[0].replace(/^#+\s*/, "").trim();
+      const title = body
+        .split("\n")[0]
+        .replace(/^#+\s*/, "")
+        .trim();
       const doc = store.docs.find((one) => one.file === id);
       if (doc) doc.title = title;
       return Promise.resolve({ id, title });
@@ -252,10 +261,16 @@ describe("archiving and bringing back a document", () => {
     await chooseFor("Report", t("putAway"));
 
     await waitFor(() =>
-      expect(within(screen.getByRole("list", { name: t("docs") })).queryByRole("button", { name: "Report" })).toBeNull(),
+      expect(
+        within(screen.getByRole("list", { name: t("docs") })).queryByRole("button", {
+          name: "Report",
+        }),
+      ).toBeNull(),
     );
     expect(
-      within(screen.getByRole("list", { name: t("archived") })).getByRole("button", { name: "Report" }),
+      within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {
+        name: "Report",
+      }),
     ).toBeTruthy();
     expect(countBadge("Work")).toBe("");
   });
@@ -382,7 +397,9 @@ describe("nothing filed yet", () => {
     render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} />);
 
     expect(
-      within(screen.getByRole("list", { name: t("archived") })).getByRole("button", { name: "Old" }),
+      within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {
+        name: "Old",
+      }),
     ).toBeTruthy();
     expect(
       within(screen.getByRole("list", { name: t("docs") })).queryByRole("button", { name: "Old" }),

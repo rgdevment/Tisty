@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Lists from "../ui/Lists";
 import type { List } from "../core";
+import Lists from "../ui/Lists";
 
 const store = vi.hoisted(() => ({
   looks: [] as { id: string; icon?: string }[],

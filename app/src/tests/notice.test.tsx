@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import Notice from "../ui/Notice";
 import type { Task } from "../core";
+import Notice from "../ui/Notice";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -67,9 +67,7 @@ describe("the capture notice", () => {
   });
 
   it("says so when what was filed is not in the list behind it", () => {
-    render(
-      <Notice task={task} lists={[]} elsewhere onOpen={() => {}} onDismiss={() => {}} />,
-    );
+    render(<Notice task={task} lists={[]} elsewhere onOpen={() => {}} onDismiss={() => {}} />);
 
     expect(screen.getByText(/Not in this view/i)).toBeTruthy();
   });

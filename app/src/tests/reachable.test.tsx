@@ -1,9 +1,9 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import Modal from "../ui/Modal";
-import Fields from "../ui/Fields";
 import type { Task } from "../core";
+import Fields from "../ui/Fields";
+import Modal from "../ui/Modal";
 
 const watching = vi.hoisted(() => ({ tell: null as ((e: { payload: boolean }) => void) | null }));
 
@@ -153,8 +153,7 @@ describe("what a screen reader is told", () => {
 });
 
 describe("the window buttons sit where the system puts them", () => {
-  const named = () =>
-    screen.getAllByRole("button").map((one) => one.getAttribute("aria-label"));
+  const named = () => screen.getAllByRole("button").map((one) => one.getAttribute("aria-label"));
 
   const chrome = async (agent: string) => {
     vi.resetModules();

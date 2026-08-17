@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { about, revealed, type About as Build, type Ready } from "../core";
-import { fill, t } from "../locales";
-import { saidPlainly } from "../refusal";
+import { useCallback, useEffect, useState } from "react";
 import copypaste from "../assets/copypaste.png";
 import linkunbound from "../assets/linkunbound.png";
+import { about, type About as Build, type Ready, revealed } from "../core";
+import { fill, t } from "../locales";
+import { saidPlainly } from "../refusal";
 
 const TOOLS = [
   {

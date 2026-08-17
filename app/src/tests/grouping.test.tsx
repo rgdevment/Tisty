@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import TaskList from "../ui/TaskList";
 import type { Task } from "../core";
+import TaskList from "../ui/TaskList";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -20,9 +20,7 @@ const done = (id: string, title: string, at: string): Task =>
   }) as unknown as Task;
 
 const archive = (tasks: Task[]) =>
-  render(
-    <TaskList tasks={tasks} lists={[]} title="Archive" bands="month" onSelect={() => {}} />,
-  );
+  render(<TaskList tasks={tasks} lists={[]} title="Archive" bands="month" onSelect={() => {}} />);
 
 describe("the archive folds repetitions", () => {
   it("shows one line with a count instead of three rows", async () => {

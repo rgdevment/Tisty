@@ -10,7 +10,9 @@ const NOTES: Record<Tone, Shape> = {
 let shared: AudioContext | undefined;
 
 function context(): AudioContext | undefined {
-  const Make = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  const Make =
+    window.AudioContext ??
+    (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Make) return undefined;
   shared ??= new Make();
   return shared;

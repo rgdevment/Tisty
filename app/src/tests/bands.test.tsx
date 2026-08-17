@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import TaskList from "../ui/TaskList";
 import { banded } from "../archive";
 import type { Task } from "../core";
+import TaskList from "../ui/TaskList";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -23,19 +23,14 @@ const task = (id: string, title: string, day?: string): Task =>
   }) as unknown as Task;
 
 const show = (tasks: Task[]) =>
-  render(
-    <TaskList tasks={tasks} lists={[]} title="Open" bands="day" onSelect={() => {}} />,
-  );
+  render(<TaskList tasks={tasks} lists={[]} title="Open" bands="day" onSelect={() => {}} />);
 
 describe("the day headings", () => {
   beforeEach(() => vi.setSystemTime(NOW));
   afterEach(() => vi.useRealTimers());
 
   it("separates what is late from what is due today", () => {
-    show([
-      task("1", "pagar la luz", "2026-08-04"),
-      task("2", "llamar al dentista", "2026-08-11"),
-    ]);
+    show([task("1", "pagar la luz", "2026-08-04"), task("2", "llamar al dentista", "2026-08-11")]);
 
     expect(screen.getByText("Overdue")).toBeTruthy();
     expect(screen.getByText("Today")).toBeTruthy();

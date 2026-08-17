@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
-import { asMarkdown, written } from "../ui/writing";
+import { describe, expect, it, vi } from "vitest";
 import { previewing, type Reach } from "../ui/previewing";
+import { asMarkdown, written } from "../ui/writing";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -273,17 +273,13 @@ describe("swapping one for the other", () => {
 
     said()?.untie();
 
-    expect(asMarkdown(editor)?.trim()).toBe(
-      "[contrato-91f2.pdf](attachments/contrato-91f2.pdf)",
-    );
+    expect(asMarkdown(editor)?.trim()).toBe("[contrato-91f2.pdf](attachments/contrato-91f2.pdf)");
 
     editor.destroy();
   });
 
   it("takes the card away from the same menu", () => {
-    const { editor, said } = menued(
-      "![contrato](<attachments/contrato-91f2.pdf>)\n\nqueda esto",
-    );
+    const { editor, said } = menued("![contrato](<attachments/contrato-91f2.pdf>)\n\nqueda esto");
 
     said()?.drop();
 

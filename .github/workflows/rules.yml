@@ -38,6 +38,47 @@ jobs:
             exit 1
           fi
 
+      - name: No blocks of comments in the code
+        run: |
+          found=$(find crates/*/src app/src-tauri/src -name '*.rs' -print0 \
+            | xargs -0 awk '
+                /^[[:space:]]*(\/\/|\/\/\/)/ && !/\/\/!|TODO|FIXME|SAFETY|noqa|https?:\/\// { run++; if (run == 2) print FILENAME ":" FNR; next }
+                { run = 0 }')
+          if [ -n "$found" ]; then
+            echo "$found"
+            echo "::error::a comment is one line for a non-obvious why; prose goes in planning/"
+            exit 1
+          fi
+
+      - name: No voseo in the Spanish anywhere
+        run: |
+          if grep -rniE '\b(vos|tenés|querés|podés|andá|mirá|hacé|che)\b' \
+             app/src/locales.ts crates/tisty-cli/locales README.es.md ARCHITECTURE.es.md; then
+            echo "::error::Spanish is neutral: no voseo"
+            exit 1
+          fi
+
+      - name: No peninsular Spanish in what a person reads
+        run: |
+          if grep -rniE '\b(fichero|ficheros|ordenador|pulsa|pulsar|pulsando)\b' \
+             app/src/locales.ts crates/tisty-cli/locales README.es.md ARCHITECTURE.es.md; then
+            echo "::error::use archivo, equipo, presionar"
+            exit 1
+          fi
+
+      - name: Both languages carry the same documents
+        run: |
+          for pair in "README.md README.es.md" "ARCHITECTURE.md ARCHITECTURE.es.md"; do
+            set -- $pair
+            for mark in '^#' '```' '^|'; do
+              a=$(grep -c "$mark" "$1"); b=$(grep -c "$mark" "$2")
+              if [ "$a" != "$b" ]; then
+                echo "::error::$1 and $2 differ in '$mark': $a vs $b"
+                exit 1
+              fi
+            done
+          done
+
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 

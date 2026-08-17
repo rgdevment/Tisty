@@ -16,12 +16,7 @@ export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
     <>
       {steps.map((step) => (
         <div key={step.id}>
-          <Line
-            step={step}
-            onWrite={onWrite}
-            onMark={onMark}
-            onDrop={onDrop}
-          />
+          <Line step={step} onWrite={onWrite} onMark={onMark} onDrop={onDrop} />
         </div>
       ))}
 
@@ -48,20 +43,13 @@ export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
   );
 }
 
-function Line({
-  step,
-  onWrite,
-  onMark,
-  onDrop,
-}: { step: Step } & Omit<Props, "steps">) {
+function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "steps">) {
   const [text, setText] = useState(step.text);
   const dropped = useRef(false);
   useEffect(() => setText(step.text), [step.id, step.text]);
 
   return (
-    <div
-      className="group flex items-start gap-2.5 py-1 text-[13.5px]"
-    >
+    <div className="group flex items-start gap-2.5 py-1 text-[13.5px]">
       <button
         type="button"
         role="checkbox"

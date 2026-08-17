@@ -68,9 +68,7 @@ describe("the mirror", () => {
   });
 
   it("stays out of the way when nothing was parsed", () => {
-    const { container } = render(
-      <Field icon="⌕" value="pan" hint="search" onChange={() => {}} />,
-    );
+    const { container } = render(<Field icon="⌕" value="pan" hint="search" onChange={() => {}} />);
     expect(container.querySelector("[aria-hidden]")).toBeNull();
   });
 });

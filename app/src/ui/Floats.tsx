@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
 import type { Editor as Writing } from "@tiptap/core";
-import { t } from "../locales";
+import { useEffect, useRef, useState } from "react";
 import { addressed } from "../linking";
+import { t } from "../locales";
 import { named, pictured, previewOf } from "../previews";
 
 interface Props {

@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { Task } from "../core";
 import TaskList from "../ui/TaskList";
 import { nothing } from "../views";
-import type { Task } from "../core";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -27,9 +27,7 @@ const stops = () =>
 describe("the list never loses its way in", () => {
   it("keeps a tab stop when the focused task leaves the list", () => {
     const three = [task("1", "una"), task("2", "dos"), task("3", "tres")];
-    const shown = render(
-      <TaskList tasks={three} lists={[]} title="Open" onSelect={() => {}} />,
-    );
+    const shown = render(<TaskList tasks={three} lists={[]} title="Open" onSelect={() => {}} />);
 
     screen.getAllByRole("listitem")[2].focus();
     shown.rerender(

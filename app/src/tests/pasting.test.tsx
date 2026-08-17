@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
-import { asMarkdown, written } from "../ui/writing";
+import { describe, expect, it, vi } from "vitest";
 import { stripped } from "../ui/Editor";
+import { asMarkdown, written } from "../ui/writing";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 

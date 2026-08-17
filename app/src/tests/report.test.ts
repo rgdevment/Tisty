@@ -109,10 +109,7 @@ describe("the report a bug gets attached to", () => {
   });
 
   it("says when the last copy was made where copies are this machine's job", () => {
-    const paper = written(
-      { ...seen, shared: false, backedUpAt: "2026-08-04T10:00:00Z" },
-      at,
-    );
+    const paper = written({ ...seen, shared: false, backedUpAt: "2026-08-04T10:00:00Z" }, at);
 
     expect(paper).toMatch(/backup\s+available/);
     expect(paper).not.toContain("none yet");

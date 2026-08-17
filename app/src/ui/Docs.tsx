@@ -1,11 +1,11 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { open as pick } from "@tauri-apps/plugin-dialog";
-import { attach, convertPaper, docRead, docWrite, opened, roomy, type Filed } from "../core";
-import { busy, holds, queued } from "../saving";
-import { fill, t } from "../locales";
-import { saidPlainly } from "../refusal";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { attach, convertPaper, docRead, docWrite, type Filed, opened, roomy } from "../core";
 import { frail } from "../frail";
-import { MANY, crowd, weighed } from "../previews";
+import { fill, t } from "../locales";
+import { crowd, MANY, weighed } from "../previews";
+import { saidPlainly } from "../refusal";
+import { busy, holds, queued } from "../saving";
 
 const Editor = lazy(() => import("./Editor"));
 
@@ -204,12 +204,12 @@ export default function Docs({
         className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint"
       >
         {saving
-            ? t("saving")
-            : brimming
-              ? fill("docBrimming", weighed(body.length))
-              : packed > MANY
-                ? fill("docCrowded", String(packed))
-                : ""}
+          ? t("saving")
+          : brimming
+            ? fill("docBrimming", weighed(body.length))
+            : packed > MANY
+              ? fill("docCrowded", String(packed))
+              : ""}
       </div>
       {reading && warned && open && (
         <div className="mx-auto mb-2 flex w-full max-w-[820px] flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]">

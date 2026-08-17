@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import Slash, { asked, narrowed, type Block } from "../ui/Slash";
+import Slash, { asked, type Block, narrowed } from "../ui/Slash";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CATCHES, takesFiles } from "../dropped";
-import { composed } from "../markdown";
 import { t } from "../locales";
+import { composed } from "../markdown";
 import Composed from "./Composed";
 import Insert from "./Insert";
 
