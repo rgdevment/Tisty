@@ -644,13 +644,24 @@ fn copy_held(
                 );
                 continue;
             }
-            let when = std::fs::metadata(&at).and_then(|m| m.modified()).ok();
-            written(&target, &body, when)?;
+            written(&target, &body)?;
             tisty_core::attach::noted(into.parent().unwrap_or(into), &reference, &body);
             done += 1;
         }
     }
     Ok(done)
+}
+
+const TAIL: u64 = 512;
+
+fn tail_of(at: &Path, len: u64) -> Option<Vec<u8>> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut file = std::fs::File::open(at).ok()?;
+    let want = len.min(TAIL);
+    file.seek(SeekFrom::Start(len - want)).ok()?;
+    let mut end = vec![0u8; want as usize];
+    file.read_exact(&mut end).ok()?;
+    Some(end)
 }
 
 fn same(from: &Path, to: &Path) -> bool {
@@ -660,11 +671,11 @@ fn same(from: &Path, to: &Path) -> bool {
     if a.len() != b.len() {
         return false;
     }
-    match (a.modified(), b.modified()) {
-        (Ok(a), Ok(b)) => a
-            .duration_since(b)
-            .or_else(|_| b.duration_since(a))
-            .is_ok_and(|apart| apart <= std::time::Duration::from_secs(2)),
+    if a.len() == 0 {
+        return true;
+    }
+    match (tail_of(from, a.len()), tail_of(to, b.len())) {
+        (Some(a), Some(b)) => a == b,
         _ => false,
     }
 }
@@ -672,7 +683,7 @@ fn same(from: &Path, to: &Path) -> bool {
 static ROUND: AtomicU64 = AtomicU64::new(0);
 
 fn write(at: &Path, body: &[u8]) -> Result<(), Trouble> {
-    written(at, body, None)
+    written(at, body)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -730,8 +741,7 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
             let body = tisty_core::docs::read(&dest.join(PAPERS), id)
                 .map_err(|e| Trouble::Unreadable(e.to_string()))?;
             std::fs::create_dir_all(data.join(PAPERS)).map_err(io)?;
-            let when = std::fs::metadata(&theirs).and_then(|m| m.modified()).ok();
-            written(&mine, body.as_bytes(), when)?;
+            written(&mine, body.as_bytes())?;
         }
         _ => {
             std::fs::create_dir_all(dest.join(PAPERS)).map_err(io)?;
@@ -926,8 +936,7 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
 fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     plainly(from)?;
     let body = std::fs::read(from).map_err(io)?;
-    let when = std::fs::metadata(from).and_then(|m| m.modified()).ok();
-    written(at, &body, when)
+    written(at, &body)
 }
 
 fn plainly(at: &Path) -> Result<(), Trouble> {
@@ -961,7 +970,7 @@ fn straight(at: &Path, under: &Path) -> Result<(), Trouble> {
     Ok(())
 }
 
-fn written(at: &Path, body: &[u8], when: Option<std::time::SystemTime>) -> Result<(), Trouble> {
+fn written(at: &Path, body: &[u8]) -> Result<(), Trouble> {
     if let Some(parent) = at.parent() {
         std::fs::create_dir_all(parent).map_err(io)?;
         let _ = tisty_core::paths::ours_alone(parent);
@@ -973,9 +982,6 @@ fn written(at: &Path, body: &[u8], when: Option<std::time::SystemTime>) -> Resul
         let file = std::fs::File::create(&tmp)?;
         std::io::Write::write_all(&mut &file, body)?;
         file.sync_all()?;
-        if let Some(when) = when {
-            file.set_modified(when)?;
-        }
         std::fs::rename(&tmp, at)
     })();
 
@@ -2786,6 +2792,74 @@ mod tests {
             written.contains_key(&kept),
             "lo que llega de fuera queda sin huella larga, solo con la corta del nombre"
         );
+    }
+
+    #[test]
+    fn what_lands_in_the_shared_folder_is_dated_now_so_a_cloud_client_notices_it() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let old = std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24 * 3);
+        let mine = one.store.join(&one.device).join("active.tisty");
+        std::fs::File::open(&mine)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let landed = shared
+            .path()
+            .join(STORE)
+            .join(&one.device)
+            .join("active.tisty");
+        let when = std::fs::metadata(&landed)
+            .and_then(|m| m.modified())
+            .unwrap();
+        let apart = std::time::SystemTime::now().duration_since(when).unwrap();
+        assert!(
+            apart < std::time::Duration::from_secs(60),
+            "aterrizo con fecha de hace {apart:?}: un cliente de nube no lo ve como cambio"
+        );
+    }
+
+    #[test]
+    fn a_round_that_changed_nothing_still_does_not_copy_again() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let landed = shared
+            .path()
+            .join(STORE)
+            .join(&one.device)
+            .join("active.tisty");
+        let was = std::fs::metadata(&landed)
+            .and_then(|m| m.modified())
+            .unwrap();
+
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        let done = carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        assert_eq!(done.sent, 0, "volvio a copiar lo que no habia cambiado");
+        assert_eq!(
+            std::fs::metadata(&landed)
+                .and_then(|m| m.modified())
+                .unwrap(),
+            was,
+            "lo reescribio sin motivo"
+        );
+    }
+
+    #[test]
+    fn two_bodies_of_one_size_but_different_content_are_not_taken_for_equal() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a");
+        let b = dir.path().join("b");
+        std::fs::write(&a, b"una linea igual de larga\n").unwrap();
+        std::fs::write(&b, b"otra linea igual de larga\n").unwrap();
+
+        assert!(!same(&a, &b), "la fecha decidia, no el contenido");
+        std::fs::write(&b, b"una linea igual de larga\n").unwrap();
+        assert!(same(&a, &b));
     }
 
     #[test]
