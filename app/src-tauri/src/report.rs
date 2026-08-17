@@ -83,37 +83,26 @@ pub struct Machine {
 }
 
 pub fn machines(
-    store: &Path,
+    told: &[tisty_core::event::Event],
     mine: &str,
     gone: &std::collections::BTreeSet<tisty_core::DeviceId>,
 ) -> Vec<Machine> {
-    let Ok(entries) = std::fs::read_dir(store) else {
-        return Vec::new();
-    };
-    let mut all: Vec<Machine> = entries
-        .filter_map(|one| one.ok())
-        .filter(|one| one.file_type().map(|kind| kind.is_dir()).unwrap_or(false))
-        .filter_map(|one| {
-            let id = one.file_name().to_str()?.to_string();
-            let when = tisty_core::store::segments_in(&one.path())
-                .ok()?
-                .iter()
-                .filter_map(|at| std::fs::metadata(at).ok()?.modified().ok())
-                .filter_map(|when| when.duration_since(std::time::UNIX_EPOCH).ok())
-                .map(|gone| gone.as_secs() as i64)
-                .max()
-                .unwrap_or(0);
-            if gone.contains(&tisty_core::DeviceId(id.clone())) {
-                return None;
-            }
-            let mine = id == mine;
-            let called = tisty_core::config::nicknamed(&id);
-            Some(Machine {
-                id,
-                called,
-                when,
-                mine,
-            })
+    let mut last: std::collections::BTreeMap<&tisty_core::DeviceId, i64> = Default::default();
+    for one in told {
+        let when = one.timestamp.as_second();
+        last.entry(&one.device)
+            .and_modify(|held| *held = (*held).max(when))
+            .or_insert(when);
+    }
+
+    let mut all: Vec<Machine> = last
+        .into_iter()
+        .filter(|(who, _)| !gone.contains(*who))
+        .map(|(who, when)| Machine {
+            id: who.0.clone(),
+            called: tisty_core::config::nicknamed(&who.0),
+            when,
+            mine: who.0 == mine,
         })
         .collect();
     all.sort_by(|a, b| b.when.cmp(&a.when).then_with(|| a.id.cmp(&b.id)));
@@ -233,16 +222,28 @@ mod tests {
         assert_eq!(held.bytes, 8);
     }
 
+    fn wrote(who: &str, ago: i64) -> tisty_core::Event {
+        let when = jiff::Timestamp::now() - jiff::SignedDuration::from_secs(ago);
+        tisty_core::Event {
+            version: 1,
+            timestamp: when,
+            device: tisty_core::DeviceId(who.into()),
+            batch: None,
+            undo: false,
+            redo: false,
+            seq: 0,
+            op: tisty_core::event::Op::TaskAdd {
+                id: ulid::Ulid::generate(),
+                d: tisty_core::event::TaskAdd::new("algo", "a0"),
+            },
+        }
+    }
+
     #[test]
     fn every_machine_that_ever_wrote_is_named() {
-        let tmp = tempfile::tempdir().unwrap();
-        for who in ["mac0", "win1"] {
-            let at = tmp.path().join(who);
-            std::fs::create_dir_all(&at).unwrap();
-            std::fs::write(at.join("active.tisty"), b"an event").unwrap();
-        }
+        let told = [wrote("mac0", 0), wrote("win1", 60)];
 
-        let all = machines(tmp.path(), "mac0", &Default::default());
+        let all = machines(&told, "mac0", &Default::default());
 
         assert_eq!(all.len(), 2);
         assert_eq!(all.iter().filter(|one| one.mine).count(), 1);
@@ -253,58 +254,20 @@ mod tests {
     }
 
     #[test]
-    fn a_machine_that_was_removed_stops_being_listed_even_though_its_history_stays() {
-        let tmp = tempfile::tempdir().unwrap();
-        for who in ["mac0", "win1"] {
-            let at = tmp.path().join(who);
-            std::fs::create_dir_all(&at).unwrap();
-            std::fs::write(at.join("active.tisty"), b"an event").unwrap();
-        }
+    fn a_machine_that_was_removed_stops_being_listed() {
+        let told = [wrote("mac0", 0), wrote("win1", 60)];
 
-        let all = machines(
-            tmp.path(),
-            "mac0",
-            &[tisty_core::DeviceId("win1".into())].into(),
-        );
+        let all = machines(&told, "mac0", &[tisty_core::DeviceId("win1".into())].into());
 
         assert_eq!(all.len(), 1, "removing did not remove it from the list");
         assert_eq!(all[0].id, "mac0");
-        assert!(
-            tmp.path().join("win1").join("active.tisty").exists(),
-            "removing a machine threw away its history"
-        );
-    }
-
-    #[test]
-    fn a_machine_that_never_wrote_still_shows_up_with_nothing_to_show() {
-        let tmp = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(tmp.path().join("win1")).unwrap();
-
-        let all = machines(tmp.path(), "mac0", &Default::default());
-
-        assert_eq!(all.len(), 1);
-        assert_eq!(all[0].when, 0);
-        assert!(!all[0].mine);
     }
 
     #[test]
     fn the_one_that_wrote_last_is_shown_first() {
-        let tmp = tempfile::tempdir().unwrap();
-        for who in ["old0", "new1"] {
-            let at = tmp.path().join(who);
-            std::fs::create_dir_all(&at).unwrap();
-            std::fs::write(at.join("active.tisty"), b"an event").unwrap();
-        }
-        let older =
-            std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24 * 12);
-        std::fs::File::options()
-            .write(true)
-            .open(tmp.path().join("old0").join("active.tisty"))
-            .unwrap()
-            .set_modified(older)
-            .unwrap();
+        let told = [wrote("old0", 60 * 60 * 24 * 12), wrote("new1", 0)];
 
-        let all = machines(tmp.path(), "new1", &Default::default());
+        let all = machines(&told, "new1", &Default::default());
 
         assert_eq!(all[0].id, "new1");
         assert!(
@@ -315,25 +278,10 @@ mod tests {
 
     #[test]
     fn a_machine_is_dated_by_its_last_write_and_not_its_first() {
-        let tmp = tempfile::tempdir().unwrap();
-        let at = tmp.path().join("mac0");
-        std::fs::create_dir_all(&at).unwrap();
-        std::fs::write(at.join("000001.tisty"), b"an old event").unwrap();
-        std::fs::write(at.join("active.tisty"), b"what was written just now").unwrap();
-        let older =
-            std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24 * 30);
-        std::fs::File::options()
-            .write(true)
-            .open(at.join("000001.tisty"))
-            .unwrap()
-            .set_modified(older)
-            .unwrap();
+        let told = [wrote("mac0", 60 * 60 * 24 * 30), wrote("mac0", 0)];
 
-        let when = machines(tmp.path(), "mac0", &Default::default())[0].when;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+        let when = machines(&told, "mac0", &Default::default())[0].when;
+        let now = jiff::Timestamp::now().as_second();
 
         assert!(
             now - when < 60 * 60,
@@ -342,13 +290,17 @@ mod tests {
     }
 
     #[test]
-    fn what_is_not_a_segment_never_passes_for_one() {
-        let tmp = tempfile::tempdir().unwrap();
-        let at = tmp.path().join("mac0");
-        std::fs::create_dir_all(&at).unwrap();
-        std::fs::write(at.join("notes.txt"), b"not a segment").unwrap();
+    fn a_machine_is_dated_by_what_it_wrote_not_by_when_the_copy_landed_here() {
+        let told = [wrote("mac0", 0), wrote("win1", 60 * 60 * 24 * 12)];
 
-        assert_eq!(machines(tmp.path(), "mac0", &Default::default())[0].when, 0);
+        let all = machines(&told, "mac0", &Default::default());
+        let quiet = all.iter().find(|one| one.id == "win1").unwrap();
+        let ago = jiff::Timestamp::now().as_second() - quiet.when;
+
+        assert!(
+            ago > 60 * 60 * 24 * 11,
+            "una maquina callada doce dias parecia recien escrita: {ago}s"
+        );
     }
 
     #[test]

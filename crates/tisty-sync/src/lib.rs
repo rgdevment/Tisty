@@ -87,7 +87,8 @@ pub fn carry_leaning_on(
         said = as_told(&store, aside);
         match &said {
             Some(one) => {
-                moved.brought += copy_held(&dest.join(HELD), &data.join(HELD), &one.retired, false)?;
+                moved.brought +=
+                    copy_held(&dest.join(HELD), &data.join(HELD), &one.retired, false)?;
             }
             None => witness::warn(
                 channel::SYNC,
@@ -2937,6 +2938,40 @@ mod tests {
         std::fs::write(&b, &body).unwrap();
 
         assert!(!same(&a, &b));
+    }
+
+    #[test]
+    fn a_difference_inside_the_tail_is_seen_even_in_a_body_far_longer_than_the_window() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a");
+        let b = dir.path().join("b");
+        let mut body = vec![b'x'; 2000];
+        std::fs::write(&a, &body).unwrap();
+        body[1900] = b'z';
+        std::fs::write(&b, &body).unwrap();
+
+        assert_eq!(std::fs::metadata(&a).unwrap().len(), 2000);
+        assert!(
+            !same(&a, &b),
+            "difieren a 100 bytes del final y pasaron por iguales: la ventana es corta o mira al principio"
+        );
+    }
+
+    #[test]
+    fn the_window_reads_the_end_of_the_file_and_not_the_beginning() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = dir.path().join("a");
+        let b = dir.path().join("b");
+        let mut body = vec![b'x'; 2000];
+        body[0] = b'a';
+        std::fs::write(&a, &body).unwrap();
+        body[1999] = b'z';
+        std::fs::write(&b, &body).unwrap();
+
+        assert!(
+            !same(&a, &b),
+            "solo se distinguen por el ultimo byte, asi que leer el principio los daria por iguales"
+        );
     }
 
     #[test]

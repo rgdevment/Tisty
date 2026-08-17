@@ -1184,6 +1184,7 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
     let adrift = tisty_core::attach::loose(session.paths.data(), &held);
 
     let kept = report::attachments(session.paths.data());
+    let told = tisty_core::store::read_all(session.paths.store()).unwrap_or_default();
 
     Ok(Reviewed {
         tasks: session.state.tasks.len(),
@@ -1202,11 +1203,9 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
                 .collect::<Vec<_>>(),
         )
         .len(),
-        events: tisty_core::store::read_all(session.paths.store())
-            .map(|all| all.len())
-            .unwrap_or(0),
+        events: told.len(),
         machines: report::machines(
-            &session.paths.store(),
+            &told,
             session.config.device_id.0.as_str(),
             &session.state.dropped,
         ),
@@ -2506,6 +2505,7 @@ async fn sync_now(
     let way = match way.as_deref() {
         Some("push") => tisty_sync::Way::Push,
         Some("pull") => tisty_sync::Way::Pull,
+        Some("again") => tisty_sync::Way::Again,
         _ => tisty_sync::Way::Both,
     };
 
