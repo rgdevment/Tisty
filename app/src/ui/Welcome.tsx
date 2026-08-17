@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useState } from "react";
 import { chooseSync } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -38,45 +38,41 @@ export default function Welcome({ onDone }: Props) {
 
   return (
     <Modal title={t("welcomeTitle")}>
-        <p className="mt-2 text-[12.5px] leading-relaxed text-soft">{t("welcomeWhy")}</p>
+      <p className="mt-2 text-[12.5px] leading-relaxed text-soft">{t("welcomeWhy")}</p>
 
-        <div className="mt-5 flex flex-col gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => settle(undefined)}
-            className="rounded-lg border border-line px-3.5 py-2.5 text-left hover:bg-hover"
-          >
-            <span className="block text-[13.5px] font-medium">{t("welcomeAlone")}</span>
-            <span className="block text-xs text-faint">{t("welcomeAloneWhy")}</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={busy}
-            onClick={pick}
-            className="rounded-lg border border-line px-3.5 py-2.5 text-left hover:bg-hover"
-          >
-            <span className="block text-[13.5px] font-medium">{t("welcomeShared")}</span>
-            <span className="block text-xs text-faint">{t("welcomeSharedWhy")}</span>
-          </button>
-        </div>
-
-        {trouble && (
-          <p role="alert" className="mt-3 text-xs text-urgent">
-            {trouble}
-          </p>
-        )}
-
-        <p className="mt-4 text-xs leading-relaxed text-faint">{t("welcomeRedundancy")}</p>
+      <div className="mt-5 flex flex-col gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => settle(undefined)}
+          className="rounded-lg border border-line px-3.5 py-2.5 text-left hover:bg-hover"
+        >
+          <span className="block text-[13.5px] font-medium">{t("welcomeAlone")}</span>
+          <span className="block text-xs text-faint">{t("welcomeAloneWhy")}</span>
+        </button>
 
         <button
           type="button"
-          onClick={onDone}
-          className="mt-4 text-xs text-faint hover:text-ink"
+          disabled={busy}
+          onClick={pick}
+          className="rounded-lg border border-line px-3.5 py-2.5 text-left hover:bg-hover"
         >
-          {t("welcomeLater")}
+          <span className="block text-[13.5px] font-medium">{t("welcomeShared")}</span>
+          <span className="block text-xs text-faint">{t("welcomeSharedWhy")}</span>
         </button>
+      </div>
+
+      {trouble && (
+        <p role="alert" className="mt-3 text-xs text-urgent">
+          {trouble}
+        </p>
+      )}
+
+      <p className="mt-4 text-xs leading-relaxed text-faint">{t("welcomeRedundancy")}</p>
+
+      <button type="button" onClick={onDone} className="mt-4 text-xs text-faint hover:text-ink">
+        {t("welcomeLater")}
+      </button>
     </Modal>
   );
 }

@@ -1,22 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Editor as Writing } from "@tiptap/core";
 import type { Node as Written } from "@tiptap/pm/model";
 import { NodeSelection } from "@tiptap/pm/state";
-import { asMarkdown, written } from "./writing";
-import { convertFileSrc } from "@tauri-apps/api/core";
-import { docRead, noteTrouble, served, weighs, type Filed } from "../core";
-import { previewing, type Reach } from "./previewing";
-import { DOC, docLink, docOf } from "../markdown";
+import { EditorContent, useEditor } from "@tiptap/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { docRead, type Filed, noteTrouble, served, weighs } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
-import Slash, { asked, narrowed, type Block } from "./Slash";
+import { spawned } from "../making";
+import { DOC, docLink, docOf } from "../markdown";
+import Asking from "./Asking";
 import Floats from "./Floats";
+import Glyphs from "./Glyphs";
 import Menu from "./Menu";
 import Papers from "./Papers";
-import Glyphs from "./Glyphs";
-import Asking from "./Asking";
-import { spawned } from "../making";
+import { previewing, type Reach } from "./previewing";
+import Slash, { asked, type Block, narrowed } from "./Slash";
+import { asMarkdown, written } from "./writing";
 
 export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
@@ -34,10 +34,7 @@ export const clicking =
     const at = view.state.doc.resolve(pos);
     const picture = view.state.doc.nodeAt(pos);
     const src = picture?.type.name === "image" ? String(picture.attrs.src ?? "") : "";
-    const link = at
-      .marks()
-      .find((one) => one.type.name === "link")
-      ?.attrs.href;
+    const link = at.marks().find((one) => one.type.name === "link")?.attrs.href;
     const target = src || String(link ?? "");
     if (!target) return false;
     const paper = docOf(target);
@@ -59,12 +56,8 @@ export const glimpsed = (body: string): string =>
     .join(" · ")
     .slice(0, 160);
 
-export const perched = (
-  empty: boolean,
-  code: boolean,
-  hushed: boolean,
-  whole: boolean,
-): boolean => !hushed && !empty && !code && !whole;
+export const perched = (empty: boolean, code: boolean, hushed: boolean, whole: boolean): boolean =>
+  !hushed && !empty && !code && !whole;
 
 export const stale = (value: string, mine: string, shown: () => string | null): boolean =>
   value !== mine && shown() !== value;
@@ -466,7 +459,6 @@ export default function Editor({
       return null;
     },
   };
-
 
   const opened = Boolean(asking) && shown.length > 0;
   const current = Math.min(active, shown.length - 1);

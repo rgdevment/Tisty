@@ -1,6 +1,6 @@
-import { beforeAll, describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
 import { MarkdownSerializerState } from "prosemirror-markdown";
+import { beforeAll, describe, expect, it } from "vitest";
 import { asMarkdown, leaned, unaided, written } from "../ui/writing";
 
 type Loose = Record<string, unknown>;
@@ -23,11 +23,18 @@ const glimpsed = (): Loose => {
   };
   serialize("hola **mundo ** y *algo* y ![i](a.png)");
   proto.esc = esc;
-  if (!caught) throw new Error("no serializer state reached esc(): prosemirror-markdown changed under writing.ts");
+  if (!caught)
+    throw new Error(
+      "no serializer state reached esc(): prosemirror-markdown changed under writing.ts",
+    );
   return caught;
 };
 
-const tidy = (source: string | null) => (source ?? "").replace(/\/\/[^\n]*/g, " ").replace(/\s+/g, " ").trim();
+const tidy = (source: string | null) =>
+  (source ?? "")
+    .replace(/\/\/[^\n]*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 let pins: Record<string, string | null>;
 
@@ -70,7 +77,9 @@ describe("the library source writing.ts copied, pinned so an upgrade cannot slip
   });
 
   it("prosemirror-markdown ensureNewLine", () => {
-    expect(tidy(pins.ensureNewLine)).toBe('ensureNewLine() { if (!this.atBlank()) this.out += "\\n"; }');
+    expect(tidy(pins.ensureNewLine)).toBe(
+      'ensureNewLine() { if (!this.atBlank()) this.out += "\\n"; }',
+    );
   });
 
   it("prosemirror-markdown flushClose", () => {
@@ -93,7 +102,7 @@ describe("the library source writing.ts copied, pinned so an upgrade cannot slip
 
   it("prosemirror-markdown esc, which the buffered text() keeps calling", () => {
     expect(tidy(pins.esc)).toBe(
-      "esc(str, startOfLine = false) { str = str.replace(/[`*\\\\~\\[\\]_]/g, (m, i) => m == \"_\" && i > 0 && i + 1 < str.length && str[i - 1].match(/\\w/) && str[i + 1].match(/\\w/) ? m : \"\\\\\" + m); if (startOfLine) str = str.replace(/^(\\+[ ]|[\\-*>])/, \"\\\\$&\").replace(/^(\\s*)(#{1,6})(\\s|$)/, '$1\\\\$2$3').replace(/^(\\s*\\d+)\\.\\s/, \"$1\\\\. \"); if (this.options.escapeExtraCharacters) str = str.replace(this.options.escapeExtraCharacters, \"\\\\$&\"); return str; }",
+      'esc(str, startOfLine = false) { str = str.replace(/[`*\\\\~\\[\\]_]/g, (m, i) => m == "_" && i > 0 && i + 1 < str.length && str[i - 1].match(/\\w/) && str[i + 1].match(/\\w/) ? m : "\\\\" + m); if (startOfLine) str = str.replace(/^(\\+[ ]|[\\-*>])/, "\\\\$&").replace(/^(\\s*)(#{1,6})(\\s|$)/, \'$1\\\\$2$3\').replace(/^(\\s*\\d+)\\.\\s/, "$1\\\\. "); if (this.options.escapeExtraCharacters) str = str.replace(this.options.escapeExtraCharacters, "\\\\$&"); return str; }',
     );
   });
 

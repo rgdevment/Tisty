@@ -1,12 +1,12 @@
-import StarterKit from "@tiptap/starter-kit";
+import type { Editor as Writing } from "@tiptap/core";
 import { Image } from "@tiptap/extension-image";
-import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
-import { TaskList } from "@tiptap/extension-task-list";
+import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { TaskItem } from "@tiptap/extension-task-item";
+import { TaskList } from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
+import StarterKit from "@tiptap/starter-kit";
 import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
-import type { Editor as Writing } from "@tiptap/core";
 
 const inked = Symbol("ink");
 const peeked = Symbol("peek");
@@ -208,7 +208,11 @@ const swift = {
   normalizeInline(this: Scanning, inline: Inline): Inline {
     const peek = inkOf(this).near(Math.max(0, inline.start - 1));
     this[peeked] = peek;
-    const shifted = { ...inline, start: inline.start - peek.from, end: (inline.end ?? 0) - peek.from };
+    const shifted = {
+      ...inline,
+      start: inline.start - peek.from,
+      end: (inline.end ?? 0) - peek.from,
+    };
     return (plainScanned as Pick<Scanning, "normalizeInline">).normalizeInline.call(this, shifted);
   },
 };
@@ -218,7 +222,11 @@ function learn(proto: Scanning): void {
   const owns = (name: string) => Object.prototype.hasOwnProperty.call(proto, name);
   if (!owns("markString") || !owns("normalizeInline") || !owns("render")) return;
   scanned = proto;
-  plainScanned = { markString: proto.markString, normalizeInline: proto.normalizeInline, render: proto.render };
+  plainScanned = {
+    markString: proto.markString,
+    normalizeInline: proto.normalizeInline,
+    render: proto.render,
+  };
   if (buffered) {
     proto.markString = swift.markString;
     proto.normalizeInline = swift.normalizeInline;
@@ -320,7 +328,10 @@ const Tightened = TaskList.extend({
 });
 
 export const written = () => [
-  StarterKit.configure({ link: { openOnClick: false, autolink: true, protocols: ["tisty"] }, text: false }),
+  StarterKit.configure({
+    link: { openOnClick: false, autolink: true, protocols: ["tisty"] },
+    text: false,
+  }),
   Pictured,
   Table.configure({ resizable: false }),
   TableRow,
@@ -334,7 +345,8 @@ export const written = () => [
 
 export const asMarkdown = (editor: Writing): string | null => {
   if (editor.isDestroyed) return null;
-  const kept = (editor.storage as unknown as { markdown?: { getMarkdown?: () => string } }).markdown;
+  const kept = (editor.storage as unknown as { markdown?: { getMarkdown?: () => string } })
+    .markdown;
   return typeof kept?.getMarkdown === "function" ? kept.getMarkdown() : null;
 };
 

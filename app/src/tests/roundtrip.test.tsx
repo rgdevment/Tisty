@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
-import { asMarkdown, written } from "../ui/writing";
+import { describe, expect, it } from "vitest";
 import { asked, narrowed } from "../ui/Slash";
+import { asMarkdown, written } from "../ui/writing";
 
 const build = (content: string) => new Editor({ extensions: written(), content });
 
@@ -34,19 +34,27 @@ describe("what this suite is measuring", () => {
 
 describe("the markdown each formatting command writes", () => {
   it("wraps the selection in ** for bold", () => {
-    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleBold().run())).toBe("**hello**");
+    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleBold().run())).toBe(
+      "**hello**",
+    );
   });
 
   it("wraps the selection in * for italic", () => {
-    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleItalic().run())).toBe("*hello*");
+    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleItalic().run())).toBe(
+      "*hello*",
+    );
   });
 
   it("wraps the selection in ~~ for strikethrough", () => {
-    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleStrike().run())).toBe("~~hello~~");
+    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleStrike().run())).toBe(
+      "~~hello~~",
+    );
   });
 
   it("wraps the selection in a single backtick for inline code", () => {
-    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleCode().run())).toBe("`hello`");
+    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleCode().run())).toBe(
+      "`hello`",
+    );
   });
 
   it("fences the paragraph off for a code block", () => {
@@ -56,19 +64,27 @@ describe("the markdown each formatting command writes", () => {
   });
 
   it("prefixes the line with > for a quote", () => {
-    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleBlockquote().run())).toBe("> hello");
+    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleBlockquote().run())).toBe(
+      "> hello",
+    );
   });
 
   it("prefixes the line with - for a bulleted list", () => {
-    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleBulletList().run())).toBe("- hello");
+    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleBulletList().run())).toBe(
+      "- hello",
+    );
   });
 
   it("prefixes the line with 1. for a numbered list", () => {
-    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleOrderedList().run())).toBe("1. hello");
+    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleOrderedList().run())).toBe(
+      "1. hello",
+    );
   });
 
   it("prefixes the line with an empty checkbox for a task list", () => {
-    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleTaskList().run())).toBe("- [ ] hello");
+    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleTaskList().run())).toBe(
+      "- [ ] hello",
+    );
   });
 
   it("marks a level 1 heading with a single #", () => {
@@ -94,24 +110,32 @@ describe("the markdown each formatting command writes", () => {
   });
 
   it("separates a divider from the text above it with a blank line", () => {
-    expect(formatted("hello", (e) => e.chain().focus("end").setHorizontalRule().run())).toBe("hello\n\n---");
+    expect(formatted("hello", (e) => e.chain().focus("end").setHorizontalRule().run())).toBe(
+      "hello\n\n---",
+    );
   });
 
   it("writes a fresh table as a header row, its separator, and two empty body rows", () => {
     expect(
-      formatted("", (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()),
+      formatted("", (e) =>
+        e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+      ),
     ).toBe("|  |  |  |\n| --- | --- | --- |\n|  |  |  |\n|  |  |  |\n");
   });
 
   it("writes a link as its text in brackets and the address in parentheses", () => {
     expect(
-      formatted("hello", (e) => e.chain().focus().selectAll().setLink({ href: "https://example.com" }).run()),
+      formatted("hello", (e) =>
+        e.chain().focus().selectAll().setLink({ href: "https://example.com" }).run(),
+      ),
     ).toBe("[hello](https://example.com)");
   });
 
   it("writes an image as its alt text and its address", () => {
     expect(
-      formatted("", (e) => e.chain().focus().setImage({ src: "https://example.com/x.png", alt: "a shot" }).run()),
+      formatted("", (e) =>
+        e.chain().focus().setImage({ src: "https://example.com/x.png", alt: "a shot" }).run(),
+      ),
     ).toBe("![a shot](https://example.com/x.png)");
   });
 });

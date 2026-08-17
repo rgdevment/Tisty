@@ -7,7 +7,7 @@ comporta el sistema, no una crónica de por qué se diseñó así.
 
 ## Las dos capas
 
-```
+```text
 <data>/store/                    la verdad. Se sincroniza. Sobrevive a todo.
 ├── dev_a3f1/
 │   ├── 000001.tisty             segmento cerrado, nunca se vuelve a escribir
@@ -105,7 +105,7 @@ cerrado que lleva lo que soltó; ese orden no puede costarle a nadie su copia.
 Nada se edita nunca. Se registran hechos sobre una entidad, y la entidad se
 identifica con un ULID que significa lo mismo en todas partes.
 
-```
+```text
 dev_mac      task.add    MNKMPX  "comprar pan"
 dev_windows  task.log    MNKMPX  "fui a la tienda de la esquina"
              task.done   MNKMPX
@@ -132,7 +132,7 @@ Una repetición es **una tarea por ocurrencia**, no una entidad que va
 coleccionando finalizaciones. Terminar «sacar la basura cada martes» escribe dos
 eventos en un mismo lote: la finalización y la tarea del martes que viene.
 
-```
+```text
 task.done   MNKMPX
 task.add    MNKMQ2   "sacar la basura"   2026-08-18
 ```
@@ -146,9 +146,14 @@ que «esta semana no pasó el camión» tiene dónde vivir. El archivo pliega la
 repeticiones de un mismo mes en una sola línea para que las filas no se vuelvan
 ruido.
 
-Una cadencia la abre una palabra (`every`, `each`), dos (`todos los`), o un
-adverbio que es la cadencia entera (`daily`, `weekly`, `annually`). Un día por
-repetición: «martes y jueves» son dos tareas, no una.
+**El analizador lee los dos idiomas de la interfaz**, y cada uno tiene su propio
+vocabulario en `tisty-nl/src/vocab.rs`. Una cadencia la abre una palabra —`cada`
+en español; `every`, `each` en inglés— o dos, que solo usa el español: `todos
+los`, `todas las`. También puede ser un adverbio que es la cadencia entera:
+`diariamente`, `semanalmente`, `mensualmente`, `anualmente`, y `daily`, `weekly`,
+`monthly`, `yearly`, `annually`.
+
+Un día por repetición: «martes y jueves» son dos tareas, no una.
 
 Cómo se calcula la fecha siguiente depende de cómo se escribió. Nombrar un día
 la fija al calendario —la basura sale el martes, haya salido o no la semana
@@ -360,14 +365,17 @@ rastro. Escribir el evento primero significa que una muerte deja los nombres
 todavía separados, la pregunta vuelve, y hacerlo dos veces solo registra un
 ancestro que ya estaba registrado.
 
-Ese conjunto de ancestros **se escribe pero todavía no se lee**: hoy la pregunta
-del linaje se responde solo desde los segmentos, y la constancia existe para que
-a una máquina que llegue mucho después se le pueda contar qué pasó, y no solo
-qué elegir. Hasta que algo lo lea, esto es una afirmación sobre lo que queda
-escrito, no sobre el comportamiento. No toca ninguna tarea ni ningún documento;
-como `device.join`, es un evento que proyecta algo que no son datos — el
-conjunto de nombres de almacén ancestros, que se acumula, para que una máquina
-que llegue mucho después todavía pueda reconocer el suyo entre ellos.
+El evento no toca ninguna tarea ni ningún documento. Como `device.join`, proyecta
+algo que no son datos: un conjunto de nombres de almacén ancestros, que solo
+crece.
+
+**Ese conjunto se escribe pero todavía no se lee.** Hoy el linaje se responde
+solo desde los segmentos, así que esto es una afirmación sobre lo que queda
+escrito, no sobre cómo se comporta nada. Se escribe ahora porque solo ahora se
+puede escribir —el momento hay que agarrarlo cuando ocurre— y es lo que
+permitirá que una máquina que llegue mucho después reconozca su propio nombre
+entre los ancestros, y que se le pueda contar qué pasó en vez de solo pedirle
+que elija.
 
 Los nombres de directorio se comparan sin distinguir mayúsculas: en Windows y
 macOS `DEV_A` y `dev_a` son un solo directorio, así que la copia de un

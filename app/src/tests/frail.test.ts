@@ -85,7 +85,7 @@ describe("what a document brings that the editor cannot keep", () => {
   });
 
   it("sees html that plays inline in the middle of a sentence, not only html standing on its own", () => {
-    expect(frail("mira este video <video src=\"clip.mp4\"></video> antes de seguir")).toContain(
+    expect(frail('mira este video <video src="clip.mp4"></video> antes de seguir')).toContain(
       "frailHtml",
     );
     expect(frail('escucha <audio src="clip.mp3"></audio> esto')).toContain("frailHtml");

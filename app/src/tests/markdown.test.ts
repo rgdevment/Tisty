@@ -30,7 +30,11 @@ describe("what gets composed", () => {
   });
 
   it("leaves an absolute path alone, whatever the platform writes", () => {
-    for (const at of ["C:/Users/Mario/clip.mkv", "/home/mario/clip.mkv", "//server/share/clip.mkv"]) {
+    for (const at of [
+      "C:/Users/Mario/clip.mkv",
+      "/home/mario/clip.mkv",
+      "//server/share/clip.mkv",
+    ]) {
       expect(composed(`[clip](<${at}>)`)).not.toContain("data-inside");
     }
     expect(composed("![shot](<attachments/ab/cd.png>)")).toContain("data-inside");
@@ -100,7 +104,7 @@ describe("a link to a document, built with a title nobody chose carefully", () =
     expect(html.match(/<a /g)).toHaveLength(1);
     expect(html).toContain(">[ya es un link](http://evil.com)<");
     expect(html).toContain('href="tisty:doc/mac0-0001"');
-    expect(html).not.toContain("evil.com\"");
+    expect(html).not.toContain('evil.com"');
   });
 });
 

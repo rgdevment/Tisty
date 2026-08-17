@@ -1,4 +1,4 @@
-import { syncNow, syncState, type Settled } from "./core";
+import { type Settled, syncNow, syncState } from "./core";
 
 const AFTER_A_CHANGE = 4_000;
 const EVERY_SO_OFTEN = 15 * 60_000;
@@ -27,8 +27,7 @@ export function carrying(brought: () => void, atOdds: (ids: string[]) => void = 
 
     const patience = new Promise<Settled>((resolve) => {
       expire = setTimeout(
-        () =>
-          resolve({ carried: "same", undecided: [], unreadable: [], astray: [], joined: [] }),
+        () => resolve({ carried: "same", undecided: [], unreadable: [], astray: [], joined: [] }),
         GIVE_UP_AFTER,
       );
     });

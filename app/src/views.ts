@@ -1,7 +1,15 @@
 import type { List, View } from "./core";
 import { fill, t } from "./locales";
 
-export type Named = "search" | "tasks" | "lists" | "docs" | "tags" | "archive" | "keeping" | "aboutScreen";
+export type Named =
+  | "search"
+  | "tasks"
+  | "lists"
+  | "docs"
+  | "tags"
+  | "archive"
+  | "keeping"
+  | "aboutScreen";
 
 export type Slice = "today" | "upcoming" | "repeating" | "all";
 

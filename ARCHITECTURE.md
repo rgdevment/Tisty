@@ -7,7 +7,7 @@ system behaves, not a record of why it was designed this way.
 
 ## The two layers
 
-```
+```text
 <data>/store/                    the truth. Syncs. Survives everything.
 ├── dev_a3f1/
 │   ├── 000001.tisty             sealed segment, never written again
@@ -98,7 +98,7 @@ cost anyone their copy.
 Nothing is ever edited. Facts are recorded about an entity, and the entity is
 identified by a ULID that means the same thing everywhere.
 
-```
+```text
 dev_mac      task.add    MNKMPX  "buy bread"
 dev_windows  task.log    MNKMPX  "went to the corner shop"
              task.done   MNKMPX
@@ -123,7 +123,7 @@ A repeat is **one task per occurrence**, not one entity collecting completions.
 Finishing «take out the bins every Tuesday» writes two events in one batch: the
 completion, and next Tuesday's task.
 
-```
+```text
 task.done   MNKMPX
 task.add    MNKMQ2   "take out the bins"   2026-08-18
 ```
@@ -136,9 +136,14 @@ you did it twelve times. Each occurrence gets its own journal, so «the lorry di
 not come this week» has somewhere to live. The archive folds repetitions of the
 same month into one line so the rows do not become noise.
 
-A cadence is opened by a word (`every`, `each`), by two (`todos los`), or by an
-adverb that is the whole cadence (`daily`, `weekly`, `annually`). One day per
-repeat: «Tuesdays and Thursdays» is two tasks, not one.
+**The parser reads both interface languages**, and each has its own vocabulary in
+`tisty-nl/src/vocab.rs`. A cadence is opened by one word — `every`, `each` in
+English; `cada` in Spanish — or by two, which only Spanish uses: `todos los`,
+`todas las`. It can also be an adverb that is the whole cadence on its own:
+`daily`, `weekly`, `monthly`, `yearly`, `annually`, and `diariamente`,
+`semanalmente`, `mensualmente`, `anualmente`.
+
+One day per repeat: «Tuesdays and Thursdays» is two tasks, not one.
 
 How the next date is worked out depends on how it was written. Naming a day
 fixes it to the calendar — the bin goes out on Tuesday whether or not it went
@@ -336,14 +341,15 @@ matches, so the question is never asked again and the trail is lost. Writing the
 event first means a death leaves the names still apart, the question comes back,
 and doing it twice only records an ancestor that was already recorded.
 
-That set of ancestors is **written but not yet read**: the lineage question is
-answered from the segments alone today, and the record exists so a machine
-arriving much later can be told what happened rather than only what to choose.
-Until something reads it, this is a claim about the record, not about behaviour.
-It touches no task and no document; like `device.join`, it is an event that
-projects something other than data — the set of ancestor store names, which
-accumulates, so a machine that arrives much later can still recognise its own
-name as one of them.
+The event touches no task and no document. Like `device.join`, it projects
+something other than data: a set of ancestor store names, which only grows.
+
+**That set is written but not yet read.** Lineage is answered from the segments
+alone today, so this is a statement about what the record holds, not about how
+anything behaves. It is written now because it can only be written now — the
+moment has to be caught as it happens — and it is what will let a machine
+arriving long afterwards recognise its own store name among the ancestors, and
+be told what happened instead of merely being asked to choose.
 
 Directory names are compared without case: on Windows and macOS `DEV_A` and
 `dev_a` are one directory, so a stranger's copy would land on the only original

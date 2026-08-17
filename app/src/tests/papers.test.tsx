@@ -85,9 +85,7 @@ describe("a reference to a document of this Tisty", () => {
 
   it("still hands an ordinary address to the system", async () => {
     const onDoc = vi.fn();
-    render(
-      <Composed html={composed("[Fuera](https://ejemplo.org)")} onDoc={onDoc} className="" />,
-    );
+    render(<Composed html={composed("[Fuera](https://ejemplo.org)")} onDoc={onDoc} className="" />);
 
     await userEvent.click(screen.getByText("Fuera"));
 

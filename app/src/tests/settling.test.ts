@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
+import { describe, expect, it } from "vitest";
 import { asMarkdown, written } from "../ui/writing";
 
 const settled = (body: string) => (body === "" || body.endsWith("\n") ? body : `${body}\n`);

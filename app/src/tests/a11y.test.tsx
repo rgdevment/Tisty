@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { Step, Task } from "../core";
 import Menu from "../ui/Menu";
 import Slash from "../ui/Slash";
 import Steps from "../ui/Steps";
 import TaskList from "../ui/TaskList";
-import type { Step, Task } from "../core";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 

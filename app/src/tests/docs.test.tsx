@@ -1,9 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Docs from "../ui/Docs";
-import { settled } from "../saving";
 import type { Filed } from "../core";
+import { settled } from "../saving";
+import Docs from "../ui/Docs";
 
 const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
@@ -75,8 +75,8 @@ vi.mock("../ui/Editor", () => ({
 }));
 
 const known: Filed[] = [
-  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null , archived: false },
-  { id: "01G", file: "a3f1-0002", title: "Notas", folder: "01H" , archived: false },
+  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false },
+  { id: "01G", file: "a3f1-0002", title: "Notas", folder: "01H", archived: false },
 ];
 
 describe("the document being written", () => {

@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import CaptureField from "../ui/CaptureField";
 import type { List } from "../core";
+import CaptureField from "../ui/CaptureField";
 
 const read = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({

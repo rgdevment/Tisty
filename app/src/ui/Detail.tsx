@@ -78,16 +78,16 @@ export default function Detail({
 
       <Section
         label={t("steps")}
-        note={task.volume?.steps ? `${task.volume.steps_done ?? 0}/${task.volume.steps}` : undefined}
+        note={
+          task.volume?.steps ? `${task.volume.steps_done ?? 0}/${task.volume.steps}` : undefined
+        }
       />
-      <Steps
-        steps={task.steps ?? []}
-        onWrite={onStep}
-        onMark={onMark}
-        onDrop={onDropStep}
-      />
+      <Steps steps={task.steps ?? []} onWrite={onStep} onMark={onMark} onDrop={onDropStep} />
 
-      <Section label={t("journal")} note={task.volume?.journal ? String(task.volume.journal) : undefined} />
+      <Section
+        label={t("journal")}
+        note={task.volume?.journal ? String(task.volume.journal) : undefined}
+      />
       <Journal
         entries={task.log ?? []}
         steps={task.steps?.map((one) => one.text)}
@@ -110,6 +110,7 @@ export default function Detail({
         <div data-tauri-drag-region className="h-9 shrink-0" />
         <div className="flex items-center gap-1 px-6 text-[13px] text-faint">
           <button
+            type="button"
             onClick={onCollapse}
             aria-label={from ? `${t("collapse")} — ${from}` : t("collapse")}
             className="-ml-2 rounded-md px-2 py-1 text-accent hover:bg-hover"
@@ -133,6 +134,7 @@ export default function Detail({
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="flex items-center gap-1 px-5 text-[13px] text-faint">
         <button
+          type="button"
           onClick={onClose}
           title={t("closePanel")}
           aria-label={t("closePanel")}
@@ -142,6 +144,7 @@ export default function Detail({
           <span aria-hidden="true">✕</span>
         </button>
         <button
+          type="button"
           onClick={onExpand}
           title={t("expand")}
           aria-label={t("expand")}
@@ -170,6 +173,7 @@ function Settled({
   const away = task.repeat ? t("endRepeat") : t("discardIt");
   return (
     <button
+      type="button"
       onClick={shut ? onReopen : onDiscard}
       title={task.repeat && !shut ? t("endRepeatWhy") : undefined}
       className="ml-auto rounded-md px-2 py-1 hover:bg-hover hover:text-ink"

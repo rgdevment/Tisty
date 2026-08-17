@@ -18,8 +18,33 @@ env:
   BUILD_MACOS: "true"
 
 jobs:
+  gate:
+    name: Style and prose
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/sidecar
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run lint:md
+      - name: Frontend style
+        working-directory: app
+        run: |
+          npm ci
+          npm run lint
+
   version:
     name: Resolve the version
+    needs: gate
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:

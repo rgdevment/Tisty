@@ -1,5 +1,5 @@
-import { docLink } from "./markdown";
 import { docNew, docWrite } from "./core";
+import { docLink } from "./markdown";
 
 export interface Born {
   id: string;

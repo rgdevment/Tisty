@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const disk = vi.hoisted(() => ({ body: "lo viejo", pending: "" }));
 const board = vi.hoisted(() => ({ text: null as string | null, refuses: false }));

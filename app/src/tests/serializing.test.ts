@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
 import { MarkdownSerializerState } from "prosemirror-markdown";
+import { describe, expect, it } from "vitest";
 import { asMarkdown, unaided, written } from "../ui/writing";
 
 const build = (content: string) => new Editor({ extensions: written(), content });
@@ -32,21 +32,26 @@ const mixed = (blocks: number) =>
     return `${LINE} ${LINE}`;
   }).join("\n\n");
 
-const flat = (blocks: number) => Array.from({ length: blocks }, (_, i) => `${LINE} ${i}`).join("\n\n");
+const flat = (blocks: number) =>
+  Array.from({ length: blocks }, (_, i) => `${LINE} ${i}`).join("\n\n");
 
 const shapes: Record<string, string> = {
   "spaces stuck inside the marks": "un **texto ** con *espacios * raros",
   "bold and italic at once": "***todo***",
-  "every mark in one line": "un **texto ** con *espacios * raros y ![img](a.png) y ***todo*** y `x`",
+  "every mark in one line":
+    "un **texto ** con *espacios * raros y ![img](a.png) y ***todo*** y `x`",
   "a table with marks in its cells": "| a | b |\n| --- | --- |\n| **x** | y |\n| z | *w* |",
   "a table cell carrying a pipe": "| a \\| b | c |\n| --- | --- |\n| **x \\| y** | z |",
   "nested task lists": "- [ ] uno **dos**\n- [x] tres\n  - [ ] anidada\n    - [x] mas honda",
-  "a quote holding a list and a fence": "> cita **fuerte**\n>\n> 1. uno\n> 2. dos\n>\n> ```js\n> const a = 1;\n> ```",
+  "a quote holding a list and a fence":
+    "> cita **fuerte**\n>\n> 1. uno\n> 2. dos\n>\n> ```js\n> const a = 1;\n> ```",
   "a picture right behind an exclamation": "texto ! ![alt](x.png) y !![](y.png) y \\!![z](z.png)",
   "a link glued to an exclamation": '<p>hola!<a href="https://x.dev/a">ver</a></p>',
   "a link glued to an escaped exclamation": '<p>hola\\!<a href="https://x.dev/a">ver</a></p>',
-  "a link glued to an exclamation that opens the document": '<p>!<a href="https://x.dev/a">ver</a></p>',
-  "a link glued to an exclamation of its own": '<p>a<strong>x</strong>!<a href="https://x.dev/a">ver</a></p>',
+  "a link glued to an exclamation that opens the document":
+    '<p>!<a href="https://x.dev/a">ver</a></p>',
+  "a link glued to an exclamation of its own":
+    '<p>a<strong>x</strong>!<a href="https://x.dev/a">ver</a></p>',
   "links into this Tisty": "ver [titulo](tisty:doc/abc) y [[algo]] fin",
   "front matter above the body": "---\ntitle: cosa\ntags: [a, b]\n---\n\ncuerpo **fuerte**",
   "windows backslashes": "abre C:\\Users\\Mario\\clip.mkv y [x](<C:\\a\\b.png>) y `D:\\raiz\\x`",
@@ -65,7 +70,29 @@ const shapes: Record<string, string> = {
   "accents and emoji": "ñandú 🌵 con **acentós** y *cursivá*",
 };
 
-const PIECES = ["**", "*", "`", "~~", "!", "[", "]", "(", ")", "\\", " ", "\n", "\n\n", "a", "ñ", "#", "-", ">", "|", "_", "1."];
+const PIECES = [
+  "**",
+  "*",
+  "`",
+  "~~",
+  "!",
+  "[",
+  "]",
+  "(",
+  ")",
+  "\\",
+  " ",
+  "\n",
+  "\n\n",
+  "a",
+  "ñ",
+  "#",
+  "-",
+  ">",
+  "|",
+  "_",
+  "1.",
+];
 
 const rolled = (seed: number) => {
   let at = seed;
@@ -286,7 +313,9 @@ describe("the buffered serializer writes what the plain one writes", () => {
   });
 
   it("still reaches the escape a link glued to an exclamation needs, so those cases are not idle", () => {
-    expect(same('<p>hola!<a href="https://x.dev/a">ver</a></p>')).toBe("hola\\![ver](https://x.dev/a)");
+    expect(same('<p>hola!<a href="https://x.dev/a">ver</a></p>')).toBe(
+      "hola\\![ver](https://x.dev/a)",
+    );
     expect(both('<p>hola\\!<a href="https://x.dev/a">ver</a></p>').buffered).toBe(
       "hola\\\\\\![ver](https://x.dev/a)",
     );
@@ -297,9 +326,21 @@ describe("the buffered serializer writes what the plain one writes", () => {
 
   it("agrees on every length as a shape grows, where the buffer boundaries move", () => {
     for (let n = 1; n <= 24; n++) {
-      same(Array.from({ length: n }, (_, i) => `parrafo ${i} con **negrita ** y *cursiva * pegadas`).join("\n\n"));
-      same(Array.from({ length: n }, (_, i) => `- item ${i} con ![i](a${i}.png) tras !`).join("\n"));
-      same(Array.from({ length: n }, (_, i) => `> cita ${i} con \`codigo\` y [e](tisty:doc/${i})`).join("\n\n"));
+      same(
+        Array.from(
+          { length: n },
+          (_, i) => `parrafo ${i} con **negrita ** y *cursiva * pegadas`,
+        ).join("\n\n"),
+      );
+      same(
+        Array.from({ length: n }, (_, i) => `- item ${i} con ![i](a${i}.png) tras !`).join("\n"),
+      );
+      same(
+        Array.from(
+          { length: n },
+          (_, i) => `> cita ${i} con \`codigo\` y [e](tisty:doc/${i})`,
+        ).join("\n\n"),
+      );
     }
   });
 

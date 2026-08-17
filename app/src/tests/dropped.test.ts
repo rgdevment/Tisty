@@ -29,7 +29,8 @@ function field() {
 
 let looked: (x: number, y: number) => Element | null = () => null;
 beforeEach(() => {
-  document.elementFromPoint = ((x: number, y: number) => looked(x, y)) as typeof document.elementFromPoint;
+  document.elementFromPoint = ((x: number, y: number) =>
+    looked(x, y)) as typeof document.elementFromPoint;
 });
 
 afterEach(() => {

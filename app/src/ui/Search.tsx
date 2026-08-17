@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { search, type Found, type Scope } from "../core";
+import { type Found, type Scope, search } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Field from "./Field";
@@ -48,6 +48,7 @@ export default function Search({ fixed, onFound, onError }: Props) {
         <div className="mt-2 flex gap-1 px-1">
           {SCOPES.map((option) => (
             <button
+              type="button"
               key={option}
               onClick={() => setScope(option)}
               className={`rounded-md px-2 py-0.5 text-[11.5px] ${

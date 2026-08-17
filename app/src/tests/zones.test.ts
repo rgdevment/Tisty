@@ -9,7 +9,9 @@ describe("a journal entry keeps the zone it was written in", () => {
   afterEach(() => vi.useRealTimers());
 
   it("says the hour its author saw, not the reader's", () => {
-    expect(wroteAt(MADRID_NIGHT, "Europe/Madrid", NOW, "America/Santiago")).toMatch(/11:30 ?\s?PM/i);
+    expect(wroteAt(MADRID_NIGHT, "Europe/Madrid", NOW, "America/Santiago")).toMatch(
+      /11:30 ?\s?PM/i,
+    );
   });
 
   it("does not shift the day either", () => {

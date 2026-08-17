@@ -50,7 +50,9 @@ export default function Notice({ task, lists, elsewhere, onOpen, onDismiss }: Pr
             ✓
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] leading-snug font-medium">{task.title}</span>
+            <span className="block truncate text-[13px] leading-snug font-medium">
+              {task.title}
+            </span>
             {said.length > 0 && (
               <span className="mt-0.5 block truncate text-[11.5px] text-faint">
                 {said.join(" · ")}

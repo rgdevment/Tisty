@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import Tree from "../ui/Tree";
 import type { Papers } from "../core";
+import Tree from "../ui/Tree";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: () => Promise.resolve([["work", "💼"]]),
@@ -15,9 +15,9 @@ const papers: Papers = {
     { id: "01H", name: "personal", parent: null, icon: null, holds: 0 },
   ],
   docs: [
-    { id: "01A", file: "a3f1-0001", title: "Compras", folder: "01F" , archived: false },
-    { id: "01B", file: "a3f1-0002", title: "Contrato", folder: "01G" , archived: false },
-    { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null , archived: false },
+    { id: "01A", file: "a3f1-0001", title: "Compras", folder: "01F", archived: false },
+    { id: "01B", file: "a3f1-0002", title: "Contrato", folder: "01G", archived: false },
+    { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null, archived: false },
     { id: "01D", file: "a3f1-0004", title: "", folder: null, archived: false },
     { id: "01E", file: "a3f1-0005", title: "Viejo", folder: "01F", archived: true },
     { id: "01J", file: "a3f1-0006", title: "", folder: null, archived: false, gone: true },
@@ -58,8 +58,8 @@ describe("the document tree", () => {
     const work = screen.getByRole("button", { name: "Close trabajo" });
     const inside = screen.getByRole("button", { name: "Compras" });
 
-    const folderText = parseInt(work.style.marginLeft) + 12 + 6 + 21;
-    const docText = parseInt(inside.style.paddingLeft) + 12 + 6;
+    const folderText = parseInt(work.style.marginLeft, 10) + 12 + 6 + 21;
+    const docText = parseInt(inside.style.paddingLeft, 10) + 12 + 6;
 
     expect(docText).toBeGreaterThan(folderText);
   });
@@ -78,9 +78,9 @@ describe("the document tree", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Close trabajo" }));
 
-    expect(
-      screen.getByRole("button", { name: "Open trabajo" }).getAttribute("aria-expanded"),
-    ).toBe("false");
+    expect(screen.getByRole("button", { name: "Open trabajo" }).getAttribute("aria-expanded")).toBe(
+      "false",
+    );
   });
 
   it("picks a folder and folds it in the same click", async () => {
@@ -105,9 +105,9 @@ describe("the document tree", () => {
 
     expect(onHere).toHaveBeenCalledWith(undefined);
     expect(screen.queryByRole("button", { name: "Suelto" })).toBeNull();
-    expect(
-      screen.getByRole("button", { name: /Unfiled/ }).getAttribute("aria-expanded"),
-    ).toBe("false");
+    expect(screen.getByRole("button", { name: /Unfiled/ }).getAttribute("aria-expanded")).toBe(
+      "false",
+    );
   });
 
   it("lets unfiled be picked like any other place", async () => {
@@ -121,9 +121,9 @@ describe("the document tree", () => {
   it("marks the place being looked at", () => {
     show(vi.fn(), vi.fn(), null);
 
-    expect(
-      screen.getByRole("button", { name: /Unfiled/ }).getAttribute("aria-current"),
-    ).toBe("true");
+    expect(screen.getByRole("button", { name: /Unfiled/ }).getAttribute("aria-current")).toBe(
+      "true",
+    );
   });
 
   it("hangs a folder from the one it was dropped on", () => {
@@ -330,7 +330,9 @@ describe("the document tree", () => {
     expect(screen.getByRole("button", { name: "trabajo" }).textContent).toContain("3");
     expect(screen.getByRole("button", { name: "Viejo" })).toBeTruthy();
     expect(
-      screen.getByRole("list", { name: "Documents" }).contains(screen.getByRole("button", { name: "Viejo" })),
+      screen
+        .getByRole("list", { name: "Documents" })
+        .contains(screen.getByRole("button", { name: "Viejo" })),
     ).toBe(false);
   });
 
@@ -344,9 +346,7 @@ describe("the document tree", () => {
 
   it("offers making something on the shelf itself, not only on a folder", () => {
     const onHereMenu = vi.fn();
-    render(
-      <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHereMenu={onHereMenu} />,
-    );
+    render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHereMenu={onHereMenu} />);
 
     fireEvent.contextMenu(screen.getByRole("button", { name: /Unfiled/ }), {
       clientX: 5,
@@ -377,8 +377,7 @@ describe("the document tree", () => {
 
   it("takes a document out of every folder when dropped on unfiled", () => {
     const { onFile } = show();
-    const loose = screen.getByRole("button", { name: /Unfiled/ })
-      .parentElement as HTMLElement;
+    const loose = screen.getByRole("button", { name: /Unfiled/ }).parentElement as HTMLElement;
 
     fireEvent.drop(loose, { dataTransfer: { getData: () => "01A" } });
 
@@ -402,6 +401,8 @@ describe("the document tree", () => {
       .filter((one) => one.textContent?.includes("⚠"));
 
     expect(marked).toHaveLength(1);
-    expect(marked[0].querySelector("[title]")?.getAttribute("title")).toMatch(/not on this machine/i);
+    expect(marked[0].querySelector("[title]")?.getAttribute("title")).toMatch(
+      /not on this machine/i,
+    );
   });
 });

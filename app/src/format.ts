@@ -45,8 +45,7 @@ export function clockOf(spec: DateSpec): string {
   return spec.has_time ? formats().clock.format(new Date(spec.at)) : "";
 }
 
-export const isOverdue = (spec: DateSpec, now = new Date()): boolean =>
-  daysFrom(spec.at, now) < 0;
+export const isOverdue = (spec: DateSpec, now = new Date()): boolean => daysFrom(spec.at, now) < 0;
 
 export function monthOf(iso?: string, now = new Date()): string {
   if (!iso) return "";
@@ -71,15 +70,27 @@ function months(here: boolean): Intl.DateTimeFormat {
   return here ? named.here : named.away;
 }
 
-export const isToday = (spec: DateSpec, now = new Date()): boolean =>
-  daysFrom(spec.at, now) === 0;
+export const isToday = (spec: DateSpec, now = new Date()): boolean => daysFrom(spec.at, now) === 0;
 
 export function cadence(repeat: Repeat): string {
   const { every, unit } = repeat.each;
   const one = every === 1;
   const word = t(
-    unit === "day" ? (one ? "aDay" : "days") : unit === "week" ? (one ? "aWeek" : "weeks") :
-    unit === "month" ? (one ? "aMonth" : "months") : one ? "aYear" : "years",
+    unit === "day"
+      ? one
+        ? "aDay"
+        : "days"
+      : unit === "week"
+        ? one
+          ? "aWeek"
+          : "weeks"
+        : unit === "month"
+          ? one
+            ? "aMonth"
+            : "months"
+          : one
+            ? "aYear"
+            : "years",
   );
   const said = one ? fill("everyOne", word) : fill("everyMany", `${every} ${word}`);
   return repeat.until ? `${said} ${fill("untilDay", lastDay(repeat.until))}` : said;

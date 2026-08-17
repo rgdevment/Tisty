@@ -1,81 +1,75 @@
+import { listen } from "@tauri-apps/api/event";
+import { ask, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { carrying } from "./carrying";
+import { heard, play } from "./chime";
+import { asPlain } from "./copying";
 import {
   attach,
+  type Change,
   capture,
   complete,
   discard,
-  docFile,
-  docNew,
-  docs,
-  folderAdd,
   docAway,
   docCopy,
-  parted,
-  printed,
   docDrop,
   docExport,
+  docFile,
   docImport,
-  folderFile,
+  docNew,
+  docs,
+  dropStep,
+  type Filed,
+  type Folded,
+  type Found,
+  fold,
+  folderAdd,
   folderDrop,
+  folderFile,
   folderLook,
   folderRename,
-  type Folded,
-  type Filed,
-  type Papers,
-  fold,
-  dropStep,
   markStep,
+  type Papers,
+  type Pick,
+  parted,
   patch,
+  printed,
+  type Ready,
+  type Rift,
   reopen,
-  snapshot,
-  writeLog,
-  writeStep,
-  type Change,
   type Snapshot,
-  type Found,
+  settleIn,
+  snapshot,
+  syncState,
   type Task,
   updateReady,
-  type Ready,
+  writeLog,
+  writeStep,
 } from "./core";
-import { listen } from "@tauri-apps/api/event";
-import { heard, play } from "./chime";
-import { carrying } from "./carrying";
 import { decideAll, decidesByBlock } from "./deciding";
-import { settleIn, syncState, type Pick, type Rift } from "./core";
 import { handTo, whenFilesLand } from "./dropped";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
-import {
-  accepts,
-  asView,
-  invite,
-  nothing,
-  SLICES,
-  title,
-  type Chosen,
-  type Slice,
-} from "./views";
+import { settled } from "./saving";
+import About from "./ui/About";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Detail from "./ui/Detail";
-import About from "./ui/About";
-import Keeping from "./ui/Keeping";
 import Docs from "./ui/Docs";
-import Naming from "./ui/Naming";
-import Rifts from "./ui/Rifts";
-import Sightings from "./ui/Sightings";
-import Menu, { type Choice } from "./ui/Menu";
-import { settled } from "./saving";
-import { asPlain } from "./copying";
-import { ask, open as pick } from "@tauri-apps/plugin-dialog";
+import Keeping from "./ui/Keeping";
 import Lists from "./ui/Lists";
+import Menu, { type Choice } from "./ui/Menu";
+import Naming from "./ui/Naming";
 import Notice from "./ui/Notice";
+import Rifts from "./ui/Rifts";
 import Search from "./ui/Search";
 import Sidebar from "./ui/Sidebar";
+import Sightings from "./ui/Sightings";
 import Tags from "./ui/Tags";
 import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
+import { accepts, asView, type Chosen, invite, nothing, SLICES, type Slice, title } from "./views";
 
 export const steady = <T,>(was: T, found: T): T =>
   JSON.stringify(was) === JSON.stringify(found) ? was : found;
@@ -114,7 +108,11 @@ export default function App() {
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [menu, setMenu] = useState<{ at: { x: number; y: number }; label: string; choices: Choice[] } | null>(null);
+  const [menu, setMenu] = useState<{
+    at: { x: number; y: number };
+    label: string;
+    choices: Choice[];
+  } | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
   const [showing, setShowing] = useState<string | null>(null);
   const [carried, setCarried] = useState(0);
@@ -344,9 +342,7 @@ export default function App() {
     return (
       <div className="grid h-full font-sans" style={{ gridTemplateColumns: "1fr" }}>
         <WindowChrome />
-        {error && (
-          <p className="mt-16 px-6 text-center text-xs text-urgent">{error}</p>
-        )}
+        {error && <p className="mt-16 px-6 text-center text-xs text-urgent">{error}</p>}
       </div>
     );
   }
@@ -458,10 +454,7 @@ export default function App() {
       )}
 
       {leaving && (
-        <Closing
-          onDismiss={() => setLeaving(false)}
-          onError={(e) => setError(saidPlainly(e))}
-        />
+        <Closing onDismiss={() => setLeaving(false)} onError={(e) => setError(saidPlainly(e))} />
       )}
 
       {makingFolder && (
@@ -509,7 +502,12 @@ export default function App() {
       )}
 
       {menu && (
-        <Menu at={menu.at} choices={menu.choices} label={menu.label} onClose={() => setMenu(null)} />
+        <Menu
+          at={menu.at}
+          choices={menu.choices}
+          label={menu.label}
+          onClose={() => setMenu(null)}
+        />
       )}
 
       {greet && (
@@ -700,8 +698,19 @@ export default function App() {
             label: t("docsActions"),
             choices: [
               { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(undefined) },
-              { key: "newFolder", icon: "+", label: t("newFolder"), onPick: () => setMakingFolder(true) },
-              { key: "import", icon: "↧", label: t("importDoc"), apart: true, onPick: () => bringIn(undefined) },
+              {
+                key: "newFolder",
+                icon: "+",
+                label: t("newFolder"),
+                onPick: () => setMakingFolder(true),
+              },
+              {
+                key: "import",
+                icon: "↧",
+                label: t("importDoc"),
+                apart: true,
+                onPick: () => bringIn(undefined),
+              },
             ],
           })
         }
@@ -710,7 +719,12 @@ export default function App() {
             at,
             label: t("docsActions"),
             choices: [
-              { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(here ?? undefined) },
+              {
+                key: "newDoc",
+                icon: "+",
+                label: t("newDoc"),
+                onPick: () => newDoc(here ?? undefined),
+              },
               {
                 key: "newFolder",
                 icon: "+",
@@ -836,13 +850,9 @@ export default function App() {
                   act(complete(id));
                 }
           }
-          onFold={
-            chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined
-          }
+          onFold={chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined}
           below={
-            found?.papers.length ? (
-              <Sightings papers={found.papers} onOpen={openDoc} />
-            ) : undefined
+            found?.papers.length ? <Sightings papers={found.papers} onOpen={openDoc} /> : undefined
           }
           above={
             chosen.named === "tasks" ? (
@@ -861,9 +871,7 @@ export default function App() {
                         setChosen({ named: "tasks", slice });
                       }}
                       className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                        on
-                          ? "border-ink bg-ink text-bg"
-                          : "border-line text-faint hover:text-soft"
+                        on ? "border-ink bg-ink text-bg" : "border-line text-faint hover:text-soft"
                       }`}
                     >
                       {t(sliceWord(slice))}
@@ -874,6 +882,7 @@ export default function App() {
               </div>
             ) : chosen.named === "archive" && (data.counts.folded || chosen.folded) ? (
               <button
+                type="button"
                 onClick={() => {
                   setFound(null);
                   setChosen({ named: "archive", folded: !chosen.folded });
@@ -890,9 +899,7 @@ export default function App() {
                 chosen={chosen.tags ?? []}
                 onToggle={(tag) => {
                   const now = chosen.tags ?? [];
-                  const next = now.includes(tag)
-                    ? now.filter((t) => t !== tag)
-                    : [...now, tag];
+                  const next = now.includes(tag) ? now.filter((t) => t !== tag) : [...now, tag];
                   setChosen({ named: "tags", tags: next });
                   setSelected(undefined);
                 }}
@@ -905,21 +912,21 @@ export default function App() {
           ) : chosen.named === "archive" ? (
             <Search key="archive" fixed="archived" onFound={setFound} onError={setError} />
           ) : accepts(chosen) ? (
-          <CaptureField
-            invite={invite(chosen, data.lists)}
-            lists={data.lists}
-            tags={data.tags}
-            onCapture={(written, edits) => {
-              setError(null);
-              return capture(written, asView(chosen), edits).then((task) => {
-                say(fill("saidFiled", task.title));
-                setCaptured(task);
-                load();
-                return task;
-              });
-            }}
-            onError={setError}
-          />
+            <CaptureField
+              invite={invite(chosen, data.lists)}
+              lists={data.lists}
+              tags={data.tags}
+              onCapture={(written, edits) => {
+                setError(null);
+                return capture(written, asView(chosen), edits).then((task) => {
+                  say(fill("saidFiled", task.title));
+                  setCaptured(task);
+                  load();
+                  return task;
+                });
+              }}
+              onError={setError}
+            />
           ) : null}
         </TaskList>
       )}

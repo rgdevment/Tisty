@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useEdge } from "./edge";
 import type { Counted, List } from "../core";
-import { t } from "../locales";
 import { cadence } from "../format";
+import { t } from "../locales";
+import { useEdge } from "./edge";
 
 export type Field = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
 
@@ -183,11 +183,7 @@ function within(
 const fits = (row: Row, query: string): boolean =>
   query === "" || bare(row.label).startsWith(bare(query)) || row.key.startsWith(bare(query));
 
-const bare = (text: string): string =>
-  text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
+const bare = (text: string): string => text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 const slug = (name: string): string => name.toLowerCase().replace(/[ _]/g, "-");
 

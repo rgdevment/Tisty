@@ -1,10 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
-import { previewOf } from "../previews";
-import { previewing, type Reach } from "../ui/previewing";
-import { written, asMarkdown } from "../ui/writing";
-import { stripped } from "../ui/Editor";
+import { describe, expect, it, vi } from "vitest";
 import { composed, inline } from "../markdown";
+import { previewOf } from "../previews";
+import { stripped } from "../ui/Editor";
+import { previewing, type Reach } from "../ui/previewing";
+import { asMarkdown, written } from "../ui/writing";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: () => Promise.resolve(null),
@@ -217,7 +217,7 @@ describe("html crudo dentro de un documento importado", () => {
 
 describe("markdown-it, que es lo que se pinta con innerHTML", () => {
   it("escapa el html crudo en vez de dejarlo entrar", () => {
-    const html = composed('<img src=x onerror=alert(1)><script>alert(1)</script>');
+    const html = composed("<img src=x onerror=alert(1)><script>alert(1)</script>");
 
     expect(html).not.toContain("<img");
     expect(html).not.toContain("<script");
@@ -226,7 +226,7 @@ describe("markdown-it, que es lo que se pinta con innerHTML", () => {
 
   it("no deja un href javascript: ni un src de otro esquema marcado como interno", () => {
     expect(composed("[x](javascript:alert(1))")).not.toContain('href="javascript');
-    expect(composed("[x](JAVASCRIPT:alert(1))")).not.toContain("href=\"JAVASCRIPT");
+    expect(composed("[x](JAVASCRIPT:alert(1))")).not.toContain('href="JAVASCRIPT');
     expect(inline("![x](https://evil.example/p.png)")).toContain("https://evil.example/p.png");
     expect(inline("![x](attachments/ab/cd.png)")).toContain('src=""');
   });

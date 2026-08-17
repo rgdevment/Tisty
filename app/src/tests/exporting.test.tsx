@@ -19,7 +19,8 @@ describe("copying a document as strict markdown", () => {
   });
 
   it("keeps everything markdown can say, untouched", () => {
-    const whole = "# Título\n\n**fuerte** y *suave*\n\n- uno\n- dos\n\n| a | b |\n| --- | --- |\n| 1 | 2 |";
+    const whole =
+      "# Título\n\n**fuerte** y *suave*\n\n- uno\n- dos\n\n| a | b |\n| --- | --- |\n| 1 | 2 |";
 
     expect(bared(whole)).toBe(whole);
   });

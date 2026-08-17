@@ -1,12 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Found, Snapshot, Task } from "../core";
 import App from "../App";
+import type { Found, Snapshot, Task } from "../core";
 
 const ipc = vi.hoisted(() => ({
-  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> =>
-    Promise.resolve(null),
+  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -93,10 +92,7 @@ const searching = async (user: ReturnType<typeof userEvent.setup>, words: string
   render(<App />);
   await screen.findByText("call the bank about the watering");
   await user.click(screen.getByRole("button", { name: /search/i }));
-  await user.type(
-    await screen.findByRole("textbox", { name: /search everywhere/i }),
-    words,
-  );
+  await user.type(await screen.findByRole("textbox", { name: /search everywhere/i }), words);
 };
 
 describe("a search that reaches the documents", () => {

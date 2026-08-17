@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
-import { written } from "../ui/writing";
-import Modal from "../ui/Modal";
+import { describe, expect, it, vi } from "vitest";
 import Floats from "../ui/Floats";
+import Modal from "../ui/Modal";
+import { written } from "../ui/writing";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -42,9 +42,12 @@ describe("what the printed sheet leaves out", () => {
     unmount();
 
     render(<Floats editor={editor} at={{ x: 10, y: 40 }} asking />);
-    expect(screen.getByLabelText(/Address/).closest("form")?.classList.contains("fixed")).toBe(
-      true,
-    );
+    expect(
+      screen
+        .getByLabelText(/Address/)
+        .closest("form")
+        ?.classList.contains("fixed"),
+    ).toBe(true);
 
     editor.destroy();
   });

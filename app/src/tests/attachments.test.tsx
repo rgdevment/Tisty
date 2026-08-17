@@ -56,9 +56,7 @@ describe("the description field, which is the one that takes files", () => {
 
   it("shows them in the second column of the full screen view", async () => {
     const user = userEvent.setup();
-    render(
-      <Prose value={TWO} hint="h" label="Description" catches beside onWrite={vi.fn()} />,
-    );
+    render(<Prose value={TWO} hint="h" label="Description" catches beside onWrite={vi.fn()} />);
     await user.click(screen.getByLabelText("Description"));
     expect(screen.getByLabelText("Composed")).toBeTruthy();
     await waitFor(() => expect(resolved()).toBe(2));
@@ -69,7 +67,9 @@ describe("an attachment that cannot be drawn, inside a task", () => {
   const chip = () => document.querySelector<HTMLAnchorElement>("a.chip");
 
   it("becomes a chip rather than a picture that will never load", async () => {
-    render(<Composed html={composed("![el contrato](<attachments/ab/cd.pdf>)")} className="prose" />);
+    render(
+      <Composed html={composed("![el contrato](<attachments/ab/cd.pdf>)")} className="prose" />,
+    );
 
     await waitFor(() => expect(chip()).toBeTruthy());
     expect(chip()?.textContent).toContain("el contrato");
@@ -77,7 +77,9 @@ describe("an attachment that cannot be drawn, inside a task", () => {
   });
 
   it("says what kind of thing it is", async () => {
-    render(<Composed html={composed("![el contrato](<attachments/ab/cd.pdf>)")} className="prose" />);
+    render(
+      <Composed html={composed("![el contrato](<attachments/ab/cd.pdf>)")} className="prose" />,
+    );
 
     await waitFor(() => expect(chip()).toBeTruthy());
     expect(chip()?.querySelector(".chip-badge")?.textContent).toBe("PDF");

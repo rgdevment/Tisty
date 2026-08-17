@@ -74,7 +74,8 @@ const CACHE = {
 
 function named(count: number, names: string[], kind: string): string {
   if (count === 0) return "0";
-  const shown = names.length > 0 ? names : Array.from({ length: count }, (_, at) => `${kind}#${at + 1}`);
+  const shown =
+    names.length > 0 ? names : Array.from({ length: count }, (_, at) => `${kind}#${at + 1}`);
   return `${count}   (${shown.join(", ")})`;
 }
 

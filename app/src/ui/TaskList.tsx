@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { banded, grouped } from "../archive";
 import type { List, Task } from "../core";
 import { cadence, isOverdue, whenLabel } from "../format";
-import { banded, grouped } from "../archive";
 import { fill, t } from "../locales";
 
 interface Props {
@@ -74,9 +74,7 @@ export default function TaskList({
   useEffect(() => {
     asked.current?.scrollIntoView?.({
       block: "nearest",
-      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
+      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
     });
   }, [reveal]);
 
@@ -131,76 +129,75 @@ export default function TaskList({
     walk(task.id, by);
   };
 
-
   const line = (task: Task) => {
     return (
       <div key={task.id}>
-          <div
-            ref={reveal === task.id ? asked : undefined}
-            data-row={task.id}
-            role="listitem"
-            tabIndex={stops(task.id) ? 0 : -1}
-            aria-label={
-              task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`
-            }
-            aria-keyshortcuts={
-              (onComplete && task.status === "open") || onFold ? "Control+Enter" : undefined
-            }
-            onFocus={() => setReached(task.id)}
-            onKeyDown={(event) => typed(event, task)}
-            onClick={() => onSelect(task.id)}
-            className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 hover:bg-hover ${
-              selected === task.id ? "bg-active" : ""
-            } ${fresh === task.id ? "bg-accent-soft transition-colors duration-700" : ""}`}
-          >
-            {onComplete && task.status === "open" ? (
-              <button
-                aria-label={fill("completeIt", task.title)}
-                title={fill("completeIt", task.title)}
-                tabIndex={-1}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onComplete(task.id);
-                }}
-                className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${
-                  task.priority === 1
-                    ? "border-urgent"
-                    : task.priority === 2
-                      ? "border-high"
-                      : "border-faint"
-                }`}
-              />
-            ) : (
-              <span
-                title={task.status === "dropped" ? t("dropped") : t("done")}
-                className={`mt-px text-[13px] ${task.status === "dropped" ? "text-faint" : "text-accent"}`}
-              >
-                {task.status === "dropped" ? "⨯" : "✓"}
-              </span>
-            )}
+        <div
+          ref={reveal === task.id ? asked : undefined}
+          data-row={task.id}
+          role="listitem"
+          tabIndex={stops(task.id) ? 0 : -1}
+          aria-label={task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`}
+          aria-keyshortcuts={
+            (onComplete && task.status === "open") || onFold ? "Control+Enter" : undefined
+          }
+          onFocus={() => setReached(task.id)}
+          onKeyDown={(event) => typed(event, task)}
+          onClick={() => onSelect(task.id)}
+          className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 hover:bg-hover ${
+            selected === task.id ? "bg-active" : ""
+          } ${fresh === task.id ? "bg-accent-soft transition-colors duration-700" : ""}`}
+        >
+          {onComplete && task.status === "open" ? (
+            <button
+              type="button"
+              aria-label={fill("completeIt", task.title)}
+              title={fill("completeIt", task.title)}
+              tabIndex={-1}
+              onClick={(e) => {
+                e.stopPropagation();
+                onComplete(task.id);
+              }}
+              className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${
+                task.priority === 1
+                  ? "border-urgent"
+                  : task.priority === 2
+                    ? "border-high"
+                    : "border-faint"
+              }`}
+            />
+          ) : (
+            <span
+              title={task.status === "dropped" ? t("dropped") : t("done")}
+              className={`mt-px text-[13px] ${task.status === "dropped" ? "text-faint" : "text-accent"}`}
+            >
+              {task.status === "dropped" ? "⨯" : "✓"}
+            </span>
+          )}
 
-            <div className="min-w-0">
-              <h2 className="text-sm leading-snug">{task.title}</h2>
-              <Meta task={task} list={task.list ? named(task.list) : undefined} />
-            </div>
-
-            <Volume task={task} />
-            {onFold && (
-              <button
-                aria-label={task.hidden ? t("showIt") : t("hideIt")}
-                title={task.hidden ? t("showIt") : t("hideIt")}
-                tabIndex={-1}
-                onKeyDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFold(task.id, !task.hidden);
-                }}
-                className="mt-0.5 flex h-4 w-4 items-center justify-center rounded text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 hover:bg-line hover:text-ink"
-              >
-                {task.hidden ? "⊕" : "⊖"}
-              </button>
-            )}
+          <div className="min-w-0">
+            <h2 className="text-sm leading-snug">{task.title}</h2>
+            <Meta task={task} list={task.list ? named(task.list) : undefined} />
           </div>
+
+          <Volume task={task} />
+          {onFold && (
+            <button
+              type="button"
+              aria-label={task.hidden ? t("showIt") : t("hideIt")}
+              title={task.hidden ? t("showIt") : t("hideIt")}
+              tabIndex={-1}
+              onKeyDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onFold(task.id, !task.hidden);
+              }}
+              className="mt-0.5 flex h-4 w-4 items-center justify-center rounded text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 hover:bg-line hover:text-ink"
+            >
+              {task.hidden ? "⊕" : "⊖"}
+            </button>
+          )}
+        </div>
       </div>
     );
   };
@@ -225,9 +222,7 @@ export default function TaskList({
       </header>
 
       <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>
-      {note && (
-        <p className={`shrink-0 px-7 pb-1.5 text-[11.5px] text-faint ${width}`}>{note}</p>
-      )}
+      {note && <p className={`shrink-0 px-7 pb-1.5 text-[11.5px] text-faint ${width}`}>{note}</p>}
       {above && <div className={`shrink-0 px-5 ${width}`}>{above}</div>}
 
       <div
@@ -253,6 +248,7 @@ export default function TaskList({
             {row.kind === "many" ? (
               <>
                 <button
+                  type="button"
                   onClick={() => setOpen((was) => flip(was, row.key))}
                   aria-expanded={open.has(row.key)}
                   className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-hover"
@@ -289,7 +285,6 @@ const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
   if (!next.delete(key)) next.add(key);
   return next;
 };
-
 
 function Meta({ task, list }: { task: Task; list?: string }) {
   const bits: React.ReactNode[] = [];
@@ -339,7 +334,5 @@ function Volume({ task }: { task: Task }) {
     v.journal ? `✎${v.journal}` : null,
   ].filter(Boolean);
 
-  return (
-    <span className="pt-px text-xs whitespace-nowrap text-faint">{parts.join(" · ")}</span>
-  );
+  return <span className="pt-px text-xs whitespace-nowrap text-faint">{parts.join(" · ")}</span>;
 }

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
-import { capture, snapshot, type Snapshot } from "./core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useEffect, useRef, useState } from "react";
+import { capture, type Snapshot, snapshot } from "./core";
 import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import CaptureField from "./ui/CaptureField";

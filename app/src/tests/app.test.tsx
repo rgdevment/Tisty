@@ -1,13 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Snapshot, Task } from "../core";
 import App from "../App";
+import type { Snapshot, Task } from "../core";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
-  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> =>
-    Promise.resolve(null),
+  answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -325,8 +324,7 @@ describe("what the maintenance screen writes", () => {
     };
   };
 
-  const pushes = () =>
-    ipc.calls.filter((one) => one.cmd === "sync_now" && one.args.way === "push");
+  const pushes = () => ipc.calls.filter((one) => one.cmd === "sync_now" && one.args.way === "push");
 
   it("carries a machine removal out without waiting for the quarter-hour beat", async () => {
     const user = userEvent.setup();

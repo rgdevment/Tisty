@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { read, type Counted, type Edits, type List, type Parsed, type Span, type Task } from "../core";
+import {
+  type Counted,
+  type Edits,
+  type List,
+  type Parsed,
+  read,
+  type Span,
+  type Task,
+} from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Calendar from "./Calendar";
@@ -94,7 +102,11 @@ export default function CaptureField({ invite, lists, tags, onCapture, onError }
         {picking && (
           <Calendar
             onPick={(iso) => {
-              setEdits({ ...edits, [picking]: iso, [picking === "date" ? "noDate" : "noDeadline"]: false });
+              setEdits({
+                ...edits,
+                [picking]: iso,
+                [picking === "date" ? "noDate" : "noDeadline"]: false,
+              });
               setPicking(null);
             }}
             onClear={() => setPicking(null)}

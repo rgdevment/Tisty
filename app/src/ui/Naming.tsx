@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { t } from "../locales";
-import Modal from "./Modal";
 import Icons from "./Icons";
+import Modal from "./Modal";
 
 interface Props {
   title: string;
@@ -13,15 +13,7 @@ interface Props {
   onClose: () => void;
 }
 
-export default function Naming({
-  title,
-  invite,
-  called,
-  drawn,
-  action,
-  onName,
-  onClose,
-}: Props) {
+export default function Naming({ title, invite, called, drawn, action, onName, onClose }: Props) {
   const [name, setName] = useState(called ?? "");
   const [icon, setIcon] = useState<string | undefined>(drawn);
 

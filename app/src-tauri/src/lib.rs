@@ -2126,8 +2126,7 @@ fn proofread(window: &tauri::WebviewWindow) {
         if wk.is_null() {
             return;
         }
-        // Asked before told: these are private selectors, and a missing one
-        // raises an Objective-C exception that Rust cannot catch.
+        // Private selectors: asked before told, since a missing one raises an ObjC exception Rust cannot catch.
         unsafe {
             let spelling: bool =
                 msg_send![wk, respondsToSelector: sel!(setContinuousSpellCheckingEnabled:)];

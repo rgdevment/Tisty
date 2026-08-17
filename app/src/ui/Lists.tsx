@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { listAdd, listLook, type List } from "../core";
+import { type List, listAdd, listLook } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Icons, { drawn, useIcons } from "./Icons";

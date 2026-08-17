@@ -64,8 +64,6 @@ md.renderer.rules.image = (tokens, i, options, env, self) => {
   return self.renderToken(tokens, i, options);
 };
 
-export const composed = (text: string, steps?: string[]): string =>
-  md.render(text, { steps });
+export const composed = (text: string, steps?: string[]): string => md.render(text, { steps });
 
-export const inline = (text: string, steps?: string[]): string =>
-  md.renderInline(text, { steps });
+export const inline = (text: string, steps?: string[]): string => md.renderInline(text, { steps });

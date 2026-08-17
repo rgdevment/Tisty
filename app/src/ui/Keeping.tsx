@@ -1,49 +1,49 @@
-import { useCallback, useEffect, useState } from "react";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
+import { useCallback, useEffect, useState } from "react";
 import {
+  type About,
   about,
   backUp,
+  type Carrying,
   checked,
   chooseSync,
-  facts,
-  keepReport,
-  logs,
-  reachFor,
-  keepSettings,
-  reachable,
-  rebuild,
-  revealed,
-  settings as readSettings,
-  shortcut,
-  joinThem,
-  takeOver,
+  copied,
   docs,
+  facts,
+  joinThem,
+  type Kin,
+  keepReport,
+  keepSettings,
+  logs,
+  type Machine,
   mergeStores,
-  syncKin,
+  type Reach,
+  type Reviewed,
+  reachable,
+  reachFor,
+  settings as readSettings,
+  rebuild,
   removeMachine,
-  twinned,
-  retireAttachment,
   restore,
+  retireAttachment,
+  revealed,
+  type Settings,
+  shortcut,
+  syncKin,
   syncNow,
   syncState,
-  type About,
-  type Carrying,
-  type Reach,
-  type Settings,
-  type Reviewed,
   type Twins,
-  type Machine,
-  copied,
-  type Kin,
+  takeOver,
+  twinned,
 } from "../core";
+import { decideAll } from "../deciding";
+import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { stamped, weigh } from "../format";
 import { written } from "../report";
-import { decideAll } from "../deciding";
-import { scanned, type Brittle } from "../scanning";
-import { onMac } from "./WindowChrome";
+import { type Brittle, scanned } from "../scanning";
 import Apart, { type Door } from "./Apart";
+import { onMac } from "./WindowChrome";
 
 const carried = {
   came: "syncCame",
@@ -183,9 +183,7 @@ export default function Keeping({ onChanged }: Props) {
     const titled = await docs()
       .then((found) => new Map(found.docs.map((one) => [one.file, one.title])))
       .catch(() => new Map<string, string>());
-    return files
-      .map((one) => `«${titled.get(one)?.trim() || t("untitledDoc")}»`)
-      .join(", ");
+    return files.map((one) => `«${titled.get(one)?.trim() || t("untitledDoc")}»`).join(", ");
   };
 
   const carryNow = async (): Promise<"done" | "declined" | "failed"> => {
@@ -557,7 +555,9 @@ export default function Keeping({ onChanged }: Props) {
                     </label>
                   ))}
                 </div>
-                <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">{t("noticesMore")}</p>
+                <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
+                  {t("noticesMore")}
+                </p>
               </Card>
             )}
 
@@ -596,14 +596,18 @@ export default function Keeping({ onChanged }: Props) {
                   </select>
                   <span className="text-[11.5px] text-faint">{t("attachUpTo")}</span>
                 </div>
-                <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
-                  {t("attachBig")}
-                </p>
+                <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">{t("attachBig")}</p>
               </Card>
             )}
 
             {reach?.shipped && (
-              <Card title={t("terminal")} which="terminal" busy={busy} said={said} trouble={trouble}>
+              <Card
+                title={t("terminal")}
+                which="terminal"
+                busy={busy}
+                said={said}
+                trouble={trouble}
+              >
                 <p className="text-[12.5px] leading-relaxed text-soft">
                   {reach.withinReach
                     ? fill("terminalOn", reach.through ?? reach.at ?? "")
@@ -732,7 +736,9 @@ export default function Keeping({ onChanged }: Props) {
                             </span>
                           )}
                         </span>
-                        <span className={`block text-[12px] ${behind(one) ? "text-urgent" : "text-soft"}`}>
+                        <span
+                          className={`block text-[12px] ${behind(one) ? "text-urgent" : "text-soft"}`}
+                        >
                           {one.when === 0 ? t("machineNever") : dated(one.when)}
                         </span>
                         <span className="block font-mono text-[10.5px] break-all text-faint">
@@ -965,7 +971,6 @@ export default function Keeping({ onChanged }: Props) {
                 </button>
               </div>
             </Card>
-
           </>
         )}
       </div>
@@ -1027,7 +1032,9 @@ function Card({ title, which, busy, said, trouble, children }: CardProps) {
     <section className="mb-3 rounded-[10px] border border-hair px-4 py-3.5">
       <h3 className="mb-0.5 text-[13.5px] font-semibold">{title}</h3>
       {children}
-      {waiting && <p className="mt-2 text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>}
+      {waiting && (
+        <p className="mt-2 text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
+      )}
       {trouble?.card === which && <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>}
       {said?.card === which && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
     </section>

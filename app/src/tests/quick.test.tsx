@@ -27,7 +27,12 @@ vi.mock("@tauri-apps/api/core", () => ({
           locale: "en",
         });
       case "read":
-        return Promise.resolve({ title: String(args?.text ?? ""), tags: [], spans: [], offers: [] });
+        return Promise.resolve({
+          title: String(args?.text ?? ""),
+          tags: [],
+          spans: [],
+          offers: [],
+        });
       case "shortcut":
         return Promise.resolve("Ctrl+Shift+Space");
       case "capture":

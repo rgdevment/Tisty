@@ -112,17 +112,20 @@ const en = {
   setWhen: "Apply",
   cancel: "Cancel",
   sliceAll: "All",
-  repeatingEmpty: "Nothing comes back on its own. Write «water the plants every week» to start a habit.",
+  repeatingEmpty:
+    "Nothing comes back on its own. Write «water the plants every week» to start a habit.",
   allEmpty: "Nothing open. What you close lives in the archive.",
   sandboxCannotJoin: "A sandbox never joins another store: it is a test one.",
   notThisMachine: "A machine cannot remove itself.",
   stillReferenced: "Something references that attachment now. Look again.",
   sandbox: "sandbox",
-  inSandbox: "This is the «{name}» sandbox. Nothing here is your real store, and it never merges with it.",
+  inSandbox:
+    "This is the «{name}» sandbox. Nothing here is your real store, and it never merges with it.",
   aboutScreen: "About",
   aboutBuild: "This build",
   insertLabel: "What to add",
-  aboutWhat: "A local, private, minimal task manager. Your tasks never leave this machine unless you set up syncing yourself.",
+  aboutWhat:
+    "A local, private, minimal task manager. Your tasks never leave this machine unless you set up syncing yourself.",
   aboutPrivacy: "No account, no telemetry, no server. What you write stays in the store above.",
   repeating: "Repeating",
   insertAttach: "Attach",
@@ -148,9 +151,11 @@ const en = {
   markStep: "Mark done: {name}",
   unmarkStep: "Mark not done: {name}",
   editStep: "Step: {name}",
-  strandedPapers: "{name} document files are on disk that the log does not know about. They came from a machine that deleted them, or from an interrupted copy.",
+  strandedPapers:
+    "{name} document files are on disk that the log does not know about. They came from a machine that deleted them, or from an interrupted copy.",
   archivedList: "The list «{name}» is put away. Bring it back before filing anything in it.",
-  documentTooLong: "This document has reached {name}. Take something out, or split it in two — past that it can no longer be read or carried.",
+  documentTooLong:
+    "This document has reached {name}. Take something out, or split it in two — past that it can no longer be read or carried.",
   lookAgain: "not found — look again",
   playIt: "Play",
   foldIt: "Hide the player",
@@ -160,7 +165,8 @@ const en = {
   noticeScreen: "A notification from the system",
   noticeChime: "A short tone",
   attachTitle: "Attachments",
-  attachWhy: "The largest file Tisty will take in. Everything you attach is copied into the store, so it travels with your tasks and is still there on the other machine.",
+  attachWhy:
+    "The largest file Tisty will take in. Everything you attach is copied into the store, so it travels with your tasks and is still there on the other machine.",
   attachUpTo: "take files up to",
   tasks: "Tasks",
   someOfMany: "Showing {name}. Narrow the words to see the rest.",
@@ -195,7 +201,8 @@ const en = {
   folderName: "Name of the folder",
   noSuchFolder: "That folder is not here",
   dropDoc: "Delete {name}",
-  dropDocSure: "Delete «{name}»? The document and what it holds go for good. This cannot be undone.",
+  dropDocSure:
+    "Delete «{name}»? The document and what it holds go for good. This cannot be undone.",
   newFolderIn: "New folder in {name}",
   openFolder: "Open {name}",
   closeFolder: "Close {name}",
@@ -251,7 +258,8 @@ const en = {
   dropFolder: "Delete {name}",
   rename: "Rename",
   renameIt: "Rename",
-  dropFolderSure: "Delete «{name}»? Its documents go to Unfiled and its subfolders move up a level. Nothing is lost, but this cannot be undone.",
+  dropFolderSure:
+    "Delete «{name}»? Its documents go to Unfiled and its subfolders move up a level. Nothing is lost, but this cannot be undone.",
   updateStore: "The Microsoft Store installs it for you.",
   updateBrew: "Run brew upgrade --cask {name}",
   updateBrewCli: "Run brew upgrade {name}",
@@ -268,15 +276,19 @@ const en = {
   completeIt: "Complete {name}",
   hintRepeat: "every tuesday",
   quick: "Quick capture",
-  quickOn: "{name} opens a small field over whatever you are doing. What you write is filed under Tasks, with no list, and Tisty stays where it was.",
-  quickNone: "No shortcut could be taken — another application holds them all. Tisty still captures from its own window.",
+  quickOn:
+    "{name} opens a small field over whatever you are doing. What you write is filed under Tasks, with no list, and Tisty stays where it was.",
+  quickNone:
+    "No shortcut could be taken — another application holds them all. Tisty still captures from its own window.",
   noHits: "Nothing matched. Try a shorter word, or widen the scope above.",
   noHitsHere: "Nothing in the archive matched. Try a shorter word.",
   searchInvite: "Type to search. It looks in the archive too.",
-  archiveEmpty: "What you close ends up here, gathered by month. A task that repeats is folded into one line per month.",
+  archiveEmpty:
+    "What you close ends up here, gathered by month. A task that repeats is folded into one line per month.",
   listEmpty: "Nothing in here yet. Add the first one from the field above.",
   upcomingEmpty: "Nothing dated ahead. Write «call the dentist on Friday» to put something here.",
-  todayEmpty: "Nothing for today. Write «buy bread tomorrow at 10» — the date is read from the sentence.",
+  todayEmpty:
+    "Nothing for today. Write «buy bread tomorrow at 10» — the date is read from the sentence.",
   someday: "Someday",
   remove: "Remove",
   accept: "Use",
@@ -291,7 +303,8 @@ const en = {
   cannotOpen: "Nothing on this machine opens {name}",
   noRemote: "No destination is set yet",
   noMeetingPlace: "{name} cannot be reached — is the folder synced, or the drive plugged in?",
-  syncRefused: "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
+  syncRefused:
+    "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncUnreadable: "What came back does not read: {name}",
   syncBroke: "The copy could not be finished: {name}",
   notAllowed:
@@ -360,11 +373,13 @@ const en = {
   attachmentTooBig:
     "That file is over {name}, the most a task takes. Raise it in Settings → Writing, or attach it inside a document, which takes up to 500 MB.",
   attachmentTooBigHere: "That file is over {name}, which is as much as a document will hold.",
-  textTooLong: "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
+  textTooLong:
+    "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
   docBrimming: "{name} — this document is getting long enough to feel it while typing",
   docCrowded: "{count} attachments in view — enough to feel while typing",
   frailTitle: "This document brings things Tisty cannot keep",
-  frailWhy: "Editing it would rewrite the whole file, and these would be lost on the first keystroke:",
+  frailWhy:
+    "Editing it would rewrite the whole file, and these would be lost on the first keystroke:",
   brittleAre: "Documents that open read only",
   brittleWhat:
     "Some documents bring markup the editor cannot write back. Those open read only, so nothing is lost the moment a key is pressed. This goes through every one of them.",
@@ -409,10 +424,12 @@ const en = {
   stillCarrying: "A sync is running — try again in a moment",
   noDestination: "no destination",
   backup: "Backup",
-  backupWhat: "One file with your whole history, from every machine. Keep it wherever you like and come back to it after a format.",
+  backupWhat:
+    "One file with your whole history, from every machine. Keep it wherever you like and come back to it after a format.",
   backupMake: "Create backup…",
   backupRestore: "Restore…",
-  backupOffWhy: "Your shared folder already holds every machine's history, so you do not need a backup by hand.",
+  backupOffWhy:
+    "Your shared folder already holds every machine's history, so you do not need a backup by hand.",
   backupMade: "{name} saved",
   restored: "{name} files restored",
   restoreFailed: "Nothing was changed — the restore could not finish: {name}",
@@ -425,14 +442,16 @@ const en = {
   reviewRun: "Review",
   reviewLoose: "{name} loose attachments",
   welcomeTitle: "Do you use Tisty on more than one machine?",
-  welcomeWhy: "Tisty always works on this machine. To share tasks with another one, point it at a folder both computers already reach — the one your Google Drive, OneDrive or iCloud client keeps in step, a mounted NAS, an external drive.",
+  welcomeWhy:
+    "Tisty always works on this machine. To share tasks with another one, point it at a folder both computers already reach — the one your Google Drive, OneDrive or iCloud client keeps in step, a mounted NAS, an external drive.",
   welcomeAlone: "Only on this machine",
   welcomeAloneWhy: "Nothing leaves. You can back up by hand whenever you want.",
   welcomeShared: "I have a shared folder",
   welcomeSharedWhy: "Copies go there on their own, and the other machine picks them up.",
   welcomeLater: "Decide later",
   closingTitle: "Close the window, or quit Tisty?",
-  closingWhy: "Tisty can stay in the tray with the window shut, ready to capture without opening it again.",
+  closingWhy:
+    "Tisty can stay in the tray with the window shut, ready to capture without opening it again.",
   closingHide: "Leave it in the tray",
   closingHideWhy: "The window closes; Tisty stays where you left it.",
   closingQuit: "Quit Tisty",
@@ -446,8 +465,10 @@ const en = {
   terminal: "Command line",
   terminalOn: "Your terminal already finds «tisty», through {name}",
   terminalOff: "Tisty ships the «tisty» command, but your terminal cannot find it yet.",
-  terminalNotOnPath: "The link is made, but no shell looks in that folder yet. Add this line to your shell profile — «.zshrc» on macOS — and open a new terminal:",
-  terminalOrBrew: "Or install just the command line with Homebrew, which puts it somewhere your shell already looks: brew install rgdevment/tap/tisty-cli",
+  terminalNotOnPath:
+    "The link is made, but no shell looks in that folder yet. Add this line to your shell profile — «.zshrc» on macOS — and open a new terminal:",
+  terminalOrBrew:
+    "Or install just the command line with Homebrew, which puts it somewhere your shell already looks: brew install rgdevment/tap/tisty-cli",
   terminalAdd: "Make it reachable",
   terminalRemove: "Take it back out",
   terminalFresh: "Ready the next time you sign in",
@@ -455,8 +476,10 @@ const en = {
   terminalGone: "No longer reachable",
   settlingIn: "Settling in — bringing your machines together",
   otherTools: "Other tools",
-  toolCopyPaste: "Free, open source clipboard manager for Windows, macOS and Linux. Same philosophy: no ads, no telemetry, everything local.",
-  toolLinkUnbound: "Open source browser selector for Windows and macOS. Same philosophy: no ads, no telemetry, everything local.",
+  toolCopyPaste:
+    "Free, open source clipboard manager for Windows, macOS and Linux. Same philosophy: no ads, no telemetry, everything local.",
+  toolLinkUnbound:
+    "Open source browser selector for Windows and macOS. Same philosophy: no ads, no telemetry, everything local.",
   whereItLives: "Where it lives",
   tabData: "Your data",
   tabNotices: "Notices",
@@ -472,12 +495,17 @@ const en = {
   archivedTasks: "{name} archived",
   someAttachments: "{name} attachments",
   restoreTitle: "Restore",
-  restoreWhat: "Replaces everything on this machine with whatever the file carries. It cannot be undone, so it asks first.",
+  restoreWhat:
+    "Replaces everything on this machine with whatever the file carries. It cannot be undone, so it asks first.",
   restoreFrom: "Restore from a file…",
-  storeFixed: "The folder cannot be changed: your tasks are text files, and always knowing where they are is part of them being yours.",
-  attachBig: "For anything larger, write a document and reference it from the task instead of dragging the file in.",
-  noticesMore: "Notices are prepared and shown on this machine. None of it reaches the internet or passes through a server.",
-  reviewWhat: "Compares what the log says with what the cache holds. It is the same thing `tisty doctor` does in the terminal.",
+  storeFixed:
+    "The folder cannot be changed: your tasks are text files, and always knowing where they are is part of them being yours.",
+  attachBig:
+    "For anything larger, write a document and reference it from the task instead of dragging the file in.",
+  noticesMore:
+    "Notices are prepared and shown on this machine. None of it reaches the internet or passes through a server.",
+  reviewWhat:
+    "Compares what the log says with what the cache holds. It is the same thing `tisty doctor` does in the terminal.",
   reviewAgain: "Review again",
   inTheLog: "In the log",
   cacheIs: "Cache",
@@ -501,8 +529,7 @@ const en = {
   machineBehind: "Some machines have not synced in a while. Sync them or remove them.",
   looseWhat:
     "No task and no document on this machine references these. Documents do not travel between machines yet, so another one may still reference them. Emptying is by hand, from the folder.",
-  looseWait:
-    "Sync the machines listed above, or remove them, before deciding what is left over.",
+  looseWait: "Sync the machines listed above, or remove them, before deciding what is left over.",
   looseNone: "Nothing loose",
   twinsAre: "The same file kept twice",
   twinsWhat:
@@ -522,16 +549,21 @@ const en = {
   cacheDiverged: "disagrees with the log",
   cacheNone: "not built yet",
   reportTitle: "Report for a bug",
-  reportWhat: "Saves one file with what it takes to understand a fault: version, operating system, counts and, if you want it, the error log.",
+  reportWhat:
+    "Saves one file with what it takes to understand a fault: version, operating system, counts and, if you want it, the error log.",
   reportNeverSent: "Nothing is sent.",
-  reportYours: "It is saved where you say, you open it, you read it, and you share it only if you agree.",
+  reportYours:
+    "It is saved where you say, you open it, you read it, and you share it only if you agree.",
   reportLogs: "Include the error log",
-  reportLogsWhy: "What has failed on this machine, from a warning up. It carries no titles, no descriptions and no journals — the record cannot hold them.",
+  reportLogsWhy:
+    "What has failed on this machine, from a warning up. It carries no titles, no descriptions and no journals — the record cannot hold them.",
   reportNames: "Include the names of lists and tags",
-  reportNamesWhy: "They help reproduce a fault in the filters. Off, they come out as «list#1», «tag#2».",
+  reportNamesWhy:
+    "They help reproduce a fault in the filters. Off, they come out as «list#1», «tag#2».",
   reportPaths: "Include full paths",
   reportPathsWhy: "Off, your account name comes out as «···».",
-  reportNever: "Task titles, descriptions, journals and the contents of attachments are never included. There is nothing to send either: Tisty has no server.",
+  reportNever:
+    "Task titles, descriptions, journals and the contents of attachments are never included. There is nothing to send either: Tisty has no server.",
   reportShow: "See the report that would come out",
   reportSave: "Save the report…",
   reportCopy: "Copy it",
@@ -580,7 +612,8 @@ const en = {
   notInThePath: "not in the PATH",
   nothingBound: "nothing bound",
   wordNone: "none",
-  welcomeRedundancy: "Syncing gives you redundancy, not a way back in time: delete a task and the deletion travels too.",
+  welcomeRedundancy:
+    "Syncing gives you redundancy, not a way back in time: delete a task and the deletion travels too.",
 };
 
 type Catalog = typeof en;
@@ -682,8 +715,10 @@ const es: Catalog = {
   tomorrow: "Mañana",
   overdue: "Vencidas",
   tryAgain: "Reintentar",
-  newListHere: "Aún no hay listas. Sigue escribiendo el nombre: la lista se crea al guardar la tarea.",
-  newTagHere: "Aún no hay etiquetas. Sigue escribiendo el nombre: la etiqueta existe en cuanto una tarea la lleva.",
+  newListHere:
+    "Aún no hay listas. Sigue escribiendo el nombre: la lista se crea al guardar la tarea.",
+  newTagHere:
+    "Aún no hay etiquetas. Sigue escribiendo el nombre: la etiqueta existe en cuanto una tarea la lleva.",
   noneHere: "Nada coincide con lo que has escrito.",
   closePanel: "Cerrar la tarea",
   openIt: "Abrir {name}",
@@ -699,18 +734,22 @@ const es: Catalog = {
   setWhen: "Aplicar",
   cancel: "Cancelar",
   sliceAll: "Todas",
-  repeatingEmpty: "Nada vuelve solo. Escribe «regar las plantas cada semana» para empezar un hábito.",
+  repeatingEmpty:
+    "Nada vuelve solo. Escribe «regar las plantas cada semana» para empezar un hábito.",
   allEmpty: "No hay nada abierto. Lo que cierras vive en el archivo.",
   sandboxCannotJoin: "Un sandbox no se une nunca a otro almacén: es de prueba.",
   notThisMachine: "Una máquina no puede removerse a sí misma.",
   stillReferenced: "Algo referencia ese adjunto ahora. Vuelve a mirar.",
   sandbox: "sandbox",
-  inSandbox: "Esto es el sandbox «{name}». Nada de aquí es tu almacén real, y nunca se fusiona con él.",
+  inSandbox:
+    "Esto es el sandbox «{name}». Nada de aquí es tu almacén real, y nunca se fusiona con él.",
   aboutScreen: "Acerca de",
   aboutBuild: "Esta versión",
   insertLabel: "Qué añadir",
-  aboutWhat: "Un gestor de tareas local, privado y minimalista. Tus tareas no salen de esta máquina salvo que configures la sincronización tú.",
-  aboutPrivacy: "Sin cuenta, sin telemetría, sin servidor. Lo que escribes se queda en el almacén de arriba.",
+  aboutWhat:
+    "Un gestor de tareas local, privado y minimalista. Tus tareas no salen de esta máquina salvo que configures la sincronización tú.",
+  aboutPrivacy:
+    "Sin cuenta, sin telemetría, sin servidor. Lo que escribes se queda en el almacén de arriba.",
   repeating: "Se repiten",
   insertAttach: "Adjuntar",
   sayAttach: "un archivo, copiado",
@@ -735,9 +774,11 @@ const es: Catalog = {
   markStep: "Marcar hecho: {name}",
   unmarkStep: "Marcar sin hacer: {name}",
   editStep: "Paso: {name}",
-  strandedPapers: "Hay {name} archivos de documento en disco que el registro no reconoce. Vienen de un equipo que los borró, o de una copia que quedó a medias.",
+  strandedPapers:
+    "Hay {name} archivos de documento en disco que el registro no reconoce. Vienen de un equipo que los borró, o de una copia que quedó a medias.",
   archivedList: "La lista «{name}» está guardada. Recupérala antes de poner algo en ella.",
-  documentTooLong: "Este documento llegó a {name}. Quita algo o divídelo en dos: pasado ese punto ya no se puede abrir ni sincronizar.",
+  documentTooLong:
+    "Este documento llegó a {name}. Quita algo o divídelo en dos: pasado ese punto ya no se puede abrir ni sincronizar.",
   lookAgain: "no encontrado — reintentar",
   playIt: "Reproducir",
   foldIt: "Ocultar el reproductor",
@@ -747,7 +788,8 @@ const es: Catalog = {
   noticeScreen: "Una notificación del sistema",
   noticeChime: "Un tono corto",
   attachTitle: "Adjuntos",
-  attachWhy: "El archivo más grande que Tisty acepta. Todo lo que adjuntas se copia al almacén, así viaja con tus tareas y sigue ahí en el otro equipo.",
+  attachWhy:
+    "El archivo más grande que Tisty acepta. Todo lo que adjuntas se copia al almacén, así viaja con tus tareas y sigue ahí en el otro equipo.",
   attachUpTo: "aceptar archivos de hasta",
   tasks: "Tareas",
   someOfMany: "Se muestran {name}. Afina las palabras para ver el resto.",
@@ -782,7 +824,8 @@ const es: Catalog = {
   folderName: "Nombre de la carpeta",
   noSuchFolder: "Esa carpeta no está aquí",
   dropDoc: "Borrar {name}",
-  dropDocSure: "¿Borrar «{name}»? El documento y su contenido se van para siempre. Esto no se puede deshacer.",
+  dropDocSure:
+    "¿Borrar «{name}»? El documento y su contenido se van para siempre. Esto no se puede deshacer.",
   newFolderIn: "Nueva carpeta en {name}",
   openFolder: "Desplegar {name}",
   closeFolder: "Plegar {name}",
@@ -838,7 +881,8 @@ const es: Catalog = {
   dropFolder: "Borrar {name}",
   rename: "Renombrar",
   renameIt: "Renombrar",
-  dropFolderSure: "¿Borrar «{name}»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.",
+  dropFolderSure:
+    "¿Borrar «{name}»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.",
   updateStore: "La Microsoft Store la instala sola.",
   updateBrew: "Ejecuta brew upgrade --cask {name}",
   updateBrewCli: "Ejecuta brew upgrade {name}",
@@ -855,14 +899,19 @@ const es: Catalog = {
   completeIt: "Completar {name}",
   hintRepeat: "cada martes",
   quick: "Captura rápida",
-  quickOn: "{name} abre un campo pequeño encima de lo que estés haciendo. Lo que escribas se guarda en Tareas, sin lista, y Tisty se queda donde estaba.",
-  quickNone: "No se pudo tomar ningún atajo porque otra aplicación ya los usa. Tisty sigue capturando desde su propia ventana.",
-  noHits: "No coincide nada. Prueba con una palabra más corta, o amplía el alcance de arriba con los filtros.",
+  quickOn:
+    "{name} abre un campo pequeño encima de lo que estés haciendo. Lo que escribas se guarda en Tareas, sin lista, y Tisty se queda donde estaba.",
+  quickNone:
+    "No se pudo tomar ningún atajo porque otra aplicación ya los usa. Tisty sigue capturando desde su propia ventana.",
+  noHits:
+    "No coincide nada. Prueba con una palabra más corta, o amplía el alcance de arriba con los filtros.",
   noHitsHere: "No coincide nada en el archivo. Prueba con una palabra más corta.",
   searchInvite: "Escribe para buscar. También mira en el archivo.",
-  archiveEmpty: "Aquí llega lo que vas cerrando, agrupado por mes. Lo que se repite se agrupa en una sola línea por mes.",
+  archiveEmpty:
+    "Aquí llega lo que vas cerrando, agrupado por mes. Lo que se repite se agrupa en una sola línea por mes.",
   listEmpty: "Todavía no hay nada aquí. Añade lo primero desde el campo de arriba.",
-  upcomingEmpty: "Nada con fecha por delante. Escribe «llamar al dentista el viernes» para poner algo aquí.",
+  upcomingEmpty:
+    "Nada con fecha por delante. Escribe «llamar al dentista el viernes» para poner algo aquí.",
   todayEmpty: "Nada para hoy. Escribe «comprar pan mañana a las 10»: la fecha se lee de la frase.",
   someday: "Algún día",
   remove: "Quitar",
@@ -878,7 +927,8 @@ const es: Catalog = {
   cannotOpen: "Nada en este equipo abre {name}",
   noRemote: "todavía no hay destino",
   noMeetingPlace: "No se llega a {name} — ¿está la carpeta sincronizada, o el disco conectado?",
-  syncRefused: "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
+  syncRefused:
+    "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
   syncUnreadable: "Lo que llegó no se puede leer: {name}",
   syncBroke: "No se pudo terminar la copia: {name}",
   notAllowed:
@@ -947,7 +997,8 @@ const es: Catalog = {
   attachmentTooBig:
     "Ese archivo pasa de {name}, el máximo de una tarea. Súbelo en Configuración → Escribir, o adjúntalo dentro de un documento, que admite hasta 500 MB.",
   attachmentTooBigHere: "Ese archivo pasa de {name}, que es todo lo que un documento admite.",
-  textTooLong: "Eso supera los {name} de texto. Algo tan largo va mejor en un documento, y lo enlazas desde aquí.",
+  textTooLong:
+    "Eso supera los {name} de texto. Algo tan largo va mejor en un documento, y lo enlazas desde aquí.",
   docBrimming: "{name} — este documento empieza a ser largo y se nota al escribir",
   docCrowded: "{count} adjuntos a la vista — suficientes para que se note al escribir",
   frailTitle: "Este documento trae cosas que Tisty no sabe guardar",
@@ -967,7 +1018,8 @@ const es: Catalog = {
   frailRead: "Abrir para leer",
   frailReading: "Solo lectura",
   frailNeeds: "Tisty necesita convertir el formato para editar. ¿Quieres intentarlo?",
-  frailStuck: "No se pudo convertir, así que sigue en solo lectura. Se guardó una copia de cómo estaba antes.",
+  frailStuck:
+    "No se pudo convertir, así que sigue en solo lectura. Se guardó una copia de cómo estaba antes.",
   frailConvert: "Intentar convertirlo y editar",
   frailKept: "Lo que era antes queda guardado en esta máquina",
   cannotWrite: "No se pudo escribir {name}",
@@ -996,10 +1048,12 @@ const es: Catalog = {
   stillCarrying: "Ya hay una sincronización en curso — inténtalo en un momento",
   noDestination: "sin destino",
   backup: "Respaldo",
-  backupWhat: "Un archivo con todo tu historial, de todos tus equipos. Guárdalo donde quieras y recupéralo cuando lo necesites.",
+  backupWhat:
+    "Un archivo con todo tu historial, de todos tus equipos. Guárdalo donde quieras y recupéralo cuando lo necesites.",
   backupMake: "Crear respaldo…",
   backupRestore: "Restaurar…",
-  backupOffWhy: "Tu carpeta compartida ya guarda el historial de todos tus equipos, así que no necesitas un respaldo manual.",
+  backupOffWhy:
+    "Tu carpeta compartida ya guarda el historial de todos tus equipos, así que no necesitas un respaldo manual.",
   backupMade: "{name} guardados",
   restored: "{name} archivos restaurados",
   restoreFailed: "No se cambió nada — la restauración no pudo terminar: {name}",
@@ -1012,14 +1066,16 @@ const es: Catalog = {
   reviewRun: "Revisar",
   reviewLoose: "{name} adjuntos sueltos",
   welcomeTitle: "¿Usas Tisty en más de un equipo?",
-  welcomeWhy: "Tisty trabaja siempre en este equipo. Para compartir tus tareas con otro, apúntalo a una carpeta que los dos alcancen: la que mantiene al día tu cliente de Google Drive, OneDrive o iCloud, un NAS montado, un disco externo.",
+  welcomeWhy:
+    "Tisty trabaja siempre en este equipo. Para compartir tus tareas con otro, apúntalo a una carpeta que los dos alcancen: la que mantiene al día tu cliente de Google Drive, OneDrive o iCloud, un NAS montado, un disco externo.",
   welcomeAlone: "Solo en este equipo",
   welcomeAloneWhy: "No sale nada. Puedes respaldar a mano cuando quieras.",
   welcomeShared: "Tengo una carpeta compartida",
   welcomeSharedWhy: "Las copias viajan solas, y el otro equipo las recibe.",
   welcomeLater: "Decidir luego",
   closingTitle: "¿Cerrar la ventana, o salir de Tisty?",
-  closingWhy: "Tisty puede quedarse en la bandeja con la ventana cerrada, listo para capturar sin volver a abrirla.",
+  closingWhy:
+    "Tisty puede quedarse en la bandeja con la ventana cerrada, listo para capturar sin volver a abrirla.",
   closingHide: "Dejarlo en la bandeja",
   closingHideWhy: "La ventana se cierra; Tisty se queda donde lo dejaste.",
   closingQuit: "Salir de Tisty",
@@ -1033,8 +1089,10 @@ const es: Catalog = {
   terminal: "Línea de comandos",
   terminalOn: "Tu terminal ya encuentra «tisty», desde {name}",
   terminalOff: "Tisty incluye el comando «tisty», pero tu terminal todavía no lo encuentra.",
-  terminalNotOnPath: "El enlace ya está creado, pero tu terminal todavía no busca en esa carpeta. Agrega esta línea a tu perfil —«.zshrc» en macOS— y abre una terminal nueva:",
-  terminalOrBrew: "También puedes instalar solo el comando con Homebrew, que lo deja donde tu terminal ya busca: brew install rgdevment/tap/tisty-cli",
+  terminalNotOnPath:
+    "El enlace ya está creado, pero tu terminal todavía no busca en esa carpeta. Agrega esta línea a tu perfil —«.zshrc» en macOS— y abre una terminal nueva:",
+  terminalOrBrew:
+    "También puedes instalar solo el comando con Homebrew, que lo deja donde tu terminal ya busca: brew install rgdevment/tap/tisty-cli",
   terminalAdd: "Dejarlo disponible",
   terminalRemove: "Quitarlo",
   terminalFresh: "Quedará listo la próxima vez que inicies sesión",
@@ -1042,8 +1100,10 @@ const es: Catalog = {
   terminalGone: "Ya no está disponible",
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
   otherTools: "Otras herramientas",
-  toolCopyPaste: "Gestor de portapapeles gratuito y de código abierto para Windows, macOS y Linux. Misma filosofía: sin anuncios, sin telemetría, todo local.",
-  toolLinkUnbound: "Selector de navegadores de código abierto para Windows y macOS. Misma filosofía: sin anuncios, sin telemetría, todo local.",
+  toolCopyPaste:
+    "Gestor de portapapeles gratuito y de código abierto para Windows, macOS y Linux. Misma filosofía: sin anuncios, sin telemetría, todo local.",
+  toolLinkUnbound:
+    "Selector de navegadores de código abierto para Windows y macOS. Misma filosofía: sin anuncios, sin telemetría, todo local.",
   whereItLives: "Dónde vive",
   tabData: "Tus datos",
   tabNotices: "Avisos",
@@ -1059,12 +1119,17 @@ const es: Catalog = {
   archivedTasks: "{name} archivadas",
   someAttachments: "{name} adjuntos",
   restoreTitle: "Restaurar",
-  restoreWhat: "Sustituye todo lo que hay en este equipo por lo que traiga el archivo. No se puede deshacer, así que se pide confirmación.",
+  restoreWhat:
+    "Sustituye todo lo que hay en este equipo por lo que traiga el archivo. No se puede deshacer, así que se pide confirmación.",
   restoreFrom: "Restaurar desde un archivo…",
-  storeFixed: "La carpeta no se puede cambiar: tus tareas son archivos de texto, y saber siempre dónde están es parte de que sean tuyas.",
-  attachBig: "Para algo más grande, crea un documento y enlázalo desde la tarea en vez de arrastrar el archivo.",
-  noticesMore: "Los avisos se preparan y se muestran en este mismo equipo. Nada de esto sale a internet ni pasa por un servidor.",
-  reviewWhat: "Compara lo que dice el registro con lo que tiene la caché. Es lo mismo que hace `tisty doctor` en la terminal.",
+  storeFixed:
+    "La carpeta no se puede cambiar: tus tareas son archivos de texto, y saber siempre dónde están es parte de que sean tuyas.",
+  attachBig:
+    "Para algo más grande, crea un documento y enlázalo desde la tarea en vez de arrastrar el archivo.",
+  noticesMore:
+    "Los avisos se preparan y se muestran en este mismo equipo. Nada de esto sale a internet ni pasa por un servidor.",
+  reviewWhat:
+    "Compara lo que dice el registro con lo que tiene la caché. Es lo mismo que hace `tisty doctor` en la terminal.",
   reviewAgain: "Revisar de nuevo",
   inTheLog: "En el registro",
   cacheIs: "Caché",
@@ -1088,8 +1153,7 @@ const es: Catalog = {
   machineBehind: "Hay equipos que llevan tiempo sin sincronizar. Sincronízalos o quítalos.",
   looseWhat:
     "Ninguna tarea ni documento de esta máquina los referencia. Los documentos todavía no viajan entre máquinas, así que otra podría seguir referenciándolos. Vaciar es a mano, desde la carpeta.",
-  looseWait:
-    "Sincroniza las máquinas de arriba, o remuévelas, antes de decidir qué sobra.",
+  looseWait: "Sincroniza las máquinas de arriba, o remuévelas, antes de decidir qué sobra.",
   looseNone: "Nada suelto",
   twinsAre: "El mismo archivo guardado dos veces",
   twinsWhat:
@@ -1109,16 +1173,21 @@ const es: Catalog = {
   cacheDiverged: "no coincide con el registro",
   cacheNone: "aún sin construir",
   reportTitle: "Informe para reportar un problema",
-  reportWhat: "Guarda un solo archivo con lo necesario para entender un problema: versión, sistema operativo, cifras y, si quieres, el registro de errores.",
+  reportWhat:
+    "Guarda un solo archivo con lo necesario para entender un problema: versión, sistema operativo, cifras y, si quieres, el registro de errores.",
   reportNeverSent: "No se envía nada.",
-  reportYours: "Se guarda donde tú digas, lo abres, lo lees, y lo compartes solo si estás de acuerdo.",
+  reportYours:
+    "Se guarda donde tú digas, lo abres, lo lees, y lo compartes solo si estás de acuerdo.",
   reportLogs: "Incluir el registro de errores",
-  reportLogsWhy: "Lo que falló en este equipo, de aviso para arriba. No lleva títulos, ni descripciones, ni bitácoras: el registro no puede guardarlos.",
+  reportLogsWhy:
+    "Lo que falló en este equipo, de aviso para arriba. No lleva títulos, ni descripciones, ni bitácoras: el registro no puede guardarlos.",
   reportNames: "Incluir los nombres de listas y etiquetas",
-  reportNamesWhy: "Ayudan a reproducir un problema con los filtros. Si lo apagas, salen como «lista#1», «etiqueta#2».",
+  reportNamesWhy:
+    "Ayudan a reproducir un problema con los filtros. Si lo apagas, salen como «lista#1», «etiqueta#2».",
   reportPaths: "Incluir las rutas completas",
   reportPathsWhy: "Apagado, tu nombre de usuario sale como «···».",
-  reportNever: "Nunca se incluyen títulos de tareas, descripciones, bitácoras ni el contenido de los adjuntos. Tampoco hay nada que enviar: Tisty no tiene servidor.",
+  reportNever:
+    "Nunca se incluyen títulos de tareas, descripciones, bitácoras ni el contenido de los adjuntos. Tampoco hay nada que enviar: Tisty no tiene servidor.",
   reportShow: "Ver el informe que saldría",
   reportSave: "Guardar el informe…",
   reportCopy: "Copiarlo",
@@ -1167,7 +1236,8 @@ const es: Catalog = {
   notInThePath: "fuera del PATH",
   nothingBound: "sin asignar",
   wordNone: "ninguno",
-  welcomeRedundancy: "Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.",
+  welcomeRedundancy:
+    "Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.",
 };
 
 const catalogs: Record<string, Catalog> = { en, es };

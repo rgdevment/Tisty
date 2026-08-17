@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
+import { describe, expect, it } from "vitest";
 import { asMarkdown, written } from "../ui/writing";
 
 const make = (content = "") => new Editor({ extensions: written(), content });

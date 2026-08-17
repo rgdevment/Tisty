@@ -37,8 +37,7 @@ export default function Tree({
   const [reached, setReached] = useState<string | null>(null);
   const listed = useRef<HTMLUListElement>(null);
 
-  const rows = () =>
-    Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
+  const rows = () => Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
 
   const first = papers.folders[0]?.id ?? papers.docs[0]?.id ?? "unfiled";
   const stops = (id: string) => (reached ?? first) === id;
@@ -308,7 +307,6 @@ export default function Tree({
           <ul {...dropOn(undefined)}>{loose.map((doc) => paper(doc, 1))}</ul>
         )}
       </li>
-
     </ul>
   );
 

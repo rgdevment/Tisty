@@ -1,25 +1,27 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import TaskList from "../ui/TaskList";
 import type { Task } from "../core";
+import TaskList from "../ui/TaskList";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
 const task = (id: string, title: string): Task =>
-  ({ id, title, status: "open", priority: 4, order: "a0", tags: [], reminders: [] }) as unknown as Task;
+  ({
+    id,
+    title,
+    status: "open",
+    priority: 4,
+    order: "a0",
+    tags: [],
+    reminders: [],
+  }) as unknown as Task;
 
 const three = [task("1", "pagar la luz"), task("2", "llamar al dentista"), task("3", "leer")];
 
 const show = (onSelect = () => {}, onComplete?: (id: string) => void) =>
   render(
-    <TaskList
-      tasks={three}
-      lists={[]}
-      title="Open"
-      onSelect={onSelect}
-      onComplete={onComplete}
-    />,
+    <TaskList tasks={three} lists={[]} title="Open" onSelect={onSelect} onComplete={onComplete} />,
   );
 
 const rows = () => screen.getAllByRole("listitem");
@@ -146,7 +148,9 @@ describe("moving through the list without a mouse", () => {
 
 describe("folding a row away in the archive", () => {
   const shelf = (onFold: (id: string, away: boolean) => void) =>
-    render(<TaskList tasks={three} lists={[]} title="Archive" onSelect={() => {}} onFold={onFold} />);
+    render(
+      <TaskList tasks={three} lists={[]} title="Archive" onSelect={() => {}} onFold={onFold} />,
+    );
 
   it("folds the focused row with Ctrl+Enter", async () => {
     const folded = vi.fn();

@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { Edits, Parsed } from "../core";
 import Chips from "../ui/Chips";
 import Field from "../ui/Field";
-import type { Edits, Parsed } from "../core";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 

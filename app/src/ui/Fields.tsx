@@ -117,7 +117,12 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
             <Row
               key={`${every}${unit}`}
               onPick={() =>
-                apply({ repeat: { from: task.repeat?.from ?? (task.date ? "due" : "done"), each: { every, unit } } })
+                apply({
+                  repeat: {
+                    from: task.repeat?.from ?? (task.date ? "due" : "done"),
+                    each: { every, unit },
+                  },
+                })
               }
             >
               {cadence({ from: "due", each: { every, unit } })}
@@ -155,7 +160,11 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
         label={`# ${t("fieldTag")}`}
       >
         <Sheet onClose={close}>
-          <Naming known={known} taken={task.tags ?? []} onName={(name) => apply({ addTag: name })} />
+          <Naming
+            known={known}
+            taken={task.tags ?? []}
+            onName={(name) => apply({ addTag: name })}
+          />
         </Sheet>
       </Held>
 
@@ -275,9 +284,7 @@ function Sheet({
         }}
         className={`absolute z-20 rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lift ${
           away.right ? "right-0" : "left-0"
-        } ${away.up ? "bottom-7" : "top-7"} ${
-          roomy ? "w-[248px]" : "max-h-64 w-56 overflow-auto"
-        }`}
+        } ${away.up ? "bottom-7" : "top-7"} ${roomy ? "w-[248px]" : "max-h-64 w-56 overflow-auto"}`}
       >
         {children}
       </div>

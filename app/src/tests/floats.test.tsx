@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
 import { Editor } from "@tiptap/core";
-import { asMarkdown, written } from "../ui/writing";
+import { describe, expect, it, vi } from "vitest";
 import Floats from "../ui/Floats";
+import { asMarkdown, written } from "../ui/writing";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -44,14 +44,7 @@ describe("the panel that appears over a selection", () => {
     render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
 
     const names = screen.getAllByRole("button").map((one) => one.getAttribute("aria-label"));
-    expect(names).toEqual([
-      "Bold",
-      "Italic",
-      "Underline",
-      "Strikethrough",
-      "Code",
-      "Link",
-    ]);
+    expect(names).toEqual(["Bold", "Italic", "Underline", "Strikethrough", "Code", "Link"]);
 
     editor.destroy();
   });
