@@ -1,9 +1,10 @@
-type Tone = "filed" | "due";
+type Tone = "filed" | "done" | "due";
 
 type Shape = { hz: number[]; apart: number; tail: number; peak: number };
 
 const NOTES: Record<Tone, Shape> = {
   filed: { hz: [523.25, 659.25, 783.99], apart: 0.05, tail: 0.42, peak: 0.045 },
+  done: { hz: [523.25, 659.25, 783.99, 1046.5], apart: 0.07, tail: 0.55, peak: 0.05 },
   due: { hz: [660, 880, 1100], apart: 0.12, tail: 0.12, peak: 0.09 },
 };
 
@@ -42,5 +43,5 @@ export function play(tone: Tone): void {
 }
 
 export function heard(tone: unknown): tone is Tone {
-  return tone === "filed" || tone === "due";
+  return tone === "filed" || tone === "done" || tone === "due";
 }
