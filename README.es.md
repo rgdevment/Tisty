@@ -1,4 +1,4 @@
-![Tisty](assets/logo.png)
+![Tisty](assets/icons/tisty-256.png)
 
 # Tisty
 
