@@ -1,5 +1,3 @@
-![Tisty](assets/icons/tisty-256.png)
-
 # Tisty
 
 **English** · [Español](README.es.md)
