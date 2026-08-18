@@ -1,5 +1,4 @@
 import { useState } from "react";
-import mark from "../assets/tisty.png";
 import type { Filed, Folded, List, Papers } from "../core";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
@@ -50,7 +49,7 @@ export default function Sidebar({
   const [openDocs, setOpenDocs] = useState(true);
 
   return (
-    <aside className="flex flex-col overflow-hidden border-r border-hair bg-rail">
+    <aside className="flex flex-col overflow-hidden">
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="px-2.5 pb-1.5">
         <nav className="flex flex-col gap-px">
@@ -122,7 +121,7 @@ export default function Sidebar({
           aria-label={t("keeping")}
           title={t("keeping")}
           onClick={() => onChoose({ named: "keeping" })}
-          className={`grid h-7 w-7 place-items-center rounded-[7px] text-[13px] hover:bg-hover ${
+          className={`grid h-7 w-7 place-items-center rounded-[7px] text-[17px] hover:bg-hover ${
             chosen.named === "keeping" ? "bg-active text-accent" : "text-soft"
           }`}
         >
@@ -134,7 +133,7 @@ export default function Sidebar({
           title={t("aboutScreen")}
           onClick={() => onChoose({ named: "aboutScreen" })}
           className={`relative ml-auto grid h-7 w-7 place-items-center rounded-[7px] hover:bg-hover ${
-            chosen.named === "aboutScreen" ? "bg-active" : ""
+            chosen.named === "aboutScreen" ? "bg-active text-accent" : "text-soft"
           }`}
         >
           {ready && (
@@ -143,13 +142,9 @@ export default function Sidebar({
               className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-accent"
             />
           )}
-          <img
-            src={mark}
-            alt=""
-            className={`h-[18px] w-[18px] rounded-[4px] ${
-              chosen.named === "aboutScreen" ? "" : "opacity-70"
-            }`}
-          />
+          <span aria-hidden="true" className="text-[11px]">
+            ⓘ
+          </span>
         </button>
       </div>
     </aside>

@@ -11,6 +11,7 @@ interface Props {
   fresh?: string;
   reveal?: string;
   title: string;
+  when?: string;
   count?: number;
   onBack?: () => void;
   bands?: "month" | "day";
@@ -32,6 +33,7 @@ export default function TaskList({
   fresh,
   reveal,
   title,
+  when,
   count,
   onBack,
   bands,
@@ -217,8 +219,17 @@ export default function TaskList({
             ‹
           </button>
         )}
-        <h1 className="text-[21px] font-semibold -tracking-[0.01em]">{title}</h1>
-        <span className="text-[13px] tabular-nums text-faint">{count || ""}</span>
+        <div className="min-w-0 flex-1">
+          <span className="flex items-baseline gap-2.5">
+            <h1 className="text-[21px] font-semibold -tracking-[0.01em]">{title}</h1>
+            <span className="text-[13px] tabular-nums text-faint">{count || ""}</span>
+          </span>
+          {when && (
+            <span className="mt-0.5 block text-[12.5px] text-faint">
+              <b className="font-semibold text-soft">{t("todayIs")}</b> · {when}
+            </span>
+          )}
+        </div>
       </header>
 
       <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>

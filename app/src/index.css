@@ -98,10 +98,20 @@ body,
   height: 100%;
 }
 
+html {
+  background: transparent;
+}
+
 body {
-  background: var(--tisty-bg);
+  background: transparent;
   color: var(--tisty-ink);
   -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+#root {
+  background: var(--tisty-rail);
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -245,6 +255,8 @@ body {
 .quick body,
 .quick #root {
   background: transparent;
+  border-radius: 0;
+  overflow: visible;
 }
 
 .tisty-doc {

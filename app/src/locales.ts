@@ -1,5 +1,6 @@
 const en = {
   today: "Today",
+  todayIs: "Today",
   upcoming: "Upcoming",
   tags: "Tags",
   archive: "Archive",
@@ -635,6 +636,7 @@ type Catalog = typeof en;
 
 const es: Catalog = {
   today: "Hoy",
+  todayIs: "Hoy",
   upcoming: "Próximo",
   tags: "Etiquetas",
   archive: "Archivo",

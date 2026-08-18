@@ -2,7 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import copypaste from "../assets/copypaste.png";
 import linkunbound from "../assets/linkunbound.png";
-import { about, type About as Build, type Ready, revealed } from "../core";
+import { about, type About as Build, type Ready } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 
@@ -110,21 +110,6 @@ export default function About({
                   className={mild}
                 >
                   {t("aboutRepo")}
-                </button>
-              </div>
-            </Card>
-
-            <Card title={t("aboutStore")}>
-              <p className="truncate text-[12.5px] text-soft" title={build.store}>
-                {build.store}
-              </p>
-              <div className="mt-2.5">
-                <button
-                  type="button"
-                  onClick={() => revealed(build.store).catch(onError)}
-                  className={mild}
-                >
-                  {t("aboutReveal")}
                 </button>
               </div>
             </Card>
