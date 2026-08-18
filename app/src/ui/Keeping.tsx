@@ -37,7 +37,7 @@ import {
   twinned,
 } from "../core";
 import { decideAll } from "../deciding";
-import { stamped, weigh } from "../format";
+import { daysFrom, stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { written } from "../report";
@@ -434,22 +434,15 @@ export default function Keeping({ onChanged }: Props) {
                     <button
                       type="button"
                       disabled={held}
-                      title={t("syncAgainWhy")}
-                      onClick={() => carryNow("again")}
+                      onClick={() =>
+                        state.chosen &&
+                        revealed(state.chosen).catch((e) =>
+                          setTrouble({ card: "sync", text: saidPlainly(e) }),
+                        )
+                      }
                       className={mild}
                     >
-                      {t("syncAgain")}
-                    </button>
-                    <button type="button" disabled={held} onClick={pickFolder} className={mild}>
-                      {t("changeFolder")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={held}
-                      onClick={() => run("sync", chooseSync(undefined), () => {})}
-                      className={mild}
-                    >
-                      {t("syncOffNow")}
+                      {t("revealFolder")}
                     </button>
                   </>
                 ) : (
@@ -463,6 +456,44 @@ export default function Keeping({ onChanged }: Props) {
                     : t("noDestination")}
                 </span>
               </div>
+              {state.chosen && (
+                <>
+                  <p className="mt-2 text-[12px] text-soft">
+                    {state.heard ? fill("syncHeard", stamped(state.heard)) : t("syncHeardNever")}
+                  </p>
+                  {state.heard && -daysFrom(state.heard) >= QUIET_DAYS && (
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-ink">
+                      {t("syncNothingSince")}
+                    </p>
+                  )}
+                  <p className="mt-1.5 text-[12px] leading-relaxed text-faint">
+                    {t("syncOnlyFolder")}
+                  </p>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-hair pt-2.5">
+                    <span className="text-[11.5px] text-faint">{t("syncSetUp")}</span>
+                    <button type="button" disabled={held} onClick={pickFolder} className={mild}>
+                      {t("changeFolder")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={held}
+                      onClick={() => run("sync", chooseSync(undefined), () => {})}
+                      className={mild}
+                    >
+                      {t("syncOffNow")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={held}
+                      title={t("syncAgainWhy")}
+                      onClick={() => carryNow("again")}
+                      className={mild}
+                    >
+                      {t("syncAgain")}
+                    </button>
+                  </div>
+                </>
+              )}
             </Card>
 
             <Group label={t("backup")} />
@@ -751,7 +782,7 @@ export default function Keeping({ onChanged }: Props) {
                           )}
                         </span>
                         <span
-                          className={`block text-[12px] ${behind(one) ? "text-urgent" : "text-soft"}`}
+                          className={`block text-[12px] ${hushed(one) ? "text-ink" : "text-soft"}`}
                         >
                           {one.when === 0 ? t("machineNever") : dated(one.when)}
                         </span>
@@ -777,10 +808,8 @@ export default function Keeping({ onChanged }: Props) {
                   ))}
                 </ul>
               )}
-              {audit?.machines.some(behind) && (
-                <p className="mt-2 text-[12.5px] leading-relaxed text-urgent">
-                  {t("machineBehind")}
-                </p>
+              {audit?.machines.some(hushed) && (
+                <p className="mt-2 text-[12.5px] leading-relaxed text-soft">{t("machineHushed")}</p>
               )}
               {audit && audit.machines.length === 0 && (
                 <p className="mt-2 text-[12.5px] text-faint">{t("machinesNone")}</p>
@@ -791,8 +820,8 @@ export default function Keeping({ onChanged }: Props) {
 
             <Card title={t("looseAre")} which="review" busy={busy} said={said} trouble={trouble}>
               <p className="text-[12.5px] leading-relaxed text-soft">{t("looseWhat")}</p>
-              {audit?.machines.some(behind) && (
-                <p className="mt-1.5 text-[12.5px] leading-relaxed text-urgent">{t("looseWait")}</p>
+              {audit?.machines.some(hushed) && (
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-soft">{t("looseWait")}</p>
               )}
               {audit && audit.loose === 0 && (
                 <p className="mt-2 text-[12.5px] text-faint">{t("looseNone")}</p>
@@ -992,10 +1021,11 @@ export default function Keeping({ onChanged }: Props) {
   );
 }
 
-const BEHIND = 7 * 24 * 60 * 60;
+const HUSHED = 7 * 24 * 60 * 60;
+const QUIET_DAYS = 3;
 
-const behind = (one: Machine): boolean =>
-  !one.mine && (one.when === 0 || Date.now() / 1000 - one.when > BEHIND);
+const hushed = (one: Machine): boolean =>
+  !one.mine && (one.when === 0 || Date.now() / 1000 - one.when > HUSHED);
 
 const dated = (when: number): string => {
   const at = new Date(when * 1000);

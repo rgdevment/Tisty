@@ -27,6 +27,7 @@ const KNOWN = [
   "cannotOpen",
   "noRemote",
   "noMeetingPlace",
+  "emptiedPlace",
   "syncUnreadable",
   "syncRefused",
   "syncBroke",

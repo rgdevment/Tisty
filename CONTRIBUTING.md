@@ -14,7 +14,7 @@ costs nothing.
 ## The CLA
 
 Tisty is released under the AGPL-3.0 **and** offered under separate [commercial
-terms](COMMERCIAL.md) to organisations that cannot comply with it. Because of
+terms](docs/COMMERCIAL.md) to organisations that cannot comply with it. Because of
 that dual model, every contributor signs a one-time [CLA](CLA.md) before their
 code can be merged. Offering commercial terms requires the right to license the
 whole codebase that way, and that right has to come from each author explicitly.

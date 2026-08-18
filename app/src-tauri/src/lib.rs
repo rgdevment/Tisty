@@ -1132,6 +1132,7 @@ struct Carrying {
     asked: bool,
     backs_up: bool,
     last: Option<String>,
+    heard: Option<String>,
     loose: usize,
     open: usize,
     archived: usize,
@@ -2399,6 +2400,7 @@ fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
         asked: config.sync.is_some(),
         backs_up: config.backs_up(),
         last: config.synced_at.map(|at| at.to_string()),
+        heard: config.heard_at.map(|at| at.to_string()),
         loose: tisty_core::attach::loose(session.paths.data(), &held).files(),
         open: session.state.matching(&Filter::default(), today()).len(),
         archived: session
@@ -2541,7 +2543,13 @@ async fn sync_now(
         "a carry finished",
         &[("moved", Fact::Word(if moved { "yes" } else { "no" }))],
     );
-    session.keep(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
+    let heard = done.brought > 0;
+    session.keep(|c| {
+        c.synced_at = Some(jiff::Timestamp::now());
+        if heard {
+            c.heard_at = c.synced_at;
+        }
+    })?;
     Ok(Settled {
         carried: match (done.sent > 0, moved || done.brought > 0) {
             (true, true) => "both",
@@ -3029,6 +3037,7 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
         tisty_sync::Trouble::Broke(why) => Refusal::about("syncBroke", why),
         tisty_sync::Trouble::WouldReset { theirs } => Refusal::about("wouldReset", theirs),
         tisty_sync::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
+        tisty_sync::Trouble::Emptied(at) => Refusal::about("emptiedPlace", at),
         tisty_sync::Trouble::SameName(who) => {
             Refusal::about("sameName", tisty_core::config::nicknamed(&who))
         }
@@ -3095,24 +3104,34 @@ fn revealed(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answer<(
         return Err(Refusal::about("cannotOpen", path));
     }
 
-    let (data, config) = {
+    let (data, config, shared) = {
         let session = held(&session);
         (
             session.paths.data().to_path_buf(),
             session.paths.config().to_path_buf(),
+            match &session.config.sync {
+                Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
+                _ => None,
+            },
         )
     };
-    let real = at
-        .canonicalize()
-        .map_err(|_| Refusal::about("cannotOpen", path.clone()))?;
-    let ours = [data, config]
-        .iter()
-        .filter_map(|one| one.canonicalize().ok())
-        .any(|one| real.starts_with(&one));
-    if !ours {
+    let ours: Vec<std::path::PathBuf> = [Some(data), Some(config), shared]
+        .into_iter()
+        .flatten()
+        .collect();
+    if !within(at, &ours) {
         return Err(Refusal::about("cannotOpen", path));
     }
     show(at, &path)
+}
+
+fn within(at: &std::path::Path, ours: &[std::path::PathBuf]) -> bool {
+    let Ok(real) = at.canonicalize() else {
+        return false;
+    };
+    ours.iter()
+        .filter_map(|one| one.canonicalize().ok())
+        .any(|one| real.starts_with(&one))
 }
 
 fn handed(at: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -3620,6 +3639,35 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_folder_the_person_chose_for_syncing_can_be_opened() {
+        let shared = tempfile::tempdir().unwrap();
+        let data = tempfile::tempdir().unwrap();
+
+        assert!(within(
+            shared.path(),
+            &[data.path().to_path_buf(), shared.path().to_path_buf()]
+        ));
+    }
+
+    #[test]
+    fn nothing_the_screen_names_reaches_a_folder_we_were_not_given() {
+        let shared = tempfile::tempdir().unwrap();
+        let elsewhere = tempfile::tempdir().unwrap();
+
+        assert!(!within(elsewhere.path(), &[shared.path().to_path_buf()]));
+    }
+
+    #[test]
+    fn a_neighbour_whose_name_merely_begins_the_same_is_not_inside() {
+        let dir = tempfile::tempdir().unwrap();
+        let ours = dir.path().join("drive");
+        let theirs = dir.path().join("drive-private");
+        std::fs::create_dir_all(&ours).unwrap();
+        std::fs::create_dir_all(&theirs).unwrap();
+
+        assert!(!within(&theirs, &[ours]));
+    }
 
     #[test]
     fn the_other_version_lands_in_the_same_folder_as_the_one_it_came_from() {

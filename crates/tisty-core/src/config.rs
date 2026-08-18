@@ -63,6 +63,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub synced_at: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heard_at: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quiet: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checked_at: Option<jiff::Timestamp>,
@@ -88,6 +90,7 @@ impl Config {
             backed_up_at: None,
             sync: None,
             synced_at: None,
+            heard_at: None,
         };
         config.save(paths)?;
         Ok(config)
@@ -337,6 +340,7 @@ mod tests {
             backed_up_at: None,
             sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
             synced_at: None,
+            heard_at: None,
             quiet: None,
             checked_at: None,
             attach_up_to: None,
@@ -367,6 +371,7 @@ mod tests {
                 backed_up_at: None,
                 sync: None,
                 synced_at: None,
+                heard_at: None,
             }
         }
 

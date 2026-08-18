@@ -48,6 +48,7 @@ const carrying = {
   asked: true,
   backsUp: true,
   last: undefined as string | undefined,
+  heard: undefined as string | undefined,
   loose: 0,
 };
 
@@ -327,7 +328,11 @@ describe("the maintenance panel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
 
-    expect(await screen.findByText(/have not synced in a while/i)).toBeTruthy();
+    const said = await screen.findByText(/may still be using what looks loose below/i);
+
+    expect(said.textContent).toMatch(/have not written here in a while/i);
+    expect(said.textContent).not.toMatch(/synced/i);
+    expect(said.textContent).not.toMatch(/remove/i);
   });
 
   it("keeps quiet about machines when every one of them is up to date", async () => {
@@ -557,7 +562,27 @@ describe("the maintenance panel", () => {
     expect(screen.getByText(/the attachments weigh/i)).toBeTruthy();
   });
 
-  it("says the work went out, instead of calling an upload nothing new", async () => {
+  it("asks after days of hearing nothing, and blames neither side", async () => {
+    carrying.chosen = "G:/My Drive/tisty";
+    carrying.heard = new Date(Date.now() - 5 * 86_400_000).toISOString();
+    render(<Keeping onChanged={() => {}} />);
+
+    const said = await screen.findByText(/without anything arriving/i);
+
+    expect(said.textContent).toMatch(/may be off/i);
+    expect(said.textContent).toMatch(/may not be running/i);
+  });
+
+  it("stays quiet while the other machines are still turning up", async () => {
+    carrying.chosen = "G:/My Drive/tisty";
+    carrying.heard = new Date(Date.now() - 3_600_000).toISOString();
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/leaving copies in/i);
+
+    expect(screen.queryByText(/without anything arriving/i)).toBeNull();
+  });
+
+  it("says the work reached the folder, and never that a cloud took it", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "sync_now"
@@ -569,7 +594,9 @@ describe("the maintenance panel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
 
-    expect(await screen.findByText(/changes went out/i)).toBeTruthy();
+    const said = await screen.findByText(/were written to the folder/i);
+
+    expect(said.textContent).not.toMatch(/uploaded|went out/i);
   });
 
   it("offers keeping both first, because it is the only answer that loses nothing", async () => {

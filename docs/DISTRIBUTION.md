@@ -5,8 +5,8 @@ This page exists so nobody has to guess which one applies.
 
 | What you have | Under what terms |
 |---|---|
-| The **source code**, from this repository | [AGPL-3.0](LICENSE) |
-| A **build you compiled yourself** from that source | [AGPL-3.0](LICENSE) |
+| The **source code**, from this repository | [AGPL-3.0](../LICENSE) |
+| A **build you compiled yourself** from that source | [AGPL-3.0](../LICENSE) |
 | A **signed build** downloaded from an app store or from the releases page | The terms below, plus the store's own |
 | A build under a **commercial licence** | [COMMERCIAL.md](COMMERCIAL.md) |
 
@@ -20,7 +20,7 @@ it is the same author choosing twice.
 That matters because the terms of service of the major app stores are not
 compatible with the AGPL-3.0. Being able to publish there at all depends on the
 copyright staying in one pair of hands, which is what the
-[CLA](CLA.md) is for.
+[CLA](../CLA.md) is for.
 
 **Nothing is withheld.** The store build is the same program, from the same
 source, at the same version. What you pay for — where there is a price — is the
@@ -66,7 +66,7 @@ Little, and all of it reversible.
 Nothing. Tisty stores your tasks on your own machine and speaks to no server of
 ours — there is none. Synchronisation, when you turn it on, copies files into a
 folder **you choose**, and what happens there is between you and whoever keeps
-that folder in step. See [PRIVACY.md](PRIVACY.md).
+that folder in step. See [PRIVACY.md](../PRIVACY.md).
 
 Stores report their own aggregate figures — downloads, crashes, versions — to
 the developer account. That comes from the store, not from the program, and it

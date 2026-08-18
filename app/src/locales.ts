@@ -303,6 +303,8 @@ const en = {
   cannotOpen: "Nothing on this machine opens {name}",
   noRemote: "No destination is set yet",
   noMeetingPlace: "{name} cannot be reached — is the folder synced, or the drive plugged in?",
+  emptiedPlace:
+    "{name} was the shared folder and it is empty now — nothing was written, in case the drive or the folder is simply not mounted.",
   syncRefused:
     "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncUnreadable: "What came back does not read: {name}",
@@ -413,15 +415,23 @@ const en = {
   changeFolder: "Change folder…",
   syncOffNow: "Turn off",
   syncNever: "never",
-  syncLast: "last: {name}",
+  syncLast: "my last round: {name}",
+  syncHeard: "something last arrived from another machine: {name}",
+  syncHeardNever: "nothing has arrived from another machine yet",
+  syncNothingSince:
+    "Days have gone by without anything arriving from your other machines. They may be off, or the program that uploads this folder may not be running.",
+  syncOnlyFolder:
+    "Tisty writes to and reads from that folder. What uploads it is your provider's own program, not Tisty: if that program is not running, Tisty cannot tell.",
   syncNow: "Sync now",
+  revealFolder: "Open the folder",
+  syncSetUp: "Set-up:",
   syncAgain: "Send everything again",
   syncAgainWhy:
     "Copies everything of this machine's to the folder again, without asking whether it is already there. For a folder that lost a file, or a cloud client that missed one.",
   syncing_: "Syncing…",
   syncCame: "something came back",
-  syncSent: "this machine's changes went out",
-  syncBoth: "changes went out and something came back",
+  syncSent: "this machine's changes were written to the folder",
+  syncBoth: "this machine's changes were written to the folder, and something came back",
   syncSame: "nothing new",
   syncBusy: "already syncing",
   stillCarrying: "A sync is running — try again in a moment",
@@ -529,10 +539,12 @@ const en = {
   machineDropped: "That machine no longer writes here",
   machineNever: "has never written",
   machinesNone: "No machine has written yet",
-  machineBehind: "Some machines have not synced in a while. Sync them or remove them.",
+  machineHushed:
+    "Some machines have not written here in a while. They may still be using what looks loose below.",
   looseWhat:
     "No task and no document on this machine references these. Documents do not travel between machines yet, so another one may still reference them. Emptying is by hand, from the folder.",
-  looseWait: "Sync the machines listed above, or remove them, before deciding what is left over.",
+  looseWait:
+    "Some machines have not written here in a while, and may still reference these. Take that into account before deciding what is left over.",
   looseNone: "Nothing loose",
   twinsAre: "The same file kept twice",
   twinsWhat:
@@ -930,6 +942,8 @@ const es: Catalog = {
   cannotOpen: "Nada en este equipo abre {name}",
   noRemote: "todavía no hay destino",
   noMeetingPlace: "No se llega a {name} — ¿está la carpeta sincronizada, o el disco conectado?",
+  emptiedPlace:
+    "{name} era la carpeta compartida y ahora está vacía — no se escribió nada, por si el disco o la carpeta simplemente no están montados.",
   syncRefused:
     "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
   syncUnreadable: "Lo que llegó no se puede leer: {name}",
@@ -1040,15 +1054,23 @@ const es: Catalog = {
   changeFolder: "Cambiar carpeta…",
   syncOffNow: "Desactivar",
   syncNever: "nunca",
-  syncLast: "última vez: {name}",
+  syncLast: "mi última ronda: {name}",
+  syncHeard: "lo último que llegó de otra máquina: {name}",
+  syncHeardNever: "todavía no ha llegado nada de otra máquina",
+  syncNothingSince:
+    "Llevas días sin recibir nada de tus otras máquinas. Puede que estén apagadas, o que el programa que sube esta carpeta no esté en marcha.",
+  syncOnlyFolder:
+    "Tisty escribe y lee en esa carpeta. Quien la sube es el programa de tu proveedor, no Tisty: si ese programa no está en marcha, Tisty no puede saberlo.",
   syncNow: "Sincronizar ahora",
+  revealFolder: "Abrir la carpeta",
+  syncSetUp: "Configuración:",
   syncAgain: "Mandar todo de nuevo",
   syncAgainWhy:
     "Copia otra vez a la carpeta todo lo de este equipo, sin preguntar si ya está. Para una carpeta que perdió un archivo, o un cliente de nube que se saltó uno.",
   syncing_: "Sincronizando…",
   syncCame: "llegó algo",
-  syncSent: "se envió lo de aquí",
-  syncBoth: "se envió lo de aquí y llegó algo",
+  syncSent: "lo de aquí quedó escrito en la carpeta",
+  syncBoth: "lo de aquí quedó escrito en la carpeta, y llegó algo",
   syncSame: "nada nuevo",
   syncBusy: "ya está sincronizando",
   stillCarrying: "Ya hay una sincronización en curso — inténtalo en un momento",
@@ -1156,10 +1178,12 @@ const es: Catalog = {
   machineDropped: "Esa máquina ya no escribe aquí",
   machineNever: "no ha escrito nunca",
   machinesNone: "Ninguna máquina ha escrito todavía",
-  machineBehind: "Hay equipos que llevan tiempo sin sincronizar. Sincronízalos o quítalos.",
+  machineHushed:
+    "Hay equipos que llevan tiempo sin escribir aquí. Puede que sigan usando lo que abajo parece suelto.",
   looseWhat:
     "Ninguna tarea ni documento de esta máquina los referencia. Los documentos todavía no viajan entre máquinas, así que otra podría seguir referenciándolos. Vaciar es a mano, desde la carpeta.",
-  looseWait: "Sincroniza las máquinas de arriba, o remuévelas, antes de decidir qué sobra.",
+  looseWait:
+    "Hay equipos que llevan tiempo sin escribir aquí y podrían seguir referenciándolos. Tenlo en cuenta antes de decidir qué sobra.",
   looseNone: "Nada suelto",
   twinsAre: "El mismo archivo guardado dos veces",
   twinsWhat:
