@@ -3,8 +3,17 @@ import type { Node as Written } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { t } from "../locales";
-import { ending, KINDS, named, type Preview, pictured, previewOf, weighed } from "../previews";
+import { t, type Word } from "../locales";
+import {
+  ending,
+  family,
+  KINDS,
+  named,
+  type Preview,
+  pictured,
+  previewOf,
+  weighed,
+} from "../previews";
 
 export interface Reach {
   url: (reference: string) => string | null;
@@ -54,7 +63,13 @@ const frame = (kind: string): HTMLElement => {
   return box;
 };
 
-const played = (seen: Preview & { as: "video" }, reach: Reach): HTMLElement => {
+const clocked = (secs: number): string => {
+  const whole = Math.round(secs);
+  const mins = Math.floor(whole / 60);
+  return `${mins}:${String(whole % 60).padStart(2, "0")}`;
+};
+
+const played = (seen: Preview & { as: "video" }, reach: Reach, label: string): HTMLElement => {
   const box = frame("preview preview-video");
 
   const asks = () => {
@@ -63,9 +78,24 @@ const played = (seen: Preview & { as: "video" }, reach: Reach): HTMLElement => {
     const glance = document.createElement("video");
     glance.preload = "metadata";
     glance.muted = true;
+    glance.playsInline = true;
     glance.tabIndex = -1;
     const url = reach.url(seen.at);
     if (url) glance.src = `${url}#t=0.1`;
+    glance.addEventListener("loadeddata", () => seat.classList.add("preview-lit"));
+    glance.addEventListener("loadedmetadata", () => {
+      if (glance.currentTime < 0.05 && glance.duration > 0.2) glance.currentTime = 0.1;
+      if (Number.isFinite(glance.duration)) under.textContent = clocked(glance.duration);
+    });
+
+    const strip = document.createElement("span");
+    strip.className = "preview-strip";
+    const called = document.createElement("span");
+    called.className = "preview-called";
+    called.textContent = label || named(seen.at);
+    const under = document.createElement("span");
+    under.className = "preview-long";
+    strip.append(called, under);
 
     const said = document.createElement("button");
     said.type = "button";
@@ -74,7 +104,7 @@ const played = (seen: Preview & { as: "video" }, reach: Reach): HTMLElement => {
     said.title = t("playIt");
     said.addEventListener("click", shows);
 
-    seat.append(glance, said);
+    seat.append(glance, strip, said);
     box.replaceChildren(seat);
   };
 
@@ -112,6 +142,7 @@ const carded = (kind: string): HTMLElement => {
   const badge = document.createElement("span");
   badge.className = "card-badge";
   badge.dataset.kind = kind.slice(0, 4).toUpperCase();
+  badge.dataset.family = kind === "doc" ? "doc" : family(kind);
   return badge;
 };
 
@@ -125,7 +156,7 @@ const built = (
 ): HTMLElement => {
   const lost = seen.as !== "doc" && Boolean(reach.gone?.(seen.at));
 
-  if (seen.as === "video" && !lost) return played(seen, reach);
+  if (seen.as === "video" && !lost) return played(seen, reach, label);
 
   const box = frame("preview");
   box.addEventListener("keydown", (e) => {
@@ -187,7 +218,11 @@ const built = (
     const bytes = reach.weight(seen.at);
     box.prepend(carded(kind || "?"));
     name.textContent = label || named(seen.at);
-    under.textContent = [KINDS[kind] ?? kind.toUpperCase(), bytes === null ? null : weighed(bytes)]
+    const called = KINDS[kind];
+    under.textContent = [
+      called ? t(called as Word) : kind.toUpperCase(),
+      bytes === null ? null : weighed(bytes),
+    ]
       .filter(Boolean)
       .join(" · ");
   }
