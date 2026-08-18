@@ -1,9 +1,13 @@
+![Tisty](assets/logo.png)
+
 # Tisty
 
 [English](README.md) · **Español**
 
 **Un gestor de tareas local y privado que conserva lo que terminas.** Para macOS
 y Windows. Sin cuenta, sin telemetría, sin servidor, sin suscripción.
+
+![Un registro de cómo trabajas](assets/readme/1-esp.jpg)
 
 ## Por qué lo hice
 
@@ -90,6 +94,8 @@ abriste. Nada más en pantalla.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
+![La fecha se lee sola de la frase que escribes](assets/readme/2-esp.jpg)
+
 ```text
 "desplegar mañana a las 10"        →  mañana 10:00
 "entregar el informe para viernes" →  límite vie
@@ -109,6 +115,8 @@ tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
 —tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una
 tarea puede apuntar a un documento; un documento nunca crea tareas.
 
+![Documentos en Markdown, con adjuntos](assets/readme/3-esp.jpg)
+
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.
 
@@ -118,6 +126,8 @@ del sistema y un sonido corto que puedes apagar. Toda la ventana funciona con el
 teclado.
 
 ## Tus datos
+
+![Sin cuenta, sin telemetría, sin servidor](assets/readme/4-esp.jpg)
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada
