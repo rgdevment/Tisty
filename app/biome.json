@@ -51,10 +51,10 @@
           }
         },
         "noPrototypeBuiltins": "off",
-        "useIterableCallbackReturn": "warn",
+        "useIterableCallbackReturn": "error",
         "noArrayIndexKey": "warn",
-        "noShadowRestrictedNames": "warn",
-        "noAssignInExpressions": "warn"
+        "noShadowRestrictedNames": "error",
+        "noAssignInExpressions": "error"
       },
       "complexity": {
         "noForEach": "off",
@@ -68,10 +68,15 @@
         "useKeyWithClickEvents": "warn",
         "useAriaPropsSupportedByRole": "warn",
         "useAriaActivedescendantWithTabindex": "warn",
-        "noRedundantRoles": "warn"
+        "noRedundantRoles": "error"
       },
       "correctness": {
-        "useExhaustiveDependencies": "warn"
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            "reportUnnecessaryDependencies": false
+          }
+        }
       }
     }
   },

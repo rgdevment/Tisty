@@ -16,7 +16,7 @@ export default function Sightings({ papers, onOpen }: Props) {
         <span className="ml-1.5 tabular-nums opacity-70">{papers.length}</span>
       </div>
 
-      <ul role="list">
+      <ul>
         {papers.map((one) => (
           <li key={one.id}>
             <button

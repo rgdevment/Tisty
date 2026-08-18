@@ -47,7 +47,10 @@ export default function Composed({
     holder.querySelectorAll<HTMLImageElement>(`img[${INSIDE}]`).forEach((img) => {
       const reference = img.getAttribute(INSIDE);
       if (!reference) return;
-      if (!pictured(reference)) return img.replaceWith(chipped(img.alt, reference));
+      if (!pictured(reference)) {
+        img.replaceWith(chipped(img.alt, reference));
+        return;
+      }
       img.addEventListener("load", measure);
 
       const cached = known.get(reference);

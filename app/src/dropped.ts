@@ -41,9 +41,9 @@ export function whenFilesLand(onCaught: Caught): () => void {
   };
 
   const paint = (target: Element | null) => {
-    document
-      .querySelectorAll(`[${CATCHES}].catching`)
-      .forEach((one) => one !== target && one.classList.remove("catching"));
+    document.querySelectorAll(`[${CATCHES}].catching`).forEach((one) => {
+      if (one !== target) one.classList.remove("catching");
+    });
     target?.classList.add("catching");
   };
 
@@ -62,7 +62,10 @@ export function whenFilesLand(onCaught: Caught): () => void {
       paint(null);
       if (target && payload.paths.length) onCaught(target, payload.paths, { left, top });
     })
-    .then((off) => (live ? (stop = off) : off()));
+    .then((off) => {
+      if (!live) return off();
+      stop = off;
+    });
 
   return () => {
     live = false;

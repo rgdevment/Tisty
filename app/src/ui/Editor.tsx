@@ -494,7 +494,10 @@ export default function Editor({
           const at = img.getAttribute("src") ?? "";
           if (!at || /^(https?|data|asset|blob|file):/i.test(at)) return;
           const cached = urls.current.get(at);
-          if (cached) return void img.setAttribute("src", cached);
+          if (cached) {
+            img.setAttribute("src", cached);
+            return;
+          }
           served(at)
             .then((real) => {
               const url = convertFileSrc(real);
