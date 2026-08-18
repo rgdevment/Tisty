@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ending, named, previewOf, weighed } from "../previews";
+import { ending, family, KINDS, named, previewOf, weighed } from "../previews";
 
 describe("what a link is worth showing as", () => {
   it("plays what the webview can play", () => {
@@ -101,5 +101,28 @@ describe("what a link is worth showing as", () => {
 
   it.fails("never shows a unit one step behind what the rounded number reads", () => {
     expect(weighed(999_960)).not.toBe("1000.0 kB");
+  });
+});
+
+describe("what family a file belongs to", () => {
+  it("groups the ones a person thinks of together", () => {
+    expect(family("docx")).toBe("word");
+    expect(family("doc")).toBe("word");
+    expect(family("xlsx")).toBe("sheet");
+    expect(family("csv")).toBe("sheet");
+    expect(family("pptx")).toBe("slides");
+    expect(family("7z")).toBe("archive");
+  });
+
+  it("falls back to plain rather than guessing", () => {
+    expect(family("wat")).toBe("plain");
+    expect(family("")).toBe("plain");
+  });
+
+  it("names every kind through the catalogue, never in one language", () => {
+    const said = Object.values(KINDS);
+
+    expect(said.every((one) => one.startsWith("kind"))).toBe(true);
+    expect(said.some((one) => /[áéíóúñ¿]/i.test(one))).toBe(false);
   });
 });
