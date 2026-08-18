@@ -13,11 +13,12 @@ costs nothing.
 
 ## The CLA
 
-Tisty is released under the AGPL-3.0 **and** offered under separate [commercial
-terms](docs/COMMERCIAL.md) to organisations that cannot comply with it. Because of
-that dual model, every contributor signs a one-time [CLA](CLA.md) before their
-code can be merged. Offering commercial terms requires the right to license the
-whole codebase that way, and that right has to come from each author explicitly.
+Tisty is released under the AGPL-3.0 **and** offered under separate
+[commercial terms](docs/COMMERCIAL.md) to organisations that cannot comply
+with it. Because of that dual model, every contributor signs a one-time
+[CLA](CLA.md) before their code can be merged. Offering commercial terms
+requires the right to license the whole codebase that way, and that right has
+to come from each author explicitly.
 
 **You keep the copyright on your work.** The CLA is a licence you grant, not a
 transfer of ownership.
