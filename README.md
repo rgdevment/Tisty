@@ -1,9 +1,13 @@
+![Tisty](assets/logo.png)
+
 # Tisty
 
 **English** · [Español](README.es.md)
 
 **A local, private task manager that keeps what you finish.** For macOS and
 Windows. No account, no telemetry, no server, no subscription.
+
+![A record of how you work](assets/readme/1-eng.jpg)
 
 ## Why I built this
 
@@ -91,6 +95,8 @@ opened. Nothing else on screen.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
+![The date reads itself out of the sentence](assets/readme/2-eng.jpg)
+
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
 "file the report before friday"     →  due fri
@@ -110,6 +116,8 @@ never gets ticked. They are Markdown files you edit as documents — tables,
 checklists, code, images — and search reads them too. A task can point at a
 document; a document never creates tasks.
 
+![Documents in Markdown, with attachments](assets/readme/3-eng.jpg)
+
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
 
@@ -118,6 +126,8 @@ did it twelve times. **Reminders** arrive as a system notification and a short
 sound you can turn off. The whole window works from the keyboard.
 
 ## Your data
+
+![No account, no telemetry, no server](assets/readme/4-eng.jpg)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.
