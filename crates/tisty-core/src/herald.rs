@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase", tag = "what")]
 pub enum Happening {
     Filed { title: String },
+    Done { title: String },
     Due { title: String, task: String },
     Missed { count: usize },
     Carried { brought: usize },
@@ -12,7 +13,9 @@ pub enum Happening {
 impl Happening {
     pub fn title(&self) -> Option<&str> {
         match self {
-            Happening::Filed { title } | Happening::Due { title, .. } => Some(title),
+            Happening::Filed { title }
+            | Happening::Done { title }
+            | Happening::Due { title, .. } => Some(title),
             Happening::Missed { .. } | Happening::Carried { .. } => None,
         }
     }

@@ -69,6 +69,7 @@ fn on_screen(what: &Happening) -> bool {
 fn tone_for(what: &Happening) -> Option<&'static str> {
     match what {
         Happening::Filed { .. } => Some("filed"),
+        Happening::Done { .. } => Some("done"),
         Happening::Due { .. } | Happening::Missed { .. } => Some("due"),
         Happening::Carried { .. } => None,
     }
@@ -330,6 +331,26 @@ mod tests {
     fn a_reminder_reaches_the_system_and_a_capture_does_not() {
         assert!(on_screen(&due()));
         assert!(!on_screen(&filed()));
+    }
+
+    fn finished() -> Happening {
+        Happening::Done {
+            title: "regar las plantas".into(),
+        }
+    }
+
+    #[test]
+    fn finishing_something_sounds_like_finishing_and_not_like_filing() {
+        assert_eq!(tone_for(&finished()), Some("done"));
+        assert_ne!(tone_for(&finished()), tone_for(&filed()));
+    }
+
+    #[test]
+    fn finishing_something_never_interrupts_with_a_system_notice() {
+        assert!(
+            !on_screen(&finished()),
+            "avisar en pantalla de algo que acabas de hacer es ruido"
+        );
     }
 
     #[test]

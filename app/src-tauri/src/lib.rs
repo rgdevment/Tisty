@@ -3255,17 +3255,31 @@ fn weighed(bytes: u64) -> String {
 }
 
 #[tauri::command]
-fn complete(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
+fn complete(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
     let ops = session.state.completing(id, jiff::Zoned::now());
     session.commit_all(ops)?;
-    session
+    let task = session
         .state
         .tasks
         .get(&id)
         .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
+        .ok_or_else(|| Refusal::of("notATaskId"))?;
+    drop(session);
+    if task.status == tisty_core::Status::Done {
+        let _ = herald::told(
+            &app,
+            tisty_core::herald::Happening::Done {
+                title: task.title.clone(),
+            },
+        );
+    }
+    Ok(task)
 }
 
 #[tauri::command]
