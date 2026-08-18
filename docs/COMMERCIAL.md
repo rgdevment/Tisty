@@ -2,7 +2,7 @@
 
 Tisty is dual licensed.
 
-- **AGPL-3.0** — free for everyone, forever. See [LICENSE](LICENSE).
+- **AGPL-3.0** — free for everyone, forever. See [LICENSE](../LICENSE).
 - **Commercial licence** — for organisations that cannot accept the AGPL's
   terms. Contact <github@apirest.cl>.
 
@@ -89,5 +89,5 @@ no project.
 ---
 
 *This document explains the licensing model in plain language. It is not legal
-advice, and where it differs from the [LICENSE](LICENSE) text, the licence
+advice, and where it differs from the [LICENSE](../LICENSE) text, the licence
 governs.*

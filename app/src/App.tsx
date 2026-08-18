@@ -238,6 +238,7 @@ export default function App() {
   }, []);
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
+  const wasAwry = useRef<string | null>(null);
 
   const load = useCallback(() => {
     snapshot(asView(chosen))
@@ -281,6 +282,15 @@ export default function App() {
       },
       (ids) => {
         decideAll(ids).finally(() => latest.current());
+      },
+      (why) => {
+        const now = why?.why ?? null;
+        if (now === wasAwry.current) return;
+        wasAwry.current = now;
+        if (why?.why === "broke") {
+          setNote(why.said);
+          setTimeout(() => setNote(null), 6000);
+        }
       },
     );
     carries.current = carrier;

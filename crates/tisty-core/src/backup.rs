@@ -175,6 +175,7 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     let mut config = was.clone();
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
+    config.heard_at = None;
     config.save(paths)?;
 
     let old = data.join(format!(".replaced-{}", std::process::id()));
@@ -265,6 +266,7 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
     let mut config = Config::load_or_init(paths)?;
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
+    config.heard_at = None;
     config.save(paths)?;
 
     let old = data.join(format!(".resetting-{}", std::process::id()));

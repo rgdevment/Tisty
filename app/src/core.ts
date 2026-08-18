@@ -202,6 +202,7 @@ export interface Carrying {
   asked: boolean;
   backsUp: boolean;
   last?: string;
+  heard?: string;
   loose: number;
   open: number;
   archived: number;

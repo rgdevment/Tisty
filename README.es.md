@@ -149,6 +149,10 @@ cambios se pisan de verdad hay una pregunta.
 
 **O respalda a mano.** Un zip, guardado donde quieras.
 
+Y como quien sube esa carpeta es el programa de tu proveedor y no Tisty, si algún
+día cambias algo en un equipo y no aparece en el otro, [FAQ.md](docs/FAQ.md)
+enumera las causas en el orden en que conviene revisarlas (en inglés).
+
 ## Una línea de comandos, si la quieres
 
 La ventana es la entrada principal. Pero todo lo que hace ella lo hace también la
@@ -230,8 +234,8 @@ La lista completa, con versiones y licencias, está en `Cargo.lock` y
 ## Contribuir
 
 Cómo funcionan de verdad el almacén, la fusión y el transporte está escrito en
-[ARCHITECTURE.es.md](ARCHITECTURE.es.md) — una referencia del comportamiento, no
-un paseo por el código.
+[ARCHITECTURE.md](docs/ARCHITECTURE.md) — una referencia del comportamiento,
+no un paseo por el código. Está en inglés, como el resto de `docs/`.
 
 Lee [CONTRIBUTING.md](CONTRIBUTING.md). Abre un issue antes de escribir código
 para cualquier cosa que no sea un arreglo: Tisty es deliberadamente mínimo, y una
@@ -240,9 +244,10 @@ herramienta en otra cosa.
 
 ## Licencia
 
-[AGPL-3.0](LICENSE), y disponible bajo [términos comerciales](COMMERCIAL.md) para
-organizaciones que no puedan cumplirla.
+[AGPL-3.0](LICENSE), y disponible bajo
+[términos comerciales](docs/COMMERCIAL.md) para organizaciones que no puedan
+cumplirla.
 
 Las compilaciones firmadas de las tiendas llevan sus propios términos, porque las
-tiendas no aceptan la AGPL — [DISTRIBUTION.md](DISTRIBUTION.md) dice cuál aplica
-a lo que tengas, y por qué. En ningún caso se retiene nada del código.
+tiendas no aceptan la AGPL — [DISTRIBUTION.md](docs/DISTRIBUTION.md) dice
+cuál aplica a lo que tengas, y por qué. En ningún caso se retiene nada del código.

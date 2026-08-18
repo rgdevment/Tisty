@@ -1,15 +1,22 @@
-import { type Settled, syncNow, syncState } from "./core";
+import { syncNow, syncState } from "./core";
+import { saidPlainly } from "./refusal";
 
 const AFTER_A_CHANGE = 4_000;
 const EVERY_SO_OFTEN = 15 * 60_000;
-const GIVE_UP_AFTER = 60_000;
+const TAKING_LONG = 60_000;
 
 type Way = "push" | "pull" | undefined;
+
+export type Awry = { why: "slow" } | { why: "busy" } | { why: "broke"; said: string };
 
 const owing = (held: Way | null, next: Way): Way =>
   held === null || held === next ? next : undefined;
 
-export function carrying(brought: () => void, atOdds: (ids: string[]) => void = () => {}) {
+export function carrying(
+  brought: () => void,
+  atOdds: (ids: string[]) => void = () => {},
+  awry: (why: Awry | null) => void = () => {},
+) {
   let folder: string | undefined;
   let gone = false;
   let running = false;
@@ -24,21 +31,20 @@ export function carrying(brought: () => void, atOdds: (ids: string[]) => void = 
       return;
     }
     running = true;
+    expire = setTimeout(() => {
+      if (!gone) awry({ why: "slow" });
+    }, TAKING_LONG);
 
-    const patience = new Promise<Settled>((resolve) => {
-      expire = setTimeout(
-        () => resolve({ carried: "same", undecided: [], unreadable: [], astray: [], joined: [] }),
-        GIVE_UP_AFTER,
-      );
-    });
-
-    Promise.race([syncNow(way), patience])
+    syncNow(way)
       .then((answer) => {
         if (gone) return;
         if (answer.undecided.length) atOdds(answer.undecided);
         if (answer.carried === "came" || answer.carried === "both") brought();
+        awry(answer.carried === "busy" ? { why: "busy" } : null);
       })
-      .catch(() => {})
+      .catch((problem) => {
+        if (!gone) awry({ why: "broke", said: saidPlainly(problem) });
+      })
       .finally(() => {
         clearTimeout(expire);
         expire = undefined;

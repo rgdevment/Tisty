@@ -1,7 +1,5 @@
 # Architecture
 
-**English** · [Español](ARCHITECTURE.es.md)
-
 How Tisty stores, merges and reads its data. This is a reference for how the
 system behaves, not a record of why it was designed this way.
 

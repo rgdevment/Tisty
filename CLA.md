@@ -4,7 +4,7 @@ Tisty Individual Contributor License Agreement, version 1.1.
 
 Thank you for contributing to Tisty. This agreement exists for one reason:
 Tisty is released under the AGPL-3.0 **and** offered under separate
-[commercial terms](COMMERCIAL.md) to organisations that cannot comply with the
+[commercial terms](docs/COMMERCIAL.md) to organisations that cannot comply with the
 AGPL. Offering those commercial terms requires the right to license the whole
 codebase that way — including your contribution. Without this agreement from
 every contributor, that right does not exist and the dual model collapses.

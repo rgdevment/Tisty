@@ -149,6 +149,10 @@ real overlap becomes a question.
 
 **Or back up by hand.** One zip, kept wherever you like.
 
+And because what uploads that folder is your provider's program and not
+Tisty, if you ever change something on one machine and it does not turn up
+on the other, [FAQ.md](docs/FAQ.md) lists the causes worth checking, in order.
+
 ## A command line, if you want one
 
 The window is the main way in. But everything it does, the terminal does too:
@@ -230,8 +234,8 @@ The full list, with versions and licences, is in `Cargo.lock` and
 ## Contributing
 
 How the store, the merge and the sync actually work is written down in
-[ARCHITECTURE.md](ARCHITECTURE.md) — a reference for the behaviour, not a tour
-of the code.
+[ARCHITECTURE.md](docs/ARCHITECTURE.md) — a reference for the behaviour,
+not a tour of the code.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). Open an issue before writing code for
 anything beyond a fix: Tisty is deliberately minimal, and a well-written feature
@@ -240,9 +244,10 @@ than what it is.
 
 ## Licence
 
-[AGPL-3.0](LICENSE), and available under [commercial terms](COMMERCIAL.md) for
-organisations that cannot comply with it.
+[AGPL-3.0](LICENSE), and available under
+[commercial terms](docs/COMMERCIAL.md) for organisations that cannot comply
+with it.
 
 The signed builds in the app stores carry their own terms, because the stores'
-do not accept the AGPL — [DISTRIBUTION.md](DISTRIBUTION.md) says which applies
-to what you have, and why. Nothing is withheld from the source either way.
+do not accept the AGPL — [DISTRIBUTION.md](docs/DISTRIBUTION.md) says which
+applies to what you have, and why. Nothing is withheld from the source either way.

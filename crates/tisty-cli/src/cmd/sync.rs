@@ -112,7 +112,13 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         app.commit(tisty_core::Op::DeviceJoin { d: who })?;
     }
 
-    app.edit_config(|c| c.synced_at = Some(jiff::Timestamp::now()))?;
+    let heard = moved.brought > 0;
+    app.edit_config(|c| {
+        c.synced_at = Some(jiff::Timestamp::now());
+        if heard {
+            c.heard_at = c.synced_at;
+        }
+    })?;
     let told = match (moved.sent > 0, moved.brought > 0) {
         (true, true) => "synced-both",
         (true, false) if again => "synced-again",
@@ -150,6 +156,7 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
         carrier::Trouble::WouldReset { theirs } => lang.fill("would-reset", &[("id", theirs)]),
         carrier::Trouble::NotAllowed(who) => lang.fill("not-allowed", &[("id", who)]),
         carrier::Trouble::SameName(who) => lang.fill("same-name", &[("id", who)]),
+        carrier::Trouble::Emptied(at) => lang.fill("emptied-place", &[("at", at)]),
     };
     eprintln!("{text}");
     ExitCode::from(EXIT_ERROR)

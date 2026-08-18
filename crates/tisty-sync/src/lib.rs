@@ -8,6 +8,7 @@ pub use tisty_core::store::MARKER;
 const STORE: &str = "store";
 const HELD: &str = "attachments";
 const PAPERS: &str = "docs";
+const CARRIED_TO: &str = "carried-to";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Trouble {
@@ -19,6 +20,7 @@ pub enum Trouble {
     WouldReset { theirs: String },
     NotAllowed(String),
     SameName(String),
+    Emptied(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,7 +78,7 @@ pub fn carry_leaning_on(
         straight(&dest.join(folder), dest)?;
     }
     let store = data.join(STORE);
-    let ours = settled(&store, dest)?;
+    let ours = settled(&store, dest, carried_here(aside, dest))?;
 
     let again = matches!(way, Way::Again);
     let mut moved = Moved::default();
@@ -87,8 +89,13 @@ pub fn carry_leaning_on(
         said = as_told(&store, aside);
         match &said {
             Some(one) => {
-                moved.brought +=
-                    copy_held(&dest.join(HELD), &data.join(HELD), &one.retired, false)?;
+                moved.brought += copy_held(
+                    &dest.join(HELD),
+                    &data.join(HELD),
+                    &one.retired,
+                    false,
+                    Some(data),
+                )?;
             }
             None => witness::warn(
                 channel::SYNC,
@@ -118,7 +125,7 @@ pub fn carry_leaning_on(
         let mine = dest.join(STORE).join(device);
         plainly(&mine)?;
         moved.sent = copy_segments(&store.join(device), &mine, again)?;
-        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD), &buried, again)?;
+        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD), &buried, again, None)?;
     }
     let alive = match &said {
         Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
@@ -132,7 +139,24 @@ pub fn carry_leaning_on(
         moved.astray = papers.astray;
         moved.joined = papers.joined;
     }
+    note_carried(aside, dest);
     Ok(moved)
+}
+
+fn carried_here(aside: Option<&Path>, dest: &Path) -> bool {
+    let Some(aside) = aside else { return false };
+    std::fs::read_to_string(aside.join(CARRIED_TO))
+        .is_ok_and(|last| last.trim() == dest.display().to_string())
+}
+
+fn note_carried(aside: Option<&Path>, dest: &Path) {
+    let Some(aside) = aside else { return };
+    if std::fs::create_dir_all(aside).is_ok() {
+        let _ = written(
+            &aside.join(CARRIED_TO),
+            dest.display().to_string().as_bytes(),
+        );
+    }
 }
 
 fn as_told(store: &Path, aside: Option<&Path>) -> Option<tisty_core::State> {
@@ -146,7 +170,7 @@ fn as_told(store: &Path, aside: Option<&Path>) -> Option<tisty_core::State> {
         .map(|events| tisty_core::State::replay(&events))
 }
 
-fn settled(store: &Path, dest: &Path) -> Result<String, Trouble> {
+fn settled(store: &Path, dest: &Path, carried_here: bool) -> Result<String, Trouble> {
     let ours = tisty_core::store::peek_identity(store);
     let theirs = theirs(dest);
     let we_are_new = ours.is_none() && !tisty_core::store::inhabited(store);
@@ -161,7 +185,12 @@ fn settled(store: &Path, dest: &Path) -> Result<String, Trouble> {
             write(&store.join(MARKER), theirs.as_bytes())?;
             return Ok(theirs.clone());
         }
-        (Some(ours), None) if they_are_new => return Ok(ours.clone()),
+        (Some(ours), None) if they_are_new => {
+            if carried_here {
+                return Err(Trouble::Emptied(dest.display().to_string()));
+            }
+            return Ok(ours.clone());
+        }
         (None, None) if they_are_new => {
             return tisty_core::store::identity(store)
                 .map_err(|e| Trouble::Unreadable(e.to_string()));
@@ -554,9 +583,10 @@ fn copy_held(
     into: &Path,
     buried: &std::collections::BTreeSet<String>,
     again: bool,
+    ledger: Option<&Path>,
 ) -> Result<usize, Trouble> {
     let mut done = 0;
-    let written_down = tisty_core::attach::digests(into.parent().unwrap_or_else(|| Path::new("")));
+    let written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
     let shelves = match std::fs::read_dir(from) {
         Ok(shelves) => shelves,
         Err(e) => {
@@ -650,7 +680,9 @@ fn copy_held(
                 continue;
             }
             written(&target, &body)?;
-            tisty_core::attach::noted(into.parent().unwrap_or(into), &reference, &body);
+            if let Some(ledger) = ledger {
+                tisty_core::attach::noted(ledger, &reference, &body);
+            }
             done += 1;
         }
     }
@@ -1071,6 +1103,63 @@ mod tests {
         })
         .unwrap();
         tisty_core::docs::write(&who.data.join(PAPERS), file, body).unwrap();
+    }
+
+    #[test]
+    fn a_meeting_place_that_went_empty_is_not_seeded_again_behind_our_back() {
+        let one = machine("uno");
+        let aside = tempfile::tempdir().unwrap();
+        let shared = tempfile::tempdir().unwrap();
+        carry_leaning_on(
+            &one.data,
+            Some(aside.path()),
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap();
+        assert!(shared.path().join(STORE).join(&one.device).exists());
+
+        std::fs::remove_dir_all(shared.path().join(STORE)).unwrap();
+        let why = carry_leaning_on(
+            &one.data,
+            Some(aside.path()),
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap_err();
+
+        assert_eq!(why, Trouble::Emptied(shared.path().display().to_string()));
+        assert!(
+            !shared.path().join(STORE).join(&one.device).exists(),
+            "an unmounted drive must not be repopulated as if it were a fresh folder"
+        );
+    }
+
+    #[test]
+    fn a_folder_we_never_carried_to_is_still_a_fresh_start() {
+        let one = machine("uno");
+        let aside = tempfile::tempdir().unwrap();
+        let first = tempfile::tempdir().unwrap();
+        let second = tempfile::tempdir().unwrap();
+        let go = |dest: &std::path::Path| {
+            carry_leaning_on(
+                &one.data,
+                Some(aside.path()),
+                &one.device,
+                dest,
+                Way::Both,
+                &[],
+            )
+        };
+        go(first.path()).unwrap();
+
+        go(second.path()).unwrap();
+
+        assert!(second.path().join(STORE).join(&one.device).exists());
     }
 
     #[test]
@@ -2793,6 +2882,21 @@ mod tests {
             body(&one.data, "dev_a-0001"),
             "# Minuta del mac\n\nparrafo uno del mac\n\nparrafo dos\n\nparrafo tres\n"
         );
+    }
+
+    #[test]
+    fn the_attachment_ledger_never_lands_in_the_shared_folder() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        planted(&one.data, "foto.png", b"una fotografia cualquiera");
+
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert!(
+            !shared.path().join("attachments.jsonl").exists(),
+            "el registro es local: en la carpeta compartida lo escriben todas y la nube saca copias de conflicto"
+        );
+        assert!(one.data.join("attachments.jsonl").exists());
     }
 
     #[test]

@@ -36,6 +36,54 @@ const settle = () => vi.advanceTimersByTimeAsync(0);
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 describe("carrying on its own", () => {
+  it("says out loud that a round broke instead of swallowing it", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : Promise.reject(new Error("noMeetingPlace"));
+    const awry: unknown[] = [];
+
+    carried = carrying(
+      () => {},
+      () => {},
+      (why) => awry.push(why),
+    );
+    await settle();
+
+    expect(awry).toEqual([{ why: "broke", said: expect.any(String) }]);
+  });
+
+  it("calls a round that is taking too long slow, never nothing new", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "sync_state" ? Promise.resolve({ ...state }) : new Promise(() => {});
+    const awry: unknown[] = [];
+    const came: string[] = [];
+
+    carried = carrying(
+      () => came.push("brought"),
+      () => {},
+      (why) => awry.push(why),
+    );
+    await settle();
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(awry).toEqual([{ why: "slow" }]);
+    expect(came).toEqual([]);
+  });
+
+  it("clears the alarm when the next round comes back fine", async () => {
+    const awry: unknown[] = [];
+
+    carried = carrying(
+      () => {},
+      () => {},
+      (why) => awry.push(why),
+    );
+    await settle();
+
+    expect(awry).toEqual([null]);
+  });
+
   it("hands over the documents at odds instead of dropping them", async () => {
     ipc.answer = (cmd) =>
       cmd === "sync_state"
