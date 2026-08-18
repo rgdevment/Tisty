@@ -30,6 +30,13 @@ export function stamped(iso: string, now = new Date()): string {
   return daysFrom(iso, now) === 0 ? time : `${formats().day.format(at)} ${time}`;
 }
 
+export const todayLong = (now = new Date()): string =>
+  new Intl.DateTimeFormat(locale(), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(now);
+
 export const daysFrom = (iso: string, now = new Date()): number =>
   Math.round((midnight(new Date(iso)) - midnight(now)) / 86_400_000);
 
