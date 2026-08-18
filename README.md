@@ -78,14 +78,21 @@ got solved. Three things follow from that, and they shaped everything else:
 
 ## Installing
 
-macOS, with [Homebrew](https://brew.sh):
+**Windows** — from the
+[Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), which keeps
+it updated for you.
+
+**macOS** — with [Homebrew](https://brew.sh). The tap is added once and never
+again; after that, Tisty updates like anything else you have installed:
 
 ```console
-$ brew install --cask rgdevment/tap/tisty
+$ brew tap rgdevment/tap
+$ brew install --cask tisty
+$ brew upgrade --cask tisty
 ```
 
-Or download the disk image or the installer from
-[Releases](https://github.com/rgdevment/Tisty/releases).
+Or take the disk image and the installer straight from
+[Releases](https://github.com/rgdevment/Tisty/releases), on either system.
 
 ## What it does
 

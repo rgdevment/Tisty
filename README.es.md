@@ -79,14 +79,23 @@ resolvió algo. De ahí salen tres cosas, y esas moldearon todo lo demás:
 
 ## Instalación
 
-macOS, con [Homebrew](https://brew.sh):
+**Windows** — desde la
+[Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), que además se
+encarga de mantenerla al día.
+
+**macOS** — con [Homebrew](https://brew.sh). El tap se agrega una sola vez y no
+se vuelve a tocar; desde ahí Tisty se actualiza como cualquier otra cosa que
+tengas instalada:
 
 ```console
-$ brew install --cask rgdevment/tap/tisty
+$ brew tap rgdevment/tap
+$ brew install --cask tisty
+$ brew upgrade --cask tisty
 ```
 
-O descarga la imagen de disco o el instalador desde
-[Releases](https://github.com/rgdevment/Tisty/releases).
+O toma la imagen de disco y el instalador directamente de
+[Releases](https://github.com/rgdevment/Tisty/releases), en cualquiera de los
+dos sistemas.
 
 ## Qué hace
 
