@@ -4,36 +4,37 @@
 
 [English](README.md) · **Español**
 
-**Un gestor de tareas local y privado que conserva lo que terminas.** Para macOS
-y Windows. Sin cuenta, sin telemetría, sin servidor, sin suscripción.
+**Tus tareas dejan algo detrás. Tisty lo conserva.** Un gestor de tareas
+personal para macOS y Windows, en tu propio disco y sin cuenta.
 
 ![Un registro de cómo trabajas](assets/readme/1-esp.jpg)
 
 ## Por qué lo hice
 
-No soy una empresa. Soy un desarrollador al que se le perdía siempre lo mismo.
+Organizar tu día es más difícil de lo que una lista aparenta. Hay más piezas de
+las que caben en la cabeza, los planes se mueven solos, y algo que creías
+pequeño resulta que no lo era. Por eso terminarlo se siente bien.
 
-Una tarea como *«arreglar los timeouts intermitentes al guardar»* no es solo un
-recordatorio. Cuando terminé una de esas ya llevaba encima el ticket, el commit
-y dos párrafos explicando que la causa real era un índice que faltaba en una
-tabla que nadie estaba mirando. Ocho meses después pasó lo mismo en otra parte,
-y esa nota era el único lugar donde existía la respuesta.
+Pero fíjate en lo que esa tarea fue juntando por el camino. Los pasos que de
+verdad hubo que dar. Las notas que escribiste mientras lo resolvías. Lo que
+consultaste, con qué terminó conectando, los documentos en los que te apoyaste.
+Ahí es donde se fue el esfuerzo.
 
-Solo que no existía, porque yo había tachado la tarea y la herramienta la había
-tirado a la basura.
+La mía se llamaba *«arreglar los timeouts intermitentes al guardar»*. Cuando
+estuvo lista ya llevaba encima el ticket, el commit y dos párrafos explicando
+que la causa real era un índice que faltaba en una tabla que nadie miraba.
 
-**Esa es toda la razón por la que Tisty existe.** Los gestores de tareas que
-probé tratan lo que terminas como desecho. Para una lista del supermercado está
-bien. Para el trabajo significa borrar el único registro de cómo resolviste algo,
-justo cuando empieza a valer la pena guardarlo.
+Ocho meses después pasó lo mismo en otra parte. Me acordaba de haberlo resuelto.
+No me acordaba de cómo — y la nota que tenía la respuesta se había ido con el
+tache.
 
-También quería que mis datos siguieran siendo míos. Casi todo lo que hay pide una
-cuenta antes de mostrarte un campo de texto, sincroniza por un servidor que no
-puedes ver, y sube el precio cada año por funciones que nadie pidió. No quería
-arrendar mis propias notas.
+**Esa es toda la razón por la que Tisty existe.** Una tarea no es una línea que
+se tacha. Es un árbol: los pasos, la bitácora, los archivos y los documentos que
+crecieron a su alrededor mientras trabajabas. Terminarla no debería podarlo.
 
-Así que hice lo que quería tener, lo usé hasta que dejó de molestarme, y lo dejé
-acá por si resulta ser lo que tú querías.
+También quería que siguiera siendo mío. En mi disco, en archivos que puedo abrir
+sin pedirle permiso a nadie. Así que hice lo que quería tener, lo usé hasta que
+dejó de molestarme, y lo dejé acá por si resulta ser lo que tú querías.
 
 ## Qué es, y qué no es
 
@@ -41,12 +42,13 @@ acá por si resulta ser lo que tú querías.
 útil. Las tareas llevan descripción, bitácora, pasos y adjuntos; al completar una
 pasa al archivo, y la búsqueda llega a todo, documentos incluidos.
 
-**No es** una herramienta de equipo. Sin responsables, sin permisos, sin
-tableros, sin gráficos de avance, sin control de horas. Si buscas algo para
-llevar un equipo, esta no es la herramienta y prefiero decírtelo ahora.
+**Es para una persona.** Sin responsables, sin permisos, sin tableros. Si
+necesitas llevar un equipo, Tisty no va a sostener eso, y mereces saberlo antes
+de instalarlo y no después.
 
-**No es un producto.** Sin versión gratuita de gancho, sin plan de pago, sin hoja
-de ruta guiada por lo que convierte. Es un programa que escribí para mí y regalé.
+**No es algo que venda.** Nada está bloqueado, nada caduca, y no existe una
+versión de esto con más cosas dentro. Es un programa que escribí para mí y
+regalé.
 
 **Tus datos son archivos.** Texto plano en tu propio disco, que se lee con `cat`
 y se busca con `grep`. Si Tisty desapareciera mañana, todo lo que escribiste
@@ -56,10 +58,11 @@ seguiría ahí y seguiría teniendo sentido.
 
 Para alguien que trabaja solo, o casi siempre solo, y cuyas tareas dejan un
 rastro que vale la pena guardar. Desarrolladores, administradores de sistemas,
-independientes, gente que investiga — cualquiera que haya resuelto dos veces el
-mismo problema porque las notas de la primera vez se fueron a la basura.
+independientes, gente que investiga, quien estudia — cualquiera que haya
+resuelto dos veces el mismo problema y lo haya sabido la segunda vez.
 
-Si tachas cosas y nunca miras atrás, Tisty no te da nada que no te dé un papel.
+Si lo que quieres es una lista para tachar y no volver a abrir, Tisty te va a
+parecer más de lo que pediste. Es un motivo razonable para dejarlo pasar.
 
 ## La idea sobre la que está construido
 

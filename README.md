@@ -4,36 +4,36 @@
 
 **English** · [Español](README.es.md)
 
-**A local, private task manager that keeps what you finish.** For macOS and
-Windows. No account, no telemetry, no server, no subscription.
+**Your tasks leave something behind. Tisty keeps it.** A personal task
+manager for macOS and Windows, on your own disk, with no account.
 
 ![A record of how you work](assets/readme/1-eng.jpg)
 
 ## Why I built this
 
-I'm not a company. I'm a developer who kept losing the same thing over and over.
+Organising your day is harder than a list makes it look. There are more moving
+parts than fit in your head, plans shift under you, and something you thought
+was small turns out not to be. Which is why finishing it feels good.
 
-A task like *"fix the intermittent timeouts on save"* is not just a reminder. By
-the time I finished one of those it had collected the ticket, the commit, and
-two paragraphs explaining that the real cause was a missing index on a table
-nobody was looking at. Eight months later the same thing happened somewhere
-else, and that note was the only place the answer existed.
+But look at what the task gathered on the way. The steps it actually took. The
+notes you wrote while working it out. What you looked up, what it turned out to
+connect to, the documents you leaned on. That is where the effort went.
 
-Except it did not exist, because I had ticked the task off and the tool had
-thrown it away.
+Mine looked like *"fix the intermittent timeouts on save"*. By the time it was
+done it had collected the ticket, the commit, and two paragraphs explaining that
+the real cause was a missing index on a table nobody was looking at.
 
-**That is the whole reason Tisty exists.** Every task manager I tried treats
-what you finish as rubbish. For a shopping list that is right. For work it means
-deleting the only record of how you solved something, at the exact moment it
-becomes worth keeping.
+Eight months later the same thing happened somewhere else. I remembered solving
+it. I could not remember how — and the note that held the answer had gone with
+the tick.
 
-I also wanted my data to stay mine. Most of what is out there wants an account
-before it will show you a text field, syncs through a server you cannot see, and
-raises the price every year for features nobody asked for. I did not want to
-rent my own notes.
+**That is the whole reason Tisty exists.** A task is not a line you cross out.
+It is a tree: the steps, the journal, the files and the documents that grew
+around it while you worked. Finishing it should not prune it.
 
-So I built the thing I wanted, used it until it stopped annoying me, and put it
-out here in case it is the thing you wanted too.
+I wanted it to stay mine, too. On my disk, in files I can open without asking
+anyone. So I built the thing I wanted, used it until it stopped annoying me, and
+put it here in case it is the thing you wanted too.
 
 ## What it is, and what it isn't
 
@@ -42,12 +42,13 @@ its useful life. Tasks carry a description, a journal, steps and attachments;
 when you complete one it moves to the archive, and search reaches all of it,
 documents included.
 
-**It is not** a team tool. No assignees, no permissions, no boards, no burndown
-charts, no time tracking. If you are looking for something to run a team on,
-this is the wrong tool and I would rather tell you now.
+**It is for one person.** No assignees, no permissions, no boards. If you need
+to run a team, Tisty will not carry that, and you deserve to know before you
+install it rather than after.
 
-**It is not a product.** No free tier, no upsell, no roadmap driven by what
-converts. It is a program I wrote for myself and gave away.
+**It is not something I sell.** Nothing is locked, nothing expires, and there is
+no version of this with more in it. It is a program I wrote for myself and gave
+away.
 
 **Your data is files.** Plain text on your own disk, readable with `cat` and
 searchable with `grep`. If Tisty disappeared tomorrow, everything you wrote
@@ -56,11 +57,11 @@ would still be there and still make sense.
 ## Who it's for
 
 Someone who works alone, or mostly alone, and whose tasks leave a trail worth
-keeping. Developers, sysadmins, freelancers, researchers — anyone who has ever
-solved a problem twice because the notes from the first time went in the bin.
+keeping. Developers, sysadmins, freelancers, researchers, students — anyone who
+has ever solved the same problem twice and known it the second time.
 
-If you tick things off and never look back, Tisty gives you nothing a piece of
-paper does not.
+If what you want is a list to cross out and never open again, Tisty will feel
+like more than you asked for. That is a fair reason to walk away.
 
 ## The idea it is built on
 
