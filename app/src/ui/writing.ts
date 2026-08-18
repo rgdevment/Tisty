@@ -30,7 +30,7 @@ type Scanning = {
   ensureNewLine: () => void;
   flushClose: (size?: number) => void;
   write: (content?: string) => void;
-  text: (value: string, escape?: boolean) => void;
+  text: (value: string, escaped?: boolean) => void;
   esc: (value: string, atBlockStart?: boolean) => string;
   markString: (mark: Marked, open: boolean, parent: unknown, index: number) => string;
   normalizeInline: (inline: Inline) => Inline;
@@ -182,15 +182,15 @@ const swift = {
     if (content) ink.add(content);
   },
 
-  text(this: Scanning, value: string, escape = true): void {
+  text(this: Scanning, value: string, escaped = true): void {
     const ink = inkOf(this);
     const lines = value.split("\n");
     for (let i = 0; i < lines.length; i++) {
       this.write();
-      if (!escape && lines[i][0] === "[" && ink.last === 33 && ink.priorSlashes() % 2 === 0) {
+      if (!escaped && lines[i][0] === "[" && ink.last === 33 && ink.priorSlashes() % 2 === 0) {
         ink.escapeLast();
       }
-      ink.add(escape ? this.esc(lines[i], this.atBlockStart) : lines[i]);
+      ink.add(escaped ? this.esc(lines[i], this.atBlockStart) : lines[i]);
       if (i !== lines.length - 1) ink.add("\n");
     }
   },

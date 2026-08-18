@@ -39,14 +39,14 @@ export default function Quick() {
 
     void look();
 
-    const escape = (e: KeyboardEvent) => {
+    const leaving = (e: KeyboardEvent) => {
       if (e.key === "Escape") away();
     };
-    globalThis.addEventListener("keydown", escape);
+    globalThis.addEventListener("keydown", leaving);
 
     return () => {
       void stop.then((off) => off());
-      globalThis.removeEventListener("keydown", escape);
+      globalThis.removeEventListener("keydown", leaving);
       if (going.current) clearTimeout(going.current);
     };
   }, []);

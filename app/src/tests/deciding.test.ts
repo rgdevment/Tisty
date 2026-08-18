@@ -135,7 +135,7 @@ describe("deciding what to do with a document written on both sides", () => {
     const carrier = decideAll(["dev_a-0001"]);
     const panel = decideAll(["dev_a-0001"]);
     await vi.waitFor(() => expect(asked.held.length).toBeGreaterThan(0));
-    asked.held.forEach((answer) => answer(true));
+    for (const answer of asked.held) answer(true);
     await carrier;
     await panel;
 

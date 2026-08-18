@@ -261,15 +261,16 @@ function Sheet({
   const { box, away } = useEdge<HTMLDivElement>();
 
   useEffect(() => {
+    const at = box.current;
     const came = document.activeElement as HTMLElement | null;
-    const wants = box.current?.querySelector<HTMLElement>("input, textarea");
+    const wants = at?.querySelector<HTMLElement>("input, textarea");
     if (wants) {
       wants.focus();
-    } else if (!box.current?.contains(document.activeElement)) {
-      box.current?.querySelector<HTMLElement>("button")?.focus();
+    } else if (!at?.contains(document.activeElement)) {
+      at?.querySelector<HTMLElement>("button")?.focus();
     }
     return () => came?.focus?.();
-  }, []);
+  }, [box]);
 
   return (
     <>
