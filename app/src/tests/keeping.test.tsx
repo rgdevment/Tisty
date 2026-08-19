@@ -43,6 +43,12 @@ const standing = {
 
 const kept = { lines: [] as string[] };
 
+const rousing = {
+  offered: true,
+  wakes: false,
+  theirs: false,
+};
+
 const carrying = {
   chosen: undefined as string | undefined,
   asked: true,
@@ -55,6 +61,7 @@ const carrying = {
 beforeEach(() => {
   vi.restoreAllMocks();
   ipc.calls = [];
+  Object.assign(rousing, { offered: true, wakes: false, theirs: false });
   Object.assign(standing, {
     shipped: true,
     withinReach: false,
@@ -84,6 +91,13 @@ beforeEach(() => {
       case "reach_for":
         standing.withinReach = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
         return Promise.resolve({ ...standing });
+      case "waking":
+        return Promise.resolve({ ...rousing });
+      case "wake_for":
+        if (!rousing.theirs) {
+          rousing.wakes = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
+        }
+        return Promise.resolve({ ...rousing });
       case "checked":
         return Promise.resolve({
           tasks: 7,
@@ -1088,6 +1102,61 @@ describe("the command line on a Mac", () => {
 
     await screen.findByText(/already finds/i);
     expect(screen.queryByText(/no shell looks in that folder/i)).toBeNull();
+  });
+});
+
+describe("opening with the machine", () => {
+  const notices = async () => {
+    render(<Keeping onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/notices/i);
+  };
+
+  it("asks the machine to open Tisty at sign-in", async () => {
+    await notices();
+    expect(await screen.findByText(/opens only when you open it/i)).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: /open it at sign-in/i }));
+
+    await waitFor(() => expect(sent("wake_for").length).toBe(1));
+    expect(sent("wake_for")[0].args.wanted).toBe(true);
+    expect(await screen.findByText(/next time you sign in/i)).toBeTruthy();
+  });
+
+  it("leaves it closed again when asked", async () => {
+    rousing.wakes = true;
+    await notices();
+    expect(await screen.findByText(/opens by itself when you sign in/i)).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: /leave it closed/i }));
+
+    await waitFor(() => expect(sent("wake_for")[0].args.wanted).toBe(false));
+    expect(await screen.findByText(/will not open on its own/i)).toBeTruthy();
+  });
+
+  it("says who holds the switch when the system took it", async () => {
+    rousing.theirs = true;
+    await notices();
+
+    expect(await screen.findByText(/Settings → Apps → Startup/i)).toBeTruthy();
+  });
+
+  it("announces nothing when the system refused to hand the switch back", async () => {
+    rousing.theirs = true;
+    await notices();
+
+    await userEvent.click(screen.getByRole("button", { name: /open it at sign-in/i }));
+
+    await waitFor(() => expect(sent("wake_for").length).toBe(1));
+    expect(screen.queryByText(/next time you sign in/i)).toBeNull();
+    expect(screen.getByText(/Settings → Apps → Startup/i)).toBeTruthy();
+  });
+
+  it("offers nothing where nothing can be offered", async () => {
+    rousing.offered = false;
+    await notices();
+
+    expect(screen.queryByRole("button", { name: /open it at sign-in/i })).toBeNull();
   });
 });
 

@@ -35,6 +35,9 @@ import {
   type Twins,
   takeOver,
   twinned,
+  type Waking,
+  wakeFor,
+  waking,
 } from "../core";
 import { decideAll } from "../deciding";
 import { daysFrom, stamped, weigh } from "../format";
@@ -59,6 +62,7 @@ type Which =
   | "review"
   | "terminal"
   | "quick"
+  | "waking"
   | "settings"
   | "report"
   | "store"
@@ -84,6 +88,7 @@ export default function Keeping({ onChanged }: Props) {
   const [brittle, setBrittle] = useState<Brittle[] | null>(null);
   const [alike, setAlike] = useState<Twins[] | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
+  const [wake, setWake] = useState<Waking | null>(null);
   const [keys, setKeys] = useState<string | null>(null);
   const [kept, setKept] = useState<Settings | null>(null);
   const [build, setBuild] = useState<About | null>(null);
@@ -104,6 +109,9 @@ export default function Keeping({ onChanged }: Props) {
   useEffect(() => {
     reachable()
       .then(setReach)
+      .catch(() => {});
+    waking()
+      .then(setWake)
       .catch(() => {});
     shortcut()
       .then(setKeys)
@@ -611,6 +619,42 @@ export default function Keeping({ onChanged }: Props) {
                 {keys ? fill("quickOn", keys) : t("quickNone")}
               </p>
             </Card>
+
+            {wake?.offered && (
+              <Card title={t("wake")} which="waking" busy={busy} said={said} trouble={trouble}>
+                <p className="text-[12.5px] leading-relaxed text-soft">
+                  {t(wake.wakes ? "wakeOn" : "wakeOff")}
+                </p>
+
+                {wake.theirs && !wake.wakes && (
+                  <div className="mt-2 rounded-lg bg-mark-priority px-3 py-2.5">
+                    <p className="text-[12.5px] leading-relaxed text-ink">{t("wakeTheirs")}</p>
+                  </div>
+                )}
+
+                <div className="mt-2.5 flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    disabled={held}
+                    onClick={() =>
+                      run("waking", wakeFor(!wake.wakes), (now) => {
+                        setWake(now);
+                        if (now.wakes === wake.wakes) {
+                          return;
+                        }
+                        setSaid({
+                          card: "waking",
+                          text: t(now.wakes ? "wakeFresh" : "wakeGone"),
+                        });
+                      })
+                    }
+                    className={mild}
+                  >
+                    {t(wake.wakes ? "wakeRemove" : "wakeAdd")}
+                  </button>
+                </div>
+              </Card>
+            )}
           </>
         )}
 
@@ -1062,6 +1106,7 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   brittle: "brittleAre",
   terminal: "terminal",
   quick: "quick",
+  waking: "wake",
   settings: "settingsTitle",
   report: "reportTitle",
   store: "aboutStore",

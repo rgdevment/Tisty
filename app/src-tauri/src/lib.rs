@@ -5,6 +5,7 @@ mod herald;
 mod report;
 mod tray;
 mod update;
+mod waking;
 
 use tauri::{Emitter, Manager};
 
@@ -2374,6 +2375,16 @@ fn reach_for(wanted: bool) -> Answer<command::Reach> {
 }
 
 #[tauri::command]
+fn waking() -> waking::Waking {
+    waking::waking()
+}
+
+#[tauri::command]
+fn wake_for(wanted: bool) -> Answer<waking::Waking> {
+    waking::wake(wanted).map_err(|e| Refusal::about("cannotWrite", e.to_string()))
+}
+
+#[tauri::command]
 fn shortcut(bound: tauri::State<'_, Bound>) -> Option<String> {
     bound.0.clone()
 }
@@ -3401,6 +3412,7 @@ impl OneAtATime {
 }
 
 pub fn unreach() -> std::io::Result<bool> {
+    let _ = waking::wake(false);
     command::within_reach(false)
 }
 
@@ -3518,7 +3530,9 @@ pub fn run() {
 
             if let Some(window) = app.get_webview_window("main") {
                 proofread(&window);
-                let _ = window.show();
+                if !waking::hushed() {
+                    let _ = window.show();
+                }
             }
             Ok(())
         })
@@ -3567,6 +3581,8 @@ pub fn run() {
             settle_in,
             reachable,
             reach_for,
+            waking,
+            wake_for,
             capture,
             read,
             search,

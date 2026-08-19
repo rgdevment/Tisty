@@ -20,8 +20,8 @@
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
-  ; The app put the PATH entry there and is the only thing that can read the
-  ; value whole to take it back out. After this it is gone.
+  ; The app put the PATH entry and the startup entry there, and is the only
+  ; thing that can read the PATH value whole to take it back out.
   ${If} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
     ExecWait '"$INSTDIR\${MAINBINARYNAME}.exe" --unreach'
   ${EndIf}

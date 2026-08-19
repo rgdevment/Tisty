@@ -378,6 +378,15 @@ export interface Reach {
 export const reachable = (): Promise<Reach> => invoke("reachable");
 export const reachFor = (wanted: boolean): Promise<Reach> => invoke("reach_for", { wanted });
 
+export interface Waking {
+  offered: boolean;
+  wakes: boolean;
+  theirs: boolean;
+}
+
+export const waking = (): Promise<Waking> => invoke("waking");
+export const wakeFor = (wanted: boolean): Promise<Waking> => invoke("wake_for", { wanted });
+
 export interface Settling {
   ran: boolean;
   brought: boolean;

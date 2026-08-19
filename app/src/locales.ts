@@ -293,6 +293,15 @@ const en = {
     "{name} opens a small field over whatever you are doing. What you write is filed under Tasks, with no list, and Tisty stays where it was.",
   quickNone:
     "No shortcut could be taken — another application holds them all. Tisty still captures from its own window.",
+  wake: "Start with the computer",
+  wakeOn:
+    "Tisty opens by itself when you sign in and waits out of the way, with no window until you ask for one.",
+  wakeOff: "Tisty opens only when you open it.",
+  wakeAdd: "Open it at sign-in",
+  wakeRemove: "Leave it closed",
+  wakeFresh: "Ready the next time you sign in",
+  wakeGone: "It will not open on its own",
+  wakeTheirs: "Windows holds this switch now. Turn Tisty back on under Settings → Apps → Startup.",
   noHits: "Nothing matched. Try a shorter word, or widen the scope above.",
   noHitsHere: "Nothing in the archive matched. Try a shorter word.",
   searchInvite: "Type to search. It looks in the archive too.",
@@ -944,6 +953,16 @@ const es: Catalog = {
     "{name} abre un campo pequeño encima de lo que estés haciendo. Lo que escribas se guarda en Tareas, sin lista, y Tisty se queda donde estaba.",
   quickNone:
     "No se pudo tomar ningún atajo porque otra aplicación ya los usa. Tisty sigue capturando desde su propia ventana.",
+  wake: "Iniciar con el equipo",
+  wakeOn:
+    "Tisty se abre solo al iniciar sesión y espera apartado, sin ventana hasta que se la pidas.",
+  wakeOff: "Tisty se abre solo cuando tú lo abres.",
+  wakeAdd: "Abrirlo al iniciar sesión",
+  wakeRemove: "Dejarlo cerrado",
+  wakeFresh: "Quedará listo la próxima vez que inicies sesión",
+  wakeGone: "Ya no se abrirá solo",
+  wakeTheirs:
+    "Ahora ese interruptor lo tiene Windows. Vuelve a activarlo en Configuración → Aplicaciones → Inicio.",
   noHits:
     "No coincide nada. Prueba con una palabra más corta, o amplía el alcance de arriba con los filtros.",
   noHitsHere: "No coincide nada en el archivo. Prueba con una palabra más corta.",
