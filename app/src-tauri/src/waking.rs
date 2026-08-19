@@ -247,11 +247,16 @@ mod there {
 
     pub fn ours(value: &str, exe: &Path) -> bool {
         let said = value.trim();
-        let first = match said.strip_prefix('"') {
-            Some(rest) => rest.split('"').next().unwrap_or_default(),
-            None => said.split_whitespace().next().unwrap_or_default(),
-        };
-        !first.is_empty() && first.eq_ignore_ascii_case(&exe.display().to_string())
+        let named = exe.display().to_string();
+        if let Some(rest) = said.strip_prefix('"') {
+            let quoted = rest.split('"').next().unwrap_or_default();
+            return !quoted.is_empty() && quoted.eq_ignore_ascii_case(&named);
+        }
+        if said.eq_ignore_ascii_case(&named) {
+            return true;
+        }
+        let first = said.split_whitespace().next().unwrap_or_default();
+        !first.is_empty() && first.eq_ignore_ascii_case(&named)
     }
 }
 
@@ -355,8 +360,14 @@ mod tests {
     }
 
     #[test]
-    fn a_program_written_without_quotes_is_read_too() {
+    fn a_program_written_without_quotes_keeps_the_spaces_in_its_folder() {
         assert!(ours(EXE, Path::new(EXE)));
+    }
+
+    #[test]
+    fn a_program_without_quotes_is_read_apart_from_its_arguments() {
+        let at = r"C:\Tisty\Tisty.exe";
+        assert!(ours(&format!("{at} --hushed"), Path::new(at)));
     }
 
     #[test]
