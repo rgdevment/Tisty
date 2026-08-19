@@ -4876,6 +4876,7 @@ dependencies = [
  "tisty-nl",
  "tisty-sync",
  "ulid",
+ "windows",
  "winreg",
  "zip",
 ]
