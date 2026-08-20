@@ -58,6 +58,32 @@ export default function WindowChrome() {
     };
   }, [win]);
 
+  useEffect(() => {
+    if (!onMac) return;
+    let from = { x: 0, y: 0 };
+    const twice = (e: MouseEvent) =>
+      e.button === 0 &&
+      e.detail === 2 &&
+      e.target instanceof HTMLElement &&
+      e.target.hasAttribute("data-tauri-drag-region");
+
+    const held = (e: MouseEvent) => {
+      if (twice(e)) from = { x: e.clientX, y: e.clientY };
+    };
+    const freed = (e: MouseEvent) => {
+      if (!twice(e) || e.clientX !== from.x || e.clientY !== from.y) return;
+      e.stopPropagation();
+      void win.toggleMaximize();
+    };
+
+    document.addEventListener("mousedown", held, true);
+    document.addEventListener("mouseup", freed, true);
+    return () => {
+      document.removeEventListener("mousedown", held, true);
+      document.removeEventListener("mouseup", freed, true);
+    };
+  }, [win]);
+
   const acts = {
     minimise: () => void win.minimize(),
     maximise: () => void win.toggleMaximize(),
