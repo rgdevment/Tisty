@@ -6,6 +6,8 @@
   --tisty-bg: #ffffff;
   --tisty-rail: #f6f6f8;
   --tisty-panel: #fbfbfd;
+  --tisty-desk: #eceef1;
+  --tisty-sheet: #ffffff;
   --tisty-ink: #1d1d1f;
   --tisty-soft: #57575c;
   --tisty-faint: #67676b;
@@ -35,6 +37,8 @@
   --tisty-bg: #1c1c1e;
   --tisty-rail: #191919;
   --tisty-panel: #202022;
+  --tisty-desk: #151516;
+  --tisty-sheet: #232326;
   --tisty-ink: #f2f2f7;
   --tisty-soft: #adadb4;
   --tisty-faint: #9a9aa1;
@@ -67,6 +71,8 @@
   --color-bg: var(--tisty-bg);
   --color-rail: var(--tisty-rail);
   --color-panel: var(--tisty-panel);
+  --color-desk: var(--tisty-desk);
+  --color-sheet: var(--tisty-sheet);
   --color-ink: var(--tisty-ink);
   --color-soft: var(--tisty-soft);
   --color-faint: var(--tisty-faint);
@@ -263,10 +269,9 @@ body {
   outline: none;
   font-size: 15px;
   line-height: 1.75;
-  padding-bottom: 40vh;
-}
-.tisty-doc > :first-child {
-  margin-top: 0;
+  padding: 36px 40px 40vh;
+  background-color: var(--tisty-sheet);
+  position: relative;
 }
 .tisty-doc > :is(h1, h2, h3, p):first-child {
   font-size: 1.65em;
@@ -343,9 +348,14 @@ body {
   text-underline-offset: 2px;
 }
 .tisty-doc hr {
-  margin: 22px 0;
+  margin: 0 -40px;
   border: 0;
-  border-top: 1px solid var(--tisty-line);
+  height: 28px;
+  background: var(--tisty-desk);
+}
+.tisty-doc hr.ProseMirror-selectednode {
+  outline: 2px solid var(--tisty-accent);
+  outline-offset: -2px;
 }
 .tisty-doc img {
   max-width: 100%;
@@ -771,7 +781,9 @@ body {
     color: #52525b;
   }
   .tisty-doc hr {
-    border-top: 1px solid #a1a1aa;
+    height: 1px;
+    margin: 22px 0;
+    background: #a1a1aa;
   }
   .tisty-doc > :is(h1, h2, h3, p):first-child {
     border-bottom: 1px solid #a1a1aa;

@@ -1979,12 +1979,19 @@ fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
 
 #[tauri::command]
 fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Facts> {
-    let root = held(&session).paths.docs();
+    let session = held(&session);
+    let root = session.paths.docs();
+    let made = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .map(|one| (one.id.timestamp_ms() / 1000) as i64);
     let at = tisty_core::docs::resolve(&root, &id)
         .map_err(|_| Refusal::about("noSuchDoc", id.clone()))?;
     let about = std::fs::metadata(&at).map_err(|_| Refusal::about("noSuchDoc", id))?;
     Ok(Facts {
-        made: seconds(about.created()),
+        made,
         wrote: seconds(about.modified()),
         bytes: about.len(),
     })

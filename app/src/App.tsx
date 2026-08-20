@@ -410,10 +410,7 @@ export default function App() {
   };
 
   return (
-    <div
-      className="grid h-full bg-rail font-sans"
-      style={{ gridTemplateColumns: "268px minmax(0,1fr)" }}
-    >
+    <div className="grid h-full bg-rail font-sans [grid-template-columns:268px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:320px_minmax(0,1fr)]">
       <WindowChrome />
 
       <p role="status" aria-live="polite" className="sr-only">

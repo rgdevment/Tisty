@@ -19,7 +19,6 @@ const WIDE = 1440;
 const RAIL = 284;
 const SHEET = 820;
 const ASIDE = 344;
-const MIDDLE = RAIL + SHEET + ASIDE * 2;
 
 interface Props {
   open?: string;
@@ -192,28 +191,29 @@ export default function Docs({
   };
 
   const beside = Boolean(open) && (shown ?? wide);
-  const sheet = !beside || room >= MIDDLE ? "mx-auto" : "mr-auto";
-
+  const spare = room - RAIL;
+  const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
   return (
-    <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+    <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="flex h-9 shrink-0 items-center justify-end px-2.5">
         {open && !beside && (
           <button
             type="button"
             onClick={() => setShown(true)}
             title={t("beside")}
-            className="flex h-6 items-center gap-1.5 rounded-md px-2 text-[11.5px] text-faint hover:bg-hover hover:text-ink"
+            aria-label={t("beside")}
+            className="grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
           >
-            <span aria-hidden="true">▤</span>
-            {t("beside")}
+            <span aria-hidden="true">◨</span>
           </button>
         )}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div
+        className="flex min-h-0 flex-1 flex-col motion-safe:transition-[padding] motion-safe:duration-150"
+        style={{ paddingRight: reserve }}
+      >
         {open ? (
-          <div
-            className={`${sheet} flex min-h-0 w-full max-w-[820px] flex-1 flex-col px-10 motion-safe:transition-[margin] motion-safe:duration-150`}
-          >
+          <div className="mx-auto flex min-h-0 w-full max-w-[820px] flex-1 flex-col">
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Editor
                 key={`${open.file}${reading ? ":read" : ""}`}
@@ -245,13 +245,13 @@ export default function Docs({
             </Suspense>
           </div>
         ) : (
-          <p className={`${sheet} w-full max-w-[820px] px-10 text-[12.5px] text-faint`}>
+          <p className="mx-auto w-full max-w-[820px] px-10 text-[12.5px] text-faint">
             {t("pickADoc")}
           </p>
         )}
         <div
           aria-live="polite"
-          className={`${sheet} h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint`}
+          className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint"
         >
           {saving
             ? t("saving")
@@ -262,9 +262,7 @@ export default function Docs({
                 : ""}
         </div>
         {reading && warned && open && (
-          <div
-            className={`${sheet} mb-2 flex w-full max-w-[820px] flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]`}
-          >
+          <div className="mx-auto mb-2 flex w-full max-w-[820px] flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]">
             <span className="text-soft">{t(stuck ? "frailStuck" : "frailNeeds")}</span>
             {!stuck && (
               <button
