@@ -19,6 +19,7 @@ export interface Chosen {
   named?: Named;
   doc?: string;
   list?: string;
+  lists?: string[];
   tags?: string[];
   folded?: boolean;
   slice?: Slice;
@@ -30,7 +31,9 @@ export function asView(chosen: Chosen): View {
 
   switch (chosen.named) {
     case "tasks":
-      return sliced(chosen.slice);
+      return chosen.lists?.length
+        ? { ...sliced(chosen.slice), lists: chosen.lists }
+        : sliced(chosen.slice);
     case "archive":
       return { archive: true, hidden: chosen.folded };
     case "tags":
@@ -91,6 +94,7 @@ export function nothing(chosen: Chosen, searching: boolean): string {
   if (chosen.named === "tags") return t("noTagsYet");
   if (chosen.slice === "upcoming") return t("upcomingEmpty");
   if (chosen.slice === "repeating") return t("repeatingEmpty");
+  if (chosen.lists?.length) return t("listEmpty");
   if (chosen.slice === "all") return t("allEmpty");
   return t("todayEmpty");
 }

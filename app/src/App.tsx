@@ -62,6 +62,7 @@ import Lists from "./ui/Lists";
 import Menu, { type Choice } from "./ui/Menu";
 import Naming from "./ui/Naming";
 import Notice from "./ui/Notice";
+import Only from "./ui/Only";
 import Rifts from "./ui/Rifts";
 import Search from "./ui/Search";
 import Sidebar from "./ui/Sidebar";
@@ -76,6 +77,15 @@ export const steady = <T,>(was: T, found: T): T =>
   JSON.stringify(was) === JSON.stringify(found) ? was : found;
 
 type Mode = "columns" | "sheet";
+
+export const kept = (key: string): string[] => {
+  try {
+    const said: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
+    return Array.isArray(said) ? said.filter((one) => typeof one === "string") : [];
+  } catch {
+    return [];
+  }
+};
 
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -103,8 +113,19 @@ export default function App() {
   const [chosen, setChosen] = useState<Chosen>(() => ({
     named: "tasks",
     slice: (localStorage.getItem("tisty.slice") as Slice) ?? "today",
+    lists: kept("tisty.only"),
   }));
   const [found, setFound] = useState<Found | null>(null);
+
+  useEffect(() => {
+    const wanted = chosen.lists;
+    if (!data || !wanted?.length) return;
+    const alive = wanted.filter((id) => data.lists.some((one) => one.id === id));
+    if (alive.length === wanted.length) return;
+    window.localStorage.setItem("tisty.only", JSON.stringify(alive));
+    setChosen((was) => ({ ...was, lists: alive }));
+  }, [data, chosen.lists]);
+
   const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
@@ -886,7 +907,7 @@ export default function App() {
                         onClick={() => {
                           setSelected(undefined);
                           window.localStorage.setItem("tisty.slice", slice);
-                          setChosen({ named: "tasks", slice });
+                          setChosen({ named: "tasks", slice, lists: chosen.lists });
                         }}
                         className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
                           on
@@ -899,6 +920,15 @@ export default function App() {
                       </button>
                     );
                   })}
+                  <Only
+                    lists={data.lists}
+                    chosen={chosen.lists ?? []}
+                    onChange={(lists) => {
+                      setSelected(undefined);
+                      window.localStorage.setItem("tisty.only", JSON.stringify(lists));
+                      setChosen({ ...chosen, named: "tasks", lists });
+                    }}
+                  />
                 </div>
               ) : chosen.named === "archive" && (data.counts.folded || chosen.folded) ? (
                 <button
