@@ -1630,6 +1630,54 @@ fn list_look(
         .ok_or_else(|| Refusal::of("notAListId"))
 }
 
+#[tauri::command]
+fn list_rename(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    name: String,
+) -> Answer<List> {
+    let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
+    let name = tisty_core::text::plainly(&name);
+    if name.is_empty() {
+        return Err(Refusal::of("untitled"));
+    }
+
+    let mut session = held(&session);
+    if !session.state.lists.contains_key(&id) {
+        return Err(Refusal::of("notAListId"));
+    }
+    if session
+        .state
+        .list_called(&name)
+        .iter()
+        .any(|one| one.id != id)
+    {
+        return Err(Refusal::about("manyLists", name));
+    }
+
+    session.commit(Op::ListRename {
+        id,
+        d: tisty_core::event::Name { name },
+    })?;
+    session
+        .state
+        .lists
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notAListId"))
+}
+
+#[tauri::command]
+fn list_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
+    let mut session = held(&session);
+    if !session.state.lists.contains_key(&id) {
+        return Err(Refusal::of("notAListId"));
+    }
+    session.commit(Op::ListDelete { id })?;
+    Ok(())
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Papers {
@@ -3631,6 +3679,8 @@ pub fn run() {
             icons,
             list_add,
             list_look,
+            list_rename,
+            list_drop,
             docs,
             folder_add,
             folder_rename,

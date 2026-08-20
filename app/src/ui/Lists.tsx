@@ -1,5 +1,6 @@
+import { ask } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
-import { type List, listAdd, listLook } from "../core";
+import { type List, listAdd, listDrop, listLook, listRename } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Icons, { drawn, useIcons } from "./Icons";
@@ -12,14 +13,20 @@ interface Props {
   onError: (problem: unknown) => void;
 }
 
+type Pane = "icon" | "more" | "name";
+
 export default function Lists({ lists, counts, onOpen, onChanged, onError }: Props) {
   const all = useIcons();
   const [making, setMaking] = useState(false);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState<string>();
-  const [dressing, setDressing] = useState<string>();
+  const [open, setOpen] = useState<{ id: string; pane: Pane }>();
+  const [fresh, setFresh] = useState("");
 
   const held = lists.reduce((sum, list) => sum + (counts[list.id] ?? 0), 0);
+
+  const shows = (id: string, pane: Pane) => open?.id === id && open.pane === pane;
+  const show = (id: string, pane: Pane) => setOpen(shows(id, pane) ? undefined : { id, pane });
 
   const make = () => {
     const wanted = name.trim();
@@ -37,8 +44,34 @@ export default function Lists({ lists, counts, onOpen, onChanged, onError }: Pro
   const dress = (id: string, key: string | undefined) => {
     listLook(id, key)
       .then(() => {
-        setDressing(undefined);
+        setOpen(undefined);
         onChanged();
+      })
+      .catch((e) => onError(saidPlainly(e)));
+  };
+
+  const rename = (list: List) => {
+    const wanted = fresh.trim();
+    if (!wanted || wanted === list.name) {
+      setOpen(undefined);
+      return;
+    }
+    listRename(list.id, wanted)
+      .then(() => {
+        setOpen(undefined);
+        onChanged();
+      })
+      .catch((e) => onError(saidPlainly(e)));
+  };
+
+  const drop = (list: List) => {
+    ask(fill("listDropSure", list.name), { kind: "warning" })
+      .then((sure) => {
+        if (!sure) return undefined;
+        return listDrop(list.id).then(() => {
+          setOpen(undefined);
+          onChanged();
+        });
       })
       .catch((e) => onError(saidPlainly(e)));
   };
@@ -102,7 +135,7 @@ export default function Lists({ lists, counts, onOpen, onChanged, onError }: Pro
               <div className="flex items-start gap-2 px-3.5 py-3">
                 <button
                   type="button"
-                  onClick={() => setDressing(dressing === list.id ? undefined : list.id)}
+                  onClick={() => show(list.id, "icon")}
                   aria-label={fill("iconOf", list.name)}
                   className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[15px] hover:bg-hover"
                 >
@@ -122,10 +155,71 @@ export default function Lists({ lists, counts, onOpen, onChanged, onError }: Pro
                       : t("listSettled")}
                   </span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => show(list.id, "more")}
+                  aria-label={fill("listMore", list.name)}
+                  aria-expanded={shows(list.id, "more") || shows(list.id, "name")}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[13px] text-faint hover:bg-hover"
+                >
+                  ⋯
+                </button>
               </div>
-              {dressing === list.id && (
+              {shows(list.id, "icon") && (
                 <div className="scroller max-h-52 border-t border-hair px-3 py-2.5">
                   <Icons chosen={list.icon} onPick={(key) => dress(list.id, key)} />
+                </div>
+              )}
+              {shows(list.id, "more") && (
+                <div className="flex gap-2 border-t border-hair px-3 py-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFresh(list.name);
+                      setOpen({ id: list.id, pane: "name" });
+                    }}
+                    className="rounded-lg px-2.5 py-1 text-[12.5px] text-soft hover:bg-hover"
+                  >
+                    {t("rename")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => drop(list)}
+                    className="rounded-lg px-2.5 py-1 text-[12.5px] text-soft hover:bg-hover"
+                  >
+                    {t("listDrop")}
+                  </button>
+                </div>
+              )}
+              {shows(list.id, "name") && (
+                <div className="border-t border-hair px-3 py-2.5">
+                  <input
+                    autoFocus
+                    value={fresh}
+                    onChange={(e) => setFresh(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") rename(list);
+                      if (e.key === "Escape") setOpen(undefined);
+                    }}
+                    aria-label={t("listName")}
+                    className="w-full rounded-lg bg-hover px-3 py-2 text-[13.5px] outline-none"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => rename(list)}
+                      className="rounded-lg bg-accent px-3 py-1.5 text-[12.5px] text-bg"
+                    >
+                      {t("rename")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOpen(undefined)}
+                      className="rounded-lg px-3 py-1.5 text-[12.5px] text-soft hover:bg-hover"
+                    >
+                      {t("cancel")}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
