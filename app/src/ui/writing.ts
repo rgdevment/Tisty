@@ -365,3 +365,35 @@ export const bared = (markdown: string): string => {
     })
     .join("\n");
 };
+
+export interface Head {
+  key: string;
+  level: number;
+  text: string;
+  go: () => void;
+}
+
+export const headed = (editor: Writing): Head[] => {
+  if (editor.isDestroyed) return [];
+  const found: Head[] = [];
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name !== "heading") return true;
+    const text = node.textContent.trim();
+    if (text) {
+      found.push({
+        key: String(pos),
+        level: Number(node.attrs.level ?? 1),
+        text,
+        go: () =>
+          editor
+            .chain()
+            .focus()
+            .setTextSelection(pos + 1)
+            .scrollIntoView()
+            .run(),
+      });
+    }
+    return false;
+  });
+  return found;
+};

@@ -290,6 +290,7 @@ export interface About {
 export interface Settings {
   quiet: string[];
   attachUpTo: number;
+  beside?: boolean | null;
 }
 
 export interface Logs {
@@ -452,6 +453,14 @@ export interface Papers {
   folders: Folded[];
   docs: Filed[];
 }
+
+export interface DocFacts {
+  made: number | null;
+  wrote: number | null;
+  bytes: number;
+}
+
+export const docFacts = (id: string): Promise<DocFacts> => invoke("doc_facts", { id });
 
 export const docs = (): Promise<Papers> => invoke("docs");
 export const folderAdd = (name: string, parent?: string, icon?: string): Promise<void> =>

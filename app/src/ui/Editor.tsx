@@ -16,7 +16,7 @@ import Menu from "./Menu";
 import Papers from "./Papers";
 import { previewing, type Reach } from "./previewing";
 import Slash, { asked, type Block, narrowed } from "./Slash";
-import { asMarkdown, written } from "./writing";
+import { asMarkdown, type Head, headed, written } from "./writing";
 
 export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
@@ -91,6 +91,8 @@ interface Props {
   onDoc?: (id: string) => void;
   onWrite: (text: string) => void;
   onShaped?: (text: string) => void;
+  onBlocks?: (blocks: Block[]) => void;
+  onOutline?: (heads: Head[]) => void;
 }
 
 export default function Editor({
@@ -107,6 +109,8 @@ export default function Editor({
   onDoc,
   onWrite,
   onShaped,
+  onBlocks,
+  onOutline,
 }: Props) {
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
@@ -164,8 +168,8 @@ export default function Editor({
     setActive(0);
   };
 
-  const hands = useRef({ onWrite, onOpen, onDoc, onShaped });
-  hands.current = { onWrite, onOpen, onDoc, onShaped };
+  const hands = useRef({ onWrite, onOpen, onDoc, onShaped, onOutline });
+  hands.current = { onWrite, onOpen, onDoc, onShaped, onOutline };
   looked.current = look;
 
   const shapes = useMemo(() => [...written(), previewing(() => reach.current)], []);
@@ -230,6 +234,7 @@ export default function Editor({
       hands.current.onWrite(text);
     }
     looked.current(editor);
+    outlined.current(editor);
   }, []);
 
   const moved = useCallback(({ editor }: { editor: Writing }) => looked.current(editor), []);
@@ -237,7 +242,17 @@ export default function Editor({
   const shaped = useCallback(({ editor }: { editor: Writing }) => {
     const text = asMarkdown(editor);
     if (text !== null) hands.current.onShaped?.(text);
+    outlined.current(editor);
   }, []);
+
+  const listed = useRef("");
+  const outlined = useRef((editor: Writing) => {
+    const heads = headed(editor);
+    const now = heads.map((one) => `${one.level}:${one.text}`).join("\n");
+    if (now === listed.current) return;
+    listed.current = now;
+    hands.current.onOutline?.(heads);
+  });
 
   const editor = useEditor({
     autofocus: taking,
@@ -361,6 +376,14 @@ export default function Editor({
           : []),
       ]
     : [];
+
+  const handed = useRef("");
+  useEffect(() => {
+    const now = blocks.map((one) => one.key).join(",");
+    if (!blocks.length || now === handed.current) return;
+    handed.current = now;
+    onBlocks?.(blocks);
+  }, [blocks, onBlocks]);
 
   const shown = asking ? narrowed(blocks, asking.word) : [];
 
