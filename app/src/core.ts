@@ -491,3 +491,6 @@ export const listAdd = (name: string, icon?: string): Promise<List> =>
   invoke("list_add", { name, icon });
 export const listLook = (id: string, icon?: string): Promise<List> =>
   invoke("list_look", { id, icon });
+export const listRename = (id: string, name: string): Promise<List> =>
+  invoke("list_rename", { id, name });
+export const listDrop = (id: string): Promise<void> => invoke("list_drop", { id });
