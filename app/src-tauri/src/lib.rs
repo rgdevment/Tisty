@@ -1498,6 +1498,7 @@ struct About {
 struct Settings {
     quiet: Vec<String>,
     attach_up_to: u64,
+    beside: Option<bool>,
 }
 
 #[tauri::command]
@@ -1523,6 +1524,7 @@ fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     Ok(Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
+        beside: session.config.beside,
     })
 }
 
@@ -1534,6 +1536,7 @@ fn keep_settings(
 ) -> Answer<Settings> {
     let mut session = held(&session);
     let quiet = settings.quiet.clone();
+    let beside = settings.beside;
     let up_to = settings.attach_up_to.clamp(
         tisty_core::attach::COPIED_LEAST,
         tisty_core::attach::COPIED_MOST,
@@ -1541,10 +1544,12 @@ fn keep_settings(
     session.keep(|config| {
         config.quiet = (!quiet.is_empty()).then_some(quiet);
         config.attach_up_to = Some(up_to);
+        config.beside = beside;
     })?;
     let now = Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
+        beside: session.config.beside,
     };
     drop(session);
     herald::respeak(&app, &now.quiet);
@@ -1941,6 +1946,34 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
             Refusal::about("documentTooBig", weighed(limit))
         }
         _ => Refusal::about("noSuchDoc", id),
+    })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Facts {
+    made: Option<i64>,
+    wrote: Option<i64>,
+    bytes: u64,
+}
+
+fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
+    at.ok()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .map(|gone| gone.as_secs() as i64)
+}
+
+#[tauri::command]
+fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Facts> {
+    let root = held(&session).paths.docs();
+    let at = tisty_core::docs::resolve(&root, &id)
+        .map_err(|_| Refusal::about("noSuchDoc", id.clone()))?;
+    let about = std::fs::metadata(&at).map_err(|_| Refusal::about("noSuchDoc", id))?;
+    Ok(Facts {
+        made: seconds(about.created()),
+        wrote: seconds(about.modified()),
+        bytes: about.len(),
     })
 }
 
@@ -3688,6 +3721,7 @@ pub fn run() {
             folder_drop,
             doc_file,
             doc_read,
+            doc_facts,
             doc_write,
             doc_new,
             doc_drop,

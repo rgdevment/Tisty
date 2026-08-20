@@ -1,15 +1,31 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { attach, convertPaper, docRead, docWrite, type Filed, opened, roomy } from "../core";
+import {
+  attach,
+  convertPaper,
+  docRead,
+  docWrite,
+  type Filed,
+  keepSettings,
+  opened,
+  roomy,
+  type Settings,
+  settings,
+} from "../core";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
 import { crowd, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
+import Beside from "./Beside";
+import type { Block } from "./Slash";
+import type { Head } from "./writing";
 
 const Editor = lazy(() => import("./Editor"));
 
 const SETTLES = 700;
+
+const WIDE = 1440;
 
 interface Props {
   open?: string;
@@ -40,6 +56,23 @@ export default function Docs({
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
+  const [minded, setMinded] = useState<Settings | null>(null);
+  const [wide, setWide] = useState(() => window.innerWidth >= WIDE);
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [heads, setHeads] = useState<Head[]>([]);
+  const [saved, setSaved] = useState(0);
+
+  useEffect(() => {
+    settings()
+      .then(setMinded)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const look = () => setWide(window.innerWidth >= WIDE);
+    window.addEventListener("resize", look);
+    return () => window.removeEventListener("resize", look);
+  }, []);
 
   const keep = useCallback(
     (id: string, text: string) => {
@@ -47,6 +80,7 @@ export default function Docs({
       const mine = queued(id, () => docWrite(id, text))
         .then((fresh) => {
           if (held.current?.id === id && held.current.body === text) held.current = null;
+          setSaved((many) => many + 1);
           onKept(fresh);
         })
         .catch((e) => onError(saidPlainly(e)))
@@ -161,11 +195,36 @@ export default function Docs({
     settling.current = setTimeout(flush, SETTLES);
   };
 
+  const wanted = minded?.beside;
+  const beside = Boolean(open) && (wanted ?? wide);
+  const sheet = beside ? "mr-auto" : "mx-auto";
+  const wall = { maxWidth: beside ? "min(820px, 100% - 344px)" : "820px" };
+
+  const decide = (yes: boolean) => {
+    setMinded((was) => (was ? { ...was, beside: yes } : was));
+    settings()
+      .then((now) => keepSettings({ ...now, beside: yes }))
+      .then(setMinded)
+      .catch((e) => onError(saidPlainly(e)));
+  };
+
   return (
-    <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-      <div data-tauri-drag-region className="h-9 shrink-0" />
+    <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div data-tauri-drag-region className="flex h-9 shrink-0 items-center justify-end px-2.5">
+        {open && !beside && (
+          <button
+            type="button"
+            onClick={() => decide(true)}
+            title={t("beside")}
+            className="flex h-6 items-center gap-1.5 rounded-md px-2 text-[11.5px] text-faint hover:bg-hover hover:text-ink"
+          >
+            <span aria-hidden="true">▤</span>
+            {t("beside")}
+          </button>
+        )}
+      </div>
       {open ? (
-        <div className="mx-auto flex min-h-0 w-full max-w-[820px] flex-1 flex-col px-10">
+        <div className={`${sheet} flex min-h-0 w-full flex-1 flex-col px-10`} style={wall}>
           <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
             <Editor
               key={`${open.file}${reading ? ":read" : ""}`}
@@ -188,6 +247,8 @@ export default function Docs({
               }
               onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
               onWrite={wrote}
+              onBlocks={setBlocks}
+              onOutline={setHeads}
               onShaped={(text) => {
                 shaped.current = text;
               }}
@@ -195,13 +256,14 @@ export default function Docs({
           </Suspense>
         </div>
       ) : (
-        <p className="mx-auto w-full max-w-[820px] px-10 text-[12.5px] text-faint">
+        <p className={`${sheet} w-full px-10 text-[12.5px] text-faint`} style={wall}>
           {t("pickADoc")}
         </p>
       )}
       <div
         aria-live="polite"
-        className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint"
+        className={`${sheet} h-5 w-full px-10 text-[11.5px] text-faint`}
+        style={wall}
       >
         {saving
           ? t("saving")
@@ -212,7 +274,10 @@ export default function Docs({
               : ""}
       </div>
       {reading && warned && open && (
-        <div className="mx-auto mb-2 flex w-full max-w-[820px] flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]">
+        <div
+          className={`${sheet} mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]`}
+          style={wall}
+        >
           <span className="text-soft">{t(stuck ? "frailStuck" : "frailNeeds")}</span>
           {!stuck && (
             <button
@@ -224,6 +289,17 @@ export default function Docs({
             </button>
           )}
         </div>
+      )}
+      {beside && open && (
+        <Beside
+          title={open.title}
+          paper={open.file}
+          body={body}
+          kept={saved}
+          blocks={blocks}
+          heads={heads}
+          onShut={() => decide(false)}
+        />
       )}
     </main>
   );
