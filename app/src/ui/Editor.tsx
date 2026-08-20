@@ -93,6 +93,7 @@ interface Props {
   onShaped?: (text: string) => void;
   onBlocks?: (blocks: Block[]) => void;
   onOutline?: (heads: Head[]) => void;
+  onLaid?: (root: HTMLElement) => void;
 }
 
 export default function Editor({
@@ -111,6 +112,7 @@ export default function Editor({
   onShaped,
   onBlocks,
   onOutline,
+  onLaid,
 }: Props) {
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
@@ -168,8 +170,8 @@ export default function Editor({
     setActive(0);
   };
 
-  const hands = useRef({ onWrite, onOpen, onDoc, onShaped, onOutline });
-  hands.current = { onWrite, onOpen, onDoc, onShaped, onOutline };
+  const hands = useRef({ onWrite, onOpen, onDoc, onShaped, onOutline, onLaid });
+  hands.current = { onWrite, onOpen, onDoc, onShaped, onOutline, onLaid };
   looked.current = look;
 
   const shapes = useMemo(() => [...written(), previewing(() => reach.current)], []);
@@ -235,6 +237,7 @@ export default function Editor({
     }
     looked.current(editor);
     outlined.current(editor);
+    hands.current.onLaid?.(editor.view.dom as HTMLElement);
   }, []);
 
   const moved = useCallback(({ editor }: { editor: Writing }) => looked.current(editor), []);
@@ -243,6 +246,7 @@ export default function Editor({
     const text = asMarkdown(editor);
     if (text !== null) hands.current.onShaped?.(text);
     outlined.current(editor);
+    hands.current.onLaid?.(editor.view.dom as HTMLElement);
   }, []);
 
   const listed = useRef("");
@@ -354,7 +358,7 @@ export default function Editor({
         },
         {
           key: "rule",
-          label: t("divider"),
+          label: t("leafBreak"),
           hint: "---",
           icon: "➖",
           run: () => editor.chain().focus().setHorizontalRule().run(),
