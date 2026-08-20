@@ -70,8 +70,6 @@ pub struct Config {
     pub checked_at: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attach_up_to: Option<u64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub beside: Option<bool>,
 }
 
 impl Config {
@@ -93,7 +91,6 @@ impl Config {
             sync: None,
             synced_at: None,
             heard_at: None,
-            beside: None,
         };
         config.save(paths)?;
         Ok(config)
@@ -347,7 +344,6 @@ mod tests {
             quiet: None,
             checked_at: None,
             attach_up_to: None,
-            beside: None,
         };
 
         let written = toml::to_string_pretty(&config).unwrap();
@@ -376,7 +372,6 @@ mod tests {
                 sync: None,
                 synced_at: None,
                 heard_at: None,
-                beside: None,
             }
         }
 

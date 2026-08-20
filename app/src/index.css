@@ -268,6 +268,20 @@ body {
 .tisty-doc > :first-child {
   margin-top: 0;
 }
+.tisty-doc > :is(h1, h2, h3, p):first-child {
+  font-size: 1.65em;
+  font-weight: 640;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0 0 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--tisty-hair);
+}
+.tisty-doc > :is(h1, h2, h3, p):first-child:only-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
 .tisty-doc h1 {
   font-size: 1.65em;
   font-weight: 640;
@@ -758,6 +772,12 @@ body {
   }
   .tisty-doc hr {
     border-top: 1px solid #a1a1aa;
+  }
+  .tisty-doc > :is(h1, h2, h3, p):first-child {
+    border-bottom: 1px solid #a1a1aa;
+  }
+  .tisty-doc > :is(h1, h2, h3, p):first-child:only-child {
+    border-bottom: 0;
   }
   .tisty-doc li::marker {
     color: #000;

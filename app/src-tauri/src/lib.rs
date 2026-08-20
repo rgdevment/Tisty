@@ -1498,7 +1498,6 @@ struct About {
 struct Settings {
     quiet: Vec<String>,
     attach_up_to: u64,
-    beside: Option<bool>,
 }
 
 #[tauri::command]
@@ -1524,7 +1523,6 @@ fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     Ok(Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
-        beside: session.config.beside,
     })
 }
 
@@ -1536,7 +1534,6 @@ fn keep_settings(
 ) -> Answer<Settings> {
     let mut session = held(&session);
     let quiet = settings.quiet.clone();
-    let beside = settings.beside;
     let up_to = settings.attach_up_to.clamp(
         tisty_core::attach::COPIED_LEAST,
         tisty_core::attach::COPIED_MOST,
@@ -1544,12 +1541,10 @@ fn keep_settings(
     session.keep(|config| {
         config.quiet = (!quiet.is_empty()).then_some(quiet);
         config.attach_up_to = Some(up_to);
-        config.beside = beside;
     })?;
     let now = Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
-        beside: session.config.beside,
     };
     drop(session);
     herald::respeak(&app, &now.quiet);

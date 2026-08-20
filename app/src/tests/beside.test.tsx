@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,25 +8,15 @@ import { counted, worded } from "../ui/Beside";
 import Docs from "../ui/Docs";
 
 const store = vi.hoisted(() => ({
-  beside: null as boolean | null,
-  saved: [] as (boolean | null | undefined)[],
   ran: [] as string[],
   went: [] as string[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: Record<string, unknown>) => {
+  invoke: (cmd: string) => {
     switch (cmd) {
       case "doc_read":
         return Promise.resolve("# Compras\n\nleche");
-      case "settings":
-        return Promise.resolve({ quiet: [], attachUpTo: 5, beside: store.beside });
-      case "keep_settings": {
-        const said = args?.settings as { beside?: boolean | null };
-        store.saved.push(said?.beside);
-        store.beside = said?.beside ?? null;
-        return Promise.resolve(said);
-      }
       case "doc_facts":
         return Promise.resolve({ made: 1772668800, wrote: 1772755200, bytes: 8400 });
       default:
@@ -82,6 +72,13 @@ const widen = (px: number) => {
   Object.defineProperty(window, "innerWidth", { value: px, configurable: true, writable: true });
 };
 
+const resize = (px: number) => {
+  act(() => {
+    widen(px);
+    window.dispatchEvent(new Event("resize"));
+  });
+};
+
 const show = (open = "a3f1-0001") =>
   render(<Docs open={open} known={known} onKept={vi.fn()} onError={vi.fn()} />);
 
@@ -91,8 +88,6 @@ const column = () => screen.queryByRole("complementary", { name: "About this doc
 
 describe("the column beside a document", () => {
   beforeEach(() => {
-    store.beside = null;
-    store.saved = [];
     store.ran = [];
     store.went = [];
     widen(1500);
@@ -112,33 +107,39 @@ describe("the column beside a document", () => {
     expect(column()).toBeNull();
   });
 
-  it("remembers that you closed it", async () => {
+  it("stays closed while the window stays the size it was", async () => {
     show();
     await userEvent.click(await screen.findByRole("button", { name: "Close this column" }));
 
-    await waitFor(() => expect(store.saved).toEqual([false]));
+    resize(1520);
     expect(column()).toBeNull();
   });
 
-  it("does not come back on its own once closed, however wide the window", async () => {
-    store.beside = false;
+  it("retires when the window is no longer wide enough", async () => {
     show();
+    await screen.findByRole("complementary", { name: "About this document" });
 
-    await screen.findByLabelText("editor");
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /About the document/ })).toBeTruthy(),
-    );
+    resize(1100);
     expect(column()).toBeNull();
   });
 
-  it("comes back from the handle, and stays on a narrow window", async () => {
-    store.beside = false;
+  it("comes back every time the window grows again, closed or not", async () => {
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: "Close this column" }));
+    expect(column()).toBeNull();
+
+    resize(1100);
+    resize(1500);
+
+    expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
+  });
+
+  it("holds a column asked for on a narrow window", async () => {
     widen(1100);
     show();
     await userEvent.click(await screen.findByRole("button", { name: /About the document/ }));
 
     expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
-    expect(store.saved).toEqual([true]);
   });
 
   it("keeps the handle out of sight while the column is up", async () => {
@@ -159,8 +160,6 @@ describe("the column beside a document", () => {
 
 describe("what the column carries", () => {
   beforeEach(() => {
-    store.beside = null;
-    store.saved = [];
     store.ran = [];
     store.went = [];
     widen(1500);
@@ -202,30 +201,34 @@ describe("what the column carries", () => {
   });
 });
 
-describe("the document stepping aside", () => {
-  beforeEach(() => {
-    store.beside = null;
-    store.saved = [];
-  });
-
+describe("the document making room", () => {
   const sheetOf = () => screen.getByLabelText("editor").closest("div");
+  const roomOf = () => sheetOf()?.parentElement;
 
-  it("stops centring the text and leaves room for the column", async () => {
+  it("reserves the column's room instead of letting it sit on the text", async () => {
     widen(1500);
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
-    expect(sheetOf()?.className).toContain("mr-auto");
-    expect(sheetOf()?.style.maxWidth).toContain("100%");
+    expect(roomOf()?.style.paddingRight).toBe("344px");
   });
 
-  it("centres the text again while the column is away", async () => {
+  it("keeps the text centred in whatever is left", async () => {
+    widen(1500);
+    show();
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(sheetOf()?.className).toContain("mx-auto");
+    expect(sheetOf()?.className).toContain("max-w-[820px]");
+  });
+
+  it("reserves nothing while the column is away", async () => {
     widen(1100);
     show();
     await screen.findByLabelText("editor");
 
+    expect(roomOf()?.style.paddingRight).toBe("0px");
     expect(sheetOf()?.className).toContain("mx-auto");
-    expect(sheetOf()?.style.maxWidth).toBe("820px");
   });
 });
 
