@@ -116,6 +116,7 @@ export interface View {
   everything?: boolean;
   inbox?: boolean;
   list?: string;
+  lists?: string[];
   tags?: string[];
   tagged?: boolean;
   hidden?: boolean;

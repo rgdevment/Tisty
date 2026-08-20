@@ -381,6 +381,8 @@ struct View {
     #[serde(default)]
     list: Option<String>,
     #[serde(default)]
+    lists: Vec<String>,
+    #[serde(default)]
     tags: Vec<String>,
     #[serde(default)]
     tagged: bool,
@@ -403,10 +405,10 @@ impl View {
             inbox: self.inbox,
             lists: self
                 .list
-                .map(|id| id.parse().map_err(|_| Refusal::of("notAListId")))
-                .transpose()?
                 .into_iter()
-                .collect(),
+                .chain(self.lists)
+                .map(|id| id.parse().map_err(|_| Refusal::of("notAListId")))
+                .collect::<Result<_, _>>()?,
             tags: self
                 .tags
                 .iter()
@@ -3756,6 +3758,56 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_view_can_ask_for_several_lists_at_once() {
+        let a = ulid::Ulid::generate();
+        let b = ulid::Ulid::generate();
+        let view = View {
+            lists: vec![a.to_string(), b.to_string()],
+            ..bare()
+        };
+
+        assert_eq!(view.resolve().unwrap().lists, vec![a, b]);
+    }
+
+    #[test]
+    fn the_list_being_read_joins_the_ones_being_filtered() {
+        let open = ulid::Ulid::generate();
+        let also = ulid::Ulid::generate();
+        let view = View {
+            list: Some(open.to_string()),
+            lists: vec![also.to_string()],
+            ..bare()
+        };
+
+        assert_eq!(view.resolve().unwrap().lists, vec![open, also]);
+    }
+
+    #[test]
+    fn a_list_that_is_not_an_id_is_refused_rather_than_ignored() {
+        let view = View {
+            lists: vec!["not an id".into()],
+            ..bare()
+        };
+
+        assert!(view.resolve().is_err());
+    }
+
+    fn bare() -> View {
+        View {
+            archive: false,
+            everything: false,
+            inbox: false,
+            list: None,
+            lists: Vec::new(),
+            tags: Vec::new(),
+            tagged: false,
+            hidden: false,
+            window: None,
+            repeating: false,
+        }
+    }
+
     #[test]
     fn the_folder_the_person_chose_for_syncing_can_be_opened() {
         let shared = tempfile::tempdir().unwrap();
