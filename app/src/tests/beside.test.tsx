@@ -201,34 +201,51 @@ describe("what the column carries", () => {
   });
 });
 
-describe("the document making room", () => {
+describe("where the document rests", () => {
   const sheetOf = () => screen.getByLabelText("editor").closest("div");
-  const roomOf = () => sheetOf()?.parentElement;
 
-  it("reserves the column's room instead of letting it sit on the text", async () => {
-    widen(1500);
-    show();
-    await screen.findByRole("complementary", { name: "About this document" });
-
-    expect(roomOf()?.style.paddingRight).toBe("344px");
-  });
-
-  it("keeps the text centred in whatever is left", async () => {
-    widen(1500);
+  it("stays centred when the margin alone has room for the column", async () => {
+    widen(1900);
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
     expect(sheetOf()?.className).toContain("mx-auto");
-    expect(sheetOf()?.className).toContain("max-w-[820px]");
   });
 
-  it("reserves nothing while the column is away", async () => {
+  it("leans left when centred it would end up underneath", async () => {
+    widen(1500);
+    show();
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(sheetOf()?.className).toContain("mr-auto");
+  });
+
+  it("leans left too on a narrow window, where the column lies over it", async () => {
     widen(1100);
     show();
-    await screen.findByLabelText("editor");
+    await userEvent.click(await screen.findByRole("button", { name: /About the document/ }));
+    await screen.findByRole("complementary", { name: "About this document" });
 
-    expect(roomOf()?.style.paddingRight).toBe("0px");
+    expect(sheetOf()?.className).toContain("mr-auto");
+  });
+
+  it("is centred again the moment the column goes away", async () => {
+    widen(1500);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: "Close this column" }));
+
     expect(sheetOf()?.className).toContain("mx-auto");
+  });
+
+  it("is never narrowed nor pushed, whatever the window", async () => {
+    widen(1100);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: /About the document/ }));
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(sheetOf()?.className).toContain("max-w-[820px]");
+    expect(sheetOf()?.style.maxWidth).toBe("");
+    expect(sheetOf()?.parentElement?.style.paddingRight).toBe("");
   });
 });
 

@@ -16,7 +16,10 @@ const SETTLES = 700;
 
 const WIDE = 1440;
 
+const RAIL = 284;
+const SHEET = 820;
 const ASIDE = 344;
+const MIDDLE = RAIL + SHEET + ASIDE * 2;
 
 interface Props {
   open?: string;
@@ -47,15 +50,16 @@ export default function Docs({
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
-  const [wide, setWide] = useState(() => window.innerWidth >= WIDE);
+  const [room, setRoom] = useState(() => window.innerWidth);
   const [shown, setShown] = useState<boolean | null>(null);
+  const wide = room >= WIDE;
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
   const crossed = useRef(wide);
 
   useEffect(() => {
-    const look = () => setWide(window.innerWidth >= WIDE);
+    const look = () => setRoom(window.innerWidth);
     window.addEventListener("resize", look);
     return () => window.removeEventListener("resize", look);
   }, []);
@@ -188,6 +192,7 @@ export default function Docs({
   };
 
   const beside = Boolean(open) && (shown ?? wide);
+  const sheet = !beside || room >= MIDDLE ? "mx-auto" : "mr-auto";
 
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -204,12 +209,11 @@ export default function Docs({
           </button>
         )}
       </div>
-      <div
-        className="flex min-h-0 flex-1 flex-col motion-safe:transition-[padding] motion-safe:duration-150"
-        style={{ paddingRight: beside ? ASIDE : 0 }}
-      >
+      <div className="flex min-h-0 flex-1 flex-col">
         {open ? (
-          <div className="mx-auto flex min-h-0 w-full max-w-[820px] flex-1 flex-col px-10">
+          <div
+            className={`${sheet} flex min-h-0 w-full max-w-[820px] flex-1 flex-col px-10 motion-safe:transition-[margin] motion-safe:duration-150`}
+          >
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Editor
                 key={`${open.file}${reading ? ":read" : ""}`}
@@ -241,13 +245,13 @@ export default function Docs({
             </Suspense>
           </div>
         ) : (
-          <p className="mx-auto w-full max-w-[820px] px-10 text-[12.5px] text-faint">
+          <p className={`${sheet} w-full max-w-[820px] px-10 text-[12.5px] text-faint`}>
             {t("pickADoc")}
           </p>
         )}
         <div
           aria-live="polite"
-          className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint"
+          className={`${sheet} h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint`}
         >
           {saving
             ? t("saving")
@@ -258,7 +262,9 @@ export default function Docs({
                 : ""}
         </div>
         {reading && warned && open && (
-          <div className="mx-auto mb-2 flex w-full max-w-[820px] flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]">
+          <div
+            className={`${sheet} mb-2 flex w-full max-w-[820px] flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]`}
+          >
             <span className="text-soft">{t(stuck ? "frailStuck" : "frailNeeds")}</span>
             {!stuck && (
               <button
