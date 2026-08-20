@@ -29,6 +29,55 @@ impl List {
     }
 }
 
+pub const FIRST: [(&str, &str, &str); 3] = [
+    ("Work", "Trabajo", "work"),
+    ("Personal", "Personal", "star"),
+    ("Family", "Familia", "family"),
+];
+
+pub fn first_lists(code: &str) -> [(&'static str, &'static str); 3] {
+    let spanish = code.to_lowercase().starts_with("es");
+    FIRST.map(|(english, castilian, icon)| (if spanish { castilian } else { english }, icon))
+}
+
+pub fn spoken(configured: Option<&str>) -> String {
+    configured
+        .map(str::to_string)
+        .or_else(|| {
+            ["LC_ALL", "LC_MESSAGES", "LANG"]
+                .iter()
+                .find_map(|key| std::env::var(key).ok())
+        })
+        .or_else(sys_locale::get_locale)
+        .unwrap_or_default()
+}
+
+pub fn sown(code: &str) -> Vec<crate::event::Op> {
+    let mut ops = Vec::new();
+    let mut order = crate::order::first();
+    for (name, icon) in first_lists(code) {
+        let id = Ulid::generate();
+        ops.push(crate::event::Op::ListAdd {
+            id,
+            d: crate::event::ListAdd {
+                name: name.to_string(),
+                order: order.clone(),
+                color: None,
+            },
+        });
+        ops.push(crate::event::Op::ListLook {
+            id,
+            d: crate::event::Look {
+                icon: Some(Some(icon.to_string())),
+                color: None,
+            },
+        });
+        order = crate::order::after(&order);
+    }
+    ops
+}
+
+#[cfg(test)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -39,6 +88,77 @@ mod tests {
             serde_json::to_string(&List::new(Ulid::generate(), "checkout rewrite", "a0")).unwrap();
         assert!(!json.contains("color"));
         assert!(!json.contains("archived"));
+    }
+
+    #[test]
+    fn a_fresh_install_speaks_the_language_of_the_machine() {
+        assert_eq!(
+            first_lists("es").map(|(name, _)| name),
+            ["Trabajo", "Personal", "Familia"]
+        );
+        assert_eq!(
+            first_lists("en").map(|(name, _)| name),
+            ["Work", "Personal", "Family"]
+        );
+    }
+
+    #[test]
+    fn a_regional_spanish_is_still_spanish() {
+        assert_eq!(first_lists("es-CL").map(|(name, _)| name)[0], "Trabajo");
+        assert_eq!(
+            first_lists("es_419.UTF-8").map(|(name, _)| name)[0],
+            "Trabajo"
+        );
+    }
+
+    #[test]
+    fn a_language_we_do_not_speak_is_served_in_english() {
+        assert_eq!(first_lists("fr").map(|(name, _)| name)[0], "Work");
+        assert_eq!(first_lists("").map(|(name, _)| name)[0], "Work");
+    }
+
+    #[test]
+    fn every_first_list_wears_an_icon_the_catalogue_knows() {
+        for (_, icon) in first_lists("en") {
+            assert!(crate::model::icon::known(icon), "unknown icon: {icon}");
+        }
+    }
+
+    #[test]
+    fn the_three_are_sown_in_the_order_they_are_written() {
+        let ops = sown("es");
+        assert_eq!(ops.len(), 6);
+
+        let mut names = Vec::new();
+        let mut orders = Vec::new();
+        for op in &ops {
+            if let crate::event::Op::ListAdd { d, .. } = op {
+                names.push(d.name.clone());
+                orders.push(d.order.clone());
+            }
+        }
+        assert_eq!(names, ["Trabajo", "Personal", "Familia"]);
+        assert!(orders[0] < orders[1] && orders[1] < orders[2], "{orders:?}");
+    }
+
+    #[test]
+    fn each_sown_list_is_dressed_right_after_it_is_made() {
+        let ops = sown("en");
+        let mut made = Vec::new();
+        let mut dressed = Vec::new();
+        for op in &ops {
+            match op {
+                crate::event::Op::ListAdd { id, .. } => made.push(*id),
+                crate::event::Op::ListLook { id, .. } => dressed.push(*id),
+                _ => panic!("a fresh install should only make and dress lists"),
+            }
+        }
+        assert_eq!(made, dressed);
+    }
+
+    #[test]
+    fn what_the_settings_say_wins_over_the_machine() {
+        assert_eq!(spoken(Some("es")), "es");
     }
 
     #[test]
