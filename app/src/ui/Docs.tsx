@@ -1,17 +1,6 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import {
-  attach,
-  convertPaper,
-  docRead,
-  docWrite,
-  type Filed,
-  keepSettings,
-  opened,
-  roomy,
-  type Settings,
-  settings,
-} from "../core";
+import { attach, convertPaper, docRead, docWrite, type Filed, opened, roomy } from "../core";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
 import { crowd, MANY, weighed } from "../previews";
@@ -26,6 +15,8 @@ const Editor = lazy(() => import("./Editor"));
 const SETTLES = 700;
 
 const WIDE = 1440;
+
+const ASIDE = 344;
 
 interface Props {
   open?: string;
@@ -56,23 +47,24 @@ export default function Docs({
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
-  const [minded, setMinded] = useState<Settings | null>(null);
   const [wide, setWide] = useState(() => window.innerWidth >= WIDE);
+  const [shown, setShown] = useState<boolean | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
-
-  useEffect(() => {
-    settings()
-      .then(setMinded)
-      .catch(() => {});
-  }, []);
+  const crossed = useRef(wide);
 
   useEffect(() => {
     const look = () => setWide(window.innerWidth >= WIDE);
     window.addEventListener("resize", look);
     return () => window.removeEventListener("resize", look);
   }, []);
+
+  useEffect(() => {
+    if (crossed.current === wide) return;
+    crossed.current = wide;
+    setShown(null);
+  }, [wide]);
 
   const keep = useCallback(
     (id: string, text: string) => {
@@ -195,18 +187,7 @@ export default function Docs({
     settling.current = setTimeout(flush, SETTLES);
   };
 
-  const wanted = minded?.beside;
-  const beside = Boolean(open) && (wanted ?? wide);
-  const sheet = beside ? "mr-auto" : "mx-auto";
-  const wall = { maxWidth: beside ? "min(820px, 100% - 344px)" : "820px" };
-
-  const decide = (yes: boolean) => {
-    setMinded((was) => (was ? { ...was, beside: yes } : was));
-    settings()
-      .then((now) => keepSettings({ ...now, beside: yes }))
-      .then(setMinded)
-      .catch((e) => onError(saidPlainly(e)));
-  };
+  const beside = Boolean(open) && (shown ?? wide);
 
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -214,7 +195,7 @@ export default function Docs({
         {open && !beside && (
           <button
             type="button"
-            onClick={() => decide(true)}
+            onClick={() => setShown(true)}
             title={t("beside")}
             className="flex h-6 items-center gap-1.5 rounded-md px-2 text-[11.5px] text-faint hover:bg-hover hover:text-ink"
           >
@@ -223,73 +204,74 @@ export default function Docs({
           </button>
         )}
       </div>
-      {open ? (
-        <div className={`${sheet} flex min-h-0 w-full flex-1 flex-col px-10`} style={wall}>
-          <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
-            <Editor
-              key={`${open.file}${reading ? ":read" : ""}`}
-              value={body}
-              taking={!reading}
-              reading={reading}
-              label={open.title || t("untitledDoc")}
-              papers={known}
-              folder={open.folder}
-              paper={open.file}
-              onMade={(id, name) => onKept({ id, title: name })}
-              onDoc={onDoc}
-              onAttach={() =>
-                pick({ multiple: false })
-                  .then((at) => (typeof at === "string" ? attach(at, undefined, true) : null))
-                  .catch((e) => {
-                    onError(saidPlainly(e));
-                    return null;
-                  })
-              }
-              onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
-              onWrite={wrote}
-              onBlocks={setBlocks}
-              onOutline={setHeads}
-              onShaped={(text) => {
-                shaped.current = text;
-              }}
-            />
-          </Suspense>
-        </div>
-      ) : (
-        <p className={`${sheet} w-full px-10 text-[12.5px] text-faint`} style={wall}>
-          {t("pickADoc")}
-        </p>
-      )}
       <div
-        aria-live="polite"
-        className={`${sheet} h-5 w-full px-10 text-[11.5px] text-faint`}
-        style={wall}
+        className="flex min-h-0 flex-1 flex-col motion-safe:transition-[padding] motion-safe:duration-150"
+        style={{ paddingRight: beside ? ASIDE : 0 }}
       >
-        {saving
-          ? t("saving")
-          : brimming
-            ? fill("docBrimming", weighed(body.length))
-            : packed > MANY
-              ? fill("docCrowded", String(packed))
-              : ""}
-      </div>
-      {reading && warned && open && (
+        {open ? (
+          <div className="mx-auto flex min-h-0 w-full max-w-[820px] flex-1 flex-col px-10">
+            <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
+              <Editor
+                key={`${open.file}${reading ? ":read" : ""}`}
+                value={body}
+                taking={!reading}
+                reading={reading}
+                label={open.title || t("untitledDoc")}
+                papers={known}
+                folder={open.folder}
+                paper={open.file}
+                onMade={(id, name) => onKept({ id, title: name })}
+                onDoc={onDoc}
+                onAttach={() =>
+                  pick({ multiple: false })
+                    .then((at) => (typeof at === "string" ? attach(at, undefined, true) : null))
+                    .catch((e) => {
+                      onError(saidPlainly(e));
+                      return null;
+                    })
+                }
+                onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
+                onWrite={wrote}
+                onBlocks={setBlocks}
+                onOutline={setHeads}
+                onShaped={(text) => {
+                  shaped.current = text;
+                }}
+              />
+            </Suspense>
+          </div>
+        ) : (
+          <p className="mx-auto w-full max-w-[820px] px-10 text-[12.5px] text-faint">
+            {t("pickADoc")}
+          </p>
+        )}
         <div
-          className={`${sheet} mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]`}
-          style={wall}
+          aria-live="polite"
+          className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint"
         >
-          <span className="text-soft">{t(stuck ? "frailStuck" : "frailNeeds")}</span>
-          {!stuck && (
-            <button
-              type="button"
-              onClick={() => convert(open.file)}
-              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
-            >
-              {t("frailConvert")}
-            </button>
-          )}
+          {saving
+            ? t("saving")
+            : brimming
+              ? fill("docBrimming", weighed(body.length))
+              : packed > MANY
+                ? fill("docCrowded", String(packed))
+                : ""}
         </div>
-      )}
+        {reading && warned && open && (
+          <div className="mx-auto mb-2 flex w-full max-w-[820px] flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]">
+            <span className="text-soft">{t(stuck ? "frailStuck" : "frailNeeds")}</span>
+            {!stuck && (
+              <button
+                type="button"
+                onClick={() => convert(open.file)}
+                className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+              >
+                {t("frailConvert")}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
       {beside && open && (
         <Beside
           title={open.title}
@@ -298,7 +280,7 @@ export default function Docs({
           kept={saved}
           blocks={blocks}
           heads={heads}
-          onShut={() => decide(false)}
+          onShut={() => setShown(false)}
         />
       )}
     </main>

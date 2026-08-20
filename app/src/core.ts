@@ -290,7 +290,6 @@ export interface About {
 export interface Settings {
   quiet: string[];
   attachUpTo: number;
-  beside?: boolean | null;
 }
 
 export interface Logs {
