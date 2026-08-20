@@ -50,6 +50,7 @@ impl Session {
                 ),
             ],
         );
+        let clean = !paths.config_file().exists();
         let config = Config::load_or_init(&paths)?;
         let store = Store::open(paths.store(), config.device_id.clone())?;
         let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
@@ -79,7 +80,22 @@ impl Session {
                 &[("count", Fact::Count(gone))],
             );
         }
+        session.sow_if_clean(clean);
         Ok(session)
+    }
+
+    fn sow_if_clean(&mut self, clean: bool) {
+        if !clean || !self.state.lists.is_empty() || !self.state.tasks.is_empty() {
+            return;
+        }
+        let code = tisty_core::model::spoken(self.config.locale.as_deref());
+        if let Err(why) = self.commit_all(tisty_core::model::sown(&code)) {
+            witness::warn(
+                channel::CONFIG,
+                "the lists a fresh install starts with were not written",
+                &[("why", Fact::Why(why.to_string()))],
+            );
+        }
     }
 
     fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {

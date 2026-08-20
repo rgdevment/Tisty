@@ -30,6 +30,7 @@ impl App {
     }
 
     fn build(paths: Paths, load: Load) -> tisty_core::Result<Self> {
+        let clean = !paths.config_file().exists();
         let config = Config::load_or_init(&paths)?;
         let store = Store::open(paths.store(), config.device_id.clone())?;
         let state = match load {
@@ -44,14 +45,19 @@ impl App {
             None
         };
 
-        Ok(Self {
+        let mut app = Self {
             print: tisty_core::cache::fingerprint(&paths.store()),
             paths,
             state,
             config,
             store,
             cache,
-        })
+        };
+        if clean && matches!(load, Load::Full | Load::Summary) && app.state.lists.is_empty() {
+            let code = tisty_core::model::spoken(app.config.locale.as_deref());
+            let _ = app.commit_all(tisty_core::model::sown(&code));
+        }
+        Ok(app)
     }
 
     pub fn locale(&self) -> Option<&str> {
