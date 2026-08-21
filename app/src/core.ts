@@ -442,7 +442,7 @@ export interface Folded {
   holds: number;
 }
 
-export type Paper = "a4" | "letter" | "endless";
+export type Paper = "a4" | "letter" | "tabloid";
 
 export interface Filed {
   id: string;

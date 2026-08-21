@@ -23,7 +23,7 @@ const dated = (when: number | null): string =>
 const mild =
   "rounded-[7px] border border-line px-2 py-1 text-[11.5px] text-soft hover:bg-hover hover:text-ink disabled:border-hair disabled:text-faint";
 
-const LEAVES: Paper[] = ["a4", "letter", "endless"];
+const LEAVES: Paper[] = ["a4", "letter", "tabloid"];
 
 interface Props {
   title: string;
@@ -153,7 +153,7 @@ export default function Beside({
                     : "border-line text-faint hover:text-soft"
                 }`}
               >
-                {t(one === "a4" ? "leafA4" : one === "letter" ? "leafLetter" : "leafEndless")}
+                {t(one === "a4" ? "leafA4" : one === "letter" ? "leafLetter" : "leafTabloid")}
               </button>
             ))}
           </div>

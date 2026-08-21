@@ -32,15 +32,20 @@ const WIDE = 1440;
 const RAIL = 284;
 const SHEET = 820;
 
-const PAPER: Record<Paper, number> = { a4: 820, letter: 843, endless: 820 };
+const PAPER: Record<Paper, number> = { a4: 820, letter: 843, tabloid: 1090 };
 const leaves = (): Record<string, Paper> => {
   try {
     const said: unknown = JSON.parse(localStorage.getItem("tisty.paper") ?? "{}");
-    return said && typeof said === "object" ? (said as Record<string, Paper>) : {};
+    if (!said || typeof said !== "object") return {};
+    return Object.fromEntries(
+      Object.entries(said as Record<string, string>).filter(([, leaf]) => leaf in PAPER),
+    ) as Record<string, Paper>;
   } catch {
     return {};
   }
 };
+const PAGE: Record<Paper, string> = { a4: "A4", letter: "Letter", tabloid: "11in 17in" };
+
 const ASIDE = 344;
 
 interface Props {
@@ -232,7 +237,7 @@ export default function Docs({
       tag.id = id;
       document.head.append(tag);
     }
-    tag.textContent = `@page { size: ${leaf === "letter" ? "Letter" : "A4"}; margin: 22mm 20mm; }`;
+    tag.textContent = `@page { size: ${PAGE[leaf]}; margin: 22mm 20mm; }`;
   }, [leaf]);
 
   const blobOf = async (): Promise<Blob | null> => {

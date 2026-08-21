@@ -8,7 +8,7 @@ import { docRead, type Filed, noteTrouble, served, weighs } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { spawned } from "../making";
-import { DOC, docLink, docOf } from "../markdown";
+import { DOC, docOf } from "../markdown";
 import Asking from "./Asking";
 import Floats from "./Floats";
 import Glyphs from "./Glyphs";
@@ -77,6 +77,11 @@ const caret = (editor: Writing, at: number) => {
   }
 };
 
+const aimed = (editor: Writing) => {
+  editor.commands.focus();
+  return caret(editor, editor.state.selection.from);
+};
+
 interface Props {
   value: string;
   taking?: boolean;
@@ -121,10 +126,6 @@ export default function Editor({
   const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
   const [tying, setTying] = useState<{ x: number; y: number } | null>(null);
   const [choosing, setChoosing] = useState<{ x: number; y: number } | null>(null);
-  const [shaping, setShaping] = useState<{
-    at: { x: number; y: number };
-    doc: { file: string; title: string };
-  } | null>(null);
   const [swapping, setSwapping] = useState<{
     at: { x: number; y: number };
     untie: () => void;
@@ -336,28 +337,28 @@ export default function Editor({
           label: t("linkIt"),
           hint: "[ ]( )",
           icon: "🔗",
-          run: () => setTying(caret(editor, editor.state.selection.from)),
+          run: () => setTying(aimed(editor)),
         },
         {
           key: "paper",
           label: t("insertDoc"),
           hint: "[[ ]]",
           icon: "▤",
-          run: () => setChoosing(caret(editor, editor.state.selection.from)),
+          run: () => setChoosing(aimed(editor)),
         },
         {
           key: "newpaper",
           label: t("insertNewDoc"),
           hint: "\u271a",
           icon: "\u271a",
-          run: () => setNaming(caret(editor, editor.state.selection.from)),
+          run: () => setNaming(aimed(editor)),
         },
         {
           key: "icon",
           label: t("insertIcon"),
           hint: "\u{1f600}",
           icon: "\u{1f600}",
-          run: () => setGlyphing(caret(editor, editor.state.selection.from)),
+          run: () => setGlyphing(aimed(editor)),
         },
         {
           key: "rule",
@@ -637,41 +638,6 @@ export default function Editor({
         />
       )}
 
-      {shaping && editor && (
-        <Menu
-          at={{ x: shaping.at.x, y: shaping.at.y + 6 }}
-          label={t("howToShowIt")}
-          choices={[
-            {
-              key: "card",
-              label: t("asACard"),
-              icon: "▤",
-              onPick: () =>
-                editor
-                  .chain()
-                  .focus()
-                  .insertContent({
-                    type: "image",
-                    attrs: { src: DOC + shaping.doc.file, alt: shaping.doc.title },
-                  })
-                  .run(),
-            },
-            {
-              key: "link",
-              label: t("asALink"),
-              icon: "↩",
-              onPick: () =>
-                editor
-                  .chain()
-                  .focus()
-                  .insertContent(docLink(shaping.doc.file, shaping.doc.title))
-                  .run(),
-            },
-          ]}
-          onClose={() => setShaping(null)}
-        />
-      )}
-
       {choosing && editor && (
         <>
           <span
@@ -699,7 +665,14 @@ export default function Editor({
               all={papers?.filter((one) => one.file !== paper)}
               onPick={(picked) => {
                 setChoosing(null);
-                setShaping({ at: choosing, doc: picked });
+                editor
+                  .chain()
+                  .focus()
+                  .insertContent({
+                    type: "image",
+                    attrs: { src: DOC + picked.file, alt: picked.title },
+                  })
+                  .run();
               }}
             />
           </div>

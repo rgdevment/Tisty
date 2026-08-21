@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { endlessTall, MARGIN, SIZES } from "../ui/paper";
+import { SIZES } from "../ui/paper";
 import { asData, fetched, shapesOf, titled } from "../ui/shaping";
 
 const doc = (...content: unknown[]) => ({ type: "doc", content });
@@ -109,26 +109,9 @@ describe("the size of the sheet", () => {
     expect(SIZES.letter).toEqual([612, 792]);
   });
 
-  it("grows an endless sheet with what it holds", () => {
-    const one = endlessTall([{ kind: "para", runs: [{ text: "corto" }] }]);
-    const many = endlessTall(
-      Array.from({ length: 40 }, () => ({
-        kind: "para" as const,
-        runs: [{ text: "x".repeat(200) }],
-      })),
-    );
-
-    expect(many).toBeGreaterThan(one);
-    expect(one).toBeGreaterThanOrEqual(MARGIN * 2);
-  });
-
-  it("never asks for a sheet taller than a reader will open", () => {
-    const huge = Array.from({ length: 5000 }, () => ({
-      kind: "image" as const,
-      src: "a.png",
-    }));
-
-    expect(endlessTall(huge)).toBeLessThanOrEqual(14000);
+  it("gives the tabloid sheet a wider page than either", () => {
+    expect(SIZES.tabloid).toEqual([792, 1224]);
+    expect(SIZES.tabloid[0]).toBeGreaterThan(SIZES.letter[0]);
   });
 });
 
