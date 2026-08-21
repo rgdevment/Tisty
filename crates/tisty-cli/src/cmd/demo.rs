@@ -291,7 +291,7 @@ fn bed() -> Vec<Seed> {
             ..Seed::new("montar la estantería del pasillo")
         },
         Seed {
-            priority: Priority::Wont,
+            priority: Priority::Minor,
             tags: &["regalos"],
             ..Seed::new("elegir el regalo de aniversario")
         },

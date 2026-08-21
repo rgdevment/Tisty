@@ -17,7 +17,7 @@ pub enum Status {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("priority must be do, decide, delegate or wont")]
+#[error("priority must be do, decide, delegate or minor")]
 pub struct InvalidPriority;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -28,7 +28,7 @@ pub enum Priority {
     Delegate,
     #[default]
     Unset,
-    Wont,
+    Minor,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -44,7 +44,7 @@ impl Priority {
             Self::Do => "do",
             Self::Decide => "decide",
             Self::Delegate => "delegate",
-            Self::Wont => "wont",
+            Self::Minor => "minor",
             Self::Unset => "unset",
         }
     }
@@ -62,7 +62,7 @@ impl std::str::FromStr for Priority {
             "do" => Ok(Self::Do),
             "decide" => Ok(Self::Decide),
             "delegate" => Ok(Self::Delegate),
-            "wont" => Ok(Self::Wont),
+            "minor" | "wont" => Ok(Self::Minor),
             "unset" => Ok(Self::Unset),
             _ => Err(InvalidPriority),
         }
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn what_will_not_happen_sorts_last_of_all() {
         let mut all = vec![
-            Priority::Wont,
+            Priority::Minor,
             Priority::Unset,
             Priority::Do,
             Priority::Delegate,
@@ -346,7 +346,7 @@ mod tests {
                 Priority::Decide,
                 Priority::Delegate,
                 Priority::Unset,
-                Priority::Wont
+                Priority::Minor
             ]
         );
     }
@@ -368,6 +368,18 @@ mod tests {
                 Priority::Unset
             );
         }
+    }
+
+    #[test]
+    fn what_the_first_matrix_wrote_is_still_read() {
+        assert_eq!(
+            serde_json::from_str::<Priority>("\"wont\"").unwrap(),
+            Priority::Minor
+        );
+        assert_eq!(
+            serde_json::to_string(&Priority::Minor).unwrap(),
+            "\"minor\""
+        );
     }
 
     #[test]

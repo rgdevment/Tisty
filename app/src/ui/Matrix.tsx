@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { List, Priority, Task } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
 import Only from "./Only";
 
@@ -12,11 +12,14 @@ interface Props {
   lists: List[];
   onPlace: (task: string, where: Priority) => void;
   onOpen: (task: Task) => void;
+  onSow: (where: Priority) => void;
   onDiscardAll: (tasks: string[]) => void;
 }
 
-export default function Matrix({ tasks, lists, onPlace, onOpen, onDiscardAll }: Props) {
-  const [asked, setAsked] = useState<boolean | null>(null);
+const KEPT = "tisty.tray";
+
+export default function Matrix({ tasks, lists, onPlace, onOpen, onSow, onDiscardAll }: Props) {
+  const [asked, setAsked] = useState(() => localStorage.getItem(KEPT) === "open");
   const [only, setOnly] = useState<string[]>([]);
   const [over, setOver] = useState<Priority | null>(null);
   const [held, setHeld] = useState<string | null>(null);
@@ -30,7 +33,7 @@ export default function Matrix({ tasks, lists, onPlace, onOpen, onDiscardAll }: 
       const wide = window.innerWidth >= WIDE;
       if (crossed.current === wide) return;
       crossed.current = wide;
-      if (!wide) setAsked(false);
+      setAsked(wide && localStorage.getItem(KEPT) === "open");
     };
     window.addEventListener("resize", look);
     return () => window.removeEventListener("resize", look);
@@ -43,7 +46,12 @@ export default function Matrix({ tasks, lists, onPlace, onOpen, onDiscardAll }: 
 
   useLayoutEffect(trail, [held]);
 
-  const tray = asked === true;
+  const tray = asked;
+
+  const swing = (open: boolean) => {
+    localStorage.setItem(KEPT, open ? "open" : "shut");
+    setAsked(open);
+  };
 
   const placed = useMemo(() => {
     const by = new Map<Priority, Task[]>(QUADRANTS.map((one) => [one, [] as Task[]]));
@@ -130,7 +138,7 @@ export default function Matrix({ tasks, lists, onPlace, onOpen, onDiscardAll }: 
         {!tray && waiting > 0 && (
           <button
             type="button"
-            onClick={() => setAsked(true)}
+            onClick={() => swing(true)}
             className="rounded-full border border-line px-2.5 py-0.5 text-[11.5px] text-faint hover:text-soft"
           >
             {t("showUnplaced")} · {waiting}
@@ -175,14 +183,18 @@ export default function Matrix({ tasks, lists, onPlace, onOpen, onDiscardAll }: 
                     <span className="ml-auto text-[11.5px] text-faint tabular-nums">
                       {mine.length || ""}
                     </span>
-                    {where === "wont" && mine.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => onDiscardAll(mine.map((one) => one.id))}
-                        className="rounded px-1.5 py-0.5 text-[11.5px] text-faint hover:bg-hover hover:text-soft"
-                      >
-                        {t("dropThemAll")}
-                      </button>
+                    {where === "minor" ? (
+                      mine.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => onDiscardAll(mine.map((one) => one.id))}
+                          className="rounded px-1.5 py-0.5 text-[11.5px] text-faint hover:bg-hover hover:text-soft"
+                        >
+                          {t("dropThemAll")}
+                        </button>
+                      )
+                    ) : (
+                      <Sow where={where} onSow={onSow} />
                     )}
                   </header>
                   {mine.length === 0 ? (
@@ -213,12 +225,13 @@ export default function Matrix({ tasks, lists, onPlace, onOpen, onDiscardAll }: 
               <span className="ml-auto text-[11.5px] text-faint tabular-nums">
                 {unplaced.length || ""}
               </span>
+              <Sow where="unset" onSow={onSow} />
               <button
                 type="button"
                 aria-label={t("hideUnplaced")}
                 title={t("hideUnplaced")}
-                onClick={() => setAsked(false)}
-                className="rounded px-1 text-[13px] text-faint hover:bg-hover hover:text-soft"
+                onClick={() => swing(false)}
+                className="grid h-5 w-5 shrink-0 place-items-center rounded text-[12px] leading-none text-faint hover:bg-hover hover:text-soft"
               >
                 ✕
               </button>
@@ -247,6 +260,20 @@ export default function Matrix({ tasks, lists, onPlace, onOpen, onDiscardAll }: 
         </div>
       )}
     </section>
+  );
+}
+
+function Sow({ where, onSow }: { where: Priority; onSow: (where: Priority) => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={fill("addTo", said(where))}
+      title={fill("addTo", said(where))}
+      onClick={() => onSow(where)}
+      className="grid h-5 w-5 shrink-0 place-items-center rounded pb-px text-[15px] leading-none text-faint hover:bg-hover hover:text-ink"
+    >
+      +
+    </button>
   );
 }
 

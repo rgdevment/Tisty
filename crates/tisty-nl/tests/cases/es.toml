@@ -335,7 +335,7 @@ why = "importante sin urgencia es decidir, que es el cuadrante al que va"
 [[case]]
 input = "pintar la pared !prescindible"
 title = "pintar la pared"
-priority = "wont"
+priority = "minor"
 why = "el cuarto cuadrante se teclea por lo que es, no por lo que se hará con él"
 
 [[case]]

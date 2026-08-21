@@ -1,7 +1,7 @@
 import type { Priority } from "./core";
 import { t } from "./locales";
 
-export const QUADRANTS = ["do", "decide", "delegate", "wont"] as const;
+export const QUADRANTS = ["do", "decide", "delegate", "minor"] as const;
 
 export const PICKABLE = ["do", "decide", "delegate"] as const;
 
@@ -9,7 +9,7 @@ const SAID = {
   do: "quadDo",
   decide: "quadDecide",
   delegate: "quadDelegate",
-  wont: "quadWont",
+  minor: "quadMinor",
   unset: "noPriority",
 } as const;
 
@@ -17,7 +17,7 @@ const TINT = {
   do: "text-urgent",
   decide: "text-high",
   delegate: "text-accent",
-  wont: "text-faint",
+  minor: "text-faint",
   unset: "text-faint",
 } as const;
 
@@ -25,7 +25,7 @@ const EDGE = {
   do: "border-urgent",
   decide: "border-high",
   delegate: "border-accent",
-  wont: "border-faint",
+  minor: "border-faint",
   unset: "border-faint",
 } as const;
 

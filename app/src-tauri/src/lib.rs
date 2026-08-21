@@ -2354,6 +2354,11 @@ fn printed(window: tauri::WebviewWindow) -> Answer<()> {
 }
 
 #[tauri::command]
+fn sow(app: tauri::AppHandle, priority: Option<String>) {
+    tray::sow(&app, priority);
+}
+
+#[tauri::command]
 fn parted(app: tauri::AppHandle) {
     app.exit(0);
 }
@@ -3777,6 +3782,7 @@ pub fn run() {
             doc_copy,
             doc_away,
             parted,
+            sow,
             printed,
             folder_file
         ])

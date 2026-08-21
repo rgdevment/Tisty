@@ -221,7 +221,7 @@ pub const EN: Vocabulary = Vocabulary {
         &["do", "now"],
         &["decide", "important"],
         &["delegate"],
-        &["wont", "minor"],
+        &["minor", "wont"],
         &["unclassified", "none"],
     ],
 };
@@ -244,7 +244,7 @@ impl Vocabulary {
             Priority::Do,
             Priority::Decide,
             Priority::Delegate,
-            Priority::Wont,
+            Priority::Minor,
             Priority::Unset,
         ];
         placed
@@ -260,7 +260,7 @@ impl Vocabulary {
             Priority::Do,
             Priority::Decide,
             Priority::Delegate,
-            Priority::Wont,
+            Priority::Minor,
             Priority::Unset,
         ];
         self.priorities

@@ -424,7 +424,7 @@ fn priority(p: Priority, lang: Lang) -> Option<String> {
         Priority::Do => Some(style::paint(RED, &word)),
         Priority::Decide => Some(style::paint(YELLOW, &word)),
         Priority::Delegate => Some(style::paint(BLUE, &word)),
-        Priority::Wont => Some(style::dim(&word)),
+        Priority::Minor => Some(style::dim(&word)),
         Priority::Unset => None,
     }
 }

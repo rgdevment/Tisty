@@ -39,6 +39,7 @@ import {
   type Snapshot,
   settleIn,
   snapshot,
+  sow,
   syncState,
   type Task,
   updateReady,
@@ -815,6 +816,9 @@ export default function App() {
             lists={data.lists}
             onPlace={(id, where) => act(patch(id, { priority: where }))}
             onOpen={(one) => setSelected(one.id)}
+            onSow={(where) => {
+              sow(where).catch((e: unknown) => setError(saidPlainly(e)));
+            }}
             onDiscardAll={(ids) => {
               ask(fill("dropThemSure", String(ids.length)), { kind: "warning" })
                 .then((yes) => {

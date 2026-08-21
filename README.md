@@ -123,9 +123,13 @@ credited with, popularised by Stephen Covey in *The 7 Habits of Highly
 Effective People*: sort what you have by urgent against important, and each
 quadrant tells you what to do with it. **Do** what is urgent and important,
 **Decide** when to do what matters and is not urgent, **Delegate** what is
-urgent and is not yours, and **Drop** what you are not going to do. Drag a
-task into its quadrant, or type it: `!do`, `!decide`, `!delegate`. Whatever
-nobody has placed waits in a tray you open when you want to empty it.
+urgent and is not yours, and leave in **Minor** whatever you could live
+without — when you are sure, one button drops the lot.
+
+Drag a task into its quadrant, or type it: `!do`, `!decide`, `!delegate`. Each
+quadrant has a **+** that opens the quick capture with that quadrant already
+set, and whatever nobody has placed waits in a tray that opens the way you
+left it.
 
 ![Urgent against important, and what to do with each](assets/readme/5-eng.jpg)
 

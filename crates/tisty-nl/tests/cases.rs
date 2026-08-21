@@ -233,7 +233,7 @@ fn priorities_name_a_quadrant() {
     for (locale, case) in every_case() {
         if let Some(p) = &case.priority {
             assert!(
-                ["do", "decide", "delegate", "wont"].contains(&p.as_str()),
+                ["do", "decide", "delegate", "minor"].contains(&p.as_str()),
                 "{locale}: «{}» has priority {p}",
                 case.input
             );

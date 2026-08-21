@@ -247,7 +247,7 @@ why = "important without urgency is decide, which is the quadrant it lands in"
 [[case]]
 input = "paint the wall !minor"
 title = "paint the wall"
-priority = "wont"
+priority = "minor"
 why = "the fourth quadrant is typed for what it is, not for what will be done with it"
 
 [[case]]

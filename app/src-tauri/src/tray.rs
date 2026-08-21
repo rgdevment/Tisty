@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use tauri::{
-    AppHandle, Manager, Runtime,
+    AppHandle, Emitter, Manager, Runtime,
     menu::{Menu, MenuItem},
     tray::{TrayIcon, TrayIconBuilder, TrayIconEvent},
 };
@@ -160,6 +160,16 @@ pub fn quicken<R: Runtime>(app: &AppHandle<R>) {
     let _ = window.center();
     let _ = window.show();
     let _ = window.set_focus();
+}
+
+pub fn sow<R: Runtime>(app: &AppHandle<R>, priority: Option<String>) {
+    let Some(window) = app.get_webview_window("quick") else {
+        return;
+    };
+    let _ = window.center();
+    let _ = window.show();
+    let _ = window.set_focus();
+    let _ = window.emit("sow", priority);
 }
 
 pub fn surface<R: Runtime>(app: &AppHandle<R>) {

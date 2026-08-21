@@ -3,7 +3,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 export type Status = "open" | "done" | "dropped";
 
-export type Priority = "do" | "decide" | "delegate" | "wont" | "unset";
+export type Priority = "do" | "decide" | "delegate" | "minor" | "unset";
 
 export interface DateSpec {
   at: string;
@@ -488,6 +488,7 @@ export const keepPdf = (at: string, bytes: number[]): Promise<void> =>
   invoke("keep_pdf", { at, bytes });
 
 export const parted = (): Promise<void> => invoke("parted");
+export const sow = (priority?: Priority): Promise<void> => invoke("sow", { priority });
 
 export const docAway = (id: string, away: boolean): Promise<void> =>
   invoke("doc_away", { id, away });
