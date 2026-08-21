@@ -1000,6 +1000,43 @@ describe("the first-run assistant", () => {
     expect(sent("choose_sync").length).toBe(0);
   });
 
+  it("offers to open at sign-in, already ticked", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+
+    const box = (await screen.findByRole("checkbox", {
+      name: /open it at sign-in/i,
+    })) as HTMLInputElement;
+
+    expect(box.checked).toBe(true);
+  });
+
+  it("asks the machine for it once the first answer is given", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await screen.findByRole("checkbox", { name: /open it at sign-in/i });
+
+    await userEvent.click(screen.getByRole("button", { name: /only on this machine/i }));
+
+    await waitFor(() => expect(sent("wake_for").length).toBe(1));
+    expect(sent("wake_for")[0].args.wanted).toBe(true);
+  });
+
+  it("asks for nothing when the tick is taken off", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole("checkbox", { name: /open it at sign-in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
+
+    expect(sent("wake_for").length).toBe(0);
+  });
+
+  it("says nothing about it where the machine cannot offer it", async () => {
+    rousing.offered = false;
+    render(<Welcome onDone={vi.fn()} />);
+    await screen.findByRole("button", { name: /only on this machine/i });
+
+    expect(screen.queryByRole("checkbox", { name: /open it at sign-in/i })).toBeNull();
+  });
+
   it("offers the command line, and says what to do next", async () => {
     render(<Keeping onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
@@ -1116,7 +1153,9 @@ describe("opening with the machine", () => {
     await notices();
     expect(await screen.findByText(/opens only when you open it/i)).toBeTruthy();
 
-    await userEvent.click(screen.getByRole("button", { name: /open it at sign-in/i }));
+    const box = screen.getByRole("checkbox", { name: /open it at sign-in/i }) as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    await userEvent.click(box);
 
     await waitFor(() => expect(sent("wake_for").length).toBe(1));
     expect(sent("wake_for")[0].args.wanted).toBe(true);
@@ -1128,7 +1167,9 @@ describe("opening with the machine", () => {
     await notices();
     expect(await screen.findByText(/opens by itself when you sign in/i)).toBeTruthy();
 
-    await userEvent.click(screen.getByRole("button", { name: /leave it closed/i }));
+    const box = screen.getByRole("checkbox", { name: /open it at sign-in/i }) as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    await userEvent.click(box);
 
     await waitFor(() => expect(sent("wake_for")[0].args.wanted).toBe(false));
     expect(await screen.findByText(/will not open on its own/i)).toBeTruthy();
@@ -1145,7 +1186,7 @@ describe("opening with the machine", () => {
     rousing.theirs = true;
     await notices();
 
-    await userEvent.click(screen.getByRole("button", { name: /open it at sign-in/i }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /open it at sign-in/i }));
 
     await waitFor(() => expect(sent("wake_for").length).toBe(1));
     expect(screen.queryByText(/next time you sign in/i)).toBeNull();
@@ -1156,7 +1197,7 @@ describe("opening with the machine", () => {
     rousing.offered = false;
     await notices();
 
-    expect(screen.queryByRole("button", { name: /open it at sign-in/i })).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: /open it at sign-in/i })).toBeNull();
   });
 });
 

@@ -10,6 +10,7 @@ const SLIP = 5;
 interface Props {
   tasks: Task[];
   lists: List[];
+  beside: boolean;
   onPlace: (task: string, where: Priority) => void;
   onOpen: (task: Task) => void;
   onSow: (where: Priority) => void;
@@ -18,7 +19,15 @@ interface Props {
 
 const KEPT = "tisty.tray";
 
-export default function Matrix({ tasks, lists, onPlace, onOpen, onSow, onDiscardAll }: Props) {
+export default function Matrix({
+  tasks,
+  lists,
+  beside,
+  onPlace,
+  onOpen,
+  onSow,
+  onDiscardAll,
+}: Props) {
   const [asked, setAsked] = useState(() => localStorage.getItem(KEPT) === "open");
   const [only, setOnly] = useState<string[]>([]);
   const [over, setOver] = useState<Priority | null>(null);
@@ -46,7 +55,7 @@ export default function Matrix({ tasks, lists, onPlace, onOpen, onSow, onDiscard
 
   useLayoutEffect(trail, [held]);
 
-  const tray = asked;
+  const tray = asked && !beside;
 
   const swing = (open: boolean) => {
     localStorage.setItem(KEPT, open ? "open" : "shut");
@@ -61,17 +70,17 @@ export default function Matrix({ tasks, lists, onPlace, onOpen, onSow, onDiscard
     return by;
   }, [tasks]);
 
-  const unplaced = useMemo(
-    () =>
-      tasks.filter(
-        (task) =>
-          task.priority === "unset" &&
-          (only.length === 0 || (task.list && only.includes(task.list))),
-      ),
-    [tasks, only],
+  const loose = useMemo(
+    () => tasks.filter((task) => task.priority === "unset" && !task.repeat),
+    [tasks],
   );
 
-  const waiting = tasks.filter((task) => task.priority === "unset").length;
+  const unplaced = useMemo(
+    () => loose.filter((task) => only.length === 0 || (task.list && only.includes(task.list))),
+    [loose, only],
+  );
+
+  const waiting = loose.length;
 
   const under = (x: number, y: number): Priority | null => {
     const zone = document.elementFromPoint(x, y)?.closest("[data-quadrant]");
@@ -135,7 +144,7 @@ export default function Matrix({ tasks, lists, onPlace, onOpen, onSow, onDiscard
     >
       <header className="flex items-baseline gap-3">
         <h2 className="text-[19px] font-semibold tracking-[-0.015em]">{t("quadrants")}</h2>
-        {!tray && waiting > 0 && (
+        {!asked && !beside && waiting > 0 && (
           <button
             type="button"
             onClick={() => swing(true)}

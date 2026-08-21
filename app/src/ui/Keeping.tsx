@@ -632,11 +632,12 @@ export default function Keeping({ onChanged }: Props) {
                   </div>
                 )}
 
-                <div className="mt-2.5 flex items-center gap-2.5">
-                  <button
-                    type="button"
+                <label className="mt-2.5 flex items-center gap-2 text-[12.5px]">
+                  <input
+                    type="checkbox"
+                    checked={wake.wakes}
                     disabled={held}
-                    onClick={() =>
+                    onChange={() =>
                       run("waking", wakeFor(!wake.wakes), (now) => {
                         setWake(now);
                         if (now.wakes === wake.wakes) {
@@ -648,11 +649,9 @@ export default function Keeping({ onChanged }: Props) {
                         });
                       })
                     }
-                    className={mild}
-                  >
-                    {t(wake.wakes ? "wakeRemove" : "wakeAdd")}
-                  </button>
-                </div>
+                  />
+                  {t("wakeAdd")}
+                </label>
               </Card>
             )}
           </>

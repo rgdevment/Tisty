@@ -814,6 +814,7 @@ export default function App() {
           <Matrix
             tasks={data.tasks}
             lists={data.lists}
+            beside={open && mode === "columns"}
             onPlace={(id, where) => act(patch(id, { priority: where }))}
             onOpen={(one) => setSelected(one.id)}
             onSow={(where) => {
@@ -855,6 +856,10 @@ export default function App() {
             onMark={(step, done) => act(markStep(task.id, step, done))}
             onDropStep={(step) => act(dropStep(task.id, step))}
             onLog={(body, entry) => act(writeLog(task.id, body, entry))}
+            onComplete={() => {
+              say(fill("saidDone", task.title));
+              act(complete(task.id));
+            }}
             onDiscard={() => {
               act(discard(task.id));
               setSelected(undefined);
@@ -1022,6 +1027,10 @@ export default function App() {
             onMark={(step, done) => act(markStep(task.id, step, done))}
             onDropStep={(step) => act(dropStep(task.id, step))}
             onLog={(body, entry) => act(writeLog(task.id, body, entry))}
+            onComplete={() => {
+              say(fill("saidDone", task.title));
+              act(complete(task.id));
+            }}
             onDiscard={() => {
               act(discard(task.id));
               setSelected(undefined);

@@ -1,6 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { useState } from "react";
-import { chooseSync } from "../core";
+import { useEffect, useRef, useState } from "react";
+import { chooseSync, wakeFor, waking } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Modal from "./Modal";
@@ -12,11 +12,28 @@ interface Props {
 export default function Welcome({ onDone }: Props) {
   const [busy, setBusy] = useState(false);
   const [trouble, setTrouble] = useState<string>();
+  const [offered, setOffered] = useState(false);
+  const [wakes, setWakes] = useState(true);
+  const was = useRef(false);
+
+  useEffect(() => {
+    waking()
+      .then((now) => {
+        was.current = now.wakes;
+        setOffered(now.offered);
+      })
+      .catch(() => {});
+  }, []);
+
+  const leave = () => {
+    if (offered && wakes !== was.current) void wakeFor(wakes).catch(() => {});
+    onDone();
+  };
 
   const settle = (dest?: string) => {
     setBusy(true);
     chooseSync(dest)
-      .then(onDone)
+      .then(leave)
       .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => setBusy(false));
   };
@@ -62,6 +79,13 @@ export default function Welcome({ onDone }: Props) {
         </button>
       </div>
 
+      {offered && (
+        <label className="mt-3.5 flex items-center gap-2 text-[12.5px]">
+          <input type="checkbox" checked={wakes} onChange={(e) => setWakes(e.target.checked)} />
+          {t("wakeAdd")}
+        </label>
+      )}
+
       {trouble && (
         <p role="alert" className="mt-3 text-xs text-urgent">
           {trouble}
@@ -70,7 +94,7 @@ export default function Welcome({ onDone }: Props) {
 
       <p className="mt-4 text-xs leading-relaxed text-faint">{t("welcomeRedundancy")}</p>
 
-      <button type="button" onClick={onDone} className="mt-4 text-xs text-faint hover:text-ink">
+      <button type="button" onClick={leave} className="mt-4 text-xs text-faint hover:text-ink">
         {t("welcomeLater")}
       </button>
     </Modal>

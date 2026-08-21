@@ -31,6 +31,7 @@ const show = (expanded = false) => {
       onMark={() => {}}
       onDropStep={() => {}}
       onLog={() => {}}
+      onComplete={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}
       onClose={closed}
