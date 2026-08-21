@@ -3,7 +3,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 
 export type Status = "open" | "done" | "dropped";
 
-export type Priority = 1 | 2 | 3 | 4;
+export type Priority = "do" | "decide" | "delegate" | "wont" | "unset";
 
 export interface DateSpec {
   at: string;

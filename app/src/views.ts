@@ -4,6 +4,7 @@ import { fill, t } from "./locales";
 export type Named =
   | "search"
   | "tasks"
+  | "quadrants"
   | "lists"
   | "docs"
   | "tags"
@@ -68,6 +69,7 @@ export function title(chosen: Chosen, lists: List[]): string {
 
 export function accepts(chosen: Chosen): boolean {
   if (chosen.named === "archive" || chosen.named === "search") return false;
+  if (chosen.named === "quadrants") return false;
   if (chosen.named === "keeping") return false;
 
   if (chosen.named === "tags") return (chosen.tags?.length ?? 0) > 0;

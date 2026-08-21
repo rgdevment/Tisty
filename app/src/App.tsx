@@ -58,6 +58,7 @@ import Detail from "./ui/Detail";
 import Docs from "./ui/Docs";
 import Keeping from "./ui/Keeping";
 import Lists from "./ui/Lists";
+import Matrix from "./ui/Matrix";
 import Menu, { type Choice } from "./ui/Menu";
 import Naming from "./ui/Naming";
 import Notice from "./ui/Notice";
@@ -807,6 +808,25 @@ export default function App() {
             onOpen={(id) => setChosen({ named: "lists", list: id })}
             onChanged={load}
             onError={(e) => setError(saidPlainly(e))}
+          />
+        ) : chosen.named === "quadrants" && !(open && mode === "sheet") ? (
+          <Matrix
+            tasks={data.tasks}
+            lists={data.lists}
+            onPlace={(id, where) => act(patch(id, { priority: where }))}
+            onOpen={(one) => setSelected(one.id)}
+            onDiscardAll={(ids) => {
+              ask(fill("dropThemSure", String(ids.length)), { kind: "warning" })
+                .then((yes) => {
+                  if (!yes) return;
+                  setError(null);
+                  return Promise.all(ids.map((id) => discard(id))).then(() => {
+                    load();
+                    carries.current?.changed();
+                  });
+                })
+                .catch((e) => setError(saidPlainly(e)));
+            }}
           />
         ) : chosen.named === "keeping" ? (
           <Keeping

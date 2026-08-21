@@ -3,6 +3,7 @@ import { banded, grouped } from "../archive";
 import type { List, Task } from "../core";
 import { cadence, isOverdue, whenLabel } from "../format";
 import { fill, t } from "../locales";
+import { edge, placed, said, tint } from "../quadrants";
 
 interface Props {
   tasks: Task[];
@@ -160,13 +161,7 @@ export default function TaskList({
                 e.stopPropagation();
                 onComplete(task.id);
               }}
-              className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${
-                task.priority === 1
-                  ? "border-urgent"
-                  : task.priority === 2
-                    ? "border-high"
-                    : "border-faint"
-              }`}
+              className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${edge(task.priority)}`}
             />
           ) : (
             <span
@@ -317,10 +312,10 @@ function Meta({ task, list }: { task: Task; list?: string }) {
       </span>,
     );
   }
-  if (task.priority === 1 || task.priority === 2) {
+  if (placed(task.priority)) {
     bits.push(
-      <span key="priority" className={task.priority === 1 ? "text-urgent" : "text-high"}>
-        {t(task.priority === 1 ? "high" : "medium")}
+      <span key="priority" className={tint(task.priority)}>
+        {said(task.priority)}
       </span>,
     );
   }

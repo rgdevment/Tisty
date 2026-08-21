@@ -9,7 +9,7 @@ function put(lists: List[]) {
     id: "t1",
     title: "revisar el deploy",
     status: "open",
-    priority: 4,
+    priority: "unset",
     order: "a0",
   } as Task;
   render(<Fields task={one} lists={lists} known={[]} onPatch={onPatch} />);

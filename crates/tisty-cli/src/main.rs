@@ -41,8 +41,8 @@ pub struct AddArgs {
     pub date: Option<String>,
     #[arg(long, alias = "limite")]
     pub deadline: Option<String>,
-    #[arg(long, alias = "prioridad", value_parser = clap::value_parser!(u8).range(1..=4))]
-    pub priority: Option<u8>,
+    #[arg(long, alias = "prioridad", value_name = "QUADRANT")]
+    pub priority: Option<String>,
     #[arg(long, alias = "lista")]
     pub list: Option<String>,
     #[arg(long)]
@@ -58,8 +58,8 @@ pub struct SetArgs {
     pub date: Option<String>,
     #[arg(long, alias = "limite")]
     pub deadline: Option<String>,
-    #[arg(long, alias = "prioridad", value_parser = clap::value_parser!(u8).range(1..=4))]
-    pub priority: Option<u8>,
+    #[arg(long, alias = "prioridad", value_name = "QUADRANT")]
+    pub priority: Option<String>,
     #[arg(long, alias = "etiqueta")]
     pub tag: Vec<String>,
     #[arg(long)]

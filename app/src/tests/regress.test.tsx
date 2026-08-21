@@ -11,7 +11,7 @@ const task = (id: string, title: string, day?: string, done = false): Task =>
     id,
     title,
     status: done ? "done" : "open",
-    priority: 4,
+    priority: "unset",
     order: "a0",
     tags: [],
     reminders: [],

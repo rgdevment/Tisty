@@ -17,41 +17,73 @@ pub enum Status {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("priority must be between 1 and 4")]
+#[error("priority must be do, decide, delegate or wont")]
 pub struct InvalidPriority;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(try_from = "u8", into = "u8")]
+#[serde(try_from = "Wire", into = "Wire")]
 pub enum Priority {
-    P1,
-    P2,
-    P3,
+    Do,
+    Decide,
+    Delegate,
     #[default]
-    P4,
+    Unset,
+    Wont,
 }
 
-impl TryFrom<u8> for Priority {
-    type Error = InvalidPriority;
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum Wire {
+    Named(String),
+    Level(u8),
+}
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            1 => Ok(Self::P1),
-            2 => Ok(Self::P2),
-            3 => Ok(Self::P3),
-            4 => Ok(Self::P4),
+impl Priority {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Do => "do",
+            Self::Decide => "decide",
+            Self::Delegate => "delegate",
+            Self::Wont => "wont",
+            Self::Unset => "unset",
+        }
+    }
+
+    pub fn set(self) -> bool {
+        self != Self::Unset
+    }
+}
+
+impl std::str::FromStr for Priority {
+    type Err = InvalidPriority;
+
+    fn from_str(raw: &str) -> Result<Self, Self::Err> {
+        match raw {
+            "do" => Ok(Self::Do),
+            "decide" => Ok(Self::Decide),
+            "delegate" => Ok(Self::Delegate),
+            "wont" => Ok(Self::Wont),
+            "unset" => Ok(Self::Unset),
             _ => Err(InvalidPriority),
         }
     }
 }
 
-impl From<Priority> for u8 {
-    fn from(p: Priority) -> Self {
-        match p {
-            Priority::P1 => 1,
-            Priority::P2 => 2,
-            Priority::P3 => 3,
-            Priority::P4 => 4,
+impl TryFrom<Wire> for Priority {
+    type Error = InvalidPriority;
+
+    fn try_from(wire: Wire) -> Result<Self, Self::Error> {
+        match wire {
+            Wire::Named(name) => name.parse(),
+            Wire::Level(1..=4) => Ok(Self::Unset),
+            Wire::Level(_) => Err(InvalidPriority),
         }
+    }
+}
+
+impl From<Priority> for Wire {
+    fn from(p: Priority) -> Self {
+        Wire::Named(p.name().to_string())
     }
 }
 
@@ -298,25 +330,51 @@ mod tests {
     }
 
     #[test]
-    fn priority_sorts_most_urgent_first() {
-        let mut all = vec![Priority::P3, Priority::P1, Priority::P4, Priority::P2];
+    fn what_will_not_happen_sorts_last_of_all() {
+        let mut all = vec![
+            Priority::Wont,
+            Priority::Unset,
+            Priority::Do,
+            Priority::Delegate,
+            Priority::Decide,
+        ];
         all.sort();
         assert_eq!(
             all,
-            [Priority::P1, Priority::P2, Priority::P3, Priority::P4]
+            [
+                Priority::Do,
+                Priority::Decide,
+                Priority::Delegate,
+                Priority::Unset,
+                Priority::Wont
+            ]
         );
     }
 
     #[test]
-    fn priority_serialises_as_its_number() {
-        assert_eq!(serde_json::to_string(&Priority::P1).unwrap(), "1");
-        assert_eq!(serde_json::from_str::<Priority>("4").unwrap(), Priority::P4);
+    fn priority_serialises_as_the_word_it_is() {
+        assert_eq!(serde_json::to_string(&Priority::Do).unwrap(), "\"do\"");
+        assert_eq!(
+            serde_json::from_str::<Priority>("\"delegate\"").unwrap(),
+            Priority::Delegate
+        );
     }
 
     #[test]
-    fn priority_outside_the_range_is_rejected() {
+    fn the_old_levels_come_back_unclassified() {
+        for level in ["1", "2", "3", "4"] {
+            assert_eq!(
+                serde_json::from_str::<Priority>(level).unwrap(),
+                Priority::Unset
+            );
+        }
+    }
+
+    #[test]
+    fn a_priority_nobody_defined_is_rejected() {
         assert!(serde_json::from_str::<Priority>("0").is_err());
         assert!(serde_json::from_str::<Priority>("5").is_err());
+        assert!(serde_json::from_str::<Priority>("\"urgent\"").is_err());
     }
 
     #[test]

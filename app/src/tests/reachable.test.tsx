@@ -25,7 +25,7 @@ const task = {
   id: "01T",
   title: "sacar la basura",
   status: "open",
-  priority: 4,
+  priority: "unset",
   order: "a0",
   tags: [],
   reminders: [],
@@ -126,11 +126,11 @@ describe("the field sheets in the detail", () => {
     show();
 
     await userEvent.click(screen.getByRole("button", { name: /priority/i }));
-    expect(screen.getByRole("button", { name: /^High/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Do/ })).toBeTruthy();
 
     await userEvent.keyboard("{Escape}");
 
-    expect(screen.queryByRole("button", { name: /^High/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Do/ })).toBeNull();
   });
 
   it("puts the focus on the first choice, not behind the sheet", async () => {
@@ -138,7 +138,7 @@ describe("the field sheets in the detail", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /priority/i }));
 
-    expect((document.activeElement as HTMLElement).textContent).toMatch(/High/);
+    expect((document.activeElement as HTMLElement).textContent).toMatch(/Do/);
   });
 });
 

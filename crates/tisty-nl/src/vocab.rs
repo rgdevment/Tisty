@@ -40,7 +40,7 @@ pub struct Vocabulary {
     pub first: &'static [&'static str],
     pub end_of_month: &'static [&'static [&'static str]],
     pub weekend: &'static [&'static [&'static str]],
-    pub priorities: [&'static [&'static str]; 4],
+    pub priorities: [&'static [&'static str]; 5],
 }
 
 pub const ES: Vocabulary = Vocabulary {
@@ -132,10 +132,11 @@ pub const ES: Vocabulary = Vocabulary {
     end_of_month: &[&["fin", "de", "mes"], &["fin", "mes"]],
     weekend: &[&["finde"], &["fin", "de", "semana"]],
     priorities: [
-        &["alto", "alta", "urgente"],
-        &["medio", "media"],
-        &["bajo", "baja"],
-        &[],
+        &["hacer", "ahora"],
+        &["decidir", "importante"],
+        &["delegar", "delega"],
+        &["prescindible", "descartable"],
+        &["sinclasificar", "ninguna"],
     ],
 };
 
@@ -216,7 +217,13 @@ pub const EN: Vocabulary = Vocabulary {
     first: &["first"],
     end_of_month: &[&["end", "of", "month"], &["end", "of", "the", "month"]],
     weekend: &[&["this", "weekend"], &["weekend"]],
-    priorities: [&["high", "urgent"], &["medium"], &["low"], &[]],
+    priorities: [
+        &["do", "now"],
+        &["decide", "important"],
+        &["delegate"],
+        &["wont", "minor"],
+        &["unclassified", "none"],
+    ],
 };
 
 pub fn for_locale(code: &str) -> &'static Vocabulary {
@@ -232,12 +239,34 @@ impl Vocabulary {
         self.weekdays.iter().position(|w| w.contains(&word))
     }
 
+    pub fn spoken(&self, p: Priority) -> &'static str {
+        let placed = [
+            Priority::Do,
+            Priority::Decide,
+            Priority::Delegate,
+            Priority::Wont,
+            Priority::Unset,
+        ];
+        placed
+            .iter()
+            .position(|one| *one == p)
+            .and_then(|i| self.priorities[i].first().copied())
+            .unwrap_or("")
+    }
+
     pub fn priority(&self, word: &str) -> Option<Priority> {
         let lower = word.to_lowercase();
+        let placed = [
+            Priority::Do,
+            Priority::Decide,
+            Priority::Delegate,
+            Priority::Wont,
+            Priority::Unset,
+        ];
         self.priorities
             .iter()
             .position(|names| names.contains(&lower.as_str()))
-            .and_then(|i| Priority::try_from(i as u8 + 1).ok())
+            .map(|i| placed[i])
     }
 
     pub fn month_index(&self, word: &str) -> Option<u8> {

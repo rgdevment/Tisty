@@ -54,7 +54,7 @@ pub fn line(task: &Task, state: &State, today: Date, lang: Lang) -> String {
 
 fn meta(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     let mut meta = Vec::new();
-    if let Some(p) = priority(task.priority) {
+    if let Some(p) = priority(task.priority, lang) {
         meta.push(p);
     }
     if let Some(d) = &task.date {
@@ -135,7 +135,7 @@ pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
             short(d.date(), today, lang)
         ));
     }
-    if let Some(p) = priority(task.priority) {
+    if let Some(p) = priority(task.priority, lang) {
         meta.push(p);
     }
     if let Some(list) = task.list.and_then(|id| state.lists.get(&id)) {
@@ -233,7 +233,7 @@ pub fn captured(
             short(d.date(), today, lang)
         ));
     }
-    if let Some(p) = priority(task.priority) {
+    if let Some(p) = priority(task.priority, lang) {
         meta.push(p);
     }
     if let Some(list) = task.list.and_then(|id| state.lists.get(&id)) {
@@ -327,8 +327,8 @@ pub fn markdown(tasks: &[&Task], state: &State, heading: &str, lang: Lang) -> St
                     .strftime("%Y-%m-%d")
             ));
         }
-        if task.priority != Priority::P4 {
-            meta.push(format!("!{}", u8::from(task.priority)));
+        if task.priority.set() {
+            meta.push(format!("!{}", task.priority.name()));
         }
         if let Some(list) = task.list.and_then(|id| state.lists.get(&id)) {
             meta.push(format!("@{}", slug(&list.name)));
@@ -418,12 +418,14 @@ fn marker(task: &Task) -> String {
     }
 }
 
-fn priority(p: Priority) -> Option<String> {
+fn priority(p: Priority, lang: Lang) -> Option<String> {
+    let word = format!("!{}", tisty_nl::priority_word(p, lang.code()));
     match p {
-        Priority::P1 => Some(style::paint(RED, "!1")),
-        Priority::P2 => Some(style::paint(YELLOW, "!2")),
-        Priority::P3 => Some(style::paint(BLUE, "!3")),
-        Priority::P4 => None,
+        Priority::Do => Some(style::paint(RED, &word)),
+        Priority::Decide => Some(style::paint(YELLOW, &word)),
+        Priority::Delegate => Some(style::paint(BLUE, &word)),
+        Priority::Wont => Some(style::dim(&word)),
+        Priority::Unset => None,
     }
 }
 
@@ -563,8 +565,8 @@ mod tests {
     }
 
     #[test]
-    fn priority_four_is_not_noise() {
-        assert_eq!(priority(Priority::P4), None);
-        assert!(priority(Priority::P1).is_some());
+    fn nothing_is_printed_for_what_nobody_placed() {
+        assert_eq!(priority(Priority::Unset, Lang::from_code("en")), None);
+        assert!(priority(Priority::Do, Lang::from_code("en")).is_some());
     }
 }

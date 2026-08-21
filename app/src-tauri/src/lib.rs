@@ -270,6 +270,14 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
     );
 
     counts.insert("tags".to_string(), state.tags().len());
+    counts.insert(
+        "quadrants".to_string(),
+        state
+            .matching(&Filter::default(), today())
+            .iter()
+            .filter(|task| !task.priority.set())
+            .count(),
+    );
 
     for list in state.ordered_lists() {
         counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
@@ -486,9 +494,13 @@ struct Edits {
     #[serde(default)]
     deadline: Option<String>,
     #[serde(default)]
-    priority: Option<u8>,
+    priority: Option<String>,
     #[serde(default)]
     take_offer: bool,
+}
+
+fn named_priority(raw: &str) -> Answer<tisty_core::Priority> {
+    raw.parse().map_err(|_| Refusal::of("notAPriority"))
 }
 
 impl Edits {
@@ -524,10 +536,8 @@ impl Edits {
         if let Some(raw) = &self.deadline {
             draft.deadline = Some(dated(raw, now, spoken)?);
         }
-        if let Some(level) = self.priority {
-            draft.priority = Some(
-                tisty_core::Priority::try_from(level).map_err(|_| Refusal::of("notAPriority"))?,
-            );
+        if let Some(name) = &self.priority {
+            draft.priority = Some(named_priority(name)?);
         }
         Ok(())
     }
@@ -689,7 +699,7 @@ struct Change {
     #[serde(default)]
     no_deadline: bool,
     #[serde(default)]
-    priority: Option<u8>,
+    priority: Option<String>,
     #[serde(default)]
     add_tag: Option<String>,
     #[serde(default)]
@@ -749,11 +759,7 @@ fn patch(
             }
             field
         },
-        priority: change
-            .priority
-            .map(tisty_core::Priority::try_from)
-            .transpose()
-            .map_err(|_| Refusal::of("notAPriority"))?,
+        priority: change.priority.as_deref().map(named_priority).transpose()?,
         tags: tagged(&task, &change)?,
         reminders: recalled(&task, &change, &now)?,
         repeat: repeated(&change, &now)?,
@@ -4064,7 +4070,7 @@ mod tests {
     #[test]
     fn a_removal_leaves_nothing_behind() {
         let mut draft: tisty_core::capture::Draft =
-            tisty_nl::parse("comprar pan mañana #casa !1", &now(), "es").into();
+            tisty_nl::parse("comprar pan mañana #casa !hacer", &now(), "es").into();
         assert!(draft.date.is_some());
 
         Edits {

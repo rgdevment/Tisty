@@ -274,6 +274,7 @@ body {
   padding: 36px 40px 40vh;
   background-color: var(--tisty-sheet);
   position: relative;
+  min-height: 100%;
 }
 .tisty-doc > :is(h1, h2, h3, p):first-child {
   font-size: 1.65em;
@@ -711,6 +712,10 @@ body {
 }
 
 @media print {
+  .tisty-doc {
+    min-height: 0;
+  }
+
   html,
   body,
   #root {

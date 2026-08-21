@@ -321,15 +321,15 @@ fn redo_puts_back_what_the_last_undo_took() {
 fn redo_walks_the_same_ladder_as_undo() {
     let cli = Cli::new();
     cli.ok(&["water the plants"]);
-    cli.ok(&["set", "water the plants", "--priority", "1"]);
+    cli.ok(&["set", "water the plants", "--priority", "do"]);
     cli.ok(&["done", "water the plants"]);
 
     cli.ok(&["undo"]);
     cli.ok(&["undo"]);
-    assert!(!cli.ok(&["ls", "all"]).contains("!1"));
+    assert!(!cli.ok(&["ls", "all"]).contains("!do"));
 
     cli.ok(&["redo"]);
-    assert!(cli.ok(&["ls", "all"]).contains("!1"));
+    assert!(cli.ok(&["ls", "all"]).contains("!do"));
     cli.ok(&["redo"]);
     assert!(cli.ok(&["ls", "archive"]).contains("water the plants"));
 }
@@ -466,7 +466,7 @@ fn a_listing_reports_its_counts_without_loading_the_bodies() {
 #[test]
 fn every_read_says_the_same_with_the_cache_and_without_it() {
     let cli = Cli::new();
-    cli.ok(&["write the report tomorrow !1 @work"]);
+    cli.ok(&["write the report tomorrow !do @work"]);
     cli.ok(&["log", "write the report", "spoke to accounting"]);
     cli.ok(&["step", "write the report", "add", "collect the figures"]);
     cli.ok(&["buy milk"]);
@@ -573,6 +573,7 @@ fn absurd_input_is_refused_and_never_panics() {
         ["done", "99999999999999999999"].as_slice(),
         ["done", long.as_str()].as_slice(),
         ["set", "1", "--priority", "250"].as_slice(),
+        ["set", "1", "--priority", "urgent"].as_slice(),
         ["set", "1", "--date", "2026-02-30"].as_slice(),
         ["set", "1", "--date", "not a date at all"].as_slice(),
         ["step", "1", "done", "999"].as_slice(),
@@ -755,16 +756,16 @@ fn fields_are_set_and_cleared_one_at_a_time() {
 
     let later = far_ahead();
     let day = later.day().to_string();
-    cli.ok(&["set", "1", "--date", &later.to_string(), "--priority", "1"]);
+    cli.ok(&["set", "1", "--date", &later.to_string(), "--priority", "do"]);
     let out = cli.ok(&["ls", "all"]);
     assert!(out.contains(&day), "{out}");
-    assert!(out.contains("!1"), "{out}");
+    assert!(out.contains("!do"), "{out}");
 
     cli.ok(&["set", "1", "--no-date"]);
     let out = cli.ok(&["ls", "all"]);
     assert!(!out.contains(&day), "{out}");
     assert!(
-        out.contains("!1"),
+        out.contains("!do"),
         "the priority was not asked about: {out}"
     );
 }
@@ -995,14 +996,14 @@ fn a_journal_entry_keeps_the_hour_its_author_wrote_it_at() {
 #[test]
 fn filters_combine_and_each_one_narrows_the_result() {
     let cli = Cli::new();
-    cli.ok(&["rotate the keys tomorrow #security !1"]);
+    cli.ok(&["rotate the keys tomorrow #security !do"]);
     cli.ok(&["read the access logs #security"]);
     cli.ok(&["update the runbook #docs"]);
 
     let out = cli.ok(&["ls", "#security"]);
     assert_eq!(out.matches('○').count(), 2, "{out}");
 
-    let out = cli.ok(&["ls", "#security", "!1"]);
+    let out = cli.ok(&["ls", "#security", "!do"]);
     assert!(out.contains("rotate the keys"), "{out}");
     assert!(!out.contains("access logs"), "{out}");
 }
@@ -1039,12 +1040,41 @@ fn a_list_is_filtered_by_the_name_the_listing_prints() {
 }
 
 #[test]
+fn what_the_export_writes_the_capture_reads_back() {
+    let cli = Cli::new();
+    cli.ok(&["ship the release !delegate"]);
+
+    let out = cli.ok(&["export", "--markdown"]);
+    let marker = out
+        .lines()
+        .find_map(|line| line.split_whitespace().find(|word| word.starts_with('!')))
+        .expect("the export names the quadrant");
+
+    let fresh = Cli::new();
+    fresh.ok(&[&format!("ship it again {marker}")]);
+    let seen = fresh.ok(&["ls", "!delegate"]);
+    assert!(seen.contains("ship it again"), "{seen}");
+}
+
+#[test]
+fn the_terminal_can_take_a_quadrant_back_off_a_task() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants !do"]);
+    assert!(cli.ok(&["ls", "all"]).contains("!do"));
+
+    cli.ok(&["set", "1", "--priority", "unclassified"]);
+
+    assert!(!cli.ok(&["ls", "all"]).contains("!do"));
+    assert!(cli.ok(&["ls", "!none"]).contains("water the plants"));
+}
+
+#[test]
 fn a_filter_takes_the_priority_by_name_too() {
     let cli = Cli::new();
-    cli.ok(&["ship the release !urgent"]);
+    cli.ok(&["ship the release !do"]);
     cli.ok(&["water the plants"]);
 
-    let out = cli.ok(&["ls", "!urgent"]);
+    let out = cli.ok(&["ls", "!do"]);
     assert!(out.contains("ship the release"), "{out}");
     assert!(!out.contains("water the plants"), "{out}");
 

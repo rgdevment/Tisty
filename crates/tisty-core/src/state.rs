@@ -5,8 +5,8 @@ use ulid::Ulid;
 use crate::{
     event::{DeviceId, Event, LogAdd, LogEdit, Op, StepAdd, TaskAdd, TaskMove, TaskPatch},
     model::{
-        DocId, Folder, FolderId, Kept, List, ListId, LogEntry, Status, Step, StepId, Tag, Task,
-        TaskId,
+        DocId, Folder, FolderId, Kept, List, ListId, LogEntry, Priority, Status, Step, StepId, Tag,
+        Task, TaskId,
     },
     order,
 };
@@ -496,7 +496,10 @@ impl State {
             })
             .collect();
         fresh.date = Some(next);
-        fresh.priority = Some(task.priority);
+        fresh.priority = Some(match task.priority {
+            Priority::Wont => Priority::Unset,
+            kept => kept,
+        });
         fresh.list = task.list;
         fresh.tags = task.tags.clone();
         fresh.repeat = Some(repeat);
@@ -975,6 +978,62 @@ mod tests {
         );
         assert_eq!(d.repeat, add_repeat());
         assert_eq!(d.tags.len(), 1, "it lost what it was filed under");
+    }
+
+    #[test]
+    fn the_next_turn_of_a_repeat_is_not_born_written_off() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = TaskAdd::new("revisar el buzón", "a0");
+        add.date = Some(DateSpec::floating(
+            jiff::civil::date(2026, 8, 4).at(9, 0, 0, 0),
+            "Europe/Madrid",
+        ));
+        add.repeat = Some(Repeat::due(Cadence {
+            every: 1,
+            unit: Unit::Week,
+        }));
+        add.priority = Some(Priority::Wont);
+        state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
+
+        let now = jiff::civil::date(2026, 8, 4)
+            .at(21, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+        let ops = state.completing(id, now);
+
+        let Op::TaskAdd { d, .. } = &ops[1] else {
+            panic!("the next one was not emitted");
+        };
+        assert_eq!(d.priority, Some(Priority::Unset));
+    }
+
+    #[test]
+    fn a_repeat_carries_the_quadrant_it_was_placed_in() {
+        let mut state = State::default();
+        let id = ulid::Ulid::generate();
+        let mut add = TaskAdd::new("pagar el alquiler", "a0");
+        add.date = Some(DateSpec::floating(
+            jiff::civil::date(2026, 8, 4).at(9, 0, 0, 0),
+            "Europe/Madrid",
+        ));
+        add.repeat = Some(Repeat::due(Cadence {
+            every: 1,
+            unit: Unit::Month,
+        }));
+        add.priority = Some(Priority::Do);
+        state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
+
+        let now = jiff::civil::date(2026, 8, 4)
+            .at(21, 0, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .unwrap();
+        let ops = state.completing(id, now);
+
+        let Op::TaskAdd { d, .. } = &ops[1] else {
+            panic!("the next one was not emitted");
+        };
+        assert_eq!(d.priority, Some(Priority::Do));
     }
 
     fn add_repeat() -> Option<Repeat> {
@@ -1586,7 +1645,7 @@ mod tests {
                 update(
                     id,
                     TaskPatch {
-                        priority: Some(Priority::P1),
+                        priority: Some(Priority::Do),
                         ..Default::default()
                     },
                 ),
@@ -1595,7 +1654,7 @@ mod tests {
 
         let task = &state.tasks[&id];
         assert_eq!(task.date, Some(a_date()));
-        assert_eq!(task.priority, Priority::P1);
+        assert_eq!(task.priority, Priority::Do);
     }
 
     #[test]

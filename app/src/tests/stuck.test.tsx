@@ -29,7 +29,7 @@ const shot = (): Snapshot => ({
       id: "01B",
       title: "call the bank",
       status: "open",
-      priority: 4,
+      priority: "unset",
       order: "a1",
       steps: [],
       log: [],

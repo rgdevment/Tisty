@@ -11,7 +11,7 @@ function habit(): Task {
     id: "t1",
     title: "tomar la paroxetina",
     status: "open",
-    priority: 4,
+    priority: "unset",
     order: "a0",
     date: { at: `${day}T09:00:00`, has_time: true, tz: "Europe/Madrid" },
     repeat: { from: "done", each: { every: 1, unit: "day" } },

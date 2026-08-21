@@ -11,7 +11,7 @@ const task = (repeat?: Repeat, dated = true): Task =>
     id: "01T",
     title: "sacar la basura",
     status: "open",
-    priority: 4,
+    priority: "unset",
     order: "a0",
     tags: [],
     reminders: [],

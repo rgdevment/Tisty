@@ -153,11 +153,14 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
     parsed
 }
 
+pub fn priority_word(p: Priority, locale: &str) -> &'static str {
+    vocab::for_locale(locale).spoken(p)
+}
+
 pub fn parse_priority(raw: &str, locale: &str) -> Option<Priority> {
-    raw.parse::<u8>()
-        .ok()
-        .and_then(|n| Priority::try_from(n).ok())
-        .or_else(|| vocab::for_locale(locale).priority(raw))
+    vocab::for_locale(locale)
+        .priority(raw)
+        .or_else(|| vocab::EN.priority(raw))
 }
 
 pub fn parse_date(input: &str, now: &Zoned, locale: &str) -> Option<DateSpec> {
@@ -385,12 +388,7 @@ fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
                 _ => continue,
             }
         } else if let Some(raw) = word.strip_prefix('!') {
-            match raw
-                .parse::<u8>()
-                .ok()
-                .and_then(|n| Priority::try_from(n).ok())
-                .or_else(|| v.priority(raw))
-            {
+            match v.priority(raw).or_else(|| vocab::EN.priority(raw)) {
                 Some(p) => {
                     taken.priority = Some(p);
                     Mark::Priority
@@ -670,9 +668,9 @@ mod tests {
 
     #[test]
     fn markers_are_taken_out_of_the_title() {
-        let p = parse("revisar el deploy #backend !1", &now(), "es");
+        let p = parse("revisar el deploy #backend !hacer", &now(), "es");
         assert_eq!(p.title, "revisar el deploy");
-        assert_eq!(p.priority, Some(Priority::P1));
+        assert_eq!(p.priority, Some(Priority::Do));
         assert_eq!(p.tags.len(), 1);
     }
 
@@ -709,12 +707,12 @@ mod tests {
     #[test]
     fn every_span_points_at_what_it_read() {
         assert_eq!(
-            spans("comprar pan mañana #casa @compras !1", "es"),
+            spans("comprar pan mañana #casa @compras !hacer", "es"),
             [
                 ("mañana".to_string(), Mark::Date, Certainty::Sure),
                 ("#casa".to_string(), Mark::Tag, Certainty::Sure),
                 ("@compras".to_string(), Mark::List, Certainty::Sure),
-                ("!1".to_string(), Mark::Priority, Certainty::Sure),
+                ("!hacer".to_string(), Mark::Priority, Certainty::Sure),
             ]
         );
     }
@@ -770,7 +768,7 @@ mod tests {
             "comprar pan para #casa mañana",
             "entregar el informe para @trabajo el lunes",
             "reunión el martes #trabajo a las 16:00",
-            "llamar a @juan mañana !1",
+            "llamar a @juan mañana !hacer",
         ] {
             let read = parse(text, &now(), "es");
             let mut ranges: Vec<_> = read.spans.iter().map(|s| (s.from, s.to)).collect();

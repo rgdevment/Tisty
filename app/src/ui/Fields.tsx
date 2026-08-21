@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Change, List, Task } from "../core";
 import { cadence, clockOf, whenLabel } from "../format";
 import { t } from "../locales";
+import { placed, QUADRANTS, said } from "../quadrants";
 import { useEdge } from "./edge";
 import Recall from "./Recall";
 import When from "./When";
@@ -76,13 +77,13 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
         open={open}
         onOpen={setOpen}
         tint="bg-mark-priority"
-        empty={task.priority === 4}
-        label={`! ${task.priority < 4 ? t(named(task.priority)) : t("fieldPriority")}`}
+        empty={!placed(task.priority)}
+        label={`! ${placed(task.priority) ? said(task.priority) : t("fieldPriority")}`}
       >
         <Sheet onClose={close}>
-          {([1, 2, 3, 4] as const).map((level) => (
+          {[...QUADRANTS, "unset" as const].map((level) => (
             <Row key={level} onPick={() => apply({ priority: level })}>
-              {level < 4 ? t(named(level)) : t("noPriority")}
+              {said(level)}
             </Row>
           ))}
         </Sheet>
@@ -371,9 +372,6 @@ function Naming({
 }
 
 const civil = (at: string): string => `${at.slice(0, 16).replace(" ", "T")}:00`;
-
-const named = (level: number): "high" | "medium" | "low" =>
-  level === 1 ? "high" : level === 2 ? "medium" : "low";
 
 const CADENCES = [
   { every: 1, unit: "day" },

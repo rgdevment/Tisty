@@ -75,7 +75,7 @@ impl Seed {
             title,
             away: None,
             at: None,
-            priority: Priority::P4,
+            priority: Priority::Unset,
             tags: &[],
             list: None,
             every: None,
@@ -172,14 +172,14 @@ fn bed() -> Vec<Seed> {
     vec![
         Seed {
             away: Some(17),
-            priority: Priority::P1,
+            priority: Priority::Do,
             tags: &["casa", "familia"],
             list: Some(0),
             ..Seed::new("preparar la mudanza")
         },
         Seed {
             away: Some(-10),
-            priority: Priority::P1,
+            priority: Priority::Do,
             tags: &["finanzas"],
             list: Some(3),
             ..Seed::new("pagar la luz")
@@ -191,13 +191,13 @@ fn bed() -> Vec<Seed> {
         },
         Seed {
             away: Some(-3),
-            priority: Priority::P2,
+            priority: Priority::Decide,
             tags: &["coche"],
             ..Seed::new("llamar al seguro del coche")
         },
         Seed {
             away: Some(-1),
-            priority: Priority::P1,
+            priority: Priority::Do,
             tags: &["salud"],
             list: Some(2),
             ..Seed::new("recoger la receta")
@@ -210,7 +210,7 @@ fn bed() -> Vec<Seed> {
         Seed {
             away: Some(0),
             at: Some((15, 0)),
-            priority: Priority::P1,
+            priority: Priority::Delegate,
             tags: &["trabajo"],
             list: Some(1),
             ..Seed::new("reunión de equipo")
@@ -230,7 +230,7 @@ fn bed() -> Vec<Seed> {
         },
         Seed {
             away: Some(1),
-            priority: Priority::P1,
+            priority: Priority::Delegate,
             tags: &["trabajo"],
             list: Some(1),
             deadline: Some(4),
@@ -239,7 +239,7 @@ fn bed() -> Vec<Seed> {
         Seed {
             away: Some(3),
             at: Some((10, 0)),
-            priority: Priority::P2,
+            priority: Priority::Decide,
             tags: &["finanzas"],
             list: Some(3),
             ..Seed::new("cita con el gestor")
@@ -258,7 +258,7 @@ fn bed() -> Vec<Seed> {
         },
         Seed {
             away: Some(9),
-            priority: Priority::P1,
+            priority: Priority::Do,
             tags: &["trabajo"],
             list: Some(1),
             deadline: Some(9),
@@ -267,7 +267,7 @@ fn bed() -> Vec<Seed> {
         Seed {
             away: Some(14),
             at: Some((7, 40)),
-            priority: Priority::P1,
+            priority: Priority::Do,
             tags: &["viaje"],
             ..Seed::new("vuelo a Madrid")
         },
@@ -291,7 +291,7 @@ fn bed() -> Vec<Seed> {
             ..Seed::new("montar la estantería del pasillo")
         },
         Seed {
-            priority: Priority::P2,
+            priority: Priority::Wont,
             tags: &["regalos"],
             ..Seed::new("elegir el regalo de aniversario")
         },
