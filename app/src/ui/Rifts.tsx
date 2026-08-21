@@ -35,7 +35,10 @@ export default function Rifts({ named, rifts, onDone, onClose }: Props) {
 
       <ul className="mt-3 flex flex-col gap-3">
         {rifts.map((rift, at) => (
-          <li key={at} className="rounded-lg border border-line px-3 py-2.5">
+          <li
+            key={`${at}:${rift.was.join("")}`}
+            className="rounded-lg border border-line px-3 py-2.5"
+          >
             {rift.was.length > 0 && <Said head={t("riftWas")} said={rift.was} dim />}
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <Said head={t("riftMine")} said={rift.mine} />

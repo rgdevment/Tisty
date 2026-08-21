@@ -80,11 +80,11 @@ function Mirror({ text, marks, shift }: { text: string; marks: Mark[]; shift: nu
         className="whitespace-pre text-sm leading-5"
         style={{ transform: `translateX(${-shift}px)` }}
       >
-        {cut(text, marks).map((run, i) =>
+        {cut(text, marks).map((run) =>
           run.mark === undefined ? (
-            <span key={i}>{run.text}</span>
+            <span key={`${run.at}:${run.text}`}>{run.text}</span>
           ) : (
-            <span key={i} className={paint(run.mark)}>
+            <span key={`${run.at}:${run.text}`} className={paint(run.mark)}>
               {run.text}
             </span>
           ),
@@ -95,6 +95,7 @@ function Mirror({ text, marks, shift }: { text: string; marks: Mark[]; shift: nu
 }
 
 interface Run {
+  at: number;
   text: string;
   mark?: Mark;
 }
@@ -107,10 +108,10 @@ function cut(text: string, marks: Mark[]): Run[] {
   for (const mark of [...marks].sort((a, b) => a.span.from - b.span.from)) {
     const { from, to } = mark.span;
     if (from < at || to > chars.length) continue;
-    if (from > at) runs.push({ text: chars.slice(at, from).join("") });
-    runs.push({ text: chars.slice(from, to).join(""), mark });
+    if (from > at) runs.push({ at, text: chars.slice(at, from).join("") });
+    runs.push({ at: from, text: chars.slice(from, to).join(""), mark });
     at = to;
   }
-  if (at < chars.length) runs.push({ text: chars.slice(at).join("") });
+  if (at < chars.length) runs.push({ at, text: chars.slice(at).join("") });
   return runs;
 }

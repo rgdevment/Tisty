@@ -17,20 +17,20 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 const lists: List[] = [
-  { id: "L1", name: "Trabajo", icon: "work", archived: false, order: "a0" },
-  { id: "L2", name: "Casa", icon: "home", archived: false, order: "a1" },
+  { id: "L1", name: "Work", icon: "work", archived: false, order: "a0" },
+  { id: "L2", name: "Home", icon: "home", archived: false, order: "a1" },
 ];
 
 const task = (id: string, title: string, priority: Task["priority"], list?: string): Task =>
   ({ id, title, status: "open", priority, order: id, list }) as Task;
 
 const tasks: Task[] = [
-  task("1", "cerrar el trimestre", "do", "L1"),
-  task("2", "plan de estudio", "decide", "L1"),
-  task("3", "encuesta del proveedor", "delegate", "L1"),
-  task("4", "comparador de tarifas", "wont", "L2"),
-  task("5", "presupuesto de la mudanza", "unset", "L2"),
-  task("6", "renovar el pasaporte", "unset", "L1"),
+  task("1", "close the quarter", "do", "L1"),
+  task("2", "plan the Rust course", "decide", "L1"),
+  task("3", "answer the supplier survey", "delegate", "L1"),
+  task("4", "compare the tariffs again", "wont", "L2"),
+  task("5", "quote the move", "unset", "L2"),
+  task("6", "renew the passport", "unset", "L1"),
 ];
 
 const widen = (px: number) => {
@@ -92,10 +92,10 @@ describe("the matrix", () => {
     widen(1500);
     show();
 
-    expect(within(quadrant("Do")).getByText("cerrar el trimestre")).toBeTruthy();
-    expect(within(quadrant("Decide")).getByText("plan de estudio")).toBeTruthy();
-    expect(within(quadrant("Delegate")).getByText("encuesta del proveedor")).toBeTruthy();
-    expect(within(quadrant("Drop")).getByText("comparador de tarifas")).toBeTruthy();
+    expect(within(quadrant("Do")).getByText("close the quarter")).toBeTruthy();
+    expect(within(quadrant("Decide")).getByText("plan the Rust course")).toBeTruthy();
+    expect(within(quadrant("Delegate")).getByText("answer the supplier survey")).toBeTruthy();
+    expect(within(quadrant("Drop")).getByText("compare the tariffs again")).toBeTruthy();
   });
 
   it("keeps what nobody placed out of the four, in the tray", async () => {
@@ -104,8 +104,8 @@ describe("the matrix", () => {
     await openTray();
 
     const tray = screen.getByRole("complementary", { name: "Unclassified" });
-    expect(within(tray).getByText("presupuesto de la mudanza")).toBeTruthy();
-    expect(within(tray).getByText("renovar el pasaporte")).toBeTruthy();
+    expect(within(tray).getByText("quote the move")).toBeTruthy();
+    expect(within(tray).getByText("renew the passport")).toBeTruthy();
   });
 
   it("names both axes so the quadrants explain themselves", () => {
@@ -123,7 +123,7 @@ describe("the matrix", () => {
     show({ onPlace });
     await openTray();
 
-    await drag("renovar el pasaporte", quadrant("Do"));
+    await drag("renew the passport", quadrant("Do"));
 
     expect(onPlace).toHaveBeenCalledWith("6", "do");
   });
@@ -134,7 +134,7 @@ describe("the matrix", () => {
     show({ onPlace });
 
     await openTray();
-    await drag("cerrar el trimestre", screen.getByRole("complementary", { name: "Unclassified" }));
+    await drag("close the quarter", screen.getByRole("complementary", { name: "Unclassified" }));
 
     expect(onPlace).toHaveBeenCalledWith("1", "unset");
   });
@@ -144,7 +144,9 @@ describe("the matrix", () => {
     const onDiscardAll = vi.fn();
     show({ onDiscardAll });
 
-    expect(within(quadrant("Do")).queryByRole("button", { name: "I won't do any of them" })).toBeNull();
+    expect(
+      within(quadrant("Do")).queryByRole("button", { name: "I won't do any of them" }),
+    ).toBeNull();
     await userEvent.click(
       within(quadrant("Drop")).getByRole("button", { name: "I won't do any of them" }),
     );
@@ -176,12 +178,12 @@ describe("the matrix", () => {
     show();
     await openTray();
     await userEvent.click(screen.getByRole("button", { name: /Only in/ }));
-    await userEvent.click(await screen.findByRole("checkbox", { name: /Casa/ }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Home/ }));
 
     const tray = screen.getByRole("complementary", { name: "Unclassified" });
-    expect(within(tray).getByText("presupuesto de la mudanza")).toBeTruthy();
-    expect(within(tray).queryByText("renovar el pasaporte")).toBeNull();
-    expect(within(quadrant("Do")).getByText("cerrar el trimestre")).toBeTruthy();
+    expect(within(tray).getByText("quote the move")).toBeTruthy();
+    expect(within(tray).queryByText("renew the passport")).toBeNull();
+    expect(within(quadrant("Do")).getByText("close the quarter")).toBeTruthy();
   });
 
   it("opens the task when it is clicked, without moving it", async () => {
@@ -190,7 +192,7 @@ describe("the matrix", () => {
     const onPlace = vi.fn();
     show({ onOpen, onPlace });
 
-    await tap("cerrar el trimestre");
+    await tap("close the quarter");
 
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "1" }));
     expect(onPlace).not.toHaveBeenCalled();
@@ -202,7 +204,7 @@ describe("the matrix", () => {
     show({ onPlace });
     await openTray();
     Element.prototype.setPointerCapture = () => {};
-    const card = screen.getByRole("button", { name: "renovar el pasaporte" });
+    const card = screen.getByRole("button", { name: "renew the passport" });
     document.elementFromPoint = () => document.body;
 
     await act(async () => {
@@ -221,7 +223,7 @@ describe("the matrix", () => {
     const onPlace = vi.fn();
     show({ onPlace });
 
-    await drag("cerrar el trimestre", quadrant("Do"));
+    await drag("close the quarter", quadrant("Do"));
 
     expect(onPlace).not.toHaveBeenCalled();
   });

@@ -47,7 +47,9 @@ describe("a body longer than the space it has", () => {
     const onEnter = vi.fn();
     shown({ onWhole, onEnter });
 
-    await user.click(offer()!);
+    const one = offer();
+    if (!one) throw new Error("no offer to click");
+    await user.click(one);
 
     expect(onWhole).toHaveBeenCalled();
     expect(onEnter).not.toHaveBeenCalled();

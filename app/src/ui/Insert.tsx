@@ -101,7 +101,7 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
         )}
         {step === "step" &&
           steps.map((text, at) => (
-            <Row key={at} glyph={`${at + 1}`} onPick={() => onPut(`[[#${at + 1}]]`)}>
+            <Row key={`${at}:${text}`} glyph={`${at + 1}`} onPick={() => onPut(`[[#${at + 1}]]`)}>
               {text}
             </Row>
           ))}
