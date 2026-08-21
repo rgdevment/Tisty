@@ -34,4 +34,11 @@ const flat = () => {
 const laid = Text.prototype as unknown as { getClientRects?: () => unknown };
 laid.getClientRects ??= flat;
 
+const spanned = Range.prototype as unknown as {
+  getClientRects?: () => unknown;
+  getBoundingClientRect?: () => unknown;
+};
+spanned.getClientRects ??= flat;
+spanned.getBoundingClientRect ??= flat;
+
 afterEach(cleanup);

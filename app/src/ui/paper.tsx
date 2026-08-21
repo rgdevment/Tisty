@@ -4,25 +4,12 @@ import type { Paper } from "../core";
 export const SIZES: Record<Paper, [number, number]> = {
   a4: [595.28, 841.89],
   letter: [612, 792],
-  endless: [595.28, 0],
+  tabloid: [792, 1224],
 };
 
 export const MARGIN = 50;
 export const TYPE = 10.5;
 export const LEADING = 1.55;
-
-export const endlessTall = (blocks: Shape[]): number => {
-  const guess = blocks.reduce((sum, one) => {
-    if (one.kind === "image") return sum + 260;
-    if (one.kind === "rule") return sum + 24;
-    if (one.kind === "code") return sum + 26 + one.runs.length * 14;
-    if (one.kind === "table") return sum + one.rows.length * 24 + 12;
-    const words = one.runs.reduce((many: number, run: Run) => many + run.text.length, 0);
-    const lines = Math.max(1, Math.ceil(words / 84));
-    return sum + lines * 17 + 12;
-  }, MARGIN * 2);
-  return Math.min(Math.max(guess, 400), 14000);
-};
 
 export interface Run {
   text: string;
@@ -199,8 +186,7 @@ const shaped = (one: Shape, at: number) => {
 };
 
 export const Papered = ({ shapes, leaf }: { shapes: Shape[]; leaf: Paper }) => {
-  const [wide, tall] = SIZES[leaf];
-  const size: [number, number] = leaf === "endless" ? [wide, endlessTall(shapes)] : [wide, tall];
+  const size = SIZES[leaf];
 
   return (
     <Document>
