@@ -56,13 +56,23 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
       return;
     case "paragraph": {
       const picture = node.content?.find((one) => one.type === "image");
-      if (picture) out.push({ kind: "image", src: String(picture.attrs?.src ?? "") });
+      if (picture) {
+        out.push({
+          kind: "image",
+          src: String(picture.attrs?.src ?? ""),
+          alt: String(picture.attrs?.alt ?? ""),
+        });
+      }
       const runs = inked(node.content);
       if (runs.length) out.push({ kind: "para", runs });
       return;
     }
     case "image":
-      out.push({ kind: "image", src: String(node.attrs?.src ?? "") });
+      out.push({
+        kind: "image",
+        src: String(node.attrs?.src ?? ""),
+        alt: String(node.attrs?.alt ?? ""),
+      });
       return;
     case "blockquote":
       out.push({ kind: "quote", runs: inked(node.content) });
@@ -83,16 +93,13 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
     case "orderedList":
       listed(node, deep, true, out);
       return;
-    case "table":
-      for (const row of node.content ?? []) {
-        const cells = (row.content ?? []).map((cell) =>
-          inked(cell.content?.[0]?.content)
-            .map((run) => run.text)
-            .join(""),
-        );
-        out.push({ kind: "para", runs: [{ text: cells.join("   ·   ") }] });
-      }
+    case "table": {
+      const rows = (node.content ?? []).map((row) =>
+        (row.content ?? []).map((cell) => inked(cell.content?.[0]?.content)),
+      );
+      if (rows.length) out.push({ kind: "table", rows });
       return;
+    }
     default:
       for (const kid of node.content ?? []) shape(kid, out, deep);
   }
@@ -100,7 +107,7 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
 
 export const titled = (shapes: Shape[]): Shape[] => {
   const first = shapes[0];
-  if (!first || first.kind !== "para") return shapes;
+  if (first?.kind !== "para") return shapes;
   return [{ kind: "heading", level: 1, runs: first.runs }, ...shapes.slice(1)];
 };
 
@@ -109,4 +116,50 @@ export const shapesOf = (doc: unknown): Shape[] => {
   const root = doc as Node | undefined;
   for (const node of root?.content ?? []) shape(node, out);
   return titled(out);
+};
+
+const KIND: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  avif: "image/avif",
+};
+
+export const asData = (bytes: number[], src: string): string => {
+  const kind = KIND[src.split(".").pop()?.toLowerCase() ?? ""] ?? "image/png";
+  let raw = "";
+  for (const one of bytes) raw += String.fromCharCode(one);
+  return `data:${kind};base64,${btoa(raw)}`;
+};
+
+export const fetched = async (
+  shapes: Shape[],
+  read: (reference: string) => Promise<number[]>,
+): Promise<Shape[]> => {
+  const held = new Map<string, string>();
+  const out: Shape[] = [];
+
+  for (const one of shapes) {
+    if (one.kind !== "image" || /^(https?|data):/i.test(one.src)) {
+      out.push(one);
+      continue;
+    }
+    const seen = held.get(one.src);
+    if (seen !== undefined) {
+      out.push({ ...one, src: seen });
+      continue;
+    }
+    try {
+      const src = asData(await read(one.src), one.src);
+      held.set(one.src, src);
+      out.push({ ...one, src });
+    } catch {
+      held.set(one.src, "");
+      out.push({ ...one, src: "" });
+    }
+  }
+  return out;
 };
