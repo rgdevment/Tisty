@@ -34,11 +34,11 @@ describe("the first line of a document", () => {
     expect(rule).toMatch(/padding-bottom:\s*0/);
   });
 
-  it("keeps the parting line visible on paper, where the theme colour is not", () => {
+  it("drops the parting line on paper, where the title already stands out", () => {
     const text = css();
     const printed = text.slice(text.indexOf("@media print"));
     const rule = ruleFor(printed, `${OPENS} {`);
 
-    expect(rule).toMatch(/border-bottom:\s*1px solid #/);
+    expect(rule).toMatch(/border-bottom:\s*0/);
   });
 });

@@ -270,11 +270,11 @@ fn undo_brings_an_archived_list_back() {
 #[test]
 fn a_name_another_list_already_uses_is_refused() {
     let cli = Cli::new();
-    cli.ok(&["list", "add", "Work"]);
+    cli.ok(&["list", "add", "Garden"]);
 
     for args in [
-        ["list", "add", "work"].as_slice(),
-        ["list", "add", "Work"].as_slice(),
+        ["list", "add", "garden"].as_slice(),
+        ["list", "add", "Garden"].as_slice(),
     ] {
         let run = cli.run(args);
         assert_ne!(run.code, 0, "{args:?} was allowed: {}", run.out);
@@ -703,10 +703,21 @@ fn undo_takes_back_a_whole_batch_not_one_event_of_it() {
 #[test]
 fn undo_on_an_empty_store_says_so_instead_of_failing() {
     let cli = Cli::new();
+    cli.ok(&["undo"]);
     let run = cli.run(&["undo"]);
 
     assert_eq!(run.code, 0, "{}", run.err);
     assert!(run.out.contains("nothing to undo"), "{}", run.out);
+}
+
+#[test]
+fn the_lists_a_store_starts_with_are_undone_in_one_step() {
+    let cli = Cli::new();
+    assert!(cli.ok(&["lists"]).contains("Work"));
+
+    cli.ok(&["undo"]);
+
+    assert!(!cli.ok(&["lists"]).contains("Work"));
 }
 
 #[test]
@@ -1045,12 +1056,12 @@ fn a_filter_takes_the_priority_by_name_too() {
 #[test]
 fn the_marker_the_listing_prints_is_accepted_wherever_a_list_is_named() {
     let cli = Cli::new();
-    cli.ok(&["list", "add", "work"]);
+    cli.ok(&["list", "add", "garden"]);
     cli.ok(&["draft the proposal"]);
     cli.ok(&["ls", "all"]);
 
-    cli.ok(&["mv", "1", "@work"]);
-    assert!(cli.ok(&["ls", "@work"]).contains("draft the proposal"));
+    cli.ok(&["mv", "1", "@garden"]);
+    assert!(cli.ok(&["ls", "@garden"]).contains("draft the proposal"));
 }
 
 #[test]

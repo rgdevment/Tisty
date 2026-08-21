@@ -177,9 +177,11 @@ mod tests {
 
     fn ink(png: &[u8]) -> u32 {
         let art = tauri::image::Image::from_bytes(png).expect("tray icon is a png");
-        let (sum, seen) = art
-            .rgba()
-            .chunks_exact(4)
+        let pixels = art.rgba();
+        let (sum, seen) = pixels
+            .as_chunks::<4>()
+            .0
+            .iter()
             .fold((0u64, 0u64), |(sum, seen), px| {
                 if px[3] < 128 {
                     return (sum, seen);
