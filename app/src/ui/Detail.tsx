@@ -19,6 +19,7 @@ interface Props {
   onMark: (step: string, done: boolean) => void;
   onDropStep: (step: string) => void;
   onLog: (body: string, entry?: string) => void;
+  onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
   onClose: () => void;
@@ -39,6 +40,7 @@ export default function Detail({
   onMark,
   onDropStep,
   onLog,
+  onComplete,
   onDiscard,
   onReopen,
   onClose,
@@ -117,7 +119,7 @@ export default function Detail({
           >
             <span aria-hidden="true">‹</span> {from || t("collapse")}
           </button>
-          <Settled task={task} onDiscard={onDiscard} onReopen={onReopen} />
+          <Settled task={task} onComplete={onComplete} onDiscard={onDiscard} onReopen={onReopen} />
         </div>
         <div className="scroller mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-12">{body}</div>
       </main>
@@ -152,7 +154,7 @@ export default function Detail({
         >
           <span aria-hidden="true">⤢</span>
         </button>
-        <Settled task={task} onDiscard={onDiscard} onReopen={onReopen} />
+        <Settled task={task} onComplete={onComplete} onDiscard={onDiscard} onReopen={onReopen} />
       </div>
       <div className="scroller flex-1 px-5 pt-2.5 pb-7">{body}</div>
     </aside>
@@ -161,25 +163,44 @@ export default function Detail({
 
 function Settled({
   task,
+  onComplete,
   onDiscard,
   onReopen,
 }: {
   task: Task;
+  onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
-  onError?: (problem: unknown) => void;
 }) {
-  const shut = task.status !== "open";
-  const away = task.repeat ? t("endRepeat") : t("discardIt");
+  if (task.status !== "open") {
+    return (
+      <button
+        type="button"
+        onClick={onReopen}
+        className="ml-auto rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
+      >
+        ↺ {t("reopenIt")}
+      </button>
+    );
+  }
   return (
-    <button
-      type="button"
-      onClick={shut ? onReopen : onDiscard}
-      title={task.repeat && !shut ? t("endRepeatWhy") : undefined}
-      className="ml-auto rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
-    >
-      {shut ? `↺ ${t("reopenIt")}` : `⊘ ${away}`}
-    </button>
+    <div className="ml-auto flex items-center gap-1">
+      <button
+        type="button"
+        onClick={onComplete}
+        className="rounded-md px-2 py-1 font-medium text-accent hover:bg-hover"
+      >
+        ✓ {t("markDone")}
+      </button>
+      <button
+        type="button"
+        onClick={onDiscard}
+        title={task.repeat ? t("endRepeatWhy") : undefined}
+        className="rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
+      >
+        ⊘ {task.repeat ? t("endRepeat") : t("discardIt")}
+      </button>
+    </div>
   );
 }
 

@@ -21,8 +21,13 @@ const lists: List[] = [
   { id: "L2", name: "Home", icon: "home", archived: false, order: "a1" },
 ];
 
-const task = (id: string, title: string, priority: Task["priority"], list?: string): Task =>
-  ({ id, title, status: "open", priority, order: id, list }) as Task;
+const task = (
+  id: string,
+  title: string,
+  priority: Task["priority"],
+  list?: string,
+  repeat?: Task["repeat"],
+): Task => ({ id, title, status: "open", priority, order: id, list, repeat }) as Task;
 
 const tasks: Task[] = [
   task("1", "close the quarter", "do", "L1"),
@@ -31,24 +36,27 @@ const tasks: Task[] = [
   task("4", "compare the tariffs again", "minor", "L2"),
   task("5", "quote the move", "unset", "L2"),
   task("6", "renew the passport", "unset", "L1"),
+  task("7", "water the plants", "unset", "L2", { from: "due", each: { every: 1, unit: "week" } }),
 ];
 
 const widen = (px: number) => {
   Object.defineProperty(window, "innerWidth", { value: px, configurable: true, writable: true });
 };
 
-const show = (extra: Partial<React.ComponentProps<typeof Matrix>> = {}) =>
-  render(
-    <Matrix
-      tasks={tasks}
-      lists={lists}
-      onPlace={vi.fn()}
-      onOpen={vi.fn()}
-      onSow={vi.fn()}
-      onDiscardAll={vi.fn()}
-      {...extra}
-    />,
-  );
+const at = (extra: Partial<React.ComponentProps<typeof Matrix>> = {}) => (
+  <Matrix
+    tasks={tasks}
+    lists={lists}
+    beside={false}
+    onPlace={vi.fn()}
+    onOpen={vi.fn()}
+    onSow={vi.fn()}
+    onDiscardAll={vi.fn()}
+    {...extra}
+  />
+);
+
+const show = (extra: Partial<React.ComponentProps<typeof Matrix>> = {}) => render(at(extra));
 
 const quadrant = (name: string) => screen.getByRole("group", { name });
 
@@ -295,5 +303,52 @@ describe("the matrix", () => {
     show();
 
     expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
+  });
+});
+
+describe("the tray while a task is open beside the quadrants", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("takes it out of the way, and brings it back when the task is closed", async () => {
+    widen(1500);
+    const { rerender } = render(at());
+    await openTray();
+
+    rerender(at({ beside: true }));
+    expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /What is left to classify/ })).toBeNull();
+
+    rerender(at());
+    expect(screen.getByRole("complementary", { name: "Unclassified" })).toBeTruthy();
+  });
+
+  it("leaves it shut if it was shut before the task was opened", () => {
+    widen(1500);
+    const { rerender } = render(at());
+    expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
+
+    rerender(at({ beside: true }));
+    rerender(at());
+
+    expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
+    expect(screen.getByRole("button", { name: /What is left to classify/ })).toBeTruthy();
+  });
+});
+
+describe("what repeats", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("stays out of the tray, and out of the count that offers it", async () => {
+    widen(1500);
+    show();
+
+    const asking = await screen.findByRole("button", { name: /What is left to classify/ });
+    expect(asking.textContent).toContain("2");
+
+    await openTray();
+
+    const tray = screen.getByRole("complementary", { name: "Unclassified" });
+    expect(within(tray).queryByText("water the plants")).toBeNull();
+    expect(within(tray).getByText("quote the move")).toBeTruthy();
   });
 });

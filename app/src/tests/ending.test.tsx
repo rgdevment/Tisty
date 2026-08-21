@@ -33,6 +33,7 @@ const open = (one: Task) =>
       onMark={() => {}}
       onDropStep={() => {}}
       onLog={() => {}}
+      onComplete={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}
       onClose={() => {}}

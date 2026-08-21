@@ -222,6 +222,7 @@ describe("opening a task", () => {
         onMark={() => {}}
         onDropStep={() => {}}
         onLog={() => {}}
+        onComplete={() => {}}
         onDiscard={() => {}}
         onReopen={() => {}}
         onClose={() => {}}

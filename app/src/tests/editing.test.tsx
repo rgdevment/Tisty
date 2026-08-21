@@ -47,6 +47,7 @@ function open(task: Task = written) {
       onMark={on.mark}
       onDropStep={on.dropStep}
       onLog={on.log}
+      onComplete={() => {}}
       onDiscard={on.discard}
       onReopen={on.reopen}
       onClose={() => {}}
