@@ -95,7 +95,7 @@ describe("the matrix", () => {
     expect(within(quadrant("Do")).getByText("cerrar el trimestre")).toBeTruthy();
     expect(within(quadrant("Decide")).getByText("plan de estudio")).toBeTruthy();
     expect(within(quadrant("Delegate")).getByText("encuesta del proveedor")).toBeTruthy();
-    expect(within(quadrant("Won't do")).getByText("comparador de tarifas")).toBeTruthy();
+    expect(within(quadrant("Drop")).getByText("comparador de tarifas")).toBeTruthy();
   });
 
   it("keeps what nobody placed out of the four, in the tray", async () => {
@@ -139,14 +139,14 @@ describe("the matrix", () => {
     expect(onPlace).toHaveBeenCalledWith("1", "unset");
   });
 
-  it("only offers to discard from the quadrant that means it", async () => {
+  it("only offers to empty the quadrant that means it", async () => {
     widen(1500);
     const onDiscardAll = vi.fn();
     show({ onDiscardAll });
 
-    expect(within(quadrant("Do")).queryByRole("button", { name: "Discard them all" })).toBeNull();
+    expect(within(quadrant("Do")).queryByRole("button", { name: "I won't do any of them" })).toBeNull();
     await userEvent.click(
-      within(quadrant("Won't do")).getByRole("button", { name: "Discard them all" }),
+      within(quadrant("Drop")).getByRole("button", { name: "I won't do any of them" }),
     );
 
     expect(onDiscardAll).toHaveBeenCalledWith(["4"]);

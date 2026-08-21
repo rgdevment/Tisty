@@ -125,10 +125,10 @@ cuadrantes de la matriz de Eisenhower — el método que se atribuye al presiden
 Dwight D. Eisenhower y que Stephen Covey popularizó en *Los 7 hábitos de la gente
 altamente efectiva*: ordena lo que tienes entre urgente e importante, y cada
 cuadrante te dice qué hacer con ello. **Hacer** lo urgente e importante, **Decidir**
-cuándo harás lo que importa y no corre prisa, **Delegar** lo urgente que no te toca,
-y ser honesto con lo que **no harás**. Arrastra una tarea a su cuadrante, o tecléalo:
-`!hacer`, `!decidir`, `!delegar`. Lo que nadie ha colocado espera en una bandeja que
-abres cuando quieres vaciarla.
+cuándo harás lo que importa y no corre prisa, **Delegar** lo urgente que no te
+toca, y **Descartar** lo que no vas a hacer. Arrastra una tarea a su cuadrante,
+o tecléalo: `!hacer`, `!decidir`, `!delegar`. Lo que nadie ha colocado espera en
+una bandeja que abres cuando quieres vaciarla.
 
 ![Urgente contra importante, y qué hacer con cada cosa](assets/readme/5-esp.jpg)
 

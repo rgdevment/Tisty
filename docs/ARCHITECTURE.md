@@ -46,17 +46,17 @@ are numbered from one without gaps.
 
 ### Priorities are named, not numbered
 
-A task's priority is one of the four quadrants of the **Eisenhower matrix** — the
-method credited to President Dwight D. Eisenhower and popularised by Stephen Covey —
-plus a fifth value for the tasks nobody has placed yet:
+A task's priority is one of the four quadrants of the **Eisenhower matrix** —
+the method credited to President Dwight D. Eisenhower, popularised by Stephen
+Covey — plus a fifth value for the tasks nobody has placed yet:
 
 ```jsonl
 {"v":4,"ts":"…","by":"dev_a3f1","op":"task.set","id":"01KZ…","d":{"priority":"delegate"}}
 ```
 
 `do` · `decide` · `delegate` · `wont` · `unset`. **The word goes on disk, not a
-number**, so the log still says what it means when you read it without Tisty, and the
-default value is written out rather than hiding inside a `4`.
+number**, so the log still says what it means when you read it without Tisty,
+and the default value is written out rather than hiding inside a `4`.
 
 Quadrants are not a ladder, so a number cannot name one: schema 4 reads the levels
 `1..4` an older Tisty wrote as `unset`, and refuses anything else. Those old events
