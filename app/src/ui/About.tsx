@@ -70,50 +70,48 @@ export default function About({
         )}
 
         {build && (
-          <>
-            <Card title={t("aboutBuild")}>
-              <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-[12.5px]">
-                <dt className="text-faint">{t("aboutVersion")}</dt>
-                <dd className="tabular-nums text-soft">{build.version}</dd>
-                <dt className="text-faint">{t("aboutLicense")}</dt>
-                <dd className="text-soft">{build.license}</dd>
-              </dl>
+          <Card title={t("aboutBuild")}>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-[12.5px]">
+              <dt className="text-faint">{t("aboutVersion")}</dt>
+              <dd className="tabular-nums text-soft">{build.version}</dd>
+              <dt className="text-faint">{t("aboutLicense")}</dt>
+              <dd className="text-soft">{build.license}</dd>
+            </dl>
 
-              {ready && (
-                <p className="mt-2.5 text-[12.5px] text-soft">
-                  <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" />
-                  {fill("updateThere", ready.version)}{" "}
-                  {ready.route === "store" ? (
-                    <span className="text-faint">{t("updateStore")}</span>
-                  ) : ready.route === "download" ? (
-                    <button
-                      type="button"
-                      onClick={() => openUrl(ready.url).catch(onError)}
-                      className="underline decoration-line underline-offset-2 hover:text-ink"
-                    >
-                      {t("updateDownload")}
-                    </button>
-                  ) : (
-                    <code className="text-faint">
-                      {fill(
-                        ready.route === "brew" ? "updateBrew" : "updateBrewCli",
-                        ready.package ?? "tisty",
-                      )}
-                    </code>
-                  )}
-                </p>
-              )}
-              <div className="mt-2.5">
-                <button
-                  type="button"
-                  onClick={() => openUrl(build.repository).catch(onError)}
-                  className={mild}
-                >
-                  {t("aboutRepo")}
-                </button>
-              </div>
-            </Card>
-          </>
+            {ready && (
+              <p className="mt-2.5 text-[12.5px] text-soft">
+                <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" />
+                {fill("updateThere", ready.version)}{" "}
+                {ready.route === "store" ? (
+                  <span className="text-faint">{t("updateStore")}</span>
+                ) : ready.route === "download" ? (
+                  <button
+                    type="button"
+                    onClick={() => openUrl(ready.url).catch(onError)}
+                    className="underline decoration-line underline-offset-2 hover:text-ink"
+                  >
+                    {t("updateDownload")}
+                  </button>
+                ) : (
+                  <code className="text-faint">
+                    {fill(
+                      ready.route === "brew" ? "updateBrew" : "updateBrewCli",
+                      ready.package ?? "tisty",
+                    )}
+                  </code>
+                )}
+              </p>
+            )}
+            <div className="mt-2.5">
+              <button
+                type="button"
+                onClick={() => openUrl(build.repository).catch(onError)}
+                className={mild}
+              >
+                {t("aboutRepo")}
+              </button>
+            </div>
+          </Card>
         )}
 
         <div className="mt-5 mb-2 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">

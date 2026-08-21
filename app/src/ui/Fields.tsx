@@ -18,6 +18,7 @@ type Slot = "date" | "deadline" | "priority" | "list" | "tags" | "recall" | "rep
 
 export default function Fields({ task, lists, known, onPatch }: Props) {
   const [open, setOpen] = useState<Slot | null>(null);
+  const cycle = task.repeat;
   const [until, setUntil] = useState(false);
   const list = lists.find((l) => l.id === task.list);
   const close = () => setOpen(null);
@@ -97,7 +98,7 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
             value={task.repeat.until ?? undefined}
             onPick={(at) => {
               setUntil(false);
-              apply({ repeat: { ...task.repeat!, until: at.slice(0, 10) } });
+              if (task.repeat) apply({ repeat: { ...task.repeat, until: at.slice(0, 10) } });
             }}
             onClear={() => setUntil(false)}
             onClose={() => setUntil(false)}
@@ -129,13 +130,11 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
               {cadence({ from: "due", each: { every, unit } })}
             </Row>
           ))}
-          {task.repeat && (
+          {cycle && (
             <>
               <Row onPick={() => setUntil(true)}>{t("endsOn")}</Row>
-              {task.repeat.until && (
-                <Row onPick={() => apply({ repeat: { ...task.repeat!, until: null } })}>
-                  {t("noEnd")}
-                </Row>
+              {cycle.until && (
+                <Row onPick={() => apply({ repeat: { ...cycle, until: null } })}>{t("noEnd")}</Row>
               )}
               <Row onPick={() => apply({ noRepeat: true })}>{t("endRepeat")}</Row>
             </>

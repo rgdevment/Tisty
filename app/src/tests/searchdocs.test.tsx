@@ -139,7 +139,9 @@ describe("a search that reaches the documents", () => {
     await searching(user, "hose");
 
     const line = await screen.findByText("change the garden hose");
-    await user.click(line.closest("button")!);
+    const row = line.closest("button");
+    if (!row) throw new Error("the hit is not a button");
+    await user.click(row);
 
     await waitFor(() => expect(read).toContain("mac0-0002"));
   });

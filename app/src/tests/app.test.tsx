@@ -99,11 +99,13 @@ beforeEach(() => {
       case "read":
         return Promise.resolve({ title: String(args.text ?? ""), tags: [], spans: [], offers: [] });
       case "complete":
-        held!.status = "done";
+        if (held) held.status = "done";
         return Promise.resolve(held);
       case "discard":
-        held!.status = "dropped";
-        held!.hidden = true;
+        if (held) {
+          held.status = "dropped";
+          held.hidden = true;
+        }
         return Promise.resolve(held);
       default:
         return Promise.resolve(held);

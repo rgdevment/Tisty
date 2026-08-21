@@ -58,10 +58,10 @@ Covey — plus a fifth value for the tasks nobody has placed yet:
 number**, so the log still says what it means when you read it without Tisty,
 and the default value is written out rather than hiding inside a `4`.
 
-Quadrants are not a ladder, so a number cannot name one: schema 4 reads the levels
-`1..4` an older Tisty wrote as `unset`, and refuses anything else. Those old events
-stay on disk untouched — the log only ever appends — so nothing is destroyed by the
-change; it stops being shown.
+Quadrants are not a ladder, so a number cannot name one: schema 4 reads the
+levels `1..4` an older Tisty wrote as `unset`, and refuses anything else. Those
+old events stay on disk untouched — the log only ever appends — so nothing is
+destroyed by the change; it stops being shown.
 
 The order the quadrants sort in is the order they are read in, with one deliberate
 exception: **`wont` sorts last of all, behind `unset`**. That order is what numbers

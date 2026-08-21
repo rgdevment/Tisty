@@ -74,6 +74,7 @@ export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, 
       className={`absolute left-0 z-20 w-[330px] rounded-[10px] border border-line bg-bg p-[5px] shadow-lift ${
         away.up ? "bottom-6" : "top-1"
       }`}
+      tabIndex={0}
     >
       {shown.map((row, i) => (
         <button
