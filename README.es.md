@@ -125,6 +125,12 @@ tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
 —tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una
 tarea puede apuntar a un documento; un documento nunca crea tareas.
 
+Se escribe sobre una hoja iluminada, y su primera línea es a la vez el nombre
+del documento y su título. Cuando la ventana da para ello, al lado se abre una
+columna con de qué va el documento, el formato que el menú `/` escondía y su
+índice. **Tisty genera su propio PDF** —A4, Carta o una hoja sin fin, con sus
+propios márgenes y los adjuntos dentro— y te lo enseña antes de exportarlo.
+
 ![Documentos en Markdown, con adjuntos](assets/readme/3-esp.jpg)
 
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así

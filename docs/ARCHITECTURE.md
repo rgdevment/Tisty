@@ -410,7 +410,7 @@ log does not know about, and leave them where they are.
 ## Taking a document out
 
 A document is a Markdown file, and the whole point is that it survives without
-us. Two ways out, and the difference is not cosmetic.
+us. Three ways out, and the differences are not cosmetic.
 
 **Copy as Markdown** hands the text to the clipboard exactly as it is stored,
 references included. Fast, and enough for prose. But an attachment reference
@@ -430,6 +430,27 @@ store does not need migrating. The layout does the work.
 What still does not survive the trip is a reference to **another document**
 (`tisty:doc/…`), which means nothing outside Tisty. It stays as written, as a
 piece of text rather than a broken file path.
+
+**Export to PDF** is the one that leaves Markdown behind, and Tisty composes it
+rather than asking the system to print. That is a deliberate cost. Printing hands
+the page to the operating system, and the operating system decides: on macOS the
+paper size comes from `NSPrintInfo` and not from any CSS we write, so a document
+asked for in A4 came back rescaled to whatever the print dialog had selected.
+Composing it ourselves is the only way the app can promise its own paper and its
+own margins.
+
+The page is built from the editor's own tree, not from the stored Markdown, so
+what leaves is what you were looking at — headings, lists, tasks with their
+boxes, quotes, code, tables with real cells, and the first line read as the
+title. Three sizes: A4, Letter, and one endless sheet that grows with the
+document and stops short of the height a reader would refuse to open.
+
+Attachments are the part that needs care. The webview may *show* a local file
+but the composer may not *fetch* one — the policy that keeps the app from
+reaching the network keeps it from reaching the disk too — so their bytes travel
+through a command and are embedded in the PDF itself. A file that cannot be read
+leaves its name in a dashed box rather than a hole, and a picture used five
+times is read once.
 
 ## Backing up by hand
 
