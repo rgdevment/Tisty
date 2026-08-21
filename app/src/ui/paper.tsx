@@ -16,7 +16,8 @@ export const endlessTall = (blocks: Shape[]): number => {
     if (one.kind === "image") return sum + 260;
     if (one.kind === "rule") return sum + 24;
     if (one.kind === "code") return sum + 26 + one.runs.length * 14;
-    const words = one.runs.reduce((many, run) => many + run.text.length, 0);
+    if (one.kind === "table") return sum + one.rows.length * 24 + 12;
+    const words = one.runs.reduce((many: number, run: Run) => many + run.text.length, 0);
     const lines = Math.max(1, Math.ceil(words / 84));
     return sum + lines * 17 + 12;
   }, MARGIN * 2);
@@ -37,7 +38,8 @@ export type Shape =
   | { kind: "quote"; runs: Run[] }
   | { kind: "code"; runs: Run[] }
   | { kind: "bullet"; mark: string; runs: Run[]; deep: number }
-  | { kind: "image"; src: string }
+  | { kind: "image"; src: string; alt?: string }
+  | { kind: "table"; rows: Run[][][] }
   | { kind: "rule" };
 
 const sheet = StyleSheet.create({
@@ -72,6 +74,33 @@ const sheet = StyleSheet.create({
   image: { marginVertical: 10, width: "100%", maxHeight: 360, objectFit: "contain" },
   link: { color: "#1d4ed8", textDecoration: "underline" },
   inline: { fontFamily: "Courier", fontSize: 9.5, backgroundColor: "#f4f4f5" },
+  table: {
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#d4d4d8",
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+  },
+  tr: { flexDirection: "row" },
+  td: {
+    flex: 1,
+    padding: 5,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#d4d4d8",
+    fontSize: 9.5,
+    lineHeight: 1.35,
+  },
+  th: { backgroundColor: "#f4f4f5", fontWeight: 700 },
+  missing: {
+    marginVertical: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#d4d4d8",
+    borderStyle: "dashed",
+    color: "#71717a",
+    fontSize: 9,
+  },
 });
 
 const dressed = StyleSheet.create({
@@ -131,7 +160,33 @@ const shaped = (one: Shape, at: number) => {
         </View>
       );
     case "image":
-      return <Image key={key} style={sheet.image} src={one.src} />;
+      return one.src ? (
+        <Image key={key} style={sheet.image} src={one.src} />
+      ) : (
+        <Text key={key} style={sheet.missing}>
+          {one.alt || "?"}
+        </Text>
+      );
+    case "table":
+      return (
+        <View key={key} style={sheet.table}>
+          {one.rows.map((row, at) => {
+            const said = row.map((cell) => cell.map((run) => run.text).join("|")).join("¦");
+            return (
+              <View key={said} style={sheet.tr} wrap={false}>
+                {row.map((cell) => (
+                  <Text
+                    key={`${said}:${cell.map((run) => run.text).join("")}`}
+                    style={at === 0 ? [sheet.td, sheet.th] : sheet.td}
+                  >
+                    {drawn(cell)}
+                  </Text>
+                ))}
+              </View>
+            );
+          })}
+        </View>
+      );
     case "rule":
       return <View key={key} break />;
     default:

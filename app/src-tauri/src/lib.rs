@@ -3167,6 +3167,14 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
     }
 }
 
+#[tauri::command(async)]
+fn attached(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<Vec<u8>> {
+    let root = held(&session).paths.data().to_path_buf();
+    let at = tisty_core::attach::resolve(&reference, &root)
+        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
+    std::fs::read(&at).map_err(|_| Refusal::about("cannotRead", reference))
+}
+
 #[tauri::command]
 fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<String> {
     let root = held(&session).paths.data().to_path_buf();
@@ -3709,6 +3717,7 @@ pub fn run() {
             discard,
             attach,
             served,
+            attached,
             weighs,
             roomy,
             opened,

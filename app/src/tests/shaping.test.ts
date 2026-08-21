@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { endlessTall, MARGIN, SIZES } from "../ui/paper";
-import { shapesOf, titled } from "../ui/shaping";
+import { asData, fetched, shapesOf, titled } from "../ui/shaping";
 
 const doc = (...content: unknown[]) => ({ type: "doc", content });
 const words = (text: string) => [{ type: "text", text }];
@@ -80,7 +80,7 @@ describe("turning a document into shapes for the page", () => {
       doc({ type: "paragraph", content: [{ type: "image", attrs: { src: "a.png" } }] }),
     );
 
-    expect(found).toEqual([{ kind: "image", src: "a.png" }]);
+    expect(found).toEqual([{ kind: "image", src: "a.png", alt: "" }]);
   });
 
   it("splits a code block into its lines", () => {
@@ -163,5 +163,97 @@ describe("the first line, which is also the title", () => {
 
   it("copes with an empty document", () => {
     expect(titled([])).toEqual([]);
+  });
+});
+
+describe("a table on the page", () => {
+  const cell = (text: string) => ({
+    type: "tableCell",
+    content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+  });
+  const row = (...texts: string[]) => ({ type: "tableRow", content: texts.map(cell) });
+
+  it("keeps its rows and columns instead of running them together", () => {
+    const found = shapesOf(
+      doc(
+        { type: "paragraph", content: words("t") },
+        {
+          type: "table",
+          content: [row("Papel", "Ancho"), row("A4", "210 mm")],
+        },
+      ),
+    );
+    const table = found.find((one) => one.kind === "table");
+
+    expect(table?.kind === "table" && table.rows.length).toBe(2);
+    expect(table?.kind === "table" && table.rows[1].map((c) => c[0].text)).toEqual([
+      "A4",
+      "210 mm",
+    ]);
+  });
+
+  it("leaves an empty table out", () => {
+    expect(shapesOf(doc({ type: "table", content: [] }))).toEqual([]);
+  });
+});
+
+describe("carrying an attachment into the PDF", () => {
+  it("turns bytes into something the page can draw", () => {
+    const src = asData([137, 80, 78, 71], "attachments/a.png");
+
+    expect(src.startsWith("data:image/png;base64,")).toBe(true);
+  });
+
+  it("reads the kind from the name, not from the bytes", () => {
+    expect(asData([1], "a.jpg")).toContain("image/jpeg");
+    expect(asData([1], "a.svg")).toContain("image/svg+xml");
+    expect(asData([1], "a.what")).toContain("image/png");
+  });
+
+  it("swaps every local image for its data", async () => {
+    const shapes = await fetched(
+      [
+        { kind: "image", src: "attachments/a.png", alt: "una" },
+        { kind: "para", runs: [{ text: "x" }] },
+      ],
+      async () => [1, 2, 3],
+    );
+
+    expect(shapes[0].kind === "image" && shapes[0].src.startsWith("data:")).toBe(true);
+    expect(shapes[1].kind).toBe("para");
+  });
+
+  it("reads a repeated attachment once", async () => {
+    let asked = 0;
+    await fetched(
+      [
+        { kind: "image", src: "attachments/a.png" },
+        { kind: "image", src: "attachments/a.png" },
+      ],
+      async () => {
+        asked += 1;
+        return [1];
+      },
+    );
+
+    expect(asked).toBe(1);
+  });
+
+  it("leaves a remote image alone", async () => {
+    const shapes = await fetched([{ kind: "image", src: "https://a.b/c.png" }], async () => [1]);
+
+    expect(shapes[0].kind === "image" && shapes[0].src).toBe("https://a.b/c.png");
+  });
+
+  it("keeps the name as a reference when the file cannot be read", async () => {
+    const shapes = await fetched(
+      [{ kind: "image", src: "attachments/gone.png", alt: "perdida" }],
+      async () => {
+        throw new Error("no");
+      },
+    );
+
+    expect(shapes[0].kind === "image" && shapes[0].src).toBe("");
+    expect(shapes[0].kind === "image" && shapes[0].alt).toBe("perdida");
   });
 });

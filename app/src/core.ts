@@ -196,6 +196,8 @@ export const attach = (path: string, label?: string, roomy?: boolean): Promise<s
 
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
 
+export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });
+
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 
 export interface Carrying {

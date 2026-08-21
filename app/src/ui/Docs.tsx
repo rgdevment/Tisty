@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { asPlain } from "../copying";
 import {
   attach,
+  attached,
   convertPaper,
   docExport,
   docRead,
@@ -237,12 +238,13 @@ export default function Docs({
   const blobOf = async (): Promise<Blob | null> => {
     const read = giving.current;
     if (!open || !read) return null;
-    const [{ pdf }, { Papered }, { shapesOf }] = await Promise.all([
+    const [{ pdf }, { Papered }, { fetched, shapesOf }] = await Promise.all([
       import("@react-pdf/renderer"),
       import("./paper"),
       import("./shaping"),
     ]);
-    return pdf(<Papered shapes={shapesOf(read())} leaf={leaf} />).toBlob();
+    const shapes = await fetched(shapesOf(read()), attached);
+    return pdf(<Papered shapes={shapes} leaf={leaf} />).toBlob();
   };
 
   const preview = async () => {
