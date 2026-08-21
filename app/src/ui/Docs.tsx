@@ -1,6 +1,18 @@
-import { open as pick } from "@tauri-apps/plugin-dialog";
+import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { attach, convertPaper, docRead, docWrite, type Filed, opened, roomy } from "../core";
+import { asPlain } from "../copying";
+import {
+  attach,
+  convertPaper,
+  docExport,
+  docRead,
+  docWrite,
+  type Filed,
+  keepPdf,
+  opened,
+  type Paper,
+  roomy,
+} from "../core";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
 import { crowd, MANY, weighed } from "../previews";
@@ -18,6 +30,16 @@ const WIDE = 1440;
 
 const RAIL = 284;
 const SHEET = 820;
+
+const PAPER: Record<Paper, number> = { a4: 820, letter: 843, endless: 820 };
+const leaves = (): Record<string, Paper> => {
+  try {
+    const said: unknown = JSON.parse(localStorage.getItem("tisty.paper") ?? "{}");
+    return said && typeof said === "object" ? (said as Record<string, Paper>) : {};
+  } catch {
+    return {};
+  }
+};
 const ASIDE = 344;
 
 interface Props {
@@ -55,6 +77,13 @@ export default function Docs({
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
+  const [sized, setSized] = useState<Record<string, Paper>>(leaves);
+  const [making, setMaking] = useState(false);
+  const [seeing, setSeeing] = useState<string | null>(null);
+  const giving = useRef<(() => unknown) | null>(null);
+  const handed = useCallback((read: () => unknown) => {
+    giving.current = read;
+  }, []);
   const crossed = useRef(wide);
 
   useEffect(() => {
@@ -191,6 +220,108 @@ export default function Docs({
   };
 
   const beside = Boolean(open) && (shown ?? wide);
+  const leaf = (open && sized[open.file]) || "a4";
+  const wall = { maxWidth: `${PAPER[leaf]}px` };
+
+  useEffect(() => {
+    const id = "tisty-page";
+    let tag = document.getElementById(id) as HTMLStyleElement | null;
+    if (!tag) {
+      tag = document.createElement("style");
+      tag.id = id;
+      document.head.append(tag);
+    }
+    tag.textContent = `@page { size: ${leaf === "letter" ? "Letter" : "A4"}; margin: 22mm 20mm; }`;
+  }, [leaf]);
+
+  const blobOf = async (): Promise<Blob | null> => {
+    const read = giving.current;
+    if (!open || !read) return null;
+    const [{ pdf }, { Papered }, { shapesOf }] = await Promise.all([
+      import("@react-pdf/renderer"),
+      import("./paper"),
+      import("./shaping"),
+    ]);
+    return pdf(<Papered shapes={shapesOf(read())} leaf={leaf} />).toBlob();
+  };
+
+  const preview = async () => {
+    if (making) return;
+    setMaking(true);
+    try {
+      const blob = await blobOf();
+      if (blob) setSeeing(URL.createObjectURL(blob));
+    } catch (e) {
+      onError(saidPlainly(e));
+    } finally {
+      setMaking(false);
+    }
+  };
+
+  const asking = useRef({ preview: () => {}, toPdf: () => {} });
+
+  useEffect(() => {
+    const see = () => asking.current.preview();
+    const keep = () => asking.current.toPdf();
+    window.addEventListener("tisty:see-pdf", see);
+    window.addEventListener("tisty:to-pdf", keep);
+    return () => {
+      window.removeEventListener("tisty:see-pdf", see);
+      window.removeEventListener("tisty:to-pdf", keep);
+    };
+  }, []);
+
+  const shut = () => {
+    if (seeing) URL.revokeObjectURL(seeing);
+    setSeeing(null);
+  };
+
+  const toPdf = async () => {
+    if (!open || making) return;
+    setMaking(true);
+    try {
+      const blob = await blobOf();
+      if (!blob) return;
+      const where = await intoFile({
+        defaultPath: `${open.title || t("untitledDoc")}.pdf`,
+        filters: [{ name: "PDF", extensions: ["pdf"] }],
+      });
+      if (!where) return;
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      await keepPdf(where, Array.from(bytes));
+    } catch (e) {
+      onError(saidPlainly(e));
+    } finally {
+      setMaking(false);
+    }
+  };
+
+  asking.current = { preview, toPdf };
+
+  const showing = seeing;
+  useEffect(() => {
+    return () => {
+      if (showing) URL.revokeObjectURL(showing);
+    };
+  }, [showing]);
+
+  const nowAt = open?.file;
+  const wasAt = useRef(nowAt);
+  useEffect(() => {
+    if (wasAt.current === nowAt) return;
+    wasAt.current = nowAt;
+    setSeeing((was) => {
+      if (was) URL.revokeObjectURL(was);
+      return null;
+    });
+  }, [nowAt]);
+
+  const resize = (paper: Paper) => {
+    if (!open) return;
+    const now = { ...sized, [open.file]: paper };
+    setSized(now);
+    window.localStorage.setItem("tisty.paper", JSON.stringify(now));
+  };
   const spare = room - RAIL;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
   return (
@@ -213,7 +344,7 @@ export default function Docs({
         style={{ paddingRight: reserve }}
       >
         {open ? (
-          <div className="mx-auto flex min-h-0 w-full max-w-[820px] flex-1 flex-col">
+          <div style={wall} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Editor
                 key={`${open.file}${reading ? ":read" : ""}`}
@@ -238,6 +369,7 @@ export default function Docs({
                 onWrite={wrote}
                 onBlocks={setBlocks}
                 onOutline={setHeads}
+                onReady={handed}
                 onShaped={(text) => {
                   shaped.current = text;
                 }}
@@ -245,13 +377,14 @@ export default function Docs({
             </Suspense>
           </div>
         ) : (
-          <p className="mx-auto w-full max-w-[820px] px-10 text-[12.5px] text-faint">
+          <p style={wall} className="mx-auto w-full px-10 text-[12.5px] text-faint">
             {t("pickADoc")}
           </p>
         )}
         <div
           aria-live="polite"
-          className="mx-auto h-5 w-full max-w-[820px] px-10 text-[11.5px] text-faint"
+          style={wall}
+          className="mx-auto h-5 w-full px-10 text-[11.5px] text-faint"
         >
           {saving
             ? t("saving")
@@ -262,7 +395,10 @@ export default function Docs({
                 : ""}
         </div>
         {reading && warned && open && (
-          <div className="mx-auto mb-2 flex w-full max-w-[820px] flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]">
+          <div
+            style={wall}
+            className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
+          >
             <span className="text-soft">{t(stuck ? "frailStuck" : "frailNeeds")}</span>
             {!stuck && (
               <button
@@ -276,6 +412,21 @@ export default function Docs({
           </div>
         )}
       </div>
+      {seeing && (
+        <div className="absolute inset-0 z-40 flex flex-col bg-veil">
+          <div className="flex h-9 shrink-0 items-center justify-end gap-2 px-3">
+            <button
+              type="button"
+              onClick={shut}
+              aria-label={t("leaveIt")}
+              className="rounded-md bg-bg px-2.5 py-1 text-[11.5px] text-soft hover:text-ink"
+            >
+              {t("leaveIt")}
+            </button>
+          </div>
+          <iframe src={seeing} title={t("seePdf")} className="min-h-0 flex-1 border-0 bg-bg" />
+        </div>
+      )}
       {beside && open && (
         <Beside
           title={open.title}
@@ -284,6 +435,21 @@ export default function Docs({
           kept={saved}
           blocks={blocks}
           heads={heads}
+          leaf={leaf}
+          onLeaf={resize}
+          making={making}
+          onPdf={toPdf}
+          onSee={preview}
+          onCopy={() => {
+            asPlain(open.file)
+              .then(() => onShown?.(open.file))
+              .catch((e) => onError(saidPlainly(e)));
+          }}
+          onTakeOut={() => {
+            pick({ directory: true })
+              .then((at) => (typeof at === "string" ? docExport(open.file, at) : null))
+              .catch((e) => onError(saidPlainly(e)));
+          }}
           onShut={() => setShown(false)}
         />
       )}

@@ -33,7 +33,6 @@ import {
   type Pick,
   parted,
   patch,
-  printed,
   type Ready,
   type Rift,
   reopen,
@@ -677,11 +676,18 @@ export default function App() {
                     .catch((e) => setError(saidPlainly(e))),
               },
               {
-                key: "asPdf",
+                key: "seePdf",
                 icon: "▤",
+                label: t("seePdf"),
+                off: showing !== doc.file,
+                onPick: () => window.dispatchEvent(new CustomEvent("tisty:see-pdf")),
+              },
+              {
+                key: "asPdf",
+                icon: "⇩",
                 label: t("toPdf"),
                 off: showing !== doc.file,
-                onPick: () => printed().catch((e) => setError(saidPlainly(e))),
+                onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-pdf")),
               },
               {
                 key: "copy",

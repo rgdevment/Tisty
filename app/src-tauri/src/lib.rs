@@ -1977,6 +1977,17 @@ fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
         .map(|gone| gone.as_secs() as i64)
 }
 
+#[tauri::command(async)]
+fn keep_pdf(at: String, bytes: Vec<u8>) -> Answer<()> {
+    std::fs::write(&at, bytes).map_err(|e| {
+        blamed(
+            channel::WINDOW,
+            "a pdf could not be written",
+            tisty_core::Error::Io(e),
+        )
+    })
+}
+
 #[tauri::command]
 fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Facts> {
     let session = held(&session);
@@ -3742,6 +3753,7 @@ pub fn run() {
             doc_file,
             doc_read,
             doc_facts,
+            keep_pdf,
             doc_write,
             doc_new,
             doc_drop,

@@ -13,6 +13,7 @@
     "format": "biome check src --write"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.6.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
