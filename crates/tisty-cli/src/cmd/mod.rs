@@ -3,7 +3,7 @@ mod demo;
 mod doctor;
 mod org;
 mod sync;
-mod task;
+pub mod task;
 mod view;
 
 use std::io::{IsTerminal, Read};

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { DateSpec, Edits, Parsed } from "../core";
 import { cadence, whenLabel } from "../format";
 import { t } from "../locales";
+import { placed, said } from "../quadrants";
 import Calendar from "./Calendar";
 
 type Slot = "date" | "deadline" | "list" | "priority" | "repeat" | { tag: string };
@@ -144,11 +145,11 @@ function shown(seen: Parsed, edits: Edits): Chip[] {
   }
 
   const level = seen.priority;
-  if (level && level < 4 && !edits.noPriority) {
+  if (level && placed(level) && !edits.noPriority) {
     chips.push({
       slot: "priority",
       glyph: "!",
-      value: t(level === 1 ? "high" : level === 2 ? "medium" : "low"),
+      value: said(level),
       tint: "bg-mark-priority",
       guessed: false,
     });

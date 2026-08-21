@@ -10,7 +10,7 @@ const task: Task = {
   id: "01A",
   title: "write the report",
   status: "open",
-  priority: 4,
+  priority: "unset",
   order: "a0",
   description: "the one for accounting",
   steps: [{ id: "01S", text: "collect the figures", done: false, order: "a0" }],

@@ -163,7 +163,7 @@ fn catalog(code: &str) -> Option<&'static Catalog> {
 }
 
 pub const FILTERS: &str =
-    "today · tomorrow · week · overdue · inbox · archive · all · @list · #tag · !1";
+    "today · tomorrow · week · overdue · inbox · archive · all · @list · #tag · !do";
 
 pub fn canonical_filter(raw: &str) -> Option<&'static str> {
     let raw = raw.to_lowercase();

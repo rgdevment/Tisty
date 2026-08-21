@@ -10,7 +10,7 @@ const task = {
   id: "01T",
   title: "tomar la pastilla",
   status: "open",
-  priority: 4,
+  priority: "unset",
   order: "a0",
   tags: [],
   date: { at: "2026-08-11T10:00:00", tz: "America/Santiago", floating: true, has_time: true },

@@ -167,15 +167,15 @@ tags = ["backend", "urgent"]
 
 [[case]]
 input = "fix the index !1"
-title = "fix the index"
-priority = 1
+title = "fix the index !1"
+why = "the quadrants are not a scale, so a number names none of them and stays in plain sight"
 
 [[case]]
-input = "review the deploy tomorrow #backend !2"
+input = "review the deploy tomorrow #backend !decide"
 title = "review the deploy"
 date = "2026-08-06"
 tags = ["backend"]
-priority = 2
+priority = "decide"
 
 # ─────────────────────────────────────────────────────────────
 #  Ambiguity: leave it alone
@@ -229,25 +229,26 @@ why = "an interval with no day named counts from the doing"
 
 [[case]]
 input = "fix the checkout !urgent"
-title = "fix the checkout"
-priority = 1
-why = "the interface names the priorities, so they are typed the way they read"
+title = "fix the checkout !urgent"
+why = "urgent is an axis of the matrix and not a quadrant: it fits both do and delegate, so neither is read"
 
 [[case]]
-input = "draft the report !high"
+input = "draft the report !do"
 title = "draft the report"
-priority = 1
+priority = "do"
+why = "the interface names the quadrants, so they are typed the way they read"
 
 [[case]]
-input = "check the links !medium"
+input = "check the links !important"
 title = "check the links"
-priority = 2
+priority = "decide"
+why = "important without urgency is decide, which is the quadrant it lands in"
 
 [[case]]
-input = "paint the wall !low"
+input = "paint the wall !minor"
 title = "paint the wall"
-priority = 3
-why = "the third step of high · medium · low; it used to be no name at all and stayed in the title"
+priority = "wont"
+why = "the fourth quadrant is typed for what it is, not for what will be done with it"
 
 [[case]]
 input = "review the monday report"
@@ -493,11 +494,11 @@ deadline = "2026-08-30"
 why = "«by» marks when it stops being possible, not when to do it"
 
 [[case]]
-input = "review the deploy #backend !high"
+input = "review the deploy #backend !do"
 title = "review the deploy"
 tags = ["backend"]
-priority = 1
-why = "markers and the renamed scale together"
+priority = "do"
+why = "markers and a quadrant together"
 
 [[case]]
 input = "pay on 15/8"
@@ -514,20 +515,20 @@ certainty = "assumed"
 why = "when to do it AND when it is due, in one sentence. The certainty pinned here is the FIRST reading's: «tomorrow» sits mid-sentence with no strong signal, «before friday» carries its preposition"
 
 [[case]]
-input = "ship the report tomorrow or before friday #sport !high"
+input = "ship the report tomorrow or before friday #sport !do"
 title = "ship the report"
 date = "2026-08-06"
 deadline = "2026-08-07"
 certainty = "assumed"
-priority = 1
+priority = "do"
 tags = ["sport"]
 why = "both dates, the tag and the priority in one sentence; the «or» left between the two holes is dropped as a dangling connector"
 
 [[case]]
-input = "tell the team !URGENT tomorrow"
+input = "tell the team !DO tomorrow"
 title = "tell the team"
 date = "2026-08-06"
-priority = 1
+priority = "do"
 why = "a marker shouted in capitals is the same marker"
 
 [[case]]

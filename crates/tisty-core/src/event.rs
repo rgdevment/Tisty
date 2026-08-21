@@ -8,7 +8,7 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -124,7 +124,7 @@ mod tests {
             "2026-08-05T10:00:00".parse().unwrap(),
             "America/Santiago",
         ));
-        d.priority = Some(Priority::P1);
+        d.priority = Some(Priority::Do);
         d.tags = vec![Tag::new("work").unwrap(), Tag::new("urgent").unwrap()];
 
         Event::new(

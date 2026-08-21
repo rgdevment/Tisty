@@ -227,15 +227,15 @@ tags = ["backend", "urgente"]
 
 [[case]]
 input = "arreglar el índice !1"
-title = "arreglar el índice"
-priority = 1
+title = "arreglar el índice !1"
+why = "los cuadrantes no son una escala, así que un número ya no nombra ninguno y se queda a la vista"
 
 [[case]]
-input = "revisar el deploy mañana #backend !2"
+input = "revisar el deploy mañana #backend !decidir"
 title = "revisar el deploy"
 date = "2026-08-06"
 tags = ["backend"]
-priority = 2
+priority = "decide"
 
 [[case]]
 input = "revisar #Backend"
@@ -317,32 +317,32 @@ why = "un intervalo sin día nombrado se cuenta desde que se hizo"
 
 [[case]]
 input = "arreglar el checkout !urgente"
-title = "arreglar el checkout"
-priority = 1
-why = "la interfaz nombra las prioridades, así que se escriben como se leen"
+title = "arreglar el checkout !urgente"
+why = "urgente es un eje de la matriz y no un cuadrante: cabe en hacer y en delegar, así que no se lee ninguno"
 
 [[case]]
-input = "preparar el informe !alta"
+input = "preparar el informe !hacer"
 title = "preparar el informe"
-priority = 1
-why = "la escala es alto · medio · bajo; «alta» se sigue aceptando al teclear y significa el nivel más alto"
+priority = "do"
+why = "la interfaz nombra los cuadrantes, así que se escriben como se leen"
 
 [[case]]
-input = "revisar los enlaces !media"
+input = "revisar los enlaces !importante"
 title = "revisar los enlaces"
-priority = 2
+priority = "decide"
+why = "importante sin urgencia es decidir, que es el cuadrante al que va"
 
 [[case]]
-input = "pintar la pared !baja"
+input = "pintar la pared !prescindible"
 title = "pintar la pared"
-priority = 3
-why = "el tercer nivel de la escala alto · medio · bajo; antes no existía y se quedaba en el título"
+priority = "wont"
+why = "el cuarto cuadrante se teclea por lo que es, no por lo que se hará con él"
 
 [[case]]
-input = "avisar al equipo !URGENTE mañana"
+input = "avisar al equipo !HACER mañana"
 title = "avisar al equipo"
 date = "2026-08-06"
-priority = 1
+priority = "do"
 why = "el nombre no distingue mayúsculas, igual que los filtros"
 
 [[case]]
@@ -632,12 +632,12 @@ certainty = "assumed"
 why = "cuándo hacerlo Y cuándo vence, en la misma frase. La certeza que se fija aquí es la de la PRIMERA lectura: «mañana» va en medio y sin señal fuerte, así que se supone; «antes del viernes» lleva su preposición y es segura"
 
 [[case]]
-input = "entregar el informe mañana o antes del viernes #deporte !alto"
+input = "entregar el informe mañana o antes del viernes #deporte !hacer"
 title = "entregar el informe"
 date = "2026-08-06"
 deadline = "2026-08-07"
 certainty = "assumed"
-priority = 1
+priority = "do"
 tags = ["deporte"]
 why = "las dos fechas, la etiqueta y la prioridad en una sola frase; el «o» que queda entre los dos huecos se descarta por ser un conector suelto"
 

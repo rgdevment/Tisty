@@ -13,7 +13,7 @@ const task = (id: string, title: string, day?: string): Task =>
     id,
     title,
     status: "open",
-    priority: 4,
+    priority: "unset",
     order: "a0",
     tags: [],
     reminders: [],

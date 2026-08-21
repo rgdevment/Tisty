@@ -30,7 +30,7 @@ const bank: Task = {
   id: "01B",
   title: "call the bank about the watering",
   status: "open",
-  priority: 4,
+  priority: "unset",
   order: "a1",
   steps: [],
   log: [],

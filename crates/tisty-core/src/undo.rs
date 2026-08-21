@@ -267,7 +267,7 @@ mod tests {
                     Op::TaskUpdate {
                         id,
                         d: TaskPatch {
-                            priority: Some(Priority::P2),
+                            priority: Some(Priority::Decide),
                             ..Default::default()
                         },
                     },
@@ -278,14 +278,14 @@ mod tests {
                 Op::TaskUpdate {
                     id,
                     d: TaskPatch {
-                        priority: Some(Priority::P1),
+                        priority: Some(Priority::Do),
                         ..Default::default()
                     },
                 },
             ),
         );
         assert_eq!(before, undone);
-        assert_eq!(undone.tasks[&id].priority, Priority::P2);
+        assert_eq!(undone.tasks[&id].priority, Priority::Decide);
     }
 
     #[test]

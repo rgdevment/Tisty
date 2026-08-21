@@ -14,7 +14,7 @@ function put(over: Partial<Task>) {
     id: "t1",
     title: "entregar el informe",
     status: "open",
-    priority: 4,
+    priority: "unset",
     order: "a0",
     ...over,
   } as Task;

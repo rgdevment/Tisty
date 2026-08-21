@@ -120,6 +120,18 @@ plan, y lo abren tres palabras: **antes de**, **para** y **hasta**.
 prioridad, una descripción y una bitácora en Markdown, pasos que vas marcando de
 a uno, y lo que le hayas soltado encima. Completarla no aleja nada de eso.
 
+**Las prioridades son una matriz, no una escalera.** Tisty toma los cuatro
+cuadrantes de la matriz de Eisenhower — el método que se atribuye al presidente
+Dwight D. Eisenhower y que Stephen Covey popularizó en *Los 7 hábitos de la gente
+altamente efectiva*: ordena lo que tienes entre urgente e importante, y cada
+cuadrante te dice qué hacer con ello. **Hacer** lo urgente e importante, **Decidir**
+cuándo harás lo que importa y no corre prisa, **Delegar** lo urgente que no te toca,
+y ser honesto con lo que **no harás**. Arrastra una tarea a su cuadrante, o tecléalo:
+`!hacer`, `!decidir`, `!delegar`. Lo que nadie ha colocado espera en una bandeja que
+abres cuando quieres vaciarla.
+
+![Urgente contra importante, y qué hacer con cada cosa](assets/readme/5-esp.jpg)
+
 **Los documentos** viven junto a las tareas, para el material de consulta que no
 tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
 —tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una

@@ -9,7 +9,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-const SCHEMA: i64 = 4;
+const SCHEMA: i64 = 5;
 
 pub struct Cache {
     db: Connection,

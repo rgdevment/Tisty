@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Counted, List } from "../core";
 import { cadence } from "../format";
 import { t } from "../locales";
+import { PICKABLE, said } from "../quadrants";
 import { useEdge } from "./edge";
 
 export type Field = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
@@ -168,13 +169,13 @@ function within(
       };
     });
   }
-  return ([1, 2, 3] as const).map((level) => {
-    const label = t(level === 1 ? "high" : level === 2 ? "medium" : "low");
+  return PICKABLE.map((level) => {
+    const label = said(level);
     return {
-      key: String(level),
+      key: level,
       glyph: "!",
       label,
-      say: `!${level}`,
+      say: `!${label.toLowerCase()}`,
       run: () => onInsert(`!${label.toLowerCase()}`),
     };
   });

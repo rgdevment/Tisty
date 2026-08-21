@@ -9,7 +9,7 @@ struct Case {
     date: Option<String>,
     time: Option<String>,
     deadline: Option<String>,
-    priority: Option<u8>,
+    priority: Option<String>,
     repeat: Option<String>,
     #[serde(default)]
     tags: Vec<String>,
@@ -122,10 +122,8 @@ fn the_parser_matches_every_case() {
             case.why.as_deref().unwrap_or("")
         );
 
-        let expect_priority = case
-            .priority
-            .map(|p| u8::from(tisty_core::Priority::try_from(p).unwrap()));
-        let got_priority = got.priority.map(u8::from);
+        let expect_priority = case.priority.clone();
+        let got_priority = got.priority.map(|p| p.name().to_string());
         if got_priority != expect_priority {
             wrong.push(format!("priority: {got_priority:?} ≠ {expect_priority:?}"));
         }
@@ -231,11 +229,11 @@ fn dates_and_times_are_well_formed() {
 }
 
 #[test]
-fn priorities_are_in_range() {
+fn priorities_name_a_quadrant() {
     for (locale, case) in every_case() {
-        if let Some(p) = case.priority {
+        if let Some(p) = &case.priority {
             assert!(
-                (1..=4).contains(&p),
+                ["do", "decide", "delegate", "wont"].contains(&p.as_str()),
                 "{locale}: «{}» has priority {p}",
                 case.input
             );

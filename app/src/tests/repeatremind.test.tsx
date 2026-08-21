@@ -8,7 +8,7 @@ function task(over: Partial<Task>): Task {
     id: "t1",
     title: "tomar la paroxetina",
     status: "open",
-    priority: 4,
+    priority: "unset",
     order: "a0",
     reminders: [{ at: "2026-08-13T09:00:00", has_time: true, tz: "Europe/Madrid" }],
     ...over,

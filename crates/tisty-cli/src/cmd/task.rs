@@ -33,8 +33,8 @@ pub fn add(app: &mut App, args: AddArgs, today: Date, lang: Lang) -> anyhow::Res
     if let Some(deadline) = date_flag(args.deadline.as_deref(), lang)? {
         draft.deadline = Some(deadline);
     }
-    if let Some(priority) = args.priority {
-        draft.priority = Some(tisty_core::Priority::try_from(priority)?);
+    if let Some(priority) = &args.priority {
+        draft.priority = Some(named_priority(priority, lang)?);
     }
     if let Some(name) = args.list {
         draft.filing = Some(Filing::Named(name));
@@ -175,7 +175,8 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
             deadline: deadline.map(Some).or(args.no_deadline.then_some(None)),
             priority: args
                 .priority
-                .map(tisty_core::Priority::try_from)
+                .as_deref()
+                .map(|raw| named_priority(raw, lang))
                 .transpose()?,
             tags,
             reminders: None,
@@ -395,4 +396,9 @@ fn report(app: &App, id: TaskId, today: Date, lang: Lang) {
         "{}",
         render::line(&app.state.tasks[&id], &app.state, today, lang)
     );
+}
+
+pub fn named_priority(raw: &str, lang: Lang) -> anyhow::Result<tisty_core::Priority> {
+    tisty_nl::parse_priority(raw.trim_start_matches('!'), lang.code())
+        .ok_or_else(|| anyhow::anyhow!(lang.fill("not-a-priority", &[("value", raw)])))
 }

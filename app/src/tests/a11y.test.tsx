@@ -14,7 +14,7 @@ const task = (status: Task["status"]): Task => ({
   id: "01A",
   title: "una tarea",
   status,
-  priority: 4,
+  priority: "unset",
   order: "a0",
   tags: [],
   steps: [],

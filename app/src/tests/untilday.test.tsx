@@ -16,7 +16,7 @@ function put(repeat: Repeat) {
     id: "t1",
     title: "tomar la pastilla",
     status: "open",
-    priority: 4,
+    priority: "unset",
     order: "a0",
     repeat,
   } as Task;

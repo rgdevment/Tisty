@@ -44,6 +44,30 @@ is never modified again.
 `active.tisty` is sealed as `NNNNNN.tisty` every 5.000 events. Sealed segments
 are numbered from one without gaps.
 
+### Priorities are named, not numbered
+
+A task's priority is one of the four quadrants of the **Eisenhower matrix** — the
+method credited to President Dwight D. Eisenhower and popularised by Stephen Covey —
+plus a fifth value for the tasks nobody has placed yet:
+
+```jsonl
+{"v":4,"ts":"…","by":"dev_a3f1","op":"task.set","id":"01KZ…","d":{"priority":"delegate"}}
+```
+
+`do` · `decide` · `delegate` · `wont` · `unset`. **The word goes on disk, not a
+number**, so the log still says what it means when you read it without Tisty, and the
+default value is written out rather than hiding inside a `4`.
+
+Quadrants are not a ladder, so a number cannot name one: schema 4 reads the levels
+`1..4` an older Tisty wrote as `unset`, and refuses anything else. Those old events
+stay on disk untouched — the log only ever appends — so nothing is destroyed by the
+change; it stops being shown.
+
+The order the quadrants sort in is the order they are read in, with one deliberate
+exception: **`wont` sorts last of all, behind `unset`**. That order is what numbers
+the tasks you address in the CLI, and what you have declared you will not do belongs
+at the bottom of that list, not floating above the untriaged pile.
+
 ### Writing
 
 Only ever to this device's own directory. Two rules hold everything else up:

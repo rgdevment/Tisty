@@ -44,7 +44,7 @@ fn a_task_survives_the_round_trip_through_disk() {
                 id: task,
                 d: TaskAdd {
                     list: Some(list),
-                    priority: Some(Priority::P1),
+                    priority: Some(Priority::Do),
                     tags: vec![Tag::new("work").unwrap(), Tag::new("urgent").unwrap()],
                     ..TaskAdd::new("fix the failing checkout", "a0")
                 },
@@ -135,7 +135,7 @@ fn a_task_survives_the_round_trip_through_disk() {
     assert_eq!(t.title, "fix the failing checkout");
     assert_eq!(t.status, Status::Done);
     assert_eq!(t.completed_at, Some(at(10)));
-    assert_eq!(t.priority, Priority::P1);
+    assert_eq!(t.priority, Priority::Do);
     assert_eq!(t.list, Some(list));
     assert_eq!(t.tags.len(), 2);
     assert_eq!(t.steps_done(), (2, 2));
