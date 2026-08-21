@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { List } from "../core";
+import { sifted } from "../ui/Icons";
 import Lists from "../ui/Lists";
 
 const store = vi.hoisted(() => ({
@@ -99,5 +100,35 @@ describe("icons on a list", () => {
     await userEvent.click(screen.getByRole("button", { name: "Create" }));
 
     expect(store.made.length).toBe(0);
+  });
+});
+
+describe("finding an icon among many", () => {
+  it("shows them all until something is typed", () => {
+    const all: [string, string][] = [
+      ["work", "💼"],
+      ["done", "✅"],
+    ];
+
+    expect(sifted(all, "")).toEqual(all);
+    expect(sifted(all, "   ")).toEqual(all);
+  });
+
+  it("keeps the ones whose name carries what was typed", () => {
+    const all: [string, string][] = [
+      ["work", "💼"],
+      ["homework", "📚"],
+      ["done", "✅"],
+    ];
+
+    expect(sifted(all, "work").map(([key]) => key)).toEqual(["work", "homework"]);
+  });
+
+  it("does not mind how it was typed", () => {
+    expect(sifted([["done", "✅"]], "DONE")).toHaveLength(1);
+  });
+
+  it("comes back empty rather than showing everything", () => {
+    expect(sifted([["done", "✅"]], "zzz")).toEqual([]);
   });
 });

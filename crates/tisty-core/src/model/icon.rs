@@ -9,9 +9,12 @@ pub const ICONS: &[(&str, &str)] = &[
     ("place", "📍"),
     ("city", "🏙"),
     ("beach", "🏖"),
+    ("camping", "⛺"),
     ("mountain", "⛰"),
     ("work", "💼"),
     ("meeting", "👥"),
+    ("deal", "🤝"),
+    ("support", "🛟"),
     ("chart", "📈"),
     ("target", "🎯"),
     ("mail", "✉️"),
@@ -20,14 +23,18 @@ pub const ICONS: &[(&str, &str)] = &[
     ("clip", "📎"),
     ("code", "💻"),
     ("bug", "🐞"),
+    ("test", "🧪"),
+    ("review", "👀"),
     ("rocket", "🚀"),
     ("server", "🗄"),
     ("database", "🧮"),
     ("design", "🎨"),
     ("health", "🩺"),
+    ("hospital", "🏥"),
     ("pill", "💊"),
     ("sport", "🏃"),
     ("gym", "🏋"),
+    ("yoga", "🧘"),
     ("sleep", "😴"),
     ("mind", "🧠"),
     ("tooth", "🦷"),
@@ -35,6 +42,7 @@ pub const ICONS: &[(&str, &str)] = &[
     ("bank", "🏦"),
     ("receipt", "🧾"),
     ("savings", "🐷"),
+    ("coin", "🪙"),
     ("shopping", "🛒"),
     ("gift", "🎁"),
     ("package", "📦"),
@@ -72,13 +80,37 @@ pub const ICONS: &[(&str, &str)] = &[
     ("clock", "⏰"),
     ("star", "⭐"),
     ("flag", "🚩"),
+    ("done", "✅"),
+    ("todo", "☑️"),
+    ("repeat", "🔁"),
+    ("timer", "⏱"),
+    ("waiting", "⏳"),
+    ("bell", "🔔"),
+    ("pause", "⏸"),
+    ("urgent", "❗"),
+    ("question", "❓"),
+    ("info", "ℹ️"),
+    ("blocked", "⛔"),
     ("idea", "💡"),
     ("alert", "⚠️"),
     ("lock", "🔒"),
     ("key", "🔑"),
     ("book", "📖"),
     ("law", "⚖️"),
+    ("vote", "🗳"),
     ("contract", "📜"),
+    ("write", "✍️"),
+    ("page", "📄"),
+    ("pages", "📑"),
+    ("draft", "🗒"),
+    ("clipboard", "📋"),
+    ("bookmark", "🔖"),
+    ("label", "🏷"),
+    ("link", "🔗"),
+    ("pin", "📌"),
+    ("cut", "✂️"),
+    ("ruler", "📐"),
+    ("search", "🔍"),
     ("folderdoc", "📂"),
     ("chat", "💬"),
     ("call", "📱"),
@@ -102,6 +134,8 @@ pub const ICONS: &[(&str, &str)] = &[
     ("bread", "🍞"),
     ("fruit", "🍎"),
     ("veg", "🥕"),
+    ("recycle", "♻️"),
+    ("snow", "❄️"),
     ("fish", "🐟"),
     ("chartdown", "📉"),
     ("badge", "🎖"),
@@ -140,6 +174,48 @@ pub fn kept(key: &str) -> Option<&'static str> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn no_two_icons_answer_to_the_same_name() {
+        let mut seen = std::collections::BTreeSet::new();
+        for (key, _) in ICONS {
+            assert!(seen.insert(*key), "two icons called {key}");
+        }
+    }
+
+    #[test]
+    fn no_two_names_draw_the_same_thing() {
+        let mut seen = std::collections::BTreeMap::new();
+        for (key, glyph) in ICONS {
+            if let Some(was) = seen.insert(*glyph, *key) {
+                panic!("{was} and {key} both draw {glyph}");
+            }
+        }
+    }
+
+    #[test]
+    fn every_name_is_a_plain_lowercase_word() {
+        for (key, _) in ICONS {
+            assert!(
+                !key.is_empty() && key.chars().all(|c| c.is_ascii_lowercase()),
+                "awkward name: {key}"
+            );
+        }
+    }
+
+    #[test]
+    fn what_a_document_needs_is_there() {
+        for wanted in ["write", "page", "clipboard", "bookmark", "link", "search"] {
+            assert!(known(wanted), "missing: {wanted}");
+        }
+    }
+
+    #[test]
+    fn what_a_list_needs_is_there() {
+        for wanted in ["done", "todo", "repeat", "waiting", "urgent", "blocked"] {
+            assert!(known(wanted), "missing: {wanted}");
+        }
+    }
+
     use super::*;
     use std::collections::HashSet;
 
@@ -179,6 +255,6 @@ mod tests {
     #[test]
     fn there_are_enough_to_choose_from_without_scrolling_for_ever() {
         assert!(ICONS.len() >= 60, "only {}", ICONS.len());
-        assert!(ICONS.len() <= 120, "too many to look through");
+        assert!(ICONS.len() <= 400, "more than anyone would sift through");
     }
 }

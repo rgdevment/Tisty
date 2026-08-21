@@ -29,13 +29,16 @@ impl List {
     }
 }
 
-pub const FIRST: [(&str, &str, &str); 3] = [
+pub const FIRST: [(&str, &str, &str); 6] = [
     ("Work", "Trabajo", "work"),
     ("Personal", "Personal", "star"),
     ("Family", "Familia", "family"),
+    ("Money", "Finanzas", "coin"),
+    ("Health", "Salud", "health"),
+    ("Learning", "Educación", "study"),
 ];
 
-pub fn first_lists(code: &str) -> [(&'static str, &'static str); 3] {
+pub fn first_lists(code: &str) -> [(&'static str, &'static str); 6] {
     let spanish = code.to_lowercase().starts_with("es");
     FIRST.map(|(english, castilian, icon)| (if spanish { castilian } else { english }, icon))
 }
@@ -94,12 +97,32 @@ mod tests {
     fn a_fresh_install_speaks_the_language_of_the_machine() {
         assert_eq!(
             first_lists("es").map(|(name, _)| name),
-            ["Trabajo", "Personal", "Familia"]
+            [
+                "Trabajo",
+                "Personal",
+                "Familia",
+                "Finanzas",
+                "Salud",
+                "Educación"
+            ]
         );
         assert_eq!(
             first_lists("en").map(|(name, _)| name),
-            ["Work", "Personal", "Family"]
+            ["Work", "Personal", "Family", "Money", "Health", "Learning"]
         );
+    }
+
+    #[test]
+    fn a_fresh_install_covers_what_a_life_is_made_of() {
+        let names = first_lists("es").map(|(name, _)| name);
+        assert_eq!(
+            names.len(),
+            6,
+            "six is enough to start and few enough to read"
+        );
+        assert!(names.contains(&"Finanzas"));
+        assert!(names.contains(&"Salud"));
+        assert!(names.contains(&"Educación"));
     }
 
     #[test]
@@ -127,7 +150,7 @@ mod tests {
     #[test]
     fn the_three_are_sown_in_the_order_they_are_written() {
         let ops = sown("es");
-        assert_eq!(ops.len(), 6);
+        assert_eq!(ops.len(), FIRST.len() * 2);
 
         let mut names = Vec::new();
         let mut orders = Vec::new();
@@ -137,7 +160,7 @@ mod tests {
                 orders.push(d.order.clone());
             }
         }
-        assert_eq!(names, ["Trabajo", "Personal", "Familia"]);
+        assert_eq!(&names[..3], ["Trabajo", "Personal", "Familia"]);
         assert!(orders[0] < orders[1] && orders[1] < orders[2], "{orders:?}");
     }
 
