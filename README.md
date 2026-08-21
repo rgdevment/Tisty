@@ -117,14 +117,15 @@ three words open one: **before**, **due**, **until**.
 a description and a journal in Markdown, steps you tick one at a time, and
 whatever you dropped on it. Completing it puts none of that out of reach.
 
-**Priorities are a matrix, not a ladder.** Tisty borrows the four quadrants of the
-Eisenhower matrix — the method President Dwight D. Eisenhower is credited with and
-Stephen Covey popularised in *The 7 Habits of Highly Effective People*: sort what you
-have by urgent against important, and each quadrant tells you what to do with it.
-**Do** what is urgent and important, **Decide** when to do what matters and is not
-urgent, **Delegate** what is urgent and is not yours, and be honest about what you
-**won't do**. Drag a task into its quadrant, or type it: `!do`, `!decide`, `!delegate`.
-Whatever nobody has placed waits in a tray you open when you want to empty it.
+**Priorities are a matrix, not a ladder.** Tisty borrows the four quadrants
+of the Eisenhower matrix — the method President Dwight D. Eisenhower is
+credited with, popularised by Stephen Covey in *The 7 Habits of Highly
+Effective People*: sort what you have by urgent against important, and each
+quadrant tells you what to do with it. **Do** what is urgent and important,
+**Decide** when to do what matters and is not urgent, **Delegate** what is
+urgent and is not yours, and **Drop** what you are not going to do. Drag a
+task into its quadrant, or type it: `!do`, `!decide`, `!delegate`. Whatever
+nobody has placed waits in a tray you open when you want to empty it.
 
 ![Urgent against important, and what to do with each](assets/readme/5-eng.jpg)
 
