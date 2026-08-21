@@ -54,9 +54,10 @@ Covey — plus a fifth value for the tasks nobody has placed yet:
 {"v":4,"ts":"…","by":"dev_a3f1","op":"task.set","id":"01KZ…","d":{"priority":"delegate"}}
 ```
 
-`do` · `decide` · `delegate` · `wont` · `unset`. **The word goes on disk, not a
+`do` · `decide` · `delegate` · `minor` · `unset`. **The word goes on disk, not a
 number**, so the log still says what it means when you read it without Tisty,
-and the default value is written out rather than hiding inside a `4`.
+and the default value is written out rather than hiding inside a `4`. Schema 5
+renamed the fourth quadrant from `wont`, and still reads that older word.
 
 Quadrants are not a ladder, so a number cannot name one: schema 4 reads the
 levels `1..4` an older Tisty wrote as `unset`, and refuses anything else. Those
@@ -64,7 +65,7 @@ old events stay on disk untouched — the log only ever appends — so nothing i
 destroyed by the change; it stops being shown.
 
 The order the quadrants sort in is the order they are read in, with one deliberate
-exception: **`wont` sorts last of all, behind `unset`**. That order is what numbers
+exception: **`minor` sorts last of all, behind `unset`**. That order is what numbers
 the tasks you address in the CLI, and what you have declared you will not do belongs
 at the bottom of that list, not floating above the untriaged pile.
 

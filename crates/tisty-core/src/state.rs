@@ -497,7 +497,7 @@ impl State {
             .collect();
         fresh.date = Some(next);
         fresh.priority = Some(match task.priority {
-            Priority::Wont => Priority::Unset,
+            Priority::Minor => Priority::Unset,
             kept => kept,
         });
         fresh.list = task.list;
@@ -993,7 +993,7 @@ mod tests {
             every: 1,
             unit: Unit::Week,
         }));
-        add.priority = Some(Priority::Wont);
+        add.priority = Some(Priority::Minor);
         state.apply(&ev(1, "a", Op::TaskAdd { id, d: add }));
 
         let now = jiff::civil::date(2026, 8, 4)

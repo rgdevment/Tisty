@@ -1,8 +1,9 @@
-import { emit } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, useState } from "react";
-import { capture, type Snapshot, snapshot } from "./core";
-import { adopt, t } from "./locales";
+import { capture, type Priority, type Snapshot, snapshot } from "./core";
+import { adopt, fill, t } from "./locales";
+import { said } from "./quadrants";
 import { saidPlainly } from "./refusal";
 import CaptureField from "./ui/CaptureField";
 
@@ -11,6 +12,7 @@ export default function Quick() {
   const [error, setError] = useState<string | null>(null);
   const [kept, setKept] = useState<string>();
   const [round, setRound] = useState(0);
+  const [where, setWhere] = useState<Priority>("unset");
   const going = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
@@ -27,6 +29,7 @@ export default function Quick() {
 
     const stop = window.onFocusChanged(({ payload: focused }) => {
       if (!focused) {
+        setWhere("unset");
         away();
         return;
       }
@@ -39,6 +42,13 @@ export default function Quick() {
 
     void look();
 
+    const sown = listen<Priority | null>("sow", ({ payload }) => {
+      setWhere(payload ?? "unset");
+      setKept(undefined);
+      setError(null);
+      setRound((n) => n + 1);
+    });
+
     const leaving = (e: KeyboardEvent) => {
       if (e.key === "Escape") away();
     };
@@ -46,6 +56,7 @@ export default function Quick() {
 
     return () => {
       void stop.then((off) => off());
+      void sown.then((off) => off());
       globalThis.removeEventListener("keydown", leaving);
       if (going.current) clearTimeout(going.current);
     };
@@ -70,12 +81,13 @@ export default function Quick() {
       ) : (
         <CaptureField
           key={round}
-          invite={t("addTask")}
+          invite={where === "unset" ? t("addTask") : fill("addTo", said(where))}
           lists={data.lists}
           tags={data.tags}
           onCapture={(written, edits) => {
             setError(null);
-            return capture(written, {}, edits).then((task) => {
+            const asked = where === "unset" ? edits : { ...edits, priority: where };
+            return capture(written, {}, asked).then((task) => {
               setKept(task.title);
               void emit("captured");
               going.current = setTimeout(() => void getCurrentWindow().hide(), 900);

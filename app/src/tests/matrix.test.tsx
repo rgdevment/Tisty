@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { List, Task } from "../core";
 import Matrix from "../ui/Matrix";
 
@@ -28,7 +28,7 @@ const tasks: Task[] = [
   task("1", "close the quarter", "do", "L1"),
   task("2", "plan the Rust course", "decide", "L1"),
   task("3", "answer the supplier survey", "delegate", "L1"),
-  task("4", "compare the tariffs again", "wont", "L2"),
+  task("4", "compare the tariffs again", "minor", "L2"),
   task("5", "quote the move", "unset", "L2"),
   task("6", "renew the passport", "unset", "L1"),
 ];
@@ -44,6 +44,7 @@ const show = (extra: Partial<React.ComponentProps<typeof Matrix>> = {}) =>
       lists={lists}
       onPlace={vi.fn()}
       onOpen={vi.fn()}
+      onSow={vi.fn()}
       onDiscardAll={vi.fn()}
       {...extra}
     />,
@@ -88,6 +89,8 @@ const tap = async (title: string) => {
 };
 
 describe("the matrix", () => {
+  beforeEach(() => localStorage.clear());
+
   it("puts every task in the quadrant it was placed in", () => {
     widen(1500);
     show();
@@ -95,7 +98,7 @@ describe("the matrix", () => {
     expect(within(quadrant("Do")).getByText("close the quarter")).toBeTruthy();
     expect(within(quadrant("Decide")).getByText("plan the Rust course")).toBeTruthy();
     expect(within(quadrant("Delegate")).getByText("answer the supplier survey")).toBeTruthy();
-    expect(within(quadrant("Drop")).getByText("compare the tariffs again")).toBeTruthy();
+    expect(within(quadrant("Minor")).getByText("compare the tariffs again")).toBeTruthy();
   });
 
   it("keeps what nobody placed out of the four, in the tray", async () => {
@@ -148,7 +151,7 @@ describe("the matrix", () => {
       within(quadrant("Do")).queryByRole("button", { name: "I won't do any of them" }),
     ).toBeNull();
     await userEvent.click(
-      within(quadrant("Drop")).getByRole("button", { name: "I won't do any of them" }),
+      within(quadrant("Minor")).getByRole("button", { name: "I won't do any of them" }),
     );
 
     expect(onDiscardAll).toHaveBeenCalledWith(["4"]);
@@ -238,6 +241,58 @@ describe("the matrix", () => {
       widen(1100);
       window.dispatchEvent(new Event("resize"));
     });
+
+    expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
+  });
+
+  it("calls the quick capture with the quadrant whose plus was pressed", async () => {
+    widen(1500);
+    const onSow = vi.fn();
+    show({ onSow });
+
+    await userEvent.click(screen.getByRole("button", { name: "Add to Delegate" }));
+
+    expect(onSow).toHaveBeenCalledWith("delegate");
+  });
+
+  it("offers no plus on the quadrant nobody adds to on purpose", () => {
+    widen(1500);
+    show();
+
+    expect(screen.queryByRole("button", { name: "Add to Minor" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add to Do" })).toBeTruthy();
+  });
+
+  it("asks the quick capture for something unclassified from the tray", async () => {
+    widen(1500);
+    const onSow = vi.fn();
+    show({ onSow });
+    await openTray();
+
+    await userEvent.click(screen.getByRole("button", { name: "Add to Unclassified" }));
+
+    expect(onSow).toHaveBeenCalledWith("unset");
+  });
+
+  it("opens the tray the way it was left last time", async () => {
+    widen(1500);
+    const first = show();
+    await openTray();
+    first.unmount();
+
+    show();
+
+    expect(screen.getByRole("complementary", { name: "Unclassified" })).toBeTruthy();
+  });
+
+  it("keeps the tray shut when that is how it was left", async () => {
+    widen(1500);
+    const first = show();
+    await openTray();
+    await userEvent.click(screen.getByRole("button", { name: "Close this column" }));
+    first.unmount();
+
+    show();
 
     expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
   });
