@@ -122,6 +122,13 @@ never gets ticked. They are Markdown files you edit as documents — tables,
 checklists, code, images — and search reads them too. A task can point at a
 document; a document never creates tasks.
 
+The writing sits on a lit page, and its first line is both the name of the
+document and its title. When the window is wide enough a column opens beside it
+with what the document is, the formatting the `/` menu used to hide, and its
+outline. **Tisty makes its own PDF** — A4, Letter or one endless sheet, with its
+own margins and the attachments carried inside — and shows it to you before you
+export it.
+
 ![Documents in Markdown, with attachments](assets/readme/3-eng.jpg)
 
 **A global shortcut** opens a small field over whatever you are doing, so a task
