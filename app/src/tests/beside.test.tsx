@@ -25,17 +25,31 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
+vi.mock("@react-pdf/renderer", () => ({
+  pdf: () => ({ toBlob: async () => new Blob(["%PDF"], { type: "application/pdf" }) }),
+  Document: () => null,
+  Page: () => null,
+  Text: () => null,
+  View: () => null,
+  Image: () => null,
+  Link: () => null,
+  Font: { registerHyphenationCallback: () => {} },
+  StyleSheet: { create: (one: unknown) => one },
+}));
+
 vi.mock("../ui/Editor", () => ({
   default: ({
     value,
     onWrite,
     onBlocks,
     onOutline,
+    onReady,
   }: {
     value: string;
     onWrite: (text: string) => void;
     onBlocks?: (blocks: unknown[]) => void;
     onOutline?: (heads: unknown[]) => void;
+    onReady?: (read: () => unknown) => void;
   }) => {
     useEffect(() => {
       onBlocks?.([
@@ -59,7 +73,8 @@ vi.mock("../ui/Editor", () => ({
         { key: "1", level: 1, text: "Compras", go: () => store.went.push("Compras") },
         { key: "2", level: 2, text: "Fruta", go: () => store.went.push("Fruta") },
       ]);
-    }, [onBlocks, onOutline]);
+      onReady?.(() => ({ type: "doc", content: [] }));
+    }, [onBlocks, onOutline, onReady]);
     return <textarea aria-label="editor" value={value} onChange={(e) => onWrite(e.target.value)} />;
   },
 }));
@@ -243,8 +258,7 @@ describe("where the document rests", () => {
     show();
     await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
 
-    expect(sheetOf()?.className).toContain("max-w-[820px]");
-    expect(sheetOf()?.style.maxWidth).toBe("");
+    expect(sheetOf()?.style.maxWidth).toBe("820px");
   });
 });
 
@@ -259,5 +273,67 @@ describe("measuring a document", () => {
 
   it("counts the documents the text points at", () => {
     expect(counted(`[a](${DOC}01) y [b](${DOC}02)`, DOC)).toBe(2);
+  });
+});
+
+describe("what the column offers for the document", () => {
+  beforeEach(() => {
+    URL.createObjectURL = () => "blob:probe";
+    URL.revokeObjectURL = () => {};
+  });
+
+  const named = () =>
+    screen
+      .getAllByRole("button")
+      .map((one) => one.textContent?.trim())
+      .filter((one) => ["Preview", "Export", "Copy", "Save a copy"].includes(one ?? ""));
+
+  it("puts them in the order they are reached for", async () => {
+    widen(1500);
+    show();
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(named()).toEqual(["Preview", "Export", "Copy", "Save a copy"]);
+  });
+
+  it("keeps the two trades apart, so no verb has to mean two things", async () => {
+    widen(1500);
+    show();
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(screen.getByText("PDF")).toBeTruthy();
+    expect(screen.getByText("Markdown")).toBeTruthy();
+  });
+
+  it("says Close, not the name of another panel", async () => {
+    widen(1500);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+
+    expect(await screen.findByRole("button", { name: "Close" })).toBeTruthy();
+  });
+
+  it("lets the preview go when the section is left, instead of leaking it", async () => {
+    const freed: string[] = [];
+    URL.revokeObjectURL = (one: string) => {
+      freed.push(one);
+    };
+    widen(1500);
+    const view = show();
+    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    expect(screen.queryByRole("button", { name: "Close" })).toBeTruthy();
+
+    view.unmount();
+
+    expect(freed).toContain("blob:probe");
+  });
+
+  it("shuts the preview when told to", async () => {
+    widen(1500);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
   });
 });

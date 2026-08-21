@@ -8,6 +8,7 @@
   --tisty-panel: #fbfbfd;
   --tisty-desk: #eceef1;
   --tisty-sheet: #ffffff;
+  --tisty-cast: rgb(0 0 0 / 0.1);
   --tisty-ink: #1d1d1f;
   --tisty-soft: #57575c;
   --tisty-faint: #67676b;
@@ -39,6 +40,7 @@
   --tisty-panel: #202022;
   --tisty-desk: #151516;
   --tisty-sheet: #232326;
+  --tisty-cast: rgb(0 0 0 / 0.45);
   --tisty-ink: #f2f2f7;
   --tisty-soft: #adadb4;
   --tisty-faint: #9a9aa1;
@@ -347,11 +349,15 @@ body {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
 .tisty-doc hr {
   margin: 0 -40px;
   border: 0;
-  height: 28px;
+  height: 30px;
   background: var(--tisty-desk);
+  box-shadow:
+    inset 0 7px 7px -7px var(--tisty-cast),
+    inset 0 -7px 7px -7px var(--tisty-cast);
 }
 .tisty-doc hr.ProseMirror-selectednode {
   outline: 2px solid var(--tisty-accent);
@@ -700,6 +706,7 @@ body {
 }
 
 @page {
+  size: A4;
   margin: 22mm 20mm;
 }
 
@@ -723,6 +730,9 @@ body {
   [data-chrome],
   [data-tauri-drag-region] {
     display: none !important;
+  }
+  main > div > div {
+    max-width: none !important;
   }
   #root > div {
     display: block !important;
@@ -777,19 +787,36 @@ body {
   }
   .beside {
     background: none;
-    border: 1px solid #d4d4d8;
+    border: 0;
+    border-left: 2px solid #d4d4d8;
+    border-radius: 0;
+    padding-left: 10px;
     color: #52525b;
   }
   .tisty-doc hr {
-    height: 1px;
-    margin: 22px 0;
-    background: #a1a1aa;
+    height: 0;
+    margin: 0;
+    background: none;
+    box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+  }
+  .tisty-doc img,
+  .tisty-doc pre,
+  .tisty-doc table,
+  .tisty-doc blockquote {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .tisty-doc h1,
+  .tisty-doc h2,
+  .tisty-doc h3 {
+    break-after: avoid;
+    page-break-after: avoid;
   }
   .tisty-doc > :is(h1, h2, h3, p):first-child {
-    border-bottom: 1px solid #a1a1aa;
-  }
-  .tisty-doc > :is(h1, h2, h3, p):first-child:only-child {
     border-bottom: 0;
+    padding-bottom: 0;
   }
   .tisty-doc li::marker {
     color: #000;

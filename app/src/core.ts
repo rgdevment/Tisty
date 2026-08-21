@@ -440,6 +440,8 @@ export interface Folded {
   holds: number;
 }
 
+export type Paper = "a4" | "letter" | "endless";
+
 export interface Filed {
   id: string;
   file: string;
@@ -479,6 +481,9 @@ export const folderFile = (id: string, parent?: string): Promise<void> =>
   invoke("folder_file", { id, parent });
 
 export const printed = (): Promise<void> => invoke("printed");
+
+export const keepPdf = (at: string, bytes: number[]): Promise<void> =>
+  invoke("keep_pdf", { at, bytes });
 
 export const parted = (): Promise<void> => invoke("parted");
 

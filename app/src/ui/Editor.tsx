@@ -94,6 +94,7 @@ interface Props {
   onBlocks?: (blocks: Block[]) => void;
   onOutline?: (heads: Head[]) => void;
   onLaid?: (root: HTMLElement) => void;
+  onReady?: (read: () => unknown) => void;
 }
 
 export default function Editor({
@@ -113,6 +114,7 @@ export default function Editor({
   onBlocks,
   onOutline,
   onLaid,
+  onReady,
 }: Props) {
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
@@ -170,8 +172,8 @@ export default function Editor({
     setActive(0);
   };
 
-  const hands = useRef({ onWrite, onOpen, onDoc, onShaped, onOutline, onLaid });
-  hands.current = { onWrite, onOpen, onDoc, onShaped, onOutline, onLaid };
+  const hands = useRef({ onWrite, onOpen, onDoc, onShaped, onOutline, onLaid, onReady });
+  hands.current = { onWrite, onOpen, onDoc, onShaped, onOutline, onLaid, onReady };
   looked.current = look;
 
   const shapes = useMemo(() => [...written(), previewing(() => reach.current)], []);
@@ -247,6 +249,7 @@ export default function Editor({
     if (text !== null) hands.current.onShaped?.(text);
     outlined.current(editor);
     hands.current.onLaid?.(editor.view.dom as HTMLElement);
+    hands.current.onReady?.(() => editor.getJSON());
   }, []);
 
   const listed = useRef("");

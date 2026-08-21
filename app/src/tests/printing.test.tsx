@@ -62,7 +62,6 @@ describe("what the printed sheet leaves out", () => {
   it("puts a colour on paper for what the dark theme would leave invisible", () => {
     const printed = sheet();
 
-    expect(printed).toMatch(/\.tisty-doc hr\s*\{[^}]*#/);
     expect(printed).toMatch(/\.tisty-doc li::marker\s*\{[^}]*#/);
     expect(printed).toMatch(/\.tisty-doc code\s*\{[^}]*background:\s*#/);
     expect(printed).toMatch(/\.tisty-doc th\s*\{[^}]*background:\s*#/);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type DocFacts, docFacts } from "../core";
+import { type DocFacts, docFacts, type Paper } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import { DOC } from "../markdown";
@@ -20,6 +20,11 @@ export const counted = (body: string, needle: string): number => body.split(need
 const dated = (when: number | null): string =>
   when ? stamped(new Date(when * 1000).toISOString()) : "—";
 
+const mild =
+  "rounded-[7px] border border-line px-2 py-1 text-[11.5px] text-soft hover:bg-hover hover:text-ink disabled:border-hair disabled:text-faint";
+
+const LEAVES: Paper[] = ["a4", "letter", "endless"];
+
 interface Props {
   title: string;
   paper: string;
@@ -27,10 +32,32 @@ interface Props {
   kept: number;
   blocks: Block[];
   heads: Head[];
+  leaf: Paper;
+  onLeaf: (leaf: Paper) => void;
+  making: boolean;
+  onPdf: () => void;
+  onSee: () => void;
+  onCopy: () => void;
+  onTakeOut: () => void;
   onShut: () => void;
 }
 
-export default function Beside({ title, paper, body, kept, blocks, heads, onShut }: Props) {
+export default function Beside({
+  title,
+  paper,
+  body,
+  kept,
+  blocks,
+  heads,
+  leaf,
+  onLeaf,
+  making,
+  onPdf,
+  onSee,
+  onCopy,
+  onTakeOut,
+  onShut,
+}: Props) {
   const [facts, setFacts] = useState<DocFacts | null>(null);
 
   useEffect(() => {
@@ -109,6 +136,57 @@ export default function Beside({ title, paper, body, kept, blocks, heads, onShut
               </div>
             )}
           </dl>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("leafIs")}</h3>
+          <div className="flex gap-1">
+            {LEAVES.map((one) => (
+              <button
+                key={one}
+                type="button"
+                aria-pressed={leaf === one}
+                onClick={() => onLeaf(one)}
+                className={`flex-1 rounded-[7px] border px-2 py-1 text-[11.5px] ${
+                  leaf === one
+                    ? "border-ink bg-ink text-bg"
+                    : "border-line text-faint hover:text-soft"
+                }`}
+              >
+                {t(one === "a4" ? "leafA4" : one === "letter" ? "leafLetter" : "leafEndless")}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("bandPdf")}</h3>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              disabled={making}
+              onClick={onSee}
+              aria-busy={making}
+              className={`${mild} flex-1`}
+            >
+              {making ? t("makingPdf") : t("seePdf")}
+            </button>
+            <button type="button" disabled={making} onClick={onPdf} className={`${mild} flex-1`}>
+              {t("exportIt")}
+            </button>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("bandText")}</h3>
+          <div className="flex gap-1">
+            <button type="button" onClick={onCopy} className={`${mild} flex-1`}>
+              {t("copyIt")}
+            </button>
+            <button type="button" onClick={onTakeOut} className={`${mild} flex-1`}>
+              {t("saveCopy")}
+            </button>
+          </div>
         </section>
 
         <Band name={t("shaping")} blocks={shapes} />
