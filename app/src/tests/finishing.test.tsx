@@ -49,7 +49,7 @@ describe("finishing a task from the panel", () => {
   it("completes it from the column", async () => {
     const done = open(task());
 
-    await userEvent.click(screen.getByRole("button", { name: "✓ Done" }));
+    await userEvent.click(screen.getByRole("button", { name: /complete/i }));
 
     expect(done).toHaveBeenCalled();
   });
@@ -57,7 +57,7 @@ describe("finishing a task from the panel", () => {
   it("completes it full-screen too", async () => {
     const done = open(task(), true);
 
-    await userEvent.click(screen.getByRole("button", { name: "✓ Done" }));
+    await userEvent.click(screen.getByRole("button", { name: /complete/i }));
 
     expect(done).toHaveBeenCalled();
   });
@@ -71,7 +71,7 @@ describe("finishing a task from the panel", () => {
   it("offers to reopen instead once the task is settled", () => {
     open(task({ status: "done" }));
 
-    expect(screen.queryByRole("button", { name: "✓ Done" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /complete/i })).toBeNull();
     expect(screen.getByRole("button", { name: /reopen/i })).toBeTruthy();
   });
 });

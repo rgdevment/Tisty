@@ -153,3 +153,42 @@ describe("the / menu", () => {
     expect(onWrite).not.toHaveBeenCalled();
   });
 });
+
+describe("Enter, which sends what was written", () => {
+  it("keeps what was typed and closes the field, without a stray line break", async () => {
+    const user = userEvent.setup();
+    const onWrite = field();
+
+    await user.click(region());
+    await user.clear(box());
+    await user.type(box(), "llamé al banco{Enter}");
+
+    expect(onWrite).toHaveBeenCalledWith("llamé al banco");
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  it("breaks the line with Shift, which is how a longer note is written", async () => {
+    const user = userEvent.setup();
+    const onWrite = field();
+
+    await user.click(region());
+    await user.clear(box());
+    await user.type(box(), "una línea{Shift>}{Enter}{/Shift}y otra");
+
+    expect(box().value).toBe("una línea\ny otra");
+    expect(onWrite).not.toHaveBeenCalled();
+  });
+
+  it("leaves Enter to the insert menu, where it picks what is highlighted", async () => {
+    const user = userEvent.setup();
+    const onWrite = field();
+
+    await user.click(region());
+    await user.clear(box());
+    await user.type(box(), "/");
+    await user.keyboard("{Enter}");
+
+    expect(onWrite).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox", { name: "Descripción" })).toBeTruthy();
+  });
+});

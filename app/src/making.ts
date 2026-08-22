@@ -1,5 +1,5 @@
 import { docNew, docWrite } from "./core";
-import { docLink } from "./markdown";
+import { docCard } from "./markdown";
 
 export interface Born {
   id: string;
@@ -11,5 +11,5 @@ export const spawned = (name: string, folder?: string): Promise<Born> => {
   if (!said) return Promise.reject(new Error("untitled"));
   return docNew(folder)
     .then((made) => docWrite(made.id, `# ${said}\n\n`).then(() => made))
-    .then((made) => ({ id: made.id, said: docLink(made.id, said) }));
+    .then((made) => ({ id: made.id, said: docCard(made.id, said) }));
 };

@@ -122,7 +122,7 @@ const value = (name: string) =>
   (screen.getByRole("textbox", { name }) as HTMLTextAreaElement | HTMLInputElement).value;
 
 describe("the open panel", () => {
-  it("stays on a task the action pushed out of the view", async () => {
+  it("lets go of the task once it is completed from the list", async () => {
     const user = userEvent.setup();
     await started();
 
@@ -131,8 +131,61 @@ describe("the open panel", () => {
 
     await user.click(screen.getByRole("button", { name: "Complete write the report" }));
 
-    await screen.findByRole("button", { name: /Reopen/ });
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
+  });
+
+  it("stays on a task it did not complete", async () => {
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByText("write the report"));
+    await screen.findByRole("textbox", { name: "Title" });
+
+    await user.click(screen.getByRole("button", { name: "Complete call the bank" }));
+
     expect(value("Title")).toBe("write the report");
+  });
+
+  it("lets go of the task once it is completed from the panel itself", async () => {
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByText("write the report"));
+    await screen.findByRole("textbox", { name: "Title" });
+
+    await user.click(await screen.findByRole("button", { name: /^Complete$/ }));
+
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
+  });
+
+  it("does not leave the panel showing a task settled after it was reopened", async () => {
+    const user = userEvent.setup();
+    const quick = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "snapshot") {
+        return new Promise((go) =>
+          setTimeout(() => go(shot(args.view as { archive?: boolean })), 30),
+        );
+      }
+      if (cmd === "reopen") {
+        const at = tasks.findIndex((one) => one.id === args.id);
+        if (at < 0) return Promise.resolve(null);
+        const back: Task = { ...tasks[at], status: "open" };
+        tasks[at] = back;
+        return Promise.resolve(back);
+      }
+      return quick(cmd, args);
+    };
+    await started();
+
+    await user.click(screen.getByRole("button", { name: /Archive/ }));
+    await user.click(await screen.findByText("filed last month"));
+    await screen.findByRole("textbox", { name: "Title" });
+
+    await user.click(screen.getByRole("button", { name: /Reopen/ }));
+
+    expect(await screen.findByRole("button", { name: /^Complete$/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Reopen/ })).toBeNull();
   });
 
   it("does not carry a half-written step from one task to the next", async () => {
@@ -169,7 +222,7 @@ describe("the full screen", () => {
     await started();
 
     await user.click(screen.getByText("write the report"));
-    await user.click(screen.getByRole("button", { name: /Not doing it/ }));
+    await user.click(await screen.findByRole("button", { name: /Not doing it/ }));
 
     await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
   });

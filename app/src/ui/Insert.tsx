@@ -4,7 +4,7 @@ import { attach } from "../core";
 import { addressed } from "../linking";
 import { t } from "../locales";
 import { spawned } from "../making";
-import { docLink } from "../markdown";
+import { docCard } from "../markdown";
 import Asking from "./Asking";
 import { useEdge } from "./edge";
 import Papers from "./Papers";
@@ -82,7 +82,7 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
         )}
         {step === "link" && <Linking onLink={(text, url) => onPut(`[${text}](${url})`)} />}
         {step === "doc" && (
-          <Papers onPick={(doc) => onPut(docLink(doc.file, doc.title))} onError={onError} />
+          <Papers onPick={(doc) => onPut(docCard(doc.file, doc.title))} onError={onError} />
         )}
         {step === "newdoc" && (
           <Asking

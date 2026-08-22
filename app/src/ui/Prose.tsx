@@ -97,8 +97,14 @@ export default function Prose({
         onFocus={() => setWriting(true)}
         onBlur={() => slash === null && settle()}
         onKeyDown={(e) => {
-          if (e.key === "Escape" && slash === null) {
+          if (slash !== null || e.nativeEvent.isComposing) return;
+          if (e.key === "Escape") {
             dropped.current = true;
+            e.currentTarget.blur();
+            return;
+          }
+          if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
             e.currentTarget.blur();
           }
         }}

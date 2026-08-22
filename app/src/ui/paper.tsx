@@ -12,7 +12,7 @@ export const CODE = 9;
 const PITCH = 0.6;
 const PAD = 9;
 export const TYPE = 10.5;
-export const LEADING = 1.05;
+export const LEADING = 0.92;
 
 export interface Run {
   text: string;
@@ -30,6 +30,7 @@ export type Shape =
   | { kind: "code"; runs: Run[]; deep: number }
   | { kind: "bullet"; mark: string; runs: Run[]; deep: number }
   | { kind: "image"; src: string; alt?: string }
+  | { kind: "file"; name: string; said: string }
   | { kind: "table"; rows: Run[][][] }
   | { kind: "rule" };
 
@@ -73,12 +74,18 @@ const sheet = StyleSheet.create({
   },
   row: { flexDirection: "row", marginBottom: 4 },
   mark: { width: 20 },
-  image: {
+  frame: {
     marginVertical: 10,
+    padding: 7,
+    backgroundColor: "#fafafa",
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
+    borderRadius: 12,
+  },
+  image: {
     width: "100%",
     maxHeight: 360,
     objectFit: "contain",
-    borderRadius: 6,
   },
   link: { color: "#1d4ed8", textDecoration: "underline" },
   inline: { fontFamily: "Courier", fontSize: 9.5, backgroundColor: "#f4f4f5" },
@@ -100,6 +107,30 @@ const sheet = StyleSheet.create({
     lineHeight: 1.35,
   },
   th: { backgroundColor: "#f4f4f5", fontWeight: 700 },
+  card: {
+    marginVertical: 8,
+    padding: "9 11",
+    borderWidth: 1,
+    borderColor: "#d4d4d8",
+    borderRadius: 6,
+    backgroundColor: "#fafafa",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  cardLeaf: {
+    width: 20,
+    height: 25,
+    marginRight: 10,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: "#a1a1aa",
+    borderRadius: 2,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+  },
+  cardLine: { height: 1.4, backgroundColor: "#c4c4c8", marginVertical: 1.4 },
+  cardName: { fontSize: 10.5, fontWeight: 700 },
+  cardSaid: { fontSize: 9, color: "#71717a", marginTop: 2 },
   missing: {
     marginVertical: 8,
     padding: 8,
@@ -234,12 +265,28 @@ const shaped = (one: Shape, at: number, room: number) => {
           )}
         </View>
       );
+    case "file":
+      return (
+        <View key={key} style={sheet.card} wrap={false}>
+          <View style={sheet.cardLeaf}>
+            <View style={sheet.cardLine} />
+            <View style={sheet.cardLine} />
+            <View style={[sheet.cardLine, { width: "60%" }]} />
+          </View>
+          <View>
+            <Text style={sheet.cardName}>{one.name}</Text>
+            <Text style={sheet.cardSaid}>{one.said}</Text>
+          </View>
+        </View>
+      );
     case "image":
       return one.src ? (
-        <Image key={key} style={sheet.image} src={one.src} />
+        <View key={key} style={sheet.frame} wrap={false}>
+          <Image style={sheet.image} src={one.src} />
+        </View>
       ) : (
         <Text key={key} style={sheet.missing}>
-          {one.alt || "?"}
+          {`◻ ${one.alt || "?"}`}
         </Text>
       );
     case "table":

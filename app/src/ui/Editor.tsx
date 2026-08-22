@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Editor as Writing } from "@tiptap/core";
 import type { Node as Written } from "@tiptap/pm/model";
-import { NodeSelection } from "@tiptap/pm/state";
+import { type EditorState, NodeSelection } from "@tiptap/pm/state";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { docRead, type Filed, noteTrouble, served, weighs } from "../core";
@@ -9,12 +9,14 @@ import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
+import { pictured } from "../previews";
 import Asking from "./Asking";
 import Floats from "./Floats";
 import Glyphs from "./Glyphs";
 import Menu from "./Menu";
 import Papers from "./Papers";
 import { previewing, type Reach } from "./previewing";
+import Shot from "./Shot";
 import Slash, { asked, type Block, narrowed } from "./Slash";
 import { asMarkdown, type Head, headed, written } from "./writing";
 
@@ -77,6 +79,23 @@ const caret = (editor: Writing, at: number) => {
   }
 };
 
+export const shotNode = (state: EditorState): string | null => {
+  const held = state.selection;
+  if (!(held instanceof NodeSelection) || held.node.type.name !== "image") return null;
+  const src = String(held.node.attrs.src ?? "");
+  return pictured(src) ? src : null;
+};
+
+export const shotAt = (editor: Writing): { at: { x: number; y: number }; src: string } | null => {
+  const src = shotNode(editor.state);
+  if (!src || /^(https?|data):/i.test(src)) return null;
+  const held = editor.state.selection;
+  const seen = editor.view.nodeDOM(held.from) as HTMLElement | null;
+  const box = seen?.getBoundingClientRect?.();
+  if (!box) return null;
+  return { at: { x: box.left, y: Math.max(8, box.top - 40) }, src };
+};
+
 const aimed = (editor: Writing) => {
   editor.commands.focus();
   return caret(editor, editor.state.selection.from);
@@ -124,6 +143,7 @@ export default function Editor({
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
   const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
+  const [shot, setShot] = useState<{ at: { x: number; y: number }; src: string } | null>(null);
   const [tying, setTying] = useState<{ x: number; y: number } | null>(null);
   const [choosing, setChoosing] = useState<{ x: number; y: number } | null>(null);
   const [swapping, setSwapping] = useState<{
@@ -164,6 +184,7 @@ export default function Editor({
         ? { at: middle(editor, $from.pos, $to.pos) }
         : null,
     );
+    setShot(shotAt(editor));
     if (hushed.current || !empty || code || editor.isActive("code")) {
       return setAsking(null);
     }
@@ -181,14 +202,14 @@ export default function Editor({
 
   const props = useMemo(
     () => ({
-      attributes: {
-        class: "tisty-doc",
+      attributes: (state: EditorState) => ({
+        class: shotNode(state) ? "tisty-doc shot-picked" : "tisty-doc",
         [CATCHES]: "",
         role: "textbox",
         "aria-multiline": "true",
         spellcheck: "true",
         ...(label ? { "aria-label": label } : {}),
-      },
+      }),
       transformPastedHTML: stripped,
       handleDOMEvents: {
         mousedown: () => {
@@ -583,6 +604,16 @@ export default function Editor({
         <Slash at={asking.at} blocks={shown} active={active} onPick={take} />
       )}
       {picked && editor && !asking && !tying && <Floats editor={editor} at={picked.at} />}
+      {shot && editor && (
+        <Shot
+          at={shot.at}
+          onOpen={() => onOpen?.(shot.src)}
+          onDrop={() => {
+            editor.chain().focus().deleteSelection().run();
+            setShot(null);
+          }}
+        />
+      )}
       {tying && editor && (
         <Floats editor={editor} at={tying} asking onDone={() => setTying(null)} />
       )}
@@ -615,7 +646,14 @@ export default function Editor({
                 spawned(name, folder ?? undefined)
                   .then((born) => {
                     onMade?.(born.id, name);
-                    editor.chain().focus().insertContent(born.said).run();
+                    editor
+                      .chain()
+                      .focus()
+                      .insertContent({
+                        type: "image",
+                        attrs: { src: `${DOC}${born.id}`, alt: name },
+                      })
+                      .run();
                   })
                   .catch(() => editor.commands.focus());
               }}

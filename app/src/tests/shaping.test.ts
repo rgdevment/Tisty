@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SIZES } from "../ui/paper";
+import { type Shape, SIZES } from "../ui/paper";
 import { asData, fetched, shapesOf, titled } from "../ui/shaping";
 
 const doc = (...content: unknown[]) => ({ type: "doc", content });
@@ -199,7 +199,7 @@ describe("carrying an attachment into the PDF", () => {
         { kind: "image", src: "attachments/a.png", alt: "una" },
         { kind: "para", runs: [{ text: "x" }] },
       ],
-      async () => [1, 2, 3],
+      async () => [137, 80, 78, 71, 13, 10],
     );
 
     expect(shapes[0].kind === "image" && shapes[0].src.startsWith("data:")).toBe(true);
@@ -215,7 +215,7 @@ describe("carrying an attachment into the PDF", () => {
       ],
       async () => {
         asked += 1;
-        return [1];
+        return [137, 80, 78, 71];
       },
     );
 
@@ -238,5 +238,51 @@ describe("carrying an attachment into the PDF", () => {
 
     expect(shapes[0].kind === "image" && shapes[0].src).toBe("");
     expect(shapes[0].kind === "image" && shapes[0].alt).toBe("perdida");
+  });
+});
+
+describe("what the printed page can and cannot draw", () => {
+  it("turns a pdf attachment into a named card instead of a broken picture", async () => {
+    const shapes: Shape[] = [{ kind: "image", src: "attachments/ab/informe-a1b2.pdf", alt: "" }];
+
+    const out = await fetched(shapes, () => Promise.resolve([1, 2, 3]));
+
+    expect(out[0]).toEqual({ kind: "file", name: "informe-a1b2.pdf", said: "PDF" });
+  });
+
+  it("keeps the label the writer gave the file", async () => {
+    const shapes: Shape[] = [
+      { kind: "image", src: "attachments/ef/minuta-e5f6.docx", alt: "Minuta del lunes" },
+    ];
+
+    const out = await fetched(shapes, () => Promise.resolve([1]));
+
+    expect(out[0]).toEqual({ kind: "file", name: "Minuta del lunes", said: "Word" });
+  });
+
+  it("prints a document card as a document, not as a file with a strange type", async () => {
+    const shapes: Shape[] = [
+      { kind: "image", src: "tisty:doc/65w7xrqp-0001", alt: "Cómo funciona Tisty" },
+    ];
+
+    const out = await fetched(shapes, () => Promise.resolve([1]));
+
+    expect(out[0]).toEqual({ kind: "file", name: "Cómo funciona Tisty", said: "Document" });
+  });
+
+  it("refuses to draw a file that only pretends to be a picture", async () => {
+    const shapes: Shape[] = [{ kind: "image", src: "attachments/ab/roto-a1b2.png", alt: "roto" }];
+
+    const out = await fetched(shapes, () => Promise.resolve([37, 80, 68, 70]));
+
+    expect(out[0]).toEqual({ kind: "file", name: "roto", said: "Image" });
+  });
+
+  it("still embeds a png", async () => {
+    const shapes: Shape[] = [{ kind: "image", src: "attachments/ab/foto-a1b2.png", alt: "foto" }];
+
+    const out = await fetched(shapes, () => Promise.resolve([137, 80, 78, 71]));
+
+    expect((out[0] as { src: string }).src.startsWith("data:image/png;base64,")).toBe(true);
   });
 });
