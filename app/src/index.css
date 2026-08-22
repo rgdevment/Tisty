@@ -273,6 +273,7 @@ body {
   line-height: 1.75;
   padding: 36px 40px 40vh;
   background-color: var(--tisty-sheet);
+  border-radius: 10px;
   position: relative;
   min-height: 100%;
 }

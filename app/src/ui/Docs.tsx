@@ -243,11 +243,12 @@ export default function Docs({
   const blobOf = async (): Promise<Blob | null> => {
     const read = giving.current;
     if (!open || !read) return null;
-    const [{ pdf }, { Papered }, { fetched, shapesOf }] = await Promise.all([
+    const [{ pdf }, { Papered, registered }, { fetched, shapesOf }] = await Promise.all([
       import("@react-pdf/renderer"),
       import("./paper"),
       import("./shaping"),
     ]);
+    registered();
     const shapes = await fetched(shapesOf(read()), attached);
     return pdf(<Papered shapes={shapes} leaf={leaf} />).toBlob();
   };

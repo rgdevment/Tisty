@@ -8,8 +8,11 @@ export const SIZES: Record<Paper, [number, number]> = {
 };
 
 export const MARGIN = 50;
+export const CODE = 9;
+const PITCH = 0.6;
+const PAD = 9;
 export const TYPE = 10.5;
-export const LEADING = 1.55;
+export const LEADING = 1.05;
 
 export interface Run {
   text: string;
@@ -23,7 +26,7 @@ export type Shape =
   | { kind: "heading"; level: number; runs: Run[] }
   | { kind: "para"; runs: Run[] }
   | { kind: "quote"; runs: Run[] }
-  | { kind: "code"; runs: Run[] }
+  | { kind: "code"; runs: Run[]; deep: number }
   | { kind: "bullet"; mark: string; runs: Run[]; deep: number }
   | { kind: "image"; src: string; alt?: string }
   | { kind: "table"; rows: Run[][][] }
@@ -40,24 +43,28 @@ const sheet = StyleSheet.create({
   h2: { fontSize: 15, marginBottom: 7, marginTop: 14 },
   h3: { fontSize: 12.5, marginBottom: 5, marginTop: 12 },
   para: { marginBottom: 9, lineHeight: LEADING },
+  flow: { marginBottom: 9, flexDirection: "row", flexWrap: "wrap" },
+  piece: { lineHeight: LEADING },
+  said: { flex: 1, lineHeight: LEADING },
+  saidFlow: { flex: 1, flexDirection: "row", flexWrap: "wrap" },
   quote: {
     marginBottom: 9,
     paddingLeft: 12,
     borderLeftWidth: 2,
     borderLeftColor: "#a1a1aa",
     color: "#3f3f46",
-    lineHeight: 1.55,
+    lineHeight: LEADING,
   },
   code: {
     marginBottom: 9,
     padding: 9,
     backgroundColor: "#f4f4f5",
     fontFamily: "Courier",
-    fontSize: 9,
+    fontSize: CODE,
     lineHeight: 1.4,
   },
   row: { flexDirection: "row", marginBottom: 4 },
-  mark: { width: 16 },
+  mark: { width: 20 },
   image: { marginVertical: 10, width: "100%", maxHeight: 360, objectFit: "contain" },
   link: { color: "#1d4ed8", textDecoration: "underline" },
   inline: { fontFamily: "Courier", fontSize: 9.5, backgroundColor: "#f4f4f5" },
@@ -95,9 +102,46 @@ const dressed = StyleSheet.create({
   italic: { fontStyle: "italic" },
 });
 
-const drawn = (runs: Run[]) =>
+const WORDS = /\S+\s*/g;
+const SEAMS = /[^/\-_.=&?:]*[/\-_.=&?:]?/g;
+const LONG = 40;
+
+// react-pdf breaks a line cleanly only on a real space: anywhere else it spells the
+// break with a hyphen the address never had.
+const torn = (runs: Run[]): Run[] =>
+  runs.flatMap((run) => {
+    const cuts =
+      run.href && run.text.length > LONG
+        ? (run.text.match(SEAMS) ?? [])
+        : (run.text.match(WORDS) ?? []);
+    return cuts.filter(Boolean).map((text) => ({ ...run, text }));
+  });
+
+const stringy = (runs: Run[]): boolean =>
+  runs.some((run) => Boolean(run.href) && run.text.length > LONG);
+
+// Helvetica has no ballot box: the glyph would come out blank.
+const MARKS: Record<string, string> = { "☑": "[x]", "☐": "[ ]" };
+
+// Courier is monospaced, so the column count is exact and every space survives.
+const folded = (text: string, columns: number): string[] => {
+  const lines: string[] = [];
+  let rest = text;
+  while (rest.length > columns) {
+    const slice = rest.slice(0, columns);
+    const seam = Math.max(slice.lastIndexOf("/"), slice.lastIndexOf("-"), slice.lastIndexOf(" "));
+    const at = seam > columns / 2 ? seam + 1 : columns;
+    lines.push(rest.slice(0, at));
+    rest = rest.slice(at);
+  }
+  lines.push(rest);
+  return lines;
+};
+
+const drawn = (runs: Run[], flowing = false) =>
   runs.map((run, at) => {
     const style = [
+      flowing ? sheet.piece : null,
       run.bold ? dressed.bold : null,
       run.italic ? dressed.italic : null,
       run.code ? sheet.inline : null,
@@ -116,7 +160,7 @@ const drawn = (runs: Run[]) =>
     );
   });
 
-const shaped = (one: Shape, at: number) => {
+const shaped = (one: Shape, at: number, room: number) => {
   const key = `${one.kind}:${at}`;
   switch (one.kind) {
     case "heading":
@@ -131,19 +175,28 @@ const shaped = (one: Shape, at: number) => {
           {drawn(one.runs)}
         </Text>
       );
-    case "code":
+    case "code": {
+      const columns = Math.floor((room - one.deep * 14 - PAD * 2) / (CODE * PITCH));
+      const lines = one.runs.flatMap((run, line) =>
+        folded(run.text, columns).map((text, cut) => ({ text, id: `${line}.${cut}` })),
+      );
       return (
-        <View key={key} style={sheet.code}>
-          {one.runs.map((run) => (
-            <Text key={`${run.text}`}>{run.text}</Text>
+        <View key={key} style={[sheet.code, { marginLeft: one.deep * 14 }]}>
+          {lines.map((line) => (
+            <Text key={line.id}>{line.text}</Text>
           ))}
         </View>
       );
+    }
     case "bullet":
       return (
         <View key={key} style={[sheet.row, { paddingLeft: one.deep * 14 }]} wrap={false}>
-          <Text style={sheet.mark}>{one.mark}</Text>
-          <Text style={{ flex: 1, lineHeight: 1.5 }}>{drawn(one.runs)}</Text>
+          <Text style={sheet.mark}>{MARKS[one.mark] ?? one.mark}</Text>
+          {stringy(one.runs) ? (
+            <View style={sheet.saidFlow}>{drawn(torn(one.runs), true)}</View>
+          ) : (
+            <Text style={sheet.said}>{drawn(one.runs)}</Text>
+          )}
         </View>
       );
     case "image":
@@ -177,7 +230,11 @@ const shaped = (one: Shape, at: number) => {
     case "rule":
       return <View key={key} break />;
     default:
-      return (
+      return stringy(one.runs) ? (
+        <View key={key} style={sheet.flow}>
+          {drawn(torn(one.runs), true)}
+        </View>
+      ) : (
         <Text key={key} style={sheet.para}>
           {drawn(one.runs)}
         </Text>
@@ -191,7 +248,7 @@ export const Papered = ({ shapes, leaf }: { shapes: Shape[]; leaf: Paper }) => {
   return (
     <Document>
       <Page size={size} style={sheet.page}>
-        {shapes.map(shaped)}
+        {shapes.map((one, at) => shaped(one, at, size[0] - MARGIN * 2))}
       </Page>
     </Document>
   );
