@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use jiff::civil::Date;
-use tisty_core::event::{Body, ListAdd, LogAdd, Op, StepAdd, TaskAdd};
+use tisty_core::event::{Body, DocAdd, ListAdd, LogAdd, Op, StepAdd, TaskAdd};
 use tisty_core::model::{Cadence, DateSpec, Repeat, Tag, Unit};
 use tisty_core::{ListId, Priority, TaskId};
 
@@ -24,10 +24,25 @@ pub fn demo(app: &mut App, force: bool, lang: Lang) -> anyhow::Result<ExitCode> 
 
     let today = jiff::Zoned::now().date();
     let mut ops = Vec::new();
-    let lists = shelves(&mut ops);
-    tasks(&mut ops, today, &lists);
+    let lists = shelves(&mut ops, lang);
+    tasks(&mut ops, today, &lists, lang);
+    ops.extend(papers(app, lang)?);
     let planted = ops.len();
-    app.commit_all(ops)?;
+    let written: Vec<String> = ops
+        .iter()
+        .filter_map(|op| match op {
+            Op::DocAdd { d, .. } => Some(d.file.clone()),
+            _ => None,
+        })
+        .collect();
+
+    if let Err(gone) = app.commit_all(ops) {
+        let root = app.paths.docs();
+        for file in &written {
+            let _ = tisty_core::docs::remove(&root, file);
+        }
+        return Err(gone.into());
+    }
 
     println!(
         "  {}",
@@ -39,38 +54,255 @@ pub fn demo(app: &mut App, force: bool, lang: Lang) -> anyhow::Result<ExitCode> 
     Ok(ExitCode::SUCCESS)
 }
 
-fn shelves(ops: &mut Vec<Op>) -> Vec<ListId> {
-    ["Casa", "Trabajo", "Salud", "Finanzas"]
-        .into_iter()
+const ES: &[&str] = &[
+    r#"# Minuta del lunes
+
+Estuvimos Ana, Bruno y yo. Media hora, sin pantalla compartida.
+
+## Lo que quedó decidido
+
+- El cambio de tarifas entra el **1 de octubre**, no antes.
+- Bruno prepara el correo a los clientes con dos semanas de aviso.
+- Ana revisa los contratos que vencen en septiembre.
+
+## Lo que quedó en el aire
+
+| Tema | Quién | Cuándo |
+| --- | --- | --- |
+| Migrar el histórico | Sin dueño | Octubre |
+| Sustituir la impresora | Ana | Cuando llegue el presupuesto |
+
+> No se toca el sistema viejo hasta que la migración esté probada.
+"#,
+    r#"# Pan de masa madre
+
+La masa lleva viva desde marzo. Refrescarla la noche antes.
+
+## Ingredientes
+
+- 500 g de harina de fuerza
+- 350 g de agua templada
+- 100 g de masa madre activa
+- 10 g de sal
+
+## Cómo va
+
+1. Mezclar harina y agua, y dejarlo reposar 40 minutos.
+2. Añadir la masa madre y la sal.
+3. Tres pliegues, uno cada media hora.
+4. Levar en frío toda la noche.
+5. Horno a 250 °C con vapor los primeros 20 minutos.
+
+La última vez salió apretada por meterla al horno demasiado pronto.
+"#,
+    r#"# Viaje a Lisboa
+
+Del 14 al 18 de octubre. Vuelo por la mañana, vuelta el sábado tarde.
+
+## Antes de salir
+
+- [x] Reservar el hotel en Alfama
+- [x] Avisar en el trabajo
+- [ ] Renovar el pasaporte
+- [ ] Cambiar dinero
+
+## Gastos previstos
+
+| Concepto | Estimado |
+| --- | --- |
+| Vuelos | 180 € |
+| Hotel, cuatro noches | 320 € |
+| Comidas | 200 € |
+
+Miradouro da Senhora do Monte al atardecer, y la librería de la Rua Garrett.
+"#,
+    r#"# El servidor de casa
+
+Lo que hay que recordar cuando algo deja de responder.
+
+## Qué corre ahí
+
+- `nas` — copias de seguridad, arranca solo
+- `media` — biblioteca, depende del NAS
+- `dns` — bloqueo de anuncios
+
+## Cuando el disco se llena
+
+```
+docker system prune -a
+journalctl --vacuum-time=7d
+```
+
+Si el NAS no monta, revisar primero el cable: ya ha fallado dos veces.
+"#,
+];
+
+const EN: &[&str] = &[
+    r#"# Monday minutes
+
+Ana, Bruno and me. Half an hour, no screen sharing.
+
+## Settled
+
+- The new rates start on **October 1st**, not before.
+- Bruno writes to the customers with two weeks' notice.
+- Ana goes through the contracts ending in September.
+
+## Left open
+
+| Matter | Who | When |
+| --- | --- | --- |
+| Move the old records | Nobody yet | October |
+| Replace the printer | Ana | Once the quote arrives |
+
+> The old system stays untouched until the move has been tested.
+"#,
+    r#"# Sourdough bread
+
+The starter has been alive since March. Feed it the night before.
+
+## What goes in
+
+- 500 g strong flour
+- 350 g warm water
+- 100 g active starter
+- 10 g salt
+
+## How it goes
+
+1. Mix flour and water, rest for 40 minutes.
+2. Add the starter and the salt.
+3. Three folds, one every half hour.
+4. Prove cold overnight.
+5. Oven at 250 °C, steam for the first 20 minutes.
+
+Last time the crumb came out tight: it went in too early.
+"#,
+    r#"# Lisbon trip
+
+October 14th to 18th. Morning flight out, Saturday evening back.
+
+## Before leaving
+
+- [x] Book the hotel in Alfama
+- [x] Tell work
+- [ ] Renew the passport
+- [ ] Get cash
+
+## What it should cost
+
+| Item | Estimate |
+| --- | --- |
+| Flights | 180 € |
+| Hotel, four nights | 320 € |
+| Food | 200 € |
+
+Miradouro da Senhora do Monte at sunset, and the bookshop on Rua Garrett.
+"#,
+    r#"# The home server
+
+What to remember when something stops answering.
+
+## What runs there
+
+- `nas` — backups, starts on its own
+- `media` — library, needs the NAS
+- `dns` — ad blocking
+
+## When the disk fills up
+
+```
+docker system prune -a
+journalctl --vacuum-time=7d
+```
+
+If the NAS will not mount, check the cable first: it has failed twice already.
+"#,
+];
+
+fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
+    let root = app.paths.docs();
+    let device = app.device().clone();
+    let sheets = if lang.code().starts_with("es") {
+        ES
+    } else {
+        EN
+    };
+
+    sheets
+        .iter()
         .enumerate()
-        .map(|(n, name)| {
-            let id = ulid::Ulid::generate();
-            ops.push(Op::ListAdd {
-                id,
-                d: ListAdd {
-                    name: name.to_string(),
-                    color: None,
+        .map(|(n, body)| {
+            let made = tisty_core::docs::create(&root, &device, body)?;
+            Ok(Op::DocAdd {
+                id: ulid::Ulid::generate(),
+                d: DocAdd {
+                    file: made.id,
                     order: format!("a{n}"),
+                    folder: None,
                 },
-            });
-            id
+            })
         })
         .collect()
 }
 
+fn shelves(ops: &mut Vec<Op>, lang: Lang) -> Vec<ListId> {
+    [
+        Said::of("Casa", "Home"),
+        Said::of("Trabajo", "Work"),
+        Said::of("Salud", "Health"),
+        Said::of("Finanzas", "Money"),
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(n, name)| {
+        let id = ulid::Ulid::generate();
+        ops.push(Op::ListAdd {
+            id,
+            d: ListAdd {
+                name: name.pick(lang).to_string(),
+                color: None,
+                order: format!("a{n}"),
+            },
+        });
+        id
+    })
+    .collect()
+}
+
+#[derive(Clone, Copy)]
+struct Said {
+    es: &'static str,
+    en: &'static str,
+}
+
+impl Said {
+    const fn of(es: &'static str, en: &'static str) -> Self {
+        Self { es, en }
+    }
+
+    fn pick(self, lang: Lang) -> &'static str {
+        if lang.code().starts_with("es") {
+            self.es
+        } else {
+            self.en
+        }
+    }
+}
+
 struct Seed {
-    title: &'static str,
+    title: Said,
     away: Option<i8>,
     at: Option<(i8, i8)>,
     priority: Priority,
-    tags: &'static [&'static str],
+    tags: &'static [Said],
     list: Option<usize>,
     every: Option<(u16, Unit)>,
     deadline: Option<i8>,
 }
 
 impl Seed {
-    const fn new(title: &'static str) -> Self {
+    const fn new(title: Said) -> Self {
         Self {
             title,
             away: None,
@@ -86,7 +318,7 @@ impl Seed {
 
 const ZONE: &str = "UTC";
 
-fn tasks(ops: &mut Vec<Op>, today: Date, lists: &[ListId]) {
+fn tasks(ops: &mut Vec<Op>, today: Date, lists: &[ListId], lang: Lang) {
     let mut order = 0;
     let mut next = || {
         order += 1;
@@ -95,9 +327,13 @@ fn tasks(ops: &mut Vec<Op>, today: Date, lists: &[ListId]) {
 
     for (n, seed) in bed().into_iter().enumerate() {
         let id = ulid::Ulid::generate();
-        let mut add = TaskAdd::new(seed.title, next());
+        let mut add = TaskAdd::new(seed.title.pick(lang), next());
         add.priority = Some(seed.priority);
-        add.tags = seed.tags.iter().filter_map(|t| Tag::new(t).ok()).collect();
+        add.tags = seed
+            .tags
+            .iter()
+            .filter_map(|t| Tag::new(t.pick(lang)).ok())
+            .collect();
         add.list = seed.list.and_then(|at| lists.get(at).copied());
         add.date = seed.away.map(|away| when(today, away, seed.at));
         add.deadline = seed
@@ -169,139 +405,195 @@ fn fleshed(ops: &mut Vec<Op>, id: TaskId) {
 }
 
 fn bed() -> Vec<Seed> {
+    const HOME: Said = Said::of("casa", "home");
+    const FAMILY: Said = Said::of("familia", "family");
+    const MONEY: Said = Said::of("finanzas", "money");
+    const BOOKS: Said = Said::of("libros", "books");
+    const CAR: Said = Said::of("coche", "car");
+    const HEALTH: Said = Said::of("salud", "health");
+    const SHOPPING: Said = Said::of("compras", "shopping");
+    const WORK: Said = Said::of("trabajo", "work");
+    const TRAVEL: Said = Said::of("viaje", "travel");
+    const GARDEN: Said = Said::of("jardin", "garden");
+    const COOKING: Said = Said::of("cocina", "cooking");
+    const STUDY: Said = Said::of("estudio", "study");
+    const GIFTS: Said = Said::of("regalos", "gifts");
+    const SPORT: Said = Said::of("deporte", "sport");
+    const MUSIC: Said = Said::of("musica", "music");
+
     vec![
         Seed {
             away: Some(17),
             priority: Priority::Do,
-            tags: &["casa", "familia"],
+            tags: &[HOME, FAMILY],
             list: Some(0),
-            ..Seed::new("preparar la mudanza")
+            ..Seed::new(Said::of("preparar la mudanza", "get ready for the move"))
         },
         Seed {
             away: Some(-10),
             priority: Priority::Do,
-            tags: &["finanzas"],
+            tags: &[MONEY],
             list: Some(3),
-            ..Seed::new("pagar la luz")
+            ..Seed::new(Said::of("pagar la luz", "pay the electricity bill"))
         },
         Seed {
             away: Some(-7),
-            tags: &["libros"],
-            ..Seed::new("devolver el libro a la biblioteca")
+            priority: Priority::Delegate,
+            tags: &[BOOKS],
+            ..Seed::new(Said::of(
+                "devolver el libro a la biblioteca",
+                "take the book back to the library",
+            ))
         },
         Seed {
             away: Some(-3),
             priority: Priority::Decide,
-            tags: &["coche"],
-            ..Seed::new("llamar al seguro del coche")
+            tags: &[CAR],
+            ..Seed::new(Said::of(
+                "llamar al seguro del coche",
+                "call the car insurance",
+            ))
         },
         Seed {
             away: Some(-1),
             priority: Priority::Do,
-            tags: &["salud"],
+            tags: &[HEALTH],
             list: Some(2),
-            ..Seed::new("recoger la receta")
+            ..Seed::new(Said::of("recoger la receta", "pick up the prescription"))
         },
         Seed {
             away: Some(0),
-            tags: &["compras"],
-            ..Seed::new("comprar pan")
+            tags: &[SHOPPING],
+            ..Seed::new(Said::of("comprar pan", "buy bread"))
         },
         Seed {
             away: Some(0),
             at: Some((15, 0)),
             priority: Priority::Delegate,
-            tags: &["trabajo"],
+            tags: &[WORK],
             list: Some(1),
-            ..Seed::new("reunión de equipo")
+            ..Seed::new(Said::of("reunión de equipo", "team meeting"))
         },
         Seed {
             away: Some(0),
             at: Some((21, 0)),
-            tags: &["casa"],
+            tags: &[HOME],
             every: Some((1, Unit::Day)),
-            ..Seed::new("sacar la basura")
+            ..Seed::new(Said::of("sacar la basura", "take the bins out"))
         },
         Seed {
             away: Some(1),
             at: Some((11, 0)),
-            tags: &["compras"],
-            ..Seed::new("recoger el paquete")
+            priority: Priority::Delegate,
+            tags: &[SHOPPING],
+            ..Seed::new(Said::of("recoger el paquete", "pick up the parcel"))
         },
         Seed {
             away: Some(1),
             priority: Priority::Delegate,
-            tags: &["trabajo"],
+            tags: &[WORK],
             list: Some(1),
             deadline: Some(4),
-            ..Seed::new("preparar la presentación")
+            ..Seed::new(Said::of(
+                "preparar la presentación",
+                "put the talk together",
+            ))
         },
         Seed {
             away: Some(3),
             at: Some((10, 0)),
             priority: Priority::Decide,
-            tags: &["finanzas"],
+            tags: &[MONEY],
             list: Some(3),
-            ..Seed::new("cita con el gestor")
+            ..Seed::new(Said::of(
+                "cita con el gestor",
+                "meeting with the accountant",
+            ))
         },
         Seed {
             away: Some(4),
-            tags: &["familia"],
+            tags: &[FAMILY],
             every: Some((1, Unit::Year)),
-            ..Seed::new("cumpleaños de Lucía")
+            ..Seed::new(Said::of("cumpleaños de Lucía", "Lucia's birthday"))
         },
         Seed {
             away: Some(7),
-            tags: &["casa", "jardin"],
+            priority: Priority::Minor,
+            tags: &[HOME, GARDEN],
             every: Some((1, Unit::Week)),
-            ..Seed::new("regar las plantas")
+            ..Seed::new(Said::of("regar las plantas", "water the plants"))
         },
         Seed {
             away: Some(9),
             priority: Priority::Do,
-            tags: &["trabajo"],
+            tags: &[WORK],
             list: Some(1),
             deadline: Some(9),
-            ..Seed::new("entregar el informe trimestral")
+            ..Seed::new(Said::of(
+                "entregar el informe trimestral",
+                "hand in the quarterly report",
+            ))
         },
         Seed {
             away: Some(14),
             at: Some((7, 40)),
             priority: Priority::Do,
-            tags: &["viaje"],
-            ..Seed::new("vuelo a Madrid")
+            tags: &[TRAVEL],
+            ..Seed::new(Said::of("vuelo a Madrid", "flight to Madrid"))
         },
         Seed {
             away: Some(20),
-            tags: &["finanzas"],
+            tags: &[MONEY],
             every: Some((1, Unit::Month)),
-            ..Seed::new("pagar el alquiler")
-        },
-        Seed {
-            tags: &["cocina"],
-            ..Seed::new("aprender a hacer pan de masa madre")
-        },
-        Seed {
-            tags: &["libros", "estudio"],
-            ..Seed::new("leer el libro de arquitectura de software")
-        },
-        Seed {
-            tags: &["casa"],
-            list: Some(0),
-            ..Seed::new("montar la estantería del pasillo")
+            ..Seed::new(Said::of("pagar el alquiler", "pay the rent"))
         },
         Seed {
             priority: Priority::Minor,
-            tags: &["regalos"],
-            ..Seed::new("elegir el regalo de aniversario")
+            tags: &[COOKING],
+            ..Seed::new(Said::of(
+                "aprender a hacer pan de masa madre",
+                "learn to bake sourdough",
+            ))
         },
         Seed {
-            tags: &["deporte", "viaje"],
-            ..Seed::new("planificar la ruta de senderismo")
+            priority: Priority::Decide,
+            tags: &[BOOKS, STUDY],
+            ..Seed::new(Said::of(
+                "leer el libro de arquitectura de software",
+                "read the software architecture book",
+            ))
         },
         Seed {
-            tags: &["musica"],
-            ..Seed::new("buscar un profesor de guitarra")
+            priority: Priority::Decide,
+            tags: &[HOME],
+            list: Some(0),
+            ..Seed::new(Said::of(
+                "montar la estantería del pasillo",
+                "put up the hallway shelf",
+            ))
+        },
+        Seed {
+            priority: Priority::Minor,
+            tags: &[GIFTS],
+            ..Seed::new(Said::of(
+                "elegir el regalo de aniversario",
+                "choose the anniversary present",
+            ))
+        },
+        Seed {
+            priority: Priority::Decide,
+            tags: &[SPORT, TRAVEL],
+            ..Seed::new(Said::of(
+                "planificar la ruta de senderismo",
+                "plan the hiking route",
+            ))
+        },
+        Seed {
+            tags: &[MUSIC],
+            ..Seed::new(Said::of(
+                "buscar un profesor de guitarra",
+                "find a guitar teacher",
+            ))
         },
     ]
 }

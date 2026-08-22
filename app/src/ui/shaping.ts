@@ -22,11 +22,13 @@ const inked = (nodes: Node[] | undefined): Run[] => {
       continue;
     }
     const marks = one.marks ?? [];
+    const pen = marks.find((m) => m.type === "highlight");
     runs.push({
       text: one.text,
       bold: marks.some((m) => m.type === "bold"),
       italic: marks.some((m) => m.type === "italic"),
       code: marks.some((m) => m.type === "code"),
+      lit: pen ? ((pen.attrs?.color as string | undefined) ?? "yellow") : undefined,
       href: marks.find((m) => m.type === "link")?.attrs?.href as string | undefined,
     });
   }
@@ -64,7 +66,9 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
         });
       }
       const runs = inked(node.content);
-      if (runs.length) out.push({ kind: "para", runs });
+      if (runs.length) {
+        out.push({ kind: "para", runs, towards: node.attrs?.textAlign as string | undefined });
+      }
       return;
     }
     case "image":

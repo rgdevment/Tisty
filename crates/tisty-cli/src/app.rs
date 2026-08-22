@@ -17,6 +17,10 @@ pub struct App {
 }
 
 impl App {
+    pub fn device(&self) -> &tisty_core::event::DeviceId {
+        self.store.device()
+    }
+
     pub fn at(paths: Paths) -> tisty_core::Result<Self> {
         Self::build(paths, Load::Full)
     }

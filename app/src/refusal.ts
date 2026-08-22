@@ -12,6 +12,8 @@ const KNOWN = [
   "ambiguousList",
   "badTag",
   "notATaskId",
+  "onlyArchivedGoes",
+  "notAClosing",
   "notAListId",
   "pastEnd",
   "manyLists",

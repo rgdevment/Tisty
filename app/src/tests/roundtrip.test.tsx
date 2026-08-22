@@ -335,3 +335,125 @@ describe("narrowed(): edge cases beyond what slash.test.tsx already covers", () 
     expect(narrowed([], "tab")).toEqual([]);
   });
 });
+
+describe("the highlighter", () => {
+  it("writes == around the selection", () => {
+    expect(formatted("hello", (e) => e.chain().focus().selectAll().toggleHighlight().run())).toBe(
+      "==hello==",
+    );
+  });
+
+  it("reads == back as a highlight", () => {
+    expect(roundtripped("say ==this== out loud")).toBe("say ==this== out loud");
+  });
+
+  it("keeps a coloured pen as an html mark", () => {
+    expect(
+      formatted("hello", (e) =>
+        e.chain().focus().selectAll().toggleHighlight({ color: "green" }).run(),
+      ),
+    ).toBe('<mark data-pen="green">hello</mark>');
+  });
+
+  it("reads a coloured pen back", () => {
+    expect(roundtripped('<mark data-pen="green">hello</mark>')).toBe(
+      '<mark data-pen="green">hello</mark>',
+    );
+  });
+
+  it("leaves bold inside a highlight alone", () => {
+    expect(roundtripped("==a **strong** word==")).toBe("==a **strong** word==");
+  });
+});
+
+describe("text alignment", () => {
+  it("writes a centred paragraph as html", () => {
+    expect(
+      formatted("hello", (e) => e.chain().focus().selectAll().setTextAlign("center").run()),
+    ).toBe('<p style="text-align: center">hello</p>');
+  });
+
+  it("leaves a plain paragraph as plain markdown", () => {
+    expect(
+      formatted("hello", (e) => e.chain().focus().selectAll().setTextAlign("left").run()),
+    ).toBe("hello");
+  });
+
+  it("reads a centred paragraph back", () => {
+    expect(roundtripped('<p style="text-align: center">hello</p>')).toBe(
+      '<p style="text-align: center">hello</p>',
+    );
+  });
+
+  it("keeps bold inside a centred paragraph", () => {
+    expect(
+      formatted("a **strong** word", (e) =>
+        e.chain().focus().selectAll().setTextAlign("center").run(),
+      ),
+    ).toBe('<p style="text-align: center">a <strong>strong</strong> word</p>');
+  });
+});
+
+describe("a centred paragraph keeps what is inside it", () => {
+  it("reads its bold back as bold", () => {
+    const editor = build('<p style="text-align: center">a <strong>strong</strong> word</p>');
+    const html = editor.getHTML();
+    editor.destroy();
+
+    expect(html).toContain("<strong>strong</strong>");
+    expect(html).toContain("text-align: center");
+  });
+
+  it("survives a second trip unchanged", () => {
+    const once = '<p style="text-align: center">a <strong>strong</strong> word</p>';
+
+    expect(roundtripped(roundtripped(once))).toBe(once);
+  });
+
+  it("keeps a link and a highlight too", () => {
+    const once =
+      '<p style="text-align: center">see <a href="https://tisty.dev">this</a> and <mark>that</mark></p>';
+
+    expect(roundtripped(once)).toBe(once);
+  });
+});
+
+describe("the guide's own markup", () => {
+  it("keeps a coloured pen inside a table cell", () => {
+    const row = '| <mark data-pen="blue">tomorrow 10am</mark> | a day |';
+    const once = `| You write | It understands |\n| --- | --- |\n${row}`;
+
+    expect(roundtripped(once)).toContain('<mark data-pen="blue">tomorrow 10am</mark>');
+  });
+
+  it("shows the pen as a mark when read", () => {
+    const editor = build('a <mark data-pen="green">green</mark> word');
+    const html = editor.getHTML();
+    editor.destroy();
+
+    expect(html).toContain('data-pen="green"');
+  });
+});
+
+describe("the highlighter stops where it is told", () => {
+  it("does not spread into what is typed next", () => {
+    const editor = build("hello");
+    editor.chain().focus().selectAll().toggleHighlight().run();
+    editor.commands.setTextSelection(editor.state.doc.content.size - 1);
+    editor.commands.insertContent(" world");
+    const out = markdown(editor);
+    editor.destroy();
+
+    expect(out).toBe("==hello== world");
+  });
+
+  it("comes off again from inside the word, without selecting it", () => {
+    const editor = build("say ==this== out loud");
+    editor.commands.setTextSelection(6);
+    editor.chain().focus().extendMarkRange("highlight").toggleHighlight().run();
+    const out = markdown(editor);
+    editor.destroy();
+
+    expect(out).toBe("say this out loud");
+  });
+});

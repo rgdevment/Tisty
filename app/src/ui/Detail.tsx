@@ -22,6 +22,7 @@ interface Props {
   onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
+  onErase: () => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
@@ -43,6 +44,7 @@ export default function Detail({
   onComplete,
   onDiscard,
   onReopen,
+  onErase,
   onClose,
   onError,
   onDoc,
@@ -119,7 +121,13 @@ export default function Detail({
           >
             <span aria-hidden="true">‹</span> {from || t("collapse")}
           </button>
-          <Settled task={task} onComplete={onComplete} onDiscard={onDiscard} onReopen={onReopen} />
+          <Settled
+            task={task}
+            onComplete={onComplete}
+            onDiscard={onDiscard}
+            onReopen={onReopen}
+            onErase={onErase}
+          />
         </div>
         <div className="scroller mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-12">{body}</div>
       </main>
@@ -154,7 +162,13 @@ export default function Detail({
         >
           <span aria-hidden="true">⤢</span>
         </button>
-        <Settled task={task} onComplete={onComplete} onDiscard={onDiscard} onReopen={onReopen} />
+        <Settled
+          task={task}
+          onComplete={onComplete}
+          onDiscard={onDiscard}
+          onReopen={onReopen}
+          onErase={onErase}
+        />
       </div>
       <div className="scroller flex-1 px-5 pt-2.5 pb-7">{body}</div>
     </aside>
@@ -166,21 +180,35 @@ function Settled({
   onComplete,
   onDiscard,
   onReopen,
+  onErase,
 }: {
   task: Task;
   onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
+  onErase: () => void;
 }) {
   if (task.status !== "open") {
+    const folded = task.hidden || task.status === "dropped";
     return (
-      <button
-        type="button"
-        onClick={onReopen}
-        className="ml-auto rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
-      >
-        ↺ {t("reopenIt")}
-      </button>
+      <div className="ml-auto flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onReopen}
+          className="rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
+        >
+          ↺ {t("reopenIt")}
+        </button>
+        {folded && (
+          <button
+            type="button"
+            onClick={onErase}
+            className="rounded-md px-2 py-1 text-faint hover:bg-hover hover:text-urgent"
+          >
+            ✕ {t("eraseIt")}
+          </button>
+        )}
+      </div>
     );
   }
   return (

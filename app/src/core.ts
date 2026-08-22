@@ -293,6 +293,7 @@ export interface About {
 export interface Settings {
   quiet: string[];
   attachUpTo: number;
+  locale?: string;
 }
 
 export interface Logs {
@@ -404,6 +405,10 @@ export const shortcut = (): Promise<string | null> => invoke("shortcut");
 
 export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<void> =>
   invoke("close_window", { how, remember });
+export const keepLocale = (locale?: string): Promise<string | null> =>
+  invoke("keep_locale", { locale });
+export const keepClosing = (how: "hide" | "quit"): Promise<void> => invoke("keep_closing", { how });
+export const guide = (): Promise<Doc> => invoke("guide");
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
 export const retireAttachment = (reference: string): Promise<void> =>
   invoke("retire_attachment", { reference });
@@ -428,6 +433,7 @@ export const weighs = (reference: string): Promise<number> => invoke("weighs", {
 export const roomy = (): Promise<number> => invoke("roomy");
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
 export const discard = (id: string): Promise<Task> => invoke("discard", { id });
+export const erase = (id: string): Promise<void> => invoke("erase", { id });
 
 export interface Doc {
   id: string;

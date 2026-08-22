@@ -44,14 +44,17 @@ describe("the page break the writer puts in", () => {
     const rule = ruleFor(".tisty-doc hr {");
 
     expect(rule).toMatch(/background:\s*var\(--tisty-desk\)/);
-    expect(rule).toMatch(/height:\s*30px/);
+    expect(rule).toMatch(/height:\s*50px/);
+  });
+
+  it("rounds the sheet off on both sides of the gap", () => {
+    expect(css).toMatch(/hr::before \{[^}]*border-radius:\s*0 0 10px 10px/);
+    expect(css).toMatch(/hr::after \{[^}]*border-radius:\s*10px 10px 0 0/);
   });
 
   it("casts the edge of each sheet into the gap", () => {
-    const rule = ruleFor(".tisty-doc hr {");
-
-    expect(rule).toMatch(/inset 0 7px 7px -7px var\(--tisty-cast\)/);
-    expect(rule).toMatch(/inset 0 -7px 7px -7px var\(--tisty-cast\)/);
+    expect(css).toMatch(/hr::before \{[^}]*box-shadow:\s*0 7px 7px -7px var\(--tisty-cast\)/);
+    expect(css).toMatch(/hr::after \{[^}]*box-shadow:\s*0 -7px 7px -7px var\(--tisty-cast\)/);
   });
 
   it("casts darker in the dark, where a faint shadow would vanish", () => {

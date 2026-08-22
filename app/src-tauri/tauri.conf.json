@@ -91,6 +91,9 @@
     },
     "externalBin": [
       "binaries/tisty"
+    ],
+    "resources": [
+      "resources/guide/**/*"
     ]
   }
 }

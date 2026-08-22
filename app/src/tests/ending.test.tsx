@@ -36,6 +36,7 @@ const open = (one: Task) =>
       onComplete={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}
+      onErase={() => {}}
       onClose={() => {}}
     />,
   );
