@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { attach } from "../core";
 import { addressed } from "../linking";
 import { t } from "../locales";
@@ -114,6 +114,8 @@ function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [wrong, setWrong] = useState(false);
+  const said = useId();
+  const where = useId();
 
   return (
     <form
@@ -124,23 +126,29 @@ function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
         onLink(label.trim() || url.trim(), full);
       }}
     >
-      <label className="block px-2.5 pt-1 text-[11px] tracking-[0.04em] text-faint uppercase">
+      <label
+        htmlFor={said}
+        className="block px-2.5 pt-1 text-[11px] tracking-[0.04em] text-faint uppercase"
+      >
         {t("linkText")}
       </label>
       <input
+        id={said}
         autoFocus
         value={label}
-        aria-label={t("linkText")}
         onChange={(e) => setLabel(e.target.value)}
         className="mt-0.5 mb-1 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none"
       />
-      <label className="block px-2.5 text-[11px] tracking-[0.04em] text-faint uppercase">
+      <label
+        htmlFor={where}
+        className="block px-2.5 text-[11px] tracking-[0.04em] text-faint uppercase"
+      >
         {t("linkUrl")}
       </label>
       <input
+        id={where}
         value={url}
         placeholder="https://"
-        aria-label={t("linkUrl")}
         aria-invalid={wrong || undefined}
         onChange={(e) => {
           setWrong(false);

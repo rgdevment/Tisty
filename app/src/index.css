@@ -27,6 +27,10 @@
   --tisty-mark-priority: rgb(229 72 77 / 0.14);
   --tisty-mark-repeat: rgb(214 51 160 / 0.15);
   --tisty-mark-step: rgb(0 150 190 / 0.16);
+  --tisty-pen-yellow: rgb(250 204 21 / 0.32);
+  --tisty-pen-green: rgb(34 197 94 / 0.26);
+  --tisty-pen-blue: rgb(59 130 246 / 0.26);
+  --tisty-pen-pink: rgb(236 72 153 / 0.24);
   --tisty-mark-doc: rgb(88 88 100 / 0.12);
   --tisty-mark-doc-lit: rgb(88 88 100 / 0.2);
   --tisty-veil: rgb(0 0 0 / 0.28);
@@ -59,6 +63,10 @@
   --tisty-mark-priority: rgb(255 95 87 / 0.18);
   --tisty-mark-repeat: rgb(240 110 205 / 0.2);
   --tisty-mark-step: rgb(70 205 240 / 0.2);
+  --tisty-pen-yellow: rgb(250 204 21 / 0.34);
+  --tisty-pen-green: rgb(45 200 155 / 0.3);
+  --tisty-pen-blue: rgb(67 155 255 / 0.32);
+  --tisty-pen-pink: rgb(240 110 205 / 0.3);
   --tisty-mark-doc: rgb(205 205 220 / 0.13);
   --tisty-mark-doc-lit: rgb(205 205 220 / 0.22);
   --tisty-veil: rgb(0 0 0 / 0.55);
@@ -152,6 +160,10 @@ body {
 }
 .scroller:hover {
   scrollbar-color: var(--tisty-line) transparent;
+}
+
+.gutter {
+  padding-inline: 12px;
 }
 
 .prose > :first-child {
@@ -328,6 +340,22 @@ body {
   border-left: 2px solid var(--tisty-line);
   color: var(--tisty-soft);
 }
+.tisty-doc mark {
+  background: var(--tisty-pen-yellow);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.tisty-doc mark[data-pen="green"] {
+  background: var(--tisty-pen-green);
+}
+.tisty-doc mark[data-pen="blue"] {
+  background: var(--tisty-pen-blue);
+}
+.tisty-doc mark[data-pen="pink"] {
+  background: var(--tisty-pen-pink);
+}
+
 .tisty-doc code {
   font-size: 0.88em;
   padding: 1px 5px;
@@ -772,6 +800,9 @@ body {
   .scroller {
     max-height: none !important;
     overflow: visible !important;
+  }
+  .gutter {
+    padding-inline: 0 !important;
   }
   .tisty-doc {
     padding: 0 !important;

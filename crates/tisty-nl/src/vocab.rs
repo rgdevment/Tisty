@@ -133,7 +133,7 @@ pub const ES: Vocabulary = Vocabulary {
     weekend: &[&["finde"], &["fin", "de", "semana"]],
     priorities: [
         &["hacer", "ahora"],
-        &["decidir", "importante"],
+        &["planificar", "decidir", "importante"],
         &["delegar", "delega"],
         &["prescindible", "descartable"],
         &["sinclasificar", "ninguna"],
@@ -219,7 +219,7 @@ pub const EN: Vocabulary = Vocabulary {
     weekend: &[&["this", "weekend"], &["weekend"]],
     priorities: [
         &["do", "now"],
-        &["decide", "important"],
+        &["schedule", "decide", "important"],
         &["delegate"],
         &["minor", "wont"],
         &["unclassified", "none"],

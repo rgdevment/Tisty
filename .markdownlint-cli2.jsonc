@@ -5,7 +5,7 @@
     "MD013": { "line_length": 80, "code_blocks": false, "tables": false },
     "MD014": false,
     "MD024": { "siblings_only": true },
-    "MD033": { "allowed_elements": ["br", "kbd"] },
+    "MD033": { "allowed_elements": ["br", "kbd", "mark", "p"] },
     "MD041": false,
     "MD046": { "style": "fenced" },
     "MD060": false

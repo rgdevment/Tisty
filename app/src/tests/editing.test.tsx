@@ -50,6 +50,7 @@ function open(task: Task = written) {
       onComplete={() => {}}
       onDiscard={on.discard}
       onReopen={on.reopen}
+      onErase={() => {}}
       onClose={() => {}}
     />,
   );

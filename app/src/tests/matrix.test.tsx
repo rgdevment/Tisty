@@ -104,7 +104,7 @@ describe("the matrix", () => {
     show();
 
     expect(within(quadrant("Do")).getByText("close the quarter")).toBeTruthy();
-    expect(within(quadrant("Decide")).getByText("plan the Rust course")).toBeTruthy();
+    expect(within(quadrant("Schedule")).getByText("plan the Rust course")).toBeTruthy();
     expect(within(quadrant("Delegate")).getByText("answer the supplier survey")).toBeTruthy();
     expect(within(quadrant("Minor")).getByText("compare the tariffs again")).toBeTruthy();
   });

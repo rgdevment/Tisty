@@ -19,6 +19,7 @@ import {
   docNew,
   docs,
   dropStep,
+  erase,
   type Filed,
   type Folded,
   type Found,
@@ -246,6 +247,7 @@ export default function App() {
   useEffect(lookPapers, [lookPapers]);
   const [held, setHeld] = useState<Task | undefined>();
   const [greet, setGreet] = useState(false);
+  const [greeted, setGreeted] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [settling, setSettling] = useState(true);
   const [stuck, setStuck] = useState(false);
@@ -390,6 +392,22 @@ export default function App() {
   const remember = (next: Mode) => {
     localStorage.setItem("detail", next);
     setMode(next);
+  };
+
+  const wipe = (task: Task) => {
+    ask(fill("eraseSure", task.title), { kind: "warning" })
+      .then((yes) => {
+        if (!yes) return;
+        setError(null);
+        return erase(task.id).then(() => {
+          setSelected(undefined);
+          setFound(null);
+          say(t("erased"));
+          load();
+          carries.current?.changed();
+        });
+      })
+      .catch((e) => setError(saidPlainly(e)));
   };
 
   const act = (work: Promise<Task>) => {
@@ -537,9 +555,13 @@ export default function App() {
 
       {greet && (
         <Welcome
-          onDone={() => {
+          onDone={(paper) => {
             setGreet(false);
+            setGreeted((n) => n + 1);
+            load();
+            lookPapers();
             carries.current?.recheck();
+            if (paper) openDoc(paper);
           }}
         />
       )}
@@ -835,8 +857,11 @@ export default function App() {
           />
         ) : chosen.named === "keeping" ? (
           <Keeping
+            greeted={greeted}
+            onGreet={() => setGreet(true)}
             onChanged={() => {
               load();
+              lookPapers();
               carries.current?.recheck();
               carries.current?.changed();
             }}
@@ -865,6 +890,7 @@ export default function App() {
               setSelected(undefined);
             }}
             onReopen={() => act(reopen(task.id))}
+            onErase={() => wipe(task)}
             onClose={shut}
             onError={(e) => setError(saidPlainly(e))}
             onDoc={openDoc}
@@ -1036,6 +1062,7 @@ export default function App() {
               setSelected(undefined);
             }}
             onReopen={() => act(reopen(task.id))}
+            onErase={() => wipe(task)}
             onClose={shut}
             onError={(e) => setError(saidPlainly(e))}
             onDoc={openDoc}

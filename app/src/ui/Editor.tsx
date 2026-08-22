@@ -361,6 +361,34 @@ export default function Editor({
           run: () => setGlyphing(aimed(editor)),
         },
         {
+          key: "pen",
+          label: t("penIt"),
+          hint: "==",
+          icon: "🖍️",
+          run: () => editor.chain().focus().extendMarkRange("highlight").toggleHighlight().run(),
+        },
+        {
+          key: "middle",
+          label: t("towardsMiddle"),
+          hint: "↔",
+          icon: "⬛",
+          run: () => editor.chain().focus().setTextAlign("center").run(),
+        },
+        {
+          key: "rightwards",
+          label: t("towardsRight"),
+          hint: "→",
+          icon: "⬛",
+          run: () => editor.chain().focus().setTextAlign("right").run(),
+        },
+        {
+          key: "leftwards",
+          label: t("towardsLeft"),
+          hint: "←",
+          icon: "⬛",
+          run: () => editor.chain().focus().setTextAlign("left").run(),
+        },
+        {
           key: "rule",
           label: t("leafBreak"),
           hint: "---",
@@ -385,13 +413,14 @@ export default function Editor({
       ]
     : [];
 
-  const handed = useRef("");
+  const handed = useRef<{ writing: unknown; keys: string } | null>(null);
   useEffect(() => {
-    const now = blocks.map((one) => one.key).join(",");
-    if (!blocks.length || now === handed.current) return;
-    handed.current = now;
+    const keys = blocks.map((one) => one.key).join(",");
+    if (!blocks.length) return;
+    if (handed.current?.writing === editor && handed.current.keys === keys) return;
+    handed.current = { writing: editor, keys };
     onBlocks?.(blocks);
-  }, [blocks, onBlocks]);
+  }, [blocks, editor, onBlocks]);
 
   const shown = asking ? narrowed(blocks, asking.word) : [];
 
@@ -549,7 +578,7 @@ export default function Editor({
 
   return (
     <>
-      <EditorContent editor={editor} className="scroller min-h-0 flex-1" />
+      <EditorContent editor={editor} className="scroller gutter min-h-0 flex-1" />
       {asking && shown.length > 0 && (
         <Slash at={asking.at} blocks={shown} active={active} onPick={take} />
       )}

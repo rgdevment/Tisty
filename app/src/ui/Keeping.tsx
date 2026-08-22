@@ -10,8 +10,10 @@ import {
   copied,
   docs,
   facts,
+  guide,
   joinThem,
   type Kin,
+  keepLocale,
   keepReport,
   keepSettings,
   logs,
@@ -41,7 +43,7 @@ import {
 } from "../core";
 import { decideAll } from "../deciding";
 import { daysFrom, stamped, weigh } from "../format";
-import { fill, t } from "../locales";
+import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { written } from "../report";
 import { type Brittle, scanned } from "../scanning";
@@ -66,7 +68,9 @@ type Which =
   | "settings"
   | "report"
   | "store"
-  | "brittle";
+  | "brittle"
+  | "greet"
+  | "tongue";
 type Word = { card: Which; text: string };
 type Tab = "data" | "notices" | "writing" | "upkeep";
 
@@ -79,9 +83,11 @@ const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
 
 interface Props {
   onChanged: () => void;
+  onGreet: () => void;
+  greeted?: number;
 }
 
-export default function Keeping({ onChanged }: Props) {
+export default function Keeping({ onChanged, onGreet, greeted }: Props) {
   const [tab, setTab] = useState<Tab>("data");
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
@@ -122,7 +128,8 @@ export default function Keeping({ onChanged }: Props) {
     about()
       .then(setBuild)
       .catch(() => {});
-  }, []);
+    look();
+  }, [greeted, look]);
 
   const run = <T,>(card: Which, work: Promise<T>, then: (answer: T) => void) => {
     setBusy(card);
@@ -654,6 +661,52 @@ export default function Keeping({ onChanged }: Props) {
                 </label>
               </Card>
             )}
+
+            {kept && (
+              <Card title={t("tongue")} which="tongue" busy={busy} said={said} trouble={trouble}>
+                <p className="text-[12.5px] leading-relaxed text-soft">{t("tongueWhy")}</p>
+                <select
+                  aria-label={t("tongue")}
+                  value={kept.locale ?? ""}
+                  disabled={held}
+                  onChange={(e) => {
+                    const wanted = e.target.value || undefined;
+                    run("tongue", keepLocale(wanted), (now) => {
+                      adopt(now ?? undefined);
+                      setKept({ ...kept, locale: now ?? undefined });
+                      onChanged();
+                    });
+                  }}
+                  className={`mt-2.5 rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                >
+                  <option value="">{t("tongueTheirs")}</option>
+                  <option value="es">Español</option>
+                  <option value="en">English</option>
+                </select>
+              </Card>
+            )}
+
+            <Card title={t("greetAgain")} which="greet" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("greetAgainWhy")}</p>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                <button type="button" onClick={onGreet} className={mild}>
+                  {t("greetAgainDo")}
+                </button>
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={() =>
+                    run("greet", guide(), () => {
+                      setSaid({ card: "greet", text: t("guideKept") });
+                      onChanged();
+                    })
+                  }
+                  className={mild}
+                >
+                  {t("welcomeGuide")}
+                </button>
+              </div>
+            </Card>
           </>
         )}
 
@@ -1106,6 +1159,8 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   terminal: "terminal",
   quick: "quick",
   waking: "wake",
+  greet: "greetAgain",
+  tongue: "tongue",
   settings: "settingsTitle",
   report: "reportTitle",
   store: "aboutStore",

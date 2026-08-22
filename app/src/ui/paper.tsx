@@ -19,12 +19,13 @@ export interface Run {
   bold?: boolean;
   italic?: boolean;
   code?: boolean;
+  lit?: string;
   href?: string;
 }
 
 export type Shape =
   | { kind: "heading"; level: number; runs: Run[] }
-  | { kind: "para"; runs: Run[] }
+  | { kind: "para"; runs: Run[]; towards?: string }
   | { kind: "quote"; runs: Run[] }
   | { kind: "code"; runs: Run[]; deep: number }
   | { kind: "bullet"; mark: string; runs: Run[]; deep: number }
@@ -42,7 +43,12 @@ const sheet = StyleSheet.create({
   h1: { fontSize: 20, fontWeight: 700, marginBottom: 10, marginTop: 4 },
   h2: { fontSize: 15, fontWeight: 700, marginBottom: 7, marginTop: 14 },
   h3: { fontSize: 12.5, fontWeight: 700, marginBottom: 5, marginTop: 12 },
-  title: { paddingBottom: 10, marginBottom: 14, borderBottomWidth: 1, borderBottomColor: "#e4e4e7" },
+  title: {
+    paddingBottom: 10,
+    marginBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e4e4e7",
+  },
   para: { marginBottom: 9, lineHeight: LEADING },
   flow: { marginBottom: 9, flexDirection: "row", flexWrap: "wrap" },
   piece: { lineHeight: LEADING },
@@ -67,7 +73,13 @@ const sheet = StyleSheet.create({
   },
   row: { flexDirection: "row", marginBottom: 4 },
   mark: { width: 20 },
-  image: { marginVertical: 10, width: "100%", maxHeight: 360, objectFit: "contain", borderRadius: 6 },
+  image: {
+    marginVertical: 10,
+    width: "100%",
+    maxHeight: 360,
+    objectFit: "contain",
+    borderRadius: 6,
+  },
   link: { color: "#1d4ed8", textDecoration: "underline" },
   inline: { fontFamily: "Courier", fontSize: 9.5, backgroundColor: "#f4f4f5" },
   table: {
@@ -104,12 +116,21 @@ const dressed = StyleSheet.create({
   italic: { fontStyle: "italic" },
 });
 
+const PENS: Record<string, string> = {
+  yellow: "#fdf0c3",
+  green: "#d5f0e0",
+  blue: "#d8e8fb",
+  pink: "#f9dcea",
+};
+
+const pens = StyleSheet.create(
+  Object.fromEntries(Object.entries(PENS).map(([name, tint]) => [name, { backgroundColor: tint }])),
+);
+
 const WORDS = /\S+\s*/g;
 const SEAMS = /[^/\-_.=&?:]*[/\-_.=&?:]?/g;
 const LONG = 40;
 
-// react-pdf breaks a line cleanly only on a real space: anywhere else it spells the
-// break with a hyphen the address never had.
 const torn = (runs: Run[]): Run[] =>
   runs.flatMap((run) => {
     const cuts =
@@ -122,10 +143,8 @@ const torn = (runs: Run[]): Run[] =>
 const stringy = (runs: Run[]): boolean =>
   runs.some((run) => Boolean(run.href) && run.text.length > LONG);
 
-// Helvetica has no ballot box: the glyph would come out blank.
 const MARKS: Record<string, string> = { "☑": "[x]", "☐": "[ ]" };
 
-// Courier is monospaced, so the column count is exact and every space survives.
 const folded = (text: string, columns: number): string[] => {
   const lines: string[] = [];
   let rest = text;
@@ -147,6 +166,7 @@ const drawn = (runs: Run[], flowing = false) =>
       run.bold ? dressed.bold : null,
       run.italic ? dressed.italic : null,
       run.code ? sheet.inline : null,
+      run.lit ? (pens[run.lit] ?? pens.yellow) : null,
       run.href ? sheet.link : null,
     ].filter((one) => one !== null);
 
@@ -161,6 +181,17 @@ const drawn = (runs: Run[], flowing = false) =>
       </Text>
     );
   });
+
+const TOWARDS: Record<string, "center" | "right" | "justify"> = {
+  center: "center",
+  right: "right",
+  justify: "justify",
+};
+
+const aligned = (towards?: string) => {
+  const to = towards ? TOWARDS[towards] : undefined;
+  return to ? { textAlign: to } : {};
+};
 
 const shaped = (one: Shape, at: number, room: number) => {
   const key = `${one.kind}:${at}`;
@@ -235,11 +266,11 @@ const shaped = (one: Shape, at: number, room: number) => {
       return <View key={key} break />;
     default:
       return stringy(one.runs) ? (
-        <View key={key} style={sheet.flow}>
+        <View key={key} style={[sheet.flow, aligned(one.towards)]}>
           {drawn(torn(one.runs), true)}
         </View>
       ) : (
-        <Text key={key} style={sheet.para}>
+        <Text key={key} style={[sheet.para, aligned(one.towards)]}>
           {drawn(one.runs)}
         </Text>
       );

@@ -34,6 +34,7 @@ const show = (expanded = false) => {
       onComplete={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}
+      onErase={() => {}}
       onClose={closed}
     />,
   );

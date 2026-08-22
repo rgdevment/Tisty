@@ -6,7 +6,21 @@ import { DOC } from "../markdown";
 import type { Block } from "./Slash";
 import type { Head } from "./writing";
 
-const SHAPES = ["h1", "h2", "bullets", "numbers", "todo", "quote", "code", "table", "rule"];
+const SHAPES = [
+  "h1",
+  "h2",
+  "bullets",
+  "numbers",
+  "todo",
+  "quote",
+  "code",
+  "table",
+  "rule",
+  "pen",
+  "middle",
+  "rightwards",
+  "leftwards",
+];
 
 export const worded = (body: string): number =>
   body

@@ -38,6 +38,7 @@ const open = (one: Task, expanded = false) => {
       onComplete={done}
       onDiscard={() => {}}
       onReopen={() => {}}
+      onErase={() => {}}
       onClose={() => {}}
     />,
   );
@@ -72,5 +73,57 @@ describe("finishing a task from the panel", () => {
 
     expect(screen.queryByRole("button", { name: "✓ Done" })).toBeNull();
     expect(screen.getByRole("button", { name: /reopen/i })).toBeTruthy();
+  });
+});
+
+describe("erasing what is already archived", () => {
+  const shown = (one: Task, onErase = vi.fn()) => {
+    render(
+      <Detail
+        task={one}
+        lists={[]}
+        known={[]}
+        expanded={false}
+        onExpand={() => {}}
+        onCollapse={() => {}}
+        onPatch={() => {}}
+        onStep={() => {}}
+        onMark={() => {}}
+        onDropStep={() => {}}
+        onLog={() => {}}
+        onComplete={() => {}}
+        onDiscard={() => {}}
+        onReopen={() => {}}
+        onErase={onErase}
+        onClose={() => {}}
+      />,
+    );
+    return onErase;
+  };
+
+  it("is offered on a dropped task", async () => {
+    const erased = shown(task({ status: "dropped" }));
+
+    await userEvent.click(screen.getByRole("button", { name: /erase for good/i }));
+
+    expect(erased).toHaveBeenCalled();
+  });
+
+  it("is offered on a completed task that was put away", () => {
+    shown(task({ status: "done", hidden: true }));
+
+    expect(screen.getByRole("button", { name: /erase for good/i })).toBeTruthy();
+  });
+
+  it("is not offered on a completed task still in plain sight", () => {
+    shown(task({ status: "done" }));
+
+    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+  });
+
+  it("is never offered while the task is open", () => {
+    shown(task({ status: "open" }));
+
+    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
   });
 });

@@ -1522,6 +1522,8 @@ struct About {
 struct Settings {
     quiet: Vec<String>,
     attach_up_to: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    locale: Option<String>,
 }
 
 #[tauri::command]
@@ -1547,6 +1549,7 @@ fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     Ok(Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
+        locale: session.config.locale.clone(),
     })
 }
 
@@ -1569,6 +1572,7 @@ fn keep_settings(
     let now = Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
+        locale: session.config.locale.clone(),
     };
     drop(session);
     herald::respeak(&app, &now.quiet);
@@ -2012,6 +2016,98 @@ fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Fa
         wrote: seconds(about.modified()),
         bytes: about.len(),
     })
+}
+
+const PICTURES: &[&str] = &[
+    "captura.png",
+    "prioridades.png",
+    "capture.png",
+    "priorities.png",
+];
+
+#[tauri::command]
+fn guide(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+) -> Answer<tisty_core::docs::Doc> {
+    let tongue = {
+        let session = held(&session);
+        let code = tisty_core::model::spoken(session.locale.as_deref());
+        if code.starts_with("es") { "es" } else { "en" }
+    };
+    let called = if tongue == "es" { "Guía" } else { "Guide" };
+    let leaf = if tongue == "es" {
+        "guia.md"
+    } else {
+        "guide.md"
+    };
+
+    let from = app
+        .path()
+        .resolve(
+            format!("resources/guide/{tongue}"),
+            tauri::path::BaseDirectory::Resource,
+        )
+        .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+
+    let told = std::fs::read_to_string(from.join(leaf))
+        .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+
+    let mut session = held(&session);
+    let data = session.paths.data().to_path_buf();
+
+    let mut body = told;
+    for shot in PICTURES {
+        let at = from.join(shot);
+        if !at.is_file() {
+            continue;
+        }
+        let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
+            .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+        body = body.replace(&format!("]({shot})"), &format!("](<{}>)", kept.at));
+    }
+
+    let folder = ulid::Ulid::generate();
+    let order = tisty_core::order::last_of(
+        session
+            .state
+            .under(None)
+            .iter()
+            .map(|one| one.order.as_str()),
+    );
+    session.commit(Op::FolderAdd {
+        id: folder,
+        d: tisty_core::event::FolderAdd {
+            name: called.to_string(),
+            order,
+            parent: None,
+            icon: None,
+        },
+    })?;
+
+    let root = session.paths.docs();
+    let device = session.store.device().clone();
+    let made = tisty_core::docs::create(&root, &device, &body)
+        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+
+    let sorted = tisty_core::order::last_of(
+        session
+            .state
+            .docs
+            .values()
+            .filter(|one| one.folder == Some(folder))
+            .map(|one| one.order.as_str()),
+    );
+    session.commit(Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            file: made.id.clone(),
+            order: sorted,
+            folder: Some(folder),
+        },
+    })?;
+
+    Ok(made)
 }
 
 #[tauri::command(async)]
@@ -2505,6 +2601,28 @@ fn waking() -> waking::Waking {
 #[tauri::command]
 fn wake_for(wanted: bool) -> Answer<waking::Waking> {
     waking::wake(wanted).map_err(|e| Refusal::about("cannotWrite", e.to_string()))
+}
+
+#[tauri::command]
+fn keep_locale(
+    session: tauri::State<'_, Mutex<Session>>,
+    locale: Option<String>,
+) -> Answer<Option<String>> {
+    let mut session = held(&session);
+    let wanted = locale.filter(|one| !one.trim().is_empty());
+    session.keep(|config| config.locale = wanted.clone())?;
+    Ok(wanted)
+}
+
+#[tauri::command]
+fn keep_closing(session: tauri::State<'_, Mutex<Session>>, how: String) -> Answer<()> {
+    let how = match how.as_str() {
+        "hide" => tisty_core::config::Closing::Hide,
+        "quit" => tisty_core::config::Closing::Quit,
+        _ => return Err(Refusal::of("notAClosing")),
+    };
+    held(&session).keep(|config| config.on_close = Some(how))?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -3444,6 +3562,22 @@ fn complete(
 }
 
 #[tauri::command]
+fn erase(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    let task = session
+        .state
+        .tasks
+        .get(&id)
+        .ok_or_else(|| Refusal::of("notATaskId"))?;
+    if !(task.is_archived() && task.folded()) {
+        return Err(Refusal::of("onlyArchivedGoes"));
+    }
+    session.commit(Op::TaskDelete { id })?;
+    Ok(())
+}
+
+#[tauri::command]
 fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
@@ -3714,6 +3848,10 @@ pub fn run() {
             reach_for,
             waking,
             wake_for,
+            keep_locale,
+            keep_closing,
+            erase,
+            guide,
             capture,
             read,
             search,
