@@ -1,3 +1,7 @@
+import { t, type Word } from "../locales";
+import { DOC } from "../markdown";
+import { KINDS } from "../previews";
+import { redrawn, upright } from "../upright";
 import type { Run, Shape } from "./paper";
 
 interface Node {
@@ -140,25 +144,77 @@ export const asData = (bytes: number[], src: string): string => {
   return `data:${kind};base64,${btoa(raw)}`;
 };
 
+const PRINTABLE = ["png", "jpg", "jpeg"];
+
+const named = (src: string): string => {
+  const leaf = src.split(/[?#]/)[0].split("/").pop() ?? src;
+  try {
+    return decodeURI(leaf);
+  } catch {
+    return leaf;
+  }
+};
+
+const kindOf = (src: string): string => {
+  const kind = src.split(/[?#]/)[0].split(".").pop()?.toLowerCase() ?? "";
+  return KINDS[kind] ? t(KINDS[kind] as Word) : kind.toUpperCase();
+};
+
+const pictured = (bytes: number[]): boolean => {
+  const png = [137, 80, 78, 71];
+  const jpeg = [255, 216, 255];
+  return (
+    png.every((byte, at) => bytes[at] === byte) || jpeg.every((byte, at) => bytes[at] === byte)
+  );
+};
+
+const printable = (src: string): boolean =>
+  PRINTABLE.includes(src.split(/[?#]/)[0].split(".").pop()?.toLowerCase() ?? "");
+
 export const fetched = async (
   shapes: Shape[],
   read: (reference: string) => Promise<number[]>,
 ): Promise<Shape[]> => {
-  const held = new Map<string, string>();
+  const held = new Map<string, string | null>();
   const out: Shape[] = [];
+
+  const carded = (one: { src: string; alt?: string }): Shape => ({
+    kind: "file",
+    name: one.alt || named(one.src),
+    said: kindOf(one.src),
+  });
 
   for (const one of shapes) {
     if (one.kind !== "image" || /^(https?|data):/i.test(one.src)) {
       out.push(one);
       continue;
     }
+    if (one.src.startsWith(DOC)) {
+      out.push({
+        kind: "file",
+        name: one.alt || one.src.slice(DOC.length),
+        said: t("kindDoc"),
+      });
+      continue;
+    }
+    if (!printable(one.src)) {
+      out.push(carded(one));
+      continue;
+    }
     const seen = held.get(one.src);
     if (seen !== undefined) {
-      out.push({ ...one, src: seen });
+      out.push(seen === null ? carded(one) : { ...one, src: seen });
       continue;
     }
     try {
-      const src = asData(await read(one.src), one.src);
+      const bytes = await read(one.src);
+      if (!pictured(bytes)) {
+        held.set(one.src, null);
+        out.push(carded(one));
+        continue;
+      }
+      const drawn = asData(bytes, one.src);
+      const src = redrawn(bytes) ? await upright(drawn) : drawn;
       held.set(one.src, src);
       out.push({ ...one, src });
     } catch {

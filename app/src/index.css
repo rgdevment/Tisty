@@ -98,6 +98,7 @@
   --shadow-lift: var(--tisty-lift);
   --shadow-lift-tall: var(--tisty-lift-tall);
 
+  --color-pen-yellow: var(--tisty-pen-yellow);
   --color-mark-date: var(--tisty-mark-date);
   --color-mark-deadline: var(--tisty-mark-deadline);
   --color-mark-list: var(--tisty-mark-list);
@@ -410,9 +411,24 @@ body {
   outline: 2px solid var(--tisty-accent);
   outline-offset: -2px;
 }
+.shot-picked::selection,
+.shot-picked *::selection {
+  background: transparent;
+}
+.tisty-doc img.ProseMirror-selectednode {
+  outline: 2px solid var(--tisty-accent);
+  outline-offset: -1px;
+}
 .tisty-doc img {
+  display: block;
+  margin: 16px auto;
+  padding: 8px;
   max-width: 100%;
-  border-radius: 8px;
+  max-height: 28rem;
+  object-fit: contain;
+  background: var(--tisty-rail);
+  border: 1px solid var(--tisty-hair);
+  border-radius: 12px;
 }
 .tisty-doc table {
   margin: 14px 0;
@@ -905,7 +921,9 @@ body {
   }
   .tisty-doc img {
     max-width: 100%;
+    max-height: none;
     height: auto;
+    background: none;
   }
   .tisty-doc a {
     color: #000;

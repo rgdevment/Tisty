@@ -121,15 +121,16 @@ export default function Detail({
           >
             <span aria-hidden="true">‹</span> {from || t("collapse")}
           </button>
-          <Settled
-            task={task}
-            onComplete={onComplete}
-            onDiscard={onDiscard}
-            onReopen={onReopen}
-            onErase={onErase}
-          />
         </div>
         <div className="scroller mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-12">{body}</div>
+        <Settled
+          task={task}
+          wide
+          onComplete={onComplete}
+          onDiscard={onDiscard}
+          onReopen={onReopen}
+          onErase={onErase}
+        />
       </main>
     );
   }
@@ -162,73 +163,83 @@ export default function Detail({
         >
           <span aria-hidden="true">⤢</span>
         </button>
-        <Settled
-          task={task}
-          onComplete={onComplete}
-          onDiscard={onDiscard}
-          onReopen={onReopen}
-          onErase={onErase}
-        />
       </div>
       <div className="scroller flex-1 px-5 pt-2.5 pb-7">{body}</div>
+      <Settled
+        task={task}
+        onComplete={onComplete}
+        onDiscard={onDiscard}
+        onReopen={onReopen}
+        onErase={onErase}
+      />
     </aside>
   );
 }
 
 function Settled({
   task,
+  wide,
   onComplete,
   onDiscard,
   onReopen,
   onErase,
 }: {
   task: Task;
+  wide?: boolean;
   onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
   onErase: () => void;
 }) {
-  if (task.status !== "open") {
-    const folded = task.hidden || task.status === "dropped";
-    return (
-      <div className="ml-auto flex items-center gap-1">
-        <button
-          type="button"
-          onClick={onReopen}
-          className="rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
-        >
-          ↺ {t("reopenIt")}
-        </button>
-        {folded && (
-          <button
-            type="button"
-            onClick={onErase}
-            className="rounded-md px-2 py-1 text-faint hover:bg-hover hover:text-urgent"
-          >
-            ✕ {t("eraseIt")}
-          </button>
+  const folded = task.hidden || task.status === "dropped";
+  const seat = "flex items-center gap-1 rounded-md px-2.5 py-1 hover:bg-hover";
+
+  return (
+    <footer
+      aria-label={t("taskDoings")}
+      className="shrink-0 border-hair border-t bg-panel/70 px-3 py-1.5 text-[12.5px] text-soft backdrop-blur"
+    >
+      <div
+        className={
+          wide ? "mx-auto flex w-full max-w-[720px] items-center gap-1" : "flex items-center gap-1"
+        }
+      >
+        {task.status === "open" ? (
+          <>
+            <button
+              type="button"
+              onClick={onComplete}
+              className={`${seat} font-medium text-accent`}
+            >
+              <span aria-hidden="true">✓</span> {t("markDone")}
+            </button>
+            <button
+              type="button"
+              onClick={onDiscard}
+              title={task.repeat ? t("endRepeatWhy") : undefined}
+              className={`${seat} hover:text-ink`}
+            >
+              <span aria-hidden="true">⊘</span> {task.repeat ? t("endRepeat") : t("discardIt")}
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" onClick={onReopen} className={`${seat} hover:text-ink`}>
+              <span aria-hidden="true">↺</span> {t("reopenIt")}
+            </button>
+            {folded && (
+              <button
+                type="button"
+                onClick={onErase}
+                className={`${seat} ml-auto text-faint hover:text-urgent`}
+              >
+                <span aria-hidden="true">✕</span> {t("eraseIt")}
+              </button>
+            )}
+          </>
         )}
       </div>
-    );
-  }
-  return (
-    <div className="ml-auto flex items-center gap-1">
-      <button
-        type="button"
-        onClick={onComplete}
-        className="rounded-md px-2 py-1 font-medium text-accent hover:bg-hover"
-      >
-        ✓ {t("markDone")}
-      </button>
-      <button
-        type="button"
-        onClick={onDiscard}
-        title={task.repeat ? t("endRepeatWhy") : undefined}
-        className="rounded-md px-2 py-1 hover:bg-hover hover:text-ink"
-      >
-        ⊘ {task.repeat ? t("endRepeat") : t("discardIt")}
-      </button>
-    </div>
+    </footer>
   );
 }
 

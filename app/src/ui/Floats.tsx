@@ -52,6 +52,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
     { key: "underline", glyph: "U", name: t("underlined"), weight: "underline" },
     { key: "strike", glyph: "S", name: t("struck"), weight: "line-through" },
     { key: "code", glyph: "‹›", name: t("codeSpan"), weight: "font-mono" },
+    { key: "pen", glyph: "A", name: t("penIt"), weight: "rounded-[3px] bg-pen-yellow px-1" },
   ] as const;
 
   const turn = (key: string) => {
@@ -60,6 +61,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
     if (key === "italic") return chain.toggleItalic().run();
     if (key === "underline") return chain.toggleUnderline().run();
     if (key === "strike") return chain.toggleStrike().run();
+    if (key === "pen") return chain.toggleHighlight().run();
     chain.toggleCode().run();
   };
 
@@ -235,16 +237,43 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
         ⚭
       </button>
 
+      <button
+        type="button"
+        data-tool
+        tabIndex={reached === marks.length + 1 ? 0 : -1}
+        disabled={locked}
+        aria-label={t("towardsMiddle")}
+        aria-pressed={editor.isActive({ textAlign: "center" })}
+        title={t("towardsMiddle")}
+        onMouseDown={(e) => e.preventDefault()}
+        onFocus={() => setReached(marks.length + 1)}
+        onClick={() =>
+          editor
+            .chain()
+            .focus()
+            .setTextSelection(live)
+            .setTextAlign(editor.isActive({ textAlign: "center" }) ? "left" : "center")
+            .run()
+        }
+        className={`grid h-7 w-7 place-items-center rounded-md text-[12px] ${
+          editor.isActive({ textAlign: "center" })
+            ? "bg-accent-soft text-accent"
+            : "text-soft hover:bg-hover hover:text-ink"
+        } disabled:cursor-not-allowed disabled:opacity-35`}
+      >
+        ≡
+      </button>
+
       {cardable && (
         <button
           type="button"
           data-tool
-          tabIndex={reached === marks.length + 1 ? 0 : -1}
+          tabIndex={reached === marks.length + 2 ? 0 : -1}
           disabled={locked}
           aria-label={t("showAsCard")}
           title={t("showAsCard")}
           onMouseDown={(e) => e.preventDefault()}
-          onFocus={() => setReached(marks.length + 1)}
+          onFocus={() => setReached(marks.length + 2)}
           onClick={asCard}
           className="grid h-7 w-7 place-items-center rounded-md text-[12px] text-soft hover:bg-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
         >

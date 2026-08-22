@@ -169,16 +169,28 @@ describe("what an edit is allowed to do", () => {
     expect(box("Add a step").value).toBe("");
   });
 
-  it("keeps a journal entry on leaving, not on Enter", async () => {
+  it("keeps a journal entry on Enter, which is how one is sent", async () => {
     const user = userEvent.setup();
     const on = open();
 
-    await user.type(await into(user, "Journal"), "they answered{Enter}and then some");
+    await user.type(await into(user, "Journal"), "they answered{Enter}");
+
+    expect(on.log).toHaveBeenCalledWith("they answered");
+    expect(screen.getByLabelText("Journal").textContent).toContain("What happened");
+  });
+
+  it("keeps a journal entry of several lines, written with Shift", async () => {
+    const user = userEvent.setup();
+    const on = open();
+
+    await user.type(
+      await into(user, "Journal"),
+      "they answered{Shift>}{Enter}{/Shift}and then some",
+    );
     expect(on.log).not.toHaveBeenCalled();
 
     await user.tab();
     expect(on.log).toHaveBeenCalledWith(["they answered", "and then some"].join("\n"));
-    expect(screen.getByLabelText("Journal").textContent).toContain("What happened");
   });
 });
 

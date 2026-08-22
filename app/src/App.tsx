@@ -246,6 +246,7 @@ export default function App() {
   }, []);
   useEffect(lookPapers, [lookPapers]);
   const [held, setHeld] = useState<Task | undefined>();
+  const acted = useRef<string | null>(null);
   const [greet, setGreet] = useState(false);
   const [greeted, setGreeted] = useState(0);
   const [leaving, setLeaving] = useState(false);
@@ -270,6 +271,7 @@ export default function App() {
       .then((fresh) => {
         adopt(fresh.locale);
         setData(fresh);
+        acted.current = null;
       })
       .catch((e) => setError(saidPlainly(e)));
   }, [chosen]);
@@ -387,7 +389,7 @@ export default function App() {
     found?.tasks.find((candidate) => candidate.id === selected);
   const task = fresh ?? (held?.id === selected ? held : undefined) ?? undefined;
   const open = task !== undefined;
-  if (fresh && fresh !== held) setHeld(fresh);
+  if (fresh && fresh !== held && acted.current !== fresh.id) setHeld(fresh);
 
   const remember = (next: Mode) => {
     localStorage.setItem("detail", next);
@@ -415,6 +417,7 @@ export default function App() {
     work
       .then((one) => {
         setHeld(one);
+        acted.current = one?.id ?? null;
         load();
         carries.current?.changed();
       })
@@ -884,6 +887,7 @@ export default function App() {
             onComplete={() => {
               say(fill("saidDone", task.title));
               act(complete(task.id));
+              setSelected(undefined);
             }}
             onDiscard={() => {
               act(discard(task.id));
@@ -943,6 +947,7 @@ export default function App() {
                     const one = shown.find((task) => task.id === id);
                     if (one) say(fill("saidDone", one.title));
                     act(complete(id));
+                    if (id === selected) setSelected(undefined);
                   }
             }
             onFold={chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined}
@@ -1056,6 +1061,7 @@ export default function App() {
             onComplete={() => {
               say(fill("saidDone", task.title));
               act(complete(task.id));
+              setSelected(undefined);
             }}
             onDiscard={() => {
               act(discard(task.id));

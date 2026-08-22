@@ -49,13 +49,13 @@ describe("making a document from a task", () => {
     expect(store.wrote[0].body).toBe("# Minuta del lunes\n\n");
   });
 
-  it("leaves the reference behind in the task that asked for it", async () => {
+  it("leaves a card behind in the task that asked for it, not bare text", async () => {
     const { onPut } = await open();
 
     await userEvent.type(screen.getByLabelText(/Name of the document/), "Minuta del lunes{Enter}");
 
     await waitFor(() => expect(onPut).toHaveBeenCalled());
-    expect(onPut).toHaveBeenCalledWith("[Minuta del lunes](tisty:doc/mac0-0001)");
+    expect(onPut).toHaveBeenCalledWith("![Minuta del lunes](tisty:doc/mac0-0001)");
   });
 
   it("makes nothing at all when the name is only spaces", async () => {

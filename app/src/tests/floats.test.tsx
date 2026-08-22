@@ -44,7 +44,16 @@ describe("the panel that appears over a selection", () => {
     render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
 
     const names = screen.getAllByRole("button").map((one) => one.getAttribute("aria-label"));
-    expect(names).toEqual(["Bold", "Italic", "Underline", "Strikethrough", "Code", "Link"]);
+    expect(names).toEqual([
+      "Bold",
+      "Italic",
+      "Underline",
+      "Strikethrough",
+      "Code",
+      "Highlight",
+      "Link",
+      "Centre it",
+    ]);
 
     editor.destroy();
   });
@@ -202,7 +211,7 @@ describe("the panel that appears over a selection", () => {
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Underline");
 
     await userEvent.keyboard("{ArrowLeft}{ArrowLeft}{ArrowLeft}");
-    expect(document.activeElement?.getAttribute("aria-label")).toBe("Link");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Centre it");
 
     await userEvent.tab();
     expect(document.activeElement?.tagName).toBe("BODY");

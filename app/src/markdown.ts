@@ -37,6 +37,8 @@ export const DOC = "tisty:doc/";
 export const docLink = (id: string, title: string): string =>
   `[${title.replace(/([[\]])/g, "\\$1")}](${DOC}${id})`;
 
+export const docCard = (id: string, title: string): string => `!${docLink(id, title)}`;
+
 export const docOf = (target: string): string | null =>
   target.startsWith(DOC) ? target.slice(DOC.length) : null;
 

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { composed, docLink, docOf } from "../markdown";
+import { composed, docCard, docLink, docOf } from "../markdown";
 import Composed from "../ui/Composed";
 import Insert from "../ui/Insert";
 
@@ -41,6 +41,17 @@ describe("a reference to a document of this Tisty", () => {
     expect(docOf("attachments/foto.png")).toBeNull();
   });
 
+  it("hands a card to the reader with the reference kept for later", () => {
+    const html = composed(docCard("mac0-0001", "Informe técnico"));
+
+    expect(html).toContain('data-inside="tisty:doc/mac0-0001"');
+    expect(docCard("mac0-0001", "Informe técnico")).toBe("![Informe técnico](tisty:doc/mac0-0001)");
+  });
+
+  it("still reads a reference written as a plain link, as older documents hold it", () => {
+    expect(composed(docLink("mac0-0001", "Informe"))).toContain('class="paper"');
+  });
+
   it("survives a title with a loose bracket, which would end the link early", () => {
     const written = docLink("mac0-0001", "Informe] borrador");
 
@@ -52,6 +63,18 @@ describe("a reference to a document of this Tisty", () => {
     expect(composed(docLink("mac0-0001", "Informe"))).toContain('class="paper"');
     expect(composed("[Fuera](https://ejemplo.org)")).not.toContain("paper");
     expect(composed("[Un archivo](attachments/foto.png)")).not.toContain("paper");
+  });
+
+  it("keeps a card through the document editor, which drops schemes it was not told about", async () => {
+    const { Editor } = await import("@tiptap/core");
+    const { written, asMarkdown } = await import("../ui/writing");
+    const card = docCard("mac0-0007", "Informe");
+    const editor = new Editor({ extensions: written(), content: card });
+
+    expect(asMarkdown(editor)).toBe(card);
+    expect(editor.getHTML()).toContain("tisty:doc/mac0-0007");
+
+    editor.destroy();
   });
 
   it("survives the document editor, which drops schemes it was not told about", async () => {
@@ -106,14 +129,14 @@ describe("picking a document to reference", () => {
     expect(screen.getByRole("button", { name: /A document/ })).toBeTruthy();
   });
 
-  it("writes the reference by identifier, not by title", async () => {
+  it("puts the document in as a card, which is what the reader sees, not as bare text", async () => {
     const onPut = menu();
     await userEvent.click(screen.getByRole("button", { name: /A document/ }));
     await waitFor(() => screen.getByRole("button", { name: /Informe técnico/ }));
 
     await userEvent.click(screen.getByRole("button", { name: /Informe técnico/ }));
 
-    expect(onPut).toHaveBeenCalledWith("[Informe técnico](tisty:doc/mac0-0001)");
+    expect(onPut).toHaveBeenCalledWith("![Informe técnico](tisty:doc/mac0-0001)");
   });
 
   it("narrows to what is being typed", async () => {
