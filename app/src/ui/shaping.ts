@@ -34,7 +34,7 @@ const inked = (nodes: Node[] | undefined): Run[] => {
 };
 
 const listed = (node: Node, deep: number, ordered: boolean, out: Shape[]): void => {
-  let count = 0;
+  let count = ordered ? Number(node.attrs?.start ?? 1) - 1 : 0;
   for (const item of node.content ?? []) {
     count += 1;
     const done = item.attrs?.checked === true;
@@ -80,6 +80,7 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
     case "codeBlock":
       out.push({
         kind: "code",
+        deep,
         runs: (node.content?.[0]?.text ?? "").split("\n").map((text) => ({ text })),
       });
       return;
