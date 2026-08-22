@@ -353,13 +353,30 @@ body {
 }
 
 .tisty-doc hr {
+  position: relative;
   margin: 0 -40px;
   border: 0;
-  height: 30px;
+  height: 50px;
   background: var(--tisty-desk);
-  box-shadow:
-    inset 0 7px 7px -7px var(--tisty-cast),
-    inset 0 -7px 7px -7px var(--tisty-cast);
+}
+.tisty-doc hr::before,
+.tisty-doc hr::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: var(--tisty-sheet);
+}
+.tisty-doc hr::before {
+  top: 0;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 7px 7px -7px var(--tisty-cast);
+}
+.tisty-doc hr::after {
+  bottom: 0;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -7px 7px -7px var(--tisty-cast);
 }
 .tisty-doc hr.ProseMirror-selectednode {
   outline: 2px solid var(--tisty-accent);
@@ -806,6 +823,10 @@ body {
     box-shadow: none;
     break-after: page;
     page-break-after: always;
+  }
+  .tisty-doc hr::before,
+  .tisty-doc hr::after {
+    display: none;
   }
   .tisty-doc img,
   .tisty-doc pre,

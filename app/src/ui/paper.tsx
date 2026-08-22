@@ -39,9 +39,10 @@ const sheet = StyleSheet.create({
     paddingHorizontal: MARGIN,
     fontSize: TYPE,
   },
-  h1: { fontSize: 20, marginBottom: 10, marginTop: 4 },
-  h2: { fontSize: 15, marginBottom: 7, marginTop: 14 },
-  h3: { fontSize: 12.5, marginBottom: 5, marginTop: 12 },
+  h1: { fontSize: 20, fontWeight: 700, marginBottom: 10, marginTop: 4 },
+  h2: { fontSize: 15, fontWeight: 700, marginBottom: 7, marginTop: 14 },
+  h3: { fontSize: 12.5, fontWeight: 700, marginBottom: 5, marginTop: 12 },
+  title: { paddingBottom: 10, marginBottom: 14, borderBottomWidth: 1, borderBottomColor: "#e4e4e7" },
   para: { marginBottom: 9, lineHeight: LEADING },
   flow: { marginBottom: 9, flexDirection: "row", flexWrap: "wrap" },
   piece: { lineHeight: LEADING },
@@ -59,13 +60,14 @@ const sheet = StyleSheet.create({
     marginBottom: 9,
     padding: 9,
     backgroundColor: "#f4f4f5",
+    borderRadius: 6,
     fontFamily: "Courier",
     fontSize: CODE,
     lineHeight: 1.4,
   },
   row: { flexDirection: "row", marginBottom: 4 },
   mark: { width: 20 },
-  image: { marginVertical: 10, width: "100%", maxHeight: 360, objectFit: "contain" },
+  image: { marginVertical: 10, width: "100%", maxHeight: 360, objectFit: "contain", borderRadius: 6 },
   link: { color: "#1d4ed8", textDecoration: "underline" },
   inline: { fontFamily: "Courier", fontSize: 9.5, backgroundColor: "#f4f4f5" },
   table: {
@@ -163,12 +165,14 @@ const drawn = (runs: Run[], flowing = false) =>
 const shaped = (one: Shape, at: number, room: number) => {
   const key = `${one.kind}:${at}`;
   switch (one.kind) {
-    case "heading":
+    case "heading": {
+      const rank = one.level === 1 ? sheet.h1 : one.level === 2 ? sheet.h2 : sheet.h3;
       return (
-        <Text key={key} style={one.level === 1 ? sheet.h1 : one.level === 2 ? sheet.h2 : sheet.h3}>
+        <Text key={key} style={at === 0 ? [rank, sheet.title] : rank}>
           {drawn(one.runs)}
         </Text>
       );
+    }
     case "quote":
       return (
         <Text key={key} style={sheet.quote}>
