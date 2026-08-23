@@ -42,10 +42,10 @@ describe("making a document that another one will point at", () => {
     expect(store.wrote[0].body).toBe("# Minuta del lunes\n\n");
   });
 
-  it("gives back the reference already written, ready to insert", async () => {
+  it("gives back a card already written, ready to insert", async () => {
     const born = await spawned("Minuta", "01H");
 
-    expect(born.said).toBe("[Minuta](tisty:doc/mac0-0001)");
+    expect(born.said).toBe("![Minuta](tisty:doc/mac0-0001)");
     expect(born.id).toBe("mac0-0001");
   });
 
