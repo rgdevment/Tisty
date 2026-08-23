@@ -38,6 +38,14 @@ report will never be dismissed for being inconvenient.
   to attack: the code that syncs reads and writes local paths.
 - **No plugin system.** Nothing loads third-party code into the process.
 - **`unsafe` is forbidden** at the workspace level, not merely discouraged.
+- **The window is fenced by a content policy.** Everything it runs is shipped
+  inside the program: no script from anywhere else, no page from anywhere else,
+  and the only address it may talk to is the local channel to the Rust side.
+  Two openings are worth naming because they are real. Scripts may compile
+  WebAssembly, which is what draws the PDF you see before exporting it; and a
+  frame may show a `blob:`, which is that PDF, built in memory on your machine
+  and never fetched. Neither lets remote code in: a blob has no origin to be
+  loaded from, and there is no path by which one arrives.
 
 ## What it deliberately does not protect
 

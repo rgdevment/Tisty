@@ -70,7 +70,9 @@ Deja de ser un recordatorio de qué hacer y pasa a ser el registro de cómo se
 resolvió algo. De ahí salen tres cosas, y esas moldearon todo lo demás:
 
 - **La búsqueda es la entrada principal al archivo**, no una función lateral.
-- **Borrar es la excepción.** El final normal es completar, que conserva.
+- **Borrar es la excepción.** El final normal es completar, que conserva. Para
+  borrar algo de verdad hacen falta dos pasos deliberados antes: archivarlo y
+  luego ocultarlo.
 - **Capturar tiene que seguir siendo instantáneo**, porque la mayoría de las
   tareas no son así. La llamada que tienes que hacer mañana nace y muere en un
   día y no deja nada que guardar — y anotarla no puede costar más de una línea.
@@ -96,6 +98,14 @@ O toma la imagen de disco y el instalador directamente de
 dos sistemas.
 
 ## Qué hace
+
+**La primera vez que se abre**, Tisty pregunta cuatro cosas —en qué idioma,
+dónde quieres tus copias, si puede despertarte para un recordatorio y qué
+significa cerrar la ventana— y después te escribe una guía. La guía es un
+documento en tu propio almacén, en una carpeta suya: tuya para leerla, editarla
+o tirarla como cualquier otra cosa que escribas. Desde ajustes vuelve la
+bienvenida, se abre otra vez la guía y se cambia el idioma, que empieza siendo
+el de tu sistema.
 
 **Tres columnas como máximo:** qué estás mirando, la lista, y la tarea que
 abriste. Nada más en pantalla.
@@ -124,12 +134,13 @@ a uno, y lo que le hayas soltado encima. Completarla no aleja nada de eso.
 cuadrantes de la matriz de Eisenhower — el método que se atribuye al presidente
 Dwight D. Eisenhower y que Stephen Covey popularizó en *Los 7 hábitos de la gente
 altamente efectiva*: ordena lo que tienes entre urgente e importante, y cada
-cuadrante te dice qué hacer con ello. **Hacer** lo urgente e importante, **Decidir**
-cuándo harás lo que importa y no corre prisa, **Delegar** lo urgente que no te
+cuadrante te dice qué hacer con ello. **Hacer** lo urgente e importante,
+**Planificar** lo que importa y no corre prisa, **Delegar** lo urgente que no te
 toca, y dejar en **Prescindible** aquello de lo que podrías prescindir — cuando
 lo tengas claro, un botón lo descarta todo de una vez.
 
-Arrastra una tarea a su cuadrante, o tecléalo: `!hacer`, `!decidir`, `!delegar`.
+Arrastra una tarea a su cuadrante, o tecléalo: `!hacer`, `!planificar`,
+`!delegar`. `!decidir` sigue funcionando, porque así se llamaba antes.
 Cada cuadrante lleva un **+** que abre la captura rápida con ese cuadrante ya
 puesto, y lo que nadie ha colocado espera en una bandeja que se abre como la
 dejaste.
@@ -140,6 +151,10 @@ dejaste.
 tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
 —tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una
 tarea puede apuntar a un documento; un documento nunca crea tareas.
+
+El texto se puede resaltar en unos cuantos colores, centrar o alinear, y apartar
+como un aviso. Sigue siendo Markdown: donde Markdown no alcanza, Tisty escribe
+el pedacito de HTML que sí lo dice, y lo vuelve a leer.
 
 Se escribe sobre una hoja iluminada, y su primera línea es a la vez el nombre
 del documento y su título. Cuando la ventana da para ello, al lado se abre una
@@ -219,9 +234,10 @@ Ajustes la deja al alcance de tu terminal, o puedes instalar solo el comando con
 | ✅ | La ventana, la bandeja, y captura rápida con un atajo global |
 | ✅ | Documentos: editor, carpetas, y transporte que junta bloque a bloque |
 | ✅ | Recordatorios, respaldo, y sincronización por una carpeta compartida |
+| ✅ | Bienvenida guiada, una guía escrita en tu almacén, español e inglés |
 | ✅ | macOS: firmado y notarizado. Windows: instalador firmado |
 | ◐ | Uso diario, que es lo que saca los fallos que los tests no |
-| ◐ | El paquete de la Microsoft Store, a la espera de un nombre reservado |
+| ◐ | La ficha de la Microsoft Store, cuyas capturas hay que rehacer en Windows |
 
 Dos cosas están asumidas en vez de pendientes: no se puede reordenar a mano en la
 ventana —el arrastre de HTML no sobrevive al de archivos nativo que necesitan los

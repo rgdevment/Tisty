@@ -73,6 +73,10 @@ Estuvimos Ana, Bruno y yo. Media hora, sin pantalla compartida.
 | Sustituir la impresora | Ana | Cuando llegue el presupuesto |
 
 > No se toca el sistema viejo hasta que la migración esté probada.
+
+La fecha que no se mueve es ==el 1 de octubre==, y la que sigue en el aire es
+<mark data-pen="blue">la impresora</mark>. Las tarifas se publican en
+[la página de precios](https://example.org/precios) esa misma mañana.
 "#,
     r#"# Pan de masa madre
 
@@ -94,6 +98,13 @@ La masa lleva viva desde marzo. Refrescarla la noche antes.
 5. Horno a 250 °C con vapor los primeros 20 minutos.
 
 La última vez salió apretada por meterla al horno demasiado pronto.
+
+---
+
+<p style="text-align: center">🍞 Hornear a las ocho, comer a las nueve</p>
+
+Lo único que merece quedar escrito: <mark data-pen="green">fermentar en
+frío</mark>, nunca sobre la encimera.
 "#,
     r#"# Viaje a Lisboa
 
@@ -115,6 +126,9 @@ Del 14 al 18 de octubre. Vuelo por la mañana, vuelta el sábado tarde.
 | Comidas | 200 € |
 
 Miradouro da Senhora do Monte al atardecer, y la librería de la Rua Garrett.
+
+<mark data-pen="pink">El pasaporte es lo que no puede esperar</mark>: seis
+semanas si va por la vía lenta.
 "#,
     r#"# El servidor de casa
 
@@ -156,6 +170,10 @@ Ana, Bruno and me. Half an hour, no screen sharing.
 | Replace the printer | Ana | Once the quote arrives |
 
 > The old system stays untouched until the move has been tested.
+
+The date nobody may move is ==October 1st==, and the one still in the air is
+<mark data-pen="blue">the printer</mark>. Rates are published on
+[the pricing page](https://example.org/pricing) the same morning.
 "#,
     r#"# Sourdough bread
 
@@ -177,6 +195,13 @@ The starter has been alive since March. Feed it the night before.
 5. Oven at 250 °C, steam for the first 20 minutes.
 
 Last time the crumb came out tight: it went in too early.
+
+---
+
+<p style="text-align: center">🍞 Bake at eight, eat at nine</p>
+
+The one thing worth writing down: <mark data-pen="green">prove it cold</mark>,
+never on the counter.
 "#,
     r#"# Lisbon trip
 
@@ -198,6 +223,9 @@ October 14th to 18th. Morning flight out, Saturday evening back.
 | Food | 200 € |
 
 Miradouro da Senhora do Monte at sunset, and the bookshop on Rua Garrett.
+
+<mark data-pen="pink">The passport is the one that cannot wait</mark> — six
+weeks if it goes the slow way.
 "#,
     r#"# The home server
 
@@ -229,21 +257,48 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
         EN
     };
 
-    sheets
+    let made = sheets
         .iter()
-        .enumerate()
-        .map(|(n, body)| {
-            let made = tisty_core::docs::create(&root, &device, body)?;
-            Ok(Op::DocAdd {
-                id: ulid::Ulid::generate(),
-                d: DocAdd {
-                    file: made.id,
-                    order: format!("a{n}"),
-                    folder: None,
-                },
-            })
-        })
-        .collect()
+        .map(|body| tisty_core::docs::create(&root, &device, body))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if let (Some(first), Some(last)) = (made.first(), made.last()) {
+        let card = Said::of(
+            "\n\nLo que hay que mirar cuando algo deja de responder:\n\n",
+            "\n\nWhat to look at when something stops answering:\n\n",
+        );
+        let body = format!(
+            "{}{}![{}](tisty:doc/{})\n",
+            sheets[0],
+            card.pick(lang),
+            last.title,
+            last.id
+        );
+        tisty_core::docs::write(&root, &first.id, &body)?;
+    }
+
+    let shelf = ulid::Ulid::generate();
+    let called = Said::of("Referencia", "Reference");
+    let mut ops = vec![Op::FolderAdd {
+        id: shelf,
+        d: tisty_core::event::FolderAdd {
+            name: called.pick(lang).to_string(),
+            order: "a0".into(),
+            parent: None,
+            icon: None,
+        },
+    }];
+
+    ops.extend(made.into_iter().enumerate().map(|(n, one)| Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: DocAdd {
+            file: one.id,
+            order: format!("a{n}"),
+            folder: (n >= 2).then_some(shelf),
+        },
+    }));
+
+    Ok(ops)
 }
 
 fn shelves(ops: &mut Vec<Op>, lang: Lang) -> Vec<ListId> {
