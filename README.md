@@ -69,7 +69,9 @@ It stops being a reminder of what to do and becomes the record of how something
 got solved. Three things follow from that, and they shaped everything else:
 
 - **Search is the main way into the archive**, not a side feature.
-- **Deleting is the exception.** The normal ending is completing, which keeps it.
+- **Deleting is the exception.** The normal ending is completing, which keeps
+  it. Erasing something for good takes two deliberate steps first: it has to be
+  archived, and then hidden.
 - **Capture has to stay instant**, because most tasks are not like that at all.
   The call you have to make tomorrow is born and dies within a day and leaves
   nothing worth keeping — and writing it down must not cost more than one line.
@@ -93,6 +95,13 @@ Or take the disk image and the installer straight from
 [Releases](https://github.com/rgdevment/Tisty/releases), on either system.
 
 ## What it does
+
+**The first time it opens**, Tisty asks four things — which language, where your
+copies should go, whether it may wake you for a reminder, and what closing the
+window ought to mean — and then writes you a guide. The guide is a document in
+your own store, in a folder of its own: yours to read, edit, or throw away like
+anything else you wrote. Settings brings the welcome back, opens the guide
+again, and changes the language, which starts as your system's.
 
 **Three columns at most:** what you are looking at, the list, and the task you
 opened. Nothing else on screen.
@@ -122,11 +131,12 @@ of the Eisenhower matrix — the method President Dwight D. Eisenhower is
 credited with, popularised by Stephen Covey in *The 7 Habits of Highly
 Effective People*: sort what you have by urgent against important, and each
 quadrant tells you what to do with it. **Do** what is urgent and important,
-**Decide** when to do what matters and is not urgent, **Delegate** what is
-urgent and is not yours, and leave in **Minor** whatever you could live
-without — when you are sure, one button drops the lot.
+**Schedule** what matters and is not urgent, **Delegate** what is urgent and is
+not yours, and leave in **Minor** whatever you could live without — when you are
+sure, one button drops the lot.
 
-Drag a task into its quadrant, or type it: `!do`, `!decide`, `!delegate`. Each
+Drag a task into its quadrant, or type it: `!do`, `!schedule`, `!delegate`.
+`!decide` still works, because it is what the quadrant used to be called. Each
 quadrant has a **+** that opens the quick capture with that quadrant already
 set, and whatever nobody has placed waits in a tray that opens the way you
 left it.
@@ -137,6 +147,10 @@ left it.
 never gets ticked. They are Markdown files you edit as documents — tables,
 checklists, code, images — and search reads them too. A task can point at a
 document; a document never creates tasks.
+
+Text can be highlighted in a few colours, centred or aligned, and set apart as
+an aside. It stays Markdown: where Markdown cannot say a thing, Tisty writes the
+small piece of HTML that can, and reads it back.
 
 The writing sits on a lit page, and its first line is both the name of the
 document and its title. When the window is wide enough a column opens beside it
@@ -216,9 +230,10 @@ command with `brew install rgdevment/tap/tisty-cli` and never open the window.
 | ✅ | The window, the tray, and quick capture on a global shortcut |
 | ✅ | Documents: editor, folders, and sync that merges block by block |
 | ✅ | Reminders, backup, and sync through a folder both machines reach |
+| ✅ | A guided welcome, a guide written into your store, English and Spanish |
 | ✅ | macOS: signed and notarised. Windows: signed installer |
 | ◐ | Daily use, which is what turns up the bugs tests do not |
-| ◐ | The Microsoft Store package, waiting on a reserved name |
+| ◐ | The Microsoft Store listing, whose screenshots have to be retaken on Windows |
 
 Two things are known and accepted rather than pending: you cannot reorder by
 hand in the window — HTML drag and drop does not survive the native file drop

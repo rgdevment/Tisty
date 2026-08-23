@@ -2054,6 +2054,18 @@ fn guide(
         .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
 
     let mut session = held(&session);
+
+    if let Some(kept) = session.config.guide.clone() {
+        let root = session.paths.docs();
+        let standing = session.state.docs.values().any(|one| one.file == kept);
+        if standing && let Ok(body) = tisty_core::docs::read(&root, &kept) {
+            return Ok(tisty_core::docs::Doc {
+                id: kept,
+                title: tisty_core::docs::titled(&body),
+            });
+        }
+    }
+
     let data = session.paths.data().to_path_buf();
 
     let mut body = told;
@@ -2106,6 +2118,8 @@ fn guide(
             folder: Some(folder),
         },
     })?;
+    let written = made.id.clone();
+    session.keep(|c| c.guide = Some(written))?;
 
     Ok(made)
 }

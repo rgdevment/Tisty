@@ -59,6 +59,13 @@ number**, so the log still says what it means when you read it without Tisty,
 and the default value is written out rather than hiding inside a `4`. Schema 5
 renamed the fourth quadrant from `wont`, and still reads that older word.
 
+Two of these words are older than the labels on screen. The window calls
+`decide` **Schedule**, because the quadrant is for deciding *when*, not whether;
+`minor` reads **Minor** rather than the `wont` it once was. The names on disk
+were left alone on purpose — renaming them would rewrite history that other
+machines already hold, to say the same thing. Both spellings are accepted when
+you type a priority: `!schedule` and `!decide` set the same quadrant.
+
 Quadrants are not a ladder, so a number cannot name one: schema 4 reads the
 levels `1..4` an older Tisty wrote as `unset`, and refuses anything else. Those
 old events stay on disk untouched — the log only ever appends — so nothing is
@@ -139,6 +146,11 @@ element carries its own identifier.
 
 Deleting is the exception: it leaves a tombstone, and nothing about that entity
 is ever applied again. That is what stops a late event from resurrecting it.
+
+A task only becomes deletable once it is **archived and hidden** — two
+deliberate steps, refused otherwise, so nothing goes on a slip. The tombstone
+travels; what the log already recorded about the task stays where it was
+written.
 
 ## Repeating
 
@@ -519,6 +531,13 @@ down as an idea and not built.
 | The program itself | `%LOCALAPPDATA%\Programs\Tisty` and friends | **no** |
 | Read cache | `<cache>/read.db` | **no** |
 | Last listing | `<cache>/selection.json` | **no** |
+
+The **guide** is the one thing Tisty writes into your store on its own. It ships
+inside the program, in the language you chose, and the welcome copies it in: a
+document under `<data>/docs/` and its images under
+`<data>/attachments/`, indistinguishable afterwards from anything you wrote and
+deletable the same way. Nothing is downloaded: the words and the images travel
+inside the program.
 
 `<data>`, `<config>` and `<cache>` are the platform's own directories.
 `TISTY_DATA`, `TISTY_CONFIG` and `TISTY_CACHE` override them, and exist for

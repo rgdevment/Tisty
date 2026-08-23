@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** August 16, 2026
+**Last updated:** August 22, 2026
 
 ## The short version
 
@@ -62,6 +62,10 @@ visible instead of making it for you.
   apart. What must never be shared is the file that binds it to this machine.
 - **A `private/` folder** — anything placed here never leaves the machine
   under any transport.
+- **The guide** — the one thing Tisty writes for you rather than the other way
+  round. Its words and its images ship inside the program and are copied into
+  your documents in the language you picked. Nothing is fetched to do it, and
+  once it is there it is an ordinary document: edit it, or delete it.
 
 **Nothing is encrypted at rest.** Your operating system's file permissions are
 the only protection. This was a deliberate decision, not an oversight:

@@ -70,6 +70,8 @@ pub struct Config {
     pub checked_at: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attach_up_to: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub guide: Option<String>,
 }
 
 impl Config {
@@ -91,6 +93,7 @@ impl Config {
             sync: None,
             synced_at: None,
             heard_at: None,
+            guide: None,
         };
         config.save(paths)?;
         Ok(config)
@@ -287,6 +290,33 @@ mod tests {
     }
 
     #[test]
+    fn the_guide_it_wrote_is_remembered_so_a_second_one_is_never_written() {
+        let tmp = tempfile::tempdir().unwrap();
+        let p = paths(&tmp);
+
+        let mut first = Config::load_or_init(&p).unwrap();
+        assert_eq!(first.guide, None, "no hay guia antes de escribirla");
+        first.guide = Some("mac0-0001".into());
+        first.save(&p).unwrap();
+
+        let again = Config::load_or_init(&p).unwrap();
+
+        assert_eq!(again.guide.as_deref(), Some("mac0-0001"));
+    }
+
+    #[test]
+    fn a_settings_file_written_before_the_guide_existed_still_reads() {
+        let tmp = tempfile::tempdir().unwrap();
+        let p = paths(&tmp);
+        std::fs::create_dir_all(p.config()).unwrap();
+        std::fs::write(p.config_file(), "device_id = \"dev_a3f10000\"\n").unwrap();
+
+        let kept = Config::load(&p.config_file()).unwrap().unwrap();
+
+        assert_eq!(kept.guide, None);
+    }
+
+    #[test]
     fn two_installs_never_share_a_device_id() {
         let a = tempfile::tempdir().unwrap();
         let b = tempfile::tempdir().unwrap();
@@ -344,6 +374,7 @@ mod tests {
             quiet: None,
             checked_at: None,
             attach_up_to: None,
+            guide: Some("mac0-0001".into()),
         };
 
         let written = toml::to_string_pretty(&config).unwrap();
@@ -372,6 +403,7 @@ mod tests {
                 sync: None,
                 synced_at: None,
                 heard_at: None,
+                guide: None,
             }
         }
 
