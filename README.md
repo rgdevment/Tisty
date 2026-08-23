@@ -5,7 +5,7 @@
 **Your tasks leave something behind. Tisty keeps it.** A personal task
 manager for macOS and Windows, on your own disk, with no account.
 
-![A record of how you work](assets/readme/1-eng.jpg)
+![A record of how you work](assets/Store/jpg/en-01-archive.jpg)
 
 ## Why I built this
 
@@ -110,7 +110,7 @@ opened. Nothing else on screen.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-![The date reads itself out of the sentence](assets/readme/2-eng.jpg)
+![The date reads itself out of the sentence](assets/Store/jpg/en-02-capture.jpg)
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
@@ -141,7 +141,7 @@ quadrant has a **+** that opens the quick capture with that quadrant already
 set, and whatever nobody has placed waits in a tray that opens the way you
 left it.
 
-![Urgent against important, and what to do with each](assets/readme/5-eng.jpg)
+![Urgent against important, and what to do with each](assets/Store/jpg/en-04-priorities.jpg)
 
 **Documents** live beside the tasks, for reference material that has no date and
 never gets ticked. They are Markdown files you edit as documents — tables,
@@ -159,7 +159,7 @@ outline. **Tisty makes its own PDF** — A4, Letter or one endless sheet, with i
 own margins and the attachments carried inside — and shows it to you before you
 export it.
 
-![Documents in Markdown, with attachments](assets/readme/3-eng.jpg)
+![Documents in Markdown, with attachments](assets/Store/jpg/en-03-documents.jpg)
 
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
@@ -170,7 +170,7 @@ sound you can turn off. The whole window works from the keyboard.
 
 ## Your data
 
-![No account, no telemetry, no server](assets/readme/4-eng.jpg)
+![No account, no telemetry, no server](assets/Store/jpg/en-05-private.jpg)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.

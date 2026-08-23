@@ -5,7 +5,7 @@
 **Tus tareas dejan algo detrás. Tisty lo conserva.** Un gestor de tareas
 personal para macOS y Windows, en tu propio disco y sin cuenta.
 
-![Un registro de cómo trabajas](assets/readme/1-esp.jpg)
+![Un registro de cómo trabajas](assets/Store/jpg/es-01-archivo.jpg)
 
 ## Por qué lo hice
 
@@ -114,7 +114,7 @@ abriste. Nada más en pantalla.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
-![La fecha se lee sola de la frase que escribes](assets/readme/2-esp.jpg)
+![La fecha se lee sola de la frase que escribes](assets/Store/jpg/es-02-captura.jpg)
 
 ```text
 "desplegar mañana a las 10"        →  mañana 10:00
@@ -145,7 +145,7 @@ Cada cuadrante lleva un **+** que abre la captura rápida con ese cuadrante ya
 puesto, y lo que nadie ha colocado espera en una bandeja que se abre como la
 dejaste.
 
-![Urgente contra importante, y qué hacer con cada cosa](assets/readme/5-esp.jpg)
+![Urgente contra importante, y qué hacer con cada cosa](assets/Store/jpg/es-04-prioridades.jpg)
 
 **Los documentos** viven junto a las tareas, para el material de consulta que no
 tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
@@ -162,7 +162,7 @@ columna con de qué va el documento, el formato que el menú `/` escondía y su
 índice. **Tisty genera su propio PDF** —A4, Carta o una hoja sin fin, con sus
 propios márgenes y los adjuntos dentro— y te lo enseña antes de exportarlo.
 
-![Documentos en Markdown, con adjuntos](assets/readme/3-esp.jpg)
+![Documentos en Markdown, con adjuntos](assets/Store/jpg/es-03-documentos.jpg)
 
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.
@@ -174,7 +174,7 @@ teclado.
 
 ## Tus datos
 
-![Sin cuenta, sin telemetría, sin servidor](assets/readme/4-esp.jpg)
+![Sin cuenta, sin telemetría, sin servidor](assets/Store/jpg/es-05-privado.jpg)
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada
