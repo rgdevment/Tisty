@@ -9,7 +9,7 @@ import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
-import { pictured } from "../previews";
+import { named, pictured } from "../previews";
 import Asking from "./Asking";
 import Floats from "./Floats";
 import Glyphs from "./Glyphs";
@@ -86,14 +86,17 @@ export const shotNode = (state: EditorState): string | null => {
   return pictured(src) ? src : null;
 };
 
-export const shotAt = (editor: Writing): { at: { x: number; y: number }; src: string } | null => {
+export const shotAt = (
+  editor: Writing,
+): { at: { x: number; y: number }; src: string; name: string } | null => {
   const src = shotNode(editor.state);
   if (!src || /^(https?|data):/i.test(src)) return null;
   const held = editor.state.selection;
   const seen = editor.view.nodeDOM(held.from) as HTMLElement | null;
   const box = seen?.getBoundingClientRect?.();
   if (!box) return null;
-  return { at: { x: box.left, y: Math.max(8, box.top - 40) }, src };
+  const called = held instanceof NodeSelection ? String(held.node.attrs.alt ?? "") : "";
+  return { at: { x: box.left, y: Math.max(8, box.top - 40) }, src, name: called || named(src) };
 };
 
 const aimed = (editor: Writing) => {
@@ -112,6 +115,7 @@ interface Props {
   papers?: Filed[];
   onAttach?: () => Promise<string | null>;
   onOpen?: (reference: string) => void;
+  onKeep?: (reference: string, name: string) => void;
   onDoc?: (id: string) => void;
   onWrite: (text: string) => void;
   onShaped?: (text: string) => void;
@@ -132,6 +136,7 @@ export default function Editor({
   papers,
   onAttach,
   onOpen,
+  onKeep,
   onDoc,
   onWrite,
   onShaped,
@@ -143,13 +148,18 @@ export default function Editor({
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
   const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
-  const [shot, setShot] = useState<{ at: { x: number; y: number }; src: string } | null>(null);
+  const [shot, setShot] = useState<{
+    at: { x: number; y: number };
+    src: string;
+    name: string;
+  } | null>(null);
   const [tying, setTying] = useState<{ x: number; y: number } | null>(null);
   const [choosing, setChoosing] = useState<{ x: number; y: number } | null>(null);
   const [swapping, setSwapping] = useState<{
     at: { x: number; y: number };
     untie: () => void;
     drop: () => void;
+    keep?: () => void;
   } | null>(null);
   const [glyphing, setGlyphing] = useState<{ x: number; y: number } | null>(null);
   const [naming, setNaming] = useState<{ x: number; y: number } | null>(null);
@@ -194,8 +204,8 @@ export default function Editor({
     setActive(0);
   };
 
-  const hands = useRef({ onWrite, onOpen, onDoc, onShaped, onOutline, onLaid, onReady });
-  hands.current = { onWrite, onOpen, onDoc, onShaped, onOutline, onLaid, onReady };
+  const hands = useRef({ onWrite, onOpen, onKeep, onDoc, onShaped, onOutline, onLaid, onReady });
+  hands.current = { onWrite, onOpen, onKeep, onDoc, onShaped, onOutline, onLaid, onReady };
   looked.current = look;
 
   const shapes = useMemo(() => [...written(), previewing(() => reach.current)], []);
@@ -496,7 +506,13 @@ export default function Editor({
     here: paper,
     onDoc,
     onOpen,
-    onMenu: (at, untie, drop) => setSwapping({ at, untie, drop }),
+    onMenu: (at, untie, drop, kept) =>
+      setSwapping({
+        at,
+        untie,
+        drop,
+        keep: kept && onKeep ? () => hands.current.onKeep?.(kept.at, kept.name) : undefined,
+      }),
     gone: (reference) => missing.current.has(reference),
     onAgain: (reference) => {
       missing.current.delete(reference);
@@ -574,6 +590,7 @@ export default function Editor({
         editor.view.dom.querySelectorAll<HTMLImageElement>("img[src]").forEach((img) => {
           const at = img.getAttribute("src") ?? "";
           if (!at || /^(https?|data|asset|blob|file):/i.test(at)) return;
+          if (!pictured(at)) return;
           const cached = urls.current.get(at);
           if (cached) {
             img.setAttribute("src", cached);
@@ -608,6 +625,7 @@ export default function Editor({
         <Shot
           at={shot.at}
           onOpen={() => onOpen?.(shot.src)}
+          onKeep={onKeep ? () => onKeep(shot.src, shot.name) : undefined}
           onDrop={() => {
             editor.chain().focus().deleteSelection().run();
             setShot(null);
@@ -698,6 +716,13 @@ export default function Editor({
           at={swapping.at}
           label={t("moreOnIt")}
           choices={[
+            {
+              key: "keep",
+              label: t("keepACopy"),
+              icon: "↧",
+              off: !swapping.keep,
+              onPick: swapping.keep,
+            },
             { key: "link", label: t("showAsLink"), icon: "↩", onPick: swapping.untie },
             { key: "drop", label: t("remove"), icon: "✕", danger: true, onPick: swapping.drop },
           ]}

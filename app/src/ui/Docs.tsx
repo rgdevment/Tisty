@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { asPlain } from "../copying";
 import {
   attach,
+  attachExport,
   attached,
   convertPaper,
   docExport,
@@ -16,7 +17,7 @@ import {
 } from "../core";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
-import { crowd, MANY, weighed } from "../previews";
+import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
 import Beside from "./Beside";
@@ -305,6 +306,16 @@ export default function Docs({
     }
   };
 
+  const kept = (reference: string, name: string) => {
+    const kind = ending(reference);
+    intoFile({
+      defaultPath: name,
+      filters: kind ? [{ name: kind.toUpperCase(), extensions: [kind] }] : undefined,
+    })
+      .then((where) => (where ? attachExport(reference, where) : undefined))
+      .catch((e) => onError(saidPlainly(e)));
+  };
+
   asking.current = { preview, toPdf };
 
   const showing = seeing;
@@ -374,6 +385,7 @@ export default function Docs({
                     })
                 }
                 onOpen={(reference) => opened(reference).catch((e) => onError(saidPlainly(e)))}
+                onKeep={kept}
                 onWrite={wrote}
                 onBlocks={setBlocks}
                 onOutline={setHeads}

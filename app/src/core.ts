@@ -198,6 +198,9 @@ export const served = (reference: string): Promise<string> => invoke("served", {
 
 export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });
 
+export const attachExport = (reference: string, into: string): Promise<void> =>
+  invoke("attach_export", { reference, into });
+
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 
 export interface Carrying {

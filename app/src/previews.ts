@@ -71,7 +71,12 @@ const FAMILIES: Record<string, string> = {
 
 export const family = (kind: string): string => FAMILIES[KINDS[kind] ?? ""] ?? "plain";
 
-export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "heic", "avif"];
+// Only WebKit draws HEIC in an <img>; elsewhere it would land as a broken picture.
+const DRAWS_HEIC = navigator.userAgent.includes("Macintosh");
+
+export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "avif"].concat(
+  DRAWS_HEIC ? ["heic"] : [],
+);
 
 const WATCHABLE = ["mp4", "webm", "m4v", "mov", "ogv"];
 const HEARABLE = ["mp3", "m4a", "wav", "ogg", "oga", "aac", "flac"];

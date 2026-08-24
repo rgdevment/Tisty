@@ -30,6 +30,22 @@ describe("picking a photo in a document", () => {
     editor.destroy();
   });
 
+  it("carries the name it was written under, not the one the store filed it as", () => {
+    const editor = held("![Gato en la nieve.jpg](<attachments/aa/gato-en-la-nieve-1c0a.jpg>)");
+
+    expect(shotAt(editor)?.name).toBe("Gato en la nieve.jpg");
+
+    editor.destroy();
+  });
+
+  it("falls back to the filed name when it was written under none", () => {
+    const editor = held("![](<attachments/aa/gato-1c0a.jpg>)");
+
+    expect(shotAt(editor)?.name).toBe("gato-1c0a.jpg");
+
+    editor.destroy();
+  });
+
   it("offers nothing for a document card, which has its own handles", () => {
     const editor = held("![Informe](tisty:doc/mac0-0001)");
 

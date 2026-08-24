@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ending, family, KINDS, named, previewOf, weighed } from "../previews";
 
 describe("what a link is worth showing as", () => {
@@ -124,5 +124,35 @@ describe("what family a file belongs to", () => {
 
     expect(said.every((one) => one.startsWith("kind"))).toBe(true);
     expect(said.some((one) => /[áéíóúñ¿]/i.test(one))).toBe(false);
+  });
+});
+
+describe("a picture the webview may not be able to draw", () => {
+  const asked = async (agent: string) => {
+    vi.stubGlobal("navigator", { userAgent: agent });
+    vi.resetModules();
+    return await import("../previews");
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it("draws a HEIC where WebKit can, which is where they come from", async () => {
+    const { pictured } = await asked("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+
+    expect(pictured("attachments/aa/foto-1c0a.heic")).toBe(true);
+  });
+
+  it("makes a card of it where no engine decodes it, rather than a broken picture", async () => {
+    const { pictured, previewOf } = await asked("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+
+    expect(pictured("attachments/aa/foto-1c0a.heic")).toBe(false);
+    expect(previewOf("attachments/aa/foto-1c0a.heic")).toEqual({
+      as: "file",
+      at: "attachments/aa/foto-1c0a.heic",
+      kind: "heic",
+    });
   });
 });
