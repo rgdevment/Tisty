@@ -23,7 +23,12 @@ export interface Reach {
   blurb?: (id: string) => string | null;
   gone?: (reference: string) => boolean;
   onDoc?: (id: string) => void;
-  onMenu?: (at: { x: number; y: number }, untie: () => void, drop: () => void) => void;
+  onMenu?: (
+    at: { x: number; y: number },
+    untie: () => void,
+    drop: () => void,
+    kept?: { at: string; name: string },
+  ) => void;
   onOpen?: (reference: string) => void;
   onAgain?: (reference: string) => void;
 }
@@ -240,7 +245,9 @@ const built = (
   more.addEventListener("click", (e) => {
     e.stopPropagation();
     const box = more.getBoundingClientRect();
-    reach.onMenu?.({ x: box.left, y: box.bottom + 4 }, untie, drop);
+    const kept =
+      seen.as === "doc" || lost ? undefined : { at: seen.at, name: label || named(seen.at) };
+    reach.onMenu?.({ x: box.left, y: box.bottom + 4 }, untie, drop, kept);
   });
   box.append(more);
   if (itself) {

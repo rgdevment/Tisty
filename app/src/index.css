@@ -727,7 +727,8 @@ body {
   color: var(--tisty-faint);
 }
 
-.card-source {
+.card-source,
+.tisty-doc img.card-source {
   display: none;
 }
 .card-swap {

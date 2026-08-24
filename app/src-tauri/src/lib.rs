@@ -3329,6 +3329,32 @@ fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answe
     Ok(at.to_string_lossy().into_owned())
 }
 
+#[tauri::command(async)]
+fn attach_export(
+    session: tauri::State<'_, Mutex<Session>>,
+    reference: String,
+    into: String,
+) -> Answer<()> {
+    let root = held(&session).paths.data().to_path_buf();
+    let from = tisty_core::attach::resolve(&reference, &root)
+        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
+    if !from.is_file() {
+        return Err(Refusal::about("cannotRead", reference));
+    }
+    std::fs::copy(&from, &into).map_err(|e| {
+        witness::warn(
+            channel::ATTACH,
+            "an attachment could not be taken out",
+            &[
+                ("at", Fact::Id(reference)),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+        Refusal::about("cannotWrite", into)
+    })?;
+    Ok(())
+}
+
 #[tauri::command]
 fn roomy() -> u64 {
     tisty_core::docs::BODY_ROOMY
@@ -3881,6 +3907,7 @@ pub fn run() {
             attach,
             served,
             attached,
+            attach_export,
             weighs,
             roomy,
             opened,
