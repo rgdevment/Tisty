@@ -21,6 +21,7 @@ import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
 import Beside from "./Beside";
 import type { Block } from "./Slash";
+import { clearOfChrome } from "./WindowChrome";
 import type { Head } from "./writing";
 
 const Editor = lazy(() => import("./Editor"));
@@ -334,19 +335,18 @@ export default function Docs({
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
-      <div data-tauri-drag-region className="flex h-9 shrink-0 items-center justify-end px-2.5">
-        {open && !beside && (
-          <button
-            type="button"
-            onClick={() => setShown(true)}
-            title={t("beside")}
-            aria-label={t("beside")}
-            className="grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
-          >
-            <span aria-hidden="true">◨</span>
-          </button>
-        )}
-      </div>
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      {open && !beside && (
+        <button
+          type="button"
+          onClick={() => setShown(true)}
+          title={t("beside")}
+          aria-label={t("beside")}
+          className="absolute top-11 right-3 z-10 grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
+        >
+          <span aria-hidden="true">◨</span>
+        </button>
+      )}
       <div
         className="flex min-h-0 flex-1 flex-col motion-safe:transition-[padding] motion-safe:duration-150"
         style={{ paddingRight: reserve }}
@@ -422,7 +422,7 @@ export default function Docs({
       </div>
       {seeing && (
         <div className="absolute inset-0 z-40 flex flex-col bg-veil">
-          <div className="flex h-9 shrink-0 items-center justify-end gap-2 px-3">
+          <div className={`flex h-9 shrink-0 items-center justify-end gap-2 pl-3 ${clearOfChrome}`}>
             <button
               type="button"
               onClick={shut}

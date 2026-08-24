@@ -4,6 +4,10 @@ import { t } from "../locales";
 
 export const onMac = navigator.userAgent.includes("Macintosh");
 
+// Right padding that keeps a top strip clear of the window buttons, which
+// Windows puts over the right of the first 36px and macOS over the left.
+export const clearOfChrome = onMac ? "pr-2.5" : "pr-[7.5rem]";
+
 const ink = "rgb(0 0 0 / 0.58)";
 
 const Crossed = () => (
@@ -100,7 +104,7 @@ export default function WindowChrome() {
     return (
       <div
         data-chrome
-        className="group fixed top-0 left-0 z-50 flex h-9 items-center gap-2 pl-[13px]"
+        className="group fixed top-0 left-0 z-[60] flex h-9 items-center gap-2 pl-[13px]"
       >
         {lights.map((one) => (
           <button
@@ -126,8 +130,9 @@ export default function WindowChrome() {
     { key: "close", glyph: "✕", danger: true },
   ];
 
+  // The content pane is inset by `my-2 mr-2` and rounded; these sit inside it.
   return (
-    <div data-chrome className="fixed top-0 right-0 z-50 flex h-9 items-center gap-0.5 px-2">
+    <div data-chrome className="fixed top-2 right-2 z-[60] flex gap-0.5 pt-1.5 pr-1.5 pl-2">
       {buttons.map((button) => (
         <button
           type="button"
@@ -135,7 +140,7 @@ export default function WindowChrome() {
           onClick={acts[button.key]}
           aria-label={t(button.key)}
           title={t(button.key)}
-          className={`grid h-7 w-9 place-items-center rounded-md text-[11px] text-soft ${
+          className={`grid h-7 w-8 place-items-center rounded-md text-[11px] text-soft ${
             button.danger ? "hover:bg-urgent hover:text-bg" : "hover:bg-hover"
           }`}
         >

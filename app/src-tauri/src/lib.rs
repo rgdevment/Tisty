@@ -2025,6 +2025,11 @@ const PICTURES: &[&str] = &[
     "priorities.png",
 ];
 
+// The MSIX package ships the executable alone, so the guide travels inside the
+// binary rather than beside it.
+const GUIDE_ES: &str = include_str!("../resources/guide/es/guia.md");
+const GUIDE_EN: &str = include_str!("../resources/guide/en/guide.md");
+
 #[tauri::command]
 fn guide(
     app: tauri::AppHandle,
@@ -2036,11 +2041,7 @@ fn guide(
         if code.starts_with("es") { "es" } else { "en" }
     };
     let called = if tongue == "es" { "Guía" } else { "Guide" };
-    let leaf = if tongue == "es" {
-        "guia.md"
-    } else {
-        "guide.md"
-    };
+    let told = if tongue == "es" { GUIDE_ES } else { GUIDE_EN };
 
     let from = app
         .path()
@@ -2048,10 +2049,7 @@ fn guide(
             format!("resources/guide/{tongue}"),
             tauri::path::BaseDirectory::Resource,
         )
-        .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-
-    let told = std::fs::read_to_string(from.join(leaf))
-        .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+        .ok();
 
     let mut session = held(&session);
 
@@ -2068,12 +2066,15 @@ fn guide(
 
     let data = session.paths.data().to_path_buf();
 
-    let mut body = told;
+    let mut body = told.to_string();
     for shot in PICTURES {
-        let at = from.join(shot);
-        if !at.is_file() {
+        let Some(at) = from
+            .as_ref()
+            .map(|dir| dir.join(shot))
+            .filter(|at| at.is_file())
+        else {
             continue;
-        }
+        };
         let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         body = body.replace(&format!("]({shot})"), &format!("](<{}>)", kept.at));
@@ -4353,5 +4354,24 @@ version 0.1.0
         assert!(repeated(&every_day(Some(jiff::civil::date(2026, 8, 5))), &now()).is_ok());
         assert!(repeated(&every_day(Some(jiff::civil::date(2027, 1, 1))), &now()).is_ok());
         assert!(repeated(&every_day(None), &now()).is_ok());
+    }
+
+    #[test]
+    fn the_guide_travels_inside_the_binary_rather_than_beside_it() {
+        assert!(GUIDE_ES.starts_with("# "), "la guia en espanol no viaja");
+        assert!(GUIDE_EN.starts_with("# "), "la guia en ingles no viaja");
+    }
+
+    #[test]
+    fn every_picture_the_guide_names_is_where_the_bundler_looks() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/guide");
+        for (told, tongue) in [(GUIDE_ES, "es"), (GUIDE_EN, "en")] {
+            for shot in PICTURES {
+                if !told.contains(&format!("]({shot})")) {
+                    continue;
+                }
+                assert!(root.join(tongue).join(shot).is_file(), "falta {shot}");
+            }
+        }
     }
 }

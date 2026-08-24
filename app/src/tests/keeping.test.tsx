@@ -1111,6 +1111,30 @@ describe("the first-run assistant", () => {
     expect(done).toHaveBeenCalledWith("guide-0001");
   });
 
+  it("still lets the run end when the guide cannot be written", async () => {
+    const done = vi.fn();
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "guide"
+        ? Promise.reject({ code: "cannotRead", name: "os error 3" })
+        : answered(cmd, args);
+
+    render(<Welcome onDone={done} />);
+    await spoken();
+    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /open it at sign-in/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /leave it in the tray/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /open the guide/i }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(done).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: /get started/i }));
+
+    await waitFor(() => expect(done).toHaveBeenCalled());
+    expect(done.mock.calls[0][0]).toBeUndefined();
+  });
+
   it("goes back, and shows what was already chosen", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();

@@ -114,16 +114,23 @@ export default function Welcome({ onDone }: Props) {
       });
   };
 
+  const decided = () =>
+    chose.copies ? Promise.resolve() : chooseSync(undefined).catch(() => undefined);
+
   const leave = () => {
     setBusy(true);
-    const settled = chose.copies ? Promise.resolve() : chooseSync(undefined).catch(() => undefined);
-    settled
+    decided()
       .then(() => guide())
       .then((paper) => onDone(paper.id))
       .catch((e) => {
         setTrouble(saidPlainly(e));
         setBusy(false);
       });
+  };
+
+  const begin = () => {
+    setBusy(true);
+    decided().then(() => onDone());
   };
 
   const title = {
@@ -259,7 +266,11 @@ export default function Welcome({ onDone }: Props) {
             {t("welcomeBack")}
           </button>
         )}
-        {step !== "ready" && (
+        {step === "ready" ? (
+          <button type="button" onClick={begin} className="ml-auto text-faint hover:text-ink">
+            {t("welcomeBegin")}
+          </button>
+        ) : (
           <button type="button" onClick={ahead} className="ml-auto text-faint hover:text-ink">
             {step === "copies" && !chose.copies ? t("welcomeLater") : t("welcomeNext")}
           </button>
