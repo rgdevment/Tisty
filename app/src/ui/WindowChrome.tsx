@@ -4,8 +4,7 @@ import { t } from "../locales";
 
 export const onMac = navigator.userAgent.includes("Macintosh");
 
-// Right padding that keeps a top strip clear of the window buttons, which
-// Windows puts over the right of the first 36px and macOS over the left.
+// Keeps a top strip clear of the window buttons Windows puts at the top right.
 export const clearOfChrome = onMac ? "pr-2.5" : "pr-[7.5rem]";
 
 const ink = "rgb(0 0 0 / 0.58)";
