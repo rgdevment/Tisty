@@ -515,6 +515,9 @@ jobs:
           mkdir -p msix/Assets msix/cli
           cp target/release/tisty-gui.exe msix/Tisty.exe
           cp "target/$TARGET/release/tisty.exe" msix/cli/tisty.exe
+          if [ -d target/release/resources ]; then
+            cp -R target/release/resources msix/resources
+          fi
           for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
             cp "app/src-tauri/icons/$logo.png" "msix/Assets/$logo.png"
           done
