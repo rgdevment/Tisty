@@ -2025,8 +2025,7 @@ const PICTURES: &[&str] = &[
     "priorities.png",
 ];
 
-// The MSIX package ships the executable alone, so the guide travels inside the
-// binary rather than beside it.
+// The MSIX package ships the executable alone, so the guide travels inside the binary.
 const GUIDE_ES: &str = include_str!("../resources/guide/es/guia.md");
 const GUIDE_EN: &str = include_str!("../resources/guide/en/guide.md");
 
