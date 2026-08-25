@@ -1,11 +1,138 @@
-# Tisty
+<div align="center">
+  <img
+    src="assets/icons/tisty-256.png"
+    width="140"
+    height="140"
+    alt="Tisty — gestor de tareas libre y de código abierto para Windows y macOS"/>
 
-[English](README.md) · **Español**
+  <h1>Tisty — Gestor de tareas libre y de código abierto</h1>
 
-**Tus tareas dejan algo detrás. Tisty lo conserva.** Un gestor de tareas
-personal para macOS y Windows, en tu propio disco y sin cuenta.
+  <p><strong>Un gestor de tareas local y un archivo personal para Windows y
+  macOS.<br/>Sin cuentas. Sin telemetría. Sin servidor. Tus tareas, tus notas y
+  tus documentos se quedan como archivos de texto en tu propio disco.</strong></p>
+
+  <p>
+    <a href="README.md">English</a> ·
+    <strong>Español</strong>
+  </p>
+
+  <p>
+    <a href="https://github.com/rgdevment/Tisty/actions/workflows/ci.yml">
+      <img
+        src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/ci.yml?style=flat-square&logo=github-actions&label=Build"
+        alt="Estado de la compilación"/>
+    </a>
+    <a href="https://sonarcloud.io/summary/overall?id=rgdevment_Tisty">
+      <img
+        src="https://img.shields.io/sonar/quality_gate/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Quality%20Gate"
+        alt="Puerta de calidad"/>
+    </a>
+    <a href="https://sonarcloud.io/component_measures?id=rgdevment_Tisty&metric=coverage">
+      <img
+        src="https://img.shields.io/sonar/coverage/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Coverage"
+        alt="Cobertura"/>
+    </a>
+    <a href="https://github.com/rgdevment/Tisty/releases">
+      <img
+        src="https://img.shields.io/github/v/release/rgdevment/Tisty?include_prereleases&style=flat-square&label=Latest&color=6C5CE7"
+        alt="Última versión"/>
+    </a>
+    <img
+      src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-6C5CE7?style=flat-square"
+      alt="Plataformas: Windows y macOS"/>
+    <a href="#licencia">
+      <img
+        src="https://img.shields.io/github/license/rgdevment/Tisty?style=flat-square&color=lightgrey"
+        alt="Licencia AGPL-3.0"/>
+    </a>
+  </p>
+
+  <h4>Descargar Tisty</h4>
+
+  <p>
+    <a href="https://apps.microsoft.com/detail/9PGVWXD8X93N">
+      <img
+        src="https://img.shields.io/badge/Windows-Microsoft_Store-0078D4?style=for-the-badge&logo=microsoft"
+        alt="Consigue el gestor de tareas Tisty en la Microsoft Store"/>
+    </a>
+    <a href="#instalación">
+      <img
+        src="https://img.shields.io/badge/macOS-Homebrew-FBB040?style=for-the-badge&logo=homebrew&logoColor=black"
+        alt="Instala el gestor de tareas Tisty con Homebrew en macOS"/>
+    </a>
+  </p>
+
+  <p>
+    <sub>¿Prefieres la descarga directa?
+    <a href="https://github.com/rgdevment/Tisty/releases/latest">GitHub
+    Releases</a> lleva los instaladores firmados — Windows (.exe) · macOS
+    (.dmg)</sub>
+  </p>
+
+  <p>
+    <a href="https://buymeacoffee.com/rgdevment">
+      <img
+        src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"
+        alt="Invítame un café"/>
+    </a>
+  </p>
+</div>
+
+---
+
+**Tisty** es un **gestor de tareas** libre y de código abierto para Windows y
+macOS, construido sobre una idea: una tarea terminada vale más que el tache que
+la cierra. La mayoría de las **aplicaciones de tareas** son una lista que se
+tacha — en cuanto completas algo, los pasos que diste, las notas que escribiste
+y los documentos en los que te apoyaste se van con ello. Tisty archiva todo eso
+en vez de perderlo, y la búsqueda llega a cada palabra.
+
+Esto no es el producto de una empresa. Soy un desarrollador que resolvió dos
+veces el mismo problema, así que hice el **gestor de tareas personal** que
+quería y lo regalé. Sin anuncios, sin telemetría, sin cuentas, sin
+suscripciones — solo una **herramienta de productividad local** que vive en tu
+equipo y en ninguna otra parte.
+
+**Por qué alguien elige Tisty antes que otros gestores de tareas:**
+
+- **100% local** — tus tareas, tu bitácora y tus documentos nunca salen de tu
+  equipo. Sin nube, sin servidor, sin cuenta.
+- **Gratis de verdad** — sin versión de pago, sin funciones bajo llave, sin
+  período de prueba. AGPL v3, y [términos comerciales](docs/COMMERCIAL.md) solo
+  para organizaciones que no puedan cumplirla.
+- **Tus datos duran más que la aplicación** — texto plano y Markdown en tu
+  propio disco, que se lee con `cat` y se busca con `grep`.
+- **Terminar lo conserva todo** — completar una tarea la manda al archivo con
+  sus pasos, sus notas y sus adjuntos intactos, documentos incluidos.
+- **Rápido y nativo** — un núcleo en Rust dentro de una ventana Tauri: arranca
+  rápido, ocupa poco y parece parte de los dos sistemas.
+
+> Uso Tisty todos los días en macOS y en Windows. Si algo no encaja,
+> [abre un issue](https://github.com/rgdevment/Tisty/issues) — este proyecto
+> mejora porque alguien lo usa de verdad.
+>
+> **Es para una persona, a propósito.** Sin responsables, sin permisos, sin
+> tableros. Si necesitas llevar un equipo, Tisty no va a sostener eso.
 
 ![Un registro de cómo trabajas](assets/Store/jpg/es-01-archivo.jpg)
+
+## Contenido
+
+- [Por qué lo hice](#por-qué-lo-hice)
+- [Qué es, y qué no es](#qué-es-y-qué-no-es)
+- [Para quién es](#para-quién-es)
+- [La idea sobre la que está construido](#la-idea-sobre-la-que-está-construido)
+- [Instalación](#instalación)
+- [Qué hace](#qué-hace)
+- [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad)
+- [Dos equipos, si tienes dos](#dos-equipos-si-tienes-dos)
+- [Una línea de comandos, si la quieres](#una-línea-de-comandos-si-la-quieres)
+- [En qué punto está](#en-qué-punto-está)
+- [Qué nunca va a hacer](#qué-nunca-va-a-hacer)
+- [Otras herramientas del mismo autor](#otras-herramientas-del-mismo-autor)
+- [Sobre hombros ajenos](#sobre-hombros-ajenos)
+- [Contribuir](#contribuir)
+- [Licencia](#licencia)
 
 ## Por qué lo hice
 
@@ -172,7 +299,7 @@ muestra que la hiciste doce veces. **Los recordatorios** llegan como notificaci�
 del sistema y un sonido corto que puedes apagar. Toda la ventana funciona con el
 teclado.
 
-## Tus datos
+## Tus datos y tu privacidad
 
 ![Sin cuenta, sin telemetría, sin servidor](assets/Store/jpg/es-05-privado.jpg)
 
@@ -254,7 +381,7 @@ fórmulas, e inteligencia artificial en cualquier punto del camino crítico.
 El lenguaje natural se queda determinista y local. Nunca se envía nada a un
 modelo.
 
-## Otras herramientas que hice
+## Otras herramientas del mismo autor
 
 Misma idea, mismos términos: gratis, código abierto, sin anuncios, sin
 telemetría, todo local.

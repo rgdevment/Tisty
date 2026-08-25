@@ -14,6 +14,13 @@ export default defineConfig(async () => ({
     include: ["src/**/*.test.ts?(x)"],
     env: { TZ: "UTC" },
     testTimeout: 30000,
+    coverage: {
+      provider: "v8" as const,
+      reporter: ["text-summary", "lcov"],
+      reportsDirectory: "coverage",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/tests/**", "src/main.tsx", "src/vite-env.d.ts"],
+    },
   },
 
   clearScreen: false,

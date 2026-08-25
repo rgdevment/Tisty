@@ -4,6 +4,8 @@
 
 node_modules/
 dist/
+coverage/
+lcov-rust.info
 
 .DS_Store
 Thumbs.db

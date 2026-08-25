@@ -78,3 +78,81 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: EmbarkStudios/cargo-deny-action@v2
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - uses: taiki-e/install-action@nextest
+
+      - name: The four crates the window does not need to build
+        run: |
+          cargo llvm-cov nextest \
+            -p tisty-core -p tisty-nl -p tisty-sync -p tisty-cli \
+            --lcov --output-path lcov-rust.info
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: The window
+        working-directory: app
+        run: |
+          npm ci
+          npm run test:coverage
+
+      - name: Every path is relative to the repository, which is what Sonar reads
+        run: |
+          sed -i "s|^SF:$PWD/|SF:|" lcov-rust.info
+          sed -i -e "s|^SF:$PWD/app/|SF:app/|" -e "s|^SF:src/|SF:app/src/|" \
+            app/coverage/lcov.info
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: |
+            lcov-rust.info
+            app/coverage/lcov.info
+          retention-days: 1
+
+  sonar:
+    name: sonarcloud
+    needs: coverage
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: coverage
+          path: .
+
+      - uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.sources=crates,app/src,app/src-tauri/src
+            -Dsonar.tests=crates,app/src
+            -Dsonar.test.inclusions=crates/*/tests/**,app/src/tests/**
+            -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,crates/*/locales/**
+            -Dsonar.rust.lcov.reportPaths=lcov-rust.info
+            -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
+            -Dsonar.rust.clippy.enabled=false
+            -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
