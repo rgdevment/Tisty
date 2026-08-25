@@ -1,13 +1,138 @@
-# Tisty
+<div align="center">
+  <img
+    src="assets/icons/tisty-256.png"
+    width="140"
+    height="140"
+    alt="Tisty — free open source task manager for Windows and macOS"/>
 
-**English** · [Español](README.es.md)
+  <h1>Tisty — Free Open Source Task Manager</h1>
 
-**Your tasks leave something behind. Tisty keeps it.** A personal task
-manager for macOS and Windows, on your own disk, with no account.
+  <p><strong>A local-first task manager and personal archive for Windows and
+  macOS.<br/>No accounts. No telemetry. No server. Your tasks, notes and
+  documents stay as plain files on your own disk.</strong></p>
+
+  <p>
+    <strong>English</strong> ·
+    <a href="README.es.md">Español</a>
+  </p>
+
+  <p>
+    <a href="https://github.com/rgdevment/Tisty/actions/workflows/ci.yml">
+      <img
+        src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/ci.yml?style=flat-square&logo=github-actions&label=Build"
+        alt="Build status"/>
+    </a>
+    <a href="https://sonarcloud.io/summary/overall?id=rgdevment_Tisty">
+      <img
+        src="https://img.shields.io/sonar/quality_gate/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Quality%20Gate"
+        alt="Quality gate"/>
+    </a>
+    <a href="https://sonarcloud.io/component_measures?id=rgdevment_Tisty&metric=coverage">
+      <img
+        src="https://img.shields.io/sonar/coverage/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Coverage"
+        alt="Coverage"/>
+    </a>
+    <a href="https://github.com/rgdevment/Tisty/releases">
+      <img
+        src="https://img.shields.io/github/v/release/rgdevment/Tisty?include_prereleases&style=flat-square&label=Latest&color=6C5CE7"
+        alt="Latest release"/>
+    </a>
+    <img
+      src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-6C5CE7?style=flat-square"
+      alt="Platform: Windows and macOS"/>
+    <a href="#licence">
+      <img
+        src="https://img.shields.io/github/license/rgdevment/Tisty?style=flat-square&color=lightgrey"
+        alt="Licence AGPL-3.0"/>
+    </a>
+  </p>
+
+  <h4>Download Tisty</h4>
+
+  <p>
+    <a href="https://apps.microsoft.com/detail/9PGVWXD8X93N">
+      <img
+        src="https://img.shields.io/badge/Windows-Microsoft_Store-0078D4?style=for-the-badge&logo=microsoft"
+        alt="Get the Tisty task manager from the Microsoft Store"/>
+    </a>
+    <a href="#getting-started">
+      <img
+        src="https://img.shields.io/badge/macOS-Homebrew-FBB040?style=for-the-badge&logo=homebrew&logoColor=black"
+        alt="Install the Tisty task manager with Homebrew on macOS"/>
+    </a>
+  </p>
+
+  <p>
+    <sub>Prefer a direct download?
+    <a href="https://github.com/rgdevment/Tisty/releases/latest">GitHub
+    Releases</a> carries the signed installers — Windows (.exe) · macOS
+    (.dmg)</sub>
+  </p>
+
+  <p>
+    <a href="https://buymeacoffee.com/rgdevment">
+      <img
+        src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"
+        alt="Buy me a coffee"/>
+    </a>
+  </p>
+</div>
+
+---
+
+**Tisty** is a free, open source **task manager** for Windows and macOS, built
+on one idea: a finished task is worth more than the tick that closes it. Most
+**to-do apps** are a list you cross out — the moment you complete something, the
+steps you took, the notes you wrote and the documents you leaned on go with it.
+Tisty archives all of that instead, and search reaches every word of it.
+
+This is not a company product. I am a developer who kept solving the same
+problem twice, so I built the **personal task manager** I wanted and gave it
+away. No ads, no telemetry, no accounts, no subscriptions — just a
+**local-first productivity tool** that lives on your machine and nowhere else.
+
+**Why people choose Tisty over other task managers:**
+
+- **100% local** — your tasks, your journal and your documents never leave your
+  computer. No cloud, no server, no account.
+- **Truly free** — no premium tier, no feature gates, no trial. AGPL v3, and
+  [commercial terms](docs/COMMERCIAL.md) only for organisations that cannot
+  comply with it.
+- **Your data outlives the app** — plain text and Markdown on your own disk,
+  readable with `cat` and searchable with `grep`.
+- **Finishing keeps everything** — completing a task moves it to the archive
+  with its steps, its notes and its attachments intact, documents included.
+- **Fast and native** — a Rust core inside a Tauri window: it starts quickly,
+  stays small, and looks like it belongs on both systems.
+
+> I use Tisty every day on macOS and Windows. If something feels off,
+> [open an issue](https://github.com/rgdevment/Tisty/issues) — this project
+> keeps improving because of real-world use.
+>
+> **It is for one person, by design.** No assignees, no permissions, no boards.
+> If you need to run a team, Tisty will not carry that.
 
 ![A record of how you work](assets/Store/jpg/en-01-archive.jpg)
 
-## Why I built this
+## Table of Contents
+
+- [Why I Built This](#why-i-built-this)
+- [What It Is / What It Isn't](#what-it-is--what-it-isnt)
+- [Who Is This For?](#who-is-this-for)
+- [The Idea It Is Built On](#the-idea-it-is-built-on)
+- [Getting Started](#getting-started)
+- [What It Does](#what-it-does)
+- [Your Data and Privacy](#your-data-and-privacy)
+- [Two Machines, If You Have Two](#two-machines-if-you-have-two)
+- [A Command Line, If You Want One](#a-command-line-if-you-want-one)
+- [Where It Stands](#where-it-stands)
+- [What It Will Never Do](#what-it-will-never-do)
+- [Other Tools by the Same Author](#other-tools-by-the-same-author)
+- [Standing On](#standing-on)
+- [Contributing](#contributing)
+- [Licence](#licence)
+
+## Why I Built This
 
 Organising your day is harder than a list makes it look. There are more moving
 parts than fit in your head, plans shift under you, and something you thought
@@ -33,7 +158,7 @@ I wanted it to stay mine, too. On my disk, in files I can open without asking
 anyone. So I built the thing I wanted, used it until it stopped annoying me, and
 put it here in case it is the thing you wanted too.
 
-## What it is, and what it isn't
+## What It Is / What It Isn't
 
 **It is** a personal task manager where finishing something is the beginning of
 its useful life. Tasks carry a description, a journal, steps and attachments;
@@ -52,7 +177,7 @@ away.
 searchable with `grep`. If Tisty disappeared tomorrow, everything you wrote
 would still be there and still make sense.
 
-## Who it's for
+## Who Is This For?
 
 Someone who works alone, or mostly alone, and whose tasks leave a trail worth
 keeping. Developers, sysadmins, freelancers, researchers, students — anyone who
@@ -61,7 +186,7 @@ has ever solved the same problem twice and known it the second time.
 If what you want is a list to cross out and never open again, Tisty will feel
 like more than you asked for. That is a fair reason to walk away.
 
-## The idea it is built on
+## The Idea It Is Built On
 
 **A completed task is not finished. It is archived.**
 
@@ -76,7 +201,7 @@ got solved. Three things follow from that, and they shaped everything else:
   The call you have to make tomorrow is born and dies within a day and leaves
   nothing worth keeping — and writing it down must not cost more than one line.
 
-## Installing
+## Getting Started
 
 **Windows** — from the
 [Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), which keeps
@@ -94,7 +219,7 @@ $ brew upgrade --cask tisty
 Or take the disk image and the installer straight from
 [Releases](https://github.com/rgdevment/Tisty/releases), on either system.
 
-## What it does
+## What It Does
 
 **The first time it opens**, Tisty asks four things — which language, where your
 copies should go, whether it may wake you for a reminder, and what closing the
@@ -168,7 +293,7 @@ that occurs to you mid-something does not cost you the something.
 did it twelve times. **Reminders** arrive as a system notification and a short
 sound you can turn off. The whole window works from the keyboard.
 
-## Your data
+## Your Data and Privacy
 
 ![No account, no telemetry, no server](assets/Store/jpg/en-05-private.jpg)
 
@@ -185,7 +310,7 @@ that are not reassuring.
 Tisty makes **one** network request in its life: once a day it checks whether a
 newer version exists. It sends nothing, and you can turn it off.
 
-## Two machines, if you have two
+## Two Machines, If You Have Two
 
 Point Tisty at a folder both computers already reach — whatever your Google
 Drive, OneDrive or iCloud client keeps in step, a NAS, a drive you plug in on
@@ -206,7 +331,7 @@ And because what uploads that folder is your provider's program and not
 Tisty, if you ever change something on one machine and it does not turn up
 on the other, [FAQ.md](docs/FAQ.md) lists the causes worth checking, in order.
 
-## A command line, if you want one
+## A Command Line, If You Want One
 
 The window is the main way in. But everything it does, the terminal does too:
 the same store, the same tasks, the same natural language. It exists because I
@@ -221,7 +346,7 @@ $ tisty done 2
 Settings puts it within reach of your terminal, or you can install only the
 command with `brew install rgdevment/tap/tisty-cli` and never open the window.
 
-## Where it stands
+## Where It Stands
 
 | | |
 |---|---|
@@ -240,7 +365,7 @@ hand in the window — HTML drag and drop does not survive the native file drop
 that attachments need, and attachments were the better trade — and nothing has
 been tested with a real screen reader, though the keyboard path has.
 
-## What it will never do
+## What It Will Never Do
 
 As important as the list above. Permanently out of scope: real-time
 collaboration, kanban boards, Gantt charts, time tracking, productivity metrics,
@@ -250,7 +375,7 @@ path.
 The natural language stays deterministic and local. Nothing is ever sent to a
 model.
 
-## Other tools I've made
+## Other Tools by the Same Author
 
 Same idea, same terms: free, open source, no ads, no telemetry, everything
 local.
@@ -261,7 +386,7 @@ local.
   selector for Windows and macOS: it asks which browser should open a link
   instead of assuming.
 
-## Standing on
+## Standing On
 
 Tisty is small because other people's work does the heavy lifting.
 
