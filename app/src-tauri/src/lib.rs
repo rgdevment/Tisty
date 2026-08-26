@@ -25,6 +25,7 @@ struct Session {
     corpus: tisty_core::docs::Corpus,
     print: String,
     locale: Option<String>,
+    log: Option<(String, Vec<Event>)>,
 }
 
 impl Session {
@@ -66,6 +67,7 @@ impl Session {
             cache,
             corpus: tisty_core::docs::Corpus::default(),
             print,
+            log: None,
         };
         session.take_out_the_shed();
         session.take_out_the_retired();
@@ -126,6 +128,18 @@ impl Session {
         }
         self.reproject()?;
         Ok(true)
+    }
+
+    fn log(&mut self) -> tisty_core::Result<&[Event]> {
+        let held = self
+            .log
+            .as_ref()
+            .is_some_and(|(print, _)| *print == self.print);
+        if !held {
+            let read = tisty_core::store::read_all(self.paths.store())?;
+            self.log = Some((self.print.clone(), read));
+        }
+        Ok(&self.log.as_ref().expect("just filled").1)
     }
 
     fn reproject(&mut self) -> tisty_core::Result<()> {
@@ -457,6 +471,18 @@ impl View {
             },
         })
     }
+}
+
+#[tauri::command]
+fn task_story(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<tisty_core::story::Story> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    session.reload()?;
+    let told = tisty_core::story::story(session.log()?, id);
+    Ok(told)
 }
 
 #[tauri::command]
@@ -3903,6 +3929,7 @@ pub fn run() {
         .manage(Leaving::default())
         .invoke_handler(tauri::generate_handler![
             snapshot,
+            task_story,
             close_window,
             shortcut,
             settle_in,

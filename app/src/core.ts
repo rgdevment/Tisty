@@ -113,6 +113,34 @@ export interface Parsed {
 
 export type Reading = "story" | "routine" | "trace";
 
+export type Chapter =
+  | { chapter: "born"; title: string }
+  | { chapter: "retitled"; from: string; to: string }
+  | { chapter: "dated"; from?: DateSpec | null; to?: DateSpec | null }
+  | { chapter: "bounded"; from?: DateSpec | null; to?: DateSpec | null }
+  | { chapter: "placed"; from: Priority; to: Priority }
+  | { chapter: "filed"; from?: string | null; to?: string | null }
+  | { chapter: "tagged"; added: string[]; gone: string[] }
+  | { chapter: "cadenced"; from?: Repeat | null; to?: Repeat | null }
+  | { chapter: "described"; emptied: boolean }
+  | { chapter: "wrote"; body: string }
+  | { chapter: "rewrote"; body: string }
+  | { chapter: "planned"; text: string }
+  | { chapter: "ticked"; text: string }
+  | { chapter: "unticked"; text: string }
+  | { chapter: "reworded"; from: string; to: string }
+  | { chapter: "unplanned"; text: string }
+  | { chapter: "closed" }
+  | { chapter: "dropped" }
+  | { chapter: "reopened" };
+
+export type Page = { n: number; at: string; by: string; undoing?: boolean } & Chapter;
+
+export interface Story {
+  id: string;
+  pages: Page[];
+}
+
 export interface View {
   archive?: boolean;
   reading?: Reading;
@@ -193,6 +221,8 @@ export const writeLog = (id: string, body: string, entry?: string): Promise<Task
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
 export const complete = (id: string): Promise<Task> => invoke("complete", { id });
+
+export const taskStory = (id: string): Promise<Story> => invoke("task_story", { id });
 
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });

@@ -5,6 +5,7 @@ import Fields from "./Fields";
 import Journal from "./Journal";
 import Prose from "./Prose";
 import Steps from "./Steps";
+import Trail from "./Trail";
 
 interface Props {
   task: Task;
@@ -100,6 +101,16 @@ export default function Detail({
         onWhole={expanded ? undefined : onExpand}
         onWrite={onLog}
       />
+
+      {task.status !== "open" && (
+        <>
+          <Section label={t("trail")} />
+          <Trail task={task.id} lists={lists} onError={onError} />
+          <p className="mt-4 border-t border-hair pt-3 text-[11.5px] leading-relaxed text-faint">
+            {t("trailSealed")}
+          </p>
+        </>
+      )}
     </>
   );
 

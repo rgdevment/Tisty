@@ -96,6 +96,8 @@ beforeEach(() => {
         return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
       case "snapshot":
         return Promise.resolve(shot(args.view as { archive?: boolean } | undefined));
+      case "task_story":
+        return Promise.resolve({ id: String(args.id ?? ""), pages: [] });
       case "read":
         return Promise.resolve({ title: String(args.text ?? ""), tags: [], spans: [], offers: [] });
       case "complete":

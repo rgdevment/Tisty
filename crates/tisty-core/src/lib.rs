@@ -13,6 +13,7 @@ pub mod paths;
 pub mod refs;
 pub mod state;
 pub mod store;
+pub mod story;
 pub mod text;
 pub mod undo;
 pub mod view;
