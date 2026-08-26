@@ -52,7 +52,7 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
 
   return (
     <>
-      <span className="fixed inset-0 z-10" onClick={onClose} />
+      <span aria-hidden="true" className="fixed inset-0 z-10" onClick={onClose} />
       <div
         ref={box}
         className={`absolute left-1.5 z-20 w-[258px] rounded-[10px] border border-line bg-bg p-[5px] text-[12.5px] shadow-lift ${

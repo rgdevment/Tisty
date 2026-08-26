@@ -274,7 +274,7 @@ function Sheet({
 
   return (
     <>
-      <span className="fixed inset-0 z-10" onClick={onClose} />
+      <span aria-hidden="true" className="fixed inset-0 z-10" onClick={onClose} />
       <div
         ref={box}
         onKeyDown={(event) => {

@@ -139,7 +139,7 @@ jobs:
           name: coverage
           path: .
 
-      - uses: SonarSource/sonarqube-scan-action@v5
+      - uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
@@ -153,6 +153,7 @@ jobs:
             -Dsonar.rust.lcov.reportPaths=lcov-rust.info
             -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
             -Dsonar.rust.clippy.enabled=false
+            -Dsonar.jasmin.internal.js.ts.disabled=true
             -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
