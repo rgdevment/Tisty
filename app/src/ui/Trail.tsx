@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { List, Page, Story } from "../core";
 import { taskStory } from "../core";
-import { cadence, whenLabel, wroteAt } from "../format";
+import { cadence, shortStamp, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { said } from "../quadrants";
 
@@ -39,18 +39,15 @@ export default function Trail({ task, lists, onError }: Props) {
       {told.pages.map((page) => (
         <li
           key={page.n}
-          className="relative grid grid-cols-[86px_14px_minmax(0,1fr)] items-start gap-2.5 py-1.5"
+          className="grid grid-cols-[76px_14px_minmax(0,1fr)] items-start gap-2.5 py-1.5"
         >
           <span
-            aria-hidden="true"
-            className="absolute top-0 bottom-0 left-[92px] w-px bg-hair last:h-3"
-          />
-          <span className="pt-px text-right text-[11.5px] tabular-nums text-faint">
-            {wroteAt(page.at)}
+            title={wroteAt(page.at)}
+            className="pt-px text-right text-[11px] whitespace-nowrap tabular-nums text-faint"
+          >
+            {shortStamp(page.at)}
           </span>
-          <span className="relative z-10 bg-bg text-center text-[11px] leading-5 text-faint">
-            {glyph(page)}
-          </span>
+          <span className="text-center text-[11px] leading-5 text-faint">{glyph(page)}</span>
           <span
             className={`text-[12.5px] leading-relaxed ${page.undoing ? "text-faint" : "text-soft"}`}
           >

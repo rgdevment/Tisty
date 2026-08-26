@@ -90,6 +90,19 @@ beforeEach(() => {
         return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
       case "snapshot":
         return Promise.resolve(shot(args.view as View | undefined));
+      case "routines":
+        return Promise.resolve([]);
+      case "archive_shape":
+        return Promise.resolve({
+          closed: 2,
+          dropped: 0,
+          told: 1,
+          since: "2026-07-01T09:00:00Z",
+          months: [
+            { key: "2026-07", closed: 1 },
+            { key: "2026-08", closed: 1 },
+          ],
+        });
       default:
         return Promise.resolve(null);
     }
@@ -121,6 +134,26 @@ describe("the archive reads in layers", () => {
     );
     expect(screen.getByRole("button", { name: /Routines/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Trace/ })).toBeTruthy();
+  });
+
+  it("opens with what the archive holds, not with a bare list", async () => {
+    const user = userEvent.setup();
+    await inTheArchive(user);
+
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: /What the archive holds/i })).toBeTruthy(),
+    );
+    expect(screen.getByText(/left something written/i)).toBeTruthy();
+  });
+
+  it("shows routines as series, never as one row per turn", async () => {
+    const user = userEvent.setup();
+    await inTheArchive(user);
+
+    await user.click(screen.getByRole("button", { name: /Routines/ }));
+
+    await waitFor(() => expect(screen.getByText(/Nothing repeats yet/i)).toBeTruthy());
+    expect(ipc.calls.some((one) => one.cmd === "routines")).toBe(true);
   });
 
   it("asks for the trace only once it is chosen", async () => {

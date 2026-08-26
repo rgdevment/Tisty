@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Series, Turn } from "../core";
 import { taskSeries } from "../core";
 import { cadence } from "../format";
-import { fill, t } from "../locales";
+import { fill, locale, t } from "../locales";
 
 interface Props {
   task: string;
@@ -92,9 +92,9 @@ export default function Routine({ task, onError }: Props) {
             ))}
           </div>
           <div className="mt-1 flex justify-between text-[11px] tabular-nums text-faint">
-            <span>00</span>
+            <span>{hours.from}</span>
             <span>{hours.usual}</span>
-            <span>23</span>
+            <span>{hours.to}</span>
           </div>
         </>
       )}
@@ -109,7 +109,7 @@ export default function Routine({ task, onError }: Props) {
           {told.turns.flatMap((turn) =>
             (turn.gaps ?? []).map((gap) => (
               <li key={gap} className="tabular-nums">
-                {gap}
+                {dated(gap)}
               </li>
             )),
           )}
@@ -181,6 +181,16 @@ function laid(told: Series): Day[] {
 const mark = (turn: Turn): Mark =>
   turn.status === "done" ? "kept" : turn.status === "dropped" ? "given" : "open";
 
+const dated = (day: string): string => {
+  const at = new Date(`${day}T12:00:00`);
+  if (Number.isNaN(at.getTime())) return day;
+  return new Intl.DateTimeFormat(locale(), {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(at);
+};
+
 function clocked(told: Series) {
   const counts = new Array(24).fill(0) as number[];
   let seen = 0;
@@ -195,8 +205,15 @@ function clocked(told: Series) {
 
   const most = Math.max(...counts);
   const peak = counts.indexOf(most);
+  const busy = counts.map((many, hour) => ({ many, hour })).filter((one) => one.many > 0);
+  const from = Math.max(0, Math.min(...busy.map((one) => one.hour)) - 1);
+  const to = Math.min(23, Math.max(...busy.map((one) => one.hour)) + 1);
   return {
-    bars: counts.map((many, hour) => ({ hour, many, tall: (many / most) * 100 })),
+    bars: counts
+      .map((many, hour) => ({ hour, many, tall: (many / most) * 100 }))
+      .slice(from, to + 1),
+    from: `${String(from).padStart(2, "0")}`,
+    to: `${String(to).padStart(2, "0")}`,
     usual: `${String(peak).padStart(2, "0")}:00`,
     said: fill("routineWhen", String(seen)),
   };

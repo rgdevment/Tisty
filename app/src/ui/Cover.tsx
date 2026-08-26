@@ -1,0 +1,83 @@
+import { useEffect, useState } from "react";
+import type { Shape } from "../core";
+import { archiveShape } from "../core";
+import { fill, locale, t } from "../locales";
+
+interface Props {
+  onError?: (problem: unknown) => void;
+}
+
+export default function Cover({ onError }: Props) {
+  const [shape, setShape] = useState<Shape | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    archiveShape()
+      .then((told) => {
+        if (alive) setShape(told);
+      })
+      .catch((problem) => onError?.(problem));
+    return () => {
+      alive = false;
+    };
+  }, [onError]);
+
+  if (!shape || shape.closed === 0) return null;
+
+  const most = Math.max(...shape.months.map((one) => one.closed), 1);
+  const last = shape.months.length - 1;
+  const peak = shape.months.reduce(
+    (best, one, at) => (one.closed > shape.months[best].closed ? at : best),
+    0,
+  );
+
+  return (
+    <section aria-label={t("coverTitle")} className="px-2.5 pt-1 pb-2">
+      <p className="text-[12px] text-faint">
+        {shape.since && (
+          <>
+            {fill("coverSince", month(shape.since))}
+            {" · "}
+          </>
+        )}
+        {shape.told === 1 ? t("coverToldOne") : fill("coverTold", String(shape.told))}
+        {shape.dropped > 0 &&
+          ` · ${shape.dropped === 1 ? t("coverDroppedOne") : fill("coverDropped", String(shape.dropped))}`}
+      </p>
+
+      {shape.months.length > 1 && (
+        <>
+          <div
+            className="mt-2.5 flex h-9 items-end gap-[2px] border-b border-hair"
+            role="img"
+            aria-label={fill("coverStrip", String(shape.months.length))}
+          >
+            {shape.months.map((one, at) => (
+              <span
+                key={one.key}
+                title={`${one.key} · ${one.closed}`}
+                style={{ height: `${Math.max((one.closed / most) * 100, one.closed ? 6 : 2)}%` }}
+                className={`flex-1 rounded-t-[3px] bg-accent ${
+                  at === last ? "opacity-100" : "opacity-40"
+                }`}
+              />
+            ))}
+          </div>
+          <div className="mt-1 flex justify-between text-[11px] tabular-nums text-faint">
+            <span>{shape.months[0].key}</span>
+            <span>
+              {fill("coverPeak", `${shape.months[peak].closed} · ${shape.months[peak].key}`)}
+            </span>
+            <span>{shape.months[last].key}</span>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+const month = (iso: string): string => {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "";
+  return new Intl.DateTimeFormat(locale(), { month: "long", year: "numeric" }).format(at);
+};

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
-use crate::model::{Cadence, DateSpec, From, Repeat, Status, Task, TaskId};
+use crate::model::{Cadence, DateSpec, From, ListId, Repeat, Status, Tag, Task, TaskId};
 use crate::state::State;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -24,7 +24,12 @@ pub struct Turn {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Series {
+    pub last: TaskId,
     pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub list: Option<ListId>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<Tag>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub repeat: Option<Repeat>,
     pub turns: Vec<Turn>,
@@ -85,7 +90,10 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
     let (streak, longest) = run(&turns);
 
     Some(Series {
+        last: last.id,
         title: last.title.clone(),
+        list: last.list,
+        tags: last.tags.clone(),
         repeat,
         turns,
         kept,
@@ -97,6 +105,56 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
     })
 }
 
+pub fn how_many(state: &State) -> usize {
+    let mut seen = HashSet::new();
+    for task in state.tasks.values() {
+        if task.repeat.is_none() && task.after.is_none() {
+            continue;
+        }
+        seen.insert(first(state, task.id));
+    }
+    seen.len()
+}
+
+pub fn routines(state: &State) -> Vec<Series> {
+    let mut roots: Vec<TaskId> = Vec::new();
+    let mut seen = HashSet::new();
+    for task in state.tasks.values() {
+        if task.repeat.is_none() && task.after.is_none() {
+            continue;
+        }
+        let root = first(state, task.id);
+        if seen.insert(root) {
+            roots.push(root);
+        }
+    }
+
+    let mut all: Vec<Series> = roots
+        .into_iter()
+        .filter_map(|root| series(state, root))
+        .collect();
+    all.sort_by(|one, two| {
+        two.turns
+            .last()
+            .map(|turn| turn.id)
+            .cmp(&one.turns.last().map(|turn| turn.id))
+    });
+    all
+}
+
+fn first(state: &State, from: TaskId) -> TaskId {
+    let mut seen = HashSet::new();
+    let mut here = from;
+    while let Some(task) = state.tasks.get(&here) {
+        let Some(before) = task.after else { break };
+        if !seen.insert(before) || !state.tasks.contains_key(&before) {
+            break;
+        }
+        here = before;
+    }
+    here
+}
+
 fn walked(state: &State, from: TaskId) -> Vec<&Task> {
     let mut back: HashMap<TaskId, TaskId> = HashMap::new();
     for task in state.tasks.values() {
@@ -105,18 +163,8 @@ fn walked(state: &State, from: TaskId) -> Vec<&Task> {
         }
     }
 
-    let mut seen = HashSet::new();
-    let mut first = from;
-    while let Some(task) = state.tasks.get(&first) {
-        let Some(before) = task.after else { break };
-        if !seen.insert(before) || !state.tasks.contains_key(&before) {
-            break;
-        }
-        first = before;
-    }
-
     let mut chain = Vec::new();
-    let mut walking = Some(first);
+    let mut walking = Some(first(state, from));
     let mut seen = HashSet::new();
     while let Some(here) = walking {
         if !seen.insert(here) {
@@ -345,6 +393,32 @@ mod tests {
             told.turns.len(),
             1,
             "the chain says who belongs, never the words on the front"
+        );
+    }
+
+    #[test]
+    fn every_chain_is_gathered_once_and_never_per_turn() {
+        let chain = Chain::new()
+            .turn("2026-08-01", daily(From::Due))
+            .done()
+            .turn("2026-08-02", daily(From::Due))
+            .done()
+            .turn("2026-08-03", daily(From::Due));
+
+        let mut events = chain.events.clone();
+        let alone = Ulid::generate();
+        events.push(event(Op::TaskAdd {
+            id: alone,
+            d: TaskAdd::new("buy bread", "a0"),
+        }));
+
+        let all = routines(&State::replay(&events));
+
+        assert_eq!(all.len(), 1, "three turns are one routine, not three");
+        assert_eq!(all[0].turns.len(), 3);
+        assert_eq!(
+            all[0].last, chain.ids[2],
+            "a series opens on its latest turn"
         );
     }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type Axis, banded, grouped, shelved } from "../archive";
+import { type Axis, banded, monthly, shelved } from "../archive";
 import type { List, Task } from "../core";
 import { cadence, isOverdue, whenLabel } from "../format";
 import { fill, t } from "../locales";
@@ -25,6 +25,7 @@ interface Props {
   onDrop?: (task: string, after?: string, before?: string) => void;
   above?: React.ReactNode;
   below?: React.ReactNode;
+  instead?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -47,15 +48,15 @@ export default function TaskList({
   onFold,
   above,
   below,
+  instead,
   children,
 }: Props) {
-  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const rows = useMemo(
     () =>
       axis && axis !== "time"
         ? shelved(tasks, axis, lists)
         : bands === "month"
-          ? grouped(tasks)
+          ? monthly(tasks)
           : bands === "day"
             ? banded(tasks)
             : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
@@ -88,17 +89,7 @@ export default function TaskList({
   const listed = useRef<HTMLDivElement>(null);
   const [reached, setReached] = useState<string | null>(null);
 
-  const drawn = useMemo(
-    () =>
-      rows.flatMap((row) =>
-        row.kind === "one"
-          ? [row.task.id]
-          : open.has(row.key)
-            ? row.tasks.map((one) => one.id)
-            : [],
-      ),
-    [rows, open],
-  );
+  const drawn = useMemo(() => rows.map((row) => row.task.id), [rows]);
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;
 
@@ -241,60 +232,31 @@ export default function TaskList({
         aria-label={t("tasks")}
         className={`scroller flex-1 px-5 pt-4 pb-6 ${width}`}
       >
-        {tasks.length === 0 && (
+        {instead}
+        {!instead && tasks.length === 0 && (
           <p className="px-2.5 py-4 text-sm leading-relaxed text-soft">
             {empty ?? t("nothingOpen")}
           </p>
         )}
 
-        {rows.map((row, r) => (
-          <div key={row.key}>
-            {heads && opens[r] && (
-              <div className="mt-5 mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1">
-                {row.band}
-              </div>
-            )}
+        {!instead &&
+          rows.map((row, r) => (
+            <div key={row.key}>
+              {heads && opens[r] && (
+                <div className="mt-5 mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1">
+                  {row.band}
+                </div>
+              )}
 
-            {row.kind === "many" ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setOpen((was) => flip(was, row.key))}
-                  aria-expanded={open.has(row.key)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-hover"
-                >
-                  <span className="w-4 shrink-0 text-center text-[13px] text-accent">✓</span>
-                  <span className="min-w-0 truncate text-sm">{row.title}</span>
-                  <span className="text-xs text-faint">
-                    {fill("timesThisMonth", String(row.tasks.length))}
-                  </span>
-                  <span className="ml-auto text-[9px] text-faint">
-                    {open.has(row.key) ? "▲" : "▼"}
-                  </span>
-                </button>
-                {open.has(row.key) && (
-                  <div className="ml-4 border-l border-hair pl-1">
-                    {row.tasks.map((one) => line(one))}
-                  </div>
-                )}
-              </>
-            ) : (
-              line(row.task)
-            )}
-          </div>
-        ))}
+              {line(row.task)}
+            </div>
+          ))}
 
         {below}
       </div>
     </main>
   );
 }
-
-const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
-  const next = new Set(was);
-  if (!next.delete(key)) next.add(key);
-  return next;
-};
 
 function Meta({ task, list }: { task: Task; list?: string }) {
   const bits: React.ReactNode[] = [];

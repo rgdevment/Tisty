@@ -57,6 +57,7 @@ import { settled } from "./saving";
 import About from "./ui/About";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
+import Cover from "./ui/Cover";
 import Detail from "./ui/Detail";
 import Docs from "./ui/Docs";
 import Keeping from "./ui/Keeping";
@@ -68,6 +69,7 @@ import Notice from "./ui/Notice";
 import Only from "./ui/Only";
 import Rifts from "./ui/Rifts";
 import Search from "./ui/Search";
+import Shelf from "./ui/Shelf";
 import Sidebar from "./ui/Sidebar";
 import Sightings from "./ui/Sightings";
 import Tags from "./ui/Tags";
@@ -919,7 +921,13 @@ export default function App() {
             lists={data.lists}
             title={title(chosen, data.lists)}
             when={chosen.named === "tasks" ? todayLong() : undefined}
-            count={chosen.named === "tasks" ? undefined : shown.length}
+            count={
+              chosen.named === "tasks"
+                ? undefined
+                : chosen.named === "archive" && !chosen.folded && chosen.layer === "routine"
+                  ? data.counts.routines
+                  : shown.length
+            }
             onBack={
               chosen.list
                 ? () => {
@@ -971,6 +979,18 @@ export default function App() {
                 <Sightings papers={found.papers} onOpen={openDoc} />
               ) : undefined
             }
+            instead={
+              chosen.named === "archive" &&
+              !chosen.folded &&
+              chosen.layer === "routine" &&
+              found === null ? (
+                <Shelf
+                  lists={data.lists}
+                  onOpen={setSelected}
+                  onError={(e) => setError(saidPlainly(e))}
+                />
+              ) : undefined
+            }
             above={
               chosen.named === "tasks" ? (
                 <div className="flex gap-1 px-2.5 pb-1">
@@ -1009,68 +1029,75 @@ export default function App() {
                   />
                 </div>
               ) : chosen.named === "archive" ? (
-                <div className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
-                  {LAYERS.map((layer) => {
-                    const on = !chosen.folded && (chosen.layer ?? "story") === layer;
-                    const many = data.counts[layerCount(layer)];
-                    return (
+                <>
+                  {found === null && !chosen.folded && (
+                    <Cover onError={(e) => setError(saidPlainly(e))} />
+                  )}
+                  <div className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
+                    {LAYERS.map((layer) => {
+                      const on = !chosen.folded && (chosen.layer ?? "story") === layer;
+                      const many = data.counts[layerCount(layer)];
+                      return (
+                        <button
+                          key={layer}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => {
+                            setSelected(undefined);
+                            setFound(null);
+                            setChosen({ named: "archive", layer });
+                          }}
+                          className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+                            on
+                              ? "border-ink bg-ink text-bg"
+                              : "border-line text-faint hover:text-soft"
+                          }`}
+                        >
+                          {t(layerWord(layer))}
+                          {many ? (
+                            <span className="ml-1 tabular-nums opacity-70">{many}</span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                    <span className="mx-1 h-3.5 w-px bg-hair" />
+                    {AXES.map((axis) => {
+                      const on = (chosen.axis ?? "time") === axis;
+                      return (
+                        <button
+                          key={axis}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => {
+                            setSelected(undefined);
+                            setChosen({ ...chosen, named: "archive", axis, folded: false });
+                          }}
+                          className={`rounded-full px-2 py-0.5 text-[11.5px] ${
+                            on ? "bg-active font-semibold text-ink" : "text-faint hover:text-soft"
+                          }`}
+                        >
+                          {t(axisWord(axis))}
+                        </button>
+                      );
+                    })}
+                    {data.counts.folded || chosen.folded ? (
                       <button
-                        key={layer}
                         type="button"
-                        aria-pressed={on}
+                        aria-pressed={chosen.folded === true}
                         onClick={() => {
                           setSelected(undefined);
                           setFound(null);
-                          setChosen({ named: "archive", layer });
+                          setChosen({ named: "archive", folded: !chosen.folded });
                         }}
-                        className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                          on
-                            ? "border-ink bg-ink text-bg"
-                            : "border-line text-faint hover:text-soft"
-                        }`}
+                        className="ml-1 text-xs text-faint hover:text-ink"
                       >
-                        {t(layerWord(layer))}
-                        {many ? <span className="ml-1 tabular-nums opacity-70">{many}</span> : null}
+                        {chosen.folded
+                          ? `⊕ ${t("backToArchive")}`
+                          : `⊖ ${data.counts.folded} ${t("folded")}`}
                       </button>
-                    );
-                  })}
-                  <span className="mx-1 h-3.5 w-px bg-hair" />
-                  {AXES.map((axis) => {
-                    const on = (chosen.axis ?? "time") === axis;
-                    return (
-                      <button
-                        key={axis}
-                        type="button"
-                        aria-pressed={on}
-                        onClick={() => {
-                          setSelected(undefined);
-                          setChosen({ ...chosen, named: "archive", axis, folded: false });
-                        }}
-                        className={`rounded-full px-2 py-0.5 text-[11.5px] ${
-                          on ? "bg-active font-semibold text-ink" : "text-faint hover:text-soft"
-                        }`}
-                      >
-                        {t(axisWord(axis))}
-                      </button>
-                    );
-                  })}
-                  {data.counts.folded || chosen.folded ? (
-                    <button
-                      type="button"
-                      aria-pressed={chosen.folded === true}
-                      onClick={() => {
-                        setSelected(undefined);
-                        setFound(null);
-                        setChosen({ named: "archive", folded: !chosen.folded });
-                      }}
-                      className="ml-1 text-xs text-faint hover:text-ink"
-                    >
-                      {chosen.folded
-                        ? `⊕ ${t("backToArchive")}`
-                        : `⊖ ${data.counts.folded} ${t("folded")}`}
-                    </button>
-                  ) : null}
-                </div>
+                    ) : null}
+                  </div>
+                </>
               ) : chosen.named === "tags" || chosen.tags?.length ? (
                 <Tags
                   tags={data.tags}

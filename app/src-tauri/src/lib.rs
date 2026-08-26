@@ -282,11 +282,7 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             ..Default::default()
         },
     );
-    for (key, how) in [
-        ("stories", Reading::Story),
-        ("routines", Reading::Routine),
-        ("traces", Reading::Trace),
-    ] {
+    for (key, how) in [("stories", Reading::Story), ("traces", Reading::Trace)] {
         count(
             key,
             Filter {
@@ -296,6 +292,7 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             },
         );
     }
+    counts.insert("routines".to_string(), tisty_core::series::how_many(state));
 
     counts.insert("tags".to_string(), state.tags().len());
     counts.insert(
@@ -494,6 +491,20 @@ fn task_series(
     let mut session = held(&session);
     session.reload()?;
     Ok(tisty_core::series::series(&session.state, id))
+}
+
+#[tauri::command]
+fn routines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core::series::Series>> {
+    let mut session = held(&session);
+    session.reload()?;
+    Ok(tisty_core::series::routines(&session.state))
+}
+
+#[tauri::command]
+fn archive_shape(session: tauri::State<'_, Mutex<Session>>) -> Answer<tisty_core::shape::Shape> {
+    let mut session = held(&session);
+    session.reload()?;
+    Ok(tisty_core::shape::shape(&session.state, 18))
 }
 
 #[tauri::command]
@@ -3942,6 +3953,8 @@ pub fn run() {
             snapshot,
             task_story,
             task_series,
+            routines,
+            archive_shape,
             close_window,
             shortcut,
             settle_in,

@@ -18,6 +18,7 @@ const kept = (id: string, on: string, at: string, gaps?: string[]): Turn => ({
 });
 
 const series = (some: Partial<Series>): Series => ({
+  last: "01A",
   title: "take the pill",
   turns: [],
   kept: 0,
@@ -54,8 +55,10 @@ describe("a routine reads as behaviour, not as turns", () => {
       }),
     );
 
-    expect(screen.getByText("2026-08-02")).toBeTruthy();
-    expect(screen.getByText("2026-08-03")).toBeTruthy();
+    const holes = screen.getAllByRole("listitem").map((one) => one.textContent);
+    expect(holes).toHaveLength(2);
+    expect(holes.every((one) => one && !/^\d{4}-/.test(one))).toBe(true);
+    expect(holes.join(" ")).toMatch(/2/);
   });
 
   it("says plainly when a cadence has no gaps to show, rather than showing zero", async () => {

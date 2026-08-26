@@ -12,6 +12,7 @@ pub mod order;
 pub mod paths;
 pub mod refs;
 pub mod series;
+pub mod shape;
 pub mod state;
 pub mod store;
 pub mod story;

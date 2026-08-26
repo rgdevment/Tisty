@@ -153,7 +153,10 @@ export interface Turn {
 }
 
 export interface Series {
+  last: string;
   title: string;
+  list?: string;
+  tags?: string[];
   repeat?: Repeat;
   turns: Turn[];
   kept: number;
@@ -248,6 +251,23 @@ export const complete = (id: string): Promise<Task> => invoke("complete", { id }
 export const taskStory = (id: string): Promise<Story> => invoke("task_story", { id });
 
 export const taskSeries = (id: string): Promise<Series | null> => invoke("task_series", { id });
+
+export const allRoutines = (): Promise<Series[]> => invoke("routines");
+
+export interface Month {
+  key: string;
+  closed: number;
+}
+
+export interface Shape {
+  closed: number;
+  dropped: number;
+  told: number;
+  since?: string;
+  months: Month[];
+}
+
+export const archiveShape = (): Promise<Shape> => invoke("archive_shape");
 
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });
