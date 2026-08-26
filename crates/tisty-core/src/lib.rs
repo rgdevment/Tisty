@@ -21,7 +21,8 @@ pub mod witness;
 pub use config::Config;
 pub use event::{DeviceId, Event, Op};
 pub use model::{
-    DateSpec, List, ListId, LogEntry, LogId, Priority, Status, Step, StepId, Tag, Task, TaskId,
+    DateSpec, List, ListId, LogEntry, LogId, Priority, Reading, Status, Step, StepId, Tag, Task,
+    TaskId,
 };
 pub use paths::Paths;
 pub use refs::Ref;

@@ -73,7 +73,19 @@ import Tags from "./ui/Tags";
 import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
-import { accepts, asView, type Chosen, invite, nothing, SLICES, type Slice, title } from "./views";
+import {
+  accepts,
+  asView,
+  type Chosen,
+  invite,
+  LAYERS,
+  layerCount,
+  layerWord,
+  nothing,
+  SLICES,
+  type Slice,
+  title,
+} from "./views";
 
 export const steady = <T,>(was: T, found: T): T =>
   JSON.stringify(was) === JSON.stringify(found) ? was : found;
@@ -993,19 +1005,49 @@ export default function App() {
                     }}
                   />
                 </div>
-              ) : chosen.named === "archive" && (data.counts.folded || chosen.folded) ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFound(null);
-                    setChosen({ named: "archive", folded: !chosen.folded });
-                  }}
-                  className="px-2.5 pb-1.5 text-xs text-faint hover:text-ink"
-                >
-                  {chosen.folded
-                    ? `⊕ ${t("backToArchive")}`
-                    : `⊖ ${data.counts.folded} ${t("folded")}`}
-                </button>
+              ) : chosen.named === "archive" ? (
+                <div className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
+                  {LAYERS.map((layer) => {
+                    const on = !chosen.folded && (chosen.layer ?? "story") === layer;
+                    const many = data.counts[layerCount(layer)];
+                    return (
+                      <button
+                        key={layer}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => {
+                          setSelected(undefined);
+                          setFound(null);
+                          setChosen({ named: "archive", layer });
+                        }}
+                        className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+                          on
+                            ? "border-ink bg-ink text-bg"
+                            : "border-line text-faint hover:text-soft"
+                        }`}
+                      >
+                        {t(layerWord(layer))}
+                        {many ? <span className="ml-1 tabular-nums opacity-70">{many}</span> : null}
+                      </button>
+                    );
+                  })}
+                  {data.counts.folded || chosen.folded ? (
+                    <button
+                      type="button"
+                      aria-pressed={chosen.folded === true}
+                      onClick={() => {
+                        setSelected(undefined);
+                        setFound(null);
+                        setChosen({ named: "archive", folded: !chosen.folded });
+                      }}
+                      className="ml-1 text-xs text-faint hover:text-ink"
+                    >
+                      {chosen.folded
+                        ? `⊕ ${t("backToArchive")}`
+                        : `⊖ ${data.counts.folded} ${t("folded")}`}
+                    </button>
+                  ) : null}
+                </div>
               ) : chosen.named === "tags" || chosen.tags?.length ? (
                 <Tags
                   tags={data.tags}

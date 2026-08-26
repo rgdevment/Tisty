@@ -10,7 +10,7 @@ mod waking;
 use tauri::{Emitter, Manager};
 
 use tisty_core::{
-    Config, Event, List, Op, Paths, State, Store, Tag, Task,
+    Config, Event, List, Op, Paths, Reading, State, Store, Tag, Task,
     event::{LogAdd, LogEdit, StepAdd, StepRef, StepText, TaskPatch},
     view::{Filter, Scope, Window},
     witness::{self, Fact, channel},
@@ -268,6 +268,20 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             ..Default::default()
         },
     );
+    for (key, how) in [
+        ("stories", Reading::Story),
+        ("routines", Reading::Routine),
+        ("traces", Reading::Trace),
+    ] {
+        count(
+            key,
+            Filter {
+                scope: Scope::Archived,
+                reading: Some(how),
+                ..Default::default()
+            },
+        );
+    }
 
     counts.insert("tags".to_string(), state.tags().len());
     counts.insert(
@@ -400,6 +414,8 @@ struct View {
     window: Option<String>,
     #[serde(default)]
     repeating: bool,
+    #[serde(default)]
+    reading: Option<String>,
 }
 
 impl View {
@@ -426,6 +442,12 @@ impl View {
             hidden: self.hidden,
             priority: None,
             repeating: self.repeating,
+            reading: match self.reading.as_deref() {
+                Some("story") => Some(Reading::Story),
+                Some("routine") => Some(Reading::Routine),
+                Some("trace") => Some(Reading::Trace),
+                _ => None,
+            },
             window: match self.window.as_deref() {
                 Some("today") => Some(Window::Today),
                 Some("upcoming") => Some(Window::After(today())),
@@ -4024,6 +4046,7 @@ mod tests {
             hidden: false,
             window: None,
             repeating: false,
+            reading: None,
         }
     }
 

@@ -111,8 +111,11 @@ export interface Parsed {
   offers: Offer[];
 }
 
+export type Reading = "story" | "routine" | "trace";
+
 export interface View {
   archive?: boolean;
+  reading?: Reading;
   everything?: boolean;
   inbox?: boolean;
   list?: string;

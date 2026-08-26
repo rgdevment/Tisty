@@ -16,6 +16,14 @@ pub enum Status {
     Dropped,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Reading {
+    Story,
+    Routine,
+    Trace,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("priority must be do, decide, delegate or minor")]
 pub struct InvalidPriority;
@@ -284,6 +292,16 @@ impl Task {
     pub fn weight(&self) -> usize {
         self.volume.weight()
     }
+
+    pub fn reading(&self) -> Reading {
+        if self.repeat.is_some() || self.after.is_some() {
+            Reading::Routine
+        } else if self.weight() > 0 {
+            Reading::Story
+        } else {
+            Reading::Trace
+        }
+    }
 }
 
 const PROSE_CAP: usize = 8;
@@ -543,5 +561,78 @@ mod tests {
         t.status = Status::Done;
         assert!(t.is_archived());
         assert!(!t.is_open());
+    }
+
+    fn daily() -> crate::model::Repeat {
+        crate::model::Repeat::due(crate::model::Cadence {
+            every: 1,
+            unit: crate::model::Unit::Day,
+        })
+    }
+
+    #[test]
+    fn a_repeating_task_is_a_routine_even_when_it_carries_a_journal() {
+        let mut chore = task();
+        chore.repeat = Some(daily());
+        chore.log.push(entry("the pharmacy was shut so it waited"));
+        chore.retally();
+
+        assert!(chore.weight() > 0, "the note is real substance");
+        assert_eq!(
+            chore.reading(),
+            Reading::Routine,
+            "the series outranks any single turn"
+        );
+    }
+
+    #[test]
+    fn a_turn_is_a_routine_through_its_chain_alone() {
+        let mut turn = task();
+        turn.after = Some(Ulid::generate());
+        turn.retally();
+
+        assert_eq!(turn.reading(), Reading::Routine);
+    }
+
+    #[test]
+    fn a_task_with_nothing_written_is_a_trace() {
+        let mut errand = task();
+        errand.retally();
+
+        assert_eq!(errand.reading(), Reading::Trace);
+    }
+
+    #[test]
+    fn the_agenda_alone_never_lifts_a_trace() {
+        let mut errand = task();
+        errand.date = Some(DateSpec::all_day("2026-08-05".parse().unwrap(), "UTC"));
+        errand.deadline = Some(DateSpec::all_day("2026-08-09".parse().unwrap(), "UTC"));
+        errand.tags = vec![Tag::new("work").unwrap(), Tag::new("urgent").unwrap()];
+        errand.list = Some(Ulid::generate());
+        errand.reminders = vec![DateSpec::all_day("2026-08-04".parse().unwrap(), "UTC")];
+        errand.retally();
+
+        assert_eq!(
+            errand.reading(),
+            Reading::Trace,
+            "dates and labels are not something learnt"
+        );
+    }
+
+    #[test]
+    fn writing_a_note_lifts_a_trace_into_a_story() {
+        let mut one = task();
+        one.retally();
+        assert_eq!(one.reading(), Reading::Trace);
+
+        one.log
+            .push(entry("the courier leaves the parcel with the neighbour"));
+        one.retally();
+
+        assert_eq!(
+            one.reading(),
+            Reading::Story,
+            "the layer is read from what is there, never stored"
+        );
     }
 }

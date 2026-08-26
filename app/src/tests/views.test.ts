@@ -6,8 +6,22 @@ const lists: List[] = [{ id: "01L", name: "work", order: "a0" }];
 
 describe("asView", () => {
   it("asks for the hidden ones only while the drawer is open", () => {
-    expect(asView({ named: "archive" })).toEqual({ archive: true });
     expect(asView({ named: "archive", folded: true })).toEqual({ archive: true, hidden: true });
+  });
+
+  it("opens the archive on the layer that has something to tell", () => {
+    expect(asView({ named: "archive" })).toEqual({ archive: true, reading: "story" });
+    expect(asView({ named: "archive", layer: "trace" })).toEqual({
+      archive: true,
+      reading: "trace",
+    });
+  });
+
+  it("drops the layer while the hidden drawer is open, so nothing goes missing there", () => {
+    expect(asView({ named: "archive", layer: "story", folded: true })).toEqual({
+      archive: true,
+      hidden: true,
+    });
   });
 
   it("lets a chosen list outrank whatever else was selected", () => {

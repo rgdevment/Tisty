@@ -364,6 +364,14 @@ const en = {
   searchInvite: "Type to search. It looks in the archive too.",
   archiveEmpty:
     "What you close ends up here, gathered by month. A task that repeats is folded into one line per month.",
+  layerStories: "Stories",
+  layerRoutines: "Routines",
+  layerTrace: "Trace",
+  storiesEmpty:
+    "Nothing closed here tells a story yet. A task earns the shelf by what gets written on it — a note, a list of steps, a document.",
+  routinesEmpty:
+    "Nothing repeats yet. Write «water the plants every three days» to start a series.",
+  traceEmpty: "Everything closed here left something written behind.",
   listEmpty: "Nothing in here yet. Add the first one from the field above.",
   upcomingEmpty: "Nothing dated ahead. Write «call the dentist on Friday» to put something here.",
   todayEmpty:
@@ -1110,6 +1118,14 @@ const es: Catalog = {
   searchInvite: "Escribe para buscar. También mira en el archivo.",
   archiveEmpty:
     "Aquí llega lo que vas cerrando, agrupado por mes. Lo que se repite se agrupa en una sola línea por mes.",
+  layerStories: "Historias",
+  layerRoutines: "Rutinas",
+  layerTrace: "Rastro",
+  storiesEmpty:
+    "Todavía nada de lo cerrado cuenta una historia. Una tarea se gana el estante por lo que se escribe en ella: una nota, unos pasos, un documento.",
+  routinesEmpty:
+    "Todavía no se repite nada. Escribe «regar las plantas cada tres días» para empezar una serie.",
+  traceEmpty: "Todo lo que se ha cerrado aquí dejó algo escrito.",
   listEmpty: "Todavía no hay nada aquí. Añade lo primero desde el campo de arriba.",
   upcomingEmpty:
     "Nada con fecha por delante. Escribe «llamar al dentista el viernes» para poner algo aquí.",
