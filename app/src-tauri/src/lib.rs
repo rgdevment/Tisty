@@ -486,6 +486,17 @@ fn task_story(
 }
 
 #[tauri::command]
+fn task_series(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<Option<tisty_core::series::Series>> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    session.reload()?;
+    Ok(tisty_core::series::series(&session.state, id))
+}
+
+#[tauri::command]
 fn snapshot(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
@@ -3930,6 +3941,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             snapshot,
             task_story,
+            task_series,
             close_window,
             shortcut,
             settle_in,

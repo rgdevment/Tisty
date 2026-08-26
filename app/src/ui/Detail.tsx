@@ -4,6 +4,7 @@ import { t } from "../locales";
 import Fields from "./Fields";
 import Journal from "./Journal";
 import Prose from "./Prose";
+import Routine from "./Routine";
 import Steps from "./Steps";
 import Trail from "./Trail";
 
@@ -104,6 +105,12 @@ export default function Detail({
 
       {task.status !== "open" && (
         <>
+          {(task.repeat || task.after) && (
+            <>
+              <Section label={t("routine")} />
+              <Routine task={task.id} onError={onError} />
+            </>
+          )}
           <Section label={t("trail")} />
           <Trail task={task.id} lists={lists} onError={onError} />
           <p className="mt-4 border-t border-hair pt-3 text-[11.5px] leading-relaxed text-faint">

@@ -11,14 +11,16 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const day = (at: string) => ({ at, tz: "UTC", floating: true, has_time: false });
 
-const pages = (...some: Omit<Page, "n">[]): Page[] =>
-  some.map((one, n) => ({ ...one, n }) as Page);
+type Drop<T> = T extends unknown ? Omit<T, "n"> : never;
+type Draft = Drop<Page>;
+
+const pages = (...some: Draft[]): Page[] => some.map((one, n) => ({ ...one, n }) as Page);
 
 beforeEach(() => {
   ipc.told = { id: "01A", pages: [] };
 });
 
-const shown = async (some: Omit<Page, "n">[]) => {
+const shown = async (some: Draft[]) => {
   ipc.told = { id: "01A", pages: pages(...some) };
   render(<Trail task="01A" lists={[{ id: "01L", name: "Work", order: "a0" }]} />);
   await screen.findByRole("list");

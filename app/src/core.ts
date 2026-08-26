@@ -48,6 +48,7 @@ export interface Task {
   tags?: string[];
   reminders?: DateSpec[];
   repeat?: Repeat;
+  after?: string;
   completed_at?: string;
   hidden?: boolean;
   volume?: Volume;
@@ -141,6 +142,28 @@ export interface Story {
   pages: Page[];
 }
 
+export interface Turn {
+  id: string;
+  status: Status;
+  due?: DateSpec;
+  closed?: string;
+  late?: number;
+  gaps?: string[];
+  told?: boolean;
+}
+
+export interface Series {
+  title: string;
+  repeat?: Repeat;
+  turns: Turn[];
+  kept: number;
+  dropped: number;
+  skipped: number;
+  streak: number;
+  longest: number;
+  measurable: boolean;
+}
+
 export interface View {
   archive?: boolean;
   reading?: Reading;
@@ -223,6 +246,8 @@ export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold",
 export const complete = (id: string): Promise<Task> => invoke("complete", { id });
 
 export const taskStory = (id: string): Promise<Story> => invoke("task_story", { id });
+
+export const taskSeries = (id: string): Promise<Series | null> => invoke("task_series", { id });
 
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });
