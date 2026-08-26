@@ -608,8 +608,11 @@ pub fn shelf(all: &[tisty_core::series::Series], state: &State, lang: Lang) -> S
             "  {} {}{}\n",
             style::paint(BLUE, "\u{21bb}"),
             one.title,
-            style::dim(&format!("  {}/{}", one.kept, one.turns.len()))
+            style::dim(&format!("  {}/{}", one.kept, one.turns.len() - one.open))
         ));
+        if one.open > 0 {
+            meta.push(lang.get("series-running").into());
+        }
         let mut said = meta.join(" · ");
         if missed > 0 {
             let gaps = lang.plural("missed", missed);
@@ -628,10 +631,17 @@ pub fn shelf(all: &[tisty_core::series::Series], state: &State, lang: Lang) -> S
 }
 
 pub fn series(told: &tisty_core::series::Series, today: Date, lang: Lang) -> String {
-    let mut out = format!("\n  {}\n\n", style::bold(&told.title));
+    let mut out = format!("\n  {}", style::bold(&told.title));
+    if told.repeat.is_some_and(|it| it.until.is_none()) {
+        out.push_str(&style::dim(&format!("  {}", lang.get("series-endless"))));
+    }
+    out.push_str("\n\n");
 
     for (many, word) in [
-        (format!("{}/{}", told.kept, told.turns.len()), "series-kept"),
+        (
+            format!("{}/{}", told.kept, told.turns.len() - told.open),
+            "series-kept",
+        ),
         (told.streak.to_string(), "series-streak"),
         (told.longest.to_string(), "series-longest"),
     ] {

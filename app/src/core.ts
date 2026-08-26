@@ -161,6 +161,7 @@ export interface Series {
   turns: Turn[];
   kept: number;
   dropped: number;
+  open: number;
   skipped: number;
   streak: number;
   longest: number;

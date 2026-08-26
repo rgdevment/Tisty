@@ -1,7 +1,7 @@
 use jiff::ToSpan;
 use jiff::civil::Date;
 use tisty_core::{
-    Tag,
+    Reading, Tag,
     view::{self, Window},
 };
 
@@ -50,6 +50,9 @@ impl Filter {
                 self.inner.inbox = true;
                 Ok(())
             }
+            Some("story") => self.take_layer(Reading::Story),
+            Some("routine") => self.take_layer(Reading::Routine),
+            Some("trace") => self.take_layer(Reading::Trace),
             Some("archive") => {
                 self.inner.scope = view::Scope::Archived;
                 Ok(())
@@ -65,6 +68,12 @@ impl Filter {
             Some("overdue") => self.take_window(Window::Overdue, lang),
             _ => self.take_date(token, lang),
         }
+    }
+
+    fn take_layer(&mut self, how: Reading) -> anyhow::Result<()> {
+        self.inner.scope = view::Scope::Archived;
+        self.inner.reading = Some(how);
+        Ok(())
     }
 
     fn take_list(&mut self, name: &str, app: &App, lang: Lang) -> anyhow::Result<()> {

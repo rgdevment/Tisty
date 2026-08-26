@@ -151,6 +151,8 @@ trail-dropped     = "dropped"
 trail-reopened    = "reopened"
 
 
+series-running    = "still running"
+series-endless    = "no end set"
 series-all        = "routines"
 series-none       = "nothing repeats yet"
 series-not-one    = "that one is not part of a routine"
@@ -160,6 +162,11 @@ series-longest    = "the longest run"
 series-gaps       = "days missed"
 series-holes      = "the gaps"
 series-unmeasured = "this one counts from the day it was closed, so there are no gaps to point at"
+
+
+story             = "stories"
+routine           = "routines"
+trace             = "trace"
 
 
 [plural]

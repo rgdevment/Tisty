@@ -61,12 +61,13 @@ export default function Shelf({ lists, onOpen, onError }: Props) {
                   {one.tags?.length ? (
                     <span>{one.tags.map((tag) => `#${tag}`).join(" ")}</span>
                   ) : null}
-                  {one.streak > 0 && <span>{fill("shelfStreak", String(one.streak))}</span>}
+                    {one.streak > 0 && <span>{fill("shelfStreak", String(one.streak))}</span>}
+                  {one.open > 0 && <span className="text-accent">{t("shelfRunning")}</span>}
                 </div>
               </div>
               <div className="pt-px text-right text-xs whitespace-nowrap text-faint tabular-nums">
                 <span>
-                  {one.kept}/{one.turns.length}
+                  {one.kept}/{one.turns.length - one.open}
                 </span>
                 {missing > 0 && (
                   <span className="ml-2 text-urgent">

@@ -42,7 +42,7 @@ export default function Routine({ task, onError }: Props) {
   return (
     <div>
       <div className="flex flex-wrap gap-x-6 gap-y-3">
-        <Fact big={`${told.kept}/${told.turns.length}`} small={t("routineKept")} />
+        <Fact big={`${told.kept}/${told.turns.length - told.open}`} small={t("routineKept")} />
         <Fact big={String(told.streak)} small={t("routineStreak")} />
         <Fact big={String(told.longest)} small={t("routineLongest")} />
         {told.measurable && <Fact big={String(told.skipped)} small={t("routineGaps")} />}
@@ -53,6 +53,10 @@ export default function Routine({ task, onError }: Props) {
       {told.repeat && (
         <p className="mt-3 text-[12px] text-faint">
           ↻ {cadence(told.repeat)}
+          {" · "}
+          {told.repeat.until
+            ? fill("routineUntil", dated(told.repeat.until))
+            : t("routineEndless")}
           {average > 0 && ` · ${fill("routineLate", `${average} d`)}`}
         </p>
       )}
@@ -96,6 +100,7 @@ export default function Routine({ task, onError }: Props) {
             <span>{hours.usual}</span>
             <span>{hours.to}</span>
           </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-faint">{t("routineZone")}</p>
         </>
       )}
 

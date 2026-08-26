@@ -372,6 +372,9 @@ const en = {
   coverStrip: "Closed per month over the last {name} months",
   coverPeak: "most: {name}",
   shelfStreak: "{name} on the run",
+  shelfRunning: "still running",
+  routineEndless: "no end set — it keeps going",
+  routineUntil: "ends {name}",
   shelfMissed: "{name} missed",
   shelfMissedOne: "one missed",
   axisTime: "Time",
@@ -389,6 +392,8 @@ const en = {
   routineUsual: "the usual hour",
   routineTurns: "Every turn",
   routineWhen: "What hour they close at",
+  routineZone:
+    "The hour comes from the moment each turn was closed, read in the zone you are in now. Travel shifts these bars with nobody moving them.",
   routineHoles: "The gaps",
   routineNoHoles: "Not one date went by.",
   routineUnmeasured:
@@ -1192,6 +1197,9 @@ const es: Catalog = {
   coverStrip: "Cerradas por mes en los últimos {name} meses",
   coverPeak: "máximo: {name}",
   shelfStreak: "{name} de racha",
+  shelfRunning: "sigue en marcha",
+  routineEndless: "sin final — sigue",
+  routineUntil: "termina el {name}",
   shelfMissed: "{name} olvidadas",
   shelfMissedOne: "una olvidada",
   axisTime: "Tiempo",
@@ -1209,6 +1217,8 @@ const es: Catalog = {
   routineUsual: "hora habitual",
   routineTurns: "Cada vuelta",
   routineWhen: "A qué hora se cumplen",
+  routineZone:
+    "La hora sale del momento en que se cerró cada vuelta, leída en la zona en la que estás ahora. Un viaje mueve estas barras sin que nadie las moviera.",
   routineHoles: "Los huecos",
   routineNoHoles: "No se pasó ni una fecha.",
   routineUnmeasured:

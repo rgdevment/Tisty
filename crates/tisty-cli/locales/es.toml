@@ -148,6 +148,8 @@ trail-dropped     = "descartada"
 trail-reopened    = "reabierta"
 
 
+series-running    = "sigue en marcha"
+series-endless    = "sin final"
 series-all        = "rutinas"
 series-none       = "todavía no se repite nada"
 series-not-one    = "esa no forma parte de ninguna rutina"
@@ -157,6 +159,11 @@ series-longest    = "la racha más larga"
 series-gaps       = "días olvidados"
 series-holes      = "los huecos"
 series-unmeasured = "esta cuenta desde el día en que se cierra, así que no hay huecos que señalar"
+
+
+story             = "historias"
+routine           = "rutinas"
+trace             = "rastro"
 
 
 [plural]

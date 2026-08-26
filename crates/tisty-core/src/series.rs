@@ -35,6 +35,7 @@ pub struct Series {
     pub turns: Vec<Turn>,
     pub kept: usize,
     pub dropped: usize,
+    pub open: usize,
     pub skipped: usize,
     pub streak: usize,
     pub longest: usize,
@@ -85,6 +86,10 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
         .iter()
         .filter(|turn| turn.status == Status::Dropped)
         .count();
+    let open = turns
+        .iter()
+        .filter(|turn| turn.status == Status::Open)
+        .count();
     let skipped = turns.iter().map(|turn| turn.gaps.len()).sum();
 
     let (streak, longest) = run(&turns);
@@ -98,6 +103,7 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
         turns,
         kept,
         dropped,
+        open,
         skipped,
         streak,
         longest,
@@ -433,6 +439,29 @@ mod tests {
             series(&state, chain.ids[0]).unwrap().turns.len(),
             28,
             "counting must not cost what walking costs"
+        );
+    }
+
+    #[test]
+    fn a_turn_still_open_is_not_counted_as_one_that_was_missed() {
+        let told = Chain::new()
+            .turn("2026-08-01", daily(From::Due))
+            .done()
+            .turn("2026-08-02", daily(From::Due))
+            .done()
+            .turn("2026-08-03", daily(From::Due))
+            .told();
+
+        assert_eq!(told.turns.len(), 3);
+        assert_eq!(told.kept, 2);
+        assert_eq!(
+            told.open, 1,
+            "an endless routine always has one turn still running"
+        );
+        assert_eq!(
+            told.turns.len() - told.open,
+            2,
+            "what has come due is what can be judged"
         );
     }
 

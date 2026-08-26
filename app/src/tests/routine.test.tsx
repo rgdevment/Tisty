@@ -23,6 +23,7 @@ const series = (some: Partial<Series>): Series => ({
   turns: [],
   kept: 0,
   dropped: 0,
+  open: 0,
   skipped: 0,
   streak: 0,
   longest: 0,
@@ -99,11 +100,15 @@ describe("a routine reads as behaviour, not as turns", () => {
         ],
         kept: 1,
         dropped: 1,
+        open: 1,
         streak: 1,
         longest: 1,
       }),
     );
 
-    expect(screen.getByText("1/3")).toBeTruthy();
+    expect(
+      screen.getByText("1/2"),
+      "the turn still running is not something you failed",
+    ).toBeTruthy();
   });
 });
