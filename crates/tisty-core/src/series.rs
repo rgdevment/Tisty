@@ -106,30 +106,25 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
 }
 
 pub fn how_many(state: &State) -> usize {
-    let mut seen = HashSet::new();
-    for task in state.tasks.values() {
-        if task.repeat.is_none() && task.after.is_none() {
-            continue;
-        }
-        seen.insert(first(state, task.id));
-    }
-    seen.len()
+    heads(state).count()
+}
+
+/// Climbing to the root per task is quadratic on a long chain; a root is spotted in one pass.
+fn heads(state: &State) -> impl Iterator<Item = TaskId> + '_ {
+    state
+        .tasks
+        .values()
+        .filter(|task| task.repeat.is_some() || task.after.is_some())
+        .filter(|task| {
+            task.after
+                .is_none_or(|before| !state.tasks.contains_key(&before))
+        })
+        .map(|task| task.id)
 }
 
 pub fn routines(state: &State) -> Vec<Series> {
-    let mut roots: Vec<TaskId> = Vec::new();
-    let mut seen = HashSet::new();
-    for task in state.tasks.values() {
-        if task.repeat.is_none() && task.after.is_none() {
-            continue;
-        }
-        let root = first(state, task.id);
-        if seen.insert(root) {
-            roots.push(root);
-        }
-    }
-
-    let mut all: Vec<Series> = roots
+    let mut all: Vec<Series> = heads(state)
+        .collect::<Vec<_>>()
         .into_iter()
         .filter_map(|root| series(state, root))
         .collect();
@@ -419,6 +414,25 @@ mod tests {
         assert_eq!(
             all[0].last, chain.ids[2],
             "a series opens on its latest turn"
+        );
+    }
+
+    #[test]
+    fn a_chain_is_counted_without_climbing_it_once_per_turn() {
+        let mut chain = Chain::new().turn("2026-08-01", daily(From::Due)).done();
+        for at in 2..=28 {
+            chain = chain
+                .turn(&format!("2026-08-{at:02}"), daily(From::Due))
+                .done();
+        }
+
+        let state = State::replay(&chain.events);
+
+        assert_eq!(how_many(&state), 1);
+        assert_eq!(
+            series(&state, chain.ids[0]).unwrap().turns.len(),
+            28,
+            "counting must not cost what walking costs"
         );
     }
 
