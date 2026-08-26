@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AXES } from "./archive";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
 import { asPlain } from "./copying";
@@ -76,6 +77,7 @@ import WindowChrome from "./ui/WindowChrome";
 import {
   accepts,
   asView,
+  axisWord,
   type Chosen,
   invite,
   LAYERS,
@@ -951,6 +953,7 @@ export default function App() {
                   ? "month"
                   : "day"
             }
+            axis={found === null && chosen.named === "archive" ? chosen.axis : undefined}
             onSelect={setSelected}
             onComplete={
               chosen.named === "archive"
@@ -1028,6 +1031,26 @@ export default function App() {
                       >
                         {t(layerWord(layer))}
                         {many ? <span className="ml-1 tabular-nums opacity-70">{many}</span> : null}
+                      </button>
+                    );
+                  })}
+                  <span className="mx-1 h-3.5 w-px bg-hair" />
+                  {AXES.map((axis) => {
+                    const on = (chosen.axis ?? "time") === axis;
+                    return (
+                      <button
+                        key={axis}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => {
+                          setSelected(undefined);
+                          setChosen({ ...chosen, named: "archive", axis, folded: false });
+                        }}
+                        className={`rounded-full px-2 py-0.5 text-[11.5px] ${
+                          on ? "bg-active font-semibold text-ink" : "text-faint hover:text-soft"
+                        }`}
+                      >
+                        {t(axisWord(axis))}
                       </button>
                     );
                   })}

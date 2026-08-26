@@ -364,6 +364,11 @@ const en = {
   searchInvite: "Type to search. It looks in the archive too.",
   archiveEmpty:
     "What you close ends up here, gathered by month. A task that repeats is folded into one line per month.",
+  axisTime: "Time",
+  axisList: "List",
+  axisTag: "Topic",
+  axisQuadrant: "Kind",
+  noTags: "Untagged",
   routine: "The series",
   routineKept: "kept",
   routineStreak: "on the run now",
@@ -1169,6 +1174,11 @@ const es: Catalog = {
   searchInvite: "Escribe para buscar. También mira en el archivo.",
   archiveEmpty:
     "Aquí llega lo que vas cerrando, agrupado por mes. Lo que se repite se agrupa en una sola línea por mes.",
+  axisTime: "Tiempo",
+  axisList: "Lista",
+  axisTag: "Tema",
+  axisQuadrant: "Naturaleza",
+  noTags: "Sin etiquetas",
   routine: "La serie",
   routineKept: "cumplidas",
   routineStreak: "de racha ahora",

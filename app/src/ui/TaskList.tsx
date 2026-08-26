@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { banded, grouped } from "../archive";
+import { type Axis, banded, grouped, shelved } from "../archive";
 import type { List, Task } from "../core";
 import { cadence, isOverdue, whenLabel } from "../format";
 import { fill, t } from "../locales";
@@ -16,6 +16,7 @@ interface Props {
   count?: number;
   onBack?: () => void;
   bands?: "month" | "day";
+  axis?: Axis;
   empty?: string;
   note?: string;
   onSelect: (id: string) => void;
@@ -38,6 +39,7 @@ export default function TaskList({
   count,
   onBack,
   bands,
+  axis,
   empty,
   note,
   onSelect,
@@ -50,12 +52,14 @@ export default function TaskList({
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const rows = useMemo(
     () =>
-      bands === "month"
-        ? grouped(tasks)
-        : bands === "day"
-          ? banded(tasks)
-          : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
-    [tasks, bands],
+      axis && axis !== "time"
+        ? shelved(tasks, axis, lists)
+        : bands === "month"
+          ? grouped(tasks)
+          : bands === "day"
+            ? banded(tasks)
+            : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
+    [tasks, bands, axis, lists],
   );
   const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
   const opens = useMemo(() => {

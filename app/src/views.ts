@@ -1,3 +1,4 @@
+import type { Axis } from "./archive";
 import type { List, Reading, View } from "./core";
 import { fill, t } from "./locales";
 
@@ -28,6 +29,15 @@ export const layerWord = (layer: Reading) =>
 export const layerCount = (layer: Reading) =>
   layer === "story" ? "stories" : layer === "routine" ? "routines" : "traces";
 
+export const axisWord = (axis: Axis) =>
+  axis === "time"
+    ? ("axisTime" as const)
+    : axis === "list"
+      ? ("axisList" as const)
+      : axis === "tag"
+        ? ("axisTag" as const)
+        : ("axisQuadrant" as const);
+
 export interface Chosen {
   named?: Named;
   doc?: string;
@@ -37,6 +47,7 @@ export interface Chosen {
   folded?: boolean;
   slice?: Slice;
   layer?: Reading;
+  axis?: Axis;
 }
 
 export function asView(chosen: Chosen): View {
