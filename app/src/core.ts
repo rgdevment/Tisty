@@ -160,6 +160,7 @@ export interface Series {
   repeat?: Repeat;
   turns: Turn[];
   kept: number;
+  owed: number;
   dropped: number;
   open: number;
   skipped: number;

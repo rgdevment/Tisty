@@ -608,7 +608,7 @@ pub fn shelf(all: &[tisty_core::series::Series], state: &State, lang: Lang) -> S
             "  {} {}{}\n",
             style::paint(BLUE, "\u{21bb}"),
             one.title,
-            style::dim(&format!("  {}/{}", one.kept, one.turns.len() - one.open))
+            style::dim(&format!("  {}/{}", one.kept, one.owed))
         ));
         if one.open > 0 {
             meta.push(lang.get("series-running").into());
@@ -638,10 +638,7 @@ pub fn series(told: &tisty_core::series::Series, today: Date, lang: Lang) -> Str
     out.push_str("\n\n");
 
     for (many, word) in [
-        (
-            format!("{}/{}", told.kept, told.turns.len() - told.open),
-            "series-kept",
-        ),
+        (format!("{}/{}", told.kept, told.owed), "series-kept"),
         (told.streak.to_string(), "series-streak"),
         (told.longest.to_string(), "series-longest"),
     ] {

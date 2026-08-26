@@ -42,7 +42,11 @@ export default function Routine({ task, onError }: Props) {
   return (
     <div>
       <div className="flex flex-wrap gap-x-6 gap-y-3">
-        <Fact big={`${told.kept}/${told.turns.length - told.open}`} small={t("routineKept")} />
+        <Fact
+          big={`${told.kept}/${told.owed}`}
+          small={t("routineKept")}
+          aside={told.owed > 0 ? `${Math.round((told.kept / told.owed) * 100)} %` : undefined}
+        />
         <Fact big={String(told.streak)} small={t("routineStreak")} />
         <Fact big={String(told.longest)} small={t("routineLongest")} />
         {told.measurable && <Fact big={String(told.skipped)} small={t("routineGaps")} />}
@@ -54,9 +58,7 @@ export default function Routine({ task, onError }: Props) {
         <p className="mt-3 text-[12px] text-faint">
           ↻ {cadence(told.repeat)}
           {" · "}
-          {told.repeat.until
-            ? fill("routineUntil", dated(told.repeat.until))
-            : t("routineEndless")}
+          {told.repeat.until ? fill("routineUntil", dated(told.repeat.until)) : t("routineEndless")}
           {average > 0 && ` · ${fill("routineLate", `${average} d`)}`}
         </p>
       )}
@@ -124,10 +126,13 @@ export default function Routine({ task, onError }: Props) {
   );
 }
 
-function Fact({ big, small }: { big: string; small: string }) {
+function Fact({ big, small, aside }: { big: string; small: string; aside?: string }) {
   return (
     <div>
-      <b className="block text-[19px] leading-tight font-bold tracking-tight tabular-nums">{big}</b>
+      <b className="block text-[19px] leading-tight font-bold tracking-tight tabular-nums">
+        {big}
+        {aside && <span className="ml-1.5 text-[12px] font-normal text-faint">{aside}</span>}
+      </b>
       <span className="text-[11.5px] text-faint">{small}</span>
     </div>
   );

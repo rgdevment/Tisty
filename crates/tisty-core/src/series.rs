@@ -34,6 +34,8 @@ pub struct Series {
     pub repeat: Option<Repeat>,
     pub turns: Vec<Turn>,
     pub kept: usize,
+    /// Turns that came due plus the dates the cadence skipped: what was owed, not what exists.
+    pub owed: usize,
     pub dropped: usize,
     pub open: usize,
     pub skipped: usize,
@@ -92,6 +94,7 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
         .count();
     let skipped = turns.iter().map(|turn| turn.gaps.len()).sum();
 
+    let owed = turns.len() - open + skipped;
     let (streak, longest) = run(&turns);
 
     Some(Series {
@@ -102,6 +105,7 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
         repeat,
         turns,
         kept,
+        owed,
         dropped,
         open,
         skipped,
@@ -439,6 +443,23 @@ mod tests {
             series(&state, chain.ids[0]).unwrap().turns.len(),
             28,
             "counting must not cost what walking costs"
+        );
+    }
+
+    #[test]
+    fn what_was_owed_counts_the_dates_that_went_by_and_not_only_the_turns() {
+        let told = Chain::new()
+            .turn("2026-08-01", daily(From::Due))
+            .done()
+            .turn("2026-08-04", daily(From::Due))
+            .done()
+            .told();
+
+        assert_eq!(told.kept, 2);
+        assert_eq!(told.skipped, 2);
+        assert_eq!(
+            told.owed, 4,
+            "two kept and two missed is four occasions, never two out of two"
         );
     }
 
