@@ -504,7 +504,13 @@ fn routines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core:
 fn archive_shape(session: tauri::State<'_, Mutex<Session>>) -> Answer<tisty_core::shape::Shape> {
     let mut session = held(&session);
     session.reload()?;
-    Ok(tisty_core::shape::shape(&session.state, 18))
+    let now = jiff::Zoned::now();
+    Ok(tisty_core::shape::shape(
+        &session.state,
+        18,
+        &now.time_zone().clone(),
+        now.date(),
+    ))
 }
 
 #[tauri::command]
@@ -3368,6 +3374,7 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
     match trouble {
         tisty_sync::Trouble::NotThere(at) => Refusal::about("noMeetingPlace", at),
         tisty_sync::Trouble::OtherStore { theirs } => Refusal::about("otherStore", theirs),
+        tisty_sync::Trouble::Newer(who) => Refusal::about("syncNewer", who),
         tisty_sync::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
         tisty_sync::Trouble::Refused(why) => Refusal::about("syncRefused", why),
         tisty_sync::Trouble::Broke(why) => Refusal::about("syncBroke", why),

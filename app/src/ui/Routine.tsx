@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Series, Turn } from "../core";
 import { taskSeries } from "../core";
 import { cadence } from "../format";
@@ -14,6 +14,9 @@ type Mark = "kept" | "gap" | "given" | "open";
 export default function Routine({ task, onError }: Props) {
   const [told, setTold] = useState<Series | null>(null);
 
+  const warn = useRef(onError);
+  warn.current = onError;
+
   useEffect(() => {
     let alive = true;
     setTold(null);
@@ -21,11 +24,13 @@ export default function Routine({ task, onError }: Props) {
       .then((series) => {
         if (alive) setTold(series);
       })
-      .catch((problem) => onError?.(problem));
+      .catch((problem) => {
+        if (alive) warn.current?.(problem);
+      });
     return () => {
       alive = false;
     };
-  }, [task, onError]);
+  }, [task]);
 
   const days = useMemo(() => (told ? laid(told) : []), [told]);
   const hours = useMemo(() => (told ? clocked(told) : null), [told]);
@@ -59,7 +64,7 @@ export default function Routine({ task, onError }: Props) {
           ↻ {cadence(told.repeat)}
           {" · "}
           {told.repeat.until ? fill("routineUntil", dated(told.repeat.until)) : t("routineEndless")}
-          {average > 0 && ` · ${fill("routineLate", `${average} d`)}`}
+          {average > 0 && ` · ${fill("routineLate", counted(average))}`}
         </p>
       )}
 
@@ -160,7 +165,7 @@ const paint = (mark: Mark): string =>
   mark === "kept"
     ? "bg-accent"
     : mark === "gap"
-      ? "border-[1.5px] border-urgent bg-transparent"
+      ? "border-[1.5px] border-faint bg-transparent"
       : mark === "given"
         ? "border-[1.5px] border-faint bg-transparent"
         : "bg-hair";
@@ -190,6 +195,8 @@ function laid(told: Series): Day[] {
 
 const mark = (turn: Turn): Mark =>
   turn.status === "done" ? "kept" : turn.status === "dropped" ? "given" : "open";
+
+const counted = (many: number): string => new Intl.NumberFormat(locale()).format(many);
 
 const dated = (day: string): string => {
   const at = new Date(`${day}T12:00:00`);
@@ -225,6 +232,6 @@ function clocked(told: Series) {
     from: `${String(from).padStart(2, "0")}`,
     to: `${String(to).padStart(2, "0")}`,
     usual: `${String(peak).padStart(2, "0")}:00`,
-    said: fill("routineWhen", String(seen)),
+    said: fill("routineHours", String(seen)),
   };
 }

@@ -40,7 +40,7 @@ describe("the trail", () => {
     ]);
 
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
-    expect(screen.getByText(/moves to/i)).toBeTruthy();
+    expect(screen.getByText(/moves:/i)).toBeTruthy();
   });
 
   it("says a move was undone instead of hiding it", async () => {

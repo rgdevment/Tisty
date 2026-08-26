@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { List, Page, Story } from "../core";
 import { taskStory } from "../core";
 import { cadence, shortStamp, whenLabel, wroteAt } from "../format";
@@ -14,6 +14,9 @@ interface Props {
 export default function Trail({ task, lists, onError }: Props) {
   const [told, setTold] = useState<Story | null>(null);
 
+  const warn = useRef(onError);
+  warn.current = onError;
+
   useEffect(() => {
     let alive = true;
     setTold(null);
@@ -21,11 +24,13 @@ export default function Trail({ task, lists, onError }: Props) {
       .then((story) => {
         if (alive) setTold(story);
       })
-      .catch((problem) => onError?.(problem));
+      .catch((problem) => {
+        if (alive) warn.current?.(problem);
+      });
     return () => {
       alive = false;
     };
-  }, [task, onError]);
+  }, [task]);
 
   if (!told) return null;
   if (!told.pages.length) {
@@ -146,7 +151,14 @@ function phrase(page: Page, named: (id?: string | null) => string | undefined): 
       return t("trailClosed");
     case "dropped":
       return t("trailDropped");
-    default:
+    case "reopened":
       return t("trailReopened");
+    default:
+      return unreadable(page);
   }
+}
+
+function unreadable(page: never): string {
+  void page;
+  return "";
 }

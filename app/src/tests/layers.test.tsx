@@ -51,7 +51,7 @@ const told: Task = {
   status: "done",
   priority: "unset",
   order: "a1",
-  completed_at: "2026-08-12 10:00:00",
+  completed_at: "2026-08-12T10:00:00Z",
   volume: { journal: 1, prose: 1 } as Task["volume"],
 };
 
@@ -61,7 +61,7 @@ const errand: Task = {
   status: "done",
   priority: "unset",
   order: "a2",
-  completed_at: "2026-08-03 10:00:00",
+  completed_at: "2026-08-03T10:00:00Z",
   volume: {},
 };
 

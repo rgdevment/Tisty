@@ -100,7 +100,7 @@ export default function TaskList({
   const [reached, setReached] = useState<string | null>(null);
 
   const drawn = useMemo(
-    () => rows.filter((row) => !hidden(row.band)).map((row) => row.task.id),
+    () => rows.filter((row) => !(heads && shut.has(row.band))).map((row) => row.key),
     [rows, shut, heads],
   );
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
@@ -115,16 +115,16 @@ export default function TaskList({
     next.focus();
   };
 
-  const typed = (event: React.KeyboardEvent, task: Task) => {
+  const typed = (event: React.KeyboardEvent, task: Task, at: string) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
       event.preventDefault();
       if (onComplete && task.status === "open") {
-        walk(task.id, 1);
+        walk(at, 1);
         onComplete(task.id);
         return;
       }
       if (onFold) {
-        walk(task.id, 1);
+        walk(at, 1);
         onFold(task.id, !task.hidden);
       }
       return;
@@ -137,20 +137,20 @@ export default function TaskList({
     const by = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
     if (by === 0) return;
     event.preventDefault();
-    walk(task.id, by);
+    walk(at, by);
   };
 
-  const line = (task: Task) => {
+  const line = (task: Task, at: string) => {
     if (dense) {
       return (
         <div
-          key={task.id}
-          data-row={task.id}
+          key={at}
+          data-row={at}
           role="listitem"
-          tabIndex={stops(task.id) ? 0 : -1}
+          tabIndex={stops(at) ? 0 : -1}
           aria-label={task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`}
-          onFocus={() => setReached(task.id)}
-          onKeyDown={(event) => typed(event, task)}
+          onFocus={() => setReached(at)}
+          onKeyDown={(event) => typed(event, task, at)}
           onClick={() => onSelect(task.id)}
           className={`grid cursor-pointer grid-cols-[14px_minmax(0,1fr)_auto] items-baseline gap-2.5 rounded-md px-2.5 py-1 outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
             selected === task.id ? "bg-active" : ""
@@ -172,18 +172,18 @@ export default function TaskList({
       );
     }
     return (
-      <div key={task.id}>
+      <div key={at}>
         <div
           ref={reveal === task.id ? asked : undefined}
-          data-row={task.id}
+          data-row={at}
           role="listitem"
-          tabIndex={stops(task.id) ? 0 : -1}
+          tabIndex={stops(at) ? 0 : -1}
           aria-label={task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`}
           aria-keyshortcuts={
             (onComplete && task.status === "open") || onFold ? "Control+Enter" : undefined
           }
-          onFocus={() => setReached(task.id)}
-          onKeyDown={(event) => typed(event, task)}
+          onFocus={() => setReached(at)}
+          onKeyDown={(event) => typed(event, task, at)}
           onClick={() => onSelect(task.id)}
           className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 hover:bg-hover ${
             selected === task.id ? "bg-active" : ""
@@ -304,7 +304,7 @@ export default function TaskList({
                 </button>
               )}
 
-              {!hidden(row.band) && line(row.task)}
+              {!hidden(row.band) && line(row.task, row.key)}
             </div>
           ))}
 

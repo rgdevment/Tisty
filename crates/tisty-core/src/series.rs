@@ -24,6 +24,7 @@ pub struct Turn {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Series {
+    /// The latest turn that is no longer open: the one the archive can actually show.
     pub last: TaskId,
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -56,14 +57,16 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
     let chain = walked(state, id);
     let last = chain.last()?;
     let repeat = chain.iter().rev().find_map(|task| task.repeat);
-    let measurable = repeat.is_some_and(|it| it.from == From::Due);
+    let dated = chain.iter().all(|task| task.date.is_some());
+    let measurable = dated && repeat.is_some_and(|it| it.from == From::Due);
 
     let mut turns: Vec<Turn> = Vec::with_capacity(chain.len());
     for (at, task) in chain.iter().enumerate() {
-        let gaps = match (measurable, at) {
-            (true, 0) => Vec::new(),
-            (true, _) => between(
-                repeat?.cadence(),
+        let then = chain[at.saturating_sub(1)].repeat;
+        let gaps = match (at, then) {
+            (0, _) => Vec::new(),
+            (_, Some(over)) if over.from == From::Due => between(
+                over.cadence(),
                 chain[at - 1].date.as_ref(),
                 task.date.as_ref(),
             ),
@@ -94,11 +97,18 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
         .count();
     let skipped = turns.iter().map(|turn| turn.gaps.len()).sum();
 
-    let owed = turns.len() - open + skipped;
+    let running = usize::from(turns.last().is_some_and(|turn| turn.status == Status::Open));
+    let owed = turns.len() - running + skipped;
     let (streak, longest) = run(&turns);
 
+    let shown = chain
+        .iter()
+        .rev()
+        .find(|task| task.is_archived())
+        .unwrap_or(last);
+
     Some(Series {
-        last: last.id,
+        last: shown.id,
         title: last.title.clone(),
         list: last.list,
         tags: last.tags.clone(),
@@ -116,7 +126,9 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
 }
 
 pub fn how_many(state: &State) -> usize {
-    heads(state).count()
+    heads(state)
+        .filter(|root| series(state, *root).is_some_and(|told| told.turns.len() > told.open))
+        .count()
 }
 
 /// Climbing to the root per task is quadratic on a long chain; a root is spotted in one pass.
@@ -147,30 +159,36 @@ pub fn routines(state: &State) -> Vec<Series> {
     all
 }
 
-fn first(state: &State, from: TaskId) -> TaskId {
-    let mut seen = HashSet::new();
-    let mut here = from;
-    while let Some(task) = state.tasks.get(&here) {
-        let Some(before) = task.after else { break };
-        if !seen.insert(before) || !state.tasks.contains_key(&before) {
-            break;
-        }
-        here = before;
-    }
-    here
-}
-
+/// Two machines can close the same turn before syncing, leaving one turn with two successors.
+/// Walking down from the root would drop a branch — and could hand back a chain missing the very
+/// turn that was asked about — so the walk goes both ways from `from`, which is always in it.
 fn walked(state: &State, from: TaskId) -> Vec<&Task> {
     let mut back: HashMap<TaskId, TaskId> = HashMap::new();
     for task in state.tasks.values() {
         if let Some(after) = task.after {
-            back.insert(after, task.id);
+            back.entry(after)
+                .and_modify(|held| *held = (*held).min(task.id))
+                .or_insert(task.id);
         }
     }
 
-    let mut chain = Vec::new();
-    let mut walking = Some(first(state, from));
+    let mut before = Vec::new();
     let mut seen = HashSet::new();
+    let mut climbing = state.tasks.get(&from).and_then(|task| task.after);
+    while let Some(here) = climbing {
+        if !seen.insert(here) {
+            break;
+        }
+        let Some(task) = state.tasks.get(&here) else {
+            break;
+        };
+        before.push(task);
+        climbing = task.after;
+    }
+    before.reverse();
+
+    let mut chain = before;
+    let mut walking = Some(from);
     while let Some(here) = walking {
         if !seen.insert(here) {
             break;
@@ -179,7 +197,7 @@ fn walked(state: &State, from: TaskId) -> Vec<&Task> {
             break;
         };
         chain.push(task);
-        walking = back.get(&here).copied();
+        walking = back.get(&here).copied().filter(|next| *next != here);
     }
     chain
 }
@@ -192,6 +210,9 @@ fn between(
     let (Some(from), Some(to)) = (from, to) else {
         return Vec::new();
     };
+    if step.every == 0 {
+        return Vec::new();
+    }
     let mut at = from.at;
     let mut gaps = Vec::new();
     while gaps.len() < GAPS_AT_MOST {
@@ -367,7 +388,7 @@ mod tests {
     }
 
     #[test]
-    fn a_gap_breaks_the_streak_and_being_late_does_not() {
+    fn a_gap_breaks_the_streak() {
         let told = Chain::new()
             .turn("2026-08-01", daily(From::Due))
             .done()
@@ -382,6 +403,28 @@ mod tests {
         assert_eq!(told.streak, 2, "the gap before the third turn cut it");
         assert_eq!(told.longest, 2);
         assert_eq!(told.kept, 4);
+    }
+
+    #[test]
+    fn closing_after_the_due_date_is_recorded_as_the_delay_it_was() {
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("take the pill", "a0");
+        add.date = Some(day("2026-08-01"));
+        add.repeat = Some(daily(From::Due));
+        let mut born = event(Op::TaskAdd { id, d: add });
+        born.timestamp = at(0);
+
+        let mut shut = event(Op::TaskDone { id });
+        shut.timestamp = "2026-08-03T09:00:00Z".parse().unwrap();
+
+        let state = State::replay(&[born, shut]);
+        let told = series(&state, id).unwrap();
+
+        assert_eq!(
+            told.turns[0].late,
+            Some(2),
+            "two days late, and the record says so"
+        );
     }
 
     #[test]
@@ -422,8 +465,8 @@ mod tests {
         assert_eq!(all.len(), 1, "three turns are one routine, not three");
         assert_eq!(all[0].turns.len(), 3);
         assert_eq!(
-            all[0].last, chain.ids[2],
-            "a series opens on its latest turn"
+            all[0].last, chain.ids[1],
+            "the third turn is still open, so the series opens on the last closed one"
         );
     }
 
@@ -464,6 +507,23 @@ mod tests {
     }
 
     #[test]
+    fn a_series_opens_on_a_turn_the_archive_can_show() {
+        let chain = Chain::new()
+            .turn("2026-08-01", daily(From::Due))
+            .done()
+            .turn("2026-08-02", daily(From::Due));
+
+        let state = State::replay(&chain.events);
+        let told = series(&state, chain.ids[0]).unwrap();
+
+        assert_eq!(told.open, 1);
+        assert_eq!(
+            told.last, chain.ids[0],
+            "the running turn is not in the archive, so opening it would show nothing"
+        );
+    }
+
+    #[test]
     fn a_turn_still_open_is_not_counted_as_one_that_was_missed() {
         let told = Chain::new()
             .turn("2026-08-01", daily(From::Due))
@@ -484,6 +544,101 @@ mod tests {
             2,
             "what has come due is what can be judged"
         );
+    }
+
+    #[test]
+    fn changing_the_cadence_does_not_rewrite_what_came_before() {
+        let monthly = Repeat {
+            from: From::Due,
+            each: Cadence {
+                every: 1,
+                unit: Unit::Month,
+            },
+            until: None,
+        };
+        let told = Chain::new()
+            .turn("2026-06-01", monthly)
+            .done()
+            .turn("2026-07-01", monthly)
+            .done()
+            .turn("2026-08-01", daily(From::Due))
+            .done()
+            .told();
+
+        assert_eq!(
+            told.skipped, 0,
+            "each pair is measured with the cadence that ruled it, not the newest one"
+        );
+        assert_eq!(told.kept, 3);
+        assert_eq!(told.owed, 3);
+    }
+
+    #[test]
+    fn a_turn_without_a_date_leaves_the_series_unmeasurable_instead_of_clean() {
+        let mut chain = Chain::new().turn("2026-08-01", daily(From::Due)).done();
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("take the pill", "a0");
+        add.repeat = Some(daily(From::Due));
+        add.after = chain.ids.last().copied();
+        chain.events.push(event(Op::TaskAdd { id, d: add }));
+        chain.ids.push(id);
+
+        let told = chain.told();
+
+        assert!(
+            !told.measurable,
+            "a chain with a dateless turn cannot claim it counted every date"
+        );
+        assert_eq!(told.skipped, 0);
+    }
+
+    #[test]
+    fn reopening_an_old_turn_does_not_wipe_out_what_it_owed() {
+        let chain = Chain::new()
+            .turn("2026-08-01", daily(From::Due))
+            .done()
+            .turn("2026-08-02", daily(From::Due))
+            .done()
+            .turn("2026-08-03", daily(From::Due));
+
+        let mut events = chain.events.clone();
+        events.push(event(Op::TaskReopen { id: chain.ids[0] }));
+        let state = State::replay(&events);
+        let told = series(&state, chain.ids[1]).unwrap();
+
+        assert_eq!(told.open, 2, "the reopened one and the running one");
+        assert_eq!(
+            told.owed, 2,
+            "only the turn still running is not owed yet; a reopened one already came due"
+        );
+    }
+
+    #[test]
+    fn a_turn_with_two_successors_still_finds_itself_in_its_own_series() {
+        let chain = Chain::new()
+            .turn("2026-08-01", daily(From::Due))
+            .done()
+            .turn("2026-08-02", daily(From::Due))
+            .done();
+
+        let rival = Ulid::generate();
+        let mut add = TaskAdd::new("take the pill", "a0");
+        add.date = Some(day("2026-08-02"));
+        add.repeat = Some(daily(From::Due));
+        add.after = Some(chain.ids[0]);
+        let mut events = chain.events.clone();
+        events.push(event(Op::TaskAdd { id: rival, d: add }));
+        events.push(event(Op::TaskDone { id: rival }));
+
+        let state = State::replay(&events);
+
+        for id in [chain.ids[1], rival] {
+            let told = series(&state, id).unwrap();
+            assert!(
+                told.turns.iter().any(|turn| turn.id == id),
+                "a series that leaves out the turn it was asked about is a lie"
+            );
+        }
     }
 
     #[test]

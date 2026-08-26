@@ -20,15 +20,22 @@ pub struct Shape {
     pub months: Vec<Month>,
 }
 
-pub fn shape(state: &State, most: usize) -> Shape {
+/// The zone comes from the caller: the core must not read the machine it runs on.
+pub fn shape(
+    state: &State,
+    most: usize,
+    zone: &jiff::tz::TimeZone,
+    today: jiff::civil::Date,
+) -> Shape {
     let mut shape = Shape::default();
     let mut months: std::collections::BTreeMap<String, usize> = Default::default();
 
     for task in state.tasks.values().filter(|one| one.is_archived()) {
-        shape.closed += 1;
         if task.status == Status::Dropped {
             shape.dropped += 1;
+            continue;
         }
+        shape.closed += 1;
         if task.weight() > 0 {
             shape.told += 1;
         }
@@ -37,18 +44,40 @@ pub fn shape(state: &State, most: usize) -> Shape {
             continue;
         };
         shape.since = Some(shape.since.map_or(at, |held| held.min(at)));
-        let on = at.to_zoned(jiff::tz::TimeZone::system()).date();
+        let on = at.to_zoned(zone.clone()).date();
         *months
             .entry(format!("{:04}-{:02}", on.year(), on.month()))
             .or_default() += 1;
     }
 
-    let all: Vec<Month> = months
-        .into_iter()
-        .map(|(key, closed)| Month { key, closed })
-        .collect();
-    shape.months = all.into_iter().rev().take(most).rev().collect();
+    shape.months = strip(&months, most, today);
     shape
+}
+
+/// A month with nothing closed is a bar at zero, not a month that never happened.
+fn strip(
+    months: &std::collections::BTreeMap<String, usize>,
+    most: usize,
+    today: jiff::civil::Date,
+) -> Vec<Month> {
+    if months.is_empty() || most == 0 {
+        return Vec::new();
+    }
+    let last = today.first_of_month();
+    let mut at = last
+        .checked_sub(jiff::Span::new().months(most as i64 - 1))
+        .unwrap_or(last);
+    let mut all = Vec::with_capacity(most);
+    while at <= last {
+        let key = format!("{:04}-{:02}", at.year(), at.month());
+        let closed = months.get(&key).copied().unwrap_or(0);
+        all.push(Month { key, closed });
+        at = match at.checked_add(jiff::Span::new().months(1)) {
+            Ok(next) => next,
+            Err(_) => break,
+        };
+    }
+    all
 }
 
 #[cfg(test)]
@@ -58,6 +87,14 @@ mod tests {
 
     use crate::event::DeviceId;
     use ulid::Ulid;
+
+    fn when() -> jiff::civil::Date {
+        at(4 * MONTH).to_zoned(here()).date()
+    }
+
+    fn here() -> jiff::tz::TimeZone {
+        jiff::tz::TimeZone::UTC
+    }
 
     fn at(seconds: i64) -> Timestamp {
         Timestamp::from_second(1_770_000_000 + seconds).unwrap()
@@ -97,7 +134,7 @@ mod tests {
         closed(&mut events, 0, true);
         closed(&mut events, 10, false);
 
-        let told = shape(&State::replay(&events), 18);
+        let told = shape(&State::replay(&events), 18, &here(), when());
 
         assert_eq!(told.closed, 2);
         assert_eq!(told.told, 1, "only one of them left anything written");
@@ -115,7 +152,10 @@ mod tests {
             },
         ));
 
-        assert_eq!(shape(&State::replay(&events), 18).closed, 1);
+        assert_eq!(
+            shape(&State::replay(&events), 18, &here(), when()).closed,
+            1
+        );
     }
 
     #[test]
@@ -125,7 +165,7 @@ mod tests {
             closed(&mut events, n * MONTH, false);
         }
 
-        let told = shape(&State::replay(&events), 3);
+        let told = shape(&State::replay(&events), 3, &here(), when());
 
         assert_eq!(
             told.months.len(),
@@ -142,12 +182,66 @@ mod tests {
     }
 
     #[test]
+    fn a_month_with_nothing_closed_is_a_bar_at_zero_and_not_a_month_that_vanishes() {
+        let mut events = Vec::new();
+        closed(&mut events, 0, false);
+        closed(&mut events, 3 * MONTH, false);
+
+        let told = shape(&State::replay(&events), 5, &here(), when());
+
+        assert_eq!(
+            told.months.len(),
+            5,
+            "a strip is a timeline, not a bar chart"
+        );
+        assert!(
+            told.months.iter().any(|one| one.closed == 0),
+            "the quiet months have to be there for the busy ones to mean anything"
+        );
+        let keys: Vec<&str> = told.months.iter().map(|one| one.key.as_str()).collect();
+        let mut sorted = keys.clone();
+        sorted.sort_unstable();
+        assert_eq!(keys, sorted);
+    }
+
+    #[test]
+    fn what_was_given_up_does_not_swell_what_was_closed() {
+        let mut events = Vec::new();
+        let id = closed(&mut events, 0, false);
+        events.push(event(
+            10,
+            Op::TaskDrop {
+                id: Ulid::generate(),
+            },
+        ));
+        let dropped = Ulid::generate();
+        events.push(event(
+            20,
+            Op::TaskAdd {
+                id: dropped,
+                d: TaskAdd::new("something else", "a0"),
+            },
+        ));
+        events.push(event(30, Op::TaskDrop { id: dropped }));
+
+        let told = shape(&State::replay(&events), 18, &here(), when());
+
+        assert_eq!(told.closed, 1, "{id} is the only one that was closed");
+        assert_eq!(told.dropped, 1);
+        assert_eq!(
+            told.months.iter().map(|one| one.closed).sum::<usize>(),
+            1,
+            "a decision against something is not a closing"
+        );
+    }
+
+    #[test]
     fn the_beginning_is_the_earliest_closing_and_not_the_first_one_read() {
         let mut events = Vec::new();
         closed(&mut events, 2 * MONTH, false);
         closed(&mut events, 0, false);
 
-        let told = shape(&State::replay(&events), 18);
+        let told = shape(&State::replay(&events), 18, &here(), when());
 
         assert_eq!(told.since, Some(at(0)));
     }

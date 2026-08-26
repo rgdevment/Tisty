@@ -152,7 +152,7 @@ pub fn series(
     };
 
     let Some(told) = tisty_core::series::series(&app.state, id) else {
-        println!("{}", lang.get("series-not-one"));
+        eprintln!("{}", lang.get("series-not-one"));
         return Ok(crate::EXIT_NOT_FOUND.into());
     };
     if json {

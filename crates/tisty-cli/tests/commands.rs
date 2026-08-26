@@ -1828,6 +1828,11 @@ fn asking_a_plain_task_for_its_series_says_so_instead_of_inventing_one() {
 
     let run = cli.run(&["series", "1"]);
 
-    assert_eq!(run.code, 4, "{}", run.out);
-    assert!(run.out.contains("not part of a routine"), "{}", run.out);
+    assert_eq!(run.code, 4, "{}", run.err);
+    assert!(
+        run.err.contains("not part of a routine"),
+        "a refusal goes to stderr so --json stays parseable: {}",
+        run.err
+    );
+    assert!(run.out.is_empty(), "stdout must stay clean: {}", run.out);
 }

@@ -45,13 +45,14 @@ describe("the archive by month", () => {
     expect(rows[0].band).not.toBe(rows[1].band);
   });
 
-  it("leaves out what never closed instead of piling it into one heap", () => {
+  it("gives what never closed a band of its own instead of a date it does not have", () => {
     const rows = monthly([
       { ...done("1", "a", "2026-03-10T09:00:00Z"), completed_at: undefined },
-      { ...done("2", "b", "2026-03-10T09:00:00Z"), completed_at: undefined },
+      done("2", "b", "2026-03-10T09:00:00Z"),
     ] as never);
 
-    expect(rows).toHaveLength(2);
+    expect(rows[0].band).toBe("");
+    expect(rows[1].band).not.toBe("");
   });
 
   it("keeps the order it was handed, which is the order the archive asked for", () => {

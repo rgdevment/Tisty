@@ -16,7 +16,7 @@ const closed: Task = {
   description: "the authority took nine days to issue it",
   list: "01W",
   tags: ["release"],
-  completed_at: "2026-08-12 10:00:00",
+  completed_at: "2026-08-12T10:00:00Z",
   steps: [{ id: "01S", text: "gather the papers", done: true, order: "a0" }],
   log: [{ id: "01J", at: "2026-08-10T09:00:00Z", body: "the form was the slow part" }],
   volume: { steps: 1, steps_done: 1, journal: 1, described: true },

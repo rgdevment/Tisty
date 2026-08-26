@@ -68,6 +68,7 @@ no-remote      = "no hay carpeta compartida: ejecuta `tisty config set remote <c
 no-meeting-place = "no se llega a {at}: ¿está el disco conectado, o la carpeta sincronizada?"
 emptied-place = "{at} era la carpeta compartida y ahora está vacía: no se escribió nada, por si el disco o la carpeta simplemente no están montados."
 other-store    = "ese remoto ya es de otro almacén ({id})"
+sync-newer        = "no se sincronizó nada: «{id}» escribe con un Tisty más nuevo que este. Actualiza este equipo y vuelve a intentarlo — traer la mitad perdería trabajo"
 sync-unreadable = "lo que llegó no se puede leer: {why}"
 sync-refused   = "el sistema negó el acceso a esa carpeta: {why}"
 sync-broke     = "no se pudo terminar la copia: {why}"
@@ -125,8 +126,9 @@ trail-retitled    = "pasa a llamarse «{title}»"
 trail-dated       = "se fecha para {when}"
 trail-undated     = "se le quita la fecha"
 trail-bounded     = "límite {when}"
-trail-rebounded   = "el límite se corre al {when}"
+trail-rebounded   = "el límite se mueve: {when}"
 trail-unbounded   = "se le quita el límite"
+trail-unplaced    = "vuelve a sin clasificar"
 trail-placed      = "se clasifica en {what}"
 trail-filed       = "pasa a {what}"
 trail-unfiled     = "sale de su lista"
@@ -156,8 +158,8 @@ series-not-one    = "esa no forma parte de ninguna rutina"
 series-kept       = "cumplidas de las que tocaban"
 series-streak     = "de racha ahora"
 series-longest    = "la racha más larga"
-series-gaps       = "días olvidados"
-series-holes      = "los huecos"
+series-gaps       = "sin registro"
+series-holes      = "las fechas sin registro"
 series-unmeasured = "esta cuenta desde el día en que se cierra, así que no hay huecos que señalar"
 
 
@@ -170,7 +172,7 @@ trace             = "rastro"
 tasks = { one = "1 tarea", other = "{n} tareas" }
 lines = { one = "1 línea", other = "{n} líneas" }
 changes = { one = "1 cambio", other = "{n} cambios" }
-missed = { one = "1 olvidada", other = "{n} olvidadas" }
+missed = { one = "1 sin registro", other = "{n} sin registro" }
 
 [weekday]
 "1" = "lun"

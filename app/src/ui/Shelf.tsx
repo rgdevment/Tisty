@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { List, Series } from "../core";
 import { allRoutines } from "../core";
 import { cadence } from "../format";
@@ -15,17 +15,22 @@ export default function Shelf({ lists, onOpen, onError }: Props) {
   const [all, setAll] = useState<Series[] | null>(null);
   const icons = useIcons();
 
+  const warn = useRef(onError);
+  warn.current = onError;
+
   useEffect(() => {
     let alive = true;
     allRoutines()
       .then((some) => {
         if (alive) setAll(some);
       })
-      .catch((problem) => onError?.(problem));
+      .catch((problem) => {
+        if (alive) warn.current?.(problem);
+      });
     return () => {
       alive = false;
     };
-  }, [onError]);
+  }, []);
 
   if (!all) return null;
   if (!all.length) {
@@ -70,7 +75,7 @@ export default function Shelf({ lists, onOpen, onError }: Props) {
                   {one.kept}/{one.owed}
                 </span>
                 {missing > 0 && (
-                  <span className="ml-2 text-urgent">
+                  <span className="ml-2 text-faint">
                     {missing === 1 ? t("shelfMissedOne") : fill("shelfMissed", String(missing))}
                   </span>
                 )}

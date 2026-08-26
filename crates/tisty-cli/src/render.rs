@@ -528,10 +528,10 @@ fn chapter(what: &tisty_core::story::Chapter, state: &State, today: Date, lang: 
             (Some(_), Some(_)) => lang.fill("trail-rebounded", &[("when", &named(to))]),
             _ => lang.fill("trail-bounded", &[("when", &named(to))]),
         },
-        Chapter::Placed { to, .. } => lang.fill(
-            "trail-placed",
-            &[("what", priority(*to, lang).as_deref().unwrap_or(""))],
-        ),
+        Chapter::Placed { to, .. } => match priority(*to, lang) {
+            Some(said) => lang.fill("trail-placed", &[("what", &said)]),
+            None => lang.get("trail-unplaced").into(),
+        },
         Chapter::Filed { to, .. } => match to.and_then(|id| state.lists.get(&id)) {
             Some(list) => lang.fill("trail-filed", &[("what", &list.name)]),
             None => lang.get("trail-unfiled").into(),

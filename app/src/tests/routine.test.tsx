@@ -91,7 +91,7 @@ describe("a routine reads as behaviour, not as turns", () => {
       }),
     );
 
-    expect(screen.getByText(/Not one date went by/i)).toBeTruthy();
+    expect(screen.getByText(/Every date the cadence asked for has a record/i)).toBeTruthy();
   });
 
   it("counts every turn, kept or not, so the total is honest", async () => {

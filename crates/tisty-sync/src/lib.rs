@@ -21,6 +21,7 @@ pub enum Trouble {
     NotAllowed(String),
     SameName(String),
     Emptied(String),
+    Newer(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -451,6 +452,14 @@ fn bring(
                 .and_then(|_| tisty_core::store::distinct_in(&entry.path()))
             {
                 Ok(coming) => coming,
+                Err(tisty_core::Error::UnsupportedVersion(_)) => {
+                    witness::warn(
+                        channel::SYNC,
+                        "another machine writes a newer schema, so nothing was carried either way",
+                        &[("at", Fact::Id(named.to_string()))],
+                    );
+                    return Err(Trouble::Newer(named.to_string()));
+                }
                 Err(why) => {
                     witness::warn(
                         channel::SYNC,
@@ -3558,6 +3567,37 @@ mod tests {
             tisty_core::store::distinct_in(&shared.path().join(STORE).join(&one.device)).unwrap(),
             2,
             "la carpeta no recibio lo que escribimos"
+        );
+    }
+
+    #[test]
+    fn a_machine_writing_a_newer_schema_stops_the_sync_instead_of_carrying_half() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let before =
+            tisty_core::store::distinct_in(&shared.path().join(STORE).join(&one.device)).unwrap();
+
+        let theirs = shared.path().join("store/dev_b");
+        std::fs::create_dir_all(&theirs).unwrap();
+        std::fs::write(
+            theirs.join("active.tisty"),
+            b"{\"v\":99,\"ts\":\"2026-08-26T10:00:00Z\",\"by\":\"dev_b\",\"op\":\"task.add\",\"id\":\"01M0ZX62YMRXMABJ6Q4FEF69WT\",\"d\":{\"title\":\"from the future\",\"order\":\"V\"}}
+",
+        )
+        .unwrap();
+
+        wrote(&one, "esto no debe salir a medias".into());
+        let stopped = carry(&one.data, &one.device, shared.path(), Way::Both, &[]);
+
+        assert!(
+            matches!(stopped, Err(Trouble::Newer(ref who)) if who == "dev_b"),
+            "a newer schema has to stop the sync and name the machine: {stopped:?}"
+        );
+        assert_eq!(
+            tisty_core::store::distinct_in(&shared.path().join(STORE).join(&one.device)).unwrap(),
+            before,
+            "nothing of ours may go out while we cannot read theirs"
         );
     }
 
