@@ -34,7 +34,8 @@ describe("shelving the archive by an axis", () => {
   it("keeps what carries nothing, in a band of its own at the end", () => {
     const rows = shelved([closed("01", { tags: ["release"] }), closed("02", {})], "tag", lists);
 
-    expect(bands(rows).at(-1)).toBe("Untagged");
+    const seen = bands(rows);
+    expect(seen[seen.length - 1]).toBe("Untagged");
   });
 
   it("follows the order the lists were given, not the alphabet", () => {

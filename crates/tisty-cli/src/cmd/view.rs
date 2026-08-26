@@ -82,6 +82,42 @@ pub fn show(
     Ok(ExitCode::SUCCESS)
 }
 
+pub fn story(
+    app: &App,
+    selector: &str,
+    json: bool,
+    today: Date,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
+    let all: Vec<&Task> = app.state.tasks.values().collect();
+    let selection = Selection::load(&app.paths);
+
+    let id = match resolve(selector, &selection, &all) {
+        Resolved::One(id) => id,
+        Resolved::Many(ids) => match crate::select::prompt(
+            &ids.iter()
+                .map(|id| &app.state.tasks[id])
+                .collect::<Vec<_>>(),
+            lang,
+        )? {
+            Some(id) => id,
+            None => return Ok(ExitCode::SUCCESS),
+        },
+        Resolved::None => return Ok(not_found(app, selector, lang)),
+    };
+
+    let told = tisty_core::story::story(&tisty_core::store::read_all(app.paths.store())?, id);
+    if json {
+        println!("{}", serde_json::to_string(&told)?);
+    } else {
+        print!(
+            "{}",
+            render::trail(&app.state.tasks[&id], &told, &app.state, today, lang)
+        );
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 pub fn search(
     app: &App,
     query: &str,

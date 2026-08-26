@@ -45,6 +45,7 @@ pub fn dispatch(
 
         Command::Ls { filter, json } => view::ls(app, &filter, json, today, lang),
         Command::Show { selector, json } => view::show(app, &selector, json, today, lang),
+        Command::Story { selector, json } => view::story(app, &selector, json, today, lang),
         Command::Search {
             query,
             open,

@@ -182,9 +182,8 @@ describe("the open panel", () => {
 
     await user.click(screen.getByRole("button", { name: /Archive/ }));
     await user.click(await screen.findByText("filed last month"));
-    await screen.findByRole("textbox", { name: "Title" });
 
-    await user.click(screen.getByRole("button", { name: /Reopen/ }));
+    await user.click(await screen.findByRole("button", { name: /Reopen/ }));
 
     expect(await screen.findByRole("button", { name: /^Complete$/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Reopen/ })).toBeNull();

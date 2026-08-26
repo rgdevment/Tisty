@@ -1764,3 +1764,39 @@ fn a_list_put_away_refuses_new_tasks_instead_of_swallowing_them() {
         run.err
     );
 }
+
+#[test]
+fn a_story_reads_in_the_terminal_what_the_task_no_longer_carries() {
+    let cli = Cli::new();
+    cli.ok(&["ship the release"]);
+    cli.ok(&["ls"]);
+    cli.ok(&["set", "1", "--deadline", "2026-09-12"]);
+    cli.ok(&["set", "1", "--deadline", "2026-09-19"]);
+    cli.ok(&["log", "1", "the certificate took nine days to issue"]);
+    cli.ok(&["done", "1"]);
+
+    let out = cli.ok(&["story", "1"]);
+
+    assert!(out.contains("born"), "{out}");
+    assert!(
+        out.contains("moves to"),
+        "the second deadline is the point: {out}"
+    );
+    assert!(out.contains("the certificate took nine days"), "{out}");
+    assert!(out.contains("closed"), "{out}");
+}
+
+#[test]
+fn a_story_is_a_subcommand_and_not_a_task_called_story() {
+    let cli = Cli::new();
+    cli.ok(&["ship the release"]);
+    cli.ok(&["ls"]);
+    cli.ok(&["story", "1"]);
+
+    let out = cli.ok(&["ls", "all"]);
+
+    assert!(
+        !out.contains("story 1"),
+        "an unlisted subcommand falls back to add: {out}"
+    );
+}
