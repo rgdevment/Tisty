@@ -148,10 +148,22 @@ trail-dropped     = "descartada"
 trail-reopened    = "reabierta"
 
 
+series-all        = "rutinas"
+series-none       = "todavía no se repite nada"
+series-not-one    = "esa no forma parte de ninguna rutina"
+series-kept       = "cumplidas"
+series-streak     = "de racha ahora"
+series-longest    = "la racha más larga"
+series-gaps       = "días olvidados"
+series-holes      = "los huecos"
+series-unmeasured = "esta cuenta desde el día en que se cierra, así que no hay huecos que señalar"
+
+
 [plural]
 tasks = { one = "1 tarea", other = "{n} tareas" }
 lines = { one = "1 línea", other = "{n} líneas" }
 changes = { one = "1 cambio", other = "{n} cambios" }
+missed = { one = "1 olvidada", other = "{n} olvidadas" }
 
 [weekday]
 "1" = "lun"

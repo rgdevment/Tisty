@@ -589,6 +589,90 @@ fn clipped(body: &str) -> String {
     kept
 }
 
+pub fn shelf(all: &[tisty_core::series::Series], state: &State, lang: Lang) -> String {
+    if all.is_empty() {
+        return format!("\n  {}\n\n", style::dim(lang.get("series-none")));
+    }
+
+    let mut out = format!("\n  {}\n\n", style::bold(lang.get("series-all")));
+    for one in all {
+        let missed = if one.measurable { one.skipped } else { 0 };
+        let mut meta = Vec::new();
+        if let Some(list) = one.list.and_then(|id| state.lists.get(&id)) {
+            meta.push(format!("@{}", slug(&list.name)));
+        }
+        for tag in &one.tags {
+            meta.push(format!("#{}", tag.as_str()));
+        }
+        out.push_str(&format!(
+            "  {} {}{}\n",
+            style::paint(BLUE, "\u{21bb}"),
+            one.title,
+            style::dim(&format!("  {}/{}", one.kept, one.turns.len()))
+        ));
+        let mut said = meta.join(" · ");
+        if missed > 0 {
+            let gaps = lang.plural("missed", missed);
+            said = if said.is_empty() {
+                gaps
+            } else {
+                format!("{said} · {gaps}")
+            };
+        }
+        if !said.is_empty() {
+            out.push_str(&format!("    {}\n", style::dim(&said)));
+        }
+    }
+    out.push('\n');
+    out
+}
+
+pub fn series(told: &tisty_core::series::Series, today: Date, lang: Lang) -> String {
+    let mut out = format!("\n  {}\n\n", style::bold(&told.title));
+
+    for (many, word) in [
+        (format!("{}/{}", told.kept, told.turns.len()), "series-kept"),
+        (told.streak.to_string(), "series-streak"),
+        (told.longest.to_string(), "series-longest"),
+    ] {
+        out.push_str(&format!(
+            "  {}  {}\n",
+            style::bold(&many),
+            style::dim(lang.get(word))
+        ));
+    }
+
+    if told.measurable {
+        out.push_str(&format!(
+            "  {}  {}\n",
+            style::bold(&told.skipped.to_string()),
+            style::dim(lang.get("series-gaps"))
+        ));
+    } else {
+        out.push_str(&format!(
+            "\n  {}\n",
+            style::dim(lang.get("series-unmeasured"))
+        ));
+    }
+
+    let gaps: Vec<String> = told
+        .turns
+        .iter()
+        .flat_map(|turn| turn.gaps.iter())
+        .map(|day| short(*day, today, lang))
+        .collect();
+    if !gaps.is_empty() {
+        out.push_str(&format!(
+            "\n  {}\n    {}\n",
+            style::dim(lang.get("series-holes")),
+            gaps.join(" · ")
+        ));
+    }
+
+    out.push('\n');
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

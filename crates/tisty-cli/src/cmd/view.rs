@@ -118,6 +118,51 @@ pub fn story(
     Ok(ExitCode::SUCCESS)
 }
 
+pub fn series(
+    app: &App,
+    selector: Option<&str>,
+    json: bool,
+    today: Date,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
+    let Some(selector) = selector else {
+        let all = tisty_core::series::routines(&app.state);
+        if json {
+            println!("{}", serde_json::to_string(&all)?);
+        } else {
+            print!("{}", render::shelf(&all, &app.state, lang));
+        }
+        return Ok(ExitCode::SUCCESS);
+    };
+
+    let all: Vec<&Task> = app.state.tasks.values().collect();
+    let selection = Selection::load(&app.paths);
+    let id = match resolve(selector, &selection, &all) {
+        Resolved::One(id) => id,
+        Resolved::Many(ids) => match crate::select::prompt(
+            &ids.iter()
+                .map(|id| &app.state.tasks[id])
+                .collect::<Vec<_>>(),
+            lang,
+        )? {
+            Some(id) => id,
+            None => return Ok(ExitCode::SUCCESS),
+        },
+        Resolved::None => return Ok(not_found(app, selector, lang)),
+    };
+
+    let Some(told) = tisty_core::series::series(&app.state, id) else {
+        println!("{}", lang.get("series-not-one"));
+        return Ok(crate::EXIT_NOT_FOUND.into());
+    };
+    if json {
+        println!("{}", serde_json::to_string(&told)?);
+    } else {
+        print!("{}", render::series(&told, today, lang));
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
 pub fn search(
     app: &App,
     query: &str,

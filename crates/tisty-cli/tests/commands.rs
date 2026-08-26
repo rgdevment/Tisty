@@ -1800,3 +1800,34 @@ fn a_story_is_a_subcommand_and_not_a_task_called_story() {
         "an unlisted subcommand falls back to add: {out}"
     );
 }
+
+#[test]
+fn a_routine_reads_as_one_series_and_not_as_every_turn() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every 2 days"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+
+    let out = cli.ok(&["series"]);
+
+    assert!(out.contains("water the plants"), "{out}");
+    assert_eq!(
+        out.matches("water the plants").count(),
+        1,
+        "a chain is one line, however many turns it has: {out}"
+    );
+}
+
+#[test]
+fn asking_a_plain_task_for_its_series_says_so_instead_of_inventing_one() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+    cli.ok(&["ls"]);
+
+    let run = cli.run(&["series", "1"]);
+
+    assert_eq!(run.code, 4, "{}", run.out);
+    assert!(run.out.contains("not part of a routine"), "{}", run.out);
+}

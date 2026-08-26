@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Axis, banded, monthly, shelved } from "../archive";
 import type { List, Task } from "../core";
-import { cadence, isOverdue, whenLabel } from "../format";
+import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
 
@@ -17,6 +17,7 @@ interface Props {
   onBack?: () => void;
   bands?: "month" | "day";
   axis?: Axis;
+  dense?: boolean;
   empty?: string;
   note?: string;
   onSelect: (id: string) => void;
@@ -41,6 +42,7 @@ export default function TaskList({
   onBack,
   bands,
   axis,
+  dense,
   empty,
   note,
   onSelect,
@@ -72,6 +74,14 @@ export default function TaskList({
     });
   }, [rows]);
 
+  const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
+  const hidden = (band: string) => heads && shut.has(band);
+  const many = useMemo(() => {
+    const tally = new Map<string, number>();
+    for (const row of rows) tally.set(row.band, (tally.get(row.band) ?? 0) + 1);
+    return tally;
+  }, [rows]);
+
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
   const columns = onFold
     ? "grid-cols-[20px_minmax(0,1fr)_auto_16px]"
@@ -89,7 +99,10 @@ export default function TaskList({
   const listed = useRef<HTMLDivElement>(null);
   const [reached, setReached] = useState<string | null>(null);
 
-  const drawn = useMemo(() => rows.map((row) => row.task.id), [rows]);
+  const drawn = useMemo(
+    () => rows.filter((row) => !hidden(row.band)).map((row) => row.task.id),
+    [rows, shut, heads],
+  );
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;
 
@@ -128,6 +141,36 @@ export default function TaskList({
   };
 
   const line = (task: Task) => {
+    if (dense) {
+      return (
+        <div
+          key={task.id}
+          data-row={task.id}
+          role="listitem"
+          tabIndex={stops(task.id) ? 0 : -1}
+          aria-label={task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`}
+          onFocus={() => setReached(task.id)}
+          onKeyDown={(event) => typed(event, task)}
+          onClick={() => onSelect(task.id)}
+          className={`grid cursor-pointer grid-cols-[14px_minmax(0,1fr)_auto] items-baseline gap-2.5 rounded-md px-2.5 py-1 outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
+            selected === task.id ? "bg-active" : ""
+          }`}
+        >
+          <span
+            aria-hidden="true"
+            className={`text-center text-[11px] ${
+              task.status === "dropped" ? "text-faint" : "text-accent"
+            }`}
+          >
+            {task.status === "dropped" ? "⨯" : "✓"}
+          </span>
+          <span className="truncate text-[13px] text-soft">{task.title}</span>
+          <span className="text-[11px] whitespace-nowrap text-faint tabular-nums">
+            {task.completed_at ? stamped(task.completed_at) : ""}
+          </span>
+        </div>
+      );
+    }
     return (
       <div key={task.id}>
         <div
@@ -243,12 +286,25 @@ export default function TaskList({
           rows.map((row, r) => (
             <div key={row.key}>
               {heads && opens[r] && (
-                <div className="mt-5 mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1">
+                <button
+                  type="button"
+                  aria-expanded={!shut.has(row.band)}
+                  onClick={() => setShut((was) => flip(was, row.band))}
+                  className="mt-5 mb-1 flex w-full items-center gap-2 px-2.5 text-left text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1 hover:text-soft"
+                >
+                  <span aria-hidden="true" className="text-[9px]">
+                    {shut.has(row.band) ? "▸" : "▾"}
+                  </span>
                   {row.band}
-                </div>
+                  {shut.has(row.band) && (
+                    <span className="font-normal tracking-normal normal-case tabular-nums">
+                      {many.get(row.band)}
+                    </span>
+                  )}
+                </button>
               )}
 
-              {line(row.task)}
+              {!hidden(row.band) && line(row.task)}
             </div>
           ))}
 
@@ -308,3 +364,9 @@ function Volume({ task }: { task: Task }) {
 
   return <span className="pt-px text-xs whitespace-nowrap text-faint">{parts.join(" · ")}</span>;
 }
+
+const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
+  const next = new Set(was);
+  if (!next.delete(key)) next.add(key);
+  return next;
+};

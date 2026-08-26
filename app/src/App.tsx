@@ -962,6 +962,12 @@ export default function App() {
                   : "day"
             }
             axis={found === null && chosen.named === "archive" ? chosen.axis : undefined}
+            dense={
+              found === null &&
+              chosen.named === "archive" &&
+              !chosen.folded &&
+              chosen.layer === "trace"
+            }
             onSelect={setSelected}
             onComplete={
               chosen.named === "archive"
