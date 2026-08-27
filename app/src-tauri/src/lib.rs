@@ -10,7 +10,7 @@ mod waking;
 use tauri::{Emitter, Manager};
 
 use tisty_core::{
-    Config, Event, List, Op, Paths, State, Store, Tag, Task,
+    Config, Event, List, Op, Paths, Reading, State, Store, Tag, Task,
     event::{LogAdd, LogEdit, StepAdd, StepRef, StepText, TaskPatch},
     view::{Filter, Scope, Window},
     witness::{self, Fact, channel},
@@ -25,6 +25,7 @@ struct Session {
     corpus: tisty_core::docs::Corpus,
     print: String,
     locale: Option<String>,
+    log: Option<(String, Vec<Event>)>,
 }
 
 impl Session {
@@ -66,6 +67,7 @@ impl Session {
             cache,
             corpus: tisty_core::docs::Corpus::default(),
             print,
+            log: None,
         };
         session.take_out_the_shed();
         session.take_out_the_retired();
@@ -126,6 +128,18 @@ impl Session {
         }
         self.reproject()?;
         Ok(true)
+    }
+
+    fn log(&mut self) -> tisty_core::Result<&[Event]> {
+        let held = self
+            .log
+            .as_ref()
+            .is_some_and(|(print, _)| *print == self.print);
+        if !held {
+            let read = tisty_core::store::read_all(self.paths.store())?;
+            self.log = Some((self.print.clone(), read));
+        }
+        Ok(&self.log.as_ref().expect("just filled").1)
     }
 
     fn reproject(&mut self) -> tisty_core::Result<()> {
@@ -268,6 +282,17 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             ..Default::default()
         },
     );
+    for (key, how) in [("stories", Reading::Story), ("traces", Reading::Trace)] {
+        count(
+            key,
+            Filter {
+                scope: Scope::Archived,
+                reading: Some(how),
+                ..Default::default()
+            },
+        );
+    }
+    counts.insert("routines".to_string(), tisty_core::series::how_many(state));
 
     counts.insert("tags".to_string(), state.tags().len());
     counts.insert(
@@ -400,6 +425,8 @@ struct View {
     window: Option<String>,
     #[serde(default)]
     repeating: bool,
+    #[serde(default)]
+    reading: Option<String>,
 }
 
 impl View {
@@ -426,6 +453,12 @@ impl View {
             hidden: self.hidden,
             priority: None,
             repeating: self.repeating,
+            reading: match self.reading.as_deref() {
+                Some("story") => Some(Reading::Story),
+                Some("routine") => Some(Reading::Routine),
+                Some("trace") => Some(Reading::Trace),
+                _ => None,
+            },
             window: match self.window.as_deref() {
                 Some("today") => Some(Window::Today),
                 Some("upcoming") => Some(Window::After(today())),
@@ -435,6 +468,143 @@ impl View {
             },
         })
     }
+}
+
+#[derive(serde::Serialize)]
+struct Left {
+    kind: &'static str,
+    target: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    label: Option<String>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    away: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    gone: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bytes: Option<u64>,
+}
+
+#[tauri::command]
+fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<Left>> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    session.reload()?;
+    let Some(task) = session.state.tasks.get(&id) else {
+        return Err(Refusal::of("notATaskId"));
+    };
+
+    let root = session.paths.data().to_path_buf();
+    let on_disk = tisty_core::docs::all(&session.paths.docs());
+    let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
+        on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
+
+    let left = task
+        .references()
+        .into_iter()
+        .map(|one| match one.kind {
+            // The window writes a document as `[title](tisty:doc/ID)`, which parses as a link.
+            _ if one.target.starts_with("tisty:doc/") => {
+                let held = one
+                    .target
+                    .strip_prefix("tisty:doc/")
+                    .and_then(|raw| raw.parse().ok())
+                    .and_then(|doc| session.state.docs.get(&doc));
+                let on_paper = held.and_then(|doc| named.get(doc.file.as_str()));
+                Left {
+                    kind: "doc",
+                    label: on_paper
+                        .map(|doc| doc.title.clone())
+                        .filter(|title| !title.is_empty())
+                        .or_else(|| one.label.clone()),
+                    away: held.is_some_and(|doc| doc.archived),
+                    gone: held.is_none() || on_paper.is_none(),
+                    target: one.target,
+                    bytes: None,
+                }
+            }
+            tisty_core::refs::Kind::Doc => Left {
+                kind: "named",
+                label: one.label.clone(),
+                away: false,
+                gone: false,
+                target: one.target,
+                bytes: None,
+            },
+            tisty_core::refs::Kind::Link
+                if tisty_core::attach::names_an_attachment(&one.target) =>
+            {
+                let bytes = tisty_core::attach::resolve(&one.target, &root)
+                    .ok()
+                    .and_then(|at| std::fs::metadata(at).ok())
+                    .filter(|told| told.is_file())
+                    .map(|told| told.len());
+                Left {
+                    kind: "file",
+                    label: one.label.clone(),
+                    away: false,
+                    gone: bytes.is_none(),
+                    target: one.target,
+                    bytes,
+                }
+            }
+            tisty_core::refs::Kind::Link => Left {
+                kind: if one.target.starts_with("http") {
+                    "link"
+                } else {
+                    "named"
+                },
+                label: one.label.clone(),
+                away: false,
+                gone: false,
+                target: one.target,
+                bytes: None,
+            },
+        })
+        .collect();
+    Ok(left)
+}
+
+#[tauri::command]
+fn task_story(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<tisty_core::story::Story> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    session.reload()?;
+    let told = tisty_core::story::story(session.log()?, id);
+    Ok(told)
+}
+
+#[tauri::command]
+fn task_series(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<Option<tisty_core::series::Series>> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    session.reload()?;
+    Ok(tisty_core::series::series(&session.state, id))
+}
+
+#[tauri::command]
+fn routines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core::series::Series>> {
+    let mut session = held(&session);
+    session.reload()?;
+    Ok(tisty_core::series::routines(&session.state))
+}
+
+#[tauri::command]
+fn archive_shape(session: tauri::State<'_, Mutex<Session>>) -> Answer<tisty_core::shape::Shape> {
+    let mut session = held(&session);
+    session.reload()?;
+    let now = jiff::Zoned::now();
+    Ok(tisty_core::shape::shape(
+        &session.state,
+        18,
+        &now.time_zone().clone(),
+        now.date(),
+    ))
 }
 
 #[tauri::command]
@@ -3298,6 +3468,7 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
     match trouble {
         tisty_sync::Trouble::NotThere(at) => Refusal::about("noMeetingPlace", at),
         tisty_sync::Trouble::OtherStore { theirs } => Refusal::about("otherStore", theirs),
+        tisty_sync::Trouble::Newer(who) => Refusal::about("syncNewer", who),
         tisty_sync::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
         tisty_sync::Trouble::Refused(why) => Refusal::about("syncRefused", why),
         tisty_sync::Trouble::Broke(why) => Refusal::about("syncBroke", why),
@@ -3574,14 +3745,40 @@ fn weighed(bytes: u64) -> String {
 }
 
 #[tauri::command]
+fn owed(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<String>> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let session = held(&session);
+    let today = jiff::Zoned::now().date();
+    Ok(session
+        .state
+        .owed_since(id, today)
+        .iter()
+        .map(ToString::to_string)
+        .collect())
+}
+
+#[tauri::command]
 fn complete(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
+    also: Option<Vec<String>>,
 ) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let also = also
+        .unwrap_or_default()
+        .iter()
+        .map(|day| {
+            day.parse::<jiff::civil::Date>()
+                .map_err(|_| Refusal::about("notADate", day))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     let mut session = held(&session);
-    let ops = session.state.completing(id, jiff::Zoned::now());
+    let ops = if also.is_empty() {
+        session.state.completing(id, jiff::Zoned::now())
+    } else {
+        session.state.covering(id, jiff::Zoned::now(), &also)
+    };
     session.commit_all(ops)?;
     let task = session
         .state
@@ -3881,6 +4078,11 @@ pub fn run() {
         .manage(Leaving::default())
         .invoke_handler(tauri::generate_handler![
             snapshot,
+            task_story,
+            task_series,
+            task_left,
+            routines,
+            archive_shape,
             close_window,
             shortcut,
             settle_in,
@@ -3896,6 +4098,7 @@ pub fn run() {
             read,
             search,
             complete,
+            owed,
             reopen,
             patch,
             write_step,
@@ -4024,6 +4227,7 @@ mod tests {
             hidden: false,
             window: None,
             repeating: false,
+            reading: None,
         }
     }
 

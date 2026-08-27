@@ -1,4 +1,5 @@
-import type { List, View } from "./core";
+import type { Axis } from "./archive";
+import type { List, Reading, View } from "./core";
 import { fill, t } from "./locales";
 
 export type Named =
@@ -16,6 +17,31 @@ export type Slice = "today" | "upcoming" | "repeating" | "all";
 
 export const SLICES: Slice[] = ["today", "upcoming", "repeating", "all"];
 
+export const LAYERS: Reading[] = ["story", "routine", "trace"];
+
+export const layerWord = (layer: Reading) =>
+  layer === "story"
+    ? ("layerStories" as const)
+    : layer === "routine"
+      ? ("layerRoutines" as const)
+      : ("layerTrace" as const);
+
+export const layerCount = (layer: Reading) =>
+  layer === "story"
+    ? ("stories" as const)
+    : layer === "routine"
+      ? ("routines" as const)
+      : ("traces" as const);
+
+export const axisWord = (axis: Axis) =>
+  axis === "time"
+    ? ("axisTime" as const)
+    : axis === "list"
+      ? ("axisList" as const)
+      : axis === "tag"
+        ? ("axisTag" as const)
+        : ("axisQuadrant" as const);
+
 export interface Chosen {
   named?: Named;
   doc?: string;
@@ -24,6 +50,8 @@ export interface Chosen {
   tags?: string[];
   folded?: boolean;
   slice?: Slice;
+  layer?: Reading;
+  axis?: Axis;
 }
 
 export function asView(chosen: Chosen): View {
@@ -36,7 +64,9 @@ export function asView(chosen: Chosen): View {
         ? { ...sliced(chosen.slice), lists: chosen.lists }
         : sliced(chosen.slice);
     case "archive":
-      return { archive: true, hidden: chosen.folded };
+      return chosen.folded
+        ? { archive: true, hidden: true }
+        : { archive: true, reading: chosen.layer ?? "story" };
     case "tags":
       return { tagged: true, everything: true };
     default:
@@ -91,7 +121,13 @@ export function invite(chosen: Chosen, lists: List[]): string {
 export function nothing(chosen: Chosen, searching: boolean): string {
   if (searching) return t(chosen.named === "archive" ? "noHitsHere" : "noHits");
   if (chosen.named === "search") return t("searchInvite");
-  if (chosen.named === "archive") return t("archiveEmpty");
+  if (chosen.named === "archive") {
+    if (chosen.folded) return t("archiveEmpty");
+    const layer = chosen.layer ?? "story";
+    return t(
+      layer === "story" ? "storiesEmpty" : layer === "routine" ? "routinesEmpty" : "traceEmpty",
+    );
+  }
   if (chosen.list || chosen.tags?.length) return t("listEmpty");
   if (chosen.named === "tags") return t("noTagsYet");
   if (chosen.slice === "upcoming") return t("upcomingEmpty");

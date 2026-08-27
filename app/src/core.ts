@@ -31,6 +31,8 @@ export interface Volume {
   steps_done?: number;
   journal?: number;
   described?: boolean;
+  prose?: number;
+  refs?: number;
 }
 
 export interface Task {
@@ -48,6 +50,7 @@ export interface Task {
   tags?: string[];
   reminders?: DateSpec[];
   repeat?: Repeat;
+  after?: string;
   completed_at?: string;
   hidden?: boolean;
   volume?: Volume;
@@ -111,8 +114,66 @@ export interface Parsed {
   offers: Offer[];
 }
 
+export type Reading = "story" | "routine" | "trace";
+
+export type Chapter =
+  | { chapter: "born"; title: string }
+  | { chapter: "retitled"; from: string; to: string }
+  | { chapter: "dated"; from?: DateSpec | null; to?: DateSpec | null }
+  | { chapter: "bounded"; from?: DateSpec | null; to?: DateSpec | null }
+  | { chapter: "placed"; from: Priority; to: Priority }
+  | { chapter: "filed"; from?: string | null; to?: string | null }
+  | { chapter: "tagged"; added: string[]; gone: string[] }
+  | { chapter: "cadenced"; from?: Repeat | null; to?: Repeat | null }
+  | { chapter: "described"; emptied: boolean }
+  | { chapter: "wrote"; body: string }
+  | { chapter: "rewrote"; body: string }
+  | { chapter: "planned"; text: string }
+  | { chapter: "ticked"; text: string }
+  | { chapter: "unticked"; text: string }
+  | { chapter: "reworded"; from: string; to: string }
+  | { chapter: "unplanned"; text: string }
+  | { chapter: "closed" }
+  | { chapter: "dropped" }
+  | { chapter: "reopened" };
+
+export type Page = { n: number; at: string; by: string; undoing?: boolean } & Chapter;
+
+export interface Story {
+  id: string;
+  pages: Page[];
+}
+
+export interface Turn {
+  id: string;
+  status: Status;
+  due?: DateSpec;
+  closed?: string;
+  late?: number;
+  gaps?: string[];
+  told?: boolean;
+}
+
+export interface Series {
+  last: string;
+  title: string;
+  list?: string;
+  tags?: string[];
+  repeat?: Repeat;
+  turns: Turn[];
+  kept: number;
+  owed: number;
+  dropped: number;
+  open: number;
+  skipped: number;
+  streak: number;
+  longest: number;
+  measurable: boolean;
+}
+
 export interface View {
   archive?: boolean;
+  reading?: Reading;
   everything?: boolean;
   inbox?: boolean;
   list?: string;
@@ -189,7 +250,41 @@ export const dropStep = (id: string, step: string): Promise<Task> =>
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
-export const complete = (id: string): Promise<Task> => invoke("complete", { id });
+export const complete = (id: string, also?: string[]): Promise<Task> =>
+  invoke("complete", { id, also });
+export const owed = (id: string): Promise<string[]> => invoke("owed", { id });
+
+export interface Trace {
+  kind: "doc" | "file" | "link" | "named";
+  target: string;
+  label?: string;
+  away?: boolean;
+  gone?: boolean;
+  bytes?: number;
+}
+
+export const taskLeft = (id: string): Promise<Trace[]> => invoke("task_left", { id });
+
+export const taskStory = (id: string): Promise<Story> => invoke("task_story", { id });
+
+export const taskSeries = (id: string): Promise<Series | null> => invoke("task_series", { id });
+
+export const allRoutines = (): Promise<Series[]> => invoke("routines");
+
+export interface Month {
+  key: string;
+  closed: number;
+}
+
+export interface Shape {
+  closed: number;
+  dropped: number;
+  told: number;
+  since?: string;
+  months: Month[];
+}
+
+export const archiveShape = (): Promise<Shape> => invoke("archive_shape");
 
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });

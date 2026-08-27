@@ -294,10 +294,19 @@ propios márgenes y los adjuntos dentro— y te lo enseña antes de exportarlo.
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.
 
-**Las tareas que se repiten** vuelven de a una ocurrencia, así el archivo te
-muestra que la hiciste doce veces. **Los recordatorios** llegan como notificación
-del sistema y un sonido corto que puedes apagar. Toda la ventana funciona con el
-teclado.
+**Las tareas que se repiten** vuelven de una en una, así el archivo te muestra
+que la hiciste doce veces —y cuenta lo que tocaba, no solo lo que cerraste, de
+modo que una rutina se lee 26 de 30 con cuatro fechas sin registro. Si la
+marcas días tarde te ofrece esas fechas en vez de darlas por olvidadas: marcas
+las que sí hiciste y el hueco se cierra. **Los recordatorios** llegan como
+notificación del sistema y un sonido corto que puedes apagar. Toda la ventana
+funciona con el teclado.
+
+**El archivo se lee en tres capas.** Las que enseñaron algo vienen con todo su
+trayecto: qué cambió, cuándo, y lo que fuiste escribiendo por el camino. Las
+rutinas vienen con sus cuentas, sus rachas y la hora a la que sueles cumplirlas.
+El resto es el rastro: lo que no dejó nada escrito, en una lista densa y apartada,
+porque pasó igual y la búsqueda sigue alcanzándolo.
 
 ## Tus datos y tu privacidad
 

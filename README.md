@@ -290,8 +290,17 @@ export it.
 that occurs to you mid-something does not cost you the something.
 
 **Repeating tasks** come back one occurrence at a time, so the archive shows you
-did it twelve times. **Reminders** arrive as a system notification and a short
-sound you can turn off. The whole window works from the keyboard.
+did it twelve times — and it counts what was owed rather than only what you
+closed, so a routine reads 26 of 30 with four dates that have no record. Marking
+one days late offers those dates back instead of calling them forgotten: tick the
+ones you did and the gap closes. **Reminders** arrive as a system notification and
+a short sound you can turn off. The whole window works from the keyboard.
+
+**The archive is read in three layers.** The ones that taught something come with
+their whole trail — what changed, when, and what you wrote along the way. The
+routines come with their tallies, their streaks and the hour you usually keep
+them. The rest is the trace: what left nothing written, listed dense and out of
+the way, because it still happened and search still reaches it.
 
 ## Your Data and Privacy
 

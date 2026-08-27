@@ -18,8 +18,8 @@ pub const EXIT_NOT_FOUND: u8 = 4;
 
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
-    "show", "undo", "redo", "sync", "doctor", "demo", "lists", "list", "tag", "config", "export",
-    "help",
+    "show", "story", "series", "undo", "redo", "sync", "doctor", "demo", "lists", "list", "tag",
+    "config", "export", "help",
 ];
 
 #[derive(Parser)]
@@ -84,6 +84,8 @@ pub enum Command {
     },
     Done {
         selector: Option<String>,
+        #[arg(long, value_name = "DATES", value_delimiter = ',')]
+        also: Vec<String>,
     },
     Undone {
         selector: String,
@@ -129,6 +131,16 @@ pub enum Command {
     },
     Show {
         selector: String,
+        #[arg(long)]
+        json: bool,
+    },
+    Story {
+        selector: String,
+        #[arg(long)]
+        json: bool,
+    },
+    Series {
+        selector: Option<String>,
         #[arg(long)]
         json: bool,
     },

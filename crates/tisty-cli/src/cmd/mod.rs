@@ -25,7 +25,9 @@ pub fn dispatch(
 ) -> anyhow::Result<ExitCode> {
     match command {
         Command::Add(args) => task::add(app, args, today, lang),
-        Command::Done { selector } => task::done(app, selector.as_deref(), today, lang),
+        Command::Done { selector, also } => {
+            task::done(app, selector.as_deref(), &also, today, lang)
+        }
         Command::Undone { selector } => task::undone(app, &selector, today, lang),
         Command::Drop { selector } => task::drop(app, &selector, today, lang),
         Command::Rm { selector, force } => task::rm(app, &selector, force, lang),
@@ -45,6 +47,10 @@ pub fn dispatch(
 
         Command::Ls { filter, json } => view::ls(app, &filter, json, today, lang),
         Command::Show { selector, json } => view::show(app, &selector, json, today, lang),
+        Command::Story { selector, json } => view::story(app, &selector, json, today, lang),
+        Command::Series { selector, json } => {
+            view::series(app, selector.as_deref(), json, today, lang)
+        }
         Command::Search {
             query,
             open,

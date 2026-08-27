@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { grouped } from "../archive";
+import { monthly } from "../archive";
 import type { Task } from "../core";
 
 const done = (id: string, title: string, at: string): Task =>
@@ -16,71 +16,53 @@ const done = (id: string, title: string, at: string): Task =>
   }) as unknown as Task;
 
 describe("the archive by month", () => {
-  it("folds what was done more than once in a month", () => {
-    const rows = grouped([
-      done("1", "sacar la basura", "2026-08-25T09:00:00Z"),
-      done("2", "sacar la basura", "2026-08-18T09:00:00Z"),
-      done("3", "sacar la basura", "2026-08-11T09:00:00Z"),
+  it("gives every closing a row of its own, because each one happened", () => {
+    const rows = monthly([
+      done("1", "take the bins out", "2026-08-25T09:00:00Z"),
+      done("2", "take the bins out", "2026-08-18T09:00:00Z"),
+      done("3", "take the bins out", "2026-08-11T09:00:00Z"),
     ]);
 
-    expect(rows).toHaveLength(1);
-    expect(rows[0].kind).toBe("many");
-    if (rows[0].kind === "many") expect(rows[0].tasks).toHaveLength(3);
+    expect(rows.map((row) => row.task.id)).toEqual(["1", "2", "3"]);
+    expect(new Set(rows.map((row) => row.band)).size).toBe(1);
+    expect(rows.every((row) => row.band !== "")).toBe(true);
   });
 
-  it("never folds across months", () => {
-    const rows = grouped([
-      done("1", "sacar la basura", "2026-09-01T09:00:00Z"),
-      done("2", "sacar la basura", "2026-08-25T09:00:00Z"),
+  it("keeps two months apart", () => {
+    const rows = monthly([
+      done("1", "take the bins out", "2026-09-01T09:00:00Z"),
+      done("2", "take the bins out", "2026-08-25T09:00:00Z"),
     ]);
 
-    expect(rows).toHaveLength(2);
-    expect(rows.every((row) => row.kind === "one")).toBe(true);
-  });
-
-  it("leaves a one-off alone", () => {
-    const rows = grouped([
-      done("1", "comprar pan", "2026-08-25T09:00:00Z"),
-      done("2", "sacar la basura", "2026-08-18T09:00:00Z"),
-      done("3", "sacar la basura", "2026-08-11T09:00:00Z"),
-    ]);
-
-    expect(rows.map((row) => row.kind)).toEqual(["one", "many"]);
-  });
-
-  it("gathers repetitions that are not next to each other", () => {
-    const rows = grouped([
-      done("1", "sacar la basura", "2026-08-25T09:00:00Z"),
-      done("2", "pagar la luz", "2026-08-20T09:00:00Z"),
-      done("3", "sacar la basura", "2026-08-11T09:00:00Z"),
-    ]);
-
-    expect(rows).toHaveLength(2);
-    expect(rows[0].kind).toBe("many");
-    expect(rows[1].kind).toBe("one");
-  });
-
-  it("keeps the first closing of the group as its month", () => {
-    const rows = grouped([done("1", "sacar la basura", "2026-08-25T09:00:00Z")]);
-    expect(rows[0].band).toBe(grouped([done("2", "x", "2026-08-01T09:00:00Z")])[0].band);
+    expect(rows[0].band).not.toBe(rows[1].band);
   });
 
   it("does not confuse a title that starts with a year", () => {
-    const rows = grouped([
-      done("1", "2025 informe", "2026-03-10T09:00:00Z"),
-      done("2", "informe", "2025-03-10T09:00:00Z"),
+    const rows = monthly([
+      done("1", "2025 report", "2026-03-10T09:00:00Z"),
+      done("2", "report", "2025-03-10T09:00:00Z"),
     ]);
 
-    expect(rows).toHaveLength(2);
-    expect(rows.every((row) => row.kind === "one")).toBe(true);
+    expect(rows[0].band).not.toBe(rows[1].band);
   });
 
-  it("leaves out what never closed instead of piling it into one heap", () => {
-    const rows = grouped([
+  it("gives what never closed a band of its own instead of a date it does not have", () => {
+    const rows = monthly([
       { ...done("1", "a", "2026-03-10T09:00:00Z"), completed_at: undefined },
-      { ...done("2", "b", "2026-03-10T09:00:00Z"), completed_at: undefined },
+      done("2", "b", "2026-03-10T09:00:00Z"),
     ] as never);
 
-    expect(rows).toHaveLength(2);
+    expect(rows[0].band).toBe("");
+    expect(rows[1].band).not.toBe("");
+  });
+
+  it("keeps the order it was handed, which is the order the archive asked for", () => {
+    const rows = monthly([
+      done("1", "second", "2026-08-18T09:00:00Z"),
+      done("2", "first", "2026-08-25T09:00:00Z"),
+    ]);
+
+    expect(rows.map((row) => row.task.id)).toEqual(["1", "2"]);
+    expect(rows.map((row) => row.key)).toEqual(["1", "2"]);
   });
 });

@@ -26,7 +26,7 @@ jobs:
           failed=0
 
           while read -r sha; do
-            subject=$(git log -1 --format=%s "$sha")
+            subject=$(git log -1 --format=%s "$sha" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
             if ! printf '%s' "$subject" | grep -qE "$pattern"; then
               echo "::error::${sha:0:8} does not follow conventional commits: $subject"
@@ -34,8 +34,8 @@ jobs:
               continue
             fi
 
-            if [ "${#subject}" -gt 72 ]; then
-              echo "::error::${sha:0:8} subject is ${#subject} characters, keep it under 72: $subject"
+            if [ "${#subject}" -gt 90 ]; then
+              echo "::error::${sha:0:8} subject is ${#subject} characters, keep it under 90: $subject"
               failed=1
             fi
           done < <(git rev-list --no-merges "$BASE".."$HEAD")

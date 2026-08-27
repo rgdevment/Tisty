@@ -81,6 +81,7 @@ fn refused(e: Rejected, lang: Lang) -> anyhow::Error {
 pub fn done(
     app: &mut App,
     selector: Option<&str>,
+    also: &[String],
     today: Date,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
@@ -90,10 +91,45 @@ pub fn done(
         return Ok(ExitCode::SUCCESS);
     }
 
+    let kept = also
+        .iter()
+        .map(|day| {
+            day.parse::<Date>()
+                .map_err(|_| anyhow::anyhow!(lang.fill("not-a-date", &[("value", day)])))
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
+
     resolved!(app, selector, open, lang, |id| {
-        let ops = app.state.completing(id, jiff::Zoned::now());
+        let owed = app.state.owed_since(id, today);
+        let ops = if kept.is_empty() {
+            app.state.completing(id, jiff::Zoned::now())
+        } else {
+            app.state.covering(id, jiff::Zoned::now(), &kept)
+        };
         app.commit_all(ops)?;
         report(app, id, today, lang);
+        if kept.is_empty()
+            && !owed.is_empty()
+            && let Some(task) = app.state.tasks.get(&id)
+        {
+            // The task is closed by now, so the hint has to name it by something that still resolves.
+            let days = owed
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(",");
+            println!(
+                "  {}",
+                style::dim(&lang.fill(
+                    "owed-days",
+                    &[
+                        ("n", &owed.len().to_string()),
+                        ("sel", &crate::render::short_id(task)),
+                        ("day", &days),
+                    ],
+                ))
+            );
+        }
         Ok(ExitCode::SUCCESS)
     })
 }

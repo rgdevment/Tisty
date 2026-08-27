@@ -222,3 +222,131 @@ fn two_devices_project_the_same_state() {
         State::replay(&b.read_all().unwrap())
     );
 }
+
+fn a_chain(events: &mut Vec<Event>, turns: usize, from: &str) -> Vec<Ulid> {
+    let mut ids = Vec::new();
+    let mut before: Option<Ulid> = None;
+    let mut day: jiff::civil::Date = from.parse().unwrap();
+    for n in 0..turns {
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("take the pill", "a0");
+        add.date = Some(tisty_core::DateSpec::all_day(day, "UTC"));
+        add.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 1,
+            unit: tisty_core::model::Unit::Day,
+        }));
+        add.after = before;
+        events.push(Event::new(
+            DeviceId("dev_a".into()),
+            at(1_770_000_000_000 + n as i64 * 1000),
+            Op::TaskAdd { id, d: add },
+        ));
+        events.push(Event::new(
+            DeviceId("dev_a".into()),
+            at(1_770_000_000_500 + n as i64 * 1000),
+            Op::TaskDone { id },
+        ));
+        ids.push(id);
+        before = Some(id);
+        day = day.tomorrow().unwrap();
+    }
+    ids
+}
+
+#[test]
+fn a_story_survives_the_round_trip_through_json() {
+    let id = Ulid::generate();
+    let step = Ulid::generate();
+    let events = vec![
+        Event::new(
+            DeviceId("dev_a".into()),
+            at(1_770_000_000_000),
+            Op::TaskAdd {
+                id,
+                d: TaskAdd::new("ship the release", "a0"),
+            },
+        ),
+        Event::new(
+            DeviceId("dev_a".into()),
+            at(1_770_000_001_000),
+            Op::StepAdd {
+                id,
+                d: StepAdd {
+                    step,
+                    text: "sign the installer".into(),
+                    order: "a0".into(),
+                },
+            },
+        ),
+        Event::new(
+            DeviceId("dev_a".into()),
+            at(1_770_000_002_000),
+            Op::StepDone {
+                id,
+                d: StepRef { step },
+            },
+        ),
+        Event::new(
+            DeviceId("dev_a".into()),
+            at(1_770_000_003_000),
+            Op::TaskLog {
+                id,
+                d: LogAdd::new(Ulid::generate(), "the authority took nine days"),
+            },
+        ),
+        Event::new(
+            DeviceId("dev_a".into()),
+            at(1_770_000_004_000),
+            Op::TaskDone { id },
+        ),
+    ];
+
+    let told = tisty_core::story::story(&events, id);
+    assert!(told.pages.len() >= 5);
+
+    let wire = serde_json::to_string(&told).unwrap();
+    let back: tisty_core::story::Story = serde_json::from_str(&wire).unwrap();
+
+    assert_eq!(
+        told, back,
+        "a flattened, tagged enum is the easiest shape to break"
+    );
+    assert!(
+        wire.contains("\"chapter\":\"ticked\""),
+        "the tag every reader keys on has to be in the wire: {wire}"
+    );
+}
+
+#[test]
+fn a_series_survives_the_round_trip_through_json() {
+    let mut events = Vec::new();
+    let ids = a_chain(&mut events, 3, "2026-08-01");
+    let state = State::replay(&events);
+
+    let told = tisty_core::series::series(&state, ids[0]).unwrap();
+    let wire = serde_json::to_string(&told).unwrap();
+    let back: tisty_core::series::Series = serde_json::from_str(&wire).unwrap();
+
+    assert_eq!(told, back);
+    assert_eq!(back.turns.len(), 3);
+    assert_eq!(back.kept, 3);
+}
+
+#[test]
+fn the_shape_of_the_archive_survives_the_round_trip_through_json() {
+    let mut events = Vec::new();
+    a_chain(&mut events, 2, "2026-08-01");
+    let state = State::replay(&events);
+
+    let told = tisty_core::shape::shape(
+        &state,
+        6,
+        &jiff::tz::TimeZone::UTC,
+        "2026-08-26".parse().unwrap(),
+    );
+    let wire = serde_json::to_string(&told).unwrap();
+    let back: tisty_core::shape::Shape = serde_json::from_str(&wire).unwrap();
+
+    assert_eq!(told, back);
+    assert_eq!(back.months.len(), 6, "the strip keeps its quiet months");
+}
