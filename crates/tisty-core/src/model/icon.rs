@@ -1,7 +1,6 @@
-/// The keys a list, a folder or a document can wear. The drawing lives in the window; here we only
-/// say which names are real, so a store written elsewhere cannot smuggle one in.
+/// Only the names, so a store written by another machine cannot smuggle a drawing in.
+#[rustfmt::skip]
 pub const ICONS: &[&str] = &[
-    // living
     "home", "flat", "room", "bed", "sofa", "lamp", "kitchen", "cook", "cleaning", "laundry",
     "iron", "dishes", "bin", "recycle", "build", "tools", "drill", "paint", "plug", "power",
     "light", "heating", "water", "tap", "key", "lock", "bell", "mail", "parcel", "post",
@@ -13,7 +12,6 @@ pub const ICONS: &[&str] = &[
     "fan", "aircon", "cutlery", "pan", "recipe", "salad", "soup", "pizza", "sandwich",
     "icecream", "candy", "popcorn", "glass", "kettle", "stairs", "hammer-home", "ladder",
     "shelf", "plant-water", "compost-home", "smoke",
-    // craft
     "work", "office", "desk", "meeting", "call", "video", "mic", "mail-work", "chat", "thread",
     "send", "deal", "sign", "contract", "invoice", "quote-work", "report", "chart", "chartdown",
     "pie", "target", "goal", "flag", "milestone", "plan", "deadline", "sprint", "launch",
@@ -26,7 +24,6 @@ pub const ICONS: &[&str] = &[
     "client", "pitch", "brand", "survey", "legal", "policy", "audit", "secure", "network",
     "router", "queue", "pullrequest", "drive", "backup", "swimlane", "standup", "retro", "okr",
     "headcount", "vendor", "contract-work",
-    // body
     "health", "doctor", "hospital", "pill", "syringe", "bandage", "tooth", "eye-care", "ear",
     "heart", "brain", "bone", "lungs", "scale-body", "sleep", "rest", "gym", "run", "walk",
     "bike-sport", "swim", "climb", "yoga", "ball", "football", "tennis", "stretch",
@@ -35,7 +32,6 @@ pub const ICONS: &[&str] = &[
     "weigh", "drink-water", "diet", "supplement", "checkup", "glasses", "hearing", "row",
     "track-fit", "accessible", "dentist", "optician", "pharmacy", "emergency",
     "insurance-health",
-    // means
     "money", "cash", "coin", "bank", "savings", "invest", "loss", "bill", "tax", "wallet",
     "card", "transfer", "salary", "budget", "rent", "mortgage", "insurance", "subscription",
     "gift", "donate", "price", "discount", "crypto", "safe", "chart-money", "invoice-money",
@@ -43,7 +39,6 @@ pub const ICONS: &[&str] = &[
     "bill-water", "bill-power", "bill-net", "bill-phone", "council", "fine", "deposit",
     "exchange", "candlestick", "combined", "wage", "bonus", "audit-money", "cashflow",
     "forecast",
-    // away
     "travel", "flight", "landing", "hotel", "camping", "caravan", "beach", "mountain", "map",
     "place", "route", "compass", "luggage", "backpack", "passport", "ticket", "car", "taxi",
     "bus", "train", "tram", "metro", "bike", "scooter", "boat", "ferry", "fuel", "parking",
@@ -52,7 +47,6 @@ pub const ICONS: &[&str] = &[
     "lake", "island", "dive", "ski", "museum", "gallery", "theatre", "concert", "market",
     "restaurant", "bar", "park", "zoo", "guide", "currency", "sim", "telescope", "tour",
     "cruise", "hostel", "airbnb", "roadtrip", "hike",
-    // mind
     "study", "school", "class", "book", "read", "library", "note", "write", "journal", "idea",
     "question", "answer", "science", "maths", "language", "translate", "history", "law",
     "music", "play-music", "guitar", "piano", "sing", "film", "tv", "game", "puzzle", "chess",
@@ -62,14 +56,12 @@ pub const ICONS: &[&str] = &[
     "code-learn", "draw-learn", "feather", "speak", "listen", "watch", "stream", "tower",
     "dice", "blocks", "shapes", "spool", "bake", "brew", "theatre-mind", "seminar", "mentor",
     "quiz", "portfolio", "certificate",
-    // wild
     "sun", "moon", "star", "cloud-sky", "storm", "wind", "leaf", "forest", "mountain-wild",
     "sea", "river", "fire", "earth", "harvest", "seed", "bee", "butterfly", "fish-wild",
     "bird-wild", "season", "compost", "solar", "dawn", "dusk", "night", "fog", "hail",
     "drizzle", "rainbow", "volcano", "field", "orchard", "grape", "vegan", "nest", "shell",
     "orbit", "rabbit", "snail", "turtle", "squirrel", "rat", "cow", "wheat-off", "frost",
     "bloom", "root", "horizon", "cliff",
-    // thing
     "page", "pages", "draft", "folder", "folderdoc", "archive", "inbox", "clip", "link",
     "bookmark", "pin", "label", "search", "filter", "sort", "calendar", "clock", "timer",
     "waiting", "repeat", "pause", "done", "todo", "urgent", "alert", "info", "shield",

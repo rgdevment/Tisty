@@ -715,7 +715,6 @@ export default function Editor({
                   .chain()
                   .focus()
                   .insertContent({ type: "ico", attrs: { name: key, hue: hue ?? null } })
-                  .insertContent(" ")
                   .run();
               }}
             />

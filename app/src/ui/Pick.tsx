@@ -15,7 +15,6 @@ interface Props {
   tall?: string;
 }
 
-/// The one picker: lists, folders and the editor all come here, so there is one thing to keep true.
 export default function Pick({
   icon,
   colour,

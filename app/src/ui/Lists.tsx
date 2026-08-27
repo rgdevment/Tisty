@@ -40,7 +40,6 @@ export default function Lists({ lists, counts, onOpen, onChanged, onError }: Pro
       .catch((e) => onError(saidPlainly(e)));
   };
 
-  /// One sheet for the lot: name, icon and colour, the same one a folder opens.
   const settle = (list: List, called: string, drawn?: string, colour?: string) => {
     const wanted = called.trim();
     if (!wanted) return;

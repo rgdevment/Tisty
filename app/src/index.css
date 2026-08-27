@@ -463,6 +463,17 @@ body {
   border: 1px solid var(--tisty-hair);
   border-radius: 12px;
 }
+
+/* A src-less img sits beside an inline node; dressed as a picture it reads as a blot. */
+.tisty-doc img.ProseMirror-separator {
+  display: inline;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+}
 .tisty-doc table {
   margin: 14px 0;
   border-collapse: collapse;

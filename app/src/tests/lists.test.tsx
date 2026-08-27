@@ -62,7 +62,6 @@ describe("tending a list", () => {
       />,
     );
 
-  /// One sheet holds the lot now, so opening it is opening the icon.
   const openFor = async (name: string) =>
     userEvent.click(await screen.findByLabelText(`Icon of ${name}`));
 

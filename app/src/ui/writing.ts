@@ -328,14 +328,14 @@ const Barred = Text.extend({
   },
 });
 
-/// An icon inside the text is ours, so it goes as the small piece of HTML that Markdown cannot say,
-/// with the emoji inside it — that way another program still shows something where Tisty draws.
+/// Markdown cannot say "icon", so it goes as HTML with its name inside: other readers show that.
 const Ico = Node.create({
   name: "ico",
   inline: true,
   group: "inline",
   atom: true,
-  selectable: true,
+  // Selectable leaves it standing as a node selection after it lands, which stops the typing.
+  selectable: false,
 
   addAttributes() {
     return {
