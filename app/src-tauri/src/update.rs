@@ -47,6 +47,16 @@ pub const fn self_installs(route: Route) -> bool {
     matches!(route, Route::Brew | Route::Download)
 }
 
+/// Where a release of ours can possibly come from. The plugin fetches whatever address the feed
+/// names, so a feed that was tampered with could otherwise send the download anywhere.
+const FROM: [&str; 2] = ["github.com", "objects.githubusercontent.com"];
+
+pub fn ours(url: &str) -> bool {
+    url.parse::<url::Url>().is_ok_and(|at| {
+        at.scheme() == "https" && at.host_str().is_some_and(|host| FROM.contains(&host))
+    })
+}
+
 pub fn channel_for(version: &str) -> &'static str {
     match version.parse::<semver::Version>() {
         Ok(said) if !said.pre.is_empty() => CANDIDATE,
@@ -266,6 +276,29 @@ mod tests {
         assert!(self_installs(Route::Brew));
         assert!(!self_installs(Route::Store), "the store keeps its own");
         assert!(!self_installs(Route::BrewCli), "brew keeps the formula");
+    }
+
+    #[test]
+    fn an_installer_is_only_ever_taken_from_where_our_releases_live() {
+        assert!(ours(
+            "https://github.com/rgdevment/Tisty/releases/download/v1/tisty.exe"
+        ));
+        assert!(ours("https://objects.githubusercontent.com/whatever"));
+
+        assert!(
+            !ours("http://github.com/rgdevment/Tisty/x.exe"),
+            "plain http"
+        );
+        assert!(
+            !ours("https://github.com.example.invalid/x.exe"),
+            "a lookalike host"
+        );
+        assert!(
+            !ours("https://raw.githubusercontent.com/x.exe"),
+            "not where releases live"
+        );
+        assert!(!ours("file:///C:/x.exe"));
+        assert!(!ours("nonsense"));
     }
 
     #[test]

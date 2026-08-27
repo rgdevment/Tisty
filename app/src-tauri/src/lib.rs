@@ -1781,9 +1781,18 @@ async fn update_install(
         .await
         .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
 
-    let Some(update) = update else {
+    let Some(mut update) = update else {
         return Err(Refusal::of("updateGone"));
     };
+
+    // The feed names the address the installer comes from, so it is checked against where our
+    // releases actually live before a single byte is asked for.
+    if !update::ours(update.download_url.as_str()) {
+        return Err(Refusal::of("updateElsewhere"));
+    }
+    // The plugin builds the download with no deadline of its own, and a server that dribbles
+    // bytes forever would otherwise be waited on forever.
+    update.timeout = Some(std::time::Duration::from_secs(600));
 
     let telling = app.clone();
     let done = app.clone();

@@ -4965,6 +4965,7 @@ dependencies = [
  "tisty-nl",
  "tisty-sync",
  "ulid",
+ "url",
  "windows",
  "winreg",
  "zip 6.0.0",

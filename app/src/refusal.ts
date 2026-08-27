@@ -8,6 +8,7 @@ export interface Refusal {
 
 const KNOWN = [
   "updateBusy",
+  "updateElsewhere",
   "updateNotHere",
   "updateGone",
   "updateFailed",

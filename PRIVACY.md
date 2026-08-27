@@ -130,9 +130,10 @@ download carries: an address to send the bytes back to, and a user agent — her
 you, nothing about what you have written.
 
 This is the one place where an address that arrived over the network is opened,
-and it is why the signature matters: Tisty checks the installer against a key
-compiled into the copy you already have, and refuses anything that does not
-match. The check happens before a single byte is run or written to disk.
+which is why it is fenced twice. The address has to be where this project's
+releases live, or nothing is downloaded at all. And what does arrive is checked
+against a key compiled into the copy you already have, before a single byte is
+run or written to disk.
 
 On macOS, if the application sits somewhere your account cannot write, the
 system asks for an administrator password to put the new copy in place. You can

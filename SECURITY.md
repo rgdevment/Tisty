@@ -35,7 +35,11 @@ report will never be dismissed for being inconvenient.
 - **An update is verified before it is installed.** What the button fetches is
   checked against a public key compiled into the copy already on your machine.
   A build signed with any other key is refused, so a release that is not the
-  maintainer's cannot arrive this way, whatever it claims to be.
+  maintainer's cannot arrive this way, whatever it claims to be. Two narrower
+  guards sit in front of that one: the address an update is fetched from must be
+  where this project's releases live, not merely whatever the feed named, and
+  the download is given a deadline, so a server that answers slowly forever is
+  eventually hung up on.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
   them. There is no Tisty-operated backend at any tier, and no transport of ours

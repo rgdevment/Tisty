@@ -18,10 +18,10 @@
     SetOutPath $INSTDIR
   ${EndIf}
 
-  ; The template waits for the window to close but knows nothing of the command
-  ; line beside it, and a locked tisty.exe stops the install half done: new
-  ; window, old command line, and no version left that would offer the update
-  ; again. Better to say so while it can still be closed.
+  ; The template waits for the window but not for the command line beside it, and
+  ; a locked tisty.exe leaves the install half done with no version left to offer
+  ; the update again. Closing it costs nothing: every write is a whole line or a
+  ; rename.
   !insertmacro CheckIfAppIsRunning "tisty.exe" "${PRODUCTNAME}"
 !macroend
 
