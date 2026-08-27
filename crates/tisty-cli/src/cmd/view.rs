@@ -49,6 +49,31 @@ fn ahead_of_today(app: &App, today: Date) -> usize {
         .len()
 }
 
+/// Cancelling the picker and matching nothing both give `None`; `missing` is what tells them apart.
+fn asked(app: &App, selector: &str, lang: Lang) -> anyhow::Result<Option<tisty_core::TaskId>> {
+    let all: Vec<&Task> = app.state.tasks.values().collect();
+    let selection = Selection::load(&app.paths);
+
+    Ok(match resolve(selector, &selection, &all) {
+        Resolved::One(id) => Some(id),
+        Resolved::Many(ids) => crate::select::prompt(
+            &ids.iter()
+                .map(|id| &app.state.tasks[id])
+                .collect::<Vec<_>>(),
+            lang,
+        )?,
+        Resolved::None => None,
+    })
+}
+
+fn missing(app: &App, selector: &str, lang: Lang) -> ExitCode {
+    let all: Vec<&Task> = app.state.tasks.values().collect();
+    match resolve(selector, &Selection::load(&app.paths), &all) {
+        Resolved::None => not_found(app, selector, lang),
+        _ => ExitCode::SUCCESS,
+    }
+}
+
 pub fn show(
     app: &App,
     selector: &str,
@@ -56,21 +81,8 @@ pub fn show(
     today: Date,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
-    let all: Vec<&Task> = app.state.tasks.values().collect();
-    let selection = Selection::load(&app.paths);
-
-    let id = match resolve(selector, &selection, &all) {
-        Resolved::One(id) => id,
-        Resolved::Many(ids) => match crate::select::prompt(
-            &ids.iter()
-                .map(|id| &app.state.tasks[id])
-                .collect::<Vec<_>>(),
-            lang,
-        )? {
-            Some(id) => id,
-            None => return Ok(ExitCode::SUCCESS),
-        },
-        Resolved::None => return Ok(not_found(app, selector, lang)),
+    let Some(id) = asked(app, selector, lang)? else {
+        return Ok(missing(app, selector, lang));
     };
 
     let task = &app.state.tasks[&id];
@@ -89,21 +101,8 @@ pub fn story(
     today: Date,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
-    let all: Vec<&Task> = app.state.tasks.values().collect();
-    let selection = Selection::load(&app.paths);
-
-    let id = match resolve(selector, &selection, &all) {
-        Resolved::One(id) => id,
-        Resolved::Many(ids) => match crate::select::prompt(
-            &ids.iter()
-                .map(|id| &app.state.tasks[id])
-                .collect::<Vec<_>>(),
-            lang,
-        )? {
-            Some(id) => id,
-            None => return Ok(ExitCode::SUCCESS),
-        },
-        Resolved::None => return Ok(not_found(app, selector, lang)),
+    let Some(id) = asked(app, selector, lang)? else {
+        return Ok(missing(app, selector, lang));
     };
 
     let told = tisty_core::story::story(&tisty_core::store::read_all(app.paths.store())?, id);
@@ -135,20 +134,8 @@ pub fn series(
         return Ok(ExitCode::SUCCESS);
     };
 
-    let all: Vec<&Task> = app.state.tasks.values().collect();
-    let selection = Selection::load(&app.paths);
-    let id = match resolve(selector, &selection, &all) {
-        Resolved::One(id) => id,
-        Resolved::Many(ids) => match crate::select::prompt(
-            &ids.iter()
-                .map(|id| &app.state.tasks[id])
-                .collect::<Vec<_>>(),
-            lang,
-        )? {
-            Some(id) => id,
-            None => return Ok(ExitCode::SUCCESS),
-        },
-        Resolved::None => return Ok(not_found(app, selector, lang)),
+    let Some(id) = asked(app, selector, lang)? else {
+        return Ok(missing(app, selector, lang));
     };
 
     let Some(told) = tisty_core::series::series(&app.state, id) else {
