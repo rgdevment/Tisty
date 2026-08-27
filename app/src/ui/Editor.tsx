@@ -693,7 +693,6 @@ export default function Editor({
           <div
             style={{
               left: Math.max(8, Math.min(glyphing.x, window.innerWidth - 290)),
-              // Opening downwards from the caret runs off the bottom, so it flips up when it must.
               ...(glyphing.y + 6 + GLYPHS_TALL > window.innerHeight
                 ? { bottom: Math.max(8, window.innerHeight - glyphing.y + 6) }
                 : { top: Math.max(8, glyphing.y + 6) }),

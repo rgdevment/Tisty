@@ -485,11 +485,12 @@ pub fn left(task: &Task, state: &State, lang: Lang) -> String {
             ),
             // The window writes a document as `[title](tisty:doc/ID)`, which parses as a link.
             _ if one.target.starts_with("tisty:doc/") => {
-                let held = one
-                    .target
-                    .strip_prefix("tisty:doc/")
-                    .and_then(|raw| raw.parse().ok())
-                    .and_then(|id| state.docs.get(&id));
+                let held = one.target.strip_prefix("tisty:doc/").and_then(|raw| {
+                    raw.parse()
+                        .ok()
+                        .and_then(|id| state.docs.get(&id))
+                        .or_else(|| state.docs.values().find(|doc| doc.file == raw))
+                });
                 let name = one
                     .label
                     .clone()

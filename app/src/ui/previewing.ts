@@ -152,7 +152,6 @@ const carded = (kind: string): HTMLElement => {
   return badge;
 };
 
-/// A document of ours is the same thing the tree shows, so it wears the same shape, not a file badge.
 const papered = (): HTMLElement => {
   const held = document.createElement("span");
   held.className = "card-paper";

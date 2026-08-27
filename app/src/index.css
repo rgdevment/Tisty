@@ -1054,3 +1054,23 @@ body {
 .ico-gray {
   color: var(--tisty-hue-gray);
 }
+
+.chip-badge .glyph {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.chip.chip-paper {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--tisty-accent);
+}
+
+.chip.chip-paper:hover {
+  background: none;
+  color: var(--tisty-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

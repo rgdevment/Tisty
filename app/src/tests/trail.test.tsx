@@ -124,4 +124,32 @@ describe("the trail", () => {
 
     expect(screen.getByText(/Work/)).toBeTruthy();
   });
+
+  it("reads a written reference by its name, not by the syntax it was written with", async () => {
+    await shown([
+      {
+        at: "2026-08-27T01:24:00Z",
+        by: "dev_a",
+        chapter: "wrote",
+        body: "![Minuta del lunes](tisty:doc/yve6v7mz-0001)",
+      } as Draft,
+    ]);
+
+    expect(screen.getByText("Minuta del lunes")).toBeTruthy();
+    expect(screen.queryByText(/tisty:doc/)).toBeNull();
+  });
+
+  it("names an icon written into the entry rather than showing its markup", async () => {
+    await shown([
+      {
+        at: "2026-08-27T01:24:00Z",
+        by: "dev_a",
+        chapter: "wrote",
+        body: 'listo <span data-ico="rocket" data-hue="teal">:rocket:</span>',
+      } as Draft,
+    ]);
+
+    expect(screen.getByText(/listo :rocket:/)).toBeTruthy();
+    expect(screen.queryByText(/data-ico/)).toBeNull();
+  });
 });
