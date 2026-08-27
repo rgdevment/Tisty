@@ -1,4 +1,4 @@
-import { DRAWN } from "../glyphs";
+import { markup } from "../glyphs";
 
 interface Props {
   name: string;
@@ -8,7 +8,7 @@ interface Props {
 export { known, markup } from "../glyphs";
 
 export default function Glyph({ name, className = "h-4 w-4" }: Props) {
-  const drawn = DRAWN[name];
+  const drawn = markup(name);
   if (!drawn) return null;
   return (
     <svg

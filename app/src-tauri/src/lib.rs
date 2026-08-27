@@ -1879,6 +1879,11 @@ fn icons() -> Vec<&'static str> {
 }
 
 #[tauri::command]
+fn families() -> Vec<(&'static str, usize)> {
+    tisty_core::model::icon::FAMILIES.to_vec()
+}
+
+#[tauri::command]
 fn list_add(
     session: tauri::State<'_, Mutex<Session>>,
     name: String,
@@ -4302,6 +4307,7 @@ pub fn run() {
             update_install,
             logs,
             icons,
+            families,
             list_add,
             list_look,
             list_rename,
