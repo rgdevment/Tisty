@@ -7,6 +7,7 @@ import { placed, said } from "../quadrants";
 import Composed from "./Composed";
 import Fields from "./Fields";
 import Journal from "./Journal";
+import Left from "./Left";
 import Prose from "./Prose";
 import Routine from "./Routine";
 import Steps from "./Steps";
@@ -184,6 +185,13 @@ export default function Detail({
       {(task.repeat || task.after) && (
         <Routine task={task.id} onError={onError} heading={<Section label={t("routine")} />} />
       )}
+
+      <Left
+        task={task.id}
+        onDoc={onDoc}
+        onError={onError}
+        heading={<Section label={t("left")} />}
+      />
 
       <Trail
         task={task.id}

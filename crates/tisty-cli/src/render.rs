@@ -470,6 +470,58 @@ pub fn today() -> Date {
     Zoned::now().date()
 }
 
+pub fn left(task: &Task, state: &State, lang: Lang) -> String {
+    let all = task.references();
+    if all.is_empty() {
+        return String::new();
+    }
+
+    let mut out = format!("  {}\n", style::dim(lang.get("left-behind")));
+    for one in all {
+        let (glyph, said) = match one.kind {
+            tisty_core::refs::Kind::Doc if !one.target.starts_with("tisty:doc/") => (
+                "\u{25c8}",
+                one.label.clone().unwrap_or_else(|| one.target.clone()),
+            ),
+            tisty_core::refs::Kind::Doc => {
+                let held = one
+                    .target
+                    .strip_prefix("tisty:doc/")
+                    .and_then(|raw| raw.parse().ok())
+                    .and_then(|id| state.docs.get(&id));
+                let name = one
+                    .label
+                    .clone()
+                    .or_else(|| held.map(|doc| doc.file.clone()))
+                    .unwrap_or_else(|| one.target.clone());
+                match held {
+                    Some(doc) if doc.archived => (
+                        "\u{25a2}",
+                        format!("{name} {}", style::dim(lang.get("left-away"))),
+                    ),
+                    Some(_) => ("\u{25a4}", name),
+                    None => (
+                        "\u{25a2}",
+                        format!("{name} {}", style::dim(lang.get("left-gone"))),
+                    ),
+                }
+            }
+            tisty_core::refs::Kind::Link
+                if tisty_core::attach::names_an_attachment(&one.target) =>
+            {
+                let leaf = one.target.rsplit('/').next().unwrap_or(&one.target);
+                ("\u{1f4ce}", leaf.to_string())
+            }
+            tisty_core::refs::Kind::Link => (
+                "\u{2197}",
+                one.label.clone().unwrap_or_else(|| one.target.clone()),
+            ),
+        };
+        out.push_str(&format!("    {glyph} {said}\n"));
+    }
+    out
+}
+
 pub fn trail(
     task: &Task,
     told: &tisty_core::story::Story,
@@ -504,6 +556,11 @@ pub fn trail(
     }
 
     out.push('\n');
+    let behind = left(task, state, lang);
+    if !behind.is_empty() {
+        out.push_str(&behind);
+        out.push('\n');
+    }
     out
 }
 

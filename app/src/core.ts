@@ -252,6 +252,17 @@ export const writeLog = (id: string, body: string, entry?: string): Promise<Task
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
 export const complete = (id: string): Promise<Task> => invoke("complete", { id });
 
+export interface Trace {
+  kind: "doc" | "file" | "link" | "named";
+  target: string;
+  label?: string;
+  away?: boolean;
+  gone?: boolean;
+  bytes?: number;
+}
+
+export const taskLeft = (id: string): Promise<Trace[]> => invoke("task_left", { id });
+
 export const taskStory = (id: string): Promise<Story> => invoke("task_story", { id });
 
 export const taskSeries = (id: string): Promise<Series | null> => invoke("task_series", { id });

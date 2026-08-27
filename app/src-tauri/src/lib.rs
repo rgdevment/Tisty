@@ -470,6 +470,99 @@ impl View {
     }
 }
 
+#[derive(serde::Serialize)]
+struct Left {
+    kind: &'static str,
+    target: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    label: Option<String>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    away: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    gone: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bytes: Option<u64>,
+}
+
+#[tauri::command]
+fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<Left>> {
+    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    session.reload()?;
+    let Some(task) = session.state.tasks.get(&id) else {
+        return Err(Refusal::of("notATaskId"));
+    };
+
+    let root = session.paths.data().to_path_buf();
+    let on_disk = tisty_core::docs::all(&session.paths.docs());
+    let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
+        on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
+
+    let left = task
+        .references()
+        .into_iter()
+        .map(|one| match one.kind {
+            tisty_core::refs::Kind::Doc if !one.target.starts_with("tisty:doc/") => Left {
+                kind: "named",
+                label: one.label.clone(),
+                away: false,
+                gone: false,
+                target: one.target,
+                bytes: None,
+            },
+            tisty_core::refs::Kind::Doc => {
+                let held = one
+                    .target
+                    .strip_prefix("tisty:doc/")
+                    .and_then(|raw| raw.parse().ok())
+                    .and_then(|doc| session.state.docs.get(&doc));
+                let on_paper = held.and_then(|doc| named.get(doc.file.as_str()));
+                Left {
+                    kind: "doc",
+                    label: on_paper
+                        .map(|doc| doc.title.clone())
+                        .filter(|title| !title.is_empty())
+                        .or_else(|| one.label.clone()),
+                    away: held.is_some_and(|doc| doc.archived),
+                    gone: held.is_none() || on_paper.is_none(),
+                    target: one.target,
+                    bytes: None,
+                }
+            }
+            tisty_core::refs::Kind::Link
+                if tisty_core::attach::names_an_attachment(&one.target) =>
+            {
+                let bytes = tisty_core::attach::resolve(&one.target, &root)
+                    .ok()
+                    .and_then(|at| std::fs::metadata(at).ok())
+                    .filter(|told| told.is_file())
+                    .map(|told| told.len());
+                Left {
+                    kind: "file",
+                    label: one.label.clone(),
+                    away: false,
+                    gone: bytes.is_none(),
+                    target: one.target,
+                    bytes,
+                }
+            }
+            tisty_core::refs::Kind::Link => Left {
+                kind: if one.target.starts_with("http") {
+                    "link"
+                } else {
+                    "named"
+                },
+                label: one.label.clone(),
+                away: false,
+                gone: false,
+                target: one.target,
+                bytes: None,
+            },
+        })
+        .collect();
+    Ok(left)
+}
+
 #[tauri::command]
 fn task_story(
     session: tauri::State<'_, Mutex<Session>>,
@@ -3960,6 +4053,7 @@ pub fn run() {
             snapshot,
             task_story,
             task_series,
+            task_left,
             routines,
             archive_shape,
             close_window,
