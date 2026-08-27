@@ -554,7 +554,7 @@ export const written = () => [
   Lit,
   TaskItem.configure({ nested: true }),
   Barred,
-  Markdown.configure({ html: true, linkify: true, breaks: true, transformPastedText: false }),
+  Markdown.configure({ html: true, linkify: true, breaks: true, transformPastedText: true }),
 ];
 
 export const asMarkdown = (editor: Writing): string | null => {
