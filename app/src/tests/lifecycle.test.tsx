@@ -27,8 +27,11 @@ const store = vi.hoisted(() => ({
   docs: [] as FakeDoc[],
   bodies: {} as Record<string, string>,
   writes: [] as { id: string; body: string }[],
+  copied: [] as string[],
   seq: 0,
 }));
+
+const picked = vi.hoisted(() => ({ path: Promise.resolve(null as string | null) }));
 
 const ipc = vi.hoisted(() => ({
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
@@ -54,7 +57,14 @@ vi.mock("@tauri-apps/api/window", () => ({
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: () => Promise.resolve(true),
-  open: () => Promise.resolve(null),
+  open: () => picked.path,
+}));
+
+vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
+  writeText: (text: string) => {
+    store.copied.push(text);
+    return Promise.resolve();
+  },
 }));
 
 vi.mock("../ui/Editor", () => ({
@@ -153,6 +163,25 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
       if (doc) doc.folder = (args.folder as string | undefined) ?? null;
       return Promise.resolve(null);
     }
+    case "doc_export":
+      return Promise.resolve(0);
+    case "folder_rename": {
+      const folder = store.folders.find((one) => one.id === args.id);
+      if (folder) folder.name = String(args.name);
+      return Promise.resolve(null);
+    }
+    case "folder_file": {
+      const folder = store.folders.find((one) => one.id === args.id);
+      if (folder) folder.parent = (args.parent as string | undefined) ?? null;
+      return Promise.resolve(null);
+    }
+    case "folder_drop": {
+      store.folders = store.folders.filter((one) => one.id !== args.id);
+      store.docs = store.docs.map((one) =>
+        one.folder === args.id ? { ...one, folder: null } : one,
+      );
+      return Promise.resolve(null);
+    }
     case "folder_add": {
       const id = mkId("folder");
       store.folders.push({
@@ -173,7 +202,9 @@ beforeEach(() => {
   store.docs = [];
   store.bodies = {};
   store.writes = [];
+  store.copied = [];
   store.seq = 0;
+  picked.path = Promise.resolve(null);
   ipc.answer = backend;
 });
 
@@ -194,7 +225,7 @@ function seedFolder(over: Partial<FakeFolder> = {}): FakeFolder {
 
 async function boot() {
   render(<App />);
-  await screen.findByRole("button", { name: new RegExp(t("unfiled")) });
+  await screen.findByRole("button", { name: t("unfiled") });
 }
 
 function menuFor(rowLabel: string): HTMLElement {
@@ -378,8 +409,8 @@ describe("nothing filed yet", () => {
   it("has nowhere to file anything yet, and shows only the unfiled shelf", () => {
     render(<Tree papers={{ folders: [], docs: [] }} onOpen={vi.fn()} onFile={vi.fn()} />);
 
-    expect(screen.getByRole("button", { name: new RegExp(t("unfiled")) })).toBeTruthy();
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: t("unfiled") })).toBeTruthy();
+    expect(screen.getAllByRole("button")).toHaveLength(2);
     expect(screen.getByText(t("noDocsYet"))).toBeTruthy();
   });
 
@@ -411,5 +442,163 @@ describe("nothing filed yet", () => {
 
     expect(await screen.findByText(t("pickADoc"))).toBeTruthy();
     expect(screen.queryByTestId("editor")).toBeNull();
+  });
+});
+
+describe("what a folder's own menu can do", () => {
+  it("makes a document inside the folder it was asked from", async () => {
+    const work = seedFolder({ name: "Trabajo" });
+    await boot();
+
+    await chooseFor("Trabajo", t("newDoc"));
+
+    await waitFor(() => expect(countIn(work.id)).toBe(1));
+  });
+
+  it("offers a folder inside a folder until the deepest level, then stops", async () => {
+    seedFolder({ name: "Uno" });
+    const two = seedFolder({ name: "Dos", parent: "folder1" });
+    const three = seedFolder({ name: "Tres", parent: two.id });
+    seedFolder({ name: "Cuatro", parent: three.id });
+    await boot();
+
+    fireEvent.contextMenu(menuFor("Tres"), { clientX: 5, clientY: 5 });
+    expect(await screen.findByRole("menuitem", { name: t("newFolder") })).toBeTruthy();
+    await userEvent.keyboard("{Escape}");
+
+    fireEvent.contextMenu(menuFor("Cuatro"), { clientX: 5, clientY: 5 });
+    await screen.findByRole("menuitem", { name: t("newDoc") });
+    expect(screen.queryByRole("menuitem", { name: t("newFolder") })).toBeNull();
+  });
+
+  it("renames the folder from the sheet the menu opens", async () => {
+    seedFolder({ name: "Trabajo" });
+    await boot();
+
+    await chooseFor("Trabajo", t("rename"));
+    const box = await screen.findByLabelText(t("folderName"));
+    fireEvent.change(box, { target: { value: "Oficina" } });
+    await userEvent.click(screen.getByRole("button", { name: t("renameIt") }));
+
+    await waitFor(() => expect(store.folders[0].name).toBe("Oficina"));
+  });
+
+  it("files a folder inside another one, spelling out the whole way there", async () => {
+    seedFolder({ name: "Uno" });
+    const two = seedFolder({ name: "Dos", parent: "folder1" });
+    seedFolder({ name: "Suelta" });
+    await boot();
+
+    await moveTo("Suelta", `Uno / Dos`);
+
+    await waitFor(() =>
+      expect(store.folders.find((one) => one.name === "Suelta")?.parent).toBe(two.id),
+    );
+  });
+
+  it("deletes the folder and leaves what was inside it unfiled", async () => {
+    const work = seedFolder({ name: "Trabajo" });
+    seedDoc({ title: "Dentro", folder: work.id });
+    await boot();
+
+    await chooseFor("Trabajo", t("deleteIt"));
+
+    await waitFor(() => expect(store.folders).toHaveLength(0));
+    expect(store.docs[0].folder).toBeNull();
+  });
+});
+
+describe("standing inside a folder", () => {
+  it("opens the folder in the pane instead of the document that was there", async () => {
+    const work = seedFolder({ name: "Trabajo" });
+    seedDoc({ title: "Acta", folder: work.id });
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: "Acta" }));
+    await screen.findByTestId("editor");
+
+    await userEvent.click(screen.getByRole("button", { name: "Trabajo" }));
+
+    expect(screen.queryByTestId("editor")).toBeNull();
+    expect(await screen.findByRole("heading", { name: /Trabajo/ })).toBeTruthy();
+  });
+
+  it("shows the loose papers when you stand in unfiled", async () => {
+    seedDoc({ title: "Suelto" });
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("unfiled") }));
+
+    expect(await screen.findByRole("heading", { name: new RegExp(t("unfiled")) })).toBeTruthy();
+  });
+});
+
+describe("what the menus reach for outside the tree", () => {
+  it("copies a document as plain Markdown and says it did", async () => {
+    seedDoc({ title: "Acta" });
+    await boot();
+
+    await chooseFor("Acta", t("copyPlain"));
+
+    await waitFor(() => expect(store.copied).toHaveLength(1));
+    expect(await screen.findByText(t("copied"))).toBeTruthy();
+  });
+
+  it("asks for a file to bring in, from the sidebar and from a folder alike", async () => {
+    seedFolder({ name: "Trabajo" });
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("importDoc") }));
+    await waitFor(() => expect(store.docs).toHaveLength(0));
+
+    await chooseFor("Trabajo", t("importDoc"));
+    await waitFor(() => expect(store.docs).toHaveLength(0));
+  });
+
+  it("makes a folder from the sidebar menu without standing anywhere first", async () => {
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("newFolder") }));
+
+    const box = await screen.findByLabelText(t("folderName"));
+    fireEvent.change(box, { target: { value: "Casa" } });
+    await userEvent.click(screen.getByRole("button", { name: t("create") }));
+
+    await waitFor(() => expect(store.folders.map((one) => one.name)).toEqual(["Casa"]));
+  });
+
+  it("writes a document out to the folder it was pointed at, and counts what went", async () => {
+    seedDoc({ title: "Acta" });
+    picked.path = Promise.resolve("D:/salida");
+    await boot();
+
+    await chooseFor("Acta", t("takeOut"));
+
+    await waitFor(() => expect(screen.getByText(t("takenOutAlone"))).toBeTruthy());
+  });
+
+  it("says nothing at all when the export was called off", async () => {
+    seedDoc({ title: "Acta" });
+    await boot();
+
+    await chooseFor("Acta", t("takeOut"));
+
+    await waitFor(() => expect(screen.queryByText(t("takenOutAlone"))).toBeNull());
+  });
+
+  it("makes a folder inside the one the menu was opened on", async () => {
+    const work = seedFolder({ name: "Trabajo" });
+    await boot();
+
+    await chooseFor("Trabajo", t("newFolder"));
+    const box = await screen.findByLabelText(t("folderName"));
+    fireEvent.change(box, { target: { value: "Legal" } });
+    await userEvent.click(screen.getByRole("button", { name: t("create") }));
+
+    await waitFor(() =>
+      expect(store.folders.find((one) => one.name === "Legal")?.parent).toBe(work.id),
+    );
   });
 });

@@ -109,7 +109,10 @@ impl State {
 
             Op::ListAdd { id, d } => {
                 let mut list = List::new(*id, crate::text::plainly(&d.name), d.order.clone());
-                list.color = d.color.clone();
+                list.color = d
+                    .color
+                    .clone()
+                    .filter(|key| crate::model::hue::kept(key).is_some());
                 self.lists.insert(*id, list);
             }
             Op::ListRename { id, d } => {
@@ -238,7 +241,9 @@ impl State {
                         list.icon = icon.clone().filter(|key| crate::model::icon::known(key));
                     }
                     if let Some(color) = &d.color {
-                        list.color = color.clone();
+                        list.color = color
+                            .clone()
+                            .filter(|key| crate::model::hue::kept(key).is_some());
                     }
                 }
             }
@@ -3608,8 +3613,10 @@ mod tests {
     #[test]
     fn a_folder_cannot_be_moved_where_it_would_push_a_child_too_deep() {
         let mut state = State::default();
+        let one = folder(&mut state, "uno", None);
+        let two = folder(&mut state, "dos", Some(one));
+        let three = folder(&mut state, "tres", Some(two));
         let work = folder(&mut state, "trabajo", None);
-        let other = folder(&mut state, "personal", None);
         let inside = folder(&mut state, "corporativo", Some(work));
 
         state.apply(&ev(
@@ -3618,16 +3625,106 @@ mod tests {
             Op::FolderMove {
                 id: work,
                 d: crate::event::Filed {
-                    folder: Some(Some(other)),
+                    folder: Some(Some(three)),
                 },
             },
         ));
 
         assert_eq!(
             state.folders[&work].parent, None,
-            "its child fell to a third level"
+            "its child fell past the deepest level"
         );
         assert_eq!(state.folders[&inside].parent, Some(work));
+    }
+
+    #[test]
+    fn a_branch_may_be_moved_until_its_deepest_child_lands_on_the_fourth_level() {
+        let mut state = State::default();
+        let one = folder(&mut state, "uno", None);
+        let two = folder(&mut state, "dos", Some(one));
+        let moved = folder(&mut state, "movida", None);
+        let held = folder(&mut state, "dentro", Some(moved));
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::FolderMove {
+                id: moved,
+                d: crate::event::Filed {
+                    folder: Some(Some(two)),
+                },
+            },
+        ));
+
+        assert_eq!(state.folders[&moved].parent, Some(two));
+        assert_eq!(state.depth(Some(held)), 4);
+    }
+
+    #[test]
+    fn a_branch_whose_deepest_child_would_land_on_the_fifth_is_turned_away() {
+        let mut state = State::default();
+        let one = folder(&mut state, "uno", None);
+        let two = folder(&mut state, "dos", Some(one));
+        let three = folder(&mut state, "tres", Some(two));
+        let moved = folder(&mut state, "movida", None);
+        let held = folder(&mut state, "dentro", Some(moved));
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::FolderMove {
+                id: moved,
+                d: crate::event::Filed {
+                    folder: Some(Some(three)),
+                },
+            },
+        ));
+
+        assert_eq!(
+            state.folders[&moved].parent, None,
+            "a fifth level slipped in"
+        );
+        assert_eq!(state.depth(Some(held)), 2);
+    }
+
+    #[test]
+    fn a_lone_folder_still_fits_on_the_fourth_level_but_not_below_it() {
+        let mut state = State::default();
+        let mut at = None;
+        for name in ["uno", "dos", "tres"] {
+            at = Some(folder(&mut state, name, at));
+        }
+        let third = at.expect("three levels");
+        let loose = folder(&mut state, "suelta", None);
+
+        state.apply(&ev(
+            2,
+            "a",
+            Op::FolderMove {
+                id: loose,
+                d: crate::event::Filed {
+                    folder: Some(Some(third)),
+                },
+            },
+        ));
+        assert_eq!(state.folders[&loose].parent, Some(third));
+
+        let deeper = folder(&mut state, "mas honda", None);
+        state.apply(&ev(
+            3,
+            "a",
+            Op::FolderMove {
+                id: deeper,
+                d: crate::event::Filed {
+                    folder: Some(Some(loose)),
+                },
+            },
+        ));
+
+        assert_eq!(
+            state.folders[&deeper].parent, None,
+            "a fifth level slipped in"
+        );
     }
 
     #[test]

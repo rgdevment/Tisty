@@ -12,6 +12,7 @@ interface Props {
   onColour?: (hue: string | undefined) => void;
   autoFocus?: boolean;
   keepFocus?: boolean;
+  clears?: boolean;
   tall?: string;
 }
 
@@ -22,6 +23,7 @@ export default function Pick({
   onColour,
   autoFocus,
   keepFocus,
+  clears = true,
   tall = "max-h-52",
 }: Props) {
   const all = useIcons();
@@ -43,19 +45,21 @@ export default function Pick({
         className={`scroller flex min-h-0 flex-wrap content-start gap-1 overflow-y-auto ${tall}`}
       >
         <legend className="sr-only">{t("pickAnIcon")}</legend>
-        <button
-          type="button"
-          onMouseDown={hold}
-          onClick={() => onIcon(undefined)}
-          aria-pressed={!icon}
-          aria-label={t("noIcon")}
-          title={t("noIcon")}
-          className={`grid h-8 w-8 place-items-center rounded-lg text-[13px] text-faint ${
-            icon ? "hover:bg-hover" : "bg-accent-soft text-accent"
-          }`}
-        >
-          ○
-        </button>
+        {clears && (
+          <button
+            type="button"
+            onMouseDown={hold}
+            onClick={() => onIcon(undefined)}
+            aria-pressed={!icon}
+            aria-label={t("noIcon")}
+            title={t("noIcon")}
+            className={`grid h-8 w-8 place-items-center rounded-lg text-[13px] text-faint ${
+              icon ? "hover:bg-hover" : "bg-accent-soft text-accent"
+            }`}
+          >
+            ○
+          </button>
+        )}
         {shown.length === 0 && (
           <p className="px-2.5 py-1.5 text-[12px] text-faint">{t("noneHere")}</p>
         )}

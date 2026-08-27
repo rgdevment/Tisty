@@ -538,6 +538,9 @@ export interface Doc {
   title: string;
 }
 
+/// Only to stop the window offering what the core would refuse; depth.test.ts pins the two together.
+export const DEEPEST = 4;
+
 export interface Folded {
   id: string;
   name: string;

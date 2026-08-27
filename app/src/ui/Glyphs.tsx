@@ -8,6 +8,7 @@ export default function Glyphs({ onPick }: { onPick: (key: string, hue?: string)
     <Pick
       autoFocus
       keepFocus
+      clears={false}
       tall="max-h-[168px]"
       colour={hue}
       onIcon={(key) => key && onPick(key, hue)}

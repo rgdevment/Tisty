@@ -9,7 +9,8 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-const SCHEMA: i64 = 6;
+/// Tied to the event schema: an older build then misses the cache and meets the version guard.
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 1;
 
 pub struct Cache {
     db: Connection,

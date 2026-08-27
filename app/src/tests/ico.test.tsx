@@ -82,3 +82,47 @@ describe("an icon written into a document", () => {
     expect(out).toContain('data-ico="nosuchthing"');
   });
 });
+
+describe("an icon a hand edit or a paste put in the file", () => {
+  it("goes back as text, never as markup of its own", () => {
+    const editor = made(
+      '<p>x <span data-ico="&quot; onmouseover=alert(1) a=&quot;">boom</span></p>',
+    );
+    const out = md(editor);
+    editor.destroy();
+
+    expect(out).not.toContain('onmouseover=alert(1) a=""');
+    expect(out).toContain("&quot;");
+  });
+
+  it("keeps a colour it cannot paint from breaking out of its own attribute", () => {
+    const editor = made(
+      '<p><span data-ico="pill" data-hue="&quot;><script>alert(1)</script>">z</span></p>',
+    );
+    const out = md(editor);
+    editor.destroy();
+
+    expect(out).not.toContain("<script>");
+  });
+
+  it("still carries a name this build cannot draw, so a newer one gets it back", () => {
+    const editor = made('<p><span data-ico="not-drawn-here">:not-drawn-here:</span></p>');
+    const out = md(editor);
+    editor.destroy();
+
+    expect(out).toContain('data-ico="not-drawn-here"');
+  });
+});
+
+describe("an icon alone in a table cell", () => {
+  it("survives the save that used to erase the cell", () => {
+    const editor = made(
+      "<table><tbody><tr><td><p>a</p></td><td><p>b</p></td></tr>" +
+        '<tr><td><p><span data-ico="bread">:bread:</span></p></td><td><p>y</p></td></tr></tbody></table>',
+    );
+    const out = md(editor);
+    editor.destroy();
+
+    expect(out).toContain('data-ico="bread"');
+  });
+});
