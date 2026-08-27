@@ -97,7 +97,29 @@ describe("an attachment that cannot be drawn, inside a task", () => {
 
     await waitFor(() => expect(chip()).toBeTruthy());
     expect(chip()?.getAttribute("href")).toBe("tisty:doc/mac0-0007");
-    expect(chip()?.querySelector(".chip-badge")?.textContent).toBe("DOC");
+  });
+
+  it("reads as a plain link, since a document needs no badge to say what it is", async () => {
+    render(<Composed html={composed("![el informe](tisty:doc/mac0-0007)")} className="prose" />);
+
+    await waitFor(() => expect(chip()).toBeTruthy());
+    expect(chip()?.classList.contains("chip-paper")).toBe(true);
+  });
+
+  it("wears the shape a document wears everywhere else, not a word for it", async () => {
+    render(<Composed html={composed("![el informe](tisty:doc/mac0-0007)")} className="prose" />);
+
+    await waitFor(() => expect(chip()).toBeTruthy());
+    const badge = chip()?.querySelector(".chip-badge");
+    expect(badge?.querySelector("svg")).toBeTruthy();
+    expect(badge?.textContent?.trim()).toBe("");
+  });
+
+  it("still names the kind of an attachment, which the shape cannot say", async () => {
+    render(<Composed html={composed("![hoja](<attachments/aa/x.xlsx>)")} className="prose" />);
+
+    await waitFor(() => expect(chip()).toBeTruthy());
+    expect(chip()?.querySelector(".chip-badge")?.textContent).toBe("XLSX");
   });
 
   it("leaves a real picture alone", async () => {

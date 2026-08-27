@@ -286,6 +286,7 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
             order: "a0".into(),
             parent: None,
             icon: None,
+            color: None,
         },
     }];
 

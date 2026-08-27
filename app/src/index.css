@@ -18,6 +18,17 @@
   --tisty-active: rgb(0 0 0 / 0.06);
   --tisty-accent: #0060e3;
   --tisty-accent-soft: rgb(0 96 227 / 0.08);
+  --tisty-hue-red: #c62f45;
+  --tisty-hue-orange: #b35c00;
+  --tisty-hue-amber: #8a6a00;
+  --tisty-hue-green: #3f8a24;
+  --tisty-hue-teal: #0f7a68;
+  --tisty-hue-blue: #1f6fb2;
+  --tisty-hue-indigo: #4a58c4;
+  --tisty-hue-purple: #7a44b8;
+  --tisty-hue-pink: #b4408c;
+  --tisty-hue-brown: #6e5a4a;
+  --tisty-hue-gray: #6a6a70;
   --tisty-urgent: #c6292e;
   --tisty-high: #902800;
   --tisty-mark-date: rgb(10 124 255 / 0.15);
@@ -54,6 +65,17 @@
   --tisty-active: rgb(255 255 255 / 0.08);
   --tisty-accent: #439bff;
   --tisty-accent-soft: rgb(67 155 255 / 0.11);
+  --tisty-hue-red: #ff7a8a;
+  --tisty-hue-orange: #ff9d4d;
+  --tisty-hue-amber: #d9b02e;
+  --tisty-hue-green: #6fc44a;
+  --tisty-hue-teal: #3fbfa6;
+  --tisty-hue-blue: #58aef0;
+  --tisty-hue-indigo: #8b95ff;
+  --tisty-hue-purple: #b98cf0;
+  --tisty-hue-pink: #f07ac0;
+  --tisty-hue-brown: #b39c86;
+  --tisty-hue-gray: #a0a0a8;
   --tisty-urgent: #ff6860;
   --tisty-high: #ffaa54;
   --tisty-mark-date: rgb(61 149 255 / 0.2);
@@ -92,6 +114,17 @@
   --color-active: var(--tisty-active);
   --color-accent: var(--tisty-accent);
   --color-accent-soft: var(--tisty-accent-soft);
+  --color-hue-red: var(--tisty-hue-red);
+  --color-hue-orange: var(--tisty-hue-orange);
+  --color-hue-amber: var(--tisty-hue-amber);
+  --color-hue-green: var(--tisty-hue-green);
+  --color-hue-teal: var(--tisty-hue-teal);
+  --color-hue-blue: var(--tisty-hue-blue);
+  --color-hue-indigo: var(--tisty-hue-indigo);
+  --color-hue-purple: var(--tisty-hue-purple);
+  --color-hue-pink: var(--tisty-hue-pink);
+  --color-hue-brown: var(--tisty-hue-brown);
+  --color-hue-gray: var(--tisty-hue-gray);
   --color-urgent: var(--tisty-urgent);
   --color-high: var(--tisty-high);
   --color-veil: var(--tisty-veil);
@@ -429,6 +462,17 @@ body {
   background: var(--tisty-rail);
   border: 1px solid var(--tisty-hair);
   border-radius: 12px;
+}
+
+/* A src-less img sits beside an inline node; dressed as a picture it reads as a blot. */
+.tisty-doc img.ProseMirror-separator {
+  display: inline;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
 }
 .tisty-doc table {
   margin: 14px 0;
@@ -936,4 +980,97 @@ body {
   .tisty-doc img {
     break-inside: avoid;
   }
+}
+
+.glyph {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glyph .solid {
+  fill: currentColor;
+  stroke: none;
+}
+
+.card-paper {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 42px;
+  color: var(--tisty-accent);
+}
+
+.card-paper .glyph {
+  width: 26px;
+  height: 26px;
+}
+
+.ico {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: -0.18em;
+  color: var(--tisty-soft);
+}
+
+.ico .glyph {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.ico-red {
+  color: var(--tisty-hue-red);
+}
+.ico-orange {
+  color: var(--tisty-hue-orange);
+}
+.ico-amber {
+  color: var(--tisty-hue-amber);
+}
+.ico-green {
+  color: var(--tisty-hue-green);
+}
+.ico-teal {
+  color: var(--tisty-hue-teal);
+}
+.ico-blue {
+  color: var(--tisty-hue-blue);
+}
+.ico-indigo {
+  color: var(--tisty-hue-indigo);
+}
+.ico-purple {
+  color: var(--tisty-hue-purple);
+}
+.ico-pink {
+  color: var(--tisty-hue-pink);
+}
+.ico-brown {
+  color: var(--tisty-hue-brown);
+}
+.ico-gray {
+  color: var(--tisty-hue-gray);
+}
+
+.chip-badge .glyph {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.chip.chip-paper {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--tisty-accent);
+}
+
+.chip.chip-paper:hover {
+  background: none;
+  color: var(--tisty-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }

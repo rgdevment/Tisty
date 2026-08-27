@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import type { Filed, Folded, Papers } from "../core";
 import { fill, t } from "../locales";
-import { drawn, useIcons } from "./Icons";
+import Glyph from "./Glyph";
+import { painted } from "./Hue";
 
 interface Props {
   papers: Papers;
@@ -28,7 +29,6 @@ export default function Tree({
   onHereMenu,
   onDocMenu,
 }: Props) {
-  const icons = useIcons();
   const [shut, setShut] = useState<Set<string>>(new Set());
   const [over, setOver] = useState<string | null>(null);
   const [lifted, setLifted] = useState<{ id: string; kind: "doc" | "folder"; name: string } | null>(
@@ -176,7 +176,9 @@ export default function Tree({
           open === doc.file ? "bg-active text-ink" : "text-soft hover:bg-hover"
         }`}
       >
-        <span className="w-3 shrink-0 text-center text-[9px] text-faint">▸</span>
+        <span className="flex w-3 shrink-0 justify-center text-faint">
+          <Glyph name="page" className="h-[13px] w-[13px]" />
+        </span>
         <span className="truncate">{doc.title || t("untitledDoc")}</span>
         {doc.gone && (
           <span title={t("goneDoc")} className="shrink-0 text-[9px] text-urgent">
@@ -235,7 +237,9 @@ export default function Tree({
                 here === folder.id ? "text-ink" : "text-soft"
               }`}
             >
-              <span className="shrink-0">{drawn(icons, folder.icon ?? undefined) ?? "🗂"}</span>
+              <span className={`flex shrink-0 items-center ${painted(folder.color)}`}>
+                <Glyph name={folder.icon ?? "folder"} />
+              </span>
               <span className="truncate">{folder.name}</span>
               <span className="ml-auto pr-1 text-[11px] text-faint">{folder.holds || ""}</span>
             </button>
@@ -298,7 +302,9 @@ export default function Tree({
               here === null ? "text-ink" : "text-faint"
             }`}
           >
-            <span className="shrink-0">📥</span>
+            <span className="flex shrink-0 items-center">
+              <Glyph name="inbox" />
+            </span>
             <span className="truncate">{t("unfiled")}</span>
             <span className="ml-auto text-[11px]">{loose.length || ""}</span>
           </button>

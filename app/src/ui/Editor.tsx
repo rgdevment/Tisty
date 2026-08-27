@@ -64,6 +64,8 @@ export const perched = (empty: boolean, code: boolean, hushed: boolean, whole: b
 export const stale = (value: string, mine: string, shown: () => string | null): boolean =>
   value !== mine && shown() !== value;
 
+const GLYPHS_TALL = 330;
+
 const middle = (editor: Writing, from: number, to: number) => {
   const a = caret(editor, from);
   const b = caret(editor, to);
@@ -310,56 +312,56 @@ export default function Editor({
           key: "h1",
           label: t("bigTitle"),
           hint: "#",
-          icon: "🔠",
+          icon: "heading1",
           run: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
         },
         {
           key: "h2",
           label: t("midTitle"),
           hint: "##",
-          icon: "🔡",
+          icon: "heading2",
           run: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
         },
         {
           key: "bullets",
           label: t("bullets"),
           hint: "-",
-          icon: "🔸",
+          icon: "bullets",
           run: () => editor.chain().focus().toggleBulletList().run(),
         },
         {
           key: "numbers",
           label: t("numbers"),
           hint: "1.",
-          icon: "🔢",
+          icon: "numbers",
           run: () => editor.chain().focus().toggleOrderedList().run(),
         },
         {
           key: "todo",
           label: t("checks"),
           hint: "[ ]",
-          icon: "☑️",
+          icon: "checks",
           run: () => editor.chain().focus().toggleTaskList().run(),
         },
         {
           key: "quote",
           label: t("quote"),
           hint: ">",
-          icon: "💬",
+          icon: "quote",
           run: () => editor.chain().focus().toggleBlockquote().run(),
         },
         {
           key: "code",
           label: t("codeBlock"),
           hint: "```",
-          icon: "💻",
+          icon: "code",
           run: () => editor.chain().focus().toggleCodeBlock().run(),
         },
         {
           key: "table",
           label: t("table"),
           hint: "|",
-          icon: "📊",
+          icon: "table",
           run: () =>
             editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
         },
@@ -367,63 +369,63 @@ export default function Editor({
           key: "link",
           label: t("linkIt"),
           hint: "[ ]( )",
-          icon: "🔗",
+          icon: "link",
           run: () => setTying(aimed(editor)),
         },
         {
           key: "paper",
           label: t("insertDoc"),
           hint: "[[ ]]",
-          icon: "▤",
+          icon: "page",
           run: () => setChoosing(aimed(editor)),
         },
         {
           key: "newpaper",
           label: t("insertNewDoc"),
           hint: "\u271a",
-          icon: "\u271a",
+          icon: "plus",
           run: () => setNaming(aimed(editor)),
         },
         {
           key: "icon",
           label: t("insertIcon"),
           hint: "\u{1f600}",
-          icon: "\u{1f600}",
+          icon: "emoji",
           run: () => setGlyphing(aimed(editor)),
         },
         {
           key: "pen",
           label: t("penIt"),
           hint: "==",
-          icon: "🖍️",
+          icon: "highlight",
           run: () => editor.chain().focus().extendMarkRange("highlight").toggleHighlight().run(),
         },
         {
           key: "middle",
           label: t("towardsMiddle"),
           hint: "↔",
-          icon: "⬛",
+          icon: "aligncenter",
           run: () => editor.chain().focus().setTextAlign("center").run(),
         },
         {
           key: "rightwards",
           label: t("towardsRight"),
           hint: "→",
-          icon: "⬛",
+          icon: "alignright",
           run: () => editor.chain().focus().setTextAlign("right").run(),
         },
         {
           key: "leftwards",
           label: t("towardsLeft"),
           hint: "←",
-          icon: "⬛",
+          icon: "alignleft",
           run: () => editor.chain().focus().setTextAlign("left").run(),
         },
         {
           key: "rule",
           label: t("leafBreak"),
           hint: "---",
-          icon: "➖",
+          icon: "rule",
           run: () => editor.chain().focus().setHorizontalRule().run(),
         },
         ...(onAttach
@@ -432,7 +434,7 @@ export default function Editor({
                 key: "attach",
                 label: t("attachment"),
                 hint: "↧",
-                icon: "📎",
+                icon: "clip",
                 run: () => {
                   onAttach().then((markdown) => {
                     if (markdown) editor.chain().focus().insertContent(markdown).run();
@@ -691,7 +693,10 @@ export default function Editor({
           <div
             style={{
               left: Math.max(8, Math.min(glyphing.x, window.innerWidth - 290)),
-              top: Math.max(8, glyphing.y + 6),
+              ...(glyphing.y + 6 + GLYPHS_TALL > window.innerHeight
+                ? { bottom: Math.max(8, window.innerHeight - glyphing.y + 6) }
+                : { top: Math.max(8, glyphing.y + 6) }),
+              maxHeight: `${GLYPHS_TALL}px`,
             }}
             onKeyDown={(e) => {
               if (e.key !== "Escape") return;
@@ -700,12 +705,16 @@ export default function Editor({
               setGlyphing(null);
               editor.commands.focus();
             }}
-            className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
+            className="fixed z-40 flex w-[272px] flex-col overflow-hidden rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
           >
             <Glyphs
-              onPick={(glyph) => {
+              onPick={(key, hue) => {
                 setGlyphing(null);
-                editor.chain().focus().insertContent(glyph).run();
+                editor
+                  .chain()
+                  .focus()
+                  .insertContent({ type: "ico", attrs: { name: key, hue: hue ?? null } })
+                  .run();
               }}
             />
           </div>

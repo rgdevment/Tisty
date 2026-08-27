@@ -614,6 +614,7 @@ mod tests {
                     order: "a0".into(),
                     parent: None,
                     icon: None,
+                    color: None,
                 },
             })
             .unwrap();

@@ -50,7 +50,7 @@ export default function Trail({ task, lists, onError, heading }: Props) {
               {page.undoing && <span className="ml-1.5 text-[11px]">· {t("trailUndone")}</span>}
               {page.chapter === "wrote" && (
                 <q className="mt-1 block border-l-2 border-hair pl-2.5 text-soft italic">
-                  {page.body}
+                  {plainly(page.body ?? "")}
                 </q>
               )}
             </span>
@@ -152,4 +152,13 @@ function phrase(page: Page, named: (id?: string | null) => string | undefined): 
 function unreadable(page: never): string {
   void page;
   return "";
+}
+
+/// The trail is a record, not a page: a reference reads as what it was called, not as its syntax.
+function plainly(body: string): string {
+  return body
+    .replace(/<span[^>]*data-ico="([a-z0-9-]+)"[^>]*>[\s\S]*?<\/span>/g, ":$1:")
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, "")
+    .trim();
 }
