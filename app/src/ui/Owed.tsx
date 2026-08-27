@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fill, locale, t } from "../locales";
 
 interface Props {
@@ -8,12 +8,24 @@ interface Props {
 
 export default function Owed({ days, onConfirm }: Props) {
   const [taken, setTaken] = useState<string[]>([]);
+  const first = useRef<HTMLButtonElement>(null);
+
+  // Ctrl+Enter walks the focus to the next row, so without this the strip opens behind the reader.
+  useEffect(() => first.current?.focus(), []);
 
   const flip = (day: string) =>
     setTaken((held) => (held.includes(day) ? held.filter((one) => one !== day) : [...held, day]));
 
   return (
-    <div className="mx-2 mt-1.5 rounded-[10px] border border-line bg-panel px-3 py-2.5">
+    <section
+      aria-label={t("owedAsk")}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.stopPropagation();
+        onConfirm([]);
+      }}
+      className="mx-2 mt-1.5 rounded-[10px] border border-line bg-panel px-3 py-2.5"
+    >
       <div className="flex items-center gap-2">
         <p className="text-[12.5px] text-soft">
           <b className="font-semibold text-ink">{t("owedAsk")}</b> {t("owedWhy")}
@@ -29,11 +41,12 @@ export default function Owed({ days, onConfirm }: Props) {
         </button>
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-        {days.map((day) => {
+        {days.map((day, at) => {
           const on = taken.includes(day);
           return (
             <button
               key={day}
+              ref={at === 0 ? first : undefined}
               type="button"
               aria-pressed={on}
               onClick={() => flip(day)}
@@ -57,7 +70,7 @@ export default function Owed({ days, onConfirm }: Props) {
           </button>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 

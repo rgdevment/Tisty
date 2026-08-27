@@ -210,6 +210,12 @@ than thirty days ago. Five turns of a weekly cadence would reach back five weeks
 which is reconstruction, not memory. A cadence counted from the doing never gets
 asked, because it leaves no gaps by definition.
 
+**`covering` checks the claimed dates against `owed_since` itself**, rather than
+trusting whoever called it. A date the cadence never had would write a turn that
+never existed, and a mistyped year would drag the live turn years out and take
+the routine with it — so the window and the command line cannot widen it between
+them, and neither can a future caller.
+
 ## Reading the archive
 
 Three views are **derived at read time and never stored**, so nothing about them

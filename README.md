@@ -359,7 +359,8 @@ command with `brew install rgdevment/tap/tisty-cli` and never open the window.
 
 | | |
 |---|---|
-| ✅ | Tasks, lists, tags, steps, journal, attachments, archive, search |
+| ✅ | Tasks, lists, tags, steps, journal, attachments, search |
+| ✅ | An archive read in three layers, with what each task left behind |
 | ✅ | Natural language for dates, deadlines and repeats |
 | ✅ | The window, the tray, and quick capture on a global shortcut |
 | ✅ | Documents: editor, folders, and sync that merges block by block |
