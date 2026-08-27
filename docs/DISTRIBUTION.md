@@ -24,8 +24,9 @@ copyright staying in one pair of hands, which is what the
 
 **Nothing is withheld.** The store build is the same program, from the same
 source, at the same version. What you pay for — where there is a price — is the
-signing, the notarisation, the automatic updates and the store's own
-convenience. If you would rather not, compile it yourself: the source is here,
+signing, the notarisation, and the store's own convenience. Updating itself is
+not on that list: every copy outside a store does it, a build you compiled
+yourself included. If you would rather not, compile it yourself: the source is here,
 it is complete, and it is free forever.
 
 ## The terms for a signed build
@@ -83,6 +84,13 @@ Only two places:
 - The **stores and package managers** listed in the README.
 
 A build from anywhere else is not ours, however it is named.
+
+There is a third check, and it is the only one the program enforces on its own:
+an update Tisty offers to install is verified against a public key compiled into
+the copy already on the machine. A build signed with any other key is refused,
+whatever it claims to be. The private half is held by the maintainer alone and
+cannot be rotated — if it were lost, every installed copy would go on working
+and simply stop being able to update itself.
 
 ## Questions
 

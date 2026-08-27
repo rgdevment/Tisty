@@ -79,6 +79,16 @@ CI runs the test suite on Linux, Windows and macOS. Path separators, line
 endings, case sensitivity and file locking only diverge at runtime, so a green
 build on one platform proves very little.
 
+Building an **installer** needs one more flag. Tisty ships a public key for the
+updater, and the tool refuses to bundle when it finds one without the matching
+private key — which only the release pipeline has. So:
+
+```sh
+npm run tauri build -- --no-sign
+```
+
+`npm run tauri dev` is unaffected: it never bundles.
+
 ## House style
 
 **Code, identifiers, comments, test names and error messages are in English.**

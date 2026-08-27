@@ -17,12 +17,22 @@
     StrCpy $INSTDIR "$LOCALAPPDATA\Programs\${PRODUCTNAME}"
     SetOutPath $INSTDIR
   ${EndIf}
+
+  ; The template waits for the window but not for the command line beside it, and
+  ; a locked tisty.exe leaves the install half done with no version left to offer
+  ; the update again. Closing it costs nothing: every write is a whole line or a
+  ; rename.
+  !insertmacro CheckIfAppIsRunning "tisty.exe" "${PRODUCTNAME}"
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
   ; The app put the PATH entry and the startup entry there, and is the only
   ; thing that can read the PATH value whole to take it back out.
-  ${If} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
+  ;
+  ; Not while updating: the generated installer.nsi guards its own shortcuts and
+  ; startup key the same way, and an update has no business undoing either.
+  ${If} $UpdateMode <> 1
+  ${AndIf} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
     ExecWait '"$INSTDIR\${MAINBINARYNAME}.exe" --unreach'
   ${EndIf}
 !macroend

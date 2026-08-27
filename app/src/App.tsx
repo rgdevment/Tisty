@@ -46,6 +46,7 @@ import {
   sow,
   syncState,
   type Task,
+  type Underway,
   updateReady,
   writeLog,
   writeStep,
@@ -116,6 +117,7 @@ export default function App() {
   const [captured, setCaptured] = useState<Task | undefined>();
   const [aloud, setAloud] = useState("");
   const [ready, setReady] = useState<Ready | null>(null);
+  const [underway, setUnderway] = useState<Underway | null>(null);
 
   useEffect(() => {
     updateReady()
@@ -389,6 +391,13 @@ export default function App() {
     const off = listen("parting", () => {
       void settled().finally(() => void parted());
     });
+    return () => {
+      void off.then((stop) => stop());
+    };
+  }, []);
+
+  useEffect(() => {
+    const off = listen<Underway>("updating", (said) => setUnderway(said.payload));
     return () => {
       void off.then((stop) => stop());
     };
@@ -906,7 +915,12 @@ export default function App() {
         }}
       >
         {chosen.named === "aboutScreen" ? (
-          <About ready={ready} onError={(e) => setError(saidPlainly(e))} />
+          <About
+            ready={ready}
+            step={underway}
+            onGaveUp={() => setUnderway(null)}
+            onError={(e) => setError(saidPlainly(e))}
+          />
         ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (
           <Folder
             folder={standing ?? null}

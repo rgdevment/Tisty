@@ -14,6 +14,7 @@ Thumbs.db
 *.pfx
 *.p12
 *.pem
+*.key
 *.base64
 
 # Built per release, never committed: the CLI rides along with the window.
