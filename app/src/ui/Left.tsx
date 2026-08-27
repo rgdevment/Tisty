@@ -1,5 +1,6 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useAsked } from "../asked";
-import { taskLeft } from "../core";
+import { revealed, taskLeft } from "../core";
 import { weigh } from "../format";
 import { t } from "../locales";
 
@@ -10,7 +11,7 @@ interface Props {
   onError?: (problem: unknown) => void;
 }
 
-const GLYPH = { doc: "▤", file: "📎", link: "↗", named: "◈" } as const;
+const GLYPH = { doc: "▤", file: "⧉", link: "↗", named: "◈" } as const;
 
 export default function Left({ task, heading, onDoc, onError }: Props) {
   const left = useAsked(() => taskLeft(task), [task], onError);
@@ -23,7 +24,7 @@ export default function Left({ task, heading, onDoc, onError }: Props) {
       <ul className="flex flex-col gap-1.5">
         {left.map((one) => {
           const doc = one.kind === "doc" ? one.target.replace("tisty:doc/", "") : null;
-          const open = doc && !one.gone && onDoc ? () => onDoc(doc) : undefined;
+          const open = one.gone ? undefined : reach(one, doc, onDoc, onError);
           return (
             <li key={`${one.kind}-${one.target}`}>
               <button
@@ -51,6 +52,20 @@ export default function Left({ task, heading, onDoc, onError }: Props) {
 }
 
 type One = NonNullable<ReturnType<typeof useAsked<Awaited<ReturnType<typeof taskLeft>>>>>[number];
+
+/// A named reference points at nothing this program can open, so it stays inert on purpose.
+function reach(
+  one: One,
+  doc: string | null,
+  onDoc?: (id: string) => void,
+  onError?: (problem: unknown) => void,
+): (() => void) | undefined {
+  const slip = (problem: unknown) => onError?.(problem);
+  if (doc) return onDoc ? () => onDoc(doc) : undefined;
+  if (one.kind === "link") return () => void openUrl(one.target).catch(slip);
+  if (one.kind === "file") return () => void revealed(decodeURI(one.target)).catch(slip);
+  return undefined;
+}
 
 function named(one: One): string {
   if (one.label) return one.label;

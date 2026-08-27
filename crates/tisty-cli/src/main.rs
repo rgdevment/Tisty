@@ -84,7 +84,7 @@ pub enum Command {
     },
     Done {
         selector: Option<String>,
-        #[arg(long, value_name = "DATE", num_args = 1..)]
+        #[arg(long, value_name = "DATES", value_delimiter = ',')]
         also: Vec<String>,
     },
     Undone {

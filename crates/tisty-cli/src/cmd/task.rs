@@ -108,19 +108,23 @@ pub fn done(
         };
         app.commit_all(ops)?;
         report(app, id, today, lang);
-        if kept.is_empty() && !owed.is_empty() {
+        if kept.is_empty()
+            && !owed.is_empty()
+            && let Some(task) = app.state.tasks.get(&id)
+        {
+            // The task is closed by now, so the hint has to name it by something that still resolves.
             let days = owed
                 .iter()
                 .map(ToString::to_string)
                 .collect::<Vec<_>>()
-                .join(" ");
+                .join(",");
             println!(
                 "  {}",
                 style::dim(&lang.fill(
                     "owed-days",
                     &[
                         ("n", &owed.len().to_string()),
-                        ("sel", selector.unwrap_or("1")),
+                        ("sel", &crate::render::short_id(task)),
                         ("day", &days),
                     ],
                 ))

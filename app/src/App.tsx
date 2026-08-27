@@ -159,6 +159,7 @@ export default function App() {
   const [showing, setShowing] = useState<string | null>(null);
   const [carried, setCarried] = useState(0);
   const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
+  const asked = useRef(0);
 
   const newDoc = (folder?: string) =>
     docNew(folder)
@@ -435,8 +436,11 @@ export default function App() {
 
   const marking = (id: string, title: string) => {
     setError(null);
+    const mine = ++asked.current;
     owed(id)
       .then((days) => {
+        // A slow answer must not open a strip over the task the person moved on to.
+        if (mine !== asked.current) return;
         if (!days.length) {
           say(fill("saidDone", title));
           act(complete(id));
@@ -446,6 +450,17 @@ export default function App() {
       })
       .catch((e) => setError(saidPlainly(e)));
   };
+
+  const strip = asking ? (
+    <Owed
+      days={asking.days}
+      onConfirm={(days) => {
+        say(fill("saidDone", asking.title));
+        act(complete(asking.id, days));
+        setAsking(null);
+      }}
+    />
+  ) : null;
 
   const act = (work: Promise<Task>) => {
     setError(null);
@@ -871,28 +886,31 @@ export default function App() {
             onError={(e) => setError(saidPlainly(e))}
           />
         ) : chosen.named === "quadrants" && !(open && mode === "sheet") ? (
-          <Matrix
-            tasks={data.tasks}
-            lists={data.lists}
-            beside={open && mode === "columns"}
-            onPlace={(id, where) => act(patch(id, { priority: where }))}
-            onOpen={(one) => setSelected(one.id)}
-            onSow={(where) => {
-              sow(where).catch((e: unknown) => setError(saidPlainly(e)));
-            }}
-            onDiscardAll={(ids) => {
-              ask(fill("dropThemSure", String(ids.length)), { kind: "warning" })
-                .then((yes) => {
-                  if (!yes) return;
-                  setError(null);
-                  return Promise.all(ids.map((id) => discard(id))).then(() => {
-                    load();
-                    carries.current?.changed();
-                  });
-                })
-                .catch((e) => setError(saidPlainly(e)));
-            }}
-          />
+          <>
+            {strip && <div className="shrink-0 px-5 pt-2">{strip}</div>}
+            <Matrix
+              tasks={data.tasks}
+              lists={data.lists}
+              beside={open && mode === "columns"}
+              onPlace={(id, where) => act(patch(id, { priority: where }))}
+              onOpen={(one) => setSelected(one.id)}
+              onSow={(where) => {
+                sow(where).catch((e: unknown) => setError(saidPlainly(e)));
+              }}
+              onDiscardAll={(ids) => {
+                ask(fill("dropThemSure", String(ids.length)), { kind: "warning" })
+                  .then((yes) => {
+                    if (!yes) return;
+                    setError(null);
+                    return Promise.all(ids.map((id) => discard(id))).then(() => {
+                      load();
+                      carries.current?.changed();
+                    });
+                  })
+                  .catch((e) => setError(saidPlainly(e)));
+              }}
+            />
+          </>
         ) : chosen.named === "keeping" ? (
           <Keeping
             greeted={greeted}
@@ -998,18 +1016,7 @@ export default function App() {
             }
             onFold={chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined}
             closing={asking?.id}
-            ask={(id) =>
-              asking?.id === id ? (
-                <Owed
-                  days={asking.days}
-                  onConfirm={(days) => {
-                    say(fill("saidDone", asking.title));
-                    act(complete(asking.id, days));
-                    setAsking(null);
-                  }}
-                />
-              ) : null
-            }
+            ask={(id) => (asking?.id === id ? strip : null)}
             below={
               found?.papers.length ? (
                 <Sightings papers={found.papers} onOpen={openDoc} />

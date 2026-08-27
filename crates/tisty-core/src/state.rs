@@ -479,22 +479,40 @@ impl State {
             return done;
         }
 
+        let mut ops = done;
+        let order = self.order_last_in(task.list);
+        ops.extend(self.turn_after(task, id, next, repeat, false, &order));
+        ops
+    }
+
+    /// The turn that follows one being closed: same shape, dates carried along by how far it moved.
+    /// A bare one is a record of a day that passed, so it carries no work to do and nothing to ring.
+    fn turn_after(
+        &self,
+        task: &Task,
+        after: TaskId,
+        next: crate::model::DateSpec,
+        repeat: crate::model::Repeat,
+        bare: bool,
+        order: &str,
+    ) -> Vec<Op> {
         let along = task
             .date
             .as_ref()
             .map(|was| next.at.date().since(was.at.date()));
 
-        let mut fresh =
-            crate::event::TaskAdd::new(task.title.clone(), self.order_last_in(task.list));
-        fresh.deadline = shifted(task.deadline.as_ref(), along.as_ref());
-        fresh.reminders = task
-            .reminders
-            .iter()
-            .filter_map(|one| match (&task.date, repeat.cadence().after(one.at)) {
-                (None, Some(at)) => Some(one.moved(at)),
-                _ => shifted(Some(one), along.as_ref()),
-            })
-            .collect();
+        let mut fresh = crate::event::TaskAdd::new(task.title.clone(), order.to_string());
+        if !bare {
+            fresh.deadline = shifted(task.deadline.as_ref(), along.as_ref());
+            fresh.reminders = task
+                .reminders
+                .iter()
+                .filter_map(|one| match (&task.date, repeat.cadence().after(one.at)) {
+                    (None, Some(at)) => Some(one.moved(at)),
+                    _ => shifted(Some(one), along.as_ref()),
+                })
+                .collect();
+        }
         fresh.date = Some(next);
         fresh.priority = Some(match task.priority {
             Priority::Minor => Priority::Unset,
@@ -503,11 +521,13 @@ impl State {
         fresh.list = task.list;
         fresh.tags = task.tags.clone();
         fresh.repeat = Some(repeat);
-        fresh.after = Some(id);
+        fresh.after = Some(after);
 
-        let mut ops = done;
         let born = ulid::Ulid::generate();
-        ops.push(Op::TaskAdd { id: born, d: fresh });
+        let mut ops = vec![Op::TaskAdd { id: born, d: fresh }];
+        if bare {
+            return ops;
+        }
 
         if let Some(body) = &task.description {
             ops.push(Op::TaskDescribe {
@@ -551,7 +571,7 @@ impl State {
             let Some(next) = repeat.cadence().after(at) else {
                 break;
             };
-            if next.date() > today {
+            if next.date() > today || repeat.ended(next.date()) {
                 break;
             }
             all.push(next.date());
@@ -576,34 +596,36 @@ impl State {
             return self.completing(id, now);
         };
 
-        let mut ops = vec![Op::TaskDone { id }];
-
-        let mut wanted: Vec<jiff::civil::Date> = also.to_vec();
+        // A claimed date is only honoured if it was offered: anything else would write a turn the
+        // cadence never had, and a mistyped year would drag the whole series into next January.
+        let offered = self.owed_since(id, now.date());
+        let mut wanted: Vec<jiff::civil::Date> = also
+            .iter()
+            .filter(|day| offered.contains(day))
+            .copied()
+            .collect();
         wanted.sort_unstable();
         wanted.dedup();
 
+        let mut ops = vec![Op::TaskDone { id }];
         let mut before = id;
         let mut last = due.clone();
+        let mut order = self.order_last_in(task.list);
         for day in wanted {
             if day <= last.date() {
                 continue;
             }
-            let born = ulid::Ulid::generate();
-            let mut fresh =
-                crate::event::TaskAdd::new(task.title.clone(), self.order_last_in(task.list));
-            fresh.date = Some(due.moved(day.to_datetime(due.at.time())));
-            fresh.priority = Some(match task.priority {
-                Priority::Minor => Priority::Unset,
-                held => held,
-            });
-            fresh.list = task.list;
-            fresh.tags = task.tags.clone();
-            fresh.repeat = Some(repeat);
-            fresh.after = Some(before);
-            ops.push(Op::TaskAdd { id: born, d: fresh });
-            ops.push(Op::TaskDone { id: born });
-            last = due.moved(day.to_datetime(due.at.time()));
-            before = born;
+            let filled = due.moved(day.to_datetime(due.at.time()));
+            let mut born = self.turn_after(task, before, filled.clone(), repeat, true, &order);
+            order = order::after(&order);
+            let Some(Op::TaskAdd { id: fresh, .. }) = born.first() else {
+                break;
+            };
+            let fresh = *fresh;
+            ops.append(&mut born);
+            ops.push(Op::TaskDone { id: fresh });
+            last = filled;
+            before = fresh;
         }
 
         if before == id {
@@ -624,37 +646,7 @@ impl State {
             return ops;
         }
 
-        let born = ulid::Ulid::generate();
-        let mut fresh =
-            crate::event::TaskAdd::new(task.title.clone(), self.order_last_in(task.list));
-        fresh.date = Some(next);
-        fresh.priority = Some(match task.priority {
-            Priority::Minor => Priority::Unset,
-            held => held,
-        });
-        fresh.list = task.list;
-        fresh.tags = task.tags.clone();
-        fresh.repeat = Some(repeat);
-        fresh.after = Some(before);
-        ops.push(Op::TaskAdd { id: born, d: fresh });
-        if let Some(body) = &task.description {
-            ops.push(Op::TaskDescribe {
-                id: born,
-                d: crate::event::Body {
-                    body: Some(body.clone()),
-                },
-            });
-        }
-        for step in &task.steps {
-            ops.push(Op::StepAdd {
-                id: born,
-                d: crate::event::StepAdd {
-                    step: ulid::Ulid::generate(),
-                    text: step.text.clone(),
-                    order: step.order.clone(),
-                },
-            });
-        }
+        ops.extend(self.turn_after(task, before, next, repeat, false, &order));
         ops
     }
 
@@ -1165,6 +1157,93 @@ mod tests {
         assert!(
             owed.is_empty(),
             "five weeks is not memory, however few the turns: {owed:?}"
+        );
+    }
+
+    #[test]
+    fn a_date_that_was_never_offered_is_refused_rather_than_written() {
+        let (log, id) = a_daily_due("2026-08-23");
+        let state = State::replay(&log);
+
+        let ops = state.covering(
+            id,
+            now_on("2026-08-25"),
+            &["2027-01-15".parse().unwrap(), "2026-08-30".parse().unwrap()],
+        );
+
+        assert_eq!(
+            ops.iter()
+                .filter(|op| matches!(op, Op::TaskAdd { .. }))
+                .count(),
+            1,
+            "a mistyped year wrote turns the cadence never had"
+        );
+    }
+
+    #[test]
+    fn a_filled_turn_carries_no_reminder_of_its_own() {
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("take the pill", "a0");
+        add.date = Some(DateSpec::all_day("2026-08-23".parse().unwrap(), "UTC"));
+        add.repeat = Some(crate::model::Repeat::due(Cadence {
+            every: 1,
+            unit: Unit::Day,
+        }));
+        add.reminders = vec![DateSpec::floating(
+            jiff::civil::date(2026, 8, 23).at(9, 0, 0, 0),
+            "UTC",
+        )];
+        let log = vec![Event::new(
+            DeviceId("dev_a".into()),
+            jiff::Timestamp::from_second(1_770_000_000).unwrap(),
+            Op::TaskAdd { id, d: add },
+        )];
+        let state = State::replay(&log);
+
+        let ops = state.covering(id, now_on("2026-08-25"), &["2026-08-24".parse().unwrap()]);
+
+        let added: Vec<_> = ops
+            .iter()
+            .filter_map(|op| match op {
+                Op::TaskAdd { d, .. } => Some(d),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            added.first().is_some_and(|d| d.reminders.is_empty()),
+            "the filled turn would ring for a day already gone"
+        );
+        assert!(
+            added.last().is_some_and(|d| !d.reminders.is_empty()),
+            "the live turn lost the reminder the routine had"
+        );
+    }
+
+    #[test]
+    fn a_series_that_already_ended_is_offered_no_dates_to_fill() {
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("water the plants", "a0");
+        add.date = Some(DateSpec::all_day("2026-08-20".parse().unwrap(), "UTC"));
+        add.repeat = Some(crate::model::Repeat {
+            from: crate::model::From::Due,
+            each: Cadence {
+                every: 1,
+                unit: Unit::Day,
+            },
+            until: Some("2026-08-21".parse().unwrap()),
+        });
+        let state = State::replay(&[Event::new(
+            DeviceId("dev_a".into()),
+            jiff::Timestamp::from_second(1_770_000_000).unwrap(),
+            Op::TaskAdd { id, d: add },
+        )]);
+
+        let owed = state.owed_since(id, "2026-08-25".parse().unwrap());
+
+        assert_eq!(
+            owed,
+            vec!["2026-08-21".parse::<jiff::civil::Date>().unwrap()],
+            "it offered dates past the end of the series: {owed:?}"
         );
     }
 

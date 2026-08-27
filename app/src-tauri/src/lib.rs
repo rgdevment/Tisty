@@ -502,15 +502,8 @@ fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Ve
         .references()
         .into_iter()
         .map(|one| match one.kind {
-            tisty_core::refs::Kind::Doc if !one.target.starts_with("tisty:doc/") => Left {
-                kind: "named",
-                label: one.label.clone(),
-                away: false,
-                gone: false,
-                target: one.target,
-                bytes: None,
-            },
-            tisty_core::refs::Kind::Doc => {
+            // The window writes a document as `[title](tisty:doc/ID)`, which parses as a link.
+            _ if one.target.starts_with("tisty:doc/") => {
                 let held = one
                     .target
                     .strip_prefix("tisty:doc/")
@@ -529,6 +522,14 @@ fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Ve
                     bytes: None,
                 }
             }
+            tisty_core::refs::Kind::Doc => Left {
+                kind: "named",
+                label: one.label.clone(),
+                away: false,
+                gone: false,
+                target: one.target,
+                bytes: None,
+            },
             tisty_core::refs::Kind::Link
                 if tisty_core::attach::names_an_attachment(&one.target) =>
             {
@@ -3767,9 +3768,11 @@ fn complete(
     let also = also
         .unwrap_or_default()
         .iter()
-        .map(|day| day.parse::<jiff::civil::Date>())
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|_| Refusal::of("notADate"))?;
+        .map(|day| {
+            day.parse::<jiff::civil::Date>()
+                .map_err(|_| Refusal::about("notADate", day))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     let mut session = held(&session);
     let ops = if also.is_empty() {
         session.state.completing(id, jiff::Zoned::now())

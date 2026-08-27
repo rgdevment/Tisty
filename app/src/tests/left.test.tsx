@@ -4,10 +4,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Trace } from "../core";
 import Left from "../ui/Left";
 
-const ipc = vi.hoisted(() => ({ left: [] as Trace[] }));
+const ipc = vi.hoisted(() => ({
+  left: [] as Trace[],
+  opened: [] as string[],
+  shown: [] as string[],
+}));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: () => Promise.resolve(ipc.left),
+  invoke: (name: string, args: { path?: string }) => {
+    if (name === "revealed") {
+      ipc.shown.push(args.path ?? "");
+      return Promise.resolve();
+    }
+    return Promise.resolve(ipc.left);
+  },
+}));
+
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openUrl: (at: string) => {
+    ipc.opened.push(at);
+    return Promise.resolve();
+  },
 }));
 
 const shown = async (left: Trace[]) => {
@@ -20,6 +37,8 @@ const shown = async (left: Trace[]) => {
 
 beforeEach(() => {
   ipc.left = [];
+  ipc.opened = [];
+  ipc.shown = [];
 });
 
 describe("what a closed task left behind", () => {
@@ -77,6 +96,33 @@ describe("what a closed task left behind", () => {
     await shown([{ kind: "link", target: "https://gl.example/mr/7" }]);
 
     expect(screen.getByText("gl.example/mr/7")).toBeTruthy();
+  });
+
+  it("opens a link rather than showing it as a dead button", async () => {
+    const user = userEvent.setup();
+    await shown([{ kind: "link", target: "https://gl.example/mr/7" }]);
+
+    await user.click(screen.getByRole("button"));
+
+    expect(ipc.opened).toEqual(["https://gl.example/mr/7"]);
+  });
+
+  it("shows an attachment in the file manager", async () => {
+    const user = userEvent.setup();
+    await shown([{ kind: "file", target: "attachments/ab/note.png", bytes: 12 }]);
+
+    await user.click(screen.getByRole("button"));
+
+    expect(ipc.shown).toEqual(["attachments/ab/note.png"]);
+  });
+
+  it("refuses to open an attachment that is no longer there", async () => {
+    const user = userEvent.setup();
+    await shown([{ kind: "file", target: "attachments/ab/old.png", gone: true }]);
+
+    await user.click(screen.getByRole("button"));
+
+    expect(ipc.shown).toEqual([]);
   });
 
   it("leaves a named reference as the name it was written with", async () => {

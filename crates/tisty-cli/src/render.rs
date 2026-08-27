@@ -457,7 +457,7 @@ fn weekday_index(date: Date) -> u8 {
     date.weekday().to_monday_one_offset() as u8
 }
 
-fn short_id(task: &Task) -> String {
+pub fn short_id(task: &Task) -> String {
     let id = task.id.to_string();
     id[id.len() - 6..].to_lowercase()
 }
@@ -483,7 +483,8 @@ pub fn left(task: &Task, state: &State, lang: Lang) -> String {
                 "\u{25c8}",
                 one.label.clone().unwrap_or_else(|| one.target.clone()),
             ),
-            tisty_core::refs::Kind::Doc => {
+            // The window writes a document as `[title](tisty:doc/ID)`, which parses as a link.
+            _ if one.target.starts_with("tisty:doc/") => {
                 let held = one
                     .target
                     .strip_prefix("tisty:doc/")
@@ -512,7 +513,7 @@ pub fn left(task: &Task, state: &State, lang: Lang) -> String {
                 let leaf = one.target.rsplit('/').next().unwrap_or(&one.target);
                 ("\u{1f4ce}", leaf.to_string())
             }
-            tisty_core::refs::Kind::Link => (
+            _ => (
                 "\u{2197}",
                 one.label.clone().unwrap_or_else(|| one.target.clone()),
             ),

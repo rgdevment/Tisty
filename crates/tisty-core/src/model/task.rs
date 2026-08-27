@@ -248,9 +248,18 @@ impl Task {
 
         let mut all: Vec<crate::refs::Ref> = Vec::new();
         for one in bodies.flat_map(crate::refs::extract) {
-            if !all.contains(&one) {
-                all.push(one);
+            // A step anchor points inside this very task, so it is not something the task left.
+            if one.target.starts_with('#') {
+                continue;
             }
+            // Two labels for one target are one trace: the label is how it was written, not what it is.
+            if all
+                .iter()
+                .any(|held| held.kind == one.kind && held.target == one.target)
+            {
+                continue;
+            }
+            all.push(one);
         }
         all
     }
@@ -634,5 +643,42 @@ mod tests {
             Reading::Story,
             "the layer is read from what is there, never stored"
         );
+    }
+}
+#[cfg(test)]
+mod trace_tests {
+    use super::*;
+
+    fn told(body: &str, log: &[&str]) -> Vec<crate::refs::Ref> {
+        let mut task = Task::new(ulid::Ulid::generate(), "x", "a0");
+        task.description = Some(body.to_string());
+        task.log = log
+            .iter()
+            .map(|one| LogEntry {
+                id: ulid::Ulid::generate(),
+                at: Timestamp::from_second(0).unwrap(),
+                tz: None,
+                body: (*one).to_string(),
+            })
+            .collect();
+        task.references()
+    }
+
+    #[test]
+    fn one_target_written_twice_with_two_labels_is_one_trace() {
+        let all = told(
+            "[the report](https://x.example/1)",
+            &["[final report](https://x.example/1)"],
+        );
+
+        assert_eq!(all.len(), 1, "the same link came back twice: {all:?}");
+    }
+
+    #[test]
+    fn a_step_anchor_is_not_something_the_task_left_behind() {
+        let all = told("see [[#3]] and [[CUSLEG-1]]", &[]);
+
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].target, "CUSLEG-1");
     }
 }

@@ -1889,7 +1889,12 @@ fn a_claimed_day_becomes_a_kept_turn_and_only_the_rest_is_a_gap() {
     cli.ok(&["set", "1", "--date", &tuesday_back(3)]);
     cli.ok(&["ls", "all"]);
 
-    cli.ok(&["done", "1", "--also", &tuesday_back(2), &tuesday_back(0)]);
+    cli.ok(&[
+        "done",
+        "1",
+        "--also",
+        &format!("{},{}", tuesday_back(2), tuesday_back(0)),
+    ]);
     cli.ok(&["ls", "archive"]);
     let out = cli.ok(&["series", "1"]);
 
