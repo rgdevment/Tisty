@@ -5,8 +5,8 @@ import { t } from "../locales";
 import SlashMenu from "../ui/SlashMenu";
 
 const lists: List[] = [
-  { id: "l1", name: "Trabajo", icon: null, order: "a", archived: false },
-  { id: "l2", name: "Casa", icon: null, order: "b", archived: false },
+  { id: "l1", name: "Trabajo", order: "a", archived: false },
+  { id: "l2", name: "Casa", order: "b", archived: false },
 ];
 const tags: Counted[] = [
   { tag: "dinero", tasks: 4 },
