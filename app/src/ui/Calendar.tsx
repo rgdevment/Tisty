@@ -57,18 +57,19 @@ export default function Calendar({ value, inline, onPick, onClear, onClose }: Pr
       <div className="grid grid-cols-7 gap-px">
         {days(month).map((day) => {
           const iso = civil(day);
+          const dressed =
+            iso === value
+              ? "bg-accent font-medium text-bg"
+              : iso === today
+                ? "font-semibold text-accent hover:bg-hover"
+                : `hover:bg-hover ${day.getMonth() === month.getMonth() ? "text-ink" : "text-faint"}`;
           return (
             <button
               key={iso}
               type="button"
+              aria-current={iso === today ? "date" : undefined}
               onClick={() => onPick(iso)}
-              className={`h-[26px] rounded-md tabular-nums ${
-                iso === value
-                  ? "bg-accent font-medium text-bg"
-                  : `hover:bg-hover ${day.getMonth() === month.getMonth() ? "text-ink" : "text-faint"} ${
-                      iso === today ? "font-semibold text-accent" : ""
-                    }`
-              }`}
+              className={`h-[26px] rounded-md tabular-nums ${dressed}`}
             >
               {day.getDate()}
             </button>
