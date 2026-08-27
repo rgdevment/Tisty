@@ -619,6 +619,7 @@ export const docNew = (folder?: string): Promise<Doc> => invoke("doc_new", { fol
 export const docDrop = (id: string): Promise<void> => invoke("doc_drop", { id });
 
 export const icons = (): Promise<string[]> => invoke("icons");
+export const families = (): Promise<[string, number][]> => invoke("families");
 export const listAdd = (name: string, icon?: string, color?: string): Promise<List> =>
   invoke("list_add", { name, icon, color });
 export const listLook = (id: string, icon?: string, color?: string): Promise<List> =>

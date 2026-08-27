@@ -1,17 +1,39 @@
 import { useEffect, useState } from "react";
-import { icons as readIcons } from "../core";
+import { families as readFamilies, icons as readIcons } from "../core";
 
-let held: string[] | null = null;
+export interface Family {
+  name: string;
+  icons: string[];
+}
 
-export function useIcons() {
-  const [all, setAll] = useState<string[]>(held ?? []);
+interface Catalogue {
+  all: string[];
+  families: Family[];
+}
+
+const NONE: Catalogue = { all: [], families: [] };
+let held: Catalogue | null = null;
+
+const cut = (all: string[], cuts: [string, number][] | null): Family[] => {
+  if (!cuts?.length) return [];
+  const out: Family[] = [];
+  let at = 0;
+  for (const [name, many] of cuts) {
+    out.push({ name, icons: all.slice(at, at + many) });
+    at += many;
+  }
+  return at === all.length ? out : [];
+};
+
+export function useCatalogue(): Catalogue {
+  const [all, setAll] = useState<Catalogue>(held ?? NONE);
 
   useEffect(() => {
     if (held) return;
-    readIcons()
-      .then((found) => {
-        held = found;
-        setAll(found);
+    Promise.all([readIcons(), readFamilies().catch(() => null)])
+      .then(([found, cuts]) => {
+        held = { all: found, families: cut(found, cuts) };
+        setAll(held);
       })
       .catch(() => {});
   }, []);
