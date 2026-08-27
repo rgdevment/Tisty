@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { known } from "../glyphs";
 import { t, type Word } from "../locales";
 import Glyph from "./Glyph";
@@ -46,6 +46,7 @@ export default function Pick({
   const [word, setWord] = useState("");
   const [only, setOnly] = useState<string>();
   const box = useRef<HTMLFieldSetElement>(null);
+  const [sized, setSized] = useState(false);
   const [wide, setWide] = useState(0);
   const [high, setHigh] = useState(0);
   const [down, setDown] = useState(0);
@@ -67,7 +68,7 @@ export default function Pick({
   );
   const many = shown.reduce((sofar, family) => sofar + family.icons.length, 0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const held = box.current;
     if (!held) return;
     const measure = () => {
@@ -75,6 +76,7 @@ export default function Pick({
       setHigh(held.clientHeight);
     };
     measure();
+    setSized(true);
     if (typeof ResizeObserver === "undefined") return;
     const watcher = new ResizeObserver(measure);
     watcher.observe(held);
@@ -86,8 +88,11 @@ export default function Pick({
     if (box.current) box.current.scrollTop = 0;
   };
 
-  const first = Math.max(0, Math.floor(down / ROW) - SPARE);
-  const last = Math.min(rows.length, Math.ceil((down + (high || ROW * 6)) / ROW) + SPARE);
+  const room = high || ROW * 6;
+  // Clamps a scrollTop that outran the rows (a stale value after the list shrank) to the tail.
+  const settled = Math.min(down, Math.max(0, rows.length * ROW - room));
+  const first = Math.max(0, Math.floor(settled / ROW) - SPARE);
+  const last = Math.min(rows.length, Math.ceil((settled + room) / ROW) + SPARE);
 
   const button = (key: string) => (
     <button
@@ -108,17 +113,34 @@ export default function Pick({
 
   return (
     <div className="flex min-h-0 flex-col gap-1.5">
-      <input
-        autoFocus={autoFocus}
-        value={word}
-        onChange={(e) => {
-          setWord(e.target.value);
-          restart();
-        }}
-        placeholder={t("siftIcons")}
-        aria-label={t("siftIcons")}
-        className="w-full shrink-0 rounded-lg bg-hover px-2.5 py-1 text-[12px] outline-none placeholder:text-faint"
-      />
+      <div className="flex shrink-0 gap-1.5">
+        <input
+          autoFocus={autoFocus}
+          value={word}
+          onChange={(e) => {
+            setWord(e.target.value);
+            restart();
+          }}
+          placeholder={t("siftIcons")}
+          aria-label={t("siftIcons")}
+          className="min-w-0 flex-1 rounded-lg bg-hover px-2.5 py-1 text-[12px] outline-none placeholder:text-faint"
+        />
+        {clears && (
+          <button
+            type="button"
+            onMouseDown={hold}
+            onClick={() => onIcon(undefined)}
+            aria-pressed={!icon}
+            aria-label={t("noIcon")}
+            title={t("noIcon")}
+            className={`grid w-8 shrink-0 self-stretch place-items-center rounded-lg text-[13px] ${
+              icon ? "text-faint hover:bg-hover" : "bg-accent-soft text-accent"
+            }`}
+          >
+            ○
+          </button>
+        )}
+      </div>
       {families.length > 0 && !said && (
         <div
           role="group"
@@ -144,52 +166,43 @@ export default function Pick({
           ))}
         </div>
       )}
-      {clears && (
-        <button
-          type="button"
-          onMouseDown={hold}
-          onClick={() => onIcon(undefined)}
-          aria-pressed={!icon}
-          aria-label={t("noIcon")}
-          title={t("noIcon")}
-          className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[13px] text-faint ${
-            icon ? "hover:bg-hover" : "bg-accent-soft text-accent"
-          }`}
-        >
-          ○
-        </button>
-      )}
       <fieldset
         ref={box}
         onScroll={(e) => setDown(e.currentTarget.scrollTop)}
         className={`scroller min-h-0 overflow-y-auto ${tall}`}
       >
         <legend className="sr-only">{t("pickAnIcon")}</legend>
-        {many === 0 && <p className="px-2.5 py-1.5 text-[12px] text-faint">{t("noneHere")}</p>}
+        {many === 0 && sized && (
+          <p className="px-2.5 py-1.5 text-[12px] text-faint">{t("noneHere")}</p>
+        )}
         {columns === 0 ? (
-          <div className="flex flex-wrap content-start gap-1">
-            {shown.flatMap((family) => family.icons).map(button)}
-          </div>
+          sized && (
+            <div className="flex flex-wrap content-start gap-1">
+              {shown.flatMap((family) => family.icons).map(button)}
+            </div>
+          )
         ) : (
           <div style={{ height: rows.length * ROW }} className="relative">
             <div
               className="absolute inset-x-0 top-0"
               style={{ transform: `translateY(${first * ROW}px)` }}
             >
-              {rows.slice(first, last).map((row) =>
-                "title" in row ? (
+              {rows.slice(first, last).map((row, at) => {
+                // The row number keys these: a family and its first icon share a name often enough.
+                const mark = first + at;
+                return "title" in row ? (
                   <p
-                    key={row.title}
+                    key={mark}
                     className="flex h-9 items-end px-0.5 pb-1 text-[10px] font-medium tracking-wide text-faint uppercase"
                   >
                     {t(`family_${row.title}` as Word) ?? row.title}
                   </p>
                 ) : (
-                  <div key={row.keys[0]} className="flex h-9 gap-1">
+                  <div key={mark} className="flex h-9 gap-1">
                     {row.keys.map(button)}
                   </div>
-                ),
-              )}
+                );
+              })}
             </div>
           </div>
         )}
