@@ -365,7 +365,8 @@ Ajustes la deja al alcance de tu terminal, o puedes instalar solo el comando con
 
 | | |
 |---|---|
-| ✅ | Tareas, listas, etiquetas, pasos, bitácora, adjuntos, archivo, búsqueda |
+| ✅ | Tareas, listas, etiquetas, pasos, bitácora, adjuntos, búsqueda |
+| ✅ | Un archivo que se lee en tres capas, con lo que dejó cada tarea |
 | ✅ | Lenguaje natural para fechas, límites y repeticiones |
 | ✅ | La ventana, la bandeja, y captura rápida con un atajo global |
 | ✅ | Documentos: editor, carpetas, y transporte que junta bloque a bloque |

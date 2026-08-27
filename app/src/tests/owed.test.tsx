@@ -62,6 +62,28 @@ describe("claiming the days that went unmarked", () => {
     expect(screen.queryByRole("button", { name: /^add/i })).toBeNull();
   });
 
+  it("takes the focus, because the key that opens it moves on to the next row", () => {
+    const [older] = days(2, 1);
+    shown([older, ...days(1)]);
+
+    expect(document.activeElement).toBe(screen.getAllByRole("button")[1]);
+  });
+
+  it("is a landmark a reader can be told about", () => {
+    shown(days(1));
+
+    expect(screen.getByRole("region", { name: /did you do it/i })).toBeTruthy();
+  });
+
+  it("marks the task and asks nothing more when Escape is pressed", async () => {
+    const user = userEvent.setup();
+    const done = shown(days(1));
+
+    await user.keyboard("{Escape}");
+
+    expect(done).toHaveBeenCalledWith([]);
+  });
+
   it("closes the task with no days at all when the strip is dismissed", async () => {
     const user = userEvent.setup();
     const done = shown(days(1));
