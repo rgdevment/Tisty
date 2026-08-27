@@ -84,6 +84,13 @@ Only two places:
 
 A build from anywhere else is not ours, however it is named.
 
+There is a third check, and it is the only one the program enforces on its own:
+an update Tisty offers to install is verified against a public key compiled into
+the copy already on the machine. A build signed with any other key is refused,
+whatever it claims to be. The private half is held by the maintainer alone and
+cannot be rotated — if it were lost, every installed copy would go on working
+and simply stop being able to update itself.
+
 ## Questions
 
 <github@apirest.cl>. If your situation is not covered here, ask before

@@ -60,6 +60,7 @@ describe("what About suggests", () => {
     route,
     url: "https://example.invalid/releases",
     package: named,
+    installs: route === "download" || route === "brew",
   });
 
   it("asks nothing of a Store install", async () => {
@@ -67,32 +68,51 @@ describe("what About suggests", () => {
 
     expect(await screen.findByText(/Tisty 0.3.0 is out/)).toBeTruthy();
     expect(screen.getByText(/Microsoft Store installs it for you/)).toBeTruthy();
-    expect(screen.queryByText(/Open the releases page/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Update" })).toBeNull();
   });
 
-  it("gives the command to a Homebrew install", async () => {
+  it("offers to do it for a copy that can replace itself", async () => {
+    render(<About ready={ready("download")} onError={vi.fn()} />);
+
+    expect(await screen.findByText("Do you want to update it?")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Update" })).toBeTruthy();
+  });
+
+  it("offers the same to a Homebrew install, which now keeps itself", async () => {
     render(<About ready={ready("brew", "tisty")} onError={vi.fn()} />);
 
-    expect(await screen.findByText(/brew upgrade --cask tisty/)).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Update" })).toBeTruthy();
+    expect(screen.queryByText(/brew upgrade/)).toBeNull();
   });
 
-  it("names the package a candidate was installed under", async () => {
-    render(<About ready={ready("brew", "tisty-beta")} onError={vi.fn()} />);
-
-    expect(await screen.findByText(/brew upgrade --cask tisty-beta/)).toBeTruthy();
-  });
-
-  it("gives the formula its own command, without the cask flag", async () => {
+  it("gives the formula its own command, without the cask flag or a button", async () => {
     render(<About ready={ready("brewCli", "tisty-cli")} onError={vi.fn()} />);
 
     const said = await screen.findByText(/brew upgrade tisty-cli/);
     expect(said.textContent).not.toContain("--cask");
+    expect(screen.queryByRole("button", { name: "Update" })).toBeNull();
   });
 
-  it("offers the page to everyone else", async () => {
-    render(<About ready={ready("download")} onError={vi.fn()} />);
+  it("shows how far the download has got, and then that it is installing", async () => {
+    const { rerender } = render(
+      <About
+        ready={ready("download")}
+        step={{ stage: "getting", got: 50, total: 200 }}
+        onError={vi.fn()}
+      />,
+    );
 
-    expect(await screen.findByText(/Open the releases page/)).toBeTruthy();
+    expect(await screen.findByText(/Getting it — 25 %/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Update" })).toBeNull();
+
+    rerender(
+      <About
+        ready={ready("download")}
+        step={{ stage: "installing", got: 0, total: null }}
+        onError={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/Tisty will close and open again/)).toBeTruthy();
   });
 
   it("says nothing when this copy is the newest", async () => {

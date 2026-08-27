@@ -322,8 +322,11 @@ legibles con las herramientas que ya tienes. Está explicado en
 [PRIVACY.md](PRIVACY.md) y [SECURITY.md](SECURITY.md), incluidas las partes que
 no son tranquilizadoras.
 
-Tisty hace **una** petición de red en su vida: una vez al día mira si existe una
-versión más nueva. No envía nada, y puedes apagarla.
+Tisty hace **una** petición de red al día sin que se la pidas: mira si existe
+una versión más nueva. No envía nada. Si existe y presionas el botón que te la
+ofrece, vienen dos más — el archivo que nombra la versión y el instalador — y
+Tisty se niega a instalar nada que no esté firmado con una clave compilada
+dentro de la copia que ya tienes.
 
 ## Dos equipos, si tienes dos
 

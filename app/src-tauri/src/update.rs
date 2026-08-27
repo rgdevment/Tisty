@@ -3,6 +3,11 @@ use tisty_core::witness::{self, Fact, channel};
 const MANIFEST: &str =
     "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json";
 pub const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
+/// One holds a stable version and the other a candidate, never both, so the track a copy belongs
+/// to can be read off the version it is being offered.
+pub const LATEST: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/latest.json";
+pub const CANDIDATE: &str =
+    "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/candidate.json";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 
@@ -37,6 +42,18 @@ pub struct Ready {
     pub route: Route,
     pub url: &'static str,
     pub package: Option<&'static str>,
+    pub installs: bool,
+}
+
+pub const fn self_installs(route: Route) -> bool {
+    matches!(route, Route::Brew | Route::Download)
+}
+
+pub fn channel_for(version: &str) -> &'static str {
+    match version.parse::<semver::Version>() {
+        Ok(said) if !said.pre.is_empty() => CANDIDATE,
+        _ => LATEST,
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -60,12 +77,26 @@ pub fn newer(now: &str, manifest: &str, kept: Kept) -> Option<Ready> {
         best = candidate;
     }
 
-    (best > here).then(|| Ready {
-        version: best.to_string(),
+    (best > here).then(|| offered(best.to_string(), kept))
+}
+
+fn offered(version: String, kept: Kept) -> Ready {
+    Ready {
+        version,
         route: kept.route,
         url: RELEASES,
         package: kept.package,
-    })
+        installs: self_installs(kept.route),
+    }
+}
+
+/// What the last look found, so closing the window does not take the offer away with it. The copy
+/// may have moved between a download and a cask since, so where it stands is read again.
+pub fn remembered(now: &str, said: Option<&str>, kept: Kept) -> Option<Ready> {
+    let here: semver::Version = now.parse().ok()?;
+    let kept_version: semver::Version = said?.parse().ok()?;
+
+    (kept_version > here).then(|| offered(kept_version.to_string(), kept))
 }
 
 pub fn due(last: Option<jiff::Timestamp>, now: jiff::Timestamp) -> bool {
@@ -207,6 +238,66 @@ mod tests {
             "0.2.0-rc6"
         );
         assert!(newer("0.1.0", feed, Kept::plain(Route::Download)).is_none());
+    }
+
+    #[test]
+    fn only_a_copy_that_owns_its_own_folder_replaces_itself() {
+        assert!(self_installs(Route::Download));
+        assert!(self_installs(Route::Brew));
+        assert!(!self_installs(Route::Store), "the store keeps its own");
+        assert!(!self_installs(Route::BrewCli), "brew keeps the formula");
+    }
+
+    #[test]
+    fn a_candidate_asks_the_candidates_feed_and_a_stable_one_the_stable_feed() {
+        assert_eq!(channel_for("0.3.0"), LATEST);
+        assert_eq!(channel_for("0.4.0-rc1"), CANDIDATE);
+        assert_eq!(channel_for("tomorrow"), LATEST, "unreadable means stable");
+    }
+
+    #[test]
+    fn the_feed_follows_what_is_offered_rather_than_what_is_running() {
+        let feed = r#"{"latest":"0.5.0","latestPrerelease":"0.4.0-rc1"}"#;
+        let found = newer("0.4.0-rc1", feed, Kept::plain(Route::Download)).expect("0.5.0 is newer");
+
+        assert_eq!(
+            channel_for(&found.version),
+            LATEST,
+            "a candidate sent to a stable release must be pointed at the stable feed"
+        );
+    }
+
+    #[test]
+    fn what_was_found_is_still_offered_after_the_window_closed() {
+        let kept = Kept::plain(Route::Download);
+
+        assert_eq!(
+            remembered("0.2.0", Some("0.3.0"), kept).unwrap().version,
+            "0.3.0"
+        );
+        assert!(remembered("0.3.0", Some("0.3.0"), kept).is_none());
+        assert!(
+            remembered("0.4.0", Some("0.3.0"), kept).is_none(),
+            "a copy updated by hand is not owed the old offer"
+        );
+        assert!(remembered("0.2.0", None, kept).is_none());
+        assert!(remembered("0.2.0", Some("tomorrow"), kept).is_none());
+    }
+
+    #[test]
+    fn an_offer_says_whether_this_copy_can_take_it() {
+        let feed = r#"{"latest":"0.3.0"}"#;
+
+        assert!(
+            newer("0.2.0", feed, Kept::plain(Route::Download))
+                .unwrap()
+                .installs
+        );
+        assert!(
+            !newer("0.2.0", feed, Kept::plain(Route::Store))
+                .unwrap()
+                .installs
+        );
     }
 
     fn nowhere(_: &std::path::Path) -> bool {

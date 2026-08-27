@@ -316,8 +316,11 @@ files stay readable with tools you already have. It is written out in
 [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md), including the parts
 that are not reassuring.
 
-Tisty makes **one** network request in its life: once a day it checks whether a
-newer version exists. It sends nothing, and you can turn it off.
+Tisty makes **one** network request a day, unasked: it checks whether a newer
+version exists. It sends nothing. If one does exist and you press the button
+that offers it, two more follow — the file naming the release, and the
+installer — and Tisty refuses to install anything not signed with a key
+compiled into the copy you already have.
 
 ## Two Machines, If You Have Two
 

@@ -127,12 +127,21 @@ on its own, and never opens anything without a click. Worth knowing if a
 document reached you from a shared folder someone else can write to — the words
 of a link and where it goes are not obliged to agree, in Tisty or anywhere else.
 
-**Nothing is ever downloaded or installed for you.** What arrives is a line of
-text you can ignore; Tisty has no updater and does not want one. If a newer
-version exists, a line appears in *About*, and what it suggests depends on how
-this copy was installed: the Microsoft Store updates itself, a Homebrew install
-gets the command to run, and everything else gets a link you choose to open.
-Opening it is a normal browser navigation that you started.
+**Nothing is downloaded or installed unless you ask for it.** What arrives is a
+line of text you can ignore. If a newer version exists, a line appears in
+*About*, and what it offers depends on how this copy was installed: the
+Microsoft Store updates itself and Tisty leaves it alone, a copy of the command
+line kept by Homebrew gets the command to run, and a copy that owns the folder
+it lives in gets a button.
+
+Pressing that button is the only thing that makes Tisty fetch anything: a small
+file naming the current version, and then the installer, both from GitHub over
+HTTPS. Those two requests carry what any download carries — an address to send
+the bytes back to, and the name of the program asking. Nothing about you and
+nothing about what you have written. Then Tisty checks the installer against a
+key compiled into this very copy, and refuses to install anything that does not
+match, so a release that is not the maintainer's cannot arrive this way. If you
+never press it, no request is ever made and the line just sits there.
 
 ## Children's privacy
 

@@ -2,7 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import copypaste from "../assets/copypaste.png";
 import linkunbound from "../assets/linkunbound.png";
-import { about, type About as Build, type Ready } from "../core";
+import { about, type About as Build, type Ready, type Underway, updateInstall } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 
@@ -23,13 +23,16 @@ const TOOLS = [
 
 export default function About({
   ready,
+  step,
   onError,
 }: {
   ready: Ready | null;
+  step?: Underway | null;
   onError: (problem: unknown) => void;
 }) {
   const [build, setBuild] = useState<Build | null>(null);
   const [trouble, setTrouble] = useState<string | null>(null);
+  const [asked, setAsked] = useState(false);
 
   const look = useCallback(() => {
     setTrouble(null);
@@ -79,28 +82,61 @@ export default function About({
             </dl>
 
             {ready && (
-              <p className="mt-2.5 text-[12.5px] text-soft">
-                <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" />
-                {fill("updateThere", ready.version)}{" "}
-                {ready.route === "store" ? (
-                  <span className="text-faint">{t("updateStore")}</span>
-                ) : ready.route === "download" ? (
-                  <button
-                    type="button"
-                    onClick={() => openUrl(ready.url).catch(onError)}
-                    className="underline decoration-line underline-offset-2 hover:text-ink"
-                  >
-                    {t("updateDownload")}
-                  </button>
+              <div className="mt-2.5 text-[12.5px] text-soft">
+                <p>
+                  <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" />
+                  {fill("updateThere", ready.version)}
+                </p>
+                {step ? (
+                  <p className="mt-1.5 text-faint">
+                    {step.stage === "installing"
+                      ? t("updateInstalling")
+                      : fill(
+                          "updateGetting",
+                          `${step.total ? Math.round((step.got / step.total) * 100) : 0} %`,
+                        )}
+                  </p>
+                ) : ready.installs ? (
+                  <p className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span>{t("updateAsk")}</span>
+                    <button
+                      type="button"
+                      disabled={asked}
+                      onClick={() => {
+                        setAsked(true);
+                        updateInstall().catch((problem) => {
+                          setAsked(false);
+                          onError(problem);
+                        });
+                      }}
+                      className="cursor-pointer rounded-lg bg-accent px-2.5 py-1 text-[12px] text-bg disabled:opacity-60"
+                    >
+                      {t("updateInstall")}
+                    </button>
+                  </p>
                 ) : (
-                  <code className="text-faint">
-                    {fill(
-                      ready.route === "brew" ? "updateBrew" : "updateBrewCli",
-                      ready.package ?? "tisty",
+                  <p className="mt-1.5">
+                    {ready.route === "store" ? (
+                      <span className="text-faint">{t("updateStore")}</span>
+                    ) : ready.route === "download" ? (
+                      <button
+                        type="button"
+                        onClick={() => openUrl(ready.url).catch(onError)}
+                        className="underline decoration-line underline-offset-2 hover:text-ink"
+                      >
+                        {t("updateDownload")}
+                      </button>
+                    ) : (
+                      <code className="text-faint">
+                        {fill(
+                          ready.route === "brew" ? "updateBrew" : "updateBrewCli",
+                          ready.package ?? "tisty",
+                        )}
+                      </code>
                     )}
-                  </code>
+                  </p>
                 )}
-              </p>
+              </div>
             )}
             <div className="mt-2.5">
               <button

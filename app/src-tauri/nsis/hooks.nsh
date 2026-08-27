@@ -22,7 +22,12 @@
 !macro NSIS_HOOK_PREUNINSTALL
   ; The app put the PATH entry and the startup entry there, and is the only
   ; thing that can read the PATH value whole to take it back out.
-  ${If} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
+  ;
+  ; Not while updating. An update skips this uninstaller entirely today, so the
+  ; guard is only there for the paths that do not — a migration, or a change
+  ; upstream. Tauri guards its own the same way, further down.
+  ${If} $UpdateMode <> 1
+  ${AndIf} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
     ExecWait '"$INSTDIR\${MAINBINARYNAME}.exe" --unreach'
   ${EndIf}
 !macroend

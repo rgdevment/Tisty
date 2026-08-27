@@ -54,8 +54,20 @@
       }
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMyRTMzOTg4NDlDMkFBQzIKUldUQ3FzSkppRG5qTWtvSW9sUWxORldEditlbEp1WkwrQ0NtYkRWYjRUcUVOZ0M1bkFjeVFjWU4K",
+      "endpoints": [
+        "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": [
       "nsis",
       "app",

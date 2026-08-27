@@ -67,6 +67,8 @@ jobs:
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
     steps:
@@ -85,6 +87,12 @@ jobs:
           fi
           if [ -n "$MACOS_CERTIFICATE_P12" ] && [ -z "$APPLE_SIGNING_IDENTITY" ]; then
             fail "MACOS_CERTIFICATE_P12 is set but APPLE_SIGNING_IDENTITY is empty: the app would be bundled unsigned"
+          fi
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ] && [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+            fail "TAURI_SIGNING_PRIVATE_KEY is set but its password is empty"
+          fi
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::warning::no updater key; this release cannot be installed by an existing copy"
           fi
           echo "signing secrets are coherent"
 
@@ -124,6 +132,8 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
 
@@ -217,6 +227,8 @@ jobs:
       TARGET: x86_64-pc-windows-msvc
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
 
@@ -307,9 +319,15 @@ jobs:
           mkdir -p app/src-tauri/binaries
           cp "target/$TARGET/release/tisty.exe" "app/src-tauri/binaries/tisty-$TARGET.exe"
 
+      # A public key in the config makes the private one a build requirement, so a run without the
+      # secret has to say so rather than fail on a line about an environment variable.
       - name: Bundle
         working-directory: app
-        run: npm run tauri build -- --bundles nsis
+        shell: bash
+        run: |
+          sign=""
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then sign="--no-sign"; fi
+          npm run tauri build -- --bundles nsis $sign
 
       - name: Sign the installer
         if: env.PFX_BASE64 != ''
@@ -351,6 +369,19 @@ jobs:
           fi
           cp "$setup" "dist/tisty-installer-$v-windows-x86_64.exe"
           ls -l dist
+
+      # The bundler signed the installer it built, and signtool then rewrote those bytes. The
+      # signature the updater checks has to be made against what actually ships, so it is made last.
+      - name: Sign it for the updater
+        if: env.TAURI_SIGNING_PRIVATE_KEY != ''
+        working-directory: app
+        shell: bash
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          exe="../dist/tisty-installer-$v-windows-x86_64.exe"
+          rm -f "$exe.sig"
+          npm run tauri -- signer sign "$exe"
+          test -s "$exe.sig" || { echo "::error::no updater signature was written"; exit 1; }
 
       - uses: actions/upload-artifact@v4
         with:
@@ -407,7 +438,11 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: npm run tauri build -- --target universal-apple-darwin --bundles app,dmg
+        shell: bash
+        run: |
+          sign=""
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then sign="--no-sign"; fi
+          npm run tauri build -- --target universal-apple-darwin --bundles app,dmg $sign
 
       - name: The app is really signed
         if: env.MACOS_CERTIFICATE_P12 != ''
@@ -428,10 +463,47 @@ jobs:
             --team-id "$APPLE_TEAM_ID" --wait --timeout 900
           xcrun stapler staple "$dmg"
 
+      # The updater replaces the .app, not the disk image, and the bundler tars it long before any
+      # of the above. Left alone that tarball carries an app with no ticket stapled to it, and every
+      # launch after an update would wait on Gatekeeper asking Apple over the network.
+      - name: Staple the app itself, and tar it again
+        if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
+        run: |
+          out="target/universal-apple-darwin/release/bundle/macos"
+          app=$(ls -d "$out"/*.app | head -1)
+
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/app.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/app.zip"             --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD"             --team-id "$APPLE_TEAM_ID" --wait --timeout 900
+          xcrun stapler staple "$app"
+          xcrun stapler validate "$app"
+
+          rm -f "$out"/*.app.tar.gz "$out"/*.app.tar.gz.sig
+          COPYFILE_DISABLE=1 tar --no-xattrs -czf "$out/Tisty.app.tar.gz" -C "$out" "$(basename "$app")"
+
+          # The tarball is what a copy out there will unpack over itself. If the ticket did not
+          # survive the round trip, better it fails here than on someone's machine.
+          rm -rf "$RUNNER_TEMP/rt" && mkdir -p "$RUNNER_TEMP/rt"
+          tar -xzf "$out/Tisty.app.tar.gz" -C "$RUNNER_TEMP/rt"
+          codesign --verify --deep --strict "$RUNNER_TEMP/rt/Tisty.app"
+          xcrun stapler validate "$RUNNER_TEMP/rt/Tisty.app"
+
+      - name: Sign it for the updater
+        if: env.TAURI_SIGNING_PRIVATE_KEY != '' && env.APPLE_ID != ''
+        working-directory: app
+        run: |
+          out="../target/universal-apple-darwin/release/bundle/macos"
+          npm run tauri -- signer sign "$out/Tisty.app.tar.gz"
+          test -s "$out/Tisty.app.tar.gz.sig"
+
       - name: Name it after the release
         run: |
           v="${{ needs.version.outputs.version }}"
           mkdir -p dist
+          out="target/universal-apple-darwin/release/bundle/macos"
+          if [ -s "$out/Tisty.app.tar.gz" ]; then
+            cp "$out/Tisty.app.tar.gz" "dist/tisty-$v-macos-universal.app.tar.gz"
+            cp "$out/Tisty.app.tar.gz.sig" "dist/tisty-$v-macos-universal.app.tar.gz.sig"
+          fi
           dmg=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
           if [ -z "$dmg" ]; then
             echo "::error::the bundler produced no disk image"
@@ -600,6 +672,13 @@ jobs:
           if [ "${BUILD_MACOS}" = "true" ]; then
             want="$want tisty-cli-$v-macos-universal.tar.gz"
           fi
+          # A missing signature is a release nobody can install. It has to be loud here.
+          if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
+            want="$want tisty-installer-$v-windows-x86_64.exe.sig"
+            if [ "${BUILD_MACOS}" = "true" ]; then
+              want="$want tisty-$v-macos-universal.app.tar.gz tisty-$v-macos-universal.app.tar.gz.sig"
+            fi
+          fi
           for f in $want; do
             if [ -s "dist/$f" ]; then
               echo "$f"
@@ -639,6 +718,29 @@ jobs:
       - name: Release manifest
         run: |
           v="${{ needs.version.outputs.version }}"
+          base="https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}"
+          win="tisty-installer-$v-windows-x86_64.exe"
+          mac="tisty-$v-macos-universal.app.tar.gz"
+
+          # Composed before the checkout below swaps the working tree out from under us.
+          if [ -s "dist/$win.sig" ]; then
+            ws=$(cat "dist/$win.sig")
+            ms=$(cat "dist/$mac.sig" 2>/dev/null || true)
+            jq -n --arg v "$v" \
+                  --arg n "https://github.com/${{ github.repository }}/releases/tag/${GITHUB_REF_NAME}" \
+                  --arg wu "$base/$win" --arg ws "$ws" \
+                  --arg mu "$base/$mac" --arg ms "$ms" \
+              '{version: $v, notes: $n, platforms:
+                 ({"windows-x86_64": {url: $wu, signature: $ws}}
+                  + (if $ms == "" then {}
+                     else {"darwin-aarch64": {url: $mu, signature: $ms},
+                           "darwin-x86_64":  {url: $mu, signature: $ms}} end))}' \
+              > "$RUNNER_TEMP/channel.json"
+            cat "$RUNNER_TEMP/channel.json"
+          else
+            echo "::warning::no updater signature; the channel file is left as it was"
+          fi
+
           if git fetch origin manifest --depth 1 2>/dev/null; then
             git checkout -B manifest FETCH_HEAD
           else
@@ -649,21 +751,72 @@ jobs:
           if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
             jq -n --arg l "${latest:-0.0.0}" --arg c "$v" \
               '{schema: 1, latest: $l, latestPrerelease: $c}' > release-manifest.json
+            [ -s "$RUNNER_TEMP/channel.json" ] && cp "$RUNNER_TEMP/channel.json" candidate.json
           else
             jq -n --arg l "$v" '{schema: 1, latest: $l}' > release-manifest.json
+            [ -s "$RUNNER_TEMP/channel.json" ] && cp "$RUNNER_TEMP/channel.json" latest.json
+            rm -f candidate.json
           fi
           cat release-manifest.json
 
-          if git diff --quiet release-manifest.json; then
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Staged first and compared after, or a channel file would be skipped on any run where
+          # the version manifest happened not to change.
+          git add -A release-manifest.json latest.json candidate.json
+          if git diff --cached --quiet; then
             echo "already says $v"
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add release-manifest.json
           git commit -m "chore: release manifest for $v"
           git push origin manifest
-        continue-on-error: true
+
+  verify:
+    name: The update is installable
+    needs: [version, publish]
+    if: >-
+      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      # What a copy out there will do in a day's time, done here first. A signature made against
+      # the wrong bytes reads exactly like a working release until someone tries to install it.
+      - name: Take the update the way an installed copy would
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq minisign
+          v="${{ needs.version.outputs.version }}"
+          file=latest.json
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then file=candidate.json; fi
+          feed="https://raw.githubusercontent.com/${{ github.repository }}/manifest/$file"
+
+          for attempt in 1 2 3 4 5; do
+            if curl -fsSL -o channel.json "$feed"; then break; fi
+            echo "the channel file is not there yet (${attempt}/5)"
+            sleep $((attempt * 10))
+          done
+          jq . channel.json
+
+          said=$(jq -r .version channel.json)
+          if [ "$said" != "$v" ]; then
+            echo "::error::$file says $said, this release is $v"
+            exit 1
+          fi
+
+          jq -r '.plugins.updater.pubkey' app/src-tauri/tauri.conf.json | base64 -d > tisty.pub
+
+          for os in $(jq -r '.platforms | keys[]' channel.json); do
+            url=$(jq -r --arg os "$os" '.platforms[$os].url' channel.json)
+            jq -r --arg os "$os" '.platforms[$os].signature' channel.json | base64 -d > one.sig
+            curl -fsSL -o one.bin "$url"
+            if minisign -Vm one.bin -p tisty.pub -x one.sig; then
+              echo "$os verifies"
+            else
+              echo "::error::$os does not verify against the key this build ships"
+              exit 1
+            fi
+          done
 
   msstore:
     name: Microsoft Store
@@ -793,6 +946,8 @@ jobs:
           	  name "Tisty"
           	  desc "Local, private task manager whose archive is the point${SUFFIX}"
           	  homepage "https://github.com/${{ github.repository }}"
+
+          	  auto_updates true
 
           	  conflicts_with cask: "${CASK_OTHER}"
           	  depends_on macos: :ventura

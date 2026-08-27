@@ -42,6 +42,9 @@ zip.workspace = true
 semver = "1"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "default-tls", "charset", "http2"] }
 tauri-plugin-clipboard-manager = "2.3.2"
+# native-tls, because the default rustls pulls ring, whose OpenSSL term deny.toml
+# does not allow; the crate already talks to the network through reqwest the same way.
+tauri-plugin-updater = { version = "2", default-features = false, features = ["native-tls"] }
 
 [dev-dependencies]
 tempfile.workspace = true

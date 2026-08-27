@@ -410,9 +410,18 @@ export interface Ready {
   route: Route;
   url: string;
   package: string | null;
+  installs: boolean;
+}
+
+export interface Underway {
+  stage: "getting" | "installing";
+  got: number;
+  total: number | null;
 }
 
 export const updateReady = (): Promise<Ready | null> => invoke("update_ready");
+
+export const updateInstall = (): Promise<void> => invoke("update_install");
 
 export const noteBreak = (kind: string, frames: string): Promise<void> =>
   invoke("note_break", { kind, frames });

@@ -68,6 +68,10 @@ pub struct Config {
     pub quiet: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checked_at: Option<jiff::Timestamp>,
+    /// What the last look found. Kept so that closing the window does not take the offer with it:
+    /// the check only runs once a day, and without this the notice would vanish until tomorrow.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub found_version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attach_up_to: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -86,6 +90,7 @@ impl Config {
             editor: None,
             quiet: None,
             checked_at: None,
+            found_version: None,
             attach_up_to: Some(crate::attach::COPIED_AT_FIRST),
             opened_by: None,
             on_close: None,
@@ -373,6 +378,7 @@ mod tests {
             heard_at: None,
             quiet: None,
             checked_at: None,
+            found_version: None,
             attach_up_to: None,
             guide: Some("mac0-0001".into()),
         };
@@ -396,6 +402,7 @@ mod tests {
                 editor: None,
                 quiet: None,
                 checked_at: None,
+                found_version: None,
                 attach_up_to: None,
                 opened_by: None,
                 on_close: None,
