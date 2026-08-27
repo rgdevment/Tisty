@@ -1008,11 +1008,16 @@ fn filters_combine_and_each_one_narrows_the_result() {
     assert!(!out.contains("access logs"), "{out}");
 }
 
+/// A single-digit day would match the line numbers of the listing, so the date lands past the 10th.
 fn far_ahead() -> jiff::civil::Date {
-    jiff::Zoned::now()
+    let mut at = jiff::Zoned::now()
         .date()
         .checked_add(jiff::Span::new().days(400))
-        .unwrap()
+        .unwrap();
+    while at.day() < 10 {
+        at = at.tomorrow().unwrap();
+    }
+    at
 }
 
 #[test]
@@ -1762,5 +1767,162 @@ fn a_list_put_away_refuses_new_tasks_instead_of_swallowing_them() {
         run.err.contains("unarchive"),
         "el mensaje no dice como salir: {}",
         run.err
+    );
+}
+
+#[test]
+fn a_story_reads_in_the_terminal_what_the_task_no_longer_carries() {
+    let cli = Cli::new();
+    cli.ok(&["ship the release"]);
+    cli.ok(&["ls"]);
+    cli.ok(&["set", "1", "--deadline", "2026-09-12"]);
+    cli.ok(&["set", "1", "--deadline", "2026-09-19"]);
+    cli.ok(&["log", "1", "the certificate took nine days to issue"]);
+    cli.ok(&["done", "1"]);
+
+    let out = cli.ok(&["story", "1"]);
+
+    assert!(out.contains("born"), "{out}");
+    assert!(
+        out.contains("moves to"),
+        "the second deadline is the point: {out}"
+    );
+    assert!(out.contains("the certificate took nine days"), "{out}");
+    assert!(out.contains("closed"), "{out}");
+}
+
+#[test]
+fn a_story_is_a_subcommand_and_not_a_task_called_story() {
+    let cli = Cli::new();
+    cli.ok(&["ship the release"]);
+    cli.ok(&["ls"]);
+    cli.ok(&["story", "1"]);
+
+    let out = cli.ok(&["ls", "all"]);
+
+    assert!(
+        !out.contains("story 1"),
+        "an unlisted subcommand falls back to add: {out}"
+    );
+}
+
+#[test]
+fn a_routine_reads_as_one_series_and_not_as_every_turn() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every 2 days"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+
+    let out = cli.ok(&["series"]);
+
+    assert!(out.contains("water the plants"), "{out}");
+    assert_eq!(
+        out.matches("water the plants").count(),
+        1,
+        "a chain is one line, however many turns it has: {out}"
+    );
+}
+
+#[test]
+fn asking_a_plain_task_for_its_series_says_so_instead_of_inventing_one() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+    cli.ok(&["ls"]);
+
+    let run = cli.run(&["series", "1"]);
+
+    assert_eq!(run.code, 4, "{}", run.err);
+    assert!(
+        run.err.contains("not part of a routine"),
+        "a refusal goes to stderr so --json stays parseable: {}",
+        run.err
+    );
+    assert!(run.out.is_empty(), "stdout must stay clean: {}", run.out);
+}
+
+fn tuesday_back(weeks: i64) -> String {
+    let mut at = jiff::Zoned::now().date();
+    while at.weekday() != jiff::civil::Weekday::Tuesday {
+        at = at.yesterday().unwrap();
+    }
+    at.checked_sub(jiff::Span::new().weeks(weeks))
+        .unwrap()
+        .to_string()
+}
+
+#[test]
+fn closing_a_calendar_routine_late_says_which_days_went_unmarked() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["set", "1", "--date", &tuesday_back(3)]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["done", "1"]);
+
+    assert!(
+        out.contains("--also"),
+        "it never offered to fill them: {out}"
+    );
+}
+
+#[test]
+fn a_stretch_longer_than_memory_is_closed_without_asking() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["set", "1", "--date", &tuesday_back(9)]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["done", "1"]);
+
+    assert!(!out.contains("--also"), "it asked about months ago: {out}");
+}
+
+#[test]
+fn a_claimed_day_becomes_a_kept_turn_and_only_the_rest_is_a_gap() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["set", "1", "--date", &tuesday_back(3)]);
+    cli.ok(&["ls", "all"]);
+
+    cli.ok(&[
+        "done",
+        "1",
+        "--also",
+        &format!("{},{}", tuesday_back(2), tuesday_back(0)),
+    ]);
+    cli.ok(&["ls", "archive"]);
+    let out = cli.ok(&["series", "1"]);
+
+    assert!(out.contains("3/4"), "the claimed days did not count: {out}");
+}
+
+#[test]
+fn an_ordinary_task_closed_late_is_never_asked_about_days() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["done", "1"]);
+
+    assert!(!out.contains("--also"), "{out}");
+}
+
+#[test]
+fn a_day_that_is_not_a_date_is_refused_before_anything_is_written() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+
+    let run = cli.run(&["done", "1", "--also", "someday"]);
+
+    assert_ne!(run.code, 0, "it swallowed a word as a date");
+    assert!(
+        cli.ok(&["ls", "all"]).contains("water the plants"),
+        "the task was closed anyway"
     );
 }

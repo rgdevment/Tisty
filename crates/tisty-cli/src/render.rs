@@ -457,7 +457,7 @@ fn weekday_index(date: Date) -> u8 {
     date.weekday().to_monday_one_offset() as u8
 }
 
-fn short_id(task: &Task) -> String {
+pub fn short_id(task: &Task) -> String {
     let id = task.id.to_string();
     id[id.len() - 6..].to_lowercase()
 }
@@ -468,6 +468,274 @@ fn slug(name: &str) -> String {
 
 pub fn today() -> Date {
     Zoned::now().date()
+}
+
+pub fn left(task: &Task, state: &State, lang: Lang) -> String {
+    let all = task.references();
+    if all.is_empty() {
+        return String::new();
+    }
+
+    let mut out = format!("  {}\n", style::dim(lang.get("left-behind")));
+    for one in all {
+        let (glyph, said) = match one.kind {
+            tisty_core::refs::Kind::Doc if !one.target.starts_with("tisty:doc/") => (
+                "\u{25c8}",
+                one.label.clone().unwrap_or_else(|| one.target.clone()),
+            ),
+            // The window writes a document as `[title](tisty:doc/ID)`, which parses as a link.
+            _ if one.target.starts_with("tisty:doc/") => {
+                let held = one
+                    .target
+                    .strip_prefix("tisty:doc/")
+                    .and_then(|raw| raw.parse().ok())
+                    .and_then(|id| state.docs.get(&id));
+                let name = one
+                    .label
+                    .clone()
+                    .or_else(|| held.map(|doc| doc.file.clone()))
+                    .unwrap_or_else(|| one.target.clone());
+                match held {
+                    Some(doc) if doc.archived => (
+                        "\u{25a2}",
+                        format!("{name} {}", style::dim(lang.get("left-away"))),
+                    ),
+                    Some(_) => ("\u{25a4}", name),
+                    None => (
+                        "\u{25a2}",
+                        format!("{name} {}", style::dim(lang.get("left-gone"))),
+                    ),
+                }
+            }
+            tisty_core::refs::Kind::Link
+                if tisty_core::attach::names_an_attachment(&one.target) =>
+            {
+                let leaf = one.target.rsplit('/').next().unwrap_or(&one.target);
+                ("\u{1f4ce}", leaf.to_string())
+            }
+            _ => (
+                "\u{2197}",
+                one.label.clone().unwrap_or_else(|| one.target.clone()),
+            ),
+        };
+        out.push_str(&format!("    {glyph} {said}\n"));
+    }
+    out
+}
+
+pub fn trail(
+    task: &Task,
+    told: &tisty_core::story::Story,
+    state: &State,
+    today: Date,
+    lang: Lang,
+) -> String {
+    let mut out = format!(
+        "\n  {} {}{}\n\n",
+        marker(task),
+        style::bold(&task.title),
+        style::dim(&format!("  {}", short_id(task)))
+    );
+
+    if told.pages.is_empty() {
+        out.push_str(&format!("  {}\n\n", style::dim(lang.get("trail-empty"))));
+        return out;
+    }
+
+    for page in &told.pages {
+        let day = page.at.to_zoned(Zoned::now().time_zone().clone()).date();
+        out.push_str(&format!(
+            "  {}  {}{}\n",
+            style::dim(&format!("{:>9}", short(day, today, lang))),
+            chapter(&page.chapter, state, today, lang),
+            if page.undoing {
+                style::dim(&format!(" ({})", lang.get("trail-undone")))
+            } else {
+                String::new()
+            }
+        ));
+    }
+
+    out.push('\n');
+    let behind = left(task, state, lang);
+    if !behind.is_empty() {
+        out.push_str(&behind);
+        out.push('\n');
+    }
+    out
+}
+
+fn chapter(what: &tisty_core::story::Chapter, state: &State, today: Date, lang: Lang) -> String {
+    use tisty_core::story::Chapter;
+
+    let named = |spec: &Option<DateSpec>| {
+        spec.as_ref()
+            .map(|one| short(one.date(), today, lang))
+            .unwrap_or_default()
+    };
+
+    match what {
+        Chapter::Born { title } => lang.fill("trail-born", &[("title", title)]),
+        Chapter::Retitled { to, .. } => lang.fill("trail-retitled", &[("title", to)]),
+        Chapter::Dated { to, .. } => match to {
+            Some(_) => lang.fill("trail-dated", &[("when", &named(to))]),
+            None => lang.get("trail-undated").into(),
+        },
+        Chapter::Bounded { from, to } => match (from, to) {
+            (_, None) => lang.get("trail-unbounded").into(),
+            (Some(_), Some(_)) => lang.fill("trail-rebounded", &[("when", &named(to))]),
+            _ => lang.fill("trail-bounded", &[("when", &named(to))]),
+        },
+        Chapter::Placed { to, .. } => match priority(*to, lang) {
+            Some(said) => lang.fill("trail-placed", &[("what", &said)]),
+            None => lang.get("trail-unplaced").into(),
+        },
+        Chapter::Filed { to, .. } => match to.and_then(|id| state.lists.get(&id)) {
+            Some(list) => lang.fill("trail-filed", &[("what", &list.name)]),
+            None => lang.get("trail-unfiled").into(),
+        },
+        Chapter::Tagged { added, gone } => {
+            let some = if added.is_empty() { gone } else { added };
+            let words = some
+                .iter()
+                .map(|one| format!("#{}", one.as_str()))
+                .collect::<Vec<_>>()
+                .join(" ");
+            lang.fill(
+                if added.is_empty() {
+                    "trail-untagged"
+                } else {
+                    "trail-tagged"
+                },
+                &[("what", &words)],
+            )
+        }
+        Chapter::Cadenced { to, .. } => match to {
+            Some(_) => lang.get("trail-cadenced").into(),
+            None => lang.get("trail-uncadenced").into(),
+        },
+        Chapter::Described { emptied } => lang
+            .get(if *emptied {
+                "trail-undescribed"
+            } else {
+                "trail-described"
+            })
+            .into(),
+        Chapter::Wrote { body } => format!(
+            "{}  {}",
+            lang.get("trail-wrote"),
+            style::dim(&clipped(body))
+        ),
+        Chapter::Rewrote { .. } => lang.get("trail-rewrote").into(),
+        Chapter::Planned { text } => lang.fill("trail-planned", &[("what", text)]),
+        Chapter::Ticked { text } => lang.fill("trail-ticked", &[("what", text)]),
+        Chapter::Unticked { text } => lang.fill("trail-unticked", &[("what", text)]),
+        Chapter::Reworded { to, .. } => lang.fill("trail-reworded", &[("what", to)]),
+        Chapter::Unplanned { text } => lang.fill("trail-unplanned", &[("what", text)]),
+        Chapter::Closed => style::paint(GREEN, lang.get("trail-closed")),
+        Chapter::Dropped => lang.get("trail-dropped").into(),
+        Chapter::Reopened => lang.get("trail-reopened").into(),
+    }
+}
+
+fn clipped(body: &str) -> String {
+    let one = body.split('\n').next().unwrap_or("").trim();
+    let mut kept: String = one.chars().take(72).collect();
+    if one.chars().count() > 72 {
+        kept.push('…');
+    }
+    kept
+}
+
+pub fn shelf(all: &[tisty_core::series::Series], state: &State, lang: Lang) -> String {
+    if all.is_empty() {
+        return format!("\n  {}\n\n", style::dim(lang.get("series-none")));
+    }
+
+    let mut out = format!("\n  {}\n\n", style::bold(lang.get("series-all")));
+    for one in all {
+        let missed = if one.measurable { one.skipped } else { 0 };
+        let mut meta = Vec::new();
+        if let Some(list) = one.list.and_then(|id| state.lists.get(&id)) {
+            meta.push(format!("@{}", slug(&list.name)));
+        }
+        for tag in &one.tags {
+            meta.push(format!("#{}", tag.as_str()));
+        }
+        out.push_str(&format!(
+            "  {} {}{}\n",
+            style::paint(BLUE, "\u{21bb}"),
+            one.title,
+            style::dim(&format!("  {}/{}", one.kept, one.owed))
+        ));
+        if one.open > 0 {
+            meta.push(lang.get("series-running").into());
+        }
+        let mut said = meta.join(" · ");
+        if missed > 0 {
+            let gaps = lang.plural("missed", missed);
+            said = if said.is_empty() {
+                gaps
+            } else {
+                format!("{said} · {gaps}")
+            };
+        }
+        if !said.is_empty() {
+            out.push_str(&format!("    {}\n", style::dim(&said)));
+        }
+    }
+    out.push('\n');
+    out
+}
+
+pub fn series(told: &tisty_core::series::Series, today: Date, lang: Lang) -> String {
+    let mut out = format!("\n  {}", style::bold(&told.title));
+    if told.repeat.is_some_and(|it| it.until.is_none()) {
+        out.push_str(&style::dim(&format!("  {}", lang.get("series-endless"))));
+    }
+    out.push_str("\n\n");
+
+    for (many, word) in [
+        (format!("{}/{}", told.kept, told.owed), "series-kept"),
+        (told.streak.to_string(), "series-streak"),
+        (told.longest.to_string(), "series-longest"),
+    ] {
+        out.push_str(&format!(
+            "  {}  {}\n",
+            style::bold(&many),
+            style::dim(lang.get(word))
+        ));
+    }
+
+    if told.measurable {
+        out.push_str(&format!(
+            "  {}  {}\n",
+            style::bold(&told.skipped.to_string()),
+            style::dim(lang.get("series-gaps"))
+        ));
+    } else {
+        out.push_str(&format!(
+            "\n  {}\n",
+            style::dim(lang.get("series-unmeasured"))
+        ));
+    }
+
+    let gaps: Vec<String> = told
+        .turns
+        .iter()
+        .flat_map(|turn| turn.gaps.iter())
+        .map(|day| short(*day, today, lang))
+        .collect();
+    if !gaps.is_empty() {
+        out.push_str(&format!(
+            "\n  {}\n    {}\n",
+            style::dim(lang.get("series-holes")),
+            gaps.join(" · ")
+        ));
+    }
+
+    out.push('\n');
+    out
 }
 
 #[cfg(test)]

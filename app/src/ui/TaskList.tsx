@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { banded, grouped } from "../archive";
+import { type Axis, banded, monthly, shelved } from "../archive";
 import type { List, Task } from "../core";
-import { cadence, isOverdue, whenLabel } from "../format";
+import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
 
@@ -16,6 +16,8 @@ interface Props {
   count?: number;
   onBack?: () => void;
   bands?: "month" | "day";
+  axis?: Axis;
+  dense?: boolean;
   empty?: string;
   note?: string;
   onSelect: (id: string) => void;
@@ -23,7 +25,10 @@ interface Props {
   onFold?: (id: string, away: boolean) => void;
   onDrop?: (task: string, after?: string, before?: string) => void;
   above?: React.ReactNode;
+  ask?: (id: string) => React.ReactNode;
+  closing?: string;
   below?: React.ReactNode;
+  instead?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -38,24 +43,30 @@ export default function TaskList({
   count,
   onBack,
   bands,
+  axis,
+  dense,
   empty,
   note,
   onSelect,
   onComplete,
   onFold,
   above,
+  ask,
+  closing,
   below,
+  instead,
   children,
 }: Props) {
-  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
   const rows = useMemo(
     () =>
-      bands === "month"
-        ? grouped(tasks)
-        : bands === "day"
-          ? banded(tasks)
-          : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
-    [tasks, bands],
+      axis && axis !== "time"
+        ? shelved(tasks, axis, lists)
+        : bands === "month"
+          ? monthly(tasks)
+          : bands === "day"
+            ? banded(tasks)
+            : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
+    [tasks, bands, axis, lists],
   );
   const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
   const opens = useMemo(() => {
@@ -65,6 +76,14 @@ export default function TaskList({
       said.add(row.band);
       return true;
     });
+  }, [rows]);
+
+  const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
+  const hidden = (band: string) => heads && shut.has(band);
+  const many = useMemo(() => {
+    const tally = new Map<string, number>();
+    for (const row of rows) tally.set(row.band, (tally.get(row.band) ?? 0) + 1);
+    return tally;
   }, [rows]);
 
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
@@ -85,15 +104,8 @@ export default function TaskList({
   const [reached, setReached] = useState<string | null>(null);
 
   const drawn = useMemo(
-    () =>
-      rows.flatMap((row) =>
-        row.kind === "one"
-          ? [row.task.id]
-          : open.has(row.key)
-            ? row.tasks.map((one) => one.id)
-            : [],
-      ),
-    [rows, open],
+    () => rows.filter((row) => !(heads && shut.has(row.band))).map((row) => row.key),
+    [rows, shut, heads],
   );
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;
@@ -107,16 +119,16 @@ export default function TaskList({
     next.focus();
   };
 
-  const typed = (event: React.KeyboardEvent, task: Task) => {
+  const typed = (event: React.KeyboardEvent, task: Task, at: string) => {
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
       event.preventDefault();
       if (onComplete && task.status === "open") {
-        walk(task.id, 1);
+        walk(at, 1);
         onComplete(task.id);
         return;
       }
       if (onFold) {
-        walk(task.id, 1);
+        walk(at, 1);
         onFold(task.id, !task.hidden);
       }
       return;
@@ -129,23 +141,53 @@ export default function TaskList({
     const by = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
     if (by === 0) return;
     event.preventDefault();
-    walk(task.id, by);
+    walk(at, by);
   };
 
-  const line = (task: Task) => {
+  const line = (task: Task, at: string) => {
+    if (dense) {
+      return (
+        <div
+          key={at}
+          data-row={at}
+          role="listitem"
+          tabIndex={stops(at) ? 0 : -1}
+          aria-label={task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`}
+          onFocus={() => setReached(at)}
+          onKeyDown={(event) => typed(event, task, at)}
+          onClick={() => onSelect(task.id)}
+          className={`grid cursor-pointer grid-cols-[14px_minmax(0,1fr)_auto] items-baseline gap-2.5 rounded-md px-2.5 py-1 outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
+            selected === task.id ? "bg-active" : ""
+          }`}
+        >
+          <span
+            aria-hidden="true"
+            className={`text-center text-[11px] ${
+              task.status === "dropped" ? "text-faint" : "text-accent"
+            }`}
+          >
+            {task.status === "dropped" ? "⨯" : "✓"}
+          </span>
+          <span className="truncate text-[13px] text-soft">{task.title}</span>
+          <span className="text-[11px] whitespace-nowrap text-faint tabular-nums">
+            {task.completed_at ? stamped(task.completed_at) : ""}
+          </span>
+        </div>
+      );
+    }
     return (
-      <div key={task.id}>
+      <div key={at}>
         <div
           ref={reveal === task.id ? asked : undefined}
-          data-row={task.id}
+          data-row={at}
           role="listitem"
-          tabIndex={stops(task.id) ? 0 : -1}
+          tabIndex={stops(at) ? 0 : -1}
           aria-label={task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`}
           aria-keyshortcuts={
             (onComplete && task.status === "open") || onFold ? "Control+Enter" : undefined
           }
-          onFocus={() => setReached(task.id)}
-          onKeyDown={(event) => typed(event, task)}
+          onFocus={() => setReached(at)}
+          onKeyDown={(event) => typed(event, task, at)}
           onClick={() => onSelect(task.id)}
           className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 hover:bg-hover ${
             selected === task.id ? "bg-active" : ""
@@ -161,7 +203,9 @@ export default function TaskList({
                 e.stopPropagation();
                 onComplete(task.id);
               }}
-              className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${edge(task.priority)}`}
+              className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${edge(task.priority)} ${
+                closing === task.id ? "bg-accent" : ""
+              }`}
             />
           ) : (
             <span
@@ -173,7 +217,13 @@ export default function TaskList({
           )}
 
           <div className="min-w-0">
-            <h2 className="text-sm leading-snug">{task.title}</h2>
+            <h2
+              className={`text-sm leading-snug ${
+                closing === task.id ? "text-faint line-through" : ""
+              }`}
+            >
+              {task.title}
+            </h2>
             <Meta task={task} list={task.list ? named(task.list) : undefined} />
           </div>
 
@@ -237,60 +287,45 @@ export default function TaskList({
         aria-label={t("tasks")}
         className={`scroller flex-1 px-5 pt-4 pb-6 ${width}`}
       >
-        {tasks.length === 0 && (
+        {instead}
+        {!instead && tasks.length === 0 && (
           <p className="px-2.5 py-4 text-sm leading-relaxed text-soft">
             {empty ?? t("nothingOpen")}
           </p>
         )}
 
-        {rows.map((row, r) => (
-          <div key={row.key}>
-            {heads && opens[r] && (
-              <div className="mt-5 mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1">
-                {row.band}
-              </div>
-            )}
-
-            {row.kind === "many" ? (
-              <>
+        {!instead &&
+          rows.map((row, r) => (
+            <div key={row.key}>
+              {heads && opens[r] && (
                 <button
                   type="button"
-                  onClick={() => setOpen((was) => flip(was, row.key))}
-                  aria-expanded={open.has(row.key)}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-hover"
+                  aria-expanded={!shut.has(row.band)}
+                  onClick={() => setShut((was) => flip(was, row.band))}
+                  className="mt-5 mb-1 flex w-full items-center gap-2 px-2.5 text-left text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1 hover:text-soft"
                 >
-                  <span className="w-4 shrink-0 text-center text-[13px] text-accent">✓</span>
-                  <span className="min-w-0 truncate text-sm">{row.title}</span>
-                  <span className="text-xs text-faint">
-                    {fill("timesThisMonth", String(row.tasks.length))}
+                  <span aria-hidden="true" className="text-[9px]">
+                    {shut.has(row.band) ? "▸" : "▾"}
                   </span>
-                  <span className="ml-auto text-[9px] text-faint">
-                    {open.has(row.key) ? "▲" : "▼"}
-                  </span>
+                  {row.band}
+                  {shut.has(row.band) && (
+                    <span className="font-normal tracking-normal normal-case tabular-nums">
+                      {many.get(row.band)}
+                    </span>
+                  )}
                 </button>
-                {open.has(row.key) && (
-                  <div className="ml-4 border-l border-hair pl-1">
-                    {row.tasks.map((one) => line(one))}
-                  </div>
-                )}
-              </>
-            ) : (
-              line(row.task)
-            )}
-          </div>
-        ))}
+              )}
+
+              {!hidden(row.band) && line(row.task, row.key)}
+              {!hidden(row.band) && ask?.(row.task.id)}
+            </div>
+          ))}
 
         {below}
       </div>
     </main>
   );
 }
-
-const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
-  const next = new Set(was);
-  if (!next.delete(key)) next.add(key);
-  return next;
-};
 
 function Meta({ task, list }: { task: Task; list?: string }) {
   const bits: React.ReactNode[] = [];
@@ -342,3 +377,9 @@ function Volume({ task }: { task: Task }) {
 
   return <span className="pt-px text-xs whitespace-nowrap text-faint">{parts.join(" · ")}</span>;
 }
+
+const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
+  const next = new Set(was);
+  if (!next.delete(key)) next.add(key);
+  return next;
+};

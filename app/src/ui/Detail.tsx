@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import type { Change, List, Task } from "../core";
+import { cadence, whenLabel, wroteAt } from "../format";
 import { t } from "../locales";
+import { composed } from "../markdown";
+import { placed, said } from "../quadrants";
+import Composed from "./Composed";
 import Fields from "./Fields";
 import Journal from "./Journal";
+import Left from "./Left";
 import Prose from "./Prose";
+import Routine from "./Routine";
 import Steps from "./Steps";
+import Trail from "./Trail";
 
 interface Props {
   task: Task;
@@ -103,6 +110,103 @@ export default function Detail({
     </>
   );
 
+  const sealed = (
+    <>
+      <h1 className={`leading-snug font-semibold ${expanded ? "text-[22px]" : "text-[17px]"}`}>
+        {task.title}
+      </h1>
+      <Stamps task={task} lists={lists} />
+
+      {task.description?.trim() && (
+        <>
+          <Section label={t("description")} />
+          <Composed
+            label={t("description")}
+            onError={onError}
+            onDoc={onDoc}
+            html={composed(
+              task.description,
+              task.steps?.map((one) => one.text),
+            )}
+            className="prose px-1.5 py-1 text-[13.5px] leading-relaxed"
+          />
+        </>
+      )}
+
+      {task.steps && task.steps.length > 0 && (
+        <>
+          <Section
+            label={t("steps")}
+            note={`${task.volume?.steps_done ?? 0}/${task.volume?.steps ?? task.steps.length}`}
+          />
+          <ul className="flex flex-col gap-1.5">
+            {task.steps.map((step) => (
+              <li key={step.id} className="flex items-start gap-2.5 text-[13px]">
+                <span
+                  aria-hidden="true"
+                  className={`pt-px text-[12px] ${step.done ? "text-accent" : "text-faint"}`}
+                >
+                  {step.done ? "✓" : "▫"}
+                </span>
+                <span className={step.done ? "text-faint line-through" : "text-soft"}>
+                  {step.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {task.log && task.log.length > 0 && (
+        <>
+          <Section label={t("journal")} note={String(task.volume?.journal ?? task.log.length)} />
+          <ul className="flex flex-col gap-3">
+            {task.log.map((entry) => (
+              <li key={entry.id}>
+                <span className="block text-[11px] tabular-nums text-faint">
+                  {wroteAt(entry.at, entry.tz)}
+                </span>
+                <Composed
+                  label={t("journal")}
+                  onError={onError}
+                  onDoc={onDoc}
+                  html={composed(
+                    entry.body,
+                    task.steps?.map((one) => one.text),
+                  )}
+                  className="prose text-[13px] leading-relaxed"
+                />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {(task.repeat || task.after) && (
+        <Routine task={task.id} onError={onError} heading={<Section label={t("routine")} />} />
+      )}
+
+      <Left
+        task={task.id}
+        onDoc={onDoc}
+        onError={onError}
+        heading={<Section label={t("left")} />}
+      />
+
+      <Trail
+        task={task.id}
+        lists={lists}
+        onError={onError}
+        heading={<Section label={t("trail")} />}
+      />
+      <p className="mt-4 border-t border-hair pt-3 text-[11.5px] leading-relaxed text-faint">
+        {t("trailSealed")}
+      </p>
+    </>
+  );
+
+  const shown = task.status === "open" ? body : sealed;
+
   if (expanded) {
     return (
       <main
@@ -122,7 +226,7 @@ export default function Detail({
             <span aria-hidden="true">‹</span> {from || t("collapse")}
           </button>
         </div>
-        <div className="scroller mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-12">{body}</div>
+        <div className="scroller mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-12">{shown}</div>
         <Settled
           task={task}
           wide
@@ -164,7 +268,7 @@ export default function Detail({
           <span aria-hidden="true">⤢</span>
         </button>
       </div>
-      <div className="scroller flex-1 px-5 pt-2.5 pb-7">{body}</div>
+      <div className="scroller flex-1 px-5 pt-2.5 pb-7">{shown}</div>
       <Settled
         task={task}
         onComplete={onComplete}
@@ -288,6 +392,46 @@ function Title({
       }}
       className={`mb-3 field-sizing-content w-full resize-none rounded-md bg-transparent leading-snug font-semibold -tracking-[0.01em] outline-none hover:bg-hover focus:bg-hover ${size}`}
     />
+  );
+}
+
+function Stamps({ task, lists }: { task: Task; lists: List[] }) {
+  const seals: { key: string; text: string; look?: string }[] = [];
+  const list = lists.find((one) => one.id === task.list);
+
+  if (list) seals.push({ key: "list", text: `▤ ${list.name}`, look: "bg-mark-list" });
+  for (const tag of task.tags ?? []) {
+    seals.push({ key: `tag-${tag}`, text: `◈ ${tag}`, look: "bg-mark-tag" });
+  }
+  if (placed(task.priority)) {
+    seals.push({ key: "priority", text: `⊞ ${said(task.priority)}`, look: "bg-accent-soft" });
+  }
+  if (task.date) seals.push({ key: "date", text: whenLabel(task.date) });
+  if (task.deadline) seals.push({ key: "deadline", text: `⚑ ${whenLabel(task.deadline)}` });
+  if (task.repeat) seals.push({ key: "repeat", text: `↻ ${cadence(task.repeat)}` });
+
+  const closed = task.completed_at ? wroteAt(task.completed_at) : "";
+
+  return (
+    <>
+      <p className="mt-2 text-[12px] text-faint">
+        <span aria-hidden="true">{task.status === "dropped" ? "⨯" : "▣"}</span>{" "}
+        {t(task.status === "dropped" ? "dropped" : "done")}
+        {closed && ` · ${closed}`}
+      </p>
+      {seals.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {seals.map((seal) => (
+            <span
+              key={seal.key}
+              className={`rounded-full px-2.5 py-0.5 text-[11.5px] text-soft ${seal.look ?? "bg-hover"}`}
+            >
+              {seal.text}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

@@ -49,6 +49,31 @@ fn ahead_of_today(app: &App, today: Date) -> usize {
         .len()
 }
 
+/// Cancelling the picker and matching nothing both give `None`; `missing` is what tells them apart.
+fn asked(app: &App, selector: &str, lang: Lang) -> anyhow::Result<Option<tisty_core::TaskId>> {
+    let all: Vec<&Task> = app.state.tasks.values().collect();
+    let selection = Selection::load(&app.paths);
+
+    Ok(match resolve(selector, &selection, &all) {
+        Resolved::One(id) => Some(id),
+        Resolved::Many(ids) => crate::select::prompt(
+            &ids.iter()
+                .map(|id| &app.state.tasks[id])
+                .collect::<Vec<_>>(),
+            lang,
+        )?,
+        Resolved::None => None,
+    })
+}
+
+fn missing(app: &App, selector: &str, lang: Lang) -> ExitCode {
+    let all: Vec<&Task> = app.state.tasks.values().collect();
+    match resolve(selector, &Selection::load(&app.paths), &all) {
+        Resolved::None => not_found(app, selector, lang),
+        _ => ExitCode::SUCCESS,
+    }
+}
+
 pub fn show(
     app: &App,
     selector: &str,
@@ -56,21 +81,8 @@ pub fn show(
     today: Date,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
-    let all: Vec<&Task> = app.state.tasks.values().collect();
-    let selection = Selection::load(&app.paths);
-
-    let id = match resolve(selector, &selection, &all) {
-        Resolved::One(id) => id,
-        Resolved::Many(ids) => match crate::select::prompt(
-            &ids.iter()
-                .map(|id| &app.state.tasks[id])
-                .collect::<Vec<_>>(),
-            lang,
-        )? {
-            Some(id) => id,
-            None => return Ok(ExitCode::SUCCESS),
-        },
-        Resolved::None => return Ok(not_found(app, selector, lang)),
+    let Some(id) = asked(app, selector, lang)? else {
+        return Ok(missing(app, selector, lang));
     };
 
     let task = &app.state.tasks[&id];
@@ -78,6 +90,62 @@ pub fn show(
         println!("{}", serde_json::to_string(task)?);
     } else {
         print!("{}", render::detail(task, &app.state, today, lang));
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+pub fn story(
+    app: &App,
+    selector: &str,
+    json: bool,
+    today: Date,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
+    let Some(id) = asked(app, selector, lang)? else {
+        return Ok(missing(app, selector, lang));
+    };
+
+    let told = tisty_core::story::story(&tisty_core::store::read_all(app.paths.store())?, id);
+    if json {
+        println!("{}", serde_json::to_string(&told)?);
+    } else {
+        print!(
+            "{}",
+            render::trail(&app.state.tasks[&id], &told, &app.state, today, lang)
+        );
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+pub fn series(
+    app: &App,
+    selector: Option<&str>,
+    json: bool,
+    today: Date,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
+    let Some(selector) = selector else {
+        let all = tisty_core::series::routines(&app.state);
+        if json {
+            println!("{}", serde_json::to_string(&all)?);
+        } else {
+            print!("{}", render::shelf(&all, &app.state, lang));
+        }
+        return Ok(ExitCode::SUCCESS);
+    };
+
+    let Some(id) = asked(app, selector, lang)? else {
+        return Ok(missing(app, selector, lang));
+    };
+
+    let Some(told) = tisty_core::series::series(&app.state, id) else {
+        eprintln!("{}", lang.get("series-not-one"));
+        return Ok(crate::EXIT_NOT_FOUND.into());
+    };
+    if json {
+        println!("{}", serde_json::to_string(&told)?);
+    } else {
+        print!("{}", render::series(&told, today, lang));
     }
     Ok(ExitCode::SUCCESS)
 }

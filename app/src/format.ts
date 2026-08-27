@@ -48,6 +48,14 @@ export function whenLabel(spec: DateSpec, now = new Date()): string {
   return spec.has_time ? `${named} ${clock.format(at)}` : named;
 }
 
+export function shortStamp(iso: string): string {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "";
+  const { clock } = formats();
+  const day = new Intl.DateTimeFormat(locale(), { day: "numeric", month: "short" }).format(at);
+  return `${day} ${clock.format(at)}`;
+}
+
 export function clockOf(spec: DateSpec): string {
   return spec.has_time ? formats().clock.format(new Date(spec.at)) : "";
 }

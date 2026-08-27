@@ -194,6 +194,40 @@ Nothing is ever created ahead of time. There is no timer and no scheduler: a
 task can only come from you writing one or from finishing a repeat. Skip a day
 and there is still exactly one, waiting, overdue — never two.
 
+### Marking a turn late
+
+Because a completion carries no date of its own, a calendar cadence closed days
+after it was due leaves the dates in between with nothing on them. Rather than
+call them forgotten — «I did not take it» and «I took it and did not open the
+laptop» leave the same trace — the window offers them back: `owed_since` returns
+the dates the cadence would have touched, and `covering` turns each one you claim
+into **a turn that was already closed**, chained by `after` and bare of steps,
+description and reminders. It writes only `task.add` and `task.done`, so nothing
+about the format changes and a machine that has not updated reads the result.
+
+Two caps keep it honest: at most five turns, and nothing whose turn came due more
+than thirty days ago. Five turns of a weekly cadence would reach back five weeks,
+which is reconstruction, not memory. A cadence counted from the doing never gets
+asked, because it leaves no gaps by definition.
+
+## Reading the archive
+
+Three views are **derived at read time and never stored**, so nothing about them
+can go stale or disagree with the log:
+
+- `story.rs` replays one task's events into typed chapters, carrying a running
+  state so a moved deadline reads «from the 12th to the 19th» rather than twice.
+  Reordering, hiding and reminders deliberately produce no chapter.
+- `series.rs` walks the `after` chain **in both directions** from the turn asked
+  about — walking down from the root loses it when two machines closed the same
+  turn before syncing — and counts what was owed as turns that came due plus the
+  dates the cadence skipped, which is why the tally is 26/30 and not 26/26.
+- `shape.rs` buckets closings into months for the strip on the archive cover.
+
+A task's `Reading` — story, routine or trace — comes from the substance it holds,
+not from how long it lived: a task that closed in an hour with a journal entry is
+a story, and one that closed after a month with nothing written is a trace.
+
 ## The read cache
 
 SQLite in the cache directory, holding the projected state: tasks, lists and

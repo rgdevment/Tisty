@@ -162,8 +162,7 @@ fn catalog(code: &str) -> Option<&'static Catalog> {
         .get(code)
 }
 
-pub const FILTERS: &str =
-    "today · tomorrow · week · overdue · inbox · archive · all · @list · #tag · !do";
+pub const FILTERS: &str = "today · tomorrow · week · overdue · inbox · archive · folded · stories · routines · trace · all · @list · #tag · !do";
 
 pub fn canonical_filter(raw: &str) -> Option<&'static str> {
     let raw = raw.to_lowercase();
@@ -179,6 +178,9 @@ pub fn canonical_filter(raw: &str) -> Option<&'static str> {
             "folded",
             &["folded", "plegadas", "descartadas", "dropped"][..],
         ),
+        ("story", &["stories", "story", "historias", "historia"][..]),
+        ("routine", &["routines", "routine", "rutinas", "rutina"][..]),
+        ("trace", &["traces", "trace", "rastro", "rastros"][..]),
     ] {
         if aliases.contains(&raw.as_str()) {
             return Some(canonical);

@@ -1,6 +1,6 @@
 use jiff::civil::Date;
 
-use crate::model::{ListId, Priority, Tag, Task};
+use crate::model::{ListId, Priority, Reading, Tag, Task};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Window {
@@ -31,6 +31,7 @@ pub struct Filter {
     pub priority: Option<Priority>,
     pub window: Option<Window>,
     pub repeating: bool,
+    pub reading: Option<Reading>,
 }
 
 impl Filter {
@@ -63,6 +64,10 @@ impl Filter {
         }
 
         if self.repeating && task.repeat.is_none() {
+            return false;
+        }
+
+        if self.reading.is_some_and(|how| task.reading() != how) {
             return false;
         }
 
@@ -294,5 +299,36 @@ mod tests {
 
         assert!(f.matches(&task("loose"), today()));
         assert!(!f.matches(&filed, today()));
+    }
+
+    #[test]
+    fn a_layer_filter_keeps_only_what_reads_that_way() {
+        let mut errand = task("buy bread");
+        errand.status = Status::Done;
+        errand.retally();
+
+        let mut told = task("renew the certificate");
+        told.status = Status::Done;
+        told.description = Some("the authority took nine days to issue it".into());
+        told.retally();
+
+        let mut turn = task("water the plants");
+        turn.status = Status::Done;
+        turn.after = Some(Ulid::generate());
+        turn.retally();
+
+        let stories = filter(|f| {
+            f.scope = Scope::Archived;
+            f.reading = Some(Reading::Story);
+        });
+        let traces = filter(|f| {
+            f.scope = Scope::Archived;
+            f.reading = Some(Reading::Trace);
+        });
+
+        assert!(stories.matches(&told, today()));
+        assert!(!stories.matches(&errand, today()));
+        assert!(!stories.matches(&turn, today()));
+        assert!(traces.matches(&errand, today()));
     }
 }

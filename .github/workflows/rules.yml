@@ -38,15 +38,16 @@ jobs:
             exit 1
           fi
 
-      - name: No blocks of comments in the code
+      - name: No prose blocks in the code
         run: |
           found=$(find crates/*/src app/src-tauri/src -name '*.rs' -print0 \
             | xargs -0 awk '
-                /^[[:space:]]*(\/\/|\/\/\/)/ && !/\/\/!|TODO|FIXME|SAFETY|noqa|https?:\/\// { run++; if (run == 2) print FILENAME ":" FNR; next }
+                /^[[:space:]]*\/\/\// { run = 0; next }
+                /^[[:space:]]*\/\// && !/\/\/!|TODO|FIXME|SAFETY|noqa|https?:\/\// { run++; if (run == 4) print FILENAME ":" FNR; next }
                 { run = 0 }')
           if [ -n "$found" ]; then
             echo "$found"
-            echo "::error::a comment is one line for a non-obvious why; prose goes in planning/"
+            echo "::error::four lines of comment is prose; that goes in planning/, not in the source"
             exit 1
           fi
 

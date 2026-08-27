@@ -42,6 +42,7 @@ const KNOWN = [
   "remoteInsideStore",
   "sharedIsTheBackup",
   "otherStore",
+  "syncNewer",
   "cannotWrite",
   "attachmentTooBig",
   "attachmentTooBigHere",

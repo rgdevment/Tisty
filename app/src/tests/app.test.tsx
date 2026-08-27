@@ -96,6 +96,8 @@ beforeEach(() => {
         return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
       case "snapshot":
         return Promise.resolve(shot(args.view as { archive?: boolean } | undefined));
+      case "task_story":
+        return Promise.resolve({ id: String(args.id ?? ""), pages: [] });
       case "read":
         return Promise.resolve({ title: String(args.text ?? ""), tags: [], spans: [], offers: [] });
       case "complete":
@@ -180,9 +182,8 @@ describe("the open panel", () => {
 
     await user.click(screen.getByRole("button", { name: /Archive/ }));
     await user.click(await screen.findByText("filed last month"));
-    await screen.findByRole("textbox", { name: "Title" });
 
-    await user.click(screen.getByRole("button", { name: /Reopen/ }));
+    await user.click(await screen.findByRole("button", { name: /Reopen/ }));
 
     expect(await screen.findByRole("button", { name: /^Complete$/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Reopen/ })).toBeNull();

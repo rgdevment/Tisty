@@ -1,10 +1,13 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[serde(rename_all = "lowercase")]
 pub enum Kind {
     Doc,
     Link,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct Ref {
     pub kind: Kind,
     pub target: String,

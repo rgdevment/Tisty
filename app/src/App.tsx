@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AXES } from "./archive";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
 import { asPlain } from "./copying";
@@ -30,6 +31,7 @@ import {
   folderLook,
   folderRename,
   markStep,
+  owed,
   type Papers,
   type Pick,
   parted,
@@ -56,6 +58,7 @@ import { settled } from "./saving";
 import About from "./ui/About";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
+import Cover from "./ui/Cover";
 import Detail from "./ui/Detail";
 import Docs from "./ui/Docs";
 import Keeping from "./ui/Keeping";
@@ -65,15 +68,30 @@ import Menu, { type Choice } from "./ui/Menu";
 import Naming from "./ui/Naming";
 import Notice from "./ui/Notice";
 import Only from "./ui/Only";
+import Owed from "./ui/Owed";
 import Rifts from "./ui/Rifts";
 import Search from "./ui/Search";
+import Shelf from "./ui/Shelf";
 import Sidebar from "./ui/Sidebar";
 import Sightings from "./ui/Sightings";
 import Tags from "./ui/Tags";
 import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
-import { accepts, asView, type Chosen, invite, nothing, SLICES, type Slice, title } from "./views";
+import {
+  accepts,
+  asView,
+  axisWord,
+  type Chosen,
+  invite,
+  LAYERS,
+  layerCount,
+  layerWord,
+  nothing,
+  SLICES,
+  type Slice,
+  title,
+} from "./views";
 
 export const steady = <T,>(was: T, found: T): T =>
   JSON.stringify(was) === JSON.stringify(found) ? was : found;
@@ -140,6 +158,8 @@ export default function App() {
   const [here, setHere] = useState<string | null | undefined>(undefined);
   const [showing, setShowing] = useState<string | null>(null);
   const [carried, setCarried] = useState(0);
+  const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
+  const asked = useRef(0);
 
   const newDoc = (folder?: string) =>
     docNew(folder)
@@ -265,6 +285,8 @@ export default function App() {
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
   const wasAwry = useRef<string | null>(null);
+
+  useEffect(() => setAsking(null), [chosen]);
 
   const load = useCallback(() => {
     snapshot(asView(chosen))
@@ -411,6 +433,34 @@ export default function App() {
       })
       .catch((e) => setError(saidPlainly(e)));
   };
+
+  const marking = (id: string, title: string) => {
+    setError(null);
+    const mine = ++asked.current;
+    owed(id)
+      .then((days) => {
+        // A slow answer must not open a strip over the task the person moved on to.
+        if (mine !== asked.current) return;
+        if (!days.length) {
+          say(fill("saidDone", title));
+          act(complete(id));
+          return;
+        }
+        setAsking({ id, title, days });
+      })
+      .catch((e) => setError(saidPlainly(e)));
+  };
+
+  const strip = asking ? (
+    <Owed
+      days={asking.days}
+      onConfirm={(days) => {
+        say(fill("saidDone", asking.title));
+        act(complete(asking.id, days));
+        setAsking(null);
+      }}
+    />
+  ) : null;
 
   const act = (work: Promise<Task>) => {
     setError(null);
@@ -836,28 +886,31 @@ export default function App() {
             onError={(e) => setError(saidPlainly(e))}
           />
         ) : chosen.named === "quadrants" && !(open && mode === "sheet") ? (
-          <Matrix
-            tasks={data.tasks}
-            lists={data.lists}
-            beside={open && mode === "columns"}
-            onPlace={(id, where) => act(patch(id, { priority: where }))}
-            onOpen={(one) => setSelected(one.id)}
-            onSow={(where) => {
-              sow(where).catch((e: unknown) => setError(saidPlainly(e)));
-            }}
-            onDiscardAll={(ids) => {
-              ask(fill("dropThemSure", String(ids.length)), { kind: "warning" })
-                .then((yes) => {
-                  if (!yes) return;
-                  setError(null);
-                  return Promise.all(ids.map((id) => discard(id))).then(() => {
-                    load();
-                    carries.current?.changed();
-                  });
-                })
-                .catch((e) => setError(saidPlainly(e)));
-            }}
-          />
+          <>
+            {strip && <div className="shrink-0 px-5 pt-2">{strip}</div>}
+            <Matrix
+              tasks={data.tasks}
+              lists={data.lists}
+              beside={open && mode === "columns"}
+              onPlace={(id, where) => act(patch(id, { priority: where }))}
+              onOpen={(one) => setSelected(one.id)}
+              onSow={(where) => {
+                sow(where).catch((e: unknown) => setError(saidPlainly(e)));
+              }}
+              onDiscardAll={(ids) => {
+                ask(fill("dropThemSure", String(ids.length)), { kind: "warning" })
+                  .then((yes) => {
+                    if (!yes) return;
+                    setError(null);
+                    return Promise.all(ids.map((id) => discard(id))).then(() => {
+                      load();
+                      carries.current?.changed();
+                    });
+                  })
+                  .catch((e) => setError(saidPlainly(e)));
+              }}
+            />
+          </>
         ) : chosen.named === "keeping" ? (
           <Keeping
             greeted={greeted}
@@ -885,8 +938,7 @@ export default function App() {
             onDropStep={(step) => act(dropStep(task.id, step))}
             onLog={(body, entry) => act(writeLog(task.id, body, entry))}
             onComplete={() => {
-              say(fill("saidDone", task.title));
-              act(complete(task.id));
+              marking(task.id, task.title);
               setSelected(undefined);
             }}
             onDiscard={() => {
@@ -905,7 +957,13 @@ export default function App() {
             lists={data.lists}
             title={title(chosen, data.lists)}
             when={chosen.named === "tasks" ? todayLong() : undefined}
-            count={chosen.named === "tasks" ? undefined : shown.length}
+            count={
+              chosen.named === "tasks"
+                ? undefined
+                : chosen.named === "archive" && !chosen.folded && chosen.layer === "routine"
+                  ? data.counts.routines
+                  : shown.length
+            }
             onBack={
               chosen.list
                 ? () => {
@@ -939,21 +997,41 @@ export default function App() {
                   ? "month"
                   : "day"
             }
+            axis={found === null && chosen.named === "archive" ? chosen.axis : undefined}
+            dense={
+              found === null &&
+              chosen.named === "archive" &&
+              !chosen.folded &&
+              chosen.layer === "trace"
+            }
             onSelect={setSelected}
             onComplete={
               chosen.named === "archive"
                 ? undefined
                 : (id) => {
                     const one = shown.find((task) => task.id === id);
-                    if (one) say(fill("saidDone", one.title));
-                    act(complete(id));
+                    marking(id, one?.title ?? "");
                     if (id === selected) setSelected(undefined);
                   }
             }
             onFold={chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined}
+            closing={asking?.id}
+            ask={(id) => (asking?.id === id ? strip : null)}
             below={
               found?.papers.length ? (
                 <Sightings papers={found.papers} onOpen={openDoc} />
+              ) : undefined
+            }
+            instead={
+              chosen.named === "archive" &&
+              !chosen.folded &&
+              chosen.layer === "routine" &&
+              found === null ? (
+                <Shelf
+                  lists={data.lists}
+                  onOpen={setSelected}
+                  onError={(e) => setError(saidPlainly(e))}
+                />
               ) : undefined
             }
             above={
@@ -993,19 +1071,76 @@ export default function App() {
                     }}
                   />
                 </div>
-              ) : chosen.named === "archive" && (data.counts.folded || chosen.folded) ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFound(null);
-                    setChosen({ named: "archive", folded: !chosen.folded });
-                  }}
-                  className="px-2.5 pb-1.5 text-xs text-faint hover:text-ink"
-                >
-                  {chosen.folded
-                    ? `⊕ ${t("backToArchive")}`
-                    : `⊖ ${data.counts.folded} ${t("folded")}`}
-                </button>
+              ) : chosen.named === "archive" ? (
+                <>
+                  {found === null && !chosen.folded && (
+                    <Cover onError={(e) => setError(saidPlainly(e))} />
+                  )}
+                  <div className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
+                    {LAYERS.map((layer) => {
+                      const on = !chosen.folded && (chosen.layer ?? "story") === layer;
+                      const many = data.counts[layerCount(layer)];
+                      return (
+                        <button
+                          key={layer}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => {
+                            setSelected(undefined);
+                            setFound(null);
+                            setChosen({ named: "archive", layer });
+                          }}
+                          className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+                            on
+                              ? "border-ink bg-ink text-bg"
+                              : "border-line text-faint hover:text-soft"
+                          }`}
+                        >
+                          {t(layerWord(layer))}
+                          {many ? (
+                            <span className="ml-1 tabular-nums opacity-70">{many}</span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                    <span className="mx-1 h-3.5 w-px bg-hair" />
+                    {AXES.map((axis) => {
+                      const on = (chosen.axis ?? "time") === axis;
+                      return (
+                        <button
+                          key={axis}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => {
+                            setSelected(undefined);
+                            setChosen({ ...chosen, named: "archive", axis, folded: false });
+                          }}
+                          className={`rounded-full px-2 py-0.5 text-[11.5px] ${
+                            on ? "bg-active font-semibold text-ink" : "text-faint hover:text-soft"
+                          }`}
+                        >
+                          {t(axisWord(axis))}
+                        </button>
+                      );
+                    })}
+                    {data.counts.folded || chosen.folded ? (
+                      <button
+                        type="button"
+                        aria-pressed={chosen.folded === true}
+                        onClick={() => {
+                          setSelected(undefined);
+                          setFound(null);
+                          setChosen({ named: "archive", folded: !chosen.folded });
+                        }}
+                        className="ml-1 text-xs text-faint hover:text-ink"
+                      >
+                        {chosen.folded
+                          ? `⊕ ${t("backToArchive")}`
+                          : `⊖ ${data.counts.folded} ${t("folded")}`}
+                      </button>
+                    ) : null}
+                  </div>
+                </>
               ) : chosen.named === "tags" || chosen.tags?.length ? (
                 <Tags
                   tags={data.tags}
@@ -1059,8 +1194,7 @@ export default function App() {
             onDropStep={(step) => act(dropStep(task.id, step))}
             onLog={(body, entry) => act(writeLog(task.id, body, entry))}
             onComplete={() => {
-              say(fill("saidDone", task.title));
-              act(complete(task.id));
+              marking(task.id, task.title);
               setSelected(undefined);
             }}
             onDiscard={() => {
