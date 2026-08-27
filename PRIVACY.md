@@ -1,15 +1,16 @@
 # Privacy policy
 
-**Last updated:** August 22, 2026
+**Last updated:** August 27, 2026
 
 ## The short version
 
 Tisty does not collect anything and has no server to transmit to. No account,
 no telemetry, no analytics, no crash reporting.
 
-It makes **one** network request, and only one: once a day it downloads a small
-file to see whether a newer version exists. It sends nothing, it downloads
-nothing else, and it is described in full below.
+It makes **one** network request on its own: once a day it downloads a small
+file to see whether a newer version exists. It sends nothing. Two more follow
+only if you press the button that offers you an update, and never otherwise.
+All three are described in full below.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -104,7 +105,7 @@ request it would be read-only, documented here before it shipped, and visible
 as a code change first. That is what happened: the check went into the public
 repository, and this section was written before the release that carries it.
 
-## The one network request
+## The request Tisty makes on its own
 
 | | |
 | :--- | :--- |
@@ -116,10 +117,26 @@ repository, and this section was written before the release that carries it.
 | **Timeout** | 5 seconds |
 | **If it fails** | Nothing is said and nothing is retried until tomorrow |
 
-The file it downloads contains version numbers and nothing else. **No address in
-that file is ever opened**: the download page Tisty offers is compiled into the
-program, so nothing that arrives over the network can send you anywhere — which
-is what a signature would otherwise be needed for.
+The file it downloads contains version numbers and nothing else — no address, so
+nothing that arrives from it can send you anywhere.
+
+## The two requests only you can start
+
+Pressing **Update** in *About* makes Tisty fetch a second file, which does name
+an address, and then the installer at that address. Both go to
+`raw.githubusercontent.com` and `github.com` over HTTPS, and both carry what any
+download carries: an address to send the bytes back to, and a user agent — here
+`tauri-plugin-updater/<version>`, the library doing the fetching. Nothing about
+you, nothing about what you have written.
+
+This is the one place where an address that arrived over the network is opened,
+and it is why the signature matters: Tisty checks the installer against a key
+compiled into the copy you already have, and refuses anything that does not
+match. The check happens before a single byte is run or written to disk.
+
+On macOS, if the application sits somewhere your account cannot write, the
+system asks for an administrator password to put the new copy in place. You can
+refuse; nothing is moved.
 
 A link **you write or paste into a document** is a different matter: clicking it
 opens your browser, the way any Markdown reader does. Tisty does not follow it
@@ -127,21 +144,16 @@ on its own, and never opens anything without a click. Worth knowing if a
 document reached you from a shared folder someone else can write to — the words
 of a link and where it goes are not obliged to agree, in Tisty or anywhere else.
 
-**Nothing is downloaded or installed unless you ask for it.** What arrives is a
-line of text you can ignore. If a newer version exists, a line appears in
-*About*, and what it offers depends on how this copy was installed: the
-Microsoft Store updates itself and Tisty leaves it alone, a copy of the command
-line kept by Homebrew gets the command to run, and a copy that owns the folder
-it lives in gets a button.
+**Nothing is downloaded or installed unless you ask for it.** What the daily
+check brings back is a line of text you can ignore. If a newer version exists, a
+line appears in *About*, and what it offers depends on how this copy was
+installed: the Microsoft Store updates itself and Tisty leaves it alone, a copy
+of the command line kept by Homebrew gets the command to run, and a copy that
+owns the folder it lives in gets a button.
 
-Pressing that button is the only thing that makes Tisty fetch anything: a small
-file naming the current version, and then the installer, both from GitHub over
-HTTPS. Those two requests carry what any download carries — an address to send
-the bytes back to, and the name of the program asking. Nothing about you and
-nothing about what you have written. Then Tisty checks the installer against a
-key compiled into this very copy, and refuses to install anything that does not
-match, so a release that is not the maintainer's cannot arrive this way. If you
-never press it, no request is ever made and the line just sits there.
+That button is the only thing that fetches an installer, and what it does is
+described above. If you never press it, nothing is downloaded and the line just
+sits there.
 
 ## Children's privacy
 

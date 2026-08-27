@@ -408,15 +408,13 @@ export type Route = "store" | "brew" | "brewCli" | "download";
 export interface Ready {
   version: string;
   route: Route;
-  url: string;
   package: string | null;
   installs: boolean;
 }
 
 export interface Underway {
   stage: "getting" | "installing";
-  got: number;
-  total: number | null;
+  far: number;
 }
 
 export const updateReady = (): Promise<Ready | null> => invoke("update_ready");

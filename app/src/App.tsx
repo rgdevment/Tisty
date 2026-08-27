@@ -915,7 +915,12 @@ export default function App() {
         }}
       >
         {chosen.named === "aboutScreen" ? (
-          <About ready={ready} step={underway} onError={(e) => setError(saidPlainly(e))} />
+          <About
+            ready={ready}
+            step={underway}
+            onGaveUp={() => setUnderway(null)}
+            onError={(e) => setError(saidPlainly(e))}
+          />
         ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (
           <Folder
             folder={standing ?? null}

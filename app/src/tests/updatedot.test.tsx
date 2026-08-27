@@ -1,5 +1,10 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const asked: string[] = [];
+const refuse: { next: unknown } = { next: null };
+
 import type { Ready } from "../core";
 import About from "../ui/About";
 import Sidebar from "../ui/Sidebar";
@@ -7,14 +12,17 @@ import Sidebar from "../ui/Sidebar";
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: () => Promise.resolve() }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: () =>
-    Promise.resolve({
+  invoke: (cmd: string) => {
+    asked.push(cmd);
+    if (refuse.next && cmd === "update_install") return Promise.reject(refuse.next);
+    return Promise.resolve({
       version: "0.2.0",
       sandbox: null,
       repository: "https://example.invalid/tisty",
       license: "AGPL-3.0",
       store: "C:/store",
-    }),
+    });
+  },
 }));
 
 const chosen = { named: "aboutScreen" } as Parameters<typeof Sidebar>[0]["chosen"];
@@ -54,11 +62,15 @@ describe("the update dot", () => {
   });
 });
 
+beforeEach(() => {
+  asked.length = 0;
+  refuse.next = null;
+});
+
 describe("what About suggests", () => {
   const ready = (route: Ready["route"], named: string | null = null): Ready => ({
     version: "0.3.0",
     route,
-    url: "https://example.invalid/releases",
     package: named,
     installs: route === "download" || route === "brew",
   });
@@ -95,11 +107,7 @@ describe("what About suggests", () => {
 
   it("shows how far the download has got, and then that it is installing", async () => {
     const { rerender } = render(
-      <About
-        ready={ready("download")}
-        step={{ stage: "getting", got: 50, total: 200 }}
-        onError={vi.fn()}
-      />,
+      <About ready={ready("download")} step={{ stage: "getting", far: 25 }} onError={vi.fn()} />,
     );
 
     expect(await screen.findByText(/Getting it — 25 %/)).toBeTruthy();
@@ -108,11 +116,33 @@ describe("what About suggests", () => {
     rerender(
       <About
         ready={ready("download")}
-        step={{ stage: "installing", got: 0, total: null }}
+        step={{ stage: "installing", far: 100 }}
         onError={vi.fn()}
       />,
     );
     expect(screen.getByText(/Tisty will close and open again/)).toBeTruthy();
+  });
+
+  it("asks the core to install, and says nothing more while it is at it", async () => {
+    render(<About ready={ready("download")} onError={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Update" }));
+
+    expect(asked).toContain("update_install");
+    expect(screen.getByRole("button", { name: "Update" })).toHaveProperty("disabled", true);
+  });
+
+  it("hands the button back when the install was refused, and clears what was underway", async () => {
+    refuse.next = { code: "updateGone" };
+    const onError = vi.fn();
+    const onGaveUp = vi.fn();
+    render(<About ready={ready("download")} onError={onError} onGaveUp={onGaveUp} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Update" }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(onGaveUp).toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Update" })).toHaveProperty("disabled", false);
   });
 
   it("says nothing when this copy is the newest", async () => {

@@ -1716,22 +1716,26 @@ async fn update_ready(session: tauri::State<'_, Mutex<Session>>) -> Answer<Optio
         .await
         .map_err(|_| Refusal::of("internal"))?;
 
-    let found = manifest.and_then(|said| update::newer(HERE, &said, update::route()));
-    let mut session = held(&session);
-    let version = found.as_ref().map(|one| one.version.clone());
-    session.keep(|c| {
+    // A look that never answered says nothing about whether an update is owed, so what was found
+    // before stays where it is.
+    let Some(manifest) = manifest else {
+        return Ok(update::remembered(HERE, found.as_deref(), update::route()));
+    };
+
+    let seen = update::newer(HERE, &manifest, update::route());
+    let version = seen.as_ref().map(|one| one.version.clone());
+    held(&session).keep(|c| {
         c.checked_at = Some(now);
         c.found_version = version;
     })?;
-    Ok(found)
+    Ok(seen)
 }
 
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Underway {
     stage: &'static str,
-    got: usize,
-    total: Option<u64>,
+    far: u64,
 }
 
 #[tauri::command]
@@ -1780,43 +1784,46 @@ async fn update_install(
         return Err(Refusal::of("updateGone"));
     };
 
-    let told = app.clone();
+    let telling = app.clone();
+    let done = app.clone();
+    let mut carried: u64 = 0;
     let mut said = 0;
     update
         .download_and_install(
-            move |got, total| {
-                // The callback fires per chunk; whole percents are all the window can show.
-                let far = total.map_or(0, |whole| got as u64 * 100 / whole.max(1));
+            move |chunk, whole| {
+                // The callback hands over the length of one chunk, not how much has arrived.
+                carried += chunk as u64;
+                let far = whole.map_or(0, |all| carried * 100 / all.max(1));
                 if far != said {
                     said = far;
-                    let _ = told.emit(
+                    let _ = telling.emit(
                         "updating",
                         Underway {
                             stage: "getting",
-                            got,
-                            total,
+                            far,
                         },
                     );
                 }
             },
-            || {},
+            // The last thing anyone sees on Windows: the installer takes the process with it and
+            // nothing after the await ever runs.
+            move || {
+                let _ = done.emit(
+                    "updating",
+                    Underway {
+                        stage: "installing",
+                        far: 100,
+                    },
+                );
+            },
         )
         .await
         .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
 
-    let _ = app.emit(
-        "updating",
-        Underway {
-            stage: "installing",
-            got: 0,
-            total: None,
-        },
-    );
-
-    // Windows never comes back from the line above. macOS does, and restarting has to happen
-    // where the app loop lives or the relaunch is left to chance.
+    // Only macOS gets this far, and restarting has to happen where the app loop lives.
     let handle = app.clone();
-    let _ = app.run_on_main_thread(move || handle.restart());
+    app.run_on_main_thread(move || handle.restart())
+        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
     Ok(())
 }
 
@@ -4133,6 +4140,10 @@ pub fn run() {
             };
             let watched = session.paths.clone();
             let quiet = session.config.muted().to_vec();
+            // An update relaunches with the arguments it was started with, so a copy that opened
+            // with the session comes back hidden — looking, to whoever pressed the button, like it
+            // never came back at all.
+            let came_back = session.config.found_version.as_deref() == Some(HERE);
             app.manage(Mutex::new(session));
             app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
             herald::watch(app.handle().clone(), watched);
@@ -4178,7 +4189,7 @@ pub fn run() {
 
             if let Some(window) = app.get_webview_window("main") {
                 proofread(&window);
-                if !waking::hushed() {
+                if came_back || !waking::hushed() {
                     let _ = window.show();
                 }
             }

@@ -211,13 +211,12 @@ resolvió algo. De ahí salen tres cosas, y esas moldearon todo lo demás:
 encarga de mantenerla al día.
 
 **macOS** — con [Homebrew](https://brew.sh). El tap se agrega una sola vez y no
-se vuelve a tocar; desde ahí Tisty se actualiza como cualquier otra cosa que
-tengas instalada:
+se vuelve a tocar. Desde ahí Tisty se mantiene al día sola, y Homebrew se
+aparta:
 
 ```console
 $ brew tap rgdevment/tap
 $ brew install --cask tisty
-$ brew upgrade --cask tisty
 ```
 
 O toma la imagen de disco y el instalador directamente de

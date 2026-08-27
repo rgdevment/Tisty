@@ -25,10 +25,12 @@ export default function About({
   ready,
   step,
   onError,
+  onGaveUp,
 }: {
   ready: Ready | null;
   step?: Underway | null;
   onError: (problem: unknown) => void;
+  onGaveUp?: () => void;
 }) {
   const [build, setBuild] = useState<Build | null>(null);
   const [trouble, setTrouble] = useState<string | null>(null);
@@ -91,10 +93,7 @@ export default function About({
                   <p className="mt-1.5 text-faint">
                     {step.stage === "installing"
                       ? t("updateInstalling")
-                      : fill(
-                          "updateGetting",
-                          `${step.total ? Math.round((step.got / step.total) * 100) : 0} %`,
-                        )}
+                      : fill("updateGetting", `${step.far} %`)}
                   </p>
                 ) : ready.installs ? (
                   <p className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -106,6 +105,7 @@ export default function About({
                         setAsked(true);
                         updateInstall().catch((problem) => {
                           setAsked(false);
+                          onGaveUp?.();
                           onError(problem);
                         });
                       }}
@@ -118,20 +118,9 @@ export default function About({
                   <p className="mt-1.5">
                     {ready.route === "store" ? (
                       <span className="text-faint">{t("updateStore")}</span>
-                    ) : ready.route === "download" ? (
-                      <button
-                        type="button"
-                        onClick={() => openUrl(ready.url).catch(onError)}
-                        className="underline decoration-line underline-offset-2 hover:text-ink"
-                      >
-                        {t("updateDownload")}
-                      </button>
                     ) : (
                       <code className="text-faint">
-                        {fill(
-                          ready.route === "brew" ? "updateBrew" : "updateBrewCli",
-                          ready.package ?? "tisty",
-                        )}
+                        {fill("updateBrewCli", ready.package ?? "tisty")}
                       </code>
                     )}
                   </p>

@@ -24,8 +24,9 @@ copyright staying in one pair of hands, which is what the
 
 **Nothing is withheld.** The store build is the same program, from the same
 source, at the same version. What you pay for — where there is a price — is the
-signing, the notarisation, the automatic updates and the store's own
-convenience. If you would rather not, compile it yourself: the source is here,
+signing, the notarisation, and the store's own convenience. Updating itself is
+not on that list: every copy outside a store does it, a build you compiled
+yourself included. If you would rather not, compile it yourself: the source is here,
 it is complete, and it is free forever.
 
 ## The terms for a signed build

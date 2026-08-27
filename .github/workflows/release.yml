@@ -132,8 +132,6 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
 
@@ -227,8 +225,6 @@ jobs:
       TARGET: x86_64-pc-windows-msvc
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
 
@@ -294,6 +290,8 @@ jobs:
       TARGET: x86_64-pc-windows-msvc
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
 
@@ -400,6 +398,8 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
 
@@ -438,11 +438,7 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        shell: bash
-        run: |
-          sign=""
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then sign="--no-sign"; fi
-          npm run tauri build -- --target universal-apple-darwin --bundles app,dmg $sign
+        run: npm run tauri build -- --target universal-apple-darwin --bundles app,dmg
 
       - name: The app is really signed
         if: env.MACOS_CERTIFICATE_P12 != ''
@@ -500,9 +496,17 @@ jobs:
           v="${{ needs.version.outputs.version }}"
           mkdir -p dist
           out="target/universal-apple-darwin/release/bundle/macos"
-          if [ -s "$out/Tisty.app.tar.gz" ]; then
+          # The bundler leaves a tarball of its own during the build, before any of the stapling.
+          # Publishing that one would replace a notarised app with an unnotarised one, so it only
+          # travels when the ticket is on it.
+          app=$(ls -d "$out"/*.app 2>/dev/null | head -1)
+          if [ -n "$app" ] && xcrun stapler validate "$app" >/dev/null 2>&1 \
+            && [ -s "$out/Tisty.app.tar.gz.sig" ]; then
             cp "$out/Tisty.app.tar.gz" "dist/tisty-$v-macos-universal.app.tar.gz"
             cp "$out/Tisty.app.tar.gz.sig" "dist/tisty-$v-macos-universal.app.tar.gz.sig"
+          else
+            echo "::warning::no stapled, signed tarball; macOS gets no self-update this release"
+            rm -f "$out/Tisty.app.tar.gz" "$out/Tisty.app.tar.gz.sig"
           fi
           dmg=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
           if [ -z "$dmg" ]; then
@@ -763,7 +767,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Staged first and compared after, or a channel file would be skipped on any run where
           # the version manifest happened not to change.
-          git add -A release-manifest.json latest.json candidate.json
+          for one in release-manifest.json latest.json candidate.json; do
+            git add -A -- "$one" 2>/dev/null || true
+          done
           if git diff --cached --quiet; then
             echo "already says $v"
             exit 0
@@ -791,14 +797,17 @@ jobs:
           if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then file=candidate.json; fi
           feed="https://raw.githubusercontent.com/${{ github.repository }}/manifest/$file"
 
-          for attempt in 1 2 3 4 5; do
-            if curl -fsSL -o channel.json "$feed"; then break; fi
-            echo "the channel file is not there yet (${attempt}/5)"
-            sleep $((attempt * 10))
+          said=""
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsSL -H "Cache-Control: no-cache" -o channel.json "$feed"; then
+              said=$(jq -r .version channel.json)
+              [ "$said" = "$v" ] && break
+            fi
+            echo "the channel still says «${said:-nothing}» (${attempt}/6)"
+            sleep $((attempt * 20))
           done
           jq . channel.json
 
-          said=$(jq -r .version channel.json)
           if [ "$said" != "$v" ]; then
             echo "::error::$file says $said, this release is $v"
             exit 1

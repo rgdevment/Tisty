@@ -2,7 +2,6 @@ use tisty_core::witness::{self, Fact, channel};
 
 const MANIFEST: &str =
     "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json";
-pub const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
 /// One holds a stable version and the other a candidate, never both, so the track a copy belongs
 /// to can be read off the version it is being offered.
 pub const LATEST: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/latest.json";
@@ -40,7 +39,6 @@ impl Kept {
 pub struct Ready {
     pub version: String,
     pub route: Route,
-    pub url: &'static str,
     pub package: Option<&'static str>,
     pub installs: bool,
 }
@@ -84,7 +82,6 @@ fn offered(version: String, kept: Kept) -> Ready {
     Ready {
         version,
         route: kept.route,
-        url: RELEASES,
         package: kept.package,
         installs: self_installs(kept.route),
     }

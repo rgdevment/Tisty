@@ -208,12 +208,11 @@ got solved. Three things follow from that, and they shaped everything else:
 it updated for you.
 
 **macOS** — with [Homebrew](https://brew.sh). The tap is added once and never
-again; after that, Tisty updates like anything else you have installed:
+again. After that Tisty keeps itself up to date, so Homebrew stands aside:
 
 ```console
 $ brew tap rgdevment/tap
 $ brew install --cask tisty
-$ brew upgrade --cask tisty
 ```
 
 Or take the disk image and the installer straight from
