@@ -15,6 +15,8 @@ pub struct Folder {
     pub parent: Option<FolderId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
 }
 
 impl Folder {
@@ -25,6 +27,7 @@ impl Folder {
             order: order.into(),
             parent: None,
             icon: None,
+            color: None,
         }
     }
 }

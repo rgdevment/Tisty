@@ -3,6 +3,7 @@ import type { Node as Written } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { markup } from "../glyphs";
 import { t, type Word } from "../locales";
 import {
   ending,
@@ -151,6 +152,19 @@ const carded = (kind: string): HTMLElement => {
   return badge;
 };
 
+/// A document of ours is the same thing the tree shows, so it wears the same shape, not a file badge.
+const papered = (): HTMLElement => {
+  const held = document.createElement("span");
+  held.className = "card-paper";
+  const drawn = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  drawn.setAttribute("viewBox", "0 0 24 24");
+  drawn.setAttribute("aria-hidden", "true");
+  drawn.setAttribute("class", "glyph");
+  drawn.innerHTML = markup("page") ?? "";
+  held.append(drawn);
+  return held;
+};
+
 const built = (
   seen: Preview,
   reach: Reach,
@@ -202,7 +216,7 @@ const built = (
   if (seen.as === "doc") {
     const title = reach.title(seen.id);
     box.classList.add("card-doc");
-    box.prepend(carded("doc"));
+    box.prepend(papered());
     if (title === undefined) {
       name.textContent = t("opening");
     } else if (title === null) {

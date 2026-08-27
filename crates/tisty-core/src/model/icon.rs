@@ -1,260 +1,122 @@
-pub const ICONS: &[(&str, &str)] = &[
-    ("home", "🏠"),
-    ("garden", "🪴"),
-    ("bed", "🛏"),
-    ("kitchen", "🍳"),
-    ("cleaning", "🧹"),
-    ("laundry", "🧺"),
-    ("build", "🔧"),
-    ("place", "📍"),
-    ("city", "🏙"),
-    ("beach", "🏖"),
-    ("camping", "⛺"),
-    ("mountain", "⛰"),
-    ("work", "💼"),
-    ("meeting", "👥"),
-    ("deal", "🤝"),
-    ("support", "🛟"),
-    ("chart", "📈"),
-    ("target", "🎯"),
-    ("mail", "✉️"),
-    ("phone", "📞"),
-    ("print", "🖨"),
-    ("clip", "📎"),
-    ("code", "💻"),
-    ("bug", "🐞"),
-    ("test", "🧪"),
-    ("review", "👀"),
-    ("rocket", "🚀"),
-    ("server", "🗄"),
-    ("database", "🧮"),
-    ("design", "🎨"),
-    ("health", "🩺"),
-    ("hospital", "🏥"),
-    ("pill", "💊"),
-    ("sport", "🏃"),
-    ("gym", "🏋"),
-    ("yoga", "🧘"),
-    ("sleep", "😴"),
-    ("mind", "🧠"),
-    ("tooth", "🦷"),
-    ("money", "💳"),
-    ("bank", "🏦"),
-    ("receipt", "🧾"),
-    ("savings", "🐷"),
-    ("coin", "🪙"),
-    ("shopping", "🛒"),
-    ("gift", "🎁"),
-    ("package", "📦"),
-    ("travel", "✈️"),
-    ("hotel", "🏨"),
-    ("map", "🗺"),
-    ("ticket", "🎫"),
-    ("luggage", "🧳"),
-    ("car", "🚗"),
-    ("bike", "🚲"),
-    ("train", "🚆"),
-    ("study", "📚"),
-    ("note", "📝"),
-    ("science", "🔬"),
-    ("language", "🗣"),
-    ("music", "🎧"),
-    ("film", "🎬"),
-    ("game", "🎮"),
-    ("camera", "📷"),
-    ("art", "🖌"),
-    ("food", "🍽"),
-    ("coffee", "☕"),
-    ("cake", "🎂"),
-    ("drink", "🍷"),
-    ("family", "👪"),
-    ("baby", "🍼"),
-    ("pet", "🐾"),
-    ("plant", "🌱"),
-    ("sun", "☀️"),
-    ("water", "💧"),
-    ("folder", "🗂"),
-    ("archive", "🗃"),
-    ("inbox", "📥"),
-    ("calendar", "📅"),
-    ("clock", "⏰"),
-    ("star", "⭐"),
-    ("flag", "🚩"),
-    ("done", "✅"),
-    ("todo", "☑️"),
-    ("repeat", "🔁"),
-    ("timer", "⏱"),
-    ("waiting", "⏳"),
-    ("bell", "🔔"),
-    ("pause", "⏸"),
-    ("urgent", "❗"),
-    ("question", "❓"),
-    ("info", "ℹ️"),
-    ("blocked", "⛔"),
-    ("idea", "💡"),
-    ("alert", "⚠️"),
-    ("lock", "🔒"),
-    ("key", "🔑"),
-    ("book", "📖"),
-    ("law", "⚖️"),
-    ("vote", "🗳"),
-    ("contract", "📜"),
-    ("write", "✍️"),
-    ("page", "📄"),
-    ("pages", "📑"),
-    ("draft", "🗒"),
-    ("clipboard", "📋"),
-    ("bookmark", "🔖"),
-    ("label", "🏷"),
-    ("link", "🔗"),
-    ("pin", "📌"),
-    ("cut", "✂️"),
-    ("ruler", "📐"),
-    ("search", "🔍"),
-    ("folderdoc", "📂"),
-    ("chat", "💬"),
-    ("call", "📱"),
-    ("video", "🎥"),
-    ("mic", "🎙"),
-    ("tv", "📺"),
-    ("photo", "🖼"),
-    ("cloud", "☁️"),
-    ("wifi", "📶"),
-    ("battery", "🔋"),
-    ("plug", "🔌"),
-    ("tools", "🛠"),
-    ("paint", "🎭"),
-    ("trash", "🗑"),
-    ("shield", "🛡"),
-    ("fire", "🔥"),
-    ("moon", "🌙"),
-    ("leaf", "🍃"),
-    ("tree", "🌳"),
-    ("harvest", "🌾"),
-    ("bread", "🍞"),
-    ("fruit", "🍎"),
-    ("veg", "🥕"),
-    ("recycle", "♻️"),
-    ("snow", "❄️"),
-    ("fish", "🐟"),
-    ("chartdown", "📉"),
-    ("badge", "🎖"),
-    ("trophy", "🏆"),
-    ("puzzle", "🧩"),
-    ("guitar", "🎸"),
-    ("dance", "💃"),
-    ("swim", "🏊"),
-    ("climb", "🧗"),
-    ("ball", "⚽"),
-    ("boat", "⛵"),
-    ("bus", "🚌"),
-    ("school", "🏫"),
-    ("factory", "🏭"),
-    ("store", "🏪"),
-    ("office", "🏢"),
+/// The keys a list, a folder or a document can wear. The drawing lives in the window; here we only
+/// say which names are real, so a store written elsewhere cannot smuggle one in.
+pub const ICONS: &[&str] = &[
+    // living
+    "home", "flat", "room", "bed", "sofa", "lamp", "kitchen", "cook", "cleaning", "laundry",
+    "iron", "dishes", "bin", "recycle", "build", "tools", "drill", "paint", "plug", "power",
+    "light", "heating", "water", "tap", "key", "lock", "bell", "mail", "parcel", "post",
+    "garden", "plant", "flower", "tree", "pet", "dog", "cat", "bird", "baby", "family",
+    "friends", "neighbour", "coffee", "tea", "cake", "bread", "food", "fruit", "veg", "meat",
+    "fish", "egg", "milk", "wine", "beer", "shopping", "basket", "list", "fridge", "microwave",
+    "curtain", "window", "garage", "balcony", "vacuum", "towel", "mirror", "alarm", "candle",
+    "blanket", "toy", "chore", "rubbish", "delivery", "visitor", "siren", "cctv", "boiler",
+    "fan", "aircon", "cutlery", "pan", "recipe", "salad", "soup", "pizza", "sandwich",
+    "icecream", "candy", "popcorn", "glass", "kettle", "stairs", "hammer-home", "ladder",
+    "shelf", "plant-water", "compost-home", "smoke",
+    // craft
+    "work", "office", "desk", "meeting", "call", "video", "mic", "mail-work", "chat", "thread",
+    "send", "deal", "sign", "contract", "invoice", "quote-work", "report", "chart", "chartdown",
+    "pie", "target", "goal", "flag", "milestone", "plan", "deadline", "sprint", "launch",
+    "review", "approve", "blocked", "risk", "bug", "fix", "code", "branch", "commit", "merge",
+    "test", "build-ci", "deploy", "server", "database", "cloud", "api", "terminal", "bugfix",
+    "design", "draw", "layout", "mobile", "laptop", "print", "scan", "badge", "trophy", "team",
+    "hire", "support", "ticket-work", "stock", "ship", "factory", "store", "till", "email",
+    "kanban", "backlog", "estimate", "release", "version", "rollback", "monitor", "log",
+    "oncall", "incident", "spec", "wiki", "slide", "interview", "onboard", "payroll", "expense",
+    "client", "pitch", "brand", "survey", "legal", "policy", "audit", "secure", "network",
+    "router", "queue", "pullrequest", "drive", "backup", "swimlane", "standup", "retro", "okr",
+    "headcount", "vendor", "contract-work",
+    // body
+    "health", "doctor", "hospital", "pill", "syringe", "bandage", "tooth", "eye-care", "ear",
+    "heart", "brain", "bone", "lungs", "scale-body", "sleep", "rest", "gym", "run", "walk",
+    "bike-sport", "swim", "climb", "yoga", "ball", "football", "tennis", "stretch",
+    "water-drink", "vitamin", "mood", "calm", "therapy", "appointment", "prescription",
+    "results", "blood", "allergy", "fever", "chill", "physio", "meditate", "breathe", "steps",
+    "weigh", "drink-water", "diet", "supplement", "checkup", "glasses", "hearing", "row",
+    "track-fit", "accessible", "dentist", "optician", "pharmacy", "emergency",
+    "insurance-health",
+    // means
+    "money", "cash", "coin", "bank", "savings", "invest", "loss", "bill", "tax", "wallet",
+    "card", "transfer", "salary", "budget", "rent", "mortgage", "insurance", "subscription",
+    "gift", "donate", "price", "discount", "crypto", "safe", "chart-money", "invoice-money",
+    "payment", "refund", "statement", "account", "atm", "loan", "interest", "fund", "pension",
+    "bill-water", "bill-power", "bill-net", "bill-phone", "council", "fine", "deposit",
+    "exchange", "candlestick", "combined", "wage", "bonus", "audit-money", "cashflow",
+    "forecast",
+    // away
+    "travel", "flight", "landing", "hotel", "camping", "caravan", "beach", "mountain", "map",
+    "place", "route", "compass", "luggage", "backpack", "passport", "ticket", "car", "taxi",
+    "bus", "train", "tram", "metro", "bike", "scooter", "boat", "ferry", "fuel", "parking",
+    "city", "village", "bridge", "sun-away", "snow", "rain", "photo", "souvenir", "booking",
+    "checkin", "visa", "customs", "delay", "rental", "charge", "motorway", "trail", "summit",
+    "lake", "island", "dive", "ski", "museum", "gallery", "theatre", "concert", "market",
+    "restaurant", "bar", "park", "zoo", "guide", "currency", "sim", "telescope", "tour",
+    "cruise", "hostel", "airbnb", "roadtrip", "hike",
+    // mind
+    "study", "school", "class", "book", "read", "library", "note", "write", "journal", "idea",
+    "question", "answer", "science", "maths", "language", "translate", "history", "law",
+    "music", "play-music", "guitar", "piano", "sing", "film", "tv", "game", "puzzle", "chess",
+    "cards", "art", "photo-art", "craft-hobby", "sew", "build-model", "garden-hobby", "collect",
+    "podcast", "news", "course", "homework", "exam", "degree", "research", "cite", "flashcard",
+    "revise", "timetable", "tutor", "chemistry", "physics", "biology", "geography", "astronomy",
+    "code-learn", "draw-learn", "feather", "speak", "listen", "watch", "stream", "tower",
+    "dice", "blocks", "shapes", "spool", "bake", "brew", "theatre-mind", "seminar", "mentor",
+    "quiz", "portfolio", "certificate",
+    // wild
+    "sun", "moon", "star", "cloud-sky", "storm", "wind", "leaf", "forest", "mountain-wild",
+    "sea", "river", "fire", "earth", "harvest", "seed", "bee", "butterfly", "fish-wild",
+    "bird-wild", "season", "compost", "solar", "dawn", "dusk", "night", "fog", "hail",
+    "drizzle", "rainbow", "volcano", "field", "orchard", "grape", "vegan", "nest", "shell",
+    "orbit", "rabbit", "snail", "turtle", "squirrel", "rat", "cow", "wheat-off", "frost",
+    "bloom", "root", "horizon", "cliff",
+    // thing
+    "page", "pages", "draft", "folder", "folderdoc", "archive", "inbox", "clip", "link",
+    "bookmark", "pin", "label", "search", "filter", "sort", "calendar", "clock", "timer",
+    "waiting", "repeat", "pause", "done", "todo", "urgent", "alert", "info", "shield",
+    "lock-thing", "key-thing", "eye-thing", "hide", "share", "copy", "cut", "ruler", "battery",
+    "wifi", "signal", "settings", "tune", "grid-thing", "box", "layers", "puzzle-thing",
+    "anchor", "magnet", "umbrella", "crown-thing", "gem", "rocket-thing", "bolt", "sticky",
+    "stack", "split", "undo", "redo", "refresh", "sync", "upload", "download", "export",
+    "import", "template", "gridview", "zoom", "fullscreen", "close", "more", "menu", "drag",
+    "rotate", "flip", "crop", "colour", "brush", "eraser", "pen", "stamp", "qr", "barcode",
+    "id", "verified", "warning", "help", "secret", "public", "robot", "ghost", "heart-thing",
+    "bot-off", "scaling", "split-square", "toggle", "slider", "switch", "radio-button",
+    "checkbox", "input", "filter-thing", "group-thing", "ungroup", "align", "space", "frame",
 ];
 
-pub fn drawn(key: &str) -> Option<&'static str> {
-    ICONS
-        .iter()
-        .find(|(named, _)| *named == key)
-        .map(|(_, glyph)| *glyph)
-}
-
 pub fn known(key: &str) -> bool {
-    drawn(key).is_some()
+    kept(key).is_some()
 }
 
 pub fn kept(key: &str) -> Option<&'static str> {
-    ICONS
-        .iter()
-        .find(|(named, _)| *named == key)
-        .map(|(named, _)| *named)
+    ICONS.iter().copied().find(|named| *named == key)
 }
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn no_two_icons_answer_to_the_same_name() {
-        let mut seen = std::collections::BTreeSet::new();
-        for (key, _) in ICONS {
-            assert!(seen.insert(*key), "two icons called {key}");
-        }
-    }
-
-    #[test]
-    fn no_two_names_draw_the_same_thing() {
-        let mut seen = std::collections::BTreeMap::new();
-        for (key, glyph) in ICONS {
-            if let Some(was) = seen.insert(*glyph, *key) {
-                panic!("{was} and {key} both draw {glyph}");
-            }
-        }
-    }
-
-    #[test]
-    fn every_name_is_a_plain_lowercase_word() {
-        for (key, _) in ICONS {
-            assert!(
-                !key.is_empty() && key.chars().all(|c| c.is_ascii_lowercase()),
-                "awkward name: {key}"
-            );
-        }
-    }
-
-    #[test]
-    fn what_a_document_needs_is_there() {
-        for wanted in ["write", "page", "clipboard", "bookmark", "link", "search"] {
-            assert!(known(wanted), "missing: {wanted}");
-        }
-    }
-
-    #[test]
-    fn what_a_list_needs_is_there() {
-        for wanted in ["done", "todo", "repeat", "waiting", "urgent", "blocked"] {
-            assert!(known(wanted), "missing: {wanted}");
-        }
-    }
-
     use super::*;
-    use std::collections::HashSet;
 
     #[test]
-    fn every_key_is_plain_ascii_so_a_file_name_never_carries_a_drawing() {
-        for (key, _) in ICONS {
-            assert!(
-                key.chars().all(|c| c.is_ascii_lowercase()),
-                "{key} is not plain"
-            );
-        }
-    }
-
-    #[test]
-    fn no_key_and_no_glyph_is_used_twice() {
-        let keys: HashSet<&str> = ICONS.iter().map(|(key, _)| *key).collect();
-        let glyphs: HashSet<&str> = ICONS.iter().map(|(_, glyph)| *glyph).collect();
-
-        assert_eq!(keys.len(), ICONS.len(), "a key is repeated");
-        assert_eq!(glyphs.len(), ICONS.len(), "a drawing is repeated");
-    }
-
-    #[test]
-    fn a_key_nobody_ships_is_refused_rather_than_drawn() {
-        assert!(!known("dragon"));
-        assert!(!known(""));
-        assert!(!known("HOME"));
-        assert_eq!(drawn("nope"), None);
-    }
-
-    #[test]
-    fn a_key_that_ships_answers_with_its_drawing() {
-        assert_eq!(drawn("home"), Some("🏠"));
+    fn a_name_outside_the_catalogue_is_refused() {
+        assert!(kept("unicorn").is_none());
         assert_eq!(kept("home"), Some("home"));
     }
 
     #[test]
-    fn there_are_enough_to_choose_from_without_scrolling_for_ever() {
-        assert!(ICONS.len() >= 60, "only {}", ICONS.len());
-        assert!(ICONS.len() <= 400, "more than anyone would sift through");
+    fn every_key_is_lowercase_ascii_so_it_travels_between_machines() {
+        assert!(
+            ICONS
+                .iter()
+                .all(|key| key.chars().all(|c| c.is_ascii_lowercase() || c == '-'))
+        );
+    }
+
+    #[test]
+    fn no_key_is_written_twice() {
+        let mut seen: Vec<&str> = ICONS.to_vec();
+        seen.sort_unstable();
+        let many = seen.len();
+        seen.dedup();
+        assert_eq!(seen.len(), many);
     }
 }

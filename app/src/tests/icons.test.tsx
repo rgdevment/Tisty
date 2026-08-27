@@ -6,7 +6,7 @@ import { sifted } from "../ui/Icons";
 import Lists from "../ui/Lists";
 
 const store = vi.hoisted(() => ({
-  looks: [] as { id: string; icon?: string }[],
+  looks: [] as { id: string; icon?: string; color?: string }[],
   made: [] as { name: string; icon?: string }[],
 }));
 
@@ -14,13 +14,13 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     switch (cmd) {
       case "icons":
-        return Promise.resolve([
-          ["home", "🏠"],
-          ["work", "💼"],
-          ["health", "🩺"],
-        ]);
+        return Promise.resolve(["home", "work", "health"]);
       case "list_look":
-        store.looks.push({ id: String(args?.id), icon: args?.icon as string | undefined });
+        store.looks.push({
+          id: String(args?.id),
+          icon: args?.icon as string | undefined,
+          color: args?.color as string | undefined,
+        });
         return Promise.resolve({ id: args?.id, name: "Casa", order: "a0", icon: args?.icon });
       case "list_add":
         store.made.push({ name: String(args?.name), icon: args?.icon as string | undefined });
@@ -53,10 +53,12 @@ describe("icons on a list", () => {
       />,
     );
 
-  it("draws the one a list already carries", async () => {
+  it("draws the one a list already carries, as a shape rather than an emoji", async () => {
     show();
 
-    expect(await screen.findByText("🏠")).toBeTruthy();
+    const held = await screen.findByLabelText("Icon of Casa");
+    expect(held.querySelector("svg")).toBeTruthy();
+    expect(held.textContent?.trim()).toBe("");
   });
 
   it("shows a plain mark where there is none, rather than nothing to press", async () => {
@@ -69,15 +71,28 @@ describe("icons on a list", () => {
     show();
     await userEvent.click(await screen.findByLabelText("Icon of Trabajo"));
     await userEvent.click(await screen.findByRole("button", { name: "work" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(store.looks.length).toBe(1));
-    expect(store.looks[0]).toEqual({ id: "01B", icon: "work" });
+    expect(store.looks[0]).toEqual({ id: "01B", icon: "work", color: undefined });
+  });
+
+  it("paints it with the colour picked beside it", async () => {
+    show();
+    await userEvent.click(await screen.findByLabelText("Icon of Trabajo"));
+    await userEvent.click(await screen.findByRole("button", { name: "work" }));
+    await userEvent.click(screen.getByRole("button", { name: "Teal" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(store.looks.length).toBe(1));
+    expect(store.looks[0]).toEqual({ id: "01B", icon: "work", color: "teal" });
   });
 
   it("can take an icon back off", async () => {
     show();
     await userEvent.click(await screen.findByLabelText("Icon of Casa"));
     await userEvent.click(await screen.findByRole("button", { name: "No icon" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(store.looks.length).toBe(1));
     expect(store.looks[0].icon).toBeUndefined();
@@ -105,30 +120,23 @@ describe("icons on a list", () => {
 
 describe("finding an icon among many", () => {
   it("shows them all until something is typed", () => {
-    const all: [string, string][] = [
-      ["work", "💼"],
-      ["done", "✅"],
-    ];
+    const all = ["work", "done"];
 
     expect(sifted(all, "")).toEqual(all);
     expect(sifted(all, "   ")).toEqual(all);
   });
 
   it("keeps the ones whose name carries what was typed", () => {
-    const all: [string, string][] = [
-      ["work", "💼"],
-      ["homework", "📚"],
-      ["done", "✅"],
-    ];
+    const all = ["work", "homework", "done"];
 
-    expect(sifted(all, "work").map(([key]) => key)).toEqual(["work", "homework"]);
+    expect(sifted(all, "work")).toEqual(["work", "homework"]);
   });
 
   it("does not mind how it was typed", () => {
-    expect(sifted([["done", "✅"]], "DONE")).toHaveLength(1);
+    expect(sifted(["done"], "DONE")).toHaveLength(1);
   });
 
   it("comes back empty rather than showing everything", () => {
-    expect(sifted([["done", "✅"]], "zzz")).toEqual([]);
+    expect(sifted(["done"], "zzz")).toEqual([]);
   });
 });

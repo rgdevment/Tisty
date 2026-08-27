@@ -62,16 +62,16 @@ describe("tending a list", () => {
       />,
     );
 
+  /// One sheet holds the lot now, so opening it is opening the icon.
   const openFor = async (name: string) =>
-    userEvent.click(await screen.findByLabelText(`What to do with ${name}`));
+    userEvent.click(await screen.findByLabelText(`Icon of ${name}`));
 
   it("gives a list a new name", async () => {
     show();
     await openFor("Casa");
-    await userEvent.click(screen.getByRole("button", { name: "Rename" }));
     await userEvent.clear(screen.getByLabelText("Name of the list"));
     await userEvent.type(screen.getByLabelText("Name of the list"), "Hogar");
-    await userEvent.click(screen.getByRole("button", { name: "Rename" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(store.named.length).toBe(1));
     expect(store.named[0]).toEqual({ id: "01A", name: "Hogar" });
@@ -81,7 +81,6 @@ describe("tending a list", () => {
   it("starts the renaming from the name it already has", async () => {
     show();
     await openFor("Trabajo");
-    await userEvent.click(screen.getByRole("button", { name: "Rename" }));
 
     expect((screen.getByLabelText("Name of the list") as HTMLInputElement).value).toBe("Trabajo");
   });
@@ -89,8 +88,7 @@ describe("tending a list", () => {
   it("says nothing to the log when the name is left as it was", async () => {
     show();
     await openFor("Casa");
-    await userEvent.click(screen.getByRole("button", { name: "Rename" }));
-    await userEvent.click(screen.getByRole("button", { name: "Rename" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(store.named.length).toBe(0);
   });
@@ -98,9 +96,8 @@ describe("tending a list", () => {
   it("keeps the old name when the field is emptied", async () => {
     show();
     await openFor("Casa");
-    await userEvent.click(screen.getByRole("button", { name: "Rename" }));
     await userEvent.clear(screen.getByLabelText("Name of the list"));
-    await userEvent.click(screen.getByRole("button", { name: "Rename" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(store.named.length).toBe(0);
   });

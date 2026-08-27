@@ -17,7 +17,7 @@ export default function Closing({ onDismiss, onError }: Props) {
 
   return (
     <Modal title={t("closingTitle")} onClose={onDismiss}>
-      <p className="mt-2 text-[12.5px] leading-relaxed text-soft">{t("closingWhy")}</p>
+      <p className="text-[12.5px] leading-relaxed text-soft">{t("closingWhy")}</p>
 
       <div className="mt-5 flex flex-col gap-2">
         <button

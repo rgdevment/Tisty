@@ -3,7 +3,7 @@ import type { List } from "../core";
 import { allRoutines } from "../core";
 import { cadence } from "../format";
 import { fill, t } from "../locales";
-import { drawn, useIcons } from "./Icons";
+import Glyph from "./Glyph";
 
 interface Props {
   lists: List[];
@@ -13,7 +13,6 @@ interface Props {
 
 export default function Shelf({ lists, onOpen, onError }: Props) {
   const all = useAsked(() => allRoutines(), [], onError);
-  const icons = useIcons();
 
   if (!all) return null;
   if (!all.length) {
@@ -39,7 +38,7 @@ export default function Shelf({ lists, onOpen, onError }: Props) {
                 title={named(one.list)}
                 className="pt-px text-center text-[13px] text-soft"
               >
-                {drawn(icons, filed(one.list)?.icon) ?? "↻"}
+                <Glyph name={filed(one.list)?.icon ?? "repeat"} />
               </span>
               <div className="min-w-0">
                 <h2 className="text-sm leading-snug">{one.title}</h2>
