@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
+import { useAsked } from "../asked";
 import type { Series, Turn } from "../core";
 import { taskSeries } from "../core";
 import { cadence } from "../format";
@@ -13,25 +14,7 @@ interface Props {
 type Mark = "kept" | "gap" | "given" | "open";
 
 export default function Routine({ task, onError, heading }: Props) {
-  const [told, setTold] = useState<Series | null>(null);
-
-  const warn = useRef(onError);
-  warn.current = onError;
-
-  useEffect(() => {
-    let alive = true;
-    setTold(null);
-    taskSeries(task)
-      .then((series) => {
-        if (alive) setTold(series);
-      })
-      .catch((problem) => {
-        if (alive) warn.current?.(problem);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [task]);
+  const told = useAsked(() => taskSeries(task), [task], onError);
 
   const days = useMemo(() => (told ? laid(told) : []), [told]);
   const hours = useMemo(() => (told ? clocked(told) : null), [told]);

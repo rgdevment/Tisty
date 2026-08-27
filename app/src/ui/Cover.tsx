@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import type { Shape } from "../core";
+import { useAsked } from "../asked";
 import { archiveShape } from "../core";
 import { fill, locale, t } from "../locales";
 
@@ -8,24 +7,7 @@ interface Props {
 }
 
 export default function Cover({ onError }: Props) {
-  const [shape, setShape] = useState<Shape | null>(null);
-
-  const warn = useRef(onError);
-  warn.current = onError;
-
-  useEffect(() => {
-    let alive = true;
-    archiveShape()
-      .then((told) => {
-        if (alive) setShape(told);
-      })
-      .catch((problem) => {
-        if (alive) warn.current?.(problem);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const shape = useAsked(() => archiveShape(), [], onError);
 
   if (!shape || shape.closed === 0) return null;
 

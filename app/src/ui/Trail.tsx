@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import type { List, Page, Story } from "../core";
+import { useAsked } from "../asked";
+import type { List, Page } from "../core";
 import { taskStory } from "../core";
 import { cadence, shortStamp, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
@@ -13,25 +13,7 @@ interface Props {
 }
 
 export default function Trail({ task, lists, onError, heading }: Props) {
-  const [told, setTold] = useState<Story | null>(null);
-
-  const warn = useRef(onError);
-  warn.current = onError;
-
-  useEffect(() => {
-    let alive = true;
-    setTold(null);
-    taskStory(task)
-      .then((story) => {
-        if (alive) setTold(story);
-      })
-      .catch((problem) => {
-        if (alive) warn.current?.(problem);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [task]);
+  const told = useAsked(() => taskStory(task), [task], onError);
 
   if (!told) return null;
   if (!told.pages.length) {

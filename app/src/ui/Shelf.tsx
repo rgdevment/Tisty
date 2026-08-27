@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import type { List, Series } from "../core";
+import { useAsked } from "../asked";
+import type { List } from "../core";
 import { allRoutines } from "../core";
 import { cadence } from "../format";
 import { fill, t } from "../locales";
@@ -12,25 +12,8 @@ interface Props {
 }
 
 export default function Shelf({ lists, onOpen, onError }: Props) {
-  const [all, setAll] = useState<Series[] | null>(null);
+  const all = useAsked(() => allRoutines(), [], onError);
   const icons = useIcons();
-
-  const warn = useRef(onError);
-  warn.current = onError;
-
-  useEffect(() => {
-    let alive = true;
-    allRoutines()
-      .then((some) => {
-        if (alive) setAll(some);
-      })
-      .catch((problem) => {
-        if (alive) warn.current?.(problem);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   if (!all) return null;
   if (!all.length) {
