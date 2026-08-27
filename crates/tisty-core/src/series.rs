@@ -159,9 +159,7 @@ pub fn routines(state: &State) -> Vec<Series> {
     all
 }
 
-/// Two machines can close the same turn before syncing, leaving one turn with two successors.
-/// Walking down from the root would drop a branch — and could hand back a chain missing the very
-/// turn that was asked about — so the walk goes both ways from `from`, which is always in it.
+/// Walks both ways so a forked chain still contains `from`, which walking down from the root loses.
 fn walked(state: &State, from: TaskId) -> Vec<&Task> {
     let mut back: HashMap<TaskId, TaskId> = HashMap::new();
     for task in state.tasks.values() {
@@ -639,6 +637,86 @@ mod tests {
                 "a series that leaves out the turn it was asked about is a lie"
             );
         }
+    }
+
+    #[test]
+    fn a_chain_that_points_at_itself_stops_instead_of_spinning() {
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("take the pill", "a0");
+        add.date = Some(day("2026-08-01"));
+        add.repeat = Some(daily(From::Due));
+        add.after = Some(id);
+        let state = State::replay(&[event(Op::TaskAdd { id, d: add })]);
+
+        let told = series(&state, id).expect("a self-cycle is still a series of one");
+
+        assert_eq!(told.turns.len(), 1);
+    }
+
+    #[test]
+    fn asking_for_a_task_that_is_not_there_gives_nothing_instead_of_panicking() {
+        let state = State::replay(&[]);
+
+        assert!(series(&state, Ulid::generate()).is_none());
+        assert_eq!(how_many(&state), 0);
+        assert!(routines(&state).is_empty());
+    }
+
+    #[test]
+    fn a_cadence_of_zero_leaves_no_gaps_instead_of_filling_the_calendar() {
+        let never = Repeat {
+            from: From::Due,
+            each: Cadence {
+                every: 0,
+                unit: Unit::Day,
+            },
+            until: None,
+        };
+        let told = Chain::new()
+            .turn("2026-08-01", never)
+            .done()
+            .turn("2026-09-01", never)
+            .done()
+            .told();
+
+        assert_eq!(
+            told.skipped, 0,
+            "a cadence that never advances measures nothing"
+        );
+        assert_eq!(told.owed, 2);
+    }
+
+    #[test]
+    fn a_series_with_an_end_carries_it_so_the_card_can_say_so() {
+        let until = Repeat {
+            from: From::Due,
+            each: Cadence {
+                every: 1,
+                unit: Unit::Day,
+            },
+            until: Some("2026-08-31".parse().unwrap()),
+        };
+        let told = Chain::new().turn("2026-08-01", until).done().told();
+
+        assert_eq!(
+            told.repeat.and_then(|one| one.until),
+            Some("2026-08-31".parse().unwrap())
+        );
+    }
+
+    #[test]
+    fn a_wild_gap_is_capped_instead_of_eating_the_memory() {
+        let told = Chain::new()
+            .turn("2000-01-01", daily(From::Due))
+            .done()
+            .turn("2026-08-01", daily(From::Due))
+            .done()
+            .told();
+
+        assert_eq!(
+            told.skipped, GAPS_AT_MOST,
+            "the walk stops at the cap rather than walking a quarter of a century"
+        );
     }
 
     #[test]

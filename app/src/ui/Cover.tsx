@@ -60,7 +60,7 @@ export default function Cover({ onError }: Props) {
             {shape.months.map((one, at) => (
               <span
                 key={one.key}
-                title={`${one.key} · ${one.closed}`}
+                title={`${named(one.key)} · ${one.closed}`}
                 style={{ height: `${Math.max((one.closed / most) * 100, one.closed ? 6 : 2)}%` }}
                 className={`flex-1 rounded-t-[3px] bg-accent ${
                   at === last ? "opacity-100" : "opacity-40"
@@ -69,17 +69,23 @@ export default function Cover({ onError }: Props) {
             ))}
           </div>
           <div className="mt-1 flex justify-between text-[11px] tabular-nums text-faint">
-            <span>{shape.months[0].key}</span>
+            <span>{named(shape.months[0].key)}</span>
             <span>
-              {fill("coverPeak", `${shape.months[peak].closed} · ${shape.months[peak].key}`)}
+              {fill("coverPeak", `${shape.months[peak].closed} · ${named(shape.months[peak].key)}`)}
             </span>
-            <span>{shape.months[last].key}</span>
+            <span>{named(shape.months[last].key)}</span>
           </div>
         </>
       )}
     </section>
   );
 }
+
+const named = (key: string): string => {
+  const at = new Date(`${key}-01T12:00:00`);
+  if (Number.isNaN(at.getTime())) return key;
+  return new Intl.DateTimeFormat(locale(), { month: "short", year: "2-digit" }).format(at);
+};
 
 const month = (iso: string): string => {
   const at = new Date(iso);

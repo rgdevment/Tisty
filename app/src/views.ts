@@ -27,7 +27,11 @@ export const layerWord = (layer: Reading) =>
       : ("layerTrace" as const);
 
 export const layerCount = (layer: Reading) =>
-  layer === "story" ? "stories" : layer === "routine" ? "routines" : "traces";
+  layer === "story"
+    ? ("stories" as const)
+    : layer === "routine"
+      ? ("routines" as const)
+      : ("traces" as const);
 
 export const axisWord = (axis: Axis) =>
   axis === "time"

@@ -152,6 +152,7 @@ trail-reopened    = "reabierta"
 
 series-running    = "sigue en marcha"
 series-endless    = "sin final"
+one-layer-only    = "una capa a la vez: historias, rutinas o rastro"
 series-all        = "rutinas"
 series-none       = "todavía no se repite nada"
 series-not-one    = "esa no forma parte de ninguna rutina"

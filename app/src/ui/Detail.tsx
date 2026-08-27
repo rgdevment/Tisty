@@ -182,14 +182,15 @@ export default function Detail({
       )}
 
       {(task.repeat || task.after) && (
-        <>
-          <Section label={t("routine")} />
-          <Routine task={task.id} onError={onError} />
-        </>
+        <Routine task={task.id} onError={onError} heading={<Section label={t("routine")} />} />
       )}
 
-      <Section label={t("trail")} />
-      <Trail task={task.id} lists={lists} onError={onError} />
+      <Trail
+        task={task.id}
+        lists={lists}
+        onError={onError}
+        heading={<Section label={t("trail")} />}
+      />
       <p className="mt-4 border-t border-hair pt-3 text-[11.5px] leading-relaxed text-faint">
         {t("trailSealed")}
       </p>

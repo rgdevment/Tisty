@@ -31,6 +31,8 @@ export interface Volume {
   steps_done?: number;
   journal?: number;
   described?: boolean;
+  prose?: number;
+  refs?: number;
 }
 
 export interface Task {

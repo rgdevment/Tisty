@@ -6,12 +6,13 @@ import { fill, locale, t } from "../locales";
 
 interface Props {
   task: string;
+  heading?: React.ReactNode;
   onError?: (problem: unknown) => void;
 }
 
 type Mark = "kept" | "gap" | "given" | "open";
 
-export default function Routine({ task, onError }: Props) {
+export default function Routine({ task, onError, heading }: Props) {
   const [told, setTold] = useState<Series | null>(null);
 
   const warn = useRef(onError);
@@ -46,6 +47,7 @@ export default function Routine({ task, onError }: Props) {
 
   return (
     <div>
+      {heading}
       <div className="flex flex-wrap gap-x-6 gap-y-3">
         <Fact
           big={`${told.kept}/${told.owed}`}
@@ -181,11 +183,11 @@ function laid(told: Series): Day[] {
   const days: Day[] = [];
   for (const turn of told.turns) {
     for (const gap of turn.gaps ?? []) {
-      days.push({ key: `gap-${gap}`, when: gap, mark: "gap", told: false });
+      days.push({ key: `gap-${gap}`, when: dated(gap), mark: "gap", told: false });
     }
     days.push({
       key: turn.id,
-      when: turn.due?.at?.slice(0, 10) ?? "",
+      when: turn.due?.at ? dated(turn.due.at.slice(0, 10)) : "",
       mark: mark(turn),
       told: turn.told === true,
     });

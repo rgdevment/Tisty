@@ -52,7 +52,7 @@ const told: Task = {
   priority: "unset",
   order: "a1",
   completed_at: "2026-08-12T10:00:00Z",
-  volume: { journal: 1, prose: 1 } as Task["volume"],
+  volume: { journal: 1, prose: 1 },
 };
 
 const errand: Task = {

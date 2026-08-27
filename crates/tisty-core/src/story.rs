@@ -478,6 +478,155 @@ mod tests {
     }
 
     #[test]
+    fn every_kind_of_move_becomes_the_chapter_that_names_it() {
+        let id = Ulid::generate();
+        let step = Ulid::generate();
+        let list = Ulid::generate();
+        let log = vec![
+            born(id, "ship the release"),
+            patched(
+                10,
+                id,
+                TaskPatch {
+                    priority: Some(crate::model::Priority::Do),
+                    ..Default::default()
+                },
+            ),
+            event(
+                20,
+                Op::TaskMove {
+                    id,
+                    d: TaskMove {
+                        list: Some(Some(list)),
+                        order: None,
+                    },
+                },
+            ),
+            patched(
+                30,
+                id,
+                TaskPatch {
+                    tags: Some(vec![crate::model::Tag::new("release").unwrap()]),
+                    ..Default::default()
+                },
+            ),
+            patched(
+                40,
+                id,
+                TaskPatch {
+                    repeat: Some(Some(crate::model::Repeat::due(crate::model::Cadence {
+                        every: 1,
+                        unit: crate::model::Unit::Week,
+                    }))),
+                    ..Default::default()
+                },
+            ),
+            event(
+                50,
+                Op::StepAdd {
+                    id,
+                    d: StepAdd {
+                        step,
+                        text: "sign it".into(),
+                        order: "a0".into(),
+                    },
+                },
+            ),
+            event(
+                60,
+                Op::StepDone {
+                    id,
+                    d: StepRef { step },
+                },
+            ),
+            event(
+                70,
+                Op::StepUndone {
+                    id,
+                    d: StepRef { step },
+                },
+            ),
+            event(
+                80,
+                Op::StepText {
+                    id,
+                    d: crate::event::StepText {
+                        step,
+                        text: "sign the installer".into(),
+                    },
+                },
+            ),
+            event(
+                90,
+                Op::StepRemove {
+                    id,
+                    d: StepRef { step },
+                },
+            ),
+            event(
+                100,
+                Op::TaskLogEdit {
+                    id,
+                    d: crate::event::LogEdit {
+                        entry: Ulid::generate(),
+                        body: "rewritten".into(),
+                    },
+                },
+            ),
+            event(110, Op::TaskDrop { id }),
+            event(120, Op::TaskReopen { id }),
+        ];
+
+        let told = story(&log, id);
+        let kinds: Vec<&Chapter> = chapters(&told);
+
+        for wanted in [
+            "Placed",
+            "Filed",
+            "Tagged",
+            "Cadenced",
+            "Planned",
+            "Ticked",
+            "Unticked",
+            "Reworded",
+            "Unplanned",
+            "Rewrote",
+            "Dropped",
+            "Reopened",
+        ] {
+            assert!(
+                kinds
+                    .iter()
+                    .any(|one| format!("{one:?}").starts_with(wanted)),
+                "{wanted} never made it into the trail: {kinds:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_step_ticked_without_ever_being_added_still_reads_as_a_chapter() {
+        let id = Ulid::generate();
+        let stray = Ulid::generate();
+        let log = vec![
+            born(id, "ship the release"),
+            event(
+                10,
+                Op::StepDone {
+                    id,
+                    d: StepRef { step: stray },
+                },
+            ),
+        ];
+
+        let told = story(&log, id);
+
+        assert!(
+            matches!(chapters(&told)[1], Chapter::Ticked { text } if text.is_empty()),
+            "a partial log still has to read, even if it reads thin"
+        );
+    }
+
+    #[test]
     fn an_emptied_description_is_a_chapter_but_an_empty_one_was_never_written() {
         let id = Ulid::generate();
         let log = vec![

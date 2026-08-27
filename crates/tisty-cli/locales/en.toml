@@ -155,6 +155,7 @@ trail-reopened    = "reopened"
 
 series-running    = "still running"
 series-endless    = "no end set"
+one-layer-only    = "one layer at a time: stories, routines or trace"
 series-all        = "routines"
 series-none       = "nothing repeats yet"
 series-not-one    = "that one is not part of a routine"

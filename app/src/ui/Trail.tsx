@@ -7,11 +7,12 @@ import { said } from "../quadrants";
 
 interface Props {
   task: string;
+  heading?: React.ReactNode;
   lists: List[];
   onError?: (problem: unknown) => void;
 }
 
-export default function Trail({ task, lists, onError }: Props) {
+export default function Trail({ task, lists, onError, heading }: Props) {
   const [told, setTold] = useState<Story | null>(null);
 
   const warn = useRef(onError);
@@ -34,39 +35,47 @@ export default function Trail({ task, lists, onError }: Props) {
 
   if (!told) return null;
   if (!told.pages.length) {
-    return <p className="px-1 text-[12.5px] text-faint">{t("trailEmpty")}</p>;
+    return (
+      <>
+        {heading}
+        <p className="px-1 text-[12.5px] text-faint">{t("trailEmpty")}</p>
+      </>
+    );
   }
 
   const named = (id?: string | null) => lists.find((one) => one.id === id)?.name;
 
   return (
-    <ol className="flex flex-col">
-      {told.pages.map((page) => (
-        <li
-          key={page.n}
-          className="grid grid-cols-[76px_14px_minmax(0,1fr)] items-start gap-2.5 py-1.5"
-        >
-          <span
-            title={wroteAt(page.at)}
-            className="pt-px text-right text-[11px] whitespace-nowrap tabular-nums text-faint"
+    <>
+      {heading}
+      <ol className="flex flex-col">
+        {told.pages.map((page) => (
+          <li
+            key={page.n}
+            className="grid grid-cols-[76px_14px_minmax(0,1fr)] items-start gap-2.5 py-1.5"
           >
-            {shortStamp(page.at)}
-          </span>
-          <span className="text-center text-[11px] leading-5 text-faint">{glyph(page)}</span>
-          <span
-            className={`text-[12.5px] leading-relaxed ${page.undoing ? "text-faint" : "text-soft"}`}
-          >
-            {phrase(page, named)}
-            {page.undoing && <span className="ml-1.5 text-[11px]">· {t("trailUndone")}</span>}
-            {page.chapter === "wrote" && (
-              <q className="mt-1 block border-l-2 border-hair pl-2.5 text-soft italic">
-                {page.body}
-              </q>
-            )}
-          </span>
-        </li>
-      ))}
-    </ol>
+            <span
+              title={wroteAt(page.at)}
+              className="pt-px text-right text-[11px] whitespace-nowrap tabular-nums text-faint"
+            >
+              {shortStamp(page.at)}
+            </span>
+            <span className="text-center text-[11px] leading-5 text-faint">{glyph(page)}</span>
+            <span
+              className={`text-[12.5px] leading-relaxed ${page.undoing ? "text-faint" : "text-soft"}`}
+            >
+              {phrase(page, named)}
+              {page.undoing && <span className="ml-1.5 text-[11px]">· {t("trailUndone")}</span>}
+              {page.chapter === "wrote" && (
+                <q className="mt-1 block border-l-2 border-hair pl-2.5 text-soft italic">
+                  {page.body}
+                </q>
+              )}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 

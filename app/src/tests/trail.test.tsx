@@ -66,6 +66,59 @@ describe("the trail", () => {
     expect(screen.getByText("the certificate took nine days to issue")).toBeTruthy();
   });
 
+  it("has a phrase for every kind of chapter the core can emit", async () => {
+    await shown([
+      { at: "2026-07-27T09:12:00Z", by: "d", chapter: "born", title: "ship it" },
+      { at: "2026-07-27T09:13:00Z", by: "d", chapter: "retitled", from: "ship it", to: "ship 0.3" },
+      { at: "2026-07-28T09:00:00Z", by: "d", chapter: "dated", to: day("2026-08-01") },
+      { at: "2026-07-28T10:00:00Z", by: "d", chapter: "dated" },
+      { at: "2026-07-29T09:00:00Z", by: "d", chapter: "bounded" },
+      { at: "2026-07-30T09:00:00Z", by: "d", chapter: "placed", from: "unset", to: "do" },
+      { at: "2026-07-31T09:00:00Z", by: "d", chapter: "filed" },
+      { at: "2026-08-01T09:00:00Z", by: "d", chapter: "tagged", added: ["release"], gone: [] },
+      { at: "2026-08-02T09:00:00Z", by: "d", chapter: "tagged", added: [], gone: ["release"] },
+      {
+        at: "2026-08-03T09:00:00Z",
+        by: "d",
+        chapter: "cadenced",
+        to: { from: "due", each: { every: 1, unit: "day" } },
+      },
+      { at: "2026-08-04T09:00:00Z", by: "d", chapter: "cadenced" },
+      { at: "2026-08-05T09:00:00Z", by: "d", chapter: "described", emptied: false },
+      { at: "2026-08-06T09:00:00Z", by: "d", chapter: "described", emptied: true },
+      { at: "2026-08-07T09:00:00Z", by: "d", chapter: "rewrote", body: "again" },
+      { at: "2026-08-08T09:00:00Z", by: "d", chapter: "planned", text: "sign it" },
+      { at: "2026-08-09T09:00:00Z", by: "d", chapter: "ticked", text: "sign it" },
+      { at: "2026-08-10T09:00:00Z", by: "d", chapter: "unticked", text: "sign it" },
+      {
+        at: "2026-08-11T09:00:00Z",
+        by: "d",
+        chapter: "reworded",
+        from: "sign it",
+        to: "sign msix",
+      },
+      { at: "2026-08-12T09:00:00Z", by: "d", chapter: "unplanned", text: "sign msix" },
+      { at: "2026-08-13T09:00:00Z", by: "d", chapter: "dropped" },
+    ]);
+
+    const said = screen
+      .getAllByRole("listitem")
+      .map((one) => one.textContent?.replace(/^\s*\S+\s+\d+:\d+\s*/, "").trim() ?? "");
+
+    expect(said).toHaveLength(20);
+    for (const one of said) {
+      expect(one.length, `a chapter rendered with no words: ${said.join(" | ")}`).toBeGreaterThan(
+        1,
+      );
+    }
+  });
+
+  it("keeps its footing when a list it names is no longer there", async () => {
+    await shown([{ at: "2026-07-28T18:40:00Z", by: "d", chapter: "filed", to: "01GONE" }]);
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  });
+
   it("names the list a task moved into", async () => {
     await shown([{ at: "2026-07-28T18:40:00Z", by: "dev_a", chapter: "filed", to: "01L" }]);
 

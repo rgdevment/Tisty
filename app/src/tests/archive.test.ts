@@ -23,8 +23,9 @@ describe("the archive by month", () => {
       done("3", "take the bins out", "2026-08-11T09:00:00Z"),
     ]);
 
-    expect(rows).toHaveLength(3);
+    expect(rows.map((row) => row.task.id)).toEqual(["1", "2", "3"]);
     expect(new Set(rows.map((row) => row.band)).size).toBe(1);
+    expect(rows.every((row) => row.band !== "")).toBe(true);
   });
 
   it("keeps two months apart", () => {
@@ -62,5 +63,6 @@ describe("the archive by month", () => {
     ]);
 
     expect(rows.map((row) => row.task.id)).toEqual(["1", "2"]);
+    expect(rows.map((row) => row.key)).toEqual(["1", "2"]);
   });
 });

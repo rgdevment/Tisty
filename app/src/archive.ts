@@ -1,13 +1,13 @@
 import type { List, Task } from "./core";
 import { bandOf, monthOf } from "./format";
 import { locale, t } from "./locales";
-import { QUADRANTS, said } from "./quadrants";
+import { said } from "./quadrants";
 
 export type Axis = "time" | "list" | "tag" | "quadrant";
 
 export const AXES: Axis[] = ["time", "list", "tag", "quadrant"];
 
-const STANDING: Record<string, number> = {
+const STANDING: Record<Task["priority"], number> = {
   do: 0,
   decide: 1,
   delegate: 2,
@@ -47,7 +47,7 @@ export function shelved(tasks: Task[], axis: Axis, lists: List[]): Row[] {
       const at = lists.findIndex((one) => one.id === task.list);
       put(task, name ?? t("noList"), name ? at : lists.length);
     } else if (axis === "quadrant") {
-      put(task, said(task.priority), STANDING[task.priority] ?? QUADRANTS.length);
+      put(task, said(task.priority), STANDING[task.priority]);
     } else if (!task.tags?.length) {
       put(task, t("noTags"), 1);
     } else {

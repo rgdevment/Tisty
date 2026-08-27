@@ -50,9 +50,9 @@ impl Filter {
                 self.inner.inbox = true;
                 Ok(())
             }
-            Some("story") => self.take_layer(Reading::Story),
-            Some("routine") => self.take_layer(Reading::Routine),
-            Some("trace") => self.take_layer(Reading::Trace),
+            Some("story") => self.take_layer(Reading::Story, lang),
+            Some("routine") => self.take_layer(Reading::Routine, lang),
+            Some("trace") => self.take_layer(Reading::Trace, lang),
             Some("archive") => {
                 self.inner.scope = view::Scope::Archived;
                 Ok(())
@@ -70,7 +70,10 @@ impl Filter {
         }
     }
 
-    fn take_layer(&mut self, how: Reading) -> anyhow::Result<()> {
+    fn take_layer(&mut self, how: Reading, lang: Lang) -> anyhow::Result<()> {
+        if self.inner.reading.is_some_and(|held| held != how) {
+            anyhow::bail!("{}", lang.get("one-layer-only"));
+        }
         self.inner.scope = view::Scope::Archived;
         self.inner.reading = Some(how);
         Ok(())

@@ -94,6 +94,75 @@ describe("a routine reads as behaviour, not as turns", () => {
     expect(screen.getByText(/Every date the cadence asked for has a record/i)).toBeTruthy();
   });
 
+  it("shows nothing at all when the task is not part of a routine", () => {
+    ipc.told = null;
+    const { container } = render(<Routine task="01A" />);
+
+    expect(container.textContent).toBe("");
+  });
+
+  it("hides the hour of day, and its warning, when no turn was ever closed", async () => {
+    await shown(series({ turns: [{ id: "01", status: "open" }], open: 1, owed: 0 }));
+
+    expect(screen.queryByText(/What hour they close at/i)).toBeNull();
+    expect(screen.queryByText(/the zone you are in now/i)).toBeNull();
+    expect(screen.queryByText(/the usual hour/i)).toBeNull();
+  });
+
+  it("warns that the hour is read in the zone of whoever is looking", async () => {
+    await shown(
+      series({
+        turns: [kept("01", "2026-08-01", "2026-08-01T08:10:00Z")],
+        kept: 1,
+        owed: 1,
+      }),
+    );
+
+    expect(screen.getByText(/the zone you are in now/i)).toBeTruthy();
+  });
+
+  it("says a routine has no end when none was set", async () => {
+    await shown(
+      series({
+        repeat: { from: "due", each: { every: 1, unit: "day" } },
+        turns: [kept("01", "2026-08-01", "2026-08-01T08:10:00Z")],
+        kept: 1,
+        owed: 1,
+      }),
+    );
+
+    expect(screen.getByText(/no end set/i)).toBeTruthy();
+  });
+
+  it("says when a routine ends, if it was given an end", async () => {
+    await shown(
+      series({
+        repeat: { from: "due", each: { every: 1, unit: "day" }, until: "2026-12-31" },
+        turns: [kept("01", "2026-08-01", "2026-08-01T08:10:00Z")],
+        kept: 1,
+        owed: 1,
+      }),
+    );
+
+    expect(screen.getByText(/ends /i)).toBeTruthy();
+  });
+
+  it("averages only the turns that ran late, never the early ones", async () => {
+    await shown(
+      series({
+        repeat: { from: "due", each: { every: 1, unit: "day" } },
+        turns: [
+          { ...kept("01", "2026-08-01", "2026-08-01T08:10:00Z"), late: 4 },
+          { ...kept("02", "2026-08-02", "2026-08-02T08:10:00Z"), late: -2 },
+        ],
+        kept: 2,
+        owed: 2,
+      }),
+    );
+
+    expect(screen.getByText(/4 days late on average/i)).toBeTruthy();
+  });
+
   it("counts every turn, kept or not, so the total is honest", async () => {
     await shown(
       series({
