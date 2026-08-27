@@ -31,6 +31,7 @@ import {
   folderLook,
   folderRename,
   markStep,
+  owed,
   type Papers,
   type Pick,
   parted,
@@ -67,6 +68,7 @@ import Menu, { type Choice } from "./ui/Menu";
 import Naming from "./ui/Naming";
 import Notice from "./ui/Notice";
 import Only from "./ui/Only";
+import Owed from "./ui/Owed";
 import Rifts from "./ui/Rifts";
 import Search from "./ui/Search";
 import Shelf from "./ui/Shelf";
@@ -156,6 +158,7 @@ export default function App() {
   const [here, setHere] = useState<string | null | undefined>(undefined);
   const [showing, setShowing] = useState<string | null>(null);
   const [carried, setCarried] = useState(0);
+  const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
 
   const newDoc = (folder?: string) =>
     docNew(folder)
@@ -281,6 +284,8 @@ export default function App() {
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
   const wasAwry = useRef<string | null>(null);
+
+  useEffect(() => setAsking(null), [chosen]);
 
   const load = useCallback(() => {
     snapshot(asView(chosen))
@@ -424,6 +429,20 @@ export default function App() {
           load();
           carries.current?.changed();
         });
+      })
+      .catch((e) => setError(saidPlainly(e)));
+  };
+
+  const marking = (id: string, title: string) => {
+    setError(null);
+    owed(id)
+      .then((days) => {
+        if (!days.length) {
+          say(fill("saidDone", title));
+          act(complete(id));
+          return;
+        }
+        setAsking({ id, title, days });
       })
       .catch((e) => setError(saidPlainly(e)));
   };
@@ -901,8 +920,7 @@ export default function App() {
             onDropStep={(step) => act(dropStep(task.id, step))}
             onLog={(body, entry) => act(writeLog(task.id, body, entry))}
             onComplete={() => {
-              say(fill("saidDone", task.title));
-              act(complete(task.id));
+              marking(task.id, task.title);
               setSelected(undefined);
             }}
             onDiscard={() => {
@@ -974,12 +992,24 @@ export default function App() {
                 ? undefined
                 : (id) => {
                     const one = shown.find((task) => task.id === id);
-                    if (one) say(fill("saidDone", one.title));
-                    act(complete(id));
+                    marking(id, one?.title ?? "");
                     if (id === selected) setSelected(undefined);
                   }
             }
             onFold={chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined}
+            closing={asking?.id}
+            ask={(id) =>
+              asking?.id === id ? (
+                <Owed
+                  days={asking.days}
+                  onConfirm={(days) => {
+                    say(fill("saidDone", asking.title));
+                    act(complete(asking.id, days));
+                    setAsking(null);
+                  }}
+                />
+              ) : null
+            }
             below={
               found?.papers.length ? (
                 <Sightings papers={found.papers} onOpen={openDoc} />
@@ -1157,8 +1187,7 @@ export default function App() {
             onDropStep={(step) => act(dropStep(task.id, step))}
             onLog={(body, entry) => act(writeLog(task.id, body, entry))}
             onComplete={() => {
-              say(fill("saidDone", task.title));
-              act(complete(task.id));
+              marking(task.id, task.title);
               setSelected(undefined);
             }}
             onDiscard={() => {

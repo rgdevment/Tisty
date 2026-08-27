@@ -127,8 +127,13 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
 
 pub fn how_many(state: &State) -> usize {
     heads(state)
-        .filter(|root| series(state, *root).is_some_and(|told| told.turns.len() > told.open))
+        .filter(|root| series(state, *root).is_some_and(|told| walked_at_all(&told)))
         .count()
+}
+
+/// A series whose every turn is still open has left no history for the archive to hold.
+fn walked_at_all(told: &Series) -> bool {
+    told.turns.len() > told.open
 }
 
 /// Climbing to the root per task is quadratic on a long chain; a root is spotted in one pass.
@@ -149,6 +154,7 @@ pub fn routines(state: &State) -> Vec<Series> {
         .collect::<Vec<_>>()
         .into_iter()
         .filter_map(|root| series(state, root))
+        .filter(walked_at_all)
         .collect();
     all.sort_by(|one, two| {
         two.turns
@@ -337,6 +343,22 @@ mod tests {
 
         assert_eq!(from_the_middle.turns.len(), 3);
         assert_eq!(from_the_middle.turns[0].id, chain.ids[0]);
+    }
+
+    #[test]
+    fn a_routine_that_has_never_been_closed_is_not_on_the_shelf() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("water the plants", "a0");
+        add.date = Some(day("2026-09-01"));
+        add.repeat = Some(daily(From::Due));
+        state.apply(&event(Op::TaskAdd { id, d: add }));
+
+        assert!(
+            routines(&state).is_empty(),
+            "the shelf showed a series with no history yet"
+        );
+        assert_eq!(how_many(&state), 0, "and the count disagreed with it");
     }
 
     #[test]

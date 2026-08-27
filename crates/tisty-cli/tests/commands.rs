@@ -1841,3 +1841,83 @@ fn asking_a_plain_task_for_its_series_says_so_instead_of_inventing_one() {
     );
     assert!(run.out.is_empty(), "stdout must stay clean: {}", run.out);
 }
+
+fn tuesday_back(weeks: i64) -> String {
+    let mut at = jiff::Zoned::now().date();
+    while at.weekday() != jiff::civil::Weekday::Tuesday {
+        at = at.yesterday().unwrap();
+    }
+    at.checked_sub(jiff::Span::new().weeks(weeks))
+        .unwrap()
+        .to_string()
+}
+
+#[test]
+fn closing_a_calendar_routine_late_says_which_days_went_unmarked() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["set", "1", "--date", &tuesday_back(3)]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["done", "1"]);
+
+    assert!(
+        out.contains("--also"),
+        "it never offered to fill them: {out}"
+    );
+}
+
+#[test]
+fn a_stretch_longer_than_memory_is_closed_without_asking() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["set", "1", "--date", &tuesday_back(9)]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["done", "1"]);
+
+    assert!(!out.contains("--also"), "it asked about months ago: {out}");
+}
+
+#[test]
+fn a_claimed_day_becomes_a_kept_turn_and_only_the_rest_is_a_gap() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["set", "1", "--date", &tuesday_back(3)]);
+    cli.ok(&["ls", "all"]);
+
+    cli.ok(&["done", "1", "--also", &tuesday_back(2), &tuesday_back(0)]);
+    cli.ok(&["ls", "archive"]);
+    let out = cli.ok(&["series", "1"]);
+
+    assert!(out.contains("3/4"), "the claimed days did not count: {out}");
+}
+
+#[test]
+fn an_ordinary_task_closed_late_is_never_asked_about_days() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+    cli.ok(&["ls", "all"]);
+
+    let out = cli.ok(&["done", "1"]);
+
+    assert!(!out.contains("--also"), "{out}");
+}
+
+#[test]
+fn a_day_that_is_not_a_date_is_refused_before_anything_is_written() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+
+    let run = cli.run(&["done", "1", "--also", "someday"]);
+
+    assert_ne!(run.code, 0, "it swallowed a word as a date");
+    assert!(
+        cli.ok(&["ls", "all"]).contains("water the plants"),
+        "the task was closed anyway"
+    );
+}

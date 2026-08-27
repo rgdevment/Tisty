@@ -3744,14 +3744,38 @@ fn weighed(bytes: u64) -> String {
 }
 
 #[tauri::command]
+fn owed(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<String>> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let session = held(&session);
+    let today = jiff::Zoned::now().date();
+    Ok(session
+        .state
+        .owed_since(id, today)
+        .iter()
+        .map(ToString::to_string)
+        .collect())
+}
+
+#[tauri::command]
 fn complete(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
+    also: Option<Vec<String>>,
 ) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let also = also
+        .unwrap_or_default()
+        .iter()
+        .map(|day| day.parse::<jiff::civil::Date>())
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| Refusal::of("notADate"))?;
     let mut session = held(&session);
-    let ops = session.state.completing(id, jiff::Zoned::now());
+    let ops = if also.is_empty() {
+        session.state.completing(id, jiff::Zoned::now())
+    } else {
+        session.state.covering(id, jiff::Zoned::now(), &also)
+    };
     session.commit_all(ops)?;
     let task = session
         .state
@@ -4071,6 +4095,7 @@ pub fn run() {
             read,
             search,
             complete,
+            owed,
             reopen,
             patch,
             write_step,

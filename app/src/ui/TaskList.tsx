@@ -25,6 +25,8 @@ interface Props {
   onFold?: (id: string, away: boolean) => void;
   onDrop?: (task: string, after?: string, before?: string) => void;
   above?: React.ReactNode;
+  ask?: (id: string) => React.ReactNode;
+  closing?: string;
   below?: React.ReactNode;
   instead?: React.ReactNode;
   children?: React.ReactNode;
@@ -49,6 +51,8 @@ export default function TaskList({
   onComplete,
   onFold,
   above,
+  ask,
+  closing,
   below,
   instead,
   children,
@@ -199,7 +203,9 @@ export default function TaskList({
                 e.stopPropagation();
                 onComplete(task.id);
               }}
-              className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${edge(task.priority)}`}
+              className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${edge(task.priority)} ${
+                closing === task.id ? "bg-accent" : ""
+              }`}
             />
           ) : (
             <span
@@ -211,7 +217,13 @@ export default function TaskList({
           )}
 
           <div className="min-w-0">
-            <h2 className="text-sm leading-snug">{task.title}</h2>
+            <h2
+              className={`text-sm leading-snug ${
+                closing === task.id ? "text-faint line-through" : ""
+              }`}
+            >
+              {task.title}
+            </h2>
             <Meta task={task} list={task.list ? named(task.list) : undefined} />
           </div>
 
@@ -305,6 +317,7 @@ export default function TaskList({
               )}
 
               {!hidden(row.band) && line(row.task, row.key)}
+              {!hidden(row.band) && ask?.(row.task.id)}
             </div>
           ))}
 

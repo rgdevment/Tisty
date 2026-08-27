@@ -250,7 +250,9 @@ export const dropStep = (id: string, step: string): Promise<Task> =>
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
-export const complete = (id: string): Promise<Task> => invoke("complete", { id });
+export const complete = (id: string, also?: string[]): Promise<Task> =>
+  invoke("complete", { id, also });
+export const owed = (id: string): Promise<string[]> => invoke("owed", { id });
 
 export interface Trace {
   kind: "doc" | "file" | "link" | "named";

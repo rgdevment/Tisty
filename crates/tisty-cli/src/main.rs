@@ -84,6 +84,8 @@ pub enum Command {
     },
     Done {
         selector: Option<String>,
+        #[arg(long, value_name = "DATE", num_args = 1..)]
+        also: Vec<String>,
     },
     Undone {
         selector: String,

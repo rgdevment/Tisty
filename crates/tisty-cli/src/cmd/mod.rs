@@ -25,7 +25,9 @@ pub fn dispatch(
 ) -> anyhow::Result<ExitCode> {
     match command {
         Command::Add(args) => task::add(app, args, today, lang),
-        Command::Done { selector } => task::done(app, selector.as_deref(), today, lang),
+        Command::Done { selector, also } => {
+            task::done(app, selector.as_deref(), &also, today, lang)
+        }
         Command::Undone { selector } => task::undone(app, &selector, today, lang),
         Command::Drop { selector } => task::drop(app, &selector, today, lang),
         Command::Rm { selector, force } => task::rm(app, &selector, force, lang),

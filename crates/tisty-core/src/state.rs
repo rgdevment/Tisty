@@ -530,6 +530,134 @@ impl State {
         ops
     }
 
+    /// The dates the cadence would skip between this turn and today, capped at what a person recalls.
+    pub fn owed_since(&self, id: TaskId, today: jiff::civil::Date) -> Vec<jiff::civil::Date> {
+        const RECALLS: usize = 5;
+        /// Five turns of a weekly cadence reach back five weeks, which is no longer memory.
+        const REACHES: i32 = 30;
+        let Some(task) = self.tasks.get(&id) else {
+            return Vec::new();
+        };
+        let (Some(due), Some(repeat)) = (task.date.as_ref(), task.repeat) else {
+            return Vec::new();
+        };
+        if repeat.from != crate::model::From::Due || repeat.cadence().every == 0 {
+            return Vec::new();
+        }
+
+        let mut at = due.at;
+        let mut all = Vec::new();
+        while all.len() <= RECALLS {
+            let Some(next) = repeat.cadence().after(at) else {
+                break;
+            };
+            if next.date() > today {
+                break;
+            }
+            all.push(next.date());
+            at = next;
+        }
+        let dark = today
+            .since(due.at.date())
+            .is_ok_and(|gone| gone.get_days() > REACHES);
+        if all.len() > RECALLS || dark {
+            Vec::new()
+        } else {
+            all
+        }
+    }
+
+    /// Fills the dates the person says they did, as turns already closed, so no gap is invented.
+    pub fn covering(&self, id: TaskId, now: jiff::Zoned, also: &[jiff::civil::Date]) -> Vec<Op> {
+        let Some(task) = self.tasks.get(&id) else {
+            return vec![Op::TaskDone { id }];
+        };
+        let (Some(due), Some(repeat)) = (task.date.clone(), task.repeat) else {
+            return self.completing(id, now);
+        };
+
+        let mut ops = vec![Op::TaskDone { id }];
+
+        let mut wanted: Vec<jiff::civil::Date> = also.to_vec();
+        wanted.sort_unstable();
+        wanted.dedup();
+
+        let mut before = id;
+        let mut last = due.clone();
+        for day in wanted {
+            if day <= last.date() {
+                continue;
+            }
+            let born = ulid::Ulid::generate();
+            let mut fresh =
+                crate::event::TaskAdd::new(task.title.clone(), self.order_last_in(task.list));
+            fresh.date = Some(due.moved(day.to_datetime(due.at.time())));
+            fresh.priority = Some(match task.priority {
+                Priority::Minor => Priority::Unset,
+                held => held,
+            });
+            fresh.list = task.list;
+            fresh.tags = task.tags.clone();
+            fresh.repeat = Some(repeat);
+            fresh.after = Some(before);
+            ops.push(Op::TaskAdd { id: born, d: fresh });
+            ops.push(Op::TaskDone { id: born });
+            last = due.moved(day.to_datetime(due.at.time()));
+            before = born;
+        }
+
+        if before == id {
+            return self.completing(id, now);
+        }
+
+        let Some(next) = repeat.next(
+            Some(&last),
+            now.datetime(),
+            now.datetime()
+                .date()
+                .to_datetime(jiff::civil::Time::midnight()),
+            now.time_zone().iana_name().unwrap_or("UTC"),
+        ) else {
+            return ops;
+        };
+        if repeat.ended(next.at.date()) {
+            return ops;
+        }
+
+        let born = ulid::Ulid::generate();
+        let mut fresh =
+            crate::event::TaskAdd::new(task.title.clone(), self.order_last_in(task.list));
+        fresh.date = Some(next);
+        fresh.priority = Some(match task.priority {
+            Priority::Minor => Priority::Unset,
+            held => held,
+        });
+        fresh.list = task.list;
+        fresh.tags = task.tags.clone();
+        fresh.repeat = Some(repeat);
+        fresh.after = Some(before);
+        ops.push(Op::TaskAdd { id: born, d: fresh });
+        if let Some(body) = &task.description {
+            ops.push(Op::TaskDescribe {
+                id: born,
+                d: crate::event::Body {
+                    body: Some(body.clone()),
+                },
+            });
+        }
+        for step in &task.steps {
+            ops.push(Op::StepAdd {
+                id: born,
+                d: crate::event::StepAdd {
+                    step: ulid::Ulid::generate(),
+                    text: step.text.clone(),
+                    order: step.order.clone(),
+                },
+            });
+        }
+        ops
+    }
+
     pub fn reopening(&self, id: TaskId) -> Vec<Op> {
         let mut ops = vec![Op::TaskReopen { id }];
         if let Some(born) = self
@@ -944,6 +1072,131 @@ mod tests {
     }
 
     use crate::model::{Cadence, Repeat, Unit};
+
+    fn a_daily_due(on: &str) -> (Vec<Event>, TaskId) {
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("take the pill", "a0");
+        add.date = Some(DateSpec::all_day(on.parse().unwrap(), "UTC"));
+        add.repeat = Some(crate::model::Repeat::due(Cadence {
+            every: 1,
+            unit: Unit::Day,
+        }));
+        (
+            vec![Event::new(
+                DeviceId("dev_a".into()),
+                jiff::Timestamp::from_second(1_770_000_000).unwrap(),
+                Op::TaskAdd { id, d: add },
+            )],
+            id,
+        )
+    }
+
+    fn now_on(day: &str) -> jiff::Zoned {
+        format!("{day}T09:00:00Z")
+            .parse::<jiff::Timestamp>()
+            .unwrap()
+            .to_zoned(jiff::tz::TimeZone::UTC)
+    }
+
+    #[test]
+    fn nothing_is_written_for_a_date_the_person_did_not_claim() {
+        let (log, id) = a_daily_due("2026-08-23");
+
+        let ops = State::replay(&log).covering(id, now_on("2026-08-26"), &[]);
+
+        let born = ops
+            .iter()
+            .filter(|op| matches!(op, Op::TaskAdd { .. }))
+            .count();
+        assert_eq!(
+            born, 1,
+            "only the next turn is born; a date nobody claimed needs no row"
+        );
+    }
+
+    #[test]
+    fn a_stretch_too_long_to_recall_is_never_offered() {
+        let (log, id) = a_daily_due("2026-07-15");
+        let state = State::replay(&log);
+
+        assert!(
+            state
+                .owed_since(id, "2026-08-26".parse().unwrap())
+                .is_empty(),
+            "forty days are not recalled one by one, so they are not asked about"
+        );
+        assert_eq!(state.owed_since(id, "2026-08-26".parse().unwrap()).len(), 0);
+    }
+
+    #[test]
+    fn a_short_stretch_offers_one_date_per_turn_of_the_cadence() {
+        let (log, id) = a_daily_due("2026-08-23");
+        let state = State::replay(&log);
+
+        let owed = state.owed_since(id, "2026-08-26".parse().unwrap());
+
+        assert_eq!(
+            owed,
+            vec![
+                "2026-08-24".parse::<jiff::civil::Date>().unwrap(),
+                "2026-08-25".parse().unwrap(),
+                "2026-08-26".parse().unwrap(),
+            ]
+        );
+    }
+
+    #[test]
+    fn five_turns_of_a_slow_cadence_still_reach_too_far_back_to_be_offered() {
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("water the plants", "a0");
+        add.date = Some(DateSpec::all_day("2026-07-07".parse().unwrap(), "UTC"));
+        add.repeat = Some(crate::model::Repeat::due(Cadence {
+            every: 1,
+            unit: Unit::Week,
+        }));
+        let state = State::replay(&[Event::new(
+            DeviceId("dev_a".into()),
+            jiff::Timestamp::from_second(1_770_000_000).unwrap(),
+            Op::TaskAdd { id, d: add },
+        )]);
+
+        let owed = state.owed_since(id, "2026-08-11".parse().unwrap());
+
+        assert!(
+            owed.is_empty(),
+            "five weeks is not memory, however few the turns: {owed:?}"
+        );
+    }
+
+    #[test]
+    fn a_claimed_date_becomes_a_turn_that_was_already_closed() {
+        let (mut log, id) = a_daily_due("2026-08-23");
+
+        let state = State::replay(&log);
+        let owed = state.owed_since(id, "2026-08-25".parse().unwrap());
+        let ops = state.covering(id, now_on("2026-08-25"), &owed);
+        for (at, op) in ops.into_iter().enumerate() {
+            let mut one = Event::new(
+                DeviceId("dev_a".into()),
+                jiff::Timestamp::from_second(1_770_100_000).unwrap(),
+                op,
+            );
+            one.seq = at as u64;
+            log.push(one);
+        }
+        let after = State::replay(&log);
+
+        let told = crate::series::series(&after, id).unwrap();
+        assert_eq!(told.kept, 3, "the claimed days count as done, not as gaps");
+        assert_eq!(
+            told.skipped, 0,
+            "and the cadence leaves no hole behind them"
+        );
+        assert!(
+            !told.turns[1].told && !told.turns[2].told,
+            "a filled turn carries no substance of its own"
+        );
+    }
 
     #[test]
     fn completing_a_repeating_task_emits_the_next_one() {
