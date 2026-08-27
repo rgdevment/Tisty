@@ -108,20 +108,34 @@ describe("the document tree", () => {
     expect(screen.getByText("empty")).toBeTruthy();
   });
 
-  it("draws a guide down the branch holding what is open, and nowhere else", () => {
-    const { container } = render(
-      <Tree papers={papers} open="a3f1-0002" onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
-    );
-
-    expect(container.querySelectorAll("li.relative > span[aria-hidden]").length).toBe(2);
-  });
-
-  it("draws no guide at all while nothing is open", () => {
+  it("draws a guide down every folder standing open, whether or not you are in it", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
 
-    expect(container.querySelectorAll("li.relative > span[aria-hidden]").length).toBe(0);
+    expect(container.querySelectorAll("li.relative > span[aria-hidden].w-px").length).toBe(4);
+  });
+
+  it("reaches across to each paper, which has no arrow of its own to say whose it is", () => {
+    const { container } = render(
+      <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
+    );
+
+    const elbows = Array.from(
+      container.querySelectorAll<HTMLElement>("li.relative > span[aria-hidden].h-px"),
+    );
+    expect(elbows).toHaveLength(5);
+    expect(new Set(elbows.map((one) => one.style.left))).toEqual(new Set(["14px", "29px"]));
+  });
+
+  it("takes a folder's guide away with the branch it was drawing", async () => {
+    const { container } = render(
+      <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close trabajo" }));
+
+    expect(container.querySelectorAll("li.relative > span[aria-hidden].w-px").length).toBe(2);
   });
 
   it("steps four levels of folder in and keeps each one further along", () => {

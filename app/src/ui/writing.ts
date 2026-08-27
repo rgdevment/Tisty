@@ -329,8 +329,7 @@ const Barred = Text.extend({
 });
 
 /// Markdown cannot say "icon", so it goes as HTML with its name inside: other readers show that.
-/// The name lands inside a tag Tisty writes into the reader's own .md file, so whatever a hand
-/// edit or a paste put there goes back as text rather than as markup of its own.
+/// This lands in the reader's own .md file, so a hand edit or a paste goes back as text, not markup.
 const quoted = (value: string): string =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 

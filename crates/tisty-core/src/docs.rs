@@ -544,8 +544,6 @@ fn skipped(chars: &mut std::iter::Peekable<std::str::Chars>, opens: char, shuts:
     }
 }
 
-/// An icon travels as a span so other Markdown readers keep it; a title or an excerpt wants the
-/// name it carries, not the tag around it.
 fn unspanned(line: &str) -> String {
     if !line.contains("<span data-ico=") {
         return line.to_string();

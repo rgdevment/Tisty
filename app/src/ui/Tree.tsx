@@ -39,18 +39,6 @@ export default function Tree({
 
   const rows = () => Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
 
-  /// Only the branch holding what you have open gets a guide, so the rest stays as quiet as it was.
-  const along = (() => {
-    const held = papers.docs.find((doc) => doc.file === open && !doc.archived);
-    let at = held ? held.folder : (here ?? null);
-    const seen = new Set<string>();
-    while (at && !seen.has(at)) {
-      seen.add(at);
-      at = papers.folders.find((one) => one.id === at)?.parent ?? null;
-    }
-    return seen;
-  })();
-
   const first = papers.folders[0]?.id ?? papers.docs[0]?.id ?? "unfiled";
   const stops = (id: string) => (reached ?? first) === id;
 
@@ -119,12 +107,12 @@ export default function Tree({
 
   const ICON = 20;
   const STEP = 15;
+  const ELBOW = 26;
 
   const shortcuts = (kind: "doc" | "folder") =>
     lifted && kind === "folder" ? "Control+V Control+X Shift+F10" : "Control+X Shift+F10";
 
   const fold = (id: string) => {
-    /// Folding away the row the tab stop sat on would leave the tree with no way in at all.
     if (!shut.has(id)) setReached(id);
     setShut((were) => {
       const now = new Set(were);
@@ -160,13 +148,20 @@ export default function Tree({
   const paper = (doc: Filed, depth: number) => (
     <li
       key={doc.id}
-      className="group/paper flex items-center focus-within:bg-hover"
+      className="group/paper relative flex items-center focus-within:bg-hover"
       onContextMenu={(e) => {
         if (!onDocMenu) return;
         e.preventDefault();
         onDocMenu(doc, { x: e.clientX, y: e.clientY });
       }}
     >
+      {depth > 0 && (
+        <span
+          aria-hidden="true"
+          className="absolute top-1/2 h-px bg-hair"
+          style={{ left: `${14 + (depth - 1) * STEP}px`, width: `${ELBOW}px` }}
+        />
+      )}
       <button
         type="button"
         draggable
@@ -209,9 +204,8 @@ export default function Tree({
     const closed = shut.has(folder.id);
     const kids = under(folder.id);
     const papersIn = inside(folder.id);
-    const guided = along.has(folder.id);
     return (
-      <li key={folder.id} className={guided ? "relative" : undefined}>
+      <li key={folder.id} className="relative">
         <div
           {...dropOn(folder.id)}
           className={`rounded-md ${over === folder.id ? "bg-accent-soft" : ""}`}
@@ -257,11 +251,13 @@ export default function Tree({
                 <Glyph name={folder.icon ?? "folder"} />
               </span>
               <span className="truncate">{folder.name}</span>
-              <span className="ml-auto pr-1 text-[11px] text-faint">{folder.holds || ""}</span>
+              <span className="ml-auto pr-1 text-[11px] text-faint opacity-0 transition-opacity group-hover/folder:opacity-100">
+                {folder.holds || ""}
+              </span>
             </button>
           </div>
         </div>
-        {guided && !closed && (
+        {!closed && (
           <span
             aria-hidden="true"
             className="absolute bottom-1 w-px bg-hair"
@@ -306,10 +302,10 @@ export default function Tree({
       )}
       {under(null).map((folder) => branch(folder, 0))}
 
-      <li>
+      <li className="relative">
         <div
           {...dropOn(undefined)}
-          className={`mt-1 flex items-center rounded-md ${
+          className={`group/loose mt-1 flex items-center rounded-md ${
             over === "unfiled" ? "bg-accent-soft" : ""
           }`}
         >
@@ -348,9 +344,18 @@ export default function Tree({
               <Glyph name="inbox" />
             </span>
             <span className="truncate">{t("unfiled")}</span>
-            <span className="ml-auto text-[11px]">{loose.length || ""}</span>
+            <span className="ml-auto text-[11px] opacity-0 transition-opacity group-hover/loose:opacity-100">
+              {loose.length || ""}
+            </span>
           </button>
         </div>
+        {!shut.has("unfiled") && (
+          <span
+            aria-hidden="true"
+            className="absolute bottom-1 w-px bg-hair"
+            style={{ left: "14px", top: "30px" }}
+          />
+        )}
         {!shut.has("unfiled") && (
           <ul id="holds-unfiled" {...dropOn(undefined)}>
             {loose.map((doc) => paper(doc, 1))}

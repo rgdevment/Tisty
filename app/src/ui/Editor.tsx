@@ -49,7 +49,6 @@ export const clicking =
     return true;
   };
 
-/// An icon travels as a span so other readers keep it; a blurb wants the name, not the tag.
 const spanless = (line: string): string =>
   line.replace(/<span[^>]*data-ico="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, ":$1:");
 
