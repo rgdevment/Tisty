@@ -4,7 +4,9 @@ use ulid::Ulid;
 pub type FolderId = Ulid;
 pub type DocId = Ulid;
 
-pub const DEEPEST: usize = 2;
+/// A move past this depth is refused while projecting, not only while writing, so two machines that
+/// disagree would build different trees from one log. Raising it raises SCHEMA_VERSION with it.
+pub const DEEPEST: usize = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Folder {

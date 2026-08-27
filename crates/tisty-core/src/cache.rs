@@ -9,7 +9,9 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-const SCHEMA: i64 = 6;
+/// Tied to the event schema so a cache written by a newer build can never be handed to an older
+/// one: a miss sends it back to the log, where the version guard refuses properly.
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 1;
 
 pub struct Cache {
     db: Connection,

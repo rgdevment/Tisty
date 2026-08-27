@@ -160,7 +160,7 @@ pub fn titled(body: &str) -> String {
         .find(|one| !wordless(one))
         .copied()
         .unwrap_or_default();
-    crate::text::plainly(first.trim_start_matches('#').trim())
+    crate::text::plainly(unspanned(first.trim_start_matches('#')).trim())
 }
 
 pub fn marked(body: &str, said: &str) -> String {
@@ -544,7 +544,35 @@ fn skipped(chars: &mut std::iter::Peekable<std::str::Chars>, opens: char, shuts:
     }
 }
 
+/// An icon travels as a span so other Markdown readers keep it; a title or an excerpt wants the
+/// name it carries, not the tag around it.
+fn unspanned(line: &str) -> String {
+    if !line.contains("<span data-ico=") {
+        return line.to_string();
+    }
+    let mut out = String::with_capacity(line.len());
+    let mut rest = line;
+    while let Some(at) = rest.find("<span data-ico=") {
+        out.push_str(&rest[..at]);
+        let after = &rest[at..];
+        let Some(shut) = after.find('>') else {
+            return out + after;
+        };
+        let inner = &after[shut + 1..];
+        match inner.find("</span>") {
+            Some(ends) => {
+                out.push_str(&inner[..ends]);
+                rest = &inner[ends + "</span>".len()..];
+            }
+            None => return out + inner,
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 pub fn bare(line: &str) -> String {
+    let line = &unspanned(line);
     let said = line
         .trim()
         .trim_start_matches(['>', '#', ' '])
@@ -2340,5 +2368,36 @@ mod tests {
         std::fs::create_dir(&dir).unwrap();
 
         assert!(matches!(read_outside(&dir), Err(Error::OutsideTheStore(_))));
+    }
+
+    #[test]
+    fn a_title_carries_the_icon_name_rather_than_the_tag_around_it() {
+        let said = titled("# <span data-ico=\"star\">:star:</span> Plan de marzo");
+
+        assert_eq!(said, ":star: Plan de marzo");
+    }
+
+    #[test]
+    fn an_excerpt_carries_the_icon_name_rather_than_the_tag_around_it() {
+        let said = bare(
+            "Lanzamiento <span data-ico=\"rocket\" data-hue=\"blue\">:rocket:</span> del jueves",
+        );
+
+        assert_eq!(said, "Lanzamiento :rocket: del jueves");
+    }
+
+    #[test]
+    fn a_line_that_only_looks_like_a_span_is_left_alone() {
+        assert_eq!(bare("a < b and c > d"), "a < b and c > d");
+        assert_eq!(bare("<https://example.com>"), "<https://example.com>");
+    }
+
+    #[test]
+    fn an_unclosed_icon_span_still_gives_back_what_it_wrapped() {
+        assert_eq!(bare("antes <span data-ico=\"star\">:star:"), "antes :star:");
+        assert_eq!(
+            bare("antes <span data-ico=\"star\""),
+            "antes <span data-ico=\"star\""
+        );
     }
 }

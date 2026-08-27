@@ -83,37 +83,96 @@ describe("the document tree", () => {
     );
   });
 
-  it("picks a folder and folds it in the same click", async () => {
+  it("picks a folder without folding it away", async () => {
     const { onHere } = show();
 
     await userEvent.click(screen.getByRole("button", { name: "trabajo" }));
 
     expect(onHere).toHaveBeenCalledWith("01F");
-    expect(screen.queryByRole("button", { name: "corporativo" })).toBeNull();
-
-    await userEvent.click(screen.getByRole("button", { name: "trabajo" }));
-
     expect(screen.getByRole("button", { name: "corporativo" })).toBeTruthy();
   });
 
-  it("folds unfiled away too, and says so", async () => {
-    const { onHere } = show();
-    const loose = screen.getByRole("button", { name: /Unfiled/ });
-    expect(loose.getAttribute("aria-expanded")).toBe("true");
+  it("leaves the folding to the arrow beside the name", async () => {
+    show();
 
-    await userEvent.click(loose);
+    await userEvent.click(screen.getByRole("button", { name: "Close trabajo" }));
+    expect(screen.queryByRole("button", { name: "corporativo" })).toBeNull();
 
-    expect(onHere).toHaveBeenCalledWith(undefined);
+    await userEvent.click(screen.getByRole("button", { name: "Open trabajo" }));
+    expect(screen.getByRole("button", { name: "corporativo" })).toBeTruthy();
+  });
+
+  it("says a folder is empty rather than leaving the gap unexplained", () => {
+    show();
+
+    expect(screen.getByText("empty")).toBeTruthy();
+  });
+
+  it("draws a guide down the branch holding what is open, and nowhere else", () => {
+    const { container } = render(
+      <Tree papers={papers} open="a3f1-0002" onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
+    );
+
+    expect(container.querySelectorAll("li.relative > span[aria-hidden]").length).toBe(2);
+  });
+
+  it("draws no guide at all while nothing is open", () => {
+    const { container } = render(
+      <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
+    );
+
+    expect(container.querySelectorAll("li.relative > span[aria-hidden]").length).toBe(0);
+  });
+
+  it("steps four levels of folder in and keeps each one further along", () => {
+    const deep: Papers = {
+      folders: [
+        { id: "1", name: "uno", parent: null, icon: null, holds: 0 },
+        { id: "2", name: "dos", parent: "1", icon: null, holds: 0 },
+        { id: "3", name: "tres", parent: "2", icon: null, holds: 0 },
+        { id: "4", name: "cuatro", parent: "3", icon: null, holds: 0 },
+      ],
+      docs: [],
+    };
+    render(<Tree papers={deep} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+
+    const left = (name: string) =>
+      Number.parseFloat(
+        screen.getByRole("button", { name: `Close ${name}` }).style.marginLeft.replace("px", ""),
+      );
+
+    expect(left("uno")).toBeLessThan(left("dos"));
+    expect(left("dos")).toBeLessThan(left("tres"));
+    expect(left("tres")).toBeLessThan(left("cuatro"));
+  });
+
+  it("folds unfiled away from its own arrow, and says so", async () => {
+    show();
+    expect(
+      screen.getByRole("button", { name: "Close Unfiled" }).getAttribute("aria-expanded"),
+    ).toBe("true");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close Unfiled" }));
+
     expect(screen.queryByRole("button", { name: "Suelto" })).toBeNull();
-    expect(screen.getByRole("button", { name: /Unfiled/ }).getAttribute("aria-expanded")).toBe(
+    expect(screen.getByRole("button", { name: "Open Unfiled" }).getAttribute("aria-expanded")).toBe(
       "false",
     );
+  });
+
+  it("picks unfiled from its name without folding it away", async () => {
+    const { onHere } = show();
+
+    await userEvent.click(screen.getByRole("button", { name: "Unfiled" }));
+
+    expect(onHere).toHaveBeenCalledWith(undefined);
+    expect(screen.getByRole("button", { name: "Suelto" })).toBeTruthy();
   });
 
   it("lets unfiled be picked like any other place", async () => {
     const { onHere } = show();
 
-    await userEvent.click(screen.getByRole("button", { name: /Unfiled/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Unfiled" }));
 
     expect(onHere).toHaveBeenCalledWith(undefined);
   });
@@ -121,7 +180,7 @@ describe("the document tree", () => {
   it("marks the place being looked at", () => {
     show(vi.fn(), vi.fn(), null);
 
-    expect(screen.getByRole("button", { name: /Unfiled/ }).getAttribute("aria-current")).toBe(
+    expect(screen.getByRole("button", { name: "Unfiled" }).getAttribute("aria-current")).toBe(
       "true",
     );
   });
@@ -242,7 +301,7 @@ describe("the document tree", () => {
 
     screen.getByRole("button", { name: "Compras" }).focus();
     await userEvent.keyboard("{Control>}x{/Control}");
-    screen.getByRole("button", { name: /Unfiled/ }).focus();
+    screen.getByRole("button", { name: "Unfiled" }).focus();
     await userEvent.keyboard("{Control>}v{/Control}");
 
     expect(onFile).toHaveBeenCalledWith("01A", undefined);
@@ -348,7 +407,7 @@ describe("the document tree", () => {
     const onHereMenu = vi.fn();
     render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHereMenu={onHereMenu} />);
 
-    fireEvent.contextMenu(screen.getByRole("button", { name: /Unfiled/ }), {
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Unfiled" }), {
       clientX: 5,
       clientY: 9,
     });
@@ -358,7 +417,7 @@ describe("the document tree", () => {
 
   it("never treats the unfiled shelf as a folder that can be renamed or deleted", async () => {
     const { onFolderMenu } = show();
-    screen.getByRole("button", { name: /Unfiled/ }).focus();
+    screen.getByRole("button", { name: "Unfiled" }).focus();
 
     await userEvent.keyboard("{Shift>}{F10}{/Shift}");
 
@@ -377,7 +436,7 @@ describe("the document tree", () => {
 
   it("takes a document out of every folder when dropped on unfiled", () => {
     const { onFile } = show();
-    const loose = screen.getByRole("button", { name: /Unfiled/ }).parentElement as HTMLElement;
+    const loose = screen.getByRole("button", { name: "Unfiled" }).parentElement as HTMLElement;
 
     fireEvent.drop(loose, { dataTransfer: { getData: () => "01A" } });
 

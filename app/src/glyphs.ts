@@ -1,4 +1,5 @@
-// Lucide Icons — ISC. Copyright (c) 2026 Lucide Icons and Contributors.
+// Lucide Icons — ISC (c) 2026 Lucide Icons and Contributors; the part that came from Feather is
+// MIT (c) 2013-2023 Cole Bemis. THIRD-PARTY.md carries both notices in full.
 // https://lucide.dev · the paths are copied in so the app never reaches for a CDN.
 
 export const DRAWN: Record<string, string> = {

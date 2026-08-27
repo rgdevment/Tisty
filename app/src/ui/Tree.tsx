@@ -39,6 +39,18 @@ export default function Tree({
 
   const rows = () => Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
 
+  /// Only the branch holding what you have open gets a guide, so the rest stays as quiet as it was.
+  const along = (() => {
+    const held = papers.docs.find((doc) => doc.file === open && !doc.archived);
+    let at = held ? held.folder : (here ?? null);
+    const seen = new Set<string>();
+    while (at && !seen.has(at)) {
+      seen.add(at);
+      at = papers.folders.find((one) => one.id === at)?.parent ?? null;
+    }
+    return seen;
+  })();
+
   const first = papers.folders[0]?.id ?? papers.docs[0]?.id ?? "unfiled";
   const stops = (id: string) => (reached ?? first) === id;
 
@@ -106,17 +118,21 @@ export default function Tree({
   };
 
   const ICON = 20;
+  const STEP = 15;
 
   const shortcuts = (kind: "doc" | "folder") =>
     lifted && kind === "folder" ? "Control+V Control+X Shift+F10" : "Control+X Shift+F10";
 
-  const fold = (id: string) =>
+  const fold = (id: string) => {
+    /// Folding away the row the tab stop sat on would leave the tree with no way in at all.
+    if (!shut.has(id)) setReached(id);
     setShut((were) => {
       const now = new Set(were);
       if (now.has(id)) now.delete(id);
       else now.add(id);
       return now;
     });
+  };
 
   const under = (parent: string | null) => papers.folders.filter((one) => one.parent === parent);
 
@@ -169,7 +185,7 @@ export default function Tree({
             : doc.title || t("untitledDoc")
         }
         aria-current={open === doc.file ? "true" : undefined}
-        style={{ paddingLeft: `${8 + depth * 17 + ICON}px` }}
+        style={{ paddingLeft: `${8 + depth * STEP + ICON}px` }}
         className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[12.5px] ${
           lifted?.id === doc.id ? "ring-1 ring-accent " : ""
         }${doc.archived ? "opacity-55 " : ""}${
@@ -191,8 +207,11 @@ export default function Tree({
 
   const branch = (folder: Folded, depth: number) => {
     const closed = shut.has(folder.id);
+    const kids = under(folder.id);
+    const papersIn = inside(folder.id);
+    const guided = along.has(folder.id);
     return (
-      <li key={folder.id}>
+      <li key={folder.id} className={guided ? "relative" : undefined}>
         <div
           {...dropOn(folder.id)}
           className={`rounded-md ${over === folder.id ? "bg-accent-soft" : ""}`}
@@ -210,7 +229,8 @@ export default function Tree({
               onClick={() => fold(folder.id)}
               aria-label={fill(closed ? "openFolder" : "closeFolder", folder.name)}
               aria-expanded={!closed}
-              style={{ marginLeft: `${8 + depth * 17}px` }}
+              aria-controls={`holds-${folder.id}`}
+              style={{ marginLeft: `${8 + depth * STEP}px` }}
               className="grid h-5 w-3 shrink-0 place-items-center rounded text-[9px] text-faint hover:text-ink"
             >
               <span className={`transition-transform ${closed ? "-rotate-90" : ""}`}>▼</span>
@@ -226,11 +246,7 @@ export default function Tree({
               }
               aria-keyshortcuts={shortcuts("folder")}
               onDragStart={(e) => e.dataTransfer.setData("text/tisty-folder", folder.id)}
-              onClick={() => {
-                onHere?.(folder.id);
-                fold(folder.id);
-              }}
-              aria-expanded={!closed}
+              onClick={() => onHere?.(folder.id)}
               aria-label={lifted?.id === folder.id ? fill("liftedIs", folder.name) : folder.name}
               aria-current={here === folder.id ? "true" : undefined}
               className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[12.5px] ${
@@ -245,10 +261,25 @@ export default function Tree({
             </button>
           </div>
         </div>
+        {guided && !closed && (
+          <span
+            aria-hidden="true"
+            className="absolute bottom-1 w-px bg-hair"
+            style={{ left: `${14 + depth * STEP}px`, top: "26px" }}
+          />
+        )}
         {!closed && (
-          <ul>
-            {under(folder.id).map((child) => branch(child, depth + 1))}
-            {inside(folder.id).map((doc) => paper(doc, depth + 1))}
+          <ul id={`holds-${folder.id}`}>
+            {kids.map((child) => branch(child, depth + 1))}
+            {papersIn.map((doc) => paper(doc, depth + 1))}
+            {!kids.length && !papersIn.length && (
+              <li
+                className="py-0.5 text-[11px] text-faint italic"
+                style={{ paddingLeft: `${8 + (depth + 1) * STEP + ICON}px` }}
+              >
+                {t("folderEmpty")}
+              </li>
+            )}
           </ul>
         )}
       </li>
@@ -278,8 +309,22 @@ export default function Tree({
       <li>
         <div
           {...dropOn(undefined)}
-          className={`mt-1 rounded-md ${over === "unfiled" ? "bg-accent-soft" : ""}`}
+          className={`mt-1 flex items-center rounded-md ${
+            over === "unfiled" ? "bg-accent-soft" : ""
+          }`}
         >
+          <button
+            type="button"
+            onClick={() => fold("unfiled")}
+            aria-label={fill(shut.has("unfiled") ? "openFolder" : "closeFolder", t("unfiled"))}
+            aria-expanded={!shut.has("unfiled")}
+            aria-controls="holds-unfiled"
+            className="ml-2 grid h-5 w-3 shrink-0 place-items-center rounded text-[9px] text-faint hover:text-ink"
+          >
+            <span className={`transition-transform ${shut.has("unfiled") ? "-rotate-90" : ""}`}>
+              ▼
+            </span>
+          </button>
           <button
             type="button"
             onContextMenu={(e) => {
@@ -292,13 +337,10 @@ export default function Tree({
             onFocus={() => setReached("unfiled")}
             onKeyDown={(e) => typed(e, { id: "unfiled", kind: "folder", name: t("unfiled") })}
             aria-keyshortcuts={shortcuts("folder")}
-            onClick={() => {
-              onHere?.(undefined);
-              fold("unfiled");
-            }}
-            aria-expanded={!shut.has("unfiled")}
+            onClick={() => onHere?.(undefined)}
+            aria-label={t("unfiled")}
             aria-current={here === null ? "true" : undefined}
-            className={`flex w-full items-center gap-1.5 py-1 pr-2 pl-[26px] text-left text-[12.5px] ${
+            className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pr-2 pl-1.5 text-left text-[12.5px] ${
               here === null ? "text-ink" : "text-faint"
             }`}
           >
@@ -310,7 +352,9 @@ export default function Tree({
           </button>
         </div>
         {!shut.has("unfiled") && (
-          <ul {...dropOn(undefined)}>{loose.map((doc) => paper(doc, 1))}</ul>
+          <ul id="holds-unfiled" {...dropOn(undefined)}>
+            {loose.map((doc) => paper(doc, 1))}
+          </ul>
         )}
       </li>
     </ul>

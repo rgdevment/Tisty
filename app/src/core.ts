@@ -538,6 +538,10 @@ export interface Doc {
   title: string;
 }
 
+/// The core refuses a deeper move while projecting; this copy only keeps the window from
+/// offering what would be refused. `depth.test.ts` fails if the two ever drift apart.
+export const DEEPEST = 4;
+
 export interface Folded {
   id: string;
   name: string;

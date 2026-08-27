@@ -329,6 +329,11 @@ const Barred = Text.extend({
 });
 
 /// Markdown cannot say "icon", so it goes as HTML with its name inside: other readers show that.
+/// The name lands inside a tag Tisty writes into the reader's own .md file, so whatever a hand
+/// edit or a paste put there goes back as text rather than as markup of its own.
+const quoted = (value: string): string =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 const Ico = Node.create({
   name: "ico",
   inline: true,
@@ -342,6 +347,14 @@ const Ico = Node.create({
       name: { default: null },
       hue: { default: null },
     };
+  },
+
+  /// A leaf with no text reads as an empty cell, and a table cell with nothing in it is dropped
+  /// on save. Lending the node its own name keeps an icon-only cell from being erased.
+  extendNodeSchema(extension) {
+    return extension.name === "ico"
+      ? { leafText: (node: { attrs: { name?: string | null } }) => spared(node.attrs.name ?? "") }
+      : {};
   },
 
   parseHTML() {
@@ -366,7 +379,7 @@ const Ico = Node.create({
         ...(hue ? { "data-hue": hue } : {}),
         class: `ico${hue ? ` ico-${hue}` : ""}`,
       },
-      0,
+      spared(name),
     ];
   },
 
@@ -398,7 +411,9 @@ const Ico = Node.create({
           const name = node.attrs?.name ?? "";
           const hue = node.attrs?.hue;
           const spare = spared(name);
-          state.write(`<span data-ico="${name}"${hue ? ` data-hue="${hue}"` : ""}>${spare}</span>`);
+          state.write(
+            `<span data-ico="${quoted(name)}"${hue ? ` data-hue="${quoted(hue)}"` : ""}>${quoted(spare)}</span>`,
+          );
         },
         parse: {},
       },
