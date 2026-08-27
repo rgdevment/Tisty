@@ -1008,11 +1008,16 @@ fn filters_combine_and_each_one_narrows_the_result() {
     assert!(!out.contains("access logs"), "{out}");
 }
 
+/// A single-digit day would match the line numbers of the listing, so the date lands past the 10th.
 fn far_ahead() -> jiff::civil::Date {
-    jiff::Zoned::now()
+    let mut at = jiff::Zoned::now()
         .date()
         .checked_add(jiff::Span::new().days(400))
-        .unwrap()
+        .unwrap();
+    while at.day() < 10 {
+        at = at.tomorrow().unwrap();
+    }
+    at
 }
 
 #[test]
