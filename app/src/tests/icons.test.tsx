@@ -98,6 +98,16 @@ describe("icons on a list", () => {
     expect(store.looks[0].icon).toBeUndefined();
   });
 
+  it("leaves the list as it was when the sheet is dismissed", async () => {
+    show();
+    await userEvent.click(await screen.findByLabelText("Icon of Trabajo"));
+    await userEvent.click(await screen.findByRole("button", { name: "work" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(store.looks.length).toBe(0);
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
+
   it("carries the icon into a list being made", async () => {
     show();
     await userEvent.click(screen.getByRole("button", { name: "New list" }));
