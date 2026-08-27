@@ -67,6 +67,11 @@ pub fn newer(now: &str, manifest: &str, kept: Kept) -> Option<Ready> {
     let read: Manifest = serde_json::from_str(manifest).ok()?;
 
     let mut best: semver::Version = read.latest.parse().ok()?;
+    // A stable copy stays on the stable track whatever the manifest says, so a hostile one cannot
+    // walk it onto a less-tested build.
+    if here.pre.is_empty() && !best.pre.is_empty() {
+        return None;
+    }
     if !here.pre.is_empty()
         && let Some(said) = read.latest_prerelease.as_deref()
         && let Ok(candidate) = said.parse::<semver::Version>()
@@ -102,6 +107,17 @@ pub fn due(last: Option<jiff::Timestamp>, now: jiff::Timestamp) -> bool {
 
 pub fn route() -> Kept {
     chosen(std::env::current_exe().ok().as_deref(), |at| at.is_dir())
+}
+
+/// A copy running from the mounted disk image cannot replace itself: the volume is read only, and
+/// the plugin only finds that out after the whole download.
+pub fn mounted(running: Option<&std::path::Path>) -> bool {
+    cfg!(target_os = "macos")
+        && running.is_some_and(|at| at.starts_with("/Volumes/") || at.starts_with("/private/tmp/"))
+}
+
+pub fn from_a_mount() -> bool {
+    mounted(std::env::current_exe().ok().as_deref())
 }
 
 const PREFIXES: [&str; 2] = ["/opt/homebrew", "/usr/local"];
@@ -169,6 +185,13 @@ mod tests {
         let found = newer("0.2.0", FEED, Kept::plain(Route::Download)).expect("0.3.0 is newer");
 
         assert_eq!(found.version, "0.3.0");
+    }
+
+    #[test]
+    fn a_manifest_cannot_walk_a_stable_copy_onto_the_candidates_track() {
+        let feed = r#"{"latest":"9.9.9-rc1"}"#;
+
+        assert!(newer("0.3.0", feed, Kept::plain(Route::Download)).is_none());
     }
 
     #[test]
@@ -295,6 +318,24 @@ mod tests {
                 .unwrap()
                 .installs
         );
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn a_copy_still_inside_its_disk_image_knows_it_cannot_replace_itself() {
+        let at = std::path::Path::new("/Volumes/Tisty/Tisty.app/Contents/MacOS/tisty");
+
+        assert!(mounted(Some(at)));
+        assert!(!mounted(Some(std::path::Path::new(APP))));
+        assert!(!mounted(None));
+    }
+
+    #[test]
+    #[cfg(not(target_os = "macos"))]
+    fn nothing_is_mounted_anywhere_but_a_mac() {
+        assert!(!mounted(Some(std::path::Path::new(
+            "/Volumes/Tisty/Tisty.app"
+        ))));
     }
 
     fn nowhere(_: &std::path::Path) -> bool {

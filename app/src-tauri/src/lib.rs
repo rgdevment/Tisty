@@ -1748,11 +1748,12 @@ async fn update_install(
 
     let _busy = alone
         .inner()
+        .0
         .claim()
         .ok_or_else(|| Refusal::of("updateBusy"))?;
 
     let kept = update::route();
-    if !update::self_installs(kept.route) {
+    if !update::self_installs(kept.route) || update::from_a_mount() {
         return Err(Refusal::of("updateNotHere"));
     }
 
@@ -4036,17 +4037,7 @@ fn worded(locale: &Option<String>, key: &str) -> String {
 }
 
 #[derive(Default)]
-struct Updating(std::sync::atomic::AtomicBool);
-
-impl Updating {
-    fn claim(&self) -> Option<Releasing<'_>> {
-        use std::sync::atomic::Ordering;
-        self.0
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .is_ok()
-            .then(|| Releasing(&self.0))
-    }
-}
+struct Updating(OneAtATime);
 
 #[derive(Default)]
 struct OneAtATime(std::sync::atomic::AtomicBool);

@@ -29,9 +29,8 @@
   ; The app put the PATH entry and the startup entry there, and is the only
   ; thing that can read the PATH value whole to take it back out.
   ;
-  ; Not while updating. An update skips this uninstaller entirely today, so the
-  ; guard is only there for the paths that do not — a migration, or a change
-  ; upstream. Tauri guards its own the same way, further down.
+  ; Not while updating: the generated installer.nsi guards its own shortcuts and
+  ; startup key the same way, and an update has no business undoing either.
   ${If} $UpdateMode <> 1
   ${AndIf} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
     ExecWait '"$INSTDIR\${MAINBINARYNAME}.exe" --unreach'

@@ -741,6 +741,11 @@ jobs:
                            "darwin-x86_64":  {url: $mu, signature: $ms}} end))}' \
               > "$RUNNER_TEMP/channel.json"
             cat "$RUNNER_TEMP/channel.json"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # The notice feed and the update feed have to move together. Advertising a version the
+            # updater cannot then find leaves every copy pressing a button that answers "gone".
+            echo "::error::no updater signature for $v; the release would offer an update nobody can take"
+            exit 1
           else
             echo "::warning::no updater signature; the channel file is left as it was"
           fi

@@ -65,6 +65,14 @@ Being explicit here matters more than sounding reassuring.
   underneath — and if it already travelled to the shared folder, it is on the
   other machines too. Prevention is the only real defence: keep anything
   sensitive in the `private/` folder, which never leaves the machine.
+- **The signature says who built it, not which version it is.** minisign signs
+  the bytes of an installer and nothing else, so an attacker who controlled the
+  update feed could serve an *older* Tisty — genuinely signed, genuinely ours —
+  and an installed copy would accept it, losing whatever the newer one had
+  fixed. Serving something that is not ours stays impossible. Tisty narrows the
+  window by refusing anything not newer than what is running, but the feed
+  states the version, so a lie about the version is a lie Tisty cannot check.
+  This is inherent to the update format, and worth knowing rather than hiding.
 - **The updater's signing key is a single point of failure.** One private key
   signs every release, it is held by the maintainer alone, and the format offers
   no way to rotate it: the public half is already compiled into every copy out

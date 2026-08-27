@@ -128,3 +128,97 @@ describe("the folder view", () => {
 const fireRight = (at: HTMLElement) => {
   at.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, clientX: 10, clientY: 20 }));
 };
+
+describe("reaching the folder view without a mouse", () => {
+  it("opens a folder's menu from the keyboard, where a Mac has no context key", async () => {
+    const { onMenu } = show("2");
+    screen.getByRole("button", { name: /actas/ }).focus();
+
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+
+    expect(onMenu).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "3" }),
+      expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }),
+    );
+  });
+
+  it("opens a paper's menu from the keyboard too", async () => {
+    const { onDocMenu } = show("2");
+    screen.getByRole("button", { name: /Contrato/ }).focus();
+
+    await userEvent.keyboard("{ContextMenu}");
+
+    expect(onDocMenu).toHaveBeenCalledWith(
+      expect.objectContaining({ file: "0001" }),
+      expect.any(Object),
+    );
+  });
+
+  it("opens the menu of the folder you are standing in, which the sidebar alone used to hold", async () => {
+    const { onMenu } = show("2");
+    const title = screen.getByRole("button", { name: /corporativo/i });
+    title.focus();
+
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+
+    expect(onMenu).toHaveBeenCalledWith(expect.objectContaining({ id: "2" }), expect.any(Object));
+  });
+
+  it("says nothing to a key that is not asking for a menu", async () => {
+    const { onMenu } = show("2");
+    screen.getByRole("button", { name: /actas/ }).focus();
+
+    await userEvent.keyboard("{F10}a");
+
+    expect(onMenu).not.toHaveBeenCalled();
+  });
+});
+
+describe("the loose papers, which belong to no folder", () => {
+  const loose = () => {
+    const onOpen = vi.fn();
+    const onHereMenu = vi.fn();
+    render(
+      <Folder
+        folder={null}
+        folders={folders}
+        docs={[...docs, { id: "e", file: "0005", title: "Suelto", folder: null, archived: false }]}
+        onOpen={onOpen}
+        onHere={vi.fn()}
+        onHereMenu={onHereMenu}
+      />,
+    );
+    return { onOpen, onHereMenu };
+  };
+
+  it("gathers what no folder holds, including a paper whose folder is gone", () => {
+    loose();
+
+    expect(screen.getByRole("button", { name: /Suelto/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Contrato/ })).toBeNull();
+  });
+
+  it("has no trail and no folders of its own", () => {
+    loose();
+
+    expect(screen.queryByRole("navigation", { name: "Where you are" })).toBeNull();
+    expect(screen.queryByText("Folders")).toBeNull();
+  });
+
+  it("opens the menu that belongs to nowhere in particular", async () => {
+    const { onHereMenu } = loose();
+    screen.getByRole("button", { name: /Unfiled/ }).focus();
+
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+
+    expect(onHereMenu).toHaveBeenCalledWith(expect.any(Object));
+  });
+
+  it("leaves the title alone when nobody is listening for a menu", () => {
+    render(
+      <Folder folder={null} folders={folders} docs={docs} onOpen={vi.fn()} onHere={vi.fn()} />,
+    );
+
+    expect(screen.getByRole("button", { name: /Unfiled/ })).toHaveProperty("disabled", true);
+  });
+});

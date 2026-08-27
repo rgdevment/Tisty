@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CAP, orientedOf, redrawn, scaled, sizedOf } from "../upright";
+import { CAP, orientedOf, redrawn, scaled, sizedOf, upright } from "../upright";
 
 const exif = (turn: number, little = true): number[] => {
   const tiff = little
@@ -115,5 +115,55 @@ describe("which photos are worth redrawing before printing", () => {
 
   it("never redraws a png, which would lose what shows through it", () => {
     expect(redrawn([137, 80, 78, 71, 13, 10, 26, 10])).toBe(false);
+  });
+});
+
+describe("redrawing a photo so the page gets it the right way up", () => {
+  const stand = (over: Partial<Record<string, unknown>> = {}) => {
+    class Standing {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      naturalWidth = 4000;
+      naturalHeight = 3000;
+      set src(_: string) {
+        queueMicrotask(() => (over.fail ? this.onerror?.() : this.onload?.()));
+      }
+    }
+    const was = { image: globalThis.Image, canvas: HTMLCanvasElement.prototype.getContext };
+    globalThis.Image = Standing as unknown as typeof Image;
+    HTMLCanvasElement.prototype.getContext = ((kind: string) =>
+      over.blind || kind !== "2d" ? null : { drawImage: () => {} }) as never;
+    HTMLCanvasElement.prototype.toDataURL = (() => "data:image/jpeg;base64,drawn") as never;
+    return () => {
+      globalThis.Image = was.image;
+      HTMLCanvasElement.prototype.getContext = was.canvas;
+    };
+  };
+
+  it("hands back a photo no larger than the cap, drawn again", async () => {
+    const undo = stand();
+
+    await expect(upright("data:image/jpeg;base64,huge")).resolves.toBe(
+      "data:image/jpeg;base64,drawn",
+    );
+    undo();
+  });
+
+  it("keeps what it was given when the photo will not load", async () => {
+    const undo = stand({ fail: true });
+
+    await expect(upright("data:image/jpeg;base64,broken")).resolves.toBe(
+      "data:image/jpeg;base64,broken",
+    );
+    undo();
+  });
+
+  it("keeps what it was given when there is nothing to draw on", async () => {
+    const undo = stand({ blind: true });
+
+    await expect(upright("data:image/jpeg;base64,nocanvas")).resolves.toBe(
+      "data:image/jpeg;base64,nocanvas",
+    );
+    undo();
   });
 });
