@@ -49,11 +49,18 @@ export const clicking =
     return true;
   };
 
+const spanless = (line: string): string =>
+  line.replace(/<span[^>]*data-ico="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, ":$1:");
+
 export const glimpsed = (body: string): string =>
   body
     .split("\n")
     .slice(1)
-    .map((line) => line.replace(/^[#>\s*+-]+/, "").trim())
+    .map((line) =>
+      spanless(line)
+        .replace(/^[#>\s*+-]+/, "")
+        .trim(),
+    )
     .filter(Boolean)
     .join(" · ")
     .slice(0, 160);

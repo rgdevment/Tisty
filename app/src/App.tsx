@@ -10,6 +10,7 @@ import {
   type Change,
   capture,
   complete,
+  DEEPEST,
   discard,
   docAway,
   docCopy,
@@ -61,6 +62,7 @@ import Closing from "./ui/Closing";
 import Cover from "./ui/Cover";
 import Detail from "./ui/Detail";
 import Docs from "./ui/Docs";
+import Folder from "./ui/Folder";
 import Keeping from "./ui/Keeping";
 import Lists from "./ui/Lists";
 import Matrix from "./ui/Matrix";
@@ -156,6 +158,7 @@ export default function App() {
     choices: Choice[];
   } | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
+  const standing = here ? papers.folders.find((one) => one.id === here) : undefined;
   const [showing, setShowing] = useState<string | null>(null);
   const [carried, setCarried] = useState(0);
   const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
@@ -205,6 +208,30 @@ export default function App() {
       })
       .catch((e) => setError(saidPlainly(e)));
 
+  const deep = (at: string | null | undefined): number => {
+    let steps = 0;
+    const seen = new Set<string>();
+    for (let up = at; up && !seen.has(up); ) {
+      seen.add(up);
+      steps += 1;
+      up = papers.folders.find((one) => one.id === up)?.parent ?? null;
+    }
+    return steps;
+  };
+
+  const trail = (at: string): string => {
+    const names: string[] = [];
+    const seen = new Set<string>();
+    for (let up: string | null | undefined = at; up && !seen.has(up); ) {
+      seen.add(up);
+      const one = papers.folders.find((each) => each.id === up);
+      if (!one) break;
+      names.unshift(one.name);
+      up = one.parent;
+    }
+    return names.join(" / ");
+  };
+
   const destinations = (
     skip: string | null,
     land: (folder?: string) => void,
@@ -215,7 +242,12 @@ export default function App() {
       return kids.flatMap((one) => [one.id, ...under(one.id)]);
     };
     const forbidden = moving ? new Set([moving.id, ...under(moving.id)]) : new Set<string>();
-    const tall = moving ? (under(moving.id).length > 0 ? 2 : 1) : 0;
+    const tallest = (at: string): number =>
+      1 +
+      papers.folders
+        .filter((one) => one.parent === at)
+        .reduce((most, one) => Math.max(most, tallest(one.id)), 0);
+    const tall = moving ? tallest(moving.id) : 0;
 
     return [
       {
@@ -227,20 +259,17 @@ export default function App() {
       },
       ...papers.folders
         .filter((one) => one.id !== skip && !forbidden.has(one.id))
-        .filter((one) => !moving || (one.parent === null ? 1 : 2) + tall <= 2)
+        .filter((one) => !moving || deep(one.id) + tall <= DEEPEST)
         .map((one) => ({
           key: one.id,
           icon: one.parent ? "↳" : "▸",
-          label: one.parent
-            ? `${papers.folders.find((up) => up.id === one.parent)?.name ?? ""} / ${one.name}`
-            : one.name,
+          label: trail(one.id),
           onPick: () => land(one.id),
         })),
     ];
   };
 
-  const roomBelow =
-    here != null && !papers.folders.some((one) => one.id === here && one.parent !== null);
+  const roomBelow = here != null && deep(here) < DEEPEST;
   const openDoc = (paper: string) => {
     if (papers.docs.some((one) => one.file === paper)) {
       return setChosen({ named: "docs", doc: paper });
@@ -286,7 +315,11 @@ export default function App() {
   const carries = useRef<ReturnType<typeof carrying>>(null);
   const wasAwry = useRef<string | null>(null);
 
-  useEffect(() => setAsking(null), [chosen]);
+  useEffect(() => {
+    /// A slow answer must not open a strip over the view the person moved on to.
+    asked.current += 1;
+    setAsking(null);
+  }, [chosen]);
 
   const load = useCallback(() => {
     snapshot(asView(chosen))
@@ -462,6 +495,172 @@ export default function App() {
     />
   ) : null;
 
+  const hereMenu = (at: { x: number; y: number }) =>
+    setMenu({
+      at,
+      label: t("docsActions"),
+      choices: [
+        { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(undefined) },
+        {
+          key: "newFolder",
+          icon: "+",
+          label: t("newFolder"),
+          onPick: () => setMakingFolder(true),
+        },
+        {
+          key: "import",
+          icon: "↧",
+          label: t("importDoc"),
+          apart: true,
+          onPick: () => bringIn(undefined),
+        },
+      ],
+    });
+
+  const folderMenu = (folder: Folded, at: { x: number; y: number }) =>
+    setMenu({
+      at,
+      label: t("folderActions"),
+      choices: [
+        { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(folder.id) },
+        {
+          key: "newFolder",
+          icon: "+",
+          label: t("newFolder"),
+          off: deep(folder.id) >= DEEPEST,
+          onPick: () => {
+            setHere(folder.id);
+            setMakingFolder(true);
+          },
+        },
+        {
+          key: "rename",
+          icon: "✎",
+          label: t("rename"),
+          apart: true,
+          onPick: () => setRenaming(folder),
+        },
+        {
+          key: "move",
+          icon: "⇢",
+          label: t("moveTo"),
+          into: {
+            label: t("moveHere"),
+            choices: destinations(
+              folder.id,
+              (parent) =>
+                folderFile(folder.id, parent)
+                  .then(lookPapers)
+                  .catch((e) => setError(saidPlainly(e))),
+              folder,
+            ),
+          },
+        },
+        { key: "import", icon: "↧", label: t("importDoc"), onPick: () => bringIn(folder.id) },
+        {
+          key: "drop",
+          icon: "✕",
+          label: t("deleteIt"),
+          danger: true,
+          apart: true,
+          onPick: () => dropFolder(folder),
+        },
+      ],
+    });
+
+  const docMenu = (doc: Filed, at: { x: number; y: number }) =>
+    setMenu({
+      at,
+      label: t("docActions"),
+      choices: [
+        {
+          key: "move",
+          icon: "⇢",
+          label: t("moveTo"),
+          off: doc.archived,
+          into: {
+            label: t("moveHere"),
+            choices: destinations(doc.folder, (folder) =>
+              docFile(doc.id, folder)
+                .then(lookPapers)
+                .catch((e) => setError(saidPlainly(e))),
+            ),
+          },
+        },
+        {
+          key: "asPlain",
+          icon: "⌘",
+          label: t("copyPlain"),
+          apart: true,
+          onPick: () =>
+            asPlain(doc.file)
+              .then(() => {
+                setNote(t("copied"));
+                setTimeout(() => setNote(null), 3200);
+              })
+              .catch((e) => setError(saidPlainly(e))),
+        },
+        {
+          key: "takeOut",
+          icon: "⇪",
+          label: t("takeOut"),
+          onPick: () =>
+            pick({ directory: true })
+              .then((at) => (typeof at === "string" ? docExport(doc.file, at) : null))
+              .then((taken) => {
+                if (taken === null) return;
+                setNote(taken ? fill("takenOut", String(taken)) : t("takenOutAlone"));
+                setTimeout(() => setNote(null), 3200);
+              })
+              .catch((e) => setError(saidPlainly(e))),
+        },
+        {
+          key: "seePdf",
+          icon: "▤",
+          label: t("seePdf"),
+          off: showing !== doc.file,
+          onPick: () => window.dispatchEvent(new CustomEvent("tisty:see-pdf")),
+        },
+        {
+          key: "asPdf",
+          icon: "⇩",
+          label: t("toPdf"),
+          off: showing !== doc.file,
+          onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-pdf")),
+        },
+        {
+          key: "copy",
+          icon: "⧉",
+          label: t("duplicate"),
+          apart: true,
+          onPick: () =>
+            docCopy(doc.id)
+              .then((made) => {
+                lookPapers();
+                if (!doc.archived) setChosen({ named: "docs", doc: made.id });
+              })
+              .catch((e) => setError(saidPlainly(e))),
+        },
+        {
+          key: "away",
+          icon: doc.archived ? "▢" : "▣",
+          label: doc.archived ? t("bringBack") : t("putAway"),
+          apart: true,
+          onPick: () =>
+            docAway(doc.id, !doc.archived)
+              .then(lookPapers)
+              .catch((e) => setError(saidPlainly(e))),
+        },
+        {
+          key: "drop",
+          icon: "✕",
+          label: t("deleteIt"),
+          danger: true,
+          onPick: () => dropDoc(doc),
+        },
+      ],
+    });
+
   const act = (work: Promise<Task>) => {
     setError(null);
     work
@@ -482,7 +681,7 @@ export default function App() {
   };
 
   return (
-    <div className="grid h-full bg-rail font-sans [grid-template-columns:268px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:320px_minmax(0,1fr)]">
+    <div className="grid h-full bg-rail font-sans [grid-template-columns:300px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:340px_minmax(0,1fr)]">
       <WindowChrome />
 
       <p role="status" aria-live="polite" className="sr-only">
@@ -645,7 +844,10 @@ export default function App() {
         chosen={chosen}
         ready={ready !== null}
         here={here}
-        onHere={(folder) => setHere(folder ?? null)}
+        onHere={(folder) => {
+          setHere(folder ?? null);
+          setChosen({ named: "docs" });
+        }}
         onMove={(folder, parent) =>
           folderFile(folder, parent)
             .then(lookPapers)
@@ -656,172 +858,9 @@ export default function App() {
             .then(lookPapers)
             .catch((e) => setError(saidPlainly(e)))
         }
-        onFolderMenu={(folder, at) =>
-          setMenu({
-            at,
-            label: t("folderActions"),
-            choices: [
-              { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(folder.id) },
-              {
-                key: "newFolder",
-                icon: "+",
-                label: t("newFolder"),
-                off: folder.parent !== null,
-                onPick: () => {
-                  setHere(folder.id);
-                  setMakingFolder(true);
-                },
-              },
-              {
-                key: "rename",
-                icon: "✎",
-                label: t("rename"),
-                apart: true,
-                onPick: () => setRenaming(folder),
-              },
-              {
-                key: "move",
-                icon: "⇢",
-                label: t("moveTo"),
-                into: {
-                  label: t("moveHere"),
-                  choices: destinations(
-                    folder.id,
-                    (parent) =>
-                      folderFile(folder.id, parent)
-                        .then(lookPapers)
-                        .catch((e) => setError(saidPlainly(e))),
-                    folder,
-                  ),
-                },
-              },
-              { key: "import", icon: "↧", label: t("importDoc"), onPick: () => bringIn(folder.id) },
-              {
-                key: "drop",
-                icon: "✕",
-                label: t("deleteIt"),
-                danger: true,
-                apart: true,
-                onPick: () => dropFolder(folder),
-              },
-            ],
-          })
-        }
-        onDocMenu={(doc, at) =>
-          setMenu({
-            at,
-            label: t("docActions"),
-            choices: [
-              {
-                key: "move",
-                icon: "⇢",
-                label: t("moveTo"),
-                off: doc.archived,
-                into: {
-                  label: t("moveHere"),
-                  choices: destinations(doc.folder, (folder) =>
-                    docFile(doc.id, folder)
-                      .then(lookPapers)
-                      .catch((e) => setError(saidPlainly(e))),
-                  ),
-                },
-              },
-              {
-                key: "asPlain",
-                icon: "⌘",
-                label: t("copyPlain"),
-                apart: true,
-                onPick: () =>
-                  asPlain(doc.file)
-                    .then(() => {
-                      setNote(t("copied"));
-                      setTimeout(() => setNote(null), 3200);
-                    })
-                    .catch((e) => setError(saidPlainly(e))),
-              },
-              {
-                key: "takeOut",
-                icon: "⇪",
-                label: t("takeOut"),
-                onPick: () =>
-                  pick({ directory: true })
-                    .then((at) => (typeof at === "string" ? docExport(doc.file, at) : null))
-                    .then((taken) => {
-                      if (taken === null) return;
-                      setNote(taken ? fill("takenOut", String(taken)) : t("takenOutAlone"));
-                      setTimeout(() => setNote(null), 3200);
-                    })
-                    .catch((e) => setError(saidPlainly(e))),
-              },
-              {
-                key: "seePdf",
-                icon: "▤",
-                label: t("seePdf"),
-                off: showing !== doc.file,
-                onPick: () => window.dispatchEvent(new CustomEvent("tisty:see-pdf")),
-              },
-              {
-                key: "asPdf",
-                icon: "⇩",
-                label: t("toPdf"),
-                off: showing !== doc.file,
-                onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-pdf")),
-              },
-              {
-                key: "copy",
-                icon: "⧉",
-                label: t("duplicate"),
-                apart: true,
-                onPick: () =>
-                  docCopy(doc.id)
-                    .then((made) => {
-                      lookPapers();
-                      if (!doc.archived) setChosen({ named: "docs", doc: made.id });
-                    })
-                    .catch((e) => setError(saidPlainly(e))),
-              },
-              {
-                key: "away",
-                icon: doc.archived ? "▢" : "▣",
-                label: doc.archived ? t("bringBack") : t("putAway"),
-                apart: true,
-                onPick: () =>
-                  docAway(doc.id, !doc.archived)
-                    .then(lookPapers)
-                    .catch((e) => setError(saidPlainly(e))),
-              },
-              {
-                key: "drop",
-                icon: "✕",
-                label: t("deleteIt"),
-                danger: true,
-                onPick: () => dropDoc(doc),
-              },
-            ],
-          })
-        }
-        onHereMenu={(at) =>
-          setMenu({
-            at,
-            label: t("docsActions"),
-            choices: [
-              { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(undefined) },
-              {
-                key: "newFolder",
-                icon: "+",
-                label: t("newFolder"),
-                onPick: () => setMakingFolder(true),
-              },
-              {
-                key: "import",
-                icon: "↧",
-                label: t("importDoc"),
-                apart: true,
-                onPick: () => bringIn(undefined),
-              },
-            ],
-          })
-        }
+        onFolderMenu={folderMenu}
+        onDocMenu={docMenu}
+        onHereMenu={hereMenu}
         onDocsMenu={(at) =>
           setMenu({
             at,
@@ -868,6 +907,17 @@ export default function App() {
       >
         {chosen.named === "aboutScreen" ? (
           <About ready={ready} onError={(e) => setError(saidPlainly(e))} />
+        ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (
+          <Folder
+            folder={standing ?? null}
+            folders={papers.folders}
+            docs={papers.docs}
+            onOpen={(doc) => setChosen({ named: "docs", doc: doc.file })}
+            onHere={(folder) => setHere(folder ?? null)}
+            onMenu={folderMenu}
+            onHereMenu={hereMenu}
+            onDocMenu={docMenu}
+          />
         ) : chosen.named === "docs" ? (
           <Docs
             open={chosen.doc}

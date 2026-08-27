@@ -33,7 +33,7 @@ const CLASS: Record<Hue, string> = {
 
 /// Stored as a key, like the icon, so the palette can be retuned without touching anyone's lists.
 export const painted = (hue?: string | null): string =>
-  hue && hue in CLASS ? CLASS[hue as Hue] : "text-soft";
+  hue && Object.prototype.hasOwnProperty.call(CLASS, hue) ? CLASS[hue as Hue] : "text-soft";
 
 interface Props {
   chosen?: string | null;
