@@ -1,5 +1,6 @@
 mod date;
 mod folder;
+pub mod hue;
 pub mod icon;
 mod list;
 mod repeat;

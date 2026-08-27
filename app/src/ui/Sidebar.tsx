@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Filed, Folded, List, Papers } from "../core";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
+import Glyph from "./Glyph";
 import Tree from "./Tree";
 
 interface Props {
@@ -23,12 +24,12 @@ interface Props {
 }
 
 const NAMED: { key: Named; icon: string }[] = [
-  { key: "search", icon: "⌕" },
-  { key: "tasks", icon: "☀" },
-  { key: "quadrants", icon: "⊞" },
-  { key: "lists", icon: "▤" },
-  { key: "tags", icon: "◈" },
-  { key: "archive", icon: "▣" },
+  { key: "search", icon: "search" },
+  { key: "tasks", icon: "sun" },
+  { key: "quadrants", icon: "grid" },
+  { key: "lists", icon: "rows" },
+  { key: "tags", icon: "tag" },
+  { key: "archive", icon: "archive" },
 ];
 
 export default function Sidebar({
@@ -172,9 +173,9 @@ function Entry({ icon, label, count, on, muted, onClick }: EntryProps) {
     >
       {icon && (
         <span
-          className={`w-4 shrink-0 text-center text-[13px] ${on ? "text-accent" : "text-soft"}`}
+          className={`flex w-4 shrink-0 justify-center text-[13px] ${on ? "text-accent" : "text-soft"}`}
         >
-          {icon}
+          <Glyph name={icon} />
         </span>
       )}
       <span className="truncate">{label}</span>

@@ -504,11 +504,13 @@ fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Ve
         .map(|one| match one.kind {
             // The window writes a document as `[title](tisty:doc/ID)`, which parses as a link.
             _ if one.target.starts_with("tisty:doc/") => {
-                let held = one
-                    .target
-                    .strip_prefix("tisty:doc/")
-                    .and_then(|raw| raw.parse().ok())
-                    .and_then(|doc| session.state.docs.get(&doc));
+                // A reference names the document by its file or by its id, depending on who wrote it.
+                let held = one.target.strip_prefix("tisty:doc/").and_then(|raw| {
+                    raw.parse()
+                        .ok()
+                        .and_then(|id| session.state.docs.get(&id))
+                        .or_else(|| session.state.docs.values().find(|doc| doc.file == raw))
+                });
                 let on_paper = held.and_then(|doc| named.get(doc.file.as_str()));
                 Left {
                     kind: "doc",
@@ -1612,6 +1614,7 @@ const REFUSALS: &[&str] = &[
     "sandboxCannotMerge",
     "noSuchDoc",
     "noSuchIcon",
+    "noSuchColour",
     "noSuchFolder",
     "manyLists",
     "internal",
@@ -1750,7 +1753,7 @@ fn keep_settings(
 }
 
 #[tauri::command]
-fn icons() -> Vec<(&'static str, &'static str)> {
+fn icons() -> Vec<&'static str> {
     tisty_core::model::icon::ICONS.to_vec()
 }
 
@@ -1759,6 +1762,7 @@ fn list_add(
     session: tauri::State<'_, Mutex<Session>>,
     name: String,
     icon: Option<String>,
+    color: Option<String>,
 ) -> Answer<List> {
     let name = name.trim().to_string();
     if name.is_empty() {
@@ -1779,12 +1783,14 @@ fn list_add(
             color: None,
         },
     })?;
-    if let Some(icon) = icon.filter(|key| tisty_core::model::icon::known(key)) {
+    let painted = color.filter(|key| tisty_core::model::hue::kept(key).is_some());
+    let drawn = icon.filter(|key| tisty_core::model::icon::known(key));
+    if drawn.is_some() || painted.is_some() {
         session.commit(Op::ListLook {
             id,
             d: tisty_core::event::Look {
-                icon: Some(Some(icon)),
-                color: None,
+                icon: Some(drawn),
+                color: Some(painted),
             },
         })?;
     }
@@ -1801,6 +1807,7 @@ fn list_look(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     icon: Option<String>,
+    color: Option<String>,
 ) -> Answer<List> {
     let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
     let kept = match icon {
@@ -1811,13 +1818,21 @@ fn list_look(
         ),
         None => None,
     };
+    let painted = match color {
+        Some(key) => Some(
+            tisty_core::model::hue::kept(&key)
+                .map(str::to_string)
+                .ok_or_else(|| Refusal::about("noSuchColour", key))?,
+        ),
+        None => None,
+    };
 
     let mut session = held(&session);
     session.commit(Op::ListLook {
         id,
         d: tisty_core::event::Look {
             icon: Some(kept),
-            color: None,
+            color: Some(painted),
         },
     })?;
     session
@@ -1890,6 +1905,7 @@ struct Folded {
     name: String,
     parent: Option<String>,
     icon: Option<String>,
+    color: Option<String>,
     holds: usize,
 }
 
@@ -1944,6 +1960,7 @@ fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Fo
                 name: one.name.clone(),
                 parent: one.parent.map(|at| at.to_string()),
                 icon: one.icon.clone(),
+                color: one.color.clone(),
                 holds: state.held_by(one.id),
             }];
             branch.append(&mut hanging(state, Some(one.id)));
@@ -1990,6 +2007,7 @@ fn folder_add(
             order,
             parent,
             icon: icon.filter(|key| tisty_core::model::icon::known(key)),
+            color: None,
         },
     })?;
     Ok(())
@@ -2022,6 +2040,7 @@ fn folder_look(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     icon: Option<String>,
+    color: Option<String>,
 ) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
     let kept = match icon {
@@ -2029,6 +2048,14 @@ fn folder_look(
             tisty_core::model::icon::kept(&key)
                 .map(str::to_string)
                 .ok_or_else(|| Refusal::about("noSuchIcon", key))?,
+        ),
+        None => None,
+    };
+    let painted = match color {
+        Some(key) => Some(
+            tisty_core::model::hue::kept(&key)
+                .map(str::to_string)
+                .ok_or_else(|| Refusal::about("noSuchColour", key))?,
         ),
         None => None,
     };
@@ -2040,7 +2067,7 @@ fn folder_look(
         id,
         d: tisty_core::event::Look {
             icon: Some(kept),
-            color: None,
+            color: Some(painted),
         },
     })?;
     Ok(())
@@ -2264,6 +2291,7 @@ fn guide(
             order,
             parent: None,
             icon: None,
+            color: None,
         },
     })?;
 

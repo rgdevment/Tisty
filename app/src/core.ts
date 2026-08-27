@@ -543,6 +543,7 @@ export interface Folded {
   name: string;
   parent: string | null;
   icon: string | null;
+  color?: string | null;
   holds: number;
 }
 
@@ -575,8 +576,8 @@ export const folderAdd = (name: string, parent?: string, icon?: string): Promise
   invoke("folder_add", { name, parent, icon });
 export const folderRename = (id: string, name: string): Promise<void> =>
   invoke("folder_rename", { id, name });
-export const folderLook = (id: string, icon?: string): Promise<void> =>
-  invoke("folder_look", { id, icon });
+export const folderLook = (id: string, icon?: string, color?: string): Promise<void> =>
+  invoke("folder_look", { id, icon, color });
 export const folderDrop = (id: string): Promise<void> => invoke("folder_drop", { id });
 export const docFile = (id: string, folder?: string): Promise<void> =>
   invoke("doc_file", { id, folder });
@@ -607,11 +608,11 @@ export const docImport = (from: string, folder?: string): Promise<Doc> =>
 export const docNew = (folder?: string): Promise<Doc> => invoke("doc_new", { folder });
 export const docDrop = (id: string): Promise<void> => invoke("doc_drop", { id });
 
-export const icons = (): Promise<[string, string][]> => invoke("icons");
-export const listAdd = (name: string, icon?: string): Promise<List> =>
-  invoke("list_add", { name, icon });
-export const listLook = (id: string, icon?: string): Promise<List> =>
-  invoke("list_look", { id, icon });
+export const icons = (): Promise<string[]> => invoke("icons");
+export const listAdd = (name: string, icon?: string, color?: string): Promise<List> =>
+  invoke("list_add", { name, icon, color });
+export const listLook = (id: string, icon?: string, color?: string): Promise<List> =>
+  invoke("list_look", { id, icon, color });
 export const listRename = (id: string, name: string): Promise<List> =>
   invoke("list_rename", { id, name });
 export const listDrop = (id: string): Promise<void> => invoke("list_drop", { id });

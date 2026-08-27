@@ -8,7 +8,7 @@ import Tree from "../ui/Tree";
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
     if (cmd === "doc_read") return Promise.resolve("");
-    if (cmd === "icons") return Promise.resolve([["work", "💼"]]);
+    if (cmd === "icons") return Promise.resolve(["work"]);
     return Promise.resolve(null);
   },
 }));

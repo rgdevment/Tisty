@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { List } from "../core";
 import { fill, t } from "../locales";
-import { drawn, useIcons } from "./Icons";
+import Glyph from "./Glyph";
 
 interface Props {
   lists: List[];
@@ -20,7 +20,6 @@ export const said = (lists: List[], chosen: string[]): string => {
 export default function Only({ lists, chosen, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
-  const all = useIcons();
 
   useEffect(() => {
     if (!open) return;
@@ -77,7 +76,7 @@ export default function Only({ lists, chosen, onChange }: Props) {
                   onChange={() => toggle(list.id)}
                 />
                 <span aria-hidden="true" className="w-4 shrink-0 text-center">
-                  {drawn(all, list.icon) ?? "○"}
+                  {list.icon ? <Glyph name={list.icon} /> : "○"}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{list.name}</span>
               </label>

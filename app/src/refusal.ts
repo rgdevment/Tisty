@@ -60,6 +60,7 @@ const KNOWN = [
   "noSuchFolder",
   "noSuchDoc",
   "noSuchIcon",
+  "noSuchColour",
   "tooDeep",
   "intoItself",
   "notACadence",

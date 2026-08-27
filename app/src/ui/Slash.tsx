@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { t } from "../locales";
+import Glyph, { known } from "./Glyph";
 
 export const asked = (before: string): string | null => {
   const found = /(?:^|\s)\/([\p{L}\p{N}_]*)$/u.exec(before);
@@ -63,11 +64,11 @@ export default function Slash({ at, blocks, active, onPick }: Props) {
         >
           <span
             aria-hidden
-            className={`w-4 shrink-0 text-center text-[11px] ${
+            className={`flex w-4 shrink-0 justify-center text-[11px] ${
               i === active ? "text-accent" : "text-faint"
             }`}
           >
-            {one.icon}
+            {known(one.icon) ? <Glyph name={one.icon} className="h-[15px] w-[15px]" /> : one.icon}
           </span>
           <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink">{one.label}</span>
           <span

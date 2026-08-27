@@ -579,14 +579,15 @@ export default function App() {
           invite={t("folderName")}
           called={renaming.name}
           drawn={renaming.icon ?? undefined}
+          painted={renaming.color ?? undefined}
           action={t("renameIt")}
           onClose={() => setRenaming(null)}
-          onName={(name, icon) =>
+          onName={(name, icon, colour) =>
             Promise.all([
               folderRename(renaming.id, name),
-              icon === (renaming.icon ?? undefined)
+              icon === (renaming.icon ?? undefined) && colour === (renaming.color ?? undefined)
                 ? Promise.resolve()
-                : folderLook(renaming.id, icon),
+                : folderLook(renaming.id, icon, colour),
             ])
               .then(() => {
                 setRenaming(null);

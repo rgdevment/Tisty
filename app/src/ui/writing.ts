@@ -1,4 +1,5 @@
 import type { Editor as Writing } from "@tiptap/core";
+import { Node } from "@tiptap/core";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
 import { Paragraph } from "@tiptap/extension-paragraph";
@@ -11,6 +12,8 @@ import StarterKit from "@tiptap/starter-kit";
 import markPlugin from "markdown-it-mark";
 import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
+import { markup } from "../glyphs";
+import { spared } from "./Icons";
 
 const inked = Symbol("ink");
 const peeked = Symbol("peek");
@@ -325,6 +328,84 @@ const Barred = Text.extend({
   },
 });
 
+/// Markdown cannot say "icon", so it goes as HTML with its name inside: other readers show that.
+const Ico = Node.create({
+  name: "ico",
+  inline: true,
+  group: "inline",
+  atom: true,
+  // Selectable leaves it standing as a node selection after it lands, which stops the typing.
+  selectable: false,
+
+  addAttributes() {
+    return {
+      name: { default: null },
+      hue: { default: null },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "span[data-ico]",
+        getAttrs: (node) => ({
+          name: (node as HTMLElement).getAttribute("data-ico"),
+          hue: (node as HTMLElement).getAttribute("data-hue"),
+        }),
+      },
+    ];
+  },
+
+  renderHTML({ node }) {
+    const name = String(node.attrs.name ?? "");
+    const hue = node.attrs.hue ? String(node.attrs.hue) : null;
+    return [
+      "span",
+      {
+        "data-ico": name,
+        ...(hue ? { "data-hue": hue } : {}),
+        class: `ico${hue ? ` ico-${hue}` : ""}`,
+      },
+      0,
+    ];
+  },
+
+  addNodeView() {
+    return ({ node }) => {
+      const held = document.createElement("span");
+      const name = String(node.attrs.name ?? "");
+      const hue = node.attrs.hue ? String(node.attrs.hue) : null;
+      held.className = `ico${hue ? ` ico-${hue}` : ""}`;
+      held.dataset.ico = name;
+      if (hue) held.dataset.hue = hue;
+      const drawn = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      drawn.setAttribute("viewBox", "0 0 24 24");
+      drawn.setAttribute("aria-hidden", "true");
+      drawn.setAttribute("class", "glyph");
+      drawn.innerHTML = markup(name) ?? "";
+      held.append(drawn);
+      return { dom: held };
+    };
+  },
+
+  addStorage() {
+    return {
+      markdown: {
+        serialize(
+          state: { write: (value: string) => void },
+          node: { attrs?: { name?: string | null; hue?: string | null } },
+        ) {
+          const name = node.attrs?.name ?? "";
+          const hue = node.attrs?.hue;
+          const spare = spared(name);
+          state.write(`<span data-ico="${name}"${hue ? ` data-hue="${hue}"` : ""}>${spare}</span>`);
+        },
+        parse: {},
+      },
+    };
+  },
+});
+
 export const PENS = ["yellow", "green", "blue", "pink"] as const;
 
 export type Pen = (typeof PENS)[number];
@@ -455,6 +536,7 @@ export const written = () => [
   TableHeader,
   TableCell,
   Tightened,
+  Ico,
   Lit,
   TaskItem.configure({ nested: true }),
   Barred,

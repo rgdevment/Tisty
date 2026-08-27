@@ -126,6 +126,10 @@ impl State {
                         order: d.order.clone(),
                         parent: d.parent.filter(|at| at != id),
                         icon: d.icon.clone().filter(|key| crate::model::icon::known(key)),
+                        color: d
+                            .color
+                            .clone()
+                            .filter(|key| crate::model::hue::kept(key).is_some()),
                     },
                 );
             }
@@ -135,10 +139,15 @@ impl State {
                 }
             }
             Op::FolderLook { id, d } => {
-                if let Some(folder) = self.folders.get_mut(id)
-                    && let Some(icon) = &d.icon
-                {
-                    folder.icon = icon.clone().filter(|key| crate::model::icon::known(key));
+                if let Some(folder) = self.folders.get_mut(id) {
+                    if let Some(icon) = &d.icon {
+                        folder.icon = icon.clone().filter(|key| crate::model::icon::known(key));
+                    }
+                    if let Some(color) = &d.color {
+                        folder.color = color
+                            .clone()
+                            .filter(|key| crate::model::hue::kept(key).is_some());
+                    }
                 }
             }
             Op::FolderMove { id, d } => {
@@ -3192,6 +3201,7 @@ mod tests {
                     order: "a0".into(),
                     parent,
                     icon: None,
+                    color: None,
                 },
             },
         ));
@@ -3332,6 +3342,7 @@ mod tests {
                     order: "a0".into(),
                     parent: None,
                     icon: None,
+                    color: None,
                 },
             },
         ));
@@ -3401,6 +3412,7 @@ mod tests {
                 order: "a0".into(),
                 parent: None,
                 icon: None,
+                color: None,
             },
         }]);
 
@@ -3481,6 +3493,7 @@ mod tests {
                     order: "a0".into(),
                     parent: None,
                     icon: None,
+                    color: None,
                 },
             },
         ));
@@ -3525,6 +3538,7 @@ mod tests {
                     order: "a0".into(),
                     parent: None,
                     icon: None,
+                    color: None,
                 },
             },
         ));
@@ -3552,6 +3566,7 @@ mod tests {
                     order: "a0".into(),
                     parent: None,
                     icon: None,
+                    color: None,
                 },
             },
         ));

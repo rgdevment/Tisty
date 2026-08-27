@@ -2,6 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useRef, useState } from "react";
 import { opened, revealed, served } from "../core";
+import { markup } from "../glyphs";
 import { t } from "../locales";
 import { docOf, INSIDE } from "../markdown";
 import { ending, named, pictured } from "../previews";
@@ -125,13 +126,22 @@ export default function Composed({
 
 function chipped(label: string, reference: string): HTMLElement {
   const chip = document.createElement("a");
-  chip.className = "chip";
+  const paper = Boolean(docOf(reference));
+  chip.className = paper ? "chip chip-paper" : "chip";
   chip.setAttribute(INSIDE, reference);
   chip.href = reference;
-  const kind = docOf(reference) ? "DOC" : ending(reference).toUpperCase();
   const badge = document.createElement("span");
   badge.className = "chip-badge";
-  badge.textContent = kind.slice(0, 4) || "?";
+  if (paper) {
+    const drawn = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    drawn.setAttribute("viewBox", "0 0 24 24");
+    drawn.setAttribute("aria-hidden", "true");
+    drawn.setAttribute("class", "glyph");
+    drawn.innerHTML = markup("page") ?? "";
+    badge.append(drawn);
+  } else {
+    badge.textContent = ending(reference).toUpperCase().slice(0, 4) || "?";
+  }
   const name = document.createElement("span");
   name.textContent = label || named(reference);
   chip.append(badge, name);

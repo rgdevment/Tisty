@@ -3,6 +3,7 @@ import { type DocFacts, docFacts, type Paper } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import { DOC } from "../markdown";
+import Glyph, { known } from "./Glyph";
 import type { Block } from "./Slash";
 import type { Head } from "./writing";
 
@@ -245,8 +246,8 @@ function Band({ name, blocks }: { name: string; blocks: Block[] }) {
             onClick={one.run}
             className="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
           >
-            <span aria-hidden="true" className="w-4 shrink-0 text-center text-[12.5px]">
-              {one.icon}
+            <span aria-hidden="true" className="flex w-4 shrink-0 justify-center text-[12.5px]">
+              {known(one.icon) ? <Glyph name={one.icon} className="h-[15px] w-[15px]" /> : one.icon}
             </span>
             <span className="min-w-0 flex-1 truncate">{one.label}</span>
             {one.hint && (
