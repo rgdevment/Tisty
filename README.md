@@ -208,12 +208,11 @@ got solved. Three things follow from that, and they shaped everything else:
 it updated for you.
 
 **macOS** — with [Homebrew](https://brew.sh). The tap is added once and never
-again; after that, Tisty updates like anything else you have installed:
+again. After that Tisty keeps itself up to date, so Homebrew stands aside:
 
 ```console
 $ brew tap rgdevment/tap
 $ brew install --cask tisty
-$ brew upgrade --cask tisty
 ```
 
 Or take the disk image and the installer straight from
@@ -316,8 +315,11 @@ files stay readable with tools you already have. It is written out in
 [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md), including the parts
 that are not reassuring.
 
-Tisty makes **one** network request in its life: once a day it checks whether a
-newer version exists. It sends nothing, and you can turn it off.
+Tisty makes **one** network request a day, unasked: it checks whether a newer
+version exists. It sends nothing. If one does exist and you press the button
+that offers it, two more follow — the file naming the release, and the
+installer — and Tisty refuses to install anything not signed with a key
+compiled into the copy you already have.
 
 ## Two Machines, If You Have Two
 

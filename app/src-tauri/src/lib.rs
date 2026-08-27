@@ -1699,21 +1699,142 @@ struct Settings {
     locale: Option<String>,
 }
 
+const HERE: &str = env!("CARGO_PKG_VERSION");
+
 #[tauri::command]
 async fn update_ready(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<update::Ready>> {
-    let last = held(&session).config.checked_at;
+    let (last, found) = {
+        let held = held(&session);
+        (held.config.checked_at, held.config.found_version.clone())
+    };
     let now = jiff::Timestamp::now();
     if !update::due(last, now) {
-        return Ok(None);
+        return Ok(update::remembered(HERE, found.as_deref(), update::route()));
     }
 
     let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
         .await
         .map_err(|_| Refusal::of("internal"))?;
 
-    let mut session = held(&session);
-    session.keep(|c| c.checked_at = Some(now))?;
-    Ok(manifest.and_then(|said| update::newer(env!("CARGO_PKG_VERSION"), &said, update::route())))
+    // A look that never answered says nothing about whether an update is owed, so what was found
+    // before stays where it is.
+    let Some(manifest) = manifest else {
+        return Ok(update::remembered(HERE, found.as_deref(), update::route()));
+    };
+
+    let seen = update::newer(HERE, &manifest, update::route());
+    let version = seen.as_ref().map(|one| one.version.clone());
+    held(&session).keep(|c| {
+        c.checked_at = Some(now);
+        c.found_version = version;
+    })?;
+    Ok(seen)
+}
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Underway {
+    stage: &'static str,
+    far: u64,
+}
+
+#[tauri::command]
+async fn update_install(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, Updating>,
+) -> Answer<()> {
+    use tauri_plugin_updater::UpdaterExt;
+
+    let _busy = alone
+        .inner()
+        .0
+        .claim()
+        .ok_or_else(|| Refusal::of("updateBusy"))?;
+
+    let kept = update::route();
+    if !update::self_installs(kept.route) || update::from_a_mount() {
+        return Err(Refusal::of("updateNotHere"));
+    }
+
+    let found = held(&session).config.found_version.clone();
+    let Some(want) = update::remembered(HERE, found.as_deref(), kept).map(|one| one.version) else {
+        return Err(Refusal::of("updateGone"));
+    };
+
+    let asked = want.clone();
+    let update = app
+        .updater_builder()
+        .endpoints(vec![
+            update::channel_for(&want)
+                .parse()
+                .map_err(|_| Refusal::of("internal"))?,
+        ])
+        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?
+        // Pinned to what the person was shown, so a feed that moves in between cannot quietly
+        // hand them a different version than the one they agreed to.
+        .version_comparator(move |_, release| release.version.to_string() == asked)
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?
+        .check()
+        .await
+        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
+
+    let Some(mut update) = update else {
+        return Err(Refusal::of("updateGone"));
+    };
+
+    // The feed names the address the installer comes from, so it is checked against where our
+    // releases actually live before a single byte is asked for.
+    if !update::ours(update.download_url.as_str()) {
+        return Err(Refusal::of("updateElsewhere"));
+    }
+    // The plugin builds the download with no deadline of its own, and a server that dribbles
+    // bytes forever would otherwise be waited on forever.
+    update.timeout = Some(std::time::Duration::from_secs(600));
+
+    let telling = app.clone();
+    let done = app.clone();
+    let mut carried: u64 = 0;
+    let mut said = 0;
+    update
+        .download_and_install(
+            move |chunk, whole| {
+                // The callback hands over the length of one chunk, not how much has arrived.
+                carried += chunk as u64;
+                let far = whole.map_or(0, |all| carried * 100 / all.max(1));
+                if far != said {
+                    said = far;
+                    let _ = telling.emit(
+                        "updating",
+                        Underway {
+                            stage: "getting",
+                            far,
+                        },
+                    );
+                }
+            },
+            // The last thing anyone sees on Windows: the installer takes the process with it and
+            // nothing after the await ever runs.
+            move || {
+                let _ = done.emit(
+                    "updating",
+                    Underway {
+                        stage: "installing",
+                        far: 100,
+                    },
+                );
+            },
+        )
+        .await
+        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
+
+    // Only macOS gets this far, and restarting has to happen where the app loop lives.
+    let handle = app.clone();
+    app.run_on_main_thread(move || handle.restart())
+        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -3925,6 +4046,9 @@ fn worded(locale: &Option<String>, key: &str) -> String {
 }
 
 #[derive(Default)]
+struct Updating(OneAtATime);
+
+#[derive(Default)]
 struct OneAtATime(std::sync::atomic::AtomicBool);
 
 impl OneAtATime {
@@ -3962,6 +4086,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| {
             let session = match Session::open() {
                 Ok(session) => session,
@@ -4015,6 +4140,10 @@ pub fn run() {
             };
             let watched = session.paths.clone();
             let quiet = session.config.muted().to_vec();
+            // An update relaunches with the arguments it was started with, so a copy that opened
+            // with the session comes back hidden — looking, to whoever pressed the button, like it
+            // never came back at all.
+            let came_back = session.config.found_version.as_deref() == Some(HERE);
             app.manage(Mutex::new(session));
             app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
             herald::watch(app.handle().clone(), watched);
@@ -4060,7 +4189,7 @@ pub fn run() {
 
             if let Some(window) = app.get_webview_window("main") {
                 proofread(&window);
-                if !waking::hushed() {
+                if came_back || !waking::hushed() {
                     let _ = window.show();
                 }
             }
@@ -4103,6 +4232,7 @@ pub fn run() {
             }
         })
         .manage(OneAtATime::default())
+        .manage(Updating::default())
         .manage(Leaving::default())
         .invoke_handler(tauri::generate_handler![
             snapshot,
@@ -4169,6 +4299,7 @@ pub fn run() {
             note_trouble,
             note_break,
             update_ready,
+            update_install,
             logs,
             icons,
             list_add,

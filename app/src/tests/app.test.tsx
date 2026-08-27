@@ -399,3 +399,113 @@ describe("what the maintenance screen writes", () => {
     await waitFor(() => expect(pushes()).toHaveLength(1), { timeout: 8_000 });
   }, 15_000);
 });
+
+describe("the views nothing else opens", () => {
+  const goTo = async (name: RegExp) => {
+    const user = userEvent.setup();
+    await started();
+    await user.click(screen.getByRole("button", { name }));
+    return user;
+  };
+
+  it("shows the quadrants, which the plain list never draws", async () => {
+    await goTo(/priorities|prioridades/i);
+
+    expect(await screen.findByRole("heading", { name: /priorities|prioridades/i })).toBeTruthy();
+  });
+
+  it("shows what the archive holds, which the open list hides", async () => {
+    const user = await goTo(/archive|archivo/i);
+
+    expect(await screen.findByText("filed last month")).toBeTruthy();
+    expect(screen.queryByText("write the report")).toBeNull();
+    await user.click(screen.getByRole("button", { name: /tasks|tareas/i }));
+    expect(await screen.findByText("write the report")).toBeTruthy();
+  });
+
+  it("opens Lists, Tags and the search without losing what was open", async () => {
+    const user = await goTo(/lists|listas/i);
+    expect(await screen.findByRole("heading", { name: /lists|listas/i })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: /tags|etiquetas/i }));
+    expect(await screen.findByRole("heading", { name: /tags|etiquetas/i })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: /search|buscador/i }));
+    expect(await screen.findByRole("heading", { name: /search|buscador/i })).toBeTruthy();
+  });
+
+  it("carries the offer of a newer Tisty through to About", async () => {
+    const was = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "update_ready") {
+        return Promise.resolve({
+          version: "9.9.9",
+          route: "download",
+          package: null,
+          installs: true,
+        });
+      }
+      if (cmd === "about") {
+        return Promise.resolve({
+          version: "0.1.0",
+          sandbox: null,
+          repository: "https://example.invalid/tisty",
+          license: "AGPL-3.0",
+          store: "C:/store",
+        });
+      }
+      return was(cmd, args);
+    };
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByRole("button", { name: /about|acerca/i }));
+
+    expect(await screen.findByText(/9\.9\.9/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^update$/i })).toBeTruthy();
+  });
+
+  it("says why the update did not happen, and hands the button back", async () => {
+    const was = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "update_ready") {
+        return Promise.resolve({
+          version: "9.9.9",
+          route: "download",
+          package: null,
+          installs: true,
+        });
+      }
+      if (cmd === "about") {
+        return Promise.resolve({
+          version: "0.1.0",
+          sandbox: null,
+          repository: "https://example.invalid/tisty",
+          license: "AGPL-3.0",
+          store: "C:/store",
+        });
+      }
+      if (cmd === "update_install") return Promise.reject({ code: "updateGone" });
+      return was(cmd, args);
+    };
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByRole("button", { name: /about|acerca/i }));
+    await user.click(await screen.findByRole("button", { name: /^update$/i }));
+
+    expect(await screen.findByText(/no longer offered/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^update$/i })).toHaveProperty("disabled", false);
+  });
+
+  it("drops a task from the panel, and takes it off the list", async () => {
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByText("call the bank"));
+    await screen.findByRole("textbox", { name: "Title" });
+    await user.click(screen.getByRole("button", { name: /not doing it/i }));
+
+    await waitFor(() => expect(ipc.calls.some((one) => one.cmd === "discard")).toBe(true));
+  });
+});

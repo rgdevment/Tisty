@@ -42,6 +42,8 @@ zip.workspace = true
 semver = "1"
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "default-tls", "charset", "http2"] }
 tauri-plugin-clipboard-manager = "2.3.2"
+tauri-plugin-updater = "2"
+url = "2"
 
 [dev-dependencies]
 tempfile.workspace = true

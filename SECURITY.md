@@ -28,10 +28,18 @@ report will never be dismissed for being inconvenient.
 
 - **The data never leaves your machine unless you tell it to.** No account, no
   telemetry, no remote server. There is no cloud service to breach because there
-  is no cloud service. Tisty makes exactly one request of its own — a daily GET
-  for a version manifest, which you can turn off, and which carries nothing but
-  the version you are running. It is written out in full in
-  [PRIVACY.md](PRIVACY.md), down to the headers.
+  is no cloud service. Tisty makes one request of its own — a daily GET for a
+  version manifest, carrying nothing but the version you are running — and two
+  more only if you press the button that offers you an update. It is written out
+  in full in [PRIVACY.md](PRIVACY.md), down to the headers.
+- **An update is verified before it is installed.** What the button fetches is
+  checked against a public key compiled into the copy already on your machine.
+  A build signed with any other key is refused, so a release that is not the
+  maintainer's cannot arrive this way, whatever it claims to be. Two narrower
+  guards sit in front of that one: the address an update is fetched from must be
+  where this project's releases live, not merely whatever the feed named, and
+  the download is given a deadline, so a server that answers slowly forever is
+  eventually hung up on.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
   them. There is no Tisty-operated backend at any tier, and no transport of ours
@@ -61,6 +69,21 @@ Being explicit here matters more than sounding reassuring.
   underneath — and if it already travelled to the shared folder, it is on the
   other machines too. Prevention is the only real defence: keep anything
   sensitive in the `private/` folder, which never leaves the machine.
+- **The signature says who built it, not which version it is.** minisign signs
+  the bytes of an installer and nothing else, so an attacker who controlled the
+  update feed could serve an *older* Tisty — genuinely signed, genuinely ours —
+  and an installed copy would accept it, losing whatever the newer one had
+  fixed. Serving something that is not ours stays impossible. Tisty narrows the
+  window by refusing anything not newer than what is running, but the feed
+  states the version, so a lie about the version is a lie Tisty cannot check.
+  This is inherent to the update format, and worth knowing rather than hiding.
+- **The updater's signing key is a single point of failure.** One private key
+  signs every release, it is held by the maintainer alone, and the format offers
+  no way to rotate it: the public half is already compiled into every copy out
+  there. If it leaked, a build signed with it would be accepted by installed
+  copies; if it were lost, those copies would go on working and simply stop
+  being able to update themselves. Either way the fix is a new release installed
+  by hand, and it would be announced on the releases page.
 - **Whoever holds the shared folder holds your data.** Syncing through a
   provider's folder means that provider stores your tasks, under their terms.
   That is the trade you make when you turn it on, and Tisty states it rather
