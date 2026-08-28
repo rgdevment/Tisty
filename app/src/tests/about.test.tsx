@@ -81,6 +81,15 @@ describe("the other tools", () => {
     expect(container.querySelectorAll("img").length).toBe(2);
   });
 
+  it("opens the coffee page for anyone who wants to help", async () => {
+    render(<About ready={null} onError={() => {}} />);
+    await screen.findByText("0.1.0");
+
+    await userEvent.click(screen.getByRole("button", { name: /coffee/i }));
+
+    expect(opened.urls).toEqual(["https://buymeacoffee.com/rgdevment"]);
+  });
+
   it("opens Tisty's own repository as a url", async () => {
     render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");
