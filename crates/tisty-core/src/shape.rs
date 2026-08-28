@@ -1,4 +1,3 @@
-use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
 use crate::model::Status;
@@ -16,7 +15,7 @@ pub struct Shape {
     pub dropped: usize,
     pub told: usize,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub since: Option<Timestamp>,
+    pub since: Option<jiff::civil::Date>,
     pub months: Vec<Month>,
 }
 
@@ -40,11 +39,10 @@ pub fn shape(
             shape.told += 1;
         }
 
-        let Some(at) = task.completed_at else {
+        let Some(on) = task.counted_on(zone) else {
             continue;
         };
-        shape.since = Some(shape.since.map_or(at, |held| held.min(at)));
-        let on = at.to_zoned(zone.clone()).date();
+        shape.since = Some(shape.since.map_or(on, |held| held.min(on)));
         *months
             .entry(format!("{:04}-{:02}", on.year(), on.month()))
             .or_default() += 1;
@@ -84,6 +82,7 @@ fn strip(
 mod tests {
     use super::*;
     use crate::event::{Event, LogAdd, Op, TaskAdd};
+    use jiff::Timestamp;
 
     use crate::event::DeviceId;
     use ulid::Ulid;
@@ -122,11 +121,48 @@ mod tests {
                 },
             ));
         }
-        events.push(event(when, Op::TaskDone { id }));
+        events.push(event(when, Op::TaskDone { id, filled: false }));
         id
     }
 
     const MONTH: i64 = 60 * 60 * 24 * 31;
+
+    #[test]
+    fn a_backfilled_turn_lands_in_the_month_it_covered() {
+        let id = Ulid::generate();
+        let covered = at(0).to_zoned(here()).date();
+        let marked = at(3 * MONTH);
+
+        let mut d = TaskAdd::new("take the pill", "a0");
+        d.date = Some(crate::model::DateSpec::all_day(covered, "UTC"));
+
+        let mut state = State::default();
+        state.apply(&event(0, Op::TaskAdd { id, d }));
+        state.apply(&Event::new(
+            DeviceId("dev_a".into()),
+            marked,
+            Op::TaskDone { id, filled: true },
+        ));
+
+        let told = shape(&state, 6, &here(), when());
+        let key = format!("{:04}-{:02}", covered.year(), covered.month());
+        assert_eq!(
+            told.months.iter().find(|m| m.key == key).map(|m| m.closed),
+            Some(1),
+            "the pill was July's, whatever day you got round to ticking it"
+        );
+
+        let stamped = marked.to_zoned(here()).date();
+        let other = format!("{:04}-{:02}", stamped.year(), stamped.month());
+        assert_eq!(
+            told.months
+                .iter()
+                .find(|m| m.key == other)
+                .map(|m| m.closed),
+            Some(0),
+            "and it cannot be counted twice"
+        );
+    }
 
     #[test]
     fn the_shape_counts_what_is_closed_and_what_of_it_says_something() {
@@ -243,6 +279,6 @@ mod tests {
 
         let told = shape(&State::replay(&events), 18, &here(), when());
 
-        assert_eq!(told.since, Some(at(0)));
+        assert_eq!(told.since, Some(at(0).to_zoned(here()).date()));
     }
 }

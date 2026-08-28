@@ -105,11 +105,11 @@ describe("a routine reads as behaviour, not as turns", () => {
     await shown(series({ turns: [{ id: "01", status: "open" }], open: 1, owed: 0 }));
 
     expect(screen.queryByText(/What hour they close at/i)).toBeNull();
-    expect(screen.queryByText(/the zone you are in now/i)).toBeNull();
+    expect(screen.queryByText(/travelling does not move these bars/i)).toBeNull();
     expect(screen.queryByText(/the usual hour/i)).toBeNull();
   });
 
-  it("warns that the hour is read in the zone of whoever is looking", async () => {
+  it("says the hour is the one on the clock where it was closed", async () => {
     await shown(
       series({
         turns: [kept("01", "2026-08-01", "2026-08-01T08:10:00Z")],
@@ -118,7 +118,28 @@ describe("a routine reads as behaviour, not as turns", () => {
       }),
     );
 
-    expect(screen.getByText(/the zone you are in now/i)).toBeTruthy();
+    expect(screen.getByText(/travelling does not move these bars/i)).toBeTruthy();
+  });
+
+  it("reads each hour where the turn was closed, not where the reader is", async () => {
+    const away: Turn = {
+      ...kept("01", "2026-08-01", "2026-08-01T23:30:00Z"),
+      zone: "Europe/Madrid",
+    };
+    await shown(series({ turns: [away], kept: 1, owed: 1 }));
+
+    expect(screen.getAllByText("01:00").length).toBeGreaterThan(0);
+    expect(screen.queryByText("23:00")).toBeNull();
+  });
+
+  it("leaves out the turns that were ticked days later", async () => {
+    const late: Turn = {
+      ...kept("01", "2026-08-01", "2026-08-10T09:00:00Z"),
+      filled: true,
+    };
+    await shown(series({ turns: [late], kept: 1, owed: 1 }));
+
+    expect(screen.queryByText(/What hour they close at/i)).toBeNull();
   });
 
   it("says a routine has no end when none was set", async () => {

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useAsked } from "../asked";
 import type { Series, Turn } from "../core";
 import { taskSeries } from "../core";
-import { cadence } from "../format";
+import { cadence, hourIn } from "../format";
 import { fill, locale, t } from "../locales";
 
 interface Props {
@@ -197,10 +197,10 @@ function clocked(told: Series) {
   const counts = new Array(24).fill(0) as number[];
   let seen = 0;
   for (const turn of told.turns) {
-    if (!turn.closed) continue;
-    const at = new Date(turn.closed);
-    if (Number.isNaN(at.getTime())) continue;
-    counts[at.getHours()] += 1;
+    if (!turn.closed || turn.filled) continue;
+    const hour = hourIn(turn.closed, turn.zone);
+    if (hour === null) continue;
+    counts[hour] += 1;
     seen += 1;
   }
   if (!seen) return null;

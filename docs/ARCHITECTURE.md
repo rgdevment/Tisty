@@ -39,7 +39,23 @@ is never modified again.
 | `n` | sequence within that device, absent when zero |
 | `tx` | groups the events of one user action |
 | `un` / `re` | marks a compensation or a replay of one |
+| `tz` | the zone whoever wrote it was in, so an hour reads back where it happened |
+| `opt` | a reader that cannot make sense of this operation skips it instead of refusing the store; absent means refuse |
 | `op`, `id`, `d` | the operation, the entity it affects, its payload |
+
+Only mark `opt` on an operation that **adds**. A reader forgives it solely when the
+name is one it has never heard of — a known operation that fails to parse is
+corruption and stops the read regardless — but nothing can stop a writer marking
+something that changes what already exists, and a reader would then drop it and
+diverge in silence.
+
+Three payload fields carry more than their name says:
+
+| Field | On | Meaning |
+|---|---|---|
+| `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
+| `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
+| `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
 
 `active.tisty` is sealed as `NNNNNN.tisty` every 5.000 events. Sealed segments
 are numbered from one without gaps.

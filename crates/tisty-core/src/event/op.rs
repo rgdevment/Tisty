@@ -25,6 +25,49 @@ mod null_clears {
     }
 }
 
+/// Every name `Op` serialises to. A reader uses it to tell an operation it has never heard of
+/// from one it knows that arrived corrupt.
+pub const KNOWN_OPS: &[&str] = &[
+    "task.add",
+    "task.update",
+    "task.done",
+    "task.reopen",
+    "task.drop",
+    "task.delete",
+    "task.hide",
+    "task.show",
+    "task.move",
+    "task.describe",
+    "task.log",
+    "task.log.edit",
+    "task.step.add",
+    "task.step.done",
+    "task.step.undone",
+    "task.step.text",
+    "task.step.remove",
+    "task.step.reorder",
+    "list.add",
+    "list.rename",
+    "list.look",
+    "list.archive",
+    "list.unarchive",
+    "list.delete",
+    "folder.add",
+    "folder.rename",
+    "folder.look",
+    "folder.move",
+    "folder.delete",
+    "doc.add",
+    "doc.move",
+    "doc.delete",
+    "doc.archive",
+    "doc.unarchive",
+    "device.join",
+    "device.remove",
+    "attach.retire",
+    "stores.joined",
+];
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op")]
 pub enum Op {
@@ -33,7 +76,12 @@ pub enum Op {
     #[serde(rename = "task.update")]
     TaskUpdate { id: TaskId, d: TaskPatch },
     #[serde(rename = "task.done")]
-    TaskDone { id: TaskId },
+    TaskDone {
+        id: TaskId,
+        /// Closed in bulk by the backfill: its `completed_at` is the hour of the marking, not its own.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        filled: bool,
+    },
     #[serde(rename = "task.reopen")]
     TaskReopen { id: TaskId },
     #[serde(rename = "task.drop")]
@@ -103,7 +151,13 @@ pub enum Op {
     DocUnarchive { id: DocId },
 
     #[serde(rename = "device.join")]
-    DeviceJoin { d: DeviceId },
+    DeviceJoin {
+        d: DeviceId,
+        /// Absent means the writer had nothing to say about it, which is not the same as saying
+        /// it is a machine: an event from before this field existed must not demote an agent.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        k: Option<DeviceKind>,
+    },
     #[serde(rename = "device.remove")]
     DeviceRemove { d: DeviceId },
 
@@ -131,7 +185,7 @@ impl Op {
         match self {
             Op::TaskAdd { d, .. } => Op::TaskAdd { id, d },
             Op::TaskUpdate { d, .. } => Op::TaskUpdate { id, d },
-            Op::TaskDone { .. } => Op::TaskDone { id },
+            Op::TaskDone { filled, .. } => Op::TaskDone { id, filled },
             Op::TaskReopen { .. } => Op::TaskReopen { id },
             Op::TaskDrop { .. } => Op::TaskDrop { id },
             Op::TaskDelete { .. } => Op::TaskDelete { id },
@@ -228,7 +282,7 @@ impl Op {
         match self {
             Op::TaskAdd { id, .. }
             | Op::TaskUpdate { id, .. }
-            | Op::TaskDone { id }
+            | Op::TaskDone { id, .. }
             | Op::TaskReopen { id }
             | Op::TaskDrop { id }
             | Op::TaskDelete { id }
@@ -288,6 +342,17 @@ pub struct TaskAdd {
     pub repeat: Option<Repeat>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub after: Option<TaskId>,
+    /// What this task was written from, so the same thing is not filed twice.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DeviceKind {
+    #[default]
+    Machine,
+    Agent,
 }
 
 impl TaskAdd {
@@ -303,6 +368,7 @@ impl TaskAdd {
             reminders: Vec::new(),
             repeat: None,
             after: None,
+            source: None,
         }
     }
 }

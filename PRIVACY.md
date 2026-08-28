@@ -61,6 +61,12 @@ visible instead of making it for you.
   identifier itself does appear in the shared folder — it names your device's
   directory and stamps every event — because that is what tells two writers
   apart. What must never be shared is the file that binds it to this machine.
+- **The time zone you were in** — every event carries the IANA zone of whoever
+  wrote it, so an hour reads back where it happened instead of drifting when you
+  travel. It goes to the shared folder with the rest, and a long enough history
+  shows where you have been. It is named here because it is the one field that
+  says something about you rather than about your work; everything else in that
+  folder is already your own words.
 - **A `private/` folder** — anything placed here never leaves the machine
   under any transport.
 - **The guide** — the one thing Tisty writes for you rather than the other way
