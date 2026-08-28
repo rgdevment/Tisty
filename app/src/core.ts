@@ -54,6 +54,10 @@ export interface Task {
   completed_at?: string;
   hidden?: boolean;
   volume?: Volume;
+  created_by?: string;
+  filled?: boolean;
+  source?: string;
+  closed_in?: string;
 }
 
 export interface Repeat {
@@ -152,6 +156,8 @@ export interface Turn {
   late?: number;
   gaps?: string[];
   told?: boolean;
+  filled?: boolean;
+  zone?: string;
 }
 
 export interface Series {

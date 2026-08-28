@@ -449,7 +449,7 @@ mod tests {
 
         let log = vec![
             born(id, "water the plants"),
-            event(10, Op::TaskDone { id }),
+            event(10, Op::TaskDone { id, filled: false }),
             undone,
         ];
 
@@ -464,7 +464,7 @@ mod tests {
     fn a_story_reads_in_the_same_order_from_either_machine() {
         let id = Ulid::generate();
         let theirs = DeviceId("dev_other".into());
-        let mut late = Event::new(theirs, at(10), Op::TaskDone { id });
+        let mut late = Event::new(theirs, at(10), Op::TaskDone { id, filled: false });
         late.seq = 1;
 
         let log = vec![late.clone(), born(id, "ship the release")];

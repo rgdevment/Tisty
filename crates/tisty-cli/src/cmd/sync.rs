@@ -109,7 +109,10 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         .allowed
         .contains(&who)
     {
-        app.commit(tisty_core::Op::DeviceJoin { d: who })?;
+        app.commit(tisty_core::Op::DeviceJoin {
+            d: who,
+            k: Some(tisty_core::DeviceKind::Machine),
+        })?;
     }
 
     let heard = moved.brought > 0;

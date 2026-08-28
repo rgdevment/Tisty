@@ -209,7 +209,10 @@ impl Session {
         if self.state.devices.contains(&who) {
             return Ok(());
         }
-        self.commit(Op::DeviceJoin { d: who })
+        self.commit(Op::DeviceJoin {
+            d: who,
+            k: Some(tisty_core::DeviceKind::Machine),
+        })
     }
 
     fn commit(&mut self, op: Op) -> tisty_core::Result<()> {
