@@ -390,6 +390,10 @@ const en = {
   aboutStore: "Store",
   aboutRepo: "Open the repository",
   aboutReveal: "Show the store",
+  supportTitle: "Support Tisty",
+  supportWhy:
+    "Tisty is free and always will be. If it earns a place in your day, a coffee keeps the work going.",
+  supportCoffee: "Buy me a coffee",
   saidDone: "Completed: {name}",
   saidFiled: "Filed: {name}",
   reviewRedo: "Redo the cache",
@@ -1277,6 +1281,10 @@ const es: Catalog = {
   aboutStore: "Almacén",
   aboutRepo: "Abrir el repositorio",
   aboutReveal: "Ver el almacén",
+  supportTitle: "Apoyar a Tisty",
+  supportWhy:
+    "Tisty es gratuita y lo seguirá siendo. Si se gana un lugar en tu día, un café mantiene el trabajo en marcha.",
+  supportCoffee: "Invítame un café",
   saidDone: "Completada: {name}",
   saidFiled: "Guardada: {name}",
   reviewRedo: "Rehacer la caché",

@@ -6,6 +6,8 @@ import { about, type About as Build, type Ready, type Underway, updateInstall } 
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 
+const COFFEE = "https://buymeacoffee.com/rgdevment";
+
 const TOOLS = [
   {
     icon: copypaste,
@@ -138,6 +140,15 @@ export default function About({
             </div>
           </Card>
         )}
+
+        <Card title={t("supportTitle")}>
+          <p className="text-[12.5px] leading-relaxed text-soft">{t("supportWhy")}</p>
+          <div className="mt-2.5">
+            <button type="button" onClick={() => openUrl(COFFEE).catch(onError)} className={mild}>
+              {t("supportCoffee")}
+            </button>
+          </div>
+        </Card>
 
         <div className="mt-5 mb-2 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
           <span>{t("otherTools")}</span>
