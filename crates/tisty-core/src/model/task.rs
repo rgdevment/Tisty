@@ -154,6 +154,16 @@ pub struct Task {
     pub after: Option<TaskId>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
+    /// Projected from the event's `by`, never written to the log.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_by: Option<crate::event::DeviceId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    /// The zone the closing event was written in, so an hour reads back where it happened.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closed_in: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub filled: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completed_at: Option<Timestamp>,
 
@@ -188,6 +198,15 @@ impl Volume {
 }
 
 impl Task {
+    /// The date a closure is attributed to. A backfilled turn was stamped the day it was marked,
+    /// and belongs to the day it covered instead.
+    pub fn counted_on(&self, zone: &jiff::tz::TimeZone) -> Option<jiff::civil::Date> {
+        match (self.filled, self.date.as_ref()) {
+            (true, Some(due)) => Some(due.at.date()),
+            _ => Some(self.completed_at?.to_zoned(zone.clone()).date()),
+        }
+    }
+
     pub fn new(id: TaskId, title: impl Into<String>, order: impl Into<String>) -> Self {
         Self {
             id,
@@ -206,6 +225,10 @@ impl Task {
             repeat: None,
             after: None,
             hidden: false,
+            created_by: None,
+            source: None,
+            closed_in: None,
+            filled: false,
             completed_at: None,
             volume: Volume::default(),
         }

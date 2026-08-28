@@ -20,6 +20,10 @@ pub struct Turn {
     pub gaps: Vec<jiff::civil::Date>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub told: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub filled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub zone: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -80,6 +84,8 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
             late: overdue(task),
             gaps,
             told: task.weight() > 0,
+            filled: task.filled,
+            zone: task.closed_in.clone(),
         });
     }
 
@@ -231,10 +237,12 @@ fn between(
 }
 
 fn overdue(task: &Task) -> Option<i64> {
+    if task.filled {
+        return None;
+    }
     let due = task.date.as_ref()?;
-    let closed = task.completed_at?;
     let zone = jiff::tz::TimeZone::get(&due.tz).unwrap_or_else(|_| jiff::tz::TimeZone::system());
-    let on = closed.to_zoned(zone).date();
+    let on = task.counted_on(&zone)?;
     Some(on.since(due.date()).ok()?.get_days() as i64)
 }
 
@@ -310,7 +318,7 @@ mod tests {
 
         fn done(self) -> Self {
             let id = *self.ids.last().unwrap();
-            self.then(Op::TaskDone { id })
+            self.then(Op::TaskDone { id, filled: false })
         }
 
         fn given_up(self) -> Self {
@@ -434,7 +442,7 @@ mod tests {
         let mut born = event(Op::TaskAdd { id, d: add });
         born.timestamp = at(0);
 
-        let mut shut = event(Op::TaskDone { id });
+        let mut shut = event(Op::TaskDone { id, filled: false });
         shut.timestamp = "2026-08-03T09:00:00Z".parse().unwrap();
 
         let state = State::replay(&[born, shut]);
@@ -544,6 +552,30 @@ mod tests {
     }
 
     #[test]
+    fn a_backfilled_turn_reports_no_lateness_because_none_was_measured() {
+        let id = Ulid::generate();
+        let mut d = TaskAdd::new("water the balcony", "a0");
+        d.date = Some(day("2026-08-18"));
+        d.repeat = Some(daily(From::Due));
+
+        let mut state = State::default();
+        state.apply(&event(Op::TaskAdd { id, d }));
+        state.apply(&Event::new(
+            DeviceId("dev_a".into()),
+            at(864_000),
+            Op::TaskDone { id, filled: true },
+        ));
+
+        let told = series(&state, id).expect("a routine of one turn still is a series");
+        let last = told.turns.last().expect("one turn");
+        assert_eq!(
+            last.late, None,
+            "ten days of marking late is not ten days of doing it late"
+        );
+        assert!(last.filled);
+    }
+
+    #[test]
     fn a_turn_still_open_is_not_counted_as_one_that_was_missed() {
         let told = Chain::new()
             .turn("2026-08-01", daily(From::Due))
@@ -648,7 +680,10 @@ mod tests {
         add.after = Some(chain.ids[0]);
         let mut events = chain.events.clone();
         events.push(event(Op::TaskAdd { id: rival, d: add }));
-        events.push(event(Op::TaskDone { id: rival }));
+        events.push(event(Op::TaskDone {
+            id: rival,
+            filled: false,
+        }));
 
         let state = State::replay(&events);
 

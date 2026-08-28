@@ -330,7 +330,7 @@ mod tests {
     fn a_closed_task_says_nothing() {
         let mut state = with(vec![at("2026-08-11T09:45:00")]);
         let id = *state.tasks.keys().next().unwrap();
-        state.apply(&fired(crate::Op::TaskDone { id }));
+        state.apply(&fired(crate::Op::TaskDone { id, filled: false }));
 
         assert!(
             owed(

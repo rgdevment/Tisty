@@ -25,6 +25,8 @@ pub struct State {
     pub folders: BTreeMap<FolderId, Folder>,
     pub docs: BTreeMap<DocId, Kept>,
     pub devices: BTreeSet<DeviceId>,
+    pub agents: BTreeSet<DeviceId>,
+    pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
     pub retired: BTreeSet<String>,
     pub shed: BTreeSet<String>,
@@ -65,16 +67,27 @@ impl State {
         match &event.op {
             Op::TaskAdd { id, d } => {
                 let mut task = task_from(*id, d);
+                task.created_by = Some(event.device.clone());
                 task.retally();
+                if let Some(source) = &task.source {
+                    self.sourced.insert(source.clone(), *id);
+                }
                 self.tasks.insert(*id, task);
             }
             Op::TaskUpdate { id, d } => self.with_task(*id, |t| patch(t, d)),
-            Op::TaskDone { id } => self.with_task(*id, |t| {
-                t.status = Status::Done;
-                t.completed_at = Some(event.timestamp);
-            }),
+            Op::TaskDone { id, filled } => {
+                let zone = event.zone.clone();
+                self.with_task(*id, |t| {
+                    t.status = Status::Done;
+                    t.completed_at = Some(event.timestamp);
+                    t.filled = *filled;
+                    t.closed_in = zone;
+                })
+            }
             Op::TaskReopen { id } => self.with_task(*id, |t| {
                 t.status = Status::Open;
+                t.filled = false;
+                t.closed_in = None;
                 t.completed_at = None;
                 t.hidden = false;
             }),
@@ -85,7 +98,9 @@ impl State {
                 t.completed_at = Some(event.timestamp);
             }),
             Op::TaskDelete { id } => {
-                self.tasks.remove(id);
+                if let Some(source) = self.tasks.remove(id).and_then(|task| task.source) {
+                    self.sourced.remove(&source);
+                }
                 self.tombstones.insert(*id);
             }
             Op::TaskMove { id, d } => self.with_task(*id, |t| move_task(t, d)),
@@ -218,12 +233,22 @@ impl State {
                     doc.archived = false;
                 }
             }
-            Op::DeviceJoin { d } => {
+            Op::DeviceJoin { d, k } => {
                 self.dropped.remove(d);
                 self.devices.insert(d.clone());
+                match k {
+                    Some(crate::event::DeviceKind::Agent) => {
+                        self.agents.insert(d.clone());
+                    }
+                    Some(crate::event::DeviceKind::Machine) => {
+                        self.agents.remove(d);
+                    }
+                    None => {}
+                }
             }
             Op::DeviceRemove { d } => {
                 self.devices.remove(d);
+                self.agents.remove(d);
                 self.dropped.insert(d.clone());
             }
             Op::AttachRetire { d } => {
@@ -469,7 +494,7 @@ impl State {
     }
 
     pub fn completing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
-        let done = vec![Op::TaskDone { id }];
+        let done = vec![Op::TaskDone { id, filled: false }];
         let Some(task) = self.tasks.get(&id) else {
             return done;
         };
@@ -604,7 +629,7 @@ impl State {
     /// Fills the dates the person says they did, as turns already closed, so no gap is invented.
     pub fn covering(&self, id: TaskId, now: jiff::Zoned, also: &[jiff::civil::Date]) -> Vec<Op> {
         let Some(task) = self.tasks.get(&id) else {
-            return vec![Op::TaskDone { id }];
+            return vec![Op::TaskDone { id, filled: false }];
         };
         let (Some(due), Some(repeat)) = (task.date.clone(), task.repeat) else {
             return self.completing(id, now);
@@ -621,7 +646,7 @@ impl State {
         wanted.sort_unstable();
         wanted.dedup();
 
-        let mut ops = vec![Op::TaskDone { id }];
+        let mut ops = vec![Op::TaskDone { id, filled: false }];
         let mut before = id;
         let mut last = due.clone();
         let mut order = self.order_last_in(task.list);
@@ -637,7 +662,10 @@ impl State {
             };
             let fresh = *fresh;
             ops.append(&mut born);
-            ops.push(Op::TaskDone { id: fresh });
+            ops.push(Op::TaskDone {
+                id: fresh,
+                filled: true,
+            });
             last = filled;
             before = fresh;
         }
@@ -916,6 +944,7 @@ fn task_from(id: TaskId, d: &TaskAdd) -> Task {
         reminders: d.reminders.clone(),
         repeat: d.repeat,
         after: d.after,
+        source: d.source.clone(),
         ..Task::new(id, d.title.clone(), d.order.clone())
     }
 }
@@ -1010,6 +1039,8 @@ mod tests {
                 redo: false,
                 seq: at as u64,
                 op,
+                optional: false,
+                zone: None,
             })
             .collect();
         State::replay(&events)
@@ -1804,7 +1835,7 @@ mod tests {
     fn nothing_is_renamed_when_nothing_was_buried() {
         let state = State::default();
         let id = ulid::Ulid::generate();
-        let ops = vec![Op::TaskDone { id }];
+        let ops = vec![Op::TaskDone { id, filled: false }];
 
         assert_eq!(state.afresh(ops.clone()), ops);
     }
@@ -1871,6 +1902,196 @@ mod tests {
     }
 
     #[test]
+    fn a_task_remembers_which_writer_filed_it() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "dev_agent",
+            Op::TaskAdd {
+                id,
+                d: crate::event::TaskAdd::new("buy pink card stock", "a0"),
+            },
+        ));
+
+        assert_eq!(
+            state.tasks[&id].created_by,
+            Some(DeviceId("dev_agent".into())),
+            "the writer is in every event and must survive projection"
+        );
+    }
+
+    #[test]
+    fn what_a_task_was_written_from_finds_it_again() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("buy pink card stock", "a0");
+        d.source = Some("wa:msg-991".into());
+        state.apply(&ev(1, "dev_agent", Op::TaskAdd { id, d }));
+
+        assert_eq!(state.sourced.get("wa:msg-991"), Some(&id));
+        assert_eq!(state.sourced.get("wa:msg-992"), None);
+    }
+
+    #[test]
+    fn a_join_says_whether_it_is_a_machine_or_an_agent() {
+        let mut state = State::default();
+        let agent = DeviceId("dev_agent".into());
+        let laptop = DeviceId("dev_laptop".into());
+        state.apply(&ev(
+            1,
+            "dev_laptop",
+            Op::DeviceJoin {
+                d: laptop.clone(),
+                k: Some(crate::event::DeviceKind::Machine),
+            },
+        ));
+        state.apply(&ev(
+            2,
+            "dev_agent",
+            Op::DeviceJoin {
+                d: agent.clone(),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        ));
+
+        assert!(state.devices.contains(&laptop) && state.devices.contains(&agent));
+        assert!(state.agents.contains(&agent));
+        assert!(!state.agents.contains(&laptop));
+
+        state.apply(&ev(3, "dev_laptop", Op::DeviceRemove { d: agent.clone() }));
+        assert!(
+            !state.agents.contains(&agent),
+            "removing takes the badge with it"
+        );
+    }
+
+    #[test]
+    fn a_turn_closed_by_the_backfill_says_so() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "mac0",
+            Op::TaskAdd {
+                id,
+                d: crate::event::TaskAdd::new("take the pill", "a0"),
+            },
+        ));
+        state.apply(&ev(2, "mac0", Op::TaskDone { id, filled: true }));
+
+        assert!(
+            state.tasks[&id].filled,
+            "statistics read completed_at, and a backfilled turn did not close at that hour"
+        );
+    }
+
+    #[test]
+    fn deleting_a_task_takes_what_it_was_written_from_with_it() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("buy pink card stock", "a0");
+        d.source = Some("wa:msg-991".into());
+        state.apply(&ev(1, "dev_agent", Op::TaskAdd { id, d }));
+        state.apply(&ev(2, "dev_agent", Op::TaskDelete { id }));
+
+        assert_eq!(
+            state.sourced.get("wa:msg-991"),
+            None,
+            "what someone deleted has to be capturable again"
+        );
+    }
+
+    #[test]
+    fn two_tasks_claiming_one_origin_leave_the_last_one_reachable() {
+        let mut state = State::default();
+        let (first, second) = (Ulid::generate(), Ulid::generate());
+        for (id, title) in [(first, "first read of it"), (second, "second read of it")] {
+            let mut d = crate::event::TaskAdd::new(title, "a0");
+            d.source = Some("wa:msg-991".into());
+            state.apply(&ev(1, "dev_agent", Op::TaskAdd { id, d }));
+        }
+
+        assert_eq!(
+            state.sourced.get("wa:msg-991"),
+            Some(&second),
+            "the last writer wins, and replay order is the same on every machine"
+        );
+        assert_eq!(state.tasks.len(), 2, "neither task is thrown away for it");
+    }
+
+    #[test]
+    fn coming_back_as_a_machine_takes_the_agent_badge_off() {
+        let mut state = State::default();
+        let who = DeviceId("dev_x".into());
+        state.apply(&ev(
+            1,
+            "dev_x",
+            Op::DeviceJoin {
+                d: who.clone(),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        ));
+        state.apply(&ev(
+            2,
+            "dev_x",
+            Op::DeviceJoin {
+                d: who.clone(),
+                k: Some(crate::event::DeviceKind::Machine),
+            },
+        ));
+
+        assert!(!state.agents.contains(&who));
+    }
+
+    #[test]
+    fn reopening_a_backfilled_turn_forgets_that_it_was_backfilled() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "mac0",
+            Op::TaskAdd {
+                id,
+                d: crate::event::TaskAdd::new("take the pill", "a0"),
+            },
+        ));
+        state.apply(&ev(2, "mac0", Op::TaskDone { id, filled: true }));
+        state.apply(&ev(3, "mac0", Op::TaskReopen { id }));
+
+        assert!(
+            !state.tasks[&id].filled,
+            "an open turn was closed by nobody"
+        );
+    }
+
+    #[test]
+    fn undoing_a_reopen_puts_a_backfilled_turn_back_as_it_was() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "mac0",
+            Op::TaskAdd {
+                id,
+                d: crate::event::TaskAdd::new("take the pill", "a0"),
+            },
+        ));
+        state.apply(&ev(2, "mac0", Op::TaskDone { id, filled: true }));
+
+        let before = state.clone();
+        let reopen = ev(3, "mac0", Op::TaskReopen { id });
+        state.apply(&reopen);
+        let back = crate::undo::inverse(&reopen, &before).expect("a reopen can be undone");
+        state.apply(&ev(4, "mac0", back));
+
+        assert!(
+            state.tasks[&id].filled,
+            "undo has to be an identity, and a lost flag revives a delay nobody had"
+        );
+    }
+
+    #[test]
     fn a_machine_that_joined_is_allowed_to_write() {
         let mut state = State::default();
 
@@ -1879,6 +2100,7 @@ mod tests {
             "mac0",
             Op::DeviceJoin {
                 d: DeviceId("mac0".into()),
+                k: Some(crate::event::DeviceKind::Machine),
             },
         ));
 
@@ -1890,7 +2112,14 @@ mod tests {
         let mut state = State::default();
         let who = DeviceId("win1".into());
 
-        state.apply(&ev(1, "mac0", Op::DeviceJoin { d: who.clone() }));
+        state.apply(&ev(
+            1,
+            "mac0",
+            Op::DeviceJoin {
+                d: who.clone(),
+                k: Some(crate::event::DeviceKind::Machine),
+            },
+        ));
         state.apply(&ev(2, "mac0", Op::DeviceRemove { d: who.clone() }));
 
         assert!(!state.devices.contains(&who));
@@ -1901,9 +2130,23 @@ mod tests {
         let mut state = State::default();
         let who = DeviceId("win1".into());
 
-        state.apply(&ev(1, "mac0", Op::DeviceJoin { d: who.clone() }));
+        state.apply(&ev(
+            1,
+            "mac0",
+            Op::DeviceJoin {
+                d: who.clone(),
+                k: Some(crate::event::DeviceKind::Machine),
+            },
+        ));
         state.apply(&ev(2, "mac0", Op::DeviceRemove { d: who.clone() }));
-        state.apply(&ev(3, "win1", Op::DeviceJoin { d: who.clone() }));
+        state.apply(&ev(
+            3,
+            "win1",
+            Op::DeviceJoin {
+                d: who.clone(),
+                k: Some(crate::event::DeviceKind::Machine),
+            },
+        ));
 
         assert!(state.devices.contains(&who));
     }
@@ -1914,8 +2157,22 @@ mod tests {
         let one = DeviceId("mac0".into());
         let other = DeviceId("win1".into());
 
-        state.apply(&ev(1, "mac0", Op::DeviceJoin { d: one.clone() }));
-        state.apply(&ev(2, "mac0", Op::DeviceJoin { d: other.clone() }));
+        state.apply(&ev(
+            1,
+            "mac0",
+            Op::DeviceJoin {
+                d: one.clone(),
+                k: Some(crate::event::DeviceKind::Machine),
+            },
+        ));
+        state.apply(&ev(
+            2,
+            "mac0",
+            Op::DeviceJoin {
+                d: other.clone(),
+                k: Some(crate::event::DeviceKind::Machine),
+            },
+        ));
         state.apply(&ev(3, "mac0", Op::DeviceRemove { d: other }));
 
         assert_eq!(state.devices.len(), 1);
@@ -1934,6 +2191,7 @@ mod tests {
             "mac0",
             Op::DeviceJoin {
                 d: DeviceId("win1".into()),
+                k: Some(crate::event::DeviceKind::Machine),
             },
         ));
 
@@ -1960,7 +2218,7 @@ mod tests {
         let id = Ulid::generate();
         let state = State::replay(&[
             ev(1, "dev_a", add(id, "ship it")),
-            ev(2, "dev_a", Op::TaskDone { id }),
+            ev(2, "dev_a", Op::TaskDone { id, filled: false }),
         ]);
 
         let task = &state.tasks[&id];
@@ -2467,7 +2725,7 @@ mod tests {
         assert!(!State::replay(&events).is_settled(list));
 
         let mut done = events;
-        done.push(ev(3, "dev_a", Op::TaskDone { id }));
+        done.push(ev(3, "dev_a", Op::TaskDone { id, filled: false }));
         assert!(State::replay(&done).is_settled(list));
     }
 
@@ -2552,7 +2810,7 @@ mod tests {
         let id = Ulid::generate();
         let state = State::replay(&[
             ev(1, "dev_a", add(id, "ship it")),
-            ev(2, "dev_a", Op::TaskDone { id }),
+            ev(2, "dev_a", Op::TaskDone { id, filled: false }),
         ]);
 
         assert_eq!(state.open_tasks().count(), 0);
@@ -2566,7 +2824,14 @@ mod tests {
         let state = State::replay(&[
             ev(1, "dev_a", add(a, "done properly")),
             ev(1, "dev_b", add(b, "never happened")),
-            ev(2, "dev_a", Op::TaskDone { id: a }),
+            ev(
+                2,
+                "dev_a",
+                Op::TaskDone {
+                    id: a,
+                    filled: false,
+                },
+            ),
             ev(2, "dev_b", Op::TaskDrop { id: b }),
         ]);
 
@@ -2876,7 +3141,14 @@ mod tests {
         let (done, gone) = (Ulid::generate(), Ulid::generate());
         state.apply(&ev(1, "a", add(done, "lo hice")));
         state.apply(&ev(2, "a", add(gone, "no lo haré")));
-        state.apply(&ev(3, "a", Op::TaskDone { id: done }));
+        state.apply(&ev(
+            3,
+            "a",
+            Op::TaskDone {
+                id: done,
+                filled: false,
+            },
+        ));
         state.apply(&ev(4, "a", Op::TaskDrop { id: gone }));
 
         let archive = |folded: bool| {
@@ -2909,7 +3181,7 @@ mod tests {
         let mut state = State::default();
         let id = Ulid::generate();
         state.apply(&ev(1, "a", add(id, "revisar el deploy")));
-        state.apply(&ev(2, "a", Op::TaskDone { id }));
+        state.apply(&ev(2, "a", Op::TaskDone { id, filled: false }));
         state.apply(&ev(3, "a", Op::TaskHide { id }));
         assert!(state.tasks[&id].hidden);
 
@@ -2928,7 +3200,7 @@ mod tests {
         let away = Ulid::generate();
         for (id, title) in [(seen, "a la vista"), (away, "guardada")] {
             state.apply(&ev(1, "a", add(id, title)));
-            state.apply(&ev(2, "a", Op::TaskDone { id }));
+            state.apply(&ev(2, "a", Op::TaskDone { id, filled: false }));
         }
         state.apply(&ev(3, "a", Op::TaskHide { id: away }));
 

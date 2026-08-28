@@ -84,6 +84,10 @@ impl Cache {
             .meta("retired")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
+        state.agents = self
+            .meta("agents")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -98,6 +102,9 @@ impl Cache {
             for doc in rows {
                 if into {
                     let task: crate::Task = serde_json::from_str(&doc).ok()?;
+                    if let Some(source) = &task.source {
+                        state.sourced.insert(source.clone(), task.id);
+                    }
                     state.tasks.insert(task.id, task);
                 } else {
                     let list: crate::List = serde_json::from_str(&doc).ok()?;
@@ -206,7 +213,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -214,6 +221,7 @@ impl Cache {
                     serde_json::to_string(&state.dropped).unwrap_or_default(),
                     serde_json::to_string(&state.retired).unwrap_or_default(),
                     serde_json::to_string(&state.shed).unwrap_or_default(),
+                    serde_json::to_string(&state.agents).unwrap_or_default(),
                 ],
             )?;
             tx.commit()
@@ -586,6 +594,14 @@ mod tests {
         let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
         let mut state = State::default();
         state.devices.insert(crate::DeviceId("mac0".into()));
+        state.agents.insert(crate::DeviceId("dev_agent".into()));
+        let id = ulid::Ulid::generate();
+        let mut task = crate::Task::new(id, "buy pink card stock", "a0");
+        task.source = Some("wa:msg-991".into());
+        task.created_by = Some(crate::DeviceId("dev_agent".into()));
+        task.filled = true;
+        state.sourced.insert("wa:msg-991".into(), id);
+        state.tasks.insert(id, task);
         state.shed.insert("a-0009".into());
         state
             .retired
@@ -595,6 +611,21 @@ mod tests {
         let back = cache.load("print", true).expect("the cache had it");
 
         assert_eq!(back.devices, state.devices, "the list of machines was lost");
+        assert_eq!(
+            back.agents, state.agents,
+            "which of them is an agent was lost"
+        );
+        assert_eq!(
+            back.sourced, state.sourced,
+            "the index is rebuilt from the tasks themselves, so it cannot outlive one"
+        );
+        let kept = &back.tasks[&id];
+        assert_eq!(kept.source, state.tasks[&id].source);
+        assert_eq!(kept.created_by, state.tasks[&id].created_by);
+        assert!(
+            kept.filled,
+            "a backfilled turn came back as an ordinary one"
+        );
         assert_eq!(back.retired, state.retired, "the retirements were lost");
         assert_eq!(
             back.shed, state.shed,
@@ -737,7 +768,12 @@ mod tests {
         let mut cache = Cache::open(&f.cache_dir).unwrap();
 
         let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
-        let event = store.append(Op::TaskDone { id: f.task }).unwrap();
+        let event = store
+            .append(Op::TaskDone {
+                id: f.task,
+                filled: false,
+            })
+            .unwrap();
         state.apply(&event);
 
         let print = advance(
@@ -767,7 +803,12 @@ mod tests {
         let mut cache = Cache::open(&f.cache_dir).unwrap();
 
         let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
-        let event = store.append(Op::TaskDone { id: f.task }).unwrap();
+        let event = store
+            .append(Op::TaskDone {
+                id: f.task,
+                filled: false,
+            })
+            .unwrap();
         light.apply(&event);
         advance(
             cache.as_mut(),
@@ -794,7 +835,12 @@ mod tests {
 
         let mut light = summarised(&f.store_root, &f.cache_dir).unwrap();
         let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
-        let event = store.append(Op::TaskDone { id: f.task }).unwrap();
+        let event = store
+            .append(Op::TaskDone {
+                id: f.task,
+                filled: false,
+            })
+            .unwrap();
         light.apply(&event);
 
         let task = &light.tasks[&f.task];
@@ -808,7 +854,12 @@ mod tests {
         project(&f.store_root, &f.cache_dir).unwrap();
 
         let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
-        store.append(Op::TaskDone { id: f.task }).unwrap();
+        store
+            .append(Op::TaskDone {
+                id: f.task,
+                filled: false,
+            })
+            .unwrap();
 
         assert!(matches!(
             audit(&f.store_root, &f.cache_dir).unwrap(),
@@ -822,7 +873,12 @@ mod tests {
         let state = project(&f.store_root, &f.cache_dir).unwrap();
 
         let mut theirs = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
-        let event = theirs.append(Op::TaskDone { id: f.task }).unwrap();
+        let event = theirs
+            .append(Op::TaskDone {
+                id: f.task,
+                filled: false,
+            })
+            .unwrap();
 
         let mut cache = Cache::open(&f.cache_dir).unwrap();
         advance(

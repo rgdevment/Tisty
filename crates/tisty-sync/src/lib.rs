@@ -319,7 +319,7 @@ fn every_name(store: &Path) -> std::collections::BTreeSet<String> {
     if let Ok(events) = tisty_core::store::read_all(store) {
         for one in events {
             match one.op {
-                tisty_core::Op::DeviceJoin { d } | tisty_core::Op::DeviceRemove { d } => {
+                tisty_core::Op::DeviceJoin { d, .. } | tisty_core::Op::DeviceRemove { d } => {
                     said.insert(d.0);
                 }
                 _ => {}
@@ -1483,6 +1483,7 @@ mod tests {
             &one,
             Op::DeviceJoin {
                 d: DeviceId("dev_otra".into()),
+                k: Some(tisty_core::DeviceKind::Machine),
             },
         );
         says(
@@ -2024,6 +2025,7 @@ mod tests {
             &one,
             Op::DeviceJoin {
                 d: DeviceId("dev_a".into()),
+                k: Some(tisty_core::DeviceKind::Machine),
             },
         );
         let shared = tempfile::tempdir().unwrap();
@@ -3201,6 +3203,7 @@ mod tests {
             &one,
             Op::DeviceJoin {
                 d: DeviceId("dev_b".into()),
+                k: Some(tisty_core::DeviceKind::Machine),
             },
         );
         let shared = tempfile::tempdir().unwrap();
@@ -3248,12 +3251,14 @@ mod tests {
             &one,
             Op::DeviceJoin {
                 d: DeviceId("dev_a".into()),
+                k: Some(tisty_core::DeviceKind::Machine),
             },
         );
         says(
             &one,
             Op::DeviceJoin {
                 d: DeviceId("dev_b".into()),
+                k: Some(tisty_core::DeviceKind::Machine),
             },
         );
         says(
@@ -3288,6 +3293,7 @@ mod tests {
             &one,
             Op::DeviceJoin {
                 d: DeviceId("dev_b".into()),
+                k: Some(tisty_core::DeviceKind::Machine),
             },
         );
         says(
@@ -3322,6 +3328,7 @@ mod tests {
             &other,
             Op::DeviceJoin {
                 d: DeviceId("dev_b".into()),
+                k: Some(tisty_core::DeviceKind::Machine),
             },
         );
         says(
@@ -4182,12 +4189,14 @@ mod tests {
             &one,
             Op::DeviceJoin {
                 d: DeviceId("uno".into()),
+                k: Some(tisty_core::DeviceKind::Machine),
             },
         );
         says(
             &one,
             Op::DeviceJoin {
                 d: DeviceId("vieja".into()),
+                k: Some(tisty_core::DeviceKind::Machine),
             },
         );
         says(

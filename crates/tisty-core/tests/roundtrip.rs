@@ -116,7 +116,14 @@ fn a_task_survives_the_round_trip_through_disk() {
                 d: StepRef { step: validate },
             },
         ),
-        (10, &desktop, Op::TaskDone { id: task }),
+        (
+            10,
+            &desktop,
+            Op::TaskDone {
+                id: task,
+                filled: false,
+            },
+        ),
     ];
 
     let mut desktop_store = Store::open(paths.store(), desktop.clone()).unwrap();
@@ -213,7 +220,10 @@ fn two_devices_project_the_same_state() {
     b.append_event(&Event::new(
         DeviceId("dev_b".into()),
         at(2),
-        Op::TaskDone { id: task },
+        Op::TaskDone {
+            id: task,
+            filled: false,
+        },
     ))
     .unwrap();
 
@@ -244,7 +254,7 @@ fn a_chain(events: &mut Vec<Event>, turns: usize, from: &str) -> Vec<Ulid> {
         events.push(Event::new(
             DeviceId("dev_a".into()),
             at(1_770_000_000_500 + n as i64 * 1000),
-            Op::TaskDone { id },
+            Op::TaskDone { id, filled: false },
         ));
         ids.push(id);
         before = Some(id);
@@ -297,7 +307,7 @@ fn a_story_survives_the_round_trip_through_json() {
         Event::new(
             DeviceId("dev_a".into()),
             at(1_770_000_004_000),
-            Op::TaskDone { id },
+            Op::TaskDone { id, filled: false },
         ),
     ];
 

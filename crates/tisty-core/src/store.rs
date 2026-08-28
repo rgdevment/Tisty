@@ -6,7 +6,7 @@ use fs4::fs_std::FileExt;
 
 use crate::{
     Error, Result,
-    event::{DeviceId, Event, Op, SCHEMA_VERSION},
+    event::{DeviceId, Event, KNOWN_OPS, Op, SCHEMA_VERSION},
     witness::{self, Fact, channel},
 };
 
@@ -122,12 +122,22 @@ impl Store {
 
     pub fn append(&mut self, op: Op) -> Result<Event> {
         self.locked(|s| {
-            let (timestamp, seq) = s.stamp();
-            let mut event = Event::new(s.device.clone(), timestamp, op);
-            event.seq = seq;
+            let event = s.minted(op);
             s.write(&event)?;
             Ok(event)
         })
+    }
+
+    fn minted(&mut self, op: Op) -> Event {
+        let (timestamp, seq) = self.stamp();
+        let mut event = Event::new(self.device.clone(), timestamp, op);
+        event.seq = seq;
+        // Read per write, not once at open: the window keeps a Store alive for the whole session
+        // and a laptop that travels would keep stamping the zone it started in.
+        event.zone = jiff::tz::TimeZone::system()
+            .iana_name()
+            .map(ToString::to_string);
+        event
     }
 
     fn stamp(&mut self) -> (jiff::Timestamp, u64) {
@@ -160,12 +170,10 @@ impl Store {
         self.locked(|s| {
             let mut written = Vec::with_capacity(ops.len());
             for op in ops {
-                let (timestamp, seq) = s.stamp();
-                let mut event = Event::new(s.device.clone(), timestamp, op);
+                let mut event = s.minted(op);
                 event.batch = batch;
                 event.undo = undo;
                 event.redo = redo;
-                event.seq = seq;
                 s.write(&event)?;
                 written.push(event);
             }
@@ -275,11 +283,9 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
 
         for segment in segments {
             let closed = segment.file_name().is_some_and(|n| n != ACTIVE);
-            let before = events.len();
-            read_segment(&segment, &mut events)?;
+            let found = read_segment(&segment, &mut events)?;
 
             if closed {
-                let found = events.len() - before;
                 let declared = declared_count(&segment);
                 if found == 0 || declared.is_some_and(|n| n != found) {
                     return Err(Error::TruncatedSegment {
@@ -326,7 +332,7 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
     let mut said = Ledger::default();
     for event in &events {
         match &event.op {
-            Op::DeviceJoin { d } => {
+            Op::DeviceJoin { d, .. } => {
                 said.named.insert(d.clone());
                 if !gone.contains(d) {
                     said.allowed.insert(d.clone());
@@ -388,10 +394,8 @@ pub fn check_device(device_dir: &Path) -> Result<usize> {
 
     let mut events = Vec::new();
     for segment in &segments {
-        let before = events.len();
-        read_segment(segment, &mut events)?;
+        let found = read_segment(segment, &mut events)?;
         if segment.file_name().is_some_and(|n| n != ACTIVE) {
-            let found = events.len() - before;
             let declared = declared_count(segment);
             if found == 0 || declared.is_some_and(|n| n != found) {
                 return Err(Error::TruncatedSegment {
@@ -446,33 +450,62 @@ fn declared_count(segment: &Path) -> Option<usize> {
 #[derive(serde::Deserialize)]
 struct Stamped {
     v: u32,
+    #[serde(default)]
+    opt: bool,
+    #[serde(default)]
+    op: String,
 }
 
-fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<()> {
+/// A sealed segment declares lines, not events, so a skipped one must still be counted or the
+/// count check reads it as a truncated download.
+fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<usize> {
+    let mut lines = 0;
     for (i, line) in BufReader::new(File::open(path)?).lines().enumerate() {
         let line = line?;
         if line.trim().is_empty() {
             continue;
         }
+        lines += 1;
 
-        let stamp: Stamped =
-            serde_json::from_str(&line).map_err(|source| Error::MalformedEvent {
-                file: path.display().to_string(),
-                line: i + 1,
-                source,
-            })?;
-        if stamp.v > SCHEMA_VERSION {
-            return Err(Error::UnsupportedVersion(stamp.v));
-        }
-
-        let event: Event = serde_json::from_str(&line).map_err(|source| Error::MalformedEvent {
+        let malformed = |source| Error::MalformedEvent {
             file: path.display().to_string(),
             line: i + 1,
             source,
-        })?;
-        out.push(event);
+        };
+        let stamp: Stamped = serde_json::from_str(&line).map_err(malformed)?;
+
+        let skipped = |why: String| {
+            witness::warn(
+                channel::STORE,
+                "an optional event this build does not understand was skipped",
+                &[
+                    ("at", Fact::Path(path.to_path_buf())),
+                    ("line", Fact::Count(i + 1)),
+                    ("op", Fact::Id(stamp.op.clone())),
+                    ("why", Fact::Why(why)),
+                ],
+            );
+        };
+
+        let strange = !KNOWN_OPS.contains(&stamp.op.as_str());
+        if stamp.v > SCHEMA_VERSION {
+            if !stamp.opt || !strange {
+                return Err(Error::UnsupportedVersion(stamp.v));
+            }
+            skipped(format!("schema {}", stamp.v));
+            continue;
+        }
+
+        // Only an operation this build has never heard of is forgiven, whatever schema it came
+        // under; a known one that fails to parse is corruption, and waving it through would
+        // erase what it said.
+        match serde_json::from_str::<Event>(&line) {
+            Ok(event) => out.push(event),
+            Err(source) if stamp.opt && strange => skipped(source.to_string()),
+            Err(source) => return Err(malformed(source)),
+        }
     }
-    Ok(())
+    Ok(lines)
 }
 
 pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
@@ -778,6 +811,7 @@ mod tests {
             vec![
                 Op::DeviceJoin {
                     d: DeviceId("dev_here".into()),
+                    k: Some(crate::event::DeviceKind::Machine),
                 },
                 add("lo de aqui"),
             ],
@@ -788,6 +822,7 @@ mod tests {
             vec![
                 Op::DeviceJoin {
                     d: DeviceId("dev_there".into()),
+                    k: Some(crate::event::DeviceKind::Machine),
                 },
                 add("lo de alli"),
             ],
@@ -813,6 +848,7 @@ mod tests {
             vec![
                 Op::DeviceJoin {
                     d: DeviceId("dev_there".into()),
+                    k: Some(crate::event::DeviceKind::Machine),
                 },
                 Op::DeviceRemove {
                     d: DeviceId("dev_gone".into()),
@@ -843,6 +879,8 @@ mod tests {
             redo: false,
             seq,
             op,
+            optional: false,
+            zone: None,
         };
 
         let told = |remover: &str, joiner: &str| {
@@ -853,6 +891,7 @@ mod tests {
                     1,
                     Op::DeviceJoin {
                         d: DeviceId("dev_m".into()),
+                        k: Some(crate::event::DeviceKind::Machine),
                     },
                 ),
                 (
@@ -867,6 +906,7 @@ mod tests {
                     3,
                     Op::DeviceJoin {
                         d: DeviceId("dev_both".into()),
+                        k: Some(crate::event::DeviceKind::Machine),
                     },
                 ),
             ] {
@@ -899,6 +939,8 @@ mod tests {
             redo: false,
             seq,
             op,
+            optional: false,
+            zone: None,
         };
 
         for (who, when, seq, op) in [
@@ -908,6 +950,7 @@ mod tests {
                 1,
                 Op::DeviceJoin {
                     d: DeviceId("dev_keeper".into()),
+                    k: Some(crate::event::DeviceKind::Machine),
                 },
             ),
             (
@@ -916,6 +959,7 @@ mod tests {
                 1,
                 Op::DeviceJoin {
                     d: DeviceId("dev_gone".into()),
+                    k: Some(crate::event::DeviceKind::Machine),
                 },
             ),
             (
@@ -1198,6 +1242,255 @@ mod tests {
             read_all(tmp.path()),
             Err(Error::UnsupportedVersion(_))
         ));
+    }
+
+    #[test]
+    fn an_operation_this_build_does_not_know_is_skipped_when_it_says_it_may_be() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&dir).unwrap();
+        let known = format!(
+            r#"{{"v":{SCHEMA_VERSION},"ts":"2026-08-28T10:00:00Z","by":"dev_a","op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{{"title":"still here","order":"V"}}}}"#
+        );
+        let stranger = format!(
+            r#"{{"v":{SCHEMA_VERSION},"ts":"2026-08-28T11:00:00Z","by":"dev_a","opt":true,"op":"task.bless","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{{"halo":true}}}}"#
+        );
+        std::fs::write(
+            dir.join(ACTIVE),
+            format!(
+                "{known}
+{stranger}
+"
+            ),
+        )
+        .unwrap();
+
+        let read = read_all(tmp.path()).unwrap();
+        assert_eq!(
+            read.len(),
+            1,
+            "the known event has to survive its unknown neighbour"
+        );
+    }
+
+    #[test]
+    fn an_operation_this_build_does_not_know_stops_the_read_unless_it_says_otherwise() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&dir).unwrap();
+        let stranger = format!(
+            r#"{{"v":{SCHEMA_VERSION},"ts":"2026-08-28T11:00:00Z","by":"dev_a","op":"task.erase.everything","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{{}}}}"#
+        );
+        std::fs::write(
+            dir.join(ACTIVE),
+            format!(
+                "{stranger}
+"
+            ),
+        )
+        .unwrap();
+
+        assert!(
+            matches!(read_all(tmp.path()), Err(Error::MalformedEvent { .. })),
+            "an operation that may change what exists cannot be waved through"
+        );
+    }
+
+    #[test]
+    fn a_version_number_below_this_one_never_blocks_a_read() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let mut lines = String::new();
+        for v in 1..=SCHEMA_VERSION {
+            lines.push_str(&format!(
+                r#"{{"v":{v},"ts":"2026-08-28T10:00:{v:02}Z","by":"dev_a","op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59X{v:02}","d":{{"title":"written by v{v}","order":"V"}}}}"#
+            ));
+            lines.push('\n');
+        }
+        std::fs::write(dir.join(ACTIVE), lines).unwrap();
+
+        let read = read_all(tmp.path()).unwrap();
+        assert_eq!(read.len(), SCHEMA_VERSION as usize);
+        assert!(
+            read.iter().all(|e| matches!(&e.op, Op::TaskAdd { .. })),
+            "the guard only refuses upwards; what the older shapes look like is another test"
+        );
+    }
+
+    #[test]
+    fn an_event_carries_the_zone_of_whoever_wrote_it() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut store = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
+        let event = store
+            .append(Op::TaskAdd {
+                id: ulid::Ulid::generate(),
+                d: crate::event::TaskAdd::new("where was I", "a0"),
+            })
+            .unwrap();
+
+        assert!(
+            event.zone.is_some(),
+            "a written event knows where it was written"
+        );
+        assert_eq!(
+            event.zoned().map(|z| z.timestamp()),
+            Some(event.timestamp),
+            "reading it back in its own zone is the same instant"
+        );
+    }
+
+    #[test]
+    fn a_skipped_event_still_counts_towards_a_sealed_segment() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&dir).unwrap();
+        let known = format!(
+            r#"{{"v":{SCHEMA_VERSION},"ts":"2026-08-28T10:00:00Z","by":"dev_a","op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{{"title":"sealed away","order":"V"}}}}"#
+        );
+        let stranger = format!(
+            r#"{{"v":{SCHEMA_VERSION},"ts":"2026-08-28T11:00:00Z","by":"dev_a","opt":true,"op":"task.bless","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{{}}}}"#
+        );
+        std::fs::write(
+            dir.join("000001.tisty"),
+            format!(
+                "{known}
+{stranger}
+"
+            ),
+        )
+        .unwrap();
+        std::fs::write(dir.join("000001.count"), "2").unwrap();
+
+        let read = read_all(tmp.path()).unwrap();
+        assert_eq!(
+            read.len(),
+            1,
+            "a sealed segment declares lines, so skipping one cannot read as a truncated download"
+        );
+    }
+
+    #[test]
+    fn an_event_from_a_newer_schema_is_skipped_when_it_says_it_may_be() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&dir).unwrap();
+        let ahead = format!(
+            r#"{{"v":{},"ts":"2026-08-28T11:00:00Z","by":"dev_a","opt":true,"op":"task.bless","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{{}}}}"#,
+            SCHEMA_VERSION + 1
+        );
+        std::fs::write(
+            dir.join(ACTIVE),
+            format!(
+                "{ahead}
+"
+            ),
+        )
+        .unwrap();
+        assert!(
+            read_all(tmp.path()).unwrap().is_empty(),
+            "the operations this guard exists for will arrive under a newer schema, not this one"
+        );
+
+        let sealed = ahead.replace(r#""opt":true,"#, "");
+        std::fs::write(
+            dir.join(ACTIVE),
+            format!(
+                "{sealed}
+"
+            ),
+        )
+        .unwrap();
+        assert!(matches!(
+            read_all(tmp.path()),
+            Err(Error::UnsupportedVersion(_))
+        ));
+    }
+
+    #[test]
+    fn a_known_operation_that_arrived_corrupt_is_never_waved_through() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&dir).unwrap();
+        let rotten = format!(
+            r#"{{"v":{SCHEMA_VERSION},"ts":"2026-08-28T11:00:00Z","by":"dev_a","opt":true,"op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{{"title":12345,"order":"V"}}}}"#
+        );
+        std::fs::write(
+            dir.join(ACTIVE),
+            format!(
+                "{rotten}
+"
+            ),
+        )
+        .unwrap();
+
+        assert!(
+            matches!(read_all(tmp.path()), Err(Error::MalformedEvent { .. })),
+            "the mark forgives an operation nobody knows, never one that arrived broken"
+        );
+    }
+
+    #[test]
+    fn the_shape_a_previous_build_wrote_still_projects() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&dir).unwrap();
+        // Written by hand as a build before v7 would have: no tz, no opt, no k, no filled,
+        // no source. A `default` dropped by accident has to fail here, not in someone's store.
+        let before = concat!(
+            r#"{"v":6,"ts":"2026-08-01T10:00:00Z","by":"dev_a","op":"device.join","d":"dev_a"}"#,
+            "
+",
+            r#"{"v":6,"ts":"2026-08-01T10:00:01Z","by":"dev_a","op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{"title":"written before v7","order":"V"}}"#,
+            "
+",
+            r#"{"v":6,"ts":"2026-08-01T10:00:02Z","by":"dev_a","op":"task.done","id":"01M14RFT9ECC2B6E4CX4P59XPH"}"#,
+            "
+",
+        );
+        std::fs::write(dir.join(ACTIVE), before).unwrap();
+
+        let read = read_all(tmp.path()).unwrap();
+        assert_eq!(read.len(), 3);
+        assert!(read.iter().all(|e| e.zone.is_none() && !e.optional));
+
+        let state = crate::State::replay(&read);
+        let task = &state.tasks[&"01M14RFT9ECC2B6E4CX4P59XPH".parse().unwrap()];
+        assert_eq!(task.status, crate::model::Status::Done);
+        assert!(
+            !task.filled,
+            "a closure from before the field is not a backfill"
+        );
+        assert_eq!(task.source, None);
+        assert!(
+            state.devices.contains(&DeviceId("dev_a".into())) && state.agents.is_empty(),
+            "a join with nothing to say about its kind is not a claim that it is a machine"
+        );
+    }
+
+    #[test]
+    fn a_known_operation_from_a_newer_schema_is_never_skipped() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&dir).unwrap();
+        let ahead = format!(
+            r#"{{"v":{},"ts":"2026-08-28T11:00:00Z","by":"dev_a","opt":true,"op":"task.delete","id":"01M14RFT9ECC2B6E4CX4P59XPH"}}"#,
+            SCHEMA_VERSION + 1
+        );
+        std::fs::write(
+            dir.join(ACTIVE),
+            format!(
+                "{ahead}
+"
+            ),
+        )
+        .unwrap();
+
+        assert!(
+            matches!(read_all(tmp.path()), Err(Error::UnsupportedVersion(_))),
+            "a deletion this build understands cannot be dropped for wearing a newer number:              the task would stay alive here and be gone everywhere else"
+        );
     }
 
     #[test]

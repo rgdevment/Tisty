@@ -1,14 +1,14 @@
 mod op;
 
 pub use op::{
-    Body, DocAdd, Filed, FolderAdd, ListAdd, LogAdd, LogEdit, Look, Name, Op, StepAdd, StepRef,
-    StepReorder, StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
+    Body, DeviceKind, DocAdd, Filed, FolderAdd, KNOWN_OPS, ListAdd, LogAdd, LogEdit, Look, Name,
+    Op, StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 6;
+pub const SCHEMA_VERSION: u32 = 7;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -30,6 +30,11 @@ pub struct Event {
     pub redo: bool,
     #[serde(rename = "n", default, skip_serializing_if = "is_zero")]
     pub seq: u64,
+    /// A reader that does not know this operation skips it instead of refusing the whole store.
+    #[serde(rename = "opt", default, skip_serializing_if = "std::ops::Not::not")]
+    pub optional: bool,
+    #[serde(rename = "tz", default, skip_serializing_if = "Option::is_none")]
+    pub zone: Option<String>,
     #[serde(flatten)]
     pub op: Op,
 }
@@ -48,8 +53,15 @@ impl Event {
             undo: false,
             redo: false,
             seq: 0,
+            optional: false,
+            zone: None,
             op: op.composed(),
         }
+    }
+
+    pub fn zoned(&self) -> Option<jiff::Zoned> {
+        let zone = jiff::tz::TimeZone::get(self.zone.as_deref()?).ok()?;
+        Some(self.timestamp.to_zoned(zone))
     }
 
     pub fn in_batch(mut self, batch: Ulid) -> Self {
@@ -65,7 +77,7 @@ impl Event {
         match &self.op {
             Op::TaskAdd { id, .. }
             | Op::TaskUpdate { id, .. }
-            | Op::TaskDone { id }
+            | Op::TaskDone { id, .. }
             | Op::TaskReopen { id }
             | Op::TaskDrop { id }
             | Op::TaskDelete { id }
@@ -169,7 +181,10 @@ mod tests {
     #[test]
     fn every_op_carries_its_entity_id() {
         let ops = [
-            Op::TaskDone { id: id() },
+            Op::TaskDone {
+                id: id(),
+                filled: false,
+            },
             Op::TaskLog {
                 id: id(),
                 d: LogAdd::new(Ulid::generate(), "first attempt failed"),
@@ -186,6 +201,26 @@ mod tests {
             let ev = Event::new(DeviceId("dev_a3f1".into()), at(1), op);
             assert_eq!(ev.entity_id(), Some(id()));
         }
+    }
+
+    #[test]
+    fn the_list_of_known_operations_is_the_one_serde_accepts() {
+        let stranger = r#"{"v":1,"ts":"2026-08-28T10:00:00Z","by":"dev_a","op":"task.bless"}"#;
+        let complaint = serde_json::from_str::<Event>(stranger)
+            .expect_err("an operation that does not exist cannot parse")
+            .to_string();
+
+        for name in KNOWN_OPS {
+            assert!(
+                complaint.contains(&format!("`{name}`")),
+                "serde does not know `{name}`, but the reader forgives it as if it did"
+            );
+        }
+        assert_eq!(
+            complaint.matches('`').count() / 2,
+            KNOWN_OPS.len() + 1,
+            "serde accepts an operation the reader would treat as corruption"
+        );
     }
 
     #[test]
@@ -211,12 +246,18 @@ mod tests {
         let a = Event::new(
             DeviceId("dev_0001".into()),
             at(1),
-            Op::TaskDone { id: id() },
+            Op::TaskDone {
+                id: id(),
+                filled: false,
+            },
         );
         let b = Event::new(
             DeviceId("dev_0002".into()),
             at(1),
-            Op::TaskDone { id: id() },
+            Op::TaskDone {
+                id: id(),
+                filled: false,
+            },
         );
         assert!(a.sort_key() < b.sort_key());
     }
@@ -224,7 +265,13 @@ mod tests {
     #[test]
     fn op_names_are_the_documented_ones() {
         let cases = [
-            (Op::TaskDone { id: id() }, "task.done"),
+            (
+                Op::TaskDone {
+                    id: id(),
+                    filled: false,
+                },
+                "task.done",
+            ),
             (Op::TaskDrop { id: id() }, "task.drop"),
             (Op::ListArchive { id: id() }, "list.archive"),
             (
@@ -387,6 +434,8 @@ mod tests {
                 id: id(),
                 d: TaskAdd::new("disen\u{0303}o", "a0"),
             },
+            optional: false,
+            zone: None,
         };
 
         let read: Event = serde_json::from_str(&serde_json::to_string(&theirs).unwrap()).unwrap();

@@ -70,7 +70,7 @@ const named = (key: string): string => {
 };
 
 const month = (iso: string): string => {
-  const at = new Date(iso);
+  const at = new Date(iso.includes("T") ? iso : `${iso}T12:00:00`);
   if (Number.isNaN(at.getTime())) return "";
   return new Intl.DateTimeFormat(locale(), { month: "long", year: "numeric" }).format(at);
 };

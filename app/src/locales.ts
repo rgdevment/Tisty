@@ -449,7 +449,7 @@ const en = {
   routineWhen: "What hour they close at",
   routineHours: "{name} closings by hour of day",
   routineZone:
-    "The hour comes from the moment each turn was closed, read in the zone you are in now. Travel shifts these bars with nobody moving them.",
+    "The hour is the one on the clock where each turn was closed, so travelling does not move these bars. Turns you ticked days later are left out: what they would show is the hour you remembered, not the hour you did it.",
   routineHoles: "The dates with no record",
   routineNoHoles: "Every date the cadence asked for has a record.",
   routineUnmeasured:
@@ -1342,7 +1342,7 @@ const es: Catalog = {
   routineWhen: "A qué hora se cumplen",
   routineHours: "{name} cierres por hora del día",
   routineZone:
-    "La hora sale del momento en que se cerró cada vuelta, leída en la zona en la que estás ahora. Un viaje mueve estas barras sin que nadie las mueva.",
+    "La hora es la del reloj donde se cerró cada vuelta, así que viajar no mueve estas barras. Las que marcaste días después quedan fuera: enseñarían la hora en que te acordaste, no la hora en que lo hiciste.",
   routineHoles: "Las fechas sin registro",
   routineNoHoles: "Todas las fechas que tocaban tienen registro.",
   routineUnmeasured:

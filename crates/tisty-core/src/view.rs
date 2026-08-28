@@ -78,7 +78,12 @@ impl Filter {
             Some(Window::On(day)) => on == Some(*day),
             Some(Window::Until(day)) => on.is_some_and(|d| d <= *day),
             Some(Window::After(day)) => on.is_some_and(|d| d > *day),
-            Some(Window::Overdue) => on.is_some_and(|d| d < today),
+            // A deadline that passed is overdue whatever day you meant to get to it, and until
+            // now nothing in the product read `deadline` at all.
+            Some(Window::Overdue) => {
+                let due = task.deadline.as_ref().map(|d| d.date());
+                on.is_some_and(|d| d < today) || due.is_some_and(|d| d < today)
+            }
             Some(Window::Undated) => on.is_none(),
         }
     }
@@ -133,6 +138,12 @@ mod tests {
     fn dated(title: &str, day: &str) -> Task {
         let mut t = task(title);
         t.date = Some(DateSpec::all_day(day.parse().unwrap(), "UTC"));
+        t
+    }
+
+    fn due(title: &str, day: &str) -> Task {
+        let mut t = task(title);
+        t.deadline = Some(DateSpec::all_day(day.parse().unwrap(), "UTC"));
         t
     }
 
@@ -244,6 +255,24 @@ mod tests {
         assert!(f.matches(&dated("late", "2026-08-04"), today()));
         assert!(!f.matches(&dated("today", "2026-08-05"), today()));
         assert!(!f.matches(&task("no date"), today()));
+    }
+
+    #[test]
+    fn a_deadline_that_passed_is_overdue_whatever_day_you_meant_to_do_it() {
+        let f = filter(|f| f.window = Some(Window::Overdue));
+
+        assert!(
+            f.matches(&due("the paperwork", "2026-08-04"), today()),
+            "a limit that ran out yesterday is the whole point of having one"
+        );
+        assert!(!f.matches(&due("still has time", "2026-08-06"), today()));
+
+        let mut planned_later = due("filed late on purpose", "2026-08-04");
+        planned_later.date = Some(DateSpec::all_day("2026-08-09".parse().unwrap(), "UTC"));
+        assert!(
+            f.matches(&planned_later, today()),
+            "meaning to get to it next week does not un-expire the limit"
+        );
     }
 
     #[test]

@@ -8,22 +8,34 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
     match &event.op {
         Op::TaskAdd { id, .. } => Some(Op::TaskDelete { id: *id }),
 
-        Op::TaskDone { id } | Op::TaskDrop { id } => match before.tasks.get(id)?.status {
-            Status::Open => Some(Op::TaskReopen { id: *id }),
-            Status::Done => Some(Op::TaskDone { id: *id }),
-            Status::Dropped => Some(Op::TaskDrop { id: *id }),
-        },
+        Op::TaskDone { id, .. } | Op::TaskDrop { id } => {
+            let was = before.tasks.get(id)?;
+            match was.status {
+                Status::Open => Some(Op::TaskReopen { id: *id }),
+                Status::Done => Some(Op::TaskDone {
+                    id: *id,
+                    filled: was.filled,
+                }),
+                Status::Dropped => Some(Op::TaskDrop { id: *id }),
+            }
+        }
         Op::TaskHide { id } => (!before.tasks.get(id)?.hidden).then_some(Op::TaskShow { id: *id }),
         Op::TaskShow { id } => before
             .tasks
             .get(id)?
             .hidden
             .then_some(Op::TaskHide { id: *id }),
-        Op::TaskReopen { id } => match before.tasks.get(id)?.status {
-            Status::Done => Some(Op::TaskDone { id: *id }),
-            Status::Dropped => Some(Op::TaskDrop { id: *id }),
-            Status::Open => None,
-        },
+        Op::TaskReopen { id } => {
+            let was = before.tasks.get(id)?;
+            match was.status {
+                Status::Done => Some(Op::TaskDone {
+                    id: *id,
+                    filled: was.filled,
+                }),
+                Status::Dropped => Some(Op::TaskDrop { id: *id }),
+                Status::Open => None,
+            }
+        }
 
         Op::TaskUpdate { id, d } => {
             let task = before.tasks.get(id)?;
@@ -222,7 +234,8 @@ mod tests {
     #[test]
     fn completing_is_undone() {
         let id = Ulid::generate();
-        let (before, undone) = round_trip(vec![a_task(id)], ev(2, Op::TaskDone { id }));
+        let (before, undone) =
+            round_trip(vec![a_task(id)], ev(2, Op::TaskDone { id, filled: false }));
         assert_eq!(before, undone);
     }
 
@@ -247,7 +260,7 @@ mod tests {
     fn undoing_a_reopen_restamps_the_completion_time() {
         let id = Ulid::generate();
         let (before, undone) = round_trip(
-            vec![a_task(id), ev(2, Op::TaskDone { id })],
+            vec![a_task(id), ev(2, Op::TaskDone { id, filled: false })],
             ev(3, Op::TaskReopen { id }),
         );
 
@@ -469,7 +482,7 @@ mod dropping {
             },
         ));
         match status {
-            Status::Done => state.apply(&ev(2, Op::TaskDone { id })),
+            Status::Done => state.apply(&ev(2, Op::TaskDone { id, filled: false })),
             Status::Dropped => state.apply(&ev(2, Op::TaskDrop { id })),
             Status::Open => {}
         }

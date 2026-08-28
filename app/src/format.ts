@@ -170,6 +170,15 @@ function inZone(tz: string, shape: Intl.DateTimeFormatOptions, tag: string): Int
   return made;
 }
 
+export function hourIn(iso: string, tz?: string): number | null {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  if (!tz) return at.getHours();
+  const said = inZone(tz, { hour: "2-digit", hour12: false }, "hour").format(at);
+  const hour = Number.parseInt(said, 10);
+  return Number.isNaN(hour) ? at.getHours() : hour % 24;
+}
+
 const days = new Map<string, Intl.DateTimeFormat>();
 
 const dayIn = (at: Date, tz: string): string => {

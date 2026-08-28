@@ -22,7 +22,7 @@ pub mod view;
 pub mod witness;
 
 pub use config::Config;
-pub use event::{DeviceId, Event, Op};
+pub use event::{DeviceId, DeviceKind, Event, Op};
 pub use model::{
     DateSpec, List, ListId, LogEntry, LogId, Priority, Reading, Status, Step, StepId, Tag, Task,
     TaskId,
