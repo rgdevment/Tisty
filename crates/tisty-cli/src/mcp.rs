@@ -255,13 +255,7 @@ fn listed(args: &Value, key: &str) -> Vec<String> {
 
 fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
-    let Some(agent) = config.agent_id.clone() else {
-        return Err(Refused::Tool(
-            "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-             under Agents."
-                .into(),
-        ));
-    };
+    let agent = config.agent_id.clone().unwrap_or(config.device_id.clone());
     let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
     let store = Store::open(paths.store(), agent).map_err(hitch)?;
     Ok((state, store))
