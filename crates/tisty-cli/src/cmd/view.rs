@@ -187,10 +187,10 @@ fn show_many(
 ) -> anyhow::Result<ExitCode> {
     if json {
         println!("{}", serde_json::to_string(tasks)?);
-    } else {
-        print!("{}", render::list(tasks, &app.state, heading, today, lang));
+        return Ok(ExitCode::SUCCESS);
     }
 
+    print!("{}", render::list(tasks, &app.state, heading, today, lang));
     Selection::save(&app.paths, tasks)?;
     Ok(ExitCode::SUCCESS)
 }
