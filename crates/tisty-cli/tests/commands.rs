@@ -195,6 +195,22 @@ fn a_number_from_a_listing_that_no_longer_applies_is_refused() {
 }
 
 #[test]
+fn a_json_listing_leaves_the_numbering_where_the_person_left_it() {
+    let cli = Cli::new();
+    cli.ok(&["pay the electricity"]);
+    cli.ok(&["meet the school"]);
+    cli.ok(&["buy card stock"]);
+    cli.ok(&["ls", "all"]);
+
+    cli.ok(&["search", "card", "--json"]);
+    cli.ok(&["done", "1"]);
+
+    let archive = cli.ok(&["ls", "archive"]);
+    assert!(archive.contains("pay the electricity"), "{archive}");
+    assert!(cli.ok(&["ls", "all"]).contains("buy card stock"));
+}
+
+#[test]
 fn undo_steps_further_back_instead_of_undoing_itself() {
     let cli = Cli::new();
     cli.ok(&["first task"]);
