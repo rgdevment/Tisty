@@ -43,11 +43,11 @@ is never modified again.
 | `opt` | a reader that cannot make sense of this operation skips it instead of refusing the store; absent means refuse |
 | `op`, `id`, `d` | the operation, the entity it affects, its payload |
 
-Only mark `opt` on an operation that **adds**. A reader forgives it solely when the
-name is one it has never heard of — a known operation that fails to parse is
-corruption and stops the read regardless — but nothing can stop a writer marking
-something that changes what already exists, and a reader would then drop it and
-diverge in silence.
+Only mark `opt` on an operation that **adds**. A reader forgives it solely
+when the name is one it has never heard of — a known operation that fails to
+parse is corruption and stops the read regardless — but nothing can stop a
+writer marking something that changes what already exists, and a reader would
+then drop it and diverge in silence.
 
 Three payload fields carry more than their name says:
 
