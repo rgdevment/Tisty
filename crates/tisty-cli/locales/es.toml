@@ -173,6 +173,17 @@ routine           = "rutinas"
 trace             = "rastro"
 
 
+agent-on       = "un asistente ya puede anotar aquí, como «{name}»"
+agent-off      = "el asistente ya no puede anotar aquí"
+agent-none     = "ningún asistente puede anotar aquí"
+agent-already  = "ya hay un asistente registrado, como «{name}»"
+agent-not-on   = "no había ningún asistente registrado"
+agent-how      = "apúntalo a: tisty mcp"
+
+attached-from      = "guardado desde {path}"
+attach-too-big     = "ese fichero pasa de los {limit} MB que esta máquina copia"
+attach-unreadable  = "no se pudo leer {name}"
+
 [plural]
 tasks = { one = "1 tarea", other = "{n} tareas" }
 lines = { one = "1 línea", other = "{n} líneas" }

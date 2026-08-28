@@ -176,6 +176,17 @@ routine           = "routines"
 trace             = "trace"
 
 
+agent-on       = 'an assistant can now file work here, as "{name}"'
+agent-off      = "the assistant can no longer file work here"
+agent-none     = "no assistant can file work here"
+agent-already  = 'an assistant is already registered, as "{name}"'
+agent-not-on   = "no assistant was registered"
+agent-how      = "point it at: tisty mcp"
+
+attached-from      = "kept from {path}"
+attach-too-big     = "that file is over the {limit} MB this machine copies"
+attach-unreadable  = "{name} could not be read"
+
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
 lines = { one = "1 line", other = "{n} lines" }

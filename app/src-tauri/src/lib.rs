@@ -592,6 +592,69 @@ fn task_series(
     Ok(tisty_core::series::series(&session.state, id))
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Agent {
+    on: bool,
+    called: Option<String>,
+    id: Option<String>,
+    filed: usize,
+}
+
+#[tauri::command]
+fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
+    let mut session = held(&session);
+    session.reload()?;
+    let who = session.config.agent_id.clone();
+    Ok(Agent {
+        on: who.is_some(),
+        called: who
+            .as_ref()
+            .map(|one| tisty_core::config::nicknamed(&one.0)),
+        filed: match &who {
+            Some(one) => session
+                .state
+                .tasks
+                .values()
+                .filter(|task| task.created_by.as_ref() == Some(one))
+                .count(),
+            None => 0,
+        },
+        id: who.map(|one| one.0),
+    })
+}
+
+/// Registering is the person's act. Nothing an assistant can say over the wire reaches here,
+/// which is what stops one granting itself a voice by connecting.
+#[tauri::command]
+fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer<Agent> {
+    {
+        let mut session = held(&session);
+        session.reload()?;
+        match (on, session.config.agent_id.clone()) {
+            (true, None) => {
+                let who = tisty_core::DeviceId(tisty_core::config::new_device_id());
+                session.keep(|config| config.agent_id = Some(who.clone()))?;
+                let mut store = tisty_core::Store::open(session.paths.store(), who.clone())
+                    .map_err(|e| blamed(channel::STORE, "the agent could not be registered", e))?;
+                let event = store
+                    .append(Op::DeviceJoin {
+                        d: who,
+                        k: Some(tisty_core::DeviceKind::Agent),
+                    })
+                    .map_err(|e| blamed(channel::STORE, "the agent could not be registered", e))?;
+                session.state.apply(&event);
+            }
+            (false, Some(who)) => {
+                session.keep(|config| config.agent_id = None)?;
+                session.commit(Op::DeviceRemove { d: who })?;
+            }
+            _ => {}
+        }
+    }
+    agent(session)
+}
+
 #[tauri::command]
 fn routines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core::series::Series>> {
     let mut session = held(&session);
@@ -4248,6 +4311,8 @@ pub fn run() {
             task_series,
             task_left,
             routines,
+            agent,
+            agent_turn,
             archive_shape,
             close_window,
             shortcut,

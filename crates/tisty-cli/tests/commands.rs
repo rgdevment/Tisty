@@ -211,6 +211,46 @@ fn a_json_listing_leaves_the_numbering_where_the_person_left_it() {
 }
 
 #[test]
+fn attaching_copies_the_file_and_says_where_it_came_from() {
+    let cli = Cli::new();
+    cli.ok(&["chase the invoice"]);
+    cli.ok(&["ls", "all"]);
+    let loose = cli.home.path().join("invoice.pdf");
+    std::fs::write(&loose, "not really a pdf").unwrap();
+
+    cli.ok(&["attach", "1", loose.to_str().unwrap()]);
+
+    let card = cli.ok(&["show", "1"]);
+    assert!(card.contains("invoice.pdf"), "{card}");
+    assert!(
+        card.contains("kept from"),
+        "a copy that reaches the shared folder says which file it was: {card}"
+    );
+    assert!(
+        std::fs::read_to_string(&loose).is_ok(),
+        "the original is copied, not moved"
+    );
+}
+
+#[test]
+fn attaching_leaves_the_description_alone() {
+    let cli = Cli::new();
+    cli.ok(&["chase the invoice"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["desc", "1", "what the supplier said on the phone"]);
+    let loose = cli.home.path().join("invoice.pdf");
+    std::fs::write(&loose, "not really a pdf").unwrap();
+
+    cli.ok(&["attach", "1", loose.to_str().unwrap()]);
+
+    let card = cli.ok(&["show", "1"]);
+    assert!(
+        card.contains("what the supplier said on the phone"),
+        "the journal accumulates; it never overwrites what someone wrote: {card}"
+    );
+}
+
+#[test]
 fn undo_steps_further_back_instead_of_undoing_itself() {
     let cli = Cli::new();
     cli.ok(&["first task"]);

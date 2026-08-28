@@ -751,6 +751,29 @@ const en = {
   tabNotices: "Notices and startup",
   tabWriting: "Writing",
   tabUpkeep: "Maintenance",
+  tabAgents: "Agents",
+  agentsTitle: "An assistant that files for you",
+  agentsWhat:
+    "An assistant on this machine can file work into Tisty for you — the cartons the school group says to bring on Monday, the thing you were tagged about on Slack. It talks to Tisty through a program you already run; nothing reaches the network, and Tisty never calls out.",
+  agentsOff: "No assistant can file work here",
+  agentsOn: "{name} can file work here",
+  agentsFiled: "{name} filed so far",
+  agentsFiledNone: "Nothing filed yet",
+  agentsTurnOn: "Let an assistant file here",
+  agentsTurnOff: "Stop it",
+  agentsCanTitle: "What it can do",
+  agentsCan:
+    "File a task with description, dates, priority, tags and steps · Add to the journal of any task, including yours · Search your list and your archive",
+  agentsCannotTitle: "What it can never do",
+  agentsCannot:
+    "Complete, reopen, drop or delete anything · Undo or redo · Edit what you wrote · Choose a list — everything lands in the inbox, tagged #agent · Set routines or reminders · Touch syncing, settings or machines",
+  agentsUndo:
+    "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place.",
+  agentsHowTitle: "How to connect one",
+  agentsHow:
+    "Add Tisty as an MCP server in your assistant. In Claude Code that is one line; elsewhere, paste the block below into its configuration.",
+  agentsCopy: "Copy",
+  agentsCopied: "Copied",
   backupSave: "Save a copy",
   backupHolds: "Holds",
   backupWeighs: "Size",
@@ -1643,6 +1666,29 @@ const es: Catalog = {
   tabNotices: "Avisos y arranque",
   tabWriting: "Escribir",
   tabUpkeep: "Mantenimiento",
+  tabAgents: "Agentes",
+  agentsTitle: "Un asistente que anota por ti",
+  agentsWhat:
+    "Un asistente en esta máquina puede anotar trabajo en Tisty por ti: las cartulinas que el grupo del colegio dice que hay que llevar el lunes, aquello por lo que te mencionaron en Slack. Habla con Tisty a través de un programa que ya tienes; nada sale a la red, y Tisty nunca llama a nadie.",
+  agentsOff: "Ningún asistente puede anotar aquí",
+  agentsOn: "{name} puede anotar aquí",
+  agentsFiled: "{name} anotadas hasta ahora",
+  agentsFiledNone: "Todavía no ha anotado nada",
+  agentsTurnOn: "Dejar que un asistente anote",
+  agentsTurnOff: "Quitarle la voz",
+  agentsCanTitle: "Lo que puede hacer",
+  agentsCan:
+    "Anotar una tarea con descripción, fechas, prioridad, etiquetas y pasos · Añadir a la bitácora de cualquier tarea, también las tuyas · Buscar en tu lista y en tu archivo",
+  agentsCannotTitle: "Lo que no podrá hacer nunca",
+  agentsCannot:
+    "Completar, reabrir, descartar ni borrar nada · Deshacer ni rehacer · Editar lo que tú escribiste · Elegir lista: todo entra en la bandeja, con la etiqueta #agente · Poner rutinas ni recordatorios · Tocar la sincronización, los ajustes ni las máquinas",
+  agentsUndo:
+    "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió.",
+  agentsHowTitle: "Cómo conectar uno",
+  agentsHow:
+    "Añade Tisty como servidor MCP en tu asistente. En Claude Code es una línea; en otros, pega el bloque de abajo en su configuración.",
+  agentsCopy: "Copiar",
+  agentsCopied: "Copiado",
   backupSave: "Guardar una copia",
   backupHolds: "Incluye",
   backupWeighs: "Tamaño",

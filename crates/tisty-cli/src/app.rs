@@ -91,6 +91,10 @@ impl App {
         Ok(())
     }
 
+    pub fn copies_up_to(&self) -> u64 {
+        self.config.copies_up_to()
+    }
+
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<Event> {
         let event = self.store.append(op)?;
         self.state.apply(&event);

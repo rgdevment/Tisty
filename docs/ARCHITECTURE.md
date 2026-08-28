@@ -60,6 +60,24 @@ Three payload fields carry more than their name says:
 `active.tisty` is sealed as `NNNNNN.tisty` every 5.000 events. Sealed segments
 are numbered from one without gaps.
 
+### An assistant is a second writer, never a second decider
+
+`tisty mcp` speaks JSON-RPC over stdin and stdout so an assistant on this
+machine can file work. It is a subcommand of the same binary, so it resolves
+the same paths, takes the same lock, and duplicates no logic.
+
+An agent writes under a `device_id` of its own, minted only when the person
+turns one on — from the Agents tab or `tisty agent --on`. Nothing arriving
+over the wire can register one. Its own directory is what keeps `undo`
+apart: the person's undo never reaches what the agent filed.
+
+It can file a task, add to a journal, attach a file from this machine, and
+search. There is no tool for
+completing, dropping, deleting, undoing, editing what the person wrote, or
+choosing a list — everything lands in the inbox, tagged. `stdout` carries
+MCP messages and nothing else, which the core already guaranteed: it prints
+nothing, ever.
+
 ### Priorities are named, not numbered
 
 A task's priority is one of the four quadrants of the **Eisenhower matrix** —
