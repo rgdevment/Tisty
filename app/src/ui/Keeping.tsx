@@ -98,6 +98,7 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
   const [tab, setTab] = useState<Tab>("data");
   const [agent, setAgent] = useState<Agent | null>(null);
   const [wired, setWired] = useState(false);
+  const [typed, setTyped] = useState(false);
   const [looking, setLooking] = useState(false);
   const [found, setFound] = useState<Ready | "none" | null>(null);
   const [asked, setAsked] = useState(false);
@@ -953,7 +954,9 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
               trouble={trouble}
             >
               <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsHow")}</p>
-              <pre className="mt-2 overflow-x-auto rounded-lg border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
+
+              <p className="mt-3 text-[12px] font-semibold">{t("agentsByFile")}</p>
+              <pre className="mt-1 overflow-x-auto rounded-lg border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
                 {wiring(reach?.binary)}
               </pre>
               <button
@@ -967,6 +970,23 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                 className="mt-2 rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-accent hover:text-accent"
               >
                 {wired ? t("agentsCopied") : t("agentsCopy")}
+              </button>
+
+              <p className="mt-4 text-[12px] font-semibold">{t("agentsByLine")}</p>
+              <pre className="mt-1 overflow-x-auto rounded-lg border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
+                {oneLine(reach?.binary)}
+              </pre>
+              <button
+                type="button"
+                onClick={() => {
+                  void copied(oneLine(reach?.binary)).then(() => {
+                    setTyped(true);
+                    window.setTimeout(() => setTyped(false), 1500);
+                  });
+                }}
+                className="mt-2 rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-accent hover:text-accent"
+              >
+                {typed ? t("agentsCopied") : t("agentsCopy")}
               </button>
             </Card>
           </>
@@ -1313,6 +1333,8 @@ const wiring = (at?: string) =>
     "tisty": { "command": ${JSON.stringify(at ?? "tisty")}, "args": ["mcp"] }
   }
 }`;
+
+const oneLine = (at?: string) => `claude mcp add tisty -- ${JSON.stringify(at ?? "tisty")} mcp`;
 
 function Group({ label }: { label: string }) {
   return (
