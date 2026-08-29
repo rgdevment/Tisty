@@ -392,8 +392,10 @@ fn the_model_is_told_what_day_it_is_before_being_asked_for_dates() {
 fn what_can_be_cached_says_for_how_long_and_by_whom() {
     let served = Served::new();
 
-    // Measured before asking, or the clock moves between the two and the margin goes negative.
-    let day = jiff::Zoned::now();
+    // In the served process's zone, not the runner's, and before asking rather than after: either
+    // mismatch makes the margin come out negative on a machine that is not the author's.
+    let zone = jiff::tz::TimeZone::get("America/Santiago").unwrap();
+    let day = jiff::Timestamp::now().to_zoned(zone);
     let midnight = day.tomorrow().unwrap().start_of_day().unwrap();
     let until = midnight.timestamp().as_millisecond() - day.timestamp().as_millisecond();
 
@@ -419,7 +421,7 @@ fn what_can_be_cached_says_for_how_long_and_by_whom() {
     let left = said[0]["result"]["ttlMs"].as_i64().unwrap();
     assert!(
         left <= until,
-        "the instructions name today, so keeping them past midnight would teach the wrong date:          {left} vs {until}"
+        "the instructions name today, so keeping them past midnight would teach the wrong date: {left} vs {until}"
     );
 }
 
