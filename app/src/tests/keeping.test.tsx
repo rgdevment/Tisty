@@ -1466,6 +1466,6 @@ describe("letting an assistant file work here", () => {
     expect(screen.getByText(/Complete, reopen, drop or delete anything/i)).toBeTruthy();
     expect(screen.getByText(/your undo never reaches what it filed/i)).toBeTruthy();
     expect(screen.getByText(/"mcpServers"/)).toBeTruthy();
-    expect(screen.getByText(/claude mcp add tisty/)).toBeTruthy();
+    expect(screen.getByText(/mcp add tisty/)).toBeTruthy();
   });
 });
