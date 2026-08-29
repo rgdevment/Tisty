@@ -2399,3 +2399,56 @@ mod tests {
         );
     }
 }
+
+/// What the window's editor destroys the first time somebody opens a document. It returns the
+/// whole body and rewrites the file, so anything it cannot represent is gone on the first
+/// keystroke — better refused at the door than lost later.
+pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
+    let lines: Vec<&str> = body.lines().collect();
+    if lines.first().map(|one| one.trim()) == Some("---") {
+        return Err("YAML frontmatter");
+    }
+    for line in &lines {
+        let flat = line.trim();
+        if flat.starts_with('<') && flat.len() > 2 {
+            return Err("HTML");
+        }
+        if flat.starts_with("[^") {
+            return Err("footnotes");
+        }
+        if flat.starts_with('[') && flat.contains("]:") {
+            return Err("reference links");
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod survival {
+    #[test]
+    fn what_the_editor_would_eat_is_refused_before_it_is_written() {
+        for (body, why) in [
+            ("---\ntitle: notes\n---\n\nhello", "YAML frontmatter"),
+            ("<div class=\"warn\">careful</div>", "HTML"),
+            ("a claim[^1]\n\n[^1]: the source", "footnotes"),
+            (
+                "see [the thread][one]\n\n[one]: https://example.com",
+                "reference links",
+            ),
+        ] {
+            assert_eq!(super::survives(body), Err(why), "{body}");
+        }
+    }
+
+    #[test]
+    fn ordinary_markdown_goes_through() {
+        for body in [
+            "# Cartulinas\n\nRosa y palos de paleta.",
+            "- one\n- two\n\n**bold** and `code`",
+            "[a link](https://example.com) in a line",
+            "",
+        ] {
+            assert_eq!(super::survives(body), Ok(()), "{body}");
+        }
+    }
+}

@@ -153,8 +153,8 @@ fn the_same_source_is_never_filed_twice() {
         serde_json::json!({ "title": "same thing, read again", "source": "wa:msg-991" }),
     );
 
-    assert_eq!(first["result"]["structuredContent"]["filed"], true);
-    assert_eq!(again["result"]["structuredContent"]["filed"], false);
+    assert_eq!(first["result"]["structuredContent"]["proposed"], true);
+    assert_eq!(again["result"]["structuredContent"]["proposed"], false);
     assert_eq!(
         again["result"]["structuredContent"]["id"],
         first["result"]["structuredContent"]["id"]
@@ -220,7 +220,18 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
         .map(|one| one["name"].as_str().unwrap())
         .collect();
 
-    assert_eq!(names, ["propose", "note", "attach", "read", "find"]);
+    assert_eq!(
+        names,
+        [
+            "propose",
+            "note",
+            "attach",
+            "write_doc",
+            "read_doc",
+            "read",
+            "find"
+        ]
+    );
     for barred in ["done", "drop", "rm", "undo", "sync", "set"] {
         let said = served.call(barred, serde_json::json!({}));
         assert_eq!(said["error"]["code"], -32602, "{barred} answered: {said}");
@@ -591,6 +602,90 @@ fn reading_a_task_that_is_not_there_says_where_to_look() {
             .unwrap()
             .contains("find"),
         "the refusal points at the next move"
+    );
+}
+
+#[test]
+fn a_document_it_writes_can_be_read_back_and_creates_no_task() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let before = served.cli(&["ls", "all"]);
+
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Cartulinas
+
+Rosa y palos de paleta." }),
+    );
+    let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let back = served.call("read_doc", serde_json::json!({ "doc": name }));
+
+    assert_eq!(made["result"]["structuredContent"]["title"], "Cartulinas");
+    assert!(
+        back["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("palos de paleta")
+    );
+    assert_eq!(
+        served.cli(&["ls", "all"]),
+        before,
+        "a document is not work to do: writing one files nothing"
+    );
+}
+
+#[test]
+fn markdown_the_editor_would_destroy_is_refused_before_it_is_written() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "---
+title: notes
+---
+
+what the thread said" }),
+    );
+
+    let why = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert_eq!(said["result"]["isError"], true);
+    assert!(
+        why.contains("markdown"),
+        "the refusal has to say what will survive: {why}"
+    );
+}
+
+#[test]
+fn there_is_no_way_for_it_to_rewrite_a_document() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Kept
+
+as written." }),
+    );
+    let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
+
+    for tried in ["write_doc", "edit_doc", "doc_write"] {
+        let said = served.call(
+            tried,
+            serde_json::json!({ "doc": name, "body": "# Kept
+
+something else." }),
+        );
+        assert!(
+            said["result"]["isError"] == true || said["error"]["code"] == -32602,
+            "{tried} must not overwrite what is already written: {said}"
+        );
+    }
+    let back = served.call("read_doc", serde_json::json!({ "doc": name }));
+    assert!(
+        back["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("as written")
     );
 }
 

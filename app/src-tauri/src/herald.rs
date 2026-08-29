@@ -138,12 +138,15 @@ pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
             let now = jiff::Timestamp::now();
             let mut kept: Option<jiff::Timestamp> = None;
 
-            let Some((owed, read)) = survived(
+            let Some((owed, read, stirred)) = survived(
                 || watching.owed(&paths, since, now),
                 "the watch could not read what was owed",
             ) else {
                 continue;
             };
+            if stirred {
+                let _ = app.emit("stirred", ());
+            }
             let oldest = owed.iter().map(|one| one.at).min();
             for what in tisty_core::herald::gathered(owed) {
                 if told(&app, what).lost() {
@@ -172,6 +175,7 @@ fn survived<T>(work: impl FnOnce() -> T, said: &'static str) -> Option<T> {
 struct Watching {
     print: String,
     state: tisty_core::State,
+    looked: bool,
 }
 
 impl Watching {
@@ -180,20 +184,23 @@ impl Watching {
         paths: &tisty_core::Paths,
         since: jiff::Timestamp,
         now: jiff::Timestamp,
-    ) -> (Vec<Due>, bool) {
+    ) -> (Vec<Due>, bool, bool) {
         let print = tisty_core::cache::fingerprint(&paths.store());
         let mut read = true;
+        let mut stirred = false;
         if print != self.print {
             match tisty_core::store::read_all(paths.store()) {
                 Ok(events) => {
                     self.state = tisty_core::State::replay(&events);
+                    stirred = self.looked;
                     self.print = print;
                 }
                 Err(_) => read = false,
             }
         }
+        self.looked = true;
         let owed = tisty_core::herald::owed(&self.state, since, now, &jiff::tz::TimeZone::system());
-        (owed, read)
+        (owed, read, stirred)
     }
 }
 
@@ -227,6 +234,42 @@ pub fn told(app: &tauri::AppHandle, what: Happening) -> Told {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_watch_speaks_up_when_the_store_moved_under_it() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let now = jiff::Timestamp::now();
+        let mut watching = Watching::default();
+
+        let (_, _, first) = watching.owed(&paths, now, now);
+        let mut store = tisty_core::Store::open(
+            paths.store(),
+            tisty_core::DeviceId("dev_someone_else".into()),
+        )
+        .unwrap();
+        store
+            .append(tisty_core::Op::TaskAdd {
+                id: ulid::Ulid::generate(),
+                d: tisty_core::event::TaskAdd::new("what the agent filed", "a0"),
+            })
+            .unwrap();
+        let (_, _, after) = watching.owed(&paths, now, now);
+        let (_, _, again) = watching.owed(&paths, now, now);
+
+        assert!(
+            !first,
+            "the first look is not news, it is the starting point"
+        );
+        assert!(
+            after,
+            "someone wrote beside the window and it has to be told"
+        );
+        assert!(
+            !again,
+            "nothing changed the second time, so nobody is woken"
+        );
+    }
 
     fn due() -> Happening {
         Happening::Due {

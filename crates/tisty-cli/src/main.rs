@@ -20,7 +20,7 @@ pub const EXIT_NOT_FOUND: u8 = 4;
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
     "show", "story", "series", "undo", "redo", "sync", "doctor", "demo", "lists", "list", "tag",
-    "config", "export", "help", "mcp", "agent", "attach",
+    "config", "export", "help", "mcp", "agent", "attach", "doc",
 ];
 
 #[derive(Parser)]
@@ -191,6 +191,11 @@ pub enum Command {
         markdown: bool,
     },
     /// Keep a copy of a file with a task
+    /// List documents, read one, or write one
+    Doc {
+        which: Option<String>,
+        text: Vec<String>,
+    },
     Attach {
         selector: String,
         path: std::path::PathBuf,

@@ -187,6 +187,9 @@ attached-from      = "kept from {path}"
 attach-too-big     = "that file is over the {limit} MB this machine copies"
 attach-unreadable  = "{name} could not be read"
 
+no-docs            = "no documents yet"
+no-such-doc        = "no document is called {name}"
+
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
 lines = { one = "1 line", other = "{n} lines" }

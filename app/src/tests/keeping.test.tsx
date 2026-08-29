@@ -1399,16 +1399,31 @@ describe("looking for an update without waiting for tomorrow", () => {
     expect(await screen.findByText(/on the newest version/i)).toBeTruthy();
   });
 
-  it("names the version when there is one", async () => {
+  it("offers to install it right there, not somewhere else", async () => {
     ipc.answer = ((was) => (cmd, args) =>
       cmd === "update_ready"
-        ? Promise.resolve({ version: "0.14.0", notes: "", kept: "download" })
+        ? Promise.resolve({ version: "0.14.0", installs: true, route: "download" })
         : was(cmd, args))(ipc.answer);
 
     await openTab();
     await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
 
     expect(await screen.findByText(/0\.14\.0 is out/i)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /^update$/i }));
+    await waitFor(() => expect(sent("update_install").length).toBe(1));
+  });
+
+  it("says how to get it when this copy cannot update itself", async () => {
+    ipc.answer = ((was) => (cmd, args) =>
+      cmd === "update_ready"
+        ? Promise.resolve({ version: "0.14.0", installs: false, route: "store" })
+        : was(cmd, args))(ipc.answer);
+
+    await openTab();
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    expect(await screen.findByText(/Microsoft Store|the Store/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^update$/i })).toBeNull();
   });
 });
 

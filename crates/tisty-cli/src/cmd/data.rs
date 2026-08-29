@@ -107,6 +107,59 @@ fn value(app: &App, key: &str) -> anyhow::Result<Option<String>> {
     }
 }
 
+pub fn doc(
+    app: &mut App,
+    which: Option<String>,
+    text: Vec<String>,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
+    let Some(which) = which else {
+        let mut all: Vec<_> = app.state.docs.values().collect();
+        all.sort_by(|a, b| a.order.cmp(&b.order));
+        if all.is_empty() {
+            println!("  {}", crate::style::dim(lang.get("no-docs")));
+        }
+        for one in all {
+            let titled = tisty_core::docs::resolve(&app.paths.docs(), &one.file)
+                .ok()
+                .and_then(|at| std::fs::read_to_string(at).ok())
+                .map(|body| tisty_core::docs::titled(&body))
+                .unwrap_or_default();
+            println!("  {}  {titled}", crate::style::dim(&one.file));
+        }
+        return Ok(ExitCode::SUCCESS);
+    };
+
+    if text.is_empty() {
+        let Some(held) = app.state.docs.values().find(|one| one.file == which) else {
+            anyhow::bail!("{}", lang.fill("no-such-doc", &[("name", &which)]));
+        };
+        let at = tisty_core::docs::resolve(&app.paths.docs(), &held.file)?;
+        print!("{}", std::fs::read_to_string(at)?);
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    let body = text.join(" ");
+    let made = tisty_core::docs::create(&app.paths.docs(), app.device(), &body)?;
+    let order = tisty_core::order::last_of(
+        app.state
+            .docs
+            .values()
+            .filter(|one| one.folder.is_none())
+            .map(|one| one.order.as_str()),
+    );
+    app.commit(tisty_core::Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            file: made.id.clone(),
+            order,
+            folder: None,
+        },
+    })?;
+    println!("  {}  {}", crate::style::dim(&made.id), made.title);
+    Ok(ExitCode::SUCCESS)
+}
+
 fn check(key: &str, lang: Lang) -> anyhow::Result<()> {
     known(key, KEYS, lang)
 }

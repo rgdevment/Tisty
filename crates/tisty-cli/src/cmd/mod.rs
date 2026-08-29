@@ -87,6 +87,7 @@ pub fn dispatch(
 
         Command::Config { action } => data::config(app, action, lang),
         Command::Export { filter, markdown } => data::export(app, &filter, markdown, today, lang),
+        Command::Doc { which, text } => data::doc(app, which, text, lang),
         Command::Attach {
             selector,
             path,

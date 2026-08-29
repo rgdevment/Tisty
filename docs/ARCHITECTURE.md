@@ -71,12 +71,18 @@ turns one on — from the Agents tab or `tisty agent --on`. Nothing arriving
 over the wire can register one. Its own directory is what keeps `undo`
 apart: the person's undo never reaches what the agent filed.
 
-It can file a task, add to a journal, attach a file from this machine, and
-search. There is no tool for
-completing, dropping, deleting, undoing, editing what the person wrote, or
-choosing a list — everything lands in the inbox, tagged. `stdout` carries
-MCP messages and nothing else, which the core already guaranteed: it prints
-nothing, ever.
+It can propose a task, add to a journal, read one whole task, search, attach
+a file, and write documents. There is no tool for completing, dropping,
+deleting, undoing, editing what the person wrote, choosing a list, or
+rewriting a document: task content it only ever adds to, and document bodies
+do not merge, so a rewrite would lose one side. Everything it proposes lands
+in the inbox, tagged. It takes files only from where a download lands, never
+from Tisty's own directories, since attachments reach the shared folder. And
+the log says who may write, not the settings file an agent could edit
+itself.
+
+`stdout` carries MCP messages and nothing else, which the core already
+guaranteed: it prints nothing, ever.
 
 ### Priorities are named, not numbered
 

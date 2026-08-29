@@ -1,6 +1,8 @@
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useState } from "react";
 import {
+  type Ready,
+  updateInstall,
   updateReady,
   type Agent,
   agentState,
@@ -97,7 +99,8 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [wired, setWired] = useState(false);
   const [looking, setLooking] = useState(false);
-  const [found, setFound] = useState<string | null>(null);
+  const [found, setFound] = useState<Ready | "none" | null>(null);
+  const [asked, setAsked] = useState(false);
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [brittle, setBrittle] = useState<Brittle[] | null>(null);
@@ -653,7 +656,7 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                     setLooking(true);
                     setFound(null);
                     updateReady(true)
-                      .then((ready) => setFound(ready ? ready.version : ""))
+                      .then((ready) => setFound(ready ?? "none"))
                       .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }))
                       .finally(() => setLooking(false));
                   }}
@@ -661,12 +664,42 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                 >
                   {looking ? t("lookingNow") : t("lookNow")}
                 </button>
-                {found !== null && (
+                {found === "none" && (
+                  <span className="text-[12.5px] text-soft">{t("lookNowNone")}</span>
+                )}
+                {found !== null && found !== "none" && (
                   <span className="text-[12.5px] text-soft">
-                    {found === "" ? t("lookNowNone") : fill("lookNowFound", found)}
+                    {fill("lookNowFound", found.version)}
                   </span>
                 )}
               </div>
+
+              {found !== null && found !== "none" && (
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-soft">
+                  {found.installs ? (
+                    <button
+                      type="button"
+                      disabled={asked}
+                      onClick={() => {
+                        setAsked(true);
+                        updateInstall().catch((e) => {
+                          setAsked(false);
+                          setTrouble({ card: "settings", text: saidPlainly(e) });
+                        });
+                      }}
+                      className="cursor-pointer rounded-lg bg-accent px-2.5 py-1 text-[12px] text-bg disabled:opacity-60"
+                    >
+                      {t("updateInstall")}
+                    </button>
+                  ) : found.route === "store" ? (
+                    <span className="text-faint">{t("updateStore")}</span>
+                  ) : (
+                    <code className="text-faint">
+                      {fill("updateBrewCli", found.package ?? "tisty")}
+                    </code>
+                  )}
+                </p>
+              )}
             </Card>
 
             {wake?.offered && (

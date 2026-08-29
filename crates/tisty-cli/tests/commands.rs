@@ -211,6 +211,37 @@ fn a_json_listing_leaves_the_numbering_where_the_person_left_it() {
 }
 
 #[test]
+fn a_document_can_be_written_listed_and_read_from_the_terminal() {
+    let cli = Cli::new();
+
+    assert!(cli.ok(&["doc"]).contains("no documents"));
+    let made = cli.ok(&["doc", "new", "# Card stock\n\nPink, and lolly sticks."]);
+    let name = made.split_whitespace().next().unwrap().to_string();
+
+    assert!(
+        made.contains("Card stock"),
+        "the first line is the title: {made}"
+    );
+    assert!(cli.ok(&["doc"]).contains(&name));
+    assert!(cli.ok(&["doc", &name]).contains("lolly sticks"));
+}
+
+#[test]
+fn a_document_is_not_a_task() {
+    let cli = Cli::new();
+    cli.ok(&["something to do"]);
+
+    cli.ok(&["doc", "new", "# Just notes"]);
+
+    let listed = cli.ok(&["ls", "all"]);
+    assert!(listed.contains("something to do"));
+    assert!(
+        !listed.contains("Just notes"),
+        "a document never turns into work: {listed}"
+    );
+}
+
+#[test]
 fn attaching_copies_the_file_and_says_where_it_came_from() {
     let cli = Cli::new();
     cli.ok(&["chase the invoice"]);

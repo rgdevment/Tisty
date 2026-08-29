@@ -19,21 +19,23 @@ fn instructions(today: jiff::civil::Date) -> String {
 }
 
 const TAUGHT: &str = "\
-Tisty is one person's task list on this machine. You file work into it; you never close, \
+Tisty is one person's task list on this machine. You propose work for it; you never close, \
 drop, delete or edit what the person wrote. There is no tool for those, on purpose.
 
 Always pass `source` when you have one: a message id, a thread link, anything stable \
 enough to recognise the same thing twice. Tisty refuses a second filing from the same \
 source and hands back the task that already exists, so you cannot duplicate by mistake. \
-Without a source, `find` by text before you file.
+Without a source, `find` by text before you propose.
 
-Everything you file lands in the inbox tagged #agent, for the person to place. You cannot \
+Everything you propose lands in the inbox tagged #agent, for the person to place. You cannot \
 choose a list. Dates are plain ISO (2026-08-31), never words: work out which day someone \
 means by \"Monday\" from the date above, before calling.
 
 Fill in what you actually know. A title alone is a fine task; inventing a deadline nobody \
 gave you is worse than leaving it empty. Put what you read in `description`. Write titles \
 and notes in the language the person writes in.
+
+A document is for what is worth keeping and is not work to do — a summary, a note, something to consult. Writing one creates no task: if something has to happen, propose it.
 
 `note` appends to a task's journal, including tasks the person wrote themselves. Use it \
 when something new turns up about work that already exists, rather than filing a duplicate. \
@@ -200,6 +202,8 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "note" => note(paths, &args),
         "find" => find(paths, &args),
         "read" => read(paths, &args),
+        "write_doc" => write_doc(paths, &args),
+        "read_doc" => read_doc(paths, &args),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
         other => Err(Refused::Protocol(-32602, format!("unknown tool: {other}"))),
@@ -367,10 +371,10 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     {
         return Ok(told(
             format!(
-                "Already filed from that source: {:?}. Nothing was written.",
+                "Already proposed from that source: {:?}. Nothing was written.",
                 task.title
             ),
-            json!({ "id": task.id.to_string(), "title": task.title, "filed": false }),
+            json!({ "id": task.id.to_string(), "title": task.title, "proposed": false }),
         ));
     }
 
@@ -434,21 +438,21 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Ok(told(
             match task {
                 Some(task) => format!(
-                    "Already filed from that source, as {}: {:?}. Nothing was written.",
+                    "Already proposed from that source, as {}: {:?}. Nothing was written.",
                     task.id, task.title
                 ),
-                None => "Already filed from that source. Nothing was written.".into(),
+                None => "Already proposed from that source. Nothing was written.".into(),
             },
             json!({
                 "id": task.map(|one| one.id.to_string()),
                 "title": task.map(|one| one.title.clone()),
-                "filed": false,
+                "proposed": false,
             }),
         ));
     };
     Ok(told(
-        format!("Filed {title:?} as {id} in the inbox, tagged #{INBOX_TAG}."),
-        json!({ "id": id.to_string(), "title": title, "filed": true }),
+        format!("Proposed {title:?} as {id} in the inbox, tagged #{INBOX_TAG}."),
+        json!({ "id": id.to_string(), "title": title, "proposed": true }),
     ))
 }
 
@@ -558,8 +562,8 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .and_then(|id| state.tasks.get(id));
         return Ok(told(
             match held {
-                Some(task) => format!("Already filed from that source: {:?}", task.title),
-                None => "Nothing here was filed from that source.".into(),
+                Some(task) => format!("Already proposed from that source: {:?}", task.title),
+                None => "Nothing here came from that source.".into(),
             },
             json!({ "found": held.map(|task| brief(task, &state)) }),
         ));
@@ -567,7 +571,7 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let Some(query) = text(args, "query") else {
         return Err(Refused::Tool(
-            "`find` needs a `query`, or a `source` to check whether something was already filed."
+            "`find` needs a `query`, or a `source` to check whether it was proposed already."
                 .into(),
         ));
     };
@@ -670,6 +674,65 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     Ok(told(plainly, whole))
 }
 
+fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(body) = text(args, "body") else {
+        return Err(Refused::Tool("a document needs a `body`.".into()));
+    };
+    let (state, mut store) = opened(paths)?;
+
+    tisty_core::docs::survives(&body).map_err(|eats| {
+        Refused::Tool(format!(
+            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person              opens the document. Send plain markdown: headings, lists, emphasis, inline links."
+        ))
+    })?;
+
+    let made = tisty_core::docs::create(&paths.docs(), store.device(), &body).map_err(hitch)?;
+    let order = tisty_core::order::last_of(
+        state
+            .docs
+            .values()
+            .filter(|one| one.folder.is_none())
+            .map(|one| one.order.as_str()),
+    );
+    store
+        .append(Op::DocAdd {
+            id: Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: made.id.clone(),
+                order,
+                folder: None,
+            },
+        })
+        .map_err(hitch)?;
+
+    Ok(told(
+        format!("Wrote {:?} as {}.", made.title, made.id),
+        json!({ "doc": made.id, "title": made.title }),
+    ))
+}
+
+fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(which) = text(args, "doc") else {
+        return Err(Refused::Tool(
+            "reading a document needs its `doc` name.".into(),
+        ));
+    };
+    let (state, _) = opened(paths)?;
+    if !state.docs.values().any(|one| one.file == which) {
+        return Err(Refused::Tool(format!(
+            "no document here is called {which:?}."
+        )));
+    }
+    let at = tisty_core::docs::resolve(&paths.docs(), &which).map_err(hitch)?;
+    let body = std::fs::read_to_string(&at)
+        .map_err(|_| Refused::Tool(format!("{which:?} could not be read.")))?;
+
+    Ok(told(
+        body.clone(),
+        json!({ "doc": which, "title": tisty_core::docs::titled(&body), "body": body }),
+    ))
+}
+
 fn brief(task: &Task, state: &State) -> Value {
     json!({
         "id": task.id.to_string(),
@@ -697,9 +760,9 @@ fn tools() -> Value {
     json!([
         {
             "name": "propose",
-            "title": "File a task",
-            "description": "File a task into the person's inbox. Check `find` with the same \
-                            `source` first: if it comes back with a task, this is already filed. \
+            "title": "Propose a task",
+            "description": "Propose a task for the person's inbox. Check `find` with the same \
+                            `source` first: if it comes back with a task, this was proposed already. \
                             Fill in only what you were actually told.",
             "inputSchema": {
                 "type": "object",
@@ -780,6 +843,35 @@ fn tools() -> Value {
             }
         },
         {
+            "name": "write_doc",
+            "title": "Write a document",
+            "description": "Write something down that is not work to do: a note, a summary,                             something to keep. Plain markdown only — headings, lists, emphasis,                             inline links. Documents do not create tasks.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "body": {
+                        "type": "string",
+                        "description": "The whole document. Its first line becomes its title"
+                    }
+                },
+                "required": ["body"]
+            }
+        },
+        {
+            "name": "read_doc",
+            "title": "Read a document",
+            "description": "The whole text of a document that already exists. You can write new                             ones and read any of them, but never rewrite one: two sides editing                             the same text cannot be merged, so one would be lost.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "doc": { "type": "string", "description": "The document's name" }
+                },
+                "required": ["doc"]
+            }
+        },
+        {
             "name": "read",
             "title": "Read a whole task",
             "description": "Everything one task holds: its description, its steps, its journal                             and what it keeps. Ask for it before adding a note, so you do not                             write down something already written.",
@@ -796,7 +888,7 @@ fn tools() -> Value {
             "name": "find",
             "title": "Search the list and the archive",
             "description": "Search by text, or pass `source` alone to check whether something was \
-                            already filed from it. Do that before proposing.",
+                            already came from it. Do that before proposing.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -804,7 +896,7 @@ fn tools() -> Value {
                     "query": { "type": "string", "description": "Words to look for" },
                     "source": {
                         "type": "string",
-                        "description": "Ask whether this exact source was already filed"
+                        "description": "Ask whether this exact source was proposed already"
                     },
                     "scope": {
                         "type": "string",
