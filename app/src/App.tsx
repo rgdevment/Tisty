@@ -412,12 +412,14 @@ export default function App() {
   useEffect(() => {
     const stop = listen("closing", () => setLeaving(true));
     const caught = listen("captured", () => latest.current());
+    const stirred = listen("stirred", () => latest.current());
     const sound = listen<unknown>("chime", (rung) => {
       if (heard(rung.payload)) play(rung.payload);
     });
     return () => {
       stop.then((off) => off()).catch(() => {});
       caught.then((off) => off()).catch(() => {});
+      stirred.then((off) => off()).catch(() => {});
       sound.then((off) => off()).catch(() => {});
     };
   }, []);

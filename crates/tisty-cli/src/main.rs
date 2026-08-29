@@ -2,6 +2,7 @@ mod app;
 mod cmd;
 mod filter;
 mod i18n;
+mod mcp;
 mod render;
 mod select;
 mod style;
@@ -19,7 +20,7 @@ pub const EXIT_NOT_FOUND: u8 = 4;
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
     "show", "story", "series", "undo", "redo", "sync", "doctor", "demo", "lists", "list", "tag",
-    "config", "export", "help",
+    "config", "export", "help", "mcp", "agent", "attach", "doc",
 ];
 
 #[derive(Parser)]
@@ -189,6 +190,28 @@ pub enum Command {
         #[arg(long)]
         markdown: bool,
     },
+    /// List documents, read one, or write one with --new
+    Doc {
+        which: Option<String>,
+        #[arg(long, conflicts_with = "which")]
+        new: bool,
+    },
+    /// Keep a copy of a file with a task
+    Attach {
+        selector: String,
+        path: std::path::PathBuf,
+        #[arg(long)]
+        label: Option<String>,
+    },
+    /// Speak MCP over stdin and stdout, so an assistant can file work here
+    Mcp,
+    /// Let an assistant file work here, or stop it
+    Agent {
+        #[arg(long, conflicts_with = "off")]
+        on: bool,
+        #[arg(long)]
+        off: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -311,6 +334,16 @@ fn run() -> anyhow::Result<ExitCode> {
             tisty_core::witness::Fact::Id(env!("CARGO_PKG_VERSION").to_string()),
         )],
     );
+    // Serving does not hold a store open: each call reads what is on disk, so a window writing
+    // beside it is never a stale read.
+    if matches!(cli.command, Command::Mcp) {
+        return mcp::serve(paths);
+    }
+    if let Command::Agent { on, off } = cli.command {
+        let lang = Lang::detect(tisty_core::Config::load_or_init(&paths)?.locale.as_deref());
+        return mcp::turn(&paths, (on || off).then_some(on), lang);
+    }
+
     let mut app = match cli.command {
         Command::Config { .. } => App::without_store(paths)?,
         Command::Ls { .. } | Command::Lists { .. } => App::listing(paths)?,

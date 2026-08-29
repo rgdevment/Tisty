@@ -9,6 +9,13 @@ const ipc = vi.hoisted(() => ({
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
+const serving = vi.hoisted(() => ({
+  on: false,
+  called: undefined as string | undefined,
+  id: undefined as string | undefined,
+  filed: 0,
+}));
+
 const asked = vi.hoisted(() => ({
   folder: null as string | null,
   file: null as string | null,
@@ -73,6 +80,7 @@ beforeEach(() => {
   asked.folder = null;
   asked.file = null;
   asked.sure = false;
+  Object.assign(serving, { on: false, called: undefined, id: undefined, filed: 0 });
   Object.assign(carrying, {
     chosen: undefined,
     asked: true,
@@ -84,6 +92,17 @@ beforeEach(() => {
     switch (cmd) {
       case "sync_state":
         return Promise.resolve({ ...carrying });
+      case "agent":
+        return Promise.resolve({ ...serving });
+      case "agent_turn": {
+        const on = Boolean(ipc.calls[ipc.calls.length - 1]?.args.on);
+        Object.assign(serving, {
+          on,
+          called: on ? "espino 3" : undefined,
+          id: on ? "dev_wskajy01" : undefined,
+        });
+        return Promise.resolve({ ...serving });
+      }
       case "sync_now":
         return Promise.resolve({ carried: "came", undecided: [] });
       case "reachable":
@@ -1357,5 +1376,95 @@ describe("stranded document files", () => {
 
     await screen.findByText(/mac0-0001/);
     expect(screen.queryByText(/does not know about/i)).toBeNull();
+  });
+});
+
+describe("looking for an update without waiting for tomorrow", () => {
+  const openTab = async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await userEvent.click(screen.getByRole("tab", { name: /notices/i }));
+  };
+
+  it("asks the moment the person asks, not on the daily schedule", async () => {
+    ipc.answer = (
+      (was) => (cmd, args) =>
+        cmd === "update_ready" ? Promise.resolve(null) : was(cmd, args)
+    )(ipc.answer);
+
+    await openTab();
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    await waitFor(() => expect(sent("update_ready").length).toBeGreaterThan(0));
+    const asked = sent("update_ready");
+    expect(asked[asked.length - 1].args.nowPlease).toBe(true);
+    expect(await screen.findByText(/on the newest version/i)).toBeTruthy();
+  });
+
+  it("offers to install it right there, not somewhere else", async () => {
+    ipc.answer = (
+      (was) => (cmd, args) =>
+        cmd === "update_ready"
+          ? Promise.resolve({ version: "0.14.0", installs: true, route: "download" })
+          : was(cmd, args)
+    )(ipc.answer);
+
+    await openTab();
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    expect(await screen.findByText(/0\.14\.0 is out/i)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /^update$/i }));
+    await waitFor(() => expect(sent("update_install").length).toBe(1));
+  });
+
+  it("says how to get it when this copy cannot update itself", async () => {
+    ipc.answer = (
+      (was) => (cmd, args) =>
+        cmd === "update_ready"
+          ? Promise.resolve({ version: "0.14.0", installs: false, route: "store" })
+          : was(cmd, args)
+    )(ipc.answer);
+
+    await openTab();
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    expect(await screen.findByText(/Microsoft Store|the Store/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^update$/i })).toBeNull();
+  });
+});
+
+describe("letting an assistant file work here", () => {
+  const openTab = async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await userEvent.click(screen.getByRole("tab", { name: /agents/i }));
+  };
+
+  it("says nothing can file here until the person turns one on", async () => {
+    await openTab();
+
+    expect(await screen.findByText(/No assistant can file work here/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Let an assistant file here/i })).toBeTruthy();
+  });
+
+  it("registering is a click of the person's, never something that arrives over the wire", async () => {
+    await openTab();
+
+    await userEvent.click(screen.getByRole("button", { name: /Let an assistant file here/i }));
+
+    await waitFor(() => expect(sent("agent_turn").length).toBe(1));
+    expect(sent("agent_turn")[0].args.on).toBe(true);
+    expect(await screen.findByText(/espino 3 can file work here/i)).toBeTruthy();
+  });
+
+  it("spells out what it can never do, where the person decides", async () => {
+    Object.assign(serving, { on: true, called: "espino 3", id: "dev_wskajy01", filed: 4 });
+
+    await openTab();
+
+    expect(await screen.findByText(/4 filed so far/i)).toBeTruthy();
+    expect(screen.getByText(/Complete, reopen, drop or delete anything/i)).toBeTruthy();
+    expect(screen.getByText(/your undo never reaches what it filed/i)).toBeTruthy();
+    expect(screen.getByText(/"tisty"/)).toBeTruthy();
   });
 });
