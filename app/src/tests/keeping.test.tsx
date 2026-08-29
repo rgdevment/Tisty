@@ -1437,7 +1437,7 @@ describe("letting an assistant file work here", () => {
   const openTab = async () => {
     render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
-    await userEvent.click(screen.getByRole("tab", { name: /agents/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /assistants/i }));
   };
 
   it("says nothing can file here until the person turns one on", async () => {

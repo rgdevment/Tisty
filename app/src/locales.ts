@@ -751,15 +751,15 @@ const en = {
   tabNotices: "Notices and startup",
   tabWriting: "Writing",
   tabUpkeep: "Maintenance",
-  tabAgents: "Agents",
+  tabAgents: "Assistants",
   lookNow: "Check for updates",
   lookingNow: "Checking…",
   lookNowNone: "You are on the newest version",
   lookNowFound: "Version {name} is out",
   lookNowWhen: "Tisty looks once a day on its own.",
-  agentsTitle: "An assistant that files for you",
+  agentsTitle: "Tisty has no AI inside it",
   agentsWhat:
-    "An assistant on this machine can file work into Tisty for you — the cartons the school group says to bring on Monday, the thing you were tagged about on Slack. It talks to Tisty through a program you already run; nothing reaches the network, and Tisty never calls out.",
+    "None, and none is going in: the natural language it reads is rules running on this machine, with no model and no cloud. But if you already use an assistant and it works for you, here is a door for it. It can file what you tell it — the card stock the school group wants on Monday, the thing you were tagged about on Slack — through a program already on this machine. Nothing reaches the network and Tisty still calls nobody. You decide whether to open it, and you can close it whenever you like.",
   agentsOff: "No assistant can file work here",
   agentsOn: "{name} can file work here",
   agentsFiled: "{name} filed so far",
@@ -773,10 +773,10 @@ const en = {
   agentsCannot:
     "Complete, reopen, drop or delete anything · Undo or redo · Edit what you wrote · Choose a list — everything lands in the inbox, tagged #agent · Set routines or reminders · Touch syncing, settings or machines",
   agentsUndo:
-    "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place.",
+    "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place. There is one door: however many assistants you connect, they all file under that same name, and they all leave together when you close it.",
   agentsHowTitle: "How to connect one",
   agentsHow:
-    "Add Tisty as an MCP server in your assistant. In Claude Code that is one line — claude mcp add tisty -- tisty mcp — and elsewhere, paste the block below into its configuration. Both need tisty on your PATH, which Maintenance can set up.",
+    "Add Tisty as an MCP server in your assistant: paste the block below into its configuration and restart it. The block already carries the path on this machine, so nothing needs to be on your PATH. Then let an assistant file, above — until you do, everything it asks for is refused.",
   agentsCopy: "Copy",
   agentsCopied: "Copied",
   backupSave: "Save a copy",
@@ -1671,15 +1671,15 @@ const es: Catalog = {
   tabNotices: "Avisos y arranque",
   tabWriting: "Escribir",
   tabUpkeep: "Mantenimiento",
-  tabAgents: "Agentes",
+  tabAgents: "Asistentes",
   lookNow: "Buscar actualizaciones",
   lookingNow: "Buscando…",
   lookNowNone: "Estás en la versión más reciente",
   lookNowFound: "Está disponible la versión {name}",
   lookNowWhen: "Tisty mira una vez al día por su cuenta.",
-  agentsTitle: "Un asistente que anota por ti",
+  agentsTitle: "Tisty no lleva IA dentro",
   agentsWhat:
-    "Un asistente en esta máquina puede anotar trabajo en Tisty por ti: las cartulinas que el grupo del colegio dice que hay que llevar el lunes, aquello por lo que te mencionaron en Slack. Habla con Tisty a través de un programa que ya tienes; nada sale a la red, y Tisty nunca llama a nadie.",
+    "Ninguna, y no se la vamos a poner: el lenguaje natural que lee son reglas corriendo en esta máquina, sin modelo y sin nube. Pero si ya usas un asistente y te sirve, aquí tiene una puerta. Puede anotar lo que tú le cuentes —las cartulinas que el grupo del colegio pide para el lunes, aquello por lo que te mencionaron en Slack— a través de un programa que ya está en este equipo. Nada sale a la red y Tisty sigue sin llamar a nadie. Tú decides si la abres, y puedes cerrarla cuando quieras.",
   agentsOff: "Ningún asistente puede anotar aquí",
   agentsOn: "{name} puede anotar aquí",
   agentsFiled: "{name} anotadas hasta ahora",
@@ -1693,10 +1693,10 @@ const es: Catalog = {
   agentsCannot:
     "Completar, reabrir, descartar ni borrar nada · Deshacer ni rehacer · Editar lo que tú escribiste · Elegir lista: todo entra en la bandeja, con la etiqueta #agent · Poner rutinas ni recordatorios · Tocar la sincronización, los ajustes ni las máquinas",
   agentsUndo:
-    "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió.",
+    "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió. La puerta es una sola: conectes los asistentes que conectes, todos anotan bajo ese mismo nombre y se van juntos cuando la cierras.",
   agentsHowTitle: "Cómo conectar uno",
   agentsHow:
-    "Añade Tisty como servidor MCP en tu asistente. En Claude Code es una línea —claude mcp add tisty -- tisty mcp— y en otros, pega el bloque de abajo en su configuración. Los dos necesitan tisty en tu PATH, que se prepara en Mantenimiento.",
+    "Añade Tisty como servidor MCP en tu asistente: pega el bloque de abajo en su configuración y reinícialo. El bloque ya trae la ruta de este equipo, así que no hace falta tener nada en el PATH. Después dale entrada arriba: mientras no lo hagas, todo lo que pida se le niega.",
   agentsCopy: "Copiar",
   agentsCopied: "Copiado",
   backupSave: "Guardar una copia",
