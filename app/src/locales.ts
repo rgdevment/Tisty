@@ -763,7 +763,7 @@ const en = {
   agentsTurnOff: "Stop it",
   agentsCanTitle: "What it can do",
   agentsCan:
-    "File a task with description, dates, priority, tags and steps · Add to the journal of any task, including yours · Search your list and your archive",
+    "File a task with description, dates, priority, tags and steps · Add to the journal of any task, including yours · Keep a copy of a file from this machine with a task · Search your list and your archive",
   agentsCannotTitle: "What it can never do",
   agentsCannot:
     "Complete, reopen, drop or delete anything · Undo or redo · Edit what you wrote · Choose a list — everything lands in the inbox, tagged #agent · Set routines or reminders · Touch syncing, settings or machines",
@@ -771,7 +771,7 @@ const en = {
     "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place.",
   agentsHowTitle: "How to connect one",
   agentsHow:
-    "Add Tisty as an MCP server in your assistant. In Claude Code that is one line; elsewhere, paste the block below into its configuration.",
+    "Add Tisty as an MCP server in your assistant. In Claude Code that is one line — claude mcp add tisty -- tisty mcp — and elsewhere, paste the block below into its configuration. Both need tisty on your PATH, which Maintenance can set up.",
   agentsCopy: "Copy",
   agentsCopied: "Copied",
   backupSave: "Save a copy",
@@ -1678,15 +1678,15 @@ const es: Catalog = {
   agentsTurnOff: "Quitarle la voz",
   agentsCanTitle: "Lo que puede hacer",
   agentsCan:
-    "Anotar una tarea con descripción, fechas, prioridad, etiquetas y pasos · Añadir a la bitácora de cualquier tarea, también las tuyas · Buscar en tu lista y en tu archivo",
+    "Anotar una tarea con descripción, fechas, prioridad, etiquetas y pasos · Añadir a la bitácora de cualquier tarea, también las tuyas · Guardar una copia de un fichero de esta máquina con una tarea · Buscar en tu lista y en tu archivo",
   agentsCannotTitle: "Lo que no podrá hacer nunca",
   agentsCannot:
-    "Completar, reabrir, descartar ni borrar nada · Deshacer ni rehacer · Editar lo que tú escribiste · Elegir lista: todo entra en la bandeja, con la etiqueta #agente · Poner rutinas ni recordatorios · Tocar la sincronización, los ajustes ni las máquinas",
+    "Completar, reabrir, descartar ni borrar nada · Deshacer ni rehacer · Editar lo que tú escribiste · Elegir lista: todo entra en la bandeja, con la etiqueta #agent · Poner rutinas ni recordatorios · Tocar la sincronización, los ajustes ni las máquinas",
   agentsUndo:
     "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió.",
   agentsHowTitle: "Cómo conectar uno",
   agentsHow:
-    "Añade Tisty como servidor MCP en tu asistente. En Claude Code es una línea; en otros, pega el bloque de abajo en su configuración.",
+    "Añade Tisty como servidor MCP en tu asistente. En Claude Code es una línea —claude mcp add tisty -- tisty mcp— y en otros, pega el bloque de abajo en su configuración. Los dos necesitan tisty en tu PATH, que se prepara en Mantenimiento.",
   agentsCopy: "Copiar",
   agentsCopied: "Copiado",
   backupSave: "Guardar una copia",

@@ -14,29 +14,31 @@ use ulid::Ulid;
 const VERSIONS: [&str; 3] = ["2026-07-28", "2025-11-25", "2025-06-18"];
 const INBOX_TAG: &str = "agent";
 
-/// What the model reads before it decides anything. Everything here is a rule it cannot infer
-/// from the schemas: what Tisty refuses to let it do, and what it should do instead.
-const INSTRUCTIONS: &str = "\
+fn instructions(today: jiff::civil::Date) -> String {
+    format!("Today is {today}.\n\n{TAUGHT}")
+}
+
+const TAUGHT: &str = "\
 Tisty is one person's task list on this machine. You file work into it; you never close, \
 drop, delete or edit what the person wrote. There is no tool for those, on purpose.
 
-Before filing anything, call `find` with the `source` of whatever you are reading. If it \
-comes back with a task, that thing is already filed — say so and stop, do not file it again.
+Always pass `source` when you have one: a message id, a thread link, anything stable \
+enough to recognise the same thing twice. Tisty refuses a second filing from the same \
+source and hands back the task that already exists, so you cannot duplicate by mistake. \
+Without a source, `find` by text before you file.
 
 Everything you file lands in the inbox tagged #agent, for the person to place. You cannot \
-choose a list. Dates are plain ISO (2026-08-31), never words: you know what day Monday is, \
-so resolve it before calling.
+choose a list. Dates are plain ISO (2026-08-31), never words: work out which day someone \
+means by \"Monday\" from the date above, before calling.
 
 Fill in what you actually know. A title alone is a fine task; inventing a deadline nobody \
-gave you is worse than leaving it empty. Put what you read in `description`, and put where \
-you read it in `source` — a message id, a thread link, anything stable enough to recognise \
-the same thing twice.
+gave you is worse than leaving it empty. Put what you read in `description`. Write titles \
+and notes in the language the person writes in.
 
 `note` appends to a task's journal, including tasks the person wrote themselves. Use it \
 when something new turns up about work that already exists, rather than filing a duplicate.";
 
-/// Registering is the person's act, never the agent's: nothing here mints an identity on its
-/// own, so an assistant cannot grant itself a voice by connecting.
+/// Minting is the person's act: nothing reachable over the wire calls this.
 pub fn turn(paths: &Paths, on: Option<bool>, lang: crate::i18n::Lang) -> anyhow::Result<ExitCode> {
     let mut config = tisty_core::Config::load_or_init(paths)?;
     let named = |who: &tisty_core::DeviceId| tisty_core::config::nicknamed(&who.0);
@@ -113,7 +115,7 @@ fn answer(paths: &Paths, line: &str) -> Option<String> {
 
     Some(match method {
         "server/discover" => reply(id, discovered()),
-        "initialize" => reply(id, greeting(&params)),
+        "initialize" => reply(id, legacy_greeting(&params)),
         "ping" => reply(id, json!({})),
         "tools/list" => reply(id, json!({ "resultType": "complete", "tools": tools() })),
         "tools/call" => match called(paths, &params) {
@@ -130,13 +132,12 @@ fn discovered() -> Value {
         "resultType": "complete",
         "supportedVersions": VERSIONS,
         "capabilities": { "tools": {} },
-        "instructions": INSTRUCTIONS,
+        "instructions": instructions(jiff::Zoned::now().date()),
         "_meta": { "io.modelcontextprotocol/serverInfo": who() },
     })
 }
 
-/// The handshake older clients still open with. Newer ones never send it.
-fn greeting(params: &Value) -> Value {
+fn legacy_greeting(params: &Value) -> Value {
     let asked = params
         .get("protocolVersion")
         .and_then(Value::as_str)
@@ -150,7 +151,7 @@ fn greeting(params: &Value) -> Value {
         "protocolVersion": speaking,
         "capabilities": { "tools": {} },
         "serverInfo": who(),
-        "instructions": INSTRUCTIONS,
+        "instructions": instructions(jiff::Zoned::now().date()),
     })
 }
 
@@ -166,8 +167,6 @@ fn fault(id: Value, code: i32, message: &str) -> String {
     json!({ "jsonrpc": "2.0", "id": id, "error": { "code": code, "message": message } }).to_string()
 }
 
-/// What the model reads back when it asked for something Tisty will not do. It is the only
-/// teaching that arrives at the moment of the mistake, so it says what to do instead.
 fn wrong(why: &str) -> Value {
     json!({
         "resultType": "complete",
@@ -192,6 +191,7 @@ enum Refused {
 fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
     let name = params.get("name").and_then(Value::as_str).unwrap_or("");
     let args = params.get("arguments").cloned().unwrap_or(json!({}));
+    only_what_it_takes(name, &args)?;
 
     match name {
         "propose" => propose(paths, &args),
@@ -201,6 +201,30 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
         other => Err(Refused::Protocol(-32602, format!("unknown tool: {other}"))),
     }
+}
+
+/// A misspelt argument would otherwise be dropped in silence, teaching the model nothing.
+fn only_what_it_takes(name: &str, args: &Value) -> Result<(), Refused> {
+    let Some(said) = args.as_object() else {
+        return Ok(());
+    };
+    let tools = tools();
+    let Some(taken) = tools
+        .as_array()
+        .and_then(|all| all.iter().find(|one| one["name"] == name))
+        .and_then(|one| one["inputSchema"]["properties"].as_object())
+    else {
+        return Ok(());
+    };
+    if let Some(stray) = said.keys().find(|key| !taken.contains_key(*key)) {
+        let mut known: Vec<&str> = taken.keys().map(String::as_str).collect();
+        known.sort_unstable();
+        return Err(Refused::Tool(format!(
+            "`{stray}` is not something `{name}` takes. It takes: {}.",
+            known.join(", ")
+        )));
+    }
+    Ok(())
 }
 
 fn text(args: &Value, key: &str) -> Option<String> {
@@ -255,7 +279,13 @@ fn listed(args: &Value, key: &str) -> Vec<String> {
 
 fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
-    let agent = config.agent_id.clone().unwrap_or(config.device_id.clone());
+    let Some(agent) = config.agent_id.clone() else {
+        return Err(Refused::Tool(
+            "no agent is registered on this machine. The person turns one on in Tisty's settings, \
+             under Agents."
+                .into(),
+        ));
+    };
     let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
     let store = Store::open(paths.store(), agent).map_err(hitch)?;
     Ok((state, store))
@@ -336,7 +366,7 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     store.append_batch(ops).map_err(hitch)?;
     Ok(told(
-        format!("Filed {title:?} in the inbox, tagged #{INBOX_TAG}."),
+        format!("Filed {title:?} as {id} in the inbox, tagged #{INBOX_TAG}."),
         json!({ "id": id.to_string(), "title": title, "filed": true }),
     ))
 }
@@ -411,9 +441,7 @@ fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         _ => Refused::Tool(format!("{said:?} could not be read from this machine.")),
     })?;
 
-    // The journal is read by the person, not the agent, so it speaks their language. And it
-    // says where the file came from: attaching moves a local file into the folder that syncs,
-    // and a wrong path should be visible rather than silent.
+    // Attaching copies into the folder that syncs, so a wrong path has to be visible.
     let lang = crate::i18n::Lang::detect(
         tisty_core::Config::load_or_init(paths)
             .map_err(hitch)?
@@ -454,7 +482,7 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 Some(task) => format!("Already filed from that source: {:?}", task.title),
                 None => "Nothing here was filed from that source.".into(),
             },
-            json!({ "found": held.map(brief) }),
+            json!({ "found": held.map(|task| brief(task, &state)) }),
         ));
     }
 
@@ -467,7 +495,12 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let scope = match text(args, "scope").as_deref() {
         Some("open") => tisty_core::view::Scope::Open,
         Some("archive") => tisty_core::view::Scope::Archived,
-        _ => tisty_core::view::Scope::Either,
+        None | Some("either") => tisty_core::view::Scope::Either,
+        Some(said) => {
+            return Err(Refused::Tool(format!(
+                "`scope` is open, archive or either — not {said:?}."
+            )));
+        }
     };
     let most = args
         .get("limit")
@@ -476,14 +509,34 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .clamp(1, 100) as usize;
 
     let (hits, all) = state.searching(&query.to_lowercase(), scope, most);
-    let found: Vec<Value> = hits.iter().map(|task| brief(task)).collect();
+    let found: Vec<Value> = hits.iter().map(|task| brief(task, &state)).collect();
+    let lines: Vec<String> = hits
+        .iter()
+        .map(|task| format!("{} — {} ({})", task.id, task.title, named(task.status)))
+        .collect();
     Ok(told(
-        format!("{all} match {query:?}; showing {}.", found.len()),
+        format!(
+            "{all} match {query:?}; showing {}.
+{}",
+            found.len(),
+            lines.join(
+                "
+"
+            )
+        ),
         json!({ "matches": found, "total": all }),
     ))
 }
 
-fn brief(task: &Task) -> Value {
+fn named(status: tisty_core::model::Status) -> &'static str {
+    match status {
+        tisty_core::model::Status::Open => "open",
+        tisty_core::model::Status::Done => "done",
+        tisty_core::model::Status::Dropped => "dropped",
+    }
+}
+
+fn brief(task: &Task, state: &State) -> Value {
     json!({
         "id": task.id.to_string(),
         "title": task.title,
@@ -492,20 +545,18 @@ fn brief(task: &Task) -> Value {
         "deadline": task.deadline.as_ref().map(|d| d.date().to_string()),
         "tags": task.tags.iter().map(Tag::as_str).collect::<Vec<_>>(),
         "source": task.source,
-        "by_agent": task.created_by.is_some(),
+        "by_agent": task
+            .created_by
+            .as_ref()
+            .is_some_and(|who| state.agents.contains(who)),
     })
 }
 
 fn refused(e: Rejected) -> Refused {
-    Refused::Tool(match e {
-        Rejected::Untitled => "a task needs a title.".into(),
-        Rejected::NoSuchList(name)
-        | Rejected::ArchivedList(name)
-        | Rejected::AmbiguousList(name) => {
-            format!("agents do not choose lists, and {name:?} was not going to be one.")
-        }
-        Rejected::EndedAlready => "that date has already passed.".into(),
-    })
+    match e {
+        Rejected::Untitled => Refused::Tool("a task needs a title.".into()),
+        other => Refused::Protocol(-32603, format!("{other:?}")),
+    }
 }
 
 fn tools() -> Value {
@@ -538,7 +589,11 @@ fn tools() -> Value {
                         "enum": ["do", "decide", "delegate", "minor"],
                         "description": "Only if someone said so. Leave it out otherwise"
                     },
-                    "tags": { "type": "array", "items": { "type": "string" } },
+                    "tags": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Lowercase words; spaces become dashes"
+                    },
                     "steps": {
                         "type": "array",
                         "items": { "type": "string" },
@@ -572,7 +627,7 @@ fn tools() -> Value {
         {
             "name": "attach",
             "title": "Keep a file with a task",
-            "description": "Copy a file from this machine into Tisty and record it on a task's                             journal. The file is copied, not linked, and where it came from is                             written down beside it. Only attach what you were asked to.",
+            "description": "Copy a file from this machine into Tisty and record it on a task's journal. The file is copied, not linked, and where it came from is written down beside it. Only attach what you were asked to.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,

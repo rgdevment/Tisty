@@ -40,7 +40,6 @@ impl Served {
         String::from_utf8_lossy(&out.stdout).into_owned()
     }
 
-    /// Every line in, every line out — the transport is newline-delimited JSON both ways.
     fn talk(&self, said: &[&str]) -> Vec<serde_json::Value> {
         let mut child = self
             .command()
@@ -161,15 +160,25 @@ fn the_same_source_is_never_filed_twice() {
 }
 
 #[test]
-fn what_it_files_lands_in_the_inbox_whatever_it_asks_for() {
+fn what_it_files_lands_in_the_inbox_and_asking_for_a_list_is_refused() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     served.cli(&["list", "add", "Work"]);
 
+    let asked = served.call(
+        "propose",
+        serde_json::json!({ "title": "somewhere else", "list": "Work" }),
+    );
     served.call(
         "propose",
-        serde_json::json!({ "title": "card stock", "list": "Work", "tags": ["school"] }),
+        serde_json::json!({ "title": "card stock", "tags": ["school"] }),
     );
+
+    assert_eq!(
+        asked["result"]["isError"], true,
+        "choosing a list is not on offer"
+    );
+    assert!(!served.cli(&["ls", "all"]).contains("somewhere else"));
 
     let inbox = served.cli(&["ls", "inbox"]);
     assert!(inbox.contains("card stock"), "{inbox}");
@@ -306,6 +315,75 @@ fn walked(at: &std::path::Path) -> Box<dyn Iterator<Item = std::path::PathBuf>> 
             Box::new(std::iter::once(path))
         }
     }))
+}
+
+#[test]
+fn a_misspelt_argument_is_refused_instead_of_dropped() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "pay the deposit", "due": "2026-09-01" }),
+    );
+
+    let why = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert!(
+        why.contains("deadline"),
+        "the refusal names what it does take: {why}"
+    );
+    assert!(
+        !served.cli(&["ls", "all"]).contains("pay the deposit"),
+        "a task filed with a field silently dropped is worse than none"
+    );
+}
+
+#[test]
+fn what_the_person_wrote_is_not_reported_as_the_agents() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("propose", serde_json::json!({ "title": "what it filed" }));
+
+    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let mine = &found["result"]["structuredContent"]["matches"][0];
+    let theirs = served.call("find", serde_json::json!({ "query": "what it filed" }));
+
+    assert_eq!(mine["by_agent"], false, "{mine}");
+    assert_eq!(
+        theirs["result"]["structuredContent"]["matches"][0]["by_agent"],
+        true
+    );
+}
+
+#[test]
+fn the_model_is_told_what_day_it_is_before_being_asked_for_dates() {
+    let served = Served::new();
+
+    let said = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}"#]);
+    let taught = said[0]["result"]["instructions"].as_str().unwrap();
+
+    assert!(
+        taught.starts_with("Today is 20"),
+        "it is asked for ISO dates, so it has to know today: {taught}"
+    );
+}
+
+#[test]
+fn an_id_reaches_a_client_that_only_shows_the_text() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let filed = served.call("propose", serde_json::json!({ "title": "card stock" }));
+    let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
+
+    assert!(
+        filed["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains(id),
+        "some clients show the model only the text, and without the id it cannot note or attach"
+    );
 }
 
 #[test]

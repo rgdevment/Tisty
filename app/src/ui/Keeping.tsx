@@ -120,7 +120,7 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
     if (tab !== "agents") return;
     agentState()
       .then((fresh) => setAgent(fresh))
-      .catch(() => {});
+      .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }));
   }, [tab]);
 
   useEffect(look, [look]);
