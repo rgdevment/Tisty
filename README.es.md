@@ -127,6 +127,7 @@ equipo y en ninguna otra parte.
 - [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad)
 - [Dos equipos, si tienes dos](#dos-equipos-si-tienes-dos)
 - [Una línea de comandos, si la quieres](#una-línea-de-comandos-si-la-quieres)
+- [Un asistente, si usas uno](#un-asistente-si-usas-uno)
 - [En qué punto está](#en-qué-punto-está)
 - [Qué nunca va a hacer](#qué-nunca-va-a-hacer)
 - [Otras herramientas del mismo autor](#otras-herramientas-del-mismo-autor)
@@ -363,6 +364,36 @@ $ tisty done 2
 Ajustes la deja al alcance de tu terminal, o puedes instalar solo el comando con
 `brew install rgdevment/tap/tisty-cli` y no abrir nunca la ventana.
 
+## Un asistente, si usas uno
+
+**Tisty no es inteligencia artificial ni la lleva dentro.** El lenguaje natural
+que convierte "llamar al banco a las 3" en una tarea es un puñado de reglas
+corriendo en tu equipo: sin modelo, sin petición, sin nube. Eso no va a cambiar.
+
+Pero si ya usas un asistente, es probable que le cuentes cosas que vale la pena
+guardar — el grupo del colegio pide cartulina para el lunes, la cuenta vence el
+30. Así que Tisty deja una puerta, y tú decides si la usas.
+
+```console
+$ claude mcp add tisty -- tisty mcp
+```
+
+Habla [MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin
+cuenta, sin token, nada por la red. **Quien la abre eres tú.** El asistente
+aparece en Ajustes › Agentes como un dispositivo al que tienes que dar entrada,
+y sigue siendo un dispositivo que puedes echar; mientras no le des entrada, todo
+lo que intente se le niega.
+
+Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
+fecha, agregar a la bitácora, escribir un documento, guardar una copia de un
+archivo que le señales y leer lo que ya está. Lo que no puede: cerrar una tarea
+ni borrarla, alcanzar nada que hayas escondido, tomar archivos fuera de las
+carpetas donde aterriza una descarga, ni anotar dos veces lo mismo.
+
+Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que es
+justamente por lo que esta es una puerta que abres, y no una que ya estaba
+abierta.
+
 ## En qué punto está
 
 | | |
@@ -390,8 +421,10 @@ colaborativo en tiempo real, tableros kanban, diagramas de Gantt, control de
 horas, métricas de productividad, bases de datos con propiedades tipadas y
 fórmulas, e inteligencia artificial en cualquier punto del camino crítico.
 
-El lenguaje natural se queda determinista y local. Nunca se envía nada a un
-modelo.
+El lenguaje natural se queda determinista y local, y **Tisty nunca envía nada a
+un modelo** — ni una tarea, ni una palabra. Si abres la puerta de la sección de
+arriba, lo que tu asistente lea viaja adonde viaje ese asistente: Tisty sigue
+sin enviar nada, quien lleva es el asistente, y quien lo dejó entrar eres tú.
 
 ## Otras herramientas del mismo autor
 

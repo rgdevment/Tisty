@@ -84,6 +84,23 @@ itself.
 `stdout` carries MCP messages and nothing else, which the core already
 guaranteed: it prints nothing, ever.
 
+The protocol is the 2026-07-28 revision, which dropped the `initialize`
+handshake: every request carries its own version in `_meta`, and
+`server/discover` answers with the versions, tools and instructions on offer.
+A client still speaking 2025-11-25 or earlier gets the old handshake instead,
+so an older assistant is not locked out.
+
+Filing the same thing twice is the failure a person notices first, so it is
+settled where it cannot race: what an agent files may be stamped with the
+`source` it came from, and the check for that stamp happens inside the same
+lock that appends. Sixteen processes told the same thing write one task and
+refuse fifteen.
+
+What comes back is trimmed on the way out. A task the person hid is not
+returned, and not counted either — a total of one would say the thing exists.
+Journal lines lose the absolute paths they name, so what an assistant reads
+never carries the shape of the disk it was read from.
+
 ### Priorities are named, not numbered
 
 A task's priority is one of the four quadrants of the **Eisenhower matrix** —
