@@ -731,8 +731,15 @@ fn hide(served: &Served, id: &str) {
     let by = dir.file_name().unwrap().to_string_lossy().into_owned();
     let at = dir.join("active.tisty");
     let mut held = std::fs::read_to_string(&at).unwrap();
+    let last = held
+        .lines()
+        .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+        .filter_map(|one| one["ts"].as_str()?.parse::<jiff::Timestamp>().ok())
+        .max()
+        .unwrap();
+    let ts = last + jiff::SignedDuration::from_secs(1);
     held.push_str(&format!(
-        r#"{{"v":7,"ts":"2026-08-29T04:00:00Z","by":"{by}","op":"task.hide","id":"{id}"}}"#
+        r#"{{"v":7,"ts":"{ts}","by":"{by}","op":"task.hide","id":"{id}"}}"#
     ));
     held.push('\n');
     std::fs::write(&at, held).unwrap();

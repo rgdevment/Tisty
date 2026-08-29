@@ -102,7 +102,9 @@ defence, because the remedy barely exists.
 - Does not use cookies, analytics, advertising, or tracking of any kind.
 - Does not share anything with third parties.
 - Does not use AI or machine learning on your data. The natural-language
-  parser is deterministic rules running locally; nothing is sent to any model.
+  parser is deterministic rules running locally, and Tisty itself sends nothing
+  to any model. If you connect an assistant of your own, read "the door you can
+  open" below: what it carries is its doing and your choice, never Tisty's.
 - Does not upload crash reports.
 - Does not make background network calls, except the update check below.
 
@@ -161,6 +163,34 @@ owns the folder it lives in gets a button.
 That button is the only thing that fetches an installer, and what it does is
 described above. If you never press it, nothing is downloaded and the line just
 sits there.
+
+## The door you can open for an assistant
+
+Tisty has no AI inside it and makes no request to any model. It does speak
+[MCP](https://modelcontextprotocol.io) when you ask it to, so an assistant
+already running on this machine can file a task on your behalf. None of it
+happens on its own:
+
+- **You install it.** Nothing listens until you run `tisty mcp`. The assistant
+  reaches it through that process's own input and output — on this machine,
+  with no port, no account and no token. It is not a server and nothing can
+  reach it from the network.
+- **You let it in.** The assistant shows up in Settings › Agents as a device
+  you have to admit, and everything it tries before that is refused. Admitting
+  it is an event written into your log rather than a line in a settings file,
+  so you can see when it happened and throw it out whenever you want.
+- **What it may do is bounded.** File a task, add to the journal, write a
+  document, keep a copy of a file you point it at, and read what is already
+  there. It may not close or delete anything, reach a task you hid, or take
+  files from outside the folders where a download lands. What it reads comes
+  back without the paths of your disk.
+
+The part worth knowing before you open it: **whatever that assistant reads, it
+takes with it.** If it runs against a service, then the moment you ask it to
+look, what it looks at is on its way to that service. Tisty still sends
+nothing and still has no server of its own — but this door is real, and it is
+the only thing here that can carry your data off this machine. Which is why it
+stays shut until you open it, and why closing it is one click.
 
 ## Children's privacy
 

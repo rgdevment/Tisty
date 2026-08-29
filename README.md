@@ -125,6 +125,7 @@ away. No ads, no telemetry, no accounts, no subscriptions — just a
 - [Your Data and Privacy](#your-data-and-privacy)
 - [Two Machines, If You Have Two](#two-machines-if-you-have-two)
 - [A Command Line, If You Want One](#a-command-line-if-you-want-one)
+- [An Assistant, If You Use One](#an-assistant-if-you-use-one)
 - [Where It Stands](#where-it-stands)
 - [What It Will Never Do](#what-it-will-never-do)
 - [Other Tools by the Same Author](#other-tools-by-the-same-author)
@@ -357,6 +358,36 @@ $ tisty done 2
 Settings puts it within reach of your terminal, or you can install only the
 command with `brew install rgdevment/tap/tisty-cli` and never open the window.
 
+## An Assistant, If You Use One
+
+**Tisty is not AI and has none inside.** The natural language that turns "call
+the bank at 3" into a task is rules running on your machine: no model, no
+request, no cloud. That is not going to change.
+
+But if you already use an assistant, you are probably telling it things worth
+keeping — the school group says card stock on Monday, the invoice is due on the
+30th. So Tisty leaves a door, and you decide whether to use it.
+
+```console
+$ claude mcp add tisty -- tisty mcp
+```
+
+It speaks [MCP](https://modelcontextprotocol.io) on the same machine: no
+account, no token, nothing over the network. **You are the one who opens it.**
+The assistant appears in Settings › Agents as a device you have to let in, and
+it stays a device you can throw out; until you do let it in, everything it
+tries is refused.
+
+What it may do is deliberately small: file a task with its steps and its date,
+add to the journal, write a document, keep a copy of a file you point it at,
+and read what is already there. What it may not do: close a task or delete one,
+reach anything you hid, take files from outside the folders where a download
+lands, or file the same thing twice.
+
+Whatever it reads travels wherever that assistant travels. That is between you
+and it — which is precisely why this is a door you open, and not one that was
+already open.
+
 ## Where It Stands
 
 | | |
@@ -384,8 +415,11 @@ collaboration, kanban boards, Gantt charts, time tracking, productivity metrics,
 databases with typed properties and formulas, and AI anywhere in the critical
 path.
 
-The natural language stays deterministic and local. Nothing is ever sent to a
-model.
+The natural language stays deterministic and local, and **Tisty never sends
+anything to a model** — not a task, not a word. If you open the door in the
+section above, whatever your assistant reads travels wherever that assistant
+travels: Tisty still sends nothing, the assistant is the one carrying, and you
+are the one who let it in.
 
 ## Other Tools by the Same Author
 
