@@ -69,6 +69,7 @@ impl From<Parsed> for Draft {
             tags: p.tags,
             filing: p.list.map(Filing::Marked),
             repeat: p.repeat,
+            source: None,
         }
     }
 }

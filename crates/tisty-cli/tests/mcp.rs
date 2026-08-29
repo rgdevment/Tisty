@@ -95,30 +95,33 @@ fn nothing_can_be_filed_until_a_person_turns_an_agent_on() {
 }
 
 #[test]
-fn a_registered_agent_writes_from_its_own_directory() {
+fn what_the_agent_files_is_written_by_the_agent_and_not_by_the_person() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
-
     served.call(
         "propose",
         serde_json::json!({ "title": "buy pink card stock" }),
     );
 
-    let mine =
-        std::fs::read_to_string(served.home.path().join("config").join("config.toml")).unwrap();
-    assert!(mine.contains("agent_id"), "{mine}");
+    let mine = std::fs::read_to_string(served.home.path().join("config/config.toml")).unwrap();
+    let agent = mine
+        .lines()
+        .find_map(|line| line.strip_prefix("agent_id = "))
+        .map(|said| said.trim_matches('"').to_string())
+        .expect("the agent has an identity of its own");
 
-    let store = served.home.path().join("data/store");
-    let writers: Vec<_> = std::fs::read_dir(&store)
-        .unwrap()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().is_dir())
-        .collect();
-    assert_eq!(
-        writers.len(),
-        2,
-        "the agent keeps its own directory, which is what keeps undo apart"
-    );
+    // Counting directories would pass even if it filed under the person's id: registering
+    // creates the second directory before anything is filed.
+    let wrote = std::fs::read_to_string(
+        served
+            .home
+            .path()
+            .join("data/store")
+            .join(&agent)
+            .join("active.tisty"),
+    )
+    .expect("the agent's own directory holds what it filed");
+    assert!(wrote.contains("buy pink card stock"), "{wrote}");
 }
 
 #[test]
@@ -294,7 +297,12 @@ fn a_file_over_the_limit_is_refused_with_the_size_it_copies() {
         serde_json::json!({ "task": id, "path": heavy.to_string_lossy() }),
     );
 
+    let why = said["result"]["content"][0]["text"].as_str().unwrap();
     assert_eq!(said["result"]["isError"], true, "{said}");
+    assert!(
+        why.contains("MB"),
+        "the refusal has to say the size it copies, or the model cannot adjust: {why}"
+    );
     assert!(
         walked(&served.home.path().join("data/attachments"))
             .next()
@@ -405,6 +413,134 @@ fn turning_the_agent_off_takes_its_voice_away() {
         "what it filed stays: {left}"
     );
     assert!(!left.contains("after it could not"), "{left}");
+}
+
+#[test]
+fn an_agent_may_only_take_files_from_where_a_download_lands() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "somewhere to put it" }),
+    );
+    let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
+
+    for barred in ["config/config.toml", "data/store"] {
+        let said = served.call(
+            "attach",
+            serde_json::json!({ "task": id, "path": served.home.path().join(barred) }),
+        );
+        assert_eq!(
+            said["result"]["isError"], true,
+            "attachments reach the shared folder, so {barred} is not the agent's to send"
+        );
+    }
+
+    let allowed = std::env::temp_dir().join("tisty-test-evidence.txt");
+    std::fs::write(&allowed, "a photo from the chat").unwrap();
+    let said = served.call(
+        "attach",
+        serde_json::json!({ "task": id, "path": allowed.to_string_lossy() }),
+    );
+    assert!(
+        said["result"]["isError"].is_null(),
+        "what it downloaded is exactly what it should be able to keep: {said}"
+    );
+    let _ = std::fs::remove_file(&allowed);
+}
+
+#[test]
+fn two_callers_racing_on_one_source_file_it_once() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let call = serde_json::json!({
+        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+        "params": { "name": "propose", "arguments": {
+            "title": "call the bank", "source": "wa:msg-991"
+        }},
+    })
+    .to_string();
+
+    let racing: Vec<_> = (0..8)
+        .map(|_| {
+            let mut child = served
+                .command()
+                .arg("mcp")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap();
+            writeln!(child.stdin.take().unwrap(), "{call}").unwrap();
+            child
+        })
+        .collect();
+    for one in racing {
+        let _ = one.wait_with_output().unwrap();
+    }
+
+    let listed = served.cli(&["ls", "all"]);
+    assert_eq!(
+        listed.matches("call the bank").count(),
+        1,
+        "reading a message twice must not file it twice, however many ask at once: {listed}"
+    );
+}
+
+#[test]
+fn a_line_that_is_not_json_does_not_take_the_session_with_it() {
+    let served = Served::new();
+
+    let said = served.talk(&[
+        "this is not json at all",
+        r#"{"jsonrpc":"2.0","id":2,"method":"ping","params":{}}"#,
+    ]);
+
+    assert_eq!(
+        said.len(),
+        2,
+        "the good request behind it still gets an answer"
+    );
+    assert_eq!(said[0]["error"]["code"], -32700);
+    assert!(said[1]["result"].is_object());
+}
+
+#[test]
+fn a_method_nobody_here_speaks_says_so_and_carries_on() {
+    let served = Served::new();
+
+    let said = served.talk(&[
+        r#"{"jsonrpc":"2.0","id":1,"method":"resources/list","params":{}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"ping","params":{}}"#,
+    ]);
+
+    assert_eq!(said[0]["error"]["code"], -32601);
+    assert!(said[1]["result"].is_object());
+}
+
+#[test]
+fn a_title_that_would_outlive_its_worth_is_refused() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let huge = served.call(
+        "propose",
+        serde_json::json!({ "title": "x".repeat(10_000) }),
+    );
+    let sneaky = served.call(
+        "propose",
+        serde_json::json!({ "title": "innocent\u{1b}[2K\u{1b}[1ANOT WHAT IT SAYS" }),
+    );
+
+    assert_eq!(
+        huge["result"]["isError"], true,
+        "an append-only log rereads it forever"
+    );
+    assert_eq!(
+        sneaky["result"]["isError"], true,
+        "control characters would let a title rewrite the terminal it is printed on"
+    );
+    assert_eq!(served.cli(&["ls", "all"]).matches('\u{1b}').count(), 0);
 }
 
 #[test]

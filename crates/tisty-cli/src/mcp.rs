@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use serde_json::{Value, json};
 use tisty_core::{
-    DeviceKind, Op, Paths, State, Store, Task, TaskId,
+    Op, Paths, State, Store, Task, TaskId,
     capture::{Draft, Rejected},
     event::{Body, LogAdd, StepAdd},
     model::{DateSpec, Priority, Tag},
@@ -38,9 +38,8 @@ and notes in the language the person writes in.
 `note` appends to a task's journal, including tasks the person wrote themselves. Use it \
 when something new turns up about work that already exists, rather than filing a duplicate.";
 
-/// Minting is the person's act: nothing reachable over the wire calls this.
 pub fn turn(paths: &Paths, on: Option<bool>, lang: crate::i18n::Lang) -> anyhow::Result<ExitCode> {
-    let mut config = tisty_core::Config::load_or_init(paths)?;
+    let config = tisty_core::Config::load_or_init(paths)?;
     let named = |who: &tisty_core::DeviceId| tisty_core::config::nicknamed(&who.0);
 
     match (on, config.agent_id.clone()) {
@@ -60,22 +59,12 @@ pub fn turn(paths: &Paths, on: Option<bool>, lang: crate::i18n::Lang) -> anyhow:
             println!("  {}", crate::style::dim(lang.get("agent-how")));
         }
         (Some(true), None) => {
-            let who = tisty_core::DeviceId(tisty_core::config::new_device_id());
-            config.agent_id = Some(who.clone());
-            config.save(paths)?;
-            let mut store = Store::open(paths.store(), who.clone())?;
-            store.append(Op::DeviceJoin {
-                d: who.clone(),
-                k: Some(DeviceKind::Agent),
-            })?;
+            let who = tisty_core::agent::register(paths)?;
             println!("  {}", lang.fill("agent-on", &[("name", &named(&who))]));
             println!("  {}", crate::style::dim(lang.get("agent-how")));
         }
-        (Some(false), Some(who)) => {
-            config.agent_id = None;
-            config.save(paths)?;
-            let mut store = Store::open(paths.store(), config.device_id.clone())?;
-            store.append(Op::DeviceRemove { d: who })?;
+        (Some(false), Some(_)) => {
+            tisty_core::agent::retire(paths)?;
             println!("  {}", lang.get("agent-off"));
         }
         (Some(false), None) => println!("  {}", crate::style::dim(lang.get("agent-not-on"))),
@@ -84,11 +73,14 @@ pub fn turn(paths: &Paths, on: Option<bool>, lang: crate::i18n::Lang) -> anyhow:
 }
 
 pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
-    let stdin = std::io::stdin();
+    let mut stdin = std::io::stdin().lock();
     let mut out = std::io::stdout().lock();
 
-    for line in stdin.lock().lines() {
-        let line = line?;
+    // Bytes, not lines: one stray non-UTF-8 byte would end the session and every request behind.
+    let mut raw = Vec::new();
+    while stdin.read_until(b'\n', &mut raw)? > 0 {
+        let line = String::from_utf8_lossy(&raw).into_owned();
+        raw.clear();
         if line.trim().is_empty() {
             continue;
         }
@@ -106,6 +98,13 @@ fn answer(paths: &Paths, line: &str) -> Option<String> {
         Ok(asked) => asked,
         Err(why) => return Some(fault(Value::Null, -32700, &format!("parse error: {why}"))),
     };
+    if asked.is_array() {
+        return Some(fault(
+            Value::Null,
+            -32600,
+            "one message per line, not a batch",
+        ));
+    }
     let id = asked.get("id").cloned();
     let method = asked.get("method").and_then(Value::as_str).unwrap_or("");
 
@@ -192,6 +191,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
     let name = params.get("name").and_then(Value::as_str).unwrap_or("");
     let args = params.get("arguments").cloned().unwrap_or(json!({}));
     only_what_it_takes(name, &args)?;
+    short_and_plain(&args)?;
 
     match name {
         "propose" => propose(paths, &args),
@@ -223,6 +223,51 @@ fn only_what_it_takes(name: &str, args: &Value) -> Result<(), Refused> {
             "`{stray}` is not something `{name}` takes. It takes: {}.",
             known.join(", ")
         )));
+    }
+    Ok(())
+}
+
+const AT_MOST: &[(&str, usize)] = &[
+    ("title", 500),
+    ("description", 64_000),
+    ("body", 64_000),
+    ("source", 512),
+    ("label", 200),
+];
+const MANY_AT_MOST: &[(&str, usize)] = &[("tags", 32), ("steps", 200)];
+
+/// An append-only log rereads a ten-megabyte title forever, and control characters in one
+/// would rewrite the terminal it prints on.
+fn short_and_plain(args: &Value) -> Result<(), Refused> {
+    let Some(said) = args.as_object() else {
+        return Ok(());
+    };
+    for (key, most) in AT_MOST {
+        let Some(one) = said.get(*key).and_then(Value::as_str) else {
+            continue;
+        };
+        if one.chars().count() > *most {
+            return Err(Refused::Tool(format!(
+                "`{key}` is longer than the {most} characters Tisty keeps. Shorten it."
+            )));
+        }
+        if one
+            .chars()
+            .any(|c| c.is_control() && c != '\n' && c != '\t')
+        {
+            return Err(Refused::Tool(format!(
+                "`{key}` carries control characters. Send plain text."
+            )));
+        }
+    }
+    for (key, most) in MANY_AT_MOST {
+        if said
+            .get(*key)
+            .and_then(Value::as_array)
+            .is_some_and(|all| all.len() > *most)
+        {
+            return Err(Refused::Tool(format!("`{key}` takes at most {most}.")));
+        }
     }
     Ok(())
 }
@@ -287,12 +332,24 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
         ));
     };
     let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
+    // The log says who may write, not the settings file an agent could edit itself.
+    if !state.agents.contains(&agent) {
+        return Err(Refused::Tool(
+            "no agent is registered on this machine. The person turns one on in Tisty's settings,              under Agents."
+                .into(),
+        ));
+    }
     let store = Store::open(paths.store(), agent).map_err(hitch)?;
     Ok((state, store))
 }
 
 fn hitch(e: tisty_core::Error) -> Refused {
-    Refused::Tool(format!("Tisty could not be read or written: {e}"))
+    Refused::Tool(match e {
+        tisty_core::Error::AlreadyRunning => {
+            "Tisty is being written to right now. Try the same call again.".into()
+        }
+        other => format!("Tisty could not be read or written: {other}"),
+    })
 }
 
 fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -332,19 +389,11 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         tags,
         filing: None,
         repeat: None,
+        source: text(args, "source"),
     };
     let plan = tisty_core::capture::plan(&state, draft).map_err(refused)?;
     let id = plan.task;
     let mut ops = plan.ops;
-
-    if let Some(source) = text(args, "source") {
-        for op in &mut ops {
-            if let Op::TaskAdd { d, .. } = op {
-                d.source = Some(source);
-                break;
-            }
-        }
-    }
     if let Some(body) = text(args, "description") {
         ops.push(Op::TaskDescribe {
             id,
@@ -364,7 +413,36 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         step = order::after(&step);
     }
 
-    store.append_batch(ops).map_err(hitch)?;
+    let source = text(args, "source");
+    let taken = source.clone();
+    let written = store
+        .append_batch_unless(ops, move |events| match &taken {
+            None => false,
+            Some(one) => State::replay(events).sourced.contains_key(one),
+        })
+        .map_err(hitch)?;
+
+    let Some(_) = written else {
+        let held = State::replay(&store.read_all().map_err(hitch)?);
+        let task = source
+            .as_deref()
+            .and_then(|one| held.sourced.get(one))
+            .and_then(|id| held.tasks.get(id));
+        return Ok(told(
+            match task {
+                Some(task) => format!(
+                    "Already filed from that source, as {}: {:?}. Nothing was written.",
+                    task.id, task.title
+                ),
+                None => "Already filed from that source. Nothing was written.".into(),
+            },
+            json!({
+                "id": task.map(|one| one.id.to_string()),
+                "title": task.map(|one| one.title.clone()),
+                "filed": false,
+            }),
+        ));
+    };
     Ok(told(
         format!("Filed {title:?} as {id} in the inbox, tagged #{INBOX_TAG}."),
         json!({ "id": id.to_string(), "title": title, "filed": true }),
@@ -422,13 +500,18 @@ fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(Refused::Tool(format!("no task here has the id {who}.")));
     };
 
-    let at = std::path::Path::new(&said);
-    let named = text(args, "label").unwrap_or_else(|| {
-        at.file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("file")
-            .to_string()
-    });
+    let asked = std::path::Path::new(&said);
+    let at = &tisty_core::agent::may_attach(asked, paths).map_err(|_| {
+        Refused::Tool(format!(
+            "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
+            tisty_core::agent::reachable()
+                .iter()
+                .map(|one| one.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))
+    })?;
+    let named = tisty_core::attach::called(at, text(args, "label"));
     let limit = tisty_core::Config::load_or_init(paths)
         .map_err(hitch)?
         .copies_up_to();
@@ -441,20 +524,13 @@ fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         _ => Refused::Tool(format!("{said:?} could not be read from this machine.")),
     })?;
 
-    // Attaching copies into the folder that syncs, so a wrong path has to be visible.
     let lang = crate::i18n::Lang::detect(
         tisty_core::Config::load_or_init(paths)
             .map_err(hitch)?
             .locale
             .as_deref(),
     );
-    let body = format!(
-        "{}
-
-{}",
-        kept.written(&named),
-        lang.fill("attached-from", &[("path", &at.display().to_string())])
-    );
+    let body = tisty_core::attach::journalled(&kept, &named, at, lang.get("attached-from"));
     let zone = jiff::tz::TimeZone::system();
     store
         .append(Op::TaskLog {

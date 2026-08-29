@@ -631,26 +631,19 @@ fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer<Age
     {
         let mut session = held(&session);
         session.reload()?;
-        match (on, session.config.agent_id.clone()) {
-            (true, None) => {
-                let who = tisty_core::DeviceId(tisty_core::config::new_device_id());
-                session.keep(|config| config.agent_id = Some(who.clone()))?;
-                let mut store = tisty_core::Store::open(session.paths.store(), who.clone())
-                    .map_err(|e| blamed(channel::STORE, "the agent could not be registered", e))?;
-                let event = store
-                    .append(Op::DeviceJoin {
-                        d: who,
-                        k: Some(tisty_core::DeviceKind::Agent),
-                    })
-                    .map_err(|e| blamed(channel::STORE, "the agent could not be registered", e))?;
-                session.state.apply(&event);
-            }
-            (false, Some(who)) => {
-                session.keep(|config| config.agent_id = None)?;
-                session.commit(Op::DeviceRemove { d: who })?;
-            }
-            _ => {}
+        let paths = session.paths.clone();
+        if on {
+            tisty_core::agent::register(&paths)
+                .map_err(|e| blamed(channel::STORE, "the agent could not be registered", e))?;
+        } else {
+            tisty_core::agent::retire(&paths)
+                .map_err(|e| blamed(channel::STORE, "the agent could not be retired", e))?;
         }
+        session.config = Config::load(&session.paths.config_file())
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| session.config.clone());
+        session.reproject()?;
     }
     agent(session)
 }

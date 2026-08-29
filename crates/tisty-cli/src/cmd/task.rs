@@ -86,23 +86,12 @@ pub fn attach(
     today: Date,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
-    let named = label.unwrap_or_else(|| {
-        at.file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("file")
-            .to_string()
-    });
+    let named = tisty_core::attach::called(at, label);
     let open: Vec<&tisty_core::Task> = app.state.tasks.values().collect();
     resolved!(app, Some(selector), open, lang, |id| {
         let kept = tisty_core::attach::keep(at, app.paths.data(), app.copies_up_to())
             .map_err(|e| weighed(e, &named, lang))?;
-        let body = format!(
-            "{}
-
-{}",
-            kept.written(&named),
-            lang.fill("attached-from", &[("path", &at.display().to_string())])
-        );
+        let body = tisty_core::attach::journalled(&kept, &named, at, lang.get("attached-from"));
         app.commit(Op::TaskLog {
             id,
             d: LogAdd::new(Ulid::generate(), body)
