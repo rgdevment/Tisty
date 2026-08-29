@@ -397,10 +397,11 @@ already open.
 | ✅ | Natural language for dates, deadlines and repeats |
 | ✅ | The window, the tray, and quick capture on a global shortcut |
 | ✅ | Documents: editor, folders, and sync that merges block by block |
+| ✅ | An assistant can file for you, over MCP, if you let it in |
 | ✅ | Reminders, backup, and sync through a folder both machines reach |
 | ✅ | A guided welcome, a guide written into your store, English and Spanish |
 | ✅ | macOS: signed and notarised. Windows: signed installer |
-| ◐ | Daily use, which is what turns up the bugs tests do not |
+| ◐ | Daily use, which is what turns up the bugs tests do not — what the release candidate is for |
 | ◐ | The Microsoft Store listing, whose screenshots have to be retaken on Windows |
 
 Two things are known and accepted rather than pending: you cannot reorder by

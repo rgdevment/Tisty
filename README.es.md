@@ -403,10 +403,11 @@ abierta.
 | ✅ | Lenguaje natural para fechas, límites y repeticiones |
 | ✅ | La ventana, la bandeja, y captura rápida con un atajo global |
 | ✅ | Documentos: editor, carpetas, y transporte que junta bloque a bloque |
+| ✅ | Un asistente puede anotar por ti, por MCP, si lo dejas entrar |
 | ✅ | Recordatorios, respaldo, y sincronización por una carpeta compartida |
 | ✅ | Bienvenida guiada, una guía escrita en tu almacén, español e inglés |
 | ✅ | macOS: firmado y notarizado. Windows: instalador firmado |
-| ◐ | Uso diario, que es lo que saca los fallos que los tests no |
+| ◐ | Uso diario, que es lo que saca los fallos que los tests no — para eso es la candidata |
 | ◐ | La ficha de la Microsoft Store, cuyas capturas hay que rehacer en Windows |
 
 Dos cosas están asumidas en vez de pendientes: no se puede reordenar a mano en la
