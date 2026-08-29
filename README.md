@@ -118,7 +118,7 @@ away. No ads, no telemetry, no accounts, no subscriptions — just a
 
 - [Why I Built This](#why-i-built-this)
 - [What It Is / What It Isn't](#what-it-is--what-it-isnt)
-- [Compared to Todoist, TickTick, Notion and Craft](#compared-to-todoist-ticktick-notion-and-craft)
+- [What Makes It Different](#what-makes-it-different)
 - [Who Is This For?](#who-is-this-for)
 - [The Idea It Is Built On](#the-idea-it-is-built-on)
 - [Getting Started](#getting-started)
@@ -179,40 +179,57 @@ away.
 searchable with `grep`. If Tisty disappeared tomorrow, everything you wrote
 would still be there and still make sense.
 
-## Compared to Todoist, TickTick, Notion and Craft
+## What Makes It Different
 
-Those are good programs and this is not a takedown. But they answer a different
-question, and if you are looking for a **free, open-source, offline task manager
-with no account and no subscription**, the differences are worth naming.
+If you are looking for a **free, open-source, offline task manager with no
+account, no subscription and no AI**, this is what Tisty is:
 
-| | Tisty | Todoist · TickTick · Notion · Craft |
-|---|---|---|
-| Where your tasks live | Plain files on your disk | Their servers |
-| Account | None | Required |
-| Subscription | None. There is no paid tier | Free tier, paid for the rest |
-| Works offline | Always. It has no server to miss | Partly, then it syncs |
-| AI inside | **None**, and none is coming | Increasingly, often unasked |
-| Your own assistant | Yes, over MCP, if you open the door | Their AI, on their terms |
-| Priorities | The **Eisenhower matrix**, named | P1–P4, or nothing |
-| If the company folds | Nothing happens. It is your disk | You export, if they let you |
-| Source | Open, auditable, yours to fork | Closed |
+| | |
+|---|---|
+| Your tasks live | in plain files on your own disk |
+| Account | none, ever |
+| Subscription | none. There is no paid tier and no upgrade |
+| Offline | always. There is no server to be away from |
+| AI inside | **none**, and none is coming |
+| Your own assistant | yes, over **MCP**, if you choose to open the door |
+| Priorities | the **Eisenhower matrix**, by its name |
+| Sorting | lists, tags, steps and a journal on every task |
+| Documents | written and searched beside the tasks, not in another app |
+| Attachments | kept with the task, as themselves |
+| Finished work | an **archive that keeps what each task taught you** |
+| Two machines | through a folder you already sync. No server of ours |
+| Natural language | dates, deadlines and repeats, parsed on your machine |
+| Source | open, auditable, yours to fork |
 
 **The Eisenhower matrix, not numbered priorities.** A task is urgent, important,
 both or neither — *do*, *decide*, *delegate*, *drop*. That names the decision
 instead of hiding it behind a number, and it is the difference between a list
-that sorts and a list that helps you choose.
+that sorts and a list that helps you choose. Around it: lists for where work
+belongs, tags for what cuts across, steps for the parts, and a journal for what
+you learn on the way.
 
-**Your assistant, not ours.** Tisty has no AI in it. The natural language that
-turns "call the bank at 3" into a task is rules running on your machine, no model
-and no cloud. But it speaks [MCP](https://modelcontextprotocol.io), so the
-assistant you already pay for — Claude, ChatGPT, whichever — can file work into
-it, on this machine, with no account and nothing over the network. You open that
-door and you can close it.
+**Finishing is where it starts.** Most task managers treat a completed task as
+rubbish to hide. Here it moves to an archive read in three layers: the ones that
+taught something come with their whole trail — what changed, when, and what you
+wrote — the routines come with their tallies and their streaks, and the rest is
+the trace. Search reaches all of it, documents included. A year in, that archive
+is the part you would miss.
+
+**Your assistant, not one of ours.** Tisty has no AI in it. The natural language
+that turns "call the bank at 3" into a task is rules running on your machine, no
+model and no cloud. But it speaks [MCP](https://modelcontextprotocol.io), so an
+assistant you already use can file work into it — with its steps, its date and
+the list it belongs in, on this machine, with no account and nothing over the
+network. You open that door, and you can close it.
+
+**Two machines, no middleman.** If you already sync a folder, Tisty travels
+through it. There is no server of ours in between, nothing to sign up for, and
+nothing that stops working the day a company changes its mind.
 
 **Free is not a tier here.** There is no upgrade, no seat count, no feature held
-back. The reason is not generosity: a program that keeps your work on your disk
-and never phones home has almost nothing to charge for, and asking would make it
-worse.
+back for later. The reason is not generosity: a program that keeps your work on
+your disk and never phones home has almost nothing to charge for, and asking
+would make it worse.
 
 ## Who Is This For?
 
@@ -405,10 +422,11 @@ keeping — the school group says card stock on Monday, the invoice is due on th
 30th. So Tisty leaves a door, and you decide whether to use it.
 
 ```console
-$ claude mcp add tisty -- tisty mcp
+$ <your-assistant> mcp add tisty -- tisty mcp
 ```
 
-It speaks [MCP](https://modelcontextprotocol.io) on the same machine: no
+Where `<your-assistant>` is whatever yours is called. It speaks
+[MCP](https://modelcontextprotocol.io) on the same machine: no
 account, no token, nothing over the network. **You are the one who opens it.**
 The assistant appears in Settings › Agents as a device you have to let in, and
 it stays a device you can throw out; until you do let it in, everything it
