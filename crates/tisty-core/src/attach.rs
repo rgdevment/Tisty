@@ -42,6 +42,28 @@ fn spoken(label: &str) -> String {
     if flat.is_empty() { "file".into() } else { flat }
 }
 
+/// One journal entry for a kept file, with where it came from. Copying reaches the folder that
+/// syncs, so a wrong path has to be visible rather than silent.
+pub fn journalled(kept: &Kept, label: &str, from: &Path, said: &str) -> String {
+    let where_from = said.replace("{path}", &from.display().to_string());
+    format!(
+        "{}
+
+{where_from}",
+        kept.written(label)
+    )
+}
+
+pub fn called(source: &Path, label: Option<String>) -> String {
+    label.unwrap_or_else(|| {
+        source
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("file")
+            .to_string()
+    })
+}
+
 pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
     let mut file = std::fs::File::open(source)?;
     let opened = file.metadata()?;

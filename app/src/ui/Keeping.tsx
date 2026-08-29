@@ -2,7 +2,10 @@ import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useState } from "react";
 import {
   type About,
+  type Agent,
   about,
+  agentState,
+  agentTurn,
   backUp,
   type Carrying,
   checked,
@@ -20,6 +23,7 @@ import {
   type Machine,
   mergeStores,
   type Reach,
+  type Ready,
   type Reviewed,
   reachable,
   reachFor,
@@ -37,6 +41,8 @@ import {
   type Twins,
   takeOver,
   twinned,
+  updateInstall,
+  updateReady,
   type Waking,
   wakeFor,
   waking,
@@ -72,12 +78,13 @@ type Which =
   | "greet"
   | "tongue";
 type Word = { card: Which; text: string };
-type Tab = "data" | "notices" | "writing" | "upkeep";
+type Tab = "data" | "notices" | "writing" | "agents" | "upkeep";
 
 const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
   { key: "data", label: "tabData" },
   { key: "notices", label: "tabNotices" },
   { key: "writing", label: "tabWriting" },
+  { key: "agents", label: "tabAgents" },
   { key: "upkeep", label: "tabUpkeep" },
 ];
 
@@ -89,6 +96,11 @@ interface Props {
 
 export default function Keeping({ onChanged, onGreet, greeted }: Props) {
   const [tab, setTab] = useState<Tab>("data");
+  const [agent, setAgent] = useState<Agent | null>(null);
+  const [wired, setWired] = useState(false);
+  const [looking, setLooking] = useState(false);
+  const [found, setFound] = useState<Ready | "none" | null>(null);
+  const [asked, setAsked] = useState(false);
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [brittle, setBrittle] = useState<Brittle[] | null>(null);
@@ -109,6 +121,13 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
       .then(setState)
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
   }, []);
+
+  useEffect(() => {
+    if (tab !== "agents") return;
+    agentState()
+      .then((fresh) => setAgent(fresh))
+      .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }));
+  }, [tab]);
 
   useEffect(look, [look]);
 
@@ -627,6 +646,62 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
               </p>
             </Card>
 
+            <Card title={t("lookNow")} which="settings" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("lookNowWhen")}</p>
+              <div className="mt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={held || looking}
+                  onClick={() => {
+                    setLooking(true);
+                    setFound(null);
+                    updateReady(true)
+                      .then((ready) => setFound(ready ?? "none"))
+                      .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }))
+                      .finally(() => setLooking(false));
+                  }}
+                  className="rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-accent hover:text-accent disabled:text-faint"
+                >
+                  {looking ? t("lookingNow") : t("lookNow")}
+                </button>
+                {found === "none" && (
+                  <span className="text-[12.5px] text-soft">{t("lookNowNone")}</span>
+                )}
+                {found !== null && found !== "none" && (
+                  <span className="text-[12.5px] text-soft">
+                    {fill("lookNowFound", found.version)}
+                  </span>
+                )}
+              </div>
+
+              {found !== null && found !== "none" && (
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-soft">
+                  {found.installs ? (
+                    <button
+                      type="button"
+                      disabled={asked}
+                      onClick={() => {
+                        setAsked(true);
+                        updateInstall().catch((e) => {
+                          setAsked(false);
+                          setTrouble({ card: "settings", text: saidPlainly(e) });
+                        });
+                      }}
+                      className="cursor-pointer rounded-lg bg-accent px-2.5 py-1 text-[12px] text-bg disabled:opacity-60"
+                    >
+                      {t("updateInstall")}
+                    </button>
+                  ) : found.route === "store" ? (
+                    <span className="text-faint">{t("updateStore")}</span>
+                  ) : (
+                    <code className="text-faint">
+                      {fill("updateBrewCli", found.package ?? "tisty")}
+                    </code>
+                  )}
+                </p>
+              )}
+            </Card>
+
             {wake?.offered && (
               <Card title={t("wake")} which="waking" busy={busy} said={said} trouble={trouble}>
                 <p className="text-[12.5px] leading-relaxed text-soft">
@@ -795,6 +870,105 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                 </div>
               </Card>
             )}
+          </>
+        )}
+
+        {tab === "agents" && (
+          <>
+            <Group label={t("agentsTitle")} />
+
+            <Card
+              title={t("agentsTitle")}
+              which="settings"
+              busy={busy}
+              said={said}
+              trouble={trouble}
+            >
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsWhat")}</p>
+
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-hair px-3 py-2.5">
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-semibold">
+                    {agent?.on ? fill("agentsOn", agent.called ?? "") : t("agentsOff")}
+                  </span>
+                  {agent?.on && (
+                    <>
+                      <span className="block text-[12px] text-soft">
+                        {agent.filed > 0
+                          ? fill("agentsFiled", String(agent.filed))
+                          : t("agentsFiledNone")}
+                      </span>
+                      <span className="block font-mono text-[10.5px] break-all text-faint">
+                        {agent.id}
+                      </span>
+                    </>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={() => {
+                    agentTurn(!agent?.on)
+                      .then((fresh) => setAgent(fresh))
+                      .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }));
+                  }}
+                  className={`shrink-0 rounded-md border px-2.5 py-1 text-[12px] disabled:text-faint ${
+                    agent?.on
+                      ? "border-line text-soft hover:border-urgent hover:text-urgent"
+                      : "border-accent text-accent"
+                  }`}
+                >
+                  {agent?.on ? t("agentsTurnOff") : t("agentsTurnOn")}
+                </button>
+              </div>
+
+              <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("agentsUndo")}</p>
+            </Card>
+
+            <Card
+              title={t("agentsCanTitle")}
+              which="settings"
+              busy={busy}
+              said={said}
+              trouble={trouble}
+            >
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsCan")}</p>
+            </Card>
+
+            <Card
+              title={t("agentsCannotTitle")}
+              which="settings"
+              busy={busy}
+              said={said}
+              trouble={trouble}
+            >
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsCannot")}</p>
+            </Card>
+
+            <Card
+              title={t("agentsHowTitle")}
+              which="settings"
+              busy={busy}
+              said={said}
+              trouble={trouble}
+            >
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsHow")}</p>
+              <pre className="mt-2 overflow-x-auto rounded-lg border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
+                {WIRING}
+              </pre>
+              <button
+                type="button"
+                onClick={() => {
+                  void copied(WIRING).then(() => {
+                    setWired(true);
+                    window.setTimeout(() => setWired(false), 1500);
+                  });
+                }}
+                className="mt-2 rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-accent hover:text-accent"
+              >
+                {wired ? t("agentsCopied") : t("agentsCopy")}
+              </button>
+            </Card>
           </>
         )}
 
@@ -1132,6 +1306,12 @@ const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
 const mild = `rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
 const strong = `rounded-[7px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
 const risky = `rounded-[7px] border border-urgent/45 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-urgent/10 ${off}`;
+
+const WIRING = `{
+  "mcpServers": {
+    "tisty": { "command": "tisty", "args": ["mcp"] }
+  }
+}`;
 
 function Group({ label }: { label: string }) {
   return (

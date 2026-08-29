@@ -2399,3 +2399,147 @@ mod tests {
         );
     }
 }
+
+/// What the window's editor destroys the first time somebody opens a document. It rewrites the
+/// whole file, so anything it cannot represent is gone on the first keystroke.
+pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
+    let body = body.strip_prefix('\u{feff}').unwrap_or(body);
+    let mut first = true;
+    let mut fenced = false;
+
+    for line in body.lines() {
+        let flat = line.trim();
+
+        if fenced {
+            if flat.starts_with("```") || flat.starts_with("~~~") {
+                fenced = false;
+            }
+            first = false;
+            continue;
+        }
+        if flat.starts_with("```") || flat.starts_with("~~~") {
+            fenced = true;
+            first = false;
+            continue;
+        }
+        if line.starts_with("    ") || line.starts_with('\t') {
+            first = false;
+            continue;
+        }
+
+        if first && flat == "---" {
+            return Err("YAML frontmatter");
+        }
+        first = false;
+
+        if let Some(why) = markup(&outside_code_spans(line)) {
+            return Err(why);
+        }
+        if flat.starts_with("[^") {
+            return Err("footnotes");
+        }
+        if flat.starts_with('[') && flat.contains("]:") {
+            return Err("reference links");
+        }
+    }
+    Ok(())
+}
+
+fn outside_code_spans(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut inside = false;
+    for c in line.chars() {
+        if c == '`' {
+            inside = !inside;
+        } else if !inside {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// A `<` that opens a tag, wherever it sits on the line. An autolink is markdown and comes
+/// back untouched, so it is not markup.
+fn markup(line: &str) -> Option<&'static str> {
+    let bytes = line.as_bytes();
+    for at in 0..bytes.len() {
+        if bytes[at] == b'&' && entity(&line[at..]) {
+            return Some("HTML entities");
+        }
+        if bytes[at] != b'<' {
+            continue;
+        }
+        let rest = &line[at + 1..];
+        if rest.starts_with("!--") {
+            return Some("HTML comments");
+        }
+        let inner = rest.find('>').map(|end| &rest[..end]).unwrap_or(rest);
+        if inner.contains("://") || (inner.contains('@') && !inner.contains(' ')) {
+            continue;
+        }
+        if rest.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!') {
+            return Some("HTML");
+        }
+    }
+    None
+}
+
+fn entity(from: &str) -> bool {
+    let Some(shut) = from.find(';') else {
+        return false;
+    };
+    let name = &from[1..shut];
+    !name.is_empty()
+        && name.len() < 12
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '#')
+}
+
+#[cfg(test)]
+mod survival {
+    // Every case here was put through the real editor first: what it refuses is what came back
+    // damaged, and what it accepts is what came back byte for byte.
+    #[test]
+    fn what_the_editor_would_eat_is_refused_before_it_is_written() {
+        for (body, why) in [
+            ("---\ntitle: notes\n---\n\nhello", "YAML frontmatter"),
+            (
+                "\u{feff}---\ntitle: notes\n---\n\nhello",
+                "YAML frontmatter",
+            ),
+            ("<div class=\"warn\">careful</div>", "HTML"),
+            (
+                "# Note\n\nSomething <div style=\"x\">hidden</div> here.",
+                "HTML",
+            ),
+            ("# t\n\nSomething <!-- hidden --> more", "HTML comments"),
+            ("# t\n\nfoo &amp; bar", "HTML entities"),
+            ("a claim[^1]\n\n[^1]: the source", "footnotes"),
+            (
+                "see [the thread][one]\n\n[one]: https://example.com",
+                "reference links",
+            ),
+        ] {
+            assert_eq!(super::survives(body), Err(why), "{body:?}");
+        }
+    }
+
+    #[test]
+    fn what_comes_back_untouched_goes_through() {
+        for body in [
+            "# Cartulinas\n\nRosa y palos de paleta.",
+            "- one\n- two\n\n**bold** and `code`",
+            "[a link](https://example.com) in a line",
+            "# t\n\n<https://example.com> look",
+            "# t\n\n```html\n<div class=\"warn\">hi</div>\n```\n",
+            "# t\n\n```js\nconst a: Array<T> = []\n```\n",
+            "# t\n\n```ini\n[section]: value\n```\n",
+            "# t\n\n```\n[^1]: a note\n```\n",
+            "# t\n\n    <div>indented is code too</div>\n",
+            "# t\n\nuse `<T>` inline, and `&amp;` too",
+            "# t\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n",
+            "",
+        ] {
+            assert_eq!(super::survives(body), Ok(()), "{body:?}");
+        }
+    }
+}

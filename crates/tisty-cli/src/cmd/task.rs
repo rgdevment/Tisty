@@ -78,6 +78,43 @@ fn refused(e: Rejected, lang: Lang) -> anyhow::Error {
     anyhow::anyhow!("{message}")
 }
 
+pub fn attach(
+    app: &mut App,
+    selector: &str,
+    at: &std::path::Path,
+    label: Option<String>,
+    today: Date,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
+    let named = tisty_core::attach::called(at, label);
+    let open: Vec<&tisty_core::Task> = app.state.tasks.values().collect();
+    resolved!(app, Some(selector), open, lang, |id| {
+        let kept = tisty_core::attach::keep(at, app.paths.data(), app.copies_up_to())
+            .map_err(|e| weighed(e, &named, lang))?;
+        let body = tisty_core::attach::journalled(&kept, &named, at, lang.get("attached-from"));
+        app.commit(Op::TaskLog {
+            id,
+            d: LogAdd::new(Ulid::generate(), body)
+                .in_zone(jiff::tz::TimeZone::system().iana_name().map(str::to_string)),
+        })?;
+        report(app, id, today, lang);
+    });
+    Ok(ExitCode::SUCCESS)
+}
+
+fn weighed(e: tisty_core::Error, named: &str, lang: Lang) -> anyhow::Error {
+    match e {
+        tisty_core::Error::AttachmentTooBig { limit, .. } => anyhow::anyhow!(
+            "{}",
+            lang.fill(
+                "attach-too-big",
+                &[("limit", &format!("{}", limit / 1_000_000))]
+            )
+        ),
+        _ => anyhow::anyhow!("{}", lang.fill("attach-unreadable", &[("name", named)])),
+    }
+}
+
 pub fn done(
     app: &mut App,
     selector: Option<&str>,

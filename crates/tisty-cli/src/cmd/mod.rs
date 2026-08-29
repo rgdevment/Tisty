@@ -87,6 +87,15 @@ pub fn dispatch(
 
         Command::Config { action } => data::config(app, action, lang),
         Command::Export { filter, markdown } => data::export(app, &filter, markdown, today, lang),
+        Command::Doc { which, new } => data::doc(app, which, new, lang),
+        Command::Attach {
+            selector,
+            path,
+            label,
+        } => task::attach(app, &selector, &path, label, today, lang),
+        Command::Mcp | Command::Agent { .. } => {
+            unreachable!("both are handled before a store is opened")
+        }
     }
 }
 

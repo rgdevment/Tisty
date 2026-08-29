@@ -181,6 +181,31 @@ impl Store {
         })
     }
 
+    /// Writes only if `settled` still agrees once the lock is held. Reading the store, deciding,
+    /// and then writing lets two callers both decide yes on the same absent thing.
+    pub fn append_batch_unless(
+        &mut self,
+        ops: Vec<Op>,
+        settled: impl FnOnce(&[Event]) -> bool,
+    ) -> Result<Option<Vec<Event>>> {
+        let batch = (ops.len() > 1).then(ulid::Ulid::generate);
+        let root = self.root.clone();
+
+        self.locked(|s| {
+            if settled(&read_all(&root)?) {
+                return Ok(None);
+            }
+            let mut written = Vec::with_capacity(ops.len());
+            for op in ops {
+                let mut event = s.minted(op);
+                event.batch = batch;
+                s.write(&event)?;
+                written.push(event);
+            }
+            Ok(Some(written))
+        })
+    }
+
     pub fn append_event(&mut self, event: &Event) -> Result<()> {
         self.locked(|s| s.write(event))
     }

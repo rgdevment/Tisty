@@ -292,6 +292,16 @@ export interface Shape {
 
 export const archiveShape = (): Promise<Shape> => invoke("archive_shape");
 
+export interface Agent {
+  on: boolean;
+  called?: string;
+  id?: string;
+  filed: number;
+}
+
+export const agentState = (): Promise<Agent> => invoke("agent");
+export const agentTurn = (on: boolean): Promise<Agent> => invoke("agent_turn", { on });
+
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });
 
@@ -423,7 +433,8 @@ export interface Underway {
   far: number;
 }
 
-export const updateReady = (): Promise<Ready | null> => invoke("update_ready");
+export const updateReady = (nowPlease?: boolean): Promise<Ready | null> =>
+  invoke("update_ready", { nowPlease });
 
 export const updateInstall = (): Promise<void> => invoke("update_install");
 

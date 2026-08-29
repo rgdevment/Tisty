@@ -48,6 +48,10 @@ pub enum Closing {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub device_id: DeviceId,
+    /// A second writer on this machine, for whatever files tasks on your behalf. Its own
+    /// directory keeps undo apart: this machine never undoes what the agent wrote.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_id: Option<DeviceId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -86,6 +90,7 @@ impl Config {
 
         let config = Self {
             device_id: DeviceId(new_device_id()),
+            agent_id: None,
             locale: None,
             editor: None,
             quiet: None,
@@ -368,6 +373,7 @@ mod tests {
     fn a_table_valued_field_does_not_swallow_what_follows_it() {
         let config = Config {
             device_id: DeviceId("dev_a".into()),
+            agent_id: None,
             locale: Some("es".into()),
             editor: None,
             opened_by: Some("0.1.0".into()),
@@ -398,6 +404,7 @@ mod tests {
         fn bare() -> Config {
             Config {
                 device_id: DeviceId(new_device_id()),
+                agent_id: None,
                 locale: None,
                 editor: None,
                 quiet: None,

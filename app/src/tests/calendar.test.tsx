@@ -8,11 +8,17 @@ const show = (value?: string) => {
   return onPick;
 };
 
-const iso = (away = 0) => {
+const iso = (day?: number) => {
   const on = new Date();
-  on.setDate(on.getDate() + away);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${on.getFullYear()}-${pad(on.getMonth() + 1)}-${pad(on.getDate())}`;
+  return `${on.getFullYear()}-${pad(on.getMonth() + 1)}-${pad(day ?? on.getDate())}`;
+};
+
+// Another day of the month this calendar is already showing. Reaching into the next month
+// would scroll today out of view, which is a different question from the one being asked.
+const anotherDay = () => {
+  const today = new Date().getDate();
+  return today > 14 ? today - 3 : today + 3;
 };
 
 const marked = () => screen.getByRole("button", { current: "date" as never });
@@ -34,7 +40,7 @@ describe("knowing which day is today", () => {
   });
 
   it("still marks today when another day is the chosen one", () => {
-    show(iso(3));
+    show(iso(anotherDay()));
 
     expect(marked().textContent).toBe(String(new Date().getDate()));
   });

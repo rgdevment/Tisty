@@ -592,6 +592,62 @@ fn task_series(
     Ok(tisty_core::series::series(&session.state, id))
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Agent {
+    on: bool,
+    called: Option<String>,
+    id: Option<String>,
+    filed: usize,
+}
+
+#[tauri::command]
+fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
+    let mut session = held(&session);
+    session.reload()?;
+    let who = session.config.agent_id.clone();
+    Ok(Agent {
+        on: who.is_some(),
+        called: who
+            .as_ref()
+            .map(|one| tisty_core::config::nicknamed(&one.0)),
+        filed: match &who {
+            Some(one) => session
+                .state
+                .tasks
+                .values()
+                .filter(|task| task.created_by.as_ref() == Some(one))
+                .count(),
+            None => 0,
+        },
+        id: who.map(|one| one.0),
+    })
+}
+
+/// Registering is the person's act. Nothing an assistant can say over the wire reaches here,
+/// which is what stops one granting itself a voice by connecting.
+#[tauri::command]
+fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer<Agent> {
+    {
+        let mut session = held(&session);
+        session.reload()?;
+        let paths = session.paths.clone();
+        if on {
+            tisty_core::agent::register(&paths)
+                .map_err(|e| blamed(channel::STORE, "the agent could not be registered", e))?;
+        } else {
+            tisty_core::agent::retire(&paths)
+                .map_err(|e| blamed(channel::STORE, "the agent could not be retired", e))?;
+        }
+        session.config = Config::load(&session.paths.config_file())
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| session.config.clone());
+        session.reproject()?;
+    }
+    agent(session)
+}
+
 #[tauri::command]
 fn routines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core::series::Series>> {
     let mut session = held(&session);
@@ -1705,13 +1761,16 @@ struct Settings {
 const HERE: &str = env!("CARGO_PKG_VERSION");
 
 #[tauri::command]
-async fn update_ready(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<update::Ready>> {
+async fn update_ready(
+    session: tauri::State<'_, Mutex<Session>>,
+    now_please: Option<bool>,
+) -> Answer<Option<update::Ready>> {
     let (last, found) = {
         let held = held(&session);
         (held.config.checked_at, held.config.found_version.clone())
     };
     let now = jiff::Timestamp::now();
-    if !update::due(last, now) {
+    if !now_please.unwrap_or(false) && !update::due(last, now) {
         return Ok(update::remembered(HERE, found.as_deref(), update::route()));
     }
 
@@ -4248,6 +4307,8 @@ pub fn run() {
             task_series,
             task_left,
             routines,
+            agent,
+            agent_turn,
             archive_shape,
             close_window,
             shortcut,

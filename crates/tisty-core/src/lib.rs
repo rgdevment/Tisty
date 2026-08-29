@@ -1,3 +1,4 @@
+pub mod agent;
 pub mod attach;
 pub mod backup;
 pub mod cache;
