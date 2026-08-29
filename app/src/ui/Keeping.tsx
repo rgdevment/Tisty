@@ -974,12 +974,13 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
 
               <p className="mt-4 text-[12px] font-semibold">{t("agentsByLine")}</p>
               <pre className="mt-1 overflow-x-auto rounded-lg border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
-                {oneLine(reach?.binary)}
+                {oneLine(reach?.binary, t("agentsCalled"))}
               </pre>
+              <p className="mt-1 text-[11.5px] text-faint">{t("agentsWhichever")}</p>
               <button
                 type="button"
                 onClick={() => {
-                  void copied(oneLine(reach?.binary)).then(() => {
+                  void copied(oneLine(reach?.binary, t("agentsCalled"))).then(() => {
                     setTyped(true);
                     window.setTimeout(() => setTyped(false), 1500);
                   });
@@ -1334,7 +1335,8 @@ const wiring = (at?: string) =>
   }
 }`;
 
-const oneLine = (at?: string) => `claude mcp add tisty -- ${JSON.stringify(at ?? "tisty")} mcp`;
+const oneLine = (at?: string, agent = "agent") =>
+  `${agent} mcp add tisty -- ${JSON.stringify(at ?? "tisty")} mcp`;
 
 function Group({ label }: { label: string }) {
   return (
