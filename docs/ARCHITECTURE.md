@@ -72,11 +72,17 @@ over the wire can register one. Its own directory is what keeps `undo`
 apart: the person's undo never reaches what the agent filed.
 
 It can propose a task, add to a journal, read one whole task, search, attach
-a file, and write documents. There is no tool for completing, dropping,
-deleting, undoing, editing what the person wrote, choosing a list, or
-rewriting a document: task content it only ever adds to, and document bodies
-do not merge, so a rewrite would lose one side. Everything it proposes lands
-in the inbox, tagged. It takes files only from where a download lands, never
+a file, write documents, and read the names of the lists. There is no tool for
+completing, dropping, deleting, undoing, editing what the person wrote, making
+a list, or rewriting a document: task content it only ever adds to, and
+document bodies do not merge, so a rewrite would lose one side.
+
+It may file into a list, but only one that already exists — a name that matches
+nothing is refused with the names that do, so the agent cannot quietly invent a
+place. Without a list it lands in the inbox for the person to place, and either
+way it is tagged. What it reads carries the list and the priority back, because
+those are the person's decisions and an agent that cannot see them keeps
+proposing against them. It takes files only from where a download lands, never
 from Tisty's own directories, since attachments reach the shared folder. And
 the log says who may write, not the settings file an agent could edit
 itself.

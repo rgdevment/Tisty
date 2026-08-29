@@ -163,14 +163,18 @@ fn the_same_source_is_never_filed_twice() {
 }
 
 #[test]
-fn what_it_files_lands_in_the_inbox_and_asking_for_a_list_is_refused() {
+fn it_files_into_a_list_that_exists_and_nowhere_else() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     served.cli(&["list", "add", "Work"]);
 
-    let asked = served.call(
+    let placed = served.call(
         "propose",
         serde_json::json!({ "title": "somewhere else", "list": "Work" }),
+    );
+    let made_up = served.call(
+        "propose",
+        serde_json::json!({ "title": "nowhere", "list": "A List Nobody Made" }),
     );
     served.call(
         "propose",
@@ -178,14 +182,52 @@ fn what_it_files_lands_in_the_inbox_and_asking_for_a_list_is_refused() {
     );
 
     assert_eq!(
-        asked["result"]["isError"], true,
-        "choosing a list is not on offer"
+        placed["result"]["isError"],
+        serde_json::Value::Null,
+        "{placed}"
     );
-    assert!(!served.cli(&["ls", "all"]).contains("somewhere else"));
+    assert_eq!(
+        placed["result"]["structuredContent"]["list"], "Work",
+        "what it filed into a list comes back saying so: {placed}"
+    );
+    assert_eq!(
+        made_up["result"]["isError"], true,
+        "it may choose among the lists that exist, never invent one: {made_up}"
+    );
+    assert!(!served.cli(&["ls", "all"]).contains("nowhere"));
 
     let inbox = served.cli(&["ls", "inbox"]);
-    assert!(inbox.contains("card stock"), "{inbox}");
+    assert!(
+        inbox.contains("card stock"),
+        "without a list it stays here: {inbox}"
+    );
     assert!(served.cli(&["ls", "all"]).contains("agent"));
+}
+
+#[test]
+fn it_can_read_which_lists_exist_without_being_able_to_make_one() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.cli(&["list", "add", "Work"]);
+    served.cli(&["list", "add", "Home"]);
+
+    let said = served.call("lists", serde_json::json!({}));
+    let named = said["result"]["structuredContent"]["lists"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|one| one.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(named.contains(&"Work") && named.contains(&"Home"), "{said}");
+
+    for tried in ["make_list", "list_add", "create_list"] {
+        let refused = served.call(tried, serde_json::json!({ "name": "Invented" }));
+        assert!(
+            refused["result"]["isError"] == true || refused["error"]["code"] == -32602,
+            "{tried} must not be a way to make a list: {refused}"
+        );
+    }
 }
 
 #[test]
@@ -229,7 +271,8 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "write_doc",
             "read_doc",
             "read",
-            "find"
+            "find",
+            "lists"
         ]
     );
     for barred in ["done", "drop", "rm", "undo", "sync", "set"] {
@@ -422,6 +465,62 @@ fn what_can_be_cached_says_for_how_long_and_by_whom() {
     assert!(
         left <= until,
         "the instructions name today, so keeping them past midnight would teach the wrong date: {left} vs {until}"
+    );
+}
+
+#[test]
+fn a_note_comes_back_whole_even_when_it_carries_a_link() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "what the audit found" }),
+    );
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let wrote = "START [anchor](https://example.com/x) MIDDLE_ONE MIDDLE_TWO END";
+    served.call("note", serde_json::json!({ "task": &id, "body": wrote }));
+
+    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let journal = &back["result"]["structuredContent"]["journal"];
+    let kept = journal[0]["body"].as_str().unwrap_or_default();
+
+    for word in ["MIDDLE_ONE", "MIDDLE_TWO", "END"] {
+        assert!(
+            kept.contains(word),
+            "a note that mentions a link keeps the sentence around it; {word} was dropped: {kept}"
+        );
+    }
+}
+
+#[test]
+fn a_path_from_this_disk_is_still_elided() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "a task with a note" }),
+    );
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.call(
+        "note",
+        serde_json::json!({ "task": &id, "body": "kept at C:/Users/someone/Downloads/x.csv" }),
+    );
+
+    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let whole = back["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        !whole.contains("Users/someone"),
+        "the shape of a disk is not the agent's business: {whole}"
     );
 }
 
