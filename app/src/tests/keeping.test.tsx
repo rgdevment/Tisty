@@ -1387,8 +1387,10 @@ describe("looking for an update without waiting for tomorrow", () => {
   };
 
   it("asks the moment the person asks, not on the daily schedule", async () => {
-    ipc.answer = ((was) => (cmd, args) =>
-      cmd === "update_ready" ? Promise.resolve(null) : was(cmd, args))(ipc.answer);
+    ipc.answer = (
+      (was) => (cmd, args) =>
+        cmd === "update_ready" ? Promise.resolve(null) : was(cmd, args)
+    )(ipc.answer);
 
     await openTab();
     await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
@@ -1400,10 +1402,12 @@ describe("looking for an update without waiting for tomorrow", () => {
   });
 
   it("offers to install it right there, not somewhere else", async () => {
-    ipc.answer = ((was) => (cmd, args) =>
-      cmd === "update_ready"
-        ? Promise.resolve({ version: "0.14.0", installs: true, route: "download" })
-        : was(cmd, args))(ipc.answer);
+    ipc.answer = (
+      (was) => (cmd, args) =>
+        cmd === "update_ready"
+          ? Promise.resolve({ version: "0.14.0", installs: true, route: "download" })
+          : was(cmd, args)
+    )(ipc.answer);
 
     await openTab();
     await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
@@ -1414,10 +1418,12 @@ describe("looking for an update without waiting for tomorrow", () => {
   });
 
   it("says how to get it when this copy cannot update itself", async () => {
-    ipc.answer = ((was) => (cmd, args) =>
-      cmd === "update_ready"
-        ? Promise.resolve({ version: "0.14.0", installs: false, route: "store" })
-        : was(cmd, args))(ipc.answer);
+    ipc.answer = (
+      (was) => (cmd, args) =>
+        cmd === "update_ready"
+          ? Promise.resolve({ version: "0.14.0", installs: false, route: "store" })
+          : was(cmd, args)
+    )(ipc.answer);
 
     await openTab();
     await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));

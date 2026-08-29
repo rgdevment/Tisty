@@ -690,6 +690,116 @@ something else." }),
 }
 
 #[test]
+fn what_the_person_hid_is_out_of_reach_and_not_even_counted() {
+    let served = Served::new();
+    served.cli(&["ls", "all"]);
+    served.cli(&["desc", "1", "what I tell nobody"]);
+    served.cli(&["agent", "--on"]);
+    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let id = found["result"]["structuredContent"]["matches"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.cli(&["set", &id, "--tag", "x"]);
+    hide(&served, &id);
+
+    let after = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+
+    assert_eq!(
+        after["result"]["structuredContent"]["total"], 0,
+        "counting it would say the thing exists: {after}"
+    );
+    assert_eq!(read["result"]["isError"], true, "{read}");
+    assert!(
+        !read["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("nobody")
+    );
+}
+
+fn hide(served: &Served, id: &str) {
+    let store = served.home.path().join("data/store");
+    let dir = std::fs::read_dir(&store)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .find(|at| at.is_dir())
+        .unwrap();
+    let by = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let at = dir.join("active.tisty");
+    let mut held = std::fs::read_to_string(&at).unwrap();
+    held.push_str(&format!(
+        r#"{{"v":7,"ts":"2026-08-29T04:00:00Z","by":"{by}","op":"task.hide","id":"{id}"}}"#
+    ));
+    held.push('\n');
+    std::fs::write(&at, held).unwrap();
+}
+
+#[test]
+fn what_it_reads_does_not_carry_the_shape_of_the_persons_disk() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.cli(&["ls", "all"]);
+    let loose = std::env::temp_dir().join("tisty-test-private.txt");
+    std::fs::write(&loose, "evidence").unwrap();
+    served.cli(&["attach", "1", loose.to_str().unwrap()]);
+
+    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let id = found["result"]["structuredContent"]["matches"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let read = served.call("read", serde_json::json!({ "task": id }));
+
+    let whole = read["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        whole.contains("tisty-test-private.txt"),
+        "the card stays: {whole}"
+    );
+    assert!(
+        !whole.contains(&std::env::temp_dir().to_string_lossy().to_string()),
+        "the agent gets the card, not the shape of a home directory: {whole}"
+    );
+    let _ = std::fs::remove_file(&loose);
+}
+
+#[test]
+fn a_document_that_is_not_there_says_so_and_a_task_id_is_not_one() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "a task, not a doc" }),
+    );
+    let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
+
+    for asked in ["no-such-doc-0001", id] {
+        let said = served.call("read_doc", serde_json::json!({ "doc": asked }));
+        assert_eq!(said["result"]["isError"], true, "{asked}: {said}");
+    }
+}
+
+#[test]
+fn two_documents_with_the_same_body_are_two_documents() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let body = serde_json::json!({ "body": "# Same
+
+words." });
+
+    let one = served.call("write_doc", body.clone());
+    let two = served.call("write_doc", body);
+
+    assert_ne!(
+        one["result"]["structuredContent"]["doc"], two["result"]["structuredContent"]["doc"],
+        "writing never overwrites, so it cannot collide either"
+    );
+}
+
+#[test]
 fn a_client_of_either_era_gets_an_answer_it_understands() {
     let served = Served::new();
 

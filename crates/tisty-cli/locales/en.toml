@@ -190,6 +190,8 @@ attach-unreadable  = "{name} could not be read"
 no-docs            = "no documents yet"
 no-such-doc        = "no document is called {name}"
 
+doc-eaten          = "the editor cannot keep {what}, and would destroy it when you open this. Use plain markdown"
+
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
 lines = { one = "1 line", other = "{n} lines" }

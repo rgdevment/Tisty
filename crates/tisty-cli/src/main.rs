@@ -190,12 +190,13 @@ pub enum Command {
         #[arg(long)]
         markdown: bool,
     },
-    /// Keep a copy of a file with a task
-    /// List documents, read one, or write one
+    /// List documents, read one, or write one with --new
     Doc {
         which: Option<String>,
-        text: Vec<String>,
+        #[arg(long, conflicts_with = "which")]
+        new: bool,
     },
+    /// Keep a copy of a file with a task
     Attach {
         selector: String,
         path: std::path::PathBuf,

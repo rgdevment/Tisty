@@ -235,14 +235,7 @@ pub fn told(app: &tauri::AppHandle, what: Happening) -> Told {
 mod tests {
     use super::*;
 
-    #[test]
-    fn the_watch_speaks_up_when_the_store_moved_under_it() {
-        let tmp = tempfile::tempdir().unwrap();
-        let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
-        let now = jiff::Timestamp::now();
-        let mut watching = Watching::default();
-
-        let (_, _, first) = watching.owed(&paths, now, now);
+    fn wrote(paths: &tisty_core::Paths, title: &str) {
         let mut store = tisty_core::Store::open(
             paths.store(),
             tisty_core::DeviceId("dev_someone_else".into()),
@@ -251,9 +244,24 @@ mod tests {
         store
             .append(tisty_core::Op::TaskAdd {
                 id: ulid::Ulid::generate(),
-                d: tisty_core::event::TaskAdd::new("what the agent filed", "a0"),
+                d: tisty_core::event::TaskAdd::new(title, "a0"),
             })
             .unwrap();
+    }
+
+    #[test]
+    fn the_watch_speaks_up_when_the_store_moved_under_it() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let now = jiff::Timestamp::now();
+        let mut watching = Watching::default();
+
+        // The store already holds history on the first look, as it does on any real start.
+        // Against an empty one the branch under test never runs and this passes for free.
+        wrote(&paths, "what was already here");
+
+        let (_, _, first) = watching.owed(&paths, now, now);
+        wrote(&paths, "what the agent filed");
         let (_, _, after) = watching.owed(&paths, now, now);
         let (_, _, again) = watching.owed(&paths, now, now);
 

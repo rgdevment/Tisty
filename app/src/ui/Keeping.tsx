@@ -1,14 +1,11 @@
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useState } from "react";
 import {
-  type Ready,
-  updateInstall,
-  updateReady,
+  type About,
   type Agent,
+  about,
   agentState,
   agentTurn,
-  type About,
-  about,
   backUp,
   type Carrying,
   checked,
@@ -26,6 +23,7 @@ import {
   type Machine,
   mergeStores,
   type Reach,
+  type Ready,
   type Reviewed,
   reachable,
   reachFor,
@@ -43,6 +41,8 @@ import {
   type Twins,
   takeOver,
   twinned,
+  updateInstall,
+  updateReady,
   type Waking,
   wakeFor,
   waking,

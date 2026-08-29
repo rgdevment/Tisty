@@ -215,12 +215,17 @@ fn a_document_can_be_written_listed_and_read_from_the_terminal() {
     let cli = Cli::new();
 
     assert!(cli.ok(&["doc"]).contains("no documents"));
-    let made = cli.ok(&["doc", "new", "# Card stock\n\nPink, and lolly sticks."]);
+    let made = cli
+        .pipe(
+            &["doc", "--new"],
+            Some("# Card stock\n\nPink, and lolly sticks."),
+        )
+        .out;
     let name = made.split_whitespace().next().unwrap().to_string();
 
     assert!(
         made.contains("Card stock"),
-        "the first line is the title: {made}"
+        "the whole first line is the title, not what is left after the first word: {made}"
     );
     assert!(cli.ok(&["doc"]).contains(&name));
     assert!(cli.ok(&["doc", &name]).contains("lolly sticks"));
@@ -231,7 +236,7 @@ fn a_document_is_not_a_task() {
     let cli = Cli::new();
     cli.ok(&["something to do"]);
 
-    cli.ok(&["doc", "new", "# Just notes"]);
+    cli.pipe(&["doc", "--new"], Some("# Just notes"));
 
     let listed = cli.ok(&["ls", "all"]);
     assert!(listed.contains("something to do"));

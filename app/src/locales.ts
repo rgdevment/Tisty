@@ -1688,7 +1688,7 @@ const es: Catalog = {
   agentsTurnOff: "Quitarle la voz",
   agentsCanTitle: "Lo que puede hacer",
   agentsCan:
-    "Anotar una tarea con descripción, fechas, prioridad, etiquetas y pasos · Añadir a la bitácora de cualquier tarea, también las tuyas · Guardar una copia de un fichero de esta máquina con una tarea · Buscar en tu lista y en tu archivo",
+    "Anotar una tarea con descripción, fechas, prioridad, etiquetas y pasos · Añadir a la bitácora de cualquier tarea, también las tuyas · Guardar una copia de un archivo de esta máquina con una tarea · Buscar en tu lista y en tu archivo",
   agentsCannotTitle: "Lo que no podrá hacer nunca",
   agentsCannot:
     "Completar, reabrir, descartar ni borrar nada · Deshacer ni rehacer · Editar lo que tú escribiste · Elegir lista: todo entra en la bandeja, con la etiqueta #agent · Poner rutinas ni recordatorios · Tocar la sincronización, los ajustes ni las máquinas",

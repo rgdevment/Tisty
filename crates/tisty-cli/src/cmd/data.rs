@@ -110,9 +110,34 @@ fn value(app: &App, key: &str) -> anyhow::Result<Option<String>> {
 pub fn doc(
     app: &mut App,
     which: Option<String>,
-    text: Vec<String>,
+    new: bool,
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
+    if new {
+        let body = crate::cmd::text_or_stdin(Vec::new(), lang)?;
+        if let Err(eats) = tisty_core::docs::survives(&body) {
+            anyhow::bail!("{}", lang.fill("doc-eaten", &[("what", eats)]));
+        }
+        let made = tisty_core::docs::create(&app.paths.docs(), app.device(), &body)?;
+        let order = tisty_core::order::last_of(
+            app.state
+                .docs
+                .values()
+                .filter(|one| one.folder.is_none())
+                .map(|one| one.order.as_str()),
+        );
+        app.commit(tisty_core::Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: made.id.clone(),
+                order,
+                folder: None,
+            },
+        })?;
+        println!("  {}  {}", crate::style::dim(&made.id), made.title);
+        return Ok(ExitCode::SUCCESS);
+    }
+
     let Some(which) = which else {
         let mut all: Vec<_> = app.state.docs.values().collect();
         all.sort_by(|a, b| a.order.cmp(&b.order));
@@ -130,33 +155,10 @@ pub fn doc(
         return Ok(ExitCode::SUCCESS);
     };
 
-    if text.is_empty() {
-        let Some(held) = app.state.docs.values().find(|one| one.file == which) else {
-            anyhow::bail!("{}", lang.fill("no-such-doc", &[("name", &which)]));
-        };
-        let at = tisty_core::docs::resolve(&app.paths.docs(), &held.file)?;
-        print!("{}", std::fs::read_to_string(at)?);
-        return Ok(ExitCode::SUCCESS);
-    }
-
-    let body = text.join(" ");
-    let made = tisty_core::docs::create(&app.paths.docs(), app.device(), &body)?;
-    let order = tisty_core::order::last_of(
-        app.state
-            .docs
-            .values()
-            .filter(|one| one.folder.is_none())
-            .map(|one| one.order.as_str()),
-    );
-    app.commit(tisty_core::Op::DocAdd {
-        id: ulid::Ulid::generate(),
-        d: tisty_core::event::DocAdd {
-            file: made.id.clone(),
-            order,
-            folder: None,
-        },
-    })?;
-    println!("  {}  {}", crate::style::dim(&made.id), made.title);
+    let Some(held) = app.state.docs.values().find(|one| one.file == which) else {
+        anyhow::bail!("{}", lang.fill("no-such-doc", &[("name", &which)]));
+    };
+    print!("{}", tisty_core::docs::read(&app.paths.docs(), &held.file)?);
     Ok(ExitCode::SUCCESS)
 }
 

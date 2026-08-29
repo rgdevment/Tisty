@@ -13,6 +13,7 @@ use ulid::Ulid;
 
 const VERSIONS: [&str; 3] = ["2026-07-28", "2025-11-25", "2025-06-18"];
 const INBOX_TAG: &str = "agent";
+const DOCS_AT_MOST: usize = 500;
 
 fn instructions(today: jiff::civil::Date) -> String {
     format!("Today is {today}.\n\n{TAUGHT}")
@@ -591,7 +592,11 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .unwrap_or(20)
         .clamp(1, 100) as usize;
 
-    let (hits, all) = state.searching(&query.to_lowercase(), scope, most);
+    // Counting what it cannot see would still say the thing exists.
+    let (hits, _) = state.searching(&query.to_lowercase(), scope, usize::MAX);
+    let hits: Vec<&Task> = hits.into_iter().filter(|one| !one.folded()).collect();
+    let all = hits.len();
+    let hits: Vec<&Task> = hits.into_iter().take(most).collect();
     let found: Vec<Value> = hits.iter().map(|task| brief(task, &state)).collect();
     let lines: Vec<String> = hits
         .iter()
@@ -629,7 +634,9 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{said:?} is not a task id. Use the `id` that `find` gave you."
         )));
     };
-    let Some(task) = state.tasks.get(&id) else {
+    // Hidden is the person taking something out of sight. An agent reading its journal whole
+    // would undo that decision on the one task most likely to deserve it.
+    let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
         return Err(Refused::Tool(format!(
             "no task here has the id {said}. Look it up again with `find`."
         )));
@@ -646,7 +653,7 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     whole["journal"] = json!(
         task.log
             .iter()
-            .map(|one| json!({ "at": one.at.to_string(), "body": one.body }))
+            .map(|one| json!({ "at": one.at.to_string(), "body": kept_here(&one.body) }))
             .collect::<Vec<_>>()
     );
     whole["kept"] = json!(
@@ -669,7 +676,7 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     }
     for one in &task.log {
-        plainly.push_str(&format!("\n\n({}) {}", one.at, one.body));
+        plainly.push_str(&format!("\n\n({}) {}", one.at, kept_here(&one.body)));
     }
     Ok(told(plainly, whole))
 }
@@ -686,6 +693,12 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ))
     })?;
 
+    // An append-only store keeps every one of these forever, and the window replays them all.
+    if state.docs.len() >= DOCS_AT_MOST {
+        return Err(Refused::Tool(format!(
+            "there are already {DOCS_AT_MOST} documents here. Add to a task's journal instead, or              ask the person to clear some."
+        )));
+    }
     let made = tisty_core::docs::create(&paths.docs(), store.device(), &body).map_err(hitch)?;
     let order = tisty_core::order::last_of(
         state
@@ -723,14 +736,38 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no document here is called {which:?}."
         )));
     }
-    let at = tisty_core::docs::resolve(&paths.docs(), &which).map_err(hitch)?;
-    let body = std::fs::read_to_string(&at)
-        .map_err(|_| Refused::Tool(format!("{which:?} could not be read.")))?;
-
+    let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
     Ok(told(
         body.clone(),
-        json!({ "doc": which, "title": tisty_core::docs::titled(&body), "body": body }),
+        json!({ "doc": which, "title": tisty_core::docs::titled(&body) }),
     ))
+}
+
+/// Attaching records where a file came from, and those paths are the person's disk. The agent
+/// needs the card, not the shape of their home directory.
+fn kept_here(body: &str) -> String {
+    body.lines()
+        .map(|line| match absolute(line) {
+            Some(at) => format!("{}…", &line[..at]),
+            None => line.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(
+            "
+",
+        )
+}
+
+fn absolute(line: &str) -> Option<usize> {
+    let bytes = line.as_bytes();
+    (0..bytes.len()).find(|&at| {
+        let drive = at + 2 < bytes.len()
+            && bytes[at].is_ascii_alphabetic()
+            && bytes[at + 1] == b':'
+            && (bytes[at + 2] == b'/' || bytes[at + 2] == b'\\');
+        let rooted = bytes[at] == b'/' && at > 0 && bytes[at - 1] == b' ';
+        drive || rooted
+    })
 }
 
 fn brief(task: &Task, state: &State) -> Value {

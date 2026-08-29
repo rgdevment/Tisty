@@ -181,11 +181,13 @@ agent-not-on   = "no había ningún asistente registrado"
 agent-how      = "apúntalo a: tisty mcp"
 
 attached-from      = "guardado desde {path}"
-attach-too-big     = "ese fichero pasa de los {limit} MB que esta máquina copia"
+attach-too-big     = "ese archivo pasa de los {limit} MB que esta máquina copia"
 attach-unreadable  = "no se pudo leer {name}"
 
 no-docs            = "todavía no hay documentos"
 no-such-doc        = "ningún documento se llama {name}"
+
+doc-eaten          = "el editor no sabe guardar {what}, y lo destruiría al abrir esto. Usa markdown llano"
 
 [plural]
 tasks = { one = "1 tarea", other = "{n} tareas" }
