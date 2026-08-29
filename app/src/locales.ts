@@ -776,7 +776,9 @@ const en = {
     "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place. There is one door: however many assistants you connect, they all file under that same name, and they all leave together when you close it.",
   agentsHowTitle: "How to connect one",
   agentsHow:
-    "Add Tisty as an MCP server in your assistant: paste the block below into its configuration and restart it. The block already carries the path on this machine, so nothing needs to be on your PATH. Then let an assistant file, above — until you do, everything it asks for is refused.",
+    "Add Tisty as an MCP server in your assistant, whichever way it takes one. Both of these already carry the path on this machine, so nothing needs to be on your PATH, and both want the assistant restarted afterwards. Then let an assistant file, above — until you do, everything it asks for is refused.",
+  agentsByFile: "In a configuration file — Cowork, ChatGPT, most of them",
+  agentsByLine: "In one line — Claude Code, and anything with its own command",
   agentsCopy: "Copy",
   agentsCopied: "Copied",
   backupSave: "Save a copy",
@@ -1696,7 +1698,9 @@ const es: Catalog = {
     "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió. La puerta es una sola: conectes los asistentes que conectes, todos anotan bajo ese mismo nombre y se van juntos cuando la cierras.",
   agentsHowTitle: "Cómo conectar uno",
   agentsHow:
-    "Añade Tisty como servidor MCP en tu asistente: pega el bloque de abajo en su configuración y reinícialo. El bloque ya trae la ruta de este equipo, así que no hace falta tener nada en el PATH. Después dale entrada arriba: mientras no lo hagas, todo lo que pida se le niega.",
+    "Añade Tisty como servidor MCP en tu asistente, por la vía que él admita. Las dos traen ya la ruta de este equipo, así que no hace falta tener nada en el PATH, y las dos piden reiniciar el asistente después. Luego dale entrada arriba: mientras no lo hagas, todo lo que pida se le niega.",
+  agentsByFile: "En un archivo de configuración: Cowork, ChatGPT, casi todos",
+  agentsByLine: "En una línea: Claude Code, y todo lo que traiga su propio comando",
   agentsCopy: "Copiar",
   agentsCopied: "Copiado",
   backupSave: "Guardar una copia",
