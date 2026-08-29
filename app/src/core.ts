@@ -498,6 +498,7 @@ export interface Reach {
   onPath: boolean;
   withinReach: boolean;
   at?: string;
+  binary?: string;
   through?: string;
 }
 

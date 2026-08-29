@@ -954,12 +954,12 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
             >
               <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsHow")}</p>
               <pre className="mt-2 overflow-x-auto rounded-lg border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
-                {WIRING}
+                {wiring(reach?.binary)}
               </pre>
               <button
                 type="button"
                 onClick={() => {
-                  void copied(WIRING).then(() => {
+                  void copied(wiring(reach?.binary)).then(() => {
                     setWired(true);
                     window.setTimeout(() => setWired(false), 1500);
                   });
@@ -1307,9 +1307,10 @@ const mild = `rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:b
 const strong = `rounded-[7px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
 const risky = `rounded-[7px] border border-urgent/45 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-urgent/10 ${off}`;
 
-const WIRING = `{
+const wiring = (at?: string) =>
+  `{
   "mcpServers": {
-    "tisty": { "command": "tisty", "args": ["mcp"] }
+    "tisty": { "command": ${JSON.stringify(at ?? "tisty")}, "args": ["mcp"] }
   }
 }`;
 

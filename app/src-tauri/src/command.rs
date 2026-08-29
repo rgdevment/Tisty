@@ -63,16 +63,19 @@ pub struct Reach {
     pub shipped: bool,
     pub within_reach: bool,
     pub at: Option<String>,
+    pub binary: Option<String>,
     pub through: Option<String>,
     pub on_path: bool,
 }
 
 pub fn reach() -> Reach {
     let folder = beside();
+    let named = if cfg!(windows) { "tisty.exe" } else { "tisty" };
     Reach {
         shipped: folder.is_some(),
         within_reach: folder.as_deref().is_some_and(already),
-        at: folder.map(|at| at.display().to_string()),
+        at: folder.as_ref().map(|at| at.display().to_string()),
+        binary: folder.map(|at| at.join(named).display().to_string()),
         through: through(),
         on_path: on_path(),
     }
