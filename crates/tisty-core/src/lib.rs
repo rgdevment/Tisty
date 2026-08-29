@@ -42,6 +42,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("{0} points outside the store")]
     OutsideTheStore(String),
+    #[error("{0} is not a kind of file an assistant may keep")]
+    NotForAnAgent(String),
     #[error("that backup belongs to another store ({theirs})")]
     OtherStore { theirs: String },
 
@@ -92,6 +94,7 @@ impl Error {
         match self {
             Error::Io(_) => "io",
             Error::OutsideTheStore(_) => "outsideTheStore",
+            Error::NotForAnAgent(_) => "notForAnAgent",
             Error::OtherStore { .. } => "otherStore",
             Error::TooBig => "tooBig",
             Error::AttachmentTooBig { .. } => "attachmentTooBig",

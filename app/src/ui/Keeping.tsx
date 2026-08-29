@@ -876,7 +876,7 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
 
         {tab === "agents" && (
           <>
-            <Group label={t("agentsTitle")} />
+            <Group label={t("tabAgents")} />
 
             <Card
               title={t("agentsTitle")}

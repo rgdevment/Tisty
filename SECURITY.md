@@ -107,6 +107,48 @@ Being explicit here matters more than sounding reassuring.
   outright — that removal is absorbing, so a removed identifier is never valid
   again and a machine that returns comes back as a new one.
 
+## An assistant, if you admit one
+
+Tisty speaks MCP so an assistant already running on your machine can file work
+for
+you. That door is shut until you open it, and what follows is what holds it.
+
+**Admitting one is an event in your log, not a line in a settings file.**
+Nothing
+arriving over the wire can register an agent; the log decides who may write, so
+an
+assistant cannot grant itself a voice by editing the file it can reach.
+
+**It writes under a device of its own.** Your undo never reaches what it filed,
+and
+throwing it out leaves everything it wrote in place. What it files is tagged,
+and it
+may only file into a list that already exists — it cannot make one.
+
+**It cannot reach what you hid.** A task you folded away is neither returned nor
+counted; a count of one would say the thing exists. What it reads comes back
+without
+the absolute paths of your disk.
+
+**Attachments are the one thing that leaves the machine.** They reach the shared
+folder, and from there whatever cloud client you run. So the file an assistant
+may
+copy is judged by its bytes rather than its name: pictures, PDFs, plain text and
+office documents pass; a private key, a PKCS#12 bundle or a file shaped like an
+environment file is refused even when renamed to `.png`. Files outside
+Downloads,
+Documents, Pictures, Desktop and the temporary folder are refused before
+anything is
+read, and the path is canonicalised first, so traversal does not reach past it.
+
+**What this does not protect against.** An assistant under prompt injection is
+still
+an assistant with your permission: it can file nonsense, write documents you did
+not ask for, and put a screenshot holding a password into a task, because a
+screenshot is a picture and Tisty cannot read what is in it. Anything it reads
+travels wherever that assistant travels — that is between it and you, and it is
+why the door stays shut until you open it, and why closing it is one click.
+
 ## Supported versions
 
 Until the first stable release, only the latest published version receives
