@@ -412,7 +412,12 @@ export default function App() {
   useEffect(() => {
     const stop = listen("closing", () => setLeaving(true));
     const caught = listen("captured", () => latest.current());
-    const stirred = listen("stirred", () => latest.current());
+    // The snapshot carries no documents, so a paper written from outside the window — by an
+    // assistant, or by the terminal — would go unseen until the next launch.
+    const stirred = listen("stirred", () => {
+      latest.current();
+      lookPapers();
+    });
     const sound = listen<unknown>("chime", (rung) => {
       if (heard(rung.payload)) play(rung.payload);
     });
@@ -422,7 +427,7 @@ export default function App() {
       stirred.then((off) => off()).catch(() => {});
       sound.then((off) => off()).catch(() => {});
     };
-  }, []);
+  }, [lookPapers]);
 
   const where = useRef(chosen);
   where.current = chosen;

@@ -22,16 +22,18 @@ fn instructions(today: jiff::civil::Date) -> String {
 
 const TAUGHT: &str = "\
 Tisty is one person's task list on this machine. You propose work for it; you never close, \
-drop, delete or edit what the person wrote. There is no tool for those, on purpose.
+drop, delete or edit what the person wrote. There is no tool for any of that, on purpose: \
+do not spend a turn looking for one. Finishing is the person's.
 
 Always pass `source` when you have one: a message id, a thread link, anything stable \
 enough to recognise the same thing twice. Tisty refuses a second filing from the same \
 source and hands back the task that already exists, so you cannot duplicate by mistake. \
 Without a source, `find` by text before you propose.
 
-Everything you propose lands in the inbox tagged #agent, for the person to place. You cannot \
-choose a list. Dates are plain ISO (2026-08-31), never words: work out which day someone \
-means by \"Monday\" from the date above, before calling.
+What you propose is tagged #agent. Put it in a list when you know which one, naming a list \
+that already exists — `lists` tells you which, and you cannot make one. Without a list it \
+lands in the inbox for the person to place. Dates are plain ISO (2026-08-31), never words: \
+work out which day someone means by \"Monday\" from the date above, before calling.
 
 Fill in what you actually know. A title alone is a fine task; inventing a deadline nobody \
 gave you is worse than leaving it empty. Put what you read in `description`. Write titles \
@@ -226,6 +228,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "read" => read(paths, &args),
         "write_doc" => write_doc(paths, &args),
         "read_doc" => read_doc(paths, &args),
+        "lists" => lists(paths),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
         other => Err(Refused::Protocol(-32602, format!("unknown tool: {other}"))),
@@ -264,6 +267,7 @@ const AT_MOST: &[(&str, usize)] = &[
     ("label", 200),
 ];
 const MANY_AT_MOST: &[(&str, usize)] = &[("tags", 32), ("steps", 200)];
+const EACH_AT_MOST: usize = 2_000;
 
 /// An append-only log rereads a ten-megabyte title forever, and control characters in one
 /// would rewrite the terminal it prints on.
@@ -290,12 +294,28 @@ fn short_and_plain(args: &Value) -> Result<(), Refused> {
         }
     }
     for (key, most) in MANY_AT_MOST {
-        if said
-            .get(*key)
-            .and_then(Value::as_array)
-            .is_some_and(|all| all.len() > *most)
-        {
+        let Some(all) = said.get(*key).and_then(Value::as_array) else {
+            continue;
+        };
+        if all.len() > *most {
             return Err(Refused::Tool(format!("`{key}` takes at most {most}.")));
+        }
+        // Counting them is not enough: one ten-megabyte step is read back forever, and an escape
+        // sequence inside one rewrites the terminal that prints it.
+        for one in all.iter().filter_map(Value::as_str) {
+            if one.chars().count() > EACH_AT_MOST {
+                return Err(Refused::Tool(format!(
+                    "each of `{key}` is at most {EACH_AT_MOST} characters. Shorten them."
+                )));
+            }
+            if one
+                .chars()
+                .any(|c| c.is_control() && c != '\n' && c != '\t')
+            {
+                return Err(Refused::Tool(format!(
+                    "`{key}` carries control characters. Send plain text."
+                )));
+            }
         }
     }
     Ok(())
@@ -400,10 +420,15 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     }
 
-    let mut tags: Vec<Tag> = listed(args, "tags")
+    let mut tags: Vec<Tag> = Vec::new();
+    for one in listed(args, "tags")
         .iter()
         .filter_map(|said| Tag::new(said).ok())
-        .collect();
+    {
+        if !tags.contains(&one) {
+            tags.push(one);
+        }
+    }
     if let Ok(mine) = Tag::new(INBOX_TAG)
         && !tags.contains(&mine)
     {
@@ -415,8 +440,8 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         date: day(args, "date")?,
         deadline: day(args, "deadline")?,
         priority: ranked(args)?,
+        filing: text(args, "list").map(tisty_core::capture::Filing::Named),
         tags,
-        filing: None,
         repeat: None,
         source: text(args, "source"),
     };
@@ -472,9 +497,19 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             }),
         ));
     };
+    let landed = text(args, "list");
+    let where_at = match &landed {
+        Some(name) => format!("in {name}"),
+        None => "in the inbox".to_string(),
+    };
     Ok(told(
-        format!("Proposed {title:?} as {id} in the inbox, tagged #{INBOX_TAG}."),
-        json!({ "id": id.to_string(), "title": title, "proposed": true }),
+        format!("Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}."),
+        json!({
+            "id": id.to_string(),
+            "title": title,
+            "list": landed,
+            "proposed": true,
+        }),
     ))
 }
 
@@ -530,15 +565,22 @@ fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
 
     let asked = std::path::Path::new(&said);
-    let at = &tisty_core::agent::may_attach(asked, paths).map_err(|_| {
-        Refused::Tool(format!(
-            "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
-            tisty_core::agent::reachable()
-                .iter()
-                .map(|one| one.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))
+    let at = &tisty_core::agent::may_attach(asked, paths).map_err(|why| {
+        Refused::Tool(match why {
+            tisty_core::Error::NotForAnAgent(_) => format!(
+                "{said:?} is not a kind of file an assistant may keep. Pictures, PDFs, plain \
+                 text and office documents are; anything holding a key or a password is not, \
+                 whatever it is named."
+            ),
+            _ => format!(
+                "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
+                tisty_core::agent::reachable()
+                    .iter()
+                    .map(|one| one.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        })
     })?;
     let named = tisty_core::attach::called(at, text(args, "label"));
     let limit = tisty_core::Config::load_or_init(paths)
@@ -578,6 +620,12 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
 
     if let Some(source) = text(args, "source") {
+        if text(args, "query").is_some() {
+            return Err(Refused::Tool(
+                "`find` takes a `source` or a `query`, not both: one asks whether this exact                  thing was already filed, the other searches. Send one."
+                    .into(),
+            ));
+        }
         let held = state
             .sourced
             .get(&source)
@@ -612,28 +660,36 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .and_then(Value::as_u64)
         .unwrap_or(20)
         .clamp(1, 100) as usize;
+    let past = args.get("after").and_then(Value::as_u64).unwrap_or(0) as usize;
 
     // Counting what it cannot see would still say the thing exists.
     let (hits, _) = state.searching(&query.to_lowercase(), scope, usize::MAX);
     let hits: Vec<&Task> = hits.into_iter().filter(|one| !one.folded()).collect();
     let all = hits.len();
-    let hits: Vec<&Task> = hits.into_iter().take(most).collect();
+    let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
     let found: Vec<Value> = hits.iter().map(|task| brief(task, &state)).collect();
-    let lines: Vec<String> = hits
+    let papers = papers_matching(paths, &state, &query, scope, most);
+    let mut lines: Vec<String> = hits
         .iter()
         .map(|task| format!("{} — {} ({})", task.id, task.title, named(task.status)))
         .collect();
+    lines.extend(
+        papers
+            .iter()
+            .map(|one| format!("{} — {} (document)", one["doc"], one["title"])),
+    );
     Ok(told(
         format!(
-            "{all} match {query:?}; showing {}.
+            "{all} match {query:?}; showing {}, and {} document(s).
 {}",
             found.len(),
+            papers.len(),
             lines.join(
                 "
 "
             )
         ),
-        json!({ "matches": found, "total": all }),
+        json!({ "matches": found, "total": all, "docs": papers }),
     ))
 }
 
@@ -745,6 +801,24 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+fn lists(paths: &Paths) -> Result<Value, Refused> {
+    let (state, _) = opened(paths)?;
+    let mut named: Vec<&str> = state
+        .lists
+        .values()
+        .filter(|one| !one.archived)
+        .map(|one| one.name.as_str())
+        .collect();
+    named.sort_unstable();
+
+    let text = if named.is_empty() {
+        "No lists here yet. What you propose lands in the inbox.".to_string()
+    } else {
+        format!("{}; anything else lands in the inbox.", named.join(", "))
+    };
+    Ok(told(text, json!({ "lists": named })))
+}
+
 fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(which) = text(args, "doc") else {
         return Err(Refused::Tool(
@@ -752,7 +826,11 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     };
     let (state, _) = opened(paths)?;
-    if !state.docs.values().any(|one| one.file == which) {
+    if !state
+        .docs
+        .values()
+        .any(|one| one.file == which && !one.archived)
+    {
         return Err(Refused::Tool(format!(
             "no document here is called {which:?}."
         )));
@@ -760,7 +838,11 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
     Ok(told(
         body.clone(),
-        json!({ "doc": which, "title": tisty_core::docs::titled(&body) }),
+        json!({
+            "doc": which,
+            "title": tisty_core::docs::titled(&body),
+            "body": body,
+        }),
     ))
 }
 
@@ -782,13 +864,44 @@ fn kept_here(body: &str) -> String {
 fn absolute(line: &str) -> Option<usize> {
     let bytes = line.as_bytes();
     (0..bytes.len()).find(|&at| {
-        let drive = at + 2 < bytes.len()
+        // A drive is one letter: without this, the "s" of "https://" reads as one and the rest
+        // of the line goes with it.
+        let alone = at == 0 || !bytes[at - 1].is_ascii_alphanumeric();
+        let drive = alone
+            && at + 2 < bytes.len()
             && bytes[at].is_ascii_alphabetic()
             && bytes[at + 1] == b':'
             && (bytes[at + 2] == b'/' || bytes[at + 2] == b'\\');
         let rooted = bytes[at] == b'/' && at > 0 && bytes[at - 1] == b' ';
         drive || rooted
     })
+}
+
+/// Documents are searched by the same engine the window uses; a document the agent cannot find
+/// again is a document it wrote into the dark.
+fn papers_matching(
+    paths: &Paths,
+    state: &State,
+    query: &str,
+    scope: tisty_core::view::Scope,
+    most: usize,
+) -> Vec<Value> {
+    let here: std::collections::HashMap<String, bool> = state
+        .docs
+        .values()
+        .filter(|one| match scope {
+            tisty_core::view::Scope::Open => !one.archived,
+            tisty_core::view::Scope::Archived => one.archived,
+            tisty_core::view::Scope::Either => true,
+        })
+        .map(|one| (one.file.clone(), one.archived))
+        .collect();
+
+    tisty_core::docs::Corpus::default()
+        .searching(&paths.docs(), query, most, |id| here.contains_key(id))
+        .into_iter()
+        .map(|one| json!({ "doc": one.id, "title": one.title, "line": one.line }))
+        .collect()
 }
 
 fn brief(task: &Task, state: &State) -> Value {
@@ -800,6 +913,10 @@ fn brief(task: &Task, state: &State) -> Value {
         "deadline": task.deadline.as_ref().map(|d| d.date().to_string()),
         "tags": task.tags.iter().map(Tag::as_str).collect::<Vec<_>>(),
         "source": task.source,
+        // Where the person filed it, and how they ranked it: the agent cannot choose either, and
+        // reading them is how it sees what they decided.
+        "list": task.list.as_ref().and_then(|id| state.lists.get(id)).map(|one| &one.name),
+        "priority": (task.priority != Priority::Unset).then_some(task.priority),
         "by_agent": task
             .created_by
             .as_ref()
@@ -810,6 +927,17 @@ fn brief(task: &Task, state: &State) -> Value {
 fn refused(e: Rejected) -> Refused {
     match e {
         Rejected::Untitled => Refused::Tool("a task needs a title.".into()),
+        Rejected::NoSuchList(said) => Refused::Tool(format!(
+            "there is no list called {said:?}, and you cannot make one. Ask `lists` for the \
+             names, or leave `list` out and it lands in the inbox."
+        )),
+        Rejected::AmbiguousList(said) => Refused::Tool(format!(
+            "{said:?} matches more than one list. Ask `lists` and send the whole name."
+        )),
+        Rejected::ArchivedList(said) => Refused::Tool(format!(
+            "the list {said:?} is put away, so nothing new goes in it. Leave `list` out and it \
+             lands in the inbox."
+        )),
         other => Refused::Protocol(-32603, format!("{other:?}")),
     }
 }
@@ -819,9 +947,10 @@ fn tools() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task for the person's inbox. Check `find` with the same \
-                            `source` first: if it comes back with a task, this was proposed already. \
-                            Fill in only what you were actually told.",
+            "description": "Propose a task. Check `find` with the same `source` first: if it \
+                            comes back with a task, this was proposed already. Fill in only what \
+                            you were actually told. You cannot close or delete anything, and the \
+                            list has to be one that exists — `lists` tells you which.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -843,6 +972,10 @@ fn tools() -> Value {
                         "type": "string",
                         "enum": ["do", "decide", "delegate", "minor"],
                         "description": "Only if someone said so. Leave it out otherwise"
+                    },
+                    "list": {
+                        "type": "string",
+                        "description": "An existing list, by name. Ask `lists` first. Leave it out                                         and it lands in the inbox for the person to place"
                     },
                     "tags": {
                         "type": "array",
@@ -961,9 +1094,20 @@ fn tools() -> Value {
                         "enum": ["open", "archive", "either"],
                         "description": "Defaults to either"
                     },
-                    "limit": { "type": "integer", "description": "At most 100, 20 by default" }
+                    "limit": { "type": "integer", "description": "At most 100, 20 by default" },
+                    "after": {
+                        "type": "integer",
+                        "description": "Skip this many. With `total` higher than what came back, \
+                                        ask again with `after` set to how many you have"
+                    }
                 }
             }
-        }
+        },
+        json!({
+            "name": "lists",
+            "title": "The lists that exist",
+            "description": "The names of the person's lists, so you can file a task into one.                             You cannot make a list; anything you propose without one lands in                             the inbox.",
+            "inputSchema": { "type": "object", "additionalProperties": false }
+        })
     ])
 }
