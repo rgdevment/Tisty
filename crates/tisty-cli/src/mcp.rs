@@ -36,7 +36,9 @@ gave you is worse than leaving it empty. Put what you read in `description`. Wri
 and notes in the language the person writes in.
 
 `note` appends to a task's journal, including tasks the person wrote themselves. Use it \
-when something new turns up about work that already exists, rather than filing a duplicate.";
+when something new turns up about work that already exists, rather than filing a duplicate. \
+`read` gives you one whole task — description, steps, journal, what it keeps — so ask for it \
+before adding a note and you will not write down what is already written.";
 
 pub fn turn(paths: &Paths, on: Option<bool>, lang: crate::i18n::Lang) -> anyhow::Result<ExitCode> {
     let config = tisty_core::Config::load_or_init(paths)?;
@@ -197,6 +199,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "propose" => propose(paths, &args),
         "note" => note(paths, &args),
         "find" => find(paths, &args),
+        "read" => read(paths, &args),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
         other => Err(Refused::Protocol(-32602, format!("unknown tool: {other}"))),
@@ -612,6 +615,61 @@ fn named(status: tisty_core::model::Status) -> &'static str {
     }
 }
 
+fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(said) = text(args, "task") else {
+        return Err(Refused::Tool("reading needs a `task` id.".into()));
+    };
+    let (state, _) = opened(paths)?;
+    let Ok(id) = said.parse::<TaskId>() else {
+        return Err(Refused::Tool(format!(
+            "{said:?} is not a task id. Use the `id` that `find` gave you."
+        )));
+    };
+    let Some(task) = state.tasks.get(&id) else {
+        return Err(Refused::Tool(format!(
+            "no task here has the id {said}. Look it up again with `find`."
+        )));
+    };
+
+    let mut whole = brief(task, &state);
+    whole["description"] = json!(task.description);
+    whole["steps"] = json!(
+        task.steps
+            .iter()
+            .map(|one| json!({ "text": one.text, "done": one.done }))
+            .collect::<Vec<_>>()
+    );
+    whole["journal"] = json!(
+        task.log
+            .iter()
+            .map(|one| json!({ "at": one.at.to_string(), "body": one.body }))
+            .collect::<Vec<_>>()
+    );
+    whole["kept"] = json!(
+        task.references()
+            .iter()
+            .map(|one| json!({ "target": one.target, "label": one.label }))
+            .collect::<Vec<_>>()
+    );
+
+    let mut plainly = format!("{} — {}", task.id, task.title);
+    if let Some(body) = &task.description {
+        plainly.push_str("\n\n");
+        plainly.push_str(body);
+    }
+    for one in &task.steps {
+        plainly.push_str(&format!(
+            "\n[{}] {}",
+            if one.done { 'x' } else { ' ' },
+            one.text
+        ));
+    }
+    for one in &task.log {
+        plainly.push_str(&format!("\n\n({}) {}", one.at, one.body));
+    }
+    Ok(told(plainly, whole))
+}
+
 fn brief(task: &Task, state: &State) -> Value {
     json!({
         "id": task.id.to_string(),
@@ -719,6 +777,19 @@ fn tools() -> Value {
                     }
                 },
                 "required": ["task", "path"]
+            }
+        },
+        {
+            "name": "read",
+            "title": "Read a whole task",
+            "description": "Everything one task holds: its description, its steps, its journal                             and what it keeps. Ask for it before adding a note, so you do not                             write down something already written.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "task": { "type": "string", "description": "The task id" }
+                },
+                "required": ["task"]
             }
         },
         {

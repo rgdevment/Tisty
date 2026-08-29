@@ -220,7 +220,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
         .map(|one| one["name"].as_str().unwrap())
         .collect();
 
-    assert_eq!(names, ["propose", "note", "attach", "find"]);
+    assert_eq!(names, ["propose", "note", "attach", "read", "find"]);
     for barred in ["done", "drop", "rm", "undo", "sync", "set"] {
         let said = served.call(barred, serde_json::json!({}));
         assert_eq!(said["error"]["code"], -32602, "{barred} answered: {said}");
@@ -541,6 +541,57 @@ fn a_title_that_would_outlive_its_worth_is_refused() {
         "control characters would let a title rewrite the terminal it is printed on"
     );
     assert_eq!(served.cli(&["ls", "all"]).matches('\u{1b}').count(), 0);
+}
+
+#[test]
+fn reading_one_task_gives_the_journal_that_searching_leaves_out() {
+    let served = Served::new();
+    served.cli(&["ls", "all"]);
+    served.cli(&["desc", "1", "what the thread said"]);
+    served.cli(&["log", "1", "support promised to reply"]);
+    served.cli(&["step", "1", "add", "gather the screenshots"]);
+    served.cli(&["agent", "--on"]);
+
+    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let hit = &found["result"]["structuredContent"]["matches"][0];
+    let id = hit["id"].as_str().unwrap();
+    let whole = served.call("read", serde_json::json!({ "task": id }));
+    let held = &whole["result"]["structuredContent"];
+
+    assert!(
+        hit.get("journal").is_none(),
+        "searching stays a summary; a list of twenty would drag every journal with it"
+    );
+    assert_eq!(held["journal"][0]["body"], "support promised to reply");
+    assert_eq!(held["description"], "what the thread said");
+    assert_eq!(held["steps"][0]["text"], "gather the screenshots");
+    assert!(
+        whole["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("support promised to reply"),
+        "a client that shows only the text has to see it too"
+    );
+}
+
+#[test]
+fn reading_a_task_that_is_not_there_says_where_to_look() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "read",
+        serde_json::json!({ "task": "01M14RFT9ECC2B6E4CX4P59XPH" }),
+    );
+
+    assert_eq!(said["result"]["isError"], true);
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("find"),
+        "the refusal points at the next move"
+    );
 }
 
 #[test]

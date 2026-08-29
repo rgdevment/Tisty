@@ -433,7 +433,8 @@ export interface Underway {
   far: number;
 }
 
-export const updateReady = (): Promise<Ready | null> => invoke("update_ready");
+export const updateReady = (nowPlease?: boolean): Promise<Ready | null> =>
+  invoke("update_ready", { nowPlease });
 
 export const updateInstall = (): Promise<void> => invoke("update_install");
 

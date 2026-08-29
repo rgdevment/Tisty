@@ -1761,13 +1761,16 @@ struct Settings {
 const HERE: &str = env!("CARGO_PKG_VERSION");
 
 #[tauri::command]
-async fn update_ready(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<update::Ready>> {
+async fn update_ready(
+    session: tauri::State<'_, Mutex<Session>>,
+    now_please: Option<bool>,
+) -> Answer<Option<update::Ready>> {
     let (last, found) = {
         let held = held(&session);
         (held.config.checked_at, held.config.found_version.clone())
     };
     let now = jiff::Timestamp::now();
-    if !update::due(last, now) {
+    if !now_please.unwrap_or(false) && !update::due(last, now) {
         return Ok(update::remembered(HERE, found.as_deref(), update::route()));
     }
 

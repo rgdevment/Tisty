@@ -1379,6 +1379,39 @@ describe("stranded document files", () => {
   });
 });
 
+describe("looking for an update without waiting for tomorrow", () => {
+  const openTab = async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await userEvent.click(screen.getByRole("tab", { name: /notices/i }));
+  };
+
+  it("asks the moment the person asks, not on the daily schedule", async () => {
+    ipc.answer = ((was) => (cmd, args) =>
+      cmd === "update_ready" ? Promise.resolve(null) : was(cmd, args))(ipc.answer);
+
+    await openTab();
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    await waitFor(() => expect(sent("update_ready").length).toBeGreaterThan(0));
+    const asked = sent("update_ready");
+    expect(asked[asked.length - 1].args.nowPlease).toBe(true);
+    expect(await screen.findByText(/on the newest version/i)).toBeTruthy();
+  });
+
+  it("names the version when there is one", async () => {
+    ipc.answer = ((was) => (cmd, args) =>
+      cmd === "update_ready"
+        ? Promise.resolve({ version: "0.14.0", notes: "", kept: "download" })
+        : was(cmd, args))(ipc.answer);
+
+    await openTab();
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    expect(await screen.findByText(/0\.14\.0 is out/i)).toBeTruthy();
+  });
+});
+
 describe("letting an assistant file work here", () => {
   const openTab = async () => {
     render(<Keeping onGreet={() => {}} onChanged={() => {}} />);

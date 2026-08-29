@@ -1,6 +1,7 @@
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useState } from "react";
 import {
+  updateReady,
   type Agent,
   agentState,
   agentTurn,
@@ -95,6 +96,8 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
   const [tab, setTab] = useState<Tab>("data");
   const [agent, setAgent] = useState<Agent | null>(null);
   const [wired, setWired] = useState(false);
+  const [looking, setLooking] = useState(false);
+  const [found, setFound] = useState<string | null>(null);
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [brittle, setBrittle] = useState<Brittle[] | null>(null);
@@ -638,6 +641,32 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
               <p className="text-[12.5px] leading-relaxed text-soft">
                 {keys ? fill("quickOn", keys) : t("quickNone")}
               </p>
+            </Card>
+
+            <Card title={t("lookNow")} which="settings" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("lookNowWhen")}</p>
+              <div className="mt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={held || looking}
+                  onClick={() => {
+                    setLooking(true);
+                    setFound(null);
+                    updateReady(true)
+                      .then((ready) => setFound(ready ? ready.version : ""))
+                      .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }))
+                      .finally(() => setLooking(false));
+                  }}
+                  className="rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-accent hover:text-accent disabled:text-faint"
+                >
+                  {looking ? t("lookingNow") : t("lookNow")}
+                </button>
+                {found !== null && (
+                  <span className="text-[12.5px] text-soft">
+                    {found === "" ? t("lookNowNone") : fill("lookNowFound", found)}
+                  </span>
+                )}
+              </div>
             </Card>
 
             {wake?.offered && (

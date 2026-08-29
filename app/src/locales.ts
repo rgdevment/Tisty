@@ -752,6 +752,11 @@ const en = {
   tabWriting: "Writing",
   tabUpkeep: "Maintenance",
   tabAgents: "Agents",
+  lookNow: "Check for updates",
+  lookingNow: "Checking…",
+  lookNowNone: "You are on the newest version",
+  lookNowFound: "Version {name} is out",
+  lookNowWhen: "Tisty looks once a day on its own.",
   agentsTitle: "An assistant that files for you",
   agentsWhat:
     "An assistant on this machine can file work into Tisty for you — the cartons the school group says to bring on Monday, the thing you were tagged about on Slack. It talks to Tisty through a program you already run; nothing reaches the network, and Tisty never calls out.",
@@ -1667,6 +1672,11 @@ const es: Catalog = {
   tabWriting: "Escribir",
   tabUpkeep: "Mantenimiento",
   tabAgents: "Agentes",
+  lookNow: "Buscar actualizaciones",
+  lookingNow: "Buscando…",
+  lookNowNone: "Estás en la versión más reciente",
+  lookNowFound: "Está disponible la versión {name}",
+  lookNowWhen: "Tisty mira una vez al día por su cuenta.",
   agentsTitle: "Un asistente que anota por ti",
   agentsWhat:
     "Un asistente en esta máquina puede anotar trabajo en Tisty por ti: las cartulinas que el grupo del colegio dice que hay que llevar el lunes, aquello por lo que te mencionaron en Slack. Habla con Tisty a través de un programa que ya tienes; nada sale a la red, y Tisty nunca llama a nadie.",
