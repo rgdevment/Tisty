@@ -389,6 +389,41 @@ fn the_model_is_told_what_day_it_is_before_being_asked_for_dates() {
 }
 
 #[test]
+fn what_can_be_cached_says_for_how_long_and_by_whom() {
+    let served = Served::new();
+
+    // Measured before asking, or the clock moves between the two and the margin goes negative.
+    let day = jiff::Zoned::now();
+    let midnight = day.tomorrow().unwrap().start_of_day().unwrap();
+    let until = midnight.timestamp().as_millisecond() - day.timestamp().as_millisecond();
+
+    let said = served.talk(&[
+        r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#,
+    ]);
+
+    for one in &said {
+        let result = &one["result"];
+        assert_eq!(result["resultType"], "complete");
+        let ttl = result["ttlMs"].as_i64();
+        assert!(
+            ttl.is_some_and(|ms| ms >= 0),
+            "a complete result must carry a ttl a client can read: {result}"
+        );
+        assert!(
+            ["public", "private"].contains(&result["cacheScope"].as_str().unwrap_or("")),
+            "a complete result must say who may keep it: {result}"
+        );
+    }
+
+    let left = said[0]["result"]["ttlMs"].as_i64().unwrap();
+    assert!(
+        left <= until,
+        "the instructions name today, so keeping them past midnight would teach the wrong date:          {left} vs {until}"
+    );
+}
+
+#[test]
 fn an_id_reaches_a_client_that_only_shows_the_text() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);

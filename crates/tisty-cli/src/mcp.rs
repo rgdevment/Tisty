@@ -12,6 +12,7 @@ use tisty_core::{
 use ulid::Ulid;
 
 const VERSIONS: [&str; 3] = ["2026-07-28", "2025-11-25", "2025-06-18"];
+const TOOLS_STAY_FRESH: i64 = 3_600_000;
 const INBOX_TAG: &str = "agent";
 const DOCS_AT_MOST: usize = 500;
 
@@ -121,7 +122,15 @@ fn answer(paths: &Paths, line: &str) -> Option<String> {
         "server/discover" => reply(id, discovered()),
         "initialize" => reply(id, legacy_greeting(&params)),
         "ping" => reply(id, json!({})),
-        "tools/list" => reply(id, json!({ "resultType": "complete", "tools": tools() })),
+        "tools/list" => reply(
+            id,
+            json!({
+                "resultType": "complete",
+                "tools": tools(),
+                "ttlMs": TOOLS_STAY_FRESH,
+                "cacheScope": "public",
+            }),
+        ),
         "tools/call" => match called(paths, &params) {
             Ok(said) => reply(id, said),
             Err(Refused::Protocol(code, why)) => fault(id, code, &why),
@@ -137,8 +146,20 @@ fn discovered() -> Value {
         "supportedVersions": VERSIONS,
         "capabilities": { "tools": {} },
         "instructions": instructions(jiff::Zoned::now().date()),
+        "ttlMs": until_the_day_turns(),
+        "cacheScope": "public",
         "_meta": { "io.modelcontextprotocol/serverInfo": who() },
     })
+}
+
+/// The instructions name today, so a copy kept past midnight would teach the wrong date.
+fn until_the_day_turns() -> i64 {
+    let now = jiff::Zoned::now();
+    now.tomorrow()
+        .and_then(|then| then.start_of_day())
+        .map(|turn| turn.timestamp().as_millisecond() - now.timestamp().as_millisecond())
+        .unwrap_or(0)
+        .max(0)
 }
 
 fn legacy_greeting(params: &Value) -> Value {
