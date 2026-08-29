@@ -22,7 +22,8 @@ fn instructions(today: jiff::civil::Date) -> String {
 
 const TAUGHT: &str = "\
 Tisty is one person's task list on this machine. You propose work for it; you never close, \
-drop, delete or edit what the person wrote. There is no tool for those, on purpose.
+drop, delete or edit what the person wrote. There is no tool for any of that, on purpose: \
+do not spend a turn looking for one. Finishing is the person's.
 
 Always pass `source` when you have one: a message id, a thread link, anything stable \
 enough to recognise the same thing twice. Tisty refuses a second filing from the same \
@@ -564,15 +565,22 @@ fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
 
     let asked = std::path::Path::new(&said);
-    let at = &tisty_core::agent::may_attach(asked, paths).map_err(|_| {
-        Refused::Tool(format!(
-            "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
-            tisty_core::agent::reachable()
-                .iter()
-                .map(|one| one.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))
+    let at = &tisty_core::agent::may_attach(asked, paths).map_err(|why| {
+        Refused::Tool(match why {
+            tisty_core::Error::NotForAnAgent(_) => format!(
+                "{said:?} is not a kind of file an assistant may keep. Pictures, PDFs, plain \
+                 text and office documents are; anything holding a key or a password is not, \
+                 whatever it is named."
+            ),
+            _ => format!(
+                "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
+                tisty_core::agent::reachable()
+                    .iter()
+                    .map(|one| one.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        })
     })?;
     let named = tisty_core::attach::called(at, text(args, "label"));
     let limit = tisty_core::Config::load_or_init(paths)
@@ -652,12 +660,13 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .and_then(Value::as_u64)
         .unwrap_or(20)
         .clamp(1, 100) as usize;
+    let past = args.get("after").and_then(Value::as_u64).unwrap_or(0) as usize;
 
     // Counting what it cannot see would still say the thing exists.
     let (hits, _) = state.searching(&query.to_lowercase(), scope, usize::MAX);
     let hits: Vec<&Task> = hits.into_iter().filter(|one| !one.folded()).collect();
     let all = hits.len();
-    let hits: Vec<&Task> = hits.into_iter().take(most).collect();
+    let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
     let found: Vec<Value> = hits.iter().map(|task| brief(task, &state)).collect();
     let papers = papers_matching(paths, &state, &query, scope, most);
     let mut lines: Vec<String> = hits
@@ -1085,7 +1094,12 @@ fn tools() -> Value {
                         "enum": ["open", "archive", "either"],
                         "description": "Defaults to either"
                     },
-                    "limit": { "type": "integer", "description": "At most 100, 20 by default" }
+                    "limit": { "type": "integer", "description": "At most 100, 20 by default" },
+                    "after": {
+                        "type": "integer",
+                        "description": "Skip this many. With `total` higher than what came back, \
+                                        ask again with `after` set to how many you have"
+                    }
                 }
             }
         },

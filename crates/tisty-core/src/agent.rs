@@ -57,11 +57,90 @@ pub fn may_attach(source: &std::path::Path, paths: &Paths) -> Result<std::path::
         return Err(refused());
     }
 
-    reachable()
-        .iter()
-        .any(|root| at.starts_with(root))
-        .then_some(at)
-        .ok_or_else(refused)
+    if !reachable().iter().any(|root| at.starts_with(root)) {
+        return Err(refused());
+    }
+    fit_to_keep(&at)?;
+    Ok(at)
+}
+
+/// What an assistant may keep, and how it is judged: by the bytes, never by the name. A denylist
+/// of extensions is one rename away from useless, so this asks the file what it is.
+const FOR_AN_AGENT: &[&str] = &[
+    "png", "jpg", "jpeg", "gif", "webp", "avif", "heic", "pdf", "txt", "md", "csv", "docx", "xlsx",
+    "pptx", "odt", "ods", "mp4", "m4v", "mov", "webm", "ogv", "mp3", "m4a", "wav", "ogg",
+];
+
+fn named_type(at: &std::path::Path) -> Option<String> {
+    Some(at.extension()?.to_str()?.to_ascii_lowercase())
+}
+
+/// A signature the bytes must carry for the name to be believed. Text formats have none, so they
+/// are judged by what they must not contain instead.
+fn signed_as(kind: &str, head: &[u8]) -> bool {
+    let starts = |mark: &[u8]| head.starts_with(mark);
+    match kind {
+        "png" => starts(b"\x89PNG\r\n\x1a\n"),
+        "jpg" | "jpeg" => starts(&[0xFF, 0xD8, 0xFF]),
+        "gif" => starts(b"GIF87a") || starts(b"GIF89a"),
+        "webp" => starts(b"RIFF") && head.len() > 12 && &head[8..12] == b"WEBP",
+        "avif" | "heic" | "mp4" | "m4v" | "mov" => head.len() > 12 && &head[4..8] == b"ftyp",
+        "webm" | "ogv" | "ogg" => starts(&[0x1A, 0x45, 0xDF, 0xA3]) || starts(b"OggS"),
+        "mp3" => starts(b"ID3") || (head.len() > 1 && head[0] == 0xFF && head[1] & 0xE0 == 0xE0),
+        "m4a" => head.len() > 12 && &head[4..8] == b"ftyp",
+        "wav" => starts(b"RIFF") && head.len() > 12 && &head[8..12] == b"WAVE",
+        "pdf" => starts(b"%PDF-"),
+        "docx" | "xlsx" | "pptx" | "odt" | "ods" => starts(&[0x50, 0x4B]),
+        _ => true,
+    }
+}
+
+/// Secrets do not announce themselves by extension. These are the shapes they do carry.
+fn holds_a_secret(head: &[u8]) -> bool {
+    if head.starts_with(&[0x30, 0x82]) {
+        return true;
+    }
+    let Ok(text) = std::str::from_utf8(head) else {
+        return false;
+    };
+    if text.contains("-----BEGIN") && (text.contains("PRIVATE KEY") || text.contains("CERTIFICATE"))
+    {
+        return true;
+    }
+    let telling = |line: &str| {
+        let line = line.trim();
+        line.split_once('=').is_some_and(|(key, value)| {
+            !key.is_empty()
+                && key
+                    .chars()
+                    .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+                && value.len() > 12
+        })
+    };
+    text.lines().filter(|one| telling(one)).count() >= 2
+}
+
+/// Whether the file itself, not its name, is something an assistant is allowed to copy.
+pub fn fit_to_keep(at: &std::path::Path) -> Result<()> {
+    let refused = || crate::Error::NotForAnAgent(at.display().to_string());
+    let kind = named_type(at).ok_or_else(refused)?;
+    if !FOR_AN_AGENT.contains(&kind.as_str()) {
+        return Err(refused());
+    }
+
+    let head = read_head(at).map_err(|_| refused())?;
+    if !signed_as(&kind, &head) || holds_a_secret(&head) {
+        return Err(refused());
+    }
+    Ok(())
+}
+
+fn read_head(at: &std::path::Path) -> std::io::Result<Vec<u8>> {
+    use std::io::Read;
+    let mut head = vec![0u8; 4096];
+    let read = std::fs::File::open(at)?.read(&mut head)?;
+    head.truncate(read);
+    Ok(head)
 }
 
 pub fn reachable() -> Vec<std::path::PathBuf> {
@@ -85,6 +164,60 @@ pub fn reachable() -> Vec<std::path::PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn wrote(at: &std::path::Path, name: &str, bytes: &[u8]) -> std::path::PathBuf {
+        let one = at.join(name);
+        std::fs::write(&one, bytes).unwrap();
+        one
+    }
+
+    #[test]
+    fn what_an_assistant_may_keep_is_judged_by_the_bytes_not_the_name() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path();
+
+        let png = wrote(at, "shot.png", b"\x89PNG\r\n\x1a\nrest of it");
+        let pdf = wrote(at, "invoice.pdf", b"%PDF-1.7 and the rest");
+        let note = wrote(at, "notes.md", b"# what the group said\n\nbring card stock");
+        for one in [&png, &pdf, &note] {
+            assert!(fit_to_keep(one).is_ok(), "{}", one.display());
+        }
+
+        // The four that were sitting in a real Downloads folder when this was written.
+        let env = wrote(
+            at,
+            "shell-secrets.env",
+            b"AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCY\nGITHUB_TOKEN=ghp_16C7e42F292c6912",
+        );
+        let p12 = wrote(at, "privada.p12", &[0x30, 0x82, 0x0A, 0x00]);
+        let pem = wrote(at, "key.pem", b"-----BEGIN RSA PRIVATE KEY-----\nMIIEow\n");
+        let conf = wrote(at, "vpn.conf", b"[main]\nserver=vpn.example.com");
+        for one in [&env, &p12, &pem, &conf] {
+            assert!(fit_to_keep(one).is_err(), "{}", one.display());
+        }
+    }
+
+    #[test]
+    fn renaming_a_secret_does_not_get_it_past() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path();
+
+        // The defect a denylist of extensions cannot fix: the name says one thing, the bytes another.
+        let dressed = wrote(at, "holiday.png", &[0x30, 0x82, 0x0A, 0x00]);
+        let also = wrote(
+            at,
+            "receipt.pdf",
+            b"-----BEGIN PRIVATE KEY-----\nMIIEvQIBADAN\n",
+        );
+        assert!(
+            fit_to_keep(&dressed).is_err(),
+            "a p12 called .png is still a p12"
+        );
+        assert!(
+            fit_to_keep(&also).is_err(),
+            "a key called .pdf is still a key"
+        );
+    }
 
     fn paths(at: &std::path::Path) -> Paths {
         Paths::new(at.join("data"), at.join("config"))

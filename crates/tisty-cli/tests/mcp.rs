@@ -345,7 +345,9 @@ fn a_file_over_the_limit_is_refused_with_the_size_it_copies() {
 
     // A fresh install copies up to five megabytes; a holiday video from a chat is over it.
     let heavy = served.home.path().join("holiday.mp4");
-    std::fs::write(&heavy, vec![0u8; 6_000_000]).unwrap();
+    let mut bytes = b"    ftypisom".to_vec();
+    bytes.resize(6_000_000, 0);
+    std::fs::write(&heavy, bytes).unwrap();
     let said = served.call(
         "attach",
         serde_json::json!({ "task": id, "path": heavy.to_string_lossy() }),
