@@ -120,6 +120,7 @@ equipo y en ninguna otra parte.
 
 - [Por qué lo hice](#por-qué-lo-hice)
 - [Qué es, y qué no es](#qué-es-y-qué-no-es)
+- [Comparado con Todoist, TickTick, Notion y Craft](#comparado-con-todoist-ticktick-notion-y-craft)
 - [Para quién es](#para-quién-es)
 - [La idea sobre la que está construido](#la-idea-sobre-la-que-está-construido)
 - [Instalación](#instalación)
@@ -179,6 +180,41 @@ regalé.
 **Tus datos son archivos.** Texto plano en tu propio disco, que se lee con `cat`
 y se busca con `grep`. Si Tisty desapareciera mañana, todo lo que escribiste
 seguiría ahí y seguiría teniendo sentido.
+
+## Comparado con Todoist, TickTick, Notion y Craft
+
+Son buenos programas y esto no es un ataque. Pero responden otra pregunta, y si
+buscas un **gestor de tareas libre, de código abierto, sin conexión, sin cuenta
+ni suscripción**, vale la pena nombrar las diferencias.
+
+| | Tisty | Todoist · TickTick · Notion · Craft |
+|---|---|---|
+| Dónde viven tus tareas | Archivos en tu disco | Sus servidores |
+| Cuenta | Ninguna | Obligatoria |
+| Suscripción | Ninguna. No hay plan de pago | Plan gratis, y de pago el resto |
+| Sin conexión | Siempre. No tiene servidor que echar de menos | A medias, y luego sincroniza |
+| Con IA dentro | **Ninguna**, y no la va a llevar | Cada vez más, a menudo sin pedirla |
+| Tu propio asistente | Sí, por MCP, si abres la puerta | Su IA, en sus términos |
+| Prioridades | La **matriz de Eisenhower**, con su nombre | P1–P4, o nada |
+| Si la empresa cierra | No pasa nada. Es tu disco | Exportas, si te dejan |
+| Código | Abierto, auditable, tuyo para bifurcar | Cerrado |
+
+**La matriz de Eisenhower, no prioridades numeradas.** Una tarea es urgente,
+importante, las dos o ninguna — *hacer*, *decidir*, *delegar*, *dejar*. Eso nombra
+la decisión en vez de esconderla tras un número, y es la diferencia entre una
+lista que ordena y una lista que te ayuda a elegir.
+
+**Tu asistente, no el nuestro.** Tisty no lleva IA dentro. El lenguaje natural que
+convierte "llamar al banco a las 3" en una tarea son reglas corriendo en tu
+equipo, sin modelo y sin nube. Pero habla [MCP](https://modelcontextprotocol.io),
+así que el asistente que ya pagas — Claude, ChatGPT, el que sea — puede anotar
+trabajo aquí, en este equipo, sin cuenta y sin nada por la red. Esa puerta la
+abres tú y puedes cerrarla.
+
+**Gratis no es un plan aquí.** No hay mejora de pago, ni cuenta de puestos, ni
+función guardada para después. La razón no es generosidad: un programa que guarda
+tu trabajo en tu disco y nunca llama a casa no tiene casi nada que cobrar, y
+pedirlo lo empeoraría.
 
 ## Para quién es
 

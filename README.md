@@ -118,6 +118,7 @@ away. No ads, no telemetry, no accounts, no subscriptions — just a
 
 - [Why I Built This](#why-i-built-this)
 - [What It Is / What It Isn't](#what-it-is--what-it-isnt)
+- [Compared to Todoist, TickTick, Notion and Craft](#compared-to-todoist-ticktick-notion-and-craft)
 - [Who Is This For?](#who-is-this-for)
 - [The Idea It Is Built On](#the-idea-it-is-built-on)
 - [Getting Started](#getting-started)
@@ -177,6 +178,41 @@ away.
 **Your data is files.** Plain text on your own disk, readable with `cat` and
 searchable with `grep`. If Tisty disappeared tomorrow, everything you wrote
 would still be there and still make sense.
+
+## Compared to Todoist, TickTick, Notion and Craft
+
+Those are good programs and this is not a takedown. But they answer a different
+question, and if you are looking for a **free, open-source, offline task manager
+with no account and no subscription**, the differences are worth naming.
+
+| | Tisty | Todoist · TickTick · Notion · Craft |
+|---|---|---|
+| Where your tasks live | Plain files on your disk | Their servers |
+| Account | None | Required |
+| Subscription | None. There is no paid tier | Free tier, paid for the rest |
+| Works offline | Always. It has no server to miss | Partly, then it syncs |
+| AI inside | **None**, and none is coming | Increasingly, often unasked |
+| Your own assistant | Yes, over MCP, if you open the door | Their AI, on their terms |
+| Priorities | The **Eisenhower matrix**, named | P1–P4, or nothing |
+| If the company folds | Nothing happens. It is your disk | You export, if they let you |
+| Source | Open, auditable, yours to fork | Closed |
+
+**The Eisenhower matrix, not numbered priorities.** A task is urgent, important,
+both or neither — *do*, *decide*, *delegate*, *drop*. That names the decision
+instead of hiding it behind a number, and it is the difference between a list
+that sorts and a list that helps you choose.
+
+**Your assistant, not ours.** Tisty has no AI in it. The natural language that
+turns "call the bank at 3" into a task is rules running on your machine, no model
+and no cloud. But it speaks [MCP](https://modelcontextprotocol.io), so the
+assistant you already pay for — Claude, ChatGPT, whichever — can file work into
+it, on this machine, with no account and nothing over the network. You open that
+door and you can close it.
+
+**Free is not a tier here.** There is no upgrade, no seat count, no feature held
+back. The reason is not generosity: a program that keeps your work on your disk
+and never phones home has almost nothing to charge for, and asking would make it
+worse.
 
 ## Who Is This For?
 
