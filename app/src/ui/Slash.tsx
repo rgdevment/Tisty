@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { matched } from "../finding";
 import { t } from "../locales";
 import Glyph, { known } from "./Glyph";
 
@@ -8,7 +9,7 @@ export const asked = (before: string): string | null => {
 };
 
 export const narrowed = <T extends { label: string }>(blocks: T[], word: string): T[] =>
-  word ? blocks.filter((one) => one.label.toLowerCase().includes(word.toLowerCase())) : blocks;
+  word ? blocks.filter((one) => matched(one.label, word)) : blocks;
 
 export interface Block {
   key: string;

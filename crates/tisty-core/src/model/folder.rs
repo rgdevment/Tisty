@@ -8,6 +8,9 @@ pub type DocId = Ulid;
 /// disagree would build different trees from one log. Raising it raises SCHEMA_VERSION with it.
 pub const DEEPEST: usize = 4;
 
+/// Longer than this and the name stops fitting the rail it is read from.
+pub const FOLDER_NAME_AT_MOST: usize = 40;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Folder {
     pub id: FolderId,

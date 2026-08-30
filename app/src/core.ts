@@ -566,6 +566,8 @@ export interface Doc {
 /// Only to stop the window offering what the core would refuse; depth.test.ts pins the two together.
 export const DEEPEST = 4;
 
+export const FOLDER_NAME_AT_MOST = 40;
+
 export interface Folded {
   id: string;
   name: string;

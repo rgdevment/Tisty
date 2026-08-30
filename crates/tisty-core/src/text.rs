@@ -23,6 +23,38 @@ pub fn folded(text: &str) -> String {
         .collect()
 }
 
+pub const TERMS_AT_MOST: usize = 12;
+
+pub fn terms(query: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut word = String::new();
+    let mut quoted = false;
+
+    for c in folded(query).chars() {
+        match c {
+            '"' | '\u{201c}' | '\u{201d}' => {
+                if !word.is_empty() {
+                    found.push(std::mem::take(&mut word));
+                }
+                quoted = !quoted;
+            }
+            c if c.is_whitespace() && !quoted => {
+                if !word.is_empty() {
+                    found.push(std::mem::take(&mut word));
+                }
+            }
+            c => word.push(c),
+        }
+        if found.len() >= TERMS_AT_MOST {
+            return found;
+        }
+    }
+    if !word.is_empty() {
+        found.push(word);
+    }
+    found
+}
+
 pub fn composed(text: &str) -> String {
     if text.is_ascii() {
         return text.to_string();
@@ -78,6 +110,37 @@ mod tests {
     #[test]
     fn a_stranded_mark_survives_rather_than_being_dropped() {
         assert!(composed("\u{0303}").contains('\u{0303}'));
+    }
+
+    #[test]
+    fn a_search_is_cut_into_words_without_their_accents() {
+        assert_eq!(
+            terms("  Análisis   del  Repositorio "),
+            ["analisis", "del", "repositorio"]
+        );
+        assert_eq!(terms("MERKÉN"), ["merken"]);
+    }
+
+    #[test]
+    fn nothing_typed_is_nothing_to_look_for() {
+        assert!(terms("").is_empty());
+        assert!(terms("   ").is_empty());
+        assert!(terms("\"\"").is_empty());
+    }
+
+    #[test]
+    fn quotes_hold_a_phrase_together() {
+        assert_eq!(terms("\"casa de campo\" verde"), ["casa de campo", "verde"]);
+        assert_eq!(terms("\u{201c}casa de campo\u{201d}"), ["casa de campo"]);
+        assert_eq!(terms("\"sin cerrar"), ["sin cerrar"]);
+    }
+
+    #[test]
+    fn a_search_cannot_grow_long_enough_to_scan_the_store_a_hundred_times() {
+        let many = terms(&(1..40).map(|n| format!("w{n} ")).collect::<String>());
+
+        assert_eq!(many.len(), TERMS_AT_MOST);
+        assert_eq!(many[0], "w1");
     }
 
     #[test]

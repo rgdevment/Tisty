@@ -628,27 +628,37 @@ fn cut(said: String) -> String {
     said.chars().take(SAID_AT_MOST).collect()
 }
 
-fn shown_around(body: &str, query: &str) -> Option<String> {
-    let mut backup = None;
+fn shown_around(body: &str, terms: &[String]) -> Option<String> {
+    let mut best: Option<(usize, String)> = None;
+    let mut backup: Option<(usize, String)> = None;
+
     for line in body.lines() {
         let said = bare(line);
-        if !said.to_lowercase().contains(query) {
+        let flat = crate::text::folded(&said);
+        let held = terms.iter().filter(|term| flat.contains(*term)).count();
+        if held == 0 {
             continue;
         }
-        if wordless(&said) {
-            backup.get_or_insert(said);
-            continue;
+        let slot = if wordless(&said) {
+            &mut backup
+        } else {
+            &mut best
+        };
+        if slot.as_ref().is_none_or(|(had, _)| held > *had) {
+            *slot = Some((held, said));
         }
-        return Some(cut(said));
+        if best.as_ref().is_some_and(|(had, _)| *had == terms.len()) {
+            break;
+        }
     }
-    backup.map(cut)
+    best.or(backup).map(|(_, said)| cut(said))
 }
 
 pub const CORPUS_AT_MOST: usize = 64 * 1024 * 1024;
 
 struct Held {
     stamp: (u64, u64),
-    lower: String,
+    flat: String,
 }
 
 pub struct Corpus {
@@ -684,7 +694,7 @@ impl Corpus {
 
     pub fn forget(&mut self, id: &str) {
         if let Some(gone) = self.kept.remove(id) {
-            self.bytes -= gone.lower.len();
+            self.bytes -= gone.flat.len();
         }
     }
 
@@ -692,19 +702,19 @@ impl Corpus {
         self.bytes
     }
 
-    fn lowered(&mut self, root: &Path, id: &str) -> Option<&str> {
+    fn flattened(&mut self, root: &Path, id: &str) -> Option<&str> {
         let at = resolve(root, id).ok()?;
         let stamp = stamped(&at)?;
         if !self.kept.get(id).is_some_and(|one| one.stamp == stamp) {
             self.forget(id);
-            let lower = bared(&read(root, id).ok()?).to_lowercase();
-            if self.bytes + lower.len() > self.room {
+            let flat = crate::text::folded(&bared(&read(root, id).ok()?));
+            if self.bytes + flat.len() > self.room {
                 return None;
             }
-            self.bytes += lower.len();
-            self.kept.insert(id.to_string(), Held { stamp, lower });
+            self.bytes += flat.len();
+            self.kept.insert(id.to_string(), Held { stamp, flat });
         }
-        self.kept.get(id).map(|one| one.lower.as_str())
+        self.kept.get(id).map(|one| one.flat.as_str())
     }
 
     pub fn searching(
@@ -714,8 +724,8 @@ impl Corpus {
         most: usize,
         wanted: impl Fn(&str) -> bool,
     ) -> Vec<Sighting> {
-        let query = query.trim().to_lowercase();
-        if query.is_empty() {
+        let terms = crate::text::terms(query);
+        if terms.is_empty() {
             return Vec::new();
         }
 
@@ -727,7 +737,12 @@ impl Corpus {
                 continue;
             }
             let title = doc.title.clone();
-            if title.to_lowercase().contains(&query) {
+            let flat = crate::text::folded(&title);
+            let missing: Vec<&String> = terms
+                .iter()
+                .filter(|term| !flat.contains(term.as_str()))
+                .collect();
+            if missing.is_empty() {
                 found.push(Sighting {
                     id: doc.id,
                     title,
@@ -735,14 +750,12 @@ impl Corpus {
                 });
                 continue;
             }
-            let sighted = match self.lowered(root, &doc.id) {
-                Some(lower) => lower.lines().any(|one| one.contains(&query)),
+            let sighted = match self.flattened(root, &doc.id) {
+                Some(flat) => missing.iter().all(|term| flat.contains(term.as_str())),
                 None => read(root, &doc.id)
                     .map(|body| {
-                        bared(&body)
-                            .to_lowercase()
-                            .lines()
-                            .any(|one| one.contains(&query))
+                        let flat = crate::text::folded(&bared(&body));
+                        missing.iter().all(|term| flat.contains(term.as_str()))
                     })
                     .unwrap_or(false),
             };
@@ -752,7 +765,7 @@ impl Corpus {
             let Ok(body) = read(root, &doc.id) else {
                 continue;
             };
-            if let Some(line) = shown_around(&body, &query) {
+            if let Some(line) = shown_around(&body, &terms) {
                 found.push(Sighting {
                     id: doc.id,
                     title,
@@ -761,7 +774,7 @@ impl Corpus {
             }
         }
         self.kept.retain(|id, _| seen.contains(id));
-        self.bytes = self.kept.values().map(|one| one.lower.len()).sum();
+        self.bytes = self.kept.values().map(|one| one.flat.len()).sum();
         found
     }
 }
@@ -815,6 +828,76 @@ mod tests {
         assert_eq!(found[0].id, "mac0-0002");
         assert_eq!(found[0].title, "Riego");
         assert_eq!(found[0].line, "Cambiar la manguera del patio.");
+    }
+
+    #[test]
+    fn a_document_is_found_whether_or_not_the_accent_was_typed() {
+        let room = papers();
+        write(
+            room.path(),
+            "mac0-0004",
+            "# Análisis del repositorio\n\nRevisión de la migración.\n",
+        )
+        .unwrap();
+
+        for asked in ["analisis", "Análisis", "ANALISIS", "revision", "migracion"] {
+            let found = Corpus::default().searching(room.path(), asked, 40, |_| true);
+
+            assert_eq!(found.len(), 1, "{asked}");
+            assert_eq!(found[0].id, "mac0-0004", "{asked}");
+        }
+    }
+
+    #[test]
+    fn the_words_do_not_have_to_be_written_together_or_in_order() {
+        let room = papers();
+
+        let found = Corpus::default().searching(room.path(), "octubre riego", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(
+            found[0].id, "mac0-0001",
+            "una en el titulo, otra en el cuerpo"
+        );
+
+        assert!(
+            Corpus::default()
+                .searching(room.path(), "octubre dentista", 40, |_| true)
+                .is_empty(),
+            "todas las palabras o ninguna"
+        );
+    }
+
+    #[test]
+    fn a_phrase_in_quotes_keeps_its_order() {
+        let room = papers();
+
+        assert_eq!(
+            Corpus::default()
+                .searching(room.path(), "\"manguera del patio\"", 40, |_| true)
+                .len(),
+            1
+        );
+        assert!(
+            Corpus::default()
+                .searching(room.path(), "\"patio del manguera\"", 40, |_| true)
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn the_line_shown_is_the_one_that_holds_most_of_what_was_asked() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0009",
+            "# Condominio\n\nHablamos del riego.\n\nEl riego del patio queda para octubre.\n",
+        )
+        .unwrap();
+
+        let found = Corpus::default().searching(room.path(), "riego octubre", 40, |_| true);
+
+        assert_eq!(found[0].line, "El riego del patio queda para octubre.");
     }
 
     #[test]
