@@ -224,7 +224,9 @@ pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
             .open(&at)
         {
             Ok(_) => {
-                write(root, &id, body)?;
+                // `create_new` already won this name against everyone, and taking the lock here
+                // would queue creations that never contend for the same body.
+                written(root, &id, body)?;
                 spend(root, device, number);
                 return Ok(Doc {
                     title: titled(body),
@@ -244,8 +246,7 @@ pub fn settled(body: &str) -> String {
     format!("{body}\n")
 }
 
-/// One door for every writer: the window, a round of syncing and an agent all pass the same
-/// lock, so a body read by one is never written under another.
+/// One door for every writer: a body read by one is never written under another.
 pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
     alone(root, || written(root, id, body))
 }
@@ -265,10 +266,7 @@ fn written(root: &Path, id: &str, body: &str) -> Result<()> {
     write_atomic(&at, whole.as_bytes())
 }
 
-/// Adding never rewrites: what is there stays byte for byte, so two sides can never lose one.
 pub fn append(root: &Path, id: &str, body: &str) -> Result<String> {
-    // Read and write are two steps, and a second writer landing between them would take the
-    // first one's lines with it.
     alone(root, || {
         let was = read(root, id)?;
         let added = settled(body.trim_start_matches(['\n', '\r']));
@@ -289,8 +287,6 @@ pub enum Change {
     TheLot,
 }
 
-/// An edit names the text it replaces and has to match it once: anything else is a guess, and a
-/// guess here writes over what somebody wrote.
 pub fn edit(root: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
     if old.is_empty() {
         return Ok(Change::Missing);
@@ -298,8 +294,7 @@ pub fn edit(root: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
     alone(root, || {
         let was = read(root, id)?;
         let (old, new) = as_written(&was, old, new);
-        // Naming the whole body is a rewrite wearing an edit's clothes, and the promise is that
-        // there is no way to hand a document a new body.
+        // A rewrite wearing an edit's clothes: no tool hands a document a new body.
         if was.trim() == old.trim() {
             return Ok(Change::TheLot);
         }
@@ -325,7 +320,9 @@ fn as_written(was: &str, old: &str, new: &str) -> (String, String) {
 }
 
 const LOCK: &str = ".lock";
-const LOCK_WAIT_MS: u64 = 500;
+/// Waiting beats refusing: the writers that queue here are a saving editor, a sync round and an
+/// agent, and every one of them holds it for a write, not for a session.
+const LOCK_WAIT_MS: u64 = 2_000;
 const LOCK_POLL_MS: u64 = 5;
 
 pub struct Alone(std::fs::File);
@@ -337,8 +334,7 @@ impl Drop for Alone {
     }
 }
 
-/// For a writer that cannot pass a closure, and would rather carry on unheld than not write at
-/// all — a round of syncing, which comes back anyway.
+/// For a writer that would rather carry on unheld than not write at all.
 pub fn hold(root: &Path) -> Option<Alone> {
     use fs4::fs_std::FileExt;
 
@@ -1128,7 +1124,6 @@ Gasfiter.",
         )
         .unwrap();
 
-        // Both grew at the same point, which the weave will not settle on its own.
         assert_eq!(crate::merge::merged(base, &mine, &theirs), None);
         let rifts = crate::merge::rifts(base, &mine, &theirs);
         assert_eq!(rifts.len(), 1, "one question, not one per line");
