@@ -421,3 +421,42 @@ describe("the document being written", () => {
     await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("a medias"), { timeout: 3000 });
   });
 });
+
+describe("a document that moved on disk while it was open", () => {
+  beforeEach(() => {
+    store.bodies = { "a3f1-0001": "# Compras\n\nleche" };
+    store.writes = [];
+    store.reads = 0;
+    store.delays = [];
+    store.mute = false;
+    store.shape = null;
+  });
+
+  it("reads it again when something wrote beside the window", async () => {
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn(), fresh: 0 };
+    const { rerender } = render(<Docs {...props} />);
+    await waitFor(() => expect(screen.getByLabelText("editor")).toHaveProperty("value"));
+
+    store.bodies["a3f1-0001"] = "# Compras\n\nleche\n\npan";
+    rerender(<Docs {...props} fresh={1} />);
+
+    await waitFor(() =>
+      expect(screen.getByLabelText<HTMLTextAreaElement>("editor").value).toContain("pan"),
+    );
+  });
+
+  it("does not throw away what is still being typed", async () => {
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn(), fresh: 0 };
+    const { rerender } = render(<Docs {...props} />);
+    const editor = await screen.findByLabelText<HTMLTextAreaElement>("editor");
+    await userEvent.type(editor, " y huevos");
+
+    store.bodies["a3f1-0001"] = "# Compras\n\nleche\n\npan";
+    rerender(<Docs {...props} fresh={1} />);
+
+    await waitFor(() =>
+      expect(screen.getByLabelText<HTMLTextAreaElement>("editor").value).toContain("y huevos"),
+    );
+    await settled();
+  });
+});

@@ -269,6 +269,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "note",
             "attach",
             "write_doc",
+            "append_doc",
             "docs",
             "file_doc",
             "folder",
@@ -1192,5 +1193,109 @@ fn paging_past_the_tasks_does_not_empty_the_documents_in_silence() {
         held["docs"].as_array().unwrap().len(),
         1,
         "the document is not a task and does not page away with them: {second}"
+    );
+}
+
+#[test]
+fn adding_to_a_document_keeps_every_byte_that_was_there() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Minuta del lunes\n\nSe habló del riego." }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let added = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": doc, "body": "Se acordó llamar al gásfiter." }),
+    );
+
+    assert_eq!(
+        added["result"]["isError"],
+        serde_json::Value::Null,
+        "{added}"
+    );
+    let whole = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    let body = whole["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap();
+
+    assert_eq!(
+        body,
+        "# Minuta del lunes\n\nSe habló del riego.\n\nSe acordó llamar al gásfiter.\n"
+    );
+    assert_eq!(
+        whole["result"]["structuredContent"]["title"], "Minuta del lunes",
+        "the title is the first line and adding never touches it"
+    );
+}
+
+#[test]
+fn nothing_is_added_to_a_document_that_is_not_there_or_was_put_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Viejo\n\nalgo." }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let missing = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": "no-such-doc-0001", "body": "hola" }),
+    );
+    assert_eq!(missing["result"]["isError"], true, "{missing}");
+
+    served.put_away(&doc);
+    let away = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": doc, "body": "hola" }),
+    );
+
+    assert_eq!(away["result"]["isError"], true, "{away}");
+    assert!(
+        away["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("put away"),
+        "{away}"
+    );
+    let whole = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    assert!(
+        !whole["result"]["structuredContent"]["body"]
+            .as_str()
+            .unwrap()
+            .contains("hola"),
+        "a refusal that wrote anyway is worse than no refusal: {whole}"
+    );
+}
+
+#[test]
+fn what_cannot_survive_the_editor_never_reaches_a_document_that_exists() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call("write_doc", serde_json::json!({ "body": "# Acta\n\nuno." }));
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let refused = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": doc, "body": "<table><tr><td>dos</td></tr></table>" }),
+    );
+
+    assert_eq!(refused["result"]["isError"], true, "{refused}");
+    let whole = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    assert_eq!(
+        whole["result"]["structuredContent"]["body"], "# Acta\n\nuno.\n",
+        "the document is untouched by a refused add"
     );
 }

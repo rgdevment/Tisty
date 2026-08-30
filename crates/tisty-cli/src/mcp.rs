@@ -44,7 +44,11 @@ and notes in the language the person writes in.
 A document is for what is worth keeping and is not work to do — a summary, a note, something \
 to consult. Writing one creates no task: if something has to happen, propose it. `docs` lists \
 what is written already and the folders it is kept in; you can make a folder and file documents \
-into it, but you can never delete, rename or rewrite one.
+into it, but you can never delete or rename one.
+
+`append_doc` adds to the end of a document that exists, leaving every byte that was there. \
+Adding to the one that already covers something beats writing a second document about it. \
+Rewriting is the one thing you cannot do: the person may have it open while you write.
 
 `find` takes words, not a phrase: each word has to turn up somewhere in the same task or \
 document, in any order, and an accent typed or not typed makes no difference. Put a phrase in \
@@ -236,6 +240,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "find" => find(paths, &args),
         "read" => read(paths, &args),
         "write_doc" => write_doc(paths, &args),
+        "append_doc" => append_doc(paths, &args),
         "read_doc" => read_doc(paths, &args),
         "docs" => papers(paths, &args),
         "file_doc" => file_doc(paths, &args),
@@ -846,6 +851,54 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(which) = text(args, "doc") else {
+        return Err(Refused::Tool(
+            "adding to a document needs its `doc` name.".into(),
+        ));
+    };
+    let Some(body) = text(args, "body") else {
+        return Err(Refused::Tool("adding needs a `body` to add.".into()));
+    };
+    let (state, _) = opened(paths)?;
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Err(Refused::Tool(format!(
+            "no document here is called {which:?}. `docs` lists them all."
+        )));
+    };
+    if kept.archived {
+        return Err(Refused::Tool(format!(
+            "{which:?} is put away, so nothing more goes into it. Write a new document instead."
+        )));
+    }
+    tisty_core::docs::survives(&body).map_err(|eats| {
+        Refused::Tool(format!(
+            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
+             opens the document. Send plain markdown: headings, lists, emphasis, inline links."
+        ))
+    })?;
+
+    let whole = tisty_core::docs::append(&paths.docs(), &which, &body).map_err(|e| match e {
+        tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
+            "that would take the document past the {limit} bytes Tisty can open. Write a new \
+             document instead of growing this one."
+        )),
+        other => hitch(other),
+    })?;
+
+    Ok(told(
+        format!(
+            "Added to {:?}. Nothing that was there changed.",
+            tisty_core::docs::titled(&whole)
+        ),
+        json!({
+            "doc": which,
+            "title": tisty_core::docs::titled(&whole),
+            "added": body,
+        }),
+    ))
+}
+
 fn trail(state: &State, at: tisty_core::model::FolderId) -> String {
     let mut named = Vec::new();
     let mut walk = Some(at);
@@ -1391,6 +1444,23 @@ fn tools() -> Value {
             }
         },
         {
+            "name": "append_doc",
+            "title": "Add to a document",
+            "description": "Add to the end of a document that exists. What is already written                             stays exactly as it is — you are adding, never rewriting, so                             nothing the person wrote can be lost. Use it to keep a document                             alive: a running minute, a log, a list that grows.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "doc": { "type": "string", "description": "The document's name" },
+                    "body": {
+                        "type": "string",
+                        "description": "Markdown to add at the end. A blank line is put between                                         this and what was there"
+                    }
+                },
+                "required": ["doc", "body"]
+            }
+        },
+        {
             "name": "docs",
             "title": "The documents and the folders",
             "description": "Everything written down here, newest first, with the folder each one                             sits in and whether it was put away. Ask for it before writing, so                             you do not write again what is already kept.",
@@ -1456,7 +1526,7 @@ fn tools() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document",
-            "description": "The whole text of a document that already exists. You can write new                             ones and read any of them, but never rewrite one: two sides editing                             the same text cannot be merged, so one would be lost.",
+            "description": "The whole text of a document that already exists. You can write new                             ones, read any of them and add to the end of one with `append_doc`.                             What is already written you can never rewrite: the person may be                             editing it as you read.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,

@@ -259,6 +259,73 @@ pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
     write_atomic(&at, whole.as_bytes())
 }
 
+/// Adding never rewrites: what is there stays byte for byte, so two sides can never lose one.
+pub fn append(root: &Path, id: &str, body: &str) -> Result<String> {
+    // Read and write are two steps, and a second writer landing between them would take the
+    // first one's lines with it.
+    alone(root, || {
+        let was = read(root, id)?;
+        let added = settled(body.trim_start_matches(['\n', '\r']));
+        let whole = match was.trim_end().is_empty() {
+            true => added,
+            false => format!("{}\n\n{added}", was.trim_end()),
+        };
+        write(root, id, &whole)?;
+        Ok(whole)
+    })
+}
+
+const LOCK: &str = ".lock";
+const LOCK_WAIT_MS: u64 = 500;
+const LOCK_POLL_MS: u64 = 5;
+
+fn alone<T>(root: &Path, work: impl FnOnce() -> Result<T>) -> Result<T> {
+    use fs4::fs_std::FileExt;
+
+    std::fs::create_dir_all(root)?;
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(root.join(LOCK))?;
+
+    let mut waited = 0;
+    while !file.try_lock_exclusive()? {
+        if waited >= LOCK_WAIT_MS {
+            return Err(Error::AlreadyRunning);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(LOCK_POLL_MS));
+        waited += LOCK_POLL_MS;
+    }
+    let out = work();
+    let _ = FileExt::unlock(&file);
+    out
+}
+
+/// What a watcher compares to tell that a body moved: a body writes no event to notice it by.
+pub fn print(root: &Path) -> String {
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return String::new();
+    };
+    let mut parts: Vec<String> = entries
+        .filter_map(|one| one.ok())
+        .filter(|one| one.file_type().map(|kind| kind.is_file()).unwrap_or(false))
+        .filter_map(|one| {
+            let at = one.path();
+            let id = named(&at)?;
+            let told = one.metadata().ok()?;
+            let when = told
+                .modified()
+                .ok()?
+                .duration_since(std::time::UNIX_EPOCH)
+                .ok()?;
+            Some(format!("{id}:{}:{}", told.len(), when.as_nanos()))
+        })
+        .collect();
+    parts.sort();
+    parts.join("|")
+}
+
 pub const IMPORTS: [&str; 3] = ["md", "markdown", "txt"];
 
 pub fn importable(at: &Path) -> bool {
@@ -828,6 +895,230 @@ mod tests {
         assert_eq!(found[0].id, "mac0-0002");
         assert_eq!(found[0].title, "Riego");
         assert_eq!(found[0].line, "Cambiar la manguera del patio.");
+    }
+
+    #[test]
+    fn what_is_added_leaves_every_byte_that_was_there() {
+        let room = papers();
+
+        let whole = append(room.path(), "mac0-0002", "Y la llave de paso.").unwrap();
+
+        assert_eq!(
+            whole,
+            "# Riego
+
+Cambiar la manguera del patio.
+
+Y la llave de paso.
+"
+        );
+        assert_eq!(read(room.path(), "mac0-0002").unwrap(), whole);
+    }
+
+    #[test]
+    fn adding_keeps_one_blank_line_between_what_was_there_and_what_arrives() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0001",
+            "# Acta
+
+
+
+",
+        )
+        .unwrap();
+
+        let whole = append(
+            room.path(),
+            "mac0-0001",
+            "
+
+Primer punto.",
+        )
+        .unwrap();
+
+        assert_eq!(
+            whole,
+            "# Acta
+
+Primer punto.
+"
+        );
+    }
+
+    #[test]
+    fn adding_to_an_empty_document_writes_only_what_arrives() {
+        let room = root();
+        write(room.path(), "mac0-0001", "").unwrap();
+
+        assert_eq!(
+            append(room.path(), "mac0-0001", "# Nuevo").unwrap(),
+            "# Nuevo
+"
+        );
+    }
+
+    #[test]
+    fn nothing_is_added_to_a_document_that_is_not_there() {
+        let room = papers();
+
+        assert!(append(room.path(), "mac0-0404", "algo").is_err());
+        assert!(append(room.path(), "../escaped", "algo").is_err());
+    }
+
+    #[test]
+    fn adding_past_the_ceiling_is_refused_and_leaves_the_document_alone() {
+        let room = root();
+        write(room.path(), "mac0-0001", "# Acta").unwrap();
+
+        let refused = append(room.path(), "mac0-0001", &"a".repeat(BODY_AT_MOST as usize));
+
+        assert!(matches!(refused, Err(Error::DocumentTooBig { .. })));
+        assert_eq!(
+            read(room.path(), "mac0-0001").unwrap(),
+            "# Acta
+"
+        );
+    }
+
+    #[test]
+    fn two_hands_adding_at_once_both_land() {
+        let room = root();
+        write(room.path(), "mac0-0001", "# Acta").unwrap();
+        let at = room.path().to_path_buf();
+
+        let hands: Vec<_> = (0..8)
+            .map(|n| {
+                let at = at.clone();
+                std::thread::spawn(move || append(&at, "mac0-0001", &format!("linea {n}")))
+            })
+            .collect();
+        for one in hands {
+            one.join().unwrap().unwrap();
+        }
+
+        let whole = read(room.path(), "mac0-0001").unwrap();
+        for n in 0..8 {
+            assert!(
+                whole.contains(&format!("linea {n}")),
+                "se perdio {n}: {whole}"
+            );
+        }
+    }
+
+    #[test]
+    fn what_one_machine_adds_needs_nobody_to_decide_it() {
+        let base = "# Minuta
+
+## 3 de marzo
+
+Riego.
+";
+        let room = root();
+        write(room.path(), "mac0-0001", base).unwrap();
+
+        let mine = append(
+            room.path(),
+            "mac0-0001",
+            "## 10 de marzo
+
+Presupuestos.",
+        )
+        .unwrap();
+
+        assert_eq!(
+            crate::merge::merged(base, &mine, base).as_deref(),
+            Some(mine.as_str()),
+            "the other machine did not move, so there is nothing to ask about"
+        );
+    }
+
+    #[test]
+    fn what_two_machines_add_at_once_is_one_question_that_loses_nothing() {
+        let base = "# Minuta
+
+## 3 de marzo
+
+Riego.
+";
+        let room = root();
+        write(room.path(), "mac0-0001", base).unwrap();
+        write(room.path(), "mac0-0002", base).unwrap();
+        let mine = append(
+            room.path(),
+            "mac0-0001",
+            "## 10 de marzo
+
+Presupuestos.",
+        )
+        .unwrap();
+        let theirs = append(
+            room.path(),
+            "mac0-0002",
+            "## 12 de marzo
+
+Gasfiter.",
+        )
+        .unwrap();
+
+        // Both grew at the same point, which the weave will not settle on its own.
+        assert_eq!(crate::merge::merged(base, &mine, &theirs), None);
+        let rifts = crate::merge::rifts(base, &mine, &theirs);
+        assert_eq!(rifts.len(), 1, "one question, not one per line");
+
+        let both = crate::merge::woven_with(
+            base,
+            &mine,
+            &theirs,
+            &vec![crate::merge::Pick::Both; rifts.len()],
+        )
+        .expect("keeping both is what the person is offered first");
+
+        assert_eq!(
+            both,
+            format!(
+                "{base}
+## 10 de marzo
+
+Presupuestos.
+
+## 12 de marzo
+
+Gasfiter.
+"
+            )
+        );
+    }
+
+    #[test]
+    fn the_lock_is_not_read_as_a_document_of_its_own() {
+        let room = papers();
+
+        append(room.path(), "mac0-0002", "algo").unwrap();
+
+        assert!(room.path().join(".lock").exists());
+        assert_eq!(all(room.path()).len(), 3);
+        assert!(!print(room.path()).contains("lock"));
+    }
+
+    #[test]
+    fn the_print_of_the_documents_moves_when_a_body_does_and_no_event_is_written() {
+        let room = papers();
+        let before = print(room.path());
+
+        append(room.path(), "mac0-0002", "una linea mas").unwrap();
+
+        assert_ne!(print(room.path()), before);
+        assert_eq!(print(room.path()), print(room.path()));
+    }
+
+    #[test]
+    fn the_print_of_a_room_with_no_documents_is_empty_rather_than_a_guess() {
+        let room = root();
+
+        assert_eq!(print(&room.path().join("nowhere")), String::new());
+        assert_eq!(print(room.path()), String::new());
     }
 
     #[test]
