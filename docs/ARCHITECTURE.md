@@ -72,11 +72,29 @@ over the wire can register one. Its own directory is what keeps `undo`
 apart: the person's undo never reaches what the agent filed.
 
 It can propose a task, add to a journal, read one whole task, search, attach
-a file, write documents, list what is written and file it into folders, and
-read the names of the lists. There is no tool for completing, dropping,
-deleting, undoing, editing what the person wrote, making a list, or rewriting a
-document: task content it only ever adds to, and document bodies do not merge,
-so a rewrite would lose one side.
+a file, write documents and add to them, list what is written and file it into
+folders, and read the names of the lists. There is no tool for completing,
+dropping, deleting, undoing, editing what the person wrote, making a list, or
+rewriting a document: everything it touches it only ever adds to.
+
+It may **add** to a document that exists, and never rewrite one. Adding keeps
+every byte that was there and puts the new text after a blank line, so nothing
+the person wrote can be lost by an assistant that misread it. Rewriting is what
+stays shut: the person may have the document open in the window while the agent
+writes, and the window saves the whole body — the last writer would win and the
+other's work would be gone. A body lives outside the log, so adding writes no
+event; the window's watch compares a print of the documents themselves and tells
+the window to read the open one again, which it does unless there are unsaved
+changes in it. Two agents adding at once are held apart by a lock beside the
+documents, because reading a body and writing it back is two steps.
+
+Across two machines it behaves like any other edit, and the weave was measured
+against it rather than assumed: if only one side grew, the round copies it and
+asks nothing. If both grew, both added at the same place — the end — which the
+weave will not settle on its own, so it refuses and the person is asked once,
+with «keep both» offered first. Taking both yields the document with both
+entries in order, losing neither. That is friction, not loss, and it is the same
+road every other refusal takes.
 
 Folders are the one place it may tidy: it can make one, give it an icon from the
 closed catalogue, and move documents between them. It cannot rename, empty or

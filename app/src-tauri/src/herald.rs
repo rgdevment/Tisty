@@ -174,6 +174,7 @@ fn survived<T>(work: impl FnOnce() -> T, said: &'static str) -> Option<T> {
 #[derive(Default)]
 struct Watching {
     print: String,
+    papers: String,
     state: tisty_core::State,
     looked: bool,
 }
@@ -197,6 +198,12 @@ impl Watching {
                 }
                 Err(_) => read = false,
             }
+        }
+        // A body lives outside the log, so text added to a document writes no event to notice.
+        let papers = tisty_core::docs::print(&paths.docs());
+        if papers != self.papers {
+            stirred = stirred || self.looked;
+            self.papers = papers;
         }
         self.looked = true;
         let owed = tisty_core::herald::owed(&self.state, since, now, &jiff::tz::TimeZone::system());
@@ -277,6 +284,29 @@ mod tests {
             !again,
             "nothing changed the second time, so nobody is woken"
         );
+    }
+
+    #[test]
+    fn the_watch_speaks_up_when_a_document_grew_without_writing_an_event() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = tisty_core::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let now = jiff::Timestamp::now();
+        let mut watching = Watching::default();
+        let papers = paths.docs();
+        wrote(&paths, "what was already here");
+        tisty_core::docs::write(&papers, "dev0-0001", "# Minuta\n").unwrap();
+
+        let (_, _, first) = watching.owed(&paths, now, now);
+        tisty_core::docs::append(&papers, "dev0-0001", "Un punto mas.").unwrap();
+        let (_, _, after) = watching.owed(&paths, now, now);
+        let (_, _, again) = watching.owed(&paths, now, now);
+
+        assert!(!first, "the first look is the starting point");
+        assert!(
+            after,
+            "the log did not move, but the document did and the window has to be told"
+        );
+        assert!(!again, "nothing changed the second time");
     }
 
     fn due() -> Happening {

@@ -418,6 +418,7 @@ export default function App() {
     const stirred = listen("stirred", () => {
       latest.current();
       lookPapers();
+      setCarried((was) => was + 1);
     });
     const sound = listen<unknown>("chime", (rung) => {
       if (heard(rung.payload)) play(rung.payload);
