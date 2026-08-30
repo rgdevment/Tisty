@@ -95,30 +95,45 @@ pub enum Hit {
     Mentioned,
 }
 
-pub fn matches_query(task: &Task, query: &str) -> Option<Hit> {
-    let query = crate::text::folded(query);
-    let query = query.as_str();
-    let contains = |text: &str| crate::text::folded(text).contains(query);
+/// Every word has to land somewhere, but not all in the same field: what someone remembers of a
+/// task is half its title and half a line of its journal.
+pub fn matches_query(task: &Task, terms: &[String]) -> Option<Hit> {
+    if terms.is_empty() {
+        return None;
+    }
+    let folded = crate::text::folded;
+    let named: Vec<String> = std::iter::once(folded(&task.title))
+        .chain(task.tags.iter().map(|t| folded(t.as_str())))
+        .collect();
+    // A link matches whole or not at all: half a URL is in every other link on the list.
+    let linked: Vec<String> = if task.volume.refs > 0 {
+        task.references()
+            .iter()
+            .flat_map(|one| [Some(folded(&one.target)), one.label.as_deref().map(folded)])
+            .flatten()
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let by_name = |term: &String| {
+        named.iter().any(|one| one.contains(term.as_str())) || linked.iter().any(|one| one == term)
+    };
 
-    if contains(&task.title) || task.tags.iter().any(|t| contains(t.as_str())) {
+    if terms.iter().all(by_name) {
         return Some(Hit::Named);
     }
-    if task.volume.refs > 0
-        && task.references().iter().any(|one| {
-            crate::text::folded(&one.target) == query
-                || one
-                    .label
-                    .as_deref()
-                    .is_some_and(|l| crate::text::folded(l) == query)
-        })
-    {
-        return Some(Hit::Named);
-    }
-    let body = task.description.as_deref().is_some_and(contains)
-        || task.log.iter().any(|e| contains(&e.body))
-        || task.steps.iter().any(|s| contains(&s.text));
+    let body: Vec<String> = task
+        .description
+        .iter()
+        .map(|one| folded(one))
+        .chain(task.log.iter().map(|e| folded(&e.body)))
+        .chain(task.steps.iter().map(|s| folded(&s.text)))
+        .collect();
 
-    body.then_some(Hit::Mentioned)
+    terms
+        .iter()
+        .all(|term| by_name(term) || body.iter().any(|one| one.contains(term.as_str())))
+        .then_some(Hit::Mentioned)
 }
 
 #[cfg(test)]
@@ -153,19 +168,49 @@ mod tests {
         filter
     }
 
+    fn asked(task: &Task, query: &str) -> Option<Hit> {
+        matches_query(task, &crate::text::terms(query))
+    }
+
     #[test]
     fn a_word_is_found_whether_or_not_the_accent_was_typed() {
         let mut task = task("Llamar al médico");
         task.description = Some("y pedir la analítica".into());
 
-        assert!(
-            matches_query(&task, "medico").is_some(),
-            "sin tilde no aparece"
-        );
-        assert!(matches_query(&task, "médico").is_some());
-        assert!(matches_query(&task, "MEDICO").is_some());
-        assert!(matches_query(&task, "analitica").is_some());
-        assert!(matches_query(&task, "nada de eso").is_none());
+        assert!(asked(&task, "medico").is_some(), "sin tilde no aparece");
+        assert!(asked(&task, "médico").is_some());
+        assert!(asked(&task, "MEDICO").is_some());
+        assert!(asked(&task, "analitica").is_some());
+        assert!(asked(&task, "nada de eso").is_none());
+    }
+
+    #[test]
+    fn the_words_do_not_have_to_be_written_together_or_in_order() {
+        let mut task = task("Llamar al médico por la analítica");
+        task.description = Some("del control anual".into());
+
+        assert!(asked(&task, "analitica llamar").is_some());
+        assert!(asked(&task, "medico anual").is_some(), "titulo y cuerpo");
+        assert!(asked(&task, "medico dentista").is_none(), "todas o nada");
+    }
+
+    #[test]
+    fn a_phrase_in_quotes_keeps_its_order() {
+        let task = task("Llamar al médico por la analítica");
+
+        assert!(asked(&task, "\"al médico\"").is_some());
+        assert!(asked(&task, "\"médico al\"").is_none());
+    }
+
+    #[test]
+    fn what_the_title_holds_outranks_what_the_journal_mentions() {
+        let mut named = task("presupuesto del condominio");
+        named.description = Some("nada".into());
+        let mut aside = task("llamar a la administradora");
+        aside.description = Some("preguntar por el presupuesto".into());
+
+        assert_eq!(asked(&named, "presupuesto"), Some(Hit::Named));
+        assert_eq!(asked(&aside, "presupuesto"), Some(Hit::Mentioned));
     }
 
     #[test]

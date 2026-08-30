@@ -269,6 +269,9 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "note",
             "attach",
             "write_doc",
+            "docs",
+            "file_doc",
+            "folder",
             "read_doc",
             "read",
             "find",
@@ -964,4 +967,199 @@ fn a_client_of_either_era_gets_an_answer_it_understands() {
     );
     assert_eq!(said[1]["result"]["protocolVersion"], "2025-06-18");
     assert!(said[1]["result"]["instructions"].is_string());
+}
+
+impl Served {
+    fn put_away(&self, doc: &str) {
+        let paths = tisty_core::Paths::new(
+            self.home.path().join("data"),
+            self.home.path().join("config"),
+        );
+        let state = tisty_core::cache::project(&paths.store(), paths.cache()).unwrap();
+        let id = state.docs.values().find(|one| one.file == doc).unwrap().id;
+        let who = tisty_core::Config::load_or_init(&paths)
+            .unwrap()
+            .agent_id
+            .unwrap();
+        tisty_core::Store::open(paths.store(), who)
+            .unwrap()
+            .append(tisty_core::Op::DocArchive { id })
+            .unwrap();
+    }
+}
+
+#[test]
+fn what_is_written_is_listed_again_with_the_folder_it_sits_in() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Condominio", "icon": "home" }),
+    );
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Acta de marzo\n\nSe habló del riego.", "folder": "condominio" }),
+    );
+
+    let listed = served.call("docs", serde_json::json!({}));
+    let held = &listed["result"]["structuredContent"];
+
+    assert_eq!(held["total"], 1, "{listed}");
+    assert_eq!(held["docs"][0]["title"], "Acta de marzo");
+    assert_eq!(held["docs"][0]["folder"], "Condominio");
+    assert_eq!(held["docs"][0]["archived"], false);
+    assert_eq!(held["folders"][0]["icon"], "home");
+    assert_eq!(held["folders"][0]["docs"], 1);
+}
+
+#[test]
+fn a_folder_that_is_already_there_is_used_instead_of_made_twice() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let made = served.call("folder", serde_json::json!({ "name": "Trabajo" }));
+    let again = served.call("folder", serde_json::json!({ "name": "  trabajo  " }));
+
+    assert_eq!(made["result"]["structuredContent"]["made"], true);
+    assert_eq!(again["result"]["structuredContent"]["made"], false);
+    assert_eq!(
+        made["result"]["structuredContent"]["id"],
+        again["result"]["structuredContent"]["id"]
+    );
+    assert_eq!(
+        served.call("docs", serde_json::json!({}))["result"]["structuredContent"]["folders"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn a_folder_is_refused_a_name_that_would_not_fit_the_rail_or_an_icon_that_does_not_exist() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let long = served.call("folder", serde_json::json!({ "name": "a".repeat(41) }));
+    let drawn = served.call(
+        "folder",
+        serde_json::json!({ "name": "Casa", "icon": "unicorn" }),
+    );
+
+    assert_eq!(long["result"]["isError"], true, "{long}");
+    assert_eq!(drawn["result"]["isError"], true, "{drawn}");
+    assert!(
+        drawn["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("home"),
+        "the refusal has to teach a name that works: {drawn}"
+    );
+}
+
+#[test]
+fn a_document_moves_into_a_folder_and_back_out_of_every_folder() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Casa" }));
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Riego\n\nla manguera." }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let filed = served.call(
+        "file_doc",
+        serde_json::json!({ "doc": doc, "folder": "Casa" }),
+    );
+    assert_eq!(filed["result"]["structuredContent"]["folder"], "Casa");
+
+    let out = served.call("file_doc", serde_json::json!({ "doc": doc }));
+    assert!(
+        out["result"]["structuredContent"]["folder"].is_null(),
+        "{out}"
+    );
+
+    let missing = served.call(
+        "file_doc",
+        serde_json::json!({ "doc": doc, "folder": "no existe" }),
+    );
+    assert_eq!(missing["result"]["isError"], true, "{missing}");
+}
+
+#[test]
+fn a_document_is_found_by_its_words_in_any_order_and_without_the_accent() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Multilogin B2B — Análisis del repositorio\n\nNotas de la revisión." }),
+    );
+
+    for asked in [
+        "analisis",
+        "ANÁLISIS",
+        "multilogin repositorio",
+        "análisis multilogin",
+    ] {
+        let said = served.call("find", serde_json::json!({ "query": asked }));
+        let docs = said["result"]["structuredContent"]["docs"]
+            .as_array()
+            .unwrap();
+
+        assert_eq!(docs.len(), 1, "{asked} no lo encuentra: {said}");
+    }
+    let nothing = served.call(
+        "find",
+        serde_json::json!({ "query": "multilogin dentista" }),
+    );
+    assert!(
+        nothing["result"]["structuredContent"]["docs"]
+            .as_array()
+            .unwrap()
+            .is_empty(),
+        "todas las palabras o ninguna: {nothing}"
+    );
+}
+
+#[test]
+fn a_document_put_away_still_reads_but_says_it_was_put_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Presupuesto viejo\n\nDel año pasado." }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.put_away(&doc);
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    let held = &read["result"]["structuredContent"];
+
+    assert_eq!(held["archived"], true, "{read}");
+    assert!(held["body"].as_str().unwrap().contains("año pasado"));
+    assert!(
+        read["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("put away"),
+        "reading it is fine, not saying so is not: {read}"
+    );
+
+    let found = served.call("find", serde_json::json!({ "query": "presupuesto" }));
+    assert_eq!(
+        found["result"]["structuredContent"]["docs"][0]["archived"], true,
+        "{found}"
+    );
+    assert_eq!(
+        served.call("docs", serde_json::json!({ "scope": "open" }))["result"]["structuredContent"]
+            ["total"],
+        0
+    );
 }

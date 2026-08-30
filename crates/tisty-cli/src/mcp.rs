@@ -15,6 +15,9 @@ const VERSIONS: [&str; 3] = ["2026-07-28", "2025-11-25", "2025-06-18"];
 const TOOLS_STAY_FRESH: i64 = 3_600_000;
 const INBOX_TAG: &str = "agent";
 const DOCS_AT_MOST: usize = 500;
+const FOLDERS_AT_MOST: usize = 64;
+const FOLDER_NAME_AT_MOST: usize = 40;
+const LISTED_AT_MOST: usize = 200;
 
 fn instructions(today: jiff::civil::Date) -> String {
     format!("Today is {today}.\n\n{TAUGHT}")
@@ -39,7 +42,14 @@ Fill in what you actually know. A title alone is a fine task; inventing a deadli
 gave you is worse than leaving it empty. Put what you read in `description`. Write titles \
 and notes in the language the person writes in.
 
-A document is for what is worth keeping and is not work to do — a summary, a note, something to consult. Writing one creates no task: if something has to happen, propose it.
+A document is for what is worth keeping and is not work to do — a summary, a note, something \
+to consult. Writing one creates no task: if something has to happen, propose it. `docs` lists \
+what is written already and the folders it is kept in; you can make a folder and file documents \
+into it, but you can never delete, rename or rewrite one.
+
+`find` takes words, not a phrase: each word has to turn up somewhere in the same task or \
+document, in any order, and an accent typed or not typed makes no difference. Put a phrase in \
+quotes when the order is the point.
 
 `note` appends to a task's journal, including tasks the person wrote themselves. Use it \
 when something new turns up about work that already exists, rather than filing a duplicate. \
@@ -228,6 +238,9 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "read" => read(paths, &args),
         "write_doc" => write_doc(paths, &args),
         "read_doc" => read_doc(paths, &args),
+        "docs" => papers(paths, &args),
+        "file_doc" => file_doc(paths, &args),
+        "folder" => folder(paths, &args),
         "lists" => lists(paths),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
@@ -616,6 +629,21 @@ fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+fn said<'a>(one: &'a Value, key: &str) -> &'a str {
+    one[key].as_str().unwrap_or_default()
+}
+
+fn scoped(args: &Value) -> Result<tisty_core::view::Scope, Refused> {
+    match text(args, "scope").as_deref() {
+        Some("open") => Ok(tisty_core::view::Scope::Open),
+        Some("archive") => Ok(tisty_core::view::Scope::Archived),
+        None | Some("either") => Ok(tisty_core::view::Scope::Either),
+        Some(said) => Err(Refused::Tool(format!(
+            "`scope` is open, archive or either — not {said:?}."
+        ))),
+    }
+}
+
 fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
 
@@ -645,16 +673,7 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .into(),
         ));
     };
-    let scope = match text(args, "scope").as_deref() {
-        Some("open") => tisty_core::view::Scope::Open,
-        Some("archive") => tisty_core::view::Scope::Archived,
-        None | Some("either") => tisty_core::view::Scope::Either,
-        Some(said) => {
-            return Err(Refused::Tool(format!(
-                "`scope` is open, archive or either — not {said:?}."
-            )));
-        }
-    };
+    let scope = scoped(args)?;
     let most = args
         .get("limit")
         .and_then(Value::as_u64)
@@ -663,24 +682,34 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let past = args.get("after").and_then(Value::as_u64).unwrap_or(0) as usize;
 
     // Counting what it cannot see would still say the thing exists.
-    let (hits, _) = state.searching(&query.to_lowercase(), scope, usize::MAX);
+    let (hits, _) = state.searching(&query, scope, usize::MAX);
     let hits: Vec<&Task> = hits.into_iter().filter(|one| !one.folded()).collect();
     let all = hits.len();
     let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
     let found: Vec<Value> = hits.iter().map(|task| brief(task, &state)).collect();
-    let papers = papers_matching(paths, &state, &query, scope, most);
+    // Cut after counting: a document dropped in silence reads as a document that is not there.
+    let papers = papers_matching(paths, &state, &query, scope, usize::MAX);
+    let papers_all = papers.len();
+    let papers: Vec<Value> = papers.into_iter().skip(past).take(most).collect();
     let mut lines: Vec<String> = hits
         .iter()
         .map(|task| format!("{} — {} ({})", task.id, task.title, named(task.status)))
         .collect();
-    lines.extend(
-        papers
-            .iter()
-            .map(|one| format!("{} — {} (document)", one["doc"], one["title"])),
-    );
+    lines.extend(papers.iter().map(|one| {
+        let put_away = if one["archived"] == json!(true) {
+            ", put away"
+        } else {
+            ""
+        };
+        format!(
+            "{} — {} (document{put_away})",
+            said(one, "doc"),
+            said(one, "title")
+        )
+    }));
     Ok(told(
         format!(
-            "{all} match {query:?}; showing {}, and {} document(s).
+            "{all} task(s) and {papers_all} document(s) match {query:?}; showing {} and {}.
 {}",
             found.len(),
             papers.len(),
@@ -689,7 +718,12 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 "
             )
         ),
-        json!({ "matches": found, "total": all, "docs": papers }),
+        json!({
+            "matches": found,
+            "total": all,
+            "docs": papers,
+            "docsTotal": papers_all,
+        }),
     ))
 }
 
@@ -776,12 +810,17 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "there are already {DOCS_AT_MOST} documents here. Add to a task's journal instead, or              ask the person to clear some."
         )));
     }
+    // Before the file exists, so a folder that does not is not paid for with an orphan on disk.
+    let folder = match text(args, "folder") {
+        Some(said) => Some(folder_named(&state, &said)?),
+        None => None,
+    };
     let made = tisty_core::docs::create(&paths.docs(), store.device(), &body).map_err(hitch)?;
     let order = tisty_core::order::last_of(
         state
             .docs
             .values()
-            .filter(|one| one.folder.is_none())
+            .filter(|one| one.folder == folder)
             .map(|one| one.order.as_str()),
     );
     store
@@ -790,14 +829,306 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             d: tisty_core::event::DocAdd {
                 file: made.id.clone(),
                 order,
-                folder: None,
+                folder,
+            },
+        })
+        .map_err(hitch)?;
+
+    let where_at = folder.map(|at| trail(&state, at));
+    Ok(told(
+        match &where_at {
+            Some(named) => format!("Wrote {:?} as {} in {named}.", made.title, made.id),
+            None => format!(
+                "Wrote {:?} as {}, in no folder. `docs` says which folders exist.",
+                made.title, made.id
+            ),
+        },
+        json!({ "doc": made.id, "title": made.title, "folder": where_at }),
+    ))
+}
+
+fn trail(state: &State, at: tisty_core::model::FolderId) -> String {
+    let mut named = Vec::new();
+    let mut walk = Some(at);
+    while let Some(one) = walk {
+        let Some(folder) = state.folders.get(&one) else {
+            break;
+        };
+        named.push(folder.name.as_str());
+        walk = folder.parent;
+        if named.len() > tisty_core::model::DEEPEST {
+            break;
+        }
+    }
+    named.reverse();
+    named.join(" / ")
+}
+
+/// By name, because that is what the person calls it; by id when two folders share a name, which
+/// is the only way out of a tie.
+fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId, Refused> {
+    if let Ok(id) = said.parse::<Ulid>()
+        && state.folders.contains_key(&id)
+    {
+        return Ok(id);
+    }
+    let wanted = tisty_core::text::folded(said);
+    let hit: Vec<&tisty_core::model::Folder> = state
+        .folders
+        .values()
+        .filter(|one| tisty_core::text::folded(&one.name) == wanted)
+        .collect();
+
+    match hit.as_slice() {
+        [one] => Ok(one.id),
+        [] => Err(Refused::Tool(format!(
+            "no folder here is called {said:?}. `docs` lists the ones that exist, and `folder` \
+             makes a new one."
+        ))),
+        many => Err(Refused::Tool(format!(
+            "{said:?} is the name of {} folders. Send the id of the one you mean instead: {}.",
+            many.len(),
+            many.iter()
+                .map(|one| format!("{} ({})", one.id, trail(state, one.id)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))),
+    }
+}
+
+fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let (state, _) = opened(paths)?;
+    let scope = scoped(args)?;
+    let most = args
+        .get("limit")
+        .and_then(Value::as_u64)
+        .unwrap_or(50)
+        .clamp(1, LISTED_AT_MOST as u64) as usize;
+    let past = args.get("after").and_then(Value::as_u64).unwrap_or(0) as usize;
+
+    let titled: std::collections::HashMap<String, String> = tisty_core::docs::all(&paths.docs())
+        .into_iter()
+        .map(|one| (one.id, one.title))
+        .collect();
+
+    let mut kept: Vec<&tisty_core::model::Kept> = state
+        .docs
+        .values()
+        .filter(|one| match scope {
+            tisty_core::view::Scope::Open => !one.archived,
+            tisty_core::view::Scope::Archived => one.archived,
+            tisty_core::view::Scope::Either => true,
+        })
+        .collect();
+    // Newest first: what an agent wrote is what it is most likely looking for again.
+    kept.sort_by_key(|one| std::cmp::Reverse(one.id));
+
+    let all = kept.len();
+    let shown: Vec<Value> = kept
+        .iter()
+        .skip(past)
+        .take(most)
+        .map(|one| {
+            json!({
+                "doc": one.file,
+                "title": titled.get(&one.file).cloned().unwrap_or_default(),
+                "folder": one.folder.map(|at| trail(&state, at)),
+                "archived": one.archived,
+            })
+        })
+        .collect();
+
+    let mut folders: Vec<Value> = state
+        .folders
+        .values()
+        .map(|one| {
+            json!({
+                "folder": one.name,
+                "id": one.id.to_string(),
+                "path": trail(&state, one.id),
+                "icon": one.icon,
+                "docs": state.docs.values().filter(|kept| kept.folder == Some(one.id)).count(),
+            })
+        })
+        .collect();
+    folders.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
+
+    let mut lines: Vec<String> = shown
+        .iter()
+        .map(|one| {
+            let where_at = one["folder"].as_str().unwrap_or("no folder");
+            let put_away = if one["archived"] == json!(true) {
+                ", put away"
+            } else {
+                ""
+            };
+            format!(
+                "{} — {} ({where_at}{put_away})",
+                said(one, "doc"),
+                said(one, "title")
+            )
+        })
+        .collect();
+    lines.push(match folders.is_empty() {
+        true => "No folders here yet.".into(),
+        false => format!(
+            "Folders: {}.",
+            folders
+                .iter()
+                .filter_map(|one| one["path"].as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+    });
+
+    Ok(told(
+        format!(
+            "{all} document(s); showing {}.\n{}",
+            shown.len(),
+            lines.join("\n")
+        ),
+        json!({ "docs": shown, "total": all, "folders": folders }),
+    ))
+}
+
+fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(which) = text(args, "doc") else {
+        return Err(Refused::Tool(
+            "filing a document needs its `doc` name.".into(),
+        ));
+    };
+    let (state, mut store) = opened(paths)?;
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Err(Refused::Tool(format!(
+            "no document here is called {which:?}. `docs` lists them all."
+        )));
+    };
+    let folder = match text(args, "folder") {
+        Some(said) => Some(folder_named(&state, &said)?),
+        None => None,
+    };
+    if kept.folder == folder {
+        return Ok(told(
+            match folder.map(|at| trail(&state, at)) {
+                Some(named) => format!("{which} was already in {named}."),
+                None => format!("{which} was already in no folder."),
+            },
+            json!({ "doc": which, "folder": folder.map(|at| trail(&state, at)) }),
+        ));
+    }
+    store
+        .append(Op::DocMove {
+            id: kept.id,
+            d: tisty_core::event::Filed {
+                folder: Some(folder),
+            },
+        })
+        .map_err(hitch)?;
+
+    let where_at = folder.map(|at| trail(&state, at));
+    Ok(told(
+        match &where_at {
+            Some(named) => format!("Filed {which} in {named}."),
+            None => format!("Took {which} out of every folder."),
+        },
+        json!({ "doc": which, "folder": where_at }),
+    ))
+}
+
+fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(said) = text(args, "name") else {
+        return Err(Refused::Tool("a folder needs a `name`.".into()));
+    };
+    let name = tisty_core::text::plainly(&said);
+    if name.chars().count() > FOLDER_NAME_AT_MOST {
+        return Err(Refused::Tool(format!(
+            "a folder name is at most {FOLDER_NAME_AT_MOST} characters, and {name:?} is longer. \
+             It has to fit a rail on screen: name it in a word or two."
+        )));
+    }
+    if name.is_empty() {
+        return Err(Refused::Tool("a folder needs a `name`.".into()));
+    }
+    let icon = match text(args, "icon") {
+        Some(key) => Some(
+            tisty_core::model::icon::kept(&key)
+                .map(str::to_string)
+                .ok_or_else(|| {
+                    Refused::Tool(format!(
+                        "there is no icon called {key:?}. The names are a closed catalogue — \
+                         home, work, money, study, travel, health, food, shopping, family, code, \
+                         folder, archive are some of them. Leave `icon` out if none fits."
+                    ))
+                })?,
+        ),
+        None => None,
+    };
+    let (state, mut store) = opened(paths)?;
+
+    let wanted = tisty_core::text::folded(&name);
+    if let Some(one) = state
+        .folders
+        .values()
+        .find(|one| tisty_core::text::folded(&one.name) == wanted)
+    {
+        if let Some(icon) = icon {
+            store
+                .append(Op::FolderLook {
+                    id: one.id,
+                    d: tisty_core::event::Look {
+                        icon: Some(Some(icon)),
+                        color: None,
+                    },
+                })
+                .map_err(hitch)?;
+        }
+        return Ok(told(
+            format!(
+                "{:?} already exists, at {}.",
+                one.name,
+                trail(&state, one.id)
+            ),
+            json!({ "folder": one.name, "id": one.id.to_string(), "made": false }),
+        ));
+    }
+    if state.folders.len() >= FOLDERS_AT_MOST {
+        return Err(Refused::Tool(format!(
+            "there are already {FOLDERS_AT_MOST} folders here. File the document in one of them \
+             instead of making another."
+        )));
+    }
+    let parent = match text(args, "inside") {
+        Some(said) => Some(folder_named(&state, &said)?),
+        None => None,
+    };
+    if parent.is_some_and(|at| state.depth(Some(at)) >= tisty_core::model::DEEPEST) {
+        return Err(Refused::Tool(format!(
+            "folders only nest {} deep here. Make it beside that one instead.",
+            tisty_core::model::DEEPEST
+        )));
+    }
+    let id = Ulid::generate();
+    let order =
+        tisty_core::order::last_of(state.under(parent).iter().map(|one| one.order.as_str()));
+    store
+        .append(Op::FolderAdd {
+            id,
+            d: tisty_core::event::FolderAdd {
+                name: name.clone(),
+                order,
+                parent,
+                icon,
+                color: None,
             },
         })
         .map_err(hitch)?;
 
     Ok(told(
-        format!("Wrote {:?} as {}.", made.title, made.id),
-        json!({ "doc": made.id, "title": made.title }),
+        match parent.map(|at| trail(&state, at)) {
+            Some(under) => format!("Made the folder {name:?} inside {under}."),
+            None => format!("Made the folder {name:?}."),
+        },
+        json!({ "folder": name, "id": id.to_string(), "made": true }),
     ))
 }
 
@@ -826,22 +1157,27 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     };
     let (state, _) = opened(paths)?;
-    if !state
-        .docs
-        .values()
-        .any(|one| one.file == which && !one.archived)
-    {
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(format!(
-            "no document here is called {which:?}."
+            "no document here is called {which:?}. `docs` lists them all."
         )));
-    }
+    };
+    let folder = kept.folder.map(|at| trail(&state, at));
     let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
+    // Reading it is fine; not saying it was put away is not, because a summary of it would go on
+    // as if the person still kept it in sight.
+    let said = match kept.archived {
+        true => format!("(This document is put away — the person archived it.)\n\n{body}"),
+        false => body.clone(),
+    };
     Ok(told(
-        body.clone(),
+        said,
         json!({
             "doc": which,
             "title": tisty_core::docs::titled(&body),
             "body": body,
+            "folder": folder,
+            "archived": kept.archived,
         }),
     ))
 }
@@ -900,7 +1236,14 @@ fn papers_matching(
     tisty_core::docs::Corpus::default()
         .searching(&paths.docs(), query, most, |id| here.contains_key(id))
         .into_iter()
-        .map(|one| json!({ "doc": one.id, "title": one.title, "line": one.line }))
+        .map(|one| {
+            json!({
+                "doc": one.id,
+                "title": one.title,
+                "line": one.line,
+                "archived": here.get(&one.id).copied().unwrap_or(false),
+            })
+        })
         .collect()
 }
 
@@ -1044,9 +1387,76 @@ fn tools() -> Value {
                     "body": {
                         "type": "string",
                         "description": "The whole document. Its first line becomes its title"
+                    },
+                    "folder": {
+                        "type": "string",
+                        "description": "A folder to keep it in, by name. `docs` says which exist,                                         and `folder` makes one. Left out, it sits outside them all"
                     }
                 },
                 "required": ["body"]
+            }
+        },
+        {
+            "name": "docs",
+            "title": "The documents and the folders",
+            "description": "Everything written down here, newest first, with the folder each one                             sits in and whether it was put away. Ask for it before writing, so                             you do not write again what is already kept.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "scope": {
+                        "type": "string",
+                        "enum": ["open", "archive", "either"],
+                        "description": "Defaults to either"
+                    },
+                    "limit": { "type": "integer", "description": "At most 200, 50 by default" },
+                    "after": {
+                        "type": "integer",
+                        "description": "Skip this many. With `total` higher than what came back, \
+                                        ask again with `after` set to how many you have"
+                    }
+                }
+            }
+        },
+        {
+            "name": "file_doc",
+            "title": "Put a document in a folder",
+            "description": "Move a document into a folder, or out of every folder by leaving                             `folder` out. Nothing is deleted and no text changes.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "doc": { "type": "string", "description": "The document's name" },
+                    "folder": {
+                        "type": "string",
+                        "description": "An existing folder, by name. Leave it out to take the                                         document out of every folder"
+                    }
+                },
+                "required": ["doc"]
+            }
+        },
+        {
+            "name": "folder",
+            "title": "Make a folder",
+            "description": "Make a folder for documents, and give it an icon if one fits. If a                             folder by that name is already there, it is used as it is —                             nothing is renamed, moved or deleted. Folders hold documents,                             not tasks; tasks go in lists.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "A word or two, at most 40 characters"
+                    },
+                    "inside": {
+                        "type": "string",
+                        "description": "An existing folder to nest it in, by name. Four deep at                                         most"
+                    },
+                    "icon": {
+                        "type": "string",
+                        "description": "One name from Tisty's catalogue, like home, work, money,                                         study, travel, health, food, family or code"
+                    }
+                },
+                "required": ["name"]
             }
         },
         {

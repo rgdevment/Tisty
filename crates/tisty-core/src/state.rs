@@ -835,8 +835,8 @@ impl State {
     ) -> (Vec<&Task>, usize) {
         use crate::view::Scope;
 
-        let query = query.trim().to_lowercase();
-        if query.is_empty() {
+        let terms = crate::text::terms(query);
+        if terms.is_empty() {
             return (Vec::new(), 0);
         }
 
@@ -848,7 +848,7 @@ impl State {
                 Scope::Archived => t.is_archived(),
                 Scope::Either => true,
             })
-            .filter_map(|t| crate::view::matches_query(t, &query).map(|hit| (hit, t)))
+            .filter_map(|t| crate::view::matches_query(t, &terms).map(|hit| (hit, t)))
             .collect();
 
         hits.sort_by_key(|(hit, t)| {

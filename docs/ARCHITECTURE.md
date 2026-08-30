@@ -72,10 +72,21 @@ over the wire can register one. Its own directory is what keeps `undo`
 apart: the person's undo never reaches what the agent filed.
 
 It can propose a task, add to a journal, read one whole task, search, attach
-a file, write documents, and read the names of the lists. There is no tool for
-completing, dropping, deleting, undoing, editing what the person wrote, making
-a list, or rewriting a document: task content it only ever adds to, and
-document bodies do not merge, so a rewrite would lose one side.
+a file, write documents, list what is written and file it into folders, and
+read the names of the lists. There is no tool for completing, dropping,
+deleting, undoing, editing what the person wrote, making a list, or rewriting a
+document: task content it only ever adds to, and document bodies do not merge,
+so a rewrite would lose one side.
+
+Folders are the one place it may tidy: it can make one, name it in forty
+characters or fewer, give it an icon from the closed catalogue, and move
+documents between them. It cannot rename, empty or delete a folder, so the
+worst it can do is put a paper in the wrong drawer — and a document it wrote is
+one nobody else has to find for it. A document it cannot list is a document it
+wrote into the dark, so `docs` answers with everything kept, the folder each
+one sits in, and whether it was put away. Reading one that was put away is
+allowed, and the answer says so: a summary that treats an archived paper as
+current is worse than no summary.
 
 It may file into a list, but only one that already exists — a name that matches
 nothing is refused with the names that do, so the agent cannot quietly invent a
@@ -324,6 +335,32 @@ tisty doctor --repair   # discard the cache; the next read rebuilds it
 The cache is stale, absent, in agreement, or **wrong**. Only the last one exits
 non-zero. `doctor` reports and never repairs on its own, because the log wins
 every disagreement and rebuilding is the only repair there is.
+
+## What a search means
+
+One engine, three doors: the window, `tisty find` and the agent's `find` all cut
+the query the same way, because a person who finds something in the window and
+not in the terminal has found a bug, not a document.
+
+A query is **words, not a string**. Each word has to turn up somewhere in the
+same task or the same document, in any order; a phrase in quotes stays in its
+order. Accents are folded away on both sides, so `analisis` finds *Análisis* and
+`ANÁLISIS` finds it too — Spanish is the language this is written in, and a
+search that demands the tilde is a search that fails half the time. Twelve words
+is the ceiling: past that a query would scan the store a dozen times over for
+nothing.
+
+Where a word lands decides the order, not whether it counts. A task whose title
+or tags hold every word ranks above one that only mentions them in a
+description, a step or the journal — but a word in the title and the next one in
+the journal is still a match, because that is how someone remembers a task.
+
+Documents are searched over their **stripped** text: markdown syntax is taken
+out before matching, so nobody has to type the punctuation. Bodies are held
+folded in memory between searches, keyed by size and modification time, and the
+whole cache is capped — past the ceiling the document is read from disk instead
+of cached, which is slower and never wrong. The line shown back is the one
+holding the most of what was asked, never a line of pure punctuation.
 
 ## Syncing
 

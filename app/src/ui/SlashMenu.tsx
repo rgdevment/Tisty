@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Counted, List } from "../core";
+import { begun, folded } from "../finding";
 import { cadence } from "../format";
 import { t } from "../locales";
 import { PICKABLE, said } from "../quadrants";
@@ -183,9 +184,7 @@ function within(
 }
 
 const fits = (row: Row, query: string): boolean =>
-  query === "" || bare(row.label).startsWith(bare(query)) || row.key.startsWith(bare(query));
-
-const bare = (text: string): string => text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  query === "" || begun(row.label, query) || row.key.startsWith(folded(query));
 
 const slug = (name: string): string => name.toLowerCase().replace(/[ _]/g, "-");
 
