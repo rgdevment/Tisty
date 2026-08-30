@@ -23,6 +23,7 @@ import {
   dropStep,
   erase,
   type Filed,
+  FOLDER_NAME_AT_MOST,
   type Folded,
   type Found,
   fold,
@@ -776,6 +777,7 @@ export default function App() {
               : t("newFolder")
           }
           invite={t("folderName")}
+          most={FOLDER_NAME_AT_MOST}
           onClose={() => setMakingFolder(false)}
           onName={(name, icon) =>
             folderAdd(name, roomBelow ? (here ?? undefined) : undefined, icon)
@@ -792,6 +794,7 @@ export default function App() {
         <Naming
           title={t("renameIt")}
           invite={t("folderName")}
+          most={FOLDER_NAME_AT_MOST}
           called={renaming.name}
           drawn={renaming.icon ?? undefined}
           painted={renaming.color ?? undefined}

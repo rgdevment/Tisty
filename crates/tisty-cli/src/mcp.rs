@@ -6,7 +6,7 @@ use tisty_core::{
     Op, Paths, State, Store, Task, TaskId,
     capture::{Draft, Rejected},
     event::{Body, LogAdd, StepAdd},
-    model::{DateSpec, Priority, Tag},
+    model::{DateSpec, FOLDER_NAME_AT_MOST, Priority, Tag},
     order,
 };
 use ulid::Ulid;
@@ -16,7 +16,6 @@ const TOOLS_STAY_FRESH: i64 = 3_600_000;
 const INBOX_TAG: &str = "agent";
 const DOCS_AT_MOST: usize = 500;
 const FOLDERS_AT_MOST: usize = 64;
-const FOLDER_NAME_AT_MOST: usize = 40;
 const LISTED_AT_MOST: usize = 200;
 
 fn instructions(today: jiff::civil::Date) -> String {
@@ -687,10 +686,10 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let all = hits.len();
     let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
     let found: Vec<Value> = hits.iter().map(|task| brief(task, &state)).collect();
-    // Cut after counting: a document dropped in silence reads as a document that is not there.
+    // `after` walks the tasks only — paging past them would empty this list without saying why.
     let papers = papers_matching(paths, &state, &query, scope, usize::MAX);
     let papers_all = papers.len();
-    let papers: Vec<Value> = papers.into_iter().skip(past).take(most).collect();
+    let papers: Vec<Value> = papers.into_iter().take(most).collect();
     let mut lines: Vec<String> = hits
         .iter()
         .map(|task| format!("{} — {} ({})", task.id, task.title, named(task.status)))
@@ -864,8 +863,6 @@ fn trail(state: &State, at: tisty_core::model::FolderId) -> String {
     named.join(" / ")
 }
 
-/// By name, because that is what the person calls it; by id when two folders share a name, which
-/// is the only way out of a tie.
 fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId, Refused> {
     if let Ok(id) = said.parse::<Ulid>()
         && state.folders.contains_key(&id)
@@ -920,7 +917,6 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             tisty_core::view::Scope::Either => true,
         })
         .collect();
-    // Newest first: what an agent wrote is what it is most likely looking for again.
     kept.sort_by_key(|one| std::cmp::Reverse(one.id));
 
     let all = kept.len();
@@ -1164,8 +1160,6 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let folder = kept.folder.map(|at| trail(&state, at));
     let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
-    // Reading it is fine; not saying it was put away is not, because a summary of it would go on
-    // as if the person still kept it in sight.
     let said = match kept.archived {
         true => format!("(This document is put away — the person archived it.)\n\n{body}"),
         false => body.clone(),
@@ -1256,8 +1250,8 @@ fn brief(task: &Task, state: &State) -> Value {
         "deadline": task.deadline.as_ref().map(|d| d.date().to_string()),
         "tags": task.tags.iter().map(Tag::as_str).collect::<Vec<_>>(),
         "source": task.source,
-        // Where the person filed it, and how they ranked it: the agent cannot choose either, and
-        // reading them is how it sees what they decided.
+        // Where it ended up and how the person ranked it: reading them is how an agent sees a
+        // decision it cannot make itself.
         "list": task.list.as_ref().and_then(|id| state.lists.get(id)).map(|one| &one.name),
         "priority": (task.priority != Priority::Unset).then_some(task.priority),
         "by_agent": task
@@ -1507,8 +1501,10 @@ fn tools() -> Value {
                     "limit": { "type": "integer", "description": "At most 100, 20 by default" },
                     "after": {
                         "type": "integer",
-                        "description": "Skip this many. With `total` higher than what came back, \
-                                        ask again with `after` set to how many you have"
+                        "description": "Skip this many tasks. With `total` higher than what came \
+                                        back, ask again with `after` set to how many you have. \
+                                        Documents are not paged: `docsTotal` says how many match \
+                                        and a higher `limit` brings more of them"
                     }
                 }
             }

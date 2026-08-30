@@ -628,8 +628,6 @@ fn cut(said: String) -> String {
     said.chars().take(SAID_AT_MOST).collect()
 }
 
-/// The line worth showing is the one that holds most of what was asked, not the first one that
-/// holds any of it.
 fn shown_around(body: &str, terms: &[String]) -> Option<String> {
     let mut best: Option<(usize, String)> = None;
     let mut backup: Option<(usize, String)> = None;
@@ -752,7 +750,6 @@ impl Corpus {
                 });
                 continue;
             }
-            // A word may be in the title and the next one in the body: both count, together.
             let sighted = match self.flattened(root, &doc.id) {
                 Some(flat) => missing.iter().all(|term| flat.contains(term.as_str())),
                 None => read(root, &doc.id)

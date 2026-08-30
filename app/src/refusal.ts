@@ -67,6 +67,7 @@ const KNOWN = [
   "noSuchIcon",
   "noSuchColour",
   "tooDeep",
+  "folderNameTooLong",
   "intoItself",
   "notACadence",
   "noClipboard",

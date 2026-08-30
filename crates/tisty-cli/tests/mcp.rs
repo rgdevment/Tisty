@@ -1163,3 +1163,34 @@ fn a_document_put_away_still_reads_but_says_it_was_put_away() {
         0
     );
 }
+
+#[test]
+fn paging_past_the_tasks_does_not_empty_the_documents_in_silence() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Riego\n\nla manguera del patio." }),
+    );
+    for n in 0..3 {
+        served.call(
+            "propose",
+            serde_json::json!({ "title": format!("regar el patio {n}") }),
+        );
+    }
+
+    let second = served.call(
+        "find",
+        serde_json::json!({ "query": "patio", "limit": 2, "after": 2 }),
+    );
+    let held = &second["result"]["structuredContent"];
+
+    assert_eq!(held["total"], 3, "{second}");
+    assert_eq!(held["matches"].as_array().unwrap().len(), 1);
+    assert_eq!(held["docsTotal"], 1, "{second}");
+    assert_eq!(
+        held["docs"].as_array().unwrap().len(),
+        1,
+        "the document is not a task and does not page away with them: {second}"
+    );
+}

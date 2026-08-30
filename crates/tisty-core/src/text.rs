@@ -25,8 +25,6 @@ pub fn folded(text: &str) -> String {
 
 pub const TERMS_AT_MOST: usize = 12;
 
-/// A search is words, not one string: nobody types a title back in the order it was written.
-/// Quotes hold a phrase together for when they mean the order.
 pub fn terms(query: &str) -> Vec<String> {
     let mut found = Vec::new();
     let mut word = String::new();

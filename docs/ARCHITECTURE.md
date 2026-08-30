@@ -78,15 +78,21 @@ deleting, undoing, editing what the person wrote, making a list, or rewriting a
 document: task content it only ever adds to, and document bodies do not merge,
 so a rewrite would lose one side.
 
-Folders are the one place it may tidy: it can make one, name it in forty
-characters or fewer, give it an icon from the closed catalogue, and move
-documents between them. It cannot rename, empty or delete a folder, so the
-worst it can do is put a paper in the wrong drawer — and a document it wrote is
-one nobody else has to find for it. A document it cannot list is a document it
-wrote into the dark, so `docs` answers with everything kept, the folder each
-one sits in, and whether it was put away. Reading one that was put away is
-allowed, and the answer says so: a summary that treats an archived paper as
-current is worse than no summary.
+Folders are the one place it may tidy: it can make one, give it an icon from the
+closed catalogue, and move documents between them. It cannot rename, empty or
+delete a folder, so the worst it can do is put a paper in the wrong drawer — and
+a document it wrote is one nobody else has to find for it. A document it cannot
+list is a document it wrote into the dark, so `docs` answers with everything
+kept, the folder each one sits in, and whether it was put away. Reading one that
+was put away is allowed, and the answer says so: a summary that treats an
+archived paper as current is worse than no summary.
+
+A folder name is forty characters at most, and that is the core's number, not
+the agent's — `FOLDER_NAME_AT_MOST` in `model/folder.rs`. The window refuses the
+same name the agent is refused, and the field stops accepting at the same count;
+a test reads the constant out of the Rust and pins the window to it, the way
+`DEEPEST` is pinned. Nothing shortens a name that is already stored: the limit
+is on writing, so a folder named before the limit existed keeps the name it has.
 
 It may file into a list, but only one that already exists — a name that matches
 nothing is refused with the names that do, so the agent cannot quietly invent a

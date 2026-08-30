@@ -95,8 +95,6 @@ pub enum Hit {
     Mentioned,
 }
 
-/// Every word has to land somewhere, but not all in the same field: what someone remembers of a
-/// task is half its title and half a line of its journal.
 pub fn matches_query(task: &Task, terms: &[String]) -> Option<Hit> {
     if terms.is_empty() {
         return None;

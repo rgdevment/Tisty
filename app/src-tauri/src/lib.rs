@@ -2157,6 +2157,17 @@ fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Fo
         .collect()
 }
 
+fn named_folder(said: &str) -> Answer<String> {
+    let name = tisty_core::text::plainly(said);
+    if name.is_empty() {
+        return Err(Refusal::of("untitled"));
+    }
+    if name.chars().count() > tisty_core::model::FOLDER_NAME_AT_MOST {
+        return Err(Refusal::of("folderNameTooLong"));
+    }
+    Ok(name)
+}
+
 #[tauri::command]
 fn folder_add(
     session: tauri::State<'_, Mutex<Session>>,
@@ -2164,10 +2175,7 @@ fn folder_add(
     parent: Option<String>,
     icon: Option<String>,
 ) -> Answer<()> {
-    let name = tisty_core::text::plainly(&name);
-    if name.is_empty() {
-        return Err(Refusal::of("untitled"));
-    }
+    let name = named_folder(&name)?;
     let parent = parent
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
@@ -2208,10 +2216,7 @@ fn folder_rename(
     name: String,
 ) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
-    let name = tisty_core::text::plainly(&name);
-    if name.is_empty() {
-        return Err(Refusal::of("untitled"));
-    }
+    let name = named_folder(&name)?;
     let mut session = held(&session);
     if !session.state.folders.contains_key(&id) {
         return Err(Refusal::of("noSuchFolder"));
@@ -4409,6 +4414,23 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_folder_name_stops_where_the_agent_and_the_core_stop() {
+        use super::named_folder;
+        let most = tisty_core::model::FOLDER_NAME_AT_MOST;
+
+        assert_eq!(named_folder("  Condominio  ").unwrap(), "Condominio");
+        assert_eq!(
+            named_folder(&"á".repeat(most)).unwrap().chars().count(),
+            most
+        );
+        assert_eq!(
+            named_folder(&"a".repeat(most + 1)).unwrap_err().code,
+            "folderNameTooLong"
+        );
+        assert_eq!(named_folder("   ").unwrap_err().code, "untitled");
+    }
+
     #[test]
     fn a_view_can_ask_for_several_lists_at_once() {
         let a = ulid::Ulid::generate();
