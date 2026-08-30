@@ -947,7 +947,6 @@ fn carry_papers_leaning_on(
                 }
                 Move::Bring => {
                     std::fs::create_dir_all(&here).map_err(io)?;
-                    // An agent may be halfway through reading this body to add to it.
                     let _held = docs_lock(&here, id);
                     copy_onto(&theirs, &mine)?;
                     done.brought += 1;
@@ -997,8 +996,7 @@ fn carry_papers_leaning_on(
     Ok(done)
 }
 
-/// Unheld beats unwritten here: a round that skipped a document comes back for it, and the
-/// weave settles what the miss would leave behind.
+/// Unheld beats unwritten: a round that skipped a document comes back for it.
 fn docs_lock(here: &Path, id: &str) -> Option<tisty_core::docs::Alone> {
     let held = tisty_core::docs::hold(here);
     if held.is_none() {

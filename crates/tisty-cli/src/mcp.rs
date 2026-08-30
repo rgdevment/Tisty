@@ -313,8 +313,7 @@ fn short_and_plain(args: &Value) -> Result<(), Refused> {
                 "`{key}` is longer than the {most} characters Tisty keeps. Shorten it."
             )));
         }
-        // A passage copied out of a document written on Windows carries its carriage returns,
-        // and copying it faithfully is exactly what an edit asks for.
+        // A passage copied out of a document written on Windows carries its carriage returns.
         let carriage = matches!(*key, "old" | "new");
         if one
             .chars()
@@ -972,7 +971,6 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
              nothing was changed. Send more of the lines around it until it names one."
         ))),
         tisty_core::docs::Change::Made { was, whole } => {
-            // The window has no way back to it, but a copy on disk beats a passage that is gone.
             let _ = tisty_core::docs::kept_before(paths.data(), &which, &was);
             Ok(told(
                 format!(

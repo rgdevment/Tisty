@@ -199,7 +199,6 @@ impl Watching {
                 Err(_) => read = false,
             }
         }
-        // A body lives outside the log, so text added to a document writes no event to notice.
         let papers = tisty_core::docs::print(&paths.docs());
         if papers != self.papers {
             stirred = stirred || self.looked;
