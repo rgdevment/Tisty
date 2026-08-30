@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { docs, type Filed } from "../core";
+import { matched } from "../finding";
 import { t } from "../locales";
 import Row from "./Row";
 
@@ -28,9 +29,7 @@ export default function Papers({
   const all = given ? given.filter((one) => !one.archived) : found;
 
   const named = (doc: Filed) => doc.title.trim() || t("untitledDoc");
-  const shown = (all ?? []).filter((one) =>
-    named(one).toLowerCase().includes(word.trim().toLowerCase()),
-  );
+  const shown = (all ?? []).filter((one) => matched(named(one), word));
 
   return (
     <>

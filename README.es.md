@@ -439,10 +439,13 @@ y sigue siendo un dispositivo que puedes echar; mientras no le des entrada, todo
 lo que intente se le niega.
 
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
-fecha, agregar a la bitácora, escribir un documento, guardar una copia de un
-archivo que le señales y leer lo que ya está. Lo que no puede: cerrar una tarea
-ni borrarla, alcanzar nada que hayas escondido, tomar archivos fuera de las
-carpetas donde aterriza una descarga, ni anotar dos veces lo mismo.
+fecha, agregar a la bitácora, escribir un documento y ordenar documentos en
+carpetas, guardar una copia de un archivo que le señales y leer lo que ya está.
+Lo que no puede: cerrar una tarea ni borrarla, reescribir ni borrar un
+documento, renombrar ni vaciar una carpeta, alcanzar una tarea que plegaste,
+tomar archivos fuera de las carpetas donde aterriza una descarga, ni anotar dos
+veces lo mismo. Un documento que archivaste sí lo puede leer, y se le dice que
+lo archivaste.
 
 Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que es
 justamente por lo que esta es una puerta que abres, y no una que ya estaba

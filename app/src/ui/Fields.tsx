@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Change, List, Task } from "../core";
+import { begun } from "../finding";
 import { cadence, clockOf, whenLabel } from "../format";
 import { t } from "../locales";
 import { placed, QUADRANTS, said } from "../quadrants";
@@ -338,7 +339,7 @@ function Naming({
 }) {
   const [text, setText] = useState("");
   const typed = text.trim().replace(/^#/, "").toLowerCase();
-  const offered = known.filter((one) => !taken.includes(one) && one.startsWith(typed));
+  const offered = known.filter((one) => !taken.includes(one) && begun(one, typed));
 
   return (
     <>

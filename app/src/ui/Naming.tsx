@@ -10,6 +10,7 @@ interface Props {
   drawn?: string;
   painted?: string;
   action?: string;
+  most?: number;
   onName: (name: string, icon?: string, colour?: string) => void;
   onDrop?: () => void;
   dropWord?: string;
@@ -23,6 +24,7 @@ export default function Naming({
   drawn,
   painted,
   action,
+  most,
   onName,
   onDrop,
   dropWord,
@@ -43,6 +45,7 @@ export default function Naming({
         autoFocus
         onFocus={(e) => e.target.select()}
         value={name}
+        maxLength={most}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && done()}
         placeholder={invite}
