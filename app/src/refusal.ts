@@ -68,6 +68,7 @@ const KNOWN = [
   "noSuchColour",
   "tooDeep",
   "folderNameTooLong",
+  "documentBeingWritten",
   "intoItself",
   "notACadence",
   "noClipboard",

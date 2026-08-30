@@ -947,6 +947,8 @@ fn carry_papers_leaning_on(
                 }
                 Move::Bring => {
                     std::fs::create_dir_all(&here).map_err(io)?;
+                    // An agent may be halfway through reading this body to add to it.
+                    let _held = docs_lock(&here, id);
                     copy_onto(&theirs, &mine)?;
                     done.brought += 1;
                     if let Some(print) = yours {
@@ -954,31 +956,34 @@ fn carry_papers_leaning_on(
                         said.keep(id, &print);
                     }
                 }
-                Move::TheyDecide => match joined(data, id, &mine, &theirs) {
-                    Some(whole) => {
-                        write(&mine, whole.as_bytes())?;
-                        copy_onto(&mine, &theirs)?;
-                        done.sent += 1;
-                        done.brought += 1;
-                        done.joined.push(id.clone());
-                        if landed(&mine, &theirs) {
-                            if let Ok(Some(print)) = print_of(&mine) {
-                                settled_body(data, id, &mine, &theirs);
-                                said.keep(id, &print);
+                Move::TheyDecide => {
+                    let _held = docs_lock(&here, id);
+                    match joined(data, id, &mine, &theirs) {
+                        Some(whole) => {
+                            write(&mine, whole.as_bytes())?;
+                            copy_onto(&mine, &theirs)?;
+                            done.sent += 1;
+                            done.brought += 1;
+                            done.joined.push(id.clone());
+                            if landed(&mine, &theirs) {
+                                if let Ok(Some(print)) = print_of(&mine) {
+                                    settled_body(data, id, &mine, &theirs);
+                                    said.keep(id, &print);
+                                }
+                            } else {
+                                witness::warn(
+                                    channel::SYNC,
+                                    "another machine wrote while this one joined, so the base stays put",
+                                    &[("at", Fact::Id(id.clone()))],
+                                );
                             }
-                        } else {
-                            witness::warn(
-                                channel::SYNC,
-                                "another machine wrote while this one joined, so the base stays put",
-                                &[("at", Fact::Id(id.clone()))],
-                            );
                         }
+                        None => done.undecided.push(Undecided {
+                            id: id.clone(),
+                            theirs: yours.unwrap_or_default(),
+                        }),
                     }
-                    None => done.undecided.push(Undecided {
-                        id: id.clone(),
-                        theirs: yours.unwrap_or_default(),
-                    }),
-                },
+                }
             }
         }
         Ok(())
@@ -990,6 +995,20 @@ fn carry_papers_leaning_on(
     }
     outcome?;
     Ok(done)
+}
+
+/// Unheld beats unwritten here: a round that skipped a document comes back for it, and the
+/// weave settles what the miss would leave behind.
+fn docs_lock(here: &Path, id: &str) -> Option<tisty_core::docs::Alone> {
+    let held = tisty_core::docs::hold(here);
+    if held.is_none() {
+        witness::warn(
+            channel::SYNC,
+            "a document was written while somebody else held it",
+            &[("at", Fact::Id(id.to_string()))],
+        );
+    }
+    held
 }
 
 fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {

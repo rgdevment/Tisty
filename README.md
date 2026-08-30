@@ -434,13 +434,14 @@ tries is refused.
 
 What it may do is deliberately small: file a task with its steps and its date,
 add to the journal, write a document, add to the end of one that is already
-there, file documents into folders, keep a copy of a file you point it at, and read
-what is already there. What it may not do: close a task or delete one, rewrite
-or delete a document, rename or empty a folder, reach a task you folded away,
-take files from outside the folders where a download lands, or file the same
-thing twice. Everything it touches it only adds to, so nothing you wrote can be
-lost by an assistant that misread it. A document you archived it can still read,
-and it is told that you archived it.
+there, correct a passage of one, file documents into folders, keep a copy of a
+file you point it at, and read what is already there. What it may not do: close
+a task or delete one, delete a document or hand it a new body whole, rename or
+empty a folder, reach a task you folded away, take files from outside the
+folders where a download lands, or file the same thing twice. To correct a
+passage it has to name it exactly as you wrote it, and if that text is not there
+or is there twice, nothing is written at all. A document you archived it can
+still read, and it is told that you archived it.
 
 Whatever it reads travels wherever that assistant travels. That is between you
 and it — which is precisely why this is a door you open, and not one that was

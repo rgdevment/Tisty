@@ -244,7 +244,13 @@ pub fn settled(body: &str) -> String {
     format!("{body}\n")
 }
 
+/// One door for every writer: the window, a round of syncing and an agent all pass the same
+/// lock, so a body read by one is never written under another.
 pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
+    alone(root, || written(root, id, body))
+}
+
+fn written(root: &Path, id: &str, body: &str) -> Result<()> {
     let whole = settled(body);
     let bytes = whole.len() as u64;
     if bytes > BODY_AT_MOST {
@@ -270,35 +276,95 @@ pub fn append(root: &Path, id: &str, body: &str) -> Result<String> {
             true => added,
             false => format!("{}\n\n{added}", was.trim_end()),
         };
-        write(root, id, &whole)?;
+        written(root, id, &whole)?;
         Ok(whole)
     })
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Change {
+    Made { was: String, whole: String },
+    Missing,
+    Twice(usize),
+    TheLot,
+}
+
+/// An edit names the text it replaces and has to match it once: anything else is a guess, and a
+/// guess here writes over what somebody wrote.
+pub fn edit(root: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
+    if old.is_empty() {
+        return Ok(Change::Missing);
+    }
+    alone(root, || {
+        let was = read(root, id)?;
+        let (old, new) = as_written(&was, old, new);
+        // Naming the whole body is a rewrite wearing an edit's clothes, and the promise is that
+        // there is no way to hand a document a new body.
+        if was.trim() == old.trim() {
+            return Ok(Change::TheLot);
+        }
+        match was.matches(old.as_str()).count() {
+            0 => Ok(Change::Missing),
+            1 => {
+                let whole = was.replacen(old.as_str(), new.as_str(), 1);
+                written(root, id, &whole)?;
+                Ok(Change::Made { was, whole })
+            }
+            many => Ok(Change::Twice(many)),
+        }
+    })
+}
+
+/// A document imported from Windows keeps its line endings, and nobody types those.
+fn as_written(was: &str, old: &str, new: &str) -> (String, String) {
+    if was.contains(old) || !was.contains("\r\n") {
+        return (old.to_string(), new.to_string());
+    }
+    let crlf = |said: &str| said.replace("\r\n", "\n").replace('\n', "\r\n");
+    (crlf(old), crlf(new))
 }
 
 const LOCK: &str = ".lock";
 const LOCK_WAIT_MS: u64 = 500;
 const LOCK_POLL_MS: u64 = 5;
 
-fn alone<T>(root: &Path, work: impl FnOnce() -> Result<T>) -> Result<T> {
+pub struct Alone(std::fs::File);
+
+impl Drop for Alone {
+    fn drop(&mut self) {
+        use fs4::fs_std::FileExt;
+        let _ = FileExt::unlock(&self.0);
+    }
+}
+
+/// For a writer that cannot pass a closure, and would rather carry on unheld than not write at
+/// all — a round of syncing, which comes back anyway.
+pub fn hold(root: &Path) -> Option<Alone> {
     use fs4::fs_std::FileExt;
 
-    std::fs::create_dir_all(root)?;
+    std::fs::create_dir_all(root).ok()?;
     let file = std::fs::OpenOptions::new()
         .create(true)
         .write(true)
         .truncate(false)
-        .open(root.join(LOCK))?;
+        .open(root.join(LOCK))
+        .ok()?;
 
     let mut waited = 0;
-    while !file.try_lock_exclusive()? {
+    while !file.try_lock_exclusive().ok()? {
         if waited >= LOCK_WAIT_MS {
-            return Err(Error::AlreadyRunning);
+            return None;
         }
         std::thread::sleep(std::time::Duration::from_millis(LOCK_POLL_MS));
         waited += LOCK_POLL_MS;
     }
+    Some(Alone(file))
+}
+
+fn alone<T>(root: &Path, work: impl FnOnce() -> Result<T>) -> Result<T> {
+    let held = hold(root).ok_or(Error::AlreadyRunning)?;
     let out = work();
-    let _ = FileExt::unlock(&file);
+    drop(held);
     out
 }
 
@@ -1088,6 +1154,336 @@ Presupuestos.
 Gasfiter.
 "
             )
+        );
+    }
+
+    #[test]
+    fn an_edit_replaces_the_one_place_it_names() {
+        let room = papers();
+
+        let made = edit(
+            room.path(),
+            "mac0-0002",
+            "Cambiar la manguera del patio.",
+            "Cambiar la manguera y la llave de paso.",
+        )
+        .unwrap();
+
+        let Change::Made { was, whole } = made else {
+            panic!("{made:?}");
+        };
+        assert_eq!(
+            was,
+            "# Riego
+
+Cambiar la manguera del patio.
+"
+        );
+        assert_eq!(
+            whole,
+            "# Riego
+
+Cambiar la manguera y la llave de paso.
+"
+        );
+        assert_eq!(read(room.path(), "mac0-0002").unwrap(), whole);
+    }
+
+    #[test]
+    fn an_edit_that_names_what_is_not_there_writes_nothing() {
+        let room = papers();
+
+        let missed = edit(room.path(), "mac0-0002", "la reja del patio", "otra cosa").unwrap();
+
+        assert_eq!(missed, Change::Missing);
+        assert_eq!(
+            read(room.path(), "mac0-0002").unwrap(),
+            "# Riego
+
+Cambiar la manguera del patio.
+"
+        );
+    }
+
+    #[test]
+    fn an_edit_that_would_fit_in_two_places_writes_in_neither() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0001",
+            "# Riego
+
+regar
+
+regar
+",
+        )
+        .unwrap();
+
+        let twice = edit(room.path(), "mac0-0001", "regar", "regar el patio").unwrap();
+
+        assert_eq!(twice, Change::Twice(2));
+        assert_eq!(
+            read(room.path(), "mac0-0001").unwrap(),
+            "# Riego
+
+regar
+
+regar
+"
+        );
+    }
+
+    #[test]
+    fn naming_nothing_at_all_is_not_a_way_to_write_everywhere() {
+        let room = papers();
+
+        assert_eq!(
+            edit(room.path(), "mac0-0002", "", "algo").unwrap(),
+            Change::Missing
+        );
+        assert_eq!(
+            read(room.path(), "mac0-0002").unwrap(),
+            "# Riego
+
+Cambiar la manguera del patio.
+"
+        );
+    }
+
+    #[test]
+    fn an_edit_can_take_a_line_out_and_can_put_lines_in() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0001",
+            "# Acta
+
+uno
+
+dos
+
+tres
+",
+        )
+        .unwrap();
+
+        edit(
+            room.path(),
+            "mac0-0001",
+            "
+
+dos",
+            "",
+        )
+        .unwrap();
+        edit(
+            room.path(),
+            "mac0-0001",
+            "uno",
+            "uno
+
+uno y medio",
+        )
+        .unwrap();
+
+        assert_eq!(
+            read(room.path(), "mac0-0001").unwrap(),
+            "# Acta
+
+uno
+
+uno y medio
+
+tres
+"
+        );
+    }
+
+    #[test]
+    fn a_document_written_on_windows_is_edited_by_what_a_person_would_type() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0001",
+            "# Acta
+
+uno
+
+dos
+",
+        )
+        .unwrap();
+
+        let made = edit(
+            room.path(),
+            "mac0-0001",
+            "uno
+
+dos",
+            "uno
+
+tres",
+        )
+        .unwrap();
+
+        assert!(matches!(made, Change::Made { .. }), "{made:?}");
+        assert_eq!(
+            read(room.path(), "mac0-0001").unwrap(),
+            "# Acta
+
+uno
+
+tres
+",
+            "the endings it had are the endings it keeps"
+        );
+    }
+
+    #[test]
+    fn an_edit_past_the_ceiling_is_refused_and_leaves_the_document_alone() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0001",
+            "# Acta
+
+uno
+",
+        )
+        .unwrap();
+
+        let refused = edit(
+            room.path(),
+            "mac0-0001",
+            "uno",
+            &"a".repeat(BODY_AT_MOST as usize),
+        );
+
+        assert!(matches!(refused, Err(Error::DocumentTooBig { .. })));
+        assert_eq!(
+            read(room.path(), "mac0-0001").unwrap(),
+            "# Acta
+
+uno
+"
+        );
+    }
+
+    #[test]
+    fn naming_the_whole_body_is_a_rewrite_and_is_refused_as_one() {
+        let room = root();
+        let was = "# Acta
+
+lo que escribio la persona
+";
+        write(room.path(), "mac0-0001", was).unwrap();
+
+        for named in [
+            was,
+            was.trim(),
+            "# Acta
+
+lo que escribio la persona",
+        ] {
+            assert_eq!(
+                edit(
+                    room.path(),
+                    "mac0-0001",
+                    named,
+                    "# Otro
+
+otra cosa"
+                )
+                .unwrap(),
+                Change::TheLot
+            );
+        }
+        assert_eq!(read(room.path(), "mac0-0001").unwrap(), was);
+    }
+
+    #[test]
+    fn a_passage_that_is_almost_the_whole_body_is_still_an_edit() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0001",
+            "# Acta
+
+uno
+
+dos
+",
+        )
+        .unwrap();
+
+        let made = edit(
+            room.path(),
+            "mac0-0001",
+            "uno
+
+dos",
+            "uno
+
+tres",
+        )
+        .unwrap();
+
+        assert!(matches!(made, Change::Made { .. }), "{made:?}");
+    }
+
+    #[test]
+    fn the_lock_holds_every_writer_and_not_only_the_agent() {
+        use fs4::fs_std::FileExt;
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0001",
+            "# Acta
+
+lo que escribio la persona
+",
+        )
+        .unwrap();
+        let held = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(room.path().join(".lock"))
+            .unwrap();
+        assert!(held.try_lock_exclusive().unwrap());
+
+        let while_held = write(
+            room.path(),
+            "mac0-0001",
+            "# Acta
+
+lo que guardo la ventana
+",
+        );
+
+        assert!(
+            matches!(while_held, Err(Error::AlreadyRunning)),
+            "a body read by one writer must not be written under another: {while_held:?}"
+        );
+        assert_eq!(
+            read(room.path(), "mac0-0001").unwrap(),
+            "# Acta
+
+lo que escribio la persona
+"
+        );
+        FileExt::unlock(&held).unwrap();
+        assert!(
+            write(
+                room.path(),
+                "mac0-0001",
+                "# Acta
+
+despues
+"
+            )
+            .is_ok()
         );
     }
 

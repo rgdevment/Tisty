@@ -440,13 +440,14 @@ lo que intente se le niega.
 
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
 fecha, agregar a la bitácora, escribir un documento, agregar al final de uno que
-ya está ahí, ordenar documentos en carpetas, guardar una copia de un archivo que
-le señales y leer lo que ya está. Lo que no puede: cerrar una tarea ni borrarla,
-reescribir ni borrar un documento, renombrar ni vaciar una carpeta, alcanzar una
-tarea que plegaste, tomar archivos fuera de las carpetas donde aterriza una
-descarga, ni anotar dos veces lo mismo. A todo lo que toca solo le agrega, así
-que nada de lo que escribiste se pierde porque un asistente lo leyera mal. Un
-documento que archivaste sí lo puede leer, y se le dice que lo archivaste.
+ya está ahí, corregir un pasaje de uno, ordenar documentos en carpetas, guardar
+una copia de un archivo que le señales y leer lo que ya está. Lo que no puede:
+cerrar una tarea ni borrarla, borrar un documento ni entregarle un cuerpo nuevo
+entero, renombrar ni vaciar una carpeta, alcanzar una tarea que plegaste, tomar
+archivos fuera de las carpetas donde aterriza una descarga, ni anotar dos veces
+lo mismo. Para corregir un pasaje tiene que nombrarlo tal como lo escribiste, y
+si ese texto no está o está dos veces, no se escribe nada. Un documento que
+archivaste sí lo puede leer, y se le dice que lo archivaste.
 
 Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que es
 justamente por lo que esta es una puerta que abres, y no una que ya estaba
