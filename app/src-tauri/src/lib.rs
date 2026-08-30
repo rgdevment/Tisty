@@ -2527,6 +2527,7 @@ fn doc_write(
         tisty_core::Error::DocumentTooBig { limit, .. } => {
             Refusal::about("documentTooLong", weighed(limit))
         }
+        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
         _ => blamed(channel::WINDOW, "a document could not be written", e),
     })?;
     session.corpus.forget(&id);
@@ -3281,12 +3282,13 @@ fn convert_paper(
 
     tisty_core::docs::kept_before(session.paths.data(), &id, &was)
         .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
-    tisty_core::docs::write(&papers, &id, &body).map_err(|e| {
-        blamed(
+    tisty_core::docs::write(&papers, &id, &body).map_err(|e| match e {
+        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+        e => blamed(
             channel::SYNC,
             "the converted document could not be written",
             e,
-        )
+        ),
     })?;
     Ok(())
 }
@@ -3368,8 +3370,10 @@ fn weave_paper(
     let papers = session.paths.docs();
     tisty_core::docs::kept_before(session.paths.data(), &id, &mine)
         .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
-    tisty_core::docs::write(&papers, &id, &whole)
-        .map_err(|e| blamed(channel::SYNC, "the woven body could not be written", e))?;
+    tisty_core::docs::write(&papers, &id, &whole).map_err(|e| match e {
+        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+        e => blamed(channel::SYNC, "the woven body could not be written", e),
+    })?;
     Ok(())
 }
 

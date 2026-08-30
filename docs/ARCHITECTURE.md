@@ -72,21 +72,50 @@ over the wire can register one. Its own directory is what keeps `undo`
 apart: the person's undo never reaches what the agent filed.
 
 It can propose a task, add to a journal, read one whole task, search, attach
-a file, write documents and add to them, list what is written and file it into
-folders, and read the names of the lists. There is no tool for completing,
-dropping, deleting, undoing, editing what the person wrote, making a list, or
-rewriting a document: everything it touches it only ever adds to.
+a file, write documents, add to them and change a named passage of one, list
+what is written and file it into folders, and read the names of the lists. There
+is no tool for completing, dropping, deleting, undoing, editing a task the
+person wrote, making a list, or handing a document a new body whole.
 
-It may **add** to a document that exists, and never rewrite one. Adding keeps
-every byte that was there and puts the new text after a blank line, so nothing
-the person wrote can be lost by an assistant that misread it. Rewriting is what
-stays shut: the person may have the document open in the window while the agent
-writes, and the window saves the whole body — the last writer would win and the
-other's work would be gone. A body lives outside the log, so adding writes no
-event; the window's watch compares a print of the documents themselves and tells
-the window to read the open one again, which it does unless there are unsaved
-changes in it. Two agents adding at once are held apart by a lock beside the
-documents, because reading a body and writing it back is two steps.
+It reaches a document that exists in two ways, and neither is a rewrite.
+**Adding** puts text after the last line, leaving every byte that was there.
+**Editing** replaces one passage with another, and the passage has to be named
+as it is written, character for character, matching exactly one place — no
+match or two matches writes nothing and says which, because anything else is a
+guess, and a guess here writes over what somebody wrote. What an edit replaced
+is copied to `originals/` first; nothing in the window reads that directory
+back, so it is a copy on disk, not an undo.
+
+Handing over the whole body is what stays shut. The person may have the document
+open in the window while the agent writes, and the window saves the body entire:
+against a named passage a stale agent fails to match and stops, while against a
+whole-body write the last writer simply wins and the other's work is gone.
+
+A body lives outside the log, so neither writes an event; the window's watch
+compares a print of the documents themselves and tells the window to read the
+open one again, which it does unless there are unsaved changes in it.
+
+**Every writer of a body passes one lock**, kept beside the documents. Reading a
+body and writing it back is two steps, and a lock only the agent took would
+leave the window free to write between them — the agent would then save what it
+read before, over what the person just kept. `write` takes the lock; `append`
+and `edit` hold it across both steps and write through the unlocked path inside.
+Waiting is half a second, and a writer that waits longer is told the document is
+being written rather than made to queue.
+
+Syncing holds it too, per document rather than per round, so a long round never
+keeps the editor from saving. It is the one writer that carries on **unheld**
+if half a second is not enough: a round that skipped a body comes back for it,
+and if an agent wrote in the meantime the next round reads that as both sides
+moving and weaves. Refusing there would trade a settled disagreement for a
+stalled one.
+
+What this does not settle: a person typing in a document with **unsaved
+changes** while an agent edits it. The window does not pull the rug — it leaves
+the text being typed alone — and then saves the whole buffer over the edit. The
+copy in `originals/` is the only trace, and nothing reads that directory back.
+Closing it means the window reconciling on save rather than writing over, which
+is a change to the editor, not a lock.
 
 Across two machines it behaves like any other edit, and the weave was measured
 against it rather than assumed: if only one side grew, the round copies it and
@@ -94,7 +123,8 @@ asks nothing. If both grew, both added at the same place — the end — which t
 weave will not settle on its own, so it refuses and the person is asked once,
 with «keep both» offered first. Taking both yields the document with both
 entries in order, losing neither. That is friction, not loss, and it is the same
-road every other refusal takes.
+road every other refusal takes. Two edits land as ordinary block edits: apart,
+they weave; on the same block, one question.
 
 Folders are the one place it may tidy: it can make one, give it an icon from the
 closed catalogue, and move documents between them. It cannot rename, empty or

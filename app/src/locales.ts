@@ -321,6 +321,7 @@ const en = {
   closeFolder: "Close {name}",
   tooDeep: "Folders only go four levels deep",
   folderNameTooLong: "A folder name fits 40 characters at most",
+  documentBeingWritten: "Something else is writing this document. Try again in a moment",
   intoItself: "A folder cannot go inside itself",
   moveTo: "Move to…",
   moveHere: "Move to",
@@ -1245,6 +1246,8 @@ const es: Catalog = {
   closeFolder: "Plegar {name}",
   tooDeep: "Las carpetas solo bajan cuatro niveles",
   folderNameTooLong: "El nombre de una carpeta admite 40 caracteres como máximo",
+  documentBeingWritten:
+    "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
   intoItself: "Una carpeta no puede ir dentro de sí misma",
   moveTo: "Mover a…",
   moveHere: "Mover a",
