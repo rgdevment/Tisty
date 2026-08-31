@@ -68,11 +68,7 @@ const ALSO: Record<string, string[]> = {
 };
 
 const plain = (said: string): string =>
-  said
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
+  said.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 export const alsoNamed = (word: string): string[] => {
   const said = plain(word);

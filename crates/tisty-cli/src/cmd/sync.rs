@@ -99,10 +99,12 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         .map(|one| one.file.clone())
         .collect();
     let aside = app.paths.cache().to_path_buf();
-    let moved = match carrier::carry_leaning_on(&data, Some(&aside), &device, &dest, way, &alive) {
-        Ok(moved) => moved,
-        Err(trouble) => return Ok(said(&trouble, lang)),
-    };
+    let holds = app.config().holds();
+    let moved =
+        match carrier::carry_holding(&data, Some(&aside), &device, &dest, way, &alive, holds) {
+            Ok(moved) => moved,
+            Err(trouble) => return Ok(said(&trouble, lang)),
+        };
 
     let who = app.config().device_id.clone();
     if !tisty_core::store::ledger(app.paths.store())?

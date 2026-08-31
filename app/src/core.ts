@@ -333,6 +333,7 @@ export interface Astray {
   at: string;
   bytes: number;
   when: number;
+  shared?: boolean;
 }
 
 export interface Twins {
@@ -404,10 +405,24 @@ export interface About {
   store: string;
 }
 
+export type Holds = "everywhere" | "mine" | "shared";
+
+export interface Freeing {
+  gone: number;
+  freed: number;
+  done: boolean;
+}
+
+export const freeUp = (): Promise<Freeing> => invoke("free_up");
+export const stopFreeing = (): Promise<void> => invoke("stop_freeing");
+
 export interface Settings {
   quiet: string[];
   attachUpTo: number;
   locale?: string;
+  holds: Holds;
+  shares: boolean;
+  onlySharedAbove: number;
 }
 
 export interface Logs {

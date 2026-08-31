@@ -95,7 +95,9 @@ away. No ads, no telemetry, no accounts, no subscriptions — just a
 **Why people choose Tisty over other task managers:**
 
 - **100% local** — your tasks, your journal and your documents never leave your
-  computer. No cloud, no server, no account.
+  computer. No cloud, no server, no account. If you sync two machines, you can
+  ask Tisty to leave the largest attachments in that shared folder instead of
+  carrying them onto every disk; it never does that unless you choose it.
 - **Truly free** — no premium tier, no feature gates, no trial. AGPL v3, and
   [commercial terms](docs/COMMERCIAL.md) only for organisations that cannot
   comply with it.
@@ -392,6 +394,15 @@ the closing paragraph on the other, and both land with nothing to answer. Only a
 real overlap becomes a question.
 
 **Or back up by hand.** One zip, kept wherever you like.
+
+**Where the big ones live is yours to say.** By default every machine carries
+every attachment, which is why any of them can open anything with the network
+off. Settings offers two other ways: keep only what this machine attached and
+fetch the rest when you open it, or — above 50 MB — leave them in the shared
+folder and nowhere else. That last one trades the copy on your disk for the
+space it took: the file is there when your provider or your NAS is, and Tisty
+says so plainly when it is not. A copy is only ever let go of after the one in
+the shared folder is found to hash the same.
 
 And because what uploads that folder is your provider's program and not
 Tisty, if you ever change something on one machine and it does not turn up

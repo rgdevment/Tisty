@@ -41,6 +41,10 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: () => Promise.resolve(() => {}),
+}));
+
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: (opts: { directory?: boolean }) =>
     Promise.resolve(opts.directory ? asked.folder : asked.file),
@@ -158,6 +162,18 @@ beforeEach(() => {
           rousing.wakes = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
         }
         return Promise.resolve({ ...rousing });
+      case "keep_settings": {
+        const asked = ipc.calls[ipc.calls.length - 1]?.args.settings as Record<string, unknown>;
+        return Promise.resolve({
+          ...asked,
+          shares: true,
+          onlySharedAbove: 50 * 1024 * 1024,
+        });
+      }
+      case "free_up":
+        return new Promise(() => {});
+      case "stop_freeing":
+        return Promise.resolve(null);
       case "checked":
         return Promise.resolve({
           tasks: 7,
@@ -168,6 +184,12 @@ beforeEach(() => {
           astray: [
             { at: "attachments/ab/charla-a3f9.mp4", bytes: 300_000, when: 1_754_000_000 },
             { at: "attachments/cd/notas-b1c2.pdf", bytes: 11_000, when: 1_754_000_000 },
+            {
+              at: "attachments/ef/lejos-c3d4.mp4",
+              bytes: 90_000_000,
+              when: 1_754_000_000,
+              shared: true,
+            },
           ],
           events: 42,
           machines: [
@@ -222,6 +244,9 @@ beforeEach(() => {
           backedUpAt: null,
           quiet: [],
           attachUpTo: 5 * 1024 * 1024,
+          holds: "everywhere",
+          shares: true,
+          onlySharedAbove: 50 * 1024 * 1024,
           inPath: true,
           shortcut: null,
         });
@@ -232,7 +257,14 @@ beforeEach(() => {
           lines: kept.lines,
         });
       case "settings":
-        return Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024, logsAll: false });
+        return Promise.resolve({
+          quiet: [],
+          attachUpTo: 5 * 1024 * 1024,
+          logsAll: false,
+          holds: "everywhere",
+          shares: true,
+          onlySharedAbove: 50 * 1024 * 1024,
+        });
       case "docs":
         return Promise.resolve({
           folders: [],
@@ -328,7 +360,13 @@ describe("the maintenance panel", () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "settings"
-        ? Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024 })
+        ? Promise.resolve({
+            quiet: [],
+            attachUpTo: 5 * 1024 * 1024,
+            holds: "everywhere",
+            shares: true,
+            onlySharedAbove: 50 * 1024 * 1024,
+          })
         : cmd === "keep_settings"
           ? new Promise(() => {})
           : otherwise(cmd, args);
@@ -339,10 +377,48 @@ describe("the maintenance panel", () => {
     await userEvent.click(await screen.findByRole("checkbox", { name: /a short tone/i }));
     await go(/writing/i);
 
-    const size = await screen.findByRole("combobox");
+    const size = await screen.findByRole("combobox", { name: /take files up to/i });
     await waitFor(() => expect(size.hasAttribute("disabled")).toBe(true));
     expect(size.className).toContain("disabled:text-soft");
     expect(size.className).not.toContain("opacity-50");
+  });
+
+  it("offers where the big attachments live, and says when the choice is idle", async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/writing/i);
+
+    const where = await screen.findByRole("combobox", { name: /where the big/i });
+    expect((where as HTMLSelectElement).value).toBe("everywhere");
+
+    await userEvent.selectOptions(where, "shared");
+    await waitFor(() => expect(sent("keep_settings")).toHaveLength(1));
+    const asked = sent("keep_settings")[0].args.settings as { holds: string };
+    expect(asked.holds).toBe("shared");
+  });
+
+  it("frees the disk when told the big ones live in the shared folder, and can be stopped", async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/writing/i);
+
+    const where = await screen.findByRole("combobox", { name: /where the big/i });
+    await userEvent.selectOptions(where, "shared");
+
+    await waitFor(() => expect(sent("free_up")).toHaveLength(1));
+    await screen.findByText(/Freeing what the shared folder/i);
+    await userEvent.click(await screen.findByRole("button", { name: /^stop$/i }));
+    await waitFor(() => expect(sent("stop_freeing")).toHaveLength(1));
+  });
+
+  it("says which loose files are up in the shared folder", async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    await screen.findByText("lejos-c3d4.mp4");
+    expect(screen.getByText(/in the shared folder/)).toBeTruthy();
   });
 
   it("names every machine and when each last wrote", async () => {

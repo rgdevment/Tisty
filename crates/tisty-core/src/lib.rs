@@ -7,6 +7,7 @@ pub mod config;
 pub mod docs;
 pub mod event;
 pub mod herald;
+pub mod icloud;
 pub mod merge;
 pub mod model;
 pub mod order;

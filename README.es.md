@@ -97,7 +97,9 @@ equipo y en ninguna otra parte.
 **Por qué alguien elige Tisty antes que otros gestores de tareas:**
 
 - **100% local** — tus tareas, tu bitácora y tus documentos nunca salen de tu
-  equipo. Sin nube, sin servidor, sin cuenta.
+  equipo. Sin nube, sin servidor, sin cuenta. Si sincronizas dos equipos, puedes
+  pedirle a Tisty que deje los adjuntos más grandes en esa carpeta compartida en
+  vez de llevarlos a cada disco; nunca lo hace si tú no lo eliges.
 - **Gratis de verdad** — sin versión de pago, sin funciones bajo llave, sin
   período de prueba. AGPL v3, y [términos comerciales](docs/COMMERCIAL.md) solo
   para organizaciones que no puedan cumplirla.
@@ -398,6 +400,16 @@ otro, y las dos cosas llegan sin que tengas que responder nada. Solo cuando los
 cambios se pisan de verdad hay una pregunta.
 
 **O respalda a mano.** Un zip, guardado donde quieras.
+
+**Dónde viven los grandes lo dices tú.** Por defecto cada equipo carga con todos
+los adjuntos, que es por lo que cualquiera de ellos abre lo que sea con la red
+apagada. Ajustes ofrece otras dos formas: quedarte solo con lo que adjuntaste en
+este equipo y traer el resto cuando lo abras, o —por encima de 50 MB— dejarlos
+en la carpeta compartida y en ningún otro sitio. Esa última cambia la copia de
+tu disco por el espacio que ocupaba: el archivo está cuando está tu nube o tu
+NAS, y
+Tisty te lo dice con todas las letras cuando no. Una copia solo se suelta después
+de comprobar que la de la carpeta compartida tiene el mismo sha.
 
 Y como quien sube esa carpeta es el programa de tu proveedor y no Tisty, si algún
 día cambias algo en un equipo y no aparece en el otro, [FAQ.md](docs/FAQ.md)
