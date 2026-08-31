@@ -489,7 +489,7 @@ describe("a document that moved on disk while it was open", () => {
     await userEvent.click(screen.getByText(/de todos modos|anyway/));
     await settled();
 
-    expect(store.writes.at(-1)?.anyway).toBe(true);
+    expect(store.writes[store.writes.length - 1]?.anyway).toBe(true);
     expect(store.bodies["a3f1-0001"]).toContain("y pan");
     expect(screen.queryByText(/mientras lo tenías abierto|while you had it open/)).toBeNull();
   });
