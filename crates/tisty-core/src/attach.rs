@@ -33,7 +33,7 @@ impl Kept {
 
 /// The most `written` can come to before the file is copied and its name is known: the label, the
 /// 56 characters `named` shortens a file to, and the stamp, extension and markdown around it.
-pub fn written_at_most(label: &str) -> usize {
+fn written_at_most(label: &str) -> usize {
     spoken(label).chars().count() + SHORTENS_TO + 64
 }
 
@@ -44,6 +44,24 @@ pub fn counted(body: &str) -> usize {
 
 /// Where the window stops calling a document a document and starts warning that it is a shelf.
 pub const KEPT_IN_A_DOC: usize = 150;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NoRoom {
+    Crowded(usize),
+    Full,
+}
+
+/// Asked before a file is copied: half a gigabyte is a slow way to find out a document is full.
+pub fn fits(body: &str, label: &str) -> std::result::Result<(), NoRoom> {
+    let held = counted(body);
+    if held >= KEPT_IN_A_DOC {
+        return Err(NoRoom::Crowded(held));
+    }
+    if (body.len() + written_at_most(label)) as u64 > crate::docs::BODY_AT_MOST {
+        return Err(NoRoom::Full);
+    }
+    Ok(())
+}
 
 fn spoken(label: &str) -> String {
     let flat: String = label

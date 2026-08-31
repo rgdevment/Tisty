@@ -269,6 +269,23 @@ fn attaching_copies_the_file_and_says_where_it_came_from() {
 }
 
 #[test]
+fn attaching_by_a_documents_name_puts_the_file_in_the_document() {
+    let cli = Cli::new();
+    let made = cli
+        .pipe(&["doc", "--new"], Some("# El acta\n\nlo que se habló."))
+        .out;
+    let name = made.split_whitespace().next().unwrap().to_string();
+    let loose = cli.home.path().join("plano.png");
+    std::fs::write(&loose, "not really a png").unwrap();
+
+    cli.ok(&["attach", &name, loose.to_str().unwrap()]);
+
+    let whole = cli.ok(&["doc", &name]);
+    assert!(whole.contains("lo que se habló."), "{whole}");
+    assert!(whole.contains("![plano.png](<attachments/"), "{whole}");
+}
+
+#[test]
 fn attaching_leaves_the_description_alone() {
     let cli = Cli::new();
     cli.ok(&["chase the invoice"]);

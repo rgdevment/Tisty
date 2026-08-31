@@ -537,11 +537,25 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     static TURN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let turn = TURN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let tmp = path.with_extension(format!("{}.{turn}.tmp", std::process::id()));
-    let wrote = poured(&tmp, contents).and_then(|()| Ok(std::fs::rename(&tmp, path)?));
+    let wrote = poured(&tmp, contents).and_then(|()| Ok(renamed(&tmp, path)?));
     if wrote.is_err() {
         let _ = std::fs::remove_file(&tmp);
     }
     wrote
+}
+
+/// Windows refuses a rename over a file somebody is holding, and holding it is what another writer
+/// replacing the same file — or a backup reading it — does for a moment. A moment is waited out.
+fn renamed(tmp: &Path, path: &Path) -> std::io::Result<()> {
+    let mut wait = 10;
+    for _ in 0..4 {
+        match std::fs::rename(tmp, path) {
+            Ok(()) => return Ok(()),
+            Err(_) => std::thread::sleep(std::time::Duration::from_millis(wait)),
+        }
+        wait *= 2;
+    }
+    std::fs::rename(tmp, path)
 }
 
 fn poured(tmp: &Path, contents: &[u8]) -> Result<()> {
@@ -609,6 +623,32 @@ mod atomic_tests {
             .filter(|one| one.path().extension().is_some_and(|e| e == "tmp"))
             .collect();
         assert!(left.is_empty(), "a temporary was left behind: {left:?}");
+    }
+
+    /// Only Windows refuses the rename; elsewhere an open file is renamed over without complaint.
+    #[cfg(windows)]
+    #[test]
+    fn a_file_held_open_for_a_moment_is_waited_out_rather_than_refused() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path().join("a3f1-0001.md");
+        std::fs::write(&at, b"before").unwrap();
+        let held = OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(&at)
+            .unwrap();
+
+        std::thread::scope(|threads| {
+            threads.spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(40));
+                drop(held);
+            });
+            write_atomic(&at, b"after").expect("a file let go of is a file that can be written");
+        });
+
+        assert_eq!(std::fs::read_to_string(&at).unwrap(), "after");
     }
 
     #[test]

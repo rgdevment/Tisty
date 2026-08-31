@@ -625,7 +625,6 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
     }
 }
 
-/// Asked before the file is copied: half a gigabyte is a slow way to find out a document is full.
 fn room(paths: &Paths, which: &str, named: &str) -> Result<(), Refused> {
     let full = || {
         Refused::Tool(format!(
@@ -638,18 +637,14 @@ fn room(paths: &Paths, which: &str, named: &str) -> Result<(), Refused> {
         Err(tisty_core::Error::DocumentTooBig { .. }) => return Err(full()),
         Err(other) => return Err(hitch(other)),
     };
-    let held = tisty_core::attach::counted(&body);
-    if held >= tisty_core::attach::KEPT_IN_A_DOC {
-        return Err(Refused::Tool(format!(
+    match tisty_core::attach::fits(&body, named) {
+        Ok(()) => Ok(()),
+        Err(tisty_core::attach::NoRoom::Full) => Err(full()),
+        Err(tisty_core::attach::NoRoom::Crowded(held)) => Err(Refused::Tool(format!(
             "{which:?} already carries {held} files, which is as many as a document is read with. \
              Keep this one with a task, or in a document of its own."
-        )));
+        ))),
     }
-    let after = body.len() + tisty_core::attach::written_at_most(named);
-    if after as u64 > tisty_core::docs::BODY_AT_MOST {
-        return Err(full());
-    }
-    Ok(())
 }
 
 fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {

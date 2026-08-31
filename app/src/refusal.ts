@@ -69,6 +69,7 @@ const KNOWN = [
   "tooDeep",
   "folderNameTooLong",
   "documentBeingWritten",
+  "documentMoved",
   "intoItself",
   "notACadence",
   "noClipboard",

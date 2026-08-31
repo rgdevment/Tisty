@@ -188,6 +188,8 @@ no-docs            = "todavía no hay documentos"
 no-such-doc        = "ningún documento se llama {name}"
 
 doc-eaten          = "el editor no sabe guardar {what}, y lo destruiría al abrir esto. Usa markdown llano"
+doc-no-room        = "a ese documento no le queda sitio para la línea que nombra un archivo"
+doc-crowded        = "ese documento ya lleva {count} archivos, tantos como se lee uno"
 
 [plural]
 tasks = { one = "1 tarea", other = "{n} tareas" }
