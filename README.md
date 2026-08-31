@@ -421,6 +421,11 @@ But if you already use an assistant, you are probably telling it things worth
 keeping — the school group says card stock on Monday, the invoice is due on the
 30th. So Tisty leaves a door, and you decide whether to use it.
 
+Settings › Agents lists the assistants already installed on this computer and
+connects the one you pick: it writes a single line into that assistant's own
+settings, leaves the rest of that file where it was, and keeps a copy of it as
+it was before. For one it does not know, a line does it:
+
 ```console
 $ <your-assistant> mcp add tisty -- tisty mcp
 ```

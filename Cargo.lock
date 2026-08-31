@@ -4964,6 +4964,7 @@ dependencies = [
  "tisty-core",
  "tisty-nl",
  "tisty-sync",
+ "toml 0.9.12+spec-1.1.0",
  "ulid",
  "url",
  "windows",

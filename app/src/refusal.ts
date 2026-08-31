@@ -72,6 +72,8 @@ const KNOWN = [
   "intoItself",
   "notACadence",
   "noClipboard",
+  "noSuchAgent",
+  "settingsPuzzling",
 ] as const;
 
 type Known = (typeof KNOWN)[number];

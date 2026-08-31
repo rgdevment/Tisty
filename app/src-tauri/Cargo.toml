@@ -36,6 +36,7 @@ tauri-plugin-single-instance.workspace = true
 sys-locale.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+toml.workspace = true
 jiff.workspace = true
 ulid.workspace = true
 zip.workspace = true

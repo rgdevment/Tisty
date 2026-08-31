@@ -427,6 +427,11 @@ Pero si ya usas un asistente, es probable que le cuentes cosas que vale la pena
 guardar — el grupo del colegio pide cartulina para el lunes, la cuenta vence el
 30. Así que Tisty deja una puerta, y tú decides si la usas.
 
+Ajustes › Agentes enumera los asistentes que ya tienes instalados en este
+equipo y conecta el que elijas: escribe una sola línea en la configuración de
+ese asistente, deja el resto de ese archivo donde estaba y guarda al lado una
+copia de cómo era. Para uno que no conozca, basta una línea:
+
 ```console
 $ <tu-asistente> mcp add tisty -- tisty mcp
 ```

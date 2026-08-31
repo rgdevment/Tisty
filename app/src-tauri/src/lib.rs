@@ -6,6 +6,7 @@ mod report;
 mod tray;
 mod update;
 mod waking;
+mod wiring;
 
 use tauri::{Emitter, Manager};
 
@@ -3000,6 +3001,29 @@ fn reach_for(wanted: bool) -> Answer<command::Reach> {
 }
 
 #[tauri::command]
+fn wiring() -> Vec<wiring::Seen> {
+    wiring::seen()
+}
+
+#[tauri::command]
+fn wire(id: String) -> Answer<Vec<wiring::Seen>> {
+    wiring::wire(&id).map_err(stuck)
+}
+
+#[tauri::command]
+fn unwire(id: String) -> Answer<Vec<wiring::Seen>> {
+    wiring::unwire(&id).map_err(stuck)
+}
+
+fn stuck(why: wiring::Stuck) -> Refusal {
+    match why {
+        wiring::Stuck::NoSuch => Refusal::of("noSuchAgent"),
+        wiring::Stuck::Puzzling(at) => Refusal::about("settingsPuzzling", at),
+        wiring::Stuck::Cannot(why) => Refusal::about("cannotWrite", why),
+    }
+}
+
+#[tauri::command]
 fn waking() -> waking::Waking {
     waking::waking()
 }
@@ -4324,6 +4348,9 @@ pub fn run() {
             settle_in,
             reachable,
             reach_for,
+            wiring,
+            wire,
+            unwire,
             waking,
             wake_for,
             keep_locale,

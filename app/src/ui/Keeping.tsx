@@ -34,6 +34,7 @@ import {
   retireAttachment,
   revealed,
   type Settings,
+  seenAgents,
   shortcut,
   syncKin,
   syncNow,
@@ -41,11 +42,14 @@ import {
   type Twins,
   takeOver,
   twinned,
+  unwireAgent,
   updateInstall,
   updateReady,
   type Waking,
+  type Wired,
   wakeFor,
   waking,
+  wireAgent,
 } from "../core";
 import { decideAll } from "../deciding";
 import { daysFrom, stamped, weigh } from "../format";
@@ -72,6 +76,7 @@ type Which =
   | "quick"
   | "waking"
   | "settings"
+  | "wiring"
   | "report"
   | "store"
   | "brittle"
@@ -97,6 +102,7 @@ interface Props {
 export default function Keeping({ onChanged, onGreet, greeted }: Props) {
   const [tab, setTab] = useState<Tab>("data");
   const [agent, setAgent] = useState<Agent | null>(null);
+  const [agents, setAgents] = useState<Wired[] | null>(null);
   const [wired, setWired] = useState(false);
   const [typed, setTyped] = useState(false);
   const [looking, setLooking] = useState(false);
@@ -128,6 +134,9 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
     agentState()
       .then((fresh) => setAgent(fresh))
       .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }));
+    seenAgents()
+      .then(setAgents)
+      .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
   }, [tab]);
 
   useEffect(look, [look]);
@@ -173,6 +182,14 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
       .then(then)
       .catch((e) => setTrouble({ card, text: saidPlainly(e) }))
       .finally(() => setBusy(null));
+  };
+
+  const join = (one: Wired) => {
+    const out = one.wired && !one.astray;
+    quietly("wiring", out ? unwireAgent(one.id) : wireAgent(one.id), (now) => {
+      setAgents(now);
+      setSaid({ card: "wiring", text: t(out ? "wiringGone" : "wiringFresh") });
+    });
   };
 
   const [apart, setApart] = useState<((door: Door | "else" | null) => void) | null>(null);
@@ -926,6 +943,69 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
               <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("agentsUndo")}</p>
             </Card>
 
+            <Card title={t("wiringTitle")} which="wiring" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("wiringWhat")}</p>
+
+              {agents?.length === 0 && (
+                <p className="mt-3 text-[12.5px] leading-relaxed text-faint">{t("wiringNone")}</p>
+              )}
+
+              {agents && agents.length > 0 && (
+                <>
+                  <div className="mt-3 overflow-hidden rounded-lg border border-hair">
+                    {agents.map((one) => (
+                      <div
+                        key={one.id}
+                        className="flex items-center gap-3 border-t border-hair px-3 py-2.5 first:border-t-0"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[13px] font-semibold">{one.name}</span>
+                          <span className="block truncate font-mono text-[10.5px] text-faint">
+                            {one.at}
+                          </span>
+                          {one.astray && (
+                            <span className="block text-[11.5px] text-high">
+                              {t("wiringAstray")}
+                            </span>
+                          )}
+                        </span>
+                        {one.wired && !one.astray && (
+                          <span className="shrink-0 rounded-full border border-hue-green/40 px-2 py-0.5 text-[11.5px] text-hue-green">
+                            {t("wiringOn")}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          disabled={held}
+                          onClick={() => join(one)}
+                          className={`shrink-0 rounded-md border px-2.5 py-1 text-[12px] disabled:text-faint ${
+                            one.wired && !one.astray
+                              ? "border-line text-soft hover:border-urgent hover:text-urgent"
+                              : "border-accent text-accent"
+                          }`}
+                        >
+                          {one.astray
+                            ? t("wiringAgain")
+                            : one.wired
+                              ? t("wiringOut")
+                              : t("wiringJoin")}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {agent?.on === false && (
+                    <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">
+                      {t("wiringMute")}
+                    </p>
+                  )}
+                  <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
+                    {t("wiringBefore")}
+                  </p>
+                </>
+              )}
+            </Card>
+
             <Card
               title={t("agentsCanTitle")}
               which="settings"
@@ -1367,6 +1447,7 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   greet: "greetAgain",
   tongue: "tongue",
   settings: "settingsTitle",
+  wiring: "wiringTitle",
   report: "reportTitle",
   store: "aboutStore",
 };

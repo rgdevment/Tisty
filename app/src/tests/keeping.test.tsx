@@ -16,6 +16,17 @@ const serving = vi.hoisted(() => ({
   filed: 0,
 }));
 
+const installed = vi.hoisted(() => ({
+  seen: [] as {
+    id: string;
+    name: string;
+    at: string;
+    wired: boolean;
+    astray: boolean;
+    points?: string;
+  }[],
+}));
+
 const asked = vi.hoisted(() => ({
   folder: null as string | null,
   file: null as string | null,
@@ -81,6 +92,23 @@ beforeEach(() => {
   asked.file = null;
   asked.sure = false;
   Object.assign(serving, { on: false, called: undefined, id: undefined, filed: 0 });
+  installed.seen = [
+    {
+      id: "claude-code",
+      name: "Claude Code",
+      at: "C:/Users/someone/.claude.json",
+      wired: true,
+      astray: false,
+      points: "C:/Programs/Tisty/tisty.exe",
+    },
+    {
+      id: "antigravity",
+      name: "Antigravity",
+      at: "C:/Users/someone/.gemini/config/mcp_config.json",
+      wired: false,
+      astray: false,
+    },
+  ];
   Object.assign(carrying, {
     chosen: undefined,
     asked: true,
@@ -107,6 +135,17 @@ beforeEach(() => {
         return Promise.resolve({ carried: "came", undecided: [] });
       case "reachable":
         return Promise.resolve({ ...standing });
+      case "wiring":
+        return Promise.resolve(installed.seen.map((one) => ({ ...one })));
+      case "wire":
+      case "unwire": {
+        const id = String(ipc.calls[ipc.calls.length - 1]?.args.id);
+        const on = cmd === "wire";
+        installed.seen = installed.seen.map((one) =>
+          one.id === id ? { ...one, wired: on, astray: false } : one
+        );
+        return Promise.resolve(installed.seen.map((one) => ({ ...one })));
+      }
       case "reach_for":
         standing.withinReach = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
         return Promise.resolve({ ...standing });
@@ -1455,6 +1494,64 @@ describe("letting an assistant file work here", () => {
     await waitFor(() => expect(sent("agent_turn").length).toBe(1));
     expect(sent("agent_turn")[0].args.on).toBe(true);
     expect(await screen.findByText(/espino 3 can file work here/i)).toBeTruthy();
+  });
+
+  it("lists the assistants on this computer, with the file each one reads", async () => {
+    await openTab();
+
+    expect(await screen.findByText("Claude Code")).toBeTruthy();
+    expect(screen.getByText("C:/Users/someone/.claude.json")).toBeTruthy();
+    expect(screen.getByText(/^Connected$/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Connect$/ })).toBeTruthy();
+  });
+
+  it("connecting one writes into that assistant's own settings and asks for a restart", async () => {
+    await openTab();
+
+    await userEvent.click(await screen.findByRole("button", { name: /^Connect$/ }));
+
+    await waitFor(() => expect(sent("wire").length).toBe(1));
+    expect(sent("wire")[0].args.id).toBe("antigravity");
+    expect(await screen.findByText(/Close it and open it again/i)).toBeTruthy();
+  });
+
+  it("one already connected is taken back out rather than written twice", async () => {
+    await openTab();
+
+    await userEvent.click(await screen.findByRole("button", { name: /^Remove$/ }));
+
+    await waitFor(() => expect(sent("unwire").length).toBe(1));
+    expect(sent("unwire")[0].args.id).toBe("claude-code");
+    expect(sent("wire").length).toBe(0);
+  });
+
+  it("a copy that is no longer there is said plainly, and pointing it here writes again", async () => {
+    installed.seen = [
+      {
+        id: "codex",
+        name: "Codex",
+        at: "C:/Users/someone/.codex/config.toml",
+        wired: true,
+        astray: true,
+        points: "C:/Programs/Gone/tisty.exe",
+      },
+    ];
+
+    await openTab();
+
+    expect(await screen.findByText(/no longer there/i)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /Point it here/i }));
+
+    await waitFor(() => expect(sent("wire").length).toBe(1));
+    expect(sent("wire")[0].args.id).toBe("codex");
+  });
+
+  it("with none of them installed it says so instead of showing an empty list", async () => {
+    installed.seen = [];
+
+    await openTab();
+
+    expect(await screen.findByText(/knows its way around/i)).toBeTruthy();
   });
 
   it("spells out what it can never do, where the person decides", async () => {

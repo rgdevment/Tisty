@@ -172,6 +172,45 @@ returned, and not counted either — a total of one would say the thing exists.
 Journal lines lose the absolute paths they name, so what an assistant reads
 never carries the shape of the disk it was read from.
 
+### Connecting one means writing in somebody else's house
+
+The Agents tab lists the assistants installed on this machine and offers to
+write Tisty into the settings of each. None of them is found by asking the
+PATH: an assistant is known by the file it keeps — `~/.claude.json`,
+`~/.codex/config.toml`, `~/.gemini/config/mcp_config.json`, VS Code's
+`mcp.json`, Claude Desktop's `claude_desktop_config.json` — because a command
+can be installed and absent from the PATH the window inherited, and on the
+machine this was written on, Codex is exactly that.
+
+Those files are theirs, so only the `tisty` entry is written and the rest is
+left byte for byte. The JSON is edited in place rather than parsed and written
+back out, which is what keeps a 70 KB `.claude.json` in its own order and VS
+Code's comments in its `mcp.json`; the TOML has its `[mcp_servers.tisty]` table
+replaced as text, since re-serialising it would hand back a file with somebody
+else's quoting rewritten. What cannot be edited that way — a server defined
+inline, a key that is not an object — is refused with the lines to paste rather
+than guessed at. What was there is copied to `<file>.before-tisty` first, and
+the write itself is atomic.
+
+Claude Desktop is one row and not two: Cowork reads that same file and Desktop
+bridges it into its sandbox, so connecting the one connects both. On Windows the
+file has two homes — the Store package's own `%APPDATA%`, under
+`Packages\Claude_*\LocalCache\Roaming`, and `%APPDATA%\Claude` for the plain
+installer — and only looking in both finds it.
+
+What gets written is `command::calling()`: the CLI beside the window where there
+is one, and the bare name otherwise. Packaged for the Store there is not — the
+window is `Tisty.exe`, Windows answers `tisty.exe` with it, and the CLI is off
+in `cli\` — so `beside()` refuses a command that is the running executable, and
+the name alone reaches the execution alias the manifest declares, which survives
+the version-stamped package directory changing under every update.
+
+Two things it does not do. It never says an assistant is running: what it knows
+is what a settings file says, and that is a claim it can keep. And the other
+program may write its own file back — Claude Desktop rewrites its settings as it
+closes — so the row asks for it to be closed and opened again, and an entry lost
+that way comes back as «Connect» on the next look rather than as a lie.
+
 ### Priorities are named, not numbered
 
 A task's priority is one of the four quadrants of the **Eisenhower matrix** —
