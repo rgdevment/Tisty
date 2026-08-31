@@ -31,10 +31,9 @@ impl Kept {
     }
 }
 
-/// The most `written` can come to before the file is copied and its name is known: the label, the
-/// 56 characters `named` shortens a file to, and the stamp, extension and markdown around it.
+/// In bytes: a body is measured in bytes and an accented label is two apiece.
 fn written_at_most(label: &str) -> usize {
-    spoken(label).chars().count() + SHORTENS_TO + 64
+    spoken(label).len() + SHORTENS_TO + 64
 }
 
 /// How many files a body already carries, by the shape `written` gives them.
@@ -51,7 +50,6 @@ pub enum NoRoom {
     Full,
 }
 
-/// Asked before a file is copied: half a gigabyte is a slow way to find out a document is full.
 pub fn fits(body: &str, label: &str) -> std::result::Result<(), NoRoom> {
     let held = counted(body);
     if held >= KEPT_IN_A_DOC {
@@ -906,6 +904,28 @@ mod tests {
             "the shelf is the first two: {at}"
         );
         assert!(root.path().join(&at).exists());
+    }
+
+    #[test]
+    fn a_label_of_accents_is_measured_in_the_bytes_it_will_take() {
+        let brim = "x".repeat(crate::docs::BODY_AT_MOST as usize - 400);
+
+        assert!(fits(&brim, "plano").is_ok());
+        assert_eq!(
+            fits(&brim, &"á".repeat(200)),
+            Err(NoRoom::Full),
+            "two bytes apiece is what the line will cost, not one"
+        );
+    }
+
+    #[test]
+    fn a_document_already_carrying_its_fill_takes_no_more() {
+        let many = "![uno](<attachments/ab/uno.png>)
+"
+        .repeat(KEPT_IN_A_DOC);
+
+        assert_eq!(fits(&many, "plano"), Err(NoRoom::Crowded(KEPT_IN_A_DOC)));
+        assert!(fits(&many[..many.len() / 2], "plano").is_ok());
     }
 
     fn many_chunks(size: usize, seed: u8) -> Vec<u8> {
