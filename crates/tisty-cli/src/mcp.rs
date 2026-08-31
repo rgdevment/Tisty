@@ -660,9 +660,9 @@ fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let at = &tisty_core::agent::may_attach(asked, paths).map_err(|why| {
         Refused::Tool(match why {
             tisty_core::Error::NotForAnAgent(_) => format!(
-                "{said:?} is not a kind of file an assistant may keep. Pictures, PDFs, plain \
-                 text and office documents are; anything holding a key or a password is not, \
-                 whatever it is named."
+                "{said:?} is not a kind of file an assistant may keep. Pictures, video, sound, \
+                 PDFs, plain text, office documents and archives like zip are; anything holding \
+                 a key or a password is not, whatever it is named."
             ),
             _ => format!(
                 "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
@@ -1285,6 +1285,19 @@ fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ),
         None => None,
     };
+    let color = match text(args, "color") {
+        Some(key) => Some(
+            tisty_core::model::hue::kept(&key)
+                .map(str::to_string)
+                .ok_or_else(|| {
+                    Refused::Tool(format!(
+                        "there is no colour called {key:?}. The palette is {}.",
+                        tisty_core::model::hue::HUES.join(", ")
+                    ))
+                })?,
+        ),
+        None => None,
+    };
     let (state, mut store) = opened(paths)?;
 
     let wanted = tisty_core::text::folded(&name);
@@ -1293,13 +1306,13 @@ fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .values()
         .find(|one| tisty_core::text::folded(&one.name) == wanted)
     {
-        if let Some(icon) = icon {
+        if icon.is_some() || color.is_some() {
             store
                 .append(Op::FolderLook {
                     id: one.id,
                     d: tisty_core::event::Look {
-                        icon: Some(Some(icon)),
-                        color: None,
+                        icon: icon.map(Some),
+                        color: color.map(Some),
                     },
                 })
                 .map_err(hitch)?;
@@ -1340,7 +1353,7 @@ fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 order,
                 parent,
                 icon,
-                color: None,
+                color,
             },
         })
         .map_err(hitch)?;
@@ -1703,7 +1716,7 @@ fn tools() -> Value {
         {
             "name": "folder",
             "title": "Make a folder",
-            "description": "Make a folder for documents, and give it an icon if one fits. If a                             folder by that name is already there, it is used as it is —                             nothing is renamed, moved or deleted. Folders hold documents,                             not tasks; tasks go in lists.",
+            "description": "Make a folder for documents, and give it an icon and a colour if they fit. If a folder by that name is already there it is used as it is, and an icon or colour you send changes how it looks — nothing is renamed, moved or deleted. Folders hold documents, not tasks; tasks go in lists.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -1718,7 +1731,11 @@ fn tools() -> Value {
                     },
                     "icon": {
                         "type": "string",
-                        "description": "One name from Tisty's catalogue, like home, work, money,                                         study, travel, health, food, family or code"
+                        "description": "One name from Tisty's catalogue, like home, work, money, study, travel, health, food, family or code"
+                    },
+                    "color": {
+                        "type": "string",
+                        "description": "red, orange, amber, green, teal, blue, indigo, purple, pink, brown or gray"
                     }
                 },
                 "required": ["name"]

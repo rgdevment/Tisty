@@ -538,6 +538,33 @@ fn a_document_with_no_room_left_refuses_before_the_copy() {
     );
 }
 
+#[test]
+fn a_folder_takes_an_icon_and_a_colour_and_can_be_told_a_new_one() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let made = served.call(
+        "folder",
+        serde_json::json!({ "name": "Condominio", "icon": "home", "color": "teal" }),
+    );
+    assert!(made["result"]["isError"].is_null(), "{made}");
+
+    let again = served.call(
+        "folder",
+        serde_json::json!({ "name": "Condominio", "color": "indigo" }),
+    );
+    assert!(again["result"]["isError"].is_null(), "{again}");
+    assert_eq!(again["result"]["structuredContent"]["made"], false);
+
+    let wrong = served.call(
+        "folder",
+        serde_json::json!({ "name": "Salud", "color": "mauve" }),
+    );
+    assert_eq!(wrong["result"]["isError"], true, "{wrong}");
+    let why = wrong["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(why.contains("teal"), "the palette is named for it: {why}");
+}
+
 fn walked(at: &std::path::Path) -> Box<dyn Iterator<Item = std::path::PathBuf>> {
     let Ok(entries) = std::fs::read_dir(at) else {
         return Box::new(std::iter::empty());
