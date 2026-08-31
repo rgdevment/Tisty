@@ -1794,6 +1794,10 @@ struct Settings {
     attach_up_to: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     locale: Option<String>,
+    holds: tisty_core::config::Holds,
+    /// Whether the choice means anything here: without a shared folder there is nowhere else.
+    shares: bool,
+    only_shared_above: u64,
 }
 
 const HERE: &str = env!("CARGO_PKG_VERSION");
@@ -1940,11 +1944,18 @@ async fn update_install(
 #[tauri::command]
 fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     let session = held(&session);
-    Ok(Settings {
+    Ok(as_settings(&session))
+}
+
+fn as_settings(session: &Session) -> Settings {
+    Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
         locale: session.config.locale.clone(),
-    })
+        holds: session.config.holds(),
+        shares: !session.config.backs_up(),
+        only_shared_above: session.config.only_shared_above(),
+    }
 }
 
 #[tauri::command]
@@ -1959,15 +1970,13 @@ fn keep_settings(
         tisty_core::attach::COPIED_LEAST,
         tisty_core::attach::COPIED_MOST,
     );
+    let holds = settings.holds;
     session.keep(|config| {
         config.quiet = (!quiet.is_empty()).then_some(quiet);
         config.attach_up_to = Some(up_to);
+        config.holds = Some(holds);
     })?;
-    let now = Settings {
-        quiet: session.config.muted().to_vec(),
-        attach_up_to: session.config.copies_up_to(),
-        locale: session.config.locale.clone(),
-    };
+    let now = as_settings(&session);
     drop(session);
     herald::respeak(&app, &now.quiet);
     Ok(now)

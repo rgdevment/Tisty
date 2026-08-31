@@ -33,6 +33,7 @@ import {
   restore,
   retireAttachment,
   revealed,
+  type Holds,
   type Settings,
   seenAgents,
   shortcut,
@@ -831,6 +832,38 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                   <span className="text-[11.5px] text-faint">{t("attachUpTo")}</span>
                 </div>
                 <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">{t("attachBig")}</p>
+              </Card>
+            )}
+
+            {kept && (
+              <Card
+                title={t("holdsTitle")}
+                which="settings"
+                busy={busy}
+                said={said}
+                trouble={trouble}
+              >
+                <p className="text-[12.5px] leading-relaxed text-soft">
+                  {fill("holdsWhy", weigh(kept.onlySharedAbove))}
+                </p>
+                <div className="mt-2 flex items-center gap-2.5">
+                  <select
+                    aria-label={t("holdsTitle")}
+                    value={kept.holds}
+                    disabled={held || !kept.shares}
+                    onChange={(e) => remember({ ...kept, holds: e.target.value as Holds })}
+                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  >
+                    <option value="everywhere">{t("holdsEverywhere")}</option>
+                    <option value="mine">{t("holdsMine")}</option>
+                    <option value="shared">{t("holdsShared")}</option>
+                  </select>
+                </div>
+                {!kept.shares && (
+                  <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
+                    {t("holdsNeedsShared")}
+                  </p>
+                )}
               </Card>
             )}
 

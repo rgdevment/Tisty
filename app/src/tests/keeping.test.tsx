@@ -222,6 +222,9 @@ beforeEach(() => {
           backedUpAt: null,
           quiet: [],
           attachUpTo: 5 * 1024 * 1024,
+          holds: "everywhere",
+          shares: true,
+          onlySharedAbove: 50 * 1024 * 1024,
           inPath: true,
           shortcut: null,
         });
@@ -232,7 +235,7 @@ beforeEach(() => {
           lines: kept.lines,
         });
       case "settings":
-        return Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024, logsAll: false });
+        return Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024, logsAll: false, holds: "everywhere", shares: true, onlySharedAbove: 50 * 1024 * 1024 });
       case "docs":
         return Promise.resolve({
           folders: [],
@@ -328,7 +331,7 @@ describe("the maintenance panel", () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "settings"
-        ? Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024 })
+        ? Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024, holds: "everywhere", shares: true, onlySharedAbove: 50 * 1024 * 1024 })
         : cmd === "keep_settings"
           ? new Promise(() => {})
           : otherwise(cmd, args);
@@ -339,10 +342,24 @@ describe("the maintenance panel", () => {
     await userEvent.click(await screen.findByRole("checkbox", { name: /a short tone/i }));
     await go(/writing/i);
 
-    const size = await screen.findByRole("combobox");
+    const size = await screen.findByRole("combobox", { name: /take files up to/i });
     await waitFor(() => expect(size.hasAttribute("disabled")).toBe(true));
     expect(size.className).toContain("disabled:text-soft");
     expect(size.className).not.toContain("opacity-50");
+  });
+
+  it("offers where the big attachments live, and says when the choice is idle", async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/writing/i);
+
+    const where = await screen.findByRole("combobox", { name: /where the big/i });
+    expect((where as HTMLSelectElement).value).toBe("everywhere");
+
+    await userEvent.selectOptions(where, "shared");
+    await waitFor(() => expect(sent("keep_settings")).toHaveLength(1));
+    const asked = sent("keep_settings")[0].args.settings as { holds: string };
+    expect(asked.holds).toBe("shared");
   });
 
   it("names every machine and when each last wrote", async () => {

@@ -404,10 +404,15 @@ export interface About {
   store: string;
 }
 
+export type Holds = "everywhere" | "mine" | "shared";
+
 export interface Settings {
   quiet: string[];
   attachUpTo: number;
   locale?: string;
+  holds: Holds;
+  shares: boolean;
+  onlySharedAbove: number;
 }
 
 export interface Logs {
