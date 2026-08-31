@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { families as readFamilies, icons as readIcons } from "../core";
+import { alsoNamed } from "../synonyms";
 
 export interface Family {
   name: string;
@@ -47,5 +48,6 @@ export const spared = (key: string): string => `:${key}:`;
 export const sifted = (all: string[], word: string): string[] => {
   const said = word.trim().toLowerCase();
   if (!said) return all;
-  return all.filter((key) => key.includes(said));
+  const also = new Set(alsoNamed(said));
+  return all.filter((key) => key.includes(said) || also.has(key));
 };
