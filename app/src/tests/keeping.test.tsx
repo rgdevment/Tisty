@@ -257,7 +257,14 @@ beforeEach(() => {
           lines: kept.lines,
         });
       case "settings":
-        return Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024, logsAll: false, holds: "everywhere", shares: true, onlySharedAbove: 50 * 1024 * 1024 });
+        return Promise.resolve({
+          quiet: [],
+          attachUpTo: 5 * 1024 * 1024,
+          logsAll: false,
+          holds: "everywhere",
+          shares: true,
+          onlySharedAbove: 50 * 1024 * 1024,
+        });
       case "docs":
         return Promise.resolve({
           folders: [],
@@ -353,7 +360,13 @@ describe("the maintenance panel", () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "settings"
-        ? Promise.resolve({ quiet: [], attachUpTo: 5 * 1024 * 1024, holds: "everywhere", shares: true, onlySharedAbove: 50 * 1024 * 1024 })
+        ? Promise.resolve({
+            quiet: [],
+            attachUpTo: 5 * 1024 * 1024,
+            holds: "everywhere",
+            shares: true,
+            onlySharedAbove: 50 * 1024 * 1024,
+          })
         : cmd === "keep_settings"
           ? new Promise(() => {})
           : otherwise(cmd, args);

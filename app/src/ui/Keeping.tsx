@@ -13,8 +13,11 @@ import {
   chooseSync,
   copied,
   docs,
+  type Freeing,
   facts,
+  freeUp,
   guide,
+  type Holds,
   joinThem,
   type Kin,
   keepLocale,
@@ -29,18 +32,15 @@ import {
   reachable,
   reachFor,
   settings as readSettings,
-  stopFreeing,
   rebuild,
   removeMachine,
   restore,
   retireAttachment,
   revealed,
-  freeUp,
-  type Freeing,
-  type Holds,
   type Settings,
   seenAgents,
   shortcut,
+  stopFreeing,
   syncKin,
   syncNow,
   syncState,
@@ -889,10 +889,7 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                 {freeing && (
                   <div className="mt-2.5 flex items-center gap-2.5">
                     <span className="text-[11.5px] leading-relaxed text-soft">
-                      {fill(
-                        freeing.done ? "holdsFreed" : "holdsFreeing",
-                        weigh(freeing.freed),
-                      )}
+                      {fill(freeing.done ? "holdsFreed" : "holdsFreeing", weigh(freeing.freed))}
                     </span>
                     {!freeing.done && (
                       <button
