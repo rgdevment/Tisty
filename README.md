@@ -440,7 +440,8 @@ tries is refused.
 What it may do is deliberately small: file a task with its steps and its date,
 add to the journal, write a document, add to the end of one that is already
 there, correct a passage of one, file documents into folders, keep a copy of a
-file you point it at, and read what is already there. What it may not do: close
+file you point it at — on a task or inside a document, which takes the larger
+file of the two — and read what is already there. What it may not do: close
 a task or delete one, delete a document or hand it a new body whole, rename or
 empty a folder, reach a task you folded away, take files from outside the
 folders where a download lands, or file the same thing twice. To correct a

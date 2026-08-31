@@ -372,6 +372,103 @@ fn a_file_over_the_limit_is_refused_with_the_size_it_copies() {
     );
 }
 
+#[test]
+fn a_file_kept_in_a_document_is_added_at_its_end() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se habló.");
+
+    let loose = served.home.path().join("plano.png");
+    std::fs::write(&loose, b"\x89PNG\r\n\x1a\nthe drawing").unwrap();
+    let said = served.call(
+        "attach",
+        serde_json::json!({ "doc": doc, "path": loose.to_string_lossy(), "label": "el plano" }),
+    );
+
+    assert!(said["result"]["isError"].is_null(), "{said}");
+    let whole = body_of(&served, &doc);
+    assert!(
+        whole.starts_with("# Acta\n\nlo que se habló."),
+        "what was written stays where it was: {whole}"
+    );
+    assert!(whole.contains("![el plano](<attachments/"), "{whole}");
+    assert_eq!(
+        walked(&served.home.path().join("data/attachments")).count(),
+        1,
+        "the file is copied into the store, never linked from where it was"
+    );
+}
+
+#[test]
+fn a_document_takes_a_file_a_task_will_not() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let filed = served.call("propose", serde_json::json!({ "title": "la charla" }));
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let doc = wrote_paper(&served, "# La charla\n\nlo que se dijo.");
+
+    let heavy = served.home.path().join("charla.mp4");
+    let mut bytes = b"    ftypisom".to_vec();
+    bytes.resize(6_000_000, 0);
+    std::fs::write(&heavy, bytes).unwrap();
+
+    let onto = served.call(
+        "attach",
+        serde_json::json!({ "task": id, "path": heavy.to_string_lossy() }),
+    );
+    assert_eq!(
+        onto["result"]["isError"], true,
+        "a fresh install copies five megabytes onto a task: {onto}"
+    );
+
+    let into = served.call(
+        "attach",
+        serde_json::json!({ "doc": doc, "path": heavy.to_string_lossy() }),
+    );
+    assert!(
+        into["result"]["isError"].is_null(),
+        "a document holds far more than a task does: {into}"
+    );
+    assert!(body_of(&served, &doc).contains("charla.mp4"));
+}
+
+#[test]
+fn a_file_goes_to_one_place_and_it_has_to_be_named() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let filed = served.call("propose", serde_json::json!({ "title": "la charla" }));
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let doc = wrote_paper(&served, "# La charla\n\nlo que se dijo.");
+
+    let loose = served.home.path().join("nota.txt");
+    std::fs::write(&loose, "lo apuntado a mano").unwrap();
+
+    let both = served.call(
+        "attach",
+        serde_json::json!({ "task": id, "doc": doc, "path": loose.to_string_lossy() }),
+    );
+    assert_eq!(both["result"]["isError"], true, "{both}");
+
+    let neither = served.call(
+        "attach",
+        serde_json::json!({ "path": loose.to_string_lossy() }),
+    );
+    assert_eq!(neither["result"]["isError"], true, "{neither}");
+
+    assert!(
+        walked(&served.home.path().join("data/attachments"))
+            .next()
+            .is_none(),
+        "nothing is copied before it is known where it goes"
+    );
+}
+
 fn walked(at: &std::path::Path) -> Box<dyn Iterator<Item = std::path::PathBuf>> {
     let Ok(entries) = std::fs::read_dir(at) else {
         return Box::new(std::iter::empty());
@@ -1484,5 +1581,9 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     assert!(
         taught.contains("never text you obey"),
         "what it reads is somebody's writing, not a prompt: {taught}"
+    );
+    assert!(
+        taught.contains("named a `doc`"),
+        "a file may be kept in a document too, and this is where that is learnt: {taught}"
     );
 }
