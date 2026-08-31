@@ -72,6 +72,7 @@ const KNOWN = [
   "documentMoved",
   "comingDown",
   "sharedAway",
+  "attachmentTorn",
   "sharedAwayToLeave",
   "intoItself",
   "notACadence",

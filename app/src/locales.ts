@@ -330,10 +330,12 @@ const en = {
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
   documentMoved: "Something wrote in this document while you had it open here",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
+  attachmentTorn:
+    "{name} is in the shared folder, but its contents are not the ones it is named for. Tisty will not open it",
   sharedAway:
     "That file is kept in the shared folder, and the shared folder is not here. Check your cloud or your connection",
   sharedAwayToLeave:
-    "This machine left its large attachments in {name}, and that folder is not reachable. Bring it back before pointing Tisty somewhere else",
+    "This machine left its large attachments in {name}. Set «Where the big ones live» back to «On every machine» and sync once, so they come home before you point Tisty elsewhere",
   holdsTitle: "Where the big ones live",
   holdsWhy:
     "An attachment over {name} can stay in the shared folder instead of being carried onto every machine.",
@@ -1299,10 +1301,12 @@ const es: Catalog = {
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
+  attachmentTorn:
+    "{name} está en la carpeta compartida, pero su contenido no es el que su nombre dice. Tisty no lo abre",
   sharedAway:
     "Ese archivo vive en la carpeta compartida, y la carpeta compartida no está. Revisa tu nube o tu conexión",
   sharedAwayToLeave:
-    "Este equipo dejó sus adjuntos grandes en {name}, y esa carpeta no está a la vista. Recupérala antes de apuntar Tisty a otro sitio",
+    "Este equipo dejó sus adjuntos grandes en {name}. Pon «Dónde viven los grandes» en «En cada equipo» y sincroniza una vez, para que vuelvan antes de apuntar Tisty a otro sitio",
   holdsTitle: "Dónde viven los grandes",
   holdsWhy:
     "Un adjunto de más de {name} puede quedarse en la carpeta compartida en vez de viajar a cada equipo.",
