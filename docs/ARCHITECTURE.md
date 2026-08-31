@@ -82,8 +82,21 @@ A file kept with a task goes on its journal; one kept in a document is added at
 the end of it, as the same markdown the window writes when you drop a file in.
 The two carry different ceilings, and the agent gets the ceiling of the place it
 writes to: a task copies what the person set, up to 50 MB, and a document copies
-up to 500 MB. That is the window's rule, not a second one — a recording or a
-deck of slides is a document's to hold, not a task's.
+up to 500 MB, which is fixed. That is the window's rule, not a second one — a
+recording or a deck of slides is a document's to hold, not a task's.
+
+Whether the document can take it is asked **before** the copy, not after: whether
+the line still fits under the reader's ceiling, and whether the document already
+carries as many files as one is read with. Half a gigabyte is a slow way to find
+out there was no room, and a copy made for a line that is never written is a copy
+nothing names afterwards.
+
+**A file is copied in 64 kB at a time**, hashed as it goes and written to a
+`.part` beside the shelves, then renamed into place — and one already kept is
+compared to it side by side rather than both being read in. A ceiling of 500 MB
+paid in memory would be half a gigabyte to read and another to compare against,
+and a failed allocation ends a process rather than a request. What is written is
+either renamed into its shelf or taken away: nothing half copied stays.
 
 It reaches a document that exists in two ways, and neither is a rewrite.
 **Adding** puts text after the last line, leaving every byte that was there.

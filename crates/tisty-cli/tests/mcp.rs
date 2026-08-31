@@ -469,6 +469,75 @@ fn a_file_goes_to_one_place_and_it_has_to_be_named() {
     );
 }
 
+#[test]
+fn a_document_already_full_of_files_is_told_so_before_anything_is_copied() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(&served, "# El álbum\n\nlo que fuimos guardando.");
+    let many: String = (0..150)
+        .map(|i| format!("![uno {i}](<attachments/ab/uno{i}.png>)\n\n"))
+        .collect();
+    // As the window leaves it when a person drops that many in; no tool writes those lines.
+    std::fs::write(
+        served
+            .home
+            .path()
+            .join("data/docs")
+            .join(format!("{doc}.md")),
+        format!("# El álbum\n\n{many}"),
+    )
+    .unwrap();
+
+    let loose = served.home.path().join("una-mas.png");
+    std::fs::write(&loose, b"\x89PNG\r\n\x1a\none more").unwrap();
+    let said = served.call(
+        "attach",
+        serde_json::json!({ "doc": doc, "path": loose.to_string_lossy() }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert!(
+        walked(&served.home.path().join("data/attachments"))
+            .next()
+            .is_none(),
+        "a document that cannot take it is told so before the file is copied"
+    );
+}
+
+#[test]
+fn a_document_with_no_room_left_refuses_before_the_copy() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se dijo.");
+    let at = served
+        .home
+        .path()
+        .join("data/docs")
+        .join(format!("{doc}.md"));
+    let brimming = format!("# Acta\n\n{}", "todo lo hablado. ".repeat(31_990));
+    std::fs::write(&at, &brimming).unwrap();
+
+    let loose = served.home.path().join("plano.png");
+    std::fs::write(&loose, b"\x89PNG\r\n\x1a\nthe drawing").unwrap();
+    let said = served.call(
+        "attach",
+        serde_json::json!({ "doc": doc, "path": loose.to_string_lossy() }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert_eq!(
+        std::fs::read_to_string(&at).unwrap(),
+        brimming,
+        "the document is left exactly as it was"
+    );
+    assert!(
+        walked(&served.home.path().join("data/attachments"))
+            .next()
+            .is_none(),
+        "nothing is copied for a line that will not fit"
+    );
+}
+
 fn walked(at: &std::path::Path) -> Box<dyn Iterator<Item = std::path::PathBuf>> {
     let Ok(entries) = std::fs::read_dir(at) else {
         return Box::new(std::iter::empty());
