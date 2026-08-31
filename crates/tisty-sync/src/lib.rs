@@ -111,6 +111,7 @@ pub fn carry_holding(
                     false,
                     Some(data),
                     left_behind(holds),
+                    None,
                 )?;
             }
             None => witness::warn(
@@ -141,6 +142,7 @@ pub fn carry_holding(
         let mine = dest.join(STORE).join(device);
         plainly(&mine)?;
         moved.sent = copy_segments(&store.join(device), &mine, again)?;
+        let mut carried = Vec::new();
         moved.sent += copy_held(
             &data.join(HELD),
             &dest.join(HELD),
@@ -148,12 +150,10 @@ pub fn carry_holding(
             again,
             None,
             None,
+            Some(&mut carried),
         )?;
         if holds == Holds::Shared {
-            moved.freed =
-                let_go_telling(data, dest, tisty_core::attach::COPIED_UP_TO, &mut |_| true)
-                    .map(|done| done.freed)
-                    .unwrap_or(0);
+            moved.freed = let_go_of(data, dest, &carried, tisty_core::attach::COPIED_UP_TO);
         }
     }
     let alive = match &said {
@@ -624,6 +624,30 @@ pub struct LetGo {
 
 /// Deletes a local copy only after the one up there is found to hash the same. `told` hears each
 /// one as it goes and answers whether to carry on.
+/// What a round just put up there, checked by its size where it landed: the bytes were hashed on
+/// the way and the name was renamed into place, so reading it back would only ask the cloud for
+/// what we wrote a second ago.
+fn let_go_of(data: &Path, dest: &Path, carried: &[(String, u64)], above: u64) -> u64 {
+    let mut freed = 0;
+    for (reference, bytes) in carried {
+        if *bytes <= above {
+            continue;
+        }
+        let (Ok(here), Ok(there)) = (
+            tisty_core::attach::resolve(reference, data),
+            tisty_core::attach::resolve(reference, dest),
+        ) else {
+            continue;
+        };
+        let landed =
+            std::fs::metadata(&there).is_ok_and(|told| told.is_file() && told.len() == *bytes);
+        if landed && std::fs::remove_file(&here).is_ok() {
+            freed += bytes;
+        }
+    }
+    freed
+}
+
 pub fn let_go_telling(
     data: &Path,
     dest: &Path,
@@ -702,8 +726,10 @@ fn copy_held(
     again: bool,
     ledger: Option<&Path>,
     above: Option<u64>,
+    carried: Option<&mut Vec<(String, u64)>>,
 ) -> Result<usize, Trouble> {
     let mut done = 0;
+    let mut carried = carried;
     let written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
     let shelves = match std::fs::read_dir(from) {
         Ok(shelves) => shelves,
@@ -826,6 +852,9 @@ fn copy_held(
             }
             if let Some(ledger) = ledger {
                 tisty_core::attach::noted(ledger, &reference, &sha256, bytes);
+            }
+            if let Some(carried) = carried.as_deref_mut() {
+                carried.push((reference, bytes));
             }
             done += 1;
         }
@@ -3911,6 +3940,42 @@ mod tests {
     }
 
     #[test]
+    fn a_round_does_not_read_back_what_it_just_wrote() {
+        let one = machine("dev_a");
+        let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+            .map(|at| (at % 251) as u8)
+            .collect();
+        let heavy = planted(&one.data, "charla.mp4", &big);
+        let shared = tempfile::tempdir().unwrap();
+        carry_holding(
+            &one.data,
+            None,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+            Holds::Shared,
+        )
+        .unwrap();
+        assert!(!one.data.join(&heavy).exists(), "it went up and let go");
+
+        // What did not verify stays here, and a round that carried nothing tries nothing.
+        let again = carry_holding(
+            &one.data,
+            None,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+            Holds::Shared,
+        )
+        .unwrap();
+
+        assert_eq!(again.freed, 0, "a second round has nothing to free");
+        assert_eq!(again.sent, 0, "and nothing to send either");
+    }
+
+    #[test]
     fn letting_go_frees_only_what_the_shared_folder_really_holds() {
         let one = machine("dev_a");
         let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
@@ -4042,6 +4107,7 @@ mod tests {
             false,
             Some(&other.data),
             Some(1000),
+            None,
         )
         .unwrap();
 
