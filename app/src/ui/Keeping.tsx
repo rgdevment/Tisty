@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -12,8 +13,11 @@ import {
   chooseSync,
   copied,
   docs,
+  type Freeing,
   facts,
+  freeUp,
   guide,
+  type Holds,
   joinThem,
   type Kin,
   keepLocale,
@@ -36,6 +40,7 @@ import {
   type Settings,
   seenAgents,
   shortcut,
+  stopFreeing,
   syncKin,
   syncNow,
   syncState,
@@ -116,6 +121,14 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
   const [wake, setWake] = useState<Waking | null>(null);
   const [keys, setKeys] = useState<string | null>(null);
   const [kept, setKept] = useState<Settings | null>(null);
+  const [freeing, setFreeing] = useState<Freeing | null>(null);
+
+  useEffect(() => {
+    const off = listen<Freeing>("freeing", (told) => setFreeing(told.payload));
+    return () => {
+      void off.then((stop) => stop());
+    };
+  }, []);
   const [build, setBuild] = useState<About | null>(null);
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
@@ -334,9 +347,10 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
       .catch((e) => setTrouble({ card: "backup", text: saidPlainly(e) }));
   };
 
-  const letGo = (reference: string) => {
+  const letGo = (reference: string, shared?: boolean) => {
     if (held) return;
-    ask(fill("looseDropSure", reference.split("/").pop() ?? reference), { kind: "warning" })
+    const named = reference.split("/").pop() ?? reference;
+    ask(fill(shared ? "looseDropSharedSure" : "looseDropSure", named), { kind: "warning" })
       .then(
         (sure) =>
           sure &&
@@ -834,6 +848,64 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
               </Card>
             )}
 
+            {kept && (
+              <Card
+                title={t("holdsTitle")}
+                which="settings"
+                busy={busy}
+                said={said}
+                trouble={trouble}
+              >
+                <p className="text-[12.5px] leading-relaxed text-soft">
+                  {fill("holdsWhy", weigh(kept.onlySharedAbove))}
+                </p>
+                <div className="mt-2 flex items-center gap-2.5">
+                  <select
+                    aria-label={t("holdsTitle")}
+                    value={kept.holds}
+                    disabled={held || !kept.shares}
+                    onChange={(e) => {
+                      const holds = e.target.value as Holds;
+                      remember({ ...kept, holds });
+                      if (holds === "shared") {
+                        setFreeing({ gone: 0, freed: 0, done: false });
+                        freeUp().catch((e) => {
+                          setFreeing(null);
+                          setTrouble({ card: "settings", text: saidPlainly(e) });
+                        });
+                      }
+                    }}
+                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  >
+                    <option value="everywhere">{t("holdsEverywhere")}</option>
+                    <option value="mine">{t("holdsMine")}</option>
+                    <option value="shared">{t("holdsShared")}</option>
+                  </select>
+                </div>
+                {!kept.shares && (
+                  <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
+                    {t("holdsNeedsShared")}
+                  </p>
+                )}
+                {freeing && (
+                  <div className="mt-2.5 flex items-center gap-2.5">
+                    <span className="text-[11.5px] leading-relaxed text-soft">
+                      {fill(freeing.done ? "holdsFreed" : "holdsFreeing", weigh(freeing.freed))}
+                    </span>
+                    {!freeing.done && (
+                      <button
+                        type="button"
+                        onClick={() => void stopFreeing()}
+                        className="rounded-md border border-line px-2.5 py-0.5 text-[11.5px] text-soft hover:border-urgent hover:text-urgent"
+                      >
+                        {t("holdsStop")}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </Card>
+            )}
+
             {reach?.shipped && (
               <Card
                 title={t("terminal")}
@@ -1215,12 +1287,14 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                         </span>
                         <span className="flex shrink-0 items-baseline gap-2.5 tabular-nums">
                           <span className="text-faint">
-                            {`${weigh(one.bytes)} · ${dated(one.when)}`}
+                            {`${weigh(one.bytes)} · ${dated(one.when)}${
+                              one.shared ? ` · ${t("looseShared")}` : ""
+                            }`}
                           </span>
                           <button
                             type="button"
                             disabled={held}
-                            onClick={() => letGo(one.at)}
+                            onClick={() => letGo(one.at, one.shared)}
                             className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
                           >
                             {t("looseDrop")}

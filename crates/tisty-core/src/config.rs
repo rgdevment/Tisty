@@ -33,6 +33,19 @@ impl Config {
         crate::attach::COPIED_IN_DOC
     }
 
+    /// Without a shared folder there is nowhere else, whatever the setting says.
+    pub fn holds(&self) -> Holds {
+        match self.sync {
+            Some(Sync::Folder(_)) => self.holds.unwrap_or_default(),
+            _ => Holds::Everywhere,
+        }
+    }
+
+    /// The same ceiling a task allows at most: below it everything travels as it always did.
+    pub fn only_shared_above(&self) -> u64 {
+        crate::attach::COPIED_UP_TO
+    }
+
     pub fn backs_up(&self) -> bool {
         !matches!(self.sync, Some(Sync::Folder(_)))
     }
@@ -43,6 +56,16 @@ impl Config {
 pub enum Closing {
     Hide,
     Quit,
+}
+
+/// Where a large attachment lives once there is a shared folder to keep it in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Holds {
+    #[default]
+    Everywhere,
+    Mine,
+    Shared,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -79,6 +102,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attach_up_to: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub holds: Option<Holds>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub guide: Option<String>,
 }
 
@@ -97,6 +122,7 @@ impl Config {
             checked_at: None,
             found_version: None,
             attach_up_to: Some(crate::attach::COPIED_AT_FIRST),
+            holds: None,
             opened_by: None,
             on_close: None,
             backed_up_at: None,
@@ -386,6 +412,7 @@ mod tests {
             checked_at: None,
             found_version: None,
             attach_up_to: None,
+            holds: None,
             guide: Some("mac0-0001".into()),
         };
 
@@ -411,6 +438,7 @@ mod tests {
                 checked_at: None,
                 found_version: None,
                 attach_up_to: None,
+                holds: None,
                 opened_by: None,
                 on_close: None,
                 backed_up_at: None,

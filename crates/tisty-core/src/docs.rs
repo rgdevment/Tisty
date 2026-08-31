@@ -2166,6 +2166,29 @@ despues
     }
 
     #[test]
+    fn an_attachment_written_the_way_attach_writes_it_survives() {
+        let kept = "Lo hablado.
+
+![el plano](<attachments/ab/plano-a1b2c3d4.pdf>)
+";
+        assert!(survives(kept).is_ok(), "attach writes exactly this");
+
+        let spaced = "![x](<attachments/ab/Primer_Piso_(medidas aprox)-a1b2c3d4.pdf>)";
+        assert!(
+            survives(spaced).is_ok(),
+            "the angles are there for names like this one"
+        );
+
+        assert_eq!(survives("<div>algo</div>"), Err("HTML"));
+        assert_eq!(survives("texto <b>fuerte</b>"), Err("HTML"));
+        assert_eq!(
+            survives("![x](<a<b>)"),
+            Err("HTML"),
+            "an angle inside the target is not a target"
+        );
+    }
+
+    #[test]
     fn a_body_that_went_missing_here_is_brought_back_not_buried() {
         assert_eq!(moved(Some("a"), None, Some("a")), Move::Bring);
         assert_eq!(moved(Some("a"), None, Some("b")), Move::Bring);
@@ -3240,6 +3263,11 @@ fn markup(line: &str) -> Option<&'static str> {
         }
         let inner = rest.find('>').map(|end| &rest[..end]).unwrap_or(rest);
         if inner.contains("://") || (inner.contains('@') && !inner.contains(' ')) {
+            continue;
+        }
+        // `](<…>)` is where markdown puts a target that has spaces or brackets in it, and it is
+        // what an attachment is written as.
+        if line[..at].ends_with("](") && !inner.contains('<') {
             continue;
         }
         if rest.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!') {

@@ -329,6 +329,23 @@ const en = {
   folderNameTooLong: "A folder name fits 40 characters at most",
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
   documentMoved: "Something wrote in this document while you had it open here",
+  comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
+  attachmentTorn:
+    "{name} does not yet hold what its name says it holds. If it was attached elsewhere a moment ago, your cloud may still be sending it — try again shortly. If it does not settle, the copy up there is not the one that was kept",
+  sharedAway:
+    "That file is kept in the shared folder, and the shared folder is not here. Check your cloud or your connection",
+  sharedAwayToLeave:
+    "This machine left its large attachments in {name}. Set «Where the big ones live» back to «On every machine» and sync once, so they come home before you point Tisty elsewhere",
+  holdsTitle: "Where the big ones live",
+  holdsWhy:
+    "An attachment over {name} can stay in the shared folder instead of being carried onto every machine.",
+  holdsEverywhere: "On every machine",
+  holdsMine: "Only what I attached here",
+  holdsShared: "Only in the shared folder",
+  holdsNeedsShared: "There is no shared folder yet, so everything stays on this machine.",
+  holdsFreeing: "Freeing what the shared folder already holds — {name} so far",
+  holdsFreed: "{name} freed. What could not be checked against the shared folder stayed here",
+  holdsStop: "Stop",
   moreHere: "…and {name} more",
   clashSave: "Save mine anyway",
   clashLook: "Read it again",
@@ -866,6 +883,9 @@ const en = {
   twinsNone: "Nothing is kept twice",
   twinsRun: "Look for copies",
   twinsAgain: "Look again",
+  looseShared: "in the shared folder",
+  looseDropSharedSure:
+    "{name} is only in the shared folder, so this machine has no copy to set aside: taking it out takes it out for good. Take it out?",
   looseDrop: "Take it out",
   looseDropSure:
     "Take {name} out?\n\nIt is kept aside here for 30 days in case you change your mind, and taken out of every machine that syncs. One that shows up later does not get it back: it says the file is no longer there.",
@@ -1282,6 +1302,24 @@ const es: Catalog = {
   documentBeingWritten:
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
+  comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
+  attachmentTorn:
+    "{name} todavía no tiene lo que su nombre dice. Si lo adjuntaron en otro equipo hace un momento, tu nube puede seguir enviándolo — vuelve a intentarlo en un rato. Si no se asienta, la copia de allá no es la que se guardó",
+  sharedAway:
+    "Ese archivo vive en la carpeta compartida, y la carpeta compartida no está. Revisa tu nube o tu conexión",
+  sharedAwayToLeave:
+    "Este equipo dejó sus adjuntos grandes en {name}. Pon «Dónde viven los grandes» en «En cada equipo» y sincroniza una vez, para que vuelvan antes de apuntar Tisty a otro sitio",
+  holdsTitle: "Dónde viven los grandes",
+  holdsWhy:
+    "Un adjunto de más de {name} puede quedarse en la carpeta compartida en vez de viajar a cada equipo.",
+  holdsEverywhere: "En cada equipo",
+  holdsMine: "Solo lo que adjunté aquí",
+  holdsShared: "Solo en la carpeta compartida",
+  holdsNeedsShared: "Todavía no hay carpeta compartida, así que todo se queda en este equipo.",
+  holdsFreeing: "Liberando lo que la carpeta compartida ya guarda — {name} hasta ahora",
+  holdsFreed:
+    "{name} liberados. Lo que no se pudo comprobar contra la carpeta compartida se quedó aquí",
+  holdsStop: "Detener",
   moreHere: "…y {name} más",
   clashSave: "Guardar lo mío de todos modos",
   clashLook: "Volver a leerlo",
@@ -1821,6 +1859,9 @@ const es: Catalog = {
   twinsNone: "Nada guardado dos veces",
   twinsRun: "Buscar copias",
   twinsAgain: "Buscar otra vez",
+  looseShared: "en la carpeta compartida",
+  looseDropSharedSure:
+    "{name} solo está en la carpeta compartida, así que este equipo no tiene copia que apartar: quitarlo lo quita para siempre. ¿Lo quitas?",
   looseDrop: "Quitar",
   looseDropSure:
     "¿Quitar {name}?\n\nSe guarda aquí 30 días por si cambias de opinión, y se saca de todas las máquinas que sincronicen. La que aparezca más tarde no lo recupera: dirá que el archivo ya no está.",

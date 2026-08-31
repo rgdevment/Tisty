@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use tisty_core::config::Holds;
 use tisty_core::witness::{self, Fact, channel};
 
 pub use tisty_core::store::MARKER;
@@ -42,6 +43,7 @@ pub struct Undecided {
 pub struct Moved {
     pub sent: usize,
     pub brought: usize,
+    pub freed: u64,
     pub undecided: Vec<Undecided>,
     pub unreadable: Vec<String>,
     pub astray: Vec<String>,
@@ -61,7 +63,7 @@ pub fn carry(
     way: Way,
     alive: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_leaning_on(data, None, device, dest, way, alive)
+    carry_holding(data, None, device, dest, way, alive, Holds::Everywhere)
 }
 
 pub fn carry_leaning_on(
@@ -71,6 +73,18 @@ pub fn carry_leaning_on(
     dest: &Path,
     way: Way,
     alive: &[String],
+) -> Result<Moved, Trouble> {
+    carry_holding(data, aside, device, dest, way, alive, Holds::Everywhere)
+}
+
+pub fn carry_holding(
+    data: &Path,
+    aside: Option<&Path>,
+    device: &str,
+    dest: &Path,
+    way: Way,
+    alive: &[String],
+    holds: Holds,
 ) -> Result<Moved, Trouble> {
     if !dest.is_dir() {
         return Err(Trouble::NotThere(dest.display().to_string()));
@@ -96,6 +110,8 @@ pub fn carry_leaning_on(
                     &one.retired,
                     false,
                     Some(data),
+                    left_behind(holds),
+                    None,
                 )?;
             }
             None => witness::warn(
@@ -126,7 +142,19 @@ pub fn carry_leaning_on(
         let mine = dest.join(STORE).join(device);
         plainly(&mine)?;
         moved.sent = copy_segments(&store.join(device), &mine, again)?;
-        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD), &buried, again, None)?;
+        let mut carried = Vec::new();
+        moved.sent += copy_held(
+            &data.join(HELD),
+            &dest.join(HELD),
+            &buried,
+            again,
+            None,
+            None,
+            Some(&mut carried),
+        )?;
+        if holds == Holds::Shared {
+            moved.freed = let_go_of(data, dest, &carried, tisty_core::attach::COPIED_UP_TO);
+        }
     }
     let alive = match &said {
         Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
@@ -587,14 +615,121 @@ fn sweep(dir: &Path) {
     }
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct LetGo {
+    pub gone: usize,
+    pub freed: u64,
+    pub kept: Vec<String>,
+}
+
+/// Deletes a local copy only after the one up there is found to hash the same. `told` hears each
+/// one as it goes and answers whether to carry on.
+/// What a round just put up there, checked by its size where it landed: the bytes were hashed on
+/// the way and the name was renamed into place, so reading it back would only ask the cloud for
+/// what we wrote a second ago.
+fn let_go_of(data: &Path, dest: &Path, carried: &[(String, u64)], above: u64) -> u64 {
+    let mut freed = 0;
+    for (reference, bytes) in carried {
+        if *bytes <= above {
+            continue;
+        }
+        let (Ok(here), Ok(there)) = (
+            tisty_core::attach::resolve(reference, data),
+            tisty_core::attach::resolve(reference, dest),
+        ) else {
+            continue;
+        };
+        let landed =
+            std::fs::metadata(&there).is_ok_and(|told| told.is_file() && told.len() == *bytes);
+        if landed && std::fs::remove_file(&here).is_ok() {
+            freed += bytes;
+        }
+    }
+    freed
+}
+
+pub fn let_go_telling(
+    data: &Path,
+    dest: &Path,
+    above: u64,
+    told: &mut dyn FnMut(&LetGo) -> bool,
+) -> Result<LetGo, Trouble> {
+    let mut done = LetGo::default();
+    let shed = data.join(HELD);
+    let Ok(shelves) = std::fs::read_dir(&shed) else {
+        return Ok(done);
+    };
+    for shelf in shelves.filter_map(|one| one.ok()) {
+        if !shelf.path().is_dir() {
+            continue;
+        }
+        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+            continue;
+        };
+        for file in files.filter_map(|one| one.ok()) {
+            let at = file.path();
+            let Ok(about) = std::fs::metadata(&at) else {
+                continue;
+            };
+            let weighs = about.len();
+            if !about.is_file() || weighs <= above {
+                continue;
+            }
+            let under = shelf.file_name();
+            let (Some(under), Some(named)) =
+                (under.to_str(), at.file_name().and_then(|n| n.to_str()))
+            else {
+                continue;
+            };
+            let reference = format!("attachments/{under}/{named}");
+            match twinned(
+                &dest.join(HELD).join(under).join(named),
+                weighs,
+                under,
+                named,
+            ) {
+                true => {
+                    if std::fs::remove_file(&at).is_ok() {
+                        done.gone += 1;
+                        done.freed += weighs;
+                    }
+                }
+                false => done.kept.push(reference),
+            }
+            if !told(&done) {
+                return Ok(done);
+            }
+        }
+    }
+    Ok(done)
+}
+
+fn twinned(there: &Path, weighs: u64, under: &str, named: &str) -> bool {
+    if !std::fs::metadata(there).is_ok_and(|told| told.is_file() && told.len() == weighs) {
+        return false;
+    }
+    tisty_core::attach::hashed(there)
+        .is_ok_and(|(sha256, _)| tisty_core::attach::vouched(under, named, &sha256))
+}
+
+fn left_behind(holds: Holds) -> Option<u64> {
+    match holds {
+        Holds::Everywhere => None,
+        Holds::Mine | Holds::Shared => Some(tisty_core::attach::COPIED_UP_TO),
+    }
+}
+
 fn copy_held(
     from: &Path,
     into: &Path,
     buried: &std::collections::BTreeSet<String>,
     again: bool,
     ledger: Option<&Path>,
+    above: Option<u64>,
+    carried: Option<&mut Vec<(String, u64)>>,
 ) -> Result<usize, Trouble> {
     let mut done = 0;
+    let mut carried = carried;
     let written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
     let shelves = match std::fs::read_dir(from) {
         Ok(shelves) => shelves,
@@ -633,6 +768,10 @@ fn copy_held(
                 .unwrap_or_default();
             let under = shelf.file_name();
             let under = under.to_str().unwrap_or_default();
+            // What iCloud left in place of a file is not litter, and saying so would bury the log.
+            if tisty_core::icloud::marker(named) {
+                continue;
+            }
             if !tisty_core::attach::shelved(under, named) {
                 witness::warn(
                     channel::SYNC,
@@ -650,9 +789,11 @@ fn copy_held(
                 );
                 continue;
             }
-            if std::fs::metadata(&at).map(|m| m.len()).unwrap_or(0)
-                > tisty_core::attach::COPIED_IN_DOC
-            {
+            let weighs = std::fs::metadata(&at).map(|m| m.len()).unwrap_or(0);
+            if above.is_some_and(|most| weighs > most) {
+                continue;
+            }
+            if weighs > tisty_core::attach::COPIED_IN_DOC {
                 witness::warn(
                     channel::SYNC,
                     "something in the shared folder is past what any attachment may weigh",
@@ -670,9 +811,20 @@ fn copy_held(
             {
                 continue;
             }
-            let body = std::fs::read(&at).map_err(io)?;
             let reference = format!("attachments/{under}/{named}");
-            if !tisty_core::attach::vouched(under, named, &body) {
+            let part = beside(&target);
+            let ferried = tisty_core::attach::copied(&at, &part, tisty_core::attach::COPIED_IN_DOC);
+            let Ok((sha256, bytes)) = ferried else {
+                let _ = std::fs::remove_file(&part);
+                witness::warn(
+                    channel::SYNC,
+                    "an attachment could not be carried",
+                    &[("at", Fact::Id(reference))],
+                );
+                continue;
+            };
+            if !tisty_core::attach::vouched(under, named, &sha256) {
+                let _ = std::fs::remove_file(&part);
                 witness::warn(
                     channel::SYNC,
                     "an attachment does not hold the bytes its name vouches for",
@@ -680,7 +832,8 @@ fn copy_held(
                 );
                 continue;
             }
-            if !tisty_core::attach::as_kept(&written_down, &reference, &body) {
+            if !tisty_core::attach::as_kept(&written_down, &reference, &sha256) {
+                let _ = std::fs::remove_file(&part);
                 witness::warn(
                     channel::SYNC,
                     "an attachment we already kept came back holding other bytes",
@@ -688,9 +841,20 @@ fn copy_held(
                 );
                 continue;
             }
-            written(&target, &body)?;
+            if std::fs::rename(&part, &target).is_err() {
+                let _ = std::fs::remove_file(&part);
+                witness::warn(
+                    channel::SYNC,
+                    "file not carried",
+                    &[("at", Fact::Path(target.clone()))],
+                );
+                continue;
+            }
             if let Some(ledger) = ledger {
-                tisty_core::attach::noted(ledger, &reference, &body);
+                tisty_core::attach::noted(ledger, &reference, &sha256, bytes);
+            }
+            if let Some(carried) = carried.as_deref_mut() {
+                carried.push((reference, bytes));
             }
             done += 1;
         }
@@ -819,13 +983,12 @@ fn landed(mine: &Path, theirs: &Path) -> bool {
     }
 }
 
-fn joined(data: &Path, id: &str, mine: &Path, theirs: &Path) -> Option<String> {
+fn joined(data: &Path, dest: &Path, id: &str, mine: &Path, theirs: &Path) -> Option<String> {
     let base = tisty_core::docs::read_carried(data, id)?;
     let ours = std::fs::read_to_string(mine).ok()?;
     let yours = std::fs::read_to_string(theirs).ok()?;
     let whole = tisty_core::merge::merged(&base, &ours, &yours)?;
 
-    let held = data.join(HELD);
     for one in tisty_core::refs::extract(&whole)
         .into_iter()
         .map(|one| one.target)
@@ -833,17 +996,26 @@ fn joined(data: &Path, id: &str, mine: &Path, theirs: &Path) -> Option<String> {
         if !one.starts_with("attachments/") {
             continue;
         }
-        let there = tisty_core::attach::resolve(&one, data).ok()?;
-        if !there.starts_with(&held) || !there.is_file() {
+        // The shared folder counts: a machine that leaves the big ones there still has them.
+        if !anywhere(&one, data, dest) {
             witness::warn(
                 channel::SYNC,
-                "a joined document would name an attachment this machine does not hold",
+                "a joined document would name an attachment nobody here can reach",
                 &[("at", Fact::Id(one))],
             );
             return None;
         }
     }
     Some(whole)
+}
+
+fn anywhere(reference: &str, data: &Path, dest: &Path) -> bool {
+    [data, dest].iter().any(|root| {
+        let held = root.join(HELD);
+        tisty_core::attach::resolve(reference, root).is_ok_and(|at| {
+            at.starts_with(&held) && (at.is_file() || tisty_core::icloud::shed(&at).is_some())
+        })
+    })
 }
 
 fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
@@ -957,7 +1129,7 @@ fn carry_papers_leaning_on(
                 }
                 Move::TheyDecide => {
                     let _held = docs_lock(&here, id);
-                    match joined(data, id, &mine, &theirs) {
+                    match joined(data, dest, id, &mine, &theirs) {
                         Some(whole) => {
                             write(&mine, whole.as_bytes())?;
                             copy_onto(&mine, &theirs)?;
@@ -1044,6 +1216,16 @@ fn straight(at: &Path, under: &Path) -> Result<(), Trouble> {
         }
     }
     Ok(())
+}
+
+/// Beside the file it will become, so the rename that finishes it never crosses a volume.
+fn beside(at: &Path) -> std::path::PathBuf {
+    if let Some(parent) = at.parent() {
+        let _ = std::fs::create_dir_all(parent);
+        let _ = tisty_core::paths::ours_alone(parent);
+    }
+    let mine = ROUND.fetch_add(1, Ordering::Relaxed);
+    at.with_extension(format!("{}.{mine}.part", std::process::id()))
 }
 
 fn written(at: &Path, body: &[u8]) -> Result<(), Trouble> {
@@ -2056,7 +2238,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let at = dir.path().join(called);
         std::fs::write(&at, body).unwrap();
-        tisty_core::attach::keep(&at, root, tisty_core::attach::COPIED_UP_TO)
+        tisty_core::attach::keep(&at, root, tisty_core::attach::COPIED_IN_DOC)
             .unwrap()
             .at
     }
@@ -3755,6 +3937,216 @@ mod tests {
         }
 
         assert_eq!(std::fs::read_to_string(&bystander).unwrap(), "no es tuyo");
+    }
+
+    #[test]
+    fn a_round_does_not_read_back_what_it_just_wrote() {
+        let one = machine("dev_a");
+        let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+            .map(|at| (at % 251) as u8)
+            .collect();
+        let heavy = planted(&one.data, "charla.mp4", &big);
+        let shared = tempfile::tempdir().unwrap();
+        carry_holding(
+            &one.data,
+            None,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+            Holds::Shared,
+        )
+        .unwrap();
+        assert!(!one.data.join(&heavy).exists(), "it went up and let go");
+
+        // What did not verify stays here, and a round that carried nothing tries nothing.
+        let again = carry_holding(
+            &one.data,
+            None,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+            Holds::Shared,
+        )
+        .unwrap();
+
+        assert_eq!(again.freed, 0, "a second round has nothing to free");
+        assert_eq!(again.sent, 0, "and nothing to send either");
+    }
+
+    #[test]
+    fn letting_go_frees_only_what_the_shared_folder_really_holds() {
+        let one = machine("dev_a");
+        let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
+        let light = planted(&one.data, "nota.txt", b"lo apuntado");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
+
+        assert_eq!(done.gone, 1, "only the big one");
+        assert_eq!(done.freed, 4000);
+        assert!(!one.data.join(&heavy).exists(), "it went");
+        assert!(one.data.join(&light).is_file(), "the small one stayed");
+        assert!(shared.path().join(&heavy).is_file(), "and it is up there");
+    }
+
+    #[test]
+    fn nothing_is_freed_when_what_is_up_there_is_not_the_same_file() {
+        let one = machine("dev_a");
+        let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        std::fs::write(shared.path().join(&heavy), vec![9u8; 4000]).unwrap();
+
+        let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
+
+        assert_eq!(done.gone, 0);
+        assert_eq!(done.kept, vec![heavy.clone()]);
+        assert!(
+            one.data.join(&heavy).is_file(),
+            "a copy that does not vouch for itself keeps the local one alive"
+        );
+    }
+
+    #[test]
+    fn nothing_is_freed_when_the_shared_folder_never_saw_it() {
+        let one = machine("dev_a");
+        let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
+        let shared = tempfile::tempdir().unwrap();
+
+        let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
+
+        assert_eq!(done.gone, 0);
+        assert!(one.data.join(&heavy).is_file());
+    }
+
+    #[test]
+    fn a_round_on_a_machine_that_shares_them_does_not_bring_the_big_ones_home() {
+        let one = machine("dev_a");
+        let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+            .map(|at| (at % 251) as u8)
+            .collect();
+        let heavy = planted(&one.data, "charla.mp4", &big);
+        let light = planted(&one.data, "nota.txt", b"lo apuntado");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let other = blank("dev_b");
+        carry_holding(
+            &other.data,
+            None,
+            &other.device,
+            shared.path(),
+            Way::Both,
+            &[],
+            Holds::Shared,
+        )
+        .unwrap();
+
+        assert!(other.data.join(&light).is_file(), "the small one came");
+        assert!(!other.data.join(&heavy).exists(), "the big one did not");
+        assert!(
+            shared.path().join(&heavy).is_file(),
+            "and it waits up there"
+        );
+    }
+
+    #[test]
+    fn a_round_lets_go_of_what_it_just_pushed_when_that_is_the_setting() {
+        let one = machine("dev_a");
+        let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+            .map(|at| (at % 251) as u8)
+            .collect();
+        let heavy = planted(&one.data, "charla.mp4", &big);
+        let shared = tempfile::tempdir().unwrap();
+
+        let moved = carry_holding(
+            &one.data,
+            None,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+            Holds::Shared,
+        )
+        .unwrap();
+
+        assert!(shared.path().join(&heavy).is_file(), "it went up");
+        assert!(!one.data.join(&heavy).exists(), "and it is no longer here");
+        assert!(moved.freed > 0, "and the round says how much it freed");
+    }
+
+    #[test]
+    fn what_a_machine_leaves_behind_depends_on_how_it_holds_them() {
+        assert_eq!(left_behind(Holds::Everywhere), None);
+        assert_eq!(
+            left_behind(Holds::Mine),
+            Some(tisty_core::attach::COPIED_UP_TO)
+        );
+        assert_eq!(
+            left_behind(Holds::Shared),
+            Some(tisty_core::attach::COPIED_UP_TO)
+        );
+    }
+
+    #[test]
+    fn a_machine_that_leaves_the_big_ones_behind_still_takes_the_small() {
+        let one = machine("dev_a");
+        let heavy = planted(&one.data, "charla.mp4", &vec![7u8; 3000]);
+        let light = planted(&one.data, "nota.txt", b"lo apuntado");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let other = blank("dev_b");
+
+        copy_held(
+            &shared.path().join(HELD),
+            &other.data.join(HELD),
+            &Default::default(),
+            false,
+            Some(&other.data),
+            Some(1000),
+            None,
+        )
+        .unwrap();
+
+        assert!(
+            other.data.join(&light).is_file(),
+            "the small one travels as it always did"
+        );
+        assert!(
+            !other.data.join(&heavy).exists(),
+            "the big one waits in the shared folder"
+        );
+        assert!(
+            shared.path().join(&heavy).is_file(),
+            "and it is there to be fetched"
+        );
+    }
+
+    #[test]
+    fn a_big_attachment_travels_whole_and_leaves_no_half() {
+        let one = machine("dev_a");
+        let bytes: Vec<u8> = (0..3_000_000).map(|at| (at % 251) as u8).collect();
+        let kept = planted(&one.data, "charla.mp4", &bytes);
+
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let other = blank("dev_b");
+        carry(&other.data, &other.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert_eq!(std::fs::read(other.data.join(&kept)).unwrap(), bytes);
+        let shelf = std::path::Path::new(&kept).parent().unwrap();
+        for at in [shared.path().join(shelf), other.data.join(shelf)] {
+            let left: Vec<_> = std::fs::read_dir(&at)
+                .unwrap()
+                .filter_map(|one| one.ok())
+                .map(|one| one.file_name().to_string_lossy().into_owned())
+                .filter(|name| name.contains(".part"))
+                .collect();
+            assert!(left.is_empty(), "half a copy stayed at {at:?}: {left:?}");
+        }
     }
 
     #[test]
