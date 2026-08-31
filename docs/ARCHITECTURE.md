@@ -72,10 +72,18 @@ over the wire can register one. Its own directory is what keeps `undo`
 apart: the person's undo never reaches what the agent filed.
 
 It can propose a task, add to a journal, read one whole task, search, attach
-a file, write documents, add to them and change a named passage of one, list
-what is written and file it into folders, and read the names of the lists. There
-is no tool for completing, dropping, deleting, undoing, editing a task the
-person wrote, making a list, or handing a document a new body whole.
+a file to a task or into a document, write documents, add to them and change a
+named passage of one, list what is written and file it into folders, and read
+the names of the lists. There is no tool for completing, dropping, deleting,
+undoing, editing a task the person wrote, making a list, or handing a document a
+new body whole.
+
+A file kept with a task goes on its journal; one kept in a document is added at
+the end of it, as the same markdown the window writes when you drop a file in.
+The two carry different ceilings, and the agent gets the ceiling of the place it
+writes to: a task copies what the person set, up to 50 MB, and a document copies
+up to 500 MB. That is the window's rule, not a second one — a recording or a
+deck of slides is a document's to hold, not a task's.
 
 It reaches a document that exists in two ways, and neither is a rewrite.
 **Adding** puts text after the last line, leaving every byte that was there.

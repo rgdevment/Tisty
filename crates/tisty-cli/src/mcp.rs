@@ -59,6 +59,14 @@ person may be typing in that document while you write, and naming the whole body
 there is no way to hand a document a new body. If an edit is refused because the text is not \
 there, the document changed under you — read it again rather than trying a shorter passage.
 
+`attach` copies a file from this machine into Tisty and keeps it in one of two places. Named a \
+`task`, it lands on that task's journal with a line saying where it came from; named a `doc`, it \
+is added at the end of that document, and shows there as a picture or a link. Name one or the \
+other, never both. A document holds a far larger file than a task does — a video, a recording, a \
+deck of slides belongs in a document, and the refusal tells you the size that place takes when \
+one is too big. The file is copied into Tisty, not pointed at, so a copy stays behind when the \
+original is moved or deleted: only copy what you were asked to copy.
+
 `find` takes words, not a phrase: each word has to turn up somewhere in the same task or \
 document, in any order, and an accent typed or not typed makes no difference. Put a phrase in \
 quotes when the order is the point.
@@ -576,24 +584,55 @@ fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+enum Beside {
+    Task(TaskId),
+    Doc(String),
+}
+
+fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
+    match (text(args, "task"), text(args, "doc")) {
+        (Some(_), Some(_)) => Err(Refused::Tool(
+            "attaching takes a `task` or a `doc`, not both: a file is kept in one place.".into(),
+        )),
+        (None, None) => Err(Refused::Tool(
+            "attaching needs the `task` it belongs to, or the `doc` it goes in.".into(),
+        )),
+        (Some(who), None) => {
+            let Ok(id) = who.parse::<TaskId>() else {
+                return Err(Refused::Tool(format!(
+                    "{who:?} is not a task id. Use the `id` that `find` or `propose` gave you."
+                )));
+            };
+            match state.tasks.contains_key(&id) {
+                true => Ok(Beside::Task(id)),
+                false => Err(Refused::Tool(format!("no task here has the id {who}."))),
+            }
+        }
+        (None, Some(which)) => {
+            let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+                return Err(Refused::Tool(format!(
+                    "no document here is called {which:?}. `docs` lists them all."
+                )));
+            };
+            match kept.archived {
+                true => Err(Refused::Tool(format!(
+                    "{which:?} is put away, so nothing more goes into it. Keep the file with a \
+                     task, or in a document that is still open."
+                ))),
+                false => Ok(Beside::Doc(which)),
+            }
+        }
+    }
+}
+
 fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "path") else {
         return Err(Refused::Tool(
             "attaching needs a `path` to a file on this machine.".into(),
         ));
     };
-    let Some(who) = text(args, "task") else {
-        return Err(Refused::Tool("attaching needs a `task` id.".into()));
-    };
     let (state, mut store) = opened(paths)?;
-    let Ok(id) = who.parse::<TaskId>() else {
-        return Err(Refused::Tool(format!(
-            "{who:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-        )));
-    };
-    let Some(task) = state.tasks.get(&id) else {
-        return Err(Refused::Tool(format!("no task here has the id {who}.")));
-    };
+    let with = beside(&state, args)?;
 
     let asked = std::path::Path::new(&said);
     let at = &tisty_core::agent::may_attach(asked, paths).map_err(|why| {
@@ -614,37 +653,58 @@ fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })
     })?;
     let named = tisty_core::attach::called(at, text(args, "label"));
-    let limit = tisty_core::Config::load_or_init(paths)
-        .map_err(hitch)?
-        .copies_up_to();
+    let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
+    let limit = match &with {
+        Beside::Task(_) => config.copies_up_to(),
+        Beside::Doc(_) => config.copies_in_a_doc(),
+    };
     let kept = tisty_core::attach::keep(at, paths.data(), limit).map_err(|e| match e {
         tisty_core::Error::AttachmentTooBig { bytes, .. } => Refused::Tool(format!(
-            "that file is {} MB and this machine copies at most {} MB.",
+            "that file is {} MB and this machine copies at most {} MB {}.",
             bytes / 1_000_000,
-            limit / 1_000_000
+            limit / 1_000_000,
+            match with {
+                Beside::Task(_) => "onto a task",
+                Beside::Doc(_) => "into a document",
+            }
         )),
         _ => Refused::Tool(format!("{said:?} could not be read from this machine.")),
     })?;
 
-    let lang = crate::i18n::Lang::detect(
-        tisty_core::Config::load_or_init(paths)
-            .map_err(hitch)?
-            .locale
-            .as_deref(),
-    );
-    let body = tisty_core::attach::journalled(&kept, &named, at, lang.get("attached-from"));
-    let zone = jiff::tz::TimeZone::system();
-    store
-        .append(Op::TaskLog {
-            id,
-            d: LogAdd::new(Ulid::generate(), body).in_zone(zone.iana_name().map(str::to_string)),
-        })
-        .map_err(hitch)?;
-
-    Ok(told(
-        format!("Kept {named:?} with {:?}.", task.title),
-        json!({ "id": id.to_string(), "at": kept.at, "label": named }),
-    ))
+    match with {
+        Beside::Task(id) => {
+            let lang = crate::i18n::Lang::detect(config.locale.as_deref());
+            let body = tisty_core::attach::journalled(&kept, &named, at, lang.get("attached-from"));
+            let zone = jiff::tz::TimeZone::system();
+            store
+                .append(Op::TaskLog {
+                    id,
+                    d: LogAdd::new(Ulid::generate(), body)
+                        .in_zone(zone.iana_name().map(str::to_string)),
+                })
+                .map_err(hitch)?;
+            let title = state.tasks[&id].title.clone();
+            Ok(told(
+                format!("Kept {named:?} with {title:?}."),
+                json!({ "id": id.to_string(), "at": kept.at, "label": named }),
+            ))
+        }
+        Beside::Doc(which) => {
+            let whole = tisty_core::docs::append(&paths.docs(), &which, &kept.written(&named))
+                .map_err(|e| match e {
+                    tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
+                        "that would take the document past the {limit} bytes Tisty can open. \
+                         Keep the file with a task, or in a new document."
+                    )),
+                    other => hitch(other),
+                })?;
+            let title = tisty_core::docs::titled(&whole);
+            Ok(told(
+                format!("Kept {named:?} at the end of {title:?}."),
+                json!({ "doc": which, "title": title, "at": kept.at, "label": named }),
+            ))
+        }
+    }
 }
 
 fn said<'a>(one: &'a Value, key: &str) -> &'a str {
@@ -1492,13 +1552,20 @@ fn tools() -> Value {
         },
         {
             "name": "attach",
-            "title": "Keep a file with a task",
-            "description": "Copy a file from this machine into Tisty and record it on a task's journal. The file is copied, not linked, and where it came from is written down beside it. Only attach what you were asked to.",
+            "title": "Keep a file with a task or in a document",
+            "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a link. One or the other, never both. The file is copied, not linked. A document takes a far larger file than a task does, so a video or a slide deck belongs in one. Only attach what you were asked to.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
-                    "task": { "type": "string", "description": "The task id" },
+                    "task": {
+                        "type": "string",
+                        "description": "The task id, if it is kept with a task"
+                    },
+                    "doc": {
+                        "type": "string",
+                        "description": "The document's name, if it goes in a document. `docs` lists them"
+                    },
                     "path": {
                         "type": "string",
                         "description": "A path to a file on this machine"
@@ -1508,7 +1575,7 @@ fn tools() -> Value {
                         "description": "What to call it. Defaults to the file's own name"
                     }
                 },
-                "required": ["task", "path"]
+                "required": ["path"]
             }
         },
         {
