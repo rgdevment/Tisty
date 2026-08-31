@@ -33,6 +33,21 @@ impl Config {
         crate::attach::COPIED_IN_DOC
     }
 
+    /// Only a shared folder can hold what this machine does not: without one, every attachment
+    /// stays here whatever the setting says.
+    pub fn holds(&self) -> Holds {
+        match self.sync {
+            Some(Sync::Folder(_)) => self.holds.unwrap_or_default(),
+            _ => Holds::Everywhere,
+        }
+    }
+
+    /// Above this, a machine may leave an attachment to the shared folder. Below it, everything
+    /// travels as it always did — it is the same ceiling a task allows at most.
+    pub fn only_shared_above(&self) -> u64 {
+        crate::attach::COPIED_UP_TO
+    }
+
     pub fn backs_up(&self) -> bool {
         !matches!(self.sync, Some(Sync::Folder(_)))
     }
@@ -43,6 +58,19 @@ impl Config {
 pub enum Closing {
     Hide,
     Quit,
+}
+
+/// Where a large attachment lives once there is a shared folder to keep it in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Holds {
+    /// Every machine carries every attachment. What Tisty has always done.
+    #[default]
+    Everywhere,
+    /// This machine keeps what it attached; what the others attached arrives when it is opened.
+    Mine,
+    /// Above the ceiling, only the shared folder holds it. Nothing large stays on any machine.
+    Shared,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -79,6 +107,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attach_up_to: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub holds: Option<Holds>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub guide: Option<String>,
 }
 
@@ -97,6 +127,7 @@ impl Config {
             checked_at: None,
             found_version: None,
             attach_up_to: Some(crate::attach::COPIED_AT_FIRST),
+            holds: None,
             opened_by: None,
             on_close: None,
             backed_up_at: None,
@@ -386,6 +417,7 @@ mod tests {
             checked_at: None,
             found_version: None,
             attach_up_to: None,
+            holds: None,
             guide: Some("mac0-0001".into()),
         };
 
@@ -411,6 +443,7 @@ mod tests {
                 checked_at: None,
                 found_version: None,
                 attach_up_to: None,
+                holds: None,
                 opened_by: None,
                 on_close: None,
                 backed_up_at: None,

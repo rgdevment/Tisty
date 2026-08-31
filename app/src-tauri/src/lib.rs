@@ -183,6 +183,14 @@ impl Session {
         stale(self.minded.get(id).map(String::as_str), now.as_deref())
     }
 
+    fn attachment(&self, reference: &str) -> Option<std::path::PathBuf> {
+        let shared = match &self.config.sync {
+            Some(tisty_core::config::Sync::Folder(dest)) => Some(dest.as_path()),
+            _ => None,
+        };
+        found_in(reference, self.paths.data(), shared)
+    }
+
     fn referenced(&self) -> Vec<String> {
         let mut held: Vec<String> = self
             .state
@@ -524,6 +532,10 @@ fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Ve
     };
 
     let root = session.paths.data().to_path_buf();
+    let shared = match &session.config.sync {
+        Some(tisty_core::config::Sync::Folder(dest)) => Some(dest.clone()),
+        _ => None,
+    };
     let on_disk = tisty_core::docs::all(&session.paths.docs());
     let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
         on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
@@ -565,8 +577,7 @@ fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Ve
             tisty_core::refs::Kind::Link
                 if tisty_core::attach::names_an_attachment(&one.target) =>
             {
-                let bytes = tisty_core::attach::resolve(&one.target, &root)
-                    .ok()
+                let bytes = found_in(&one.target, &root, shared.as_deref())
                     .and_then(|at| std::fs::metadata(at).ok())
                     .filter(|told| told.is_file())
                     .map(|told| told.len());
@@ -2393,6 +2404,21 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
     })
 }
 
+/// The store first, then the shared folder: a machine that leaves the big ones behind keeps them
+/// only there, and everything that reads an attachment has to look in both.
+fn found_in(
+    reference: &str,
+    data: &std::path::Path,
+    shared: Option<&std::path::Path>,
+) -> Option<std::path::PathBuf> {
+    let here = tisty_core::attach::resolve(reference, data).ok()?;
+    if here.is_file() {
+        return Some(here);
+    }
+    let there = tisty_core::attach::resolve(reference, shared?).ok()?;
+    there.is_file().then_some(there)
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Facts {
@@ -3209,7 +3235,7 @@ async fn sync_now(
         });
     };
 
-    let (dest, data, store, aside, device, alive) = {
+    let (dest, data, store, aside, device, alive, holds) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
@@ -3221,6 +3247,7 @@ async fn sync_now(
             session.paths.cache().to_path_buf(),
             session.config.device_id.0.clone(),
             session.alive(),
+            session.config.holds(),
         )
     };
 
@@ -3233,7 +3260,7 @@ async fn sync_now(
     };
 
     let done = tauri::async_runtime::spawn_blocking(move || {
-        tisty_sync::carry_leaning_on(&data, Some(&aside), &device, &dest, way, &alive)
+        tisty_sync::carry_holding(&data, Some(&aside), &device, &dest, way, &alive, holds)
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
@@ -3775,20 +3802,17 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
 
 #[tauri::command(async)]
 fn attached(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<Vec<u8>> {
-    let root = held(&session).paths.data().to_path_buf();
-    let at = tisty_core::attach::resolve(&reference, &root)
-        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
+    let at = held(&session)
+        .attachment(&reference)
+        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
     std::fs::read(&at).map_err(|_| Refusal::about("cannotRead", reference))
 }
 
 #[tauri::command]
 fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<String> {
-    let root = held(&session).paths.data().to_path_buf();
-    let at = tisty_core::attach::resolve(&reference, &root)
-        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
-    if !at.is_file() {
-        return Err(Refusal::about("cannotRead", reference));
-    }
+    let at = held(&session)
+        .attachment(&reference)
+        .ok_or_else(|| Refusal::about("cannotRead", reference))?;
     Ok(at.to_string_lossy().into_owned())
 }
 
@@ -3798,12 +3822,9 @@ fn attach_export(
     reference: String,
     into: String,
 ) -> Answer<()> {
-    let root = held(&session).paths.data().to_path_buf();
-    let from = tisty_core::attach::resolve(&reference, &root)
-        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
-    if !from.is_file() {
-        return Err(Refusal::about("cannotRead", reference));
-    }
+    let from = held(&session)
+        .attachment(&reference)
+        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
     std::fs::copy(&from, &into).map_err(|e| {
         witness::warn(
             channel::ATTACH,
@@ -3825,14 +3846,10 @@ fn roomy() -> u64 {
 
 #[tauri::command]
 fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
-    let root = held(&session).paths.data().to_path_buf();
-    let at = tisty_core::attach::resolve(&reference, &root)
-        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
-    let told =
-        std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
-    if !told.is_file() {
-        return Err(Refusal::about("cannotRead", reference));
-    }
+    let at = held(&session)
+        .attachment(&reference)
+        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
+    let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference))?;
     Ok(told.len())
 }
 
@@ -3842,12 +3859,9 @@ fn opened(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<()> {
-    let root = held(&session).paths.data().to_path_buf();
-    let at = tisty_core::attach::resolve(&reference, &root)
-        .map_err(|_| Refusal::about("cannotRead", reference.clone()))?;
-    if !at.is_file() {
-        return Err(Refusal::about("cannotRead", reference));
-    }
+    let at = held(&session)
+        .attachment(&reference)
+        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
     if !safe_to_open(&at) {
         return show(&at, &reference);
     }
@@ -4299,7 +4313,16 @@ pub fn run() {
                 let held = app.state::<Mutex<Session>>();
                 let held = crate::held(&held);
                 let seen = app.asset_protocol_scope();
-                for at in [held.paths.attachments(), held.paths.docs()] {
+                // The shared folder's attachments and no more of it: what a machine leaves behind
+                // is drawn from there, and the rest of that folder is nobody's business here.
+                let shared = match &held.config.sync {
+                    Some(tisty_core::config::Sync::Folder(dest)) => vec![dest.join("attachments")],
+                    _ => Vec::new(),
+                };
+                for at in [held.paths.attachments(), held.paths.docs()]
+                    .into_iter()
+                    .chain(shared)
+                {
                     if let Err(e) = seen.allow_directory(&at, true) {
                         witness::warn(
                             channel::WINDOW,
@@ -4488,6 +4511,36 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn an_attachment_is_looked_for_here_first_and_then_where_it_is_shared() {
+        use super::found_in;
+
+        let here = tempfile::tempdir().unwrap();
+        let shared = tempfile::tempdir().unwrap();
+        let mine = "attachments/ab/nota-a1b2c3d4.txt";
+        let theirs = "attachments/cd/charla-e5f6a7b8.mp4";
+        for (root, reference) in [(here.path(), mine), (shared.path(), theirs)] {
+            let at = root.join("attachments").join(&reference[12..14]);
+            std::fs::create_dir_all(&at).unwrap();
+            std::fs::write(root.join(reference), b"something").unwrap();
+        }
+
+        assert!(found_in(mine, here.path(), Some(shared.path())).is_some());
+        assert!(
+            found_in(theirs, here.path(), Some(shared.path())).is_some(),
+            "what only the shared folder holds is still reachable"
+        );
+        assert!(
+            found_in(theirs, here.path(), None).is_none(),
+            "without a shared folder there is nowhere else to look"
+        );
+        assert!(found_in("attachments/ab/nope-00000000.txt", here.path(), None).is_none());
+        assert!(
+            found_in("../outside.txt", here.path(), Some(shared.path())).is_none(),
+            "the way out is still shut"
+        );
+    }
+
     #[test]
     fn a_body_that_changed_underneath_is_the_only_one_held_back() {
         use super::stale;

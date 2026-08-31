@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use tisty_core::config::Holds;
 use tisty_core::witness::{self, Fact, channel};
 
 pub use tisty_core::store::MARKER;
@@ -61,7 +62,7 @@ pub fn carry(
     way: Way,
     alive: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_leaning_on(data, None, device, dest, way, alive)
+    carry_holding(data, None, device, dest, way, alive, Holds::Everywhere)
 }
 
 pub fn carry_leaning_on(
@@ -71,6 +72,18 @@ pub fn carry_leaning_on(
     dest: &Path,
     way: Way,
     alive: &[String],
+) -> Result<Moved, Trouble> {
+    carry_holding(data, aside, device, dest, way, alive, Holds::Everywhere)
+}
+
+pub fn carry_holding(
+    data: &Path,
+    aside: Option<&Path>,
+    device: &str,
+    dest: &Path,
+    way: Way,
+    alive: &[String],
+    holds: Holds,
 ) -> Result<Moved, Trouble> {
     if !dest.is_dir() {
         return Err(Trouble::NotThere(dest.display().to_string()));
@@ -96,6 +109,7 @@ pub fn carry_leaning_on(
                     &one.retired,
                     false,
                     Some(data),
+                    left_behind(holds),
                 )?;
             }
             None => witness::warn(
@@ -126,7 +140,14 @@ pub fn carry_leaning_on(
         let mine = dest.join(STORE).join(device);
         plainly(&mine)?;
         moved.sent = copy_segments(&store.join(device), &mine, again)?;
-        moved.sent += copy_held(&data.join(HELD), &dest.join(HELD), &buried, again, None)?;
+        moved.sent += copy_held(
+            &data.join(HELD),
+            &dest.join(HELD),
+            &buried,
+            again,
+            None,
+            None,
+        )?;
     }
     let alive = match &said {
         Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
@@ -587,12 +608,21 @@ fn sweep(dir: &Path) {
     }
 }
 
+/// What this machine leaves in the shared folder rather than carrying home.
+fn left_behind(holds: Holds) -> Option<u64> {
+    match holds {
+        Holds::Everywhere => None,
+        Holds::Mine | Holds::Shared => Some(tisty_core::attach::COPIED_UP_TO),
+    }
+}
+
 fn copy_held(
     from: &Path,
     into: &Path,
     buried: &std::collections::BTreeSet<String>,
     again: bool,
     ledger: Option<&Path>,
+    above: Option<u64>,
 ) -> Result<usize, Trouble> {
     let mut done = 0;
     let written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
@@ -650,9 +680,16 @@ fn copy_held(
                 );
                 continue;
             }
-            if std::fs::metadata(&at).map(|m| m.len()).unwrap_or(0)
-                > tisty_core::attach::COPIED_IN_DOC
-            {
+            let weighs = std::fs::metadata(&at).map(|m| m.len()).unwrap_or(0);
+            if above.is_some_and(|most| weighs > most) {
+                witness::note(
+                    channel::SYNC,
+                    "an attachment was left in the shared folder, to be fetched when it is opened",
+                    &[("at", Fact::Id(format!("attachments/{under}/{named}")))],
+                );
+                continue;
+            }
+            if weighs > tisty_core::attach::COPIED_IN_DOC {
                 witness::warn(
                     channel::SYNC,
                     "something in the shared folder is past what any attachment may weigh",
@@ -3785,6 +3822,52 @@ mod tests {
         }
 
         assert_eq!(std::fs::read_to_string(&bystander).unwrap(), "no es tuyo");
+    }
+
+    #[test]
+    fn what_a_machine_leaves_behind_depends_on_how_it_holds_them() {
+        assert_eq!(left_behind(Holds::Everywhere), None);
+        assert_eq!(
+            left_behind(Holds::Mine),
+            Some(tisty_core::attach::COPIED_UP_TO)
+        );
+        assert_eq!(
+            left_behind(Holds::Shared),
+            Some(tisty_core::attach::COPIED_UP_TO)
+        );
+    }
+
+    #[test]
+    fn a_machine_that_leaves_the_big_ones_behind_still_takes_the_small() {
+        let one = machine("dev_a");
+        let heavy = planted(&one.data, "charla.mp4", &vec![7u8; 3000]);
+        let light = planted(&one.data, "nota.txt", b"lo apuntado");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let other = blank("dev_b");
+
+        copy_held(
+            &shared.path().join(HELD),
+            &other.data.join(HELD),
+            &Default::default(),
+            false,
+            Some(&other.data),
+            Some(1000),
+        )
+        .unwrap();
+
+        assert!(
+            other.data.join(&light).is_file(),
+            "the small one travels as it always did"
+        );
+        assert!(
+            !other.data.join(&heavy).exists(),
+            "the big one waits in the shared folder"
+        );
+        assert!(
+            shared.path().join(&heavy).is_file(),
+            "and it is there to be fetched"
+        );
     }
 
     #[test]
