@@ -409,8 +409,12 @@ mod tests {
 
     #[test]
     fn a_command_that_is_no_longer_there_is_astray() {
-        assert!(adrift("C:\\Programs\\Gone\\tisty.exe"));
-        assert!(adrift("/Applications/Gone.app/Contents/MacOS/tisty"));
+        let gone = match cfg!(windows) {
+            true => "C:\\Programs\\Gone\\tisty.exe",
+            false => "/Applications/Gone.app/Contents/MacOS/tisty",
+        };
+
+        assert!(adrift(gone));
     }
 
     #[test]
