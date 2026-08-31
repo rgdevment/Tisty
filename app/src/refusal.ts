@@ -71,6 +71,8 @@ const KNOWN = [
   "documentBeingWritten",
   "documentMoved",
   "comingDown",
+  "sharedAway",
+  "sharedAwayToLeave",
   "intoItself",
   "notACadence",
   "noClipboard",

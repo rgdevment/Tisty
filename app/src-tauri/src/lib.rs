@@ -1947,6 +1947,20 @@ fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     Ok(as_settings(&session))
 }
 
+/// Only what the shared folder already holds, checked file by file. What it will not vouch for
+/// stays here: nothing is freed on the strength of a copy that looked right.
+fn let_them_go(session: &Session) -> tisty_sync::LetGo {
+    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+        return Default::default();
+    };
+    tisty_sync::let_go(
+        session.paths.data(),
+        &dest,
+        session.config.only_shared_above(),
+    )
+    .unwrap_or_default()
+}
+
 fn as_settings(session: &Session) -> Settings {
     Settings {
         quiet: session.config.muted().to_vec(),
@@ -1971,11 +1985,25 @@ fn keep_settings(
         tisty_core::attach::COPIED_MOST,
     );
     let holds = settings.holds;
+    let was = session.config.holds();
     session.keep(|config| {
         config.quiet = (!quiet.is_empty()).then_some(quiet);
         config.attach_up_to = Some(up_to);
         config.holds = Some(holds);
     })?;
+    // Turning it on is the only change that moves anything: turning it off leaves the next round
+    // to bring back what is missing, which is what a round does anyway.
+    if holds == tisty_core::config::Holds::Shared && was != holds {
+        let freed = let_them_go(&session);
+        witness::note(
+            channel::SYNC,
+            "big attachments were left to the shared folder",
+            &[
+                ("count", Fact::Count(freed.gone)),
+                ("bytes", Fact::Bytes(freed.freed)),
+            ],
+        );
+    }
     let now = as_settings(&session);
     drop(session);
     herald::respeak(&app, &now.quiet);
@@ -2428,6 +2456,7 @@ fn seen(found: Sought) -> Option<std::path::PathBuf> {
 fn unreachable(found: Sought, reference: String) -> Refusal {
     match found {
         Sought::Coming => Refusal::about("comingDown", reference),
+        Sought::Away => Refusal::of("sharedAway"),
         _ => Refusal::about("cannotRead", reference),
     }
 }
@@ -2436,6 +2465,8 @@ enum Sought {
     At(std::path::PathBuf),
     /// iCloud has it and was asked for it back; it is not here yet.
     Coming,
+    /// The shared folder is where it lives and the shared folder is not there.
+    Away,
     No,
 }
 
@@ -2456,7 +2487,10 @@ fn found_in(reference: &str, data: &std::path::Path, shared: Option<&std::path::
             };
         }
     }
-    Sought::No
+    match shared {
+        Some(dest) if !dest.is_dir() => Sought::Away,
+        _ => Sought::No,
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -3231,6 +3265,17 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
         }
         None => tisty_core::config::Sync::Local,
     };
+    // Leaving a folder that holds attachments this machine let go of takes them with it.
+    if session.config.holds() != tisty_core::config::Holds::Everywhere
+        && session.config.sync != Some(chosen.clone())
+        && let Some(tisty_core::config::Sync::Folder(old)) = session.config.sync.clone()
+        && !old.is_dir()
+    {
+        return Err(Refusal::about(
+            "sharedAwayToLeave",
+            old.display().to_string(),
+        ));
+    }
     session.keep(|c| c.sync = Some(chosen))
 }
 

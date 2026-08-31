@@ -608,6 +608,76 @@ fn sweep(dir: &Path) {
     }
 }
 
+/// What letting the big ones go came to: how many left this machine, what that freed, and the
+/// ones that stayed because the shared folder did not hold a copy worth trusting.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct LetGo {
+    pub gone: usize,
+    pub freed: u64,
+    pub kept: Vec<String>,
+}
+
+/// Frees what the shared folder already holds, and only that: a local copy is deleted after the
+/// one up there is found under the same name, weighing the same, hashing the same.
+pub fn let_go(data: &Path, dest: &Path, above: u64) -> Result<LetGo, Trouble> {
+    let mut done = LetGo::default();
+    let shed = data.join(HELD);
+    let Ok(shelves) = std::fs::read_dir(&shed) else {
+        return Ok(done);
+    };
+    for shelf in shelves.filter_map(|one| one.ok()) {
+        if !shelf.path().is_dir() {
+            continue;
+        }
+        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+            continue;
+        };
+        for file in files.filter_map(|one| one.ok()) {
+            let at = file.path();
+            let Ok(told) = std::fs::metadata(&at) else {
+                continue;
+            };
+            if !told.is_file() || told.len() <= above {
+                continue;
+            }
+            let under = shelf.file_name();
+            let (Some(under), Some(named)) =
+                (under.to_str(), at.file_name().and_then(|n| n.to_str()))
+            else {
+                continue;
+            };
+            let reference = format!("attachments/{under}/{named}");
+            match twinned(
+                &dest.join(HELD).join(under).join(named),
+                told.len(),
+                under,
+                named,
+            ) {
+                true => {
+                    if std::fs::remove_file(&at).is_ok() {
+                        done.gone += 1;
+                        done.freed += told.len();
+                    }
+                }
+                false => done.kept.push(reference),
+            }
+        }
+    }
+    Ok(done)
+}
+
+/// Whether what is up there is this same file: the size first, because it is free, and then the
+/// bytes, because a name is not a promise.
+fn twinned(there: &Path, weighs: u64, under: &str, named: &str) -> bool {
+    if !std::fs::metadata(there).is_ok_and(|told| told.is_file() && told.len() == weighs) {
+        return false;
+    }
+    let part = beside(there);
+    let read = tisty_core::attach::copied(there, &part, tisty_core::attach::COPIED_IN_DOC);
+    let _ = std::fs::remove_file(&part);
+    read.is_ok_and(|(sha256, _)| tisty_core::attach::vouched(under, named, &sha256))
+}
+
 /// What this machine leaves in the shared folder rather than carrying home.
 fn left_behind(holds: Holds) -> Option<u64> {
     match holds {
@@ -881,13 +951,12 @@ fn landed(mine: &Path, theirs: &Path) -> bool {
     }
 }
 
-fn joined(data: &Path, id: &str, mine: &Path, theirs: &Path) -> Option<String> {
+fn joined(data: &Path, dest: &Path, id: &str, mine: &Path, theirs: &Path) -> Option<String> {
     let base = tisty_core::docs::read_carried(data, id)?;
     let ours = std::fs::read_to_string(mine).ok()?;
     let yours = std::fs::read_to_string(theirs).ok()?;
     let whole = tisty_core::merge::merged(&base, &ours, &yours)?;
 
-    let held = data.join(HELD);
     for one in tisty_core::refs::extract(&whole)
         .into_iter()
         .map(|one| one.target)
@@ -895,17 +964,26 @@ fn joined(data: &Path, id: &str, mine: &Path, theirs: &Path) -> Option<String> {
         if !one.starts_with("attachments/") {
             continue;
         }
-        let there = tisty_core::attach::resolve(&one, data).ok()?;
-        if !there.starts_with(&held) || !there.is_file() {
+        // The shared folder counts: a machine that leaves the big ones there still has them.
+        if !anywhere(&one, data, dest) {
             witness::warn(
                 channel::SYNC,
-                "a joined document would name an attachment this machine does not hold",
+                "a joined document would name an attachment nobody here can reach",
                 &[("at", Fact::Id(one))],
             );
             return None;
         }
     }
     Some(whole)
+}
+
+fn anywhere(reference: &str, data: &Path, dest: &Path) -> bool {
+    [data, dest].iter().any(|root| {
+        let held = root.join(HELD);
+        tisty_core::attach::resolve(reference, root).is_ok_and(|at| {
+            at.starts_with(&held) && (at.is_file() || tisty_core::icloud::shed(&at).is_some())
+        })
+    })
 }
 
 fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
@@ -1019,7 +1097,7 @@ fn carry_papers_leaning_on(
                 }
                 Move::TheyDecide => {
                     let _held = docs_lock(&here, id);
-                    match joined(data, id, &mine, &theirs) {
+                    match joined(data, dest, id, &mine, &theirs) {
                         Some(whole) => {
                             write(&mine, whole.as_bytes())?;
                             copy_onto(&mine, &theirs)?;
@@ -3827,6 +3905,53 @@ mod tests {
         }
 
         assert_eq!(std::fs::read_to_string(&bystander).unwrap(), "no es tuyo");
+    }
+
+    #[test]
+    fn letting_go_frees_only_what_the_shared_folder_really_holds() {
+        let one = machine("dev_a");
+        let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
+        let light = planted(&one.data, "nota.txt", b"lo apuntado");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let done = let_go(&one.data, shared.path(), 1000).unwrap();
+
+        assert_eq!(done.gone, 1, "only the big one");
+        assert_eq!(done.freed, 4000);
+        assert!(!one.data.join(&heavy).exists(), "it went");
+        assert!(one.data.join(&light).is_file(), "the small one stayed");
+        assert!(shared.path().join(&heavy).is_file(), "and it is up there");
+    }
+
+    #[test]
+    fn nothing_is_freed_when_what_is_up_there_is_not_the_same_file() {
+        let one = machine("dev_a");
+        let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        std::fs::write(shared.path().join(&heavy), vec![9u8; 4000]).unwrap();
+
+        let done = let_go(&one.data, shared.path(), 1000).unwrap();
+
+        assert_eq!(done.gone, 0);
+        assert_eq!(done.kept, vec![heavy.clone()]);
+        assert!(
+            one.data.join(&heavy).is_file(),
+            "a copy that does not vouch for itself keeps the local one alive"
+        );
+    }
+
+    #[test]
+    fn nothing_is_freed_when_the_shared_folder_never_saw_it() {
+        let one = machine("dev_a");
+        let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
+        let shared = tempfile::tempdir().unwrap();
+
+        let done = let_go(&one.data, shared.path(), 1000).unwrap();
+
+        assert_eq!(done.gone, 0);
+        assert!(one.data.join(&heavy).is_file());
     }
 
     #[test]
