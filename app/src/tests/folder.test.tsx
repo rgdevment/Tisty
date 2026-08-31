@@ -42,7 +42,7 @@ describe("the folder view", () => {
   it("lists the folders and the papers it holds, and nobody else's", () => {
     show("2");
 
-    expect(screen.getByRole("button", { name: /actas/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^actas/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Contrato/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Ajeno/ })).toBeNull();
   });
@@ -88,7 +88,7 @@ describe("the folder view", () => {
   it("walks into a folder you click and opens a paper you click", async () => {
     const { onHere, onOpen } = show("2");
 
-    await userEvent.click(screen.getByRole("button", { name: /actas/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^actas/ }));
     expect(onHere).toHaveBeenCalledWith("3");
 
     await userEvent.click(screen.getByRole("button", { name: /Contrato/ }));
@@ -111,7 +111,7 @@ describe("the folder view", () => {
   it("hands the right thing to the menu that opens over it", () => {
     const { onMenu, onDocMenu } = show("2");
 
-    fireRight(screen.getByRole("button", { name: /actas/ }));
+    fireRight(screen.getByRole("button", { name: /^actas/ }));
     expect(onMenu).toHaveBeenCalledWith(
       expect.objectContaining({ id: "3" }),
       expect.objectContaining({ x: expect.any(Number) }),
@@ -132,7 +132,7 @@ const fireRight = (at: HTMLElement) => {
 describe("reaching the folder view without a mouse", () => {
   it("opens a folder's menu from the keyboard, where a Mac has no context key", async () => {
     const { onMenu } = show("2");
-    screen.getByRole("button", { name: /actas/ }).focus();
+    screen.getByRole("button", { name: /^actas/ }).focus();
 
     await userEvent.keyboard("{Shift>}{F10}{/Shift}");
 
@@ -166,7 +166,7 @@ describe("reaching the folder view without a mouse", () => {
 
   it("says nothing to a key that is not asking for a menu", async () => {
     const { onMenu } = show("2");
-    screen.getByRole("button", { name: /actas/ }).focus();
+    screen.getByRole("button", { name: /^actas/ }).focus();
 
     await userEvent.keyboard("{F10}a");
 
@@ -220,5 +220,66 @@ describe("the loose papers, which belong to no folder", () => {
     );
 
     expect(screen.getByRole("button", { name: /Unfiled/ })).toHaveProperty("disabled", true);
+  });
+});
+
+describe("what a folder shows without being entered", () => {
+  const deep: Folded[] = [
+    { id: "1", name: "personal", parent: null, icon: null, color: null, holds: 0 },
+    { id: "2", name: "condominio", parent: "1", icon: null, color: null, holds: 12 },
+    { id: "3", name: "moto", parent: "1", icon: null, color: null, holds: 1 },
+  ];
+  const many: Filed[] = Array.from({ length: 12 }, (_, i) => ({
+    id: `c${i}`,
+    file: `10${i}`,
+    title: `Acta ${i}`,
+    folder: "2",
+    archived: false,
+  })).concat([{ id: "m", file: "200", title: "Revisión", folder: "3", archived: false }]);
+
+  const open = () => {
+    const onHere = vi.fn();
+    render(
+      <Folder
+        folder={deep[0]}
+        folders={deep}
+        docs={many}
+        onOpen={vi.fn()}
+        onHere={onHere}
+        onMenu={vi.fn()}
+      />,
+    );
+    return { onHere };
+  };
+
+  it("counts what lies below, and what is right here", () => {
+    open();
+
+    expect(screen.getByText("2 folders · 13 papers in all")).toBeTruthy();
+  });
+
+  it("shows what each folder holds without going into it", () => {
+    open();
+
+    expect(screen.getByRole("button", { name: /^Acta 0/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Revisión/ })).toBeTruthy();
+  });
+
+  it("stops at a handful and offers the rest where they live", async () => {
+    const { onHere } = open();
+
+    expect(screen.queryByRole("button", { name: /^Acta 11/ })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /4 more/ }));
+
+    expect(onHere).toHaveBeenCalledWith("2");
+  });
+
+  it("folds one away and leaves the other where it was", async () => {
+    open();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close condominio" }));
+
+    expect(screen.queryByRole("button", { name: /^Acta 0/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /^Revisión/ })).toBeTruthy();
   });
 });
