@@ -258,6 +258,22 @@ describe("what a folder shows without being entered", () => {
     expect(screen.getByText("2 folders · 13 papers in all")).toBeTruthy();
   });
 
+  it("wears the emoji a title opens with instead of the paper icon", () => {
+    render(
+      <Folder
+        folder={deep[0]}
+        folders={deep}
+        docs={[{ id: "z", file: "300", title: "🧰 Herramientas", folder: "3", archived: false }]}
+        onOpen={vi.fn()}
+        onHere={vi.fn()}
+      />,
+    );
+
+    const worn = screen.getByRole("button", { name: /Herramientas/ });
+    expect(worn.textContent).toContain("🧰");
+    expect(worn.querySelector("svg")).toBeNull();
+  });
+
   it("shows what each folder holds without going into it", () => {
     open();
 
