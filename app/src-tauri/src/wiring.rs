@@ -367,7 +367,8 @@ mod tests {
         wire_at(&CODE, &at).unwrap();
 
         let now = std::fs::read_to_string(&at).unwrap();
-        assert_eq!(now.match_indices("\"tisty\"").count(), 1, "{now}");
+        let read: serde_json::Value = serde_json::from_str(&now).unwrap();
+        assert_eq!(read["mcpServers"].as_object().unwrap().len(), 1, "{now}");
     }
 
     #[test]
