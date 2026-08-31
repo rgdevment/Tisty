@@ -87,6 +87,9 @@ pub fn attach(
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
     let named = tisty_core::attach::called(at, label);
+    if app.state.docs.values().any(|one| one.file == selector) {
+        return into_doc(app, selector, at, &named, lang);
+    }
     let open: Vec<&tisty_core::Task> = app.state.tasks.values().collect();
     resolved!(app, Some(selector), open, lang, |id| {
         let kept = tisty_core::attach::keep(at, app.paths.data(), app.copies_up_to())
@@ -99,6 +102,35 @@ pub fn attach(
         })?;
         report(app, id, today, lang);
     });
+    Ok(ExitCode::SUCCESS)
+}
+
+fn into_doc(
+    app: &mut App,
+    which: &str,
+    at: &std::path::Path,
+    named: &str,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
+    let root = app.paths.docs();
+    let body = tisty_core::docs::read(&root, which)?;
+    match tisty_core::attach::fits(&body, named) {
+        Ok(()) => {}
+        Err(tisty_core::attach::NoRoom::Crowded(held)) => anyhow::bail!(
+            "{}",
+            lang.fill("doc-crowded", &[("count", &held.to_string())])
+        ),
+        Err(tisty_core::attach::NoRoom::Full) => anyhow::bail!("{}", lang.get("doc-no-room")),
+    }
+
+    let kept = tisty_core::attach::keep(at, app.paths.data(), app.copies_in_a_doc())
+        .map_err(|e| weighed(e, named, lang))?;
+    let whole = tisty_core::docs::append(&root, which, &kept.written(named))?;
+    println!(
+        "  {}  {}",
+        crate::style::dim(which),
+        tisty_core::docs::titled(&whole)
+    );
     Ok(ExitCode::SUCCESS)
 }
 

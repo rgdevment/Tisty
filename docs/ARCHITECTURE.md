@@ -110,11 +110,22 @@ back, so it is a copy on disk, not an undo.
 Handing over the whole body is what stays shut. The person may have the document
 open in the window while the agent writes, and the window saves the body entire:
 against a named passage a stale agent fails to match and stops, while against a
-whole-body write the last writer simply wins and the other's work is gone.
+whole-body write the last writer would simply win and the other's work would be
+gone. The window is held to the same rule as the agent — it is refused a save
+over a body it did not read — but the rule is enforceable there because a window
+has somebody to ask, and a tool call does not.
 
 A body lives outside the log, so neither writes an event; the window's watch
 compares a print of the documents themselves and tells the window to read the
 open one again, which it does unless there are unsaved changes in it.
+
+**And unsaved changes are where the window used to write over what arrived.** It
+keeps a print of every document it read or wrote; a save whose document no longer
+matches that print is refused, and the person is told that something wrote here
+while they had it open. Then it is theirs to say which one stands: keep mine
+anyway, or read it again and lose what was typed. Refusing is the only honest
+answer a whole-body write can give — it cannot tell which half of the file is the
+part that arrived.
 
 **Every writer of a body passes one lock**, kept beside the documents. Reading a
 body and writing it back is two steps, and a lock only the agent took would

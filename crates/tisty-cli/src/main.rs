@@ -196,8 +196,9 @@ pub enum Command {
         #[arg(long, conflicts_with = "which")]
         new: bool,
     },
-    /// Keep a copy of a file with a task
+    /// Keep a copy of a file with a task, or in a document
     Attach {
+        /// A task, or the name of a document
         selector: String,
         path: std::path::PathBuf,
         #[arg(long)]

@@ -25,6 +25,9 @@ struct Session {
     cache: Option<tisty_core::cache::Cache>,
     corpus: tisty_core::docs::Corpus,
     print: String,
+    /// What each open document looked like when this window last read or wrote it. The window
+    /// saves a body whole, so without this it writes over whatever arrived while you were typing.
+    minded: std::collections::HashMap<String, String>,
     locale: Option<String>,
     log: Option<(String, Vec<Event>)>,
 }
@@ -68,6 +71,7 @@ impl Session {
             cache,
             corpus: tisty_core::docs::Corpus::default(),
             print,
+            minded: std::collections::HashMap::new(),
             log: None,
         };
         session.take_out_the_shed();
@@ -155,6 +159,23 @@ impl Session {
             .values()
             .map(|one| one.file.clone())
             .collect()
+    }
+
+    fn mind(&mut self, id: &str) {
+        let now = tisty_core::docs::resolve(&self.paths.docs(), id)
+            .ok()
+            .and_then(|at| tisty_core::docs::print_of(&at).ok().flatten());
+        match now {
+            Some(print) => self.minded.insert(id.to_string(), print),
+            None => self.minded.remove(id),
+        };
+    }
+
+    fn moved(&self, id: &str) -> bool {
+        let now = tisty_core::docs::resolve(&self.paths.docs(), id)
+            .ok()
+            .and_then(|at| tisty_core::docs::print_of(&at).ok().flatten());
+        stale(self.minded.get(id).map(String::as_str), now.as_deref())
     }
 
     fn referenced(&self) -> Vec<String> {
@@ -2346,7 +2367,11 @@ fn doc_file(
 
 #[tauri::command(async)]
 fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
-    let root = held(&session).paths.docs();
+    let root = {
+        let mut session = held(&session);
+        session.mind(&id);
+        session.paths.docs()
+    };
     tisty_core::docs::read(&root, &id).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { bytes, limit } => {
             witness::warn(
@@ -2516,13 +2541,23 @@ fn guide(
     Ok(made)
 }
 
+/// A document nobody read here is not stale, and neither is one that is no longer on disk: what
+/// is gone is somebody else's refusal to give, not this window's to write over.
+fn stale(mine: Option<&str>, now: Option<&str>) -> bool {
+    matches!((mine, now), (Some(mine), Some(now)) if mine != now)
+}
+
 #[tauri::command(async)]
 fn doc_write(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     body: String,
+    anyway: Option<bool>,
 ) -> Answer<tisty_core::docs::Doc> {
     let mut session = held(&session);
+    if !anyway.unwrap_or(false) && session.moved(&id) {
+        return Err(Refusal::about("documentMoved", id));
+    }
     let root = session.paths.docs();
     tisty_core::docs::write(&root, &id, &body).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {
@@ -2531,6 +2566,7 @@ fn doc_write(
         tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
         _ => blamed(channel::WINDOW, "a document could not be written", e),
     })?;
+    session.mind(&id);
     session.corpus.forget(&id);
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&body),
@@ -3299,7 +3335,7 @@ fn convert_paper(
     id: String,
     body: String,
 ) -> Answer<()> {
-    let session = held(&session);
+    let mut session = held(&session);
     let papers = session.paths.docs();
     let was = tisty_core::docs::read(&papers, &id)
         .map_err(|_| Refusal::about("cannotRead", id.clone()))?;
@@ -3314,6 +3350,7 @@ fn convert_paper(
             e,
         ),
     })?;
+    session.mind(&id);
     Ok(())
 }
 
@@ -3373,7 +3410,7 @@ fn weave_paper(
     picks: Vec<String>,
     print: String,
 ) -> Answer<()> {
-    let session = held(&session);
+    let mut session = held(&session);
     let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
         return Err(Refusal::of("noBase"));
     };
@@ -3398,6 +3435,7 @@ fn weave_paper(
         tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
         e => blamed(channel::SYNC, "the woven body could not be written", e),
     })?;
+    session.mind(&id);
     Ok(())
 }
 
@@ -4445,6 +4483,16 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_body_that_changed_underneath_is_the_only_one_held_back() {
+        use super::stale;
+
+        assert!(stale(Some("aa"), Some("bb")), "somebody wrote in it");
+        assert!(!stale(Some("aa"), Some("aa")), "it is as it was read");
+        assert!(!stale(None, Some("bb")), "this window never read it");
+        assert!(!stale(Some("aa"), None), "it is not there to compare");
+    }
+
     #[test]
     fn a_folder_name_stops_where_the_agent_and_the_core_stop() {
         use super::named_folder;

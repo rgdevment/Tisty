@@ -7,7 +7,8 @@ import Docs from "../ui/Docs";
 
 const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
-  writes: [] as { id: string; body: string }[],
+  writes: [] as { id: string; body: string; anyway: boolean }[],
+  clash: false,
   delays: [] as number[],
   reads: 0,
   converted: [] as { id: string; was: string }[],
@@ -30,7 +31,9 @@ vi.mock("@tauri-apps/api/core", () => ({
       case "doc_write": {
         const id = String(args?.id);
         const body = String(args?.body);
-        store.writes.push({ id, body });
+        const anyway = args?.anyway === true;
+        store.writes.push({ id, body, anyway });
+        if (store.clash && !anyway) return Promise.reject({ code: "documentMoved" });
         const title = body
           .split("\n")[0]
           .replace(/^#+\s*/, "")
@@ -88,6 +91,7 @@ describe("the document being written", () => {
     store.converted = [];
     store.mute = false;
     store.shape = null;
+    store.clash = false;
   });
 
   const show = (open?: string, onKept = vi.fn()) =>
@@ -458,5 +462,35 @@ describe("a document that moved on disk while it was open", () => {
       expect(screen.getByLabelText<HTMLTextAreaElement>("editor").value).toContain("y huevos"),
     );
     await settled();
+  });
+
+  it("does not write over what arrived while it was being typed in", async () => {
+    store.clash = true;
+    const onError = vi.fn();
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={onError} />);
+    const editor = await screen.findByLabelText("editor");
+    await userEvent.type(editor, " y pan");
+
+    await settled();
+
+    await waitFor(() => screen.getByText(/mientras lo tenías abierto|while you had it open/));
+    expect(store.bodies["a3f1-0001"]).not.toContain("y pan");
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("writes it whole when the person says theirs is the one that stands", async () => {
+    store.clash = true;
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    const editor = await screen.findByLabelText("editor");
+    await userEvent.type(editor, " y pan");
+    await settled();
+    await waitFor(() => screen.getByText(/mientras lo tenías abierto|while you had it open/));
+
+    await userEvent.click(screen.getByText(/de todos modos|anyway/));
+    await settled();
+
+    expect(store.writes.at(-1)?.anyway).toBe(true);
+    expect(store.bodies["a3f1-0001"]).toContain("y pan");
+    expect(screen.queryByText(/mientras lo tenías abierto|while you had it open/)).toBeNull();
   });
 });

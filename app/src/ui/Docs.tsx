@@ -1,4 +1,4 @@
-import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
+import { ask, save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { asPlain } from "../copying";
 import {
@@ -76,6 +76,7 @@ export default function Docs({
   const shaped = useRef("");
   const seen = useRef(0);
   const [stuck, setStuck] = useState(false);
+  const [clashed, setClashed] = useState(false);
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
@@ -107,15 +108,21 @@ export default function Docs({
   }, [wide]);
 
   const keep = useCallback(
-    (id: string, text: string) => {
+    (id: string, text: string, anyway?: boolean) => {
       setSaving(true);
-      const mine = queued(id, () => docWrite(id, text))
+      const mine = queued(id, () => docWrite(id, text, anyway))
         .then((fresh) => {
           if (held.current?.id === id && held.current.body === text) held.current = null;
+          setClashed(false);
           setSaved((many) => many + 1);
           onKept(fresh);
         })
-        .catch((e) => onError(saidPlainly(e)))
+        .catch((e) => {
+          // Somebody wrote here while this window held the body: saving it whole would take
+          // theirs away, so it waits for the person to say which one stands.
+          if ((e as { code?: string } | null)?.code === "documentMoved") setClashed(true);
+          else onError(saidPlainly(e));
+        })
         .finally(() => setSaving(false));
       return mine;
     },
@@ -134,6 +141,25 @@ export default function Docs({
     if (settling.current) clearTimeout(settling.current);
     held.current = null;
   }, []);
+
+  const mineStands = useCallback(() => {
+    if (!open) return;
+    if (settling.current) clearTimeout(settling.current);
+    keep(open.file, held.current?.body ?? shaped.current, true);
+  }, [keep, open]);
+
+  const theirsStands = useCallback(async () => {
+    if (!open) return;
+    if (!(await ask(t("clashSure"), { kind: "warning" }))) return;
+    drop();
+    docRead(open.file)
+      .then((text) => {
+        setBody(text);
+        setPacked(crowd(text));
+        setClashed(false);
+      })
+      .catch((e) => onError(saidPlainly(e)));
+  }, [drop, onError, open]);
 
   const leaving = useRef(flush);
   leaving.current = flush;
@@ -186,6 +212,7 @@ export default function Docs({
         setWarned(brittle.length ? brittle : null);
         setReading(brittle.length > 0);
         setStuck(false);
+        setClashed(false);
       })
       .catch((e) => onError(saidPlainly(e)));
   }, [asked, known, open, flush, onError, fresh]);
@@ -414,6 +441,28 @@ export default function Docs({
                 ? fill("docCrowded", String(packed))
                 : ""}
         </div>
+        {clashed && open && (
+          <div
+            style={wall}
+            className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
+          >
+            <span className="text-soft">{t("documentMoved")}</span>
+            <button
+              type="button"
+              onClick={mineStands}
+              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+            >
+              {t("clashSave")}
+            </button>
+            <button
+              type="button"
+              onClick={theirsStands}
+              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+            >
+              {t("clashLook")}
+            </button>
+          </div>
+        )}
         {reading && warned && open && (
           <div
             style={wall}

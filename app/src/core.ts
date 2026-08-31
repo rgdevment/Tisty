@@ -625,8 +625,8 @@ export const folderDrop = (id: string): Promise<void> => invoke("folder_drop", {
 export const docFile = (id: string, folder?: string): Promise<void> =>
   invoke("doc_file", { id, folder });
 export const docRead = (id: string): Promise<string> => invoke("doc_read", { id });
-export const docWrite = (id: string, body: string): Promise<Doc> =>
-  invoke("doc_write", { id, body });
+export const docWrite = (id: string, body: string, anyway?: boolean): Promise<Doc> =>
+  invoke("doc_write", { id, body, anyway });
 export const folderFile = (id: string, parent?: string): Promise<void> =>
   invoke("folder_file", { id, parent });
 
