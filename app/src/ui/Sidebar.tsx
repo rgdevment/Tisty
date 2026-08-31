@@ -85,7 +85,9 @@ export default function Sidebar({
               ▼
             </span>
             {t("docs")}
-            <span className="ml-auto text-[11px] font-normal">{papers.docs.length || ""}</span>
+            <span className="ml-auto text-[11px] font-normal">
+              {papers.docs.filter((one) => !one.pageOf).length || ""}
+            </span>
           </button>
           <button
             type="button"

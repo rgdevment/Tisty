@@ -709,6 +709,40 @@ existed, or from a copy that stopped halfway, is not deleted on a guess: `tisty
 doctor` and the maintenance panel **count** the document files on disk that the
 log does not know about, and leave them where they are.
 
+## A page is part of a document, not a document beside it
+
+A document may hold pages. A page is an ordinary document file — same name, same
+ceiling, same way out — with one field saying which document it belongs to, and
+that field is the whole difference between the two.
+
+**There is one level, and the core is what enforces it.** A page holds no pages:
+`DocAdd` naming a page as its parent keeps the deeper one as a document, and
+`DocMove` refuses both a document that is its own parent and one that already
+holds pages. The window and the agent refuse the same thing first, with a message
+that says why, but neither is where the rule lives — an event that arrives from
+another machine has passed no window.
+
+**A page goes where its document goes.** It is born in its document's folder,
+follows it when the document is filed elsewhere, is put away and brought back
+with it, and is deleted with it. Filing a page into a folder of its own does
+nothing: the folder of a page is the folder of the document it belongs to, so
+there is nothing to keep in step later. Undoing a move puts the page back under
+the document it was under, since the move recorded which parent it had.
+
+**Coming out is deliberate.** «Make it a document of its own» sends a null
+parent, and the page becomes a document standing in the folder it was already
+showing in. Nothing is copied and no text changes: only the field goes. That is
+why the tree can offer it as one menu entry and the agent as one call — the
+event is the same move that files a document.
+
+Folders count documents, not pages: a folder holding one document of forty pages
+says one. The pages are shown under the document, in the tree and in `tisty
+doc`, which is where the person went looking for them.
+
+**The schema is 8 because of this.** A machine still on 1.0.x rejects the whole
+event rather than reading a page as a loose document and filing it somewhere the
+person never put it.
+
 ## Taking a document out
 
 A document is a Markdown file, and the whole point is that it survives without

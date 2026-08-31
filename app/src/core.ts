@@ -612,6 +612,7 @@ export interface Filed {
   file: string;
   title: string;
   folder: string | null;
+  pageOf?: string | null;
   archived: boolean;
   gone?: boolean;
 }
@@ -663,7 +664,10 @@ export const docExport = (id: string, into: string): Promise<number> =>
 export const docImport = (from: string, folder?: string): Promise<Doc> =>
   invoke("doc_import", { from, folder });
 
-export const docNew = (folder?: string): Promise<Doc> => invoke("doc_new", { folder });
+export const docNew = (folder?: string, pageOf?: string): Promise<Doc> =>
+  invoke("doc_new", { folder, pageOf });
+export const docPage = (id: string, pageOf?: string): Promise<void> =>
+  invoke("doc_page", { id, pageOf });
 export const docDrop = (id: string): Promise<void> => invoke("doc_drop", { id });
 
 export const icons = (): Promise<string[]> => invoke("icons");

@@ -496,12 +496,18 @@ pub struct DocAdd {
     pub order: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
+    /// The document this one is a page of. A page never has pages of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_of: Option<DocId>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Filed {
     #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
     pub folder: Option<Option<FolderId>>,
+    /// Sent as null to make a page a document of its own.
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub page_of: Option<Option<DocId>>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

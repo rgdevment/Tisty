@@ -657,6 +657,7 @@ mod tests {
                     file: "a3f1-0001".into(),
                     order: "a0".into(),
                     folder: Some(folder),
+                    page_of: None,
                 },
             })
             .unwrap();

@@ -2259,6 +2259,7 @@ struct Filed {
     folder: Option<String>,
     archived: bool,
     gone: bool,
+    page_of: Option<String>,
 }
 
 #[tauri::command(async)]
@@ -2283,6 +2284,7 @@ fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
             folder: kept.folder.map(|at| at.to_string()),
             archived: kept.archived,
             gone: found.is_none(),
+            page_of: kept.page_of.map(|up| up.to_string()),
         });
     }
     Ok(Papers {
@@ -2461,6 +2463,7 @@ fn folder_file(
         id,
         d: tisty_core::event::Filed {
             folder: Some(parent),
+            page_of: None,
         },
     })?;
     Ok(())
@@ -2491,6 +2494,7 @@ fn doc_file(
         id,
         d: tisty_core::event::Filed {
             folder: Some(folder),
+            page_of: None,
         },
     })?;
     Ok(())
@@ -2788,6 +2792,7 @@ fn guide(
             file: made.id.clone(),
             order: sorted,
             folder: Some(folder),
+            page_of: None,
         },
     })?;
     let written = made.id.clone();
@@ -2873,7 +2878,10 @@ fn doc_copy(
             .state
             .docs
             .values()
-            .filter(|one| one.folder == kept.folder)
+            .filter(|one| {
+                one.page_of == kept.page_of
+                    && (kept.page_of.is_some() || one.folder == kept.folder)
+            })
             .map(|one| one.order.as_str()),
     );
     let twin = ulid::Ulid::generate();
@@ -2883,6 +2891,7 @@ fn doc_copy(
             file: made.id.clone(),
             order,
             folder: kept.folder,
+            page_of: kept.page_of,
         },
     })?;
     if kept.archived {
@@ -2953,6 +2962,7 @@ fn doc_import(
             file: made.id.clone(),
             order,
             folder,
+            page_of: None,
         },
     })?;
     Ok(made)
@@ -2962,9 +2972,13 @@ fn doc_import(
 fn doc_new(
     session: tauri::State<'_, Mutex<Session>>,
     folder: Option<String>,
+    page_of: Option<String>,
 ) -> Answer<tisty_core::docs::Doc> {
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+    let page_of = page_of
+        .map(|up| up.parse().map_err(|_| Refusal::of("noSuchDoc")))
         .transpose()?;
     let mut session = held(&session);
     if let Some(at) = folder
@@ -2972,6 +2986,15 @@ fn doc_new(
     {
         return Err(Refusal::of("noSuchFolder"));
     }
+    let under = match page_of {
+        Some(up) => match session.state.docs.get(&up) {
+            None => return Err(Refusal::of("noSuchDoc")),
+            Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
+            Some(one) => Some(one.folder),
+        },
+        None => None,
+    };
+    let folder = under.unwrap_or(folder);
     let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "")
         .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))?;
 
@@ -2980,7 +3003,7 @@ fn doc_new(
             .state
             .docs
             .values()
-            .filter(|one| one.folder == folder)
+            .filter(|one| one.page_of == page_of && (page_of.is_some() || one.folder == folder))
             .map(|one| one.order.as_str()),
     );
     session.commit(Op::DocAdd {
@@ -2989,9 +3012,54 @@ fn doc_new(
             file: made.id.clone(),
             order,
             folder,
+            page_of,
         },
     })?;
     Ok(made)
+}
+
+#[tauri::command]
+fn doc_page(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    page_of: Option<String>,
+) -> Answer<()> {
+    let id: tisty_core::model::DocId = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let page_of = page_of
+        .map(|up| up.parse().map_err(|_| Refusal::of("noSuchDoc")))
+        .transpose()?;
+    let mut session = held(&session);
+
+    if !session.state.docs.contains_key(&id) {
+        return Err(Refusal::of("noSuchDoc"));
+    }
+    if let Some(up) = page_of {
+        if up == id {
+            return Err(Refusal::of("pageOfPage"));
+        }
+        match session.state.docs.get(&up) {
+            None => return Err(Refusal::of("noSuchDoc")),
+            Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
+            Some(_) => {}
+        }
+        if session
+            .state
+            .docs
+            .values()
+            .any(|one| one.page_of == Some(id))
+        {
+            return Err(Refusal::of("holdsPages"));
+        }
+    }
+
+    session.commit(Op::DocMove {
+        id,
+        d: tisty_core::event::Filed {
+            folder: None,
+            page_of: Some(page_of),
+        },
+    })?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -3750,6 +3818,7 @@ fn settle_paper(
                 file: file.clone(),
                 folder,
                 order,
+                page_of: None,
             },
         })
         .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;
@@ -4742,6 +4811,7 @@ pub fn run() {
             keep_pdf,
             doc_write,
             doc_new,
+            doc_page,
             doc_drop,
             doc_import,
             doc_export,

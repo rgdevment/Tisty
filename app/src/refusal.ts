@@ -67,6 +67,8 @@ const KNOWN = [
   "noSuchIcon",
   "noSuchColour",
   "tooDeep",
+  "pageOfPage",
+  "holdsPages",
   "folderNameTooLong",
   "documentBeingWritten",
   "documentMoved",

@@ -283,6 +283,8 @@ const en = {
   paperHolds: "Holds",
   paperWords: "{name} words",
   paperDocs: "{name} documents",
+  pageHeld: "1 page",
+  pagesHeld: "{name} pages",
   paperFiles: "{name} attachments",
   paperEmpty: "Nothing written yet",
   shaping: "Format",
@@ -320,12 +322,18 @@ const en = {
   dropDoc: "Delete {name}",
   dropDocSure:
     "Delete «{name}»? The document and what it holds go for good. This cannot be undone.",
+  dropPagesSure:
+    "Delete «{name}»? The document, its pages and what they hold go for good. This cannot be undone.",
+  newPage: "New page",
+  ownDoc: "Make it a document of its own",
   dropThemSure:
     "Discard {name} tasks? They leave the open lists and stay in the archive, where you can open them again.",
   newFolderIn: "New folder in {name}",
   openFolder: "Open {name}",
   closeFolder: "Close {name}",
   tooDeep: "Folders only go four levels deep",
+  pageOfPage: "A page belongs to a document, not to another page",
+  holdsPages: "This document has pages of its own",
   folderNameTooLong: "A folder name fits 40 characters at most",
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
   documentMoved: "Something wrote in this document while you had it open here",
@@ -1255,6 +1263,8 @@ const es: Catalog = {
   paperHolds: "Lleva dentro",
   paperWords: "{name} palabras",
   paperDocs: "{name} documentos",
+  pageHeld: "1 página",
+  pagesHeld: "{name} páginas",
   paperFiles: "{name} adjuntos",
   paperEmpty: "Todavía sin escribir",
   shaping: "Formato",
@@ -1292,12 +1302,18 @@ const es: Catalog = {
   dropDoc: "Borrar {name}",
   dropDocSure:
     "¿Borrar «{name}»? El documento y su contenido se van para siempre. Esto no se puede deshacer.",
+  dropPagesSure:
+    "¿Borrar «{name}»? El documento, sus páginas y lo que guardan se van para siempre. Esto no se puede deshacer.",
+  newPage: "Nueva página",
+  ownDoc: "Convertir en documento propio",
   dropThemSure:
     "¿Descartar {name} tareas? Salen de las listas abiertas y se quedan en el archivo, donde puedes volver a abrirlas.",
   newFolderIn: "Nueva carpeta en {name}",
   openFolder: "Desplegar {name}",
   closeFolder: "Plegar {name}",
   tooDeep: "Las carpetas solo bajan cuatro niveles",
+  pageOfPage: "Una página cuelga de un documento, no de otra página",
+  holdsPages: "Este documento tiene páginas propias",
   folderNameTooLong: "El nombre de una carpeta admite 40 caracteres como máximo",
   documentBeingWritten:
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
