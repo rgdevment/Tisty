@@ -142,7 +142,7 @@ beforeEach(() => {
         const id = String(ipc.calls[ipc.calls.length - 1]?.args.id);
         const on = cmd === "wire";
         installed.seen = installed.seen.map((one) =>
-          one.id === id ? { ...one, wired: on, astray: false } : one
+          one.id === id ? { ...one, wired: on, astray: false } : one,
         );
         return Promise.resolve(installed.seen.map((one) => ({ ...one })));
       }
