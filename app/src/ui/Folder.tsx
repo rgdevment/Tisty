@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Filed, Folded } from "../core";
+import { led } from "../leading";
 import { fill, t, type Word } from "../locales";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
@@ -95,33 +96,40 @@ export default function Folder({
     .filter(Boolean)
     .join(" · ");
 
-  const paper = (one: Filed) => (
-    <li key={one.id} className="break-inside-avoid">
-      <button
-        type="button"
-        onClick={() => onOpen(one)}
-        aria-haspopup={onDocMenu ? "menu" : undefined}
-        aria-keyshortcuts={onDocMenu ? "Shift+F10" : undefined}
-        onContextMenu={(e) => {
-          if (!onDocMenu) return;
-          e.preventDefault();
-          onDocMenu(one, { x: e.clientX, y: e.clientY });
-        }}
-        onKeyDown={(e) => {
-          if (!onDocMenu || !asksForMenu(e)) return;
-          e.preventDefault();
-          onDocMenu(one, menuAt(e));
-        }}
-        className={ROW}
-      >
-        <span className="shrink-0 text-faint">
-          <Glyph name="page" className="h-3.5 w-3.5" />
-        </span>
-        <span className="truncate text-ink">{one.title || t("untitledDoc")}</span>
-        {one.gone && <span className="shrink-0 text-[11.5px] text-urgent">{t("goneDoc")}</span>}
-      </button>
-    </li>
-  );
+  const paper = (one: Filed) => {
+    const worn = led(one.title || t("untitledDoc"));
+    return (
+      <li key={one.id} className="break-inside-avoid">
+        <button
+          type="button"
+          onClick={() => onOpen(one)}
+          aria-haspopup={onDocMenu ? "menu" : undefined}
+          aria-keyshortcuts={onDocMenu ? "Shift+F10" : undefined}
+          onContextMenu={(e) => {
+            if (!onDocMenu) return;
+            e.preventDefault();
+            onDocMenu(one, { x: e.clientX, y: e.clientY });
+          }}
+          onKeyDown={(e) => {
+            if (!onDocMenu || !asksForMenu(e)) return;
+            e.preventDefault();
+            onDocMenu(one, menuAt(e));
+          }}
+          className={ROW}
+        >
+          <span className="shrink-0 text-faint">
+            {worn.mark ? (
+              <span className="text-[13px] leading-none">{worn.mark}</span>
+            ) : (
+              <Glyph name="page" className="h-3.5 w-3.5" />
+            )}
+          </span>
+          <span className="truncate text-ink">{worn.rest}</span>
+          {one.gone && <span className="shrink-0 text-[11.5px] text-urgent">{t("goneDoc")}</span>}
+        </button>
+      </li>
+    );
+  };
 
   const named = (one: Folded) => (
     <button

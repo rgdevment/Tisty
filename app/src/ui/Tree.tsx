@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { Filed, Folded, Papers } from "../core";
+import { led } from "../leading";
 import { fill, t } from "../locales";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
@@ -145,60 +146,67 @@ export default function Tree({
     },
   });
 
-  const paper = (doc: Filed, depth: number) => (
-    <li
-      key={doc.id}
-      className="group/paper relative flex items-center focus-within:bg-hover"
-      onContextMenu={(e) => {
-        if (!onDocMenu) return;
-        e.preventDefault();
-        onDocMenu(doc, { x: e.clientX, y: e.clientY });
-      }}
-    >
-      {depth > 0 && (
-        <span
-          aria-hidden="true"
-          className="absolute top-1/2 h-px bg-hair"
-          style={{ left: `${14 + (depth - 1) * STEP}px`, width: `${ELBOW}px` }}
-        />
-      )}
-      <button
-        type="button"
-        draggable
-        data-row={doc.id}
-        tabIndex={stops(doc.id) ? 0 : -1}
-        onFocus={() => setReached(doc.id)}
-        onKeyDown={(e) =>
-          typed(e, { id: doc.id, kind: "doc", name: doc.title || t("untitledDoc") })
-        }
-        aria-keyshortcuts={shortcuts("doc")}
-        onDragStart={(e) => e.dataTransfer.setData("text/tisty-doc", doc.id)}
-        onClick={() => onOpen(doc)}
-        aria-label={
-          lifted?.id === doc.id
-            ? fill("liftedIs", doc.title || t("untitledDoc"))
-            : doc.title || t("untitledDoc")
-        }
-        aria-current={open === doc.file ? "true" : undefined}
-        style={{ paddingLeft: `${8 + depth * STEP + ICON}px` }}
-        className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[12.5px] ${
-          lifted?.id === doc.id ? "ring-1 ring-accent " : ""
-        }${doc.archived ? "opacity-55 " : ""}${
-          open === doc.file ? "bg-active text-ink" : "text-soft hover:bg-hover"
-        }`}
+  const paper = (doc: Filed, depth: number) => {
+    const worn = led(doc.title || t("untitledDoc"));
+    return (
+      <li
+        key={doc.id}
+        className="group/paper relative flex items-center focus-within:bg-hover"
+        onContextMenu={(e) => {
+          if (!onDocMenu) return;
+          e.preventDefault();
+          onDocMenu(doc, { x: e.clientX, y: e.clientY });
+        }}
       >
-        <span className="flex w-3 shrink-0 justify-center text-faint">
-          <Glyph name="page" className="h-[13px] w-[13px]" />
-        </span>
-        <span className="truncate">{doc.title || t("untitledDoc")}</span>
-        {doc.gone && (
-          <span title={t("goneDoc")} className="shrink-0 text-[9px] text-urgent">
-            ⚠
-          </span>
+        {depth > 0 && (
+          <span
+            aria-hidden="true"
+            className="absolute top-1/2 h-px bg-hair"
+            style={{ left: `${14 + (depth - 1) * STEP}px`, width: `${ELBOW}px` }}
+          />
         )}
-      </button>
-    </li>
-  );
+        <button
+          type="button"
+          draggable
+          data-row={doc.id}
+          tabIndex={stops(doc.id) ? 0 : -1}
+          onFocus={() => setReached(doc.id)}
+          onKeyDown={(e) =>
+            typed(e, { id: doc.id, kind: "doc", name: doc.title || t("untitledDoc") })
+          }
+          aria-keyshortcuts={shortcuts("doc")}
+          onDragStart={(e) => e.dataTransfer.setData("text/tisty-doc", doc.id)}
+          onClick={() => onOpen(doc)}
+          aria-label={
+            lifted?.id === doc.id
+              ? fill("liftedIs", doc.title || t("untitledDoc"))
+              : doc.title || t("untitledDoc")
+          }
+          aria-current={open === doc.file ? "true" : undefined}
+          style={{ paddingLeft: `${8 + depth * STEP + ICON}px` }}
+          className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[12.5px] ${
+            lifted?.id === doc.id ? "ring-1 ring-accent " : ""
+          }${doc.archived ? "opacity-55 " : ""}${
+            open === doc.file ? "bg-active text-ink" : "text-soft hover:bg-hover"
+          }`}
+        >
+          <span className="flex w-3 shrink-0 justify-center text-faint">
+            {worn.mark ? (
+              <span className="text-[12px] leading-none">{worn.mark}</span>
+            ) : (
+              <Glyph name="page" className="h-[13px] w-[13px]" />
+            )}
+          </span>
+          <span className="truncate">{worn.rest}</span>
+          {doc.gone && (
+            <span title={t("goneDoc")} className="shrink-0 text-[9px] text-urgent">
+              ⚠
+            </span>
+          )}
+        </button>
+      </li>
+    );
+  };
 
   const branch = (folder: Folded, depth: number) => {
     const closed = shut.has(folder.id);
