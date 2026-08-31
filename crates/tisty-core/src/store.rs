@@ -544,18 +544,22 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     wrote
 }
 
-/// Windows refuses a rename over a file somebody is holding, and holding it is what another writer
-/// replacing the same file — or a backup reading it — does for a moment. A moment is waited out.
 fn renamed(tmp: &Path, path: &Path) -> std::io::Result<()> {
     let mut wait = 10;
     for _ in 0..4 {
         match std::fs::rename(tmp, path) {
             Ok(()) => return Ok(()),
+            Err(e) if !for_a_moment(&e) => return Err(e),
             Err(_) => std::thread::sleep(std::time::Duration::from_millis(wait)),
         }
         wait *= 2;
     }
     std::fs::rename(tmp, path)
+}
+
+/// The two Windows raises for a file somebody else has open; every other refusal is final.
+fn for_a_moment(e: &std::io::Error) -> bool {
+    cfg!(windows) && matches!(e.raw_os_error(), Some(5) | Some(32))
 }
 
 fn poured(tmp: &Path, contents: &[u8]) -> Result<()> {
@@ -625,7 +629,6 @@ mod atomic_tests {
         assert!(left.is_empty(), "a temporary was left behind: {left:?}");
     }
 
-    /// Only Windows refuses the rename; elsewhere an open file is renamed over without complaint.
     #[cfg(windows)]
     #[test]
     fn a_file_held_open_for_a_moment_is_waited_out_rather_than_refused() {

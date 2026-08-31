@@ -118,8 +118,6 @@ export default function Docs({
           onKept(fresh);
         })
         .catch((e) => {
-          // Somebody wrote here while this window held the body: saving it whole would take
-          // theirs away, so it waits for the person to say which one stands.
           if ((e as { code?: string } | null)?.code === "documentMoved") setClashed(true);
           else onError(saidPlainly(e));
         })
@@ -145,7 +143,8 @@ export default function Docs({
   const mineStands = useCallback(() => {
     if (!open) return;
     if (settling.current) clearTimeout(settling.current);
-    keep(open.file, held.current?.body ?? shaped.current, true);
+    const waiting = held.current;
+    keep(open.file, waiting?.id === open.file ? waiting.body : shaped.current, true);
   }, [keep, open]);
 
   const theirsStands = useCallback(async () => {
@@ -156,6 +155,9 @@ export default function Docs({
       .then((text) => {
         setBody(text);
         setPacked(crowd(text));
+        const brittle = frail(text);
+        setWarned(brittle.length ? brittle : null);
+        setReading(brittle.length > 0);
         setClashed(false);
       })
       .catch((e) => onError(saidPlainly(e)));

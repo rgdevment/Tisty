@@ -193,6 +193,7 @@ no-such-doc        = "no document is called {name}"
 doc-eaten          = "the editor cannot keep {what}, and would destroy it when you open this. Use plain markdown"
 doc-no-room        = "that document has no room left for the line that names a file"
 doc-crowded        = "that document already carries {count} files, as many as one is read with"
+doc-put-away       = "{name} is put away, so nothing more goes into it"
 
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }

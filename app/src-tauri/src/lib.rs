@@ -25,8 +25,7 @@ struct Session {
     cache: Option<tisty_core::cache::Cache>,
     corpus: tisty_core::docs::Corpus,
     print: String,
-    /// What each open document looked like when this window last read or wrote it. The window
-    /// saves a body whole, so without this it writes over whatever arrived while you were typing.
+    /// What each open document looked like when this window last read or wrote it.
     minded: std::collections::HashMap<String, String>,
     locale: Option<String>,
     log: Option<(String, Vec<Event>)>,
@@ -169,6 +168,12 @@ impl Session {
             Some(print) => self.minded.insert(id.to_string(), print),
             None => self.minded.remove(id),
         };
+    }
+
+    /// The body itself, not the file: reading the disk again would mind what nobody here saw.
+    fn mind_body(&mut self, id: &str, body: &str) {
+        self.minded
+            .insert(id.to_string(), tisty_core::attach::printed(body.as_bytes()));
     }
 
     fn moved(&self, id: &str) -> bool {
@@ -2367,12 +2372,12 @@ fn doc_file(
 
 #[tauri::command(async)]
 fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
-    let root = {
-        let mut session = held(&session);
-        session.mind(&id);
-        session.paths.docs()
-    };
-    tisty_core::docs::read(&root, &id).map_err(|e| match e {
+    let root = held(&session).paths.docs();
+    let read = tisty_core::docs::read(&root, &id);
+    if let Ok(body) = &read {
+        held(&session).mind_body(&id, body);
+    }
+    read.map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { bytes, limit } => {
             witness::warn(
                 channel::WINDOW,
@@ -2541,8 +2546,6 @@ fn guide(
     Ok(made)
 }
 
-/// A document nobody read here is not stale, and neither is one that is no longer on disk: what
-/// is gone is somebody else's refusal to give, not this window's to write over.
 fn stale(mine: Option<&str>, now: Option<&str>) -> bool {
     matches!((mine, now), (Some(mine), Some(now)) if mine != now)
 }
@@ -2566,7 +2569,7 @@ fn doc_write(
         tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
         _ => blamed(channel::WINDOW, "a document could not be written", e),
     })?;
-    session.mind(&id);
+    session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&body),
@@ -3458,6 +3461,7 @@ fn settle_paper(
 
     let data = session.paths.data().to_path_buf();
     let brought = tisty_sync::settle(&data, &dest, &id, keep).map_err(said)?;
+    session.mind(&id);
 
     let Some(body) = brought else { return Ok(None) };
     let beside = session
@@ -3486,6 +3490,7 @@ fn settle_paper(
         .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;
 
     tisty_sync::settle(&data, &dest, &id, tisty_sync::Keep::Mine).map_err(said)?;
+    session.mind(&id);
     Ok(Some(file))
 }
 
