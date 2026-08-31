@@ -503,6 +503,19 @@ export interface Reach {
 }
 
 export const reachable = (): Promise<Reach> => invoke("reachable");
+
+export interface Wired {
+  id: string;
+  name: string;
+  at: string;
+  wired: boolean;
+  astray: boolean;
+  points?: string;
+}
+
+export const seenAgents = (): Promise<Wired[]> => invoke("wiring");
+export const wireAgent = (id: string): Promise<Wired[]> => invoke("wire", { id });
+export const unwireAgent = (id: string): Promise<Wired[]> => invoke("unwire", { id });
 export const reachFor = (wanted: boolean): Promise<Reach> => invoke("reach_for", { wanted });
 
 export interface Waking {

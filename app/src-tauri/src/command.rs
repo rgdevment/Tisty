@@ -50,11 +50,38 @@ pub fn without(path: &str, dir: &str) -> Option<String> {
 #[cfg(windows)]
 const SEPARATOR: char = ';';
 
+pub const CLI: &str = if cfg!(windows) { "tisty.exe" } else { "tisty" };
+
 pub fn beside() -> Option<PathBuf> {
-    let here = std::env::current_exe().ok()?;
+    with_cli(std::env::current_exe().ok()?.as_path())
+}
+
+fn with_cli(here: &Path) -> Option<PathBuf> {
     let folder = here.parent()?;
-    let named = if cfg!(windows) { "tisty.exe" } else { "tisty" };
-    folder.join(named).is_file().then(|| folder.to_path_buf())
+    let cli = folder.join(CLI);
+    (cli.is_file() && !one_file(&cli, here)).then(|| folder.to_path_buf())
+}
+
+/// Packaged for the Store the window is `Tisty.exe`, and Windows hands that back for `tisty.exe`:
+/// the CLI is off in `cli\`, so a window that answers to its own name has none beside it.
+fn one_file(a: &Path, b: &Path) -> bool {
+    match (a.canonicalize(), b.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => false,
+    }
+}
+
+/// What another program has to run to reach the MCP server: the copy beside the window, or the
+/// name alone, which is what the Store's execution alias answers to and survives its updates.
+pub fn calling() -> String {
+    called(beside().as_deref())
+}
+
+fn called(folder: Option<&Path>) -> String {
+    match folder {
+        Some(at) => at.join(CLI).display().to_string(),
+        None => "tisty".to_string(),
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -70,12 +97,11 @@ pub struct Reach {
 
 pub fn reach() -> Reach {
     let folder = beside();
-    let named = if cfg!(windows) { "tisty.exe" } else { "tisty" };
     Reach {
         shipped: folder.is_some(),
         within_reach: folder.as_deref().is_some_and(already),
         at: folder.as_ref().map(|at| at.display().to_string()),
-        binary: folder.map(|at| at.join(named).display().to_string()),
+        binary: folder.map(|at| at.join(CLI).display().to_string()),
         through: through(),
         on_path: on_path(),
     }
@@ -249,6 +275,62 @@ pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
 #[cfg(not(windows))]
 pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
     tie(wanted).inspect_err(unwritten)
+}
+
+#[cfg(test)]
+mod finding {
+    use super::*;
+
+    #[test]
+    fn a_window_that_answers_to_the_cli_name_has_none_beside_it() {
+        let tmp = tempfile::tempdir().unwrap();
+        let window = tmp.path().join(CLI);
+        std::fs::write(&window, b"the window itself").unwrap();
+
+        assert_eq!(with_cli(&window), None);
+    }
+
+    #[test]
+    fn the_cli_next_door_is_found() {
+        let tmp = tempfile::tempdir().unwrap();
+        let window = tmp.path().join(if cfg!(windows) {
+            "tisty-gui.exe"
+        } else {
+            "tisty-gui"
+        });
+        std::fs::write(&window, b"the window").unwrap();
+        std::fs::write(tmp.path().join(CLI), b"the command").unwrap();
+
+        assert_eq!(with_cli(&window).unwrap(), tmp.path());
+    }
+
+    #[test]
+    fn a_window_on_its_own_has_none_beside_it() {
+        let tmp = tempfile::tempdir().unwrap();
+        let window = tmp.path().join(if cfg!(windows) {
+            "tisty-gui.exe"
+        } else {
+            "tisty-gui"
+        });
+        std::fs::write(&window, b"the window").unwrap();
+
+        assert_eq!(with_cli(&window), None);
+    }
+
+    #[test]
+    fn without_one_beside_it_the_name_alone_is_what_others_run() {
+        assert_eq!(called(None), "tisty");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_packaged_window_is_not_taken_for_the_command() {
+        let tmp = tempfile::tempdir().unwrap();
+        let window = tmp.path().join("Tisty.exe");
+        std::fs::write(&window, b"the window the Store installs").unwrap();
+
+        assert_eq!(with_cli(&window), None);
+    }
 }
 
 #[cfg(all(test, not(windows)))]
