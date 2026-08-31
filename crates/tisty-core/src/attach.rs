@@ -300,15 +300,21 @@ fn tailed(at: &Path) -> bool {
     file.read_exact(&mut last).is_ok_and(|()| last[0] == b'\n')
 }
 
-pub fn noted(root: &Path, reference: &str, body: &[u8]) {
+pub fn noted(root: &Path, reference: &str, sha256: &str, bytes: u64) {
     note(
         root,
         &Kept {
             at: reference.to_string(),
-            sha256: printed(body),
+            sha256: sha256.to_string(),
         },
-        body.len() as u64,
+        bytes,
     );
+}
+
+/// Copies a file across without holding it in memory, hashing it on the way.
+pub fn copied(from: &Path, part: &Path, limit: u64) -> Result<(String, u64)> {
+    let mut file = std::fs::File::open(from)?;
+    poured(&mut file, part, limit)
 }
 
 fn note(root: &Path, kept: &Kept, bytes: u64) {
@@ -712,20 +718,19 @@ pub fn twins(root: &Path) -> Vec<Twins> {
 pub fn as_kept(
     written_down: &std::collections::BTreeMap<String, (String, u64)>,
     reference: &str,
-    bytes: &[u8],
+    sha256: &str,
 ) -> bool {
     match written_down.get(reference) {
-        Some((sha, _)) => *sha == fingerprint(bytes),
+        Some((sha, _)) => sha == sha256,
         None => true,
     }
 }
 
-pub fn vouched(shelf: &str, leaf: &str, bytes: &[u8]) -> bool {
+pub fn vouched(shelf: &str, leaf: &str, sha256: &str) -> bool {
     if !shelved(shelf, leaf) {
         return false;
     }
-    let said = fingerprint(bytes);
-    said.starts_with(shelf) && said[shelf.len()..].starts_with(stamped_by(leaf))
+    sha256.starts_with(shelf) && sha256[shelf.len()..].starts_with(stamped_by(leaf))
 }
 
 pub fn sweep(
@@ -1448,7 +1453,7 @@ mod tests {
     fn a_stamp_in_capitals_is_not_a_stamp() {
         assert!(!shelved("ab", "charla-A3F9BB01.mp4"));
         assert!(!shelved("AB", "charla-a3f9bb01.mp4"));
-        assert!(!vouched("ab", "charla-A3F9BB01.mp4", b"whatever"));
+        assert!(!vouched("ab", "charla-A3F9BB01.mp4", &printed(b"whatever")));
     }
 
     #[test]
@@ -1459,9 +1464,17 @@ mod tests {
             (fingerprint(b"the bytes we trusted"), 20),
         )]);
 
-        assert!(as_kept(&written_down, &mine, b"the bytes we trusted"));
+        assert!(as_kept(
+            &written_down,
+            &mine,
+            &printed(b"the bytes we trusted")
+        ));
         assert!(
-            !as_kept(&written_down, &mine, b"bytes that passed the name"),
+            !as_kept(
+                &written_down,
+                &mine,
+                &printed(b"bytes that passed the name")
+            ),
             "a swap under a trusted name went through on forty bits"
         );
     }
@@ -1477,7 +1490,7 @@ mod tests {
             as_kept(
                 &written_down,
                 "attachments/ab/nueva-a3f9bb01.mp4",
-                b"brand new"
+                &printed(b"brand new")
             ),
             "an attachment arriving for the first time was refused for being unknown"
         );
@@ -1485,10 +1498,10 @@ mod tests {
 
     #[test]
     fn a_name_with_no_stamp_vouches_for_nothing() {
-        assert!(!vouched("ab", "", b"anything at all"));
-        assert!(!vouched("", "", b"anything at all"));
-        assert!(!vouched("ab", "charla-.mp4", b"anything at all"));
-        assert!(!vouched("ab", "charla.mp4", b"anything at all"));
+        assert!(!vouched("ab", "", &printed(b"anything at all")));
+        assert!(!vouched("", "", &printed(b"anything at all")));
+        assert!(!vouched("ab", "charla-.mp4", &printed(b"anything at all")));
+        assert!(!vouched("ab", "charla.mp4", &printed(b"anything at all")));
     }
 
     #[test]
@@ -1662,7 +1675,7 @@ mod tests {
         let shelf = parts.next().unwrap();
         let leaf = parts.next().unwrap();
 
-        assert!(vouched(shelf, leaf, b"the bytes of a talk"));
+        assert!(vouched(shelf, leaf, &printed(b"the bytes of a talk")));
     }
 
     #[test]
@@ -1675,10 +1688,14 @@ mod tests {
         let shelf = parts.next().unwrap();
         let leaf = parts.next().unwrap();
 
-        assert!(!vouched(shelf, leaf, b"someone else's bytes entirely"));
-        assert!(!vouched(shelf, leaf, b""));
+        assert!(!vouched(
+            shelf,
+            leaf,
+            &printed(b"someone else's bytes entirely")
+        ));
+        assert!(!vouched(shelf, leaf, &printed(b"")));
         assert!(
-            !vouched("00", leaf, b"the bytes of a talk"),
+            !vouched("00", leaf, &printed(b"the bytes of a talk")),
             "the shelf is not read"
         );
     }
@@ -1691,13 +1708,17 @@ mod tests {
         let shelf = at.split('/').nth(1).unwrap();
 
         assert!(
-            !vouched(shelf, "charla-00000000.mp4", b"the bytes of a talk"),
+            !vouched(
+                shelf,
+                "charla-00000000.mp4",
+                &printed(b"the bytes of a talk")
+            ),
             "the shelf matched and the stamp went unread"
         );
         assert!(!vouched(
             shelf,
             "charla-ffffffff.mp4",
-            b"the bytes of a talk"
+            &printed(b"the bytes of a talk")
         ));
     }
 
@@ -1711,8 +1732,8 @@ mod tests {
         let shelf = parts.next().unwrap();
         let long = format!("charla-{}.mp4", &sha256[2..18]);
 
-        assert!(vouched(shelf, &long, b"the bytes of a talk"));
-        assert!(!vouched(shelf, &long, b"other bytes"));
+        assert!(vouched(shelf, &long, &printed(b"the bytes of a talk")));
+        assert!(!vouched(shelf, &long, &printed(b"other bytes")));
     }
 
     #[test]

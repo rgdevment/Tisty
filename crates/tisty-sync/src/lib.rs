@@ -670,9 +670,20 @@ fn copy_held(
             {
                 continue;
             }
-            let body = std::fs::read(&at).map_err(io)?;
             let reference = format!("attachments/{under}/{named}");
-            if !tisty_core::attach::vouched(under, named, &body) {
+            let part = beside(&target);
+            let ferried = tisty_core::attach::copied(&at, &part, tisty_core::attach::COPIED_IN_DOC);
+            let Ok((sha256, bytes)) = ferried else {
+                let _ = std::fs::remove_file(&part);
+                witness::warn(
+                    channel::SYNC,
+                    "an attachment could not be carried",
+                    &[("at", Fact::Id(reference))],
+                );
+                continue;
+            };
+            if !tisty_core::attach::vouched(under, named, &sha256) {
+                let _ = std::fs::remove_file(&part);
                 witness::warn(
                     channel::SYNC,
                     "an attachment does not hold the bytes its name vouches for",
@@ -680,7 +691,8 @@ fn copy_held(
                 );
                 continue;
             }
-            if !tisty_core::attach::as_kept(&written_down, &reference, &body) {
+            if !tisty_core::attach::as_kept(&written_down, &reference, &sha256) {
+                let _ = std::fs::remove_file(&part);
                 witness::warn(
                     channel::SYNC,
                     "an attachment we already kept came back holding other bytes",
@@ -688,9 +700,17 @@ fn copy_held(
                 );
                 continue;
             }
-            written(&target, &body)?;
+            if std::fs::rename(&part, &target).is_err() {
+                let _ = std::fs::remove_file(&part);
+                witness::warn(
+                    channel::SYNC,
+                    "file not carried",
+                    &[("at", Fact::Path(target.clone()))],
+                );
+                continue;
+            }
             if let Some(ledger) = ledger {
-                tisty_core::attach::noted(ledger, &reference, &body);
+                tisty_core::attach::noted(ledger, &reference, &sha256, bytes);
             }
             done += 1;
         }
@@ -1044,6 +1064,16 @@ fn straight(at: &Path, under: &Path) -> Result<(), Trouble> {
         }
     }
     Ok(())
+}
+
+/// Beside the file it will become, so the rename that finishes it never crosses a volume.
+fn beside(at: &Path) -> std::path::PathBuf {
+    if let Some(parent) = at.parent() {
+        let _ = std::fs::create_dir_all(parent);
+        let _ = tisty_core::paths::ours_alone(parent);
+    }
+    let mine = ROUND.fetch_add(1, Ordering::Relaxed);
+    at.with_extension(format!("{}.{mine}.part", std::process::id()))
 }
 
 fn written(at: &Path, body: &[u8]) -> Result<(), Trouble> {
@@ -3755,6 +3785,30 @@ mod tests {
         }
 
         assert_eq!(std::fs::read_to_string(&bystander).unwrap(), "no es tuyo");
+    }
+
+    #[test]
+    fn a_big_attachment_travels_whole_and_leaves_no_half() {
+        let one = machine("dev_a");
+        let bytes: Vec<u8> = (0..3_000_000).map(|at| (at % 251) as u8).collect();
+        let kept = planted(&one.data, "charla.mp4", &bytes);
+
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let other = blank("dev_b");
+        carry(&other.data, &other.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert_eq!(std::fs::read(other.data.join(&kept)).unwrap(), bytes);
+        let shelf = std::path::Path::new(&kept).parent().unwrap();
+        for at in [shared.path().join(shelf), other.data.join(shelf)] {
+            let left: Vec<_> = std::fs::read_dir(&at)
+                .unwrap()
+                .filter_map(|one| one.ok())
+                .map(|one| one.file_name().to_string_lossy().into_owned())
+                .filter(|name| name.contains(".part"))
+                .collect();
+            assert!(left.is_empty(), "half a copy stayed at {at:?}: {left:?}");
+        }
     }
 
     #[test]
