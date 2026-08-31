@@ -68,7 +68,8 @@ pub fn may_attach(source: &std::path::Path, paths: &Paths) -> Result<std::path::
 /// of extensions is one rename away from useless, so this asks the file what it is.
 const FOR_AN_AGENT: &[&str] = &[
     "png", "jpg", "jpeg", "gif", "webp", "avif", "heic", "pdf", "txt", "md", "csv", "docx", "xlsx",
-    "pptx", "odt", "ods", "mp4", "m4v", "mov", "webm", "ogv", "mp3", "m4a", "wav", "ogg",
+    "pptx", "odt", "ods", "mp4", "m4v", "mov", "webm", "ogv", "mp3", "m4a", "wav", "ogg", "zip",
+    "7z", "gz", "tgz", "tar",
 ];
 
 fn named_type(at: &std::path::Path) -> Option<String> {
@@ -90,7 +91,11 @@ fn signed_as(kind: &str, head: &[u8]) -> bool {
         "m4a" => head.len() > 12 && &head[4..8] == b"ftyp",
         "wav" => starts(b"RIFF") && head.len() > 12 && &head[8..12] == b"WAVE",
         "pdf" => starts(b"%PDF-"),
-        "docx" | "xlsx" | "pptx" | "odt" | "ods" => starts(&[0x50, 0x4B]),
+        "docx" | "xlsx" | "pptx" | "odt" | "ods" | "zip" => starts(&[0x50, 0x4B]),
+        "7z" => starts(&[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]),
+        "gz" | "tgz" => starts(&[0x1F, 0x8B]),
+        // A tar says what it is 257 bytes in, where the first entry's header carries the marker.
+        "tar" => head.len() > 262 && &head[257..262] == b"ustar",
         _ => true,
     }
 }
@@ -193,6 +198,28 @@ mod tests {
         let pem = wrote(at, "key.pem", b"-----BEGIN RSA PRIVATE KEY-----\nMIIEow\n");
         let conf = wrote(at, "vpn.conf", b"[main]\nserver=vpn.example.com");
         for one in [&env, &p12, &pem, &conf] {
+            assert!(fit_to_keep(one).is_err(), "{}", one.display());
+        }
+    }
+
+    #[test]
+    fn a_container_is_kept_when_its_bytes_say_it_is_one() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path();
+        let mut tar = vec![0u8; 512];
+        tar[257..262].copy_from_slice(b"ustar");
+
+        let zip = wrote(at, "actas.zip", b"PKrest of it");
+        let seven = wrote(at, "actas.7z", &[0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C, 0x00]);
+        let gz = wrote(at, "logs.gz", &[0x1F, 0x8B, 0x08, 0x00]);
+        let tarred = wrote(at, "todo.tar", &tar);
+        for one in [&zip, &seven, &gz, &tarred] {
+            assert!(fit_to_keep(one).is_ok(), "{}", one.display());
+        }
+
+        let lying = wrote(at, "actas.zip", b"not a zip at all");
+        let short = wrote(at, "todo.tar", b"nowhere near 512 bytes");
+        for one in [&lying, &short] {
             assert!(fit_to_keep(one).is_err(), "{}", one.display());
         }
     }
