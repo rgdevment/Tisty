@@ -3,13 +3,14 @@
     src="assets/icons/tisty-256.png"
     width="140"
     height="140"
-    alt="Tisty — free open source task manager for Windows and macOS"/>
+    alt="Tisty — free open source notes, documents and tasks for Windows and macOS"/>
 
-  <h1>Tisty — Free Open Source Task Manager</h1>
+  <h1>Tisty — Free Open Source Notes, Documents and Tasks</h1>
 
-  <p><strong>A local-first task manager and personal archive for Windows and
-  macOS.<br/>No accounts. No telemetry. No server. Your tasks, notes and
-  documents stay as plain files on your own disk.</strong></p>
+  <p><strong>A local-first record of what you know: notes, documents and tasks
+  for Windows and macOS.<br/>Plain files on your own disk — or in the cloud
+  folder you choose — with the door open for your assistants. No accounts. No
+  telemetry. No server.</strong></p>
 
   <p>
     <strong>English</strong> ·
