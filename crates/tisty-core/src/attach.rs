@@ -31,6 +31,20 @@ impl Kept {
     }
 }
 
+/// The most `written` can come to before the file is copied and its name is known: the label, the
+/// 56 characters `named` shortens a file to, and the stamp, extension and markdown around it.
+pub fn written_at_most(label: &str) -> usize {
+    spoken(label).chars().count() + SHORTENS_TO + 64
+}
+
+/// How many files a body already carries, by the shape `written` gives them.
+pub fn counted(body: &str) -> usize {
+    body.matches("](<attachments/").count() + body.matches("](attachments/").count()
+}
+
+/// Where the window stops calling a document a document and starts warning that it is a shelf.
+pub const KEPT_IN_A_DOC: usize = 150;
+
 fn spoken(label: &str) -> String {
     let flat: String = label
         .split_whitespace()
@@ -77,13 +91,34 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
         });
     }
 
-    let mut bytes = Vec::new();
-    let read = file.by_ref().take(limit + 1).read_to_end(&mut bytes)? as u64;
-    if read > limit {
-        return Err(Error::AttachmentTooBig { bytes: read, limit });
-    }
+    let shed = root.join("attachments");
+    std::fs::create_dir_all(&shed)?;
+    let _ = crate::paths::ours_alone(root);
+    let _ = crate::paths::ours_alone(&shed);
 
-    let sha256 = fingerprint(&bytes);
+    let part = shed.join(parting());
+    let kept = through(&mut file, source, root, &shed, &part, limit);
+    // One that found its place was renamed away; this reaches only a copy that did not.
+    let _ = std::fs::remove_file(&part);
+    kept
+}
+
+fn parting() -> String {
+    static TURN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let turn = TURN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    format!(".{}.{turn}.part", std::process::id())
+}
+
+fn through(
+    file: &mut std::fs::File,
+    source: &Path,
+    root: &Path,
+    shed: &Path,
+    part: &Path,
+    limit: u64,
+) -> Result<Kept> {
+    let (sha256, bytes) = poured(file, part, limit)?;
+
     let ext = source
         .extension()
         .and_then(|e| e.to_str())
@@ -94,15 +129,13 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
 
     let (shelf, rest) = sha256.split_at(2);
     let stamp = &rest[..8];
-    let folder = root.join("attachments").join(shelf);
+    let folder = shed.join(shelf);
     std::fs::create_dir_all(&folder)?;
-    let _ = crate::paths::ours_alone(root);
-    let _ = crate::paths::ours_alone(&root.join("attachments"));
     let _ = crate::paths::ours_alone(&folder);
 
     if let Some(at) = listed(root, &sha256) {
         match resolve(&at, root) {
-            Ok(held) if holds(&held, &bytes) => return Ok(Kept { at, sha256 }),
+            Ok(held) if holds(&held, part, bytes) => return Ok(Kept { at, sha256 }),
             Ok(held) => witness::warn(
                 channel::ATTACH,
                 "what the ledger points at is not what it says it is",
@@ -119,7 +152,7 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
         }
     }
 
-    let name = match already(&folder, stamp, &bytes) {
+    let name = match already(&folder, stamp, part, bytes) {
         Some(kept) => kept,
         None => {
             let mut name = named(source, stamp, &ext);
@@ -127,7 +160,7 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
                 name = named(source, &rest[..16], &ext);
             }
             let target = folder.join(&name);
-            std::fs::write(&target, &bytes)?;
+            std::fs::rename(part, &target)?;
             let _ = crate::paths::ours_alone(&target);
             name
         }
@@ -136,8 +169,36 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
         at: format!("attachments/{shelf}/{name}"),
         sha256,
     };
-    note(root, &kept, bytes.len() as u64);
+    note(root, &kept, bytes);
     Ok(kept)
+}
+
+const AT_A_TIME: usize = 64 * 1024;
+
+/// The bytes are never held whole: at the ceiling a document allows, reading one into memory and
+/// then reading what is already kept to compare against it costs a gigabyte for a 500 MB file.
+fn poured(file: &mut std::fs::File, part: &Path, limit: u64) -> Result<(String, u64)> {
+    use std::io::Write;
+
+    let mut out = std::fs::File::create(part)?;
+    let _ = crate::paths::ours_alone(part);
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; AT_A_TIME];
+    let mut bytes = 0u64;
+    loop {
+        let read = file.read(&mut buf)?;
+        if read == 0 {
+            break;
+        }
+        bytes += read as u64;
+        if bytes > limit {
+            return Err(Error::AttachmentTooBig { bytes, limit });
+        }
+        hasher.update(&buf[..read]);
+        out.write_all(&buf[..read])?;
+    }
+    out.sync_all()?;
+    Ok((hexed(hasher.finalize()), bytes))
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -169,9 +230,40 @@ pub fn digests(root: &Path) -> std::collections::BTreeMap<String, (String, u64)>
         .collect()
 }
 
-fn holds(at: &Path, bytes: &[u8]) -> bool {
-    std::fs::metadata(at).is_ok_and(|held| held.is_file() && held.len() == bytes.len() as u64)
-        && std::fs::read(at).is_ok_and(|held| held == bytes)
+fn holds(at: &Path, part: &Path, bytes: u64) -> bool {
+    std::fs::metadata(at).is_ok_and(|held| held.is_file() && held.len() == bytes) && alike(at, part)
+}
+
+fn alike(one: &Path, two: &Path) -> bool {
+    let (Ok(mut a), Ok(mut b)) = (std::fs::File::open(one), std::fs::File::open(two)) else {
+        return false;
+    };
+    let mut here = vec![0u8; AT_A_TIME];
+    let mut there = vec![0u8; AT_A_TIME];
+    loop {
+        let (Ok(read), Ok(again)) = (filled(&mut a, &mut here), filled(&mut b, &mut there)) else {
+            return false;
+        };
+        if read != again || here[..read] != there[..again] {
+            return false;
+        }
+        if read == 0 {
+            return true;
+        }
+    }
+}
+
+/// A short read is not the end of a file, and treating it as one would compare bytes against the
+/// bytes after them.
+fn filled(file: &mut std::fs::File, buf: &mut [u8]) -> std::io::Result<usize> {
+    let mut held = 0;
+    while held < buf.len() {
+        match file.read(&mut buf[held..])? {
+            0 => break,
+            read => held += read,
+        }
+    }
+    Ok(held)
 }
 
 fn tailed(at: &Path) -> bool {
@@ -275,7 +367,7 @@ fn plainly(c: char) -> char {
     }
 }
 
-fn already(folder: &Path, stamp: &str, bytes: &[u8]) -> Option<String> {
+fn already(folder: &Path, stamp: &str, part: &Path, bytes: u64) -> Option<String> {
     std::fs::read_dir(folder)
         .ok()?
         .filter_map(|one| one.ok())
@@ -286,10 +378,10 @@ fn already(folder: &Path, stamp: &str, bytes: &[u8]) -> Option<String> {
                 return None;
             }
             let held = one.metadata().ok()?;
-            if held.len() != bytes.len() as u64 {
+            if held.len() != bytes {
                 return None;
             }
-            (std::fs::read(one.path()).ok()? == bytes).then_some(name)
+            alike(&one.path(), part).then_some(name)
         })
 }
 
@@ -723,11 +815,11 @@ pub fn printed(bytes: &[u8]) -> String {
 fn fingerprint(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
-    hasher
-        .finalize()
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
+    hexed(hasher.finalize())
+}
+
+fn hexed(sum: impl AsRef<[u8]>) -> String {
+    sum.as_ref().iter().map(|b| format!("{b:02x}")).collect()
 }
 
 #[cfg(test)]
@@ -796,6 +888,76 @@ mod tests {
             "the shelf is the first two: {at}"
         );
         assert!(root.path().join(&at).exists());
+    }
+
+    fn many_chunks(size: usize, seed: u8) -> Vec<u8> {
+        (0..size).map(|at| (at as u8) ^ seed).collect()
+    }
+
+    #[test]
+    fn a_file_longer_than_one_read_arrives_byte_for_byte() {
+        let bytes = many_chunks(AT_A_TIME * 3 + 977, 0x5b);
+        let (_src, file) = dropped("charla.mp4", &bytes);
+        let root = tempfile::tempdir().unwrap();
+
+        let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        assert_eq!(std::fs::read(root.path().join(&kept.at)).unwrap(), bytes);
+        assert_eq!(kept.sha256, fingerprint(&bytes), "hashed as it was copied");
+    }
+
+    #[test]
+    fn two_long_files_that_differ_at_the_very_end_are_two_files() {
+        let bytes = many_chunks(AT_A_TIME * 2, 0x11);
+        let mut other = bytes.clone();
+        *other.last_mut().unwrap() ^= 1;
+        let (_one, first) = dropped("a.mp4", &bytes);
+        let (_two, second) = dropped("b.mp4", &other);
+        let root = tempfile::tempdir().unwrap();
+
+        let one = keep(&first, root.path(), COPIED_UP_TO).unwrap();
+        let two = keep(&second, root.path(), COPIED_UP_TO).unwrap();
+
+        assert_ne!(one.at, two.at, "a last byte apart is not the same file");
+        assert_eq!(std::fs::read(root.path().join(&two.at)).unwrap(), other);
+    }
+
+    #[test]
+    fn a_copy_that_could_not_be_filed_leaves_nothing_half_written() {
+        let bytes = many_chunks(AT_A_TIME + 5, 0x22);
+        let (_src, file) = dropped("charla.mp4", &bytes);
+        let root = tempfile::tempdir().unwrap();
+        let shed = root.path().join("attachments");
+        std::fs::create_dir_all(&shed).unwrap();
+        let shelf = fingerprint(&bytes)[..2].to_string();
+        std::fs::write(shed.join(&shelf), b"a file where the shelf goes").unwrap();
+
+        assert!(keep(&file, root.path(), COPIED_UP_TO).is_err());
+
+        let left: Vec<_> = std::fs::read_dir(&shed)
+            .unwrap()
+            .filter_map(|one| one.ok())
+            .map(|one| one.file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(left, [shelf], "the copy it could not file was taken away");
+    }
+
+    #[test]
+    fn what_was_copied_leaves_no_part_file_beside_it() {
+        let bytes = many_chunks(AT_A_TIME + 1, 0x33);
+        let (_src, file) = dropped("charla.mp4", &bytes);
+        let root = tempfile::tempdir().unwrap();
+
+        keep(&file, root.path(), COPIED_UP_TO).unwrap();
+        keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+        let left: Vec<_> = std::fs::read_dir(root.path().join("attachments"))
+            .unwrap()
+            .filter_map(|one| one.ok())
+            .map(|one| one.file_name().to_string_lossy().into_owned())
+            .filter(|name| name.ends_with(".part"))
+            .collect();
+        assert!(left.is_empty(), "{left:?}");
     }
 
     #[test]
