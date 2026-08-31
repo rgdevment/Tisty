@@ -183,11 +183,6 @@ impl Session {
         stale(self.minded.get(id).map(String::as_str), now.as_deref())
     }
 
-    fn attachment(&self, reference: &str) -> Sought {
-        let shared = self.shared_now();
-        found_in(reference, self.paths.data(), shared.as_deref())
-    }
-
     /// Here and in the shared folder both, or a machine that holds none of them sees none astray.
     /// The shared folder, but only while this machine leaves anything in it.
     fn shared_now(&self) -> Option<std::path::PathBuf> {
@@ -605,7 +600,7 @@ fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Ve
             tisty_core::refs::Kind::Link
                 if tisty_core::attach::names_an_attachment(&one.target) =>
             {
-                let bytes = seen(found_in(&one.target, &root, shared.as_deref()))
+                let bytes = where_it_lies(&one.target, &root, shared.as_deref())
                     .and_then(|at| std::fs::metadata(at).ok())
                     .filter(|told| told.is_file())
                     .map(|told| told.len());
@@ -2063,7 +2058,7 @@ fn as_settings(session: &Session) -> Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
         locale: session.config.locale.clone(),
-        holds: session.config.holds(),
+        holds: session.config.holds.unwrap_or_default(),
         shares: !session.config.backs_up(),
         only_shared_above: session.config.only_shared_above(),
     }
@@ -2527,13 +2522,6 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
 /// Long enough for a file already on its way, short enough that nobody thinks the app hung.
 const COMES_WITHIN: std::time::Duration = std::time::Duration::from_millis(1_500);
 
-fn seen(found: Sought) -> Option<std::path::PathBuf> {
-    match found {
-        Sought::At(at) => Some(at),
-        _ => None,
-    }
-}
-
 fn unreachable(found: Sought, reference: String) -> Refusal {
     match found {
         Sought::Coming => Refusal::about("comingDown", reference),
@@ -2602,6 +2590,24 @@ fn where_to(
 }
 
 /// The store first, then the shared folder, which is where a machine that let go of it kept it.
+/// For a size or a count, where reading the whole of it to check would fetch what nobody asked to
+/// open — and on a cloud folder, fetching is the one thing this setting exists to avoid.
+fn where_it_lies(
+    reference: &str,
+    data: &std::path::Path,
+    shared: Option<&std::path::Path>,
+) -> Option<std::path::PathBuf> {
+    for root in [Some(data), shared].into_iter().flatten() {
+        let Ok(at) = tisty_core::attach::resolve(reference, root) else {
+            continue;
+        };
+        if at.is_file() && (root == data || under_root(&at, root)) {
+            return Some(at);
+        }
+    }
+    None
+}
+
 fn found_in(reference: &str, data: &std::path::Path, shared: Option<&std::path::Path>) -> Sought {
     for root in [Some(data), shared].into_iter().flatten() {
         let Ok(at) = tisty_core::attach::resolve(reference, root) else {
@@ -2621,9 +2627,13 @@ fn found_in(reference: &str, data: &std::path::Path, shared: Option<&std::path::
             if !tisty_core::icloud::can_ask() {
                 return Sought::Away;
             }
-            return match tisty_core::icloud::waited_for(&at, COMES_WITHIN) {
+            if !tisty_core::icloud::waited_for(&at, COMES_WITHIN) {
+                return Sought::Coming;
+            }
+            // What comes back from a cloud answers for its name like anything else that lives there.
+            return match ours || (under_root(&at, root) && vouches(&at, reference)) {
                 true => Sought::At(at),
-                false => Sought::Coming,
+                false => Sought::Torn,
             };
         }
     }
@@ -3407,10 +3417,12 @@ fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) 
         }
         None => tisty_core::config::Sync::Local,
     };
-    // Leaving a folder that holds attachments this machine let go of takes them with it.
+    // Leaving a folder that holds what this machine let go of takes them with it — but only while
+    // it is there to bring them back from. Gone, refusing would trap somebody with nowhere to go.
     if session.config.holds() != tisty_core::config::Holds::Everywhere
         && session.config.sync != Some(chosen.clone())
         && let Some(tisty_core::config::Sync::Folder(old)) = session.config.sync.clone()
+        && old.is_dir()
     {
         return Err(Refusal::about(
             "sharedAwayToLeave",
@@ -4041,7 +4053,7 @@ fn attached(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Ans
     std::fs::read(&at).map_err(|_| Refusal::about("cannotRead", reference))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<String> {
     let (data, shared) = where_to(&session);
     let at = match found_in(&reference, &data, shared.as_deref()) {
@@ -4081,18 +4093,16 @@ fn roomy() -> u64 {
     tisty_core::docs::BODY_ROOMY
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
     let (data, shared) = where_to(&session);
-    let at = match found_in(&reference, &data, shared.as_deref()) {
-        Sought::At(at) => at,
-        other => return Err(unreachable(other, reference)),
-    };
+    let at = where_it_lies(&reference, &data, shared.as_deref())
+        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
     let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference))?;
     Ok(told.len())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn opened(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,

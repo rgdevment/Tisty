@@ -120,11 +120,6 @@ pub fn carry_holding(
             ),
         }
     }
-    if holds == Holds::Shared && matches!(way, Way::Both | Way::Push | Way::Again) {
-        moved.freed = let_go_telling(data, dest, tisty_core::attach::COPIED_UP_TO, &mut |_| true)
-            .map(|done| done.freed)
-            .unwrap_or(0);
-    }
     if matches!(way, Way::Both | Way::Push | Way::Again) {
         let Some(buried) = said
             .as_ref()

@@ -347,9 +347,10 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
       .catch((e) => setTrouble({ card: "backup", text: saidPlainly(e) }));
   };
 
-  const letGo = (reference: string) => {
+  const letGo = (reference: string, shared?: boolean) => {
     if (held) return;
-    ask(fill("looseDropSure", reference.split("/").pop() ?? reference), { kind: "warning" })
+    const named = reference.split("/").pop() ?? reference;
+    ask(fill(shared ? "looseDropSharedSure" : "looseDropSure", named), { kind: "warning" })
       .then(
         (sure) =>
           sure &&
@@ -1293,7 +1294,7 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                           <button
                             type="button"
                             disabled={held}
-                            onClick={() => letGo(one.at)}
+                            onClick={() => letGo(one.at, one.shared)}
                             className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
                           >
                             {t("looseDrop")}

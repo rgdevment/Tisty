@@ -331,7 +331,7 @@ const en = {
   documentMoved: "Something wrote in this document while you had it open here",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   attachmentTorn:
-    "{name} is in the shared folder, but its contents are not the ones it is named for. Tisty will not open it",
+    "{name} does not yet hold what its name says it holds. If it was attached elsewhere a moment ago, your cloud may still be sending it — try again shortly. If it does not settle, the copy up there is not the one that was kept",
   sharedAway:
     "That file is kept in the shared folder, and the shared folder is not here. Check your cloud or your connection",
   sharedAwayToLeave:
@@ -884,6 +884,8 @@ const en = {
   twinsRun: "Look for copies",
   twinsAgain: "Look again",
   looseShared: "in the shared folder",
+  looseDropSharedSure:
+    "{name} is only in the shared folder, so this machine has no copy to set aside: taking it out takes it out for good. Take it out?",
   looseDrop: "Take it out",
   looseDropSure:
     "Take {name} out?\n\nIt is kept aside here for 30 days in case you change your mind, and taken out of every machine that syncs. One that shows up later does not get it back: it says the file is no longer there.",
@@ -1302,7 +1304,7 @@ const es: Catalog = {
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   attachmentTorn:
-    "{name} está en la carpeta compartida, pero su contenido no es el que su nombre dice. Tisty no lo abre",
+    "{name} todavía no tiene lo que su nombre dice. Si lo adjuntaron en otro equipo hace un momento, tu nube puede seguir enviándolo — vuelve a intentarlo en un rato. Si no se asienta, la copia de allá no es la que se guardó",
   sharedAway:
     "Ese archivo vive en la carpeta compartida, y la carpeta compartida no está. Revisa tu nube o tu conexión",
   sharedAwayToLeave:
@@ -1858,6 +1860,8 @@ const es: Catalog = {
   twinsRun: "Buscar copias",
   twinsAgain: "Buscar otra vez",
   looseShared: "en la carpeta compartida",
+  looseDropSharedSure:
+    "{name} solo está en la carpeta compartida, así que este equipo no tiene copia que apartar: quitarlo lo quita para siempre. ¿Lo quitas?",
   looseDrop: "Quitar",
   looseDropSure:
     "¿Quitar {name}?\n\nSe guarda aquí 30 días por si cambias de opinión, y se saca de todas las máquinas que sincronicen. La que aparezca más tarde no lo recupera: dirá que el archivo ya no está.",
