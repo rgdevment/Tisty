@@ -3,13 +3,14 @@
     src="assets/icons/tisty-256.png"
     width="140"
     height="140"
-    alt="Tisty — gestor de tareas libre y de código abierto para Windows y macOS"/>
+    alt="Tisty — notas, documentos y tareas, código abierto, Windows y macOS"/>
 
-  <h1>Tisty — Gestor de tareas libre y de código abierto</h1>
+  <h1>Tisty — Notas, documentos y tareas, libres y de código abierto</h1>
 
-  <p><strong>Un gestor de tareas local y un archivo personal para Windows y
-  macOS.<br/>Sin cuentas. Sin telemetría. Sin servidor. Tus tareas, tus notas y
-  tus documentos se quedan como archivos de texto en tu propio disco.</strong></p>
+  <p><strong>Un histórico local de lo que sabes: notas, documentos y tareas para
+  Windows y macOS.<br/>Archivos llanos en tu disco —o en la carpeta de nube que
+  tú elijas— con la puerta abierta a tus asistentes. Sin cuentas. Sin
+  telemetría. Sin servidor.</strong></p>
 
   <p>
     <a href="README.md">English</a> ·
