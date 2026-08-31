@@ -70,6 +70,7 @@ const KNOWN = [
   "folderNameTooLong",
   "documentBeingWritten",
   "documentMoved",
+  "comingDown",
   "intoItself",
   "notACadence",
   "noClipboard",

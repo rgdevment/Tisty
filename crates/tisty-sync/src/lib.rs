@@ -663,6 +663,11 @@ fn copy_held(
                 .unwrap_or_default();
             let under = shelf.file_name();
             let under = under.to_str().unwrap_or_default();
+            // What iCloud left in place of a file it took away is not litter, and saying so of
+            // every one of them would bury the log on a Mac that keeps its storage lean.
+            if tisty_core::icloud::marker(named) {
+                continue;
+            }
             if !tisty_core::attach::shelved(under, named) {
                 witness::warn(
                     channel::SYNC,

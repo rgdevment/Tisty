@@ -183,7 +183,7 @@ impl Session {
         stale(self.minded.get(id).map(String::as_str), now.as_deref())
     }
 
-    fn attachment(&self, reference: &str) -> Option<std::path::PathBuf> {
+    fn attachment(&self, reference: &str) -> Sought {
         let shared = match &self.config.sync {
             Some(tisty_core::config::Sync::Folder(dest)) => Some(dest.as_path()),
             _ => None,
@@ -577,7 +577,7 @@ fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Ve
             tisty_core::refs::Kind::Link
                 if tisty_core::attach::names_an_attachment(&one.target) =>
             {
-                let bytes = found_in(&one.target, &root, shared.as_deref())
+                let bytes = seen(found_in(&one.target, &root, shared.as_deref()))
                     .and_then(|at| std::fs::metadata(at).ok())
                     .filter(|told| told.is_file())
                     .map(|told| told.len());
@@ -2413,19 +2413,50 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
     })
 }
 
+/// How long the window waits for iCloud before saying so. Long enough for a file already on its
+/// way, short enough that nobody thinks the app hung.
+const COMES_WITHIN: std::time::Duration = std::time::Duration::from_millis(1_500);
+
+fn seen(found: Sought) -> Option<std::path::PathBuf> {
+    match found {
+        Sought::At(at) => Some(at),
+        _ => None,
+    }
+}
+
+/// What to say when it is not here: iCloud may be bringing it, and that is not the same as gone.
+fn unreachable(found: Sought, reference: String) -> Refusal {
+    match found {
+        Sought::Coming => Refusal::about("comingDown", reference),
+        _ => Refusal::about("cannotRead", reference),
+    }
+}
+
+enum Sought {
+    At(std::path::PathBuf),
+    /// iCloud has it and was asked for it back; it is not here yet.
+    Coming,
+    No,
+}
+
 /// The store first, then the shared folder: a machine that leaves the big ones behind keeps them
 /// only there, and everything that reads an attachment has to look in both.
-fn found_in(
-    reference: &str,
-    data: &std::path::Path,
-    shared: Option<&std::path::Path>,
-) -> Option<std::path::PathBuf> {
-    let here = tisty_core::attach::resolve(reference, data).ok()?;
-    if here.is_file() {
-        return Some(here);
+fn found_in(reference: &str, data: &std::path::Path, shared: Option<&std::path::Path>) -> Sought {
+    for root in [Some(data), shared].into_iter().flatten() {
+        let Ok(at) = tisty_core::attach::resolve(reference, root) else {
+            continue;
+        };
+        if at.is_file() {
+            return Sought::At(at);
+        }
+        if tisty_core::icloud::shed(&at).is_some() {
+            return match tisty_core::icloud::waited_for(&at, COMES_WITHIN) {
+                true => Sought::At(at),
+                false => Sought::Coming,
+            };
+        }
     }
-    let there = tisty_core::attach::resolve(reference, shared?).ok()?;
-    there.is_file().then_some(there)
+    Sought::No
 }
 
 #[derive(serde::Serialize)]
@@ -3811,17 +3842,19 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
 
 #[tauri::command(async)]
 fn attached(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<Vec<u8>> {
-    let at = held(&session)
-        .attachment(&reference)
-        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
+    let at = match held(&session).attachment(&reference) {
+        Sought::At(at) => at,
+        other => return Err(unreachable(other, reference)),
+    };
     std::fs::read(&at).map_err(|_| Refusal::about("cannotRead", reference))
 }
 
 #[tauri::command]
 fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<String> {
-    let at = held(&session)
-        .attachment(&reference)
-        .ok_or_else(|| Refusal::about("cannotRead", reference))?;
+    let at = match held(&session).attachment(&reference) {
+        Sought::At(at) => at,
+        other => return Err(unreachable(other, reference)),
+    };
     Ok(at.to_string_lossy().into_owned())
 }
 
@@ -3831,9 +3864,10 @@ fn attach_export(
     reference: String,
     into: String,
 ) -> Answer<()> {
-    let from = held(&session)
-        .attachment(&reference)
-        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
+    let from = match held(&session).attachment(&reference) {
+        Sought::At(at) => at,
+        other => return Err(unreachable(other, reference)),
+    };
     std::fs::copy(&from, &into).map_err(|e| {
         witness::warn(
             channel::ATTACH,
@@ -3855,9 +3889,10 @@ fn roomy() -> u64 {
 
 #[tauri::command]
 fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
-    let at = held(&session)
-        .attachment(&reference)
-        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
+    let at = match held(&session).attachment(&reference) {
+        Sought::At(at) => at,
+        other => return Err(unreachable(other, reference)),
+    };
     let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference))?;
     Ok(told.len())
 }
@@ -3868,9 +3903,10 @@ fn opened(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<()> {
-    let at = held(&session)
-        .attachment(&reference)
-        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
+    let at = match held(&session).attachment(&reference) {
+        Sought::At(at) => at,
+        other => return Err(unreachable(other, reference)),
+    };
     if !safe_to_open(&at) {
         return show(&at, &reference);
     }
@@ -4521,8 +4557,35 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
+        use super::{Sought, found_in};
+
+        let here = tempfile::tempdir().unwrap();
+        let shared = tempfile::tempdir().unwrap();
+        let reference = "attachments/cd/charla-e5f6a7b8.mp4";
+        let shelf = shared.path().join("attachments/cd");
+        std::fs::create_dir_all(&shelf).unwrap();
+        std::fs::write(shelf.join(".charla-e5f6a7b8.mp4.icloud"), b"a few bytes").unwrap();
+
+        // Off a Mac nothing can be asked back, so what is shed is still out of reach — but it is
+        // told apart from a file nobody has anywhere.
+        assert!(matches!(
+            found_in(reference, here.path(), Some(shared.path())),
+            Sought::Coming
+        ));
+        assert!(matches!(
+            found_in(
+                "attachments/ab/nope-00000000.txt",
+                here.path(),
+                Some(shared.path())
+            ),
+            Sought::No
+        ));
+    }
+
+    #[test]
     fn an_attachment_is_looked_for_here_first_and_then_where_it_is_shared() {
-        use super::found_in;
+        use super::{Sought, found_in};
 
         let here = tempfile::tempdir().unwrap();
         let shared = tempfile::tempdir().unwrap();
@@ -4534,18 +4597,30 @@ mod tests {
             std::fs::write(root.join(reference), b"something").unwrap();
         }
 
-        assert!(found_in(mine, here.path(), Some(shared.path())).is_some());
+        assert!(matches!(
+            found_in(mine, here.path(), Some(shared.path())),
+            Sought::At(_)
+        ));
         assert!(
-            found_in(theirs, here.path(), Some(shared.path())).is_some(),
+            matches!(
+                found_in(theirs, here.path(), Some(shared.path())),
+                Sought::At(_)
+            ),
             "what only the shared folder holds is still reachable"
         );
         assert!(
-            found_in(theirs, here.path(), None).is_none(),
+            matches!(found_in(theirs, here.path(), None), Sought::No),
             "without a shared folder there is nowhere else to look"
         );
-        assert!(found_in("attachments/ab/nope-00000000.txt", here.path(), None).is_none());
+        assert!(matches!(
+            found_in("attachments/ab/nope-00000000.txt", here.path(), None),
+            Sought::No
+        ));
         assert!(
-            found_in("../outside.txt", here.path(), Some(shared.path())).is_none(),
+            matches!(
+                found_in("../outside.txt", here.path(), Some(shared.path())),
+                Sought::No
+            ),
             "the way out is still shut"
         );
     }

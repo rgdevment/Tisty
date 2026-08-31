@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>Tisty copies a file into its own store when you attach one, and your Desktop is one of the few places it may take a file from.</string>
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>Tisty copies a file into its own store when you attach one, and your Documents folder is one of the few places it may take a file from.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>Tisty copies a file into its own store when you attach one, and your Downloads folder is where most of them land.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>Tisty copies a picture into its own store when you attach one; it never reads your library on its own.</string>
+</dict>
+</plist>
