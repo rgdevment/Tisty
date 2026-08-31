@@ -14,7 +14,7 @@ pub fn marker(name: &str) -> bool {
 
 #[cfg(target_os = "macos")]
 pub fn asked_back(at: &Path) -> bool {
-    std::process::Command::new("brctl")
+    std::process::Command::new("/usr/bin/brctl")
         .arg("download")
         .arg(at)
         .stdin(std::process::Stdio::null())
@@ -27,6 +27,12 @@ pub fn asked_back(at: &Path) -> bool {
 #[cfg(not(target_os = "macos"))]
 pub fn asked_back(_at: &Path) -> bool {
     false
+}
+
+/// Whether this machine can even ask: off macOS there is nobody to ask, and saying «it is coming»
+/// would be a promise nothing here can keep.
+pub fn can_ask() -> bool {
+    cfg!(target_os = "macos")
 }
 
 /// Only for as long as somebody would wait looking at a window.

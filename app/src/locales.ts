@@ -341,7 +341,6 @@ const en = {
   holdsMine: "Only what I attached here",
   holdsShared: "Only in the shared folder",
   holdsNeedsShared: "There is no shared folder yet, so everything stays on this machine.",
-  holdsAsked: "Kept. It takes effect on the next round.",
   holdsFreeing: "Freeing what the shared folder already holds — {name} so far",
   holdsFreed: "{name} freed. What could not be checked against the shared folder stayed here",
   holdsStop: "Stop",
@@ -1311,7 +1310,6 @@ const es: Catalog = {
   holdsMine: "Solo lo que adjunté aquí",
   holdsShared: "Solo en la carpeta compartida",
   holdsNeedsShared: "Todavía no hay carpeta compartida, así que todo se queda en este equipo.",
-  holdsAsked: "Guardado. Se aplica en la próxima ronda.",
   holdsFreeing: "Liberando lo que la carpeta compartida ya guarda — {name} hasta ahora",
   holdsFreed:
     "{name} liberados. Lo que no se pudo comprobar contra la carpeta compartida se quedó aquí",

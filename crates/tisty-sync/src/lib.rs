@@ -43,6 +43,7 @@ pub struct Undecided {
 pub struct Moved {
     pub sent: usize,
     pub brought: usize,
+    pub freed: u64,
     pub undecided: Vec<Undecided>,
     pub unreadable: Vec<String>,
     pub astray: Vec<String>,
@@ -119,6 +120,11 @@ pub fn carry_holding(
             ),
         }
     }
+    if holds == Holds::Shared && matches!(way, Way::Both | Way::Push | Way::Again) {
+        moved.freed = let_go_telling(data, dest, tisty_core::attach::COPIED_UP_TO, &mut |_| true)
+            .map(|done| done.freed)
+            .unwrap_or(0);
+    }
     if matches!(way, Way::Both | Way::Push | Way::Again) {
         let Some(buried) = said
             .as_ref()
@@ -148,6 +154,12 @@ pub fn carry_holding(
             None,
             None,
         )?;
+        if holds == Holds::Shared {
+            moved.freed =
+                let_go_telling(data, dest, tisty_core::attach::COPIED_UP_TO, &mut |_| true)
+                    .map(|done| done.freed)
+                    .unwrap_or(0);
+        }
     }
     let alive = match &said {
         Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
@@ -615,11 +627,8 @@ pub struct LetGo {
     pub kept: Vec<String>,
 }
 
-/// Deletes a local copy only after the one up there is found to hash the same.
-pub fn let_go(data: &Path, dest: &Path, above: u64) -> Result<LetGo, Trouble> {
-    let_go_telling(data, dest, above, &mut |_| true)
-}
-
+/// Deletes a local copy only after the one up there is found to hash the same. `told` hears each
+/// one as it goes and answers whether to carry on.
 pub fn let_go_telling(
     data: &Path,
     dest: &Path,
@@ -680,10 +689,8 @@ fn twinned(there: &Path, weighs: u64, under: &str, named: &str) -> bool {
     if !std::fs::metadata(there).is_ok_and(|told| told.is_file() && told.len() == weighs) {
         return false;
     }
-    let part = beside(there);
-    let read = tisty_core::attach::copied(there, &part, tisty_core::attach::COPIED_IN_DOC);
-    let _ = std::fs::remove_file(&part);
-    read.is_ok_and(|(sha256, _)| tisty_core::attach::vouched(under, named, &sha256))
+    tisty_core::attach::hashed(there)
+        .is_ok_and(|(sha256, _)| tisty_core::attach::vouched(under, named, &sha256))
 }
 
 fn left_behind(holds: Holds) -> Option<u64> {
@@ -763,11 +770,6 @@ fn copy_held(
             }
             let weighs = std::fs::metadata(&at).map(|m| m.len()).unwrap_or(0);
             if above.is_some_and(|most| weighs > most) {
-                witness::note(
-                    channel::SYNC,
-                    "an attachment was left in the shared folder, to be fetched when it is opened",
-                    &[("at", Fact::Id(format!("attachments/{under}/{named}")))],
-                );
                 continue;
             }
             if weighs > tisty_core::attach::COPIED_IN_DOC {
@@ -2212,7 +2214,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let at = dir.path().join(called);
         std::fs::write(&at, body).unwrap();
-        tisty_core::attach::keep(&at, root, tisty_core::attach::COPIED_UP_TO)
+        tisty_core::attach::keep(&at, root, tisty_core::attach::COPIED_IN_DOC)
             .unwrap()
             .at
     }
@@ -3921,7 +3923,7 @@ mod tests {
         let shared = tempfile::tempdir().unwrap();
         carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
 
-        let done = let_go(&one.data, shared.path(), 1000).unwrap();
+        let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
 
         assert_eq!(done.gone, 1, "only the big one");
         assert_eq!(done.freed, 4000);
@@ -3938,7 +3940,7 @@ mod tests {
         carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
         std::fs::write(shared.path().join(&heavy), vec![9u8; 4000]).unwrap();
 
-        let done = let_go(&one.data, shared.path(), 1000).unwrap();
+        let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
 
         assert_eq!(done.gone, 0);
         assert_eq!(done.kept, vec![heavy.clone()]);
@@ -3954,10 +3956,66 @@ mod tests {
         let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
         let shared = tempfile::tempdir().unwrap();
 
-        let done = let_go(&one.data, shared.path(), 1000).unwrap();
+        let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
 
         assert_eq!(done.gone, 0);
         assert!(one.data.join(&heavy).is_file());
+    }
+
+    #[test]
+    fn a_round_on_a_machine_that_shares_them_does_not_bring_the_big_ones_home() {
+        let one = machine("dev_a");
+        let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+            .map(|at| (at % 251) as u8)
+            .collect();
+        let heavy = planted(&one.data, "charla.mp4", &big);
+        let light = planted(&one.data, "nota.txt", b"lo apuntado");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let other = blank("dev_b");
+        carry_holding(
+            &other.data,
+            None,
+            &other.device,
+            shared.path(),
+            Way::Both,
+            &[],
+            Holds::Shared,
+        )
+        .unwrap();
+
+        assert!(other.data.join(&light).is_file(), "the small one came");
+        assert!(!other.data.join(&heavy).exists(), "the big one did not");
+        assert!(
+            shared.path().join(&heavy).is_file(),
+            "and it waits up there"
+        );
+    }
+
+    #[test]
+    fn a_round_lets_go_of_what_it_just_pushed_when_that_is_the_setting() {
+        let one = machine("dev_a");
+        let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+            .map(|at| (at % 251) as u8)
+            .collect();
+        let heavy = planted(&one.data, "charla.mp4", &big);
+        let shared = tempfile::tempdir().unwrap();
+
+        let moved = carry_holding(
+            &one.data,
+            None,
+            &one.device,
+            shared.path(),
+            Way::Both,
+            &[],
+            Holds::Shared,
+        )
+        .unwrap();
+
+        assert!(shared.path().join(&heavy).is_file(), "it went up");
+        assert!(!one.data.join(&heavy).exists(), "and it is no longer here");
+        assert!(moved.freed > 0, "and the round says how much it freed");
     }
 
     #[test]

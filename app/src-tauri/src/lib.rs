@@ -184,30 +184,41 @@ impl Session {
     }
 
     fn attachment(&self, reference: &str) -> Sought {
-        let shared = match &self.config.sync {
-            Some(tisty_core::config::Sync::Folder(dest)) => Some(dest.as_path()),
-            _ => None,
-        };
-        found_in(reference, self.paths.data(), shared)
+        let shared = self.shared_now();
+        found_in(reference, self.paths.data(), shared.as_deref())
     }
 
     /// Here and in the shared folder both, or a machine that holds none of them sees none astray.
+    /// The shared folder, but only while this machine leaves anything in it.
+    fn shared_now(&self) -> Option<std::path::PathBuf> {
+        match (&self.config.sync, self.config.holds()) {
+            (Some(tisty_core::config::Sync::Folder(dest)), holds)
+                if holds != tisty_core::config::Holds::Everywhere =>
+            {
+                Some(dest.clone())
+            }
+            _ => None,
+        }
+    }
+
     fn adrift(&self, held: &[String]) -> tisty_core::attach::Loose {
         let mut found = tisty_core::attach::loose(self.paths.data(), held);
-        let Some(tisty_core::config::Sync::Folder(dest)) = &self.config.sync else {
+        let Some(dest) = self.shared_now() else {
             return found;
         };
-        let there = tisty_core::attach::loose(dest, held);
-        found.bytes += there.bytes;
-        found.items.extend(
-            there
-                .items
-                .into_iter()
-                .map(|one| tisty_core::attach::Astray {
-                    shared: true,
-                    ..one
-                }),
-        );
+        // The same file is in both places for anyone who syncs; counting it twice doubles the bill.
+        let here: std::collections::BTreeSet<String> =
+            found.items.iter().map(|one| one.at.clone()).collect();
+        for one in tisty_core::attach::loose(&dest, held).items {
+            if here.contains(&one.at) {
+                continue;
+            }
+            found.bytes += one.bytes;
+            found.items.push(tisty_core::attach::Astray {
+                shared: true,
+                ..one
+            });
+        }
         found
     }
 
@@ -552,10 +563,7 @@ fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Ve
     };
 
     let root = session.paths.data().to_path_buf();
-    let shared = match &session.config.sync {
-        Some(tisty_core::config::Sync::Folder(dest)) => Some(dest.clone()),
-        _ => None,
-    };
+    let shared = session.shared_now();
     let on_disk = tisty_core::docs::all(&session.paths.docs());
     let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
         on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
@@ -2551,6 +2559,9 @@ fn found_in(reference: &str, data: &std::path::Path, shared: Option<&std::path::
             return Sought::At(at);
         }
         if tisty_core::icloud::shed(&at).is_some() {
+            if !tisty_core::icloud::can_ask() {
+                return Sought::Away;
+            }
             return match tisty_core::icloud::waited_for(&at, COMES_WITHIN) {
                 true => Sought::At(at),
                 false => Sought::Coming,
@@ -3093,7 +3104,7 @@ async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, dest, data, store, aside, device, alive) = {
+    let (was, dest, data, store, aside, device, alive, holds) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -3117,6 +3128,7 @@ async fn settle_in(
             session.paths.cache().to_path_buf(),
             session.config.device_id.0.clone(),
             session.alive(),
+            session.config.holds(),
         )
     };
 
@@ -3129,13 +3141,14 @@ async fn settle_in(
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
         let carried = tauri::async_runtime::spawn_blocking(move || {
-            tisty_sync::carry_leaning_on(
+            tisty_sync::carry_holding(
                 &data,
                 Some(&aside),
                 &device,
                 &dest,
                 tisty_sync::Way::Both,
                 &alive,
+                holds,
             )
         })
         .await;
@@ -4690,10 +4703,11 @@ mod tests {
         std::fs::write(shelf.join(".charla-e5f6a7b8.mp4.icloud"), b"a few bytes").unwrap();
 
         // Off a Mac nothing can be asked back, but it is still told apart from what is gone.
-        assert!(matches!(
-            found_in(reference, here.path(), Some(shared.path())),
-            Sought::Coming
-        ));
+        let told = found_in(reference, here.path(), Some(shared.path()));
+        match cfg!(target_os = "macos") {
+            true => assert!(matches!(told, Sought::Coming | Sought::At(_))),
+            false => assert!(matches!(told, Sought::Away), "nobody here to ask iCloud"),
+        }
         assert!(matches!(
             found_in(
                 "attachments/ab/nope-00000000.txt",

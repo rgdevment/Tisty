@@ -8,7 +8,5 @@
   <string>Tisty copies a file into its own store when you attach one, and your Documents folder is one of the few places it may take a file from.</string>
   <key>NSDownloadsFolderUsageDescription</key>
   <string>Tisty copies a file into its own store when you attach one, and your Downloads folder is where most of them land.</string>
-  <key>NSPhotoLibraryUsageDescription</key>
-  <string>Tisty copies a picture into its own store when you attach one; it never reads your library on its own.</string>
 </dict>
 </plist>

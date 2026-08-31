@@ -317,6 +317,23 @@ pub fn copied(from: &Path, part: &Path, limit: u64) -> Result<(String, u64)> {
     poured(&mut file, part, limit)
 }
 
+/// The same reading, without the writing: for asking a file what it is where it lies.
+pub fn hashed(at: &Path) -> Result<(String, u64)> {
+    let mut file = std::fs::File::open(at)?;
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; AT_A_TIME];
+    let mut bytes = 0u64;
+    loop {
+        let read = file.read(&mut buf)?;
+        if read == 0 {
+            break;
+        }
+        bytes += read as u64;
+        hasher.update(&buf[..read]);
+    }
+    Ok((hexed(hasher.finalize()), bytes))
+}
+
 fn note(root: &Path, kept: &Kept, bytes: u64) {
     if listed(root, &kept.sha256).is_some() {
         return;
@@ -462,6 +479,10 @@ pub fn loose(root: &Path, referenced: &[String]) -> Loose {
             let Some(leaf) = file.file_name().to_str().map(str::to_owned) else {
                 continue;
             };
+            // A marker is the file iCloud took away, not a stray: taking it out is taking the file.
+            if crate::icloud::marker(&leaf) || !shelved(&name, &leaf) {
+                continue;
+            }
             if held.contains(format!("{name}/{leaf}").as_str()) {
                 continue;
             }
