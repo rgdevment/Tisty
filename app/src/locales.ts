@@ -877,6 +877,7 @@ const en = {
   twinsNone: "Nothing is kept twice",
   twinsRun: "Look for copies",
   twinsAgain: "Look again",
+  looseShared: "in the shared folder",
   looseDrop: "Take it out",
   looseDropSure:
     "Take {name} out?\n\nIt is kept aside here for 30 days in case you change your mind, and taken out of every machine that syncs. One that shows up later does not get it back: it says the file is no longer there.",
@@ -1843,6 +1844,7 @@ const es: Catalog = {
   twinsNone: "Nada guardado dos veces",
   twinsRun: "Buscar copias",
   twinsAgain: "Buscar otra vez",
+  looseShared: "en la carpeta compartida",
   looseDrop: "Quitar",
   looseDropSure:
     "¿Quitar {name}?\n\nSe guarda aquí 30 días por si cambias de opinión, y se saca de todas las máquinas que sincronicen. La que aparezca más tarde no lo recupera: dirá que el archivo ya no está.",

@@ -1248,7 +1248,9 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                         </span>
                         <span className="flex shrink-0 items-baseline gap-2.5 tabular-nums">
                           <span className="text-faint">
-                            {`${weigh(one.bytes)} · ${dated(one.when)}`}
+                            {`${weigh(one.bytes)} · ${dated(one.when)}${
+                              one.shared ? ` · ${t("looseShared")}` : ""
+                            }`}
                           </span>
                           <button
                             type="button"

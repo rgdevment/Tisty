@@ -191,6 +191,27 @@ impl Session {
         found_in(reference, self.paths.data(), shared)
     }
 
+    /// What nobody names, here and in the shared folder both: a machine that leaves the big ones
+    /// up there would otherwise never see one go astray.
+    fn adrift(&self, held: &[String]) -> tisty_core::attach::Loose {
+        let mut found = tisty_core::attach::loose(self.paths.data(), held);
+        let Some(tisty_core::config::Sync::Folder(dest)) = &self.config.sync else {
+            return found;
+        };
+        let there = tisty_core::attach::loose(dest, held);
+        found.bytes += there.bytes;
+        found.items.extend(
+            there
+                .items
+                .into_iter()
+                .map(|one| tisty_core::attach::Astray {
+                    shared: true,
+                    ..one
+                }),
+        );
+        found
+    }
+
     fn referenced(&self) -> Vec<String> {
         let mut held: Vec<String> = self
             .state
@@ -1476,7 +1497,7 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         .map(|one| one.target)
         .collect();
     held.extend(tisty_core::docs::referenced(&session.paths.docs()));
-    let adrift = tisty_core::attach::loose(session.paths.data(), &held);
+    let adrift = session.adrift(&held);
 
     let kept = report::attachments(session.paths.data());
     let told = tisty_core::store::read_all(session.paths.store()).unwrap_or_default();
@@ -1548,7 +1569,7 @@ fn facts(
         .map(|one| one.target)
         .collect();
     referenced.extend(tisty_core::docs::referenced(&session.paths.docs()));
-    let adrift = tisty_core::attach::loose(session.paths.data(), &referenced);
+    let adrift = session.adrift(&referenced);
     let kept = report::attachments(session.paths.data());
 
     let shown = |raw: String| if paths { raw } else { report::hidden(&raw) };
@@ -3623,17 +3644,23 @@ fn retire_attachment(session: tauri::State<'_, Mutex<Session>>, reference: Strin
         return Err(Refusal::about("stillReferenced", reference));
     }
 
-    tisty_core::attach::set_aside(session.paths.data(), &reference, now).map_err(|e| {
-        witness::warn(
-            channel::ATTACH,
-            "an attachment could not be set aside",
-            &[
-                ("at", Fact::Id(reference.clone())),
-                ("why", Fact::Why(e.to_string())),
-            ],
-        );
-        Refusal::about("cannotWrite", reference.clone())
-    })?;
+    // One this machine never carried has no bin of its own to wait in: the retirement travels,
+    // and the sweep takes it out of the shared folder and out of whoever does hold a copy.
+    let here =
+        tisty_core::attach::resolve(&reference, session.paths.data()).is_ok_and(|at| at.is_file());
+    if here {
+        tisty_core::attach::set_aside(session.paths.data(), &reference, now).map_err(|e| {
+            witness::warn(
+                channel::ATTACH,
+                "an attachment could not be set aside",
+                &[
+                    ("at", Fact::Id(reference.clone())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+            Refusal::about("cannotWrite", reference.clone())
+        })?;
+    }
 
     session
         .commit(Op::AttachRetire { d: reference })

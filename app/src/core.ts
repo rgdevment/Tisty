@@ -333,6 +333,7 @@ export interface Astray {
   at: string;
   bytes: number;
   when: number;
+  shared?: boolean;
 }
 
 export interface Twins {

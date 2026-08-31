@@ -413,6 +413,9 @@ pub struct Astray {
     pub at: String,
     pub bytes: u64,
     pub when: i64,
+    /// Found in the shared folder rather than in this machine's store.
+    #[serde(default)]
+    pub shared: bool,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -465,6 +468,7 @@ pub fn loose(root: &Path, referenced: &[String]) -> Loose {
             let told = file.metadata().ok();
             let bytes = told.as_ref().map(|m| m.len()).unwrap_or(0);
             found.items.push(Astray {
+                shared: false,
                 at: format!("attachments/{name}/{leaf}"),
                 bytes,
                 when: told

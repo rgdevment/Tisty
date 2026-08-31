@@ -168,6 +168,12 @@ beforeEach(() => {
           astray: [
             { at: "attachments/ab/charla-a3f9.mp4", bytes: 300_000, when: 1_754_000_000 },
             { at: "attachments/cd/notas-b1c2.pdf", bytes: 11_000, when: 1_754_000_000 },
+            {
+              at: "attachments/ef/lejos-c3d4.mp4",
+              bytes: 90_000_000,
+              when: 1_754_000_000,
+              shared: true,
+            },
           ],
           events: 42,
           machines: [
@@ -360,6 +366,16 @@ describe("the maintenance panel", () => {
     await waitFor(() => expect(sent("keep_settings")).toHaveLength(1));
     const asked = sent("keep_settings")[0].args.settings as { holds: string };
     expect(asked.holds).toBe("shared");
+  });
+
+  it("says which loose files are up in the shared folder", async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+
+    await screen.findByText("lejos-c3d4.mp4");
+    expect(screen.getByText(/in the shared folder/)).toBeTruthy();
   });
 
   it("names every machine and when each last wrote", async () => {
