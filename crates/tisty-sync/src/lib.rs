@@ -608,8 +608,6 @@ fn sweep(dir: &Path) {
     }
 }
 
-/// What letting the big ones go came to: how many left this machine, what that freed, and the
-/// ones that stayed because the shared folder did not hold a copy worth trusting.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct LetGo {
     pub gone: usize,
@@ -617,9 +615,17 @@ pub struct LetGo {
     pub kept: Vec<String>,
 }
 
-/// Frees what the shared folder already holds, and only that: a local copy is deleted after the
-/// one up there is found under the same name, weighing the same, hashing the same.
+/// Deletes a local copy only after the one up there is found to hash the same.
 pub fn let_go(data: &Path, dest: &Path, above: u64) -> Result<LetGo, Trouble> {
+    let_go_telling(data, dest, above, &mut |_| true)
+}
+
+pub fn let_go_telling(
+    data: &Path,
+    dest: &Path,
+    above: u64,
+    told: &mut dyn FnMut(&LetGo) -> bool,
+) -> Result<LetGo, Trouble> {
     let mut done = LetGo::default();
     let shed = data.join(HELD);
     let Ok(shelves) = std::fs::read_dir(&shed) else {
@@ -634,10 +640,11 @@ pub fn let_go(data: &Path, dest: &Path, above: u64) -> Result<LetGo, Trouble> {
         };
         for file in files.filter_map(|one| one.ok()) {
             let at = file.path();
-            let Ok(told) = std::fs::metadata(&at) else {
+            let Ok(about) = std::fs::metadata(&at) else {
                 continue;
             };
-            if !told.is_file() || told.len() <= above {
+            let weighs = about.len();
+            if !about.is_file() || weighs <= above {
                 continue;
             }
             let under = shelf.file_name();
@@ -649,25 +656,26 @@ pub fn let_go(data: &Path, dest: &Path, above: u64) -> Result<LetGo, Trouble> {
             let reference = format!("attachments/{under}/{named}");
             match twinned(
                 &dest.join(HELD).join(under).join(named),
-                told.len(),
+                weighs,
                 under,
                 named,
             ) {
                 true => {
                     if std::fs::remove_file(&at).is_ok() {
                         done.gone += 1;
-                        done.freed += told.len();
+                        done.freed += weighs;
                     }
                 }
                 false => done.kept.push(reference),
+            }
+            if !told(&done) {
+                return Ok(done);
             }
         }
     }
     Ok(done)
 }
 
-/// Whether what is up there is this same file: the size first, because it is free, and then the
-/// bytes, because a name is not a promise.
 fn twinned(there: &Path, weighs: u64, under: &str, named: &str) -> bool {
     if !std::fs::metadata(there).is_ok_and(|told| told.is_file() && told.len() == weighs) {
         return false;
@@ -678,7 +686,6 @@ fn twinned(there: &Path, weighs: u64, under: &str, named: &str) -> bool {
     read.is_ok_and(|(sha256, _)| tisty_core::attach::vouched(under, named, &sha256))
 }
 
-/// What this machine leaves in the shared folder rather than carrying home.
 fn left_behind(holds: Holds) -> Option<u64> {
     match holds {
         Holds::Everywhere => None,
@@ -733,8 +740,7 @@ fn copy_held(
                 .unwrap_or_default();
             let under = shelf.file_name();
             let under = under.to_str().unwrap_or_default();
-            // What iCloud left in place of a file it took away is not litter, and saying so of
-            // every one of them would bury the log on a Mac that keeps its storage lean.
+            // What iCloud left in place of a file is not litter, and saying so would bury the log.
             if tisty_core::icloud::marker(named) {
                 continue;
             }

@@ -1,15 +1,13 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-/// iCloud takes a file away and leaves `.name.ext.icloud` in its place, a few bytes long: the name
-/// it had stops existing, so nothing that opens it finds anything until it is asked back.
+/// iCloud swaps an evicted file for `.name.ext.icloud`, and the name it had stops existing.
 pub fn shed(at: &Path) -> Option<PathBuf> {
     let name = at.file_name()?.to_str()?;
     let marker = at.with_file_name(format!(".{name}.icloud"));
     marker.is_file().then_some(marker)
 }
 
-/// Whether a name in a folder is one of those markers rather than something somebody put there.
 pub fn marker(name: &str) -> bool {
     name.starts_with('.') && name.ends_with(".icloud")
 }
@@ -31,7 +29,7 @@ pub fn asked_back(_at: &Path) -> bool {
     false
 }
 
-/// Asks for it and waits, but only for as long as somebody would wait looking at a window.
+/// Only for as long as somebody would wait looking at a window.
 pub fn waited_for(at: &Path, most: Duration) -> bool {
     if !asked_back(at) {
         return false;

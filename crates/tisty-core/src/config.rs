@@ -33,8 +33,7 @@ impl Config {
         crate::attach::COPIED_IN_DOC
     }
 
-    /// Only a shared folder can hold what this machine does not: without one, every attachment
-    /// stays here whatever the setting says.
+    /// Without a shared folder there is nowhere else, whatever the setting says.
     pub fn holds(&self) -> Holds {
         match self.sync {
             Some(Sync::Folder(_)) => self.holds.unwrap_or_default(),
@@ -42,8 +41,7 @@ impl Config {
         }
     }
 
-    /// Above this, a machine may leave an attachment to the shared folder. Below it, everything
-    /// travels as it always did — it is the same ceiling a task allows at most.
+    /// The same ceiling a task allows at most: below it everything travels as it always did.
     pub fn only_shared_above(&self) -> u64 {
         crate::attach::COPIED_UP_TO
     }
@@ -64,12 +62,9 @@ pub enum Closing {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Holds {
-    /// Every machine carries every attachment. What Tisty has always done.
     #[default]
     Everywhere,
-    /// This machine keeps what it attached; what the others attached arrives when it is opened.
     Mine,
-    /// Above the ceiling, only the shared folder holds it. Nothing large stays on any machine.
     Shared,
 }
 

@@ -41,6 +41,10 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: () => Promise.resolve(() => {}),
+}));
+
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: (opts: { directory?: boolean }) =>
     Promise.resolve(opts.directory ? asked.folder : asked.file),
@@ -158,6 +162,18 @@ beforeEach(() => {
           rousing.wakes = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
         }
         return Promise.resolve({ ...rousing });
+      case "keep_settings": {
+        const asked = ipc.calls[ipc.calls.length - 1]?.args.settings as Record<string, unknown>;
+        return Promise.resolve({
+          ...asked,
+          shares: true,
+          onlySharedAbove: 50 * 1024 * 1024,
+        });
+      }
+      case "free_up":
+        return new Promise(() => {});
+      case "stop_freeing":
+        return Promise.resolve(null);
       case "checked":
         return Promise.resolve({
           tasks: 7,
@@ -366,6 +382,20 @@ describe("the maintenance panel", () => {
     await waitFor(() => expect(sent("keep_settings")).toHaveLength(1));
     const asked = sent("keep_settings")[0].args.settings as { holds: string };
     expect(asked.holds).toBe("shared");
+  });
+
+  it("frees the disk when told the big ones live in the shared folder, and can be stopped", async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/writing/i);
+
+    const where = await screen.findByRole("combobox", { name: /where the big/i });
+    await userEvent.selectOptions(where, "shared");
+
+    await waitFor(() => expect(sent("free_up")).toHaveLength(1));
+    await screen.findByText(/Freeing what the shared folder/i);
+    await userEvent.click(await screen.findByRole("button", { name: /^stop$/i }));
+    await waitFor(() => expect(sent("stop_freeing")).toHaveLength(1));
   });
 
   it("says which loose files are up in the shared folder", async () => {

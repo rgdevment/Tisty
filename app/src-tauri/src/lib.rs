@@ -191,8 +191,7 @@ impl Session {
         found_in(reference, self.paths.data(), shared)
     }
 
-    /// What nobody names, here and in the shared folder both: a machine that leaves the big ones
-    /// up there would otherwise never see one go astray.
+    /// Here and in the shared folder both, or a machine that holds none of them sees none astray.
     fn adrift(&self, held: &[String]) -> tisty_core::attach::Loose {
         let mut found = tisty_core::attach::loose(self.paths.data(), held);
         let Some(tisty_core::config::Sync::Folder(dest)) = &self.config.sync else {
@@ -1968,18 +1967,87 @@ fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
     Ok(as_settings(&session))
 }
 
-/// Only what the shared folder already holds, checked file by file. What it will not vouch for
-/// stays here: nothing is freed on the strength of a copy that looked right.
-fn let_them_go(session: &Session) -> tisty_sync::LetGo {
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Default::default();
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Freeing {
+    gone: usize,
+    freed: u64,
+    done: bool,
+}
+
+#[derive(Default)]
+struct Stopping(std::sync::atomic::AtomicBool);
+
+/// Turning it on is the only change that moves anything, so it is asked for rather than done on
+/// the way past: it can take an afternoon, and somebody may want it to stop.
+#[tauri::command(async)]
+async fn free_up(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    stopping: tauri::State<'_, Stopping>,
+) -> Answer<Freeing> {
+    let _done = alone.inner().taken()?;
+    stopping
+        .0
+        .store(false, std::sync::atomic::Ordering::Relaxed);
+    let (data, dest, above) = {
+        let session = held(&session);
+        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+            return Err(Refusal::of("noRemote"));
+        };
+        (
+            session.paths.data().to_path_buf(),
+            dest,
+            session.config.only_shared_above(),
+        )
     };
-    tisty_sync::let_go(
-        session.paths.data(),
-        &dest,
-        session.config.only_shared_above(),
-    )
-    .unwrap_or_default()
+
+    let telling = app.clone();
+    let done = tauri::async_runtime::spawn_blocking(move || {
+        let mut said = 0;
+        tisty_sync::let_go_telling(&data, &dest, above, &mut |far| {
+            if far.gone != said {
+                said = far.gone;
+                let _ = telling.emit(
+                    "freeing",
+                    Freeing {
+                        gone: far.gone,
+                        freed: far.freed,
+                        done: false,
+                    },
+                );
+            }
+            !telling
+                .state::<Stopping>()
+                .0
+                .load(std::sync::atomic::Ordering::Relaxed)
+        })
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(said)?;
+
+    witness::note(
+        channel::SYNC,
+        "big attachments were left to the shared folder",
+        &[
+            ("count", Fact::Count(done.gone)),
+            ("bytes", Fact::Bytes(done.freed)),
+        ],
+    );
+    let now = Freeing {
+        gone: done.gone,
+        freed: done.freed,
+        done: true,
+    };
+    let _ = app.emit("freeing", now.clone());
+    Ok(now)
+}
+
+#[tauri::command]
+fn stop_freeing(stopping: tauri::State<'_, Stopping>) {
+    stopping.0.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
 fn as_settings(session: &Session) -> Settings {
@@ -2006,25 +2074,11 @@ fn keep_settings(
         tisty_core::attach::COPIED_MOST,
     );
     let holds = settings.holds;
-    let was = session.config.holds();
     session.keep(|config| {
         config.quiet = (!quiet.is_empty()).then_some(quiet);
         config.attach_up_to = Some(up_to);
         config.holds = Some(holds);
     })?;
-    // Turning it on is the only change that moves anything: turning it off leaves the next round
-    // to bring back what is missing, which is what a round does anyway.
-    if holds == tisty_core::config::Holds::Shared && was != holds {
-        let freed = let_them_go(&session);
-        witness::note(
-            channel::SYNC,
-            "big attachments were left to the shared folder",
-            &[
-                ("count", Fact::Count(freed.gone)),
-                ("bytes", Fact::Bytes(freed.freed)),
-            ],
-        );
-    }
     let now = as_settings(&session);
     drop(session);
     herald::respeak(&app, &now.quiet);
@@ -2462,8 +2516,7 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
     })
 }
 
-/// How long the window waits for iCloud before saying so. Long enough for a file already on its
-/// way, short enough that nobody thinks the app hung.
+/// Long enough for a file already on its way, short enough that nobody thinks the app hung.
 const COMES_WITHIN: std::time::Duration = std::time::Duration::from_millis(1_500);
 
 fn seen(found: Sought) -> Option<std::path::PathBuf> {
@@ -2473,7 +2526,6 @@ fn seen(found: Sought) -> Option<std::path::PathBuf> {
     }
 }
 
-/// What to say when it is not here: iCloud may be bringing it, and that is not the same as gone.
 fn unreachable(found: Sought, reference: String) -> Refusal {
     match found {
         Sought::Coming => Refusal::about("comingDown", reference),
@@ -2484,15 +2536,12 @@ fn unreachable(found: Sought, reference: String) -> Refusal {
 
 enum Sought {
     At(std::path::PathBuf),
-    /// iCloud has it and was asked for it back; it is not here yet.
     Coming,
-    /// The shared folder is where it lives and the shared folder is not there.
     Away,
     No,
 }
 
-/// The store first, then the shared folder: a machine that leaves the big ones behind keeps them
-/// only there, and everything that reads an attachment has to look in both.
+/// The store first, then the shared folder, which is where a machine that let go of it kept it.
 fn found_in(reference: &str, data: &std::path::Path, shared: Option<&std::path::Path>) -> Sought {
     for root in [Some(data), shared].into_iter().flatten() {
         let Ok(at) = tisty_core::attach::resolve(reference, root) else {
@@ -3644,8 +3693,7 @@ fn retire_attachment(session: tauri::State<'_, Mutex<Session>>, reference: Strin
         return Err(Refusal::about("stillReferenced", reference));
     }
 
-    // One this machine never carried has no bin of its own to wait in: the retirement travels,
-    // and the sweep takes it out of the shared folder and out of whoever does hold a copy.
+    // One never carried here has no bin to wait in; the retirement travels and the sweep acts.
     let here =
         tisty_core::attach::resolve(&reference, session.paths.data()).is_ok_and(|at| at.is_file());
     if here {
@@ -4422,6 +4470,7 @@ pub fn run() {
             app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
             herald::watch(app.handle().clone(), watched);
 
+            app.manage(Stopping::default());
             let perched = tray::raise(app.handle(), &words).is_some();
             app.manage(Perched(perched));
             app.manage(Bound(listen_for(app.handle())));
@@ -4430,8 +4479,7 @@ pub fn run() {
                 let held = app.state::<Mutex<Session>>();
                 let held = crate::held(&held);
                 let seen = app.asset_protocol_scope();
-                // The shared folder's attachments and no more of it: what a machine leaves behind
-                // is drawn from there, and the rest of that folder is nobody's business here.
+                // Its attachments and no more of it: the rest of that folder is not ours to read.
                 let shared = match &held.config.sync {
                     Some(tisty_core::config::Sync::Folder(dest)) => vec![dest.join("attachments")],
                     _ => Vec::new(),
@@ -4531,6 +4579,8 @@ pub fn run() {
             settle_in,
             reachable,
             reach_for,
+            free_up,
+            stop_freeing,
             wiring,
             wire,
             unwire,
@@ -4639,8 +4689,7 @@ mod tests {
         std::fs::create_dir_all(&shelf).unwrap();
         std::fs::write(shelf.join(".charla-e5f6a7b8.mp4.icloud"), b"a few bytes").unwrap();
 
-        // Off a Mac nothing can be asked back, so what is shed is still out of reach — but it is
-        // told apart from a file nobody has anywhere.
+        // Off a Mac nothing can be asked back, but it is still told apart from what is gone.
         assert!(matches!(
             found_in(reference, here.path(), Some(shared.path())),
             Sought::Coming
