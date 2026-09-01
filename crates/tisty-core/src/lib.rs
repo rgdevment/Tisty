@@ -19,6 +19,7 @@ pub mod state;
 pub mod store;
 pub mod story;
 pub mod text;
+pub mod tidy;
 pub mod undo;
 pub mod view;
 pub mod witness;

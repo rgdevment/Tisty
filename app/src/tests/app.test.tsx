@@ -362,6 +362,8 @@ describe("what the maintenance screen writes", () => {
             loose: 0,
             looseBytes: 0,
             astray: [],
+            stranded: [],
+            missing: [],
             events: 1,
             machines: [
               { id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true },

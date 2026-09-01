@@ -91,6 +91,20 @@ impl App {
         Ok(())
     }
 
+    pub fn tidy_up(&mut self, bin: bool) {
+        let dest = match self.config.sync.clone() {
+            Some(tisty_core::config::Sync::Folder(at)) => Some(at),
+            _ => None,
+        };
+        tisty_core::tidy::all_of_it(
+            &self.paths,
+            &self.state,
+            self.cache.as_ref(),
+            dest.as_deref(),
+            bin,
+        );
+    }
+
     pub fn copies_up_to(&self) -> u64 {
         self.config.copies_up_to()
     }

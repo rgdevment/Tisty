@@ -348,6 +348,19 @@ export interface Machine {
   mine: boolean;
 }
 
+export interface Stray {
+  file: string;
+  title: string;
+  bytes: number;
+  when: number;
+}
+
+export interface Gone {
+  id: string;
+  file: string;
+  title: string;
+}
+
 export interface Reviewed {
   tasks: number;
   lists: number;
@@ -355,8 +368,8 @@ export interface Reviewed {
   loose: number;
   looseBytes: number;
   astray: Astray[];
-  stranded: number;
-  missing: number;
+  stranded: Stray[];
+  missing: Gone[];
   events: number;
   machines: Machine[];
   logBytes: number;
@@ -564,6 +577,8 @@ export const guide = (): Promise<Doc> => invoke("guide");
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
 export const retireAttachment = (reference: string): Promise<void> =>
   invoke("retire_attachment", { reference });
+export const retireAttachments = (references: string[]): Promise<number> =>
+  invoke("retire_attachments", { references });
 export const removeMachine = (id: string): Promise<void> => invoke("remove_machine", { id });
 export const joinThem = (into: string): Promise<number> => invoke("join_them", { into });
 
@@ -678,6 +693,9 @@ export const docOrder = (id: string, body: string): Promise<boolean> =>
 export const docPage = (id: string, pageOf?: string): Promise<void> =>
   invoke("doc_page", { id, pageOf });
 export const docDrop = (id: string): Promise<void> => invoke("doc_drop", { id });
+
+export const docAdopt = (file: string): Promise<Doc> => invoke("doc_adopt", { file });
+export const docLetGo = (file: string): Promise<void> => invoke("doc_let_go", { file });
 
 export const icons = (): Promise<string[]> => invoke("icons");
 export const families = (): Promise<[string, number][]> => invoke("families");

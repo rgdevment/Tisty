@@ -206,12 +206,20 @@ beforeEach(() => {
               mine: false,
             },
           ],
-          stranded: 0,
+          stranded: [],
+          missing: [],
           logBytes: 4_096,
           docsBytes: 20_480,
           heldBytes: 900_000,
           heldFiles: 9,
         });
+      case "retire_attachments":
+        return Promise.resolve(3);
+      case "doc_adopt":
+        return Promise.resolve({ id: "mac0-0042", title: "Minutes" });
+      case "doc_let_go":
+      case "doc_drop":
+        return Promise.resolve(null);
       case "back_up":
         return Promise.resolve(4096);
       case "facts":
@@ -1468,29 +1476,59 @@ describe("opening with the machine", () => {
   });
 });
 
-describe("stranded document files", () => {
-  it("says when the log does not know about a file on disk", async () => {
+describe("documents on disk the log does not name", () => {
+  const strayed = () => {
     const was = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "checked"
-        ? was(cmd, args).then((one) => ({ ...(one as object), stranded: 3 }))
+        ? was(cmd, args).then((one) => ({
+            ...(one as object),
+            stranded: [{ file: "mac0-0042", title: "Minutes", bytes: 21_000, when: 1_754_000_000 }],
+          }))
         : was(cmd, args);
+  };
+
+  const opened = async () => {
     render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+  };
 
-    expect(await screen.findByText(/does not know about/i)).toBeTruthy();
+  it("offers to take one in before it offers to let it go", async () => {
+    strayed();
+    await opened();
+
+    expect(await screen.findByText("Minutes")).toBeTruthy();
+    const takeIn = screen.getByRole("button", { name: /take it in/i });
+    const letGo = screen.getByRole("button", { name: /let it go/i });
+    expect(takeIn.compareDocumentPosition(letGo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("takes one in without asking, because that can never be wrong", async () => {
+    strayed();
+    await opened();
+
+    await userEvent.click(await screen.findByRole("button", { name: /take it in/i }));
+    await waitFor(() => expect(sent("doc_adopt")).toHaveLength(1));
+    expect(sent("doc_adopt")[0]?.args.file).toBe("mac0-0042");
+  });
+
+  it("never lets one go without being told twice", async () => {
+    strayed();
+    await opened();
+
+    asked.sure = false;
+    await userEvent.click(await screen.findByRole("button", { name: /let it go/i }));
+    await waitFor(() => expect(asked.said).toMatch(/goes for good/i));
+    expect(sent("doc_let_go")).toHaveLength(0);
   });
 
   it("says nothing when every file on disk is in the log", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
-    await screen.findByText(/only on this machine/i);
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await opened();
 
     await screen.findByText(/mac0-0001/);
-    expect(screen.queryByText(/does not know about/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /take it in/i })).toBeNull();
   });
 });
 
@@ -1640,5 +1678,92 @@ describe("letting an assistant file work here", () => {
     expect(screen.getByText(/your undo never reaches what it filed/i)).toBeTruthy();
     expect(screen.getByText(/"mcpServers"/)).toBeTruthy();
     expect(screen.getByText(/mcp add tisty/)).toBeTruthy();
+  });
+});
+
+describe("documents the log names with no file", () => {
+  const gone = (quiet: boolean) => {
+    const was = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "checked"
+        ? was(cmd, args).then((one) => ({
+            ...(one as object),
+            missing: [{ id: "01M1ER4WK1E6BZJF2S9H9V0KYB", file: "win1-0007", title: "Recipes" }],
+            machines: [
+              {
+                id: "mac0-0001",
+                called: "cedar 14",
+                when: Math.floor(Date.now() / 1000),
+                mine: true,
+              },
+              {
+                id: "win1-0002",
+                called: "sage 07",
+                when: Math.floor(Date.now() / 1000) - (quiet ? 60 * 60 * 24 * 12 : 60),
+                mine: false,
+              },
+            ],
+          }))
+        : was(cmd, args);
+  };
+
+  const opened = async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+  };
+
+  it("will not let one be forgotten while a machine has been quiet", async () => {
+    gone(true);
+    await opened();
+
+    expect(await screen.findByText("Recipes")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /forget it/i })).toBeNull();
+    expect(screen.getByText(/sage 07 has spoken/i)).toBeTruthy();
+  });
+
+  it("offers to forget one once every machine has spoken, and asks first", async () => {
+    gone(false);
+    await opened();
+
+    asked.sure = false;
+    await userEvent.click(await screen.findByRole("button", { name: /forget it/i }));
+    await waitFor(() => expect(asked.said).toMatch(/for good/i));
+    expect(sent("doc_drop")).toHaveLength(0);
+
+    asked.sure = true;
+    await userEvent.click(screen.getByRole("button", { name: /forget it/i }));
+    await waitFor(() => expect(sent("doc_drop")).toHaveLength(1));
+    expect(sent("doc_drop")[0]?.args.id).toBe("01M1ER4WK1E6BZJF2S9H9V0KYB");
+  });
+});
+
+describe("taking every loose attachment out at once", () => {
+  const opened = async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+  };
+
+  it("says how many before it takes any, and takes none when told no", async () => {
+    await opened();
+
+    asked.sure = false;
+    await userEvent.click(await screen.findByRole("button", { name: /take them all out/i }));
+    await waitFor(() => expect(asked.said).toMatch(/3/));
+    expect(sent("retire_attachments")).toHaveLength(0);
+  });
+
+  it("takes each one out and looks again afterwards", async () => {
+    await opened();
+
+    asked.sure = true;
+    await userEvent.click(await screen.findByRole("button", { name: /take them all out/i }));
+    await waitFor(() => expect(sent("retire_attachments")).toHaveLength(1));
+    const references = sent("retire_attachments")[0]?.args.references as string[];
+    expect(references).toHaveLength(3);
+    expect(references).toContain("attachments/ab/charla-a3f9.mp4");
   });
 });
