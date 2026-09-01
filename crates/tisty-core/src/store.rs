@@ -346,7 +346,22 @@ impl Ledger {
 
 pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
     let events = read_all(store_root)?;
-    let gone: std::collections::BTreeSet<&DeviceId> = events
+    let mut assistants: std::collections::BTreeSet<&DeviceId> = std::collections::BTreeSet::new();
+    let mut told: Vec<&Event> = Vec::new();
+    for one in &events {
+        if let Op::DeviceJoin {
+            d,
+            k: Some(crate::event::DeviceKind::Agent),
+        } = &one.op
+            && d == &one.device
+        {
+            assistants.insert(d);
+        }
+        if !(one.op.destroys() && assistants.contains(&one.device)) {
+            told.push(one);
+        }
+    }
+    let gone: std::collections::BTreeSet<&DeviceId> = told
         .iter()
         .filter_map(|one| match &one.op {
             Op::DeviceRemove { d } => Some(d),
@@ -355,7 +370,7 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
         .collect();
 
     let mut said = Ledger::default();
-    for event in &events {
+    for event in &told {
         match &event.op {
             Op::DeviceJoin { d, .. } => {
                 said.named.insert(d.clone());

@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 1;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 2;
 
 pub struct Cache {
     db: Connection,
@@ -86,6 +86,10 @@ impl Cache {
             .unwrap_or_default();
         state.agents = self
             .meta("agents")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
+        state.assistants = self
+            .meta("assistants")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
         state.fill = if bodies {
@@ -213,7 +217,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -222,6 +226,7 @@ impl Cache {
                     serde_json::to_string(&state.retired).unwrap_or_default(),
                     serde_json::to_string(&state.shed).unwrap_or_default(),
                     serde_json::to_string(&state.agents).unwrap_or_default(),
+                    serde_json::to_string(&state.assistants).unwrap_or_default(),
                 ],
             )?;
             tx.commit()

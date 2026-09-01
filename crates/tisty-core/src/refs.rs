@@ -390,7 +390,8 @@ mod tests {
 
     #[test]
     fn what_an_aligned_paragraph_points_at_is_still_pointed_at() {
-        let said = "<p style=\"text-align: center\"><a href=\"attachments/ab/nota-1234.pdf\">el                     plano</a></p>";
+        let said = "<p style=\"text-align: center\">\
+                    <a href=\"attachments/ab/nota-1234.pdf\">el plano</a></p>";
 
         assert_eq!(targets(said), ["attachments/ab/nota-1234.pdf"]);
     }

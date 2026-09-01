@@ -48,6 +48,14 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
                 )),
             );
         }
+
+        let gone = tisty_core::docs::missing(&app.paths.docs(), &alive);
+        if !gone.is_empty() {
+            line(
+                lang.get("gone-papers"),
+                &style::dim(&lang.fill("gone-papers-are", &[("count", &gone.len().to_string())])),
+            );
+        }
     }
 
     let verdict = match &audit {
