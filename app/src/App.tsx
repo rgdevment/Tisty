@@ -673,9 +673,17 @@ export default function App() {
           onPick: () =>
             pick({ directory: true })
               .then((at) => (typeof at === "string" ? docExport(doc.file, at) : null))
-              .then((taken) => {
-                if (taken === null) return;
-                setNote(taken ? fill("takenOut", String(taken)) : t("takenOutAlone"));
+              .then((took) => {
+                if (took === null) return;
+                if (took.missed > 0) {
+                  setError(
+                    took.missed === 1
+                      ? t("takenShort")
+                      : fill("takenShorter", String(took.missed)),
+                  );
+                  return;
+                }
+                setNote(took.files ? fill("takenOut", String(took.files)) : t("takenOutAlone"));
                 setTimeout(() => setNote(null), 3200);
               })
               .catch((e) => setError(saidPlainly(e))),

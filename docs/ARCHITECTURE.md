@@ -768,15 +768,35 @@ with a loose document nobody asked for, which is worse than the move not
 happening.
 
 **Cascades cost the read cache its shortcut.** The cache rewrites one row per
-event, and the four operations that reach a document's pages — delete, move,
-archive and unarchive — cannot be told a row at a time, so they throw the cache
-away and it is rebuilt from the log. Without that, a delete would leave its pages
+event, and the operations that reach a document's pages — delete, archive,
+unarchive, and a move that changes the folder or the document a page belongs
+to — cannot be told a row at a time, so they throw the cache away and it is
+rebuilt from the log.
+
+A move that carries nothing but an order is the exception, and it has to be, or
+saving a body would cost a rebuild every time the text moved a page. It is safe
+because that move touches one row and no other: the projection does walk every
+page of the document to keep folders in step, but no reachable event makes that
+walk change anything on an order — a page is born in its parent's folder and
+`DocMove` refuses to file a page anywhere else. If that ever stops being true,
+the exception has to go with it: the cache would keep a stale folder on a page
+and no fingerprint would say so. Without that, a delete would leave its pages
 alive in the cache, invisible in every view because their document is gone, and
 their files would be carried back into the shared folder on the next round.
 
-**Two ways out are one way out.** A copy of a document copies its pages, and a
-document taken out as Markdown writes its pages beside it, numbered in reading
-order. What holds a book in forty parts and hands out the cover is not an export.
+**Two ways out are one way out.** A copy of a document copies its pages, the way
+they name each other rewritten to the copies, and a document taken out as
+Markdown writes its pages beside it, numbered in reading order, with the
+references pointing at those files rather than at names only Tisty knows. What
+holds a book in forty parts and hands out the cover is not an export. A page that
+cannot be read from disk is left out and counted: the export says how many went
+missing rather than handing over a book quietly short of a chapter.
+
+**Where the order is settled, and where it is not.** The body is a file that
+syncs like a file; the order is in the log. Nothing reconciles them on the way
+in, so a body that arrives from another machine can name its pages in an order
+the log does not have. Opening the document settles it, and so does saving it —
+until one of those happens, the two disagree and the tree follows the log.
 
 **The schema is 8 because of this.** A machine still on 1.0.x rejects the whole
 event rather than reading a page as a loose document and filing it somewhere the

@@ -7,6 +7,7 @@ import {
   attached,
   convertPaper,
   docExport,
+  docOrder,
   docRead,
   docWrite,
   type Filed,
@@ -173,6 +174,8 @@ export default function Docs({
 
   const leaving = useRef(flush);
   leaving.current = flush;
+  const settled = useRef(onKept);
+  settled.current = onKept;
 
   useEffect(() => {
     const now = () => leaving.current();
@@ -224,6 +227,13 @@ export default function Docs({
         setReading(brittle.length > 0);
         setStuck(false);
         setClashed(false);
+        if (known.some((one) => one.pageOf === wanted.id)) {
+          docOrder(wanted.file, text)
+            .then((moved) => {
+              if (moved) settled.current({ id: wanted.id, title: wanted.title });
+            })
+            .catch(() => {});
+        }
       })
       .catch((e) => onError(saidPlainly(e)));
   }, [asked, known, open, flush, onError, fresh]);

@@ -176,15 +176,15 @@ impl Session {
             .insert(id.to_string(), tisty_core::attach::printed(body.as_bytes()));
     }
 
-    fn retell(&mut self, file: &str, body: &str) {
+    fn retell(&mut self, file: &str, body: &str) -> bool {
         let Some(doc) = self.state.docs.values().find(|one| one.file == file) else {
-            return;
+            return false;
         };
         let told = self.state.pages_told(doc.id, body);
         if told.is_empty() {
-            return;
+            return false;
         }
-        let _ = self.commit_all(
+        self.commit_all(
             told.into_iter()
                 .map(|(id, order)| Op::DocMove {
                     id,
@@ -195,7 +195,8 @@ impl Session {
                     },
                 })
                 .collect(),
-        );
+        )
+        .is_ok()
     }
 
     fn moved(&self, id: &str) -> bool {
@@ -2851,11 +2852,17 @@ fn doc_write(
     })?;
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
-    session.retell(&id, &body);
+    let _ = session.retell(&id, &body);
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&body),
         id,
     })
+}
+
+/// Read as a file, ordered from the log: a body that arrived from elsewhere may say otherwise.
+#[tauri::command(async)]
+fn doc_order(session: tauri::State<'_, Mutex<Session>>, id: String, body: String) -> Answer<bool> {
+    Ok(held(&session).retell(&id, &body))
 }
 
 #[tauri::command]
@@ -2985,7 +2992,7 @@ fn doc_export(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     into: String,
-) -> Answer<usize> {
+) -> Answer<Taken> {
     let session = held(&session);
     let pages: Vec<String> = session
         .state
@@ -3018,6 +3025,17 @@ fn doc_export(
         );
         Refusal::about("cannotWrite", into)
     })
+    .map(|took| Taken {
+        files: took.files,
+        missed: took.missed,
+    })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Taken {
+    files: usize,
+    missed: usize,
 }
 
 #[tauri::command(async)]
@@ -4917,6 +4935,7 @@ pub fn run() {
             doc_facts,
             keep_pdf,
             doc_write,
+            doc_order,
             doc_new,
             doc_page,
             doc_drop,

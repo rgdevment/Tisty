@@ -26,7 +26,31 @@ pub fn last_of<'a>(keys: impl IntoIterator<Item = &'a str>) -> String {
     }
 }
 
+const LONG: usize = 20;
+
+/// Squeezing a key in before another lengthens it, and a run reordered from its text is
+/// squeezed on every move. Past a length nothing legitimate reaches, the whole run is dealt
+/// fresh keys instead: it costs one event per neighbour, once, rather than a key that grows
+/// for ever and is carried in every event, every row and every replay after it.
 pub fn resequenced(keys: &[&str]) -> Vec<Option<String>> {
+    let fresh = squeezed(keys);
+    match fresh.iter().flatten().any(|one| one.len() > LONG) {
+        true => afresh(keys),
+        false => fresh,
+    }
+}
+
+fn afresh(keys: &[&str]) -> Vec<Option<String>> {
+    let mut last = String::new();
+    keys.iter()
+        .map(|had| {
+            last = if last.is_empty() { first() } else { after(&last) };
+            (last != **had).then(|| last.clone())
+        })
+        .collect()
+}
+
+fn squeezed(keys: &[&str]) -> Vec<Option<String>> {
     let held = rising(keys);
     let mut fresh = vec![None; keys.len()];
     let mut last: Option<String> = None;
@@ -243,6 +267,30 @@ mod tests {
 
         assert!(now.windows(2).all(|two| two[0] < two[1]), "{now:?}");
         assert!(after("ñ").as_str() > "ñ");
+    }
+
+    #[test]
+    fn a_run_moved_about_for_ever_does_not_grow_keys_without_end() {
+        let mut keys: Vec<String> = vec![first()];
+        for _ in 0..7 {
+            keys.push(after(keys.last().unwrap()));
+        }
+
+        for _ in 0..20_000 {
+            let mut wanted: Vec<&str> = keys.iter().map(String::as_str).collect();
+            let last = wanted.pop().unwrap();
+            wanted.insert(0, last);
+            let fresh = resequenced(&wanted);
+            keys = wanted
+                .iter()
+                .zip(fresh)
+                .map(|(had, now)| now.unwrap_or_else(|| (*had).to_string()))
+                .collect();
+            assert!(keys.windows(2).all(|two| two[0] < two[1]), "{keys:?}");
+        }
+
+        let longest = keys.iter().map(String::len).max().unwrap();
+        assert!(longest <= LONG + 1, "{longest} characters after 20000 moves");
     }
 
     #[test]

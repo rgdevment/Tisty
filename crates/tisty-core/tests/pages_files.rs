@@ -448,7 +448,7 @@ fn exporting_ten_pages_carries_the_cover_the_pages_in_order_and_every_attachment
         "x is shared with the cover and y is shared between two pages, but each is one file"
     );
     // one copy per body that names it (cover+page1 for x, two pages for y, one for z), not one per unique file
-    assert_eq!(taken, 5);
+    assert_eq!(taken.files, 5);
 }
 
 #[test]
@@ -497,7 +497,7 @@ fn exporting_a_document_without_pages_still_works() {
     let out = tmp();
     let taken = docs::exported(data, &file, out.path()).unwrap();
 
-    assert_eq!(taken, 0);
+    assert_eq!(taken.files, 0);
     let folder = out.path().join("Solo");
     assert!(folder.join("Solo.md").exists());
     let entries: Vec<_> = std::fs::read_dir(&folder).unwrap().collect();
@@ -554,7 +554,11 @@ fn exporting_skips_a_page_whose_file_vanished_from_disk_without_aborting_the_res
     let out = tmp();
     let taken = docs::with_pages(data, &book_file, &[gone_file, kept_file], out.path()).unwrap();
 
-    assert_eq!(taken, 0);
+    assert_eq!(taken.files, 0);
+    assert_eq!(
+        taken.missed, 1,
+        "a book that came out a chapter short has to say so"
+    );
     let folder = out.path().join("Libro");
     assert!(folder.join("Libro.md").exists());
     assert!(!folder.join("01 Perdida.md").exists());
@@ -798,4 +802,50 @@ fn the_way_into_a_page_is_the_file_beside_it_once_the_book_is_out_of_tisty() {
         !said.contains("tisty:doc/"),
         "nothing may still point at a name only Tisty knows: {said}"
     );
+}
+
+#[test]
+fn a_book_of_more_than_ninety_nine_pages_still_comes_out_in_reading_order() {
+    let data_dir = tmp();
+    let data = data_dir.path();
+    let dev = device("mac0");
+    let mut state = State::default();
+    let mut seq = 0i64;
+
+    let (book, book_file) = add_doc(&mut state, data, &dev, &mut seq, "# Tomo\n\nportada");
+    for n in 1..=101 {
+        add_page(
+            &mut state,
+            data,
+            &dev,
+            &mut seq,
+            book,
+            &format!("# Pagina {n}\n\nmarker-{n}\n"),
+        );
+    }
+
+    let page_files: Vec<String> = state
+        .pages_of(book)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    let out = tmp();
+    docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+
+    let folder = out.path().join("Tomo");
+    let mut names: Vec<String> = std::fs::read_dir(&folder)
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .map(|one| one.file_name().to_string_lossy().into_owned())
+        .filter(|one| one != "Tomo.md")
+        .collect();
+    names.sort();
+
+    assert_eq!(names.len(), 101);
+    assert_eq!(names[0], "001 Pagina-1.md");
+    assert_eq!(
+        names[1], "002 Pagina-2.md",
+        "sorted by name is sorted to read"
+    );
+    assert_eq!(names[100], "101 Pagina-101.md");
 }
