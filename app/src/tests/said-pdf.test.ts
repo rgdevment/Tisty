@@ -62,3 +62,29 @@ describe("a table reaches the book leaning the way it was written", () => {
     expect(one.leans).toEqual(["left", null, "right"]);
   });
 });
+
+describe("a picture inside a callout reaches the book like any other", () => {
+  const doc = {
+    type: "doc",
+    content: [
+      {
+        type: "callout",
+        attrs: { kind: "warning" },
+        content: [{ type: "image", attrs: { src: "attachments/ab/una.png", alt: "una" } }],
+      },
+    ],
+  };
+
+  it("is carried in, not left as a path react-pdf cannot read", async () => {
+    const { fetched } = await import("../ui/shaping");
+    const bytes = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...new Array(40).fill(0)];
+    const out = await fetched(shapesOf(doc as never), async () => bytes);
+    const one = out[0];
+    expect(one.kind).toBe("said");
+    if (one.kind !== "said") return;
+    const kid = one.inner[0];
+    expect(kid.kind).toBe("image");
+    if (kid.kind !== "image") return;
+    expect(kid.src.startsWith("attachments/")).toBe(false);
+  });
+});

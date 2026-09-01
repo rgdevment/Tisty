@@ -523,13 +523,16 @@ const Said = Node.create({
         tag: "blockquote",
         priority: 60,
         getAttrs: (node) => {
-          const kind = kindOf((node as HTMLElement).textContent ?? "");
+          // The quote's own first paragraph, not any paragraph inside anything it holds.
+          const first = (node as HTMLElement).firstElementChild;
+          if (first?.tagName !== "P") return false;
+          const kind = kindOf(first.textContent ?? "");
           return kind ? { kind } : false;
         },
         contentElement: (node) => {
           const held = (node as HTMLElement).cloneNode(true) as HTMLElement;
-          const first = held.querySelector("p");
-          if (!first) return held;
+          const first = held.firstElementChild;
+          if (first?.tagName !== "P") return held;
           const walk = document.createTreeWalker(first, NodeFilter.SHOW_TEXT);
           const start = walk.nextNode();
           if (start) start.nodeValue = (start.nodeValue ?? "").replace(MARKED, "");
@@ -597,15 +600,22 @@ const leaning = () => ({
   },
 });
 
+const barred = {
+  addKeyboardShortcuts() {
+    // Markdown cannot write a cell of two paragraphs, so Enter must not make one.
+    return { Enter: () => true };
+  },
+};
+
 const Celled = TableCell.extend({
-  content: "paragraph",
+  ...barred,
   addAttributes() {
     return { ...this.parent?.(), ...leaning() };
   },
 });
 
 const Headed = TableHeader.extend({
-  content: "paragraph",
+  ...barred,
   addAttributes() {
     return { ...this.parent?.(), ...leaning() };
   },
@@ -618,7 +628,8 @@ const RULED: Record<string, string> = {
 };
 
 interface Celling {
-  firstChild: { textContent: string } | null;
+  type: { name: string };
+  forEach: (fn: (kid: ProseNode) => void) => void;
   childCount: number;
   attrs: { textAlign?: string | null; colspan?: number; rowspan?: number };
 }
@@ -646,12 +657,16 @@ const Ruled = Table.configure({ resizable: false }).extend({
         ) {
           // A span or a cell holding more than one block has no markdown to be written in.
           let plain = true;
-          node.forEach((row) =>
+          node.forEach((row, _at, index) => {
             row.forEach((cell) => {
               const { colspan = 1, rowspan = 1 } = cell.attrs;
-              if (colspan > 1 || rowspan > 1 || cell.childCount > 1) plain = false;
-            }),
-          );
+              const heading = cell.type.name === "tableHeader";
+              // The first row heads the table and the rest do not, or markdown invents one.
+              if (colspan > 1 || rowspan > 1 || cell.childCount > 1 || heading !== (index === 0)) {
+                plain = false;
+              }
+            });
+          });
           if (!plain) {
             const held = node as unknown as ProseNode;
             state.write(getHTMLFromFragment(Fragment.from(held), held.type.schema));
@@ -665,8 +680,17 @@ const Ruled = Table.configure({ resizable: false }).extend({
             row.forEach((cell, _spot, column) => {
               if (column) state.write(" | ");
               if (!index) leans[column] = cell.attrs.textAlign ?? null;
-              const held = cell.firstChild;
-              if (held?.textContent.trim()) state.renderInline(held);
+              // Markdown holds only inline content in a cell, and an image node is a block
+              // here, so it is written by hand rather than skipped for having no text.
+              cell.forEach((kid) => {
+                if (kid.type.name === "image") {
+                  state.write(
+                    `![${labelled(String(kid.attrs.alt ?? ""))}](${String(kid.attrs.src ?? "")})`,
+                  );
+                } else if (kid.content.size > 0) {
+                  state.renderInline(kid);
+                }
+              });
             });
             state.write(" |");
             state.ensureNewLine();
@@ -725,6 +749,9 @@ export const TONGUES = [
 
 const KNOWN: string[] = [...TONGUES, "mermaid"];
 
+// One counter for the window: mermaid resolves its id against the whole document.
+let sketches = 0;
+
 const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) }).extend({
   addNodeView() {
     return ({ node, editor, getPos }) => {
@@ -780,28 +807,29 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       held.append(bar, body, drawn);
 
       let asked = 0;
+      let drew = "";
 
       const sketched = (source: string) => {
-        const mine = (asked += 1);
+        asked += 1;
+        sketches += 1;
+        const mine = asked;
+        const named = `said${sketches}`;
         if (!source.trim()) {
-          held.classList.remove("lit-sketched");
           drawn.replaceChildren();
           return;
         }
         import("mermaid")
           .then(({ default: mermaid }) => {
             mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
-            return mermaid.render(`said${mine}`, source);
+            return mermaid.render(named, source, drawn);
           })
           .then(({ svg }) => {
             if (mine !== asked) return;
             drawn.innerHTML = svg;
-            held.classList.add("lit-sketched");
           })
           .catch(() => {
             if (mine !== asked) return;
             drawn.replaceChildren();
-            held.classList.remove("lit-sketched");
           });
       };
 
@@ -819,11 +847,15 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       const sketching = (one: { attrs: Record<string, unknown>; textContent: string | null }) => {
         if (String(one.attrs.language ?? "") !== "mermaid") {
           asked += 1;
+          drew = "";
           drawn.replaceChildren();
-          held.classList.remove("lit-sketched");
           return;
         }
-        sketched(one.textContent ?? "");
+        const source = one.textContent ?? "";
+        // Every keystroke would otherwise start a render, and a failed one leaves litter behind.
+        if (source === drew) return;
+        drew = source;
+        sketched(source);
       };
       sketching(node);
 

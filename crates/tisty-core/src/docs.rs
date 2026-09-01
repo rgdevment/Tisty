@@ -185,6 +185,7 @@ pub fn marked(body: &str, said: &str) -> String {
     let mut seen = 0;
     let mut out: Vec<String> = Vec::new();
     let mut done = false;
+    let mut fenced = false;
 
     for line in bare.lines() {
         let trimmed = line.trim();
@@ -207,12 +208,33 @@ pub fn marked(body: &str, said: &str) -> String {
             out.push(line.to_string());
             continue;
         }
-        if wordless(trimmed) {
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            fenced = !fenced;
             out.push(line.to_string());
             continue;
         }
-        out.push(format!("{} ({said})", line.trim_end()));
-        done = true;
+        if fenced || wordless(trimmed) {
+            out.push(line.to_string());
+            continue;
+        }
+        // The name goes after the marker, not on top of it, or the alert stops being one.
+        let (head, rest) = match trimmed.strip_prefix('>') {
+            Some(after) => {
+                let after = after.trim_start();
+                match crate::refs::alerted(after) {
+                    Some(_) if after.trim_end().ends_with(']') => (line.trim_end(), None),
+                    _ => (line.trim_end(), Some(())),
+                }
+            }
+            None => (line.trim_end(), Some(())),
+        };
+        match rest {
+            Some(()) => {
+                out.push(format!("{head} ({said})"));
+                done = true;
+            }
+            None => out.push(line.to_string()),
+        }
     }
 
     if !done {

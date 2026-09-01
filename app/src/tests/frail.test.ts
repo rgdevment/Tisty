@@ -107,3 +107,21 @@ describe("what a document brings that the editor cannot keep", () => {
     expect(frail("- **negrita** y <u>subrayado</u>\n- otro")).toEqual([]);
   });
 });
+
+describe("a fence is a fence however it is written", () => {
+  it("leaves html inside a tilde fence alone", () => {
+    expect(frail("~~~html\n<div>x</div>\n~~~")).toEqual([]);
+  });
+
+  it("leaves html inside an indented fence alone", () => {
+    expect(frail("- Ejemplo:\n\n  ```html\n  <div>x</div>\n  ```")).toEqual([]);
+  });
+
+  it("leaves html inside a fence within a callout alone", () => {
+    expect(frail("> [!NOTE]\n> ```html\n> <div>x</div>\n> ```")).toEqual([]);
+  });
+
+  it("still sees html that is not fenced at all", () => {
+    expect(frail("# t\n\n<div>x</div>")).toContain("frailHtml");
+  });
+});

@@ -680,7 +680,8 @@ body {
   flex: 0 0 auto;
   text-align: right;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.88em;
+  /* The code is 0.88em inside a 0.88em pre, so the gutter has to match or the numbers drift. */
+  font-size: 0.7744em;
   line-height: 1.55;
   color: var(--tisty-faint);
   opacity: 0.55;

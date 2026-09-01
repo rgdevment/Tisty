@@ -1,6 +1,7 @@
 import { Document, Font, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { Paper } from "../core";
 import { led } from "../leading";
+import { t } from "../locales";
 
 export const SIZES: Record<Paper, [number, number]> = {
   a4: [595.28, 841.89],
@@ -276,7 +277,9 @@ const shaped = (one: Shape, at: number, room: number) => {
           key={key}
           style={[sheet.noted, { borderLeftColor: hue, backgroundColor: `${hue}12` }]}
         >
-          <Text style={[sheet.notedWho, { color: hue }]}>{one.said.toUpperCase()}</Text>
+          <Text style={[sheet.notedWho, { color: hue }]}>
+            {t(`said${one.said}` as Parameters<typeof t>[0]).toUpperCase()}
+          </Text>
           {one.inner.map((kid, deep) => shaped(kid, deep, room - 24))}
         </View>
       );

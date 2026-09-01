@@ -339,8 +339,10 @@ the code and nothing else.
 above is syntax another reader already understands, so the file survives without
 Tisty. Where Markdown genuinely cannot say a thing — an icon in a line of text —
 Tisty writes the small piece of HTML that can, and reads it back. Where the
-editor meets something it cannot write back out, it says so and opens the
-document read-only rather than quietly destroying it.
+editor meets a shape it is known not to keep — front matter, footnotes, links
+written by reference, blocks of HTML — it says so and opens the document
+read-only rather than quietly destroying it. That list is what it checks, not a
+promise about everything a Markdown file can hold.
 
 The writing sits on a lit page, and its first line is both the name of the
 document and its title. When the window is wide enough a column opens beside it

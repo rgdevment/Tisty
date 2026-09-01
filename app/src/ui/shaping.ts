@@ -195,6 +195,10 @@ export const fetched = async (
   });
 
   for (const one of shapes) {
+    if (one.kind === "said") {
+      out.push({ ...one, inner: await fetched(one.inner, read, leaf) });
+      continue;
+    }
     if (one.kind !== "image" || /^(https?|data):/i.test(one.src)) {
       out.push(one);
       continue;

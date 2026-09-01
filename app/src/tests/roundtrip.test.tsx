@@ -574,3 +574,34 @@ describe("typing a callout by hand, which is how one actually gets written", () 
     expect(written_("Una cita normal")).toBe("> Una cita normal");
   });
 });
+
+describe("a table holds what markdown can hold, and keeps the rest whole", () => {
+  it("keeps a picture in a cell instead of emptying it", () => {
+    const was =
+      "| build | cover |\n| --- | --- |\n| ![b](https://x/b.svg) | ![c](https://x/c.svg) |\n";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("is a fixed point with a picture in a cell", () => {
+    const once = roundtripped("| a |\n| --- |\n| ![b](https://x/b.svg) |");
+    expect(roundtripped(once)).toBe(once);
+  });
+});
+
+describe("a callout is the quote's own first line, never one it holds", () => {
+  it("leaves a marker inside a list inside a quote as the text it is", () => {
+    const was = "> - [!NOTE] item\n>\n> - dos";
+    expect(roundtripped(was)).toContain("item");
+    expect(roundtripped(roundtripped(was))).toBe(roundtripped(was));
+  });
+
+  it("leaves a nested callout at the depth it was written", () => {
+    const was = "> > [!NOTE]\n> > dentro";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("does not empty a nested quote", () => {
+    const was = "> > [!NOTE]\n>\n> texto";
+    expect(roundtripped(was)).toBe(was);
+  });
+});

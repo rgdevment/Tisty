@@ -1023,11 +1023,17 @@ syntax says, and a document full of that is a document that has stopped being
 Markdown. Column alignment reads like the same feature and is not: `|:---:|` is
 the table's own syntax, and every reader honours it.
 
-**When the editor meets syntax it cannot write back out**, it does not guess and
+**When the editor meets syntax it is known not to keep**, it does not guess and
 it does not quietly drop it. `frail` names what it found — front matter,
 footnotes, reference links, blocks of HTML — the document opens read-only, and
 the person is offered a conversion they can refuse. Losing formatting loudly is
 recoverable; losing it silently is not.
+
+`frail` is a list of shapes, though, not a proof. It and `docs::survives` — the
+same question asked on the agent's side — are two implementations of one idea and
+they do not agree everywhere: an HTML entity, or an inline `<kbd>`, is refused to
+an agent and edited by the window. Where they disagree, the honest reading is that
+the window keeps less than the list implies, not that the file is safe.
 
 ## Taking a document out
 
