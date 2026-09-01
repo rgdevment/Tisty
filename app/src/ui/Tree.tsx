@@ -31,12 +31,13 @@ export default function Tree({
   onDocMenu,
 }: Props) {
   const [shut, setShut] = useState<Set<string>>(new Set());
+  const [spread, setSpread] = useState<Set<string>>(new Set());
   const [over, setOver] = useState<string | null>(null);
   const [lifted, setLifted] = useState<{ id: string; kind: "doc" | "folder"; name: string } | null>(
     null,
   );
   const [reached, setReached] = useState<string | null>(null);
-  const listed = useRef<HTMLUListElement>(null);
+  const listed = useRef<HTMLDivElement>(null);
 
   const rows = () => Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
 
@@ -86,13 +87,28 @@ export default function Tree({
       e.preventDefault();
       return setLifted(null);
     }
-    if ((e.ctrlKey || e.metaKey) && (e.key === "x" || e.key === "X") && row.id !== "unfiled") {
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      (e.key === "x" || e.key === "X") &&
+      row.id !== "unfiled" &&
+      !papers.docs.some((one) => one.id === row.id && one.pageOf)
+    ) {
       e.preventDefault();
       return setLifted(row);
     }
     if ((e.ctrlKey || e.metaKey) && (e.key === "v" || e.key === "V") && row.kind === "folder") {
       e.preventDefault();
       return land(place);
+    }
+    if (row.kind === "doc" && pagesOf(row.id).length > 0) {
+      if (e.key === "ArrowRight" && !spread.has(row.id)) {
+        e.preventDefault();
+        return unfold(row.id);
+      }
+      if (e.key === "ArrowLeft" && spread.has(row.id)) {
+        e.preventDefault();
+        return unfold(row.id);
+      }
     }
     if (row.kind === "folder" && row.id !== "unfiled") {
       if (e.key === "ArrowRight" && shut.has(row.id)) {
@@ -110,25 +126,39 @@ export default function Tree({
   const STEP = 15;
   const ELBOW = 26;
 
-  const shortcuts = (kind: "doc" | "folder") =>
-    lifted && kind === "folder" ? "Control+V Control+X Shift+F10" : "Control+X Shift+F10";
+  const shortcuts = (kind: "doc" | "folder" | "page") =>
+    kind === "page"
+      ? "Shift+F10"
+      : lifted && kind === "folder"
+        ? "Control+V Control+X Shift+F10"
+        : "Control+X Shift+F10";
 
   const fold = (id: string) => {
     if (!shut.has(id)) setReached(id);
-    setShut((were) => {
-      const now = new Set(were);
-      if (now.has(id)) now.delete(id);
-      else now.add(id);
-      return now;
-    });
+    setShut((were) => turned(were, id));
+  };
+
+  // A document arrives shut: its pages are inside it, not a level of the tree standing open.
+  const unfold = (id: string) => {
+    if (!spread.has(id)) setReached(id);
+    setSpread((were) => turned(were, id));
+  };
+
+  const turned = (were: Set<string>, id: string) => {
+    const now = new Set(were);
+    if (now.has(id)) now.delete(id);
+    else now.add(id);
+    return now;
   };
 
   const under = (parent: string | null) => papers.folders.filter((one) => one.parent === parent);
 
   const inside = (folder: string | null) =>
-    papers.docs.filter((one) => !one.archived && one.folder === folder);
+    papers.docs.filter((one) => !one.archived && !one.pageOf && one.folder === folder);
 
-  const away = papers.docs.filter((one) => one.archived);
+  const pagesOf = (id: string) => papers.docs.filter((one) => one.pageOf === id);
+
+  const away = papers.docs.filter((one) => one.archived && !one.pageOf);
 
   const dropOn = (folder?: string) => ({
     onDragOver: (e: React.DragEvent) => {
@@ -146,64 +176,97 @@ export default function Tree({
     },
   });
 
-  const paper = (doc: Filed, depth: number) => {
-    const worn = led(doc.title || t("untitledDoc"));
+  const paper = (doc: Filed, depth: number, page = false) => {
+    const name = doc.title || t("untitledDoc");
+    const worn = page ? { mark: null, rest: name } : led(name);
+    const pages = pagesOf(doc.id);
+    const closed = !spread.has(doc.id) && !pages.some((one) => one.file === open);
     return (
-      <li
-        key={doc.id}
-        className="group/paper relative flex items-center focus-within:bg-hover"
-        onContextMenu={(e) => {
-          if (!onDocMenu) return;
-          e.preventDefault();
-          onDocMenu(doc, { x: e.clientX, y: e.clientY });
-        }}
-      >
-        {depth > 0 && (
+      <li key={doc.id} className="relative">
+        <div
+          className="group/paper relative flex items-center focus-within:bg-hover"
+          onContextMenu={(e) => {
+            if (!onDocMenu) return;
+            e.preventDefault();
+            onDocMenu(doc, { x: e.clientX, y: e.clientY });
+          }}
+        >
+          {depth > 0 && (
+            <span
+              aria-hidden="true"
+              className="absolute top-1/2 h-px bg-hair"
+              style={{ left: `${14 + (depth - 1) * STEP}px`, width: `${ELBOW}px` }}
+            />
+          )}
+          {pages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => unfold(doc.id)}
+              aria-label={fill(closed ? "openFolder" : "closeFolder", name)}
+              aria-expanded={!closed}
+              aria-controls={`pages-${doc.id}`}
+              style={{ marginLeft: `${8 + depth * STEP}px` }}
+              className="grid h-5 w-3 shrink-0 place-items-center rounded text-[9px] text-faint hover:text-ink"
+            >
+              <span className={`transition-transform ${closed ? "-rotate-90" : ""}`}>▼</span>
+            </button>
+          )}
+          <button
+            type="button"
+            draggable={!page}
+            data-row={doc.id}
+            tabIndex={stops(doc.id) ? 0 : -1}
+            onFocus={() => setReached(doc.id)}
+            onKeyDown={(e) => typed(e, { id: doc.id, kind: "doc", name })}
+            aria-keyshortcuts={shortcuts(page ? "page" : "doc")}
+            onDragStart={(e) => e.dataTransfer.setData("text/tisty-doc", doc.id)}
+            onClick={() => onOpen(doc)}
+            aria-label={lifted?.id === doc.id ? fill("liftedIs", name) : name}
+            aria-current={open === doc.file ? "true" : undefined}
+            style={pages.length > 0 ? undefined : { paddingLeft: `${8 + depth * STEP + ICON}px` }}
+            className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[12.5px] ${
+              pages.length > 0 ? "pl-1.5 " : ""
+            }${lifted?.id === doc.id ? "ring-1 ring-accent " : ""}${
+              doc.archived ? "opacity-55 " : ""
+            }${
+              open === doc.file
+                ? "bg-active text-ink"
+                : `${page ? "text-faint" : "text-soft"} hover:bg-hover`
+            }`}
+          >
+            <span className="flex w-3 shrink-0 justify-center text-faint">
+              {worn.mark ? (
+                <span className="text-[12px] leading-none">{worn.mark}</span>
+              ) : (
+                <Glyph
+                  name={page ? "alignleft" : "page"}
+                  className={page ? "h-[11px] w-[11px] opacity-70" : "h-[13px] w-[13px]"}
+                />
+              )}
+            </span>
+            <span className="truncate">{worn.rest}</span>
+            {doc.gone && (
+              <span title={t("goneDoc")} className="shrink-0 text-[9px] text-urgent">
+                ⚠
+              </span>
+            )}
+            {pages.length > 0 && (
+              <span className="ml-auto shrink-0 pl-2 text-[11px] text-faint">
+                {pages.length === 1 ? t("pageHeld") : fill("pagesHeld", String(pages.length))}
+              </span>
+            )}
+          </button>
+        </div>
+        {pages.length > 0 && !closed && (
           <span
             aria-hidden="true"
-            className="absolute top-1/2 h-px bg-hair"
-            style={{ left: `${14 + (depth - 1) * STEP}px`, width: `${ELBOW}px` }}
+            className="absolute bottom-1 w-px bg-hair"
+            style={{ left: `${14 + depth * STEP}px`, top: "26px" }}
           />
         )}
-        <button
-          type="button"
-          draggable
-          data-row={doc.id}
-          tabIndex={stops(doc.id) ? 0 : -1}
-          onFocus={() => setReached(doc.id)}
-          onKeyDown={(e) =>
-            typed(e, { id: doc.id, kind: "doc", name: doc.title || t("untitledDoc") })
-          }
-          aria-keyshortcuts={shortcuts("doc")}
-          onDragStart={(e) => e.dataTransfer.setData("text/tisty-doc", doc.id)}
-          onClick={() => onOpen(doc)}
-          aria-label={
-            lifted?.id === doc.id
-              ? fill("liftedIs", doc.title || t("untitledDoc"))
-              : doc.title || t("untitledDoc")
-          }
-          aria-current={open === doc.file ? "true" : undefined}
-          style={{ paddingLeft: `${8 + depth * STEP + ICON}px` }}
-          className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[12.5px] ${
-            lifted?.id === doc.id ? "ring-1 ring-accent " : ""
-          }${doc.archived ? "opacity-55 " : ""}${
-            open === doc.file ? "bg-active text-ink" : "text-soft hover:bg-hover"
-          }`}
-        >
-          <span className="flex w-3 shrink-0 justify-center text-faint">
-            {worn.mark ? (
-              <span className="text-[12px] leading-none">{worn.mark}</span>
-            ) : (
-              <Glyph name="page" className="h-[13px] w-[13px]" />
-            )}
-          </span>
-          <span className="truncate">{worn.rest}</span>
-          {doc.gone && (
-            <span title={t("goneDoc")} className="shrink-0 text-[9px] text-urgent">
-              ⚠
-            </span>
-          )}
-        </button>
+        {pages.length > 0 && !closed && (
+          <ul id={`pages-${doc.id}`}>{pages.map((one) => paper(one, depth + 1, true))}</ul>
+        )}
       </li>
     );
   };
@@ -292,11 +355,13 @@ export default function Tree({
 
   const loose = papers.docs.filter(
     (one) =>
-      !one.archived && (one.folder === null || !papers.folders.some((at) => at.id === one.folder)),
+      !one.archived &&
+      !one.pageOf &&
+      (one.folder === null || !papers.folders.some((at) => at.id === one.folder)),
   );
 
   const tree = (
-    <ul ref={listed} aria-label={t("docs")} className="flex flex-col gap-px">
+    <ul aria-label={t("docs")} className="flex flex-col gap-px">
       {papers.folders.length === 0 && papers.docs.length === 0 && (
         <li className="px-2.5 py-2 text-[12px] text-faint">{t("noDocsYet")}</li>
       )}
@@ -405,9 +470,9 @@ export default function Tree({
   );
 
   return (
-    <>
+    <div ref={listed}>
       {tree}
       {kept}
-    </>
+    </div>
   );
 }

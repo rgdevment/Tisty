@@ -56,6 +56,24 @@ impl State {
         state
     }
 
+    /// A page is put away and brought back with its document, never on its own.
+    fn shelve(&mut self, id: DocId, away: bool) {
+        if self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
+            return;
+        }
+        let pages: Vec<DocId> = self
+            .docs
+            .values()
+            .filter(|one| one.page_of == Some(id))
+            .map(|one| one.id)
+            .collect();
+        for one in pages.into_iter().chain(std::iter::once(id)) {
+            if let Some(doc) = self.docs.get_mut(&one) {
+                doc.archived = away;
+            }
+        }
+    }
+
     pub fn apply(&mut self, event: &Event) {
         if event
             .entity_id()
@@ -199,40 +217,95 @@ impl State {
                 }
             }
             Op::DocAdd { id, d } => {
+                // A page of a page is not a thing; the deeper one is kept as a document.
+                let page_of = d
+                    .page_of
+                    .filter(|up| self.docs.get(up).is_some_and(|one| one.page_of.is_none()));
+                let under = page_of.and_then(|up| self.docs.get(&up));
                 self.docs.insert(
                     *id,
                     Kept {
                         id: *id,
                         file: d.file.clone(),
                         order: d.order.clone(),
-                        folder: d.folder,
-                        archived: false,
+                        folder: match under {
+                            Some(one) => one.folder,
+                            None => d.folder,
+                        },
+                        page_of,
+                        archived: under.is_some_and(|one| one.archived),
                     },
                 );
             }
             Op::DocMove { id, d } => {
+                if let Some(page_of) = d.page_of {
+                    let holds_pages = self.docs.values().any(|one| one.page_of == Some(*id));
+                    let allowed = page_of.filter(|up| {
+                        up != id
+                            && !holds_pages
+                            && self.docs.get(up).is_some_and(|one| one.page_of.is_none())
+                    });
+                    // Refusing to hang it somewhere is not a reason to unhang it from where it is.
+                    if allowed.is_some() || page_of.is_none() {
+                        let under = allowed
+                            .and_then(|up| self.docs.get(&up))
+                            .map(|one| (one.folder, one.archived));
+                        let beside = allowed.map(|up| {
+                            crate::order::last_of(
+                                self.docs
+                                    .values()
+                                    .filter(|one| one.page_of == Some(up))
+                                    .map(|one| one.order.as_str()),
+                            )
+                        });
+                        if let Some(doc) = self.docs.get_mut(id) {
+                            doc.page_of = allowed;
+                            if let Some((folder, archived)) = under {
+                                doc.folder = folder;
+                                doc.archived = archived;
+                                doc.order = beside.unwrap_or_else(|| doc.order.clone());
+                            }
+                        }
+                    }
+                }
+                if let Some(order) = d.order.clone()
+                    && let Some(doc) = self.docs.get_mut(id)
+                {
+                    doc.order = order;
+                }
                 if let Some(folder) = d.folder
                     && let Some(doc) = self.docs.get_mut(id)
+                    && doc.page_of.is_none()
                 {
                     doc.folder = folder;
                 }
+                // Pages live where their document lives, and follow it without being told.
+                if let Some(under) = self.docs.get(id).filter(|one| one.page_of.is_none()) {
+                    let (parent, folder) = (under.id, under.folder);
+                    for one in self.docs.values_mut() {
+                        if one.page_of == Some(parent) {
+                            one.folder = folder;
+                        }
+                    }
+                }
             }
             Op::DocDelete { id } => {
-                if let Some(gone) = self.docs.remove(id) {
-                    self.shed.insert(gone.file);
+                // A page is part of its document, so it goes where the document goes.
+                let pages: Vec<DocId> = self
+                    .docs
+                    .values()
+                    .filter(|one| one.page_of == Some(*id))
+                    .map(|one| one.id)
+                    .collect();
+                for one in pages.into_iter().chain(std::iter::once(*id)) {
+                    if let Some(gone) = self.docs.remove(&one) {
+                        self.shed.insert(gone.file);
+                    }
+                    self.tombstones.insert(one);
                 }
-                self.tombstones.insert(*id);
             }
-            Op::DocArchive { id } => {
-                if let Some(doc) = self.docs.get_mut(id) {
-                    doc.archived = true;
-                }
-            }
-            Op::DocUnarchive { id } => {
-                if let Some(doc) = self.docs.get_mut(id) {
-                    doc.archived = false;
-                }
-            }
+            Op::DocArchive { id } => self.shelve(*id, true),
+            Op::DocUnarchive { id } => self.shelve(*id, false),
             Op::DeviceJoin { d, k } => {
                 self.dropped.remove(d);
                 self.devices.insert(d.clone());
@@ -372,16 +445,27 @@ impl State {
     pub fn unfiled(&self) -> Vec<&Kept> {
         self.docs
             .values()
-            .filter(|one| !one.archived)
+            .filter(|one| !one.archived && one.page_of.is_none())
             .filter(|one| one.folder.is_none_or(|at| !self.folders.contains_key(&at)))
             .collect()
     }
 
+    /// Pages are counted with their document, not beside it.
     pub fn inside(&self, folder: FolderId) -> Vec<&Kept> {
         self.docs
             .values()
-            .filter(|one| !one.archived && one.folder == Some(folder))
+            .filter(|one| !one.archived && one.page_of.is_none() && one.folder == Some(folder))
             .collect()
+    }
+
+    pub fn pages_of(&self, doc: DocId) -> Vec<&Kept> {
+        let mut pages: Vec<&Kept> = self
+            .docs
+            .values()
+            .filter(|one| one.page_of == Some(doc))
+            .collect();
+        pages.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
+        pages
     }
 
     pub fn put_away(&self) -> Vec<&Kept> {
@@ -3496,6 +3580,7 @@ mod tests {
                     file: file.into(),
                     order: "a0".into(),
                     folder,
+                    page_of: None,
                 },
             },
         ));
@@ -3555,6 +3640,8 @@ mod tests {
                 id: one,
                 d: crate::event::Filed {
                     folder: Some(Some(work)),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -3574,7 +3661,11 @@ mod tests {
             "a",
             Op::DocMove {
                 id: one,
-                d: crate::event::Filed { folder: Some(None) },
+                d: crate::event::Filed {
+                    folder: Some(None),
+                    page_of: None,
+                    order: None,
+                },
             },
         ));
 
@@ -3641,6 +3732,7 @@ mod tests {
                     file: "a-0001".into(),
                     order: "a0".into(),
                     folder: None,
+                    page_of: None,
                 },
             },
         ));
@@ -3669,6 +3761,7 @@ mod tests {
                     file: "a3f1-0001".into(),
                     order: "a0".into(),
                     folder: None,
+                    page_of: None,
                 },
             },
         ));
@@ -3865,6 +3958,8 @@ mod tests {
                 id: inside,
                 d: crate::event::Filed {
                     folder: Some(Some(Ulid::generate())),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -3898,6 +3993,8 @@ mod tests {
                 id: work,
                 d: crate::event::Filed {
                     folder: Some(Some(three)),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -3924,6 +4021,8 @@ mod tests {
                 id: moved,
                 d: crate::event::Filed {
                     folder: Some(Some(two)),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -3948,6 +4047,8 @@ mod tests {
                 id: moved,
                 d: crate::event::Filed {
                     folder: Some(Some(three)),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -3976,6 +4077,8 @@ mod tests {
                 id: loose,
                 d: crate::event::Filed {
                     folder: Some(Some(third)),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -3989,6 +4092,8 @@ mod tests {
                 id: deeper,
                 d: crate::event::Filed {
                     folder: Some(Some(loose)),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4012,6 +4117,8 @@ mod tests {
                 id: alone,
                 d: crate::event::Filed {
                     folder: Some(Some(work)),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4032,6 +4139,8 @@ mod tests {
                 id: work,
                 d: crate::event::Filed {
                     folder: Some(Some(inside)),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4066,10 +4175,340 @@ mod tests {
                 id: work,
                 d: crate::event::Filed {
                     folder: Some(Some(work)),
+                    page_of: None,
+                    order: None,
                 },
             },
         ));
 
         assert_eq!(state.folders[&work].parent, None);
+    }
+
+    fn page(state: &mut State, file: &str, page_of: DocId) -> DocId {
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::DocAdd {
+                id,
+                d: crate::event::DocAdd {
+                    file: file.into(),
+                    order: "a0".into(),
+                    folder: None,
+                    page_of: Some(page_of),
+                },
+            },
+        ));
+        id
+    }
+
+    fn moved(state: &mut State, id: DocId, d: crate::event::Filed) {
+        state.apply(&ev(2, "a", Op::DocMove { id, d }));
+    }
+
+    #[test]
+    fn a_page_is_born_where_its_document_lives() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let minutes = doc(&mut state, "a3f1-0001", Some(work));
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        assert_eq!(state.docs[&march].page_of, Some(minutes));
+        assert_eq!(state.docs[&march].folder, Some(work));
+    }
+
+    #[test]
+    fn a_page_of_a_page_is_kept_as_a_document() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+        let deeper = page(&mut state, "a3f1-0003", march);
+
+        assert_eq!(
+            state.docs[&deeper].page_of, None,
+            "only a document holds pages"
+        );
+    }
+
+    #[test]
+    fn a_document_made_a_page_of_a_page_stays_a_document() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+        let loose = doc(&mut state, "a3f1-0003", None);
+
+        moved(
+            &mut state,
+            loose,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(march)),
+                order: None,
+            },
+        );
+
+        assert_eq!(state.docs[&loose].page_of, None);
+    }
+
+    #[test]
+    fn a_document_cannot_be_made_a_page_of_itself() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+
+        moved(
+            &mut state,
+            minutes,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(minutes)),
+                order: None,
+            },
+        );
+
+        assert_eq!(state.docs[&minutes].page_of, None);
+    }
+
+    #[test]
+    fn pages_follow_the_folder_their_document_moves_to() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let home = folder(&mut state, "casa", None);
+        let minutes = doc(&mut state, "a3f1-0001", Some(work));
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        moved(
+            &mut state,
+            minutes,
+            crate::event::Filed {
+                folder: Some(Some(home)),
+                page_of: None,
+                order: None,
+            },
+        );
+
+        assert_eq!(state.docs[&march].folder, Some(home));
+    }
+
+    #[test]
+    fn a_page_cannot_be_filed_away_from_its_document() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let home = folder(&mut state, "casa", None);
+        let minutes = doc(&mut state, "a3f1-0001", Some(work));
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: Some(Some(home)),
+                page_of: None,
+                order: None,
+            },
+        );
+
+        assert_eq!(state.docs[&march].folder, Some(work));
+    }
+
+    #[test]
+    fn a_page_that_becomes_a_document_stays_where_it_was_and_may_then_move() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let home = folder(&mut state, "casa", None);
+        let minutes = doc(&mut state, "a3f1-0001", Some(work));
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(None),
+                order: None,
+            },
+        );
+        assert_eq!(state.docs[&march].page_of, None);
+        assert_eq!(state.docs[&march].folder, Some(work));
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: Some(Some(home)),
+                page_of: None,
+                order: None,
+            },
+        );
+        assert_eq!(state.docs[&march].folder, Some(home));
+    }
+
+    #[test]
+    fn a_page_moved_to_another_document_lands_in_its_folder() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let home = folder(&mut state, "casa", None);
+        let minutes = doc(&mut state, "a3f1-0001", Some(work));
+        let diary = doc(&mut state, "a3f1-0002", Some(home));
+        let march = page(&mut state, "a3f1-0003", minutes);
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(diary)),
+                order: None,
+            },
+        );
+
+        assert_eq!(state.docs[&march].page_of, Some(diary));
+        assert_eq!(state.docs[&march].folder, Some(home));
+    }
+
+    #[test]
+    fn deleting_a_document_takes_its_pages() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+        let april = page(&mut state, "a3f1-0003", minutes);
+
+        state.apply(&ev(3, "a", Op::DocDelete { id: minutes }));
+
+        assert!(state.docs.is_empty(), "a page is part of its document");
+        assert!(state.shed.contains("a3f1-0002"));
+        assert!(state.shed.contains("a3f1-0003"));
+        assert!(state.tombstones.contains(&march));
+        assert!(state.tombstones.contains(&april));
+    }
+
+    #[test]
+    fn deleting_a_page_leaves_its_document_alone() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        state.apply(&ev(3, "a", Op::DocDelete { id: march }));
+
+        assert!(state.docs.contains_key(&minutes));
+        assert!(!state.docs.contains_key(&march));
+    }
+
+    #[test]
+    fn archiving_a_document_puts_its_pages_away_and_brings_them_back() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        state.apply(&ev(3, "a", Op::DocArchive { id: minutes }));
+        assert!(state.docs[&march].archived);
+
+        state.apply(&ev(4, "a", Op::DocUnarchive { id: minutes }));
+        assert!(!state.docs[&march].archived);
+    }
+
+    #[test]
+    fn a_document_that_holds_pages_cannot_become_one() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        page(&mut state, "a3f1-0002", minutes);
+        let diary = doc(&mut state, "a3f1-0003", None);
+
+        moved(
+            &mut state,
+            minutes,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(diary)),
+                order: None,
+            },
+        );
+
+        assert_eq!(state.docs[&minutes].page_of, None);
+    }
+
+    #[test]
+    fn a_page_refused_a_new_document_stays_with_the_one_it_had() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(Ulid::generate())),
+                order: None,
+            },
+        );
+
+        assert_eq!(
+            state.docs[&march].page_of,
+            Some(minutes),
+            "a refusal cannot be a way to unhang a page"
+        );
+    }
+
+    #[test]
+    fn a_page_hung_under_a_document_that_is_away_is_away_too() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let loose = doc(&mut state, "a3f1-0002", None);
+        state.apply(&ev(2, "a", Op::DocArchive { id: minutes }));
+
+        moved(
+            &mut state,
+            loose,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(minutes)),
+                order: None,
+            },
+        );
+
+        assert!(state.docs[&loose].archived);
+    }
+
+    #[test]
+    fn a_page_hung_under_a_document_lands_after_the_pages_already_there() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+        let loose = doc(&mut state, "a3f1-0003", None);
+
+        moved(
+            &mut state,
+            loose,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(minutes)),
+                order: None,
+            },
+        );
+
+        assert_eq!(
+            state
+                .pages_of(minutes)
+                .iter()
+                .map(|one| one.id)
+                .collect::<Vec<_>>(),
+            vec![march, loose],
+            "it was hung last and reads last"
+        );
+    }
+
+    #[test]
+    fn a_page_is_not_put_away_on_its_own() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        state.apply(&ev(3, "a", Op::DocArchive { id: march }));
+
+        assert!(
+            !state.docs[&march].archived,
+            "it goes away with its document"
+        );
+        assert!(!state.docs[&minutes].archived);
     }
 }

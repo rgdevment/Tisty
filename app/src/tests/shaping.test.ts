@@ -1,6 +1,9 @@
+import { generateJSON } from "@tiptap/core";
 import { describe, expect, it } from "vitest";
+import { composed } from "../markdown";
 import { type Shape, SIZES } from "../ui/paper";
 import { asData, fetched, shapesOf, titled } from "../ui/shaping";
+import { written } from "../ui/writing";
 
 const doc = (...content: unknown[]) => ({ type: "doc", content });
 const words = (text: string) => [{ type: "text", text }];
@@ -284,5 +287,25 @@ describe("what the printed page can and cannot draw", () => {
     const out = await fetched(shapes, () => Promise.resolve([137, 80, 78, 71]));
 
     expect((out[0] as { src: string }).src.startsWith("data:image/png;base64,")).toBe(true);
+  });
+});
+
+describe("a page that is not the one being edited", () => {
+  it("reads off disk into the same shapes the editor would have given", () => {
+    const body =
+      "# Marzo\n\nlo que se **dijo**.\n\n- uno\n- dos\n\n![plano](<attachments/ab/plano-a1b2.png>)";
+
+    const found = shapesOf(generateJSON(composed(body), written()));
+
+    expect(found.map((one) => one.kind)).toEqual(["heading", "para", "bullet", "bullet", "image"]);
+    expect((found[0] as { runs: { text: string }[] }).runs[0].text).toBe("Marzo");
+  });
+
+  it("keeps a table and a quote, which is what a book of minutes is made of", () => {
+    const body = "> lo dijo el comité\n\n| a | b |\n| - | - |\n| 1 | 2 |\n";
+
+    const found = shapesOf(generateJSON(composed(body), written()));
+
+    expect(found.map((one) => one.kind)).toEqual(["quote", "table"]);
   });
 });

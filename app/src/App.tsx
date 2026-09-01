@@ -19,6 +19,7 @@ import {
   docFile,
   docImport,
   docNew,
+  docPage,
   docs,
   dropStep,
   erase,
@@ -167,8 +168,8 @@ export default function App() {
   const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
   const asked = useRef(0);
 
-  const newDoc = (folder?: string) =>
-    docNew(folder)
+  const newDoc = (folder?: string, pageOf?: string) =>
+    docNew(folder, pageOf)
       .then((made) => {
         lookPapers();
         setChosen({ named: "docs", doc: made.id });
@@ -202,11 +203,21 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
 
   const dropDoc = (doc: Filed) =>
-    ask(fill("dropDocSure", doc.title || t("untitledDoc")), { kind: "warning" })
+    ask(
+      fill(
+        papers.docs.some((one) => one.pageOf === doc.id) ? "dropPagesSure" : "dropDocSure",
+        doc.title || t("untitledDoc"),
+      ),
+      { kind: "warning" },
+    )
       .then((yes) => {
         if (!yes) return;
-        if (chosen.doc === doc.file) setChosen({ named: "docs" });
-        setReturning(doc.folder ?? "unfiled");
+        const going = [
+          doc.file,
+          ...papers.docs.filter((one) => one.pageOf === doc.id).map((one) => one.file),
+        ];
+        if (chosen.doc && going.includes(chosen.doc)) setChosen({ named: "docs" });
+        setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
         return docDrop(doc.id).then(lookPapers);
       })
       .catch((e) => setError(saidPlainly(e)));
@@ -592,10 +603,27 @@ export default function App() {
       label: t("docActions"),
       choices: [
         {
+          key: "newPage",
+          icon: "+",
+          label: t("newPage"),
+          off: doc.archived || !!doc.pageOf,
+          onPick: () => newDoc(undefined, doc.id),
+        },
+        {
+          key: "ownDoc",
+          icon: "⇤",
+          label: t("ownDoc"),
+          off: !doc.pageOf,
+          onPick: () =>
+            docPage(doc.id)
+              .then(lookPapers)
+              .catch((e) => setError(saidPlainly(e))),
+        },
+        {
           key: "move",
           icon: "⇢",
           label: t("moveTo"),
-          off: doc.archived,
+          off: doc.archived || !!doc.pageOf,
           into: {
             label: t("moveHere"),
             choices: destinations(doc.folder, (folder) =>
@@ -663,6 +691,7 @@ export default function App() {
           key: "away",
           icon: doc.archived ? "▢" : "▣",
           label: doc.archived ? t("bringBack") : t("putAway"),
+          off: !!doc.pageOf,
           apart: true,
           onPick: () =>
             docAway(doc.id, !doc.archived)

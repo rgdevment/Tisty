@@ -8,7 +8,7 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 7;
+pub const SCHEMA_VERSION: u32 = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]

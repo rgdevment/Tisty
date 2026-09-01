@@ -123,7 +123,7 @@ pub fn doc(
             app.state
                 .docs
                 .values()
-                .filter(|one| one.folder.is_none())
+                .filter(|one| one.folder.is_none() && one.page_of.is_none())
                 .map(|one| one.order.as_str()),
         );
         app.commit(tisty_core::Op::DocAdd {
@@ -132,6 +132,7 @@ pub fn doc(
                 file: made.id.clone(),
                 order,
                 folder: None,
+                page_of: None,
             },
         })?;
         println!("  {}  {}", crate::style::dim(&made.id), made.title);
@@ -139,18 +140,32 @@ pub fn doc(
     }
 
     let Some(which) = which else {
-        let mut all: Vec<_> = app.state.docs.values().collect();
+        let titled = |file: &str| {
+            tisty_core::docs::resolve(&app.paths.docs(), file)
+                .ok()
+                .and_then(|at| std::fs::read_to_string(at).ok())
+                .map(|body| tisty_core::docs::titled(&body))
+                .unwrap_or_default()
+        };
+        let mut all: Vec<_> = app
+            .state
+            .docs
+            .values()
+            .filter(|one| one.page_of.is_none())
+            .collect();
         all.sort_by(|a, b| a.order.cmp(&b.order));
         if all.is_empty() {
             println!("  {}", crate::style::dim(lang.get("no-docs")));
         }
         for one in all {
-            let titled = tisty_core::docs::resolve(&app.paths.docs(), &one.file)
-                .ok()
-                .and_then(|at| std::fs::read_to_string(at).ok())
-                .map(|body| tisty_core::docs::titled(&body))
-                .unwrap_or_default();
-            println!("  {}  {titled}", crate::style::dim(&one.file));
+            println!("  {}  {}", crate::style::dim(&one.file), titled(&one.file));
+            for page in app.state.pages_of(one.id) {
+                println!(
+                    "    {}  {}",
+                    crate::style::dim(&page.file),
+                    titled(&page.file)
+                );
+            }
         }
         return Ok(ExitCode::SUCCESS);
     };

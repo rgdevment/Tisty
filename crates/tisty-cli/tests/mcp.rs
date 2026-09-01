@@ -273,6 +273,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "edit_doc",
             "docs",
             "file_doc",
+            "page_doc",
             "folder",
             "read_doc",
             "read",
@@ -1682,4 +1683,164 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
         taught.contains("named a `doc`"),
         "a file may be kept in a document too, and this is where that is learnt: {taught}"
     );
+}
+
+#[test]
+fn a_page_is_written_under_its_document_and_takes_its_folder() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Casa" }));
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Actas\n\nlas de este año.", "folder": "Casa" }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let page = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
+    );
+
+    assert_eq!(page["result"]["structuredContent"]["page_of"], doc);
+    assert_eq!(page["result"]["structuredContent"]["folder"], "Casa");
+}
+
+#[test]
+fn a_page_holds_no_pages_of_its_own() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Actas\n\nlas de este año." }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let page = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
+    );
+    let page = page["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let deeper = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Anexo\n\nel plano.", "page_of": page }),
+    );
+
+    assert_eq!(deeper["result"]["isError"], true, "{deeper}");
+}
+
+#[test]
+fn a_document_becomes_a_page_and_comes_back_out_as_a_document() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let one = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Actas\n\nlas de este año." }),
+    );
+    let one = one["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let two = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Marzo\n\nlo que se dijo." }),
+    );
+    let two = two["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let hung = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": two, "page_of": one }),
+    );
+    assert_eq!(hung["result"]["structuredContent"]["page_of"], one);
+
+    let holding = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": one, "page_of": two }),
+    );
+    assert_eq!(holding["result"]["isError"], true, "{holding}");
+
+    let out = served.call("page_doc", serde_json::json!({ "doc": two }));
+    assert!(
+        out["result"]["structuredContent"]["page_of"].is_null(),
+        "{out}"
+    );
+}
+
+#[test]
+fn a_page_is_not_filed_into_a_folder_of_its_own() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Casa" }));
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Actas\n\nlas de este año." }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let page = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
+    );
+    let page = page["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let filed = served.call(
+        "file_doc",
+        serde_json::json!({ "doc": page, "folder": "Casa" }),
+    );
+
+    assert_eq!(
+        filed["result"]["isError"], true,
+        "saying it moved when the core keeps it put is worse than refusing: {filed}"
+    );
+}
+
+#[test]
+fn nothing_is_hung_under_a_document_that_was_put_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Presupuesto viejo\n\nDel año pasado." }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let loose = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Anexo\n\nlas cifras." }),
+    );
+    let loose = loose["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.put_away(&doc);
+
+    let written = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
+    );
+    let hung = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": loose, "page_of": doc }),
+    );
+
+    assert_eq!(written["result"]["isError"], true, "{written}");
+    assert_eq!(hung["result"]["isError"], true, "{hung}");
 }

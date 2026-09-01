@@ -167,15 +167,22 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             id: *id,
             d: crate::event::Filed {
                 folder: Some(before.folders.get(id)?.parent),
+                page_of: None,
+                order: None,
             },
         }),
         Op::DocAdd { id, .. } => Some(Op::DocDelete { id: *id }),
-        Op::DocMove { id, .. } => Some(Op::DocMove {
-            id: *id,
-            d: crate::event::Filed {
-                folder: Some(before.docs.get(id)?.folder),
-            },
-        }),
+        Op::DocMove { id, d } => {
+            let was = before.docs.get(id)?;
+            Some(Op::DocMove {
+                id: *id,
+                d: crate::event::Filed {
+                    folder: Some(was.folder),
+                    page_of: d.page_of.map(|_| was.page_of),
+                    order: Some(was.order.clone()),
+                },
+            })
+        }
 
         Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),

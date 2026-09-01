@@ -137,11 +137,16 @@ export default function Beside({
               <dt className="text-faint">{t("paperWeighs")}</dt>
               <dd className="tabular-nums text-soft">{facts ? weigh(facts.bytes) : "—"}</dd>
             </div>
-            {(papers > 0 || files > 0) && (
+            {(papers > 0 || files > 0 || (facts?.pages ?? 0) > 0) && (
               <div className="flex items-baseline justify-between gap-2.5">
                 <dt className="text-faint">{t("paperHolds")}</dt>
                 <dd className="text-right tabular-nums text-soft">
                   {[
+                    facts?.pages
+                      ? facts.pages === 1
+                        ? t("pageHeld")
+                        : fill("pagesHeld", String(facts.pages))
+                      : "",
                     papers > 0 ? fill("paperDocs", String(papers)) : "",
                     files > 0 ? fill("paperFiles", String(files)) : "",
                   ]
