@@ -41,6 +41,7 @@ import {
   removeMachine,
   restore,
   retireAttachment,
+  retireAttachments,
   revealed,
   type Settings,
   type Stray,
@@ -358,16 +359,10 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
     ask(fill("upkeepSafeAllSure", String(astray.length)), { kind: "warning" })
       .then(async (sure) => {
         if (!sure) return;
-        setBusy("review");
-        try {
-          for (const one of astray) await retireAttachment(one.at);
-          setAudit(await checked());
+        run("review", retireAttachments(astray.map((one) => one.at)).then(checked), (now) => {
+          setAudit(now);
           setSaid({ card: "review", text: t("looseDropped") });
-        } catch (e) {
-          setTrouble({ card: "review", text: saidPlainly(e) });
-        } finally {
-          setBusy(null);
-        }
+        });
       })
       .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
   };
@@ -385,6 +380,15 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
       )
       .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
   };
+
+  const takeInAll = (strays: Stray[]) =>
+    run(
+      "review",
+      strays
+        .reduce((so, one) => so.then(() => docAdopt(one.file).then(() => {})), Promise.resolve())
+        .then(checked),
+      setAudit,
+    );
 
   const takeIn = (file: string) =>
     run(
@@ -1431,9 +1435,7 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                     <button
                       type="button"
                       disabled={held}
-                      onClick={() => {
-                        for (const one of audit.stranded) takeIn(one.file);
-                      }}
+                      onClick={() => takeInAll(audit.stranded)}
                       className="rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:border-hair disabled:text-faint"
                     >
                       {t("upkeepTakeInAll")}

@@ -577,6 +577,8 @@ export const guide = (): Promise<Doc> => invoke("guide");
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
 export const retireAttachment = (reference: string): Promise<void> =>
   invoke("retire_attachment", { reference });
+export const retireAttachments = (references: string[]): Promise<number> =>
+  invoke("retire_attachments", { references });
 export const removeMachine = (id: string): Promise<void> => invoke("remove_machine", { id });
 export const joinThem = (into: string): Promise<number> => invoke("join_them", { into });
 

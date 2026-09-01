@@ -221,6 +221,7 @@ const en = {
   upkeepClear: "Nothing kept twice. No brittle document.",
   upkeepInFull: "See the store in full",
   alreadyKept: "That document is already kept here",
+  shedAlready: "That file was deleted, and taking it in would only see it swept again",
   stillKept: "The log still names that file, so it stays",
   archivedList: "The list «{name}» is put away. Bring it back before filing anything in it.",
   documentTooLong:
@@ -1258,6 +1259,7 @@ const es: Catalog = {
   upkeepClear: "Sin repetidos. Ningún documento frágil.",
   upkeepInFull: "Ver el detalle del almacén",
   alreadyKept: "Ese documento ya está guardado aquí",
+  shedAlready: "Ese archivo fue borrado, y adoptarlo solo haría que lo barrieran otra vez",
   stillKept: "El registro todavía nombra ese archivo, así que se queda",
   archivedList: "La lista «{name}» está guardada. Recupérala antes de poner algo en ella.",
   documentTooLong:

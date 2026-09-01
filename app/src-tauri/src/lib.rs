@@ -228,9 +228,73 @@ impl Session {
         found
     }
 
+    fn retire(&mut self, references: &[String]) -> Answer<usize> {
+        if references.is_empty() {
+            return Ok(0);
+        }
+        let now = jiff::Timestamp::now().as_second();
+        let mut held_by: Vec<String> = self
+            .state
+            .tasks
+            .values()
+            .flat_map(|task| task.references())
+            .map(|one| one.target)
+            .collect();
+        held_by.extend(tisty_core::docs::referenced(&self.paths.docs()));
+
+        let mut told = Vec::new();
+        for reference in references {
+            if held_by.iter().any(|one| one == reference) {
+                if references.len() == 1 {
+                    return Err(Refusal::about("stillReferenced", reference.clone()));
+                }
+                continue;
+            }
+            let here = tisty_core::attach::resolve(reference, self.paths.data())
+                .is_ok_and(|at| at.is_file());
+            if here && let Err(e) = tisty_core::attach::set_aside(self.paths.data(), reference, now)
+            {
+                witness::warn(
+                    channel::ATTACH,
+                    "an attachment could not be set aside",
+                    &[
+                        ("at", Fact::Id(reference.clone())),
+                        ("why", Fact::Why(e.to_string())),
+                    ],
+                );
+                if references.len() == 1 {
+                    return Err(Refusal::about("cannotWrite", reference.clone()));
+                }
+                continue;
+            }
+            told.push(Op::AttachRetire {
+                d: reference.clone(),
+            });
+        }
+        if told.is_empty() {
+            return Ok(0);
+        }
+        let many = told.len();
+        self.commit_all(told)
+            .map_err(|e| blamed(channel::ATTACH, "the retirement could not be written", e))?;
+        self.tidy_up(false);
+        self.reproject().map_err(|e| {
+            blamed(
+                channel::CACHE,
+                "the store would not project after retiring",
+                e,
+            )
+        })?;
+        Ok(many)
+    }
+
     fn take_in(&mut self, file: &str) -> Answer<tisty_core::docs::Doc> {
+        let _ = self.reload();
         if self.state.docs.values().any(|one| one.file == file) {
             return Err(Refusal::of("alreadyKept"));
+        }
+        if self.state.shed.contains(file) {
+            return Err(Refusal::of("shedAlready"));
         }
         let body = tisty_core::docs::read(&self.paths.docs(), file)
             .map_err(|_| Refusal::of("noSuchDoc"))?;
@@ -258,6 +322,7 @@ impl Session {
     }
 
     fn let_go_of(&mut self, file: &str) -> Answer<()> {
+        let _ = self.reload();
         if self.state.docs.values().any(|one| one.file == file) {
             return Err(Refusal::of("stillKept"));
         }
@@ -316,15 +381,23 @@ impl Session {
 
     fn settle_what_arrived(&mut self, files: &[String]) {
         let told = tisty_core::tidy::settling_what_arrived(&self.paths, &self.state, files);
-        if !told.is_empty()
-            && let Err(e) = self.commit_all(told)
-        {
+        if told.is_empty() {
+            return;
+        }
+        let many = told.len();
+        if let Err(e) = self.commit_all(told) {
             witness::warn(
                 channel::SYNC,
                 "where a document's pages sit could not be settled",
                 &[("why", Fact::Why(e.to_string()))],
             );
+            return;
         }
+        witness::note(
+            channel::SYNC,
+            "a document that arrived names its pages in another order, and now the log agrees",
+            &[("count", Fact::Count(many))],
+        );
     }
 
     fn dest(&self) -> Option<std::path::PathBuf> {
@@ -1560,7 +1633,8 @@ fn twinned(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core::
 
 #[tauri::command(async)]
 fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
-    let session = held(&session);
+    let mut session = held(&session);
+    let _ = session.reload();
     let audit =
         tisty_core::cache::audit(&session.paths.store(), session.paths.cache()).map_err(|e| {
             witness::error(
@@ -1617,6 +1691,7 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
             &told,
             session.config.device_id.0.as_str(),
             &session.state.dropped,
+            &session.state.assistants,
         ),
         log_bytes: report::weighed(&session.paths.store()),
         docs_bytes: report::weighed(&session.paths.docs()),
@@ -4022,52 +4097,17 @@ fn settle_paper(
     Ok(Some(file))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn retire_attachment(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<()> {
-    let mut session = held(&session);
-    let now = jiff::Timestamp::now().as_second();
+    held(&session).retire(&[reference]).map(|_| ())
+}
 
-    let mut held_by: Vec<String> = session
-        .state
-        .tasks
-        .values()
-        .flat_map(|task| task.references())
-        .map(|one| one.target)
-        .collect();
-    held_by.extend(tisty_core::docs::referenced(&session.paths.docs()));
-    if held_by.iter().any(|one| one == &reference) {
-        return Err(Refusal::about("stillReferenced", reference));
-    }
-
-    // One never carried here has no bin to wait in; the retirement travels and the sweep acts.
-    let here =
-        tisty_core::attach::resolve(&reference, session.paths.data()).is_ok_and(|at| at.is_file());
-    if here {
-        tisty_core::attach::set_aside(session.paths.data(), &reference, now).map_err(|e| {
-            witness::warn(
-                channel::ATTACH,
-                "an attachment could not be set aside",
-                &[
-                    ("at", Fact::Id(reference.clone())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-            Refusal::about("cannotWrite", reference.clone())
-        })?;
-    }
-
-    session
-        .commit(Op::AttachRetire { d: reference })
-        .map_err(|e| blamed(channel::ATTACH, "the retirement could not be written", e))?;
-    session.tidy_up(false);
-    session.reproject().map_err(|e| {
-        blamed(
-            channel::CACHE,
-            "the store would not project after retiring",
-            e,
-        )
-    })?;
-    Ok(())
+#[tauri::command(async)]
+fn retire_attachments(
+    session: tauri::State<'_, Mutex<Session>>,
+    references: Vec<String>,
+) -> Answer<usize> {
+    held(&session).retire(&references)
 }
 
 #[tauri::command]
@@ -5012,6 +5052,7 @@ pub fn run() {
             doc_copy,
             doc_adopt,
             doc_let_go,
+            retire_attachments,
             doc_away,
             parted,
             sow,
@@ -5205,6 +5246,26 @@ mod deleting {
         session.let_go_of(&made.id).unwrap();
         assert!(!there(&desk, &made.id));
         assert!(session.state.docs.is_empty(), "and no event was written");
+    }
+
+    #[test]
+    fn a_file_the_log_already_shed_is_not_taken_in() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let file = a_page_under(&mut session, None);
+        let id = named(&session, &file);
+        session.drop_doc(&id.to_string()).unwrap();
+
+        std::fs::write(
+            tisty_core::docs::resolve(&desk.paths.docs(), &file).unwrap(),
+            b"# Vuelve",
+        )
+        .unwrap();
+        assert!(
+            session.take_in(&file).is_err(),
+            "the next sweep would only take it again"
+        );
+        assert!(session.state.docs.is_empty());
     }
 }
 

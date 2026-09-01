@@ -213,6 +213,8 @@ beforeEach(() => {
           heldBytes: 900_000,
           heldFiles: 9,
         });
+      case "retire_attachments":
+        return Promise.resolve(3);
       case "doc_adopt":
         return Promise.resolve({ id: "mac0-0042", title: "Minutes" });
       case "doc_let_go":
@@ -1751,7 +1753,7 @@ describe("taking every loose attachment out at once", () => {
     asked.sure = false;
     await userEvent.click(await screen.findByRole("button", { name: /take them all out/i }));
     await waitFor(() => expect(asked.said).toMatch(/3/));
-    expect(sent("retire_attachment")).toHaveLength(0);
+    expect(sent("retire_attachments")).toHaveLength(0);
   });
 
   it("takes each one out and looks again afterwards", async () => {
@@ -1759,9 +1761,9 @@ describe("taking every loose attachment out at once", () => {
 
     asked.sure = true;
     await userEvent.click(await screen.findByRole("button", { name: /take them all out/i }));
-    await waitFor(() => expect(sent("retire_attachment")).toHaveLength(3));
-    expect(sent("retire_attachment").map((one) => one.args.reference)).toContain(
-      "attachments/ab/charla-a3f9.mp4",
-    );
+    await waitFor(() => expect(sent("retire_attachments")).toHaveLength(1));
+    const references = sent("retire_attachments")[0]?.args.references as string[];
+    expect(references).toHaveLength(3);
+    expect(references).toContain("attachments/ab/charla-a3f9.mp4");
   });
 });

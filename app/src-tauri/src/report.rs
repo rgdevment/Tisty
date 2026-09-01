@@ -86,6 +86,7 @@ pub fn machines(
     told: &[tisty_core::event::Event],
     mine: &str,
     gone: &std::collections::BTreeSet<tisty_core::DeviceId>,
+    assistants: &std::collections::BTreeSet<tisty_core::DeviceId>,
 ) -> Vec<Machine> {
     let mut last: std::collections::BTreeMap<&tisty_core::DeviceId, i64> = Default::default();
     for one in told {
@@ -97,7 +98,7 @@ pub fn machines(
 
     let mut all: Vec<Machine> = last
         .into_iter()
-        .filter(|(who, _)| !gone.contains(*who))
+        .filter(|(who, _)| !gone.contains(*who) && !assistants.contains(*who))
         .map(|(who, when)| Machine {
             id: who.0.clone(),
             called: tisty_core::config::nicknamed(&who.0),
@@ -245,7 +246,7 @@ mod tests {
     fn every_machine_that_ever_wrote_is_named() {
         let told = [wrote("mac0", 0), wrote("win1", 60)];
 
-        let all = machines(&told, "mac0", &Default::default());
+        let all = machines(&told, "mac0", &Default::default(), &Default::default());
 
         assert_eq!(all.len(), 2);
         assert_eq!(all.iter().filter(|one| one.mine).count(), 1);
@@ -259,7 +260,12 @@ mod tests {
     fn a_machine_that_was_removed_stops_being_listed() {
         let told = [wrote("mac0", 0), wrote("win1", 60)];
 
-        let all = machines(&told, "mac0", &[tisty_core::DeviceId("win1".into())].into());
+        let all = machines(
+            &told,
+            "mac0",
+            &[tisty_core::DeviceId("win1".into())].into(),
+            &Default::default(),
+        );
 
         assert_eq!(all.len(), 1, "removing did not remove it from the list");
         assert_eq!(all[0].id, "mac0");
@@ -269,7 +275,7 @@ mod tests {
     fn the_one_that_wrote_last_is_shown_first() {
         let told = [wrote("old0", 60 * 60 * 24 * 12), wrote("new1", 0)];
 
-        let all = machines(&told, "new1", &Default::default());
+        let all = machines(&told, "new1", &Default::default(), &Default::default());
 
         assert_eq!(all[0].id, "new1");
         assert!(
@@ -282,7 +288,7 @@ mod tests {
     fn a_machine_is_dated_by_its_last_write_and_not_its_first() {
         let told = [wrote("mac0", 60 * 60 * 24 * 30), wrote("mac0", 0)];
 
-        let when = machines(&told, "mac0", &Default::default())[0].when;
+        let when = machines(&told, "mac0", &Default::default(), &Default::default())[0].when;
         let now = jiff::Timestamp::now().as_second();
 
         assert!(
@@ -295,7 +301,7 @@ mod tests {
     fn a_machine_is_dated_by_what_it_wrote_not_by_when_the_copy_landed_here() {
         let told = [wrote("mac0", 0), wrote("win1", 60 * 60 * 24 * 12)];
 
-        let all = machines(&told, "mac0", &Default::default());
+        let all = machines(&told, "mac0", &Default::default(), &Default::default());
         let quiet = all.iter().find(|one| one.id == "win1").unwrap();
         let ago = jiff::Timestamp::now().as_second() - quiet.when;
 
@@ -310,5 +316,14 @@ mod tests {
         let said = os();
         assert!(!said.is_empty());
         assert!(said.chars().any(|c| c.is_alphabetic()), "{said}");
+    }
+
+    #[test]
+    fn an_assistant_is_not_a_machine_anyone_can_be_asked_to_open() {
+        let agent = tisty_core::DeviceId("dev_agent".into());
+        let told = [wrote("mac0", 0), wrote("dev_agent", 60)];
+        let all = machines(&told, "mac0", &Default::default(), &[agent.clone()].into());
+        assert_eq!(all.len(), 1, "only the machine is listed");
+        assert_eq!(all[0].id, "mac0");
     }
 }

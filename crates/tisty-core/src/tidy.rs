@@ -74,13 +74,6 @@ pub fn settling_what_arrived(paths: &Paths, state: &State, files: &[String]) -> 
             ),
         }
     }
-    if !told.is_empty() {
-        witness::note(
-            channel::SYNC,
-            "a document that arrived names its pages in another order, and now the log agrees",
-            &[("count", Fact::Count(told.len()))],
-        );
-    }
     told
 }
 
@@ -89,16 +82,15 @@ pub fn papers(paths: &Paths, state: &State, dest: Option<&Path>, done: &mut Alre
     if owed.is_empty() {
         return 0;
     }
+    let reach = dest.filter(|at| at.is_dir());
     let mut gone = crate::docs::sweep(&paths.docs(), &owed);
-    if let Some(dest) = dest {
+    if let Some(dest) = reach {
         gone += crate::docs::sweep(&dest.join("docs"), &owed);
     }
     forget_the_prints(paths, &owed);
     done.papers.extend(owed.into_iter().filter(|file| {
-        went(&paths.docs(), |root| crate::docs::resolve(root, file))
-            && dest.is_none_or(|dest| {
-                went(&dest.join("docs"), |root| crate::docs::resolve(root, file))
-            })
+        let here = |root: &Path| went(root, crate::docs::resolve(root, file));
+        here(&paths.docs()) && dest.is_none_or(|_| reach.is_some_and(|at| here(&at.join("docs"))))
     }));
     if gone > 0 {
         witness::note(
@@ -127,14 +119,16 @@ pub fn attachments(
     }
     let named = held();
     let held: BTreeSet<&str> = named.iter().map(String::as_str).collect();
+    let reach = dest.filter(|at| at.is_dir());
     let mut gone = crate::attach::sweep(paths.data(), &owed, &held);
-    if let Some(dest) = dest {
+    if let Some(dest) = reach {
         gone += crate::attach::sweep(dest, &owed, &held);
     }
     done.attachments.extend(owed.into_iter().filter(|one| {
+        let here = |root: &Path| went(root, crate::attach::resolve(one, root));
         !held.contains(one.as_str())
-            && went(paths.data(), |root| crate::attach::resolve(one, root))
-            && dest.is_none_or(|dest| went(dest, |root| crate::attach::resolve(one, root)))
+            && here(paths.data())
+            && dest.is_none_or(|_| reach.is_some_and(here))
     }));
     if gone > 0 {
         witness::note(
@@ -158,8 +152,8 @@ pub fn bin(paths: &Paths) -> usize {
     gone
 }
 
-fn went(root: &Path, at: impl Fn(&Path) -> crate::Result<std::path::PathBuf>) -> bool {
-    !at(root).is_ok_and(|at| at.exists())
+fn went(root: &Path, at: crate::Result<std::path::PathBuf>) -> bool {
+    root.is_dir() && !at.is_ok_and(|at| at.exists())
 }
 
 fn forget_the_prints(paths: &Paths, owed: &BTreeSet<String>) {
@@ -392,5 +386,27 @@ mod tests {
             "and then it goes"
         );
         assert!(done.papers.contains("dev_a-0001"));
+    }
+
+    #[test]
+    fn a_shared_folder_that_is_not_there_is_never_mistaken_for_a_tidy_one() {
+        let (room, paths) = desk();
+        let away = room.path().join("nowhere");
+        let mut state = State::default();
+        state.shed.insert("dev_a-0001".into());
+        let mut done = Already::default();
+
+        papers(&paths, &state, Some(&away), &mut done);
+        assert!(
+            done.papers.is_empty(),
+            "an unmounted drive looks exactly like an empty one, so nothing is written off"
+        );
+
+        std::fs::create_dir_all(away.join("docs")).unwrap();
+        papers(&paths, &state, Some(&away), &mut done);
+        assert!(
+            done.papers.contains("dev_a-0001"),
+            "once it is there, it counts"
+        );
     }
 }

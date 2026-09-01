@@ -176,7 +176,13 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
 
 fn settle_what_arrived(app: &mut App, files: &[String]) {
     let told = tisty_core::tidy::settling_what_arrived(&app.paths, &app.state, files);
-    if !told.is_empty() {
-        let _ = app.commit_all(told);
+    if !told.is_empty()
+        && let Err(e) = app.commit_all(told)
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::SYNC,
+            "where a document's pages sit could not be settled",
+            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+        );
     }
 }

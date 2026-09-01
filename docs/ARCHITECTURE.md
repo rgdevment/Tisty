@@ -575,18 +575,24 @@ adopts is left clashing.
 
 ### The sets that only grow
 
-`shed`, `retired`, `tombstones`, `dropped`, `devices`, `assistants` and
-`forebears` never shrink. In bytes they are nothing — a shed entry is 15 bytes,
-a retirement 55 — and pruning them would mean either a new operation that
-destroys, or a projection that is no longer deterministic.
+`shed`, `retired`, `tombstones`, `assistants` and `forebears` never shrink
+(`dropped` and `devices` do, as machines come and go). In bytes they are nothing
+— a shed entry is 15 bytes, a retirement 55 — and pruning them would mean either
+a new operation that destroys, or a projection that is no longer deterministic.
 
 Their cost was never memory. It was that every launch walked the whole of `shed`
 attempting a `remove_file` per entry, twice over when syncing, and that the
 first attachment ever retired made every later launch read every document body
 to find out what still names it. `tidy::Already` is a machine-local mark in the
 cache — never in the log, never in the settings file an agent can edit — of what
-this machine has already taken out. Sweeping is O(new), and a store with nothing
-retired never opens a document at all.
+this machine has already taken out. A name is written off only once it is
+genuinely absent — from the shared folder too, and never while that folder is
+merely unreachable, or an unmounted drive would be mistaken for a tidy one. So
+sweeping is O(new) while everything owed can be taken out, and stays O(all) for
+what cannot: a retirement something still names, or a file that will not go.
+A store with nothing retired never opens a document at all. The mark is a second
+copy of two of these sets, rewritten whole on each change, and that is the price
+of not walking them.
 
 ### Maintenance is the person's, and it is about attachments
 
@@ -594,10 +600,14 @@ The Maintenance tab reviews and reports; nothing there runs on its own. It is
 grouped by what it costs to be wrong rather than by what each thing is:
 attachments nothing names go to the bin with thirty days to change your mind;
 documents on disk the log does not name are offered **taking in** before letting
-go, because adopting an orphan can never be wrong and deleting it is final; and
-a document the log names with no file waits — forgetting it writes a deletion
-that reaches every machine, so it stays out of reach while any machine has been
-quiet.
+go, because adopting an orphan is the recoverable half and deleting it is final;
+and a document the log names with no file is not offered for forgetting while a
+machine has been quiet, since that deletion reaches every machine. The state
+both buttons judge against is re-read first, because another process — an agent
+through the MCP — writes the same store, and a file it has just written is an
+orphan for the instant between the file and its event. Taking in also refuses a
+name the log has already shed: the file is on its way out, and adopting it would
+only have the next sweep take it again.
 
 Letting a stray file go deletes a file **without writing an event**, so
 `Op::destroys` cannot see it and the rule above does not protect it. Like
