@@ -516,3 +516,20 @@ describe("a code block keeps its language, now that it can be given one", () => 
     expect(roundtripped(once)).toBe(once);
   });
 });
+
+describe("a mermaid diagram is a code block, so the file never learns about it", () => {
+  it("comes back with its fence and its language", () => {
+    const was = "```mermaid\ngraph TD;\nA[Inicio] --> B{Sigue?}\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps the blank lines inside, which mermaid reads as separators", () => {
+    const was = "```mermaid\nsequenceDiagram\n\nA->>B: hola\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps a diagram that does not parse, because the file is not ours to fix", () => {
+    const was = "```mermaid\nesto no compila {{{\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+});

@@ -696,6 +696,22 @@ body {
   padding: 12px 14px;
 }
 
+.tisty-doc .lit-drawn:empty {
+  display: none;
+}
+.tisty-doc .lit-drawn {
+  display: flex;
+  justify-content: center;
+  padding: 14px;
+  border-top: 1px solid var(--tisty-hair);
+  background: var(--tisty-sheet);
+  overflow-x: auto;
+}
+.tisty-doc .lit-drawn svg {
+  max-width: 100%;
+  height: auto;
+}
+
 .hljs-comment,
 .hljs-quote {
   color: var(--tisty-faint);

@@ -694,6 +694,8 @@ export const TONGUES = [
   "yaml",
 ] as const;
 
+const KNOWN: string[] = [...TONGUES, "mermaid"];
+
 const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) }).extend({
   addNodeView() {
     return ({ node, editor, getPos }) => {
@@ -711,14 +713,14 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       none.value = "";
       none.textContent = t("codeNoTongue");
       picked.append(none);
-      for (const one of TONGUES) {
+      for (const one of [...TONGUES, "mermaid"]) {
         const said = document.createElement("option");
         said.value = one;
         said.textContent = one;
         picked.append(said);
       }
       const said = String(node.attrs.language ?? "");
-      picked.value = (TONGUES as readonly string[]).includes(said) ? said : "";
+      picked.value = KNOWN.includes(said) ? said : "";
       picked.addEventListener("change", () => {
         const at = getPos();
         if (at === undefined) return;
@@ -733,6 +735,10 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       });
       bar.append(picked);
 
+      const drawn = document.createElement("div");
+      drawn.className = "lit-drawn";
+      drawn.contentEditable = "false";
+
       const body = document.createElement("div");
       body.className = "lit-body";
       const lines = document.createElement("div");
@@ -742,7 +748,33 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       const code = document.createElement("code");
       pre.append(code);
       body.append(lines, pre);
-      held.append(bar, body);
+      held.append(bar, body, drawn);
+
+      let asked = 0;
+
+      const sketched = (source: string) => {
+        const mine = (asked += 1);
+        if (!source.trim()) {
+          held.classList.remove("lit-sketched");
+          drawn.replaceChildren();
+          return;
+        }
+        import("mermaid")
+          .then(({ default: mermaid }) => {
+            mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+            return mermaid.render(`said${mine}`, source);
+          })
+          .then(({ svg }) => {
+            if (mine !== asked) return;
+            drawn.innerHTML = svg;
+            held.classList.add("lit-sketched");
+          })
+          .catch(() => {
+            if (mine !== asked) return;
+            drawn.replaceChildren();
+            held.classList.remove("lit-sketched");
+          });
+      };
 
       const counted = (one: { textContent: string | null }) => {
         const many = Math.max(1, (one.textContent ?? "").split("\n").length);
@@ -755,14 +787,26 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       };
       counted(node);
 
+      const sketching = (one: { attrs: Record<string, unknown>; textContent: string | null }) => {
+        if (String(one.attrs.language ?? "") !== "mermaid") {
+          asked += 1;
+          drawn.replaceChildren();
+          held.classList.remove("lit-sketched");
+          return;
+        }
+        sketched(one.textContent ?? "");
+      };
+      sketching(node);
+
       return {
         dom: held,
         contentDOM: code,
         update: (fresh) => {
           if (fresh.type.name !== "codeBlock") return false;
           counted(fresh);
+          sketching(fresh);
           const now = String(fresh.attrs.language ?? "");
-          picked.value = (TONGUES as readonly string[]).includes(now) ? now : "";
+          picked.value = KNOWN.includes(now) ? now : "";
           return true;
         },
       };
