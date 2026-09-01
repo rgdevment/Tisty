@@ -19,6 +19,7 @@ import Papers from "./Papers";
 import { previewing, type Reach } from "./previewing";
 import Shot from "./Shot";
 import Slash, { asked, type Block, narrowed } from "./Slash";
+import Tabled from "./Tabled";
 import { asMarkdown, type Head, headed, written } from "./writing";
 
 export const stripped = (html: string): string =>
@@ -78,6 +79,18 @@ const middle = (editor: Writing, from: number, to: number) => {
   const a = caret(editor, from);
   const b = caret(editor, to);
   return { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) };
+};
+
+const topOf = (editor: Writing, at: number) => {
+  try {
+    const held = editor.view.domAtPos(at).node as HTMLElement | null;
+    const table = (held?.nodeType === 1 ? held : held?.parentElement)?.closest("table");
+    if (!table) return caret(editor, at);
+    const box = table.getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top - 6 };
+  } catch {
+    return caret(editor, at);
+  }
 };
 
 const caret = (editor: Writing, at: number) => {
@@ -166,6 +179,7 @@ export default function Editor({
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
   const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
+  const [tabled, setTabled] = useState<{ at: { x: number; y: number } } | null>(null);
   const [shot, setShot] = useState<{
     at: { x: number; y: number };
     src: string;
@@ -214,6 +228,9 @@ export default function Editor({
         : null,
     );
     setShot(shotAt(editor));
+    setTabled(
+      !hushed.current && editor.isActive("table") ? { at: topOf(editor, $from.pos) } : null,
+    );
     if (hushed.current || !empty || code || editor.isActive("code")) {
       return setAsking(null);
     }
@@ -689,6 +706,7 @@ export default function Editor({
       {picked && editor && !asking && !tying && !reading && (
         <Floats editor={editor} at={picked.at} />
       )}
+      {tabled && editor && !reading && <Tabled editor={editor} at={tabled.at} />}
       {shot && editor && (
         <Shot
           at={shot.at}

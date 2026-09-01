@@ -571,12 +571,14 @@ const leaning = () => ({
 });
 
 const Celled = TableCell.extend({
+  content: "paragraph",
   addAttributes() {
     return { ...this.parent?.(), ...leaning() };
   },
 });
 
 const Headed = TableHeader.extend({
+  content: "paragraph",
   addAttributes() {
     return { ...this.parent?.(), ...leaning() };
   },
