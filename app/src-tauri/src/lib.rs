@@ -176,6 +176,29 @@ impl Session {
             .insert(id.to_string(), tisty_core::attach::printed(body.as_bytes()));
     }
 
+    /// A document names its pages in the body, so where they sit is the body's to say.
+    fn retell(&mut self, file: &str, body: &str) {
+        let Some(doc) = self.state.docs.values().find(|one| one.file == file) else {
+            return;
+        };
+        let told = self.state.pages_told(doc.id, body);
+        if told.is_empty() {
+            return;
+        }
+        let _ = self.commit_all(
+            told.into_iter()
+                .map(|(id, order)| Op::DocMove {
+                    id,
+                    d: tisty_core::event::Filed {
+                        folder: None,
+                        page_of: None,
+                        order: Some(order),
+                    },
+                })
+                .collect(),
+        );
+    }
+
     fn moved(&self, id: &str) -> bool {
         let now = tisty_core::docs::resolve(&self.paths.docs(), id)
             .ok()
@@ -2829,6 +2852,7 @@ fn doc_write(
     })?;
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
+    session.retell(&id, &body);
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&body),
         id,
@@ -2903,6 +2927,7 @@ fn doc_copy(
     }
 
     // A page is part of its document, so the copy is not the same document without them.
+    let mut renamed: Vec<(String, String)> = Vec::new();
     for page in session
         .state
         .pages_of(id)
@@ -2913,6 +2938,7 @@ fn doc_copy(
         let body = tisty_core::docs::read(&root, &page).unwrap_or_default();
         let leaf = tisty_core::docs::create(&root, &session.config.device_id, &body)
             .map_err(|e| blamed(channel::WINDOW, "a page could not be copied", e))?;
+        renamed.push((page.clone(), leaf.id.clone()));
         let order = tisty_core::order::last_of(
             session
                 .state
@@ -2930,6 +2956,17 @@ fn doc_copy(
                 page_of: Some(twin),
             },
         })?;
+    }
+
+    // Left alone, the copy would send the reader to the pages of the document it was copied from.
+    if !renamed.is_empty() {
+        let told = renamed.iter().fold(body, |body, (was, now)| {
+            body.replace(
+                &format!("{}{was}", tisty_core::refs::DOC),
+                &format!("{}{now}", tisty_core::refs::DOC),
+            )
+        });
+        let _ = tisty_core::docs::write(&root, &made.id, &told);
     }
     Ok(made)
 }

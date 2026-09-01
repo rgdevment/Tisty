@@ -51,6 +51,8 @@ into it, but you can never delete or rename one.
 
 A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
+A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in. Move that line with `edit_doc` and the page moves with it. A page its document never names is not lost — it waits at the end, marked loose.
+
 `append_doc` adds to the end of a document that exists, leaving every byte that was there, and \
 `edit_doc` changes one passage of it — naming what is written now, character for character, and \
 matching one place only. Adding to the document that already covers something beats writing a \
@@ -432,6 +434,23 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     }
     let store = Store::open(paths.store(), agent).map_err(hitch)?;
     Ok((state, store))
+}
+
+/// Where a document names its pages is where they sit, so a changed body may move them.
+fn retold(state: &State, store: &mut Store, doc: &str, body: &str) {
+    let Some(kept) = state.docs.values().find(|one| one.file == doc) else {
+        return;
+    };
+    for (id, order) in state.pages_told(kept.id, body) {
+        let _ = store.append(Op::DocMove {
+            id,
+            d: tisty_core::event::Filed {
+                folder: None,
+                page_of: None,
+                order: Some(order),
+            },
+        });
+    }
 }
 
 fn hitch(e: tisty_core::Error) -> Refused {
@@ -972,10 +991,27 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })
         .map_err(hitch)?;
 
+    // A page nobody names sits at the end of its document as loose; naming it is what places it.
+    let named_there = page_of
+        .and_then(|up| state.docs.get(&up))
+        .is_some_and(|up| {
+            tisty_core::docs::append(
+                &paths.docs(),
+                &up.file,
+                &format!("\n{}\n", tisty_core::refs::card(&made.id, &made.title)),
+            )
+            .is_ok()
+        });
+
     let where_at = folder.map(|at| trail(&state, at));
     let under = page_of.and_then(|up| named_doc(&state, up));
     Ok(told(
         match (&under, &where_at) {
+            (Some(named), _) if named_there => format!(
+                "Wrote {:?} as {}, a page of {named}, and named it at the end of that document. \
+                 Where a page is named is where it sits.",
+                made.title, made.id
+            ),
             (Some(named), _) => {
                 format!("Wrote {:?} as {}, a page of {named}.", made.title, made.id)
             }
@@ -998,7 +1034,7 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("adding needs a `body` to add.".into()));
     };
-    let (state, _) = opened(paths)?;
+    let (state, mut store) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(format!(
             "no document here is called {which:?}. `docs` lists them all."
@@ -1023,6 +1059,8 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )),
         other => hitch(other),
     })?;
+
+    retold(&state, &mut store, &which, &whole);
 
     Ok(told(
         format!(
@@ -1053,7 +1091,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .into(),
         ));
     };
-    let (state, _) = opened(paths)?;
+    let (state, mut store) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(format!(
             "no document here is called {which:?}. `docs` lists them all."
@@ -1096,6 +1134,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ))),
         tisty_core::docs::Change::Made { was, whole } => {
             let _ = tisty_core::docs::kept_before(paths.data(), &which, &was);
+            retold(&state, &mut store, &which, &whole);
             Ok(told(
                 format!(
                     "Changed that passage in {:?}. What it was is kept beside the documents.",

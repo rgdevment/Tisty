@@ -323,6 +323,202 @@ body {
   position: relative;
   min-height: 100%;
 }
+
+/* Room to write, but not so much that what follows the text reads as another screen. */
+.leafed .tisty-doc {
+  padding-bottom: 14vh;
+  border-radius: 10px 10px 0 0;
+  min-height: 0;
+}
+
+.ribbon {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 40px;
+  border-radius: 10px 10px 0 0;
+  background-color: var(--tisty-sheet);
+  font-size: 12px;
+  color: var(--tisty-faint);
+}
+.ribbon + .tisty-doc,
+.ribbon + div .tisty-doc {
+  border-radius: 0;
+}
+.ribbon-back {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  margin-left: -6px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  color: var(--tisty-soft);
+}
+.ribbon-back:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.ribbon-at {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.ribbon-arrows {
+  display: flex;
+  margin-left: auto;
+  gap: 2px;
+}
+.ribbon-arrows button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--tisty-faint);
+}
+.ribbon-arrows button:hover:not(:disabled) {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.ribbon-arrows button:disabled {
+  opacity: 0.35;
+}
+
+/* The break between one leaf and the next, the same the editor draws for a rule. */
+.leaves,
+.onward {
+  position: relative;
+  margin-top: 46px;
+  padding: 22px 30px 26px;
+  border-radius: 0 0 10px 10px;
+  background-color: var(--tisty-sheet);
+}
+.leaves::before,
+.onward::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 46px;
+  background: var(--tisty-desk);
+}
+.leaves::after,
+.onward::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 10px;
+  border-radius: 10px 10px 0 0;
+  background: var(--tisty-sheet);
+  box-shadow: 0 -7px 7px -7px var(--tisty-cast);
+}
+.leaves-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--tisty-faint);
+}
+.leaves-many {
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.leaves-why {
+  padding: 4px 10px 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--tisty-faint);
+}
+.leaves-split {
+  height: 1px;
+  margin: 8px 10px;
+  background: var(--tisty-hair);
+}
+.leaf-row {
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+}
+.leaf-row:hover {
+  background: var(--tisty-hover);
+}
+.leaf-open {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 11px;
+  padding: 7px 10px;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--tisty-soft);
+}
+.leaf-row:hover .leaf-open {
+  color: var(--tisty-ink);
+}
+.leaf-num {
+  width: 20px;
+  flex: none;
+  text-align: right;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--tisty-faint);
+}
+.leaf-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 550;
+  color: var(--tisty-ink);
+}
+.leaf-put {
+  flex: none;
+  margin-right: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: var(--tisty-accent);
+  opacity: 0;
+}
+.leaf-row:hover .leaf-put,
+.leaf-put:focus-visible {
+  opacity: 1;
+}
+
+.onward {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 18px 40px 22px;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--tisty-faint);
+}
+.onward:hover .onward-name {
+  color: var(--tisty-accent);
+}
+.onward-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 550;
+  color: var(--tisty-soft);
+}
+.onward-go {
+  margin-left: auto;
+  font-size: 15px;
+  line-height: 1;
+}
 .tisty-doc > :is(h1, h2, h3, p):first-child {
   font-size: 1.65em;
   font-weight: 640;
@@ -729,6 +925,65 @@ body {
     inset 0 0 0 1px var(--tisty-line),
     inset 0 2.5px 0 0 var(--card-tint, transparent);
 }
+/* A page is a leaf of this same document, so it reads as the desk showing through a gap in
+   the sheet with more leaves under it, never as a card pointing somewhere else. */
+.card-page {
+  position: relative;
+  max-width: none;
+  margin-block: 20px 30px;
+  padding: 13px 14px;
+  border: 0;
+  background: var(--tisty-desk);
+  box-shadow: inset 0 2px 6px -3px var(--tisty-cast);
+}
+.card-page:hover {
+  background: var(--tisty-desk);
+  box-shadow:
+    inset 0 2px 6px -3px var(--tisty-cast),
+    inset 0 0 0 1px var(--tisty-line);
+}
+.card-leaf {
+  position: absolute;
+  height: 10px;
+  border-radius: 0 0 10px 10px;
+  background: var(--tisty-desk);
+  box-shadow: inset 0 -1px 0 var(--tisty-line);
+}
+.card-leaf-one {
+  right: 6px;
+  bottom: -5px;
+  left: 6px;
+}
+.card-leaf-two {
+  right: 14px;
+  bottom: -10px;
+  left: 14px;
+  opacity: 0.6;
+}
+.card-num {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 999px;
+  background: var(--tisty-sheet);
+  box-shadow: inset 0 0 0 1px var(--tisty-hair);
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--tisty-soft);
+}
+.card-into {
+  flex: none;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--tisty-faint);
+}
+.card-page .card-said {
+  flex: 1;
+}
+
 .card-said {
   display: flex;
   min-width: 0;

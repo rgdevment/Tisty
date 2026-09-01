@@ -749,3 +749,53 @@ fn two_sibling_pages_can_attach_different_files_that_share_a_name() {
         b"bytes de la segunda foto, distinta"
     );
 }
+
+#[test]
+fn the_way_into_a_page_is_the_file_beside_it_once_the_book_is_out_of_tisty() {
+    let data_dir = tmp();
+    let data = data_dir.path();
+    let dev = device("mac0");
+    let mut state = State::default();
+    let mut seq = 0i64;
+
+    let (book, book_file) = add_doc(&mut state, data, &dev, &mut seq, "# Libro\n\nportada");
+    let (_, one) = add_page(
+        &mut state,
+        data,
+        &dev,
+        &mut seq,
+        book,
+        "# Uno\n\nmarker-a\n",
+    );
+    let (_, two) = add_page(
+        &mut state,
+        data,
+        &dev,
+        &mut seq,
+        book,
+        "# Dos\n\nmarker-b\n",
+    );
+
+    let cover = format!(
+        "# Libro\n\nportada\n\n{}\n\ny luego\n\n{}\n",
+        tisty_core::refs::card(&one, "Uno"),
+        tisty_core::refs::card(&two, "Dos")
+    );
+    docs::write(&data.join("docs"), &book_file, &cover).unwrap();
+
+    let page_files: Vec<String> = state
+        .pages_of(book)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    let out = tmp();
+    docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+
+    let said = std::fs::read_to_string(out.path().join("Libro").join("Libro.md")).unwrap();
+    assert!(said.contains("![Uno](<01 Uno.md>)"), "{said}");
+    assert!(said.contains("![Dos](<02 Dos.md>)"), "{said}");
+    assert!(
+        !said.contains("tisty:doc/"),
+        "nothing may still point at a name only Tisty knows: {said}"
+    );
+}

@@ -456,15 +456,37 @@ pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Resul
     std::fs::create_dir_all(into)?;
     std::fs::create_dir(&folder)?;
 
-    let mut taken = laid_out(data, &body, &folder, &format!("{named}.{EXTENSION}"))?;
+    let mut written: Vec<(String, String, String)> = Vec::new();
     for (n, page) in pages.iter().enumerate() {
         let Ok(body) = read(&data.join("docs"), page) else {
             continue;
         };
         let title = titled(&body);
         let title = spelled(if title.is_empty() { page } else { &title });
-        let at = format!("{:02} {title}.{EXTENSION}", n + 1);
-        taken += laid_out(data, &body, &folder, &at)?;
+        written.push((
+            page.clone(),
+            format!("{:02} {title}.{EXTENSION}", n + 1),
+            body,
+        ));
+    }
+
+    // Out here the way into a page has to be the file beside it, not a name only Tisty knows.
+    let beside = |body: &str| {
+        written
+            .iter()
+            .fold(body.to_string(), |body, (file, at, _)| {
+                body.replace(&format!("{}{file}", crate::refs::DOC), &format!("<{at}>"))
+            })
+    };
+
+    let mut taken = laid_out(
+        data,
+        &beside(&body),
+        &folder,
+        &format!("{named}.{EXTENSION}"),
+    )?;
+    for (_, at, body) in &written {
+        taken += laid_out(data, &beside(body), &folder, at)?;
     }
     Ok(taken)
 }

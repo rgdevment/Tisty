@@ -951,3 +951,108 @@ fn a_page_whose_parent_was_never_created_becomes_its_own_document_in_its_own_fol
         "its own folder was honoured instead"
     );
 }
+
+fn moved(store: &mut Store, id: DocId, order: &str) {
+    store
+        .append(Op::DocMove {
+            id,
+            d: Filed {
+                folder: None,
+                page_of: None,
+                order: Some(order.into()),
+            },
+        })
+        .unwrap();
+}
+
+fn named_in(pages: &[&str]) -> String {
+    pages
+        .iter()
+        .map(|file| format!("![Una](tisty:doc/{file})\n\n"))
+        .collect()
+}
+
+#[test]
+fn the_pages_a_document_names_are_ordered_the_way_it_names_them() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+    let three = doc_add(&mut store, "a3f1-0004", "a2", None, Some(book));
+
+    let mut state = replayed(&world);
+    for (id, order) in state.pages_told(book, &named_in(&["a3f1-0004", "a3f1-0002", "a3f1-0003"])) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    let told: Vec<&str> = state
+        .pages_of(book)
+        .iter()
+        .map(|one| one.file.as_str())
+        .collect();
+    assert_eq!(told, ["a3f1-0004", "a3f1-0002", "a3f1-0003"]);
+    assert_eq!([one, two, three].len(), 3);
+}
+
+#[test]
+fn a_body_that_names_its_pages_in_order_moves_nothing() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+
+    let state = replayed(&world);
+    assert!(
+        state
+            .pages_told(book, &named_in(&["a3f1-0002", "a3f1-0003"]))
+            .is_empty(),
+        "a save that changes nothing must not write to the log"
+    );
+}
+
+#[test]
+fn a_page_the_body_never_names_waits_at_the_end() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let loose = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+    doc_add(&mut store, "a3f1-0004", "a2", None, Some(book));
+
+    let mut state = replayed(&world);
+    for (id, order) in state.pages_told(book, &named_in(&["a3f1-0004", "a3f1-0002"])) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    let told: Vec<&str> = state
+        .pages_of(book)
+        .iter()
+        .map(|one| one.file.as_str())
+        .collect();
+    assert_eq!(told, ["a3f1-0004", "a3f1-0002", "a3f1-0003"]);
+    assert_eq!(state.docs[&loose].page_of, Some(book), "it is still a page");
+}
+
+#[test]
+fn naming_a_document_that_is_not_its_page_changes_no_order() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+    doc_add(&mut store, "a3f1-0009", "a5", None, None);
+
+    let state = replayed(&world);
+    assert!(
+        state
+            .pages_told(
+                book,
+                &named_in(&["a3f1-0009", "a3f1-0002", "a3f1-0009", "a3f1-0003"])
+            )
+            .is_empty()
+    );
+}

@@ -14,6 +14,24 @@ pub struct Ref {
     pub label: Option<String>,
 }
 
+pub const DOC: &str = "tisty:doc/";
+
+/// How a document names another in a body: the block the window draws as a card.
+pub fn card(file: &str, title: &str) -> String {
+    format!(
+        "![{}]({DOC}{file})",
+        title.replace('[', "\\[").replace(']', "\\]")
+    )
+}
+
+/// The documents a text points at, in the order it names them and each one only once.
+pub fn papers(text: &str) -> Vec<String> {
+    extract(text)
+        .into_iter()
+        .filter_map(|one| one.target.strip_prefix(DOC).map(str::to_string))
+        .collect()
+}
+
 pub fn extract(text: &str) -> Vec<Ref> {
     let mut found: Vec<Ref> = Vec::new();
     let mut keep = |one: Ref| {
@@ -278,6 +296,29 @@ mod tests {
                 },
             ]
         );
+    }
+
+    #[test]
+    fn the_documents_a_text_names_come_out_in_the_order_it_names_them() {
+        assert_eq!(
+            papers(
+                "primero ![Uno](tisty:doc/mac0-0002)\n\nluego [Dos](tisty:doc/mac0-0001)\n\ny https://x.example/"
+            ),
+            ["mac0-0002", "mac0-0001"]
+        );
+    }
+
+    #[test]
+    fn a_document_named_twice_is_only_counted_where_it_is_first_named() {
+        assert_eq!(
+            papers("![A](tisty:doc/mac0-0001) ![B](tisty:doc/mac0-0002) ![A](tisty:doc/mac0-0001)"),
+            ["mac0-0001", "mac0-0002"]
+        );
+    }
+
+    #[test]
+    fn a_document_named_inside_code_is_not_named_at_all() {
+        assert_eq!(papers("`![A](tisty:doc/mac0-0001)`"), Vec::<String>::new());
     }
 
     #[test]

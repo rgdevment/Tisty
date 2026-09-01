@@ -610,6 +610,26 @@ export default function App() {
           onPick: () => newDoc(undefined, doc.id),
         },
         {
+          key: "pageOf",
+          icon: "⇥",
+          label: t("pageOf"),
+          off: doc.archived || !!doc.pageOf || papers.docs.some((one) => one.pageOf === doc.id),
+          into: {
+            label: t("pageOfWhich"),
+            choices: papers.docs
+              .filter((one) => one.id !== doc.id && !one.pageOf && !one.archived)
+              .map((one) => ({
+                key: one.id,
+                icon: "▤",
+                label: one.title || t("untitledDoc"),
+                onPick: () =>
+                  docPage(doc.id, one.id)
+                    .then(lookPapers)
+                    .catch((e) => setError(saidPlainly(e))),
+              })),
+          },
+        },
+        {
           key: "ownDoc",
           icon: "⇤",
           label: t("ownDoc"),
@@ -907,6 +927,11 @@ export default function App() {
             .then(lookPapers)
             .catch((e) => setError(saidPlainly(e)))
         }
+        onPage={(doc, pageOf) =>
+          docPage(doc, pageOf)
+            .then(lookPapers)
+            .catch((e) => setError(saidPlainly(e)))
+        }
         onFolderMenu={folderMenu}
         onDocMenu={docMenu}
         onHereMenu={hereMenu}
@@ -980,6 +1005,11 @@ export default function App() {
             onError={told}
             onShown={setShowing}
             onDoc={openDoc}
+            onOwned={(id) =>
+              docPage(id)
+                .then(lookPapers)
+                .catch((e) => setError(saidPlainly(e)))
+            }
             fresh={carried}
           />
         ) : chosen.named === "lists" && !chosen.list ? (

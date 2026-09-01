@@ -735,6 +735,27 @@ showing in. Nothing is copied and no text changes: only the field goes. That is
 why the tree can offer it as one menu entry and the agent as one call — the
 event is the same move that files a document.
 
+**A page sits where its document names it.** The body of a document may name
+another document — `![Title](tisty:doc/its-name)`, the same reference that has
+always drawn a card — and when what it names is one of its own pages, the window
+draws the way into that page instead. The order those references are written in
+is the order the pages are in: saving a body works out the sequence and moves
+only the pages that have to move, so a body saved on every keystroke writes
+nothing to the log until the text really says something different. The ones the
+body never names are not lost — they keep their place at the end and the document
+lists them as loose, with the one action that fixes it.
+
+That leaves one source of truth for where a chapter belongs, which is where the
+person put it in the text. Cutting the reference and pasting it higher up moves
+the page, in the tree, in the export and in print, without a second panel that
+orders pages and can disagree with what is written. Deleting the reference is not
+deleting the page: text is text, and a document is deleted where documents are
+deleted.
+
+The keys themselves are fractional, so a page moved out of ten is one event, not
+ten. A run already in order asks for nothing; the longest rising run keeps its
+keys and only what breaks the order is given a new one.
+
 Folders count documents, not pages: a folder holding one document of forty pages
 says one. The pages are shown under the document, in the tree and in `tisty
 doc`, which is where the person went looking for them.

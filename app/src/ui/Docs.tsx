@@ -1,5 +1,5 @@
 import { ask, save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { asPlain } from "../copying";
 import {
   attach,
@@ -17,10 +17,13 @@ import {
 } from "../core";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
+import { filed, named, pagesOf, under } from "../paging";
 import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
 import Beside from "./Beside";
+import Contents from "./Contents";
+import Ribbon, { Onward } from "./Ribbon";
 import type { Block } from "./Slash";
 import { clearOfChrome } from "./WindowChrome";
 import type { Head } from "./writing";
@@ -56,6 +59,7 @@ interface Props {
   onKept: (doc: { id: string; title: string }) => void;
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
+  onOwned?: (id: string) => void;
   onShown?: (file: string | null) => void;
   fresh?: number;
 }
@@ -66,6 +70,7 @@ export default function Docs({
   onKept,
   onError,
   onDoc,
+  onOwned,
   onShown,
   fresh = 0,
 }: Props) {
@@ -90,6 +95,7 @@ export default function Docs({
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
   const giving = useRef<(() => unknown) | null>(null);
+  const putting = useRef<((page: Filed) => void) | null>(null);
   const handed = useCallback((read: () => unknown) => {
     giving.current = read;
   }, []);
@@ -256,6 +262,13 @@ export default function Docs({
     settling.current = setTimeout(flush, SETTLES);
   };
 
+  const own = filed(known, open?.file);
+  const pages = pagesOf(known, open?.file);
+  const above = under(known, own);
+  const sisters = pagesOf(known, above?.file);
+  const next = above ? sisters[sisters.findIndex((one) => one.file === own?.file) + 1] : undefined;
+  const told = useMemo(() => named(body), [body]);
+
   const beside = Boolean(open) && (shown ?? wide);
   const leaf = (open && sized[open.file]) || "a4";
   const wall = { maxWidth: `${PAPER[leaf]}px` };
@@ -287,9 +300,13 @@ export default function Docs({
       import("./writing"),
       import("../markdown"),
     ]);
+    const at = (file: string) => {
+      const found = pages.findIndex((one) => one.file === file);
+      return found < 0 ? null : found + 1;
+    };
     const sheets = await Promise.all(
       [read(), ...written.map((body) => generateJSON(composed(body), shapes()))].map((one) =>
-        fetched(shapesOf(one), attached),
+        fetched(shapesOf(one), attached, at),
       ),
     );
     return pdf(<Papered sheets={sheets} leaf={leaf} />).toBlob();
@@ -416,6 +433,32 @@ export default function Docs({
                 paper={open.file}
                 onMade={(id, name) => onKept({ id, title: name })}
                 onDoc={onDoc}
+                onOwn={(file) => {
+                  const page = known.find((one) => one.file === file);
+                  if (page) onOwned?.(page.id);
+                }}
+                above={
+                  above && (
+                    <Ribbon
+                      of={above}
+                      sisters={sisters}
+                      here={open.file}
+                      onOpen={(doc) => onDoc?.(doc.file)}
+                    />
+                  )
+                }
+                below={
+                  above
+                    ? next && <Onward next={next} onOpen={(doc) => onDoc?.(doc.file)} />
+                    : pages.length > 0 && (
+                        <Contents
+                          pages={pages}
+                          told={told}
+                          onOpen={(page) => onDoc?.(page.file)}
+                          onPut={(page) => putting.current?.(page)}
+                        />
+                      )
+                }
                 onAttach={() =>
                   pick({ multiple: false })
                     .then((at) => (typeof at === "string" ? attach(at, undefined, true) : null))
@@ -430,6 +473,9 @@ export default function Docs({
                 onBlocks={setBlocks}
                 onOutline={setHeads}
                 onReady={handed}
+                onInsert={(put) => {
+                  putting.current = (page) => put(page.file, page.title);
+                }}
                 onShaped={(text) => {
                   shaped.current = text;
                 }}

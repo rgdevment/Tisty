@@ -167,6 +167,9 @@ const en = {
   insertDoc: "A document",
   insertIcon: "An icon",
   insertNewDoc: "A new document",
+  insertNewPage: "A new page",
+  insertPage: "A page of this one",
+  pageName: "Name of the page",
   sayNewDoc: "made and linked",
   docName: "Name of the document",
   sayDoc: "of this Tisty",
@@ -285,6 +288,19 @@ const en = {
   paperDocs: "{name} documents",
   pageHeld: "1 page",
   pagesHeld: "{name} pages",
+  kindLeaf: "Page {name}",
+  theseLeaves: "Pages",
+  allInside: "In the order the text names them.",
+  someLoose: "In the order the text names them. The last ones it never names.",
+  looseLeaf: "loose",
+  putLeaf: "Put it in the text",
+  whereThisSits: "Where this page sits",
+  leafOfMany: "Page {name} of {other}",
+  leafBack: "Page before",
+  leafOn: "Page after",
+  noLeafBack: "This is the first one",
+  noLeafOn: "This is the last one",
+  leafNext: "Next",
   paperFiles: "{name} attachments",
   paperEmpty: "Nothing written yet",
   shaping: "Format",
@@ -325,6 +341,8 @@ const en = {
   dropPagesSure:
     "Delete «{name}»? The document, its pages and what they hold go for good. This cannot be undone.",
   newPage: "New page",
+  pageOf: "Make it a page of…",
+  pageOfWhich: "A page of which one",
   ownDoc: "Make it a document of its own",
   dropThemSure:
     "Discard {name} tasks? They leave the open lists and stay in the archive, where you can open them again.",
@@ -1148,6 +1166,9 @@ const es: Catalog = {
   insertDoc: "Un documento",
   insertIcon: "Un icono",
   insertNewDoc: "Un documento nuevo",
+  insertNewPage: "Una página nueva",
+  insertPage: "Una página de este",
+  pageName: "Nombre de la página",
   sayNewDoc: "se crea y se enlaza",
   docName: "Nombre del documento",
   sayDoc: "de este Tisty",
@@ -1266,6 +1287,19 @@ const es: Catalog = {
   paperDocs: "{name} documentos",
   pageHeld: "1 página",
   pagesHeld: "{name} páginas",
+  kindLeaf: "Página {name}",
+  theseLeaves: "Páginas",
+  allInside: "En el orden en que el texto las nombra.",
+  someLoose: "En el orden en que el texto las nombra. Las últimas no las nombra en ninguna parte.",
+  looseLeaf: "suelta",
+  putLeaf: "Ponerla en el texto",
+  whereThisSits: "Dónde va esta página",
+  leafOfMany: "Página {name} de {other}",
+  leafBack: "Página anterior",
+  leafOn: "Página siguiente",
+  noLeafBack: "Es la primera",
+  noLeafOn: "Es la última",
+  leafNext: "Sigue",
   paperFiles: "{name} adjuntos",
   paperEmpty: "Todavía sin escribir",
   shaping: "Formato",
@@ -1306,6 +1340,8 @@ const es: Catalog = {
   dropPagesSure:
     "¿Borrar «{name}»? El documento, sus páginas y lo que guardan se van para siempre. Esto no se puede deshacer.",
   newPage: "Nueva página",
+  pageOf: "Es página de…",
+  pageOfWhich: "Página de cuál",
   ownDoc: "Convertir en documento propio",
   dropThemSure:
     "¿Descartar {name} tareas? Salen de las listas abiertas y se quedan en el archivo, donde puedes volver a abrirlas.",
@@ -1978,5 +2014,5 @@ export type Word = keyof Catalog;
 
 export const t = (key: Word): string => spoken[key];
 
-export const fill = (key: keyof Catalog, name: string): string =>
-  spoken[key].replace("{name}", name);
+export const fill = (key: keyof Catalog, name: string, other?: string): string =>
+  spoken[key].replace("{name}", name).replace("{other}", other ?? "");

@@ -468,6 +468,29 @@ impl State {
         pages
     }
 
+    /// Where each page has to sit for the run to read like the body that names them: the ones
+    /// named in the text first and in that order, the ones it does not name after. Only the
+    /// pages that have to move come back, so a body saved every keystroke moves nothing.
+    pub fn pages_told(&self, doc: DocId, body: &str) -> Vec<(DocId, String)> {
+        let pages = self.pages_of(doc);
+        if pages.len() < 2 {
+            return Vec::new();
+        }
+        let named = crate::refs::papers(body);
+        let mut wanted: Vec<&Kept> = named
+            .iter()
+            .filter_map(|file| pages.iter().find(|one| &one.file == file).copied())
+            .collect();
+        wanted.extend(pages.iter().filter(|one| !named.contains(&one.file)));
+
+        let keys: Vec<&str> = wanted.iter().map(|one| one.order.as_str()).collect();
+        crate::order::resequenced(&keys)
+            .into_iter()
+            .zip(&wanted)
+            .filter_map(|(fresh, one)| fresh.map(|key| (one.id, key)))
+            .collect()
+    }
+
     pub fn put_away(&self) -> Vec<&Kept> {
         self.docs.values().filter(|one| one.archived).collect()
     }

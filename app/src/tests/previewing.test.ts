@@ -96,6 +96,27 @@ describe("what the editor makes of a reference marked as a card", () => {
     editor.destroy();
   });
 
+  it("draws a page of this document as a leaf of it, numbered where it sits", () => {
+    const editor = made("![lo que sea](tisty:doc/mac0-0007)", { page: () => 2 });
+    const box = editor.view.dom.querySelector(".card-page");
+
+    expect(box).toBeTruthy();
+    expect(box?.querySelector(".card-num")?.textContent).toBe("2");
+    expect(box?.querySelectorAll(".card-leaf")).toHaveLength(2);
+    expect(box?.querySelector(".card-paper")).toBeNull();
+
+    editor.destroy();
+  });
+
+  it("keeps a document that is not a page of this one looking like a document", () => {
+    const editor = made("![lo que sea](tisty:doc/mac0-0007)", { page: () => null });
+
+    expect(editor.view.dom.querySelector(".card-page")).toBeNull();
+    expect(editor.view.dom.querySelector(".card-paper")).toBeTruthy();
+
+    editor.destroy();
+  });
+
   it("says a card points at the very document you are reading", () => {
     const editor = made("![Informe](tisty:doc/mac0-0007)", { here: "mac0-0007" });
 
