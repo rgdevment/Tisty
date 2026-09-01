@@ -1,5 +1,5 @@
 import { Editor } from "@tiptap/core";
-import { asMarkdown, written } from "../ui/writing";
+import { asMarkdown, loosened, written } from "../ui/writing";
 
 export interface Open {
   editor: Editor;
@@ -12,11 +12,10 @@ export interface Open {
   shut: () => void;
 }
 
-/// Without an element tiptap builds no node view and receives no key; both need a real DOM.
 export const opened = (content = ""): Open => {
   const dom = document.createElement("div");
   document.body.append(dom);
-  const editor = new Editor({ extensions: written(), content, element: dom });
+  const editor = new Editor({ extensions: written(), content: loosened(content), element: dom });
 
   const typed = (text: string) => {
     for (const one of text) {

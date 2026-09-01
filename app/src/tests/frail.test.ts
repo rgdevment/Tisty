@@ -79,7 +79,7 @@ describe("what a document brings that the editor cannot keep", () => {
   });
 
   it("names every kind it finds, not only the first", () => {
-    const messy = "---\na: b\n---\n\n<div>x</div>\n\nnota[^1]\n\n[^1]: pie";
+    const messy = "---\na: b\n---\n\n<div>x</div>\n\nnota[^1]\n\n[^1]: pie\n\n[uno]: https://x.dev";
 
     expect(frail(messy)).toEqual(["frailFront", "frailHtml", "frailNotes", "frailRefs"]);
   });
@@ -126,23 +126,26 @@ describe("a fence is a fence however it is written", () => {
   });
 });
 
-describe("a fence nobody closed is not a fence", () => {
+describe("a fence ends where the quote that opened it ends", () => {
   it("still sees html past a fence left open inside a quote", () => {
     expect(frail('> ```\n> code\n\n<div class="warn">Cuidado</div>')).toContain("frailHtml");
   });
 
-  it("still sees a footnote past a fence left open", () => {
+  it("still sees a footnote past a fence left open inside a quote", () => {
     expect(frail("> ```\n> code\n\nuna nota[^1]\n\n[^1]: el pie")).toContain("frailNotes");
   });
 
-  it("still sees a reference past a tilde fence left open", () => {
-    expect(frail("~~~\nno cierra\n\nmira [esto][uno]\n\n[uno]: https://x.dev")).toContain(
-      "frailRefs",
-    );
+  it("reads a fence nobody closed as code to the end, which is what markdown says", () => {
+    expect(frail("~~~\nno cierra\n\nmira [esto][uno]\n\n[uno]: https://x.dev")).toEqual([]);
   });
 
   it("is not fooled by a fence marker quoted inside a code block", () => {
     expect(frail("```text\n> ```\n```\n\n<div>real</div>")).toContain("frailHtml");
+  });
+
+  it("is not closed by a marker shorter than the one that opened it", () => {
+    expect(frail("````\ncode\n```\naun es codigo <div>x</div>\n````\n")).toEqual([]);
+    expect(frail("````\ncode\n```\n````\n\n<div>real</div>")).toContain("frailHtml");
   });
 });
 

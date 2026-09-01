@@ -1,0 +1,410 @@
+[
+  {
+    "text": "# Cartulinas\n\nRosa y palos de paleta.",
+    "why": []
+  },
+  {
+    "text": "- one\n- two\n\n**bold** and `code`",
+    "why": []
+  },
+  {
+    "text": "[a link](https://example.com) in a line",
+    "why": []
+  },
+  {
+    "text": "# t\n\n<https://example.com> look",
+    "why": []
+  },
+  {
+    "text": "# t\n\n```html\n<div class=\"warn\">hi</div>\n```\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\n```js\nconst a: Array<T> = []\n```\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\n```ini\n[section]: value\n```\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\n```\n[^1]: a note\n```\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\n    <div>indented is code too</div>\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\n\t<div>tabbed is code too</div>\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\nuse `<T>` inline, and `&amp;` too",
+    "why": []
+  },
+  {
+    "text": "# t\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n",
+    "why": []
+  },
+  {
+    "text": "| tarea | horas |\n| :--- | ---: |\n| una | 3 |",
+    "why": []
+  },
+  {
+    "text": "",
+    "why": []
+  },
+  {
+    "text": "un <u>subrayado</u> normal",
+    "why": []
+  },
+  {
+    "text": "- **negrita** y <u>subrayado</u>\n- otro",
+    "why": []
+  },
+  {
+    "text": "---\n\nUna raya que nadie cierra no es un front matter.",
+    "why": []
+  },
+  {
+    "text": "> ```html\n> <div>x</div>\n> ```\n",
+    "why": []
+  },
+  {
+    "text": "- Ejemplo:\n\n  ```html\n  <div>x</div>\n  ```",
+    "why": []
+  },
+  {
+    "text": "> [!NOTE]\n> ```html\n> <div>x</div>\n> ```",
+    "why": []
+  },
+  {
+    "text": "~~~html\n<div>x</div>\n~~~",
+    "why": []
+  },
+  {
+    "text": "# t\n\n````\ncode\n```\naun es codigo <div>x</div>\n````\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\n```\ncode\n~~~\naun es codigo <div>x</div>\n```\n",
+    "why": []
+  },
+  {
+    "text": "~~~\nno cierra\n\nmira [esto][uno]\n\n[uno]: https://x.dev",
+    "why": []
+  },
+  {
+    "text": "una nota[^1](uno) y otra[^2](dos)",
+    "why": []
+  },
+  {
+    "text": "mira [^arriba][uno]",
+    "why": []
+  },
+  {
+    "text": "una nota\\[^1\\]\n\n\\[^1\\]: el pie",
+    "why": []
+  },
+  {
+    "text": "[ref]:",
+    "why": []
+  },
+  {
+    "text": "[ref]:   ",
+    "why": []
+  },
+  {
+    "text": "[a](b) but wait]: nope, not a real ref",
+    "why": []
+  },
+  {
+    "text": "# Uno\n\n---\n\ntexto\n\n---\n\nmas",
+    "why": []
+  },
+  {
+    "text": "Marks & Spencer; luego mas",
+    "why": []
+  },
+  {
+    "text": "R&D; investigacion",
+    "why": []
+  },
+  {
+    "text": "![una imagen](<attachments/ab/x.png>)",
+    "why": []
+  },
+  {
+    "text": "---\ntitle: notes\n---\n\nhello",
+    "why": [
+      "front"
+    ]
+  },
+  {
+    "text": "﻿---\ntitle: notes\n---\n\nhello",
+    "why": [
+      "front"
+    ]
+  },
+  {
+    "text": "---\ntitle: notes\n---",
+    "why": [
+      "front"
+    ]
+  },
+  {
+    "text": "---  \ntitle: notes\n---  \n\nhello",
+    "why": [
+      "front"
+    ]
+  },
+  {
+    "text": "<div class=\"warn\">careful</div>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "# Note\n\nSomething <div style=\"x\">hidden</div> here.",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "some <span>text</span> here",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "some <b>bold-ish</b> text",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "line one<br>line two",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "look <img src=\"x.png\"> here",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "<u style=\"color:red\">hola</u>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "# t\n\nSomething <!-- hidden --> more",
+    "why": [
+      "comments"
+    ]
+  },
+  {
+    "text": "# t\n\nfoo &amp; bar",
+    "why": [
+      "entities"
+    ]
+  },
+  {
+    "text": "copyright &copy; 2026",
+    "why": [
+      "entities"
+    ]
+  },
+  {
+    "text": "quote &#39; mark",
+    "why": [
+      "entities"
+    ]
+  },
+  {
+    "text": "a claim[^1]\n\n[^1]: the source",
+    "why": [
+      "notes"
+    ]
+  },
+  {
+    "text": "a claim[^1] with no definition anywhere",
+    "why": [
+      "notes"
+    ]
+  },
+  {
+    "text": "see [the thread][one]\n\n[one]: https://example.com",
+    "why": [
+      "refs"
+    ]
+  },
+  {
+    "text": "[a\b]: https://example.com",
+    "why": [
+      "refs"
+    ]
+  },
+  {
+    "text": "> ```\n> code\n\n<div>real</div>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "```text\n> ```\n```\n\n<div>real</div>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "text with an unclosed ` span and <div>real</div> after",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "- abre aqui\n  ```\n  codigo sin cerrar\n\n<div>real</div>\n",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "1. abre aqui\n   ```\n   codigo sin cerrar\n[uno]: https://example.com/real\n",
+    "why": [
+      "refs"
+    ]
+  },
+  {
+    "text": "- abre aqui\n  ```\n  codigo sin cerrar\n\nalgo &amp; mas\n",
+    "why": [
+      "entities"
+    ]
+  },
+  {
+    "text": "- abre aqui\n  ```\n  codigo sin cerrar\n\nalgo <!-- oculto --> mas\n",
+    "why": [
+      "comments"
+    ]
+  },
+  {
+    "text": "# t\n\n    ```\n    ejemplo sin cerrar\n\n<div>real</div>\n",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "- [ ] abre aqui\n      ```\n      codigo sin cerrar\n\n<div>real</div>\n",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "- uno\n  - dos\n    ```html\n    <div>x</div>\n    ```\n",
+    "why": []
+  },
+  {
+    "text": "10. uno\n    ```html\n    <div>x</div>\n    ```\n",
+    "why": []
+  },
+  {
+    "text": "- uno\n  1. dos\n     ```html\n     <div>x</div>\n     ```\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\n    ```\n    ejemplo sin cerrar\n\nalgo &amp; mas\n",
+    "why": [
+      "entities"
+    ]
+  },
+  {
+    "text": "- uno\n  - dos\n    ```\n    sin cerrar\n\n<div>real</div>\n",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "* uno\n  ```html\n  <div>x</div>\n  ```\n",
+    "why": []
+  },
+  {
+    "text": "+ uno\n  ```html\n  <div>x</div>\n  ```\n",
+    "why": []
+  },
+  {
+    "text": "1) uno\n   ```html\n   <div>x</div>\n   ```\n",
+    "why": []
+  },
+  {
+    "text": "``` unclosed then ` also unclosed <div>x</div>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "````` <div>x</div>&amp; fin",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "<?xml version=\"1.0\"?>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "<?php echo 1; ?>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "haz clic](<input type=\"hidden\">) y sigue",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "dice](<br>) y sigue",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "<U>x</U> y <u>y</u>",
+    "why": []
+  },
+  {
+    "text": "<U>x</u> mezclado",
+    "why": []
+  },
+  {
+    "text": "~~~a`b\nx\n~~~",
+    "why": []
+  },
+  {
+    "text": "[x](<carpeta/archivo.pdf>)",
+    "why": []
+  },
+  {
+    "text": "```js title=\"x.js\"\ncodigo\n```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "```js\ncodigo\n```",
+    "why": []
+  },
+  {
+    "text": "~~~ mermaid extra\ngraph TD;\n~~~",
+    "why": [
+      "fence"
+    ]
+  }
+]

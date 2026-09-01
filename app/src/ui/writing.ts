@@ -480,6 +480,40 @@ const kindOf = (text: string): Callout | null => {
   return said ? (said[1].toLowerCase() as Callout) : null;
 };
 
+const UNDER = /^ {0,3}(-+|=+)\s*$/;
+const FENCED = /^ {0,3}(`{3,}|~{3,})/;
+
+const deepened = (line: string): [number, string] => {
+  let said = line.trim();
+  let deep = 0;
+  for (;;) {
+    const mark = /^ {0,3}>/.exec(said);
+    if (!mark) return [deep, said];
+    said = said.slice(mark[0].length);
+    if (said.startsWith(" ")) said = said.slice(1);
+    deep += 1;
+  }
+};
+
+export const loosened = (markdown: string): string => {
+  const lines = markdown.split("\n");
+  const out: string[] = [];
+  for (let at = 0; at < lines.length; at += 1) {
+    out.push(lines[at]);
+    const [deep, said] = deepened(lines[at]);
+    if (!deep || !MARKED.test(said)) continue;
+    if (at > 0 && deepened(lines[at - 1])[0] >= deep) continue;
+    let ruled = false;
+    for (let next = at + 1; next < lines.length && !ruled; next += 1) {
+      const [under, text] = deepened(lines[next]);
+      if (under !== deep || !text.trim() || FENCED.test(text)) break;
+      ruled = UNDER.test(text);
+    }
+    if (ruled) out.push(lines[at].slice(0, lines[at].indexOf("[!")).trimEnd());
+  }
+  return out.join("\n");
+};
+
 const Said = Node.create({
   name: "callout",
   group: "block",
@@ -768,6 +802,8 @@ export const TONGUES = [
 // One counter for the window: mermaid resolves its id against the whole document.
 let sketches = 0;
 
+type Setting = { set: (options: { langPrefix: string }) => void };
+
 const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) }).extend({
   addNodeView() {
     return ({ node, editor, getPos }) => {
@@ -901,6 +937,42 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
           return true;
         },
       };
+    };
+  },
+
+  addStorage() {
+    return {
+      markdown: {
+        serialize(
+          state: {
+            write: (value: string) => void;
+            text: (value: string, escaped?: boolean) => void;
+            ensureNewLine: () => void;
+            closeBlock: (node: unknown) => void;
+          },
+          node: { attrs?: { language?: unknown }; textContent: string },
+        ) {
+          const said = String(node.attrs?.language ?? "");
+          const mark = said.includes("`") ? "~" : "`";
+          const runs = node.textContent.split(new RegExp(`[^\\${mark}]+`));
+          const longest = runs.reduce((most, one) => Math.max(most, one.length), 0);
+          const wall = mark.repeat(Math.max(3, longest + 1));
+
+          state.write(`${wall}${said}\n`);
+          state.text(node.textContent, false);
+          state.ensureNewLine();
+          state.write(wall);
+          state.closeBlock(node);
+        },
+        parse: {
+          setup(this: { options: { languageClassPrefix?: string } }, md: Setting) {
+            md.set({ langPrefix: this.options.languageClassPrefix ?? "language-" });
+          },
+          updateDOM(element: HTMLElement) {
+            element.innerHTML = element.innerHTML.replace(/\n<\/code><\/pre>/g, "</code></pre>");
+          },
+        },
+      },
     };
   },
 });

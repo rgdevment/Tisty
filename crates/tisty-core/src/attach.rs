@@ -810,6 +810,23 @@ fn since_epoch(when: std::time::SystemTime) -> i64 {
         .unwrap_or(0)
 }
 
+fn decoded(said: &str) -> Option<String> {
+    let bytes = said.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut at = 0;
+
+    while at < bytes.len() {
+        if bytes[at] == b'%' {
+            out.push(u8::from_str_radix(said.get(at + 1..at + 3)?, 16).ok()?);
+            at += 3;
+            continue;
+        }
+        out.push(bytes[at]);
+        at += 1;
+    }
+    String::from_utf8(out).ok()
+}
+
 pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
     let cleaned = reference.split(['?', '#']).next().unwrap_or("");
     let refused = || Err(Error::OutsideTheStore(reference.to_string()));
@@ -817,13 +834,16 @@ pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
         return refused();
     }
 
-    if cleaned.contains('\\') {
+    let Some(cleaned) = decoded(cleaned) else {
+        return refused();
+    };
+    if cleaned.contains('\\') || cleaned.chars().any(char::is_control) {
         return refused();
     }
 
     let mut walked = root.to_path_buf();
     let mut steps = 0;
-    for part in Path::new(cleaned).components() {
+    for part in Path::new(&cleaned).components() {
         let Component::Normal(name) = part else {
             return refused();
         };
@@ -1284,6 +1304,34 @@ mod tests {
         }
         assert!(resolve("attachments/ab/cd.png", root).is_ok());
         assert!(resolve("docs/notes.md", root).is_ok());
+    }
+
+    #[test]
+    fn a_name_the_window_wrote_with_percents_finds_the_file_it_names() {
+        let root = tempfile::tempdir().unwrap();
+        let root = root.path();
+
+        assert_eq!(
+            resolve("attachments/ab/mi%20foto.png", root).unwrap(),
+            root.join("attachments").join("ab").join("mi foto.png")
+        );
+        assert_eq!(
+            resolve("docs/nota%20larga.md", root).unwrap(),
+            root.join("docs").join("nota larga.md")
+        );
+        for hidden in [
+            "attachments%2F..%2F..%2Fsecret.png",
+            "%2E%2E/secret.png",
+            "attachments%5Cab%5Ccd.png",
+            "attachments/%00/cd.png",
+            "attachments/ab/%zz.png",
+            "attachments/ab/cd.png%",
+        ] {
+            assert!(
+                resolve(hidden, root).is_err(),
+                "«{hidden}» got out of the store"
+            );
+        }
     }
 
     #[test]

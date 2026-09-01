@@ -331,7 +331,7 @@ export default function Docs({
     registered();
     const pages = known.filter((one) => one.pageOf === open.id);
     const written = await Promise.all(pages.map((one) => docRead(one.file)));
-    const [{ generateJSON }, { written: shapes }, { composed }] = await Promise.all([
+    const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
       import("@tiptap/core"),
       import("./writing"),
       import("../markdown"),
@@ -341,8 +341,8 @@ export default function Docs({
       return found < 0 ? null : found + 1;
     };
     const sheets = await Promise.all(
-      [read(), ...written.map((body) => generateJSON(composed(body), shapes()))].map((one) =>
-        fetched(shapesOf(one), attached, at),
+      [read(), ...written.map((body) => generateJSON(composed(loosened(body)), shapes()))].map(
+        (one) => fetched(shapesOf(one), attached, at),
       ),
     );
     return pdf(<Papered sheets={sheets} leaf={leaf} />).toBlob();

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { loosened } from "../ui/writing";
 import { inCell, opened } from "./mounted";
 
 describe("what only a mounted editor can be asked", () => {
@@ -133,6 +134,80 @@ describe("the keys a person actually presses", () => {
     expect(one.markdown()).toContain("raro");
     expect(one.markdown()).not.toContain("[!raro]\n");
     one.shut();
+  });
+});
+
+describe("a rule under the marker does not swallow the callout", () => {
+  it("keeps the callout when the rule is the whole body", () => {
+    const one = opened("> [!NOTE]\n> ---");
+    expect(one.editor.state.doc.firstChild?.type.name).toBe("callout");
+    expect(one.markdown()).toBe("> [!NOTE]\n> ---");
+    one.shut();
+  });
+
+  it("keeps the marker and the words when a rule follows them", () => {
+    const one = opened("> [!WARNING]\n> algo importante\n> ---");
+    expect(one.editor.state.doc.firstChild?.attrs.kind).toBe("warning");
+    expect(one.markdown()).toContain("[!WARNING]");
+    expect(one.markdown()).toContain("algo importante");
+    one.shut();
+  });
+
+  it("keeps it when the marker shares its line with the words", () => {
+    const one = opened("> [!TIP] algo\n> ---");
+    expect(one.editor.state.doc.firstChild?.attrs.kind).toBe("tip");
+    expect(one.markdown()).toBe("> [!TIP]\n> algo\n>\n> ---");
+    one.shut();
+  });
+
+  it("keeps it when the rule underneath is the other kind", () => {
+    const one = opened("> [!TIP]\n> ===");
+    expect(one.editor.state.doc.firstChild?.type.name).toBe("callout");
+    expect(one.markdown()).toBe("> [!TIP]\n> ===");
+    one.shut();
+  });
+
+  it("leaves a quote that is not a callout to commonmark", () => {
+    const one = opened("> normal\n> ---");
+    expect(one.markdown()).toBe("> ## normal");
+    one.shut();
+  });
+
+  it("adds nothing to a callout with no rule under it", () => {
+    const was = "> [!NOTE]\n> una nota";
+    expect(opened(was).markdown()).toBe(was);
+  });
+
+  it("keeps a callout nested in a list where it was indented", () => {
+    const one = opened("- uno\n\n  > [!NOTE]\n  > algo\n  > ---");
+    expect(one.markdown()).toContain("- uno");
+    expect(one.markdown()).toContain("[!NOTE]");
+    expect(one.markdown()).toContain("algo");
+    one.shut();
+  });
+
+  it("keeps a callout quoted inside another quote", () => {
+    const one = opened("> > [!NOTE]\n> > ---");
+    expect(one.markdown()).toContain("[!NOTE]");
+    one.shut();
+  });
+
+  it.each([
+    ["a rule that is code inside a fence", "> [!NOTE]\n> ```\n> ---\n> ```"],
+    ["dashes indented far enough to be code", "> [!NOTE]\n>     ---"],
+    ["dashes a blank line already parted", "> [!NOTE]\n>\n> ---"],
+    ["the dashes a table draws", "> [!NOTE]\n> | a | b |\n> | --- | --- |\n> | 1 | 2 |"],
+    ["dashes with spaces between them", "> [!NOTE]\n> - - -"],
+    ["a marker nobody knows", "> [!RARO]\n> ---"],
+  ])("touches nothing for %s", (_what, was) => {
+    expect(loosened(was)).toBe(was);
+  });
+
+  it("does not walk the whole document once per marker", () => {
+    const deep = Array.from({ length: 2000 }, (_, at) => `${">".repeat(at + 1)} [!NOTE]`);
+    const at = performance.now();
+    loosened(deep.join("\n"));
+    expect(performance.now() - at).toBeLessThan(3000);
   });
 });
 

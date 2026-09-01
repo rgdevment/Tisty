@@ -1,5 +1,8 @@
+import { generateJSON } from "@tiptap/core";
 import { describe, expect, it } from "vitest";
+import { composed } from "../markdown";
 import { shapesOf } from "../ui/shaping";
+import { loosened, written } from "../ui/writing";
 
 describe("a callout reaches the book with its frame", () => {
   const doc = {
@@ -86,5 +89,22 @@ describe("a picture inside a callout reaches the book like any other", () => {
     expect(kid.kind).toBe("image");
     if (kid.kind !== "image") return;
     expect(kid.src.startsWith("attachments/")).toBe(false);
+  });
+});
+
+describe("a page reaches the book the way the window would read it", () => {
+  const paged = (body: string) =>
+    shapesOf(generateJSON(composed(loosened(body)), written()) as never);
+
+  it("keeps a callout whose body opens with a rule", () => {
+    const shapes = paged("> [!NOTE]\n> ---");
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0]).toMatchObject({ kind: "said", said: "note" });
+  });
+
+  it("keeps the words a rule underneath would have swallowed", () => {
+    const shapes = paged("> [!WARNING]\n> algo importante\n> ---");
+    expect(shapes[0]).toMatchObject({ kind: "said", said: "warning" });
+    expect(JSON.stringify(shapes[0])).toContain("algo importante");
   });
 });

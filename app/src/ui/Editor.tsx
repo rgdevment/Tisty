@@ -21,7 +21,7 @@ import { previewing, type Reach } from "./previewing";
 import Shot from "./Shot";
 import Slash, { asked, type Block, narrowed } from "./Slash";
 import Tabled from "./Tabled";
-import { asMarkdown, type Head, headed, written } from "./writing";
+import { asMarkdown, type Head, headed, loosened, written } from "./writing";
 
 export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
@@ -366,7 +366,7 @@ export default function Editor({
     autofocus: taking,
     editable: !reading,
     extensions: shapes,
-    content: value,
+    content: loosened(value),
     editorProps: props,
     onUpdate: wrote,
     onSelectionUpdate: moved,
@@ -558,7 +558,7 @@ export default function Editor({
     if (!editor || editor.isDestroyed) return;
     if (!stale(value, mine.current, () => asMarkdown(editor))) return;
     mine.current = value;
-    editor.commands.setContent(value, { emitUpdate: false });
+    editor.commands.setContent(loosened(value), { emitUpdate: false });
   }, [editor, value]);
 
   nudge.current = () => {
