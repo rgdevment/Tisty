@@ -709,6 +709,64 @@ existed, or from a copy that stopped halfway, is not deleted on a guess: `tisty
 doctor` and the maintenance panel **count** the document files on disk that the
 log does not know about, and leave them where they are.
 
+## A page is part of a document, not a document beside it
+
+A document may hold pages. A page is an ordinary document file — same name, same
+ceiling, same way out — with one field saying which document it belongs to, and
+that field is the whole difference between the two.
+
+**There is one level, and the core is what enforces it.** A page holds no pages:
+`DocAdd` naming a page as its parent keeps the deeper one as a document, and
+`DocMove` refuses both a document that is its own parent and one that already
+holds pages. The window and the agent refuse the same thing first, with a message
+that says why, but neither is where the rule lives — an event that arrives from
+another machine has passed no window.
+
+**A page goes where its document goes.** It is born in its document's folder,
+follows it when the document is filed elsewhere, is put away and brought back
+with it, and is deleted with it. Filing a page into a folder of its own does
+nothing: the folder of a page is the folder of the document it belongs to, so
+there is nothing to keep in step later. Undoing a move puts the page back under
+the document it was under, since the move recorded which parent it had.
+
+**Coming out is deliberate.** «Make it a document of its own» sends a null
+parent, and the page becomes a document standing in the folder it was already
+showing in. Nothing is copied and no text changes: only the field goes. That is
+why the tree can offer it as one menu entry and the agent as one call — the
+event is the same move that files a document.
+
+Folders count documents, not pages: a folder holding one document of forty pages
+says one. The pages are shown under the document, in the tree and in `tisty
+doc`, which is where the person went looking for them.
+
+**Refusing to hang a page somewhere is not a reason to unhang it.** Two machines
+can disagree — one moves a page under a document the other has just deleted — and
+the move arrives naming a parent that is no longer there. The page keeps the
+document it had. A rejected move that emptied `page_of` would leave the person
+with a loose document nobody asked for, which is worse than the move not
+happening.
+
+**Cascades cost the read cache its shortcut.** The cache rewrites one row per
+event, and the four operations that reach a document's pages — delete, move,
+archive and unarchive — cannot be told a row at a time, so they throw the cache
+away and it is rebuilt from the log. Without that, a delete would leave its pages
+alive in the cache, invisible in every view because their document is gone, and
+their files would be carried back into the shared folder on the next round.
+
+**Two ways out are one way out.** A copy of a document copies its pages, and a
+document taken out as Markdown writes its pages beside it, numbered in reading
+order. What holds a book in forty parts and hands out the cover is not an export.
+
+**The schema is 8 because of this.** A machine still on 1.0.x rejects the whole
+event rather than reading a page as a loose document and filing it somewhere the
+person never put it.
+
+What is not settled: two machines whose clocks disagree by more than the time a
+round takes can order the page's own creation before its document's. Every
+machine still agrees — the log is replayed in one order — but the page is read as
+a document of its own, standing in the folder it was written into. Nothing is
+lost and nothing hides; the tie to the document is what goes.
+
 ## Taking a document out
 
 A document is a Markdown file, and the whole point is that it survives without

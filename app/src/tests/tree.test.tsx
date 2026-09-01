@@ -122,7 +122,7 @@ describe("the document tree", () => {
     );
 
     const elbows = Array.from(
-      container.querySelectorAll<HTMLElement>("li.relative > span[aria-hidden].h-px"),
+      container.querySelectorAll<HTMLElement>("li.relative span[aria-hidden].h-px"),
     );
     expect(elbows).toHaveLength(5);
     expect(new Set(elbows.map((one) => one.style.left))).toEqual(new Set(["14px", "29px"]));
@@ -477,5 +477,171 @@ describe("the document tree", () => {
     expect(marked[0].querySelector("[title]")?.getAttribute("title")).toMatch(
       /not on this machine/i,
     );
+  });
+});
+
+describe("a document with pages", () => {
+  const withPages: Papers = {
+    folders: papers.folders,
+    docs: [
+      ...papers.docs,
+      { id: "01K", file: "a3f1-0007", title: "Actas", folder: "01F", archived: false },
+      {
+        id: "01L",
+        file: "a3f1-0008",
+        title: "Marzo",
+        folder: "01F",
+        pageOf: "01K",
+        archived: false,
+      },
+      {
+        id: "01M",
+        file: "a3f1-0009",
+        title: "Abril",
+        folder: "01F",
+        pageOf: "01K",
+        archived: false,
+      },
+    ],
+  };
+
+  const show = () =>
+    render(<Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+
+  it("says how many pages it holds without being opened", () => {
+    show();
+
+    expect(screen.getByRole("button", { name: "Actas" }).textContent).toContain("2 pages");
+  });
+
+  it("keeps its pages inside until it is opened, and puts them back when it shuts", async () => {
+    show();
+
+    expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+    expect(screen.getByRole("button", { name: "Marzo" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Close Actas" }));
+    expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
+  });
+
+  it("keeps a page out of the folder that holds its document", async () => {
+    show();
+    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+
+    const inside = screen.getByRole("button", { name: "Compras" });
+    const page = screen.getByRole("button", { name: "Marzo" });
+    expect(page.style.paddingLeft).not.toBe(inside.style.paddingLeft);
+  });
+
+  it("leaves a document with no pages exactly as it was", () => {
+    show();
+
+    expect(screen.queryByRole("button", { name: "Close Compras" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Compras" }).textContent).not.toContain("page");
+  });
+
+  it("does not let a page be dragged out from under its document", async () => {
+    show();
+    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+
+    expect(screen.getByRole("button", { name: "Marzo" }).draggable).toBe(false);
+  });
+
+  it("counts one page in the singular", () => {
+    render(
+      <Tree
+        papers={{
+          folders: [],
+          docs: [
+            { id: "01K", file: "a3f1-0007", title: "Actas", folder: null, archived: false },
+            {
+              id: "01L",
+              file: "a3f1-0008",
+              title: "Marzo",
+              folder: null,
+              pageOf: "01K",
+              archived: false,
+            },
+          ],
+        }}
+        onOpen={vi.fn()}
+        onFile={vi.fn()}
+        onHere={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Actas" }).textContent).toContain("1 page");
+  });
+
+  it("keeps an archived page beside its document rather than loose in the archive", () => {
+    render(
+      <Tree
+        papers={{
+          folders: [],
+          docs: [
+            { id: "01K", file: "a3f1-0007", title: "Actas", folder: null, archived: true },
+            {
+              id: "01L",
+              file: "a3f1-0008",
+              title: "Marzo",
+              folder: null,
+              pageOf: "01K",
+              archived: true,
+            },
+          ],
+        }}
+        onOpen={vi.fn()}
+        onFile={vi.fn()}
+        onHere={vi.fn()}
+      />,
+    );
+
+    const archive = screen.getByRole("list", { name: "Archived" });
+    expect(archive.querySelectorAll(":scope > li").length).toBe(1);
+    expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
+  });
+
+  it("does not offer to cut a page out from under its document", async () => {
+    render(<Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+    const page = screen.getByRole("button", { name: "Marzo" });
+
+    expect(page.getAttribute("aria-keyshortcuts")).toBe("Shift+F10");
+    page.focus();
+    await userEvent.keyboard("{Control>}x{/Control}");
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("arrives shut, and opens itself only on the page being read", () => {
+    const { rerender } = render(
+      <Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
+    );
+    expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Open Actas" }).getAttribute("aria-expanded")).toBe(
+      "false",
+    );
+
+    rerender(
+      <Tree
+        papers={withPages}
+        open="a3f1-0008"
+        onOpen={vi.fn()}
+        onFile={vi.fn()}
+        onHere={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Marzo" })).toBeTruthy();
+  });
+
+  it("keeps the archive within reach of the arrow keys", async () => {
+    render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    const away = screen.getByRole("button", { name: "Viejo" });
+
+    away.focus();
+    await userEvent.keyboard("{ArrowUp}");
+
+    expect(document.activeElement).not.toBe(away);
   });
 });

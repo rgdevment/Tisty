@@ -1307,6 +1307,7 @@ mod tests {
                 file: file.to_string(),
                 order: "a0".into(),
                 folder: None,
+                page_of: None,
             },
         })
         .unwrap();
@@ -1529,6 +1530,7 @@ mod tests {
                     file: "uno-0001".into(),
                     order: "a0".into(),
                     folder: None,
+                    page_of: None,
                 },
             },
         );

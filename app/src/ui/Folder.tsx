@@ -55,6 +55,7 @@ export default function Folder({
   const inside = docs.filter(
     (one) =>
       !one.archived &&
+      !one.pageOf &&
       (folder
         ? one.folder === folder.id
         : one.folder === null || !folders.some((at) => at.id === one.folder)),
@@ -77,7 +78,7 @@ export default function Folder({
     for (let at = left.pop(); at !== undefined; at = left.pop()) {
       if (seen.has(at)) continue;
       seen.add(at);
-      many += docs.filter((one) => !one.archived && one.folder === at).length;
+      many += docs.filter((one) => !one.archived && !one.pageOf && one.folder === at).length;
       for (const one of folders) if (one.parent === at) left.push(one.id);
     }
     return many;
@@ -95,6 +96,8 @@ export default function Folder({
   ]
     .filter(Boolean)
     .join(" · ");
+
+  const pages = (id: string) => docs.filter((one) => one.pageOf === id).length;
 
   const paper = (one: Filed) => {
     const worn = led(one.title || t("untitledDoc"));
@@ -125,6 +128,11 @@ export default function Folder({
             )}
           </span>
           <span className="truncate text-ink">{worn.rest}</span>
+          {pages(one.id) > 0 && (
+            <span className="shrink-0 text-[11.5px] text-faint">
+              {pages(one.id) === 1 ? t("pageHeld") : fill("pagesHeld", String(pages(one.id)))}
+            </span>
+          )}
           {one.gone && <span className="shrink-0 text-[11.5px] text-urgent">{t("goneDoc")}</span>}
         </button>
       </li>
@@ -216,7 +224,7 @@ export default function Folder({
       {under.map((one) => {
         const closed = shut.has(one.id);
         const deeper = folders.filter((at) => at.parent === one.id);
-        const held = docs.filter((at) => !at.archived && at.folder === one.id);
+        const held = docs.filter((at) => !at.archived && !at.pageOf && at.folder === one.id);
         const shown = held.slice(0, Math.max(PEEK - deeper.length, 2));
         const left = held.length - shown.length;
         return (

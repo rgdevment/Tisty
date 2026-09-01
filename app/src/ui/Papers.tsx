@@ -30,6 +30,9 @@ export default function Papers({
 
   const named = (doc: Filed) => doc.title.trim() || t("untitledDoc");
   const shown = (all ?? []).filter((one) => matched(named(one), word));
+  // Sister pages are called January, February, March: without their document the rows read alike.
+  const under = (doc: Filed) =>
+    doc.pageOf ? (all ?? []).find((one) => one.id === doc.pageOf) : undefined;
 
   return (
     <>
@@ -49,6 +52,11 @@ export default function Papers({
         {shown.map((doc) => (
           <Row key={doc.id} glyph="▤" onPick={() => onPick(doc)}>
             <span className="min-w-0 truncate">{named(doc)}</span>
+            {under(doc) && (
+              <span className="min-w-0 shrink truncate text-faint">
+                {named(under(doc) as Filed)}
+              </span>
+            )}
           </Row>
         ))}
       </div>

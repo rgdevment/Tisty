@@ -1951,8 +1951,11 @@ fn asking_a_plain_task_for_its_series_says_so_instead_of_inventing_one() {
     assert!(run.out.is_empty(), "stdout must stay clean: {}", run.out);
 }
 
-fn tuesday_back(weeks: i64) -> String {
-    let mut at = jiff::Zoned::now().date();
+// The date has to be worked out in the zone the CLI runs in: a Tuesday in UTC is still Monday
+// in Santiago for four hours, and claiming a day the CLI reads as tomorrow keeps no turn.
+fn tuesday_back(cli: &Cli, weeks: i64) -> String {
+    let zone = jiff::tz::TimeZone::get(cli.zone).unwrap();
+    let mut at = jiff::Zoned::now().with_time_zone(zone).date();
     while at.weekday() != jiff::civil::Weekday::Tuesday {
         at = at.yesterday().unwrap();
     }
@@ -1966,7 +1969,7 @@ fn closing_a_calendar_routine_late_says_which_days_went_unmarked() {
     let cli = Cli::new();
     cli.ok(&["water the plants every tuesday"]);
     cli.ok(&["ls", "all"]);
-    cli.ok(&["set", "1", "--date", &tuesday_back(3)]);
+    cli.ok(&["set", "1", "--date", &tuesday_back(&cli, 3)]);
     cli.ok(&["ls", "all"]);
 
     let out = cli.ok(&["done", "1"]);
@@ -1982,7 +1985,7 @@ fn a_stretch_longer_than_memory_is_closed_without_asking() {
     let cli = Cli::new();
     cli.ok(&["water the plants every tuesday"]);
     cli.ok(&["ls", "all"]);
-    cli.ok(&["set", "1", "--date", &tuesday_back(9)]);
+    cli.ok(&["set", "1", "--date", &tuesday_back(&cli, 9)]);
     cli.ok(&["ls", "all"]);
 
     let out = cli.ok(&["done", "1"]);
@@ -1995,14 +1998,14 @@ fn a_claimed_day_becomes_a_kept_turn_and_only_the_rest_is_a_gap() {
     let cli = Cli::new();
     cli.ok(&["water the plants every tuesday"]);
     cli.ok(&["ls", "all"]);
-    cli.ok(&["set", "1", "--date", &tuesday_back(3)]);
+    cli.ok(&["set", "1", "--date", &tuesday_back(&cli, 3)]);
     cli.ok(&["ls", "all"]);
 
     cli.ok(&[
         "done",
         "1",
         "--also",
-        &format!("{},{}", tuesday_back(2), tuesday_back(0)),
+        &format!("{},{}", tuesday_back(&cli, 2), tuesday_back(&cli, 0)),
     ]);
     cli.ok(&["ls", "archive"]);
     let out = cli.ok(&["series", "1"]);

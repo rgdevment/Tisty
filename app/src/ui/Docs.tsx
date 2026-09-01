@@ -280,8 +280,19 @@ export default function Docs({
       import("./shaping"),
     ]);
     registered();
-    const shapes = await fetched(shapesOf(read()), attached);
-    return pdf(<Papered shapes={shapes} leaf={leaf} />).toBlob();
+    const pages = known.filter((one) => one.pageOf === open.id);
+    const written = await Promise.all(pages.map((one) => docRead(one.file)));
+    const [{ generateJSON }, { written: shapes }, { composed }] = await Promise.all([
+      import("@tiptap/core"),
+      import("./writing"),
+      import("../markdown"),
+    ]);
+    const sheets = await Promise.all(
+      [read(), ...written.map((body) => generateJSON(composed(body), shapes()))].map((one) =>
+        fetched(shapesOf(one), attached),
+      ),
+    );
+    return pdf(<Papered sheets={sheets} leaf={leaf} />).toBlob();
   };
 
   const preview = async () => {

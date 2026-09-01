@@ -44,6 +44,8 @@ pub struct Kept {
     pub order: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub page_of: Option<DocId>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub archived: bool,
 }
@@ -67,6 +69,7 @@ mod tests {
             file: "a3f1-0001".into(),
             order: "a0".into(),
             folder: None,
+            page_of: None,
             archived: false,
         };
         let json = serde_json::to_string(&kept).unwrap();
