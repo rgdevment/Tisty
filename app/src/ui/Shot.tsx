@@ -4,7 +4,7 @@ interface Props {
   at: { x: number; y: number };
   onOpen: () => void;
   onKeep?: () => void;
-  onDrop: () => void;
+  onDrop?: () => void;
 }
 
 export default function Shot({ at, onOpen, onKeep, onDrop }: Props) {
@@ -34,15 +34,19 @@ export default function Shot({ at, onOpen, onKeep, onDrop }: Props) {
           {t("keepACopy")}
         </button>
       )}
-      <span className="h-4 w-px bg-hair" />
-      <button
-        type="button"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={onDrop}
-        className="rounded-md px-2 py-1 text-[12px] text-soft hover:bg-hover hover:text-urgent"
-      >
-        {t("remove")}
-      </button>
+      {onDrop && (
+        <>
+          <span className="h-4 w-px bg-hair" />
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onDrop}
+            className="rounded-md px-2 py-1 text-[12px] text-soft hover:bg-hover hover:text-urgent"
+          >
+            {t("remove")}
+          </button>
+        </>
+      )}
     </div>
   );
 }

@@ -2,18 +2,19 @@ import type { Editor as Writing } from "@tiptap/core";
 import { Node } from "@tiptap/core";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
-import { Paragraph } from "@tiptap/extension-paragraph";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { TaskList } from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
-import { TextAlign } from "@tiptap/extension-text-align";
 import StarterKit from "@tiptap/starter-kit";
 import markPlugin from "markdown-it-mark";
 import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
 import { markup } from "../glyphs";
 import { spared } from "./Icons";
+
+/// A bracket left bare closes the label early, and the reference stops naming anything.
+export const labelled = (said: string): string => said.replace(/([[\]\\])/g, "\\$1");
 
 const inked = Symbol("ink");
 const peeked = Symbol("peek");
@@ -302,7 +303,7 @@ const Pictured = Image.extend({
           state: { write: (text: string) => void; closeBlock: (node: unknown) => void },
           node: { attrs: Record<string, string> },
         ) {
-          state.write(`![${node.attrs.alt ?? ""}](${node.attrs.src ?? ""})`);
+          state.write(`![${labelled(node.attrs.alt ?? "")}](${node.attrs.src ?? ""})`);
           state.closeBlock(node);
         },
         parse: {},
@@ -464,72 +465,6 @@ const Lit = Highlight.configure({ multicolor: true }).extend({
   },
 });
 
-type Inking = { type: { name: string }; attrs?: Record<string, string | null> };
-
-type Bit = { text?: string; marks?: Inking[] };
-
-const WRAPS: Record<string, [string, string]> = {
-  bold: ["<strong>", "</strong>"],
-  italic: ["<em>", "</em>"],
-  strike: ["<s>", "</s>"],
-  code: ["<code>", "</code>"],
-};
-
-const escaped = (text: string): string =>
-  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-const wrapped = (mark: Inking, text: string): string => {
-  if (mark.type.name === "link") {
-    return `<a href="${escaped(mark.attrs?.href ?? "")}">${text}</a>`;
-  }
-  if (mark.type.name === "highlight") {
-    const pen = mark.attrs?.color;
-    return pen ? `<mark data-pen="${escaped(pen)}">${text}</mark>` : `<mark>${text}</mark>`;
-  }
-  const pair = WRAPS[mark.type.name];
-  return pair ? pair[0] + text + pair[1] : text;
-};
-
-const inked_html = (node: { forEach: (fn: (child: Bit) => void) => void }): string => {
-  let out = "";
-  node.forEach((child) => {
-    let text = escaped(child.text ?? "");
-    for (const mark of child.marks ?? []) text = wrapped(mark, text);
-    out += text;
-  });
-  return out;
-};
-
-const Ranged = Paragraph.extend({
-  addStorage() {
-    return {
-      markdown: {
-        serialize(
-          state: {
-            write: (text: string) => void;
-            renderInline: (node: unknown) => void;
-            closeBlock: (node: unknown) => void;
-          },
-          node: {
-            attrs?: { textAlign?: string };
-            forEach: (fn: (child: Bit) => void) => void;
-          },
-        ) {
-          const towards = node.attrs?.textAlign;
-          if (towards && towards !== "left") {
-            state.write(`<p style="text-align: ${towards}">${inked_html(node)}</p>`);
-            state.closeBlock(node);
-            return;
-          }
-          state.renderInline(node);
-          state.closeBlock(node);
-        },
-        parse: {},
-      },
-    };
-  },
-});
-
 const Tightened = TaskList.extend({
   addAttributes() {
     return { ...this.parent?.(), tight: { default: true, rendered: false } };
@@ -540,10 +475,7 @@ export const written = () => [
   StarterKit.configure({
     link: { openOnClick: false, autolink: true, protocols: ["tisty"] },
     text: false,
-    paragraph: false,
   }),
-  Ranged,
-  TextAlign.configure({ types: ["paragraph"] }),
   Pictured,
   Table.configure({ resizable: false }),
   TableRow,

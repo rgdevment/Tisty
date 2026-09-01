@@ -70,6 +70,8 @@ const KNOWN = [
   "pageOfPage",
   "pageStaysPut",
   "holdsPages",
+  "pageOfAway",
+  "awayStaysAway",
   "folderNameTooLong",
   "documentBeingWritten",
   "documentMoved",

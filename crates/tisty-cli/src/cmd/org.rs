@@ -281,7 +281,7 @@ fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow
         let mut ops = Vec::with_capacity(change.len());
         for (event, before) in change.iter().rev() {
             match inverse(event, before) {
-                Some(op) => ops.push(op),
+                Some(back) => ops.extend(back),
                 None => anyhow::bail!("{}", lang.get("cannot-undo")),
             }
         }

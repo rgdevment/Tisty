@@ -1,4 +1,4 @@
-import { t, type Word } from "../locales";
+import { fill, t, type Word } from "../locales";
 import { DOC } from "../markdown";
 import { KINDS } from "../previews";
 import { redrawn, upright } from "../upright";
@@ -174,6 +174,7 @@ const printable = (src: string): boolean =>
 export const fetched = async (
   shapes: Shape[],
   read: (reference: string) => Promise<number[]>,
+  leaf?: (file: string) => number | null,
 ): Promise<Shape[]> => {
   const held = new Map<string, string | null>();
   const out: Shape[] = [];
@@ -190,10 +191,12 @@ export const fetched = async (
       continue;
     }
     if (one.src.startsWith(DOC)) {
+      const file = one.src.slice(DOC.length);
+      const at = leaf?.(file) ?? null;
       out.push({
         kind: "file",
-        name: one.alt || one.src.slice(DOC.length),
-        said: t("kindDoc"),
+        name: one.alt || file,
+        said: at === null ? t("kindDoc") : fill("kindLeaf", String(at)),
       });
       continue;
     }

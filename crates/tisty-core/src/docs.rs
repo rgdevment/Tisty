@@ -439,12 +439,20 @@ pub fn read(root: &Path, id: &str) -> Result<String> {
     Ok(body)
 }
 
-pub fn exported(data: &Path, id: &str, into: &Path) -> Result<usize> {
+/// What came out, and what could not: a page missing from disk is left behind, and saying so
+/// is the only way the person learns their book came out a chapter short.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Taken {
+    pub files: usize,
+    pub missed: usize,
+}
+
+pub fn exported(data: &Path, id: &str, into: &Path) -> Result<Taken> {
     with_pages(data, id, &[], into)
 }
 
 /// The pages travel with the document: a book exported by its cover alone is not the book.
-pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Result<usize> {
+pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Result<Taken> {
     if into.starts_with(data) || data.starts_with(into) {
         return Err(Error::OutsideTheStore(into.display().to_string()));
     }
@@ -456,17 +464,82 @@ pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Resul
     std::fs::create_dir_all(into)?;
     std::fs::create_dir(&folder)?;
 
-    let mut taken = laid_out(data, &body, &folder, &format!("{named}.{EXTENSION}"))?;
+    let wide = pages.len().to_string().len().max(2);
+    let mut missed = 0;
+    let mut written: Vec<(String, String, String)> = Vec::new();
     for (n, page) in pages.iter().enumerate() {
         let Ok(body) = read(&data.join("docs"), page) else {
+            missed += 1;
             continue;
         };
         let title = titled(&body);
         let title = spelled(if title.is_empty() { page } else { &title });
-        let at = format!("{:02} {title}.{EXTENSION}", n + 1);
-        taken += laid_out(data, &body, &folder, &at)?;
+        let at = format!("{:0wide$} {title}.{EXTENSION}", n + 1);
+        written.push((page.clone(), at, body));
     }
-    Ok(taken)
+
+    let beside = |body: &str| {
+        written
+            .iter()
+            .fold(body.to_string(), |body, (file, at, _)| {
+                let named = format!("{}{file}", crate::refs::DOC);
+                unpictured(
+                    &body
+                        .replace(&format!("](<{named}>)"), &format!("](<{at}>)"))
+                        .replace(&format!("]({named})"), &format!("](<{at}>)")),
+                    at,
+                )
+            })
+    };
+
+    let mut taken = laid_out(
+        data,
+        &beside(&body),
+        &folder,
+        &format!("{named}.{EXTENSION}"),
+    )?;
+    for (_, at, body) in &written {
+        taken += laid_out(data, &beside(body), &folder, at)?;
+    }
+    Ok(Taken {
+        files: taken,
+        missed,
+    })
+}
+
+fn unpictured(body: &str, at: &str) -> String {
+    let shut = format!("](<{at}>)");
+    let mut said = String::with_capacity(body.len());
+    let mut from = 0;
+    while let Some(found) = body[from..].find(&shut).map(|n| from + n) {
+        let opened = began(&body[..found]);
+        let cut = match opened {
+            Some(open) if body[..open].ends_with('!') => open - 1,
+            _ => found,
+        };
+        said.push_str(&body[from..cut]);
+        if cut != found {
+            said.push_str(&body[cut + 1..found]);
+        }
+        said.push_str(&shut);
+        from = found + shut.len();
+    }
+    said.push_str(&body[from..]);
+    said
+}
+
+fn began(before: &str) -> Option<usize> {
+    let mut escaped = false;
+    let mut open = None;
+    for (at, c) in before.char_indices() {
+        match c {
+            _ if escaped => escaped = false,
+            '\\' => escaped = true,
+            '[' => open = Some(at),
+            _ => {}
+        }
+    }
+    open
 }
 
 fn laid_out(data: &Path, body: &str, folder: &Path, named: &str) -> Result<usize> {
@@ -2995,7 +3068,7 @@ despues
             "the page stayed behind"
         );
         assert!(folder.join("02 Abril.md").exists());
-        assert_eq!(taken, 1, "what a page holds comes out with it");
+        assert_eq!(taken.files, 1, "what a page holds comes out with it");
     }
 
     #[test]
@@ -3034,7 +3107,7 @@ despues
         let taken = exported(&data, "mac0-0001", &out.path().join("chosen")).unwrap();
 
         assert_eq!(
-            taken, 0,
+            taken.files, 0,
             "it carried out something that is not an attachment"
         );
     }
@@ -3097,7 +3170,7 @@ despues
         let out = tempfile::tempdir().unwrap();
         let taken = exported(data, "mac0-0001", out.path()).unwrap();
 
-        assert_eq!(taken, 1);
+        assert_eq!(taken.files, 1);
         let folder = out.path().join("Minuta-del-lunes");
         assert_eq!(
             std::fs::read(folder.join("attachments/ab/foto-91f2ab00.png")).unwrap(),
@@ -3150,7 +3223,12 @@ despues
         .unwrap();
         let out = tempfile::tempdir().unwrap();
 
-        assert_eq!(exported(room.path(), "mac0-0003", out.path()).unwrap(), 0);
+        assert_eq!(
+            exported(room.path(), "mac0-0003", out.path())
+                .unwrap()
+                .files,
+            0
+        );
         assert!(!out.path().join("Sola").join("attachments").exists());
     }
 

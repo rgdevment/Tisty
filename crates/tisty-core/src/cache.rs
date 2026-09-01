@@ -470,10 +470,9 @@ pub fn advance(
                 | crate::Op::AttachRetire { .. }
                 // These reach the pages of a document, and a row at a time cannot say so.
                 | crate::Op::DocDelete { .. }
-                | crate::Op::DocMove { .. }
                 | crate::Op::DocArchive { .. }
                 | crate::Op::DocUnarchive { .. }
-        )
+        ) || matches!(&e.op, crate::Op::DocMove { d, .. } if d.folder.is_some() || d.page_of.is_some())
     }) {
         cache.invalidate();
         return print;

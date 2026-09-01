@@ -480,6 +480,11 @@ describe("the document tree", () => {
   });
 });
 
+const carrying = (doc?: string) => ({
+  types: doc ? ["text/tisty-doc"] : ["text/tisty-folder"],
+  getData: (kind: string) => (kind === "text/tisty-doc" ? (doc ?? "") : ""),
+});
+
 describe("a document with pages", () => {
   const withPages: Papers = {
     folders: papers.folders,
@@ -538,6 +543,61 @@ describe("a document with pages", () => {
 
     expect(screen.queryByRole("button", { name: "Close Compras" })).toBeNull();
     expect(screen.getByRole("button", { name: "Compras" }).textContent).not.toContain("page");
+  });
+
+  it("takes a document dropped on another as a page of it", () => {
+    const onPage = vi.fn();
+    render(
+      <Tree
+        papers={withPages}
+        onOpen={vi.fn()}
+        onFile={vi.fn()}
+        onPage={onPage}
+        onHere={vi.fn()}
+      />,
+    );
+    const row = screen.getByRole("button", { name: "Actas" }).closest("div") as HTMLElement;
+    fireEvent.drop(row, { dataTransfer: carrying("01C") });
+
+    expect(onPage).toHaveBeenCalledWith("01C", "01K");
+  });
+
+  it("does not take a document dropped on a page, because a page holds none", async () => {
+    const onPage = vi.fn();
+    render(
+      <Tree
+        papers={withPages}
+        onOpen={vi.fn()}
+        onFile={vi.fn()}
+        onPage={onPage}
+        onHere={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+    const row = screen.getByRole("button", { name: "Marzo" }).closest("div") as HTMLElement;
+    fireEvent.drop(row, { dataTransfer: carrying("01C") });
+
+    expect(onPage).not.toHaveBeenCalled();
+  });
+
+  it("lets a folder dragged over a document reach the folder underneath", () => {
+    const onPage = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <Tree
+        papers={withPages}
+        onOpen={vi.fn()}
+        onFile={vi.fn()}
+        onPage={onPage}
+        onMove={onMove}
+        onHere={vi.fn()}
+      />,
+    );
+    const row = screen.getByRole("button", { name: "Actas" }).closest("div") as HTMLElement;
+    const over = fireEvent.dragOver(row, { dataTransfer: carrying() });
+
+    expect(onPage).not.toHaveBeenCalled();
+    expect(over).toBe(true);
   });
 
   it("does not let a page be dragged out from under its document", async () => {

@@ -176,6 +176,29 @@ impl Session {
             .insert(id.to_string(), tisty_core::attach::printed(body.as_bytes()));
     }
 
+    fn retell(&mut self, file: &str, body: &str) -> bool {
+        let Some(doc) = self.state.docs.values().find(|one| one.file == file) else {
+            return false;
+        };
+        let told = self.state.pages_told(doc.id, body);
+        if told.is_empty() {
+            return false;
+        }
+        self.commit_all(
+            told.into_iter()
+                .map(|(id, order)| Op::DocMove {
+                    id,
+                    d: tisty_core::event::Filed {
+                        folder: None,
+                        page_of: None,
+                        order: Some(order),
+                    },
+                })
+                .collect(),
+        )
+        .is_ok()
+    }
+
     fn moved(&self, id: &str) -> bool {
         let now = tisty_core::docs::resolve(&self.paths.docs(), id)
             .ok()
@@ -2829,10 +2852,17 @@ fn doc_write(
     })?;
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
+    let _ = session.retell(&id, &body);
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&body),
         id,
     })
+}
+
+/// Read as a file, ordered from the log: a body that arrived from elsewhere may say otherwise.
+#[tauri::command(async)]
+fn doc_order(session: tauri::State<'_, Mutex<Session>>, id: String, body: String) -> Answer<bool> {
+    Ok(held(&session).retell(&id, &body))
 }
 
 #[tauri::command]
@@ -2903,6 +2933,7 @@ fn doc_copy(
     }
 
     // A page is part of its document, so the copy is not the same document without them.
+    let mut renamed: Vec<(String, String)> = Vec::new();
     for page in session
         .state
         .pages_of(id)
@@ -2913,6 +2944,7 @@ fn doc_copy(
         let body = tisty_core::docs::read(&root, &page).unwrap_or_default();
         let leaf = tisty_core::docs::create(&root, &session.config.device_id, &body)
             .map_err(|e| blamed(channel::WINDOW, "a page could not be copied", e))?;
+        renamed.push((page.clone(), leaf.id.clone()));
         let order = tisty_core::order::last_of(
             session
                 .state
@@ -2931,6 +2963,27 @@ fn doc_copy(
             },
         })?;
     }
+
+    if !renamed.is_empty() {
+        let mine = |text: String| {
+            renamed.iter().fold(text, |text, (was, now)| {
+                text.replace(
+                    &format!("{}{was}", tisty_core::refs::DOC),
+                    &format!("{}{now}", tisty_core::refs::DOC),
+                )
+            })
+        };
+        let _ = tisty_core::docs::write(&root, &made.id, &mine(body));
+        for (_, now) in &renamed {
+            let Ok(body) = tisty_core::docs::read(&root, now) else {
+                continue;
+            };
+            let told = mine(body.clone());
+            if told != body {
+                let _ = tisty_core::docs::write(&root, now, &told);
+            }
+        }
+    }
     Ok(made)
 }
 
@@ -2939,8 +2992,11 @@ fn doc_export(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     into: String,
-) -> Answer<usize> {
-    let session = held(&session);
+) -> Answer<Taken> {
+    let mut session = held(&session);
+    if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), &id) {
+        let _ = session.retell(&id, &body);
+    }
     let pages: Vec<String> = session
         .state
         .docs
@@ -2972,6 +3028,17 @@ fn doc_export(
         );
         Refusal::about("cannotWrite", into)
     })
+    .map(|took| Taken {
+        files: took.files,
+        missed: took.missed,
+    })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Taken {
+    files: usize,
+    missed: usize,
 }
 
 #[tauri::command(async)]
@@ -3092,7 +3159,12 @@ fn doc_page(
         match session.state.docs.get(&up) {
             None => return Err(Refusal::of("noSuchDoc")),
             Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
+            Some(one) if one.archived => return Err(Refusal::of("pageOfAway")),
             Some(_) => {}
+        }
+        // Hanging carries the parent's archived state over, and the inverse cannot carry it back.
+        if session.state.docs.get(&id).is_some_and(|one| one.archived) {
+            return Err(Refusal::of("awayStaysAway"));
         }
         if session
             .state
@@ -4871,6 +4943,7 @@ pub fn run() {
             doc_facts,
             keep_pdf,
             doc_write,
+            doc_order,
             doc_new,
             doc_page,
             doc_drop,

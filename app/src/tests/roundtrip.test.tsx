@@ -366,55 +366,26 @@ describe("the highlighter", () => {
   });
 });
 
-describe("text alignment", () => {
-  it("writes a centred paragraph as html", () => {
-    expect(
-      formatted("hello", (e) => e.chain().focus().selectAll().setTextAlign("center").run()),
-    ).toBe('<p style="text-align: center">hello</p>');
-  });
-
-  it("leaves a plain paragraph as plain markdown", () => {
-    expect(
-      formatted("hello", (e) => e.chain().focus().selectAll().setTextAlign("left").run()),
-    ).toBe("hello");
-  });
-
-  it("reads a centred paragraph back", () => {
-    expect(roundtripped('<p style="text-align: center">hello</p>')).toBe(
-      '<p style="text-align: center">hello</p>',
-    );
-  });
-
-  it("keeps bold inside a centred paragraph", () => {
-    expect(
-      formatted("a **strong** word", (e) =>
-        e.chain().focus().selectAll().setTextAlign("center").run(),
-      ),
-    ).toBe('<p style="text-align: center">a <strong>strong</strong> word</p>');
-  });
-});
-
-describe("a centred paragraph keeps what is inside it", () => {
-  it("reads its bold back as bold", () => {
-    const editor = build('<p style="text-align: center">a <strong>strong</strong> word</p>');
-    const html = editor.getHTML();
-    editor.destroy();
-
-    expect(html).toContain("<strong>strong</strong>");
-    expect(html).toContain("text-align: center");
-  });
-
-  it("survives a second trip unchanged", () => {
-    const once = '<p style="text-align: center">a <strong>strong</strong> word</p>';
-
-    expect(roundtripped(roundtripped(once))).toBe(once);
-  });
-
-  it("keeps a link and a highlight too", () => {
+describe("a paragraph that was centred before Tisty stopped centring", () => {
+  it("comes back as a plain paragraph, and what it points at as a plain link", () => {
     const once =
-      '<p style="text-align: center">see <a href="https://tisty.dev">this</a> and <mark>that</mark></p>';
+      '<p style="text-align: center">mira <a href="attachments/ab/plano-1234.pdf">el plano</a></p>';
 
-    expect(roundtripped(once)).toBe(once);
+    expect(roundtripped(once)).toBe("mira [el plano](attachments/ab/plano-1234.pdf)");
+  });
+
+  it("keeps its bold, its highlight and its icon rather than dropping them", () => {
+    const once =
+      '<p style="text-align: center">a <strong>strong</strong> word and <mark>that</mark></p>';
+
+    expect(roundtripped(once)).toBe("a **strong** word and ==that==");
+  });
+
+  it("keeps a line break inside it, which the html never did", () => {
+    const said = roundtripped('<p style="text-align: center">uno<br>dos</p>');
+
+    expect(said).not.toBe("unodos");
+    expect(said.replace(/\\?\n/g, "|")).toBe("uno|dos");
   });
 });
 

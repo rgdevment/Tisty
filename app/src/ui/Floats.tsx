@@ -237,33 +237,6 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
         ⚭
       </button>
 
-      <button
-        type="button"
-        data-tool
-        tabIndex={reached === marks.length + 1 ? 0 : -1}
-        disabled={locked}
-        aria-label={t("towardsMiddle")}
-        aria-pressed={editor.isActive({ textAlign: "center" })}
-        title={t("towardsMiddle")}
-        onMouseDown={(e) => e.preventDefault()}
-        onFocus={() => setReached(marks.length + 1)}
-        onClick={() =>
-          editor
-            .chain()
-            .focus()
-            .setTextSelection(live)
-            .setTextAlign(editor.isActive({ textAlign: "center" }) ? "left" : "center")
-            .run()
-        }
-        className={`grid h-7 w-7 place-items-center rounded-md text-[12px] ${
-          editor.isActive({ textAlign: "center" })
-            ? "bg-accent-soft text-accent"
-            : "text-soft hover:bg-hover hover:text-ink"
-        } disabled:cursor-not-allowed disabled:opacity-35`}
-      >
-        ≡
-      </button>
-
       {cardable && (
         <button
           type="button"

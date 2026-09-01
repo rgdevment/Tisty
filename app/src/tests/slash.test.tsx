@@ -48,6 +48,24 @@ describe("narrowing the blocks", () => {
   it("can come back empty, which is what closes the menu", () => {
     expect(narrowed(blocks, "zzz")).toHaveLength(0);
   });
+
+  it("finds a block by what it is called in the code, whatever it says on screen", () => {
+    const spoken = [
+      { key: "newpage", label: "Una página nueva" },
+      { key: "page", label: "Una página de este" },
+      { key: "table", label: "Una tabla" },
+    ];
+
+    expect(narrowed(spoken, "page").map((one) => one.key)).toEqual(["newpage", "page"]);
+    expect(narrowed(spoken, "table").map((one) => one.key)).toEqual(["table"]);
+  });
+
+  it("still finds it by the name the person reads, accents and all", () => {
+    const spoken = [{ key: "newpage", label: "Una página nueva" }];
+
+    expect(narrowed(spoken, "pagina")).toHaveLength(1);
+    expect(narrowed(spoken, "página")).toHaveLength(1);
+  });
 });
 
 describe("the slash menu itself", () => {
