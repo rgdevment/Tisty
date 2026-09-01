@@ -473,6 +473,25 @@ impl State {
         pages
     }
 
+    pub fn books_among(&self, files: &[String]) -> Vec<String> {
+        let came: BTreeSet<&str> = files.iter().map(String::as_str).collect();
+        let mut held: BTreeMap<DocId, usize> = BTreeMap::new();
+        for one in self.docs.values() {
+            if let Some(up) = one.page_of {
+                *held.entry(up).or_default() += 1;
+            }
+        }
+        self.docs
+            .values()
+            .filter(|one| {
+                one.page_of.is_none()
+                    && came.contains(one.file.as_str())
+                    && held.get(&one.id).is_some_and(|many| *many > 1)
+            })
+            .map(|one| one.file.clone())
+            .collect()
+    }
+
     pub fn settling(&self, file: &str, body: &str) -> Vec<Op> {
         let Some(kept) = self.docs.values().find(|one| one.file == file) else {
             return Vec::new();

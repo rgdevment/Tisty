@@ -174,34 +174,30 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
 }
 
 fn settle_what_arrived(app: &mut App, files: &[String]) {
-    let came: std::collections::BTreeSet<&str> = files.iter().map(String::as_str).collect();
-    let mut held: std::collections::BTreeMap<tisty_core::model::DocId, usize> =
-        std::collections::BTreeMap::new();
-    for one in app.state.docs.values() {
-        if let Some(up) = one.page_of {
-            *held.entry(up).or_default() += 1;
-        }
-    }
-    let books: Vec<String> = app
-        .state
-        .docs
-        .values()
-        .filter(|one| {
-            one.page_of.is_none()
-                && came.contains(one.file.as_str())
-                && held.get(&one.id).is_some_and(|many| *many > 1)
-        })
-        .map(|one| one.file.clone())
-        .collect();
+    use tisty_core::witness::{self, Fact, channel};
 
     let root = app.paths.docs();
-    for file in books {
-        let Ok(body) = tisty_core::docs::read(&root, &file) else {
-            continue;
+    for file in app.state.books_among(files) {
+        let body = match tisty_core::docs::read(&root, &file) {
+            Ok(body) => body,
+            Err(e) => {
+                witness::warn(
+                    channel::SYNC,
+                    "a document that arrived could not be read to settle its pages",
+                    &[("file", Fact::Id(file)), ("why", Fact::Why(e.to_string()))],
+                );
+                continue;
+            }
         };
         let told = app.state.settling(&file, &body);
-        if !told.is_empty() {
-            let _ = app.commit_all(told);
+        if !told.is_empty()
+            && let Err(e) = app.commit_all(told)
+        {
+            witness::warn(
+                channel::SYNC,
+                "where a document's pages sit could not be settled",
+                &[("file", Fact::Id(file)), ("why", Fact::Why(e.to_string()))],
+            );
         }
     }
 }

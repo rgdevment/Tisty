@@ -193,6 +193,20 @@ impl Op {
         )
     }
 
+    pub fn settles(&self) -> bool {
+        matches!(
+            self,
+            Op::DocMove {
+                d: Filed {
+                    folder: None,
+                    page_of: None,
+                    order: Some(_)
+                },
+                ..
+            }
+        )
+    }
+
     pub fn about(self, id: TaskId) -> Self {
         match self {
             Op::TaskAdd { d, .. } => Op::TaskAdd { id, d },

@@ -280,8 +280,7 @@ impl Session {
         let mut files = vec![kept.file.clone()];
         files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
         self.commit(Op::DocDelete { id })?;
-        files.retain(|file| self.state.shed.contains(file));
-        if files.is_empty() {
+        if self.state.docs.contains_key(&id) {
             return Err(Refusal::of("deleteRefused"));
         }
 
@@ -318,26 +317,7 @@ impl Session {
     }
 
     fn settle_what_arrived(&mut self, files: &[String]) {
-        let came: std::collections::BTreeSet<&str> = files.iter().map(String::as_str).collect();
-        let mut held: std::collections::BTreeMap<tisty_core::model::DocId, usize> =
-            std::collections::BTreeMap::new();
-        for one in self.state.docs.values() {
-            if let Some(up) = one.page_of {
-                *held.entry(up).or_default() += 1;
-            }
-        }
-        let books: Vec<String> = self
-            .state
-            .docs
-            .values()
-            .filter(|one| {
-                one.page_of.is_none()
-                    && came.contains(one.file.as_str())
-                    && held.get(&one.id).is_some_and(|many| *many > 1)
-            })
-            .map(|one| one.file.clone())
-            .collect();
-
+        let books = self.state.books_among(files);
         let root = self.paths.docs();
         let mut settled = 0;
         for file in books {
