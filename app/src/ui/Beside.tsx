@@ -14,13 +14,11 @@ const SHAPES = [
   "numbers",
   "todo",
   "quote",
+  "callout",
   "code",
   "table",
   "rule",
   "pen",
-  "middle",
-  "rightwards",
-  "leftwards",
 ];
 
 export const worded = (body: string): number =>

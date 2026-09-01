@@ -11,6 +11,7 @@ import markPlugin from "markdown-it-mark";
 import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
 import { markup } from "../glyphs";
+import { t } from "../locales";
 import { spared } from "./Icons";
 
 /// A bracket left bare closes the label early, and the reference stops naming anything.
@@ -465,6 +466,93 @@ const Lit = Highlight.configure({ multicolor: true }).extend({
   },
 });
 
+export const CALLOUTS = ["note", "tip", "important", "warning", "caution"] as const;
+
+export type Callout = (typeof CALLOUTS)[number];
+
+const MARKED = /^\s*\[!(note|tip|important|warning|caution)\]\s*/i;
+
+const kindOf = (text: string): Callout | null => {
+  const said = MARKED.exec(text);
+  return said ? (said[1].toLowerCase() as Callout) : null;
+};
+
+const Said = Node.create({
+  name: "callout",
+  group: "block",
+  content: "block+",
+  defining: true,
+
+  addAttributes() {
+    return { kind: { default: "note" as Callout } };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "blockquote",
+        priority: 60,
+        getAttrs: (node) => {
+          const kind = kindOf((node as HTMLElement).textContent ?? "");
+          return kind ? { kind } : false;
+        },
+        contentElement: (node) => {
+          const held = (node as HTMLElement).cloneNode(true) as HTMLElement;
+          const first = held.querySelector("p");
+          if (!first) return held;
+          const walk = document.createTreeWalker(first, NodeFilter.SHOW_TEXT);
+          const start = walk.nextNode();
+          if (start) start.nodeValue = (start.nodeValue ?? "").replace(MARKED, "");
+          if (!start?.nodeValue?.trim()) {
+            const after = first.firstChild;
+            if (after?.nodeName === "BR") after.remove();
+            else if (
+              start &&
+              start.parentElement === first &&
+              first.childNodes[1]?.nodeName === "BR"
+            )
+              first.childNodes[1].remove();
+          }
+          if (!first.textContent?.trim()) first.remove();
+          return held;
+        },
+      },
+    ];
+  },
+
+  renderHTML({ node }) {
+    const kind = String(node.attrs.kind ?? "note");
+    return [
+      "blockquote",
+      { "data-callout": kind, "data-said": t(`said${kind}` as Parameters<typeof t>[0]) },
+      0,
+    ];
+  },
+
+  addStorage() {
+    return {
+      markdown: {
+        serialize(
+          state: {
+            write: (value: string) => void;
+            wrapBlock: (delim: string, first: string | null, node: unknown, fn: () => void) => void;
+            renderContent: (node: unknown) => void;
+          },
+          node: { attrs?: { kind?: string } },
+        ) {
+          const kind = String(node.attrs?.kind ?? "note").toUpperCase();
+          state.wrapBlock("> ", null, node, () => {
+            state.write(`[!${kind}]
+`);
+            state.renderContent(node);
+          });
+        },
+        parse: {},
+      },
+    };
+  },
+});
+
 const Tightened = TaskList.extend({
   addAttributes() {
     return { ...this.parent?.(), tight: { default: true, rendered: false } };
@@ -482,6 +570,7 @@ export const written = () => [
   TableHeader,
   TableCell,
   Tightened,
+  Said,
   Ico,
   Lit,
   TaskItem.configure({ nested: true }),

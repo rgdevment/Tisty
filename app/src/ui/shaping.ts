@@ -85,6 +85,12 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
     case "blockquote":
       out.push({ kind: "quote", runs: inked(node.content) });
       return;
+    case "callout": {
+      const inner: Shape[] = [];
+      for (const kid of node.content ?? []) shape(kid, inner, deep);
+      out.push({ kind: "said", said: String(node.attrs?.kind ?? "note"), inner });
+      return;
+    }
     case "codeBlock":
       out.push({
         kind: "code",

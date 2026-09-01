@@ -428,3 +428,44 @@ describe("the highlighter stops where it is told", () => {
     expect(out).toBe("say this out loud");
   });
 });
+
+describe("a callout is a quote GitHub reads, and comes back as it went", () => {
+  const KINDS = ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"];
+
+  it.each(KINDS)("keeps a %s exactly as written", (kind) => {
+    const was = `> [!${kind}]\n> Cuidado con esto.`;
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("does not escape the marker, which is what broke it before", () => {
+    expect(roundtripped("> [!WARNING]\n> Algo.")).not.toContain("\\[");
+  });
+
+  it("does not put a hard break after the marker", () => {
+    expect(roundtripped("> [!NOTE]\n> Algo.")).not.toContain("\\\n");
+  });
+
+  it("leaves a quote with no marker a quote", () => {
+    const was = "> Una cita normal, sin marcador.";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps what the callout holds, marks and all", () => {
+    const was = "> [!TIP]\n> Con **negrita** y `código`.";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps more than one paragraph inside", () => {
+    const was = "> [!CAUTION]\n> Primera.\n>\n> Segunda.";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("reads the marker whatever case it is written in", () => {
+    expect(roundtripped("> [!warning]\n> Algo.")).toBe("> [!WARNING]\n> Algo.");
+  });
+
+  it("is a fixed point: writing it twice changes nothing", () => {
+    const once = roundtripped("> [!NOTE]\n> Algo.");
+    expect(roundtripped(once)).toBe(once);
+  });
+});

@@ -28,6 +28,7 @@ export type Shape =
   | { kind: "heading"; level: number; runs: Run[] }
   | { kind: "para"; runs: Run[] }
   | { kind: "quote"; runs: Run[] }
+  | { kind: "said"; said: string; inner: Shape[] }
   | { kind: "code"; runs: Run[]; deep: number }
   | { kind: "bullet"; mark: string; runs: Run[]; deep: number }
   | { kind: "image"; src: string; alt?: string }
@@ -56,6 +57,18 @@ const sheet = StyleSheet.create({
   piece: { lineHeight: LEADING },
   said: { flex: 1, lineHeight: LEADING },
   saidFlow: { flex: 1, flexDirection: "row", flexWrap: "wrap" },
+  noted: {
+    marginBottom: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderLeftWidth: 3,
+    borderRadius: 3,
+  },
+  notedWho: {
+    fontSize: 8,
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
   quote: {
     marginBottom: 9,
     paddingLeft: 12,
@@ -231,6 +244,14 @@ const plain = (runs: Run[]): Run[] => {
   return worn.mark ? [{ ...first, text: worn.rest }, ...rest] : runs;
 };
 
+const HUED: Record<string, string> = {
+  note: "#1f6fb2",
+  tip: "#3f8a24",
+  important: "#4a58c4",
+  warning: "#8a6a00",
+  caution: "#c62f45",
+};
+
 const shaped = (one: Shape, at: number, room: number) => {
   const key = `${one.kind}:${at}`;
   switch (one.kind) {
@@ -248,6 +269,18 @@ const shaped = (one: Shape, at: number, room: number) => {
           {drawn(one.runs)}
         </Text>
       );
+    case "said": {
+      const hue = HUED[one.said] ?? HUED.note;
+      return (
+        <View
+          key={key}
+          style={[sheet.noted, { borderLeftColor: hue, backgroundColor: `${hue}12` }]}
+        >
+          <Text style={[sheet.notedWho, { color: hue }]}>{one.said.toUpperCase()}</Text>
+          {one.inner.map((kid, deep) => shaped(kid, deep, room - 24))}
+        </View>
+      );
+    }
     case "code": {
       const columns = Math.floor((room - one.deep * 14 - PAD * 2) / (CODE * PITCH));
       const lines = one.runs.flatMap((run, line) =>

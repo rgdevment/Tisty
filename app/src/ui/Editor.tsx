@@ -397,6 +397,13 @@ export default function Editor({
           run: () => editor.chain().focus().toggleBlockquote().run(),
         },
         {
+          key: "callout",
+          label: t("calloutIt"),
+          hint: "[!",
+          icon: "warning",
+          run: () => editor.chain().focus().toggleWrap("callout", { kind: "note" }).run(),
+        },
+        {
           key: "code",
           label: t("codeBlock"),
           hint: "```",
