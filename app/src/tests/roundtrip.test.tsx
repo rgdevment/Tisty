@@ -494,3 +494,25 @@ describe("a table keeps the alignment its columns were given", () => {
     expect(roundtripped(once)).toBe(once);
   });
 });
+
+describe("a code block keeps its language, now that it can be given one", () => {
+  it.each(["rust", "js", "python", "sql", "mermaid"])("keeps %s on the fence", (tongue) => {
+    const was = `\`\`\`${tongue}\nalgo\n\`\`\``;
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("leaves a fence with no language alone", () => {
+    const was = "```\nsin lenguaje\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps what is inside untouched, blank lines and all", () => {
+    const was = "```mermaid\ngraph TD;\n\nA[Inicio] --> B{Sigue?}\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("is a fixed point", () => {
+    const once = roundtripped("```rust\nfn main() {}\n```");
+    expect(roundtripped(once)).toBe(once);
+  });
+});

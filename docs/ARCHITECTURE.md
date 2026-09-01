@@ -1006,6 +1006,29 @@ machine still agrees — the log is replayed in one order — but the page is re
 a document of its own, standing in the folder it was written into. Nothing is
 lost and nothing hides; the tie to the document is what goes.
 
+## What the editor may write into a document
+
+A document is a Markdown file, so the question of what the editor is allowed to
+write is the question of what another reader will still understand. The answer is
+plain Markdown and nothing invented: headings, lists, emphasis, links, tables
+**with the alignment their columns were given**, fenced code carrying its
+language, and a quote that opens with `[!WARNING]` — a callout here, an alert on
+GitHub, and a plain quote to anything that knows neither. The one exception is an
+icon, which Markdown has no way to say at all: that goes as a small piece of HTML
+with its name inside, so a reader that cannot draw it still reads the word.
+
+Text alignment used to be the second exception and no longer is. It wrote
+`<p style="text-align: center">` into the file to say something no Markdown
+syntax says, and a document full of that is a document that has stopped being
+Markdown. Column alignment reads like the same feature and is not: `|:---:|` is
+the table's own syntax, and every reader honours it.
+
+**When the editor meets syntax it cannot write back out**, it does not guess and
+it does not quietly drop it. `frail` names what it found — front matter,
+footnotes, reference links, blocks of HTML — the document opens read-only, and
+the person is offered a conversion they can refuse. Losing formatting loudly is
+recoverable; losing it silently is not.
+
 ## Taking a document out
 
 A document is a Markdown file, and the whole point is that it survives without

@@ -329,9 +329,18 @@ never gets ticked. They are Markdown files you edit as documents — tables,
 checklists, code, images — and search reads them too. A task can point at a
 document; a document never creates tasks.
 
-Text can be highlighted in a few colours, centred or aligned, and set apart as
-an aside. It stays Markdown: where Markdown cannot say a thing, Tisty writes the
-small piece of HTML that can, and reads it back.
+Text can be highlighted in a few colours and set apart as an aside — a plain
+quote, or a callout GitHub reads too, written as `> [!WARNING]`. Tables keep how
+their columns lean, and a code block says what language it is and is coloured for
+it, with its lines numbered beside the text rather than in it, so copying takes
+the code and nothing else.
+
+**It stays Markdown**, and that is the point rather than a detail: everything
+above is syntax another reader already understands, so the file survives without
+Tisty. Where Markdown genuinely cannot say a thing — an icon in a line of text —
+Tisty writes the small piece of HTML that can, and reads it back. Where the
+editor meets something it cannot write back out, it says so and opens the
+document read-only rather than quietly destroying it.
 
 The writing sits on a lit page, and its first line is both the name of the
 document and its title. When the window is wide enough a column opens beside it

@@ -1,5 +1,6 @@
 import type { Editor as Writing } from "@tiptap/core";
 import { getHTMLFromFragment, Node } from "@tiptap/core";
+import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
@@ -8,6 +9,7 @@ import { TaskList } from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
 import { Fragment, type Node as ProseNode } from "@tiptap/pm/model";
 import StarterKit from "@tiptap/starter-kit";
+import { common, createLowlight } from "lowlight";
 import markPlugin from "markdown-it-mark";
 import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
@@ -656,6 +658,118 @@ const Ruled = Table.configure({ resizable: false }).extend({
   },
 });
 
+export const TONGUES = [
+  "bash",
+  "c",
+  "cpp",
+  "csharp",
+  "css",
+  "diff",
+  "go",
+  "graphql",
+  "ini",
+  "java",
+  "javascript",
+  "json",
+  "kotlin",
+  "less",
+  "lua",
+  "makefile",
+  "markdown",
+  "objectivec",
+  "perl",
+  "php",
+  "python",
+  "r",
+  "ruby",
+  "rust",
+  "scss",
+  "shell",
+  "sql",
+  "swift",
+  "typescript",
+  "vbnet",
+  "wasm",
+  "xml",
+  "yaml",
+] as const;
+
+const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) }).extend({
+  addNodeView() {
+    return ({ node, editor, getPos }) => {
+      const held = document.createElement("div");
+      held.className = "lit";
+
+      const bar = document.createElement("div");
+      bar.className = "lit-bar";
+      bar.contentEditable = "false";
+      const picked = document.createElement("select");
+      picked.className = "lit-tongue";
+      picked.title = t("codeTongue");
+      picked.setAttribute("aria-label", t("codeTongue"));
+      const none = document.createElement("option");
+      none.value = "";
+      none.textContent = t("codeNoTongue");
+      picked.append(none);
+      for (const one of TONGUES) {
+        const said = document.createElement("option");
+        said.value = one;
+        said.textContent = one;
+        picked.append(said);
+      }
+      const said = String(node.attrs.language ?? "");
+      picked.value = (TONGUES as readonly string[]).includes(said) ? said : "";
+      picked.addEventListener("change", () => {
+        const at = getPos();
+        if (at === undefined) return;
+        editor
+          .chain()
+          .focus()
+          .command(({ tr }) => {
+            tr.setNodeAttribute(at, "language", picked.value || null);
+            return true;
+          })
+          .run();
+      });
+      bar.append(picked);
+
+      const body = document.createElement("div");
+      body.className = "lit-body";
+      const lines = document.createElement("div");
+      lines.className = "lit-lines";
+      lines.setAttribute("aria-hidden", "true");
+      const pre = document.createElement("pre");
+      const code = document.createElement("code");
+      pre.append(code);
+      body.append(lines, pre);
+      held.append(bar, body);
+
+      const counted = (one: { textContent: string | null }) => {
+        const many = Math.max(1, (one.textContent ?? "").split("\n").length);
+        lines.replaceChildren();
+        for (let n = 1; n <= many; n += 1) {
+          const said = document.createElement("span");
+          said.textContent = String(n);
+          lines.append(said);
+        }
+      };
+      counted(node);
+
+      return {
+        dom: held,
+        contentDOM: code,
+        update: (fresh) => {
+          if (fresh.type.name !== "codeBlock") return false;
+          counted(fresh);
+          const now = String(fresh.attrs.language ?? "");
+          picked.value = (TONGUES as readonly string[]).includes(now) ? now : "";
+          return true;
+        },
+      };
+    };
+  },
+});
+
 const Tightened = TaskList.extend({
   addAttributes() {
     return { ...this.parent?.(), tight: { default: true, rendered: false } };
@@ -666,7 +780,9 @@ export const written = () => [
   StarterKit.configure({
     link: { openOnClick: false, autolink: true, protocols: ["tisty"] },
     text: false,
+    codeBlock: false,
   }),
+  Lettered,
   Pictured,
   Ruled,
   TableRow,
