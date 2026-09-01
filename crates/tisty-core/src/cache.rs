@@ -88,6 +88,10 @@ impl Cache {
             .meta("agents")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
+        state.assistants = self
+            .meta("assistants")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_else(|| state.agents.clone());
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -213,7 +217,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -222,6 +226,7 @@ impl Cache {
                     serde_json::to_string(&state.retired).unwrap_or_default(),
                     serde_json::to_string(&state.shed).unwrap_or_default(),
                     serde_json::to_string(&state.agents).unwrap_or_default(),
+                    serde_json::to_string(&state.assistants).unwrap_or_default(),
                 ],
             )?;
             tx.commit()

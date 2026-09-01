@@ -188,6 +188,8 @@ const en = {
   editStep: "Step: {name}",
   strandedPapers:
     "{name} document files are on disk that the log does not know about. They came from a machine that deleted them, or from an interrupted copy.",
+  missingPapers:
+    "{name} documents are named in the log with no file on disk. Sync with the machine that holds them, or restore a backup.",
   archivedList: "The list «{name}» is put away. Bring it back before filing anything in it.",
   documentTooLong:
     "This document has reached {name}. Take something out, or split it in two — past that it can no longer be read or carried.",
@@ -1190,6 +1192,8 @@ const es: Catalog = {
   editStep: "Paso: {name}",
   strandedPapers:
     "Hay {name} archivos de documento en disco que el registro no reconoce. Vienen de un equipo que los borró, o de una copia que quedó a medias.",
+  missingPapers:
+    "Hay {name} documentos que el registro nombra y no están en disco. Sincroniza con el equipo que los tiene, o recupera una copia de seguridad.",
   archivedList: "La lista «{name}» está guardada. Recupérala antes de poner algo en ella.",
   documentTooLong:
     "Este documento llegó a {name}. Quita algo o divídelo en dos: pasado ese punto ya no se puede abrir ni sincronizar.",

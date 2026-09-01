@@ -78,6 +78,32 @@ the names of the lists. There is no tool for completing, dropping, deleting,
 undoing, editing a task the person wrote, making a list, or handing a document a
 new body whole.
 
+**Nothing but the window ever deletes, and that is the design rather than an
+omission.** Not the agent, and not the terminal either: no MCP tool and no CLI
+command writes a `DocDelete`. Finishing is the person's, and so is unmaking. An
+agent that cannot delete cannot be talked into deleting, and a person who runs the
+wrong command in a terminal cannot lose a document to it.
+
+The absence of a tool is a locked door, not a law, so the rule is written into the
+log as well. `Op::destroys` names the five operations that take something away for
+good, and `State::apply` drops any of them written by a device that ever joined as
+an agent — beside the tombstone check, over every log, on every machine. That
+matters because the door only guards one binary: a shared folder takes lines from
+anywhere, and one future tool, one CLI subcommand written without this in mind, or
+one hand-appended line under an assistant's device id would otherwise be honoured
+everywhere the folder reaches. The set it reads from, `assistants`, only ever
+grows. `agents` does not — taking an assistant off the list clears it — and a rule
+built on that one would hand an assistant's old deletions back on the next replay.
+
+The danger is the other side of it: **one path carries every deletion.**
+`doc_drop` gathers the parent's file and its pages' files from the state *before*
+it commits, then removes them from disk one at a time *after*. A file that will
+not go is not a refusal — the log has already spoken, so the removal warns, the
+rest of the run carries on, and `take_out_the_shed` sweeps what stayed at the next
+opening. What the window cannot repair announces itself: `doctor` and the keeping
+panel count both halves, the files on disk the log does not name and the documents
+the log names with no file.
+
 A file kept with a task goes on its journal; one kept in a document is added at
 the end of it, as the same markdown the window writes when you drop a file in.
 The two carry different ceilings, and the agent gets the ceiling of the place it
@@ -799,10 +825,31 @@ cannot be read from disk is left out and counted: the export says how many went
 missing rather than handing over a book quietly short of a chapter.
 
 **Where the order is settled, and where it is not.** The body is a file that
-syncs like a file; the order is in the log. Nothing reconciles them on the way
-in, so a body that arrives from another machine can name its pages in an order
-the log does not have. Opening the document settles it, and so does saving it —
-until one of those happens, the two disagree and the tree follows the log.
+syncs like a file; the order is in the log. A round of syncing reports which
+bodies it brought, and the window settles those before it redraws; opening a
+document settles it too, and so does saving it. Settling writes `DocMove`
+events, so *reading* a document is not a pure read — it is a fixed point, and a
+body that already agrees with the log produces nothing.
+
+**Compaction is not atomic across machines, and is left that way on purpose.**
+Re-basing a run is N independent moves, not one operation. Two machines
+re-basing the same run inside one sync window can therefore produce duplicate
+keys. `afresh` deals a whole run positionally, so identical runs give identical
+keys and only a genuine disagreement collides; `pages_of` breaks a tie by id, so
+every machine replaying the same log still reads the same order; and the next
+save settles it. Making it truly atomic means replaying batches as a unit, which
+would have an old binary and a new one project the same log differently, with no
+version to catch it — a quiet incompatibility traded for a loud one, to fix
+something that has never fired.
+
+**Unhanging is its own undo.** Hanging a document under another takes the
+parent's folder and a key on the scale of its sibling pages. A bare
+`page_of: null` would leave both behind, and the document would reappear at an
+arbitrary spot in a folder it never chose. So `undo::unhung` reads the last hang
+out of the log and returns its inverse — the folder and the place it held — and
+falls back to the end of the parent's folder when there is no hang to invert or
+when that folder is gone. Deleting has no such inverse and never will: it is
+permanent by design, which is why it is the one thing asked about first.
 
 **The schema is 8 because of this.** A machine still on 1.0.x rejects the whole
 event rather than reading a page as a loose document and filing it somewhere the

@@ -181,6 +181,17 @@ pub struct Stitch {
 }
 
 impl Op {
+    pub fn destroys(&self) -> bool {
+        matches!(
+            self,
+            Op::TaskDelete { .. }
+                | Op::ListDelete { .. }
+                | Op::FolderDelete { .. }
+                | Op::DocDelete { .. }
+                | Op::DeviceRemove { .. }
+        )
+    }
+
     pub fn about(self, id: TaskId) -> Self {
         match self {
             Op::TaskAdd { d, .. } => Op::TaskAdd { id, d },

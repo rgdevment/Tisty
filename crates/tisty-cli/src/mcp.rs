@@ -430,12 +430,20 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     // The log says who may write, not the settings file an agent could edit itself.
     if !state.agents.contains(&agent) {
         return Err(Refused::Tool(
-            "no agent is registered on this machine. The person turns one on in Tisty's settings,              under Agents."
+            "no agent is registered on this machine. The person turns one on in Tisty's settings, \
+             under Agents."
                 .into(),
         ));
     }
     let store = Store::open(paths.store(), agent).map_err(hitch)?;
     Ok((state, store))
+}
+
+fn wrote(store: &mut Store, id: tisty_core::model::DocId) -> bool {
+    store.read_all().is_ok_and(|told| {
+        told.iter()
+            .any(|one| matches!(&one.op, Op::DocAdd { id: which, .. } if which == &id))
+    })
 }
 
 const UNSETTLED: &str = " Where its pages sit could not be settled just now — it settles by \
@@ -993,21 +1001,20 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .filter(|one| one.page_of == page_of && (page_of.is_some() || one.folder == folder))
             .map(|one| one.order.as_str()),
     );
-    store
-        .append(Op::DocAdd {
-            id: Ulid::generate(),
-            d: tisty_core::event::DocAdd {
-                file: made.id.clone(),
-                order,
-                folder,
-                page_of,
-            },
-        })
-        .map_err(|e| {
-            // The file is on disk with nothing naming it, and a retry would make a second one.
-            let _ = tisty_core::docs::remove(&paths.docs(), &made.id);
-            hitch(e)
-        })?;
+    let id = Ulid::generate();
+    if let Err(e) = store.append(Op::DocAdd {
+        id,
+        d: tisty_core::event::DocAdd {
+            file: made.id.clone(),
+            order,
+            folder,
+            page_of,
+        },
+    }) && !wrote(&mut store, id)
+    {
+        let _ = tisty_core::docs::remove(&paths.docs(), &made.id);
+        return Err(hitch(e));
+    }
 
     let mut named_there = false;
     if let Some(up) = page_of
@@ -1444,15 +1451,16 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             json!({ "doc": which, "page_of": page_of.and_then(|up| named_doc(&state, up)) }),
         ));
     }
+    let d = match page_of {
+        Some(_) => tisty_core::event::Filed {
+            folder: None,
+            page_of: Some(page_of),
+            order: None,
+        },
+        None => tisty_core::undo::unhung(&store.read_all().map_err(hitch)?, &state, kept.id),
+    };
     store
-        .append(Op::DocMove {
-            id: kept.id,
-            d: tisty_core::event::Filed {
-                folder: None,
-                page_of: Some(page_of),
-                order: None,
-            },
-        })
+        .append(Op::DocMove { id: kept.id, d })
         .map_err(hitch)?;
 
     let under = page_of.and_then(|up| named_doc(&state, up));

@@ -54,6 +54,10 @@ impl Session {
                 ),
             ],
         );
+        Self::at(paths)
+    }
+
+    fn at(paths: Paths) -> tisty_core::Result<Self> {
         let clean = !paths.config_file().exists();
         let config = Config::load_or_init(&paths)?;
         let store = Store::open(paths.store(), config.device_id.clone())?;
@@ -260,12 +264,78 @@ impl Session {
         if let Some(tisty_core::config::Sync::Folder(dest)) = self.config.sync.clone() {
             gone += tisty_core::docs::sweep(&dest.join("docs"), &self.state.shed);
         }
+        self.forget_the_shed();
         if gone > 0 {
             witness::note(
                 channel::SYNC,
                 "a document deleted elsewhere is gone from here too",
                 &[("count", Fact::Count(gone))],
             );
+        }
+    }
+
+    fn drop_doc(&mut self, id: &str) -> Answer<()> {
+        let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+        let kept = self
+            .state
+            .docs
+            .get(&id)
+            .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+        let mut files = vec![kept.file.clone()];
+        files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
+        self.commit(Op::DocDelete { id })?;
+
+        let root = self.paths.docs();
+        let mut said = tisty_core::docs::Carried::read(self.paths.data());
+        for file in &files {
+            if let Err(e) = tisty_core::docs::remove(&root, file) {
+                witness::warn(
+                    channel::WINDOW,
+                    "a deleted document left its file behind, and it is swept at the next opening",
+                    &[
+                        ("file", Fact::Id(file.clone())),
+                        ("why", Fact::Why(e.to_string())),
+                    ],
+                );
+            }
+            if let Some(tisty_core::config::Sync::Folder(dest)) = self.config.sync.clone() {
+                tisty_sync::forget_paper(&dest, file);
+            }
+            said.forget(file);
+            tisty_core::docs::forget_carried(self.paths.data(), file);
+        }
+        let _ = said.save(self.paths.data());
+        Ok(())
+    }
+
+    fn settle_what_arrived(&mut self, files: &[String]) {
+        let root = self.paths.docs();
+        let holds: Vec<String> = files
+            .iter()
+            .filter(|file| {
+                self.state
+                    .docs
+                    .values()
+                    .any(|one| one.page_of.is_none() && &one.file == *file)
+            })
+            .cloned()
+            .collect();
+        for file in holds {
+            if let Ok(body) = tisty_core::docs::read(&root, &file) {
+                self.retell(&file, &body);
+            }
+        }
+    }
+
+    fn forget_the_shed(&mut self) {
+        let mut said = tisty_core::docs::Carried::read(self.paths.data());
+        let mut changed = false;
+        for file in &self.state.shed {
+            changed |= said.of(file).is_some();
+            said.forget(file);
+        }
+        if changed {
+            let _ = said.save(self.paths.data());
         }
     }
 
@@ -1526,6 +1596,12 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
 
     let kept = report::attachments(session.paths.data());
     let told = tisty_core::store::read_all(session.paths.store()).unwrap_or_default();
+    let alive: Vec<String> = session
+        .state
+        .docs
+        .values()
+        .map(|one| one.file.clone())
+        .collect();
 
     Ok(Reviewed {
         tasks: session.state.tasks.len(),
@@ -1534,16 +1610,8 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         loose: adrift.files(),
         loose_bytes: adrift.bytes,
         astray: adrift.items,
-        stranded: tisty_core::docs::loose(
-            &session.paths.docs(),
-            &session
-                .state
-                .docs
-                .values()
-                .map(|one| one.file.clone())
-                .collect::<Vec<_>>(),
-        )
-        .len(),
+        stranded: tisty_core::docs::loose(&session.paths.docs(), &alive).len(),
+        missing: tisty_core::docs::missing(&session.paths.docs(), &alive).len(),
         events: told.len(),
         machines: report::machines(
             &told,
@@ -1567,6 +1635,7 @@ struct Reviewed {
     loose_bytes: u64,
     astray: Vec<tisty_core::attach::Astray>,
     stranded: usize,
+    missing: usize,
     events: usize,
     machines: Vec<report::Machine>,
     log_bytes: u64,
@@ -3149,8 +3218,10 @@ fn doc_page(
         .transpose()?;
     let mut session = held(&session);
 
-    if !session.state.docs.contains_key(&id) {
-        return Err(Refusal::of("noSuchDoc"));
+    match session.state.docs.get(&id) {
+        None => return Err(Refusal::of("noSuchDoc")),
+        Some(one) if one.page_of == page_of => return Ok(()),
+        Some(_) => {}
     }
     if let Some(up) = page_of {
         if up == id {
@@ -3176,56 +3247,25 @@ fn doc_page(
         }
     }
 
-    session.commit(Op::DocMove {
-        id,
-        d: tisty_core::event::Filed {
+    let d = match page_of {
+        Some(_) => tisty_core::event::Filed {
             folder: None,
             page_of: Some(page_of),
             order: None,
         },
-    })?;
+        None => {
+            let told = tisty_core::store::read_all(session.paths.store())
+                .map_err(|e| blamed(channel::WINDOW, "the log would not be read back", e))?;
+            tisty_core::undo::unhung(&told, &session.state, id)
+        }
+    };
+    session.commit(Op::DocMove { id, d })?;
     Ok(())
 }
 
 #[tauri::command]
 fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let mut session = held(&session);
-
-    let files = match id.parse() {
-        Ok(id) => {
-            let kept = session
-                .state
-                .docs
-                .get(&id)
-                .ok_or_else(|| Refusal::of("noSuchDoc"))?;
-            let mut files = vec![kept.file.clone()];
-            files.extend(
-                session
-                    .state
-                    .pages_of(id)
-                    .iter()
-                    .map(|one| one.file.clone()),
-            );
-            session.commit(Op::DocDelete { id })?;
-            files
-        }
-        Err(_) => vec![id],
-    };
-
-    let root = session.paths.docs();
-    let mut said = tisty_core::docs::Carried::read(session.paths.data());
-    for file in &files {
-        tisty_core::docs::remove(&root, file)
-            .map_err(|e| blamed(channel::WINDOW, "a document could not be removed", e))?;
-
-        if let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() {
-            tisty_sync::forget_paper(&dest, file);
-        }
-        said.forget(file);
-        tisty_core::docs::forget_carried(session.paths.data(), file);
-    }
-    let _ = said.save(session.paths.data());
-    Ok(())
+    held(&session).drop_doc(&id)
 }
 
 #[cfg(target_os = "macos")]
@@ -3717,6 +3757,7 @@ async fn sync_now(
             )
         })?;
     }
+    session.settle_what_arrived(&done.arrived);
     session.take_out_the_shed();
     session.take_out_the_retired();
     if let Err(e) = session.take_a_seat() {
@@ -4964,6 +5005,128 @@ pub fn run() {
                 tray::surface(_app);
             }
         });
+}
+
+#[cfg(test)]
+mod deleting {
+    use super::Session;
+    use tisty_core::{Op, Paths};
+
+    struct Desk {
+        _tmp: tempfile::TempDir,
+        paths: Paths,
+    }
+
+    fn desk() -> Desk {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        std::fs::create_dir_all(paths.docs()).unwrap();
+        Desk { _tmp: tmp, paths }
+    }
+
+    fn a_page_under(session: &mut Session, up: Option<tisty_core::model::DocId>) -> String {
+        let made =
+            tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "# A note")
+                .unwrap();
+        session
+            .commit(Op::DocAdd {
+                id: ulid::Ulid::generate(),
+                d: tisty_core::event::DocAdd {
+                    file: made.id.clone(),
+                    order: tisty_core::order::first(),
+                    folder: None,
+                    page_of: up,
+                },
+            })
+            .unwrap();
+        made.id
+    }
+
+    fn there(desk: &Desk, file: &str) -> bool {
+        tisty_core::docs::resolve(&desk.paths.docs(), file).is_ok_and(|at| at.exists())
+    }
+
+    fn named(session: &Session, file: &str) -> tisty_core::model::DocId {
+        session
+            .state
+            .docs
+            .values()
+            .find(|one| one.file == file)
+            .unwrap()
+            .id
+    }
+
+    #[test]
+    fn deleting_a_document_takes_its_pages_off_the_disk_and_out_of_the_log() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let parent = a_page_under(&mut session, None);
+        let up = named(&session, &parent);
+        let page = a_page_under(&mut session, Some(up));
+
+        session.drop_doc(&up.to_string()).unwrap();
+
+        assert!(session.state.docs.is_empty(), "neither is named any more");
+        for file in [&parent, &page] {
+            assert!(!there(&desk, file), "{file} stayed on the disk");
+        }
+        assert!(
+            tisty_core::docs::Carried::read(desk.paths.data())
+                .of(&parent)
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn a_file_that_will_not_go_leaves_the_rest_deleted_and_is_swept_at_the_next_opening() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let parent = a_page_under(&mut session, None);
+        let up = named(&session, &parent);
+        let page = a_page_under(&mut session, Some(up));
+
+        let at = tisty_core::docs::resolve(&desk.paths.docs(), &page).unwrap();
+        std::fs::remove_file(&at).unwrap();
+        std::fs::create_dir(&at).unwrap();
+
+        session
+            .drop_doc(&up.to_string())
+            .expect("the log is the truth, so a file left behind is not a refusal");
+        assert!(session.state.docs.is_empty(), "both are gone from the log");
+        assert!(!there(&desk, &parent), "and the one that could go, went");
+        assert!(
+            session.state.shed.contains(&page),
+            "the one that stayed is still swept for"
+        );
+        assert!(
+            tisty_core::docs::Carried::read(desk.paths.data())
+                .of(&page)
+                .is_none(),
+            "and the ledger forgets it either way"
+        );
+
+        std::fs::remove_dir(&at).unwrap();
+        std::fs::write(&at, b"# A note").unwrap();
+        drop(session);
+        let session = Session::at(desk.paths.clone()).unwrap();
+        assert!(
+            !there(&desk, &page),
+            "the shed is taken out when the window opens"
+        );
+        drop(session);
+    }
+
+    #[test]
+    fn a_name_that_is_not_a_document_deletes_nothing() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let file = a_page_under(&mut session, None);
+
+        assert!(session.drop_doc(&file).is_err(), "a file name is not an id");
+        assert!(session.drop_doc("nonsense").is_err());
+        assert!(there(&desk, &file));
+        assert_eq!(session.state.docs.len(), 1);
+    }
 }
 
 #[cfg(test)]
