@@ -1573,3 +1573,41 @@ fn pages_told_asks_for_nothing_when_a_document_holds_fewer_than_two_pages() {
     assert!(state.pages_told(book, &named_in(&["a3f1-0002"])).is_empty());
     assert!(state.pages_told(empty_book, "anything at all").is_empty());
 }
+
+#[test]
+fn undoing_a_page_of_conversion_puts_the_folder_back_as_well_as_the_order() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let work = folder_add(&mut store, "trabajo", None);
+    let home = folder_add(&mut store, "casa", None);
+    let parent = doc_add(&mut store, "a3f1-0001", "a0", Some(work), None);
+    let loose = doc_add(&mut store, "a3f1-0003", "z9", Some(home), None);
+
+    let baseline = replayed(&world);
+    assert_eq!(baseline.docs[&loose].folder, Some(home));
+
+    let converted = store
+        .append(Op::DocMove {
+            id: loose,
+            d: Filed {
+                folder: None,
+                page_of: Some(Some(parent)),
+                order: None,
+            },
+        })
+        .unwrap();
+    assert_eq!(
+        replayed(&world).docs[&loose].folder,
+        Some(work),
+        "hanging it took the folder of the document it hangs from"
+    );
+
+    let undo_op = undo::inverse(&converted, &baseline).unwrap();
+    store.append(undo_op).unwrap();
+
+    assert_eq!(
+        replayed(&world).docs[&loose].folder,
+        Some(home),
+        "so undoing it has to hand the folder back too"
+    );
+}

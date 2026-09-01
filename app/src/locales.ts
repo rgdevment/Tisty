@@ -353,6 +353,8 @@ const en = {
   pageOfPage: "A page belongs to a document, not to another page",
   pageStaysPut: "A page goes where its document goes",
   holdsPages: "This document has pages of its own",
+  pageOfAway: "That document is put away, and its pages would be put away unread",
+  awayStaysAway: "A document put away has to come back before it can be a page",
   folderNameTooLong: "A folder name fits 40 characters at most",
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
   documentMoved: "Something wrote in this document while you had it open here",
@@ -1354,6 +1356,8 @@ const es: Catalog = {
   pageOfPage: "Una página cuelga de un documento, no de otra página",
   pageStaysPut: "Una página va donde va su documento",
   holdsPages: "Este documento tiene páginas propias",
+  pageOfAway: "Ese documento está archivado, y sus páginas quedarían archivadas sin leerse",
+  awayStaysAway: "Un documento archivado tiene que volver antes de ser página",
   folderNameTooLong: "El nombre de una carpeta admite 40 caracteres como máximo",
   documentBeingWritten:
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",

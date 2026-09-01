@@ -281,6 +281,11 @@ const built = (
   box.append(said);
   if (leaf !== null) box.append(into());
 
+  if (!reach.onMenu) {
+    if (leaf !== null) leaves(box);
+    return sayable(box, seen, reach, lost, itself);
+  }
+
   const more = document.createElement("button");
   more.type = "button";
   more.className = "card-swap";
@@ -297,6 +302,16 @@ const built = (
   });
   box.append(more);
   if (leaf !== null) leaves(box);
+  return sayable(box, seen, reach, lost, itself);
+};
+
+const sayable = (
+  box: HTMLElement,
+  seen: Preview,
+  reach: Reach,
+  lost: boolean,
+  itself: boolean,
+): HTMLElement => {
   if (itself) {
     box.classList.add("card-itself");
     return box;

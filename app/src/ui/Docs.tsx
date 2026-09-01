@@ -294,7 +294,7 @@ export default function Docs({
     return () => {
       gone = true;
     };
-  }, [upstairs]);
+  }, [upstairs, fresh]);
 
   const inOrder = aboveTold ? sisters.filter((one) => aboveTold.has(one.file)) : [];
   const at = inOrder.findIndex((one) => one.file === own?.file);

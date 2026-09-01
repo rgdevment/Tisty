@@ -15,6 +15,9 @@ import { Markdown } from "tiptap-markdown";
 import { markup } from "../glyphs";
 import { spared } from "./Icons";
 
+/// A bracket left bare closes the label early, and the reference stops naming anything.
+const labelled = (said: string): string => said.replace(/([[\]])/g, "\\$1");
+
 const inked = Symbol("ink");
 const peeked = Symbol("peek");
 
@@ -302,7 +305,7 @@ const Pictured = Image.extend({
           state: { write: (text: string) => void; closeBlock: (node: unknown) => void },
           node: { attrs: Record<string, string> },
         ) {
-          state.write(`![${node.attrs.alt ?? ""}](${node.attrs.src ?? ""})`);
+          state.write(`![${labelled(node.attrs.alt ?? "")}](${node.attrs.src ?? ""})`);
           state.closeBlock(node);
         },
         parse: {},

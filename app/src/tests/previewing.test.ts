@@ -278,13 +278,25 @@ describe("swapping one for the other", () => {
   });
 
   it("says what the button does, so it is not a bare glyph", () => {
-    const editor = made("![contrato](<attachments/contrato-91f2.pdf>)");
+    const editor = made("![contrato](<attachments/contrato-91f2.pdf>)", { onMenu: () => {} });
 
     const swap = editor.view.dom.querySelector<HTMLElement>(".card-swap");
 
     expect(swap?.getAttribute("aria-label")).toBeTruthy();
     expect(swap?.getAttribute("title")).toBeTruthy();
     expect(swap?.getAttribute("aria-haspopup")).toBe("menu");
+
+    editor.destroy();
+  });
+
+  it("offers no menu on a document that cannot be written, and still opens", () => {
+    const opened = vi.fn();
+    const editor = made("![lo que sea](tisty:doc/mac0-0007)", { onDoc: opened });
+
+    expect(editor.view.dom.querySelector(".card-swap")).toBeNull();
+    editor.view.dom.querySelector<HTMLElement>(".card")?.click();
+
+    expect(opened).toHaveBeenCalledWith("mac0-0007");
 
     editor.destroy();
   });

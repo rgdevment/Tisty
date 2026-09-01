@@ -3156,7 +3156,12 @@ fn doc_page(
         match session.state.docs.get(&up) {
             None => return Err(Refusal::of("noSuchDoc")),
             Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
+            Some(one) if one.archived => return Err(Refusal::of("pageOfAway")),
             Some(_) => {}
+        }
+        // Hanging carries the parent's archived state over, and the inverse cannot carry it back.
+        if session.state.docs.get(&id).is_some_and(|one| one.archived) {
+            return Err(Refusal::of("awayStaysAway"));
         }
         if session
             .state

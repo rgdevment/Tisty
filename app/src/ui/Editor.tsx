@@ -511,12 +511,13 @@ export default function Editor({
 
   const handed = useRef<{ writing: unknown; keys: string } | null>(null);
   useEffect(() => {
-    const keys = blocks.map((one) => one.key).join(",");
-    if (!blocks.length) return;
+    // A document that cannot be written must not be offered blocks that write to it.
+    const offered = reading ? [] : blocks;
+    const keys = offered.map((one) => one.key).join(",");
     if (handed.current?.writing === editor && handed.current.keys === keys) return;
     handed.current = { writing: editor, keys };
-    onBlocks?.(blocks);
-  }, [blocks, editor, onBlocks]);
+    onBlocks?.(offered);
+  }, [blocks, editor, onBlocks, reading]);
 
   const shown = asking ? narrowed(blocks, asking.word) : [];
 
@@ -571,14 +572,16 @@ export default function Editor({
     here: paper,
     onDoc,
     onOpen,
-    onMenu: (at, untie, drop, kept, leaf) =>
-      setSwapping({
-        at,
-        untie,
-        drop,
-        keep: kept && onKeep ? () => hands.current.onKeep?.(kept.at, kept.name) : undefined,
-        own: leaf && onOwn ? () => hands.current.onOwn?.(leaf) : undefined,
-      }),
+    onMenu: reading
+      ? undefined
+      : (at, untie, drop, kept, leaf) =>
+          setSwapping({
+            at,
+            untie,
+            drop,
+            keep: kept && onKeep ? () => hands.current.onKeep?.(kept.at, kept.name) : undefined,
+            own: leaf && onOwn ? () => hands.current.onOwn?.(leaf) : undefined,
+          }),
     gone: (reference) => missing.current.has(reference),
     onAgain: (reference) => {
       missing.current.delete(reference);

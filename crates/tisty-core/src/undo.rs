@@ -177,7 +177,8 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             Some(Op::DocMove {
                 id: *id,
                 d: crate::event::Filed {
-                    folder: d.folder.map(|_| was.folder),
+                    // Hanging it took the folder of what it hangs from, so unhanging hands it back.
+                    folder: (d.folder.is_some() || d.page_of.is_some()).then_some(was.folder),
                     page_of: d.page_of.map(|_| was.page_of),
                     order: Some(was.order.clone()),
                 },

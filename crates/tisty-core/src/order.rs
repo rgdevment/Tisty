@@ -141,7 +141,8 @@ fn midpoint(a: &str, b: Option<&str>) -> String {
     let low = a.bytes().next().map_or(0, index);
     let high = b.bytes().next().map_or(BASE, index);
 
-    if high - low > 1 {
+    // A byte this alphabet does not know reads as nought, which can sit below `low`.
+    if high > low + 1 {
         return digit((low + high) / 2);
     }
     let head = b.chars().next().map_or(1, char::len_utf8);
@@ -300,6 +301,20 @@ mod tests {
         }
 
         assert!(after("ñ").as_str() > "ñ");
+    }
+
+    #[test]
+    fn a_key_from_an_alphabet_this_one_does_not_know_is_dealt_around_rather_than_crashed_on() {
+        for run in [
+            vec!["z", "9", "é"],
+            vec!["a0", "9", "ñ"],
+            vec!["z", "a", "é"],
+            vec!["V", "A", "é"],
+            vec!["z", "9", "日"],
+        ] {
+            let now = settled(&run);
+            assert!(now.windows(2).all(|two| two[0] < two[1]), "{run:?} {now:?}");
+        }
     }
 
     #[test]

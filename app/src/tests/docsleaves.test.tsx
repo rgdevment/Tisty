@@ -124,8 +124,8 @@ describe("a page, open", () => {
   it("says which document it belongs to and where it sits", async () => {
     render(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
 
-    await waitFor(() => expect(screen.getByText("Bases de datos")).toBeTruthy());
-    expect(screen.getByText("Page 1 of 2")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("Page 1 of 2")).toBeTruthy());
+    expect(screen.getByText("Bases de datos")).toBeTruthy();
   });
 
   it("offers the step to the page that follows, and none on the last", async () => {

@@ -438,7 +438,9 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     Ok((state, store))
 }
 
-const UNSETTLED: &str = " Where its pages sit could not be settled just now — it settles by                          itself the next time the document is written or opened. Do not send                          this again.";
+const UNSETTLED: &str = " Where its pages sit could not be settled just now — it settles by \
+                         itself the next time the document is written or opened. Do not send \
+                         this again.";
 
 fn retold(state: &State, store: &mut Store, doc: &str, body: &str) -> Result<(), Refused> {
     let Some(kept) = state.docs.values().find(|one| one.file == doc) else {
@@ -1014,8 +1016,11 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )
     {
         named_there = true;
-        let now = tisty_core::State::replay(&store.read_all().map_err(hitch)?);
-        retold(&now, &mut store, &up, &whole)?;
+        // The page and its card are already written; refusing now would have a retry write both
+        // a second time, and where they sit settles by itself on the next write or open.
+        if let Ok(events) = store.read_all() {
+            let _ = retold(&tisty_core::State::replay(&events), &mut store, &up, &whole);
+        }
     }
 
     let where_at = folder.map(|at| trail(&state, at));
@@ -1154,7 +1159,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let settled = retold(&state, &mut store, &which, &whole).is_ok();
             Ok(told(
                 format!(
-                    "Changed that passage in {:?}. What it was is kept beside the                      documents.{}",
+                    "Changed that passage in {:?}. What it was is kept beside the documents.{}",
                     tisty_core::docs::titled(&whole),
                     if settled { "" } else { UNSETTLED }
                 ),
