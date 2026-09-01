@@ -64,6 +64,7 @@ const KNOWN = [
   "internalNamed",
   "noSuchFolder",
   "noSuchDoc",
+  "deleteRefused",
   "noSuchIcon",
   "noSuchColour",
   "tooDeep",

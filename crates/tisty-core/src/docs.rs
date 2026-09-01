@@ -620,6 +620,14 @@ pub fn remove(root: &Path, id: &str) -> Result<()> {
     }
 }
 
+pub fn missing(root: &Path, alive: &[String]) -> Vec<String> {
+    alive
+        .iter()
+        .filter(|id| !resolve(root, id).is_ok_and(|at| at.exists()))
+        .cloned()
+        .collect()
+}
+
 pub fn loose(root: &Path, alive: &[String]) -> Vec<Doc> {
     let held: std::collections::BTreeSet<&str> = alive.iter().map(String::as_str).collect();
     all(root)

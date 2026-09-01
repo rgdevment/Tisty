@@ -1039,9 +1039,10 @@ fn a_page_the_body_never_names_keeps_the_place_it_had() {
         four < two,
         "the two it names read as it names them: {told:?}"
     );
+    let adrift = told.iter().position(|one| *one == "a3f1-0003").unwrap();
     assert_eq!(
-        state.docs[&loose].order, "a1",
-        "and the one it never names is not moved"
+        adrift, 1,
+        "and the one it never names holds the place it held: {told:?}"
     );
     assert_eq!(state.docs[&loose].page_of, Some(book), "it is still a page");
 }
@@ -1394,7 +1395,7 @@ fn a_page_removed_from_the_text_and_later_put_back_returns_to_where_it_is_named(
     let three = doc_add(&mut store, "a3f1-0004", "a2", None, Some(book));
 
     let mut state = replayed(&world);
-    for (id, order) in state.pages_told(book, &named_in(&["a3f1-0004", "a3f1-0002"])) {
+    for (id, order) in state.pages_told(book, &named_in(&["a3f1-0003", "a3f1-0002"])) {
         moved(&mut store, id, &order);
     }
     state = replayed(&world);
@@ -1404,8 +1405,8 @@ fn a_page_removed_from_the_text_and_later_put_back_returns_to_where_it_is_named(
             .iter()
             .map(|k| k.id)
             .collect::<Vec<_>>(),
-        vec![two, three, one],
-        "the two it names read in that order, and the one it dropped is left where it was"
+        vec![two, one, three],
+        "the two it names read in that order, and the one it dropped holds its place"
     );
 
     for (id, order) in state.pages_told(book, &named_in(&["a3f1-0004", "a3f1-0003", "a3f1-0002"])) {
@@ -1721,5 +1722,106 @@ fn two_machines_that_each_name_a_new_page_first_can_land_on_the_same_key_and_sti
             .map(|one| one.id)
             .collect::<Vec<_>>(),
         "the tie breaks the same way regardless of merge order"
+    );
+}
+
+#[test]
+fn settling_a_book_whose_text_names_only_some_of_its_pages_leaves_every_key_apart() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "V", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "W", None, Some(book));
+    let three = doc_add(&mut store, "a3f1-0004", "X", None, Some(book));
+    let four = doc_add(&mut store, "a3f1-0005", "Y", None, Some(book));
+
+    let state = replayed(&world);
+    let body = named_in(&["a3f1-0004", "a3f1-0003"]);
+    let told = state.pages_told(book, &body);
+    assert!(!told.is_empty(), "the text asks for a different order");
+
+    store
+        .append_batch(
+            told.into_iter()
+                .map(|(id, order)| Op::DocMove {
+                    id,
+                    d: Filed {
+                        folder: None,
+                        page_of: None,
+                        order: Some(order),
+                    },
+                })
+                .collect(),
+        )
+        .unwrap();
+
+    let after = replayed(&world);
+    let keys: Vec<&str> = after
+        .pages_of(book)
+        .iter()
+        .map(|one| one.order.as_str())
+        .collect();
+    let apart: std::collections::BTreeSet<&&str> = keys.iter().collect();
+    assert_eq!(
+        apart.len(),
+        keys.len(),
+        "two pages share a key, so a random id decides where they sit: {keys:?}"
+    );
+
+    let seen: Vec<DocId> = after.pages_of(book).iter().map(|one| one.id).collect();
+    let at = |who: DocId| seen.iter().position(|one| *one == who).unwrap();
+    assert!(at(three) < at(two), "the text said this one comes first");
+    assert!(at(one) < at(three), "and the rest kept their places");
+    assert!(at(two) < at(four));
+}
+
+#[test]
+fn a_book_whose_pages_arrived_two_different_ways_still_keeps_every_key_apart() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let shelf = folder_add(&mut store, "libro", None);
+    let book = doc_add(&mut store, "a3f1-0001", "V", Some(shelf), None);
+    let one = doc_add(&mut store, "a3f1-0002", "V", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "W", None, Some(book));
+    let loose_a = doc_add(&mut store, "a3f1-0004", "W", Some(shelf), None);
+    let loose_b = doc_add(&mut store, "a3f1-0005", "X", Some(shelf), None);
+
+    for who in [loose_a, loose_b] {
+        store
+            .append(Op::DocMove {
+                id: who,
+                d: Filed {
+                    folder: None,
+                    page_of: Some(Some(book)),
+                    order: None,
+                },
+            })
+            .unwrap();
+    }
+
+    let mut state = replayed(&world);
+    assert_eq!(state.pages_of(book).len(), 4);
+    for (id, order) in state.pages_told(book, &named_in(&["a3f1-0003", "a3f1-0002"])) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    let pages = state.pages_of(book);
+    let keys: Vec<&str> = pages.iter().map(|one| one.order.as_str()).collect();
+    let apart: std::collections::BTreeSet<&&str> = keys.iter().collect();
+    assert_eq!(apart.len(), keys.len(), "two pages share a key: {keys:?}");
+
+    let seen: Vec<DocId> = pages.iter().map(|one| one.id).collect();
+    assert_eq!(
+        seen,
+        vec![two, one, loose_a, loose_b],
+        "the text says the first two, and the ones it never names hold their places"
+    );
+
+    assert!(
+        state
+            .pages_told(book, &named_in(&["a3f1-0003", "a3f1-0002"]))
+            .is_empty(),
+        "and asking again asks for nothing"
     );
 }

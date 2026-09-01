@@ -48,6 +48,7 @@ pub struct Moved {
     pub unreadable: Vec<String>,
     pub astray: Vec<String>,
     pub joined: Vec<String>,
+    pub arrived: Vec<String>,
 }
 
 impl Moved {
@@ -167,6 +168,7 @@ pub fn carry_holding(
         moved.undecided = papers.undecided;
         moved.astray = papers.astray;
         moved.joined = papers.joined;
+        moved.arrived = papers.arrived;
     }
     note_carried(aside, dest);
     Ok(moved)
@@ -1122,6 +1124,7 @@ fn carry_papers_leaning_on(
                     let _held = docs_lock(&here, id);
                     copy_onto(&theirs, &mine)?;
                     done.brought += 1;
+                    done.arrived.push(id.clone());
                     if let Some(print) = yours {
                         settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
@@ -1136,6 +1139,7 @@ fn carry_papers_leaning_on(
                             done.sent += 1;
                             done.brought += 1;
                             done.joined.push(id.clone());
+                            done.arrived.push(id.clone());
                             if landed(&mine, &theirs) {
                                 if let Ok(Some(print)) = print_of(&mine) {
                                     settled_body(data, id, &mine, &theirs);

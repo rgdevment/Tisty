@@ -71,7 +71,7 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
       }
       const runs = inked(node.content);
       if (runs.length) {
-        out.push({ kind: "para", runs, towards: node.attrs?.textAlign as string | undefined });
+        out.push({ kind: "para", runs });
       }
       return;
     }

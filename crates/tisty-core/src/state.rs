@@ -26,6 +26,7 @@ pub struct State {
     pub docs: BTreeMap<DocId, Kept>,
     pub devices: BTreeSet<DeviceId>,
     pub agents: BTreeSet<DeviceId>,
+    pub assistants: BTreeSet<DeviceId>,
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
     pub retired: BTreeSet<String>,
@@ -79,6 +80,9 @@ impl State {
             .entity_id()
             .is_some_and(|id| self.tombstones.contains(&id))
         {
+            return;
+        }
+        if event.op.destroys() && self.assistants.contains(&event.device) {
             return;
         }
 
@@ -309,9 +313,10 @@ impl State {
             Op::DeviceJoin { d, k } => {
                 self.dropped.remove(d);
                 self.devices.insert(d.clone());
-                match k {
+                match k.filter(|_| d == &event.device) {
                     Some(crate::event::DeviceKind::Agent) => {
                         self.agents.insert(d.clone());
+                        self.assistants.insert(d.clone());
                     }
                     Some(crate::event::DeviceKind::Machine) => {
                         self.agents.remove(d);
@@ -468,24 +473,71 @@ impl State {
         pages
     }
 
+    pub fn books_among(&self, files: &[String]) -> Vec<String> {
+        let came: BTreeSet<&str> = files.iter().map(String::as_str).collect();
+        let mut held: BTreeMap<DocId, usize> = BTreeMap::new();
+        for one in self.docs.values() {
+            if let Some(up) = one.page_of {
+                *held.entry(up).or_default() += 1;
+            }
+        }
+        self.docs
+            .values()
+            .filter(|one| {
+                one.page_of.is_none()
+                    && came.contains(one.file.as_str())
+                    && held.get(&one.id).is_some_and(|many| *many > 1)
+            })
+            .map(|one| one.file.clone())
+            .collect()
+    }
+
+    pub fn settling(&self, file: &str, body: &str) -> Vec<Op> {
+        let Some(kept) = self.docs.values().find(|one| one.file == file) else {
+            return Vec::new();
+        };
+        self.pages_told(kept.id, body)
+            .into_iter()
+            .map(|(id, order)| Op::DocMove {
+                id,
+                d: crate::event::Filed {
+                    folder: None,
+                    page_of: None,
+                    order: Some(order),
+                },
+            })
+            .collect()
+    }
+
     pub fn pages_told(&self, doc: DocId, body: &str) -> Vec<(DocId, String)> {
         let pages = self.pages_of(doc);
         if pages.len() < 2 {
             return Vec::new();
         }
         let named = crate::refs::papers(body);
+        let mut takes = BTreeSet::new();
         let wanted: Vec<&Kept> = named
             .iter()
             .filter_map(|file| pages.iter().find(|one| &one.file == file).copied())
+            .filter(|one| takes.insert(one.id))
             .collect();
         if wanted.len() < 2 {
             return Vec::new();
         }
 
-        let keys: Vec<&str> = wanted.iter().map(|one| one.order.as_str()).collect();
+        let mut told = wanted.into_iter();
+        let run: Vec<&Kept> = pages
+            .iter()
+            .map(|one| match takes.contains(&one.id) {
+                true => told.next().unwrap_or(one),
+                false => one,
+            })
+            .collect();
+
+        let keys: Vec<&str> = run.iter().map(|one| one.order.as_str()).collect();
         crate::order::resequenced(&keys)
             .into_iter()
-            .zip(&wanted)
+            .zip(&run)
             .filter_map(|(fresh, one)| fresh.map(|key| (one.id, key)))
             .collect()
     }
@@ -2070,6 +2122,106 @@ mod tests {
             !state.agents.contains(&agent),
             "removing takes the badge with it"
         );
+        assert!(
+            state.assistants.contains(&agent),
+            "who assisted is remembered past the badge"
+        );
+    }
+
+    fn joined(state: &mut State, who: &str, k: crate::event::DeviceKind) {
+        state.apply(&ev(
+            1,
+            who,
+            Op::DeviceJoin {
+                d: DeviceId(who.into()),
+                k: Some(k),
+            },
+        ));
+    }
+
+    fn a_doc(state: &mut State, who: &str) -> DocId {
+        let id = Ulid::generate();
+        state.apply(&ev(
+            2,
+            who,
+            Op::DocAdd {
+                id,
+                d: crate::event::DocAdd {
+                    file: "a note.md".into(),
+                    order: order::first(),
+                    folder: None,
+                    page_of: None,
+                },
+            },
+        ));
+        id
+    }
+
+    #[test]
+    fn a_deletion_written_by_an_assistant_is_not_honoured() {
+        let mut state = State::default();
+        joined(&mut state, "dev_laptop", crate::event::DeviceKind::Machine);
+        joined(&mut state, "dev_agent", crate::event::DeviceKind::Agent);
+        let doc = a_doc(&mut state, "dev_laptop");
+        let list = Ulid::generate();
+        state.apply(&ev(
+            3,
+            "dev_laptop",
+            Op::ListAdd {
+                id: list,
+                d: crate::event::ListAdd {
+                    name: "Home".into(),
+                    order: order::first(),
+                    color: None,
+                },
+            },
+        ));
+
+        state.apply(&ev(4, "dev_agent", Op::DocDelete { id: doc }));
+        state.apply(&ev(5, "dev_agent", Op::ListDelete { id: list }));
+
+        assert!(state.docs.contains_key(&doc));
+        assert!(state.lists.contains_key(&list));
+        assert!(state.shed.is_empty(), "nor does it shed the file");
+
+        state.apply(&ev(6, "dev_laptop", Op::DocDelete { id: doc }));
+        assert!(!state.docs.contains_key(&doc), "the person still deletes");
+    }
+
+    #[test]
+    fn taking_the_badge_off_an_assistant_does_not_hand_it_a_deletion() {
+        let mut state = State::default();
+        joined(&mut state, "dev_laptop", crate::event::DeviceKind::Machine);
+        joined(&mut state, "dev_agent", crate::event::DeviceKind::Agent);
+        let doc = a_doc(&mut state, "dev_laptop");
+
+        state.apply(&ev(
+            3,
+            "dev_laptop",
+            Op::DeviceRemove {
+                d: DeviceId("dev_agent".into()),
+            },
+        ));
+        state.apply(&ev(4, "dev_agent", Op::DocDelete { id: doc }));
+
+        assert!(state.docs.contains_key(&doc));
+    }
+
+    #[test]
+    fn an_assistant_cannot_take_a_machine_off_the_list() {
+        let mut state = State::default();
+        joined(&mut state, "dev_laptop", crate::event::DeviceKind::Machine);
+        joined(&mut state, "dev_agent", crate::event::DeviceKind::Agent);
+
+        state.apply(&ev(
+            3,
+            "dev_agent",
+            Op::DeviceRemove {
+                d: DeviceId("dev_laptop".into()),
+            },
+        ));
+
+        assert!(state.devices.contains(&DeviceId("dev_laptop".into())));
     }
 
     #[test]
@@ -4534,5 +4686,137 @@ mod tests {
             "it goes away with its document"
         );
         assert!(!state.docs[&minutes].archived);
+    }
+
+    #[test]
+    fn a_device_only_says_what_kind_it_is_itself() {
+        let mut state = State::default();
+        joined(&mut state, "dev_laptop", crate::event::DeviceKind::Machine);
+        joined(&mut state, "dev_agent", crate::event::DeviceKind::Agent);
+        let doc = a_doc(&mut state, "dev_laptop");
+
+        state.apply(&ev(
+            4,
+            "dev_agent",
+            Op::DeviceJoin {
+                d: DeviceId("dev_laptop".into()),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        ));
+        assert!(
+            !state.assistants.contains(&DeviceId("dev_laptop".into())),
+            "no device hands another one a badge"
+        );
+
+        state.apply(&ev(5, "dev_laptop", Op::DocDelete { id: doc }));
+        assert!(!state.docs.contains_key(&doc), "the person still deletes");
+    }
+
+    #[test]
+    fn an_assistant_cannot_retire_an_attachment() {
+        let mut state = State::default();
+        joined(&mut state, "dev_agent", crate::event::DeviceKind::Agent);
+        let at = "attachments/ab/a-12345678.png".to_string();
+
+        state.apply(&ev(3, "dev_agent", Op::AttachRetire { d: at.clone() }));
+        assert!(state.retired.is_empty());
+
+        state.apply(&ev(4, "dev_laptop", Op::AttachRetire { d: at }));
+        assert_eq!(state.retired.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod compacting {
+    use crate::event::{DeviceId, Event, Op};
+    use crate::state::State;
+    use ulid::Ulid;
+
+    fn ev(who: &str, ms: i64, op: Op) -> Event {
+        Event::new(
+            DeviceId(who.into()),
+            jiff::Timestamp::from_millisecond(ms).unwrap(),
+            op,
+        )
+    }
+
+    fn added(
+        events: &mut Vec<Event>,
+        ms: i64,
+        page_of: Option<crate::model::DocId>,
+    ) -> crate::model::DocId {
+        let id = Ulid::generate();
+        let told = State::replay(events);
+        let order = crate::order::last_of(
+            told.docs
+                .values()
+                .filter(|one| one.page_of == page_of)
+                .map(|one| one.order.as_str()),
+        );
+        events.push(ev(
+            "dev_a",
+            ms,
+            Op::DocAdd {
+                id,
+                d: crate::event::DocAdd {
+                    file: format!("dev_a-{ms:04}"),
+                    order,
+                    folder: None,
+                    page_of,
+                },
+            },
+        ));
+        id
+    }
+
+    fn rebased(events: &mut Vec<Event>, who: &str, ms: i64, run: &[crate::model::DocId]) {
+        let keys: Vec<&str> = run.iter().map(|_| "").collect();
+        for (n, (id, order)) in run.iter().zip(crate::order::resequenced(&keys)).enumerate() {
+            events.push(ev(
+                who,
+                ms + n as i64,
+                Op::DocMove {
+                    id: *id,
+                    d: crate::event::Filed {
+                        folder: None,
+                        page_of: None,
+                        order: order.or_else(|| Some(crate::order::first())),
+                    },
+                },
+            ));
+        }
+    }
+
+    #[test]
+    fn two_machines_rebasing_one_run_at_once_still_read_it_the_same_way() {
+        let mut events = Vec::new();
+        let up = added(&mut events, 1, None);
+        let run: Vec<crate::model::DocId> =
+            (2..6).map(|ms| added(&mut events, ms, Some(up))).collect();
+
+        let mut theirs: Vec<crate::model::DocId> = run.clone();
+        theirs.swap(1, 2);
+        rebased(&mut events, "dev_a", 10, &run);
+        rebased(&mut events, "dev_b", 11, &theirs);
+
+        let mut sorted = events.clone();
+        sorted.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+        let here: Vec<crate::model::DocId> = State::replay(&sorted)
+            .pages_of(up)
+            .iter()
+            .map(|one| one.id)
+            .collect();
+
+        let mut shuffled = events;
+        shuffled.reverse();
+        shuffled.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+        let there: Vec<crate::model::DocId> = State::replay(&shuffled)
+            .pages_of(up)
+            .iter()
+            .map(|one| one.id)
+            .collect();
+
+        assert_eq!(here, there, "a tie is broken the same way on both machines");
+        assert_eq!(here.len(), run.len(), "and nothing falls out of the run");
     }
 }

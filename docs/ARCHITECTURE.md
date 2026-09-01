@@ -78,6 +78,55 @@ the names of the lists. There is no tool for completing, dropping, deleting,
 undoing, editing a task the person wrote, making a list, or handing a document a
 new body whole.
 
+**No assistant ever deletes, and that is the design rather than an omission.** The
+MCP has no tool that writes any of the deletions — not a task, not a list, not a
+folder, not a document. Finishing is the person's, and so is unmaking; an agent
+that cannot delete cannot be talked into deleting. The terminal is the person, not
+an assistant: `tisty rm` and `tisty list delete` do delete, under the machine's own
+device. **Documents are narrower still — only the window deletes one**, so a
+mistyped command cannot lose a document.
+
+The absence of a tool is a locked door, not a law, so the rule is written into the
+log as well. `Op::destroys` names the six operations that take something away for
+good — the four deletions, removing a device, and retiring an attachment — and
+`State::apply` drops any of them written by a device that ever joined as an agent,
+beside the tombstone check, over every log, on every machine. `store::ledger` reads
+the raw log rather than a projection, so it applies the same rule itself; otherwise
+an assistant's `DeviceRemove` would still lock a machine out of syncing while the
+projection said nothing was wrong.
+
+That the rule lives here and not at the tool gate matters because the gate only
+guards one binary: a shared folder takes lines from anywhere, and one future tool
+or one CLI subcommand written without this in mind would otherwise be honoured
+everywhere the folder reaches. It is not a defence against a forged log — nothing
+checks that an event in a device's folder was written by that device, and anyone
+who can append there can also delete the files directly. It binds an honest binary,
+which is what the rule is for.
+
+The trade it takes: this changes how an already-written log projects while the
+schema stays 8, so a machine on an older build still honours what this one drops.
+That is the rule working — the old build is unprotected, not wrong — and it is
+worth being plain that it is the same shape of divergence refused for compaction
+below. The difference is what sets it off: compaction would fork on ordinary
+traffic, this forks only on an event no honest binary has ever written.
+
+Two supports make it hold. `assistants` only ever grows: `agents` does not — taking
+an assistant off the list clears it — and a rule built on that one would hand an
+assistant's old deletions back on the next replay. And a device only says what kind
+it is *itself*: `DeviceJoin` is honoured for the kind claim only when the payload
+names the device that wrote it. Without that, one line could mark the person's own
+machine an assistant, permanently and irreversibly, and quietly disarm its deletions.
+
+The danger is the other side of it: **one path carries every deletion.**
+`doc_drop` gathers the parent's file and its pages' files from the state *before*
+it commits, then removes them from disk one at a time *after*. A file that will
+not go is not a refusal — the log has already spoken, so the removal warns, the
+rest of the run carries on, and `take_out_the_shed` sweeps what stayed at the next
+opening. Only what the projection actually shed is removed: if the log refuses
+the deletion, no file is touched and the window says so. What it cannot repair
+announces itself — `doctor` and the keeping panel count both halves, the files on
+disk the log does not name and the documents the log names with no file.
+
 A file kept with a task goes on its journal; one kept in a document is added at
 the end of it, as the same markdown the window writes when you drop a file in.
 The two carry different ceilings, and the agent gets the ceiling of the place it
@@ -799,10 +848,48 @@ cannot be read from disk is left out and counted: the export says how many went
 missing rather than handing over a book quietly short of a chapter.
 
 **Where the order is settled, and where it is not.** The body is a file that
-syncs like a file; the order is in the log. Nothing reconciles them on the way
-in, so a body that arrives from another machine can name its pages in an order
-the log does not have. Opening the document settles it, and so does saving it —
-until one of those happens, the two disagree and the tree follows the log.
+syncs like a file; the order is in the log. A round of syncing reports which
+bodies it brought, and every caller of it settles those before going on — the
+window on sync and on opening, `tisty sync` too. That last one is not
+housekeeping: a body the sync *merged* holds an order no machine ever wrote, so
+if the machine that merged it never settles, no machine ever does. Settling
+writes `DocMove` events, so *reading* a document is not a pure read — it is a
+fixed point, and a body that already agrees with the log produces nothing.
+
+What is still not settled on the way in: a round that fails partway loses the
+list of what it brought, and a body the sync could not place at all — a symlink
+where a file was expected — leaves the log ahead of the file. Both cases end the
+same way as before, when the document is next opened or saved.
+
+**Settling re-keys the whole run, not the part the text names.** A body may name
+only some of a book's pages — hanging a document under another writes no card, so
+a book can hold pages the text never mentions. Those pages keep the *places* they
+held, but the keys are dealt across every page at once. Re-keying only the named
+ones would hand out a key an unnamed sibling already holds, and a duplicate key is
+decided by whichever id sorts first — a place nobody chose, that no later settle
+repairs, because the text never names that page again.
+
+**Compaction is not atomic across machines, and is left that way on purpose.**
+Re-basing a run is N independent moves, not one operation. Two machines
+re-basing the same run inside one sync window can therefore produce duplicate
+keys. `afresh` deals a whole run positionally, so identical runs give identical
+keys and only a genuine disagreement collides; `pages_of` breaks a tie by id, so
+every machine replaying the same log still reads the same order; and the next
+save settles it. Making it truly atomic means replaying batches as a unit, which
+would have an old binary and a new one project the same log differently, with no
+version to catch it — a quiet incompatibility traded for a loud one, to fix
+something that has never fired.
+
+**Unhanging is its own undo.** Hanging a document under another takes the
+parent's folder and a key on the scale of its sibling pages. A bare
+`page_of: null` would leave both behind, and the document would reappear at an
+arbitrary spot in a folder it never chose. So `undo::unhung` reads the last hang
+out of the log and returns its inverse — the folder and the place it held — and
+falls back to the end of the parent's folder in the three cases the inverse cannot
+serve: there was no hang, the folder it names is gone, or the last hang moved the
+page straight from one document to another — inverting *that* would re-hang it
+under the earlier one instead of setting it free. Deleting has no such inverse and never will: it is
+permanent by design, which is why it is the one thing asked about first.
 
 **The schema is 8 because of this.** A machine still on 1.0.x rejects the whole
 event rather than reading a page as a loose document and filing it somewhere the

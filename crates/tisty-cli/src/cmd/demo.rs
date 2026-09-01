@@ -101,7 +101,7 @@ La última vez salió apretada por meterla al horno demasiado pronto.
 
 ---
 
-<p style="text-align: center">🍞 Hornear a las ocho, comer a las nueve</p>
+🍞 **Hornear a las ocho, comer a las nueve**
 
 Lo único que merece quedar escrito: <mark data-pen="green">fermentar en
 frío</mark>, nunca sobre la encimera.
@@ -198,7 +198,7 @@ Last time the crumb came out tight: it went in too early.
 
 ---
 
-<p style="text-align: center">🍞 Bake at eight, eat at nine</p>
+🍞 **Bake at eight, eat at nine**
 
 The one thing worth writing down: <mark data-pen="green">prove it cold</mark>,
 never on the counter.

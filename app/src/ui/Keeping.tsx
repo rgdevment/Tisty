@@ -1274,6 +1274,11 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                   {fill("strandedPapers", String(audit.stranded))}
                 </p>
               )}
+              {audit && audit.missing > 0 && (
+                <p className="mt-2 text-[12.5px] leading-relaxed text-urgent">
+                  {fill("missingPapers", String(audit.missing))}
+                </p>
+              )}
               {audit && audit.loose > 0 && (
                 <>
                   <p className="mt-2 text-[12.5px] tabular-nums text-soft">

@@ -106,6 +106,11 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             Err(trouble) => return Ok(said(&trouble, lang)),
         };
 
+    if moved.brought > 0 {
+        *app = App::at(app.paths.clone())?;
+        settle_what_arrived(app, &moved.arrived);
+    }
+
     let who = app.config().device_id.clone();
     if !tisty_core::store::ledger(app.paths.store())?
         .allowed
@@ -166,4 +171,33 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
     };
     eprintln!("{text}");
     ExitCode::from(EXIT_ERROR)
+}
+
+fn settle_what_arrived(app: &mut App, files: &[String]) {
+    use tisty_core::witness::{self, Fact, channel};
+
+    let root = app.paths.docs();
+    for file in app.state.books_among(files) {
+        let body = match tisty_core::docs::read(&root, &file) {
+            Ok(body) => body,
+            Err(e) => {
+                witness::warn(
+                    channel::SYNC,
+                    "a document that arrived could not be read to settle its pages",
+                    &[("file", Fact::Id(file)), ("why", Fact::Why(e.to_string()))],
+                );
+                continue;
+            }
+        };
+        let told = app.state.settling(&file, &body);
+        if !told.is_empty()
+            && let Err(e) = app.commit_all(told)
+        {
+            witness::warn(
+                channel::SYNC,
+                "where a document's pages sit could not be settled",
+                &[("file", Fact::Id(file)), ("why", Fact::Why(e.to_string()))],
+            );
+        }
+    }
 }

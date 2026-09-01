@@ -26,7 +26,7 @@ export interface Run {
 
 export type Shape =
   | { kind: "heading"; level: number; runs: Run[] }
-  | { kind: "para"; runs: Run[]; towards?: string }
+  | { kind: "para"; runs: Run[] }
   | { kind: "quote"; runs: Run[] }
   | { kind: "code"; runs: Run[]; deep: number }
   | { kind: "bullet"; mark: string; runs: Run[]; deep: number }
@@ -223,17 +223,6 @@ const drawn = (runs: Run[], flowing = false) =>
     );
   });
 
-const TOWARDS: Record<string, "center" | "right" | "justify"> = {
-  center: "center",
-  right: "right",
-  justify: "justify",
-};
-
-const aligned = (towards?: string) => {
-  const to = towards ? TOWARDS[towards] : undefined;
-  return to ? { textAlign: to } : {};
-};
-
 // No font here draws an emoji, so a title wearing one would print a hollow box.
 const plain = (runs: Run[]): Run[] => {
   const [first, ...rest] = runs;
@@ -331,11 +320,11 @@ const shaped = (one: Shape, at: number, room: number) => {
       return <View key={key} break />;
     default:
       return stringy(one.runs) ? (
-        <View key={key} style={[sheet.flow, aligned(one.towards)]}>
+        <View key={key} style={sheet.flow}>
           {drawn(torn(one.runs), true)}
         </View>
       ) : (
-        <Text key={key} style={[sheet.para, aligned(one.towards)]}>
+        <Text key={key} style={sheet.para}>
           {drawn(one.runs)}
         </Text>
       );
