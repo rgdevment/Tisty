@@ -324,11 +324,11 @@ body {
   min-height: 100%;
 }
 
-/* Room to write, but not so much that what follows the text reads as another screen. */
+/* A short page still needs somewhere to click below the words to go on writing. */
 .leafed .tisty-doc {
   padding-bottom: 14vh;
   border-radius: 10px 10px 0 0;
-  min-height: 0;
+  min-height: 45vh;
 }
 
 .ribbon {
@@ -925,8 +925,7 @@ body {
     inset 0 0 0 1px var(--tisty-line),
     inset 0 2.5px 0 0 var(--card-tint, transparent);
 }
-/* A page is a leaf of this same document, so it reads as the desk showing through a gap in
-   the sheet with more leaves under it, never as a card pointing somewhere else. */
+/* A leaf of this same document: the desk through a gap in the sheet, never a card. */
 .card-page {
   position: relative;
   max-width: none;
@@ -1153,6 +1152,21 @@ body {
   }
   .preview-video,
   .preview-audio {
+    display: none !important;
+  }
+  .ribbon,
+  .leaves,
+  .onward {
+    display: none !important;
+  }
+  .card-page {
+    background: none;
+    box-shadow: none;
+    border-left: 2px solid #d4d4d8;
+    border-radius: 0;
+  }
+  .card-leaf,
+  .card-into {
     display: none !important;
   }
   .beside {

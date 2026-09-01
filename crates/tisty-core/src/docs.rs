@@ -475,7 +475,9 @@ pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Resul
         written
             .iter()
             .fold(body.to_string(), |body, (file, at, _)| {
-                body.replace(&format!("{}{file}", crate::refs::DOC), &format!("<{at}>"))
+                let named = format!("{}{file}", crate::refs::DOC);
+                body.replace(&format!("<{named}>"), &format!("<{at}>"))
+                    .replace(&named, &format!("<{at}>"))
             })
     };
 

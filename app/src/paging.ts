@@ -1,10 +1,11 @@
 import type { Filed } from "./core";
 import { DOC } from "./markdown";
 
-/// Which documents a body names, so a page it never names can be shown as loose.
+/// Kept in step with `refs::papers` in the core, which is what decides the order.
 export const named = (body: string): Set<string> => {
   const found = new Set<string>();
-  for (const [, id] of body.matchAll(/\]\(tisty:doc\/([^)\s]+)\)/g)) found.add(id);
+  const said = body.replace(/(`+)[\s\S]*?\1/g, " ");
+  for (const [, id] of said.matchAll(/\]\(\s*<?tisty:doc\/([^)>\s]+)/g)) found.add(id);
   return found;
 };
 

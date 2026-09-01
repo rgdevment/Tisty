@@ -26,9 +26,8 @@ pub fn last_of<'a>(keys: impl IntoIterator<Item = &'a str>) -> String {
     }
 }
 
-/// Keys for a run that has to read in the given order, one slot per key: `None` where the
-/// key it already has will do. The ones already rising are left alone, so moving one of a
-/// hundred hands back one new key and the log does not fill with settled neighbours.
+/// Keys for a run that has to read in the given order, `None` where the key it has will do:
+/// the ones already rising keep theirs, so moving one of a hundred is one key, not a hundred.
 pub fn resequenced(keys: &[&str]) -> Vec<Option<String>> {
     let held = rising(keys);
     let mut fresh = vec![None; keys.len()];

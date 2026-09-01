@@ -43,6 +43,15 @@ describe("what a body names", () => {
     expect(named(body).size).toBe(0);
   });
 
+  it("counts nothing written inside code, which the core does not count either", () => {
+    expect(named("`![A](tisty:doc/a3f1-0002)`").size).toBe(0);
+    expect(named("```\n![A](tisty:doc/a3f1-0002)\n```").size).toBe(0);
+  });
+
+  it("reads a destination wrapped in angles the same as a bare one", () => {
+    expect([...named("![A](<tisty:doc/a3f1-0002>)")]).toEqual(["a3f1-0002"]);
+  });
+
   it("names what the block put in the text points at, so putting one in is found again", () => {
     expect(card("a3f1-0002", "El pod").attrs.src).toBe(`${DOC}a3f1-0002`);
     expect(named(`ya está: ${docCard("a3f1-0002", "El pod")}`).has("a3f1-0002")).toBe(true);

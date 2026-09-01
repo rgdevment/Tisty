@@ -112,7 +112,12 @@ describe("a document that holds pages, open", () => {
 
 describe("a page, open", () => {
   beforeEach(() => {
-    store.bodies = { "a3f1-0002": "# El pod", "a3f1-0003": "# El túnel" };
+    store.bodies = {
+      "a3f1-0001":
+        "# Bases de datos\n\n![El pod](tisty:doc/a3f1-0002)\n\n![El túnel](tisty:doc/a3f1-0003)",
+      "a3f1-0002": "# El pod",
+      "a3f1-0003": "# El túnel",
+    };
     store.put = [];
   });
 

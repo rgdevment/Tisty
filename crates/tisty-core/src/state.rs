@@ -468,9 +468,8 @@ impl State {
         pages
     }
 
-    /// Where each page has to sit for the run to read like the body that names them: the ones
-    /// named in the text first and in that order, the ones it does not name after. Only the
-    /// pages that have to move come back, so a body saved every keystroke moves nothing.
+    /// Where each page has to sit for the run to read like the body that names them, the ones
+    /// it never names last. Only what has to move comes back, so an unchanged body moves none.
     pub fn pages_told(&self, doc: DocId, body: &str) -> Vec<(DocId, String)> {
         let pages = self.pages_of(doc);
         if pages.len() < 2 {

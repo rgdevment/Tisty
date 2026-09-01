@@ -686,9 +686,11 @@ export default function Editor({
 
   return (
     <>
-      <div className={`scroller gutter flex min-h-0 flex-1 flex-col${below ? " leafed" : ""}`}>
+      <div
+        className={`scroller gutter flex min-h-0 flex-1 flex-col${above || below ? " leafed" : ""}`}
+      >
         {above}
-        <EditorContent editor={editor} className={below ? undefined : "flex-1"} />
+        <EditorContent editor={editor} className={above || below ? undefined : "flex-1"} />
         {below}
       </div>
       {asking && shown.length > 0 && (

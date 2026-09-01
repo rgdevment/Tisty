@@ -4,14 +4,17 @@ import { fill, t } from "../locales";
 interface Props {
   of: Filed;
   sisters: Filed[];
+  told?: Set<string>;
   here: string;
   onOpen: (doc: Filed) => void;
 }
 
-export default function Ribbon({ of, sisters, here, onOpen }: Props) {
-  const at = sisters.findIndex((one) => one.file === here);
-  const back = at > 0 ? sisters[at - 1] : undefined;
-  const on = at >= 0 && at + 1 < sisters.length ? sisters[at + 1] : undefined;
+/// A loose page is not in the reading order, so it is not given a number in it either.
+export default function Ribbon({ of, sisters, told, here, onOpen }: Props) {
+  const read = told ? sisters.filter((one) => told.has(one.file)) : [];
+  const at = told ? read.findIndex((one) => one.file === here) : -1;
+  const back = at > 0 ? read[at - 1] : undefined;
+  const on = at >= 0 && at + 1 < read.length ? read[at + 1] : undefined;
 
   return (
     <nav aria-label={t("whereThisSits")} className="ribbon">
@@ -19,9 +22,9 @@ export default function Ribbon({ of, sisters, here, onOpen }: Props) {
         <span aria-hidden="true">‹</span>
         <span className="truncate">{of.title || t("untitledDoc")}</span>
       </button>
-      {at >= 0 && (
+      {told && (
         <span className="ribbon-at">
-          {fill("leafOfMany", String(at + 1), String(sisters.length))}
+          {at >= 0 ? fill("leafOfMany", String(at + 1), String(read.length)) : t("looseLeafIs")}
         </span>
       )}
       <span className="ribbon-arrows">

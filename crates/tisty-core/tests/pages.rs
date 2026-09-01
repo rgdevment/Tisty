@@ -1056,3 +1056,47 @@ fn naming_a_document_that_is_not_its_page_changes_no_order() {
             .is_empty()
     );
 }
+
+#[test]
+fn reordering_pages_from_the_text_keeps_the_hot_cache_instead_of_throwing_it_away() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+
+    let mut cache = Cache::open(&world.cache_dir).unwrap().unwrap();
+    let state = replayed(&world);
+    let print = cache::fingerprint(&world.store_root);
+    cache.store(&state, &print).unwrap();
+
+    let moved = store
+        .append(Op::DocMove {
+            id: one,
+            d: Filed {
+                folder: None,
+                page_of: None,
+                order: Some(order::after("a1")),
+            },
+        })
+        .unwrap();
+    let now = replayed(&world);
+    let print = cache::advance(
+        Some(&mut cache),
+        &now,
+        std::slice::from_ref(&moved),
+        &world.store_root,
+        false,
+    );
+
+    let held = cache
+        .load(&print, true)
+        .expect("an order is one row, not a cascade");
+    assert_eq!(
+        held.pages_of(book)
+            .iter()
+            .map(|one| one.file.as_str())
+            .collect::<Vec<_>>(),
+        ["a3f1-0003", "a3f1-0002"]
+    );
+}

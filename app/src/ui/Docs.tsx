@@ -266,8 +266,27 @@ export default function Docs({
   const pages = pagesOf(known, open?.file);
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
-  const next = above ? sisters[sisters.findIndex((one) => one.file === own?.file) + 1] : undefined;
   const told = useMemo(() => named(body), [body]);
+
+  // Which sisters count, and in what order, is the parent's text to say — so it has to be read.
+  const [aboveTold, setAboveTold] = useState<Set<string>>();
+  const upstairs = above?.file;
+  useEffect(() => {
+    setAboveTold(undefined);
+    if (!upstairs) return;
+    let gone = false;
+    docRead(upstairs)
+      .then((text) => {
+        if (!gone) setAboveTold(named(text));
+      })
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+  }, [upstairs, saved]);
+
+  const inOrder = aboveTold ? sisters.filter((one) => aboveTold.has(one.file)) : [];
+  const next = inOrder[inOrder.findIndex((one) => one.file === own?.file) + 1];
 
   const beside = Boolean(open) && (shown ?? wide);
   const leaf = (open && sized[open.file]) || "a4";
@@ -442,6 +461,7 @@ export default function Docs({
                     <Ribbon
                       of={above}
                       sisters={sisters}
+                      told={aboveTold}
                       here={open.file}
                       onOpen={(doc) => onDoc?.(doc.file)}
                     />

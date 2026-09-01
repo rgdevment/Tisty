@@ -8,8 +8,12 @@ export const asked = (before: string): string | null => {
   return found ? found[1] : null;
 };
 
-export const narrowed = <T extends { label: string }>(blocks: T[], word: string): T[] =>
-  word ? blocks.filter((one) => matched(one.label, word)) : blocks;
+/// The label is read and translated; the key is typed, so `/page` finds it in any language.
+export const narrowed = <T extends { label: string; key?: string }>(
+  blocks: T[],
+  word: string,
+): T[] =>
+  word ? blocks.filter((one) => matched(one.label, word) || matched(one.key ?? "", word)) : blocks;
 
 export interface Block {
   key: string;

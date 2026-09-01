@@ -80,9 +80,11 @@ describe("the head of a page", () => {
     archived: false,
   };
 
+  const told = new Set(pages.map((one) => one.file));
+
   const show = (here: string) => {
     const onOpen = vi.fn();
-    render(<Ribbon of={of} sisters={pages} here={here} onOpen={onOpen} />);
+    render(<Ribbon of={of} sisters={pages} told={told} here={here} onOpen={onOpen} />);
     return { onOpen };
   };
 
@@ -106,10 +108,27 @@ describe("the head of a page", () => {
       true,
     );
 
-    render(<Ribbon of={of} sisters={pages} here="a3f1-0004" onOpen={vi.fn()} />);
+    render(<Ribbon of={of} sisters={pages} told={told} here="a3f1-0004" onOpen={vi.fn()} />);
     expect(
       screen.getAllByRole<HTMLButtonElement>("button", { name: "Page after" })[1].disabled,
     ).toBe(true);
+  });
+
+  it("gives a page its document never names no number and nowhere to step", () => {
+    render(
+      <Ribbon
+        of={of}
+        sisters={pages}
+        told={new Set(["a3f1-0002"])}
+        here="a3f1-0003"
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Loose page")).toBeTruthy();
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Page after" }).disabled).toBe(
+      true,
+    );
   });
 
   it("steps to the sister the arrow points at", async () => {

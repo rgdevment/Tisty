@@ -22,7 +22,6 @@ export interface Reach {
   title: (id: string) => string | null | undefined;
   here?: string;
   blurb?: (id: string) => string | null;
-  /// Which page of this document it is, counting from one; nothing if it is not one of them.
   page?: (id: string) => number | null;
   gone?: (reference: string) => boolean;
   onDoc?: (id: string) => void;
