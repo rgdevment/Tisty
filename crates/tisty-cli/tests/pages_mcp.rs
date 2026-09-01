@@ -180,23 +180,34 @@ fn ten_pages_are_written_under_one_document_and_each_reads_back_its_own_body() {
     let parent = wrote_paper(&served, "# Actas\n\nlas de este año.");
 
     let pages: Vec<String> = (0..10)
-        .map(|n| wrote_page(&served, &format!("# Mes {n}\n\nlo que pasó el mes {n}."), &parent))
+        .map(|n| {
+            wrote_page(
+                &served,
+                &format!("# Mes {n}\n\nlo que pasó el mes {n}."),
+                &parent,
+            )
+        })
         .collect();
 
     let listed = served.call("docs", json!({}));
-    let all = listed["result"]["structuredContent"]["docs"].as_array().unwrap();
+    let all = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
     let parent_row = all.iter().find(|one| one["doc"] == parent).unwrap();
     assert_eq!(parent_row["pages"], 10, "{listed}");
     assert!(parent_row["page_of"].is_null());
 
     for (n, page) in pages.iter().enumerate() {
-        let row = all.iter().find(|one| one["doc"] == *page).unwrap_or_else(|| {
-            panic!("page {n} is not listed: {listed}")
-        });
+        let row = all
+            .iter()
+            .find(|one| one["doc"] == *page)
+            .unwrap_or_else(|| panic!("page {n} is not listed: {listed}"));
         assert_eq!(row["page_of"], parent, "{listed}");
 
         let read = served.call("read_doc", json!({ "doc": page }));
-        let body = read["result"]["structuredContent"]["body"].as_str().unwrap();
+        let body = read["result"]["structuredContent"]["body"]
+            .as_str()
+            .unwrap();
         assert!(
             body.contains(&format!("lo que pasó el mes {n}.")),
             "page {n} came back with the wrong body: {body}"
@@ -229,7 +240,10 @@ fn a_document_toggles_between_being_a_page_and_being_its_own_document_back_to_ba
         "write_doc",
         json!({ "body": "# B\n\notro suelto.", "folder": "Trabajo" }),
     );
-    let b = b["result"]["structuredContent"]["doc"].as_str().unwrap().to_string();
+    let b = b["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     let hung = served.call("page_doc", json!({ "doc": a, "page_of": b }));
     assert_eq!(hung["result"]["structuredContent"]["page_of"], b, "{hung}");
@@ -246,7 +260,10 @@ fn a_document_toggles_between_being_a_page_and_being_its_own_document_back_to_ba
     );
 
     let out = served.call("page_doc", json!({ "doc": a }));
-    assert!(out["result"]["structuredContent"]["page_of"].is_null(), "{out}");
+    assert!(
+        out["result"]["structuredContent"]["page_of"].is_null(),
+        "{out}"
+    );
     let row = served.call("docs", json!({}))["result"]["structuredContent"]["docs"]
         .as_array()
         .unwrap()
@@ -280,21 +297,30 @@ fn page_doc_moves_a_page_straight_from_one_document_to_another() {
     let page = wrote_page(&served, "# Página\n\nla que se mueve.", &first);
 
     let moved = served.call("page_doc", json!({ "doc": page, "page_of": second }));
-    assert_eq!(moved["result"]["structuredContent"]["page_of"], second, "{moved}");
+    assert_eq!(
+        moved["result"]["structuredContent"]["page_of"], second,
+        "{moved}"
+    );
 
-    let first_pages = served.call("read_doc", json!({ "doc": first }))["result"]
-        ["structuredContent"]["pages"]
-        .as_array()
-        .unwrap()
-        .clone();
-    assert!(!first_pages.iter().any(|one| one == &page), "{first_pages:?}");
+    let first_pages =
+        served.call("read_doc", json!({ "doc": first }))["result"]["structuredContent"]["pages"]
+            .as_array()
+            .unwrap()
+            .clone();
+    assert!(
+        !first_pages.iter().any(|one| one == &page),
+        "{first_pages:?}"
+    );
 
-    let second_pages = served.call("read_doc", json!({ "doc": second }))["result"]
-        ["structuredContent"]["pages"]
-        .as_array()
-        .unwrap()
-        .clone();
-    assert!(second_pages.iter().any(|one| one == &page), "{second_pages:?}");
+    let second_pages =
+        served.call("read_doc", json!({ "doc": second }))["result"]["structuredContent"]["pages"]
+            .as_array()
+            .unwrap()
+            .clone();
+    assert!(
+        second_pages.iter().any(|one| one == &page),
+        "{second_pages:?}"
+    );
 }
 
 #[test]
@@ -314,7 +340,10 @@ fn an_attachment_on_a_page_is_recorded_in_the_pages_body_not_its_documents() {
 
     let page_body = body_of(&served, &page);
     let parent_body = body_of(&served, &parent);
-    assert!(page_body.contains("![el plano](<attachments/"), "{page_body}");
+    assert!(
+        page_body.contains("![el plano](<attachments/"),
+        "{page_body}"
+    );
     assert!(
         !parent_body.contains("attachments/"),
         "the file belongs to the page, not the document it hangs from: {parent_body}"
@@ -345,7 +374,10 @@ fn an_attachment_shared_by_a_page_and_another_document_is_copied_once_and_surviv
     assert!(onto_other["result"]["isError"].is_null(), "{onto_other}");
 
     let copies = walked(&served.home.path().join("data/attachments")).count();
-    assert_eq!(copies, 1, "the same bytes are kept once, whoever links to them");
+    assert_eq!(
+        copies, 1,
+        "the same bytes are kept once, whoever links to them"
+    );
 
     let taken_out = served.call("page_doc", json!({ "doc": page }));
     assert!(
@@ -419,7 +451,9 @@ fn an_attachment_past_the_documents_ceiling_is_refused_even_for_a_page() {
     assert_eq!(said["result"]["isError"], true, "{said}");
     assert!(why.contains("MB"), "{why}");
     assert!(
-        walked(&served.home.path().join("data/attachments")).next().is_none(),
+        walked(&served.home.path().join("data/attachments"))
+            .next()
+            .is_none(),
         "nothing over the ceiling reaches the store, page or not"
     );
 }
@@ -436,13 +470,17 @@ fn find_and_read_doc_agree_on_which_document_a_page_hangs_from() {
     );
 
     let found = served.call("find", json!({ "query": "regaronpatioxyz" }));
-    let docs = found["result"]["structuredContent"]["docs"].as_array().unwrap();
+    let docs = found["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
     assert_eq!(docs.len(), 1, "{found}");
     assert_eq!(docs[0]["doc"], page, "{found}");
     assert_eq!(docs[0]["page_of"], parent, "{found}");
 
     let read = served.call("read_doc", json!({ "doc": parent }));
-    let pages = read["result"]["structuredContent"]["pages"].as_array().unwrap();
+    let pages = read["result"]["structuredContent"]["pages"]
+        .as_array()
+        .unwrap();
     assert!(pages.iter().any(|one| one == &page), "{read}");
 }
 
@@ -460,7 +498,11 @@ fn write_doc_refuses_to_hang_a_page_under_another_page() {
     );
 
     assert_eq!(deeper["result"]["isError"], true, "{deeper}");
-    assert_eq!(docs_on_disk(&served), before, "a refusal leaves no .md behind");
+    assert_eq!(
+        docs_on_disk(&served),
+        before,
+        "a refusal leaves no .md behind"
+    );
 }
 
 #[test]
@@ -475,7 +517,10 @@ fn page_doc_refuses_to_make_a_document_a_page_of_itself() {
     assert_eq!(said["result"]["isError"], true, "{said}");
     assert_eq!(docs_on_disk(&served), before);
     let read = served.call("read_doc", json!({ "doc": a }));
-    assert!(read["result"]["structuredContent"]["page_of"].is_null(), "{read}");
+    assert!(
+        read["result"]["structuredContent"]["page_of"].is_null(),
+        "{read}"
+    );
 }
 
 #[test]
@@ -492,7 +537,10 @@ fn page_doc_refuses_to_turn_a_document_that_holds_pages_into_a_page() {
     assert_eq!(said["result"]["isError"], true, "{said}");
     assert_eq!(docs_on_disk(&served), before);
     let read = served.call("read_doc", json!({ "doc": a }));
-    assert!(read["result"]["structuredContent"]["page_of"].is_null(), "{read}");
+    assert!(
+        read["result"]["structuredContent"]["page_of"].is_null(),
+        "{read}"
+    );
 }
 
 #[test]
@@ -524,7 +572,11 @@ fn write_doc_refuses_a_page_under_a_document_that_was_put_away() {
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
-    assert_eq!(docs_on_disk(&served), before, "a refusal leaves no .md behind");
+    assert_eq!(
+        docs_on_disk(&served),
+        before,
+        "a refusal leaves no .md behind"
+    );
 }
 
 #[test]
@@ -554,7 +606,11 @@ fn write_doc_refuses_a_page_of_naming_a_document_that_does_not_exist() {
     );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
-    assert_eq!(docs_on_disk(&served), before, "a refusal leaves no .md behind");
+    assert_eq!(
+        docs_on_disk(&served),
+        before,
+        "a refusal leaves no .md behind"
+    );
 }
 
 #[test]
@@ -564,7 +620,10 @@ fn page_doc_refuses_a_page_of_naming_a_document_that_does_not_exist() {
     let a = wrote_paper(&served, "# A\n\nsolo.");
     let before = docs_on_disk(&served);
 
-    let said = served.call("page_doc", json!({ "doc": a, "page_of": "no-such-doc-0001" }));
+    let said = served.call(
+        "page_doc",
+        json!({ "doc": a, "page_of": "no-such-doc-0001" }),
+    );
 
     assert_eq!(said["result"]["isError"], true, "{said}");
     assert_eq!(docs_on_disk(&served), before);
@@ -591,7 +650,10 @@ fn write_doc_stops_at_the_document_ceiling_and_pages_count_toward_it() {
     );
     let why = refused["result"]["content"][0]["text"].as_str().unwrap();
     assert_eq!(refused["result"]["isError"], true, "{refused}");
-    assert!(why.contains("500"), "the refusal has to say the number: {why}");
+    assert!(
+        why.contains("500"),
+        "the refusal has to say the number: {why}"
+    );
 }
 
 #[test]
@@ -617,7 +679,10 @@ fn a_page_titled_with_only_an_emoji_is_written_with_an_empty_title() {
 
     let made = served.call("write_doc", json!({ "body": "🎉", "page_of": parent }));
     assert!(made["result"]["isError"].is_null(), "{made}");
-    let page = made["result"]["structuredContent"]["doc"].as_str().unwrap().to_string();
+    let page = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     // An emoji carries no alphanumeric character, so `titled` finds no line to call a title —
     // this is shared behaviour with every document, not something specific to pages.
@@ -628,30 +693,34 @@ fn a_page_titled_with_only_an_emoji_is_written_with_an_empty_title() {
 }
 
 #[test]
-fn a_page_body_exactly_at_the_reading_ceiling_is_accepted() {
+fn a_page_body_stops_at_what_the_assistant_may_send_long_before_the_reading_ceiling() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     let parent = wrote_paper(&served, "# Actas\n\nlas de este año.");
 
-    let limit = tisty_core::docs::BODY_AT_MOST as usize;
+    let said = 64_000;
     let head = "# T\n\n";
-    let filler = "a".repeat(limit - head.len() - 1);
-    let body = format!("{head}{filler}\n");
-    assert_eq!(body.len(), limit);
+    let brim = format!("{head}{}\n", "a".repeat(said - head.len() - 1));
+    let over = format!("{brim}a");
 
-    let made = served.call("write_doc", json!({ "body": body, "page_of": parent }));
+    let made = served.call("write_doc", json!({ "body": brim, "page_of": parent }));
+    let refused = served.call("write_doc", json!({ "body": over, "page_of": parent }));
+
     assert!(made["result"]["isError"].is_null(), "{made}");
-    let page = made["result"]["structuredContent"]["doc"].as_str().unwrap().to_string();
-    assert_eq!(body_of(&served, &page).len(), limit);
+    let page = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(body_of(&served, &page).chars().count(), said);
+    assert_eq!(refused["result"]["isError"], true, "{refused}");
+    assert!(
+        tisty_core::docs::BODY_AT_MOST as usize > said,
+        "the ceiling an assistant meets is the one on what it sends, not the one on the file"
+    );
 }
 
 #[test]
-#[ignore = "the production bug this documents: write_doc's docs::create opens the .md file to \
-            reserve its name before checking BODY_AT_MOST, so a body one byte over the ceiling is \
-            refused after the empty file already exists, and nothing ever removes it. Confirmed by \
-            running this test without #[ignore]: docs_on_disk grows by one even though the tool \
-            call is refused."]
-fn a_page_body_one_byte_past_the_reading_ceiling_is_refused() {
+fn a_body_too_big_to_send_is_refused_without_leaving_an_empty_file_behind() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     let parent = wrote_paper(&served, "# Actas\n\nlas de este año.");
@@ -742,7 +811,10 @@ fn putting_a_document_away_archives_its_pages_with_it() {
     served.put_away(&parent);
 
     let read = served.call("read_doc", json!({ "doc": page }));
-    assert_eq!(read["result"]["structuredContent"]["archived"], true, "{read}");
+    assert_eq!(
+        read["result"]["structuredContent"]["archived"], true,
+        "{read}"
+    );
     assert!(
         read["result"]["content"][0]["text"]
             .as_str()

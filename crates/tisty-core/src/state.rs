@@ -268,6 +268,11 @@ impl State {
                         }
                     }
                 }
+                if let Some(order) = d.order.clone()
+                    && let Some(doc) = self.docs.get_mut(id)
+                {
+                    doc.order = order;
+                }
                 if let Some(folder) = d.folder
                     && let Some(doc) = self.docs.get_mut(id)
                     && doc.page_of.is_none()

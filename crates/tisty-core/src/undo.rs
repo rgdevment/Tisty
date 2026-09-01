@@ -179,7 +179,7 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
                 d: crate::event::Filed {
                     folder: Some(was.folder),
                     page_of: d.page_of.map(|_| was.page_of),
-                    order: None,
+                    order: Some(was.order.clone()),
                 },
             })
         }

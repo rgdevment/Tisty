@@ -2285,7 +2285,6 @@ fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
             archived: kept.archived,
             gone: found.is_none(),
             page_of: kept.page_of.map(|up| up.to_string()),
-            order: None,
         });
     }
     Ok(Papers {
