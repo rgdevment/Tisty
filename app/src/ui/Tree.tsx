@@ -36,7 +36,7 @@ export default function Tree({
     null,
   );
   const [reached, setReached] = useState<string | null>(null);
-  const listed = useRef<HTMLUListElement>(null);
+  const listed = useRef<HTMLDivElement>(null);
 
   const rows = () => Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
 
@@ -86,7 +86,12 @@ export default function Tree({
       e.preventDefault();
       return setLifted(null);
     }
-    if ((e.ctrlKey || e.metaKey) && (e.key === "x" || e.key === "X") && row.id !== "unfiled") {
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      (e.key === "x" || e.key === "X") &&
+      row.id !== "unfiled" &&
+      !papers.docs.some((one) => one.id === row.id && one.pageOf)
+    ) {
       e.preventDefault();
       return setLifted(row);
     }
@@ -120,8 +125,12 @@ export default function Tree({
   const STEP = 15;
   const ELBOW = 26;
 
-  const shortcuts = (kind: "doc" | "folder") =>
-    lifted && kind === "folder" ? "Control+V Control+X Shift+F10" : "Control+X Shift+F10";
+  const shortcuts = (kind: "doc" | "folder" | "page") =>
+    kind === "page"
+      ? "Shift+F10"
+      : lifted && kind === "folder"
+        ? "Control+V Control+X Shift+F10"
+        : "Control+X Shift+F10";
 
   const fold = (id: string) => {
     if (!shut.has(id)) setReached(id);
@@ -162,7 +171,7 @@ export default function Tree({
     const name = doc.title || t("untitledDoc");
     const worn = page ? { mark: null, rest: name } : led(name);
     const pages = pagesOf(doc.id);
-    const closed = shut.has(doc.id);
+    const closed = shut.has(doc.id) && !pages.some((one) => one.file === open);
     return (
       <li key={doc.id} className="relative">
         <div
@@ -200,7 +209,7 @@ export default function Tree({
             tabIndex={stops(doc.id) ? 0 : -1}
             onFocus={() => setReached(doc.id)}
             onKeyDown={(e) => typed(e, { id: doc.id, kind: "doc", name })}
-            aria-keyshortcuts={shortcuts("doc")}
+            aria-keyshortcuts={shortcuts(page ? "page" : "doc")}
             onDragStart={(e) => e.dataTransfer.setData("text/tisty-doc", doc.id)}
             onClick={() => onOpen(doc)}
             aria-label={lifted?.id === doc.id ? fill("liftedIs", name) : name}
@@ -343,7 +352,7 @@ export default function Tree({
   );
 
   const tree = (
-    <ul ref={listed} aria-label={t("docs")} className="flex flex-col gap-px">
+    <ul aria-label={t("docs")} className="flex flex-col gap-px">
       {papers.folders.length === 0 && papers.docs.length === 0 && (
         <li className="px-2.5 py-2 text-[12px] text-faint">{t("noDocsYet")}</li>
       )}
@@ -452,9 +461,9 @@ export default function Tree({
   );
 
   return (
-    <>
+    <div ref={listed}>
       {tree}
       {kept}
-    </>
+    </div>
   );
 }

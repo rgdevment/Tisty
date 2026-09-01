@@ -333,6 +333,7 @@ const en = {
   closeFolder: "Close {name}",
   tooDeep: "Folders only go four levels deep",
   pageOfPage: "A page belongs to a document, not to another page",
+  pageStaysPut: "A page goes where its document goes",
   holdsPages: "This document has pages of its own",
   folderNameTooLong: "A folder name fits 40 characters at most",
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
@@ -1313,6 +1314,7 @@ const es: Catalog = {
   closeFolder: "Plegar {name}",
   tooDeep: "Las carpetas solo bajan cuatro niveles",
   pageOfPage: "Una página cuelga de un documento, no de otra página",
+  pageStaysPut: "Una página va donde va su documento",
   holdsPages: "Este documento tiene páginas propias",
   folderNameTooLong: "El nombre de una carpeta admite 40 caracteres como máximo",
   documentBeingWritten:

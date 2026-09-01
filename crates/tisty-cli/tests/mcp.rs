@@ -1776,3 +1776,71 @@ fn a_document_becomes_a_page_and_comes_back_out_as_a_document() {
         "{out}"
     );
 }
+
+#[test]
+fn a_page_is_not_filed_into_a_folder_of_its_own() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Casa" }));
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Actas\n\nlas de este año." }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let page = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
+    );
+    let page = page["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let filed = served.call(
+        "file_doc",
+        serde_json::json!({ "doc": page, "folder": "Casa" }),
+    );
+
+    assert_eq!(
+        filed["result"]["isError"], true,
+        "saying it moved when the core keeps it put is worse than refusing: {filed}"
+    );
+}
+
+#[test]
+fn nothing_is_hung_under_a_document_that_was_put_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Presupuesto viejo\n\nDel año pasado." }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let loose = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Anexo\n\nlas cifras." }),
+    );
+    let loose = loose["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.put_away(&doc);
+
+    let written = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Marzo\n\nlo que se dijo.", "page_of": doc }),
+    );
+    let hung = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": loose, "page_of": doc }),
+    );
+
+    assert_eq!(written["result"]["isError"], true, "{written}");
+    assert_eq!(hung["result"]["isError"], true, "{hung}");
+}

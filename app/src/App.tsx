@@ -212,8 +212,12 @@ export default function App() {
     )
       .then((yes) => {
         if (!yes) return;
-        if (chosen.doc === doc.file) setChosen({ named: "docs" });
-        setReturning(doc.folder ?? "unfiled");
+        const going = [
+          doc.file,
+          ...papers.docs.filter((one) => one.pageOf === doc.id).map((one) => one.file),
+        ];
+        if (chosen.doc && going.includes(chosen.doc)) setChosen({ named: "docs" });
+        setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
         return docDrop(doc.id).then(lookPapers);
       })
       .catch((e) => setError(saidPlainly(e)));
@@ -687,6 +691,7 @@ export default function App() {
           key: "away",
           icon: doc.archived ? "▢" : "▣",
           label: doc.archived ? t("bringBack") : t("putAway"),
+          off: !!doc.pageOf,
           apart: true,
           onPick: () =>
             docAway(doc.id, !doc.archived)

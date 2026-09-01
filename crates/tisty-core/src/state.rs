@@ -56,7 +56,11 @@ impl State {
         state
     }
 
+    /// A page is put away and brought back with its document, never on its own.
     fn shelve(&mut self, id: DocId, away: bool) {
+        if self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
+            return;
+        }
         let pages: Vec<DocId> = self
             .docs
             .values()
@@ -241,11 +245,26 @@ impl State {
                             && !holds_pages
                             && self.docs.get(up).is_some_and(|one| one.page_of.is_none())
                     });
-                    let under = allowed.and_then(|up| self.docs.get(&up).map(|one| one.folder));
-                    if let Some(doc) = self.docs.get_mut(id) {
-                        doc.page_of = allowed;
-                        if let Some(under) = under {
-                            doc.folder = under;
+                    // Refusing to hang it somewhere is not a reason to unhang it from where it is.
+                    if allowed.is_some() || page_of.is_none() {
+                        let under = allowed
+                            .and_then(|up| self.docs.get(&up))
+                            .map(|one| (one.folder, one.archived));
+                        let beside = allowed.map(|up| {
+                            crate::order::last_of(
+                                self.docs
+                                    .values()
+                                    .filter(|one| one.page_of == Some(up))
+                                    .map(|one| one.order.as_str()),
+                            )
+                        });
+                        if let Some(doc) = self.docs.get_mut(id) {
+                            doc.page_of = allowed;
+                            if let Some((folder, archived)) = under {
+                                doc.folder = folder;
+                                doc.archived = archived;
+                                doc.order = beside.unwrap_or_else(|| doc.order.clone());
+                            }
                         }
                     }
                 }
@@ -4381,5 +4400,88 @@ mod tests {
         );
 
         assert_eq!(state.docs[&minutes].page_of, None);
+    }
+
+    #[test]
+    fn a_page_refused_a_new_document_stays_with_the_one_it_had() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(Ulid::generate())),
+            },
+        );
+
+        assert_eq!(
+            state.docs[&march].page_of,
+            Some(minutes),
+            "a refusal cannot be a way to unhang a page"
+        );
+    }
+
+    #[test]
+    fn a_page_hung_under_a_document_that_is_away_is_away_too() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let loose = doc(&mut state, "a3f1-0002", None);
+        state.apply(&ev(2, "a", Op::DocArchive { id: minutes }));
+
+        moved(
+            &mut state,
+            loose,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(minutes)),
+            },
+        );
+
+        assert!(state.docs[&loose].archived);
+    }
+
+    #[test]
+    fn a_page_hung_under_a_document_lands_after_the_pages_already_there() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+        let loose = doc(&mut state, "a3f1-0003", None);
+
+        moved(
+            &mut state,
+            loose,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(minutes)),
+            },
+        );
+
+        assert_eq!(
+            state
+                .pages_of(minutes)
+                .iter()
+                .map(|one| one.id)
+                .collect::<Vec<_>>(),
+            vec![march, loose],
+            "it was hung last and reads last"
+        );
+    }
+
+    #[test]
+    fn a_page_is_not_put_away_on_its_own() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+
+        state.apply(&ev(3, "a", Op::DocArchive { id: march }));
+
+        assert!(
+            !state.docs[&march].archived,
+            "it goes away with its document"
+        );
+        assert!(!state.docs[&minutes].archived);
     }
 }

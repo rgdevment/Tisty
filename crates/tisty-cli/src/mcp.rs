@@ -807,8 +807,12 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         } else {
             ""
         };
+        let what = match one["page_of"].as_str() {
+            Some(up) => format!("page of {up}"),
+            None => "document".into(),
+        };
         format!(
-            "{} — {} (document{put_away})",
+            "{} — {} ({what}{put_away})",
             said(one, "doc"),
             said(one, "title")
         )
@@ -931,7 +935,14 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             };
             if up.page_of.is_some() {
                 return Err(Refused::Tool(format!(
-                    "{said} is a page itself, and a page holds no pages. Name the document it                      belongs to."
+                    "{said} is a page itself, and a page holds no pages. Name the document it \
+                     belongs to."
+                )));
+            }
+            if up.archived {
+                return Err(Refused::Tool(format!(
+                    "{said} is put away, and a page of it would be put away unread. Write a \
+                     document of its own instead."
                 )));
             }
             Some(up.id)
@@ -1267,6 +1278,12 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
+    if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
+        return Err(Refused::Tool(format!(
+            "{which} is a page of {up}, and a page is kept where its document is. `page_doc` \
+             takes it out as a document of its own first."
+        )));
+    }
     let folder = match text(args, "folder") {
         Some(said) => Some(folder_named(&state, &said)?),
         None => None,
@@ -1327,6 +1344,12 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 return Err(Refused::Tool(format!(
                     "{said} is a page itself, and a page holds no pages. Name the document it \
                      belongs to."
+                )));
+            }
+            if up.archived {
+                return Err(Refused::Tool(format!(
+                    "{said} is put away, and a page of it is put away with it. Leave {which} \
+                     where it is."
                 )));
             }
             if state.docs.values().any(|one| one.page_of == Some(kept.id)) {
@@ -1524,6 +1547,12 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "title": tisty_core::docs::titled(&body),
             "body": body,
             "folder": folder,
+            "page_of": kept.page_of.and_then(|up| named_doc(&state, up)),
+            "pages": state
+                .pages_of(kept.id)
+                .iter()
+                .map(|one| one.file.clone())
+                .collect::<Vec<_>>(),
             "archived": kept.archived,
         }),
     ))
@@ -1569,7 +1598,7 @@ fn papers_matching(
     scope: tisty_core::view::Scope,
     most: usize,
 ) -> Vec<Value> {
-    let here: std::collections::HashMap<String, bool> = state
+    let here: std::collections::HashMap<String, (bool, Option<String>)> = state
         .docs
         .values()
         .filter(|one| match scope {
@@ -1577,18 +1606,28 @@ fn papers_matching(
             tisty_core::view::Scope::Archived => one.archived,
             tisty_core::view::Scope::Either => true,
         })
-        .map(|one| (one.file.clone(), one.archived))
+        .map(|one| {
+            (
+                one.file.clone(),
+                (
+                    one.archived,
+                    one.page_of.and_then(|up| named_doc(state, up)),
+                ),
+            )
+        })
         .collect();
 
     tisty_core::docs::Corpus::default()
         .searching(&paths.docs(), query, most, |id| here.contains_key(id))
         .into_iter()
         .map(|one| {
+            let (archived, page_of) = here.get(&one.id).cloned().unwrap_or((false, None));
             json!({
                 "doc": one.id,
                 "title": one.title,
                 "line": one.line,
-                "archived": here.get(&one.id).copied().unwrap_or(false),
+                "page_of": page_of,
+                "archived": archived,
             })
         })
         .collect()
@@ -1748,7 +1787,9 @@ fn tools() -> Value {
                     },
                     "page_of": {
                         "type": "string",
-                        "description": "A document this one is a page of, by name. A page follows                                         that document everywhere and takes its folder, so `folder`                                         is ignored. A page holds no pages of its own"
+                        "description": "A document this one is a page of, by name. A page follows \
+                                        that document everywhere and takes its folder, so `folder` \
+                                        is ignored. A page holds no pages of its own"
                     }
                 },
                 "required": ["body"]
@@ -1834,7 +1875,11 @@ fn tools() -> Value {
         {
             "name": "page_doc",
             "title": "Make a document a page, or a page a document",
-            "description": "Hang a document from another as one of its pages, or take a page out                             by leaving `page_of` out, which makes it a document of its own where it                             stands. A page goes with its document everywhere — folder, archive and                             deletion — and holds no pages of its own. Nothing is deleted and no                             text changes.",
+            "description": "Hang a document from another as one of its pages, or take a page out \
+                            by leaving `page_of` out, which makes it a document of its own where \
+                            it stands. A page goes with its document everywhere — folder, archive \
+                            and deletion — and holds no pages of its own. Nothing is deleted and \
+                            no text changes.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -1842,7 +1887,8 @@ fn tools() -> Value {
                     "doc": { "type": "string", "description": "The document's name" },
                     "page_of": {
                         "type": "string",
-                        "description": "The document it becomes a page of, by name. Leave it out                                         to make it a document of its own"
+                        "description": "The document it becomes a page of, by name. Leave it out \
+                                        to make it a document of its own"
                     }
                 },
                 "required": ["doc"]

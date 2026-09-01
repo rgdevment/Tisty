@@ -434,6 +434,11 @@ pub fn read(root: &Path, id: &str) -> Result<String> {
 }
 
 pub fn exported(data: &Path, id: &str, into: &Path) -> Result<usize> {
+    with_pages(data, id, &[], into)
+}
+
+/// The pages travel with the document: a book exported by its cover alone is not the book.
+pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Result<usize> {
     if into.starts_with(data) || data.starts_with(into) {
         return Err(Error::OutsideTheStore(into.display().to_string()));
     }
@@ -444,17 +449,26 @@ pub fn exported(data: &Path, id: &str, into: &Path) -> Result<usize> {
     let folder = into.join(&named);
     std::fs::create_dir_all(into)?;
     std::fs::create_dir(&folder)?;
-    write_atomic(
-        &folder.join(format!("{named}.{EXTENSION}")),
-        body.as_bytes(),
-    )?;
+
+    let mut taken = laid_out(data, &body, &folder, &format!("{named}.{EXTENSION}"))?;
+    for (n, page) in pages.iter().enumerate() {
+        let Ok(body) = read(&data.join("docs"), page) else {
+            continue;
+        };
+        let title = titled(&body);
+        let title = spelled(if title.is_empty() { page } else { &title });
+        let at = format!("{:02} {title}.{EXTENSION}", n + 1);
+        taken += laid_out(data, &body, &folder, &at)?;
+    }
+    Ok(taken)
+}
+
+fn laid_out(data: &Path, body: &str, folder: &Path, named: &str) -> Result<usize> {
+    write_atomic(&folder.join(named), body.as_bytes())?;
 
     let held = data.join("attachments");
     let mut taken = 0;
-    for one in crate::refs::extract(&body)
-        .into_iter()
-        .map(|one| one.target)
-    {
+    for one in crate::refs::extract(body).into_iter().map(|one| one.target) {
         if !one.starts_with("attachments/") {
             continue;
         }
@@ -2933,6 +2947,49 @@ despues
         );
         assert!(!out.path().join("also.txt").exists());
         assert!(!room.path().join("pwned.txt").exists());
+    }
+
+    #[test]
+    fn a_document_taken_out_carries_its_pages_in_the_order_they_are_read() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path().join("data");
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        let shelf = data.join("attachments").join("ab");
+        std::fs::create_dir_all(&shelf).unwrap();
+        std::fs::write(shelf.join("plano-91f2ab00.png"), b"a picture").unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0001.md"),
+            "# Actas\n\nlas de 2026.",
+        )
+        .unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0002.md"),
+            "# Marzo\n\n![plano](<attachments/ab/plano-91f2ab00.png>)",
+        )
+        .unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0003.md"),
+            "# Abril\n\nlo que se dijo.",
+        )
+        .unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let taken = with_pages(
+            &data,
+            "mac0-0001",
+            &["mac0-0002".into(), "mac0-0003".into()],
+            out.path(),
+        )
+        .unwrap();
+
+        let folder = out.path().join("Actas");
+        assert!(folder.join("Actas.md").exists());
+        assert!(
+            folder.join("01 Marzo.md").exists(),
+            "the page stayed behind"
+        );
+        assert!(folder.join("02 Abril.md").exists());
+        assert_eq!(taken, 1, "what a page holds comes out with it");
     }
 
     #[test]

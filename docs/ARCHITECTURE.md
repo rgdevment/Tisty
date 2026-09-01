@@ -739,9 +739,33 @@ Folders count documents, not pages: a folder holding one document of forty pages
 says one. The pages are shown under the document, in the tree and in `tisty
 doc`, which is where the person went looking for them.
 
+**Refusing to hang a page somewhere is not a reason to unhang it.** Two machines
+can disagree — one moves a page under a document the other has just deleted — and
+the move arrives naming a parent that is no longer there. The page keeps the
+document it had. A rejected move that emptied `page_of` would leave the person
+with a loose document nobody asked for, which is worse than the move not
+happening.
+
+**Cascades cost the read cache its shortcut.** The cache rewrites one row per
+event, and the four operations that reach a document's pages — delete, move,
+archive and unarchive — cannot be told a row at a time, so they throw the cache
+away and it is rebuilt from the log. Without that, a delete would leave its pages
+alive in the cache, invisible in every view because their document is gone, and
+their files would be carried back into the shared folder on the next round.
+
+**Two ways out are one way out.** A copy of a document copies its pages, and a
+document taken out as Markdown writes its pages beside it, numbered in reading
+order. What holds a book in forty parts and hands out the cover is not an export.
+
 **The schema is 8 because of this.** A machine still on 1.0.x rejects the whole
 event rather than reading a page as a loose document and filing it somewhere the
 person never put it.
+
+What is not settled: two machines whose clocks disagree by more than the time a
+round takes can order the page's own creation before its document's. Every
+machine still agrees — the log is replayed in one order — but the page is read as
+a document of its own, standing in the folder it was written into. Nothing is
+lost and nothing hides; the tie to the document is what goes.
 
 ## Taking a document out
 

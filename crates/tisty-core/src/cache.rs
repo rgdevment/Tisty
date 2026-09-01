@@ -468,6 +468,11 @@ pub fn advance(
                 | crate::Op::DeviceJoin { .. }
                 | crate::Op::DeviceRemove { .. }
                 | crate::Op::AttachRetire { .. }
+                // These reach the pages of a document, and a row at a time cannot say so.
+                | crate::Op::DocDelete { .. }
+                | crate::Op::DocMove { .. }
+                | crate::Op::DocArchive { .. }
+                | crate::Op::DocUnarchive { .. }
         )
     }) {
         cache.invalidate();
@@ -631,6 +636,39 @@ mod tests {
             back.shed, state.shed,
             "sin esto el barrido de documentos borrados no correria nunca con la cache caliente"
         );
+    }
+
+    #[test]
+    fn deleting_a_document_with_pages_leaves_no_page_behind_in_the_cache() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let doc = Ulid::generate();
+        let page = Ulid::generate();
+        for (id, file, page_of) in [(doc, "a3f1-0001", None), (page, "a3f1-0002", Some(doc))] {
+            store
+                .append(Op::DocAdd {
+                    id,
+                    d: crate::event::DocAdd {
+                        file: file.into(),
+                        order: "a0".into(),
+                        folder: None,
+                        page_of,
+                    },
+                })
+                .unwrap();
+        }
+
+        let mut state = project(&f.store_root, &f.cache_dir).unwrap();
+        let mut cache = Cache::open(&f.cache_dir).unwrap();
+        let gone = store.append(Op::DocDelete { id: doc }).unwrap();
+        state.apply(&gone);
+        advance(cache.as_mut(), &state, &[gone], &f.store_root, false);
+
+        let again = project(&f.store_root, &f.cache_dir).unwrap();
+
+        assert!(again.docs.is_empty(), "the page outlived its document");
+        assert_eq!(again.shed, state.shed, "its file would never be swept");
+        assert_eq!(again.docs.get(&page), None);
     }
 
     #[test]

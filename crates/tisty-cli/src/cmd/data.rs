@@ -123,7 +123,7 @@ pub fn doc(
             app.state
                 .docs
                 .values()
-                .filter(|one| one.folder.is_none())
+                .filter(|one| one.folder.is_none() && one.page_of.is_none())
                 .map(|one| one.order.as_str()),
         );
         app.commit(tisty_core::Op::DocAdd {

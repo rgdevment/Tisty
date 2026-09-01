@@ -68,6 +68,7 @@ const KNOWN = [
   "noSuchColour",
   "tooDeep",
   "pageOfPage",
+  "pageStaysPut",
   "holdsPages",
   "folderNameTooLong",
   "documentBeingWritten",

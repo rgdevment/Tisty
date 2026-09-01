@@ -626,6 +626,7 @@ export interface DocFacts {
   made: number | null;
   wrote: number | null;
   bytes: number;
+  pages: number;
 }
 
 export const docFacts = (id: string): Promise<DocFacts> => invoke("doc_facts", { id });

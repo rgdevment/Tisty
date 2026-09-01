@@ -2481,8 +2481,10 @@ fn doc_file(
     let mut session = held(&session);
 
     let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    if !session.state.docs.contains_key(&id) {
-        return Err(Refusal::of("noSuchDoc"));
+    match session.state.docs.get(&id) {
+        None => return Err(Refusal::of("noSuchDoc")),
+        Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageStaysPut")),
+        Some(_) => {}
     }
     if let Some(at) = folder
         && !session.state.folders.contains_key(&at)
@@ -2653,6 +2655,7 @@ struct Facts {
     made: Option<i64>,
     wrote: Option<i64>,
     bytes: u64,
+    pages: usize,
 }
 
 fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
@@ -2677,12 +2680,9 @@ fn keep_pdf(at: String, bytes: Vec<u8>) -> Answer<()> {
 fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Facts> {
     let session = held(&session);
     let root = session.paths.docs();
-    let made = session
-        .state
-        .docs
-        .values()
-        .find(|one| one.file == id)
-        .map(|one| (one.id.timestamp_ms() / 1000) as i64);
+    let kept = session.state.docs.values().find(|one| one.file == id);
+    let made = kept.map(|one| (one.id.timestamp_ms() / 1000) as i64);
+    let pages = kept.map_or(0, |one| session.state.pages_of(one.id).len());
     let at = tisty_core::docs::resolve(&root, &id)
         .map_err(|_| Refusal::about("noSuchDoc", id.clone()))?;
     let about = std::fs::metadata(&at).map_err(|_| Refusal::about("noSuchDoc", id))?;
@@ -2690,6 +2690,7 @@ fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Fa
         made,
         wrote: seconds(about.modified()),
         bytes: about.len(),
+        pages,
     })
 }
 
@@ -2836,8 +2837,10 @@ fn doc_write(
 fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
     let mut session = held(&session);
-    if !session.state.docs.contains_key(&id) {
-        return Err(Refusal::of("noSuchDoc"));
+    match session.state.docs.get(&id) {
+        None => return Err(Refusal::of("noSuchDoc")),
+        Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageStaysPut")),
+        Some(_) => {}
     }
     session.commit(if away {
         Op::DocArchive { id }
@@ -2879,8 +2882,7 @@ fn doc_copy(
             .docs
             .values()
             .filter(|one| {
-                one.page_of == kept.page_of
-                    && (kept.page_of.is_some() || one.folder == kept.folder)
+                one.page_of == kept.page_of && (kept.page_of.is_some() || one.folder == kept.folder)
             })
             .map(|one| one.order.as_str()),
     );
@@ -2894,8 +2896,38 @@ fn doc_copy(
             page_of: kept.page_of,
         },
     })?;
-    if kept.archived {
+    if kept.archived && kept.page_of.is_none() {
         session.commit(Op::DocArchive { id: twin })?;
+    }
+
+    // A page is part of its document, so the copy is not the same document without them.
+    for page in session
+        .state
+        .pages_of(id)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect::<Vec<_>>()
+    {
+        let body = tisty_core::docs::read(&root, &page).unwrap_or_default();
+        let leaf = tisty_core::docs::create(&root, &session.config.device_id, &body)
+            .map_err(|e| blamed(channel::WINDOW, "a page could not be copied", e))?;
+        let order = tisty_core::order::last_of(
+            session
+                .state
+                .docs
+                .values()
+                .filter(|one| one.page_of == Some(twin))
+                .map(|one| one.order.as_str()),
+        );
+        session.commit(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: leaf.id,
+                order,
+                folder: kept.folder,
+                page_of: Some(twin),
+            },
+        })?;
     }
     Ok(made)
 }
@@ -2907,19 +2939,37 @@ fn doc_export(
     into: String,
 ) -> Answer<usize> {
     let session = held(&session);
-    tisty_core::docs::exported(session.paths.data(), &id, std::path::Path::new(&into)).map_err(
-        |e| {
-            witness::warn(
-                channel::WINDOW,
-                "a document could not be taken out",
-                &[
-                    ("id", Fact::Id(id.clone())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-            Refusal::about("cannotWrite", into)
-        },
+    let pages: Vec<String> = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .map(|one| {
+            session
+                .state
+                .pages_of(one.id)
+                .iter()
+                .map(|page| page.file.clone())
+                .collect()
+        })
+        .unwrap_or_default();
+    tisty_core::docs::with_pages(
+        session.paths.data(),
+        &id,
+        &pages,
+        std::path::Path::new(&into),
     )
+    .map_err(|e| {
+        witness::warn(
+            channel::WINDOW,
+            "a document could not be taken out",
+            &[
+                ("id", Fact::Id(id.clone())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+        Refusal::about("cannotWrite", into)
+    })
 }
 
 #[tauri::command(async)]
@@ -3066,31 +3116,40 @@ fn doc_page(
 fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
     let mut session = held(&session);
 
-    let file = match id.parse() {
+    let files = match id.parse() {
         Ok(id) => {
-            let file = session
+            let kept = session
                 .state
                 .docs
                 .get(&id)
-                .map(|one| one.file.clone())
                 .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+            let mut files = vec![kept.file.clone()];
+            files.extend(
+                session
+                    .state
+                    .pages_of(id)
+                    .iter()
+                    .map(|one| one.file.clone()),
+            );
             session.commit(Op::DocDelete { id })?;
-            file
+            files
         }
-        Err(_) => id,
+        Err(_) => vec![id],
     };
 
     let root = session.paths.docs();
-    tisty_core::docs::remove(&root, &file)
-        .map_err(|e| blamed(channel::WINDOW, "a document could not be removed", e))?;
-
-    if let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() {
-        tisty_sync::forget_paper(&dest, &file);
-    }
     let mut said = tisty_core::docs::Carried::read(session.paths.data());
-    said.forget(&file);
+    for file in &files {
+        tisty_core::docs::remove(&root, file)
+            .map_err(|e| blamed(channel::WINDOW, "a document could not be removed", e))?;
+
+        if let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() {
+            tisty_sync::forget_paper(&dest, file);
+        }
+        said.forget(file);
+        tisty_core::docs::forget_carried(session.paths.data(), file);
+    }
     let _ = said.save(session.paths.data());
-    tisty_core::docs::forget_carried(session.paths.data(), &file);
     Ok(())
 }
 
@@ -3690,13 +3749,12 @@ fn convert_paper(
     Ok(())
 }
 
-fn placed(
-    beside: Option<(Option<ulid::Ulid>, String)>,
-    fresh: &str,
-) -> (Option<ulid::Ulid>, String) {
+type Placing = (Option<ulid::Ulid>, Option<ulid::Ulid>, String);
+
+fn placed(beside: Option<Placing>, fresh: &str) -> Placing {
     match beside {
-        Some((folder, order)) => (folder, tisty_core::order::after(&order)),
-        None => (None, fresh.to_string()),
+        Some((folder, page_of, order)) => (folder, page_of, tisty_core::order::after(&order)),
+        None => (None, None, fresh.to_string()),
     }
 }
 
@@ -3802,7 +3860,7 @@ fn settle_paper(
         .docs
         .values()
         .find(|one| one.file == id)
-        .map(|one| (one.folder, one.order.clone()));
+        .map(|one| (one.folder, one.page_of, one.order.clone()));
     let body = match &marked {
         Some(said) => tisty_core::docs::marked(&body, said),
         None => body,
@@ -3810,7 +3868,7 @@ fn settle_paper(
     let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     let file = made.id.clone();
-    let (folder, order) = placed(beside, &made.id);
+    let (folder, page_of, order) = placed(beside, &made.id);
     session
         .commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
@@ -3818,7 +3876,7 @@ fn settle_paper(
                 file: file.clone(),
                 folder,
                 order,
-                page_of: None,
+                page_of,
             },
         })
         .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;
@@ -5029,7 +5087,7 @@ mod tests {
     fn the_other_version_lands_in_the_same_folder_as_the_one_it_came_from() {
         let folder = ulid::Ulid::generate();
 
-        let (where_at, order) = placed(Some((Some(folder), "a0".into())), "dev_a-0009");
+        let (where_at, _, order) = placed(Some((Some(folder), None, "a0".into())), "dev_a-0009");
 
         assert_eq!(where_at, Some(folder));
         assert!(order.as_str() > "a0", "no quedo despues del original");
@@ -5037,7 +5095,7 @@ mod tests {
 
     #[test]
     fn the_other_version_stays_loose_only_when_the_original_is_loose() {
-        let (where_at, order) = placed(Some((None, "a0".into())), "dev_a-0009");
+        let (where_at, _, order) = placed(Some((None, None, "a0".into())), "dev_a-0009");
 
         assert_eq!(where_at, None);
         assert!(order.as_str() > "a0");
@@ -5045,10 +5103,26 @@ mod tests {
 
     #[test]
     fn an_original_nobody_can_find_does_not_stop_the_other_version_from_landing() {
-        let (where_at, order) = placed(None, "dev_a-0009");
+        let (where_at, _, order) = placed(None, "dev_a-0009");
 
         assert_eq!(where_at, None);
         assert_eq!(order, "dev_a-0009");
+    }
+
+    #[test]
+    fn the_other_version_of_a_page_is_a_page_of_the_same_document() {
+        let folder = ulid::Ulid::generate();
+        let up = ulid::Ulid::generate();
+
+        let (where_at, page_of, _) =
+            placed(Some((Some(folder), Some(up), "a0".into())), "dev_a-0009");
+
+        assert_eq!(
+            page_of,
+            Some(up),
+            "it came back as a document beside the book"
+        );
+        assert_eq!(where_at, Some(folder));
     }
     use super::*;
 

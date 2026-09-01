@@ -596,4 +596,45 @@ describe("a document with pages", () => {
     expect(archive.querySelectorAll("li").length).toBe(2);
     expect(archive.querySelectorAll(":scope > li").length).toBe(1);
   });
+
+  it("does not offer to cut a page out from under its document", async () => {
+    render(<Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    const page = screen.getByRole("button", { name: "Marzo" });
+
+    expect(page.getAttribute("aria-keyshortcuts")).toBe("Shift+F10");
+    page.focus();
+    await userEvent.keyboard("{Control>}x{/Control}");
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("shows the page being read even if its document was folded away", async () => {
+    const { rerender } = render(
+      <Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Close Actas" }));
+    expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
+
+    rerender(
+      <Tree
+        papers={withPages}
+        open="a3f1-0008"
+        onOpen={vi.fn()}
+        onFile={vi.fn()}
+        onHere={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Marzo" })).toBeTruthy();
+  });
+
+  it("keeps the archive within reach of the arrow keys", async () => {
+    render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    const away = screen.getByRole("button", { name: "Viejo" });
+
+    away.focus();
+    await userEvent.keyboard("{ArrowUp}");
+
+    expect(document.activeElement).not.toBe(away);
+  });
 });
