@@ -3636,6 +3636,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(work)),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -3658,6 +3659,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(None),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -3952,6 +3954,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(Ulid::generate())),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -3986,6 +3989,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(three)),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4013,6 +4017,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(two)),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4038,6 +4043,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(three)),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4067,6 +4073,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(third)),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4081,6 +4088,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(loose)),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4105,6 +4113,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(work)),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4126,6 +4135,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(inside)),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4161,6 +4171,7 @@ mod tests {
                 d: crate::event::Filed {
                     folder: Some(Some(work)),
                     page_of: None,
+                    order: None,
                 },
             },
         ));
@@ -4227,6 +4238,7 @@ mod tests {
             crate::event::Filed {
                 folder: None,
                 page_of: Some(Some(march)),
+                order: None,
             },
         );
 
@@ -4244,6 +4256,7 @@ mod tests {
             crate::event::Filed {
                 folder: None,
                 page_of: Some(Some(minutes)),
+                order: None,
             },
         );
 
@@ -4264,6 +4277,7 @@ mod tests {
             crate::event::Filed {
                 folder: Some(Some(home)),
                 page_of: None,
+                order: None,
             },
         );
 
@@ -4284,6 +4298,7 @@ mod tests {
             crate::event::Filed {
                 folder: Some(Some(home)),
                 page_of: None,
+                order: None,
             },
         );
 
@@ -4304,6 +4319,7 @@ mod tests {
             crate::event::Filed {
                 folder: None,
                 page_of: Some(None),
+                order: None,
             },
         );
         assert_eq!(state.docs[&march].page_of, None);
@@ -4315,6 +4331,7 @@ mod tests {
             crate::event::Filed {
                 folder: Some(Some(home)),
                 page_of: None,
+                order: None,
             },
         );
         assert_eq!(state.docs[&march].folder, Some(home));
@@ -4335,6 +4352,7 @@ mod tests {
             crate::event::Filed {
                 folder: None,
                 page_of: Some(Some(diary)),
+                order: None,
             },
         );
 
@@ -4396,6 +4414,7 @@ mod tests {
             crate::event::Filed {
                 folder: None,
                 page_of: Some(Some(diary)),
+                order: None,
             },
         );
 
@@ -4414,6 +4433,7 @@ mod tests {
             crate::event::Filed {
                 folder: None,
                 page_of: Some(Some(Ulid::generate())),
+                order: None,
             },
         );
 
@@ -4437,6 +4457,7 @@ mod tests {
             crate::event::Filed {
                 folder: None,
                 page_of: Some(Some(minutes)),
+                order: None,
             },
         );
 
@@ -4456,6 +4477,7 @@ mod tests {
             crate::event::Filed {
                 folder: None,
                 page_of: Some(Some(minutes)),
+                order: None,
             },
         );
 

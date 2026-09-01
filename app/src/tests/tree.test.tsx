@@ -514,16 +514,19 @@ describe("a document with pages", () => {
     expect(screen.getByRole("button", { name: "Actas" }).textContent).toContain("2 pages");
   });
 
-  it("shows its pages under it and takes them away when it closes", async () => {
+  it("keeps its pages inside until it is opened, and puts them back when it shuts", async () => {
     show();
 
+    expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
     expect(screen.getByRole("button", { name: "Marzo" })).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Close Actas" }));
     expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
   });
 
-  it("keeps a page out of the folder that holds its document", () => {
+  it("keeps a page out of the folder that holds its document", async () => {
     show();
+    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
 
     const inside = screen.getByRole("button", { name: "Compras" });
     const page = screen.getByRole("button", { name: "Marzo" });
@@ -537,8 +540,9 @@ describe("a document with pages", () => {
     expect(screen.getByRole("button", { name: "Compras" }).textContent).not.toContain("page");
   });
 
-  it("does not let a page be dragged out from under its document", () => {
+  it("does not let a page be dragged out from under its document", async () => {
     show();
+    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
 
     expect(screen.getByRole("button", { name: "Marzo" }).draggable).toBe(false);
   });
@@ -593,12 +597,13 @@ describe("a document with pages", () => {
     );
 
     const archive = screen.getByRole("list", { name: "Archived" });
-    expect(archive.querySelectorAll("li").length).toBe(2);
     expect(archive.querySelectorAll(":scope > li").length).toBe(1);
+    expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
   });
 
   it("does not offer to cut a page out from under its document", async () => {
     render(<Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
     const page = screen.getByRole("button", { name: "Marzo" });
 
     expect(page.getAttribute("aria-keyshortcuts")).toBe("Shift+F10");
@@ -608,12 +613,14 @@ describe("a document with pages", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("shows the page being read even if its document was folded away", async () => {
+  it("arrives shut, and opens itself only on the page being read", () => {
     const { rerender } = render(
       <Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Close Actas" }));
     expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Open Actas" }).getAttribute("aria-expanded")).toBe(
+      "false",
+    );
 
     rerender(
       <Tree

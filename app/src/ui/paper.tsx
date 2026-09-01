@@ -1,5 +1,6 @@
 import { Document, Font, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { Paper } from "../core";
+import { led } from "../leading";
 
 export const SIZES: Record<Paper, [number, number]> = {
   a4: [595.28, 841.89],
@@ -12,7 +13,7 @@ export const CODE = 9;
 const PITCH = 0.6;
 const PAD = 9;
 export const TYPE = 10.5;
-export const LEADING = 0.92;
+export const LEADING = 1.4;
 
 export interface Run {
   text: string;
@@ -131,6 +132,15 @@ const sheet = StyleSheet.create({
   cardLine: { height: 1.4, backgroundColor: "#c4c4c8", marginVertical: 1.4 },
   cardName: { fontSize: 10.5, fontWeight: 700 },
   cardSaid: { fontSize: 9, color: "#71717a", marginTop: 2 },
+  foot: {
+    position: "absolute",
+    bottom: 24,
+    left: MARGIN,
+    right: MARGIN,
+    textAlign: "center",
+    fontSize: 8.5,
+    color: "#a1a1aa",
+  },
   missing: {
     marginVertical: 8,
     padding: 8,
@@ -224,6 +234,14 @@ const aligned = (towards?: string) => {
   return to ? { textAlign: to } : {};
 };
 
+// No font here draws an emoji, so a title wearing one would print a hollow box.
+const plain = (runs: Run[]): Run[] => {
+  const [first, ...rest] = runs;
+  if (!first) return runs;
+  const worn = led(first.text);
+  return worn.mark ? [{ ...first, text: worn.rest }, ...rest] : runs;
+};
+
 const shaped = (one: Shape, at: number, room: number) => {
   const key = `${one.kind}:${at}`;
   switch (one.kind) {
@@ -231,7 +249,7 @@ const shaped = (one: Shape, at: number, room: number) => {
       const rank = one.level === 1 ? sheet.h1 : one.level === 2 ? sheet.h2 : sheet.h3;
       return (
         <Text key={key} style={at === 0 ? [rank, sheet.title] : rank}>
-          {drawn(one.runs)}
+          {drawn(at === 0 ? plain(one.runs) : one.runs)}
         </Text>
       );
     }
@@ -324,14 +342,21 @@ const shaped = (one: Shape, at: number, room: number) => {
   }
 };
 
-export const Papered = ({ shapes, leaf }: { shapes: Shape[]; leaf: Paper }) => {
+export const Papered = ({ sheets, leaf }: { sheets: Shape[][]; leaf: Paper }) => {
   const size = SIZES[leaf];
 
   return (
     <Document>
-      <Page size={size} style={sheet.page}>
-        {shapes.map((one, at) => shaped(one, at, size[0] - MARGIN * 2))}
-      </Page>
+      {sheets.map((shapes, sheet_at) => (
+        <Page key={`sheet:${sheet_at}`} size={size} style={sheet.page}>
+          {shapes.map((one, at) => shaped(one, at, size[0] - MARGIN * 2))}
+          <Text
+            fixed
+            style={sheet.foot}
+            render={({ pageNumber, totalPages }) => (totalPages > 1 ? `${pageNumber}` : "")}
+          />
+        </Page>
+      ))}
     </Document>
   );
 };

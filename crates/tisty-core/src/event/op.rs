@@ -508,6 +508,9 @@ pub struct Filed {
     /// Sent as null to make a page a document of its own.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
     pub page_of: Option<Option<DocId>>,
+    /// Where it sits among its new neighbours. Left out, hanging it puts it last.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub order: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

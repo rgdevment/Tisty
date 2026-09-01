@@ -2285,6 +2285,7 @@ fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
             archived: kept.archived,
             gone: found.is_none(),
             page_of: kept.page_of.map(|up| up.to_string()),
+            order: None,
         });
     }
     Ok(Papers {
@@ -2464,6 +2465,7 @@ fn folder_file(
         d: tisty_core::event::Filed {
             folder: Some(parent),
             page_of: None,
+            order: None,
         },
     })?;
     Ok(())
@@ -2497,6 +2499,7 @@ fn doc_file(
         d: tisty_core::event::Filed {
             folder: Some(folder),
             page_of: None,
+            order: None,
         },
     })?;
     Ok(())
@@ -3107,6 +3110,7 @@ fn doc_page(
         d: tisty_core::event::Filed {
             folder: None,
             page_of: Some(page_of),
+            order: None,
         },
     })?;
     Ok(())

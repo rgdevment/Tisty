@@ -31,6 +31,7 @@ export default function Tree({
   onDocMenu,
 }: Props) {
   const [shut, setShut] = useState<Set<string>>(new Set());
+  const [spread, setSpread] = useState<Set<string>>(new Set());
   const [over, setOver] = useState<string | null>(null);
   const [lifted, setLifted] = useState<{ id: string; kind: "doc" | "folder"; name: string } | null>(
     null,
@@ -100,13 +101,13 @@ export default function Tree({
       return land(place);
     }
     if (row.kind === "doc" && pagesOf(row.id).length > 0) {
-      if (e.key === "ArrowRight" && shut.has(row.id)) {
+      if (e.key === "ArrowRight" && !spread.has(row.id)) {
         e.preventDefault();
-        return fold(row.id);
+        return unfold(row.id);
       }
-      if (e.key === "ArrowLeft" && !shut.has(row.id)) {
+      if (e.key === "ArrowLeft" && spread.has(row.id)) {
         e.preventDefault();
-        return fold(row.id);
+        return unfold(row.id);
       }
     }
     if (row.kind === "folder" && row.id !== "unfiled") {
@@ -134,12 +135,20 @@ export default function Tree({
 
   const fold = (id: string) => {
     if (!shut.has(id)) setReached(id);
-    setShut((were) => {
-      const now = new Set(were);
-      if (now.has(id)) now.delete(id);
-      else now.add(id);
-      return now;
-    });
+    setShut((were) => turned(were, id));
+  };
+
+  // A document arrives shut: its pages are inside it, not a level of the tree standing open.
+  const unfold = (id: string) => {
+    if (!spread.has(id)) setReached(id);
+    setSpread((were) => turned(were, id));
+  };
+
+  const turned = (were: Set<string>, id: string) => {
+    const now = new Set(were);
+    if (now.has(id)) now.delete(id);
+    else now.add(id);
+    return now;
   };
 
   const under = (parent: string | null) => papers.folders.filter((one) => one.parent === parent);
@@ -171,7 +180,7 @@ export default function Tree({
     const name = doc.title || t("untitledDoc");
     const worn = page ? { mark: null, rest: name } : led(name);
     const pages = pagesOf(doc.id);
-    const closed = shut.has(doc.id) && !pages.some((one) => one.file === open);
+    const closed = !spread.has(doc.id) && !pages.some((one) => one.file === open);
     return (
       <li key={doc.id} className="relative">
         <div
@@ -192,7 +201,7 @@ export default function Tree({
           {pages.length > 0 && (
             <button
               type="button"
-              onClick={() => fold(doc.id)}
+              onClick={() => unfold(doc.id)}
               aria-label={fill(closed ? "openFolder" : "closeFolder", name)}
               aria-expanded={!closed}
               aria-controls={`pages-${doc.id}`}

@@ -1303,6 +1303,7 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             d: tisty_core::event::Filed {
                 page_of: None,
                 folder: Some(folder),
+                order: None,
             },
         })
         .map_err(hitch)?;
@@ -1376,6 +1377,7 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             d: tisty_core::event::Filed {
                 folder: None,
                 page_of: Some(page_of),
+                order: None,
             },
         })
         .map_err(hitch)?;

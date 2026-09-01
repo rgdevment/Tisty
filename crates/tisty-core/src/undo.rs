@@ -168,6 +168,7 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             d: crate::event::Filed {
                 folder: Some(before.folders.get(id)?.parent),
                 page_of: None,
+                order: None,
             },
         }),
         Op::DocAdd { id, .. } => Some(Op::DocDelete { id: *id }),
@@ -178,6 +179,7 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
                 d: crate::event::Filed {
                     folder: Some(was.folder),
                     page_of: d.page_of.map(|_| was.page_of),
+                    order: None,
                 },
             })
         }
