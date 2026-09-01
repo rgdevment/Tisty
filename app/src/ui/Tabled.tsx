@@ -1,4 +1,5 @@
 import type { Editor as Writing } from "@tiptap/core";
+import { useEffect, useState } from "react";
 import { t } from "../locales";
 import Glyph from "./Glyph";
 
@@ -25,7 +26,12 @@ export const leaning = (editor: Writing, which: string | null): boolean =>
         const named = $from.node(deep).type.name;
         if (named === "tableCell" || named === "tableHeader") {
           cell = $from.before(deep);
-          column = $from.index(deep - 1);
+          const index = $from.index(deep - 1);
+          let grid = 0;
+          $from.node(deep - 1).forEach((one, _at, spot) => {
+            if (spot < index) grid += Number(one.attrs.colspan ?? 1) || 1;
+          });
+          column = grid;
           break;
         }
       }
@@ -39,8 +45,13 @@ export const leaning = (editor: Writing, which: string | null): boolean =>
       let at = table + 1;
       held.forEach((row) => {
         let spot = at + 1;
-        row.forEach((one, _offset, index) => {
-          if (index === column) tr.setNodeAttribute(spot, "textAlign", which);
+        let grid = 0;
+        row.forEach((one) => {
+          const wide = Number(one.attrs.colspan ?? 1) || 1;
+          if (grid <= column && column < grid + wide) {
+            tr.setNodeAttribute(spot, "textAlign", which);
+          }
+          grid += wide;
           spot += one.nodeSize;
         });
         at += row.nodeSize;
@@ -50,6 +61,24 @@ export const leaning = (editor: Writing, which: string | null): boolean =>
     .run();
 
 export default function Tabled({ editor, at }: Props) {
+  const [spot, setSpot] = useState(at);
+
+  useEffect(() => setSpot(at), [at]);
+
+  useEffect(() => {
+    const again = () => {
+      const held = editor.view.dom.querySelector<HTMLElement>("table .selectedCell, table");
+      const box = held?.getBoundingClientRect();
+      if (box) setSpot({ x: box.left + box.width / 2, y: box.top - 6 });
+    };
+    window.addEventListener("scroll", again, true);
+    window.addEventListener("resize", again);
+    return () => {
+      window.removeEventListener("scroll", again, true);
+      window.removeEventListener("resize", again);
+    };
+  }, [editor]);
+
   const leans =
     String(editor.getAttributes("tableCell").textAlign ?? "") ||
     String(editor.getAttributes("tableHeader").textAlign ?? "");
@@ -65,7 +94,10 @@ export default function Tabled({ editor, at }: Props) {
     <div
       role="toolbar"
       aria-label={t("tableIs")}
-      style={{ left: at.x, top: Math.max(8, at.y) }}
+      style={{
+        left: Math.max(120, Math.min(spot.x, window.innerWidth - 120)),
+        top: Math.max(38, spot.y),
+      }}
       className="fixed z-40 flex -translate-x-1/2 -translate-y-full items-center gap-0.5 rounded-[9px] border border-hair bg-panel px-1 py-1 shadow-lift"
     >
       {acts.map((one) => (

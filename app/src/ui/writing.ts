@@ -862,6 +862,10 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       return {
         dom: held,
         contentDOM: code,
+        destroy: () => {
+          asked += 1;
+          drawn.replaceChildren();
+        },
         update: (fresh) => {
           if (fresh.type.name !== "codeBlock") return false;
           counted(fresh);

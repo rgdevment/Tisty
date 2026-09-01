@@ -237,11 +237,11 @@ fn unpunctuated(url: &str) -> &str {
 pub fn alerted(said: &str) -> Option<&str> {
     let rest = said.strip_prefix("[!")?;
     let (kind, after) = rest.split_once(']')?;
-    matches!(
-        kind.to_ascii_lowercase().as_str(),
-        "note" | "tip" | "important" | "warning" | "caution"
-    )
-    .then(|| after.trim_start())
+    let known = ["note", "tip", "important", "warning", "caution"]
+        .iter()
+        .any(|one| kind.eq_ignore_ascii_case(one));
+    let alone = after.is_empty() || after.starts_with(char::is_whitespace);
+    (known && alone).then(|| after.trim_start())
 }
 
 #[cfg(test)]

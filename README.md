@@ -344,8 +344,9 @@ written by reference, blocks of HTML — it says so and opens the document
 read-only rather than quietly destroying it. That list is what it checks, not a
 promise about everything a Markdown file can hold.
 
-The writing sits on a lit page, and its first line is both the name of the
-document and its title. When the window is wide enough a column opens beside it
+The writing sits on a lit page, and the first line with words in it is both the
+name of the document and its title — reading past a fence or an alert's marker to
+find it. When the window is wide enough a column opens beside it
 with what the document is, the formatting the `/` menu used to hide, and its
 outline. **Tisty makes its own PDF** — A4, Letter or one endless sheet, with its
 own margins and the attachments carried inside — and shows it to you before you

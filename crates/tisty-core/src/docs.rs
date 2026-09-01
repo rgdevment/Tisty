@@ -155,24 +155,31 @@ pub fn titled(body: &str) -> String {
     {
         said.drain(..shuts + 2);
     }
-    let mut fenced = false;
+    let mut shut: Option<(char, usize)> = None;
     let first = said
         .iter()
         .find_map(|one| {
-            if one.starts_with("```") || one.starts_with("~~~") {
-                fenced = !fenced;
-                return None;
-            }
-            if fenced {
-                return None;
-            }
-            let opened = one.trim_start_matches('#').trim_start();
-            let said = match opened.strip_prefix('>') {
-                Some(rest) => {
-                    let rest = rest.trim_start();
-                    crate::refs::alerted(rest).unwrap_or(rest)
+            let marker = ['`', '~'].into_iter().find_map(|mark| {
+                let many = one.chars().take_while(|c| *c == mark).count();
+                (many >= 3).then_some((mark, many))
+            });
+            match (shut, marker) {
+                (None, Some(open)) => {
+                    shut = Some(open);
+                    return None;
                 }
-                None => opened,
+                (Some((open, was)), Some((mark, many))) if open == mark && many >= was => {
+                    shut = None;
+                    return None;
+                }
+                (Some(_), _) => return None,
+                (None, None) => {}
+            }
+            let quoted = one.trim_start_matches(['>', ' ']).trim_start();
+            let opened = quoted.trim_start_matches('#').trim_start();
+            let said = match one.starts_with('>') {
+                true => crate::refs::alerted(opened).unwrap_or(opened),
+                false => opened,
             };
             (!wordless(said)).then_some(said)
         })
@@ -869,8 +876,9 @@ fn unspanned(line: &str) -> String {
 
 pub fn bare(line: &str) -> String {
     let line = &unspanned(line);
-    let said = line
-        .trim()
+    let flat = line.trim();
+    let quoted = flat.starts_with('>');
+    let said = flat
         .trim_start_matches(['>', '#', ' '])
         .trim_start()
         .trim_start_matches(['-', '*', '+'])
@@ -879,7 +887,10 @@ pub fn bare(line: &str) -> String {
         .strip_prefix("[ ] ")
         .or(said.strip_prefix("[x] "))
         .unwrap_or(said);
-    let said = crate::refs::alerted(said).unwrap_or(said);
+    let said = match quoted {
+        true => crate::refs::alerted(said).unwrap_or(said),
+        false => said,
+    };
 
     let mut out = String::with_capacity(said.len());
     let mut chars = said.chars().peekable();
@@ -1089,6 +1100,69 @@ fn opening(at: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_fence_is_closed_by_its_own_marker_and_nothing_shorter() {
+        assert_eq!(
+            titled(
+                "```
+~~~
+no soy titulo
+```
+
+# Real"
+            ),
+            "Real"
+        );
+        assert_eq!(
+            titled(
+                "````
+```
+````
+
+# Real"
+            ),
+            "Real"
+        );
+        assert_eq!(
+            titled(
+                "~~~
+```
+tampoco
+~~~
+
+# Real"
+            ),
+            "Real"
+        );
+    }
+
+    #[test]
+    fn a_marker_that_is_a_link_is_not_a_marker() {
+        assert_eq!(bare("[!important](https://ejemplo.com)"), "!important");
+        assert_eq!(
+            bare("[!tip]: https://ejemplo.com"),
+            "!tip: https://ejemplo.com"
+        );
+        assert_eq!(
+            bare("[!CAUTION] es solo texto"),
+            "!CAUTION es solo texto",
+            "a marker only means something at the head of a quote"
+        );
+        assert_eq!(bare("- [!NOTE] revisar esto"), "!NOTE revisar esto");
+        assert_eq!(bare("> [!WARNING] Cuidado"), "Cuidado");
+    }
+
+    #[test]
+    fn a_quote_of_a_quote_is_still_read_through() {
+        assert_eq!(
+            titled(
+                "> > [!NOTE]
+> > hola"
+            ),
+            "hola"
+        );
+    }
 
     #[test]
     fn a_document_that_opens_with_a_diagram_is_not_titled_after_the_fence() {

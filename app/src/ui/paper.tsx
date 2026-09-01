@@ -280,7 +280,9 @@ const shaped = (one: Shape, at: number, room: number) => {
           <Text style={[sheet.notedWho, { color: hue }]}>
             {t(`said${one.said}` as Parameters<typeof t>[0]).toUpperCase()}
           </Text>
-          {one.inner.map((kid, deep) => shaped(kid, deep, room - 24))}
+          {one.inner
+            .filter((kid) => kid.kind !== "rule")
+            .map((kid, deep) => shaped(kid, deep, room - 27))}
         </View>
       );
     }

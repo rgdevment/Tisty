@@ -229,7 +229,9 @@ export default function Editor({
     );
     setShot(shotAt(editor));
     setTabled(
-      !hushed.current && editor.isActive("table") ? { at: topOf(editor, $from.pos) } : null,
+      !hushed.current && empty && editor.isActive("table")
+        ? { at: topOf(editor, $from.pos) }
+        : null,
     );
     if (hushed.current || !empty || code || editor.isActive("code")) {
       return setAsking(null);
