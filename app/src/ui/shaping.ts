@@ -112,7 +112,10 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
       const rows = (node.content ?? []).map((row) =>
         (row.content ?? []).map((cell) => inked(cell.content?.[0]?.content)),
       );
-      if (rows.length) out.push({ kind: "table", rows });
+      const leans = (node.content?.[0]?.content ?? []).map(
+        (cell) => (cell.attrs?.textAlign as string | undefined) ?? null,
+      );
+      if (rows.length) out.push({ kind: "table", rows, leans });
       return;
     }
     default:

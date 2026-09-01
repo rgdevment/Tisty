@@ -1,11 +1,12 @@
 import type { Editor as Writing } from "@tiptap/core";
-import { Node } from "@tiptap/core";
+import { getHTMLFromFragment, Node } from "@tiptap/core";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { TaskList } from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
+import { Fragment, type Node as ProseNode } from "@tiptap/pm/model";
 import StarterKit from "@tiptap/starter-kit";
 import markPlugin from "markdown-it-mark";
 import { MarkdownSerializerState } from "prosemirror-markdown";
@@ -553,6 +554,108 @@ const Said = Node.create({
   },
 });
 
+const ALIGNED = ["left", "center", "right"] as const;
+
+const leaning = () => ({
+  textAlign: {
+    default: null as string | null,
+    parseHTML: (element: HTMLElement) => {
+      const said = (element.style.textAlign || element.getAttribute("align") || "").toLowerCase();
+      return (ALIGNED as readonly string[]).includes(said) ? said : null;
+    },
+    renderHTML: (attrs: { textAlign?: string | null }) =>
+      attrs.textAlign ? { style: `text-align: ${attrs.textAlign}` } : {},
+  },
+});
+
+const Celled = TableCell.extend({
+  addAttributes() {
+    return { ...this.parent?.(), ...leaning() };
+  },
+});
+
+const Headed = TableHeader.extend({
+  addAttributes() {
+    return { ...this.parent?.(), ...leaning() };
+  },
+});
+
+const RULED: Record<string, string> = {
+  left: ":---",
+  center: ":---:",
+  right: "---:",
+};
+
+interface Celling {
+  firstChild: { textContent: string } | null;
+  childCount: number;
+  attrs: { textAlign?: string | null; colspan?: number; rowspan?: number };
+}
+
+interface Rowed {
+  childCount: number;
+  forEach: (fn: (cell: Celling, offset: number, at: number) => void) => void;
+}
+
+/// The delimiter row is where Markdown keeps a column's alignment, and tiptap-markdown writes
+/// `---` for every column whatever the cells say.
+const Ruled = Table.configure({ resizable: false }).extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize(
+          state: {
+            write: (value: string) => void;
+            ensureNewLine: () => void;
+            renderInline: (node: unknown) => void;
+            closeBlock: (node: unknown) => void;
+            inTable?: boolean;
+          },
+          node: { forEach: (fn: (row: Rowed, offset: number, at: number) => void) => void },
+        ) {
+          // A span or a cell holding more than one block has no markdown to be written in.
+          let plain = true;
+          node.forEach((row) =>
+            row.forEach((cell) => {
+              const { colspan = 1, rowspan = 1 } = cell.attrs;
+              if (colspan > 1 || rowspan > 1 || cell.childCount > 1) plain = false;
+            }),
+          );
+          if (!plain) {
+            const held = node as unknown as ProseNode;
+            state.write(getHTMLFromFragment(Fragment.from(held), held.type.schema));
+            state.closeBlock(node);
+            return;
+          }
+          state.inTable = true;
+          const leans: (string | null)[] = [];
+          node.forEach((row, _at, index) => {
+            state.write("| ");
+            row.forEach((cell, _spot, column) => {
+              if (column) state.write(" | ");
+              if (!index) leans[column] = cell.attrs.textAlign ?? null;
+              const held = cell.firstChild;
+              if (held?.textContent.trim()) state.renderInline(held);
+            });
+            state.write(" |");
+            state.ensureNewLine();
+            if (!index) {
+              const ruled = Array.from({ length: row.childCount }, (_, column) =>
+                RULED[leans[column] ?? ""] ? RULED[leans[column] ?? ""] : "---",
+              ).join(" | ");
+              state.write(`| ${ruled} |`);
+              state.ensureNewLine();
+            }
+          });
+          state.closeBlock(node);
+          state.inTable = false;
+        },
+        parse: {},
+      },
+    };
+  },
+});
+
 const Tightened = TaskList.extend({
   addAttributes() {
     return { ...this.parent?.(), tight: { default: true, rendered: false } };
@@ -565,10 +668,10 @@ export const written = () => [
     text: false,
   }),
   Pictured,
-  Table.configure({ resizable: false }),
+  Ruled,
   TableRow,
-  TableHeader,
-  TableCell,
+  Headed,
+  Celled,
   Tightened,
   Said,
   Ico,

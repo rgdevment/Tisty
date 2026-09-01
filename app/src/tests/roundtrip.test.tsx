@@ -469,3 +469,28 @@ describe("a callout is a quote GitHub reads, and comes back as it went", () => {
     expect(roundtripped(once)).toBe(once);
   });
 });
+
+describe("a table keeps the alignment its columns were given", () => {
+  it("keeps a column leaning right", () => {
+    expect(roundtripped("| a | b |\n| --- | ---: |\n| 1 | 2 |")).toBe(
+      "| a | b |\n| --- | ---: |\n| 1 | 2 |\n",
+    );
+  });
+
+  it("keeps left, centre and right at once", () => {
+    expect(roundtripped("| a | b | c |\n| :--- | :---: | ---: |\n| 1 | 2 | 3 |")).toBe(
+      "| a | b | c |\n| :--- | :---: | ---: |\n| 1 | 2 | 3 |\n",
+    );
+  });
+
+  it("leaves a table with no alignment plain", () => {
+    expect(roundtripped("| a | b |\n| --- | --- |\n| 1 | 2 |")).toBe(
+      "| a | b |\n| --- | --- |\n| 1 | 2 |\n",
+    );
+  });
+
+  it("is a fixed point: writing it twice changes nothing", () => {
+    const once = roundtripped("| a | b |\n| :---: | ---: |\n| 1 | 2 |");
+    expect(roundtripped(once)).toBe(once);
+  });
+});

@@ -42,8 +42,8 @@ describe("what a document brings that the editor cannot keep", () => {
     expect(frail("mira [esto][uno]\n\n[uno]: https://ejemplo.org")).toContain("frailRefs");
   });
 
-  it("sees the alignment of a table, which comes back centred on nothing", () => {
-    expect(frail("| tarea | horas |\n| :--- | ---: |\n| una | 3 |")).toContain("frailAligned");
+  it("leaves an aligned table alone, now that the alignment comes back", () => {
+    expect(frail("| tarea | horas |\n| :--- | ---: |\n| una | 3 |")).toEqual([]);
   });
 
   it("leaves alone what a person wrote inside a code fence", () => {

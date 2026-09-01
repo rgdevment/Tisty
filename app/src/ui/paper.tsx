@@ -33,7 +33,7 @@ export type Shape =
   | { kind: "bullet"; mark: string; runs: Run[]; deep: number }
   | { kind: "image"; src: string; alt?: string }
   | { kind: "file"; name: string; said: string }
-  | { kind: "table"; rows: Run[][][] }
+  | { kind: "table"; rows: Run[][][]; leans?: (string | null)[] }
   | { kind: "rule" };
 
 const sheet = StyleSheet.create({
@@ -332,21 +332,25 @@ const shaped = (one: Shape, at: number, room: number) => {
     case "table":
       return (
         <View key={key} style={sheet.table}>
-          {one.rows.map((row, at) => {
-            const said = row.map((cell) => cell.map((run) => run.text).join("|")).join("¦");
-            return (
-              <View key={said} style={sheet.tr} wrap={false}>
-                {row.map((cell) => (
+          {one.rows.map((row, at) => (
+            <View key={`row.${at}`} style={sheet.tr} wrap={false}>
+              {row.map((cell, column) => {
+                const leans = one.leans?.[column];
+                return (
                   <Text
-                    key={`${said}:${cell.map((run) => run.text).join("")}`}
-                    style={at === 0 ? [sheet.td, sheet.th] : sheet.td}
+                    key={`cell.${at}.${column}`}
+                    style={[
+                      sheet.td,
+                      ...(at === 0 ? [sheet.th] : []),
+                      ...(leans ? [{ textAlign: leans as "left" | "center" | "right" }] : []),
+                    ]}
                   >
                     {drawn(cell)}
                   </Text>
-                ))}
-              </View>
-            );
-          })}
+                );
+              })}
+            </View>
+          ))}
         </View>
       );
     case "rule":

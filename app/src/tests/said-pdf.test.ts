@@ -34,3 +34,31 @@ describe("a callout reaches the book with its frame", () => {
     expect(one.inner.map((kid) => kid.kind)).toEqual(["para", "bullet"]);
   });
 });
+
+describe("a table reaches the book leaning the way it was written", () => {
+  const doc = (leans: (string | null)[]) => ({
+    type: "doc",
+    content: [
+      {
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: leans.map((textAlign) => ({
+              type: "tableHeader",
+              attrs: { textAlign },
+              content: [{ type: "paragraph", content: [{ type: "text", text: "h" }] }],
+            })),
+          },
+        ],
+      },
+    ],
+  });
+
+  it("carries what each column leans", () => {
+    const one = shapesOf(doc(["left", null, "right"]) as never)[0];
+    expect(one.kind).toBe("table");
+    if (one.kind !== "table") return;
+    expect(one.leans).toEqual(["left", null, "right"]);
+  });
+});
