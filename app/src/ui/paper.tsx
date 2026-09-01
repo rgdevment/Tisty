@@ -287,7 +287,7 @@ const shaped = (one: Shape, at: number, room: number) => {
       );
     }
     case "code": {
-      const columns = Math.floor((room - one.deep * 14 - PAD * 2) / (CODE * PITCH));
+      const columns = Math.max(8, Math.floor((room - one.deep * 14 - PAD * 2) / (CODE * PITCH)));
       const lines = one.runs.flatMap((run, line) =>
         folded(run.text, columns).map((text, cut) => ({ text, id: `${line}.${cut}` })),
       );

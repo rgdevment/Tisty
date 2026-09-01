@@ -473,7 +473,7 @@ export const CALLOUTS = ["note", "tip", "important", "warning", "caution"] as co
 
 export type Callout = (typeof CALLOUTS)[number];
 
-const MARKED = /^\s*\[!(note|tip|important|warning|caution)\]\s*/i;
+const MARKED = /^\s*\[!(note|tip|important|warning|caution)\](?=\s|$)\s*/i;
 
 const kindOf = (text: string): Callout | null => {
   const said = MARKED.exec(text);
@@ -526,7 +526,8 @@ const Said = Node.create({
           // The quote's own first paragraph, not any paragraph inside anything it holds.
           const first = (node as HTMLElement).firstElementChild;
           if (first?.tagName !== "P") return false;
-          const kind = kindOf(first.textContent ?? "");
+          const walk = document.createTreeWalker(first, NodeFilter.SHOW_TEXT);
+          const kind = kindOf(walk.nextNode()?.nodeValue ?? "");
           return kind ? { kind } : false;
         },
         contentElement: (node) => {
@@ -600,10 +601,18 @@ const leaning = () => ({
   },
 });
 
+const inACell = (editor: Writing): boolean => {
+  const { $from } = editor.state.selection;
+  for (let deep = $from.depth; deep > 0; deep -= 1) {
+    const named = $from.node(deep).type.name;
+    if (named === "tableCell" || named === "tableHeader") return true;
+  }
+  return false;
+};
+
 const barred = {
-  addKeyboardShortcuts() {
-    // Markdown cannot write a cell of two paragraphs, so Enter must not make one.
-    return { Enter: () => true };
+  addKeyboardShortcuts(this: { editor: Writing }) {
+    return { Enter: () => inACell(this.editor) };
   },
 };
 
@@ -661,8 +670,17 @@ const Ruled = Table.configure({ resizable: false }).extend({
             row.forEach((cell) => {
               const { colspan = 1, rowspan = 1 } = cell.attrs;
               const heading = cell.type.name === "tableHeader";
-              // The first row heads the table and the rest do not, or markdown invents one.
-              if (colspan > 1 || rowspan > 1 || cell.childCount > 1 || heading !== (index === 0)) {
+              let holds = true;
+              cell.forEach((kid) => {
+                if (kid.type.name !== "paragraph" && kid.type.name !== "image") holds = false;
+              });
+              if (
+                colspan > 1 ||
+                rowspan > 1 ||
+                cell.childCount > 1 ||
+                !holds ||
+                heading !== (index === 0)
+              ) {
                 plain = false;
               }
             });
@@ -747,8 +765,6 @@ export const TONGUES = [
   "yaml",
 ] as const;
 
-const KNOWN: string[] = [...TONGUES, "mermaid"];
-
 // One counter for the window: mermaid resolves its id against the whole document.
 let sketches = 0;
 
@@ -775,8 +791,17 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         said.textContent = one;
         picked.append(said);
       }
-      const said = String(node.attrs.language ?? "");
-      picked.value = KNOWN.includes(said) ? said : "";
+      const showing = (one: ProseNode) => {
+        const now = String(one.attrs.language ?? "");
+        if (now && !picked.querySelector(`option[value="${CSS.escape(now)}"]`)) {
+          const own = document.createElement("option");
+          own.value = now;
+          own.textContent = now;
+          picked.append(own);
+        }
+        picked.value = now;
+      };
+      showing(node);
       picked.addEventListener("change", () => {
         const at = getPos();
         if (at === undefined) return;
@@ -829,6 +854,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
           })
           .catch(() => {
             if (mine !== asked) return;
+            drew = "";
             drawn.replaceChildren();
           });
       };
@@ -862,6 +888,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       return {
         dom: held,
         contentDOM: code,
+        ignoreMutation: (one) => one.type !== "selection" && !code.contains(one.target),
         destroy: () => {
           asked += 1;
           drawn.replaceChildren();
@@ -870,8 +897,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
           if (fresh.type.name !== "codeBlock") return false;
           counted(fresh);
           sketching(fresh);
-          const now = String(fresh.attrs.language ?? "");
-          picked.value = KNOWN.includes(now) ? now : "";
+          showing(fresh);
           return true;
         },
       };

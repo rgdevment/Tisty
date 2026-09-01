@@ -125,3 +125,37 @@ describe("a fence is a fence however it is written", () => {
     expect(frail("# t\n\n<div>x</div>")).toContain("frailHtml");
   });
 });
+
+describe("a fence nobody closed is not a fence", () => {
+  it("still sees html past a fence left open inside a quote", () => {
+    expect(frail('> ```\n> code\n\n<div class="warn">Cuidado</div>')).toContain("frailHtml");
+  });
+
+  it("still sees a footnote past a fence left open", () => {
+    expect(frail("> ```\n> code\n\nuna nota[^1]\n\n[^1]: el pie")).toContain("frailNotes");
+  });
+
+  it("still sees a reference past a tilde fence left open", () => {
+    expect(frail("~~~\nno cierra\n\nmira [esto][uno]\n\n[uno]: https://x.dev")).toContain(
+      "frailRefs",
+    );
+  });
+
+  it("is not fooled by a fence marker quoted inside a code block", () => {
+    expect(frail("```text\n> ```\n```\n\n<div>real</div>")).toContain("frailHtml");
+  });
+});
+
+describe("what the agent is allowed to send opens for editing", () => {
+  it("leaves a tag named inside a code span alone", () => {
+    expect(frail("# Guia\n\nEscribe `<div>` para abrir un bloque.")).toEqual([]);
+  });
+
+  it("leaves a footnote shape named inside a code span alone", () => {
+    expect(frail("# Guia\n\nvea `[^1]` en el codigo")).toEqual([]);
+  });
+
+  it("leaves html written as tab-indented code alone", () => {
+    expect(frail("Ejemplo:\n\n\t<div>x</div>")).toEqual([]);
+  });
+});

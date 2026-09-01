@@ -61,15 +61,17 @@ export const leaning = (editor: Writing, which: string | null): boolean =>
     .run();
 
 export default function Tabled({ editor, at }: Props) {
-  const [spot, setSpot] = useState(at);
+  const [spot, setSpot] = useState<{ x: number; y: number } | null>(at);
 
   useEffect(() => setSpot(at), [at]);
 
   useEffect(() => {
     const again = () => {
-      const held = editor.view.dom.querySelector<HTMLElement>("table .selectedCell, table");
-      const box = held?.getBoundingClientRect();
-      if (box) setSpot({ x: box.left + box.width / 2, y: box.top - 6 });
+      const held = editor.view.domAtPos(editor.state.selection.$from.pos).node;
+      const at = held.nodeType === 1 ? (held as HTMLElement) : held.parentElement;
+      const box = at?.closest("table")?.getBoundingClientRect();
+      // Off the top of the window it would hover over somebody else's paragraph.
+      setSpot(box && box.bottom > 44 ? { x: box.left + box.width / 2, y: box.top - 6 } : null);
     };
     window.addEventListener("scroll", again, true);
     window.addEventListener("resize", again);
@@ -89,6 +91,8 @@ export default function Tabled({ editor, at }: Props) {
     { key: "colMore", run: () => editor.chain().focus().addColumnAfter().run() },
     { key: "colLess", run: () => editor.chain().focus().deleteColumn().run() },
   ] as const;
+
+  if (!spot) return null;
 
   return (
     <div

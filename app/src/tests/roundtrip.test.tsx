@@ -605,3 +605,91 @@ describe("a callout is the quote's own first line, never one it holds", () => {
     expect(roundtripped(was)).toBe(was);
   });
 });
+
+describe("a cell holds what markdown can hold, and says so when it cannot", () => {
+  const inACell = (kid: unknown) => ({
+    type: "doc",
+    content: [
+      {
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: [
+              {
+                type: "tableHeader",
+                content: [{ type: "paragraph", content: [{ type: "text", text: "a" }] }],
+              },
+            ],
+          },
+          { type: "tableRow", content: [{ type: "tableCell", content: [kid] }] },
+        ],
+      },
+    ],
+  });
+
+  const written_ = (doc: unknown) => {
+    const editor = new Editor({ extensions: written(), content: doc as never });
+    const out = markdown(editor);
+    editor.destroy();
+    return out;
+  };
+
+  it("writes a picture in a cell as markdown", () => {
+    const out = written_(inACell({ type: "image", attrs: { src: "shot.png", alt: "foto" } }));
+    expect(out).toContain("![foto](shot.png)");
+    expect(out).not.toContain("<table");
+  });
+
+  it.each([
+    ["a rule", { type: "horizontalRule" }],
+    ["a heading", { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "t" }] }],
+    ["a code block", { type: "codeBlock", content: [{ type: "text", text: "a | b" }] }],
+    [
+      "a quote",
+      {
+        type: "blockquote",
+        content: [{ type: "paragraph", content: [{ type: "text", text: "c" }] }],
+      },
+    ],
+  ])("keeps %s as html rather than losing it", (_name, kid) => {
+    const out = written_(inACell(kid));
+    expect(out).toContain("<table");
+    expect(written_(new Editor({ extensions: written(), content: out }).state.doc.toJSON())).toBe(
+      out,
+    );
+  });
+});
+
+describe("Enter is only held back inside a table cell", () => {
+  const pressed = (content: string, at: number) => {
+    const el = document.createElement("div");
+    document.body.append(el);
+    const editor = new Editor({ extensions: written(), content, element: el });
+    editor.commands.setTextSelection(at);
+    editor.view.dom.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+    );
+    const out = markdown(editor);
+    editor.destroy();
+    el.remove();
+    return out;
+  };
+
+  it("splits a paragraph", () => {
+    expect(pressed("hola mundo", 5)).toContain("\n\n");
+  });
+
+  it("splits a list item", () => {
+    expect(pressed("- uno", 5)).toBe("- un\n- o");
+  });
+
+  it("splits a quote", () => {
+    expect(pressed("> una cita", 6)).toContain(">\n>");
+  });
+
+  it("does nothing in a table cell, where markdown has no second paragraph", () => {
+    const was = "| a | b |\n| --- | --- |\n| uno | dos |";
+    expect(pressed(was, 14)).toBe(`${was}\n`);
+  });
+});

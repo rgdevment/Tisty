@@ -143,6 +143,41 @@ pub fn moved(base: Option<&str>, here: Option<&str>, there: Option<&str>) -> Mov
     }
 }
 
+/// A fence opens on three or more of one marker and closes on the same, at least as long.
+/// The quote prefix comes off first, or a fence written inside a quote is never seen.
+#[derive(Default)]
+struct Fencing(Option<(char, usize)>);
+
+impl Fencing {
+    fn inside(&mut self, line: &str) -> bool {
+        let said = quoteless(line);
+        let marker = ['`', '~'].into_iter().find_map(|mark| {
+            let many = said.chars().take_while(|c| *c == mark).count();
+            (many >= 3).then_some((mark, many))
+        });
+        match (self.0, marker) {
+            (None, Some(open)) => {
+                self.0 = Some(open);
+                true
+            }
+            (Some((open, was)), Some((mark, many))) if open == mark && many >= was => {
+                self.0 = None;
+                true
+            }
+            (Some(_), _) => true,
+            (None, None) => false,
+        }
+    }
+}
+
+fn quoteless(line: &str) -> &str {
+    let mut said = line.trim();
+    while let Some(rest) = said.strip_prefix('>') {
+        said = rest.trim_start();
+    }
+    said
+}
+
 pub fn titled(body: &str) -> String {
     let body = body.strip_prefix('\u{feff}').unwrap_or(body);
     let mut said: Vec<&str> = body
@@ -155,28 +190,14 @@ pub fn titled(body: &str) -> String {
     {
         said.drain(..shuts + 2);
     }
-    let mut shut: Option<(char, usize)> = None;
+    let mut fence = Fencing::default();
     let first = said
         .iter()
         .find_map(|one| {
-            let marker = ['`', '~'].into_iter().find_map(|mark| {
-                let many = one.chars().take_while(|c| *c == mark).count();
-                (many >= 3).then_some((mark, many))
-            });
-            match (shut, marker) {
-                (None, Some(open)) => {
-                    shut = Some(open);
-                    return None;
-                }
-                (Some((open, was)), Some((mark, many))) if open == mark && many >= was => {
-                    shut = None;
-                    return None;
-                }
-                (Some(_), _) => return None,
-                (None, None) => {}
+            if fence.inside(one) {
+                return None;
             }
-            let quoted = one.trim_start_matches(['>', ' ']).trim_start();
-            let opened = quoted.trim_start_matches('#').trim_start();
+            let opened = quoteless(one).trim_start_matches('#').trim_start();
             let said = match one.starts_with('>') {
                 true => crate::refs::alerted(opened).unwrap_or(opened),
                 false => opened,
@@ -192,7 +213,7 @@ pub fn marked(body: &str, said: &str) -> String {
     let mut seen = 0;
     let mut out: Vec<String> = Vec::new();
     let mut done = false;
-    let mut fenced = false;
+    let mut fence = Fencing::default();
 
     for line in bare.lines() {
         let trimmed = line.trim();
@@ -215,32 +236,20 @@ pub fn marked(body: &str, said: &str) -> String {
             out.push(line.to_string());
             continue;
         }
-        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
-            fenced = !fenced;
+        if fence.inside(line) || wordless(trimmed) {
             out.push(line.to_string());
             continue;
         }
-        if fenced || wordless(trimmed) {
-            out.push(line.to_string());
-            continue;
-        }
-        // The name goes after the marker, not on top of it, or the alert stops being one.
-        let (head, rest) = match trimmed.strip_prefix('>') {
-            Some(after) => {
-                let after = after.trim_start();
-                match crate::refs::alerted(after) {
-                    Some(_) if after.trim_end().ends_with(']') => (line.trim_end(), None),
-                    _ => (line.trim_end(), Some(())),
-                }
-            }
-            None => (line.trim_end(), Some(())),
-        };
-        match rest {
-            Some(()) => {
-                out.push(format!("{head} ({said})"));
+        let after = quoteless(line);
+        // A row of a table, and a marker with nothing after it, are lines a name would break.
+        let bare_line = trimmed.starts_with('|')
+            || matches!(crate::refs::alerted(after), Some(rest) if rest.is_empty());
+        match bare_line {
+            false => {
+                out.push(format!("{} ({said})", line.trim_end()));
                 done = true;
             }
-            None => out.push(line.to_string()),
+            true => out.push(line.to_string()),
         }
     }
 
@@ -1100,6 +1109,94 @@ fn opening(at: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn the_other_copy_is_always_told_apart_from_this_one() {
+        for body in [
+            "````
+```
+titulo falso
+````
+
+# Real
+",
+            "~~~
+```
+titulo falso
+~~~
+
+# Real
+",
+            "> [!NOTE]
+> ```bash
+> rm -rf /tmp
+> ```
+
+# Guia
+",
+            "> > [!NOTE]
+> > hola
+",
+            "# Titulo
+
+texto
+",
+        ] {
+            let out = marked(body, "otra");
+            assert_ne!(
+                titled(body),
+                titled(&out),
+                "two copies of {body:?} read the same"
+            );
+        }
+    }
+
+    #[test]
+    fn naming_the_other_copy_does_not_break_a_table_or_a_marker() {
+        let table = marked(
+            "| a | b |
+| --- | --- |
+| 1 | 2 |
+",
+            "otra",
+        );
+        assert!(
+            table.contains(
+                "| a | b |
+"
+            ),
+            "the header row keeps its cells: {table:?}"
+        );
+        let alert = marked(
+            "> [!NOTE]
+> Un aviso
+",
+            "otra",
+        );
+        assert!(
+            alert.starts_with(
+                "> [!NOTE]
+"
+            ),
+            "the marker line is left alone: {alert:?}"
+        );
+    }
+
+    #[test]
+    fn a_fence_inside_a_quote_is_still_a_fence() {
+        assert_eq!(
+            titled(
+                "> [!NOTE]
+> ```bash
+> rm -rf /tmp
+> ```
+
+# Guia
+"
+            ),
+            "Guia"
+        );
+    }
 
     #[test]
     fn a_fence_is_closed_by_its_own_marker_and_nothing_shorter() {

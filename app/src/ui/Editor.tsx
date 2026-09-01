@@ -2,6 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Editor as Writing } from "@tiptap/core";
 import type { Node as Written } from "@tiptap/pm/model";
 import { type EditorState, NodeSelection } from "@tiptap/pm/state";
+import { CellSelection } from "@tiptap/pm/tables";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { docRead, type Filed, noteTrouble, served, weighs } from "../core";
@@ -228,8 +229,9 @@ export default function Editor({
         : null,
     );
     setShot(shotAt(editor));
+    const cells = editor.state.selection instanceof CellSelection;
     setTabled(
-      !hushed.current && empty && editor.isActive("table")
+      !hushed.current && (empty || cells) && editor.isActive("table")
         ? { at: topOf(editor, $from.pos) }
         : null,
     );
