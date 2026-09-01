@@ -735,6 +735,7 @@ export default function Editor({
             className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
           >
             <Asking
+              leaf={naming.leaf}
               onName={(name) => {
                 const leaf = naming.leaf;
                 setNaming(null);

@@ -5,7 +5,7 @@ interface Props {
   pages: Filed[];
   told: Set<string>;
   onOpen: (page: Filed) => void;
-  onPut: (page: Filed) => void;
+  onPut?: (page: Filed) => void;
 }
 
 export default function Contents({ pages, told, onOpen, onPut }: Props) {
@@ -19,7 +19,7 @@ export default function Contents({ pages, told, onOpen, onPut }: Props) {
         <span className="leaf-num">{at}</span>
         <span className="leaf-name">{page.title || t("untitledDoc")}</span>
       </button>
-      {!told.has(page.file) && (
+      {onPut && !told.has(page.file) && (
         <button type="button" onClick={() => onPut(page)} className="leaf-put">
           {t("putLeaf")}
         </button>

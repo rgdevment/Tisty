@@ -324,11 +324,14 @@ body {
   min-height: 100%;
 }
 
-/* A short page still needs somewhere to click below the words to go on writing. */
 .leafed .tisty-doc {
   padding-bottom: 14vh;
   border-radius: 10px 10px 0 0;
   min-height: 45vh;
+}
+.leafed > div:last-child .tisty-doc {
+  border-end-start-radius: 10px;
+  border-end-end-radius: 10px;
 }
 
 .ribbon {
@@ -384,7 +387,6 @@ body {
   opacity: 0.35;
 }
 
-/* The break between one leaf and the next, the same the editor draws for a rule. */
 .leaves,
 .onward {
   position: relative;
@@ -925,7 +927,6 @@ body {
     inset 0 0 0 1px var(--tisty-line),
     inset 0 2.5px 0 0 var(--card-tint, transparent);
 }
-/* A leaf of this same document: the desk through a gap in the sheet, never a card. */
 .card-page {
   position: relative;
   max-width: none;

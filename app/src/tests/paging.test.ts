@@ -48,6 +48,16 @@ describe("what a body names", () => {
     expect(named("```\n![A](tisty:doc/a3f1-0002)\n```").size).toBe(0);
   });
 
+  it("reads a title that carries brackets, which the core reads too", () => {
+    expect([...named(docCard("a3f1-0002", "Capítulo 1 [borrador]"))]).toEqual(["a3f1-0002"]);
+  });
+
+  it("refuses a label holding a link, which is what the core refuses", () => {
+    expect(named("[uno [dos](tisty:doc/a3f1-0002)](tisty:doc/a3f1-0003)").has("a3f1-0003")).toBe(
+      false,
+    );
+  });
+
   it("reads a destination wrapped in angles the same as a bare one", () => {
     expect([...named("![A](<tisty:doc/a3f1-0002>)")]).toEqual(["a3f1-0002"]);
   });

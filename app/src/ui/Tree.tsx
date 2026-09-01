@@ -164,16 +164,19 @@ export default function Tree({
 
   const takesPages = (doc: Filed) => !doc.pageOf && !doc.archived && Boolean(onPage);
 
+  const carries = (e: React.DragEvent, doc: Filed) =>
+    takesPages(doc) && e.dataTransfer.types.includes("text/tisty-doc");
+
   const dropInto = (doc: Filed) => ({
     onDragOver: (e: React.DragEvent) => {
-      if (!takesPages(doc)) return;
+      if (!carries(e, doc)) return;
       e.preventDefault();
       e.stopPropagation();
       setOver(doc.id);
     },
     onDragLeave: () => setOver(null),
     onDrop: (e: React.DragEvent) => {
-      if (!takesPages(doc)) return;
+      if (!carries(e, doc)) return;
       e.preventDefault();
       e.stopPropagation();
       setOver(null);

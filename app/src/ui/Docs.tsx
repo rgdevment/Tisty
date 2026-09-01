@@ -53,6 +53,8 @@ const PAGE: Record<Paper, string> = { a4: "A4", letter: "Letter", tabloid: "11in
 
 const ASIDE = 344;
 
+const EMPTY: Set<string> = new Set();
+
 interface Props {
   open?: string;
   known: Filed[];
@@ -206,6 +208,7 @@ export default function Docs({
     seen.current = fresh;
     const wanted = known.find((one) => one.file === asked);
     if (!wanted) return;
+    putting.current = null;
     flush();
     const mine = ++turn.current;
     (busy(wanted.file) ?? Promise.resolve())
@@ -266,14 +269,12 @@ export default function Docs({
   const pages = pagesOf(known, open?.file);
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
-  const told = useMemo(() => named(body), [body]);
+  const told = useMemo(() => (pages.length > 0 ? named(body) : EMPTY), [body, pages.length]);
 
-  // Which sisters count, and in what order, is the parent's text to say — so it has to be read.
   const [aboveTold, setAboveTold] = useState<Set<string>>();
   const upstairs = above?.file;
   useEffect(() => {
-    setAboveTold(undefined);
-    if (!upstairs) return;
+    if (!upstairs) return setAboveTold(undefined);
     let gone = false;
     docRead(upstairs)
       .then((text) => {
@@ -283,10 +284,11 @@ export default function Docs({
     return () => {
       gone = true;
     };
-  }, [upstairs, saved]);
+  }, [upstairs]);
 
   const inOrder = aboveTold ? sisters.filter((one) => aboveTold.has(one.file)) : [];
-  const next = inOrder[inOrder.findIndex((one) => one.file === own?.file) + 1];
+  const at = inOrder.findIndex((one) => one.file === own?.file);
+  const next = at < 0 ? undefined : inOrder[at + 1];
 
   const beside = Boolean(open) && (shown ?? wide);
   const leaf = (open && sized[open.file]) || "a4";
@@ -475,7 +477,7 @@ export default function Docs({
                           pages={pages}
                           told={told}
                           onOpen={(page) => onDoc?.(page.file)}
-                          onPut={(page) => putting.current?.(page)}
+                          onPut={reading ? undefined : (page) => putting.current?.(page)}
                         />
                       )
                 }

@@ -135,6 +135,20 @@ fn a_page_written_by_an_assistant_is_named_at_the_end_of_its_document() {
 }
 
 #[test]
+fn a_page_titled_with_brackets_still_sits_where_its_document_names_it() {
+    let served = Served::new();
+    let book = served.wrote("# Actas\n\nlas de este ano.", None);
+    let one = served.wrote("# Capitulo 1 [borrador]", Some(&book));
+    let two = served.wrote("# Capitulo 2", Some(&book));
+
+    assert_eq!(
+        served.pages_of(&book),
+        vec![one, two],
+        "a title with brackets must not shove the page to the end"
+    );
+}
+
+#[test]
 fn moving_the_line_that_names_a_page_moves_the_page() {
     let served = Served::new();
     let book = served.wrote("# Actas\n\nlas de este año.", None);

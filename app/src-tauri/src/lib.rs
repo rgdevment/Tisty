@@ -176,7 +176,6 @@ impl Session {
             .insert(id.to_string(), tisty_core::attach::printed(body.as_bytes()));
     }
 
-    /// A document names its pages in the body, so where they sit is the body's to say.
     fn retell(&mut self, file: &str, body: &str) {
         let Some(doc) = self.state.docs.values().find(|one| one.file == file) else {
             return;
@@ -2958,15 +2957,25 @@ fn doc_copy(
         })?;
     }
 
-    // Left alone, the copy would send the reader to the pages of the document it was copied from.
     if !renamed.is_empty() {
-        let told = renamed.iter().fold(body, |body, (was, now)| {
-            body.replace(
-                &format!("{}{was}", tisty_core::refs::DOC),
-                &format!("{}{now}", tisty_core::refs::DOC),
-            )
-        });
-        let _ = tisty_core::docs::write(&root, &made.id, &told);
+        let mine = |text: String| {
+            renamed.iter().fold(text, |text, (was, now)| {
+                text.replace(
+                    &format!("{}{was}", tisty_core::refs::DOC),
+                    &format!("{}{now}", tisty_core::refs::DOC),
+                )
+            })
+        };
+        let _ = tisty_core::docs::write(&root, &made.id, &mine(body));
+        for (_, now) in &renamed {
+            let Ok(body) = tisty_core::docs::read(&root, now) else {
+                continue;
+            };
+            let told = mine(body.clone());
+            if told != body {
+                let _ = tisty_core::docs::write(&root, now, &told);
+            }
+        }
     }
     Ok(made)
 }

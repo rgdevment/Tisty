@@ -463,21 +463,17 @@ pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Resul
         };
         let title = titled(&body);
         let title = spelled(if title.is_empty() { page } else { &title });
-        written.push((
-            page.clone(),
-            format!("{:02} {title}.{EXTENSION}", n + 1),
-            body,
-        ));
+        let at = format!("{:02} {title}.{EXTENSION}", n + 1);
+        written.push((page.clone(), at, body));
     }
 
-    // Out here the way into a page has to be the file beside it, not a name only Tisty knows.
     let beside = |body: &str| {
         written
             .iter()
             .fold(body.to_string(), |body, (file, at, _)| {
                 let named = format!("{}{file}", crate::refs::DOC);
-                body.replace(&format!("<{named}>"), &format!("<{at}>"))
-                    .replace(&named, &format!("<{at}>"))
+                body.replace(&format!("](<{named}>)"), &format!("](<{at}>)"))
+                    .replace(&format!("]({named})"), &format!("](<{at}>)"))
             })
     };
 

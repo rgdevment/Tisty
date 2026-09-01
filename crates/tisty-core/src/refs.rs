@@ -16,7 +16,6 @@ pub struct Ref {
 
 pub const DOC: &str = "tisty:doc/";
 
-/// How a document names another in a body: the block the window draws as a card.
 pub fn card(file: &str, title: &str) -> String {
     format!(
         "![{}]({DOC}{file})",
@@ -24,7 +23,6 @@ pub fn card(file: &str, title: &str) -> String {
     )
 }
 
-/// The documents a text points at, in the order it names them and each one only once.
 pub fn papers(text: &str) -> Vec<String> {
     extract(text)
         .into_iter()
@@ -97,15 +95,26 @@ fn named(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     at + end + 2
 }
 
+fn shuts(rest: &str) -> Option<usize> {
+    let mut escaped = false;
+    for (at, c) in rest.char_indices() {
+        match c {
+            _ if escaped => escaped = false,
+            '\\' => escaped = true,
+            ']' => return Some(at),
+            '[' | '\n' => return None,
+            _ => {}
+        }
+    }
+    None
+}
+
 fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     let rest = &text[at + 1..];
-    let Some(shut) = rest.find(']') else {
+    let Some(shut) = shuts(rest) else {
         return at + 1;
     };
     let label = &rest[..shut];
-    if label.contains(['\n', '[']) {
-        return at + 1;
-    }
 
     let after = at + 1 + shut + 1;
     if text.as_bytes().get(after) != Some(&b'(') {
@@ -319,6 +328,24 @@ mod tests {
     #[test]
     fn a_document_named_inside_code_is_not_named_at_all() {
         assert_eq!(papers("`![A](tisty:doc/mac0-0001)`"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn a_title_with_brackets_is_still_read_back_from_the_card_written_for_it() {
+        let said = card("mac0-0010", "Capitulo 1 [borrador]");
+
+        assert_eq!(papers(&said), ["mac0-0010"], "{said}");
+    }
+
+    #[test]
+    fn a_label_holding_a_link_is_still_no_label_at_all() {
+        let found = extract("[uno [dos](https://x.example/2)](https://y.example/1)");
+        let outer = found
+            .iter()
+            .find(|one| one.target.contains("y.example"))
+            .unwrap();
+
+        assert_eq!(outer.label, None, "the outer brackets label nothing");
     }
 
     #[test]

@@ -480,6 +480,11 @@ describe("the document tree", () => {
   });
 });
 
+const carrying = (doc?: string) => ({
+  types: doc ? ["text/tisty-doc"] : ["text/tisty-folder"],
+  getData: (kind: string) => (kind === "text/tisty-doc" ? (doc ?? "") : ""),
+});
+
 describe("a document with pages", () => {
   const withPages: Papers = {
     folders: papers.folders,
@@ -552,9 +557,7 @@ describe("a document with pages", () => {
       />,
     );
     const row = screen.getByRole("button", { name: "Actas" }).closest("div") as HTMLElement;
-    fireEvent.drop(row, {
-      dataTransfer: { getData: (kind: string) => (kind === "text/tisty-doc" ? "01C" : "") },
-    });
+    fireEvent.drop(row, { dataTransfer: carrying("01C") });
 
     expect(onPage).toHaveBeenCalledWith("01C", "01K");
   });
@@ -572,11 +575,29 @@ describe("a document with pages", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
     const row = screen.getByRole("button", { name: "Marzo" }).closest("div") as HTMLElement;
-    fireEvent.drop(row, {
-      dataTransfer: { getData: (kind: string) => (kind === "text/tisty-doc" ? "01C" : "") },
-    });
+    fireEvent.drop(row, { dataTransfer: carrying("01C") });
 
     expect(onPage).not.toHaveBeenCalled();
+  });
+
+  it("lets a folder dragged over a document reach the folder underneath", () => {
+    const onPage = vi.fn();
+    const onMove = vi.fn();
+    render(
+      <Tree
+        papers={withPages}
+        onOpen={vi.fn()}
+        onFile={vi.fn()}
+        onPage={onPage}
+        onMove={onMove}
+        onHere={vi.fn()}
+      />,
+    );
+    const row = screen.getByRole("button", { name: "Actas" }).closest("div") as HTMLElement;
+    const over = fireEvent.dragOver(row, { dataTransfer: carrying() });
+
+    expect(onPage).not.toHaveBeenCalled();
+    expect(over).toBe(true);
   });
 
   it("does not let a page be dragged out from under its document", async () => {

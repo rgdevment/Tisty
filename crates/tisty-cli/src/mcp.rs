@@ -51,7 +51,9 @@ into it, but you can never delete or rename one.
 
 A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
-A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in. Move that line with `edit_doc` and the page moves with it. A page its document never names is not lost — it waits at the end, marked loose.
+A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `edit_doc` that line into the place it belongs — moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
+
+`page_doc` changes no text, so a document hung as a page that way is loose: it belongs to the document and goes everywhere with it, but sits at the end until the document names it. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
 `append_doc` adds to the end of a document that exists, leaving every byte that was there, and \
 `edit_doc` changes one passage of it — naming what is written now, character for character, and \
@@ -436,21 +438,29 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     Ok((state, store))
 }
 
-/// Where a document names its pages is where they sit, so a changed body may move them.
-fn retold(state: &State, store: &mut Store, doc: &str, body: &str) {
+fn retold(state: &State, store: &mut Store, doc: &str, body: &str) -> Result<(), Refused> {
     let Some(kept) = state.docs.values().find(|one| one.file == doc) else {
-        return;
+        return Ok(());
     };
-    for (id, order) in state.pages_told(kept.id, body) {
-        let _ = store.append(Op::DocMove {
-            id,
-            d: tisty_core::event::Filed {
-                folder: None,
-                page_of: None,
-                order: Some(order),
-            },
-        });
+    let told = state.pages_told(kept.id, body);
+    if told.is_empty() {
+        return Ok(());
     }
+    store
+        .append_batch(
+            told.into_iter()
+                .map(|(id, order)| Op::DocMove {
+                    id,
+                    d: tisty_core::event::Filed {
+                        folder: None,
+                        page_of: None,
+                        order: Some(order),
+                    },
+                })
+                .collect(),
+        )
+        .map(|_| ())
+        .map_err(hitch)
 }
 
 fn hitch(e: tisty_core::Error) -> Refused {
@@ -991,17 +1001,20 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })
         .map_err(hitch)?;
 
-    // A page nobody names sits at the end of its document as loose; naming it is what places it.
-    let named_there = page_of
+    let mut named_there = false;
+    if let Some(up) = page_of
         .and_then(|up| state.docs.get(&up))
-        .is_some_and(|up| {
-            tisty_core::docs::append(
-                &paths.docs(),
-                &up.file,
-                &format!("\n{}\n", tisty_core::refs::card(&made.id, &made.title)),
-            )
-            .is_ok()
-        });
+        .map(|up| up.file.clone())
+        && let Ok(whole) = tisty_core::docs::append(
+            &paths.docs(),
+            &up,
+            &format!("\n{}\n", tisty_core::refs::card(&made.id, &made.title)),
+        )
+    {
+        named_there = true;
+        let now = tisty_core::State::replay(&store.read_all().map_err(hitch)?);
+        retold(&now, &mut store, &up, &whole)?;
+    }
 
     let where_at = folder.map(|at| trail(&state, at));
     let under = page_of.and_then(|up| named_doc(&state, up));
@@ -1060,7 +1073,7 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         other => hitch(other),
     })?;
 
-    retold(&state, &mut store, &which, &whole);
+    retold(&state, &mut store, &which, &whole)?;
 
     Ok(told(
         format!(
@@ -1134,7 +1147,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ))),
         tisty_core::docs::Change::Made { was, whole } => {
             let _ = tisty_core::docs::kept_before(paths.data(), &which, &was);
-            retold(&state, &mut store, &which, &whole);
+            retold(&state, &mut store, &which, &whole)?;
             Ok(told(
                 format!(
                     "Changed that passage in {:?}. What it was is kept beside the documents.",
@@ -1828,9 +1841,11 @@ fn tools() -> Value {
                     },
                     "page_of": {
                         "type": "string",
-                        "description": "A document this one is a page of, by name. A page follows \
-                                        that document everywhere and takes its folder, so `folder` \
-                                        is ignored. A page holds no pages of its own"
+                        "description": "A document this one is a page of, by name. The page is \
+                                        named at the end of that document, and where it is named \
+                                        is where it sits. A page follows that document everywhere \
+                                        and takes its folder, so `folder` is ignored, and it holds \
+                                        no pages of its own"
                     }
                 },
                 "required": ["body"]
@@ -1920,7 +1935,8 @@ fn tools() -> Value {
                             by leaving `page_of` out, which makes it a document of its own where \
                             it stands. A page goes with its document everywhere — folder, archive \
                             and deletion — and holds no pages of its own. Nothing is deleted and \
-                            no text changes.",
+                            no text changes, so a page hung this way sits at the end, loose, until \
+                            the document names it. `write_doc` with `page_of` names it for you.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,

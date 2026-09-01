@@ -8,7 +8,6 @@ export const asked = (before: string): string | null => {
   return found ? found[1] : null;
 };
 
-/// The label is read and translated; the key is typed, so `/page` finds it in any language.
 export const narrowed = <T extends { label: string; key?: string }>(
   blocks: T[],
   word: string,

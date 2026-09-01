@@ -26,8 +26,6 @@ pub fn last_of<'a>(keys: impl IntoIterator<Item = &'a str>) -> String {
     }
 }
 
-/// Keys for a run that has to read in the given order, `None` where the key it has will do:
-/// the ones already rising keep theirs, so moving one of a hundred is one key, not a hundred.
 pub fn resequenced(keys: &[&str]) -> Vec<Option<String>> {
     let held = rising(keys);
     let mut fresh = vec![None; keys.len()];
@@ -49,7 +47,6 @@ pub fn resequenced(keys: &[&str]) -> Vec<Option<String>> {
     fresh
 }
 
-/// The longest run of keys already reading in order, which is what gets to keep its key.
 fn rising(keys: &[&str]) -> Vec<bool> {
     let mut reach = vec![1usize; keys.len()];
     let mut from = vec![usize::MAX; keys.len()];
@@ -105,7 +102,11 @@ fn midpoint(a: &str, b: Option<&str>) -> String {
 }
 
 fn append_after(a: &str) -> String {
-    let Some(i) = a.bytes().rposition(|d| index(d) + 1 < BASE) else {
+    let Some(i) = a
+        .is_ascii()
+        .then(|| a.bytes().rposition(|d| index(d) + 1 < BASE))
+        .flatten()
+    else {
         return format!("{a}{}", digit(BASE / 2));
     };
     format!("{}{}", &a[..i], digit(index(a.as_bytes()[i]) + 1))
@@ -234,6 +235,14 @@ mod tests {
     fn a_key_repeated_is_pushed_past_its_twin() {
         let now = settled(&["a", "a"]);
         assert!(now[0] < now[1], "{now:?}");
+    }
+
+    #[test]
+    fn a_key_this_machine_never_wrote_is_ordered_rather_than_panicked_on() {
+        let now = settled(&["é", "ê", "a"]);
+
+        assert!(now.windows(2).all(|two| two[0] < two[1]), "{now:?}");
+        assert!(after("ñ").as_str() > "ñ");
     }
 
     #[test]

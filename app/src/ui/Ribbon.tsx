@@ -9,7 +9,6 @@ interface Props {
   onOpen: (doc: Filed) => void;
 }
 
-/// A loose page is not in the reading order, so it is not given a number in it either.
 export default function Ribbon({ of, sisters, told, here, onOpen }: Props) {
   const read = told ? sisters.filter((one) => told.has(one.file)) : [];
   const at = told ? read.findIndex((one) => one.file === here) : -1;
