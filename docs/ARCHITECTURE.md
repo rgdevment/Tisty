@@ -510,6 +510,99 @@ The cache is stale, absent, in agreement, or **wrong**. Only the last one exits
 non-zero. `doctor` reports and never repairs on its own, because the log wins
 every disagreement and rebuilding is the only repair there is.
 
+## Nothing shrinks, and that is the design
+
+The log only grows. Deleting grows it too: a deletion removes the entity from
+the projection, keeps every event ever written about it, and appends one more.
+The tombstone it leaves is what makes deleting safe — a late event about that id
+is dropped, so a machine offline for six months cannot resurrect a task by
+arriving with an old edit. On one real store, 29% of the log described entities
+that no longer existed. This is not waste; it is the price of the tombstone.
+
+**The measured rate.** A line is 225 bytes on average (p50 200, p90 310). One
+user action is 1.09 events. A developer's machine with three writers and a
+275-event test day in it averaged 40 events a day; ordinary personal use is
+nearer 10 to 30. That is **1 to 3 MB a year**, a sealed segment of 5,000 events
+every six to eighteen months, and **about 130 MB after forty years** at the
+faster rate. On that same store the log was 158 KB while the attachments were
+65 MB: **the log is 0.2% of the data directory, and attachments are four hundred
+times its size.**
+
+**Reading does not degrade with history.** Replaying is linear at about 6 µs an
+event — measured end to end through the CLI, 0.4 s at 50,000 events and 1.3 s at
+200,000, against a 0.1 s floor for starting the process at all. A warm read
+skips the replay entirely, and what is left scales with what you *hold* rather
+than with what you did: the same 200,000 events project to 40,000 tasks, and
+loading those from the cache costs 0.13 s however long it took to write them.
+
+### Why the log is not compacted
+
+Three things in this repo refuse it, and they refuse it for the sync's sake
+rather than out of taste.
+
+**Lineage is a byte comparison.** `one_grew_from_the_other` concatenates a
+device directory's segments and asks whether one side `starts_with` the other.
+Rewriting a single line — dropping an event, re-serialising one, reordering a
+field — turns `Grew::Yes` into `Grew::No`, and an ordinary reconnection becomes
+`Kin::Clash`: the four-answer question you are asked when you meet a stranger's
+store.
+
+**A gap refuses the whole store.** `contiguous` requires sealed segments
+numbered 1..N. Truncating from the front does not make the store smaller, it
+makes it unreadable — every device in it, not only the truncated one.
+
+**And a peer undoes it.** Syncing compares, per device, how many distinct events
+the shared folder holds against how many this machine holds. A compacted
+directory holds fewer, so the longer copy is brought back over it. Compaction
+does not survive contact with a single peer that is switched on, never mind one
+that has been away for months. Surviving would mean every machine compacting
+identically at the same point, which is coordination — and there is no server
+and no clock anyone trusts to do it with.
+
+Snapshots, checkpoints, per-device watermarks, tombstone horizons and a separate
+archive store all founder on one of those three, and a tombstone horizon adds
+its own: it is a clock rule in a system whose premise is that no clock can be
+trusted, and its failure is a deleted task coming back.
+
+**The one shape that would work, and is not built.** A store rewrite the person
+performs deliberately — build a fresh store from the log keeping the tombstones,
+give it a new identity, and have every other machine adopt it. The machinery
+exists (`stitch`, `take_over`, `forebears`, and the four-answer question is the
+adoption step). It is not built because 130 MB over forty years does not justify
+asking every machine you own to adopt a new store, and a machine that never
+adopts is left clashing.
+
+### The sets that only grow
+
+`shed`, `retired`, `tombstones`, `dropped`, `devices`, `assistants` and
+`forebears` never shrink. In bytes they are nothing — a shed entry is 15 bytes,
+a retirement 55 — and pruning them would mean either a new operation that
+destroys, or a projection that is no longer deterministic.
+
+Their cost was never memory. It was that every launch walked the whole of `shed`
+attempting a `remove_file` per entry, twice over when syncing, and that the
+first attachment ever retired made every later launch read every document body
+to find out what still names it. `tidy::Already` is a machine-local mark in the
+cache — never in the log, never in the settings file an agent can edit — of what
+this machine has already taken out. Sweeping is O(new), and a store with nothing
+retired never opens a document at all.
+
+### Maintenance is the person's, and it is about attachments
+
+The Maintenance tab reviews and reports; nothing there runs on its own. It is
+grouped by what it costs to be wrong rather than by what each thing is:
+attachments nothing names go to the bin with thirty days to change your mind;
+documents on disk the log does not name are offered **taking in** before letting
+go, because adopting an orphan can never be wrong and deleting it is final; and
+a document the log names with no file waits — forgetting it writes a deletion
+that reaches every machine, so it stays out of reach while any machine has been
+quiet.
+
+Letting a stray file go deletes a file **without writing an event**, so
+`Op::destroys` cannot see it and the rule above does not protect it. Like
+deleting a document, it lives in the window and nowhere else: no subcommand, no
+tool.
+
 ## What a search means
 
 One engine, three doors: the window, `tisty find` and the agent's `find` all cut
