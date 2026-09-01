@@ -155,12 +155,29 @@ pub fn titled(body: &str) -> String {
     {
         said.drain(..shuts + 2);
     }
+    let mut fenced = false;
     let first = said
         .iter()
-        .find(|one| !wordless(one))
-        .copied()
+        .find_map(|one| {
+            if one.starts_with("```") || one.starts_with("~~~") {
+                fenced = !fenced;
+                return None;
+            }
+            if fenced {
+                return None;
+            }
+            let opened = one.trim_start_matches('#').trim_start();
+            let said = match opened.strip_prefix('>') {
+                Some(rest) => {
+                    let rest = rest.trim_start();
+                    crate::refs::alerted(rest).unwrap_or(rest)
+                }
+                None => opened,
+            };
+            (!wordless(said)).then_some(said)
+        })
         .unwrap_or_default();
-    crate::text::plainly(unspanned(first.trim_start_matches('#')).trim())
+    crate::text::plainly(unspanned(first).trim())
 }
 
 pub fn marked(body: &str, said: &str) -> String {
@@ -840,6 +857,7 @@ pub fn bare(line: &str) -> String {
         .strip_prefix("[ ] ")
         .or(said.strip_prefix("[x] "))
         .unwrap_or(said);
+    let said = crate::refs::alerted(said).unwrap_or(said);
 
     let mut out = String::with_capacity(said.len());
     let mut chars = said.chars().peekable();
@@ -1049,6 +1067,68 @@ fn opening(at: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_document_that_opens_with_a_diagram_is_not_titled_after_the_fence() {
+        assert_eq!(
+            titled(
+                "```mermaid
+graph TD;
+A --> B
+```
+
+# El plano de la red"
+            ),
+            "El plano de la red"
+        );
+        assert_eq!(
+            titled(
+                "```
+solo codigo
+```"
+            ),
+            "",
+            "a fence alone names nothing"
+        );
+    }
+
+    #[test]
+    fn a_document_that_opens_with_an_alert_is_titled_by_what_the_alert_says() {
+        assert_eq!(
+            titled(
+                "> [!NOTE]
+> Un aviso importante"
+            ),
+            "Un aviso importante"
+        );
+        assert_eq!(
+            titled(
+                "> [!WARNING] Cuidado
+
+texto"
+            ),
+            "Cuidado"
+        );
+        assert_eq!(
+            titled("> Una cita cualquiera"),
+            "Una cita cualquiera",
+            "a quote with no marker is still its own first line"
+        );
+    }
+
+    #[test]
+    fn the_alert_marker_is_not_a_word_the_search_can_find() {
+        assert_eq!(
+            bare("> [!WARNING] Cuidado con el horno"),
+            "Cuidado con el horno"
+        );
+        assert_eq!(bare("> [!NOTE]"), "");
+        assert_eq!(
+            bare("> [!raro] no es un aviso"),
+            "!raro no es un aviso",
+            "only the five GitHub reads are markers"
+        );
+    }
 
     #[test]
     fn a_stray_paper_is_listed_with_what_it_weighs_and_what_it_says() {

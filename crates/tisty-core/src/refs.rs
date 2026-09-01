@@ -234,6 +234,16 @@ fn unpunctuated(url: &str) -> &str {
     &url[..end]
 }
 
+pub fn alerted(said: &str) -> Option<&str> {
+    let rest = said.strip_prefix("[!")?;
+    let (kind, after) = rest.split_once(']')?;
+    matches!(
+        kind.to_ascii_lowercase().as_str(),
+        "note" | "tip" | "important" | "warning" | "caution"
+    )
+    .then(|| after.trim_start())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -17,6 +17,7 @@ const SHAPES = [
   "quote",
   "callout",
   "code",
+  "mermaid",
   "table",
   "rule",
   "pen",

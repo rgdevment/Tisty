@@ -421,6 +421,13 @@ export default function Editor({
           run: () => editor.chain().focus().toggleWrap("callout", { kind: "note" }).run(),
         },
         {
+          key: "mermaid",
+          label: t("diagramIt"),
+          hint: "```mermaid",
+          icon: "graph",
+          run: () => editor.chain().focus().toggleCodeBlock({ language: "mermaid" }).run(),
+        },
+        {
           key: "code",
           label: t("codeBlock"),
           hint: "```",
