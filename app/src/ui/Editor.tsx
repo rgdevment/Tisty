@@ -9,6 +9,7 @@ import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
+import { card, filed, paged, pagesOf } from "../paging";
 import { named, pictured } from "../previews";
 import Asking from "./Asking";
 import Floats from "./Floats";
@@ -126,12 +127,16 @@ interface Props {
   onOpen?: (reference: string) => void;
   onKeep?: (reference: string, name: string) => void;
   onDoc?: (id: string) => void;
+  onOwn?: (id: string) => void;
   onWrite: (text: string) => void;
   onShaped?: (text: string) => void;
   onBlocks?: (blocks: Block[]) => void;
   onOutline?: (heads: Head[]) => void;
   onLaid?: (root: HTMLElement) => void;
   onReady?: (read: () => unknown) => void;
+  onInsert?: (put: (file: string, title: string) => void) => void;
+  above?: React.ReactNode;
+  below?: React.ReactNode;
 }
 
 export default function Editor({
@@ -147,12 +152,16 @@ export default function Editor({
   onOpen,
   onKeep,
   onDoc,
+  onOwn,
   onWrite,
   onShaped,
   onBlocks,
   onOutline,
   onLaid,
   onReady,
+  onInsert,
+  above,
+  below,
 }: Props) {
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
@@ -163,15 +172,16 @@ export default function Editor({
     name: string;
   } | null>(null);
   const [tying, setTying] = useState<{ x: number; y: number } | null>(null);
-  const [choosing, setChoosing] = useState<{ x: number; y: number } | null>(null);
+  const [choosing, setChoosing] = useState<{ x: number; y: number; leaf: boolean } | null>(null);
   const [swapping, setSwapping] = useState<{
     at: { x: number; y: number };
     untie: () => void;
     drop: () => void;
     keep?: () => void;
+    own?: () => void;
   } | null>(null);
   const [glyphing, setGlyphing] = useState<{ x: number; y: number } | null>(null);
-  const [naming, setNaming] = useState<{ x: number; y: number } | null>(null);
+  const [naming, setNaming] = useState<{ x: number; y: number; leaf: boolean } | null>(null);
   const mine = useRef(value);
   const urls = useRef(new Map<string, string>());
   const weights = useRef(new Map<string, number>());
@@ -213,17 +223,43 @@ export default function Editor({
     setActive(0);
   };
 
-  const hands = useRef({ onWrite, onOpen, onKeep, onDoc, onShaped, onOutline, onLaid, onReady });
-  hands.current = { onWrite, onOpen, onKeep, onDoc, onShaped, onOutline, onLaid, onReady };
+  const hands = useRef({
+    onWrite,
+    onOpen,
+    onKeep,
+    onDoc,
+    onOwn,
+    onShaped,
+    onOutline,
+    onLaid,
+    onReady,
+    onInsert,
+  });
+  hands.current = {
+    onWrite,
+    onOpen,
+    onKeep,
+    onDoc,
+    onOwn,
+    onShaped,
+    onOutline,
+    onLaid,
+    onReady,
+    onInsert,
+  };
   looked.current = look;
 
   const shapes = useMemo(() => [...written(), previewing(() => reach.current)], []);
+
+  const own = filed(papers, paper);
+  const leaves = useMemo(() => paged(papers, paper), [papers, paper]);
 
   const props = useMemo(
     () => ({
       attributes: (state: EditorState) => ({
         class: shotNode(state) ? "tisty-doc shot-picked" : "tisty-doc",
-        [CATCHES]: "",
+        // Saying it takes files is what has one copied in before anyone asks whether it can.
+        ...(reading ? {} : { [CATCHES]: "" }),
         role: "textbox",
         "aria-multiline": "true",
         spellcheck: "true",
@@ -269,7 +305,7 @@ export default function Editor({
         return false;
       },
     }),
-    [label],
+    [label, reading],
   );
 
   const wrote = useCallback(({ editor }: { editor: Writing }) => {
@@ -291,6 +327,9 @@ export default function Editor({
     outlined.current(editor);
     hands.current.onLaid?.(editor.view.dom as HTMLElement);
     hands.current.onReady?.(() => editor.getJSON());
+    hands.current.onInsert?.((file, title) =>
+      editor.chain().focus("end").insertContent(card(file, title)).run(),
+    );
   }, []);
 
   const listed = useRef("");
@@ -379,19 +418,37 @@ export default function Editor({
           icon: "link",
           run: () => setTying(aimed(editor)),
         },
+        ...(own && !own.pageOf
+          ? [
+              {
+                key: "newpage",
+                label: t("insertNewPage"),
+                hint: "\u271a",
+                icon: "pages",
+                run: () => setNaming({ ...aimed(editor), leaf: true }),
+              },
+              {
+                key: "page",
+                label: t("insertPage"),
+                hint: "[[ ]]",
+                icon: "pages",
+                run: () => setChoosing({ ...aimed(editor), leaf: true }),
+              },
+            ]
+          : []),
         {
           key: "paper",
           label: t("insertDoc"),
           hint: "[[ ]]",
           icon: "page",
-          run: () => setChoosing(aimed(editor)),
+          run: () => setChoosing({ ...aimed(editor), leaf: false }),
         },
         {
           key: "newpaper",
           label: t("insertNewDoc"),
           hint: "\u271a",
           icon: "plus",
-          run: () => setNaming(aimed(editor)),
+          run: () => setNaming({ ...aimed(editor), leaf: false }),
         },
         {
           key: "icon",
@@ -406,27 +463,6 @@ export default function Editor({
           hint: "==",
           icon: "highlight",
           run: () => editor.chain().focus().extendMarkRange("highlight").toggleHighlight().run(),
-        },
-        {
-          key: "middle",
-          label: t("towardsMiddle"),
-          hint: "↔",
-          icon: "aligncenter",
-          run: () => editor.chain().focus().setTextAlign("center").run(),
-        },
-        {
-          key: "rightwards",
-          label: t("towardsRight"),
-          hint: "→",
-          icon: "alignright",
-          run: () => editor.chain().focus().setTextAlign("right").run(),
-        },
-        {
-          key: "leftwards",
-          label: t("towardsLeft"),
-          hint: "←",
-          icon: "alignleft",
-          run: () => editor.chain().focus().setTextAlign("left").run(),
         },
         {
           key: "rule",
@@ -455,14 +491,15 @@ export default function Editor({
 
   const handed = useRef<{ writing: unknown; keys: string } | null>(null);
   useEffect(() => {
-    const keys = blocks.map((one) => one.key).join(",");
-    if (!blocks.length) return;
+    // A document that cannot be written must not be offered blocks that write to it.
+    const offered = reading ? [] : blocks;
+    const keys = offered.map((one) => one.key).join(",");
     if (handed.current?.writing === editor && handed.current.keys === keys) return;
     handed.current = { writing: editor, keys };
-    onBlocks?.(blocks);
-  }, [blocks, editor, onBlocks]);
+    onBlocks?.(offered);
+  }, [blocks, editor, onBlocks, reading]);
 
-  const shown = asking ? narrowed(blocks, asking.word) : [];
+  const shown = asking && !reading ? narrowed(blocks, asking.word) : [];
 
   const take = (block: Block) => {
     if (!editor || !asking) return;
@@ -515,13 +552,16 @@ export default function Editor({
     here: paper,
     onDoc,
     onOpen,
-    onMenu: (at, untie, drop, kept) =>
-      setSwapping({
-        at,
-        untie,
-        drop,
-        keep: kept && onKeep ? () => hands.current.onKeep?.(kept.at, kept.name) : undefined,
-      }),
+    onMenu: reading
+      ? undefined
+      : (at, untie, drop, kept, leaf) =>
+          setSwapping({
+            at,
+            untie,
+            drop,
+            keep: kept && onKeep ? () => hands.current.onKeep?.(kept.at, kept.name) : undefined,
+            own: leaf && onOwn ? () => hands.current.onOwn?.(leaf) : undefined,
+          }),
     gone: (reference) => missing.current.has(reference),
     onAgain: (reference) => {
       missing.current.delete(reference);
@@ -554,6 +594,10 @@ export default function Editor({
       const one = papers.find((paper) => paper.file === id);
       return one ? one.title.trim() || t("untitledDoc") : null;
     },
+    page: (id) => {
+      const at = leaves.indexOf(id);
+      return at < 0 ? null : at + 1;
+    },
     blurb: (id) => {
       const held = blurbs.current.get(id);
       if (held !== undefined) return held;
@@ -582,13 +626,13 @@ export default function Editor({
   }, [editor, opened, current]);
 
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
+    if (!editor || editor.isDestroyed || reading) return;
     return takesFiles(editor.view.dom, (put, at) => {
       const landed = at ? editor.view.posAtCoords({ left: at.left, top: at.top })?.pos : undefined;
       const chain = editor.chain().focus(landed ?? undefined);
       chain.insertContent(put).run();
     });
-  }, [editor]);
+  }, [editor, reading]);
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
@@ -625,23 +669,35 @@ export default function Editor({
 
   return (
     <>
-      <EditorContent editor={editor} className="scroller gutter min-h-0 flex-1" />
+      <div
+        className={`scroller gutter flex min-h-0 flex-1 flex-col${above || below ? " leafed" : ""}`}
+      >
+        {above}
+        <EditorContent editor={editor} className={above || below ? undefined : "flex-1"} />
+        {below}
+      </div>
       {asking && shown.length > 0 && (
         <Slash at={asking.at} blocks={shown} active={active} onPick={take} />
       )}
-      {picked && editor && !asking && !tying && <Floats editor={editor} at={picked.at} />}
+      {picked && editor && !asking && !tying && !reading && (
+        <Floats editor={editor} at={picked.at} />
+      )}
       {shot && editor && (
         <Shot
           at={shot.at}
           onOpen={() => onOpen?.(shot.src)}
           onKeep={onKeep ? () => onKeep(shot.src, shot.name) : undefined}
-          onDrop={() => {
-            editor.chain().focus().deleteSelection().run();
-            setShot(null);
-          }}
+          onDrop={
+            reading
+              ? undefined
+              : () => {
+                  editor.chain().focus().deleteSelection().run();
+                  setShot(null);
+                }
+          }
         />
       )}
-      {tying && editor && (
+      {tying && editor && !reading && (
         <Floats editor={editor} at={tying} asking onDone={() => setTying(null)} />
       )}
       {naming && editor && (
@@ -668,9 +724,11 @@ export default function Editor({
             className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
           >
             <Asking
+              leaf={naming.leaf}
               onName={(name) => {
+                const leaf = naming.leaf;
                 setNaming(null);
-                spawned(name, folder ?? undefined)
+                spawned(name, folder ?? undefined, leaf ? own?.id : undefined)
                   .then((born) => {
                     onMade?.(born.id, name);
                     editor
@@ -739,6 +797,13 @@ export default function Editor({
               off: !swapping.keep,
               onPick: swapping.keep,
             },
+            {
+              key: "own",
+              label: t("ownDoc"),
+              icon: "⇤",
+              off: !swapping.own,
+              onPick: swapping.own,
+            },
             { key: "link", label: t("showAsLink"), icon: "↩", onPick: swapping.untie },
             { key: "drop", label: t("remove"), icon: "✕", danger: true, onPick: swapping.drop },
           ]}
@@ -770,7 +835,9 @@ export default function Editor({
             className="fixed z-40 w-[272px] rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
           >
             <Papers
-              all={papers?.filter((one) => one.file !== paper)}
+              all={
+                choosing.leaf ? pagesOf(papers, paper) : papers?.filter((one) => one.file !== paper)
+              }
               onPick={(picked) => {
                 setChoosing(null);
                 editor

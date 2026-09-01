@@ -167,6 +167,9 @@ const en = {
   insertDoc: "A document",
   insertIcon: "An icon",
   insertNewDoc: "A new document",
+  insertNewPage: "A new page",
+  insertPage: "A page of this one",
+  pageName: "Name of the page",
   sayNewDoc: "made and linked",
   docName: "Name of the document",
   sayDoc: "of this Tisty",
@@ -285,6 +288,19 @@ const en = {
   paperDocs: "{name} documents",
   pageHeld: "1 page",
   pagesHeld: "{name} pages",
+  kindLeaf: "Page {name}",
+  theseLeaves: "Pages",
+  allInside: "In the order the text names them.",
+  someLoose: "In the order the text names them. The last ones it never names.",
+  looseLeafIs: "Loose page",
+  putLeaf: "Put it in the text",
+  whereThisSits: "Where this page sits",
+  leafOfMany: "Page {name} of {other}",
+  leafBack: "Page before",
+  leafOn: "Page after",
+  noLeafBack: "This is the first one",
+  noLeafOn: "This is the last one",
+  leafNext: "Next",
   paperFiles: "{name} attachments",
   paperEmpty: "Nothing written yet",
   shaping: "Format",
@@ -324,7 +340,11 @@ const en = {
     "Delete «{name}»? The document and what it holds go for good. This cannot be undone.",
   dropPagesSure:
     "Delete «{name}»? The document, its pages and what they hold go for good. This cannot be undone.",
+  pageOfSure:
+    "Make «{name}» a page of «{other}»? It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
   newPage: "New page",
+  pageOf: "Make it a page of…",
+  pageOfWhich: "A page of which one",
   ownDoc: "Make it a document of its own",
   dropThemSure:
     "Discard {name} tasks? They leave the open lists and stay in the archive, where you can open them again.",
@@ -335,6 +355,8 @@ const en = {
   pageOfPage: "A page belongs to a document, not to another page",
   pageStaysPut: "A page goes where its document goes",
   holdsPages: "This document has pages of its own",
+  pageOfAway: "That document is put away, and its pages would be put away unread",
+  awayStaysAway: "A document put away has to come back before it can be a page",
   folderNameTooLong: "A folder name fits 40 characters at most",
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
   documentMoved: "Something wrote in this document while you had it open here",
@@ -369,6 +391,8 @@ const en = {
   takeOut: "Export as Markdown…",
   takenOut: "Taken out with {name} of its files",
   takenOutAlone: "Taken out",
+  takenShort: "Taken out, but one page could not be read and is not in it",
+  takenShorter: "Taken out, but {name} pages could not be read and are not in it",
   copied: "Copied without the underline",
   bigTitle: "Heading",
   midTitle: "Subheading",
@@ -742,9 +766,6 @@ const en = {
   welcomeNext: "Next",
   welcomeBack: "Back",
   penIt: "Highlight",
-  towardsMiddle: "Centre it",
-  towardsRight: "To the right",
-  towardsLeft: "To the left",
   greetAgain: "The welcome",
   greetAgainWhy:
     "It asks again about the language, where your copies go, starting with the computer and what closing the window does. Nothing you have written is touched.",
@@ -1148,6 +1169,9 @@ const es: Catalog = {
   insertDoc: "Un documento",
   insertIcon: "Un icono",
   insertNewDoc: "Un documento nuevo",
+  insertNewPage: "Una página nueva",
+  insertPage: "Una página de este",
+  pageName: "Nombre de la página",
   sayNewDoc: "se crea y se enlaza",
   docName: "Nombre del documento",
   sayDoc: "de este Tisty",
@@ -1266,6 +1290,19 @@ const es: Catalog = {
   paperDocs: "{name} documentos",
   pageHeld: "1 página",
   pagesHeld: "{name} páginas",
+  kindLeaf: "Página {name}",
+  theseLeaves: "Páginas",
+  allInside: "En el orden en que el texto las nombra.",
+  someLoose: "En el orden en que el texto las nombra. Las últimas no las nombra en ninguna parte.",
+  looseLeafIs: "Página suelta",
+  putLeaf: "Ponerla en el texto",
+  whereThisSits: "Dónde va esta página",
+  leafOfMany: "Página {name} de {other}",
+  leafBack: "Página anterior",
+  leafOn: "Página siguiente",
+  noLeafBack: "Es la primera",
+  noLeafOn: "Es la última",
+  leafNext: "Sigue",
   paperFiles: "{name} adjuntos",
   paperEmpty: "Todavía sin escribir",
   shaping: "Formato",
@@ -1305,7 +1342,11 @@ const es: Catalog = {
     "¿Borrar «{name}»? El documento y su contenido se van para siempre. Esto no se puede deshacer.",
   dropPagesSure:
     "¿Borrar «{name}»? El documento, sus páginas y lo que guardan se van para siempre. Esto no se puede deshacer.",
+  pageOfSure:
+    "¿Hacer que «{name}» sea página de «{other}»? Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
   newPage: "Nueva página",
+  pageOf: "Es página de…",
+  pageOfWhich: "Página de cuál",
   ownDoc: "Convertir en documento propio",
   dropThemSure:
     "¿Descartar {name} tareas? Salen de las listas abiertas y se quedan en el archivo, donde puedes volver a abrirlas.",
@@ -1316,6 +1357,8 @@ const es: Catalog = {
   pageOfPage: "Una página cuelga de un documento, no de otra página",
   pageStaysPut: "Una página va donde va su documento",
   holdsPages: "Este documento tiene páginas propias",
+  pageOfAway: "Ese documento está archivado, y sus páginas quedarían archivadas sin leerse",
+  awayStaysAway: "Un documento archivado tiene que volver antes de ser página",
   folderNameTooLong: "El nombre de una carpeta admite 40 caracteres como máximo",
   documentBeingWritten:
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
@@ -1352,6 +1395,8 @@ const es: Catalog = {
   takeOut: "Exportar como Markdown…",
   takenOut: "Exportado con {name} de sus archivos",
   takenOutAlone: "Exportado",
+  takenShort: "Exportado, pero una página no se pudo leer y no va dentro",
+  takenShorter: "Exportado, pero {name} páginas no se pudieron leer y no van dentro",
   copied: "Copiado sin el subrayado",
   bigTitle: "Título",
   midTitle: "Subtítulo",
@@ -1726,9 +1771,6 @@ const es: Catalog = {
   welcomeNext: "Siguiente",
   welcomeBack: "Atrás",
   penIt: "Destacar",
-  towardsMiddle: "Centrar",
-  towardsRight: "A la derecha",
-  towardsLeft: "A la izquierda",
   greetAgain: "La bienvenida",
   greetAgainWhy:
     "Vuelve a preguntar por el idioma, dónde van tus copias, si inicia con el equipo y qué hace al cerrar la ventana. No toca nada de lo que has escrito.",
@@ -1978,5 +2020,5 @@ export type Word = keyof Catalog;
 
 export const t = (key: Word): string => spoken[key];
 
-export const fill = (key: keyof Catalog, name: string): string =>
-  spoken[key].replace("{name}", name);
+export const fill = (key: keyof Catalog, name: string, other?: string): string =>
+  spoken[key].replace("{name}", name).replace("{other}", other ?? "");

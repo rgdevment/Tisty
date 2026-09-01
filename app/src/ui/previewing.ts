@@ -22,6 +22,7 @@ export interface Reach {
   title: (id: string) => string | null | undefined;
   here?: string;
   blurb?: (id: string) => string | null;
+  page?: (id: string) => number | null;
   gone?: (reference: string) => boolean;
   onDoc?: (id: string) => void;
   onMenu?: (
@@ -29,6 +30,7 @@ export interface Reach {
     untie: () => void,
     drop: () => void,
     kept?: { at: string; name: string },
+    leaf?: string,
   ) => void;
   onOpen?: (reference: string) => void;
   onAgain?: (reference: string) => void;
@@ -152,6 +154,29 @@ const carded = (kind: string): HTMLElement => {
   return badge;
 };
 
+const numbered = (n: number): HTMLElement => {
+  const badge = document.createElement("span");
+  badge.className = "card-num";
+  badge.textContent = String(n);
+  return badge;
+};
+
+const into = (): HTMLElement => {
+  const held = document.createElement("span");
+  held.className = "card-into";
+  held.setAttribute("aria-hidden", "true");
+  held.textContent = "›";
+  return held;
+};
+
+const leaves = (box: HTMLElement) => {
+  for (const which of ["card-leaf-one", "card-leaf-two"]) {
+    const leaf = document.createElement("span");
+    leaf.className = `card-leaf ${which}`;
+    box.append(leaf);
+  }
+};
+
 const papered = (): HTMLElement => {
   const held = document.createElement("span");
   held.className = "card-paper";
@@ -178,7 +203,8 @@ const built = (
 
   const box = frame("preview");
   box.addEventListener("keydown", (e) => {
-    if (e.key === "Backspace" || e.key === "Delete") {
+    // The widget hides the key from the editor, and a document that cannot be written keeps it.
+    if ((e.key === "Backspace" || e.key === "Delete") && reach.onMenu) {
       e.preventDefault();
       return drop();
     }
@@ -212,10 +238,17 @@ const built = (
 
   const itself = seen.as === "doc" && seen.id === reach.here;
 
+  const leaf = seen.as === "doc" ? (reach.page?.(seen.id) ?? null) : null;
+  const asPage = seen.as === "doc" && leaf !== null ? seen.id : undefined;
+
   if (seen.as === "doc") {
     const title = reach.title(seen.id);
     box.classList.add("card-doc");
-    box.prepend(papered());
+    if (leaf === null) box.prepend(papered());
+    else {
+      box.classList.add("card-page");
+      box.prepend(numbered(leaf));
+    }
     if (title === undefined) {
       name.textContent = t("opening");
     } else if (title === null) {
@@ -247,6 +280,12 @@ const built = (
 
   said.append(name, under);
   box.append(said);
+  if (leaf !== null) box.append(into());
+
+  if (!reach.onMenu) {
+    if (leaf !== null) leaves(box);
+    return sayable(box, seen, reach, lost, itself);
+  }
 
   const more = document.createElement("button");
   more.type = "button";
@@ -260,9 +299,20 @@ const built = (
     const box = more.getBoundingClientRect();
     const kept =
       seen.as === "doc" || lost ? undefined : { at: seen.at, name: label || named(seen.at) };
-    reach.onMenu?.({ x: box.left, y: box.bottom + 4 }, untie, drop, kept);
+    reach.onMenu?.({ x: box.left, y: box.bottom + 4 }, untie, drop, kept, asPage);
   });
   box.append(more);
+  if (leaf !== null) leaves(box);
+  return sayable(box, seen, reach, lost, itself);
+};
+
+const sayable = (
+  box: HTMLElement,
+  seen: Preview,
+  reach: Reach,
+  lost: boolean,
+  itself: boolean,
+): HTMLElement => {
   if (itself) {
     box.classList.add("card-itself");
     return box;
@@ -308,7 +358,9 @@ const settled = (seen: Preview, reach: Reach): string => {
   if (seen.as === "doc") {
     if (seen.id === reach.here) return "itself";
     const title = reach.title(seen.id);
-    return title === undefined ? "" : (title ?? "gone");
+    const leaf = reach.page?.(seen.id) ?? 0;
+    const blurb = reach.blurb?.(seen.id) ?? "";
+    return title === undefined ? "" : `${leaf}:${title ?? "gone"}:${blurb}`;
   }
   if (reach.gone?.(seen.at)) return "gone";
   if (seen.as === "file") return String(reach.weight(seen.at) ?? "");

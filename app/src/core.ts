@@ -660,13 +660,20 @@ export const docAway = (id: string, away: boolean): Promise<void> =>
 
 export const docCopy = (id: string): Promise<Doc> => invoke("doc_copy", { id });
 
-export const docExport = (id: string, into: string): Promise<number> =>
+export interface Taken {
+  files: number;
+  missed: number;
+}
+
+export const docExport = (id: string, into: string): Promise<Taken> =>
   invoke("doc_export", { id, into });
 export const docImport = (from: string, folder?: string): Promise<Doc> =>
   invoke("doc_import", { from, folder });
 
 export const docNew = (folder?: string, pageOf?: string): Promise<Doc> =>
   invoke("doc_new", { folder, pageOf });
+export const docOrder = (id: string, body: string): Promise<boolean> =>
+  invoke("doc_order", { id, body });
 export const docPage = (id: string, pageOf?: string): Promise<void> =>
   invoke("doc_page", { id, pageOf });
 export const docDrop = (id: string): Promise<void> => invoke("doc_drop", { id });

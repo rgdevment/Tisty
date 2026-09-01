@@ -52,7 +52,6 @@ describe("the panel that appears over a selection", () => {
       "Code",
       "Highlight",
       "Link",
-      "Centre it",
     ]);
 
     editor.destroy();
@@ -211,7 +210,7 @@ describe("the panel that appears over a selection", () => {
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Underline");
 
     await userEvent.keyboard("{ArrowLeft}{ArrowLeft}{ArrowLeft}");
-    expect(document.activeElement?.getAttribute("aria-label")).toBe("Centre it");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Link");
 
     await userEvent.tab();
     expect(document.activeElement?.tagName).toBe("BODY");

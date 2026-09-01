@@ -104,7 +104,8 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
 }
 
 fn line(label: &str, value: &str) {
-    println!("    {label:<14}{value}");
+    let pad = " ".repeat(14usize.saturating_sub(label.chars().count()).max(1));
+    println!("    {label}{pad}{value}");
 }
 
 fn weighed(bytes: u64) -> String {

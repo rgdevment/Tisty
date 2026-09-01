@@ -4,7 +4,20 @@ use crate::{
     state::State,
 };
 
-pub fn inverse(event: &Event, before: &State) -> Option<Op> {
+/// What puts an event back, in the order it has to be applied. Some of them take more than one
+/// operation: reopening a task clears more than its status, and one op cannot say all of it.
+pub fn inverse(event: &Event, before: &State) -> Option<Vec<Op>> {
+    let one = undoing(event, before)?;
+    let mut back = vec![one];
+    if let Op::TaskReopen { id } = &event.op
+        && before.tasks.get(id).is_some_and(|was| was.hidden)
+    {
+        back.push(Op::TaskHide { id: *id });
+    }
+    Some(back)
+}
+
+fn undoing(event: &Event, before: &State) -> Option<Op> {
     match &event.op {
         Op::TaskAdd { id, .. } => Some(Op::TaskDelete { id: *id }),
 
@@ -177,7 +190,8 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             Some(Op::DocMove {
                 id: *id,
                 d: crate::event::Filed {
-                    folder: Some(was.folder),
+                    // Hanging it took the folder of what it hangs from, so unhanging hands it back.
+                    folder: (d.folder.is_some() || d.page_of.is_some()).then_some(was.folder),
                     page_of: d.page_of.map(|_| was.page_of),
                     order: Some(was.order.clone()),
                 },
@@ -223,7 +237,9 @@ mod tests {
 
         let undo = inverse(&action, &before).expect("no inverse");
         let mut undone = after.clone();
-        undone.apply(&ev(999, undo));
+        for (n, op) in undo.into_iter().enumerate() {
+            undone.apply(&ev(999 + n as i64, op));
+        }
 
         (before, undone)
     }
@@ -261,6 +277,26 @@ mod tests {
             ev(3, Op::TaskReopen { id }),
         );
         assert_eq!(undone.tasks[&id].status, Status::Dropped);
+    }
+
+    #[test]
+    fn undoing_a_reopen_folds_the_task_away_again_if_that_is_where_it_was() {
+        let id = Ulid::generate();
+        let (before, undone) = round_trip(
+            vec![
+                a_task(id),
+                ev(2, Op::TaskDone { id, filled: false }),
+                ev(3, Op::TaskHide { id }),
+            ],
+            ev(4, Op::TaskReopen { id }),
+        );
+
+        assert!(before.tasks[&id].hidden);
+        assert_eq!(undone.tasks[&id].status, Status::Done);
+        assert!(
+            undone.tasks[&id].hidden,
+            "it was folded away before, so undoing has to fold it away again"
+        );
     }
 
     #[test]
@@ -339,7 +375,7 @@ mod tests {
         state.apply(&add);
 
         let undo = inverse(&add, &State::default()).unwrap();
-        state.apply(&ev(2, undo));
+        state.apply(&ev(2, undo[0].clone()));
 
         assert!(state.tasks.is_empty());
     }
@@ -421,7 +457,7 @@ mod tests {
         state.apply(&action);
 
         let undo = inverse(&action, &State::replay(&[a_task(id)])).unwrap();
-        state.apply(&ev(3, undo));
+        state.apply(&ev(3, undo[0].clone()));
 
         assert_eq!(state.tasks[&id].entry(entry).unwrap().body, "");
     }
@@ -459,7 +495,7 @@ mod tests {
         ));
         assert_eq!(
             inverse(&ev(2, Op::TaskHide { id }), &open),
-            Some(Op::TaskShow { id })
+            Some(vec![Op::TaskShow { id }])
         );
     }
 }
@@ -503,7 +539,7 @@ mod dropping {
 
         let mut after = before.clone();
         after.apply(&ev(3, Op::TaskDrop { id }));
-        after.apply(&ev(4, op));
+        after.apply(&ev(4, op[0].clone()));
 
         assert_eq!(after.tasks[&id].status, Status::Done);
         assert_eq!(after.tasks[&id].hidden, before.tasks[&id].hidden);
@@ -517,7 +553,7 @@ mod dropping {
         let op = inverse(&ev(4, Op::TaskDrop { id }), &before).unwrap();
         let mut after = before.clone();
         after.apply(&ev(4, Op::TaskDrop { id }));
-        after.apply(&ev(5, op));
+        after.apply(&ev(5, op[0].clone()));
 
         assert!(
             after.tasks[&id].hidden,
@@ -533,7 +569,7 @@ mod dropping {
 
         let mut after = before.clone();
         after.apply(&ev(3, Op::TaskDrop { id }));
-        after.apply(&ev(4, op));
+        after.apply(&ev(4, op[0].clone()));
 
         assert_eq!(after.tasks[&id], before.tasks[&id]);
     }

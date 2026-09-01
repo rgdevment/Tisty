@@ -468,6 +468,28 @@ impl State {
         pages
     }
 
+    pub fn pages_told(&self, doc: DocId, body: &str) -> Vec<(DocId, String)> {
+        let pages = self.pages_of(doc);
+        if pages.len() < 2 {
+            return Vec::new();
+        }
+        let named = crate::refs::papers(body);
+        let wanted: Vec<&Kept> = named
+            .iter()
+            .filter_map(|file| pages.iter().find(|one| &one.file == file).copied())
+            .collect();
+        if wanted.len() < 2 {
+            return Vec::new();
+        }
+
+        let keys: Vec<&str> = wanted.iter().map(|one| one.order.as_str()).collect();
+        crate::order::resequenced(&keys)
+            .into_iter()
+            .zip(&wanted)
+            .filter_map(|(fresh, one)| fresh.map(|key| (one.id, key)))
+            .collect()
+    }
+
     pub fn put_away(&self) -> Vec<&Kept> {
         self.docs.values().filter(|one| one.archived).collect()
     }
@@ -2167,7 +2189,9 @@ mod tests {
         let reopen = ev(3, "mac0", Op::TaskReopen { id });
         state.apply(&reopen);
         let back = crate::undo::inverse(&reopen, &before).expect("a reopen can be undone");
-        state.apply(&ev(4, "mac0", back));
+        for (n, op) in back.into_iter().enumerate() {
+            state.apply(&ev(4 + n as i64, "mac0", op));
+        }
 
         assert!(
             state.tasks[&id].filled,

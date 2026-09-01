@@ -35,7 +35,7 @@ export const INSIDE = "data-inside";
 export const DOC = "tisty:doc/";
 
 export const docLink = (id: string, title: string): string =>
-  `[${title.replace(/([[\]])/g, "\\$1")}](${DOC}${id})`;
+  `[${title.replace(/([[\]\\])/g, "\\$1")}](${DOC}${id})`;
 
 export const docCard = (id: string, title: string): string => `!${docLink(id, title)}`;
 

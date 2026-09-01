@@ -11,6 +11,7 @@ interface Props {
   here?: string | null;
   onOpen: (doc: Filed) => void;
   onFile: (doc: string, folder?: string) => void;
+  onPage?: (doc: string, pageOf: string) => void;
   onHere?: (folder?: string) => void;
   onMove?: (folder: string, parent?: string) => void;
   onFolderMenu?: (folder: Folded, at: { x: number; y: number }) => void;
@@ -24,6 +25,7 @@ export default function Tree({
   here,
   onOpen,
   onFile,
+  onPage,
   onHere,
   onMove,
   onFolderMenu,
@@ -160,6 +162,29 @@ export default function Tree({
 
   const away = papers.docs.filter((one) => one.archived && !one.pageOf);
 
+  const takesPages = (doc: Filed) => !doc.pageOf && !doc.archived && Boolean(onPage);
+
+  const carries = (e: React.DragEvent, doc: Filed) =>
+    takesPages(doc) && e.dataTransfer.types.includes("text/tisty-doc");
+
+  const dropInto = (doc: Filed) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (!carries(e, doc)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOver(doc.id);
+    },
+    onDragLeave: () => setOver(null),
+    onDrop: (e: React.DragEvent) => {
+      if (!carries(e, doc)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOver(null);
+      const moved = e.dataTransfer.getData("text/tisty-doc");
+      if (moved && moved !== doc.id) onPage?.(moved, doc.id);
+    },
+  });
+
   const dropOn = (folder?: string) => ({
     onDragOver: (e: React.DragEvent) => {
       e.preventDefault();
@@ -184,7 +209,10 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          className="group/paper relative flex items-center focus-within:bg-hover"
+          {...dropInto(doc)}
+          className={`group/paper relative flex items-center rounded-md focus-within:bg-hover ${
+            over === doc.id ? "bg-accent-soft" : ""
+          }`}
           onContextMenu={(e) => {
             if (!onDocMenu) return;
             e.preventDefault();
