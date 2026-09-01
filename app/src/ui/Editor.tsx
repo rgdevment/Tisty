@@ -465,27 +465,6 @@ export default function Editor({
           run: () => editor.chain().focus().extendMarkRange("highlight").toggleHighlight().run(),
         },
         {
-          key: "middle",
-          label: t("towardsMiddle"),
-          hint: "↔",
-          icon: "aligncenter",
-          run: () => editor.chain().focus().setTextAlign("center").run(),
-        },
-        {
-          key: "rightwards",
-          label: t("towardsRight"),
-          hint: "→",
-          icon: "alignright",
-          run: () => editor.chain().focus().setTextAlign("right").run(),
-        },
-        {
-          key: "leftwards",
-          label: t("towardsLeft"),
-          hint: "←",
-          icon: "alignleft",
-          run: () => editor.chain().focus().setTextAlign("left").run(),
-        },
-        {
           key: "rule",
           label: t("leafBreak"),
           hint: "---",

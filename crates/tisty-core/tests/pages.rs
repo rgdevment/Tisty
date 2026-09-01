@@ -1014,7 +1014,7 @@ fn a_body_that_names_its_pages_in_order_moves_nothing() {
 }
 
 #[test]
-fn a_page_the_body_never_names_waits_at_the_end() {
+fn a_page_the_body_never_names_keeps_the_place_it_had() {
     let world = World::new();
     let mut store = world.store("dev_a");
     let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
@@ -1033,7 +1033,16 @@ fn a_page_the_body_never_names_waits_at_the_end() {
         .iter()
         .map(|one| one.file.as_str())
         .collect();
-    assert_eq!(told, ["a3f1-0004", "a3f1-0002", "a3f1-0003"]);
+    let four = told.iter().position(|one| *one == "a3f1-0004").unwrap();
+    let two = told.iter().position(|one| *one == "a3f1-0002").unwrap();
+    assert!(
+        four < two,
+        "the two it names read as it names them: {told:?}"
+    );
+    assert_eq!(
+        state.docs[&loose].order, "a1",
+        "and the one it never names is not moved"
+    );
     assert_eq!(state.docs[&loose].page_of, Some(book), "it is still a page");
 }
 
@@ -1286,7 +1295,7 @@ fn naming_a_page_that_belongs_to_another_document_does_not_pull_it_into_this_one
 }
 
 #[test]
-fn a_page_named_only_inside_a_code_fence_does_not_count_and_the_page_stays_at_the_end() {
+fn a_page_named_only_inside_a_code_fence_does_not_count_and_the_page_is_left_alone() {
     let world = World::new();
     let mut store = world.store("dev_a");
     let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
@@ -1311,8 +1320,8 @@ fn a_page_named_only_inside_a_code_fence_does_not_count_and_the_page_stays_at_th
             .iter()
             .map(|k| k.id)
             .collect::<Vec<_>>(),
-        vec![named, fenced],
-        "the reference inside the fence is text, not a naming, so that page waits at the end"
+        vec![fenced, named],
+        "the reference inside the fence is text, not a naming, so that page is not moved at all"
     );
 }
 
@@ -1395,8 +1404,8 @@ fn a_page_removed_from_the_text_and_later_put_back_returns_to_where_it_is_named(
             .iter()
             .map(|k| k.id)
             .collect::<Vec<_>>(),
-        vec![three, one, two],
-        "the unnamed page waits at the end"
+        vec![two, three, one],
+        "the two it names read in that order, and the one it dropped is left where it was"
     );
 
     for (id, order) in state.pages_told(book, &named_in(&["a3f1-0004", "a3f1-0003", "a3f1-0002"])) {
@@ -1609,5 +1618,108 @@ fn undoing_a_page_of_conversion_puts_the_folder_back_as_well_as_the_order() {
         replayed(&world).docs[&loose].folder,
         Some(home),
         "so undoing it has to hand the folder back too"
+    );
+}
+
+#[test]
+fn a_book_written_before_any_of_this_is_not_turned_inside_out_by_its_first_named_page() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+    let three = doc_add(&mut store, "a3f1-0004", "a2", None, Some(book));
+
+    let mut state = replayed(&world);
+    assert!(
+        state
+            .pages_told(book, "# Libro\n\nsin una sola tarjeta.")
+            .is_empty(),
+        "a body that names none of them says nothing about any of them"
+    );
+
+    let four = doc_add(&mut store, "a3f1-0005", "a3", None, Some(book));
+    state = replayed(&world);
+    for (id, order) in state.pages_told(book, &named_in(&["a3f1-0005"])) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|one| one.id)
+            .collect::<Vec<_>>(),
+        vec![one, two, three, four],
+        "the new page is named and the old ones are not, and the book still reads as it did"
+    );
+}
+
+#[test]
+fn two_machines_that_each_name_a_new_page_first_can_land_on_the_same_key_and_still_read_back_in_a_stable_order()
+ {
+    let world_a = World::new();
+    let mut store_a = world_a.store("dev_a");
+    let book = doc_add(&mut store_a, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store_a, "a3f1-0002", "a0", None, Some(book));
+    let two = doc_add(&mut store_a, "a3f1-0003", "a1", None, Some(book));
+
+    // A second machine that pulled the same history before either of them wrote a word since.
+    let world_b = World::new();
+    let mut store_b = world_b.store("dev_b");
+    for event in store_a.read_all().unwrap() {
+        store_b.append_event(&event).unwrap();
+    }
+
+    // Both machines independently write a brand new page and name it first, from the same
+    // starting text -- neither has seen the other's move.
+    let new_a = doc_add(&mut store_a, "a3f1-0004", "a2", None, Some(book));
+    for (id, order) in
+        replayed(&world_a).pages_told(book, &named_in(&["a3f1-0004", "a3f1-0002", "a3f1-0003"]))
+    {
+        moved(&mut store_a, id, &order);
+    }
+
+    let new_b = doc_add(&mut store_b, "a3f1-0005", "a2", None, Some(book));
+    for (id, order) in
+        replayed(&world_b).pages_told(book, &named_in(&["a3f1-0005", "a3f1-0002", "a3f1-0003"]))
+    {
+        moved(&mut store_b, id, &order);
+    }
+
+    let merged_ab = sorted_merge(store_a.read_all().unwrap(), store_b.read_all().unwrap());
+    let merged_ba = sorted_merge(store_b.read_all().unwrap(), store_a.read_all().unwrap());
+    let state_ab = State::replay(&merged_ab);
+    let state_ba = State::replay(&merged_ba);
+
+    assert_eq!(state_ab, state_ba, "merging in either order must converge");
+
+    // The two inserts computed a key from the very same pair of neighbours, with no way to know
+    // about each other, so the key itself can collide -- that is expected, not a corruption.
+    assert_eq!(
+        state_ab.docs[&new_a].order, state_ab.docs[&new_b].order,
+        "both machines inserted before the same neighbour from the same starting point"
+    );
+
+    // What must never happen is the merge losing a page or crashing on the tie: `pages_of`
+    // still hands back all four in one strict, deterministic order.
+    let told: Vec<DocId> = state_ab.pages_of(book).iter().map(|one| one.id).collect();
+    assert_eq!(told.len(), 4, "no page vanished across the merge");
+    assert!(
+        told.contains(&new_a)
+            && told.contains(&new_b)
+            && told.contains(&one)
+            && told.contains(&two),
+        "{told:?}"
+    );
+    assert_eq!(
+        told,
+        state_ba
+            .pages_of(book)
+            .iter()
+            .map(|one| one.id)
+            .collect::<Vec<_>>(),
+        "the tie breaks the same way regardless of merge order"
     );
 }

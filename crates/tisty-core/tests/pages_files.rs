@@ -796,8 +796,12 @@ fn the_way_into_a_page_is_the_file_beside_it_once_the_book_is_out_of_tisty() {
     docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
 
     let said = std::fs::read_to_string(out.path().join("Libro").join("Libro.md")).unwrap();
-    assert!(said.contains("![Uno](<01 Uno.md>)"), "{said}");
-    assert!(said.contains("![Dos](<02 Dos.md>)"), "{said}");
+    assert!(said.contains("[Uno](<01 Uno.md>)"), "{said}");
+    assert!(said.contains("[Dos](<02 Dos.md>)"), "{said}");
+    assert!(
+        !said.contains("!["),
+        "a picture of a markdown file is a broken image out there: {said}"
+    );
     assert!(
         !said.contains("tisty:doc/"),
         "nothing may still point at a name only Tisty knows: {said}"
@@ -1007,8 +1011,48 @@ fn exporting_a_book_whose_pages_name_each_other_rewrites_both_sides_of_the_cross
     let said_uno = std::fs::read_to_string(folder.join("01 Uno.md")).unwrap();
     let said_dos = std::fs::read_to_string(folder.join("02 Dos.md")).unwrap();
 
-    assert!(said_uno.contains("![Dos](<02 Dos.md>)"), "{said_uno}");
-    assert!(said_dos.contains("![Uno](<01 Uno.md>)"), "{said_dos}");
+    assert!(said_uno.contains("[Dos](<02 Dos.md>)"), "{said_uno}");
+    assert!(said_dos.contains("[Uno](<01 Uno.md>)"), "{said_dos}");
     assert!(!said_uno.contains("tisty:doc/"), "{said_uno}");
     assert!(!said_dos.contains("tisty:doc/"), "{said_dos}");
+}
+
+#[test]
+fn a_picture_the_person_wrote_is_still_a_picture_when_the_book_comes_out() {
+    let data_dir = tmp();
+    let data = data_dir.path();
+    let dev = device("mac0");
+    let mut state = State::default();
+    let mut seq = 0i64;
+
+    let (book, book_file) = add_doc(&mut state, data, &dev, &mut seq, "# Libro\n\nportada");
+    let (_, one) = add_page(
+        &mut state,
+        data,
+        &dev,
+        &mut seq,
+        book,
+        "# Uno\n\nmarker-a\n",
+    );
+
+    let cover = format!(
+        "# Libro\n\n![una foto](https://x.example/foto.png)\n\n{}\n",
+        tisty_core::refs::card(&one, "Uno")
+    );
+    docs::write(&data.join("docs"), &book_file, &cover).unwrap();
+
+    let page_files: Vec<String> = state
+        .pages_of(book)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    let out = tmp();
+    docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+
+    let said = std::fs::read_to_string(out.path().join("Libro").join("Libro.md")).unwrap();
+    assert!(
+        said.contains("![una foto](https://x.example/foto.png)"),
+        "only the way into a page stops being a picture: {said}"
+    );
+    assert!(said.contains("[Uno](<01 Uno.md>)"), "{said}");
 }

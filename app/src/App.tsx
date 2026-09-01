@@ -597,6 +597,15 @@ export default function App() {
       ],
     });
 
+  const hangIt = async (doc: string, pageOf: string) => {
+    const named = (id: string) =>
+      papers.docs.find((one) => one.id === id)?.title || t("untitledDoc");
+    if (!(await ask(fill("pageOfSure", named(doc), named(pageOf)), { kind: "warning" }))) return;
+    docPage(doc, pageOf)
+      .then(lookPapers)
+      .catch((e) => setError(saidPlainly(e)));
+  };
+
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
     setMenu({
       at,
@@ -622,10 +631,7 @@ export default function App() {
                 key: one.id,
                 icon: "▤",
                 label: one.title || t("untitledDoc"),
-                onPick: () =>
-                  docPage(doc.id, one.id)
-                    .then(lookPapers)
-                    .catch((e) => setError(saidPlainly(e))),
+                onPick: () => hangIt(doc.id, one.id),
               })),
           },
         },
@@ -933,11 +939,7 @@ export default function App() {
             .then(lookPapers)
             .catch((e) => setError(saidPlainly(e)))
         }
-        onPage={(doc, pageOf) =>
-          docPage(doc, pageOf)
-            .then(lookPapers)
-            .catch((e) => setError(saidPlainly(e)))
-        }
+        onPage={(doc, pageOf) => hangIt(doc, pageOf)}
         onFolderMenu={folderMenu}
         onDocMenu={docMenu}
         onHereMenu={hereMenu}

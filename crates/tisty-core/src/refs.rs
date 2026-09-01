@@ -102,16 +102,23 @@ fn named(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
 
 fn shuts(rest: &str) -> Option<usize> {
     let mut escaped = false;
+    let mut any = None;
     for (at, c) in rest.char_indices() {
+        if escaped {
+            escaped = false;
+            if c == ']' && any.is_none() {
+                any = Some(at);
+            }
+            continue;
+        }
         match c {
-            _ if escaped => escaped = false,
             '\\' => escaped = true,
             ']' => return Some(at),
             '[' | '\n' => return None,
             _ => {}
         }
     }
-    None
+    any
 }
 
 fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
@@ -448,6 +455,14 @@ si a < b
         let said = card("mac0-0010", "Rutas C:\\ y mas");
 
         assert_eq!(papers(&said), ["mac0-0010"], "{said}");
+    }
+
+    #[test]
+    fn a_label_that_ends_in_a_slash_still_closes_where_it_looks_closed() {
+        assert_eq!(
+            targets("[C:\\](attachments/ab/f-1111.png)"),
+            ["attachments/ab/f-1111.png"]
+        );
     }
 
     #[test]

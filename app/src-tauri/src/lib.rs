@@ -2993,7 +2993,10 @@ fn doc_export(
     id: String,
     into: String,
 ) -> Answer<Taken> {
-    let session = held(&session);
+    let mut session = held(&session);
+    if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), &id) {
+        let _ = session.retell(&id, &body);
+    }
     let pages: Vec<String> = session
         .state
         .docs

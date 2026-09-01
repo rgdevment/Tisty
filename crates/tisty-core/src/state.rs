@@ -474,11 +474,13 @@ impl State {
             return Vec::new();
         }
         let named = crate::refs::papers(body);
-        let mut wanted: Vec<&Kept> = named
+        let wanted: Vec<&Kept> = named
             .iter()
             .filter_map(|file| pages.iter().find(|one| &one.file == file).copied())
             .collect();
-        wanted.extend(pages.iter().filter(|one| !named.contains(&one.file)));
+        if wanted.len() < 2 {
+            return Vec::new();
+        }
 
         let keys: Vec<&str> = wanted.iter().map(|one| one.order.as_str()).collect();
         crate::order::resequenced(&keys)

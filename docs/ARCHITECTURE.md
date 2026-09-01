@@ -741,9 +741,15 @@ always drawn a card — and when what it names is one of its own pages, the wind
 draws the way into that page instead. The order those references are written in
 is the order the pages are in: saving a body works out the sequence and moves
 only the pages that have to move, so a body saved on every keystroke writes
-nothing to the log until the text really says something different. The ones the
-body never names are not lost — they keep their place at the end and the document
-lists them as loose, with the one action that fixes it.
+nothing to the log until the text really says something different.
+
+**A body says nothing about the pages it does not name**, and they are left
+exactly where they were. That is not tidiness, it is what makes a book written
+before any of this survive: such a book names none of its pages, and a rule that
+sent the unnamed ones to the end would turn it inside out the first time a single
+page ever named itself — the newest chapter would become the first. Instead the
+document lists them as loose, with the one action that puts one in the text, and
+the book turns into a named one at whatever pace its owner chooses.
 
 That leaves one source of truth for where a chapter belongs, which is where the
 person put it in the text. Cutting the reference and pasting it higher up moves

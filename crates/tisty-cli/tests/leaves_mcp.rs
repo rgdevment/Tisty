@@ -115,6 +115,23 @@ impl Served {
             .map(|one| one.as_str().unwrap().to_string())
             .collect()
     }
+
+    fn data(&self) -> std::path::PathBuf {
+        self.home.path().join("data")
+    }
+}
+
+fn copied(from: &std::path::Path, into: &std::path::Path) {
+    std::fs::create_dir_all(into).unwrap();
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let at = into.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copied(&entry.path(), &at);
+        } else {
+            std::fs::copy(entry.path(), at).unwrap();
+        }
+    }
 }
 
 #[test]
@@ -245,4 +262,59 @@ fn append_doc_settles_the_order_of_two_pages_that_were_never_named_before() {
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
 
     assert_eq!(served.pages_of(&book), vec![one, b, a]);
+}
+
+#[test]
+fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_own_text_on_the_next_write()
+ {
+    let here = Served::new();
+    let book = here.wrote("# Actas\n\nde este ano.", None);
+    let one = here.wrote("# Marzo", Some(&book));
+    let two = here.wrote("# Abril", Some(&book));
+    assert_eq!(here.pages_of(&book), vec![one.clone(), two.clone()]);
+
+    // A second machine pulls this store, then swaps the two pages on its own, offline.
+    let there = Served::new();
+    copied(&here.data().join("docs"), &there.data().join("docs"));
+    copied(&here.data().join("store"), &there.data().join("store"));
+    let old = format!("![Marzo](tisty:doc/{one})\n\n![Abril](tisty:doc/{two})");
+    let new = format!("![Abril](tisty:doc/{two})\n\n![Marzo](tisty:doc/{one})");
+    let said = there.call(
+        "edit_doc",
+        serde_json::json!({ "doc": book, "old": old, "new": new }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert_eq!(there.pages_of(&book), vec![two.clone(), one.clone()]);
+
+    // Pulling that swap back into the first machine's own store, without touching its own copy
+    // of the document's text, leaves the tree and the visible text disagreeing about the order.
+    for device in std::fs::read_dir(there.data().join("store")).unwrap() {
+        let device = device.unwrap();
+        copied(
+            &device.path(),
+            &here.data().join("store").join(device.file_name()),
+        );
+    }
+    assert_eq!(
+        here.pages_of(&book),
+        vec![two.clone(), one.clone()],
+        "the log now carries the other machine's move"
+    );
+    assert_eq!(
+        here.body_of(&book),
+        format!("# Actas\n\nde este ano.\n\n{old}\n"),
+        "but this machine's own file on disk still reads the way it always did"
+    );
+
+    // The next write on this machine settles the order back to what its own text says.
+    let said = here.call(
+        "append_doc",
+        serde_json::json!({ "doc": book, "body": "Fin." }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert_eq!(
+        here.pages_of(&book),
+        vec![one, two],
+        "saving settles the order back to what the text in front of the person says"
+    );
 }

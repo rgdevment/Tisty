@@ -53,7 +53,7 @@ A document can hold pages, and that is the only level there is: `write_doc` with
 
 A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `edit_doc` that line into the place it belongs — moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
-`page_doc` changes no text, so a document hung as a page that way is loose: it belongs to the document and goes everywhere with it, but sits at the end until the document names it. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
+`page_doc` changes no text, so a document hung as a page that way is loose: it belongs to the document and goes everywhere with it, but sits where it landed until the document names it. A body says nothing about the pages it does not name, and those are left where they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
 `append_doc` adds to the end of a document that exists, leaving every byte that was there, and \
 `edit_doc` changes one passage of it — naming what is written now, character for character, and \
@@ -1956,8 +1956,8 @@ fn tools() -> Value {
                             by leaving `page_of` out, which makes it a document of its own where \
                             it stands. A page goes with its document everywhere — folder, archive \
                             and deletion — and holds no pages of its own. Nothing is deleted and \
-                            no text changes, so a page hung this way sits at the end, loose, until \
-                            the document names it. `write_doc` with `page_of` names it for you.",
+                            no text changes, so a page hung this way is loose until the document \
+                            names it. `write_doc` with `page_of` names it for you.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,

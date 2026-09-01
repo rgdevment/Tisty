@@ -483,8 +483,12 @@ pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Resul
             .iter()
             .fold(body.to_string(), |body, (file, at, _)| {
                 let named = format!("{}{file}", crate::refs::DOC);
-                body.replace(&format!("](<{named}>)"), &format!("](<{at}>)"))
-                    .replace(&format!("]({named})"), &format!("](<{at}>)"))
+                unpictured(
+                    &body
+                        .replace(&format!("](<{named}>)"), &format!("](<{at}>)"))
+                        .replace(&format!("]({named})"), &format!("](<{at}>)")),
+                    at,
+                )
             })
     };
 
@@ -501,6 +505,41 @@ pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Resul
         files: taken,
         missed,
     })
+}
+
+fn unpictured(body: &str, at: &str) -> String {
+    let shut = format!("](<{at}>)");
+    let mut said = String::with_capacity(body.len());
+    let mut from = 0;
+    while let Some(found) = body[from..].find(&shut).map(|n| from + n) {
+        let opened = began(&body[..found]);
+        let cut = match opened {
+            Some(open) if body[..open].ends_with('!') => open - 1,
+            _ => found,
+        };
+        said.push_str(&body[from..cut]);
+        if cut != found {
+            said.push_str(&body[cut + 1..found]);
+        }
+        said.push_str(&shut);
+        from = found + shut.len();
+    }
+    said.push_str(&body[from..]);
+    said
+}
+
+fn began(before: &str) -> Option<usize> {
+    let mut escaped = false;
+    let mut open = None;
+    for (at, c) in before.char_indices() {
+        match c {
+            _ if escaped => escaped = false,
+            '\\' => escaped = true,
+            '[' => open = Some(at),
+            _ => {}
+        }
+    }
+    open
 }
 
 fn laid_out(data: &Path, body: &str, folder: &Path, named: &str) -> Result<usize> {

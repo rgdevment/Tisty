@@ -340,6 +340,8 @@ const en = {
     "Delete «{name}»? The document and what it holds go for good. This cannot be undone.",
   dropPagesSure:
     "Delete «{name}»? The document, its pages and what they hold go for good. This cannot be undone.",
+  pageOfSure:
+    "Make «{name}» a page of «{other}»? It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
   newPage: "New page",
   pageOf: "Make it a page of…",
   pageOfWhich: "A page of which one",
@@ -764,9 +766,6 @@ const en = {
   welcomeNext: "Next",
   welcomeBack: "Back",
   penIt: "Highlight",
-  towardsMiddle: "Centre it",
-  towardsRight: "To the right",
-  towardsLeft: "To the left",
   greetAgain: "The welcome",
   greetAgainWhy:
     "It asks again about the language, where your copies go, starting with the computer and what closing the window does. Nothing you have written is touched.",
@@ -1343,6 +1342,8 @@ const es: Catalog = {
     "¿Borrar «{name}»? El documento y su contenido se van para siempre. Esto no se puede deshacer.",
   dropPagesSure:
     "¿Borrar «{name}»? El documento, sus páginas y lo que guardan se van para siempre. Esto no se puede deshacer.",
+  pageOfSure:
+    "¿Hacer que «{name}» sea página de «{other}»? Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
   newPage: "Nueva página",
   pageOf: "Es página de…",
   pageOfWhich: "Página de cuál",
@@ -1770,9 +1771,6 @@ const es: Catalog = {
   welcomeNext: "Siguiente",
   welcomeBack: "Atrás",
   penIt: "Destacar",
-  towardsMiddle: "Centrar",
-  towardsRight: "A la derecha",
-  towardsLeft: "A la izquierda",
   greetAgain: "La bienvenida",
   greetAgainWhy:
     "Vuelve a preguntar por el idioma, dónde van tus copias, si inicia con el equipo y qué hace al cerrar la ventana. No toca nada de lo que has escrito.",
