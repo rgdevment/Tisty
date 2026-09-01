@@ -1049,6 +1049,38 @@ fn opening(at: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_stray_paper_is_listed_with_what_it_weighs_and_what_it_says() {
+        let room = tempfile::tempdir().unwrap();
+        let root = room.path();
+        std::fs::write(
+            root.join("mac0-0001.md"),
+            "# Minuta
+
+Algo escrito.",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("mac0-0002.md"),
+            "# Guardado
+",
+        )
+        .unwrap();
+
+        let strays = strayed(root, &["mac0-0002".to_string()]);
+        assert_eq!(strays.len(), 1, "only the one no document names");
+        let one = &strays[0];
+        assert_eq!(one.file, "mac0-0001");
+        assert_eq!(one.title, "Minuta");
+        assert!(one.bytes > 0, "it says what it weighs");
+        assert!(one.when > 0, "and when it was written");
+
+        assert!(
+            strayed(root, &["mac0-0001".to_string(), "mac0-0002".to_string()]).is_empty(),
+            "nothing is stray when the log names them all"
+        );
+    }
     use super::*;
 
     fn device(named: &str) -> DeviceId {

@@ -81,9 +81,10 @@ new body whole.
 **No assistant ever deletes, and that is the design rather than an omission.** The
 MCP has no tool that writes any of the deletions — not a task, not a list, not a
 folder, not a document. Finishing is the person's, and so is unmaking; an agent
-that cannot delete cannot be talked into deleting. The terminal is the person, not
-an assistant: `tisty rm` and `tisty list delete` do delete, under the machine's own
-device. **Documents are narrower still — only the window deletes one**, so a
+that cannot delete cannot be talked into deleting. The terminal is the person,
+not an assistant: `tisty rm` and `tisty list delete` do delete, under the
+machine's own device. **Documents are narrower still — only the window deletes
+one**, so a
 mistyped command cannot lose a document.
 
 The absence of a tool is a locked door, not a law, so the rule is written into the
@@ -958,9 +959,9 @@ same way as before, when the document is next opened or saved.
 only some of a book's pages — hanging a document under another writes no card, so
 a book can hold pages the text never mentions. Those pages keep the *places* they
 held, but the keys are dealt across every page at once. Re-keying only the named
-ones would hand out a key an unnamed sibling already holds, and a duplicate key is
-decided by whichever id sorts first — a place nobody chose, that no later settle
-repairs, because the text never names that page again.
+ones would hand out a key an unnamed sibling already holds, and a duplicate key
+is decided by whichever id sorts first — a place nobody chose, and no later
+settle repairs it, because the text never names that page again.
 
 **Compaction is not atomic across machines, and is left that way on purpose.**
 Re-basing a run is N independent moves, not one operation. Two machines
@@ -981,8 +982,9 @@ out of the log and returns its inverse — the folder and the place it held — 
 falls back to the end of the parent's folder in the three cases the inverse cannot
 serve: there was no hang, the folder it names is gone, or the last hang moved the
 page straight from one document to another — inverting *that* would re-hang it
-under the earlier one instead of setting it free. Deleting has no such inverse and never will: it is
-permanent by design, which is why it is the one thing asked about first.
+under the earlier one instead of setting it free. Deleting has no such inverse
+and never will: it is permanent by design, which is why it is the one thing
+asked about first.
 
 **The schema is 8 because of this.** A machine still on 1.0.x rejects the whole
 event rather than reading a page as a loose document and filing it somewhere the

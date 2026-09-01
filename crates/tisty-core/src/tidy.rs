@@ -28,6 +28,62 @@ pub struct Already {
     pub attachments: BTreeSet<String>,
 }
 
+pub fn all_of_it(
+    paths: &Paths,
+    state: &State,
+    cache: Option<&crate::cache::Cache>,
+    dest: Option<&Path>,
+    bin: bool,
+) -> Swept {
+    let mut done = cache.map(|one| one.already()).unwrap_or_default();
+    let was = done.clone();
+
+    let held = || {
+        let mut named: Vec<String> = state
+            .tasks
+            .values()
+            .flat_map(|task| task.references())
+            .map(|one| one.target)
+            .collect();
+        named.extend(crate::docs::referenced(&paths.docs()));
+        named
+    };
+    let swept = Swept {
+        papers: papers(paths, state, dest, &mut done),
+        attachments: attachments(paths, state, dest, held, &mut done),
+        binned: if bin { self::bin(paths) } else { 0 },
+    };
+    if done != was
+        && let Some(cache) = cache
+    {
+        cache.note_already(&done);
+    }
+    swept
+}
+
+pub fn settling_what_arrived(paths: &Paths, state: &State, files: &[String]) -> Vec<crate::Op> {
+    let root = paths.docs();
+    let mut told = Vec::new();
+    for file in state.books_among(files) {
+        match crate::docs::read(&root, &file) {
+            Ok(body) => told.extend(state.settling(&file, &body)),
+            Err(e) => witness::warn(
+                channel::SYNC,
+                "a document that arrived could not be read to settle its pages",
+                &[("file", Fact::Id(file)), ("why", Fact::Why(e.to_string()))],
+            ),
+        }
+    }
+    if !told.is_empty() {
+        witness::note(
+            channel::SYNC,
+            "a document that arrived names its pages in another order, and now the log agrees",
+            &[("count", Fact::Count(told.len()))],
+        );
+    }
+    told
+}
+
 pub fn papers(paths: &Paths, state: &State, dest: Option<&Path>, done: &mut Already) -> usize {
     let owed: BTreeSet<String> = state.shed.difference(&done.papers).cloned().collect();
     if owed.is_empty() {
@@ -38,7 +94,12 @@ pub fn papers(paths: &Paths, state: &State, dest: Option<&Path>, done: &mut Alre
         gone += crate::docs::sweep(&dest.join("docs"), &owed);
     }
     forget_the_prints(paths, &owed);
-    done.papers.extend(owed);
+    done.papers.extend(owed.into_iter().filter(|file| {
+        went(&paths.docs(), |root| crate::docs::resolve(root, file))
+            && dest.is_none_or(|dest| {
+                went(&dest.join("docs"), |root| crate::docs::resolve(root, file))
+            })
+    }));
     if gone > 0 {
         witness::note(
             channel::SYNC,
@@ -70,8 +131,11 @@ pub fn attachments(
     if let Some(dest) = dest {
         gone += crate::attach::sweep(dest, &owed, &held);
     }
-    done.attachments
-        .extend(owed.into_iter().filter(|one| !held.contains(one.as_str())));
+    done.attachments.extend(owed.into_iter().filter(|one| {
+        !held.contains(one.as_str())
+            && went(paths.data(), |root| crate::attach::resolve(one, root))
+            && dest.is_none_or(|dest| went(dest, |root| crate::attach::resolve(one, root)))
+    }));
     if gone > 0 {
         witness::note(
             channel::ATTACH,
@@ -92,6 +156,10 @@ pub fn bin(paths: &Paths) -> usize {
         );
     }
     gone
+}
+
+fn went(root: &Path, at: impl Fn(&Path) -> crate::Result<std::path::PathBuf>) -> bool {
+    !at(root).is_ok_and(|at| at.exists())
 }
 
 fn forget_the_prints(paths: &Paths, owed: &BTreeSet<String>) {
@@ -206,5 +274,123 @@ mod tests {
             "and once nothing names it, it goes"
         );
         assert!(done.attachments.contains(at));
+    }
+
+    fn cached(room: &tempfile::TempDir) -> crate::cache::Cache {
+        crate::cache::Cache::open(&room.path().join("cache"))
+            .unwrap()
+            .expect("a cache opens")
+    }
+
+    #[test]
+    fn what_was_taken_out_is_remembered_across_a_reading() {
+        let (room, paths) = desk();
+        let cache = cached(&room);
+        a_paper(&paths, "dev_a-0001");
+        let mut state = State::default();
+        state.shed.insert("dev_a-0001".into());
+
+        let swept = all_of_it(&paths, &state, Some(&cache), None, true);
+        assert_eq!(swept.papers, 1);
+        assert!(swept.any());
+
+        a_paper(&paths, "dev_a-0001");
+        let again = all_of_it(&paths, &state, Some(&cache), None, false);
+        assert_eq!(again.papers, 0, "the mark outlived the call");
+        assert!(!again.any());
+        assert!(paths.docs().join("dev_a-0001.md").exists());
+    }
+
+    #[test]
+    fn without_a_cache_it_still_sweeps_and_simply_forgets() {
+        let (_room, paths) = desk();
+        a_paper(&paths, "dev_a-0001");
+        let mut state = State::default();
+        state.shed.insert("dev_a-0001".into());
+
+        assert_eq!(all_of_it(&paths, &state, None, None, false).papers, 1);
+        a_paper(&paths, "dev_a-0001");
+        assert_eq!(
+            all_of_it(&paths, &state, None, None, false).papers,
+            1,
+            "nothing remembers, so it looks again"
+        );
+    }
+
+    #[test]
+    fn a_body_that_arrived_saying_another_order_is_settled_in_one_batch() {
+        let (_room, paths) = desk();
+        let book = ulid::Ulid::generate();
+        let mut state = State::default();
+        let mut kept = |id, file: &str, order: &str, up| {
+            state.docs.insert(
+                id,
+                crate::model::Kept {
+                    id,
+                    file: file.into(),
+                    order: order.into(),
+                    folder: None,
+                    page_of: up,
+                    archived: false,
+                },
+            );
+        };
+        kept(book, "dev_a-0001", "V", None);
+        let one = ulid::Ulid::generate();
+        let two = ulid::Ulid::generate();
+        kept(one, "dev_a-0002", "V", Some(book));
+        kept(two, "dev_a-0003", "W", Some(book));
+
+        std::fs::write(
+            paths.docs().join("dev_a-0001.md"),
+            "# Libro
+
+![dos](tisty:doc/dev_a-0003)
+
+![uno](tisty:doc/dev_a-0002)
+",
+        )
+        .unwrap();
+
+        let told = settling_what_arrived(&paths, &state, &["dev_a-0001".to_string()]);
+        assert_eq!(told.len(), 1, "only the one that has to move");
+
+        assert!(
+            settling_what_arrived(&paths, &state, &["dev_a-0002".to_string()]).is_empty(),
+            "a page arriving moves nothing: the order lives in the book"
+        );
+        assert!(
+            settling_what_arrived(&paths, &state, &[]).is_empty(),
+            "and nothing arriving reads nothing"
+        );
+    }
+
+    #[test]
+    fn a_file_that_would_not_go_is_looked_for_again_next_time() {
+        let (_room, paths) = desk();
+        let at = paths.docs().join("dev_a-0001.md");
+        std::fs::create_dir_all(&at).unwrap();
+        let mut state = State::default();
+        state.shed.insert("dev_a-0001".into());
+        let mut done = Already::default();
+
+        assert_eq!(
+            papers(&paths, &state, None, &mut done),
+            0,
+            "it would not go"
+        );
+        assert!(
+            done.papers.is_empty(),
+            "so it is not written off: the next opening has to try again"
+        );
+
+        std::fs::remove_dir(&at).unwrap();
+        std::fs::write(&at, b"# Algo").unwrap();
+        assert_eq!(
+            papers(&paths, &state, None, &mut done),
+            1,
+            "and then it goes"
+        );
+        assert!(done.papers.contains("dev_a-0001"));
     }
 }

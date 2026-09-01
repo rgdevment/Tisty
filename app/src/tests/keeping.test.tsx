@@ -1678,3 +1678,90 @@ describe("letting an assistant file work here", () => {
     expect(screen.getByText(/mcp add tisty/)).toBeTruthy();
   });
 });
+
+describe("documents the log names with no file", () => {
+  const gone = (quiet: boolean) => {
+    const was = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "checked"
+        ? was(cmd, args).then((one) => ({
+            ...(one as object),
+            missing: [{ id: "01M1ER4WK1E6BZJF2S9H9V0KYB", file: "win1-0007", title: "Recipes" }],
+            machines: [
+              {
+                id: "mac0-0001",
+                called: "cedar 14",
+                when: Math.floor(Date.now() / 1000),
+                mine: true,
+              },
+              {
+                id: "win1-0002",
+                called: "sage 07",
+                when: Math.floor(Date.now() / 1000) - (quiet ? 60 * 60 * 24 * 12 : 60),
+                mine: false,
+              },
+            ],
+          }))
+        : was(cmd, args);
+  };
+
+  const opened = async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+  };
+
+  it("will not let one be forgotten while a machine has been quiet", async () => {
+    gone(true);
+    await opened();
+
+    expect(await screen.findByText("Recipes")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /forget it/i })).toBeNull();
+    expect(screen.getByText(/sage 07 has spoken/i)).toBeTruthy();
+  });
+
+  it("offers to forget one once every machine has spoken, and asks first", async () => {
+    gone(false);
+    await opened();
+
+    asked.sure = false;
+    await userEvent.click(await screen.findByRole("button", { name: /forget it/i }));
+    await waitFor(() => expect(asked.said).toMatch(/for good/i));
+    expect(sent("doc_drop")).toHaveLength(0);
+
+    asked.sure = true;
+    await userEvent.click(screen.getByRole("button", { name: /forget it/i }));
+    await waitFor(() => expect(sent("doc_drop")).toHaveLength(1));
+    expect(sent("doc_drop")[0]?.args.id).toBe("01M1ER4WK1E6BZJF2S9H9V0KYB");
+  });
+});
+
+describe("taking every loose attachment out at once", () => {
+  const opened = async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+  };
+
+  it("says how many before it takes any, and takes none when told no", async () => {
+    await opened();
+
+    asked.sure = false;
+    await userEvent.click(await screen.findByRole("button", { name: /take them all out/i }));
+    await waitFor(() => expect(asked.said).toMatch(/3/));
+    expect(sent("retire_attachment")).toHaveLength(0);
+  });
+
+  it("takes each one out and looks again afterwards", async () => {
+    await opened();
+
+    asked.sure = true;
+    await userEvent.click(await screen.findByRole("button", { name: /take them all out/i }));
+    await waitFor(() => expect(sent("retire_attachment")).toHaveLength(3));
+    expect(sent("retire_attachment").map((one) => one.args.reference)).toContain(
+      "attachments/ab/charla-a3f9.mp4",
+    );
+  });
+});

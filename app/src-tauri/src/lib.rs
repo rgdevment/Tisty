@@ -228,6 +228,46 @@ impl Session {
         found
     }
 
+    fn take_in(&mut self, file: &str) -> Answer<tisty_core::docs::Doc> {
+        if self.state.docs.values().any(|one| one.file == file) {
+            return Err(Refusal::of("alreadyKept"));
+        }
+        let body = tisty_core::docs::read(&self.paths.docs(), file)
+            .map_err(|_| Refusal::of("noSuchDoc"))?;
+
+        let order = tisty_core::order::last_of(
+            self.state
+                .docs
+                .values()
+                .filter(|one| one.page_of.is_none() && one.folder.is_none())
+                .map(|one| one.order.as_str()),
+        );
+        self.commit(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: file.to_string(),
+                order,
+                folder: None,
+                page_of: None,
+            },
+        })?;
+        Ok(tisty_core::docs::Doc {
+            title: tisty_core::docs::titled(&body),
+            id: file.to_string(),
+        })
+    }
+
+    fn let_go_of(&mut self, file: &str) -> Answer<()> {
+        if self.state.docs.values().any(|one| one.file == file) {
+            return Err(Refusal::of("stillKept"));
+        }
+        tisty_core::docs::remove(&self.paths.docs(), file)
+            .map_err(|e| blamed(channel::WINDOW, "a stray document file would not go", e))?;
+        tisty_core::docs::forget_carried(self.paths.data(), file);
+        self.corpus.forget(file);
+        Ok(())
+    }
+
     fn drop_doc(&mut self, id: &str) -> Answer<()> {
         let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
         let kept = self
@@ -275,24 +315,14 @@ impl Session {
     }
 
     fn settle_what_arrived(&mut self, files: &[String]) {
-        let books = self.state.books_among(files);
-        let root = self.paths.docs();
-        let mut settled = 0;
-        for file in books {
-            match tisty_core::docs::read(&root, &file) {
-                Ok(body) => settled += usize::from(self.retell(&file, &body)),
-                Err(e) => witness::warn(
-                    channel::SYNC,
-                    "a document that arrived could not be read to settle its pages",
-                    &[("file", Fact::Id(file)), ("why", Fact::Why(e.to_string()))],
-                ),
-            }
-        }
-        if settled > 0 {
-            witness::note(
+        let told = tisty_core::tidy::settling_what_arrived(&self.paths, &self.state, files);
+        if !told.is_empty()
+            && let Err(e) = self.commit_all(told)
+        {
+            witness::warn(
                 channel::SYNC,
-                "a document that arrived names its pages in another order, and now the log agrees",
-                &[("count", Fact::Count(settled))],
+                "where a document's pages sit could not be settled",
+                &[("why", Fact::Why(e.to_string()))],
             );
         }
     }
@@ -305,35 +335,14 @@ impl Session {
     }
 
     fn tidy_up(&mut self, bin: bool) {
-        let mut done = self
-            .cache
-            .as_ref()
-            .map(|one| one.already())
-            .unwrap_or_default();
-        let was = done.clone();
         let dest = self.dest();
-        tisty_core::tidy::papers(&self.paths, &self.state, dest.as_deref(), &mut done);
-        let paths = self.paths.clone();
-        let state = &self.state;
-        let held = || {
-            let mut named: Vec<String> = state
-                .tasks
-                .values()
-                .flat_map(|task| task.references())
-                .map(|one| one.target)
-                .collect();
-            named.extend(tisty_core::docs::referenced(&paths.docs()));
-            named
-        };
-        tisty_core::tidy::attachments(&self.paths, &self.state, dest.as_deref(), held, &mut done);
-        if bin {
-            tisty_core::tidy::bin(&self.paths);
-        }
-        if done != was
-            && let Some(cache) = self.cache.as_ref()
-        {
-            cache.note_already(&done);
-        }
+        tisty_core::tidy::all_of_it(
+            &self.paths,
+            &self.state,
+            self.cache.as_ref(),
+            dest.as_deref(),
+            bin,
+        );
     }
 
     fn take_a_seat(&mut self) -> tisty_core::Result<()> {
@@ -3160,47 +3169,12 @@ fn doc_adopt(
     session: tauri::State<'_, Mutex<Session>>,
     file: String,
 ) -> Answer<tisty_core::docs::Doc> {
-    let mut session = held(&session);
-    if session.state.docs.values().any(|one| one.file == file) {
-        return Err(Refusal::of("alreadyKept"));
-    }
-    let body = tisty_core::docs::read(&session.paths.docs(), &file)
-        .map_err(|_| Refusal::of("noSuchDoc"))?;
-
-    let order = tisty_core::order::last_of(
-        session
-            .state
-            .docs
-            .values()
-            .filter(|one| one.page_of.is_none() && one.folder.is_none())
-            .map(|one| one.order.as_str()),
-    );
-    session.commit(Op::DocAdd {
-        id: ulid::Ulid::generate(),
-        d: tisty_core::event::DocAdd {
-            file: file.clone(),
-            order,
-            folder: None,
-            page_of: None,
-        },
-    })?;
-    Ok(tisty_core::docs::Doc {
-        title: tisty_core::docs::titled(&body),
-        id: file,
-    })
+    held(&session).take_in(&file)
 }
 
 #[tauri::command]
 fn doc_let_go(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<()> {
-    let mut session = held(&session);
-    if session.state.docs.values().any(|one| one.file == file) {
-        return Err(Refusal::of("stillKept"));
-    }
-    tisty_core::docs::remove(&session.paths.docs(), &file)
-        .map_err(|e| blamed(channel::WINDOW, "a stray document file would not go", e))?;
-    tisty_core::docs::forget_carried(session.paths.data(), &file);
-    session.corpus.forget(&file);
-    Ok(())
+    held(&session).let_go_of(&file)
 }
 
 #[tauri::command]
@@ -5186,6 +5160,51 @@ mod deleting {
         assert!(session.drop_doc("nonsense").is_err());
         assert!(there(&desk, &file));
         assert_eq!(session.state.docs.len(), 1);
+    }
+
+    #[test]
+    fn a_stray_file_is_taken_in_and_then_cannot_be_taken_in_twice() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let made =
+            tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "# Minuta")
+                .unwrap();
+
+        assert_eq!(
+            tisty_core::docs::strayed(&desk.paths.docs(), &[]).len(),
+            1,
+            "nothing names it yet"
+        );
+        let took = session.take_in(&made.id).unwrap();
+        assert_eq!(took.title, "Minuta");
+        assert!(session.state.docs.values().any(|one| one.file == made.id));
+        assert!(session.take_in(&made.id).is_err(), "not twice");
+    }
+
+    #[test]
+    fn a_file_the_log_still_names_is_not_let_go_of() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let file = a_page_under(&mut session, None);
+
+        assert!(
+            session.let_go_of(&file).is_err(),
+            "the log names it, so it stays"
+        );
+        assert!(there(&desk, &file));
+    }
+
+    #[test]
+    fn a_stray_file_nobody_names_is_let_go_of() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let made =
+            tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "# Suelto")
+                .unwrap();
+
+        session.let_go_of(&made.id).unwrap();
+        assert!(!there(&desk, &made.id));
+        assert!(session.state.docs.is_empty(), "and no event was written");
     }
 }
 

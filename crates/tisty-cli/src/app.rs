@@ -92,38 +92,17 @@ impl App {
     }
 
     pub fn tidy_up(&mut self, bin: bool) {
-        let mut done = self
-            .cache
-            .as_ref()
-            .map(|one| one.already())
-            .unwrap_or_default();
-        let was = done.clone();
         let dest = match self.config.sync.clone() {
             Some(tisty_core::config::Sync::Folder(at)) => Some(at),
             _ => None,
         };
-        tisty_core::tidy::papers(&self.paths, &self.state, dest.as_deref(), &mut done);
-        let paths = self.paths.clone();
-        let state = &self.state;
-        let held = || {
-            let mut named: Vec<String> = state
-                .tasks
-                .values()
-                .flat_map(|task| task.references())
-                .map(|one| one.target)
-                .collect();
-            named.extend(tisty_core::docs::referenced(&paths.docs()));
-            named
-        };
-        tisty_core::tidy::attachments(&self.paths, &self.state, dest.as_deref(), held, &mut done);
-        if bin {
-            tisty_core::tidy::bin(&self.paths);
-        }
-        if done != was
-            && let Some(cache) = self.cache.as_ref()
-        {
-            cache.note_already(&done);
-        }
+        tisty_core::tidy::all_of_it(
+            &self.paths,
+            &self.state,
+            self.cache.as_ref(),
+            dest.as_deref(),
+            bin,
+        );
     }
 
     pub fn copies_up_to(&self) -> u64 {
