@@ -110,6 +110,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         *app = App::at(app.paths.clone())?;
         settle_what_arrived(app, &moved.arrived);
     }
+    app.tidy_up(true);
 
     let who = app.config().device_id.clone();
     if !tisty_core::store::ledger(app.paths.store())?

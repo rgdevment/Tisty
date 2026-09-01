@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   type About,
   type Agent,
+  type Astray,
   about,
   agentState,
   agentTurn,
@@ -12,10 +13,14 @@ import {
   checked,
   chooseSync,
   copied,
+  docAdopt,
+  docDrop,
+  docLetGo,
   docs,
   type Freeing,
   facts,
   freeUp,
+  type Gone,
   guide,
   type Holds,
   joinThem,
@@ -38,6 +43,7 @@ import {
   retireAttachment,
   revealed,
   type Settings,
+  type Stray,
   seenAgents,
   shortcut,
   stopFreeing,
@@ -345,6 +351,63 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
           ),
       )
       .catch((e) => setTrouble({ card: "backup", text: saidPlainly(e) }));
+  };
+
+  const letGoOfAll = (astray: Astray[]) => {
+    if (held || astray.length === 0) return;
+    ask(fill("upkeepSafeAllSure", String(astray.length)), { kind: "warning" })
+      .then(async (sure) => {
+        if (!sure) return;
+        setBusy("review");
+        try {
+          for (const one of astray) await retireAttachment(one.at);
+          setAudit(await checked());
+          setSaid({ card: "review", text: t("looseDropped") });
+        } catch (e) {
+          setTrouble({ card: "review", text: saidPlainly(e) });
+        } finally {
+          setBusy(null);
+        }
+      })
+      .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
+  };
+
+  const forgetMissing = (one: Gone) => {
+    if (held) return;
+    ask(fill("dropDocSure", one.title || one.file), { kind: "warning" })
+      .then(
+        (sure) =>
+          sure &&
+          run("review", docDrop(one.id).then(checked), (now) => {
+            setAudit(now);
+            setSaid({ card: "review", text: t("looseDropped") });
+          }),
+      )
+      .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
+  };
+
+  const takeIn = (file: string) =>
+    run(
+      "review",
+      docAdopt(file).then(async (made) => ({ made, now: await checked() })),
+      (both) => {
+        setAudit(both.now);
+        setSaid({ card: "review", text: fill("upkeepTakenIn", both.made.title || both.made.id) });
+      },
+    );
+
+  const letGoOfPaper = (one: Stray) => {
+    if (held) return;
+    ask(fill("upkeepDropSure", one.title || one.file), { kind: "warning" })
+      .then(
+        (sure) =>
+          sure &&
+          run("review", docLetGo(one.file).then(checked), (now) => {
+            setAudit(now);
+            setSaid({ card: "review", text: t("upkeepDropped") });
+          }),
+      )
+      .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
   };
 
   const letGo = (reference: string, shared?: boolean) => {
@@ -1269,16 +1332,6 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
               {audit && audit.loose === 0 && (
                 <p className="mt-2 text-[12.5px] text-faint">{t("looseNone")}</p>
               )}
-              {audit && audit.stranded > 0 && (
-                <p className="mt-2 text-[12.5px] leading-relaxed text-urgent">
-                  {fill("strandedPapers", String(audit.stranded))}
-                </p>
-              )}
-              {audit && audit.missing > 0 && (
-                <p className="mt-2 text-[12.5px] leading-relaxed text-urgent">
-                  {fill("missingPapers", String(audit.missing))}
-                </p>
-              )}
               {audit && audit.loose > 0 && (
                 <>
                   <p className="mt-2 text-[12.5px] tabular-nums text-soft">
@@ -1311,6 +1364,14 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                   <div className="mt-2.5 flex items-center gap-2.5">
                     <button
                       type="button"
+                      disabled={held || audit.loose === 0}
+                      onClick={() => letGoOfAll(audit.astray)}
+                      className="rounded-[7px] border border-urgent/45 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-hover disabled:border-hair disabled:text-faint"
+                    >
+                      {t("upkeepSafeAll")}
+                    </button>
+                    <button
+                      type="button"
                       disabled={!build}
                       onClick={() =>
                         build &&
@@ -1324,6 +1385,104 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                     </button>
                   </div>
                 </>
+              )}
+            </Card>
+
+            <Group label={t("upkeepLook")} />
+
+            <Card title={t("upkeepLook")} which="review" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("upkeepLookWhat")}</p>
+              {audit && audit.stranded.length === 0 && (
+                <p className="mt-2 text-[12.5px] text-faint">{t("upkeepNothing")}</p>
+              )}
+              {audit && audit.stranded.length > 0 && (
+                <>
+                  <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
+                    {audit.stranded.map((one) => (
+                      <li key={one.file} className="flex items-baseline justify-between gap-4">
+                        <span className="min-w-0">
+                          <span className="block truncate">{one.title || t("untitledDoc")}</span>
+                          <span className="block font-mono text-[10.5px] text-faint">
+                            {`${one.file} · ${weigh(one.bytes)} · ${dated(one.when)}`}
+                          </span>
+                        </span>
+                        <span className="flex shrink-0 items-baseline gap-2.5">
+                          <button
+                            type="button"
+                            disabled={held}
+                            onClick={() => takeIn(one.file)}
+                            className="text-[11.5px] text-accent hover:underline disabled:text-soft"
+                          >
+                            {t("upkeepTakeIn")}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={held}
+                            onClick={() => letGoOfPaper(one)}
+                            className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
+                          >
+                            {t("upkeepDropIt")}
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-2.5">
+                    <button
+                      type="button"
+                      disabled={held}
+                      onClick={() => {
+                        for (const one of audit.stranded) takeIn(one.file);
+                      }}
+                      className="rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:border-hair disabled:text-faint"
+                    >
+                      {t("upkeepTakeInAll")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </Card>
+
+            <Group label={fill("upkeepWaiting", hushedName(audit) ?? t("theMachines"))} />
+
+            <Card
+              title={fill("upkeepWaiting", hushedName(audit) ?? t("theMachines"))}
+              which="review"
+              busy={busy}
+              said={said}
+              trouble={trouble}
+            >
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("upkeepWaitingWhat")}</p>
+              {audit && audit.missing.length === 0 && (
+                <p className="mt-2 text-[12.5px] text-faint">{t("upkeepNothing")}</p>
+              )}
+              {audit && audit.missing.length > 0 && (
+                <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
+                  {audit.missing.map((one) => (
+                    <li key={one.file} className="flex items-baseline justify-between gap-4">
+                      <span className="min-w-0">
+                        <span className="block truncate">{one.title || t("untitledDoc")}</span>
+                        <span className="block font-mono text-[10.5px] text-faint">{one.file}</span>
+                      </span>
+                      <span className="flex shrink-0 items-baseline gap-2.5">
+                        {hushedName(audit) ? (
+                          <span className="text-[11.5px] text-faint">
+                            {fill("upkeepForgetWaits", hushedName(audit) ?? "")}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={held}
+                            onClick={() => forgetMissing(one)}
+                            className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
+                          >
+                            {t("upkeepForget")}
+                          </button>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </Card>
 
@@ -1473,6 +1632,9 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
 
 const HUSHED = 7 * 24 * 60 * 60;
 const QUIET_DAYS = 3;
+
+const hushedName = (audit: Reviewed | null): string | null =>
+  audit?.machines.find(hushed)?.called ?? null;
 
 const hushed = (one: Machine): boolean =>
   !one.mine && (one.when === 0 || Date.now() / 1000 - one.when > HUSHED);

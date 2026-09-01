@@ -65,6 +65,8 @@ const KNOWN = [
   "noSuchFolder",
   "noSuchDoc",
   "deleteRefused",
+  "alreadyKept",
+  "stillKept",
   "noSuchIcon",
   "noSuchColour",
   "tooDeep",

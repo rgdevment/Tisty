@@ -620,6 +620,35 @@ pub fn remove(root: &Path, id: &str) -> Result<()> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Stray {
+    pub file: String,
+    pub title: String,
+    pub bytes: u64,
+    pub when: i64,
+}
+
+pub fn strayed(root: &Path, alive: &[String]) -> Vec<Stray> {
+    loose(root, alive)
+        .into_iter()
+        .map(|one| {
+            let at = resolve(root, &one.id).ok();
+            let told = at.as_ref().and_then(|at| std::fs::metadata(at).ok());
+            Stray {
+                title: one.title,
+                file: one.id,
+                bytes: told.as_ref().map(|one| one.len()).unwrap_or(0),
+                when: told
+                    .and_then(|one| one.modified().ok())
+                    .and_then(|one| one.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|one| one.as_secs() as i64)
+                    .unwrap_or(0),
+            }
+        })
+        .collect()
+}
+
 pub fn missing(root: &Path, alive: &[String]) -> Vec<String> {
     alive
         .iter()

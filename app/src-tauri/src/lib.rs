@@ -77,19 +77,7 @@ impl Session {
             minded: std::collections::HashMap::new(),
             log: None,
         };
-        session.take_out_the_shed();
-        session.take_out_the_retired();
-        let gone = tisty_core::attach::empty_the_bin(
-            session.paths.data(),
-            jiff::Timestamp::now().as_second(),
-        );
-        if gone > 0 {
-            witness::note(
-                channel::ATTACH,
-                "what waited in the bin past its time is gone",
-                &[("count", Fact::Count(gone))],
-            );
-        }
+        session.tidy_up(true);
         session.sow_if_clean(clean);
         Ok(session)
     }
@@ -240,36 +228,6 @@ impl Session {
         found
     }
 
-    fn referenced(&self) -> Vec<String> {
-        let mut held: Vec<String> = self
-            .state
-            .tasks
-            .values()
-            .flat_map(|task| task.references())
-            .map(|one| one.target)
-            .collect();
-        held.extend(tisty_core::docs::referenced(&self.paths.docs()));
-        held
-    }
-
-    fn take_out_the_shed(&mut self) {
-        if self.state.shed.is_empty() {
-            return;
-        }
-        let mut gone = tisty_core::docs::sweep(&self.paths.docs(), &self.state.shed);
-        if let Some(tisty_core::config::Sync::Folder(dest)) = self.config.sync.clone() {
-            gone += tisty_core::docs::sweep(&dest.join("docs"), &self.state.shed);
-        }
-        self.forget_the_shed();
-        if gone > 0 {
-            witness::note(
-                channel::SYNC,
-                "a document deleted elsewhere is gone from here too",
-                &[("count", Fact::Count(gone))],
-            );
-        }
-    }
-
     fn drop_doc(&mut self, id: &str) -> Answer<()> {
         let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
         let kept = self
@@ -339,34 +297,42 @@ impl Session {
         }
     }
 
-    fn forget_the_shed(&mut self) {
-        let mut said = tisty_core::docs::Carried::read(self.paths.data());
-        let mut changed = false;
-        for file in &self.state.shed {
-            changed |= said.of(file).is_some();
-            said.forget(file);
-        }
-        if changed {
-            let _ = said.save(self.paths.data());
+    fn dest(&self) -> Option<std::path::PathBuf> {
+        match self.config.sync.clone() {
+            Some(tisty_core::config::Sync::Folder(at)) => Some(at),
+            _ => None,
         }
     }
 
-    fn take_out_the_retired(&mut self) {
-        if self.state.retired.is_empty() {
-            return;
+    fn tidy_up(&mut self, bin: bool) {
+        let mut done = self
+            .cache
+            .as_ref()
+            .map(|one| one.already())
+            .unwrap_or_default();
+        let was = done.clone();
+        let dest = self.dest();
+        tisty_core::tidy::papers(&self.paths, &self.state, dest.as_deref(), &mut done);
+        let paths = self.paths.clone();
+        let state = &self.state;
+        let held = || {
+            let mut named: Vec<String> = state
+                .tasks
+                .values()
+                .flat_map(|task| task.references())
+                .map(|one| one.target)
+                .collect();
+            named.extend(tisty_core::docs::referenced(&paths.docs()));
+            named
+        };
+        tisty_core::tidy::attachments(&self.paths, &self.state, dest.as_deref(), held, &mut done);
+        if bin {
+            tisty_core::tidy::bin(&self.paths);
         }
-        let named = self.referenced();
-        let held: std::collections::BTreeSet<&str> = named.iter().map(|one| one.as_str()).collect();
-        let mut gone = tisty_core::attach::sweep(self.paths.data(), &self.state.retired, &held);
-        if let Some(tisty_core::config::Sync::Folder(dest)) = self.config.sync.clone() {
-            gone += tisty_core::attach::sweep(&dest, &self.state.retired, &held);
-        }
-        if gone > 0 {
-            witness::note(
-                channel::ATTACH,
-                "what was retired elsewhere is gone from here too",
-                &[("count", Fact::Count(gone))],
-            );
+        if done != was
+            && let Some(cache) = self.cache.as_ref()
+        {
+            cache.note_already(&done);
         }
     }
 
@@ -1622,8 +1588,21 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         loose: adrift.files(),
         loose_bytes: adrift.bytes,
         astray: adrift.items,
-        stranded: tisty_core::docs::loose(&session.paths.docs(), &alive).len(),
-        missing: tisty_core::docs::missing(&session.paths.docs(), &alive).len(),
+        stranded: tisty_core::docs::strayed(&session.paths.docs(), &alive),
+        missing: tisty_core::docs::missing(&session.paths.docs(), &alive)
+            .into_iter()
+            .filter_map(|file| {
+                let kept = session.state.docs.values().find(|one| one.file == file)?;
+                let title = tisty_core::docs::read_before(session.paths.data(), &file)
+                    .map(|was| tisty_core::docs::titled(&was))
+                    .unwrap_or_default();
+                Some(Gone {
+                    file,
+                    title,
+                    id: kept.id.to_string(),
+                })
+            })
+            .collect(),
         events: told.len(),
         machines: report::machines(
             &told,
@@ -1639,6 +1618,14 @@ fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
+struct Gone {
+    id: String,
+    file: String,
+    title: String,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Reviewed {
     tasks: usize,
     lists: usize,
@@ -1646,8 +1633,8 @@ struct Reviewed {
     loose: usize,
     loose_bytes: u64,
     astray: Vec<tisty_core::attach::Astray>,
-    stranded: usize,
-    missing: usize,
+    stranded: Vec<tisty_core::docs::Stray>,
+    missing: Vec<Gone>,
     events: usize,
     machines: Vec<report::Machine>,
     log_bytes: u64,
@@ -3169,6 +3156,54 @@ fn doc_import(
 }
 
 #[tauri::command]
+fn doc_adopt(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+) -> Answer<tisty_core::docs::Doc> {
+    let mut session = held(&session);
+    if session.state.docs.values().any(|one| one.file == file) {
+        return Err(Refusal::of("alreadyKept"));
+    }
+    let body = tisty_core::docs::read(&session.paths.docs(), &file)
+        .map_err(|_| Refusal::of("noSuchDoc"))?;
+
+    let order = tisty_core::order::last_of(
+        session
+            .state
+            .docs
+            .values()
+            .filter(|one| one.page_of.is_none() && one.folder.is_none())
+            .map(|one| one.order.as_str()),
+    );
+    session.commit(Op::DocAdd {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            file: file.clone(),
+            order,
+            folder: None,
+            page_of: None,
+        },
+    })?;
+    Ok(tisty_core::docs::Doc {
+        title: tisty_core::docs::titled(&body),
+        id: file,
+    })
+}
+
+#[tauri::command]
+fn doc_let_go(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<()> {
+    let mut session = held(&session);
+    if session.state.docs.values().any(|one| one.file == file) {
+        return Err(Refusal::of("stillKept"));
+    }
+    tisty_core::docs::remove(&session.paths.docs(), &file)
+        .map_err(|e| blamed(channel::WINDOW, "a stray document file would not go", e))?;
+    tisty_core::docs::forget_carried(session.paths.data(), &file);
+    session.corpus.forget(&file);
+    Ok(())
+}
+
+#[tauri::command]
 fn doc_new(
     session: tauri::State<'_, Mutex<Session>>,
     folder: Option<String>,
@@ -3770,8 +3805,7 @@ async fn sync_now(
         })?;
     }
     session.settle_what_arrived(&done.arrived);
-    session.take_out_the_shed();
-    session.take_out_the_retired();
+    session.tidy_up(false);
     if let Err(e) = session.take_a_seat() {
         witness::warn(
             channel::SYNC,
@@ -4051,8 +4085,7 @@ fn retire_attachment(session: tauri::State<'_, Mutex<Session>>, reference: Strin
     session
         .commit(Op::AttachRetire { d: reference })
         .map_err(|e| blamed(channel::ATTACH, "the retirement could not be written", e))?;
-    session.take_out_the_shed();
-    session.take_out_the_retired();
+    session.tidy_up(false);
     session.reproject().map_err(|e| {
         blamed(
             channel::CACHE,
@@ -5003,6 +5036,8 @@ pub fn run() {
             doc_import,
             doc_export,
             doc_copy,
+            doc_adopt,
+            doc_let_go,
             doc_away,
             parted,
             sow,

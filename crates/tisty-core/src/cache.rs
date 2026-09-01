@@ -88,6 +88,10 @@ impl Cache {
             .meta("agents")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
+        state.forebears = self
+            .meta("forebears")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
         state.assistants = self
             .meta("assistants")
             .and_then(|said| serde_json::from_str(&said).ok())
@@ -217,7 +221,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -227,6 +231,7 @@ impl Cache {
                     serde_json::to_string(&state.shed).unwrap_or_default(),
                     serde_json::to_string(&state.agents).unwrap_or_default(),
                     serde_json::to_string(&state.assistants).unwrap_or_default(),
+                    serde_json::to_string(&state.forebears).unwrap_or_default(),
                 ],
             )?;
             tx.commit()
@@ -326,6 +331,28 @@ impl Cache {
             );
         }
         Ok(())
+    }
+
+    pub fn already(&self) -> crate::tidy::Already {
+        self.meta("already")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default()
+    }
+
+    pub fn note_already(&self, done: &crate::tidy::Already) {
+        let Ok(said) = serde_json::to_string(done) else {
+            return;
+        };
+        if let Err(e) = self.db.execute(
+            "INSERT OR REPLACE INTO meta VALUES ('already', ?)",
+            rusqlite::params![said],
+        ) {
+            witness::warn(
+                channel::CACHE,
+                "what was already taken out could not be remembered",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+        }
     }
 
     pub fn invalidate(&mut self) {
@@ -612,6 +639,8 @@ mod tests {
         state.sourced.insert("wa:msg-991".into(), id);
         state.tasks.insert(id, task);
         state.shed.insert("a-0009".into());
+        state.assistants.insert(crate::DeviceId("dev_agent".into()));
+        state.forebears.insert("store-was".into());
         state
             .retired
             .insert("attachments/ab/charla-a3f9.mp4".into());
@@ -623,6 +652,14 @@ mod tests {
         assert_eq!(
             back.agents, state.agents,
             "which of them is an agent was lost"
+        );
+        assert_eq!(
+            back.assistants, state.assistants,
+            "who ever assisted must outlive the badge"
+        );
+        assert_eq!(
+            back.forebears, state.forebears,
+            "the stores this one grew from were lost"
         );
         assert_eq!(
             back.sourced, state.sourced,
