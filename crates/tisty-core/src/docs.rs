@@ -226,7 +226,13 @@ pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
             Ok(_) => {
                 // `create_new` already won this name against everyone, and taking the lock here
                 // would queue creations that never contend for the same body.
-                written(root, &id, body)?;
+                if let Err(e) = written(root, &id, body) {
+                    // The name was won before the body was weighed; an empty file must not outlive
+                    // the refusal, and the number is spent anyway because it was handed out once.
+                    let _ = std::fs::remove_file(&at);
+                    spend(root, device, number);
+                    return Err(e);
+                }
                 spend(root, device, number);
                 return Ok(Doc {
                     title: titled(body),
@@ -2990,6 +2996,25 @@ despues
         );
         assert!(folder.join("02 Abril.md").exists());
         assert_eq!(taken, 1, "what a page holds comes out with it");
+    }
+
+    #[test]
+    fn a_body_too_big_leaves_no_reserved_file_behind() {
+        let room = tempfile::tempdir().unwrap();
+        let root = room.path().join("docs");
+        let device = DeviceId("mac0".into());
+        let body = "a".repeat(BODY_AT_MOST as usize + 1);
+
+        let refused = create(&root, &device, &body);
+        let made = create(&root, &device, "# Cabe\n\nesto sí.").unwrap();
+
+        assert!(matches!(refused, Err(Error::DocumentTooBig { .. })));
+        assert_eq!(
+            all(&root).len(),
+            1,
+            "the name it reserved was never given back"
+        );
+        assert_eq!(made.id, "mac0-0002", "a number is never handed out twice");
     }
 
     #[test]
