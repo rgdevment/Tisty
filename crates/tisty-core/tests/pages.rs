@@ -1774,3 +1774,54 @@ fn settling_a_book_whose_text_names_only_some_of_its_pages_leaves_every_key_apar
     assert!(at(one) < at(three), "and the rest kept their places");
     assert!(at(two) < at(four));
 }
+
+#[test]
+fn a_book_whose_pages_arrived_two_different_ways_still_keeps_every_key_apart() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let shelf = folder_add(&mut store, "libro", None);
+    let book = doc_add(&mut store, "a3f1-0001", "V", Some(shelf), None);
+    let one = doc_add(&mut store, "a3f1-0002", "V", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "W", None, Some(book));
+    let loose_a = doc_add(&mut store, "a3f1-0004", "W", Some(shelf), None);
+    let loose_b = doc_add(&mut store, "a3f1-0005", "X", Some(shelf), None);
+
+    for who in [loose_a, loose_b] {
+        store
+            .append(Op::DocMove {
+                id: who,
+                d: Filed {
+                    folder: None,
+                    page_of: Some(Some(book)),
+                    order: None,
+                },
+            })
+            .unwrap();
+    }
+
+    let mut state = replayed(&world);
+    assert_eq!(state.pages_of(book).len(), 4);
+    for (id, order) in state.pages_told(book, &named_in(&["a3f1-0003", "a3f1-0002"])) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    let pages = state.pages_of(book);
+    let keys: Vec<&str> = pages.iter().map(|one| one.order.as_str()).collect();
+    let apart: std::collections::BTreeSet<&&str> = keys.iter().collect();
+    assert_eq!(apart.len(), keys.len(), "two pages share a key: {keys:?}");
+
+    let seen: Vec<DocId> = pages.iter().map(|one| one.id).collect();
+    assert_eq!(
+        seen,
+        vec![two, one, loose_a, loose_b],
+        "the text says the first two, and the ones it never names hold their places"
+    );
+
+    assert!(
+        state
+            .pages_told(book, &named_in(&["a3f1-0003", "a3f1-0002"]))
+            .is_empty(),
+        "and asking again asks for nothing"
+    );
+}
