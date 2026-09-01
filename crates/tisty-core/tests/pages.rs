@@ -1100,3 +1100,476 @@ fn reordering_pages_from_the_text_keeps_the_hot_cache_instead_of_throwing_it_awa
         ["a3f1-0003", "a3f1-0002"]
     );
 }
+
+fn permutations(items: Vec<String>) -> Vec<Vec<String>> {
+    if items.len() <= 1 {
+        return vec![items];
+    }
+    let mut out = Vec::new();
+    for i in 0..items.len() {
+        let mut rest = items.clone();
+        let picked = rest.remove(i);
+        for mut tail in permutations(rest) {
+            tail.insert(0, picked.clone());
+            out.push(tail);
+        }
+    }
+    out
+}
+
+fn shuffled(seed: &mut u64, items: &mut [String]) {
+    for i in (1..items.len()).rev() {
+        *seed ^= *seed << 13;
+        *seed ^= *seed >> 7;
+        *seed ^= *seed << 17;
+        items.swap(i, (*seed as usize) % (i + 1));
+    }
+}
+
+#[test]
+fn two_hundred_pages_reordered_repeatedly_through_pages_told_keep_a_strictly_rising_order_with_short_keys()
+ {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+
+    let mut key = "a0".to_string();
+    let mut files = Vec::with_capacity(200);
+    for i in 0..200 {
+        key = order::after(&key);
+        let file = format!("a3f1-{:04}", i + 2);
+        doc_add(&mut store, &file, &key, None, Some(book));
+        files.push(file);
+    }
+
+    let mut seed = 0x2545_f491_4f6c_dd1du64;
+    for round in 0..20 {
+        let mut wanted = files.clone();
+        shuffled(&mut seed, &mut wanted);
+        let refs: Vec<&str> = wanted.iter().map(String::as_str).collect();
+
+        let state = replayed(&world);
+        let ops: Vec<Op> = state
+            .pages_told(book, &named_in(&refs))
+            .into_iter()
+            .map(|(id, key)| Op::DocMove {
+                id,
+                d: Filed {
+                    folder: None,
+                    page_of: None,
+                    order: Some(key),
+                },
+            })
+            .collect();
+        store.append_batch(ops).unwrap();
+
+        let state = replayed(&world);
+        let pages = state.pages_of(book);
+        let told: Vec<&str> = pages.iter().map(|one| one.file.as_str()).collect();
+        assert_eq!(told, refs, "round {round}");
+
+        let orders: Vec<&str> = pages.iter().map(|one| one.order.as_str()).collect();
+        assert!(
+            orders.windows(2).all(|two| two[0] < two[1]),
+            "round {round}: {orders:?}"
+        );
+        let longest = orders.iter().map(|one| one.len()).max().unwrap();
+        assert!(longest <= 21, "round {round}: {longest} characters wide");
+    }
+}
+
+#[test]
+fn every_permutation_of_a_small_run_is_a_fixed_point_on_the_second_pass_through_pages_told() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let files: Vec<String> = (0..4)
+        .map(|i| {
+            let file = format!("a3f1-{:04}", i + 2);
+            doc_add(&mut store, &file, &format!("a{i}"), None, Some(book));
+            file
+        })
+        .collect();
+
+    for perm in permutations(files) {
+        let refs: Vec<&str> = perm.iter().map(String::as_str).collect();
+        let body = named_in(&refs);
+
+        let mut state = replayed(&world);
+        for (id, order) in state.pages_told(book, &body) {
+            moved(&mut store, id, &order);
+        }
+        state = replayed(&world);
+
+        let told: Vec<&str> = state
+            .pages_of(book)
+            .iter()
+            .map(|one| one.file.as_str())
+            .collect();
+        assert_eq!(told, refs, "{perm:?}");
+
+        assert!(
+            state.pages_told(book, &body).is_empty(),
+            "a second pass with the same body must ask for nothing: {perm:?}"
+        );
+    }
+}
+
+#[test]
+fn a_page_named_twice_in_the_body_is_ordered_once_at_its_first_mention() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+
+    let body = format!(
+        "{}{}{}",
+        named_in(&["a3f1-0003"]),
+        named_in(&["a3f1-0002"]),
+        named_in(&["a3f1-0003"]),
+    );
+
+    let mut state = replayed(&world);
+    for (id, order) in state.pages_told(book, &body) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![two, one],
+        "the second mention changes nothing, the first is what counts"
+    );
+}
+
+#[test]
+fn naming_a_page_that_belongs_to_another_document_does_not_pull_it_into_this_ones_order() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+    let other_book = doc_add(&mut store, "a3f1-0004", "a0", None, None);
+    let foreign = doc_add(&mut store, "a3f1-0005", "a0", None, Some(other_book));
+
+    let state = replayed(&world);
+    let told = state.pages_told(book, &named_in(&["a3f1-0005", "a3f1-0003", "a3f1-0002"]));
+
+    assert!(
+        told.iter().all(|(id, _)| *id != foreign),
+        "a page from another document must not be moved by this one's body"
+    );
+
+    for (id, order) in told {
+        moved(&mut store, id, &order);
+    }
+    let state = replayed(&world);
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![two, one],
+        "the book's own two pages still get reordered to what its body says"
+    );
+    assert_eq!(state.docs[&foreign].page_of, Some(other_book));
+    assert_eq!(
+        state.docs[&foreign].order, "a0",
+        "untouched by a body it does not belong to"
+    );
+}
+
+#[test]
+fn a_page_named_only_inside_a_code_fence_does_not_count_and_the_page_stays_at_the_end() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let fenced = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let named = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+
+    let body = format!(
+        "{}```\n{}```\n",
+        named_in(&["a3f1-0003"]),
+        named_in(&["a3f1-0002"]),
+    );
+
+    let mut state = replayed(&world);
+    for (id, order) in state.pages_told(book, &body) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![named, fenced],
+        "the reference inside the fence is text, not a naming, so that page waits at the end"
+    );
+}
+
+#[test]
+fn pages_titled_with_brackets_emoji_or_right_to_left_script_are_still_ordered_by_where_they_are_named()
+ {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let bracketed = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let emoji = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+    let rtl = doc_add(&mut store, "a3f1-0004", "a2", None, Some(book));
+
+    let body = format!(
+        "{}\n\n{}\n\n{}\n\n",
+        tisty_core::refs::card("a3f1-0004", "الفصل الأول"),
+        tisty_core::refs::card("a3f1-0002", "Chapter [draft]"),
+        tisty_core::refs::card("a3f1-0003", "📄 Notes"),
+    );
+
+    let mut state = replayed(&world);
+    for (id, order) in state.pages_told(book, &body) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![rtl, bracketed, emoji]
+    );
+}
+
+#[test]
+fn a_page_named_with_the_angle_bracket_destination_form_is_still_recognised() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+
+    let body = "[Dos](<tisty:doc/a3f1-0003>)\n\n[Uno](<tisty:doc/a3f1-0002>)\n\n";
+
+    let mut state = replayed(&world);
+    for (id, order) in state.pages_told(book, body) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![two, one]
+    );
+}
+
+#[test]
+fn a_page_removed_from_the_text_and_later_put_back_returns_to_where_it_is_named() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+    let three = doc_add(&mut store, "a3f1-0004", "a2", None, Some(book));
+
+    let mut state = replayed(&world);
+    for (id, order) in state.pages_told(book, &named_in(&["a3f1-0004", "a3f1-0002"])) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![three, one, two],
+        "the unnamed page waits at the end"
+    );
+
+    for (id, order) in state.pages_told(book, &named_in(&["a3f1-0004", "a3f1-0003", "a3f1-0002"])) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![three, two, one],
+        "naming it again puts it back exactly where the text says"
+    );
+}
+
+#[test]
+fn a_page_named_by_a_plain_inline_link_rather_than_a_card_is_still_ordered() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+
+    let body =
+        "visto en [la segunda](tisty:doc/a3f1-0003) antes que [la primera](tisty:doc/a3f1-0002)\n";
+
+    let mut state = replayed(&world);
+    for (id, order) in state.pages_told(book, body) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![two, one]
+    );
+}
+
+#[test]
+fn deleting_a_parent_with_fifty_named_pages_sheds_every_one_of_them() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let (parent, parent_file) = make(&world, &mut store, "# root\n\nhola\n", None, None, "a0");
+
+    let mut files = vec![parent_file];
+    let mut names = Vec::new();
+    let mut key = "a0".to_string();
+    for i in 0..50 {
+        key = order::after(&key);
+        let (_, file) = make(
+            &world,
+            &mut store,
+            &format!("# page {i}\n\ncontenido\n"),
+            None,
+            Some(parent),
+            &key,
+        );
+        names.push(file.clone());
+        files.push(file);
+    }
+    names.reverse();
+
+    let refs: Vec<&str> = names.iter().map(String::as_str).collect();
+    let mut state = replayed(&world);
+    for (id, order) in state.pages_told(parent, &named_in(&refs)) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+    assert_eq!(
+        state
+            .pages_of(parent)
+            .iter()
+            .map(|k| k.file.clone())
+            .collect::<Vec<_>>(),
+        names,
+        "reordered before it is ever deleted"
+    );
+
+    store.append(Op::DocDelete { id: parent }).unwrap();
+    let state = replayed(&world);
+
+    assert!(state.docs.is_empty());
+    for file in &files {
+        assert!(state.shed.contains(file), "{file} was not shed");
+    }
+
+    let swept = docs::sweep(&world.docs_root, &state.shed);
+    assert_eq!(swept, files.len());
+}
+
+#[test]
+fn converting_a_page_to_a_document_and_back_lets_the_text_place_it_again() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    let a = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let b = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+    let c = doc_add(&mut store, "a3f1-0004", "a2", None, Some(book));
+
+    let body = named_in(&["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+
+    store
+        .append(Op::DocMove {
+            id: b,
+            d: Filed {
+                folder: None,
+                page_of: Some(None),
+                order: None,
+            },
+        })
+        .unwrap();
+    let mut state = replayed(&world);
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![a, c],
+        "the converted page is no longer part of its old document"
+    );
+
+    store
+        .append(Op::DocMove {
+            id: b,
+            d: Filed {
+                folder: None,
+                page_of: Some(Some(book)),
+                order: None,
+            },
+        })
+        .unwrap();
+    state = replayed(&world);
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![a, c, b],
+        "coming back, it lands last among its siblings"
+    );
+
+    for (id, order) in state.pages_told(book, &body) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+    assert_eq!(
+        state
+            .pages_of(book)
+            .iter()
+            .map(|k| k.id)
+            .collect::<Vec<_>>(),
+        vec![a, b, c],
+        "the text still said where it belongs, once it is asked"
+    );
+}
+
+#[test]
+fn pages_told_asks_for_nothing_when_a_document_holds_fewer_than_two_pages() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let empty_book = doc_add(&mut store, "a3f1-0003", "a1", None, None);
+
+    let state = replayed(&world);
+    assert!(state.pages_told(book, &named_in(&["a3f1-0002"])).is_empty());
+    assert!(state.pages_told(empty_book, "anything at all").is_empty());
+}

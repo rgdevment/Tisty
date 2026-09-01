@@ -169,3 +169,80 @@ fn moving_the_line_that_names_a_page_moves_the_page() {
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     assert_eq!(served.pages_of(&book), vec![two, one]);
 }
+
+#[test]
+fn hanging_a_document_as_a_page_with_page_doc_lands_it_last_until_the_text_names_it() {
+    let served = Served::new();
+    let book = served.wrote("# Actas\n\nde este año.", None);
+    let one = served.wrote("# Marzo", Some(&book));
+    let loose = served.wrote("# Suelto\n\nun documento aparte.", None);
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": loose, "page_of": book }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+
+    assert_eq!(served.pages_of(&book), vec![one, loose.clone()]);
+
+    let body = served.body_of(&book);
+    assert!(
+        !body.contains(&loose),
+        "hanging it as a page does not by itself name it in the text: {body}"
+    );
+}
+
+#[test]
+fn naming_a_hung_page_in_the_text_with_edit_doc_moves_it_from_the_end_to_where_it_is_named() {
+    let served = Served::new();
+    let book = served.wrote("# Actas\n\nde este año.", None);
+    let one = served.wrote("# Marzo", Some(&book));
+    let two = served.wrote("# Abril", Some(&book));
+    let loose = served.wrote("# Enero\n\nun documento aparte.", None);
+
+    served.call(
+        "page_doc",
+        serde_json::json!({ "doc": loose, "page_of": book }),
+    );
+    assert_eq!(
+        served.pages_of(&book),
+        vec![one.clone(), two.clone(), loose.clone()]
+    );
+
+    let old = format!("![Marzo](tisty:doc/{one})\n\n");
+    let new = format!("![Enero](tisty:doc/{loose})\n\n{old}");
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": book, "old": old, "new": new }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+
+    assert_eq!(served.pages_of(&book), vec![loose, one, two]);
+}
+
+#[test]
+fn append_doc_settles_the_order_of_two_pages_that_were_never_named_before() {
+    let served = Served::new();
+    let book = served.wrote("# Actas\n\nde este año.", None);
+    let one = served.wrote("# Marzo", Some(&book));
+    let a = served.wrote("# Suelto A\n\ncontenido.", None);
+    let b = served.wrote("# Suelto B\n\ncontenido.", None);
+    served.call("page_doc", serde_json::json!({ "doc": a, "page_of": book }));
+    served.call("page_doc", serde_json::json!({ "doc": b, "page_of": book }));
+
+    assert_eq!(
+        served.pages_of(&book),
+        vec![one.clone(), a.clone(), b.clone()]
+    );
+
+    let said = served.call(
+        "append_doc",
+        serde_json::json!({
+            "doc": book,
+            "body": format!("![B](tisty:doc/{b})\n\n![A](tisty:doc/{a})\n"),
+        }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+
+    assert_eq!(served.pages_of(&book), vec![one, b, a]);
+}

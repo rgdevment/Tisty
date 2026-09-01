@@ -677,9 +677,7 @@ export default function App() {
                 if (took === null) return;
                 if (took.missed > 0) {
                   setError(
-                    took.missed === 1
-                      ? t("takenShort")
-                      : fill("takenShorter", String(took.missed)),
+                    took.missed === 1 ? t("takenShort") : fill("takenShorter", String(took.missed)),
                   );
                   return;
                 }

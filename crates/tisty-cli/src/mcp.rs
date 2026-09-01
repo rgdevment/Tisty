@@ -438,6 +438,8 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     Ok((state, store))
 }
 
+const UNSETTLED: &str = " Where its pages sit could not be settled just now — it settles by                          itself the next time the document is written or opened. Do not send                          this again.";
+
 fn retold(state: &State, store: &mut Store, doc: &str, body: &str) -> Result<(), Refused> {
     let Some(kept) = state.docs.values().find(|one| one.file == doc) else {
         return Ok(());
@@ -1073,12 +1075,14 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         other => hitch(other),
     })?;
 
-    retold(&state, &mut store, &which, &whole)?;
+    // The text is already written: refusing here would have a dutiful retry add it twice.
+    let settled = retold(&state, &mut store, &which, &whole).is_ok();
 
     Ok(told(
         format!(
-            "Added to {:?}. Nothing that was there changed.",
-            tisty_core::docs::titled(&whole)
+            "Added to {:?}. Nothing that was there changed.{}",
+            tisty_core::docs::titled(&whole),
+            if settled { "" } else { UNSETTLED }
         ),
         json!({
             "doc": which,
@@ -1147,11 +1151,12 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ))),
         tisty_core::docs::Change::Made { was, whole } => {
             let _ = tisty_core::docs::kept_before(paths.data(), &which, &was);
-            retold(&state, &mut store, &which, &whole)?;
+            let settled = retold(&state, &mut store, &which, &whole).is_ok();
             Ok(told(
                 format!(
-                    "Changed that passage in {:?}. What it was is kept beside the documents.",
-                    tisty_core::docs::titled(&whole)
+                    "Changed that passage in {:?}. What it was is kept beside the                      documents.{}",
+                    tisty_core::docs::titled(&whole),
+                    if settled { "" } else { UNSETTLED }
                 ),
                 json!({
                     "doc": which,

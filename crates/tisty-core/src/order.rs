@@ -34,18 +34,36 @@ const LONG: usize = 20;
 /// for ever and is carried in every event, every row and every replay after it.
 pub fn resequenced(keys: &[&str]) -> Vec<Option<String>> {
     let fresh = squeezed(keys);
-    match fresh.iter().flatten().any(|one| one.len() > LONG) {
+    let long = fresh.iter().flatten().any(|one| one.len() > LONG);
+    match long || !rises(keys, &fresh) {
         true => afresh(keys),
         false => fresh,
     }
 }
 
+/// Between two keys that came from somewhere else there may be no key at all to hand out, and
+/// a run that does not rise is not an order. Dealing it again is always an answer.
+fn rises(keys: &[&str], fresh: &[Option<String>]) -> bool {
+    let settled: Vec<&str> = keys
+        .iter()
+        .zip(fresh)
+        .map(|(had, now)| now.as_deref().unwrap_or(had))
+        .collect();
+    settled.windows(2).all(|two| two[0] < two[1])
+}
+
+/// Every slot, even one already holding the key it is dealt: dealing the run again re-bases the
+/// whole of it, and half a re-base merged with another machine's reads as neither of the two.
 fn afresh(keys: &[&str]) -> Vec<Option<String>> {
     let mut last = String::new();
     keys.iter()
-        .map(|had| {
-            last = if last.is_empty() { first() } else { after(&last) };
-            (last != **had).then(|| last.clone())
+        .map(|_| {
+            last = if last.is_empty() {
+                first()
+            } else {
+                after(&last)
+            };
+            Some(last.clone())
         })
         .collect()
 }
@@ -100,11 +118,18 @@ fn midpoint(a: &str, b: Option<&str>) -> String {
         return append_after(a);
     };
 
-    let shared = b
+    let mut shared = b
         .bytes()
         .enumerate()
         .take_while(|(i, y)| a.as_bytes().get(*i).copied().unwrap_or(DIGITS[0]) == *y)
         .count();
+    // Counted in bytes and cut as text: a key from elsewhere can share half a character. The
+    // count runs past the end of `a` on purpose, and there is nothing to cut out there.
+    while shared > 0
+        && !((shared > a.len() || a.is_char_boundary(shared)) && b.is_char_boundary(shared))
+    {
+        shared -= 1;
+    }
     if shared > 0 {
         return format!(
             "{}{}",
@@ -119,10 +144,11 @@ fn midpoint(a: &str, b: Option<&str>) -> String {
     if high - low > 1 {
         return digit((low + high) / 2);
     }
-    if b.len() > 1 {
-        return b[..1].to_string();
+    let head = b.chars().next().map_or(1, char::len_utf8);
+    if b.len() > head {
+        return b[..head].to_string();
     }
-    format!("{}{}", digit(low), midpoint(tail(a, 1), None))
+    format!("{}{}", digit(low), midpoint(tail(a, head), None))
 }
 
 fn append_after(a: &str) -> String {
@@ -263,10 +289,29 @@ mod tests {
 
     #[test]
     fn a_key_this_machine_never_wrote_is_ordered_rather_than_panicked_on() {
-        let now = settled(&["é", "ê", "a"]);
+        for run in [
+            vec!["é", "ê", "a"],
+            vec!["é", "ê", "a", "ë"],
+            vec!["ñ", "ña", "ñb", "b", "ñ"],
+            vec!["日", "本", "a"],
+        ] {
+            let now = settled(&run);
+            assert!(now.windows(2).all(|two| two[0] < two[1]), "{run:?} {now:?}");
+        }
 
-        assert!(now.windows(2).all(|two| two[0] < two[1]), "{now:?}");
         assert!(after("ñ").as_str() > "ñ");
+    }
+
+    #[test]
+    fn a_run_with_no_room_left_between_its_keys_is_dealt_again_rather_than_left_unordered() {
+        let fresh = resequenced(&["é", "ê", "a", "ë"]);
+
+        assert!(
+            fresh.iter().all(Option::is_some),
+            "nothing can be squeezed between those, so the whole run is dealt: {fresh:?}"
+        );
+        let now: Vec<&str> = fresh.iter().map(|one| one.as_deref().unwrap()).collect();
+        assert!(now.windows(2).all(|two| two[0] < two[1]), "{now:?}");
     }
 
     #[test]
@@ -290,7 +335,10 @@ mod tests {
         }
 
         let longest = keys.iter().map(String::len).max().unwrap();
-        assert!(longest <= LONG + 1, "{longest} characters after 20000 moves");
+        assert!(
+            longest <= LONG + 1,
+            "{longest} characters after 20000 moves"
+        );
     }
 
     #[test]

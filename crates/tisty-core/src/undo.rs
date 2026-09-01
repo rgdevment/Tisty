@@ -177,7 +177,7 @@ pub fn inverse(event: &Event, before: &State) -> Option<Op> {
             Some(Op::DocMove {
                 id: *id,
                 d: crate::event::Filed {
-                    folder: Some(was.folder),
+                    folder: d.folder.map(|_| was.folder),
                     page_of: d.page_of.map(|_| was.page_of),
                     order: Some(was.order.clone()),
                 },

@@ -849,3 +849,166 @@ fn a_book_of_more_than_ninety_nine_pages_still_comes_out_in_reading_order() {
     );
     assert_eq!(names[100], "101 Pagina-101.md");
 }
+
+#[test]
+fn duplicating_a_book_rewrites_its_cover_to_name_its_own_pages_not_the_originals() {
+    let data_dir = tmp();
+    let data = data_dir.path();
+    let dev = device("mac0");
+    let mut state = State::default();
+    let mut seq = 0i64;
+
+    let (book, book_file) = add_doc(&mut state, data, &dev, &mut seq, "# Libro\n\nportada");
+    let (_, uno_file) = add_page(
+        &mut state,
+        data,
+        &dev,
+        &mut seq,
+        book,
+        "# Uno\n\ncontenido uno\n",
+    );
+    let (_, dos_file) = add_page(
+        &mut state,
+        data,
+        &dev,
+        &mut seq,
+        book,
+        "# Dos\n\ncontenido dos\n",
+    );
+
+    let cover = format!(
+        "# Libro\n\nportada\n\n{}\n\n{}\n",
+        tisty_core::refs::card(&uno_file, "Uno"),
+        tisty_core::refs::card(&dos_file, "Dos"),
+    );
+    docs::write(&data.join("docs"), &book_file, &cover).unwrap();
+
+    let twin_cover = docs::create(&data.join("docs"), &dev, &cover).unwrap();
+    let twin = Ulid::generate();
+    seq += 1;
+    state.apply(&Event::new(
+        dev.clone(),
+        at(seq),
+        Op::DocAdd {
+            id: twin,
+            d: DocAdd {
+                file: twin_cover.id.clone(),
+                order: order::first(),
+                folder: None,
+                page_of: None,
+            },
+        },
+    ));
+
+    let mut renamed = Vec::new();
+    for page in [uno_file.clone(), dos_file.clone()] {
+        let body = docs::read(&data.join("docs"), &page).unwrap();
+        let leaf = docs::create(&data.join("docs"), &dev, &body).unwrap();
+        let placed = order::last_of(state.pages_of(twin).iter().map(|one| one.order.as_str()));
+        seq += 1;
+        state.apply(&Event::new(
+            dev.clone(),
+            at(seq),
+            Op::DocAdd {
+                id: Ulid::generate(),
+                d: DocAdd {
+                    file: leaf.id.clone(),
+                    order: placed,
+                    folder: None,
+                    page_of: Some(twin),
+                },
+            },
+        ));
+        renamed.push((page, leaf.id));
+    }
+
+    let mine = |text: &str| {
+        renamed.iter().fold(text.to_string(), |text, (was, now)| {
+            text.replace(
+                &format!("{}{was}", tisty_core::refs::DOC),
+                &format!("{}{now}", tisty_core::refs::DOC),
+            )
+        })
+    };
+    let rewritten = mine(&cover);
+    docs::write(&data.join("docs"), &twin_cover.id, &rewritten).unwrap();
+
+    let twin_pages: Vec<String> = state
+        .pages_of(twin)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    assert_eq!(twin_pages.len(), 2);
+
+    let twin_cover_body = docs::read(&data.join("docs"), &twin_cover.id).unwrap();
+    let named = tisty_core::refs::papers(&twin_cover_body);
+    assert_eq!(
+        named, twin_pages,
+        "the copy's cover names its own pages, in their own order"
+    );
+    assert!(
+        !named.contains(&uno_file) && !named.contains(&dos_file),
+        "the original pages must not leak into the copy's cover: {named:?}"
+    );
+
+    let told = state.pages_told(twin, &twin_cover_body);
+    assert!(
+        told.is_empty(),
+        "the copy's pages already sit exactly where its own cover names them"
+    );
+}
+
+#[test]
+fn exporting_a_book_whose_pages_name_each_other_rewrites_both_sides_of_the_cross_reference() {
+    let data_dir = tmp();
+    let data = data_dir.path();
+    let dev = device("mac0");
+    let mut state = State::default();
+    let mut seq = 0i64;
+
+    let (book, book_file) = add_doc(&mut state, data, &dev, &mut seq, "# Libro\n\nportada");
+    let (_, uno_file) = add_page(
+        &mut state,
+        data,
+        &dev,
+        &mut seq,
+        book,
+        "# Uno\n\nmarker-uno\n",
+    );
+    let (_, dos_file) = add_page(
+        &mut state,
+        data,
+        &dev,
+        &mut seq,
+        book,
+        "# Dos\n\nmarker-dos\n",
+    );
+
+    let uno_body = format!(
+        "# Uno\n\nmarker-uno\n\nver tambien {}\n",
+        tisty_core::refs::card(&dos_file, "Dos")
+    );
+    docs::write(&data.join("docs"), &uno_file, &uno_body).unwrap();
+    let dos_body = format!(
+        "# Dos\n\nmarker-dos\n\nver tambien {}\n",
+        tisty_core::refs::card(&uno_file, "Uno")
+    );
+    docs::write(&data.join("docs"), &dos_file, &dos_body).unwrap();
+
+    let page_files: Vec<String> = state
+        .pages_of(book)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    let out = tmp();
+    docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+
+    let folder = out.path().join("Libro");
+    let said_uno = std::fs::read_to_string(folder.join("01 Uno.md")).unwrap();
+    let said_dos = std::fs::read_to_string(folder.join("02 Dos.md")).unwrap();
+
+    assert!(said_uno.contains("![Dos](<02 Dos.md>)"), "{said_uno}");
+    assert!(said_dos.contains("![Uno](<01 Uno.md>)"), "{said_dos}");
+    assert!(!said_uno.contains("tisty:doc/"), "{said_uno}");
+    assert!(!said_dos.contains("tisty:doc/"), "{said_dos}");
+}
