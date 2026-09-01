@@ -17,10 +17,14 @@ pub struct Ref {
 pub const DOC: &str = "tisty:doc/";
 
 pub fn card(file: &str, title: &str) -> String {
-    format!(
-        "![{}]({DOC}{file})",
-        title.replace('[', "\\[").replace(']', "\\]")
-    )
+    let said: String = title
+        .chars()
+        .flat_map(|c| {
+            let slash = matches!(c, '[' | ']' | '\\').then_some('\\');
+            slash.into_iter().chain(std::iter::once(c))
+        })
+        .collect();
+    format!("![{said}]({DOC}{file})")
 }
 
 pub fn papers(text: &str) -> Vec<String> {
@@ -333,6 +337,13 @@ mod tests {
     #[test]
     fn a_title_with_brackets_is_still_read_back_from_the_card_written_for_it() {
         let said = card("mac0-0010", "Capitulo 1 [borrador]");
+
+        assert_eq!(papers(&said), ["mac0-0010"], "{said}");
+    }
+
+    #[test]
+    fn a_title_ending_in_a_slash_does_not_escape_the_bracket_that_closes_it() {
+        let said = card("mac0-0010", "Rutas C:\\ y mas");
 
         assert_eq!(papers(&said), ["mac0-0010"], "{said}");
     }

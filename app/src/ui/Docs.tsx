@@ -227,7 +227,7 @@ export default function Docs({
         setReading(brittle.length > 0);
         setStuck(false);
         setClashed(false);
-        if (known.some((one) => one.pageOf === wanted.id)) {
+        if (!brittle.length && known.some((one) => one.pageOf === wanted.id)) {
           docOrder(wanted.file, text)
             .then((moved) => {
               if (moved) settled.current({ id: wanted.id, title: wanted.title });

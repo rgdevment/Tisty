@@ -81,7 +81,9 @@ fn squeezed(keys: &[&str]) -> Vec<Option<String>> {
             .iter()
             .zip(&held[i + 1..])
             .find(|(_, held)| **held)
-            .map(|(key, _)| *key);
+            .map(|(key, _)| *key)
+            // A key from elsewhere can sit below the one before it, and there is no between then.
+            .filter(|up| last.as_deref().is_none_or(|low| low < *up));
         let key = between(last.as_deref(), ceiling);
         last = Some(key.clone());
         fresh[i] = Some(key);
@@ -153,8 +155,10 @@ fn midpoint(a: &str, b: Option<&str>) -> String {
 }
 
 fn append_after(a: &str) -> String {
+    // A byte outside the alphabet reads as nought, and raising it would sort the key downwards.
     let Some(i) = a
-        .is_ascii()
+        .bytes()
+        .all(|d| DIGITS.contains(&d))
         .then(|| a.bytes().rposition(|d| index(d) + 1 < BASE))
         .flatten()
     else {
@@ -315,6 +319,22 @@ mod tests {
             let now = settled(&run);
             assert!(now.windows(2).all(|two| two[0] < two[1]), "{run:?} {now:?}");
         }
+    }
+
+    #[test]
+    fn what_follows_a_key_this_alphabet_does_not_know_still_follows_it() {
+        for key in ["~", "_", ":", "a~", "z~", "\u{7f}", "é", " "] {
+            let next = after(key);
+            assert!(next.as_str() > key, "after({key:?}) = {next:?}");
+        }
+        assert!(last_of(["V", "W", "~"]).as_str() > "~");
+    }
+
+    #[test]
+    fn a_run_whose_keys_do_not_rise_is_dealt_again_rather_than_asserted_at() {
+        let now = settled(&["é", "_", "\u{1c}", "1"]);
+
+        assert!(now.windows(2).all(|two| two[0] < two[1]), "{now:?}");
     }
 
     #[test]

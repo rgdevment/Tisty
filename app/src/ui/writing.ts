@@ -16,7 +16,7 @@ import { markup } from "../glyphs";
 import { spared } from "./Icons";
 
 /// A bracket left bare closes the label early, and the reference stops naming anything.
-const labelled = (said: string): string => said.replace(/([[\]])/g, "\\$1");
+export const labelled = (said: string): string => said.replace(/([[\]\\])/g, "\\$1");
 
 const inked = Symbol("ink");
 const peeked = Symbol("peek");

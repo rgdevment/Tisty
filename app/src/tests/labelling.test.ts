@@ -28,11 +28,22 @@ describe("the way the editor writes a card", () => {
     expect(wrote("El túnel")).toContain("![El túnel](tisty:doc/a3f1-0002)");
   });
 
-  it("keeps naming the page after a title that was written escaped is read back", () => {
-    const editor = new Editor({ extensions: written(), content: wrote("Uno [dos] tres") });
-    const again = asMarkdown(editor) ?? "";
-    editor.destroy();
+  it("escapes a slash too, or the one before a bracket would free it", () => {
+    const said = wrote("Rutas C:\\ y más");
 
-    expect([...named(again)]).toEqual(["a3f1-0002"]);
+    expect([...named(said)]).toEqual(["a3f1-0002"]);
+    expect([...named(wrote("Fin \\[uno]"))]).toEqual(["a3f1-0002"]);
+  });
+
+  it("keeps naming the page however often it is read and written again", () => {
+    for (const title of ["Uno [dos] tres", "Rutas C: y más", "Fin [uno]"]) {
+      let said = wrote(title);
+      for (let turn = 0; turn < 3; turn += 1) {
+        const editor = new Editor({ extensions: written(), content: said });
+        said = asMarkdown(editor) ?? "";
+        editor.destroy();
+        expect([...named(said)]).toEqual(["a3f1-0002"]);
+      }
+    }
   });
 });

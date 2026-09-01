@@ -1421,6 +1421,13 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                      first."
                 )));
             }
+            // Hanging takes the archive of what it hangs from, and nothing can hand it back.
+            if kept.archived {
+                return Err(Refused::Tool(format!(
+                    "{which} is put away. Bring it back before making it a page, or it leaves \
+                     the archive with no way of returning."
+                )));
+            }
             Some(up.id)
         }
     };

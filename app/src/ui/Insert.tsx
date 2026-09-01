@@ -9,6 +9,7 @@ import Asking from "./Asking";
 import { useEdge } from "./edge";
 import Papers from "./Papers";
 import Row from "./Row";
+import { labelled } from "./writing";
 
 interface Props {
   steps?: string[];
@@ -80,7 +81,9 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
             )}
           </>
         )}
-        {step === "link" && <Linking onLink={(text, url) => onPut(`[${text}](${url})`)} />}
+        {step === "link" && (
+          <Linking onLink={(text, url) => onPut(`[${labelled(text)}](${url})`)} />
+        )}
         {step === "doc" && (
           <Papers onPick={(doc) => onPut(docCard(doc.file, doc.title))} onError={onError} />
         )}

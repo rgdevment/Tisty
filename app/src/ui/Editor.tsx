@@ -519,7 +519,7 @@ export default function Editor({
     onBlocks?.(offered);
   }, [blocks, editor, onBlocks, reading]);
 
-  const shown = asking ? narrowed(blocks, asking.word) : [];
+  const shown = asking && !reading ? narrowed(blocks, asking.word) : [];
 
   const take = (block: Block) => {
     if (!editor || !asking) return;
