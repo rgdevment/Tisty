@@ -533,3 +533,44 @@ describe("a mermaid diagram is a code block, so the file never learns about it",
     expect(roundtripped(was)).toBe(was);
   });
 });
+
+describe("typing a callout by hand, which is how one actually gets written", () => {
+  const typed = (editor: Editor, text: string) => {
+    for (const one of text) {
+      const { from, to } = editor.state.selection;
+      const took = editor.view.someProp("handleTextInput", (fn) =>
+        fn(editor.view, from, to, one, () => editor.state.tr),
+      );
+      if (!took) editor.view.dispatch(editor.state.tr.insertText(one, from, to));
+    }
+  };
+
+  const written_ = (text: string) => {
+    const editor = build("");
+    editor.chain().focus().toggleBlockquote().run();
+    typed(editor, text);
+    const out = markdown(editor);
+    editor.destroy();
+    return out;
+  };
+
+  it.each(["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"])("makes a %s as it is typed", (k) => {
+    expect(written_(`[!${k}] Cuidado`)).toBe(`> [!${k}]\n> Cuidado`);
+  });
+
+  it("does not escape the marker, which is what typing used to do", () => {
+    expect(written_("[!WARNING] Algo")).not.toContain("\\[");
+  });
+
+  it("reads it typed in lower case", () => {
+    expect(written_("[!tip] Algo")).toBe("> [!TIP]\n> Algo");
+  });
+
+  it("leaves a marker it does not know as the text it is", () => {
+    expect(written_("[!raro] Algo")).toContain("raro");
+  });
+
+  it("leaves a plain quote alone", () => {
+    expect(written_("Una cita normal")).toBe("> Una cita normal");
+  });
+});

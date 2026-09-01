@@ -1,5 +1,5 @@
 import type { Editor as Writing } from "@tiptap/core";
-import { getHTMLFromFragment, Node } from "@tiptap/core";
+import { getHTMLFromFragment, InputRule, Node } from "@tiptap/core";
 import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
@@ -488,6 +488,33 @@ const Said = Node.create({
 
   addAttributes() {
     return { kind: { default: "note" as Callout } };
+  },
+
+  addInputRules() {
+    return [
+      new InputRule({
+        find: /^\[!(note|tip|important|warning|caution)\]\s$/i,
+        handler: ({ state, range, match, chain }) => {
+          const at = state.doc.resolve(range.from);
+          let quoted: number | null = null;
+          for (let deep = at.depth; deep > 0; deep -= 1) {
+            if (at.node(deep).type.name === "blockquote") {
+              quoted = at.before(deep);
+              break;
+            }
+          }
+          if (quoted === null) return null;
+          const kind = match[1].toLowerCase();
+          chain()
+            .deleteRange(range)
+            .command(({ tr }) => {
+              tr.setNodeMarkup(quoted, state.schema.nodes.callout, { kind });
+              return true;
+            })
+            .run();
+        },
+      }),
+    ];
   },
 
   parseHTML() {
