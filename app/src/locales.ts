@@ -186,10 +186,43 @@ const en = {
   markStep: "Mark done: {name}",
   unmarkStep: "Mark not done: {name}",
   editStep: "Step: {name}",
-  strandedPapers:
-    "{name} document files are on disk that the log does not know about. They came from a machine that deleted them, or from an interrupted copy.",
-  missingPapers:
-    "{name} documents are named in the log with no file on disk. Sync with the machine that holds them, or restore a backup.",
+  upkeepReview: "Review the store",
+  upkeepReviewWhat:
+    "Counts what is spare, what is missing and what you can get back. It changes nothing: what to do about it you decide after, with the summary in front of you.",
+  upkeepReviewGo: "Review",
+  upkeepBack: "you can get back, of {name}",
+  upkeepNothing: "Nothing to get back",
+  upkeepWhen: "Reviewed a moment ago",
+  upkeepThings: "{name} things",
+  upkeepHushed:
+    "{name} has not written for a while, so this may be short of the truth. Open Tisty there so it can say its part — from here it cannot be done. If that machine is gone for good, take it off the list and come back.",
+  upkeepSafe: "Can be taken out, and brought back",
+  upkeepSafeWhat:
+    "Attachments no task and no document names any more. They go to the bin and you have 30 days to change your mind.",
+  upkeepSafeAll: "Take them all out",
+  upkeepSafeAllSure:
+    "Take out {name} attachments nothing names? They go to the bin, and you have 30 days to bring them back.",
+  upkeepSafeOne: "See them one by one",
+  upkeepLook: "Worth a look first",
+  upkeepLookWhat:
+    "Documents on disk the log does not name. They may be the only copy of something that lost its event. Taking one in gives it back to Tisty, and can never be wrong.",
+  upkeepTakeIn: "Take it in",
+  upkeepTakeInAll: "Take them all in",
+  upkeepTakenIn: "Taken in as {name}",
+  upkeepDropIt: "Let it go",
+  upkeepDropSure:
+    "Let «{name}» go? The file goes for good, and nothing here has a copy of it. This cannot be undone.",
+  upkeepDropped: "Let go",
+  upkeepWaiting: "Waiting for {name}",
+  upkeepWaitingWhat:
+    "The log names it and the file is not here. It may arrive when that machine syncs. Forgetting it deletes it everywhere, and that does not come back.",
+  upkeepForget: "Forget it",
+  upkeepForgetWaits: "it wakes when {name} has spoken",
+  upkeepClear: "Nothing kept twice. No brittle document.",
+  upkeepInFull: "See the store in full",
+  alreadyKept: "That document is already kept here",
+  shedAlready: "That file was deleted, and taking it in would only see it swept again",
+  stillKept: "The log still names that file, so it stays",
   archivedList: "The list «{name}» is put away. Bring it back before filing anything in it.",
   documentTooLong:
     "This document has reached {name}. Take something out, or split it in two — past that it can no longer be read or carried.",
@@ -1191,10 +1224,43 @@ const es: Catalog = {
   markStep: "Marcar hecho: {name}",
   unmarkStep: "Marcar sin hacer: {name}",
   editStep: "Paso: {name}",
-  strandedPapers:
-    "Hay {name} archivos de documento en disco que el registro no reconoce. Vienen de un equipo que los borró, o de una copia que quedó a medias.",
-  missingPapers:
-    "Hay {name} documentos que el registro nombra y no están en disco. Sincroniza con el equipo que los tiene, o recupera una copia de seguridad.",
+  upkeepReview: "Revisar el almacén",
+  upkeepReviewWhat:
+    "Cuenta lo que sobra, lo que falta y lo que se puede recuperar. No cambia nada: lo que hagas lo decides después, con el resumen delante.",
+  upkeepReviewGo: "Revisar",
+  upkeepBack: "se pueden recuperar de {name}",
+  upkeepNothing: "Nada que recuperar",
+  upkeepWhen: "Revisado hace un momento",
+  upkeepThings: "{name} cosas",
+  upkeepHushed:
+    "{name} lleva un tiempo sin escribir, así que esto puede estar incompleto. Ábrela allí para que ponga lo suyo al día — desde aquí no se puede. Si esa máquina ya no existe, quítala de la lista y vuelve.",
+  upkeepSafe: "Se puede sacar y volver atrás",
+  upkeepSafeWhat:
+    "Adjuntos que ya no nombra ninguna tarea ni ningún documento. Van a la papelera y tienes 30 días para recuperarlos.",
+  upkeepSafeAll: "Sacarlos todos",
+  upkeepSafeAllSure:
+    "¿Sacar {name} adjuntos que nadie nombra? Van a la papelera, y tienes 30 días para recuperarlos.",
+  upkeepSafeOne: "Verlos uno a uno",
+  upkeepLook: "Míralos tú",
+  upkeepLookWhat:
+    "Documentos en el disco que el registro no nombra. Pueden ser la única copia de algo que perdió su evento. Adoptarlos los devuelve a Tisty y nunca puede estar mal.",
+  upkeepTakeIn: "Adoptarlo",
+  upkeepTakeInAll: "Adoptarlos todos",
+  upkeepTakenIn: "Adoptado como {name}",
+  upkeepDropIt: "Soltarlo",
+  upkeepDropSure:
+    "¿Soltar «{name}»? El archivo se va para siempre y aquí no queda copia. Esto no se puede deshacer.",
+  upkeepDropped: "Soltado",
+  upkeepWaiting: "Esperando a {name}",
+  upkeepWaitingWhat:
+    "El registro lo nombra y el archivo no está aquí. Puede llegar cuando esa máquina sincronice. Olvidarlo lo borra en todas, y eso no vuelve.",
+  upkeepForget: "Olvidarlo",
+  upkeepForgetWaits: "se activa cuando {name} haya hablado",
+  upkeepClear: "Sin repetidos. Ningún documento frágil.",
+  upkeepInFull: "Ver el detalle del almacén",
+  alreadyKept: "Ese documento ya está guardado aquí",
+  shedAlready: "Ese archivo fue borrado, y adoptarlo solo haría que lo barrieran otra vez",
+  stillKept: "El registro todavía nombra ese archivo, así que se queda",
   archivedList: "La lista «{name}» está guardada. Recupérala antes de poner algo en ella.",
   documentTooLong:
     "Este documento llegó a {name}. Quita algo o divídelo en dos: pasado ese punto ya no se puede abrir ni sincronizar.",

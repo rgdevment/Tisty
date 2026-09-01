@@ -620,6 +620,35 @@ pub fn remove(root: &Path, id: &str) -> Result<()> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Stray {
+    pub file: String,
+    pub title: String,
+    pub bytes: u64,
+    pub when: i64,
+}
+
+pub fn strayed(root: &Path, alive: &[String]) -> Vec<Stray> {
+    loose(root, alive)
+        .into_iter()
+        .map(|one| {
+            let at = resolve(root, &one.id).ok();
+            let told = at.as_ref().and_then(|at| std::fs::metadata(at).ok());
+            Stray {
+                title: one.title,
+                file: one.id,
+                bytes: told.as_ref().map(|one| one.len()).unwrap_or(0),
+                when: told
+                    .and_then(|one| one.modified().ok())
+                    .and_then(|one| one.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|one| one.as_secs() as i64)
+                    .unwrap_or(0),
+            }
+        })
+        .collect()
+}
+
 pub fn missing(root: &Path, alive: &[String]) -> Vec<String> {
     alive
         .iter()
@@ -1020,6 +1049,38 @@ fn opening(at: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_stray_paper_is_listed_with_what_it_weighs_and_what_it_says() {
+        let room = tempfile::tempdir().unwrap();
+        let root = room.path();
+        std::fs::write(
+            root.join("mac0-0001.md"),
+            "# Minuta
+
+Algo escrito.",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("mac0-0002.md"),
+            "# Guardado
+",
+        )
+        .unwrap();
+
+        let strays = strayed(root, &["mac0-0002".to_string()]);
+        assert_eq!(strays.len(), 1, "only the one no document names");
+        let one = &strays[0];
+        assert_eq!(one.file, "mac0-0001");
+        assert_eq!(one.title, "Minuta");
+        assert!(one.bytes > 0, "it says what it weighs");
+        assert!(one.when > 0, "and when it was written");
+
+        assert!(
+            strayed(root, &["mac0-0001".to_string(), "mac0-0002".to_string()]).is_empty(),
+            "nothing is stray when the log names them all"
+        );
+    }
     use super::*;
 
     fn device(named: &str) -> DeviceId {
