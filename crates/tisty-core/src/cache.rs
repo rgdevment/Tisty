@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 1;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 2;
 
 pub struct Cache {
     db: Connection,
@@ -91,7 +91,7 @@ impl Cache {
         state.assistants = self
             .meta("assistants")
             .and_then(|said| serde_json::from_str(&said).ok())
-            .unwrap_or_else(|| state.agents.clone());
+            .unwrap_or_default();
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {

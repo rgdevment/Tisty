@@ -189,6 +189,7 @@ impl Op {
                 | Op::FolderDelete { .. }
                 | Op::DocDelete { .. }
                 | Op::DeviceRemove { .. }
+                | Op::AttachRetire { .. }
         )
     }
 

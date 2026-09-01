@@ -106,6 +106,11 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             Err(trouble) => return Ok(said(&trouble, lang)),
         };
 
+    if moved.brought > 0 {
+        *app = App::at(app.paths.clone())?;
+        settle_what_arrived(app, &moved.arrived);
+    }
+
     let who = app.config().device_id.clone();
     if !tisty_core::store::ledger(app.paths.store())?
         .allowed
@@ -166,4 +171,37 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
     };
     eprintln!("{text}");
     ExitCode::from(EXIT_ERROR)
+}
+
+fn settle_what_arrived(app: &mut App, files: &[String]) {
+    let came: std::collections::BTreeSet<&str> = files.iter().map(String::as_str).collect();
+    let mut held: std::collections::BTreeMap<tisty_core::model::DocId, usize> =
+        std::collections::BTreeMap::new();
+    for one in app.state.docs.values() {
+        if let Some(up) = one.page_of {
+            *held.entry(up).or_default() += 1;
+        }
+    }
+    let books: Vec<String> = app
+        .state
+        .docs
+        .values()
+        .filter(|one| {
+            one.page_of.is_none()
+                && came.contains(one.file.as_str())
+                && held.get(&one.id).is_some_and(|many| *many > 1)
+        })
+        .map(|one| one.file.clone())
+        .collect();
+
+    let root = app.paths.docs();
+    for file in books {
+        let Ok(body) = tisty_core::docs::read(&root, &file) else {
+            continue;
+        };
+        let told = app.state.settling(&file, &body);
+        if !told.is_empty() {
+            let _ = app.commit_all(told);
+        }
+    }
 }

@@ -181,26 +181,22 @@ impl Session {
     }
 
     fn retell(&mut self, file: &str, body: &str) -> bool {
-        let Some(doc) = self.state.docs.values().find(|one| one.file == file) else {
-            return false;
-        };
-        let told = self.state.pages_told(doc.id, body);
+        let told = self.state.settling(file, body);
         if told.is_empty() {
             return false;
         }
-        self.commit_all(
-            told.into_iter()
-                .map(|(id, order)| Op::DocMove {
-                    id,
-                    d: tisty_core::event::Filed {
-                        folder: None,
-                        page_of: None,
-                        order: Some(order),
-                    },
-                })
-                .collect(),
-        )
-        .is_ok()
+        if let Err(e) = self.commit_all(told) {
+            witness::warn(
+                channel::WINDOW,
+                "where a document's pages sit could not be settled",
+                &[
+                    ("file", Fact::Id(file.to_string())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+            return false;
+        }
+        true
     }
 
     fn moved(&self, id: &str) -> bool {
@@ -284,6 +280,10 @@ impl Session {
         let mut files = vec![kept.file.clone()];
         files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
         self.commit(Op::DocDelete { id })?;
+        files.retain(|file| self.state.shed.contains(file));
+        if files.is_empty() {
+            return Err(Refusal::of("deleteRefused"));
+        }
 
         let root = self.paths.docs();
         let mut said = tisty_core::docs::Carried::read(self.paths.data());
@@ -308,22 +308,54 @@ impl Session {
         Ok(())
     }
 
+    fn unhang(
+        &mut self,
+        id: tisty_core::model::DocId,
+    ) -> tisty_core::Result<tisty_core::event::Filed> {
+        self.log()?;
+        let told = &self.log.as_ref().expect("just read").1;
+        Ok(tisty_core::undo::unhung(told, &self.state, id))
+    }
+
     fn settle_what_arrived(&mut self, files: &[String]) {
-        let root = self.paths.docs();
-        let holds: Vec<String> = files
-            .iter()
-            .filter(|file| {
-                self.state
-                    .docs
-                    .values()
-                    .any(|one| one.page_of.is_none() && &one.file == *file)
-            })
-            .cloned()
-            .collect();
-        for file in holds {
-            if let Ok(body) = tisty_core::docs::read(&root, &file) {
-                self.retell(&file, &body);
+        let came: std::collections::BTreeSet<&str> = files.iter().map(String::as_str).collect();
+        let mut held: std::collections::BTreeMap<tisty_core::model::DocId, usize> =
+            std::collections::BTreeMap::new();
+        for one in self.state.docs.values() {
+            if let Some(up) = one.page_of {
+                *held.entry(up).or_default() += 1;
             }
+        }
+        let books: Vec<String> = self
+            .state
+            .docs
+            .values()
+            .filter(|one| {
+                one.page_of.is_none()
+                    && came.contains(one.file.as_str())
+                    && held.get(&one.id).is_some_and(|many| *many > 1)
+            })
+            .map(|one| one.file.clone())
+            .collect();
+
+        let root = self.paths.docs();
+        let mut settled = 0;
+        for file in books {
+            match tisty_core::docs::read(&root, &file) {
+                Ok(body) => settled += usize::from(self.retell(&file, &body)),
+                Err(e) => witness::warn(
+                    channel::SYNC,
+                    "a document that arrived could not be read to settle its pages",
+                    &[("file", Fact::Id(file)), ("why", Fact::Why(e.to_string()))],
+                ),
+            }
+        }
+        if settled > 0 {
+            witness::note(
+                channel::SYNC,
+                "a document that arrived names its pages in another order, and now the log agrees",
+                &[("count", Fact::Count(settled))],
+            );
         }
     }
 
@@ -3253,11 +3285,9 @@ fn doc_page(
             page_of: Some(page_of),
             order: None,
         },
-        None => {
-            let told = tisty_core::store::read_all(session.paths.store())
-                .map_err(|e| blamed(channel::WINDOW, "the log would not be read back", e))?;
-            tisty_core::undo::unhung(&told, &session.state, id)
-        }
+        None => session
+            .unhang(id)
+            .map_err(|e| blamed(channel::WINDOW, "the log would not be read back", e))?,
     };
     session.commit(Op::DocMove { id, d })?;
     Ok(())
@@ -3445,6 +3475,7 @@ async fn settle_in(
 
     let mut brought = false;
     let mut stuck = None;
+    let mut arrived = Vec::new();
     let mut carried = dest.is_none();
     if let Some(dest) = dest
         && let Some(_done) = alone.inner().claim()
@@ -3474,7 +3505,7 @@ async fn settle_in(
                 stuck = Some(refusal);
             }
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
-            Ok(Ok(_)) => {}
+            Ok(Ok(done)) => arrived = done.arrived,
         }
         brought = tisty_core::cache::fingerprint(&store) != before;
     }
@@ -3489,6 +3520,7 @@ async fn settle_in(
             )
         })?;
     }
+    session.settle_what_arrived(&arrived);
     let audit =
         tisty_core::cache::audit(&session.paths.store(), session.paths.cache()).map_err(|e| {
             witness::error(
@@ -5042,6 +5074,14 @@ mod deleting {
         made.id
     }
 
+    fn ledgered(desk: &Desk, files: &[&str]) {
+        let mut said = tisty_core::docs::Carried::read(desk.paths.data());
+        for file in files {
+            said.keep(file, "a print");
+        }
+        said.save(desk.paths.data()).unwrap();
+    }
+
     fn there(desk: &Desk, file: &str) -> bool {
         tisty_core::docs::resolve(&desk.paths.docs(), file).is_ok_and(|at| at.exists())
     }
@@ -5063,6 +5103,7 @@ mod deleting {
         let parent = a_page_under(&mut session, None);
         let up = named(&session, &parent);
         let page = a_page_under(&mut session, Some(up));
+        ledgered(&desk, &[&parent, &page]);
 
         session.drop_doc(&up.to_string()).unwrap();
 
@@ -5085,7 +5126,9 @@ mod deleting {
         let up = named(&session, &parent);
         let page = a_page_under(&mut session, Some(up));
 
-        let at = tisty_core::docs::resolve(&desk.paths.docs(), &page).unwrap();
+        ledgered(&desk, &[&parent, &page]);
+
+        let at = tisty_core::docs::resolve(&desk.paths.docs(), &parent).unwrap();
         std::fs::remove_file(&at).unwrap();
         std::fs::create_dir(&at).unwrap();
 
@@ -5093,16 +5136,18 @@ mod deleting {
             .drop_doc(&up.to_string())
             .expect("the log is the truth, so a file left behind is not a refusal");
         assert!(session.state.docs.is_empty(), "both are gone from the log");
-        assert!(!there(&desk, &parent), "and the one that could go, went");
         assert!(
-            session.state.shed.contains(&page),
-            "the one that stayed is still swept for"
+            !there(&desk, &page),
+            "the run carried on past the one that would not go"
         );
         assert!(
-            tisty_core::docs::Carried::read(desk.paths.data())
-                .of(&page)
-                .is_none(),
-            "and the ledger forgets it either way"
+            session.state.shed.contains(&parent),
+            "the one that stayed is still swept for"
+        );
+        let said = tisty_core::docs::Carried::read(desk.paths.data());
+        assert!(
+            said.of(&parent).is_none() && said.of(&page).is_none(),
+            "and the ledger forgets both either way"
         );
 
         std::fs::remove_dir(&at).unwrap();
@@ -5110,7 +5155,7 @@ mod deleting {
         drop(session);
         let session = Session::at(desk.paths.clone()).unwrap();
         assert!(
-            !there(&desk, &page),
+            !there(&desk, &parent),
             "the shed is taken out when the window opens"
         );
         drop(session);

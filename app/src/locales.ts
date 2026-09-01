@@ -337,6 +337,7 @@ const en = {
   newFolder: "New folder",
   folderName: "Name of the folder",
   noSuchFolder: "That folder is not here",
+  deleteRefused: "That deletion was not accepted. Check the machines on the list in Keeping.",
   dropDoc: "Delete {name}",
   dropDocSure:
     "Delete «{name}»? The document and what it holds go for good. This cannot be undone.",
@@ -1341,6 +1342,7 @@ const es: Catalog = {
   newFolder: "Carpeta nueva",
   folderName: "Nombre de la carpeta",
   noSuchFolder: "Esa carpeta no está aquí",
+  deleteRefused: "Ese borrado no se aceptó. Revisa los equipos de la lista en Almacén.",
   dropDoc: "Borrar {name}",
   dropDocSure:
     "¿Borrar «{name}»? El documento y su contenido se van para siempre. Esto no se puede deshacer.",

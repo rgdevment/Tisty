@@ -24,6 +24,7 @@ pub fn unhung(events: &[Event], now: &State, id: crate::model::DocId) -> crate::
     };
     if let Some(at) = events.iter().rposition(|one| hung(&one.op))
         && let Some(Op::DocMove { d, .. }) = undoing(&events[at], &State::replay(&events[..at]))
+        && matches!(d.page_of, Some(None))
         && d.folder
             .is_some_and(|home| home.is_none_or(|home| now.folders.contains_key(&home)))
     {
@@ -779,5 +780,25 @@ mod hanging {
         let after = State::replay(&events);
         assert_eq!(after.docs[&one].folder, Some(home));
         assert_eq!(after.docs[&one].page_of, None);
+    }
+
+    #[test]
+    fn a_page_moved_straight_from_one_document_to_another_is_still_unhung() {
+        let mut events = Vec::new();
+        let home = folder(&mut events, 1);
+        let one = doc(&mut events, 2, Some(home));
+        let up = doc(&mut events, 3, Some(home));
+        let other = doc(&mut events, 4, Some(home));
+
+        hang(&mut events, 5, one, up);
+        hang(&mut events, 6, one, other);
+        assert_eq!(State::replay(&events).docs[&one].page_of, Some(other));
+
+        let after = unhang(&mut events, 7, one);
+        assert_eq!(
+            after.docs[&one].page_of, None,
+            "inverting the last hang would have re-hung it under the first"
+        );
+        assert_eq!(after.docs[&one].folder, Some(home));
     }
 }

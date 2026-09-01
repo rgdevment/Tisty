@@ -451,28 +451,11 @@ const UNSETTLED: &str = " Where its pages sit could not be settled just now — 
                          this again.";
 
 fn retold(state: &State, store: &mut Store, doc: &str, body: &str) -> Result<(), Refused> {
-    let Some(kept) = state.docs.values().find(|one| one.file == doc) else {
-        return Ok(());
-    };
-    let told = state.pages_told(kept.id, body);
+    let told = state.settling(doc, body);
     if told.is_empty() {
         return Ok(());
     }
-    store
-        .append_batch(
-            told.into_iter()
-                .map(|(id, order)| Op::DocMove {
-                    id,
-                    d: tisty_core::event::Filed {
-                        folder: None,
-                        page_of: None,
-                        order: Some(order),
-                    },
-                })
-                .collect(),
-        )
-        .map(|_| ())
-        .map_err(hitch)
+    store.append_batch(told).map(|_| ()).map_err(hitch)
 }
 
 fn hitch(e: tisty_core::Error) -> Refused {
