@@ -203,7 +203,8 @@ const built = (
 
   const box = frame("preview");
   box.addEventListener("keydown", (e) => {
-    if (e.key === "Backspace" || e.key === "Delete") {
+    // The widget hides the key from the editor, and a document that cannot be written keeps it.
+    if ((e.key === "Backspace" || e.key === "Delete") && reach.onMenu) {
       e.preventDefault();
       return drop();
     }

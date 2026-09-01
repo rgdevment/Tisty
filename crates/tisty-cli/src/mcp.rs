@@ -1003,7 +1003,11 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 page_of,
             },
         })
-        .map_err(hitch)?;
+        .map_err(|e| {
+            // The file is on disk with nothing naming it, and a retry would make a second one.
+            let _ = tisty_core::docs::remove(&paths.docs(), &made.id);
+            hitch(e)
+        })?;
 
     let mut named_there = false;
     if let Some(up) = page_of

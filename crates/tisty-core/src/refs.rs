@@ -53,6 +53,7 @@ pub fn extract(text: &str) -> Vec<Ref> {
             b'`' => past_code(text, at),
             b'[' if rest.starts_with("[[") => named(rest, at, &mut keep),
             b'[' => linked(text, at, &mut keep),
+            b'<' => tagged(rest, at, &mut keep),
             b'h' if rest.starts_with("http://") || rest.starts_with("https://") => {
                 bare(rest, at, &mut keep)
             }
@@ -153,6 +154,45 @@ fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
         });
     }
     after + 1 + close + 1
+}
+
+/// An aligned paragraph is written as html, so what it points at is in an attribute, not in
+/// brackets. Missed here, a file nothing else names reads as loose and is swept away.
+fn tagged(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
+    let opens = rest[1..]
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '/');
+    // A tag ends on its own line. Anything else — prose, a comparison, an autolink, a comment —
+    // is read on, byte by byte, or one stray angle would swallow every reference after it.
+    let shut = rest.find('\n').unwrap_or(rest.len());
+    let Some(end) = opens.then(|| rest[..shut].find('>')).flatten() else {
+        return at + 1;
+    };
+    let tag = &rest[..end];
+    if !tag.contains('=') {
+        return at + 1;
+    }
+    for name in [" href=\"", " src=\""] {
+        let Some(from) = tag.find(name).map(|n| n + name.len()) else {
+            continue;
+        };
+        let Some(stop) = tag[from..].find('"').map(|n| from + n) else {
+            continue;
+        };
+        let target = tag[from..stop].trim();
+        if !target.is_empty() {
+            keep(Ref {
+                kind: Kind::Link,
+                target: target
+                    .replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&amp;", "&"),
+                label: None,
+            });
+        }
+    }
+    at + end + 1
 }
 
 fn bare(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
@@ -339,6 +379,68 @@ mod tests {
         let said = card("mac0-0010", "Capitulo 1 [borrador]");
 
         assert_eq!(papers(&said), ["mac0-0010"], "{said}");
+    }
+
+    #[test]
+    fn what_an_aligned_paragraph_points_at_is_still_pointed_at() {
+        let said = "<p style=\"text-align: center\"><a href=\"attachments/ab/nota-1234.pdf\">el                     plano</a></p>";
+
+        assert_eq!(targets(said), ["attachments/ab/nota-1234.pdf"]);
+    }
+
+    #[test]
+    fn a_page_named_from_an_aligned_paragraph_is_named_all_the_same() {
+        let said = "<p style=\"text-align: center\"><a href=\"tisty:doc/mac0-0010\">Uno</a></p>";
+
+        assert_eq!(papers(said), ["mac0-0010"]);
+    }
+
+    #[test]
+    fn an_angle_in_prose_does_not_swallow_what_comes_after_it() {
+        let said = "si a < b mira [el plano](attachments/ab/plano-1234.pdf) y 5 > 3";
+
+        assert_eq!(targets(said), ["attachments/ab/plano-1234.pdf"]);
+    }
+
+    #[test]
+    fn an_angle_between_two_cards_leaves_both_where_they_are() {
+        let said = "![Uno](tisty:doc/mac0-0001)
+
+si a < b
+
+![Dos](tisty:doc/mac0-0002)";
+
+        assert_eq!(papers(said), ["mac0-0001", "mac0-0002"]);
+    }
+
+    #[test]
+    fn an_address_written_between_angles_is_still_an_address() {
+        assert_eq!(
+            targets("<https://x.example/one>"),
+            ["https://x.example/one"]
+        );
+    }
+
+    #[test]
+    fn a_reference_inside_a_comment_is_still_a_reference() {
+        assert_eq!(
+            targets("<!-- [x](attachments/ab/x-1111.pdf) -->"),
+            ["attachments/ab/x-1111.pdf"]
+        );
+    }
+
+    #[test]
+    fn an_attribute_that_only_ends_in_href_names_nothing() {
+        let said = "<img data-href=\"attachments/ab/fantasma-1111.pdf\" alt=\"x\">";
+
+        assert!(targets(said).is_empty(), "{said}");
+    }
+
+    #[test]
+    fn an_ampersand_written_for_html_is_read_back_as_one() {
+        let said = "<p><a href=\"https://x.example/a?one=1&amp;two=2\">x</a></p>";
+
+        assert_eq!(targets(said), ["https://x.example/a?one=1&two=2"]);
     }
 
     #[test]

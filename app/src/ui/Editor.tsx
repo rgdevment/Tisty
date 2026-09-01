@@ -258,7 +258,8 @@ export default function Editor({
     () => ({
       attributes: (state: EditorState) => ({
         class: shotNode(state) ? "tisty-doc shot-picked" : "tisty-doc",
-        [CATCHES]: "",
+        // Saying it takes files is what has one copied in before anyone asks whether it can.
+        ...(reading ? {} : { [CATCHES]: "" }),
         role: "textbox",
         "aria-multiline": "true",
         spellcheck: "true",
@@ -304,7 +305,7 @@ export default function Editor({
         return false;
       },
     }),
-    [label],
+    [label, reading],
   );
 
   const wrote = useCallback(({ editor }: { editor: Writing }) => {
@@ -646,13 +647,13 @@ export default function Editor({
   }, [editor, opened, current]);
 
   useEffect(() => {
-    if (!editor || editor.isDestroyed) return;
+    if (!editor || editor.isDestroyed || reading) return;
     return takesFiles(editor.view.dom, (put, at) => {
       const landed = at ? editor.view.posAtCoords({ left: at.left, top: at.top })?.pos : undefined;
       const chain = editor.chain().focus(landed ?? undefined);
       chain.insertContent(put).run();
     });
-  }, [editor]);
+  }, [editor, reading]);
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
@@ -699,19 +700,25 @@ export default function Editor({
       {asking && shown.length > 0 && (
         <Slash at={asking.at} blocks={shown} active={active} onPick={take} />
       )}
-      {picked && editor && !asking && !tying && <Floats editor={editor} at={picked.at} />}
+      {picked && editor && !asking && !tying && !reading && (
+        <Floats editor={editor} at={picked.at} />
+      )}
       {shot && editor && (
         <Shot
           at={shot.at}
           onOpen={() => onOpen?.(shot.src)}
           onKeep={onKeep ? () => onKeep(shot.src, shot.name) : undefined}
-          onDrop={() => {
-            editor.chain().focus().deleteSelection().run();
-            setShot(null);
-          }}
+          onDrop={
+            reading
+              ? undefined
+              : () => {
+                  editor.chain().focus().deleteSelection().run();
+                  setShot(null);
+                }
+          }
         />
       )}
-      {tying && editor && (
+      {tying && editor && !reading && (
         <Floats editor={editor} at={tying} asking onDone={() => setTying(null)} />
       )}
       {naming && editor && (

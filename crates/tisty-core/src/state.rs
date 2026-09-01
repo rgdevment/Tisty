@@ -2187,7 +2187,9 @@ mod tests {
         let reopen = ev(3, "mac0", Op::TaskReopen { id });
         state.apply(&reopen);
         let back = crate::undo::inverse(&reopen, &before).expect("a reopen can be undone");
-        state.apply(&ev(4, "mac0", back));
+        for (n, op) in back.into_iter().enumerate() {
+            state.apply(&ev(4 + n as i64, "mac0", op));
+        }
 
         assert!(
             state.tasks[&id].filled,

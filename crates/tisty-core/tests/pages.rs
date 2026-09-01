@@ -528,7 +528,7 @@ fn undoing_a_creation_and_a_plain_move_restores_the_exact_state_before() {
         })
         .unwrap();
     let undo_move = undo::inverse(&moved, &baseline).unwrap();
-    store.append(undo_move).unwrap();
+    store.append_batch(undo_move).unwrap();
     assert_eq!(
         replayed(&world),
         baseline,
@@ -547,7 +547,7 @@ fn undoing_a_creation_and_a_plain_move_restores_the_exact_state_before() {
         })
         .unwrap();
     let undo_create = undo::inverse(&created, &baseline).unwrap();
-    store.append(undo_create).unwrap();
+    store.append_batch(undo_create).unwrap();
     assert_eq!(
         replayed(&world).docs,
         baseline.docs,
@@ -577,7 +577,7 @@ fn undoing_a_page_of_conversion_puts_the_order_back_too() {
         })
         .unwrap();
     let undo_op = undo::inverse(&converted, &baseline).unwrap();
-    store.append(undo_op).unwrap();
+    store.append_batch(undo_op).unwrap();
 
     let after = replayed(&world);
     assert_eq!(after.docs[&sibling_page], baseline.docs[&sibling_page]);
@@ -1603,7 +1603,7 @@ fn undoing_a_page_of_conversion_puts_the_folder_back_as_well_as_the_order() {
     );
 
     let undo_op = undo::inverse(&converted, &baseline).unwrap();
-    store.append(undo_op).unwrap();
+    store.append_batch(undo_op).unwrap();
 
     assert_eq!(
         replayed(&world).docs[&loose].folder,

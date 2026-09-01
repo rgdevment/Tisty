@@ -322,7 +322,9 @@ describe("swapping one for the other", () => {
   });
 
   it("takes the card away whole when it is rubbed out", () => {
-    const editor = made("![contrato](<attachments/contrato-91f2.pdf>)\n\nqueda esto");
+    const editor = made("![contrato](<attachments/contrato-91f2.pdf>)\n\nqueda esto", {
+      onMenu: () => {},
+    });
     const card = editor.view.dom.querySelector<HTMLElement>(".card");
 
     card?.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true }));
