@@ -992,3 +992,52 @@ fn nothing_is_copied_in_when_the_document_itself_is_turned_away() {
         "a refused import must leave no file no document names"
     );
 }
+
+#[test]
+fn a_drawing_a_page_and_a_data_file_come_in_like_any_other() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(
+        dir.path(),
+        "assets/dibujo.svg",
+        b"<svg xmlns=\"http://www.w3.org/2000/svg\"><circle r=\"4\"/></svg>",
+    );
+    beside(
+        dir.path(),
+        "assets/pagina.html",
+        b"<!doctype html><p>hola</p>",
+    );
+    beside(
+        dir.path(),
+        "assets/datos.xml",
+        b"<?xml version=\"1.0\"?><a/>",
+    );
+    let at = dir.path().join("Export.md");
+    std::fs::write(
+        &at,
+        "# Export\n\n![dibujo](assets/dibujo.svg)\n\n[pagina](assets/pagina.html)\n\n[datos](assets/datos.xml)\n",
+    )
+    .unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert_eq!(
+        said["result"]["structuredContent"]["files"].as_u64(),
+        Some(3),
+        "{said}"
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    for kind in ["svg", "html", "xml"] {
+        assert!(
+            body.contains("attachments/") && body.contains(kind),
+            "{kind} did not come in: {body}"
+        );
+    }
+    assert!(!body.contains("assets/"), "still pointing outside: {body}");
+}
