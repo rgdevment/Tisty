@@ -71,6 +71,11 @@
   </p>
 
   <p>
+    <a href="https://github.com/sponsors/rgdevment">
+      <img
+        src="https://img.shields.io/badge/GitHub-Sponsor-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white"
+        alt="Sponsor on GitHub"/>
+    </a>
     <a href="https://buymeacoffee.com/rgdevment">
       <img
         src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"

@@ -71,6 +71,11 @@
   </p>
 
   <p>
+    <a href="https://github.com/sponsors/rgdevment">
+      <img
+        src="https://img.shields.io/badge/GitHub-Sponsor-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white"
+        alt="Sponsor on GitHub"/>
+    </a>
     <a href="https://buymeacoffee.com/rgdevment">
       <img
         src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"
@@ -345,7 +350,7 @@ debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que 
 `math` compone la fórmula que guarda.
 
 **Sigue siendo Markdown**, y eso es lo importante, no un detalle: todo lo de
-arriba es sintaxis que otro lector ya entiende, así que el fichero sobrevive sin
+arriba es sintaxis que otro lector ya entiende, así que el archivo sobrevive sin
 Tisty —el nombre de un bloque es lo que Markdown guarda tras el lenguaje, y el
 ancho de una columna viaja en lo largo que se dibuje su raya, que cualquier otro
 lector ignora y pinta igual—. Donde Markdown de verdad no alcanza, Tisty escribe
