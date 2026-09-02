@@ -67,9 +67,9 @@ pub fn may_attach(source: &std::path::Path, paths: &Paths) -> Result<std::path::
 /// What an assistant may keep, and how it is judged: by the bytes, never by the name. A denylist
 /// of extensions is one rename away from useless, so this asks the file what it is.
 const FOR_AN_AGENT: &[&str] = &[
-    "png", "jpg", "jpeg", "gif", "webp", "avif", "heic", "pdf", "txt", "md", "csv", "docx", "xlsx",
-    "pptx", "odt", "ods", "mp4", "m4v", "mov", "webm", "ogv", "mp3", "m4a", "wav", "ogg", "zip",
-    "7z", "gz", "tgz", "tar",
+    "png", "jpg", "jpeg", "gif", "webp", "avif", "heic", "svg", "pdf", "txt", "md", "csv", "xml",
+    "html", "htm", "docx", "xlsx", "pptx", "odt", "ods", "mp4", "m4v", "mov", "webm", "ogv", "mp3",
+    "m4a", "wav", "ogg", "zip", "7z", "gz", "tgz", "tar",
 ];
 
 fn named_type(at: &std::path::Path) -> Option<String> {

@@ -1089,6 +1089,9 @@ body {
 .card-badge[data-family="image"] {
   --card-tint: #7c3aed;
 }
+.card-badge[data-family="page"] {
+  --card-tint: #b45309;
+}
 .card-badge[data-family="video"] {
   --card-tint: #be185d;
 }
@@ -1122,6 +1125,9 @@ body {
 }
 [data-theme="dark"] .card-badge[data-family="image"] {
   --card-tint: #a78bfa;
+}
+[data-theme="dark"] .card-badge[data-family="page"] {
+  --card-tint: #f0b45e;
 }
 [data-theme="dark"] .card-badge[data-family="video"] {
   --card-tint: #f472b6;

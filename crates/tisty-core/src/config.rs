@@ -478,11 +478,11 @@ mod tests {
         }
 
         #[test]
-        fn a_document_still_holds_five_hundred_megabytes_whatever_a_task_is_set_to() {
+        fn a_document_still_holds_its_own_ceiling_whatever_a_task_is_set_to() {
             let mut config = bare();
             config.attach_up_to = Some(crate::attach::COPIED_AT_FIRST);
 
-            assert_eq!(config.copies_in_a_doc(), 500 * 1024 * 1024);
+            assert_eq!(config.copies_in_a_doc(), 750 * 1024 * 1024);
             assert!(config.copies_in_a_doc() > config.copies_up_to());
         }
     }

@@ -50,12 +50,17 @@ four tags of its own, because it writes them itself — `<u>`, `<mark>`, a colou
 `<mark data-pen=\"…\">` and the icon span. Everything else in HTML is turned away.
 
 `import_doc` brings a markdown file on this machine in as a document, tidying on the way what \
-the editor could not have held, and saying what it changed; `export_doc` writes one back out to \
-a folder, pages and attachments and all. Both only reach the places the person keeps files — \
-Downloads, Documents, Pictures, Desktop, the temporary folder — and neither touches what is \
-already on disk. To bring a whole export across, walk it yourself and import one file per call, \
-so what happened to each is something the person can see. `archive_doc` puts a document away \
-when it is finished or was written by mistake, and brings it back; nothing here deletes.
+the editor could not have held, and saying what it changed. Everything the text points at beside \
+it comes in too — pictures, video, PDFs — and the text is pointed at Tisty's own copies, because \
+a document that leans on a file outside Tisty is a document that breaks the day it moves. What \
+cannot come in has its link taken out and its words left in place, and you are told which and \
+why: a key or a password never comes in, whatever it is named, and a file past what a document \
+holds has to be made smaller first. `export_doc` writes a document back out to a folder, pages \
+and attachments and all. Both only reach the places the person keeps files — Downloads, \
+Documents, Pictures, Desktop, the temporary folder — and neither touches what is already on \
+disk. To bring a whole export across, walk it yourself and import one file per call, so what \
+happened to each is something the person can see. `archive_doc` puts a document away when it is \
+finished or was written by mistake, and brings it back; nothing here deletes.
 
 A document is for what is worth keeping and is not work to do — a summary, a note, something \
 to consult. Writing one creates no task: if something has to happen, propose it. `docs` lists \
@@ -1515,6 +1520,273 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+#[derive(Default)]
+struct Carried {
+    kept: usize,
+    missed: Vec<String>,
+    papers: Vec<String>,
+}
+
+fn unescaped(target: &str) -> String {
+    let bytes = target.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut at = 0;
+    while at < bytes.len() {
+        if bytes[at] == b'%'
+            && at + 2 < bytes.len()
+            && let Ok(one) = u8::from_str_radix(&target[at + 1..at + 3], 16)
+        {
+            out.push(one);
+            at += 3;
+            continue;
+        }
+        out.push(bytes[at]);
+        at += 1;
+    }
+    String::from_utf8(out).unwrap_or_else(|_| target.to_string())
+}
+
+fn beside_the_file(paths: &Paths, from: &std::path::Path, body: &str) -> (String, Carried) {
+    let mut done = Carried::default();
+    let here = from
+        .parent()
+        .unwrap_or(std::path::Path::new("."))
+        .to_path_buf();
+    let mut kept: std::collections::BTreeMap<String, Option<String>> = Default::default();
+
+    let out = retargeted(body, &mut |label: &str, target: &str, title: &str| {
+        if let Some(said) = kept.get(target) {
+            return said.clone().map(|at| (at, title.to_string()));
+        }
+        let landed = brought_in(paths, &here, target, &mut done);
+        kept.insert(target.to_string(), landed.clone());
+        match landed {
+            Some(at) => Some((at, title.to_string())),
+            None => {
+                let _ = label;
+                None
+            }
+        }
+    });
+    (out, done)
+}
+
+fn brought_in(
+    paths: &Paths,
+    here: &std::path::Path,
+    target: &str,
+    done: &mut Carried,
+) -> Option<String> {
+    if target.starts_with('#')
+        || target.starts_with("http://")
+        || target.starts_with("https://")
+        || target.starts_with("mailto:")
+        || target.starts_with(tisty_core::refs::DOC)
+        || target.starts_with("attachments/")
+    {
+        return Some(target.to_string());
+    }
+    if target.starts_with('/')
+        || target.starts_with('\\')
+        || target.contains("://")
+        || target.chars().nth(1) == Some(':')
+    {
+        done.missed.push(format!(
+            "{target} — it names a place on this machine rather than something beside the document, and a document that leans on a path outside Tisty breaks the day it moves"
+        ));
+        return None;
+    }
+    let plain = unescaped(target);
+    let at = here.join(&plain);
+    let there = at.exists();
+    let mut cannot = |why: String| {
+        done.missed.push(format!("{target} — {why}"));
+        None::<String>
+    };
+
+    let Ok(at) = tisty_core::agent::may_reach(&at, paths) else {
+        return cannot(match there {
+            true => "it is not somewhere an assistant may take files from".into(),
+            false => "no file is there".into(),
+        });
+    };
+    if tisty_core::agent::fit_to_keep(&at).is_err() {
+        let head = std::fs::read(&at)
+            .map(|one| one[..one.len().min(4096)].to_vec())
+            .unwrap_or_default();
+        return cannot(match tisty_core::agent::holds_a_secret(&head) {
+            true => "it holds a key or a password, whatever it is named".into(),
+            false => "it is not a kind of file an assistant may keep".into(),
+        });
+    }
+    let heavy = std::fs::metadata(&at).map(|one| one.len()).unwrap_or(0);
+    if heavy > tisty_core::attach::COPIED_IN_DOC {
+        return cannot(format!(
+            "it is {heavy} bytes, past the {} a document holds; make it smaller and import it again",
+            tisty_core::attach::COPIED_IN_DOC
+        ));
+    }
+    if done.kept >= tisty_core::attach::KEPT_IN_A_DOC {
+        return cannot(format!(
+            "a document holds {} files at most, and this one is already full",
+            tisty_core::attach::KEPT_IN_A_DOC
+        ));
+    }
+    match tisty_core::attach::keep(&at, paths.data(), tisty_core::attach::COPIED_IN_DOC) {
+        Err(why) => cannot(why.to_string()),
+        Ok(one) => {
+            done.kept += 1;
+            if plain.to_lowercase().ends_with(".md") || plain.to_lowercase().ends_with(".markdown")
+            {
+                done.papers.push(plain);
+            }
+            Some(one.at)
+        }
+    }
+}
+
+fn opening(body: &str, at: usize) -> Option<usize> {
+    let bytes = body.as_bytes();
+    let line = body[..at].rfind('\n').map(|one| one + 1).unwrap_or(0);
+    let mut deep = 0;
+    let mut walk = at;
+    while walk > line {
+        walk -= 1;
+        match bytes[walk] {
+            b']' => deep += 1,
+            b'[' if deep == 0 => return Some(walk),
+            b'[' => deep -= 1,
+            _ => {}
+        }
+    }
+    None
+}
+
+fn written_as_code(body: &str) -> Vec<bool> {
+    let mut out = vec![false; body.len()];
+    let mut fence: Option<String> = None;
+    let mut at = 0;
+    for line in body.split_inclusive('\n') {
+        let bare = line.trim_end_matches('\n');
+        let opens = bare
+            .trim_start()
+            .chars()
+            .take_while(|one| *one == '`' || *one == '~')
+            .count();
+        let mark = bare.trim_start().chars().next().unwrap_or(' ');
+        match &fence {
+            Some(open) => {
+                for one in out.iter_mut().skip(at).take(line.len()) {
+                    *one = true;
+                }
+                if opens >= open.len() && bare.trim_start().starts_with(open.as_str()) {
+                    fence = None;
+                }
+            }
+            None if opens >= 3 => {
+                fence = Some(mark.to_string().repeat(opens));
+                for one in out.iter_mut().skip(at).take(line.len()) {
+                    *one = true;
+                }
+            }
+            None => {
+                let mut walk = 0;
+                for (span, part) in tisty_core::arriving::spans(bare) {
+                    if span {
+                        for one in out.iter_mut().skip(at + walk).take(part.len()) {
+                            *one = true;
+                        }
+                    }
+                    walk += part.len();
+                }
+            }
+        }
+        at += line.len();
+    }
+    out
+}
+
+fn retargeted(
+    body: &str,
+    with: &mut impl FnMut(&str, &str, &str) -> Option<(String, String)>,
+) -> String {
+    let coded = written_as_code(body);
+    let bytes = body.as_bytes();
+    let mut out = String::with_capacity(body.len());
+    let mut at = 0;
+    let mut from = 0;
+    while at < bytes.len() {
+        if bytes[at] != b']' || bytes.get(at + 1) != Some(&b'(') || coded[at] {
+            at += 1;
+            continue;
+        }
+        let Some(open) = opening(body, at) else {
+            at += 1;
+            continue;
+        };
+        let mut walk = at + 2;
+        let mut deep = 1;
+        while walk < bytes.len() && deep > 0 {
+            match bytes[walk] {
+                b'(' => deep += 1,
+                b')' => deep -= 1,
+                _ => {}
+            }
+            walk += 1;
+        }
+        if deep > 0 {
+            at += 1;
+            continue;
+        }
+        let inner = &body[at + 2..walk - 1];
+        let (target, title) = split_target(inner);
+        let label = &body[open + 1..at];
+        let pictured = open > 0 && bytes[open - 1] == b'!';
+        let cut = match pictured {
+            true => open - 1,
+            false => open,
+        };
+        out.push_str(&body[from..cut]);
+        match with(label, &target, &title) {
+            Some((now, title)) => {
+                let shown = match title.is_empty() {
+                    true => format!("<{now}>"),
+                    false => format!("<{now}> {title}"),
+                };
+                let mark = if pictured { "!" } else { "" };
+                out.push_str(&format!("{mark}[{label}]({shown})"));
+            }
+            None => out.push_str(label),
+        }
+        from = walk;
+        at = walk;
+    }
+    out.push_str(&body[from..]);
+    out
+}
+
+fn split_target(inner: &str) -> (String, String) {
+    let said = inner.trim();
+    if let Some(rest) = said.strip_prefix('<')
+        && let Some(shut) = rest.find('>')
+    {
+        return (
+            rest[..shut].to_string(),
+            rest[shut + 1..].trim().to_string(),
+        );
+    }
+    match said.find(char::is_whitespace) {
+        Some(gap) => {
+            let rest = said[gap..].trim();
+            match rest.starts_with(['"', '\'', '(']) {
+                true => (said[..gap].to_string(), rest.to_string()),
+                false => (said.to_string(), String::new()),
+            }
+        }
+        None => (said.to_string(), String::new()),
+    }
+}
+
 fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "path") else {
         return Err(Refused::Tool(
@@ -1522,16 +1794,7 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     };
     let asked = std::path::Path::new(&said);
-    let at = tisty_core::agent::may_reach(asked, paths).map_err(|_| {
-        Refused::Tool(format!(
-            "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
-            tisty_core::agent::reachable()
-                .iter()
-                .map(|one| one.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))
-    })?;
+    let at = reachable_or(paths, &said, asked, "take files from")?;
     if !at.is_file() {
         return Err(Refused::Tool(format!(
             "{said:?} is not a file. `import_doc` takes one markdown file at a time; call it once per file when you are bringing a whole export across."
@@ -1571,6 +1834,12 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{said:?} still holds {eats} after being tidied, so it would be destroyed the first time the person opens it. Nothing was written."
         ))
     })?;
+    short_and_plain(&json!({ "body": made.body }))?;
+    let (whole, brought) = beside_the_file(paths, &at, &made.body);
+    let made = tisty_core::arriving::Tidied {
+        body: whole,
+        changed: made.changed,
+    };
 
     let headed = made
         .body
@@ -1608,12 +1877,32 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let changed = made.changed.join(", ");
     Ok(told(
         format!(
-            "{}{}",
+            "{}{}{}{}{}",
             said_of(&written),
             match made.changed.is_empty() {
                 true => " Nothing had to be changed on the way in.".to_string(),
                 false => format!(
                     " On the way in it was tidied: {changed}. What the file said is still on disk, untouched."
+                ),
+            },
+            match brought.kept {
+                0 => String::new(),
+                one => format!(
+                    " {one} file(s) beside it came in too, and the text now points at the copies Tisty keeps."
+                ),
+            },
+            match brought.missed.is_empty() {
+                true => String::new(),
+                false => format!(
+                    " These could not come in, so their links were taken out rather than left pointing outside Tisty — the words that named them are still in the text: {}.",
+                    brought.missed.join("; ")
+                ),
+            },
+            match brought.papers.is_empty() {
+                true => String::new(),
+                false => format!(
+                    " It also names {} other markdown file(s) — those are documents, not files to keep: import each one and the links will still read as text until you tie them together.",
+                    brought.papers.len()
                 ),
             }
         ),
@@ -1621,6 +1910,9 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             Value::Object(mut one) => {
                 one.insert("from".into(), json!(at.display().to_string()));
                 one.insert("changed".into(), json!(made.changed));
+                one.insert("files".into(), json!(brought.kept));
+                one.insert("left_behind".into(), json!(brought.missed));
+                one.insert("names_markdown".into(), json!(brought.papers));
                 Value::Object(one)
             }
             other => other,
@@ -1633,6 +1925,24 @@ fn said_of(written: &Value) -> String {
         .as_str()
         .unwrap_or_default()
         .to_string()
+}
+
+fn reachable_or(
+    paths: &Paths,
+    said: &str,
+    asked: &std::path::Path,
+    doing: &str,
+) -> Result<std::path::PathBuf, Refused> {
+    tisty_core::agent::may_reach(asked, paths).map_err(|_| {
+        Refused::Tool(format!(
+            "{said:?} is not somewhere an assistant may {doing}. Those are: {}.",
+            tisty_core::agent::reachable()
+                .iter()
+                .map(|one| one.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))
+    })
 }
 
 fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -1654,16 +1964,7 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
 
     let asked = std::path::Path::new(&said);
-    let into = tisty_core::agent::may_reach(asked, paths).map_err(|_| {
-        Refused::Tool(format!(
-            "{said:?} is not somewhere an assistant may leave files. Those are: {}.",
-            tisty_core::agent::reachable()
-                .iter()
-                .map(|one| one.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))
-    })?;
+    let into = reachable_or(paths, &said, asked, "leave files")?;
     if !into.is_dir() {
         return Err(Refused::Tool(format!(
             "{said:?} is not a folder. Name one that exists, and the files are left inside it."
@@ -1679,8 +1980,9 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Took {which} out to {} — {} file(s){}. Nothing here changed: an export is a copy.",
+            "Took {which} out to {} — its cover, {} page(s) and {} file(s) beside them{}. Nothing here changed: an export is a copy.",
             into.display(),
+            pages.len(),
             taken.files,
             match taken.missed {
                 0 => String::new(),
@@ -1690,6 +1992,7 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         json!({
             "doc": which,
             "into": into.display().to_string(),
+            "pages_out": pages.len(),
             "files": taken.files,
             "missed": taken.missed,
             "pages": pages,
@@ -2389,7 +2692,7 @@ fn tools() -> Value {
         {
             "name": "import_doc",
             "title": "Bring a markdown file on this machine in as a document",
-            "description": "Read one markdown file from disk and keep it here as a document, tidying on the way in what Tisty's editor could not hold: front matter, HTML that markdown can say and HTML it cannot, comments, entities, links written by reference, maths between dollars, and fences written in from the margin. What it changed comes back with the answer, and the file on disk is left untouched. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
+            "description": "Read one markdown file from disk and keep it here as a document, tidying on the way in what Tisty's editor could not hold: front matter, HTML that markdown can say and HTML it cannot, comments, entities, links written by reference, maths between dollars, and fences written in from the margin. Every file the text points at beside it — pictures, video, PDFs — is copied in too, and the text is pointed at Tisty's own copies: nothing is left pointing outside. What cannot come in has its link taken out rather than left dangling, and the answer says which and why. The files on disk are left untouched. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,

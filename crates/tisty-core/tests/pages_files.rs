@@ -594,7 +594,7 @@ fn an_attachment_over_the_document_ceiling_is_refused_before_anything_is_written
 }
 
 #[test]
-#[ignore = "copies ~500 MB to disk; run explicitly with `cargo test -p tisty-core --test pages_files -- --ignored an_attachment_right_at_the_document_ceiling_is_still_accepted`"]
+#[ignore = "copies the whole ceiling to disk; run explicitly with `cargo test -p tisty-core --test pages_files -- --ignored an_attachment_right_at_the_document_ceiling_is_still_accepted`"]
 fn an_attachment_right_at_the_document_ceiling_is_still_accepted() {
     let data_dir = tmp();
     let data = data_dir.path();
