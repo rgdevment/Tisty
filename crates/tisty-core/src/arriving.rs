@@ -167,7 +167,7 @@ fn plainer(
         .collect()
 }
 
-fn spans(line: &str) -> Vec<(bool, &str)> {
+pub fn spans(line: &str) -> Vec<(bool, &str)> {
     let bytes = line.as_bytes();
     let mut out = Vec::new();
     let mut from = 0;

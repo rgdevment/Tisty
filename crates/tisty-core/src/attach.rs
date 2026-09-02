@@ -10,7 +10,7 @@ use crate::{
 
 pub const COPIED_UP_TO: u64 = 50 * 1024 * 1024;
 pub const COPIED_AT_FIRST: u64 = 5 * 1024 * 1024;
-pub const COPIED_IN_DOC: u64 = 500 * 1024 * 1024;
+pub const COPIED_IN_DOC: u64 = 750 * 1024 * 1024;
 
 const SHORTENS_TO: usize = 56;
 
@@ -192,7 +192,7 @@ fn through(
 const AT_A_TIME: usize = 64 * 1024;
 
 /// The bytes are never held whole: at the ceiling a document allows, reading one into memory and
-/// then reading what is already kept to compare against it costs a gigabyte for a 500 MB file.
+/// then reading what is already kept to compare against it costs twice the bytes for the file itself.
 fn poured(file: &mut std::fs::File, part: &Path, limit: u64) -> Result<(String, u64)> {
     use std::io::Write;
 
