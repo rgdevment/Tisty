@@ -393,9 +393,7 @@
   },
   {
     "text": "```js title=\"x.js\"\ncodigo\n```",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "```js\ncodigo\n```",
@@ -453,6 +451,16 @@
   },
   {
     "text": "[ref]:\n\nsuelto",
+    "why": []
+  },
+  {
+    "text": "```js title=\"x.js\" y mas\ncodigo\n```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "``` title=\"sin lenguaje\"\nalgo\n```",
     "why": []
   }
 ]

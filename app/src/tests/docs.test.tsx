@@ -188,6 +188,24 @@ describe("the document being written", () => {
     ).toBeTruthy();
   });
 
+  it("never leaves a document that will not convert with nothing to press", async () => {
+    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
+    store.shape = "# Compras\n\n<div>sigue ahi</div>";
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByText(/needs to convert|necesita convertir/i);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
+    );
+    await screen.findByText(/could not be converted|no se pudo convertir/i);
+
+    const out = screen.getByRole("button", { name: /Edit it anyway|Editarlo igualmente/ });
+    await userEvent.click(out);
+
+    expect(screen.getByLabelText("editor").hasAttribute("readonly")).toBe(false);
+    expect(screen.getByText(/You are editing it|Lo estás editando/i)).toBeTruthy();
+  });
+
   it("keeps what it was before rewriting it, and stops asking", async () => {
     store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
     render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);

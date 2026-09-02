@@ -427,9 +427,16 @@ export default function Editor({
         {
           key: "mermaid",
           label: t("diagramIt"),
-          hint: "```mermaid",
+          hint: "```mmd",
           icon: "graph",
           run: () => editor.chain().focus().toggleCodeBlock({ language: "mermaid" }).run(),
+        },
+        {
+          key: "math",
+          label: t("formulaIt"),
+          hint: "```math",
+          icon: "maths",
+          run: () => editor.chain().focus().toggleCodeBlock({ language: "math" }).run(),
         },
         {
           key: "code",

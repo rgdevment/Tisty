@@ -4,6 +4,7 @@
   },
   "scripts": {
     "lint:md": "markdownlint-cli2",
+    "notices": "node scripts/third-party.mjs",
     "format:md": "markdownlint-cli2 --fix"
   }
 }

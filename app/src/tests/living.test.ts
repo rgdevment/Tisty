@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { loosened } from "../ui/writing";
+import { describe, expect, it, vi } from "vitest";
+import { frail } from "../frail";
+import { SHAPES } from "../ui/Beside";
+import { DRAWN, loosened } from "../ui/writing";
 import { inCell, opened } from "./mounted";
 
 describe("what only a mounted editor can be asked", () => {
@@ -59,9 +61,169 @@ describe("what only a mounted editor can be asked", () => {
     },
   );
 
+  it.each([
+    ['```ts title="core.ts"', "core.ts", "ts"],
+    ['```mermaid title="El plano"', "El plano", "mermaid"],
+    ['``` title="sin lenguaje"', "sin lenguaje", null],
+  ])("keeps the name a fence carries in %s", (fence, name, tongue) => {
+    const was = `${fence}\nalgo\n\`\`\``;
+    const one = opened(was);
+
+    expect(one.editor.state.doc.firstChild?.attrs.title).toBe(name);
+    expect(one.editor.state.doc.firstChild?.attrs.language).toBe(tongue);
+    expect(one.markdown()).toBe(was);
+    one.shut();
+  });
+
+  it("shows the name in the bar and leaves it empty when there is none", () => {
+    const one = opened('```ts title="core.ts"\nalgo\n```');
+    expect(one.dom.querySelector<HTMLInputElement>(".lit-name")?.value).toBe("core.ts");
+    one.shut();
+
+    const two = opened("```ts\nalgo\n```");
+    expect(two.dom.querySelector<HTMLInputElement>(".lit-name")?.value).toBe("");
+    expect(two.markdown()).toBe("```ts\nalgo\n```");
+    two.shut();
+  });
+
+  it("draws a formula from a block that says it holds one", async () => {
+    const one = opened("```math\nE = mc^2\n```");
+    await vi.waitFor(() => expect(one.dom.querySelector(".lit-drawn .katex")).toBeTruthy(), {
+      timeout: 5000,
+    });
+
+    expect(one.markdown()).toBe("```math\nE = mc^2\n```");
+    one.shut();
+  });
+
+  it.each(["mermaid", "math"])("names %s rather than offering to change it", (tongue) => {
+    const one = opened(`\`\`\`${tongue}\nx\n\`\`\``);
+
+    expect(one.dom.querySelector<HTMLSelectElement>(".lit-tongue")?.hidden).toBe(true);
+    expect(one.dom.querySelector<HTMLElement>(".lit-said")?.textContent).toBe(tongue);
+    one.shut();
+  });
+
+  it("leaves a formula it cannot read as the text somebody wrote", async () => {
+    const one = opened("```math\n\frac{sin cerrar\n```");
+    await new Promise((go) => setTimeout(go, 300));
+
+    expect(one.markdown()).toBe("```math\n\frac{sin cerrar\n```");
+    one.shut();
+  });
+
+  it("keeps the line numbers out of what a person can type in", () => {
+    const one = opened("```js\nuno\ndos\n```");
+    const lines = one.dom.querySelector<HTMLElement>(".lit-lines");
+
+    expect(lines?.getAttribute("contenteditable")).toBe("false");
+    expect(one.editor.state.doc.textContent).toBe("uno\ndos");
+    one.shut();
+  });
+
+  it("names what it draws instead of offering to make it another language", () => {
+    const one = opened("```mermaid\ngraph TD;\nA --> B;\n```");
+    const picked = one.dom.querySelector<HTMLSelectElement>(".lit-tongue");
+    const said = one.dom.querySelector<HTMLElement>(".lit-said");
+
+    expect(picked?.hidden).toBe(true);
+    expect(said?.hidden).toBe(false);
+    expect(said?.textContent).toBe("mermaid");
+    one.shut();
+  });
+
+  it("offers the language again on a block that draws nothing", () => {
+    const one = opened("```js\nconst x = 1;\n```");
+
+    expect(one.dom.querySelector<HTMLSelectElement>(".lit-tongue")?.hidden).toBe(false);
+    expect(one.dom.querySelector<HTMLElement>(".lit-said")?.hidden).toBe(true);
+    one.shut();
+  });
+
+  it("lets go of a diagram it drew, so turning the theme never wakes a dead block", async () => {
+    const one = opened("```mermaid\ngraph TD;\nA --> B;\n```");
+    one.shut();
+
+    document.documentElement.setAttribute("data-theme", "dark");
+    await Promise.resolve();
+    document.documentElement.removeAttribute("data-theme");
+
+    expect(true).toBe(true);
+  });
+
   it("keeps the diagram's frame out of the way when there is no diagram", () => {
     const one = opened("```js\nconst x = 1;\n```");
     expect(one.dom.querySelector(".lit-drawn")?.childElementCount).toBe(0);
+    one.shut();
+  });
+});
+
+describe("a block that draws is offered where every other block is", () => {
+  it.each(DRAWN)("has %s in the column beside the document", (tongue) => {
+    expect(SHAPES).toContain(tongue);
+  });
+
+  it("takes ```mmd and writes the fence out as mermaid, which github draws", () => {
+    const one = opened("");
+    one.typed("```mmd ");
+
+    expect(one.editor.state.doc.firstChild?.attrs.language).toBe("mermaid");
+    expect(one.markdown()).toBe("```mermaid\n```");
+    one.shut();
+  });
+
+  it("needs no short way to say math, which is already short", () => {
+    const one = opened("");
+    one.typed("```math ");
+
+    expect(one.editor.state.doc.firstChild?.attrs.language).toBe("math");
+    one.shut();
+  });
+});
+
+describe("a table markdown can hold is never written as html", () => {
+  it("keeps the table when the header row is taken away", () => {
+    const one = opened("| a | b |\n| --- | --- |\n| uno | dos |\n| tres | cuatro |");
+    inCell(one, 0, 0);
+    one.editor.chain().focus().deleteRow().run();
+
+    expect(one.markdown()).toBe("| uno | dos |\n| --- | --- |\n| tres | cuatro |\n");
+    expect(frail(one.markdown())).toEqual([]);
+    one.shut();
+  });
+
+  it("carries a column's width in how long its rule is drawn", () => {
+    const one = opened("| a | b |\n| -------- | --- |\n| uno | dos |");
+    const head = one.editor.state.doc.firstChild?.firstChild;
+
+    expect(head?.child(0).attrs.colwidth).toEqual([160]);
+    expect(head?.child(1).attrs.colwidth).toBeNull();
+    expect(one.markdown()).toBe("| a | b |\n| -------- | --- |\n| uno | dos |\n");
+    one.shut();
+  });
+
+  it("leaves a plain rule plain, so a table nobody sized never changes", () => {
+    const was = "| a | b |\n| --- | --- |\n| uno | dos |";
+    const one = opened(was);
+
+    expect(one.editor.state.doc.firstChild?.firstChild?.child(0).attrs.colwidth).toBeNull();
+    expect(one.markdown()).toBe(`${was}\n`);
+    one.shut();
+  });
+
+  it("keeps the width and the leaning in the same rule", () => {
+    const one = opened("| a | b |\n| :------: | ---: |\n| uno | dos |");
+
+    expect(one.markdown()).toBe("| a | b |\n| :------: | ---: |\n| uno | dos |\n");
+    one.shut();
+  });
+
+  it("keeps a table somebody built with no header at all", () => {
+    const one = opened("");
+    one.editor.chain().focus().insertTable({ rows: 2, cols: 2, withHeaderRow: false }).run();
+
+    expect(one.markdown()).not.toContain("<table");
+    expect(frail(one.markdown())).toEqual([]);
     one.shut();
   });
 });

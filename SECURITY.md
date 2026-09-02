@@ -130,6 +130,13 @@ counted; a count of one would say the thing exists. What it reads comes back
 without
 the absolute paths of your disk.
 
+**A body it did not read is a body it cannot replace.** An assistant may write a
+whole document again, not only add to it — but only by sending back the print
+that document read at when it last looked. If you have written in it since, the
+write is refused and it has to read again. It can be wrong about a document; it
+cannot quietly take what you wrote while it was thinking. What it wrote over is
+kept beside the documents either way.
+
 **Attachments are the one thing that leaves the machine.** They reach the shared
 folder, and from there whatever cloud client you run. So the file an assistant
 may
@@ -144,7 +151,8 @@ read, and the path is canonicalised first, so traversal does not reach past it.
 **What this does not protect against.** An assistant under prompt injection is
 still
 an assistant with your permission: it can file nonsense, write documents you did
-not ask for, and put a screenshot holding a password into a task, because a
+not ask for, write over one you already had with a version of its own, and put a
+screenshot holding a password into a task, because a
 screenshot is a picture and Tisty cannot read what is in it. Anything it reads
 travels wherever that assistant travels — that is between it and you, and it is
 why the door stays shut until you open it, and why closing it is one click.

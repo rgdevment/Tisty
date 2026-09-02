@@ -283,6 +283,11 @@ export default function Docs({
       .catch((e) => onError(saidPlainly(e)));
   };
 
+  const anyway = () => {
+    setStuck(false);
+    setReading(false);
+  };
+
   const wrote = (text: string) => {
     if (!open || reading) return;
     setBody(text);
@@ -585,19 +590,21 @@ export default function Docs({
             </button>
           </div>
         )}
-        {reading && warned && open && (
+        {warned && open && (
           <div
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
           >
-            <span className="text-soft">{t(stuck ? "frailStuck" : "frailNeeds")}</span>
-            {!stuck && (
+            <span className="text-soft">
+              {t(reading ? (stuck ? "frailStuck" : "frailNeeds") : "frailLosing")}
+            </span>
+            {reading && (
               <button
                 type="button"
-                onClick={() => convert(open.file)}
+                onClick={stuck ? anyway : () => convert(open.file)}
                 className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
               >
-                {t("frailConvert")}
+                {t(stuck ? "frailAnyway" : "frailConvert")}
               </button>
             )}
           </div>

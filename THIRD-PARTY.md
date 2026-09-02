@@ -1,7 +1,12 @@
 # Third-party notices
 
-Tisty is AGPL-3.0-only. What follows is bundled inside it and carries its own
-licence, which allows that.
+Tisty is AGPL-3.0-only. What follows was copied into Tisty's own source and
+carries its own licence, which allows that.
+
+Everything Tisty bundles rather than copies — the packages in the window and the
+crates in the core, with their versions, licences and notices — is listed in
+[THIRD-PARTY-BUNDLED.md](THIRD-PARTY-BUNDLED.md), written by `npm run notices`
+and refreshed whenever a dependency moves.
 
 ## Lucide Icons
 

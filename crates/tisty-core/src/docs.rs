@@ -189,7 +189,7 @@ impl Fencing {
 
         match marker {
             Some((mark, many)) => {
-                self.told = said[many..].split_whitespace().count() > 1;
+                self.told = nameless(&said[many..]).split_whitespace().count() > 1;
                 self.open = Some((mark, many, deep, wide));
                 true
             }
@@ -224,6 +224,17 @@ fn listed(base: usize, wide: usize, said: &str) -> usize {
         Some(after) if wide <= base => wide + after,
         _ if wide < base => 0,
         _ => base,
+    }
+}
+
+fn nameless(said: &str) -> String {
+    let Some(at) = said.find("title=\"") else {
+        return said.to_string();
+    };
+    let rest = &said[at + 7..];
+    match rest.find('"') {
+        Some(end) => format!("{} {}", &said[..at], &rest[end + 1..]),
+        None => said.to_string(),
     }
 }
 
