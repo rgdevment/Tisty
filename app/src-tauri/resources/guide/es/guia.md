@@ -1,10 +1,22 @@
 # Cómo funciona Tisty
 
-Tisty guarda tus tareas en archivos tuyos, en este equipo. No hay cuenta que crear ni servidor al que pedir permiso: lo que escribes se queda donde tú puedas leerlo, incluso sin Tisty delante.
+Tisty es Opensource. Puedes leerlo tú mismo, compilarlo, probarlo o descargar las versiones ya distribuidas y estables. No hay nada oculto: todo es auditable.
 
-Este documento se lee en un rato y puedes volver a él cuando quieras desde Ajustes. Está escrito con las mismas herramientas que te enseña, así que todo lo que veas aquí puedes escribirlo tú.
+Trabajamos constantemente en mejoras y funciones nuevas, pero queremos que siga siendo minimalista y útil. No vamos a sobrecargarlo con mil cosas que nadie va a usar, como hacen otras herramientas comerciales.
 
-## 1. Escribe como hablas
+Tisty no es un TODO como lo conoces. Es un historial de aprendizaje y conocimiento, con estadísticas y búsquedas sobre tu propio trabajo. ¿Cómo resolviste eso? ¿No te acuerdas? Tisty lo tiene.
+
+Todo local, sin cuentas, sin suscripciones y sin telemetría: tus datos son tuyos. Crea notas en Markdown, documentación, recordatorios y mucho más. Es tu cuaderno personal y de trabajo, privado.
+
+Y si trabajas con un asistente, tiene una puerta por MCP para leer tus documentos, escribir uno nuevo o proponerte tareas. El programa que la abre corre en esta máquina. Cerrar y borrar no puede.
+
+Esta guía te tomará un par de minutos y podrás conocer un poco más de qué puedes hacer en Tisty. Puedes volver a ella cuando quieras desde Ajustes.
+
+---
+
+## Las tareas
+
+### 1. Escribe como hablas
 
 No hay formulario que rellenar. Escribe la frase entera en la barra de arriba y Tisty va separando el día, la lista y la prioridad mientras la escribes.
 
@@ -29,13 +41,13 @@ Prueba con estas:
 - `Sacar a Rina cada mañana`
 - `Revisar el informe el viernes @trabajo`
 
-## 2. Captura sin abrir la ventana
+### 2. Captura sin abrir la ventana
 
 Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para escribir una tarea. Enter la guarda, Esc la cierra, y sigues con lo tuyo.
 
 Si ese atajo ya lo usa otro programa, Tisty prueba con otro y te dice cuál quedó en Ajustes.
 
-## 3. El día de hoy
+### 3. El día de hoy
 
 La lista de tareas se mira por tramos:
 
@@ -46,7 +58,7 @@ La lista de tareas se mira por tramos:
 
 Lo vencido aparece arriba y en rojo. No hay premios por vaciar la lista.
 
-## 4. Las prioridades son un mapa, no una escalera
+### 4. Las prioridades son un mapa, no una escalera
 
 Dos preguntas, cuatro casillas: si corre prisa y si importa.
 
@@ -59,16 +71,30 @@ Dos preguntas, cuatro casillas: si corre prisa y si importa.
 
 Arrastra una tarea al cuadrante que le toque. Lo que no clasificas espera en la bandeja de al lado, sin regañarte.
 
-## 5. Listas y etiquetas
+### 5. Listas y etiquetas
 
 Dos formas de ordenar que no compiten:
 
 - Una **lista** dice dónde ocurre: <mark data-pen="green">@casa</mark>, <mark data-pen="green">@trabajo</mark>. Una tarea está en una sola.
 - Una **etiqueta** dice de qué va: <mark data-pen="pink">#salud</mark>, <mark data-pen="pink">#compras</mark>. Una tarea lleva las que quieras.
 
-## 6. Documentos
+### 6. Lo que queda escrito
+
+Una tarea guarda más que su título. Ponle una descripción, apunta en su diario lo que fuiste averiguando y déjale los pasos que seguiste. Al terminarla nada de eso se borra: se archiva con su fecha.
+
+Ahí está la diferencia. La lista te dice qué falta; el archivo te dice cómo lo resolviste la última vez. Búscalo por una palabra que recuerdes y sale, aunque lo cerraras hace dos años.
+
+---
+
+## Los documentos
+
+### 7. Un documento
 
 Un documento es texto tuyo, guardado en Markdown, que puedes escribir aquí o leer con cualquier otro programa. El archivo es lo que vale: si mañana borras Tisty, tus documentos siguen abriéndose en cualquier editor de texto.
+
+**Para hacer uno**, ve a Documentos y usa el **+** de arriba: **Documento nuevo**. Ese mismo botón, dentro de una carpeta, lo crea ahí. Con **Carpeta nueva** las agrupas, y una carpeta puede tener carpetas dentro.
+
+La primera línea del documento es su título. No hay que ponerle nombre en ninguna parte: lo que escribas arriba es como se llama.
 
 Escribe `/` en cualquier punto y sale el menú de lo que cabe dentro. Además:
 
@@ -77,13 +103,11 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe dentro. Además:
 - Centra un párrafo o llévalo a la derecha.
 - Imprime, o guarda en PDF, desde el propio panel.
 
-Los saltos de página se ven como saltos de verdad: la hoja se corta y empieza otra.
-
-## 7. Lo que cabe dentro de un documento
+### 8. Lo que cabe dentro de un documento
 
 Todo lo de aquí abajo es Markdown corriente. Lo escribes con `/`, y el archivo que queda en el disco lo entiende GitHub igual que Tisty. Esta sección no lo cuenta: te lo enseña.
 
-### Lo de siempre
+#### Lo de siempre
 
 **Negrita**, *cursiva*, ~~tachado~~, <u>subrayado</u>, `código suelto` y un [enlace a una web](https://tisty.dev). Listas con viñetas, numeradas, y citas de las de toda la vida:
 
@@ -93,7 +117,7 @@ Todo lo de aquí abajo es Markdown corriente. Lo escribes con `/`, y el archivo 
 2. Después lo otro
 3. Y al final lo de más allá
 
-### Avisos
+#### Avisos
 
 Cinco tipos, cada uno con su color. Por dentro es una cita que empieza por su nombre entre corchetes, que es como los escribe GitHub.
 
@@ -128,15 +152,15 @@ Y dentro de un aviso cabe casi todo, no solo texto:
 >
 > Todo esto llega igual al PDF.
 
-### Destacar
+#### Destacar
 
 Cuatro colores de rotulador: ==amarillo==, <mark data-pen="green">verde</mark>, <mark data-pen="blue">azul</mark> y <mark data-pen="pink">rosa</mark>. Eliges el color en la barra que sale al seleccionar texto.
 
-### Iconos
+#### Iconos
 
 <span data-ico="dog" data-hue="orange">:dog:</span> Un icono se busca por lo que dibuja, y en español: pide «perro», «moto» o «puño» y sale el que esperas. Sirve para marcar una línea sin gastar un título en ella.
 
-### Pasos
+#### Pasos
 
 Una lista de casillas que se marcan. No son tareas de Tisty: no se cierran, no tienen fecha y no salen en Hoy. Son los pasos de algo que estás escribiendo.
 
@@ -144,7 +168,7 @@ Una lista de casillas que se marcan. No son tareas de Tisty: no se cierran, no t
 - [x] Pesarla antes de la consulta
 - [ ] Preguntar por la pastilla de las garrapatas
 
-### Tablas
+#### Tablas
 
 Una tabla se puede trabajar: añadir filas y columnas, alinear a izquierda, centro o derecha, y estirar el ancho de una columna arrastrando su borde.
 
@@ -156,7 +180,7 @@ Una tabla se puede trabajar: añadir filas y columnas, alinear a izquierda, cent
 
 El ancho viaja en lo larga que se dibuja la raya de debajo del encabezado, así que cualquier otro lector de Markdown ve una tabla normal y Tisty ve el ancho que le diste.
 
-### Diagramas
+#### Diagramas
 
 Un bloque de código cuyo lenguaje es `mermaid` deja de ser código y se dibuja. Sirve para un esquema:
 
@@ -185,7 +209,7 @@ sequenceDiagram
   Disco-->>Tisty: guardada
 ```
 
-### Fórmulas
+#### Fórmulas
 
 Y un bloque cuyo lenguaje es `math` compone la fórmula.
 
@@ -199,7 +223,7 @@ dosis = \frac{peso \times 0.5}{2}
 
 Las dos cosas se dibujan con código que viaja dentro de Tisty. No se pide nada a internet, y funcionan con el cable desenchufado.
 
-### Código, con nombre y con color
+#### Código, con nombre y con color
 
 Un bloque de código se colorea según su lenguaje, y le puedes poner nombre: escribe el lenguaje y después `title="lo que sea"`. El nombre se ve en la cabecera del bloque, y el color llega también al PDF.
 
@@ -211,13 +235,21 @@ rsync -a ~/Tisty/ /Volumes/Respaldo/Tisty/
 { "idioma": "es", "carpeta": "~/Tisty" }
 ```
 
-## 8. Un documento con páginas
+#### Salto de página
+
+Una raya sola parte la hoja. En pantalla se ve como un corte de verdad, y al imprimir o guardar en PDF lo que sigue empieza en la hoja siguiente. Es lo único de esta lista que no se nota leyendo, sino imprimiendo.
+
+---
+
+Esto de aquí ya va en la hoja de después.
+
+### 9. Un documento con páginas
 
 Un año de actas, un libro por capítulos, la vida de un perro contada año a año. Eso no cabe en un solo papel, y tampoco en una carpeta de papeles sueltos que no ata nada.
 
 Una página es un documento como cualquier otro —mismo archivo en el disco, misma salida— con una sola cosa que la distingue: dice de qué documento es. Hay un nivel y no más: una página no tiene páginas.
 
-Con `/` insertas **una página nueva** o **una que ya existe**. Se queda nombrada en el texto, en la línea donde el asunto se abre, dibujada como un hueco en la hoja con lo que esa página contiene debajo.
+**Para añadirle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si el documento ya está escrito. Queda nombrada ahí mismo, dibujada como un hueco en la hoja con lo que esa página contiene debajo.
 
 > [!IMPORTANT]
 > El orden en que están nombradas en el texto es el orden en que van las páginas: en el árbol, en la exportación y al imprimir. Mover un capítulo es cortar y pegar su bloque.
@@ -226,19 +258,23 @@ Al final del documento, en su propia hoja, va el índice: las páginas que el te
 
 En el árbol, un documento soltado encima de otro se vuelve página suya.
 
-## 9. Cuando Tisty solo puede leerlo
+### 10. Cuando Tisty solo puede leerlo
 
 Tisty escribe Markdown de vuelta, y unas pocas formas no sobreviven ese viaje: la cabecera del principio, las notas al pie, los enlaces escritos por referencia, el HTML y sus comentarios, y algún caso raro de las vallas de código y de las listas.
 
 Antes que abrirlo y destruirte eso en la primera tecla, Tisty lo dice y lo abre para leer. La barra de abajo ofrece convertirlo —lo reescribe a lo que sí sabe conservar y guarda una copia de cómo estaba— y si la conversión no puede con todo, **Editarlo igualmente** te lo abre con el aviso a la vista. Nunca te quedas encerrado.
 
-## 10. Un asistente puede escribir aquí
+---
+
+## Lo que vale para todo
+
+### 11. Un asistente puede escribir aquí
 
 Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste.
 
 Para reescribir un documento entero se le entrega una huella del texto exacto que leyó, y tiene que devolverla al escribir. Si escribiste tú en medio, la huella ya no cuadra: no se escribe nada y se le dice que vuelva a leerlo. La ventana te avisa cuando algo ha escrito en el documento que tienes abierto.
 
-## 11. Tus copias
+### 12. Tus copias
 
 Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, apúntalo a una carpeta que ya sincronicen iCloud, Google Drive u OneDrive: las copias van ahí y el otro equipo las recoge.
 
@@ -246,7 +282,7 @@ Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, apúntal
 
 En Ajustes puedes además guardar un respaldo completo cuando quieras.
 
-## 12. Terminar, descartar y borrar
+### 13. Terminar, descartar y borrar
 
 - **Terminar** una tarea la marca hecha y la manda al Archivo.
 - **Descartar** la aparta sin hacerla: también acaba en el Archivo.
@@ -258,7 +294,7 @@ Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en
 
 Ahí mismo está **Revisar el almacén**: cuenta lo que sobra, lo que falta y lo que puedes recuperar, y no cambia nada por su cuenta. Los adjuntos que ya no nombra nadie se van a la papelera con treinta días para arrepentirte. Los documentos que están en el disco pero el registro no nombra se apartan para mirarlos primero, porque pueden ser la única copia de algo que perdió su evento: recogerlos nunca puede estar mal.
 
-## 13. Atajos
+### 14. Atajos
 
 | Atajo | Qué hace |
 | --- | --- |
