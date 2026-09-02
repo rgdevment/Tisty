@@ -71,6 +71,11 @@
   </p>
 
   <p>
+    <a href="https://github.com/sponsors/rgdevment">
+      <img
+        src="https://img.shields.io/badge/GitHub-Sponsor-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white"
+        alt="Sponsor on GitHub"/>
+    </a>
     <a href="https://buymeacoffee.com/rgdevment">
       <img
         src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"
@@ -335,8 +340,20 @@ tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
 —tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una
 tarea puede apuntar a un documento; un documento nunca crea tareas.
 
-El texto se puede resaltar en unos cuantos colores, centrar o alinear, y apartar
-como un aviso. Sigue siendo Markdown: donde Markdown no alcanza, Tisty escribe
+El texto se puede resaltar en unos cuantos colores y apartar como un aviso: una
+cita normal, o un callout que GitHub también lee, escrito `> [!WARNING]`. Las
+tablas conservan hacia dónde se inclinan sus columnas y con qué ancho las
+dibujaste, y un bloque de código dice de qué lenguaje es y se colorea para él,
+con sus líneas numeradas al lado del texto y no dentro, así copiar se lleva el
+código y nada más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
+debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que dice
+`math` compone la fórmula que guarda.
+
+**Sigue siendo Markdown**, y eso es lo importante, no un detalle: todo lo de
+arriba es sintaxis que otro lector ya entiende, así que el archivo sobrevive sin
+Tisty —el nombre de un bloque es lo que Markdown guarda tras el lenguaje, y el
+ancho de una columna viaja en lo largo que se dibuje su raya, que cualquier otro
+lector ignora y pinta igual—. Donde Markdown de verdad no alcanza, Tisty escribe
 el pedacito de HTML que sí lo dice, y lo vuelve a leer.
 
 Se escribe sobre una hoja iluminada, y su primera línea es a la vez el nombre
@@ -458,15 +475,19 @@ lo que intente se le niega.
 
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
 fecha, agregar a la bitácora, escribir un documento, agregar al final de uno que
-ya está ahí, corregir un pasaje de uno, ordenar documentos en carpetas, guardar
-una copia de un archivo que le señales —en una tarea o dentro de un documento,
-que admite el archivo más grande de los dos— y leer lo que ya está. Lo que no
-puede: cerrar una tarea ni borrarla, borrar un documento ni entregarle un cuerpo
-nuevo entero, renombrar ni vaciar una carpeta, alcanzar una tarea que plegaste,
+ya está ahí, corregir un pasaje de uno, escribir uno entero de nuevo, ordenar
+documentos en carpetas, guardar una copia de un archivo que le señales —en una
+tarea o dentro de un documento, que admite el archivo más grande de los dos— y
+leer lo que ya está. Lo que no puede: cerrar una tarea ni borrarla, borrar un
+documento, renombrar ni vaciar una carpeta, alcanzar una tarea que plegaste,
 tomar archivos fuera de las carpetas donde aterriza una descarga, ni anotar dos
 veces lo mismo. Para corregir un pasaje tiene que nombrarlo tal como lo
-escribiste, y si ese texto no está o está dos veces, no se escribe nada. Un
-documento que archivaste sí lo puede leer, y se le dice que lo archivaste.
+escribiste, y si ese texto no está o está dos veces, no se escribe nada. Para
+escribir un cuerpo entero de nuevo tiene que devolver la huella con la que leyó
+el documento la última vez: si escribiste en él desde entonces, la escritura se
+rechaza y tiene que volver a leer, así que lo que tecleaste mientras pensaba no
+se puede perder. Un documento que archivaste sí lo puede leer, y se le dice que
+lo archivaste.
 
 Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que es
 justamente por lo que esta es una puerta que abres, y no una que ya estaba
@@ -534,8 +555,12 @@ que ordena por tiempo y no necesita coordinación.
 [Tailwind CSS](https://tailwindcss.com) la viste;
 [TipTap](https://tiptap.dev) y [ProseMirror](https://prosemirror.net) son el
 editor de documentos; [markdown-it](https://github.com/markdown-it/markdown-it)
-compone la prosa del resto; [Vite](https://vite.dev) la construye y
-[Vitest](https://vitest.dev) la prueba.
+compone la prosa del resto; [Mermaid](https://mermaid.js.org) dibuja los
+diagramas que describe un bloque de código y [KaTeX](https://katex.org) compone
+sus fórmulas; [lowlight](https://github.com/wooorm/lowlight) y
+[highlight.js](https://highlightjs.org) colorean el código;
+[react-pdf](https://react-pdf.org) hace el PDF; [Vite](https://vite.dev) la
+construye y [Vitest](https://vitest.dev) la prueba.
 
 La lista completa, con versiones y licencias, está en `Cargo.lock` y
 `app/package-lock.json`.

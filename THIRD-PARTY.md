@@ -1,7 +1,25 @@
 # Third-party notices
 
-Tisty is AGPL-3.0-only. What follows is bundled inside it and carries its own
-licence, which allows that.
+Tisty is AGPL-3.0-only. What follows was copied into Tisty's own source and
+carries its own licence, which allows that.
+
+Tisty also bundles other people's work rather than copying it. The parts that do
+the heavy lifting are [Tauri](https://tauri.app), [React](https://react.dev),
+[Tailwind CSS](https://tailwindcss.com), [TipTap](https://tiptap.dev) and
+[ProseMirror](https://prosemirror.net) for the editor,
+[markdown-it](https://github.com/markdown-it/markdown-it) for the prose,
+[Mermaid](https://mermaid.js.org) for the diagrams, [KaTeX](https://katex.org)
+for the formulas, [lowlight](https://github.com/wooorm/lowlight) and
+[highlight.js](https://highlightjs.org) for the code, and
+[react-pdf](https://react-pdf.org) for the PDF — with
+[serde](https://serde.rs), [jiff](https://github.com/BurntSushi/jiff),
+[SQLite](https://sqlite.org) and [clap](https://github.com/clap-rs/clap)
+underneath. Each one is permissively licensed, and `Cargo.lock` and
+`app/package-lock.json` name every last transitive one with its version.
+
+`npm run notices` writes the whole list out with each licence's own text, so
+that file travels with a release rather than living here: a notice discharges
+nothing sitting in a repository the person who installed Tisty never opens.
 
 ## Lucide Icons
 

@@ -1,5 +1,11 @@
 {
-  "globs": ["**/*.md", "!node_modules", "!target", "!app/node_modules"],
+  "globs": [
+    "**/*.md",
+    "!node_modules",
+    "!target",
+    "!app/node_modules",
+    "!THIRD-PARTY-BUNDLED.md"
+  ],
   "config": {
     "default": true,
     "MD013": { "line_length": 80, "code_blocks": false, "tables": false },

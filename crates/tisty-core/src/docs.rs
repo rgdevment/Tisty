@@ -189,7 +189,7 @@ impl Fencing {
 
         match marker {
             Some((mark, many)) => {
-                self.told = said[many..].split_whitespace().count() > 1;
+                self.told = nameless(&said[many..]).split_whitespace().count() > 1;
                 self.open = Some((mark, many, deep, wide));
                 true
             }
@@ -225,6 +225,34 @@ fn listed(base: usize, wide: usize, said: &str) -> usize {
         _ if wide < base => 0,
         _ => base,
     }
+}
+
+fn nameless(said: &str) -> String {
+    let mut from = 0;
+    while let Some(found) = said[from..].find("title=\"") {
+        let at = from + found;
+        from = at + 7;
+        if said[..at]
+            .chars()
+            .next_back()
+            .is_some_and(|one| one.is_alphanumeric() || one == '_')
+        {
+            continue;
+        }
+        let rest = &said[from..];
+        let bytes = rest.as_bytes();
+        let mut over = 0;
+        let end = loop {
+            match bytes.get(over) {
+                None => return said.to_string(),
+                Some(b'\\') => over += 2,
+                Some(b'"') => break over,
+                _ => over += 1,
+            }
+        };
+        return format!("{} {}", &said[..at], &rest[end + 1..]);
+    }
+    said.to_string()
 }
 
 fn spacing(said: &str) -> usize {
@@ -426,6 +454,27 @@ pub enum Change {
     Missing,
     Twice(usize),
     TheLot,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Rewrite {
+    Made { was: String, whole: String },
+    Moved,
+}
+
+pub fn rewrite(root: &Path, id: &str, body: &str, print: &str) -> Result<Rewrite> {
+    alone(root, || {
+        let at = resolve(root, id)?;
+        if print_of(&at)?.as_deref() != Some(print) {
+            return Ok(Rewrite::Moved);
+        }
+        let was = read(root, id)?;
+        written(root, id, body)?;
+        Ok(Rewrite::Made {
+            was,
+            whole: settled(body),
+        })
+    })
 }
 
 pub fn edit(root: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
@@ -1906,6 +1955,78 @@ uno
 
 uno
 "
+        );
+    }
+
+    #[test]
+    fn a_body_is_replaced_whole_by_whoever_read_what_is_there_now() {
+        let room = root();
+        let was = "# Acta\n\nlo que escribio la persona\n";
+        write(room.path(), "mac0-0001", was).unwrap();
+        let print = print_of(&resolve(room.path(), "mac0-0001").unwrap())
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            rewrite(
+                room.path(),
+                "mac0-0001",
+                "# Otra acta\n\notra cosa\n",
+                &print
+            )
+            .unwrap(),
+            Rewrite::Made {
+                was: was.to_string(),
+                whole: "# Otra acta\n\notra cosa\n".to_string(),
+            }
+        );
+        assert_eq!(
+            read(room.path(), "mac0-0001").unwrap(),
+            "# Otra acta\n\notra cosa\n"
+        );
+    }
+
+    #[test]
+    fn a_body_another_editor_left_without_its_last_line_is_still_replaced() {
+        let room = root();
+        let at = resolve(room.path(), "mac0-0001").unwrap();
+        std::fs::create_dir_all(room.path()).unwrap();
+        std::fs::write(&at, b"# Acta\n\nsin salto final").unwrap();
+        let print = print_of(&at).unwrap().unwrap();
+
+        assert_eq!(
+            rewrite(room.path(), "mac0-0001", "# Otra\n\notra cosa\n", &print).unwrap(),
+            Rewrite::Made {
+                was: "# Acta\n\nsin salto final".to_string(),
+                whole: "# Otra\n\notra cosa\n".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn a_body_that_moved_since_it_was_read_is_left_exactly_as_the_person_left_it() {
+        let room = root();
+        write(room.path(), "mac0-0001", "# Acta\n\nlo primero\n").unwrap();
+        let print = print_of(&resolve(room.path(), "mac0-0001").unwrap())
+            .unwrap()
+            .unwrap();
+
+        let mine = "# Acta\n\nlo que escribio la persona despues\n";
+        write(room.path(), "mac0-0001", mine).unwrap();
+
+        assert_eq!(
+            rewrite(room.path(), "mac0-0001", "# Otra\n\notra cosa\n", &print).unwrap(),
+            Rewrite::Moved
+        );
+        assert_eq!(read(room.path(), "mac0-0001").unwrap(), mine);
+    }
+
+    #[test]
+    fn a_print_of_a_document_that_is_not_there_replaces_nothing() {
+        let room = root();
+        assert_eq!(
+            rewrite(room.path(), "mac0-0009", "# Algo\n", "sea lo que sea").unwrap(),
+            Rewrite::Moved
         );
     }
 
@@ -3953,7 +4074,7 @@ fn markup(line: &str) -> Option<&'static str> {
         if line[..at].ends_with("](") && !inner.contains('<') && anchored(&line[..at - 2]) {
             continue;
         }
-        if inner.eq_ignore_ascii_case("u") || inner.eq_ignore_ascii_case("/u") {
+        if kept(inner) {
             continue;
         }
         if rest.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!' || c == '?') {
@@ -3961,6 +4082,29 @@ fn markup(line: &str) -> Option<&'static str> {
         }
     }
     None
+}
+
+fn kept(inner: &str) -> bool {
+    if inner.eq_ignore_ascii_case("u") || inner.eq_ignore_ascii_case("/u") {
+        return true;
+    }
+    if inner.eq_ignore_ascii_case("mark") || inner.eq_ignore_ascii_case("/mark") {
+        return true;
+    }
+    let Some(pen) = inner
+        .get(..5)
+        .filter(|one| one.eq_ignore_ascii_case("mark "))
+        .map(|_| inner[5..].trim())
+    else {
+        return false;
+    };
+    let Some(said) = pen
+        .strip_prefix("data-pen=\"")
+        .and_then(|one| one.strip_suffix('"'))
+    else {
+        return false;
+    };
+    !said.is_empty() && said.chars().all(|one| one.is_ascii_alphabetic())
 }
 
 fn anchored(said: &str) -> bool {
