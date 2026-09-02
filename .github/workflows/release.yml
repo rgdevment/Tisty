@@ -640,6 +640,9 @@ jobs:
       && needs.version.result == 'success'
       && (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped')
       && needs.build-windows.result == 'success'
+      && needs.bundle-windows.result == 'success'
+      && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
+      && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -672,9 +675,10 @@ jobs:
         run: |
           v="${{ needs.version.outputs.version }}"
           status=0
-          want="tisty-cli-$v-windows-x86_64.zip"
+          want="tisty-cli-$v-windows-x86_64.zip tisty-installer-$v-windows-x86_64.exe"
           if [ "${BUILD_MACOS}" = "true" ]; then
             want="$want tisty-cli-$v-macos-universal.tar.gz"
+            want="$want tisty-installer-$v-macos-universal.dmg"
           fi
           # A missing signature is a release nobody can install. It has to be loud here.
           if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
