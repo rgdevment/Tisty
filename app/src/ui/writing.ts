@@ -1,5 +1,6 @@
 import type { Editor as Writing } from "@tiptap/core";
 import { getHTMLFromFragment, InputRule, Node, textblockTypeInputRule } from "@tiptap/core";
+import { BulletList } from "@tiptap/extension-bullet-list";
 import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
@@ -11,6 +12,7 @@ import { Fragment, type Node as ProseNode } from "@tiptap/pm/model";
 import StarterKit from "@tiptap/starter-kit";
 import { common, createLowlight } from "lowlight";
 import markPlugin from "markdown-it-mark";
+import taskLists from "markdown-it-task-lists";
 import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
 import { markup } from "../glyphs";
@@ -321,11 +323,16 @@ const Barred = Text.extend({
     return {
       markdown: {
         serialize(
-          state: { text: (value: string) => void; inTable?: boolean },
+          state: {
+            text: (value: string, escaped?: boolean) => void;
+            esc: (value: string) => string;
+            inTable?: boolean;
+          },
           node: { text?: string },
         ) {
           const text = node.text ?? "";
-          state.text(state.inTable ? text.replace(/\|/g, "\\|") : text);
+          if (!state.inTable) return state.text(text);
+          state.text(state.esc(text), false);
         },
         parse: {},
       },
@@ -496,7 +503,7 @@ const deepened = (line: string): [number, string] => {
 };
 
 export const loosened = (markdown: string): string => {
-  const lines = markdown.split("\n");
+  const lines = markdown.replace(/^\ufeff+/, "").split("\n");
   const out: string[] = [];
   for (let at = 0; at < lines.length; at += 1) {
     out.push(lines[at]);
@@ -740,6 +747,7 @@ const Ruled = Table.configure({ resizable: true }).extend({
             ensureNewLine: () => void;
             renderInline: (node: unknown) => void;
             closeBlock: (node: unknown) => void;
+            text: (value: string, escaped?: boolean) => void;
             inTable?: boolean;
           },
           node: { forEach: (fn: (row: Rowed, offset: number, at: number) => void) => void },
@@ -765,6 +773,9 @@ const Ruled = Table.configure({ resizable: true }).extend({
             return;
           }
           state.inTable = true;
+          const said = state.text;
+          state.text = (value: string, escaped = true) =>
+            said.call(state, escaped ? value : value.replace(/\|/g, "\\|"), escaped);
           const leans: (string | null)[] = [];
           const wides: (number | null)[] = [];
           node.forEach((row, _at, index) => {
@@ -776,13 +787,11 @@ const Ruled = Table.configure({ resizable: true }).extend({
                 const held = cell.attrs.colwidth;
                 wides[column] = Array.isArray(held) ? (held[0] ?? null) : null;
               }
-              // Markdown holds only inline content in a cell, and an image node is a block
-              // here, so it is written by hand rather than skipped for having no text.
               cell.forEach((kid) => {
                 if (kid.type.name === "image") {
-                  state.write(
-                    `![${labelled(String(kid.attrs.alt ?? ""))}](${String(kid.attrs.src ?? "")})`,
-                  );
+                  const alt = labelled(String(kid.attrs.alt ?? ""));
+                  const src = String(kid.attrs.src ?? "").replace(/\|/g, "\\|");
+                  state.write(`![${alt.replace(/\|/g, "\\|")}](${src})`);
                 } else if (kid.content.size > 0) {
                   state.renderInline(kid);
                 }
@@ -802,6 +811,7 @@ const Ruled = Table.configure({ resizable: true }).extend({
               state.ensureNewLine();
             }
           });
+          state.text = said;
           state.closeBlock(node);
           state.inTable = false;
         },
@@ -881,6 +891,8 @@ const named = (md: Marking) => {
 };
 
 export const DRAWN = ["mermaid", "math"];
+
+export const KINDS = ["note", "tip", "important", "warning", "caution"] as const;
 
 const SHORT: Record<string, string> = { mmd: "mermaid" };
 
@@ -1151,9 +1163,176 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
   },
 });
 
+const tasked = (item: Element): boolean => item.classList.contains("task-list-item");
+
+const apart = (item: Element): boolean => item.getAttribute("data-apart") === "true";
+
+interface Lined {
+  type: string;
+  hidden?: boolean;
+  map?: [number, number] | null;
+  attrSet: (name: string, value: string) => void;
+}
+
+const PLAIN = new Set([
+  "paragraph_open",
+  "paragraph_close",
+  "inline",
+  "list_item_open",
+  "list_item_close",
+  "bullet_list_open",
+  "bullet_list_close",
+  "ordered_list_open",
+  "ordered_list_close",
+]);
+
+/// A blank line anywhere makes Markdown call the whole list loose, and a nested list carries its
+/// own blank lines up to the one holding it. Both are read here, where the lines are still known.
+/// A list holding anything but prose is left alone: written tight it would not read back the same.
+const spaced = (md: {
+  core: { ruler: { push: (name: string, rule: (state: { tokens: Lined[] }) => void) => void } };
+}): void => {
+  md.core.ruler.push("spaced", (state) => {
+    const lists: { token: Lined; blank: boolean; tight: boolean }[] = [];
+    const items: { token: Lined; end: number }[] = [];
+    for (const token of state.tokens) {
+      const list = lists[lists.length - 1];
+      if (token.type.endsWith("_list_open")) {
+        lists.push({ token, blank: false, tight: true });
+      } else if (token.type.endsWith("_list_close")) {
+        const done = lists.pop();
+        if (done?.tight) done.token.attrSet("data-tight", "true");
+      } else if (token.type === "list_item_open") {
+        if (list?.blank) token.attrSet("data-apart", "true");
+        items.push({ token, end: token.map ? token.map[0] : 0 });
+      } else if (token.type === "list_item_close") {
+        const held = items.pop();
+        if (!held) continue;
+        if (list) list.blank = held.token.map ? held.token.map[1] > held.end : false;
+        const up = items[items.length - 1];
+        if (up) up.end = Math.max(up.end, held.end);
+      } else {
+        if (token.type === "paragraph_open" && list && !token.hidden) list.tight = false;
+        if (!PLAIN.has(token.type)) for (const one of lists) one.tight = false;
+        if (token.map && items.length) {
+          const held = items[items.length - 1];
+          held.end = Math.max(held.end, token.map[1]);
+        }
+      }
+    }
+  });
+};
+
+const parted = (list: Element): void => {
+  const kids = Array.from(list.childNodes).filter((one) => one.nodeType === 1) as Element[];
+  const runs: { task: boolean; items: Element[] }[] = [];
+  for (const one of kids) {
+    const task = tasked(one);
+    const last = runs[runs.length - 1];
+    if (last?.task === task) last.items.push(one);
+    else runs.push({ task, items: [one] });
+  }
+  const alone = runs.length < 2 ? runs[0] : null;
+  if (alone && (!alone.task || list.tagName === "UL")) {
+    if (alone.task) list.setAttribute("data-type", "taskList");
+    return;
+  }
+  let count = Number(list.getAttribute("start") ?? 1) || 1;
+  for (const run of runs) {
+    const fresh = list.ownerDocument.createElement(run.task ? "ul" : list.tagName);
+    if (run.task) fresh.setAttribute("data-type", "taskList");
+    else if (count > 1) fresh.setAttribute("start", String(count));
+    count += run.items.length;
+    if (run.items.every((one, at) => at === 0 || !apart(one))) {
+      fresh.setAttribute("data-tight", "true");
+    }
+    if (apart(run.items[0])) fresh.setAttribute("data-apart", "true");
+    for (const one of run.items) fresh.append(one);
+    list.before(fresh);
+  }
+  list.remove();
+};
+
+const LISTS = new Set(["bulletList", "taskList"]);
+
+interface Listing {
+  flushClose: (size: number) => void;
+  renderList: (node: ProseNode, delim: string, first: (index: number) => string) => void;
+}
+
+function glued(
+  this: { editor: Writing },
+  state: Listing,
+  node: ProseNode,
+  parent: ProseNode | null,
+  index: number,
+): void {
+  const before = parent && index > 0 ? parent.child(index - 1) : null;
+  if (
+    before &&
+    LISTS.has(before.type.name) &&
+    before.type.name !== node.type.name &&
+    before.attrs.tight !== false &&
+    node.attrs.tight !== false &&
+    node.attrs.apart !== true
+  ) {
+    state.flushClose(1);
+  }
+  const marked = (
+    this.editor.storage as unknown as {
+      markdown: { options: { bulletListMarker?: string } };
+    }
+  ).markdown.options.bulletListMarker;
+  state.renderList(node, "  ", () => `${marked || "-"} `);
+}
+
+const APART = {
+  apart: {
+    default: false,
+    rendered: false,
+    parseHTML: (element: HTMLElement) => element.getAttribute("data-apart") === "true",
+  },
+};
+
+const Listed = BulletList.extend({
+  addAttributes() {
+    return { ...this.parent?.(), ...APART };
+  },
+
+  addStorage() {
+    return { markdown: { serialize: glued } };
+  },
+});
+
 const Tightened = TaskList.extend({
   addAttributes() {
-    return { ...this.parent?.(), tight: { default: true, rendered: false } };
+    return {
+      ...this.parent?.(),
+      tight: {
+        default: true,
+        rendered: false,
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute("data-tight") === "true" || !element.querySelector("p"),
+      },
+      ...APART,
+    };
+  },
+
+  addStorage() {
+    return {
+      markdown: {
+        serialize: glued,
+        parse: {
+          setup(md: unknown) {
+            (md as { use: (one: unknown) => void }).use(taskLists);
+            spaced(md as Parameters<typeof spaced>[0]);
+          },
+          updateDOM(element: HTMLElement) {
+            for (const list of [...element.querySelectorAll(".contains-task-list")]) parted(list);
+          },
+        },
+      },
+    };
   },
 });
 
@@ -1162,7 +1341,10 @@ export const written = () => [
     link: { openOnClick: false, autolink: true, protocols: ["tisty"] },
     text: false,
     codeBlock: false,
+    bulletList: false,
   }),
+  Listed,
+  Barred,
   Lettered,
   Pictured,
   Ruled,
@@ -1174,7 +1356,6 @@ export const written = () => [
   Ico,
   Lit,
   TaskItem.configure({ nested: true }),
-  Barred,
   Markdown.configure({ html: true, linkify: true, breaks: true, transformPastedText: true }),
 ];
 

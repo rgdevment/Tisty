@@ -79,9 +79,11 @@ at once.
 
 Tisty's editor writes Markdown back out, and a few shapes do not survive that
 trip: front matter, footnotes, links written by reference, blocks of HTML, HTML
-comments and entities, and whatever a code fence says after its language beyond
-a name. Rather than open the document and quietly destroy those on your first
-keystroke, Tisty says so and opens it for reading.
+comments and entities, whatever a code fence says after its language beyond a
+name, and a list item that opens on a block — a quote, a fence, a heading, a
+picture or another list where its first line should be text. Rather than open
+the document and quietly destroy those on your first keystroke, Tisty says so
+and opens it for reading.
 
 The bar at the foot offers to convert it — which rewrites the document into what
 the editor can keep, and keeps a copy of how it was beside the documents. If the

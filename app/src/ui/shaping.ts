@@ -1,3 +1,4 @@
+import { common, createLowlight } from "lowlight";
 import { fill, t, type Word } from "../locales";
 import { DOC } from "../markdown";
 import { KINDS } from "../previews";
@@ -11,6 +12,80 @@ interface Node {
   text?: string;
   marks?: { type: string; attrs?: Record<string, unknown> }[];
 }
+
+const HUES: Record<string, string> = {
+  comment: "#67676b",
+  quote: "#67676b",
+  keyword: "#7a44b8",
+  "selector-tag": "#7a44b8",
+  literal: "#7a44b8",
+  doctag: "#7a44b8",
+  name: "#7a44b8",
+  string: "#3f8a24",
+  regexp: "#3f8a24",
+  addition: "#3f8a24",
+  number: "#b35c00",
+  symbol: "#b35c00",
+  bullet: "#b35c00",
+  title: "#1f6fb2",
+  section: "#1f6fb2",
+  attr: "#0f7a68",
+  attribute: "#0f7a68",
+  variable: "#0f7a68",
+  "template-variable": "#0f7a68",
+  property: "#0f7a68",
+  type: "#8a6a00",
+  built_in: "#8a6a00",
+  deletion: "#c62f45",
+};
+
+interface Lit {
+  type: string;
+  value?: string;
+  properties?: { className?: unknown };
+  children?: Lit[];
+}
+
+const glow = createLowlight(common);
+
+const hued = (names: string[]): string | undefined => {
+  for (const name of names) {
+    const hue = HUES[name.replace(/^hljs-/, "")];
+    if (hue) return hue;
+  }
+  return undefined;
+};
+
+const spanned = (nodes: Lit[], hue: string | undefined, out: Run[]): void => {
+  for (const one of nodes) {
+    if (one.type === "text") {
+      if (one.value) out.push(hue ? { text: one.value, hue } : { text: one.value });
+      continue;
+    }
+    const held = one.properties?.className;
+    const names = Array.isArray(held) ? held.map(String) : [];
+    spanned(one.children ?? [], hued(names) ?? hue, out);
+  }
+};
+
+const lined = (runs: Run[]): Run[][] => {
+  const lines: Run[][] = [[]];
+  for (const run of runs) {
+    const parts = run.text.split("\n");
+    parts.forEach((text, at) => {
+      if (at) lines.push([]);
+      if (text) lines[lines.length - 1].push({ ...run, text });
+    });
+  }
+  return lines;
+};
+
+const glowed = (tongue: string, text: string): Run[][] => {
+  if (!tongue || !glow.registered(tongue)) return lined([{ text }]);
+  const runs: Run[] = [];
+  spanned((glow.highlight(tongue, text) as unknown as Lit).children ?? [], undefined, runs);
+  return lined(runs);
+};
 
 const inked = (nodes: Node[] | undefined): Run[] => {
   if (!nodes) return [];
@@ -95,7 +170,7 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
       out.push({
         kind: "code",
         deep,
-        runs: (node.content?.[0]?.text ?? "").split("\n").map((text) => ({ text })),
+        lines: glowed(String(node.attrs?.language ?? ""), node.content?.[0]?.text ?? ""),
       });
       return;
     case "horizontalRule":

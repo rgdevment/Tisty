@@ -417,13 +417,24 @@ export default function Editor({
           icon: "quote",
           run: () => editor.chain().focus().toggleBlockquote().run(),
         },
-        {
-          key: "callout",
-          label: t("calloutIt"),
-          hint: "[!",
-          icon: "warning",
-          run: () => editor.chain().focus().toggleWrap("callout", { kind: "note" }).run(),
-        },
+        ...(
+          [
+            ["note", "info"],
+            ["tip", "star"],
+            ["important", "bell"],
+            ["warning", "warning"],
+            ["caution", "siren"],
+          ] as const
+        ).map(([kind, icon]) => ({
+          key: `callout-${kind}`,
+          label: t(`said${kind}` as Parameters<typeof t>[0]),
+          hint: `[!${kind.toUpperCase()}]`,
+          icon,
+          run: () =>
+            editor.isActive("callout")
+              ? editor.chain().focus().updateAttributes("callout", { kind }).run()
+              : editor.chain().focus().toggleWrap("callout", { kind }).run(),
+        })),
         {
           key: "mermaid",
           label: t("diagramIt"),

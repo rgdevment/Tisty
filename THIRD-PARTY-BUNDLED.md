@@ -193,7 +193,7 @@ licence. Anything copied into Tisty's own source rather than bundled is in
 | `jay-peg` | 1.1.1 | MIT |
 | `js-md5` | 0.8.3 | MIT |
 | `js-tokens` | 4.0.0 | MIT |
-| `katex` | 0.18.5 | MIT |
+| `katex` | 0.16.47 | MIT |
 | `khroma` | 2.1.0 | see the package |
 | `layout-base` | 2.0.1 | MIT |
 | `linebreak` | 1.1.0 | MIT |
