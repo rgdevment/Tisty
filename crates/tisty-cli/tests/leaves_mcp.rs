@@ -1041,3 +1041,101 @@ fn a_drawing_a_page_and_a_data_file_come_in_like_any_other() {
     }
     assert!(!body.contains("assets/"), "still pointing outside: {body}");
 }
+
+#[test]
+fn a_target_with_spaces_nobody_encoded_is_still_the_target() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(dir.path(), "Risk Matrix/Untitled.png", A_PNG);
+    let at = dir.path().join("Crudo.md");
+    std::fs::write(
+        &at,
+        "# Crudo\n\n![b](Risk Matrix/Untitled.png)\n\n![c](Risk%20Matrix/Untitled.png \"con titulo\")\n",
+    )
+    .unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert_eq!(
+        said["result"]["structuredContent"]["files"].as_u64(),
+        Some(2),
+        "the one written with spaces came in like the one written with %20: {said}"
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(!body.contains("Risk Matrix/"), "{body}");
+    assert!(!body.contains("Risk%20Matrix/"), "{body}");
+    assert!(body.contains("con titulo"), "the title is kept: {body}");
+}
+
+#[test]
+fn an_exported_book_reads_as_a_book_outside_tisty() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\nlo que hay antes", None);
+    for one in ["Marzo", "Abril", "Mayo"] {
+        served.wrote(&format!("# {one}\n\ntexto de {one}"), Some(&book));
+    }
+    let out = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+
+    let said = served.call(
+        "export_doc",
+        serde_json::json!({ "doc": &book, "into": out.path().to_str().unwrap() }),
+    );
+
+    assert_eq!(
+        said["result"]["structuredContent"]["pages_out"].as_u64(),
+        Some(3),
+        "{said}"
+    );
+    let mut found: Vec<String> = Vec::new();
+    let mut walk = vec![out.path().to_path_buf()];
+    while let Some(at) = walk.pop() {
+        for one in std::fs::read_dir(&at).unwrap().flatten() {
+            let path = one.path();
+            if path.is_dir() {
+                walk.push(path);
+            } else {
+                found.push(path.file_name().unwrap().to_string_lossy().to_string());
+            }
+        }
+    }
+    found.sort();
+    assert_eq!(
+        found,
+        vec![
+            "01 Marzo.md".to_string(),
+            "02 Abril.md".to_string(),
+            "03 Mayo.md".to_string(),
+            "Curso.md".to_string(),
+        ],
+        "the pages come out numbered in reading order"
+    );
+
+    let cover = std::fs::read_to_string(
+        std::fs::read_dir(out.path())
+            .unwrap()
+            .flatten()
+            .find(|one| one.path().is_dir())
+            .unwrap()
+            .path()
+            .join("Curso.md"),
+    )
+    .unwrap();
+    for one in ["[Marzo](<01 Marzo.md>)", "[Abril](<02 Abril.md>)"] {
+        assert!(
+            cover.contains(one),
+            "the cover points at its pages: {cover}"
+        );
+    }
+    assert!(
+        !cover.contains("tisty:doc/"),
+        "nothing outside Tisty can follow that: {cover}"
+    );
+}

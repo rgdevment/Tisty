@@ -1691,7 +1691,7 @@ fn written_as_code(body: &str) -> Vec<bool> {
             }
             None => {
                 let mut walk = 0;
-                for (span, part) in spans(bare) {
+                for (span, part) in tisty_core::arriving::spans(bare) {
                     if span {
                         for one in out.iter_mut().skip(at + walk).take(part.len()) {
                             *one = true;
@@ -1702,52 +1702,6 @@ fn written_as_code(body: &str) -> Vec<bool> {
             }
         }
         at += line.len();
-    }
-    out
-}
-
-fn spans(line: &str) -> Vec<(bool, &str)> {
-    let bytes = line.as_bytes();
-    let mut out = Vec::new();
-    let mut from = 0;
-    let mut at = 0;
-    while at < bytes.len() {
-        if bytes[at] != b'`' {
-            at += 1;
-            continue;
-        }
-        let run = bytes[at..].iter().take_while(|one| **one == b'`').count();
-        let mut walk = at + run;
-        let shut = loop {
-            match line[walk..].find(&"`".repeat(run)) {
-                None => break None,
-                Some(found) => {
-                    let start = walk + found;
-                    let wide = bytes[start..]
-                        .iter()
-                        .take_while(|one| **one == b'`')
-                        .count();
-                    if wide == run {
-                        break Some(start + run);
-                    }
-                    walk = start + wide;
-                }
-            }
-        };
-        match shut {
-            None => at += run,
-            Some(ends) => {
-                if from < at {
-                    out.push((false, &line[from..at]));
-                }
-                out.push((true, &line[at..ends]));
-                from = ends;
-                at = ends;
-            }
-        }
-    }
-    if from < line.len() {
-        out.push((false, &line[from..]));
     }
     out
 }
@@ -1822,7 +1776,13 @@ fn split_target(inner: &str) -> (String, String) {
         );
     }
     match said.find(char::is_whitespace) {
-        Some(gap) => (said[..gap].to_string(), said[gap..].trim().to_string()),
+        Some(gap) => {
+            let rest = said[gap..].trim();
+            match rest.starts_with(['"', '\'', '(']) {
+                true => (said[..gap].to_string(), rest.to_string()),
+                false => (said.to_string(), String::new()),
+            }
+        }
         None => (said.to_string(), String::new()),
     }
 }
@@ -1834,16 +1794,7 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ));
     };
     let asked = std::path::Path::new(&said);
-    let at = tisty_core::agent::may_reach(asked, paths).map_err(|_| {
-        Refused::Tool(format!(
-            "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
-            tisty_core::agent::reachable()
-                .iter()
-                .map(|one| one.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))
-    })?;
+    let at = reachable_or(paths, &said, asked, "take files from")?;
     if !at.is_file() {
         return Err(Refused::Tool(format!(
             "{said:?} is not a file. `import_doc` takes one markdown file at a time; call it once per file when you are bringing a whole export across."
@@ -1976,6 +1927,24 @@ fn said_of(written: &Value) -> String {
         .to_string()
 }
 
+fn reachable_or(
+    paths: &Paths,
+    said: &str,
+    asked: &std::path::Path,
+    doing: &str,
+) -> Result<std::path::PathBuf, Refused> {
+    tisty_core::agent::may_reach(asked, paths).map_err(|_| {
+        Refused::Tool(format!(
+            "{said:?} is not somewhere an assistant may {doing}. Those are: {}.",
+            tisty_core::agent::reachable()
+                .iter()
+                .map(|one| one.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))
+    })
+}
+
 fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(which) = text(args, "doc") else {
         return Err(Refused::Tool(
@@ -1995,16 +1964,7 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
 
     let asked = std::path::Path::new(&said);
-    let into = tisty_core::agent::may_reach(asked, paths).map_err(|_| {
-        Refused::Tool(format!(
-            "{said:?} is not somewhere an assistant may leave files. Those are: {}.",
-            tisty_core::agent::reachable()
-                .iter()
-                .map(|one| one.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ))
-    })?;
+    let into = reachable_or(paths, &said, asked, "leave files")?;
     if !into.is_dir() {
         return Err(Refused::Tool(format!(
             "{said:?} is not a folder. Name one that exists, and the files are left inside it."
@@ -2020,8 +1980,9 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Took {which} out to {} — {} file(s){}. Nothing here changed: an export is a copy.",
+            "Took {which} out to {} — its cover, {} page(s) and {} file(s) beside them{}. Nothing here changed: an export is a copy.",
             into.display(),
+            pages.len(),
             taken.files,
             match taken.missed {
                 0 => String::new(),
@@ -2031,6 +1992,7 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         json!({
             "doc": which,
             "into": into.display().to_string(),
+            "pages_out": pages.len(),
             "files": taken.files,
             "missed": taken.missed,
             "pages": pages,
