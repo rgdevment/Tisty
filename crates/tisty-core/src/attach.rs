@@ -1215,7 +1215,7 @@ mod tests {
         assert_eq!(
             held("attachments/ab/cd.pdf").written("the invoice"),
             "![the invoice](<attachments/ab/cd.pdf>)",
-            "what cannot be drawn still deserves a card, not a bare link"
+            "the window draws a card for it, and only an image node gets one"
         );
     }
 

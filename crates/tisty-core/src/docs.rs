@@ -4096,6 +4096,9 @@ pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
             return Err(why);
         }
         let flat = plain.trim();
+        if dollared(flat) {
+            return Err("maths written between dollars");
+        }
         if noted(flat) {
             return Err("footnotes");
         }
@@ -4153,6 +4156,23 @@ fn outside_code_spans(line: &str) -> String {
     out
 }
 
+fn dollared(line: &str) -> bool {
+    let said = line.trim();
+    if said.starts_with("$$") {
+        return true;
+    }
+    let bytes = said.as_bytes();
+    let mut at = 0;
+    while let Some(found) = said[at..].find("$$") {
+        let start = at + found;
+        if start == 0 || bytes[start - 1] != b'\\' {
+            return true;
+        }
+        at = start + 2;
+    }
+    false
+}
+
 fn noted(line: &str) -> bool {
     let bytes = line.as_bytes();
     let mut at = 0;
@@ -4203,8 +4223,9 @@ fn linked(line: &str, next: &str) -> bool {
 
 /// A `<` that opens a tag, wherever it sits on the line. An autolink is markdown and comes
 /// back untouched, so it is not markup.
-fn markup(line: &str) -> Option<&'static str> {
+pub(crate) fn markup(line: &str) -> Option<&'static str> {
     let bytes = line.as_bytes();
+    let mut shut = 0;
     for at in 0..bytes.len() {
         if bytes[at] == b'&' && entity(&line[at..]) {
             return Some("HTML entities");
@@ -4216,7 +4237,13 @@ fn markup(line: &str) -> Option<&'static str> {
         if rest.starts_with("!--") {
             return Some("HTML comments");
         }
-        let inner = rest.find('>').map(|end| &rest[..end]).unwrap_or(rest);
+        if shut <= at {
+            shut = match rest.find('>') {
+                Some(end) => at + 1 + end,
+                None => line.len(),
+            };
+        }
+        let inner = &line[at + 1..shut];
         if inner.contains("://") || (inner.contains('@') && !inner.contains(' ')) {
             continue;
         }
@@ -4263,7 +4290,7 @@ fn iconed(inner: &str) -> bool {
     quotedly(after, "data-hue", |one| one.is_ascii_alphabetic()).is_some_and(str::is_empty)
 }
 
-fn kept(inner: &str) -> bool {
+pub(crate) fn kept(inner: &str) -> bool {
     for one in ["u", "/u", "mark", "/mark", "/span"] {
         if inner.eq_ignore_ascii_case(one) {
             return true;
@@ -4378,6 +4405,7 @@ mod survival {
                 "HTML" => "html",
                 "HTML comments" => "comments",
                 "HTML entities" => "entities",
+                "maths written between dollars" => "maths",
                 "footnotes" => "notes",
                 "reference links" => "refs",
                 "what a fence says after its language" => "fence",

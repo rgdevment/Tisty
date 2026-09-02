@@ -44,6 +44,19 @@ Fill in what you actually know. A title alone is a fine task; inventing a deadli
 gave you is worse than leaving it empty. Put what you read in `description`. Write titles \
 and notes in the language the person writes in.
 
+A document is markdown, and the editor is what has to be able to open it again: what it cannot \
+keep is refused when you write, not quietly destroyed later. Alongside plain markdown it keeps \
+four tags of its own, because it writes them itself — `<u>`, `<mark>`, a coloured \
+`<mark data-pen=\"…\">` and the icon span. Everything else in HTML is turned away.
+
+`import_doc` brings a markdown file on this machine in as a document, tidying on the way what \
+the editor could not have held, and saying what it changed; `export_doc` writes one back out to \
+a folder, pages and attachments and all. Both only reach the places the person keeps files — \
+Downloads, Documents, Pictures, Desktop, the temporary folder — and neither touches what is \
+already on disk. To bring a whole export across, walk it yourself and import one file per call, \
+so what happened to each is something the person can see. `archive_doc` puts a document away \
+when it is finished or was written by mistake, and brings it back; nothing here deletes.
+
 A document is for what is worth keeping and is not work to do — a summary, a note, something \
 to consult. Writing one creates no task: if something has to happen, propose it. `docs` lists \
 what is written already and the folders it is kept in; you can make a folder and file documents \
@@ -77,7 +90,7 @@ than trying a shorter passage.
 
 `attach` copies a file from this machine into Tisty and keeps it in one of two places. Named a \
 `task`, it lands on that task's journal with a line saying where it came from; named a `doc`, it \
-is added at the end of that document, and shows there as a picture or a link. Name one or the \
+is added at the end of that document, and shows there as a picture or a card. Name one or the \
 other, never both. A document holds a far larger file than a task does — a video, a recording, a \
 deck of slides belongs in a document, and the refusal tells you the size that place takes when \
 one is too big. The file is copied into Tisty, not pointed at, so a copy stays behind when the \
@@ -277,6 +290,9 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "edit_doc" => edit_doc(paths, &args),
         "read_doc" => read_doc(paths, &args),
         "docs" => papers(paths, &args),
+        "archive_doc" => archive_doc(paths, &args),
+        "export_doc" => export_doc(paths, &args),
+        "import_doc" => import_doc(paths, &args),
         "file_doc" => file_doc(paths, &args),
         "page_doc" => page_doc(paths, &args),
         "folder" => folder(paths, &args),
@@ -977,21 +993,69 @@ fn over_again(
         )));
     };
 
+    let named = tisty_core::refs::papers(body);
+    let loose: Vec<&tisty_core::model::Kept> = state
+        .pages_of(kept.id)
+        .into_iter()
+        .filter(|one| !named.contains(&one.file))
+        .collect();
+    let body = &match loose.is_empty() {
+        true => body.to_string(),
+        false => {
+            let cards = loose
+                .iter()
+                .map(|one| {
+                    let title = tisty_core::docs::read(&paths.docs(), &one.file)
+                        .map(|body| tisty_core::docs::titled(&body))
+                        .unwrap_or_default();
+                    tisty_core::refs::card(&one.file, &title)
+                })
+                .collect::<Vec<_>>()
+                .join(
+                    "
+",
+                );
+            format!(
+                "{}
+
+{cards}
+",
+                body.trim_end()
+            )
+        }
+    };
+    let kept_back: Vec<String> = loose.iter().map(|one| one.file.clone()).collect();
+
     let made = tisty_core::docs::rewrite(&paths.docs(), which, body, &print).map_err(hitch)?;
     match made {
-        tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
-            "{which:?} does not read as it did when you took that print — the person, or another agent, wrote in it since. Nothing was changed, and nothing of theirs was lost. Read it again with `read_doc` and work from what is there now."
-        ))),
+        tisty_core::docs::Rewrite::Moved => Err(Refused::Tool({
+            let now = tisty_core::docs::read(&paths.docs(), which).unwrap_or_default();
+            format!(
+                "{which:?} does not read as it did when you took that print — the person, or another agent, wrote in it since. Nothing was changed, and nothing of theirs was lost. What it says now is here, with the print that goes with it, so you can work from it without reading it again:
+
+{now}
+
+print: {}",
+                tisty_core::attach::printed(now.as_bytes())
+            )
+        })),
         tisty_core::docs::Rewrite::Made { was, whole } => {
             let saved = tisty_core::docs::kept_before(paths.data(), which, &was).is_ok();
             let settled = retold(state, store, which, &whole).is_ok();
             Ok(told(
                 format!(
-                    "Wrote {:?} again, whole. {}{}",
+                    "Wrote {:?} again, whole. {}{}{}",
                     tisty_core::docs::titled(&whole),
                     match saved {
                         true => "What it said before is kept beside the documents.",
                         false => "What it said before could not be kept, so it is gone.",
+                    },
+                    match kept_back.is_empty() {
+                        true => String::new(),
+                        false => format!(
+                            " The body you sent named none of {}, which are pages of it, so their lines were put back at the end rather than left with nothing pointing at them. Move them with `edit_doc` if they belong somewhere else.",
+                            kept_back.join(", ")
+                        ),
                     },
                     if settled { "" } else { UNSETTLED }
                 ),
@@ -1014,7 +1078,7 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
-            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]."
+            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it."
         ))
     })?;
 
@@ -1136,7 +1200,15 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 made.title, made.id
             ),
         },
-        json!({ "doc": made.id, "title": made.title, "folder": where_at, "page_of": under }),
+        json!({
+            "doc": made.id,
+            "title": made.title,
+            "folder": where_at,
+            "page_of": under,
+            "print": tisty_core::docs::read(&paths.docs(), &made.id)
+                .map(|one| tisty_core::attach::printed(one.as_bytes()))
+                .unwrap_or_default(),
+        }),
     ))
 }
 
@@ -1169,7 +1241,7 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
-             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]."
+             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it."
         ))
     })?;
 
@@ -1194,6 +1266,7 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "doc": which,
             "title": tisty_core::docs::titled(&whole),
             "added": body,
+            "print": tisty_core::attach::printed(whole.as_bytes()),
         }),
     ))
 }
@@ -1234,7 +1307,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     tisty_core::docs::survives(new).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
-             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]."
+             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it."
         ))
     })?;
 
@@ -1274,6 +1347,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     "doc": which,
                     "title": tisty_core::docs::titled(&whole),
                     "body": whole,
+                    "print": tisty_core::attach::printed(whole.as_bytes()),
                 }),
             ))
         }
@@ -1438,6 +1512,253 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             lines.join("\n")
         ),
         json!({ "docs": shown, "total": all, "folders": folders }),
+    ))
+}
+
+fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(said) = text(args, "path") else {
+        return Err(Refused::Tool(
+            "importing needs a `path` to a markdown file on this machine.".into(),
+        ));
+    };
+    let asked = std::path::Path::new(&said);
+    let at = tisty_core::agent::may_reach(asked, paths).map_err(|_| {
+        Refused::Tool(format!(
+            "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
+            tisty_core::agent::reachable()
+                .iter()
+                .map(|one| one.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))
+    })?;
+    if !at.is_file() {
+        return Err(Refused::Tool(format!(
+            "{said:?} is not a file. `import_doc` takes one markdown file at a time; call it once per file when you are bringing a whole export across."
+        )));
+    }
+    if !at
+        .extension()
+        .is_some_and(|one| one.eq_ignore_ascii_case("md") || one.eq_ignore_ascii_case("markdown"))
+    {
+        return Err(Refused::Tool(format!(
+            "{said:?} is not markdown. A document is markdown; anything else goes in with `attach`, which keeps it beside a document or a task."
+        )));
+    }
+    let big = std::fs::metadata(&at).map(|one| one.len()).unwrap_or(0);
+    if big > tisty_core::docs::BODY_AT_MOST {
+        return Err(Refused::Tool(format!(
+            "{said:?} is {big} bytes, past the {} Tisty can open. Split it before bringing it in.",
+            tisty_core::docs::BODY_AT_MOST
+        )));
+    }
+    let raw = std::fs::read(&at)
+        .map_err(|why| Refused::Tool(format!("{said:?} could not be read: {why}.")))?;
+    if tisty_core::agent::holds_a_secret(&raw[..raw.len().min(4096)]) {
+        return Err(Refused::Tool(format!(
+            "{said:?} holds a key or a password, whatever it is named, so it is not a document an assistant brings in."
+        )));
+    }
+    let raw = String::from_utf8(raw).map_err(|_| {
+        Refused::Tool(format!(
+            "{said:?} is not text this can read. Tisty keeps documents as UTF-8."
+        ))
+    })?;
+
+    let made = tisty_core::arriving::tidied(&raw);
+    tisty_core::docs::survives(&made.body).map_err(|eats| {
+        Refused::Tool(format!(
+            "{said:?} still holds {eats} after being tidied, so it would be destroyed the first time the person opens it. Nothing was written."
+        ))
+    })?;
+
+    let headed = made
+        .body
+        .lines()
+        .find(|one| !one.trim().is_empty())
+        .is_some_and(|one| one.starts_with("# "));
+    let body = match (text(args, "title"), headed) {
+        (Some(said), _) => format!(
+            "# {said}
+
+{}",
+            made.body.trim_start()
+        ),
+        (None, true) => made.body.clone(),
+        (None, false) => {
+            let named = at.file_stem().unwrap_or_default().to_string_lossy();
+            format!(
+                "# {named}
+
+{}",
+                made.body.trim_start()
+            )
+        }
+    };
+
+    let mut asked_again = args.clone();
+    if let Some(one) = asked_again.as_object_mut() {
+        one.remove("path");
+        one.remove("title");
+        one.insert("body".into(), json!(body));
+    }
+    short_and_plain(&asked_again)?;
+    let written = write_doc(paths, &asked_again)?;
+
+    let changed = made.changed.join(", ");
+    Ok(told(
+        format!(
+            "{}{}",
+            said_of(&written),
+            match made.changed.is_empty() {
+                true => " Nothing had to be changed on the way in.".to_string(),
+                false => format!(
+                    " On the way in it was tidied: {changed}. What the file said is still on disk, untouched."
+                ),
+            }
+        ),
+        match written["structuredContent"].clone() {
+            Value::Object(mut one) => {
+                one.insert("from".into(), json!(at.display().to_string()));
+                one.insert("changed".into(), json!(made.changed));
+                Value::Object(one)
+            }
+            other => other,
+        },
+    ))
+}
+
+fn said_of(written: &Value) -> String {
+    written["content"][0]["text"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string()
+}
+
+fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(which) = text(args, "doc") else {
+        return Err(Refused::Tool(
+            "exporting needs the `doc` to take out.".into(),
+        ));
+    };
+    let Some(said) = text(args, "into") else {
+        return Err(Refused::Tool(
+            "exporting needs an `into` folder on this machine to leave the files in.".into(),
+        ));
+    };
+    let (state, _) = opened(paths)?;
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Err(Refused::Tool(format!(
+            "no document here is called {which:?}. `docs` lists them all."
+        )));
+    };
+
+    let asked = std::path::Path::new(&said);
+    let into = tisty_core::agent::may_reach(asked, paths).map_err(|_| {
+        Refused::Tool(format!(
+            "{said:?} is not somewhere an assistant may leave files. Those are: {}.",
+            tisty_core::agent::reachable()
+                .iter()
+                .map(|one| one.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ))
+    })?;
+    if !into.is_dir() {
+        return Err(Refused::Tool(format!(
+            "{said:?} is not a folder. Name one that exists, and the files are left inside it."
+        )));
+    }
+
+    let pages: Vec<String> = state
+        .pages_of(kept.id)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    let taken = tisty_core::docs::with_pages(paths.data(), &which, &pages, &into).map_err(hitch)?;
+
+    Ok(told(
+        format!(
+            "Took {which} out to {} — {} file(s){}. Nothing here changed: an export is a copy.",
+            into.display(),
+            taken.files,
+            match taken.missed {
+                0 => String::new(),
+                many => format!(", and {many} page(s) could not be read, so they are not there"),
+            }
+        ),
+        json!({
+            "doc": which,
+            "into": into.display().to_string(),
+            "files": taken.files,
+            "missed": taken.missed,
+            "pages": pages,
+        }),
+    ))
+}
+
+fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(which) = text(args, "doc") else {
+        return Err(Refused::Tool(
+            "putting a document away needs its `doc` name.".into(),
+        ));
+    };
+    let away = match args.get("archived") {
+        None | Some(Value::Null) => true,
+        Some(Value::Bool(one)) => *one,
+        Some(other) => {
+            return Err(Refused::Tool(format!(
+                "`archived` is true or false, and {other} is neither. Leave it out to put the document away."
+            )));
+        }
+    };
+    let (state, mut store) = opened(paths)?;
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Err(Refused::Tool(format!(
+            "no document here is called {which:?}. `docs` lists them all."
+        )));
+    };
+    if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
+        return Err(Refused::Tool(format!(
+            "{which} is a page of {up}, and a page is put away with the document that holds it. Name {up} instead, or take the page out first with `page_doc`."
+        )));
+    }
+    if kept.archived == away {
+        return Ok(told(
+            match away {
+                true => format!("{which} was already put away."),
+                false => format!("{which} was already out of the archive."),
+            },
+            json!({ "doc": which, "archived": away }),
+        ));
+    }
+    let pages: Vec<String> = state
+        .pages_of(kept.id)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    store
+        .append(match away {
+            true => Op::DocArchive { id: kept.id },
+            false => Op::DocUnarchive { id: kept.id },
+        })
+        .map_err(hitch)?;
+
+    Ok(told(
+        format!(
+            "{}{}",
+            match away {
+                true => format!(
+                    "Put {which} away. It is not gone: `docs` and `find` still reach it with `scope`, and this same call with `archived` false brings it back."
+                ),
+                false => format!("Brought {which} back out of the archive."),
+            },
+            match pages.is_empty() {
+                true => String::new(),
+                false => format!(" Its pages went with it: {}.", pages.join(", ")),
+            }
+        ),
+        json!({ "doc": which, "archived": away, "pages": pages }),
     ))
 }
 
@@ -1944,7 +2265,7 @@ fn tools() -> Value {
         {
             "name": "attach",
             "title": "Keep a file with a task or in a document",
-            "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a link. One or the other, never both. The file is copied, not linked. A document takes a far larger file than a task does, so a video or a slide deck belongs in one. Only attach what you were asked to.",
+            "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a card. One or the other, never both. The file is copied, not linked. A document takes a far larger file than a task does, so a video or a slide deck belongs in one. Only attach what you were asked to.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -1955,7 +2276,7 @@ fn tools() -> Value {
                     },
                     "doc": {
                         "type": "string",
-                        "description": "The document's name, if it goes in a document. `docs` lists them"
+                        "description": "The document's id, if it goes in a document — an opaque name like `q7ntmzbm-0001`, which `docs` lists"
                     },
                     "path": {
                         "type": "string",
@@ -1972,14 +2293,14 @@ fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary, something to keep. Plain markdown only — headings, lists, emphasis, inline links, tables, fenced code with its language, and GitHub alerts (> [!NOTE] and its kin). Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole.",
+            "description": "Write something down that is not work to do: a note, a summary, something to keep. Markdown — headings, lists, emphasis, inline links, tables, fenced code with its language, and GitHub alerts (> [!NOTE] and its kin) — plus the four tags the editor writes itself: <u>, <mark>, a coloured <mark data-pen=\"…\"> and the icon span. No other HTML. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
                     "body": {
                         "type": "string",
-                        "description": "The whole document. Its first line becomes its title"
+                        "description": "The whole document. Its first line becomes its title. Each paragraph goes on one line, however long: the editor turns a wrapped line into a hard break, so markdown wrapped at 80 columns comes back full of backslashes"
                     },
                     "doc": {
                         "type": "string",
@@ -2013,7 +2334,7 @@ fn tools() -> Value {
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
-                    "doc": { "type": "string", "description": "The document's name" },
+                    "doc": { "type": "string", "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title" },
                     "body": {
                         "type": "string",
                         "description": "Markdown to add at the end. A blank line is put between this and what was there"
@@ -2030,7 +2351,7 @@ fn tools() -> Value {
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
-                    "doc": { "type": "string", "description": "The document's name" },
+                    "doc": { "type": "string", "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title" },
                     "old": {
                         "type": "string",
                         "description": "The passage as it is written now, copied from `read_doc`. Take in the lines around it if a short one would fit twice"
@@ -2066,6 +2387,68 @@ fn tools() -> Value {
             }
         },
         {
+            "name": "import_doc",
+            "title": "Bring a markdown file on this machine in as a document",
+            "description": "Read one markdown file from disk and keep it here as a document, tidying on the way in what Tisty's editor could not hold: front matter, HTML that markdown can say and HTML it cannot, comments, entities, links written by reference, maths between dollars, and fences written in from the margin. What it changed comes back with the answer, and the file on disk is left untouched. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "A markdown file under Downloads, Documents, Pictures, Desktop or the temporary folder"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "A title to put at the top, for a file whose first line is not one. Left out, the file name is used"
+                    },
+                    "folder": {
+                        "type": "string",
+                        "description": "An existing folder, by name, to keep it in"
+                    },
+                    "page_of": {
+                        "type": "string",
+                        "description": "The id of the document this becomes a page of"
+                    }
+                },
+                "required": ["path"]
+            }
+        },
+        {
+            "name": "export_doc",
+            "title": "Take a document out to a folder on this machine",
+            "description": "Write a document out as markdown files in a folder the person can reach, with its pages numbered in reading order and its attachments beside them. Nothing here changes and nothing is deleted: an export is a copy. Use it to hand work to something outside Tisty.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "doc": { "type": "string", "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title" },
+                    "into": {
+                        "type": "string",
+                        "description": "A folder that exists on this machine, under Downloads, Documents, Pictures, Desktop or the temporary folder"
+                    }
+                },
+                "required": ["doc", "into"]
+            }
+        },
+        {
+            "name": "archive_doc",
+            "title": "Put a document away, or bring it back",
+            "description": "Put a document away when it is finished or was written by mistake, and bring it back with `archived` false. Nothing is deleted and no text changes: `docs` and `find` still reach it by asking for the `archive` scope. Its pages go away and come back with it. Putting a document away is not the same as finishing a task — a task is the person's to close, and there is no tool here for that.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "doc": { "type": "string", "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title" },
+                    "archived": {
+                        "type": "boolean",
+                        "description": "True to put it away, which is what happens if you leave this out; false to bring it back"
+                    }
+                },
+                "required": ["doc"]
+            }
+        },
+        {
             "name": "file_doc",
             "title": "Put a document in a folder",
             "description": "Move a document into a folder, or out of every folder by leaving `folder` out. Nothing is deleted and no text changes.",
@@ -2073,7 +2456,7 @@ fn tools() -> Value {
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
-                    "doc": { "type": "string", "description": "The document's name" },
+                    "doc": { "type": "string", "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title" },
                     "folder": {
                         "type": "string",
                         "description": "An existing folder, by name. Leave it out to take the document out of every folder"
@@ -2095,7 +2478,7 @@ fn tools() -> Value {
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
-                    "doc": { "type": "string", "description": "The document's name" },
+                    "doc": { "type": "string", "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title" },
                     "page_of": {
                         "type": "string",
                         "description": "The document it becomes a page of, by name. Leave it out \
@@ -2141,7 +2524,7 @@ fn tools() -> Value {
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
-                    "doc": { "type": "string", "description": "The document's name" }
+                    "doc": { "type": "string", "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title" }
                 },
                 "required": ["doc"]
             }

@@ -101,7 +101,7 @@ fn signed_as(kind: &str, head: &[u8]) -> bool {
 }
 
 /// Secrets do not announce themselves by extension. These are the shapes they do carry.
-fn holds_a_secret(head: &[u8]) -> bool {
+pub fn holds_a_secret(head: &[u8]) -> bool {
     if head.starts_with(&[0x30, 0x82]) {
         return true;
     }
@@ -146,6 +146,24 @@ fn read_head(at: &std::path::Path) -> std::io::Result<Vec<u8>> {
     let read = std::fs::File::open(at)?.read(&mut head)?;
     head.truncate(read);
     Ok(head)
+}
+
+pub fn may_reach(at: &std::path::Path, paths: &Paths) -> Result<std::path::PathBuf> {
+    let refused = || crate::Error::OutsideTheStore(at.display().to_string());
+    let found = at.canonicalize().map_err(|_| refused())?;
+
+    let mine = [paths.data(), paths.config(), paths.cache()];
+    if mine
+        .iter()
+        .filter_map(|one| one.canonicalize().ok())
+        .any(|one| found.starts_with(one))
+    {
+        return Err(refused());
+    }
+    if !reachable().iter().any(|root| found.starts_with(root)) {
+        return Err(refused());
+    }
+    Ok(found)
 }
 
 pub fn reachable() -> Vec<std::path::PathBuf> {

@@ -448,3 +448,297 @@ lo que dije",
 lo que dije"
     );
 }
+
+#[test]
+fn rewriting_a_document_leaves_none_of_its_pages_with_nothing_pointing_at_it() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\nlo que hay", None);
+    let page = served.wrote("# Clase uno", Some(&book));
+    let print =
+        served.call("read_doc", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+            ["print"]
+            .as_str()
+            .unwrap()
+            .to_string();
+
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": &book, "print": print, "body": "# Curso\n\notra cosa" }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(served.pages_of(&book), vec![page.clone()]);
+    let body = served.body_of(&book);
+    assert!(
+        body.contains(&format!("tisty:doc/{page}")),
+        "the page was left with nothing pointing at it: {body}"
+    );
+    assert!(body.contains("otra cosa"), "what was sent is still there");
+}
+
+#[test]
+fn a_body_that_names_its_pages_itself_is_written_exactly_as_it_was_sent() {
+    let served = Served::new();
+    let book = served.wrote("# Curso", None);
+    let page = served.wrote("# Clase uno", Some(&book));
+    let print =
+        served.call("read_doc", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+            ["print"]
+            .as_str()
+            .unwrap()
+            .to_string();
+    let mine = format!("# Curso\n\n![Clase uno](tisty:doc/{page})\n\nal final");
+
+    served.call(
+        "write_doc",
+        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+    );
+
+    assert_eq!(served.body_of(&book).trim_end(), mine);
+}
+
+#[test]
+fn a_document_put_away_by_an_agent_comes_back_the_same_way() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\nlo que hay", None);
+    let page = served.wrote("# Clase uno", Some(&book));
+
+    let said = served.call("archive_doc", serde_json::json!({ "doc": &book }));
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+
+    let listed = served.call("docs", serde_json::json!({ "scope": "open" }));
+    let open = serde_json::to_string(&listed).unwrap();
+    assert!(!open.contains(&book), "it is still listed as open: {open}");
+    assert!(!open.contains(&page), "its page stayed out: {open}");
+
+    let back = served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": false }),
+    );
+    assert_ne!(back["result"]["isError"].as_bool(), Some(true), "{back}");
+    let listed = served.call("docs", serde_json::json!({ "scope": "open" }));
+    assert!(serde_json::to_string(&listed).unwrap().contains(&book));
+    let body = served.body_of(&book);
+    assert!(body.starts_with("# Curso"), "{body}");
+    assert!(body.contains("lo que hay"), "{body}");
+    assert!(body.contains(&format!("tisty:doc/{page}")), "{body}");
+}
+
+#[test]
+fn a_page_is_not_put_away_on_its_own() {
+    let served = Served::new();
+    let book = served.wrote("# Curso", None);
+    let page = served.wrote("# Clase uno", Some(&book));
+
+    let why = served.refused("archive_doc", serde_json::json!({ "doc": &page }));
+
+    assert!(why.contains("page of"), "{why}");
+}
+
+fn on_disk(named: &str, body: &str) -> (tempfile::TempDir, std::path::PathBuf) {
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    let at = dir.path().join(named);
+    std::fs::write(&at, body).unwrap();
+    (dir, at)
+}
+
+#[test]
+fn a_file_from_another_app_comes_in_tidied_and_says_what_changed() {
+    let served = Served::new();
+    let (_dir, at) = on_disk(
+        "acta.md",
+        "---\ntitle: Acta\n---\n\n# Acta\n\nUn <b>fuerte</b> y <!-- oculto --> y &amp; final.\n",
+    );
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(body.contains("**fuerte**"), "{body}");
+    assert!(!body.contains("<b>"), "{body}");
+    assert!(!body.contains("oculto"), "{body}");
+    assert!(body.contains("& final"), "{body}");
+    let changed = said["result"]["structuredContent"]["changed"].to_string();
+    assert!(changed.contains("front matter"), "{changed}");
+    assert!(changed.contains("HTML comments"), "{changed}");
+    assert_eq!(
+        std::fs::read_to_string(&at).unwrap().lines().next(),
+        Some("---"),
+        "the file on disk is not touched"
+    );
+}
+
+#[test]
+fn a_file_with_no_title_of_its_own_is_named_after_itself() {
+    let served = Served::new();
+    let (_dir, at) = on_disk("Notas de la reunion.md", "lo que se dijo\n");
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    assert!(
+        served.body_of(doc).starts_with("# Notas de la reunion"),
+        "{}",
+        served.body_of(doc)
+    );
+}
+
+#[test]
+fn nothing_that_is_not_markdown_comes_in_this_way() {
+    let served = Served::new();
+    let (_dir, at) = on_disk("clave.txt", "no soy markdown");
+
+    let why = served.refused(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert!(why.contains("not markdown"), "{why}");
+}
+
+#[test]
+fn a_file_outside_the_places_an_assistant_may_reach_stays_where_it_is() {
+    let served = Served::new();
+    let at = served.data().join("docs");
+    std::fs::create_dir_all(&at).unwrap();
+    let at = at.join("mio.md");
+    std::fs::write(&at, "# Mio").unwrap();
+
+    let why = served.refused(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert!(why.contains("may take files from"), "{why}");
+}
+
+#[test]
+fn a_document_goes_out_to_a_folder_and_nothing_here_changes() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\nlo que hay", None);
+    served.wrote("# Clase uno", Some(&book));
+    let out = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+
+    let said = served.call(
+        "export_doc",
+        serde_json::json!({ "doc": &book, "into": out.path().to_str().unwrap() }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let mut found = Vec::new();
+    let mut walk = vec![out.path().to_path_buf()];
+    while let Some(at) = walk.pop() {
+        for one in std::fs::read_dir(&at).unwrap().flatten() {
+            let path = one.path();
+            if path.is_dir() {
+                walk.push(path);
+            } else {
+                found.push(path.file_name().unwrap().to_string_lossy().to_string());
+            }
+        }
+    }
+    assert_eq!(
+        found.iter().filter(|one| one.ends_with(".md")).count(),
+        2,
+        "the cover and its page: {found:?}"
+    );
+    assert!(served.body_of(&book).contains("lo que hay"));
+}
+
+#[test]
+fn a_key_renamed_as_markdown_is_still_a_key() {
+    let served = Served::new();
+    let (_dir, at) = on_disk(
+        "inocente.md",
+        "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n-----END RSA PRIVATE KEY-----\n",
+    );
+
+    let why = served.refused(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert!(why.contains("key or a password"), "{why}");
+}
+
+#[test]
+fn a_file_past_what_tisty_opens_is_turned_away_before_it_is_read() {
+    let served = Served::new();
+    let (_dir, at) = on_disk("enorme.md", &"a".repeat(600 * 1024));
+
+    let why = served.refused(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert!(why.contains("past the"), "{why}");
+}
+
+#[test]
+fn control_characters_do_not_walk_in_through_a_file() {
+    let served = Served::new();
+    let (_dir, at) = on_disk("escapes.md", "# Uno\n\nantes \u{1b}[31m rojo\n");
+
+    let why = served.refused(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert!(why.contains("control characters"), "{why}");
+}
+
+#[test]
+fn the_print_a_write_hands_back_is_the_one_the_document_reads_at() {
+    let served = Served::new();
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Sin salto\n\nsin newline final" }),
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let told = said["result"]["structuredContent"]["print"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let back = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    assert_eq!(
+        back["result"]["structuredContent"]["print"].as_str(),
+        Some(told.as_str()),
+        "a print that does not match disk turns the next write into a false conflict"
+    );
+
+    let again = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": doc, "print": told, "body": "# Sin salto\n\notra cosa" }),
+    );
+    assert_ne!(again["result"]["isError"].as_bool(), Some(true), "{again}");
+}
+
+#[test]
+fn archived_takes_true_or_false_and_says_so_when_it_is_neither() {
+    let served = Served::new();
+    let doc = served.wrote("# Actas", None);
+
+    let why = served.refused(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": "false" }),
+    );
+
+    assert!(why.contains("true or false"), "{why}");
+    let listed = served.call("docs", serde_json::json!({ "scope": "open" }));
+    assert!(
+        serde_json::to_string(&listed).unwrap().contains(&doc),
+        "it must not have been put away on a word it did not understand"
+    );
+}
