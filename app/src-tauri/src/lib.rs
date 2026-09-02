@@ -4060,6 +4060,9 @@ fn weave_paper(
     print: String,
 ) -> Answer<()> {
     let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
         return Err(Refusal::of("noBase"));
     };
@@ -4096,6 +4099,9 @@ fn settle_paper(
     marked: Option<String>,
 ) -> Answer<Option<String>> {
     let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
         return Err(Refusal::of("noRemote"));
     };

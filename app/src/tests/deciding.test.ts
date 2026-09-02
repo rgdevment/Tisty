@@ -9,6 +9,7 @@ const ipc = vi.hoisted(() => ({
 const torn = vi.hoisted(() => ({
   said: { rifts: [] as Rift[], print: "" },
   refuses: false,
+  locked: false,
 }));
 
 const asked = vi.hoisted(() => ({
@@ -30,6 +31,7 @@ vi.mock("@tauri-apps/api/core", () => ({
             title: "Kit de transmisión",
             folder: null,
             archived: false,
+            locked: torn.locked,
           },
         ],
       });
@@ -52,6 +54,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 beforeEach(() => {
   torn.said = { rifts: [], print: "" };
   torn.refuses = false;
+  torn.locked = false;
   decidesByBlock(null);
   ipc.calls = [];
   asked.held = [];
@@ -140,5 +143,26 @@ describe("deciding what to do with a document written on both sides", () => {
     await panel;
 
     expect(settled()).toHaveLength(1);
+  });
+});
+
+describe("a document the person locked, at odds with another machine", () => {
+  it("asks nothing and writes nothing, and hands it back to be told about", async () => {
+    torn.locked = true;
+    torn.said = { rifts: [{ was: ["antes"], mine: ["lo mio"], theirs: ["lo suyo"] }], print: "h" };
+
+    const shut = await decideAll(["dev_a-0001"]);
+
+    expect(shut).toEqual(["dev_a-0001"]);
+    expect(asked.said).toEqual([]);
+    expect(settled()).toEqual([]);
+    expect(woven()).toEqual([]);
+  });
+
+  it("still settles the ones that are not locked", async () => {
+    const shut = await decideAll(["dev_a-0002"]);
+
+    expect(shut).toEqual([]);
+    expect(settled().length).toBe(1);
   });
 });
