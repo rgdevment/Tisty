@@ -7,6 +7,7 @@ const WHY = [
   "frailHtml",
   "frailComments",
   "frailEntities",
+  "frailMaths",
   "frailNotes",
   "frailRefs",
   "frailFence",
@@ -240,6 +241,18 @@ const linked = (line: string, next: string): boolean => {
   return told.trim() !== "" || next.trim() !== "";
 };
 
+const dollared = (line: string): boolean => {
+  const said = line.trim();
+  if (said.startsWith("$$")) return true;
+  let at = 0;
+  for (;;) {
+    const found = said.indexOf("$$", at);
+    if (found < 0) return false;
+    if (found === 0 || said[found - 1] !== "\\") return true;
+    at = found + 2;
+  }
+};
+
 export const frail = (whole: string): string[] => {
   const text = whole.replace(/^\ufeff+/, "");
   const said = fenceless(text);
@@ -256,6 +269,7 @@ export const frail = (whole: string): string[] => {
     const why = markup(plain);
     if (why) seen.add(why);
     const one = plain.trim();
+    if (dollared(one)) seen.add("frailMaths");
     if (noted(one)) seen.add("frailNotes");
     if (linked(one, lines[at + 1] ?? "")) seen.add("frailRefs");
   }

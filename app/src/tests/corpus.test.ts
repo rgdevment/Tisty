@@ -13,6 +13,7 @@ const SAID: Record<string, string> = {
   html: "frailHtml",
   comments: "frailComments",
   entities: "frailEntities",
+  maths: "frailMaths",
   notes: "frailNotes",
   refs: "frailRefs",
   fence: "frailFence",
