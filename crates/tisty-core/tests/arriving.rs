@@ -143,28 +143,31 @@ fn everything_it_hands_back_is_something_tisty_will_take() {
 
 #[test]
 fn a_fence_written_in_from_the_margin_comes_back_to_it() {
-    let out = tidied(
-        "Antes
-
-  ```json
-  {\"a\": 1}
-```
-
-Despues
-",
+    let said = "Antes\n\n  ```sh\ngit cherry-pick <uno> <dos>\n```\n\nDespues\n";
+    assert!(
+        survives(said).is_err(),
+        "a fence Tisty cannot see is why this matters"
     );
+
+    let out = tidied(said);
 
     assert!(survives(&out.body).is_ok(), "{:?}", out.body);
+    assert!(out.body.contains("\n```sh\n"), "{:?}", out.body);
     assert!(
-        out.body.contains(
-            "
-```json
-"
-        ),
-        "{:?}",
-        out.body
+        out.body.contains("<uno> <dos>"),
+        "what it holds is untouched"
     );
     assert!(out.changed.contains(&"a fence written in from the margin"));
+}
+
+#[test]
+fn a_fence_written_in_that_tisty_already_takes_is_left_where_it_was() {
+    let said = "Antes\n\n  ```json\n  {\"a\": 1}\n```\n\nDespues\n";
+
+    let out = tidied(said);
+
+    assert_eq!(out.body, said, "nothing to fix is nothing to touch");
+    assert!(out.changed.is_empty());
 }
 
 #[test]
@@ -231,19 +234,211 @@ fn a_page_named_the_old_way_is_still_found() {
     assert_eq!(
         tisty_core::refs::papers(one),
         vec!["ab12-0002".to_string()],
-        "the shape written from now on"
+        "a card written by hand, which the window reads too"
     );
     assert_eq!(
         tisty_core::refs::papers(old),
         vec!["ab12-0002".to_string()],
-        "and the one every document already on disk carries"
+        "and the shape Tisty writes, which the window draws as a card"
     );
 }
 
 #[test]
-fn a_card_is_written_as_a_link_because_a_document_is_not_a_picture() {
-    assert_eq!(
-        tisty_core::refs::card("ab12-0002", "Marzo"),
-        "[Marzo](tisty:doc/ab12-0002)"
+fn what_is_written_between_backticks_is_not_tidied() {
+    for said in [
+        "Escribe `images/<id>.png` en la plantilla.
+
+<div>fuera</div>
+",
+        "Usa `<b>bold</b>` como ejemplo.
+
+<div>fuera</div>
+",
+        "Pon `<!-- nota -->` ahi.
+
+<div>fuera</div>
+",
+        "El literal `a &amp; b` va tal cual.
+
+<div>fuera</div>
+",
+    ] {
+        let out = tidied(said);
+        let kept = said.split('`').nth(1).unwrap();
+        assert!(
+            out.body.contains(kept),
+            "{said:?} lost {kept:?}: {:?}",
+            out.body
+        );
+        assert!(survives(&out.body).is_ok());
+    }
+}
+
+#[test]
+fn a_reference_named_inside_a_run_of_code_is_left_as_it_reads() {
+    let out = tidied(
+        "Ejemplo: `[texto][uno]` y de verdad [texto][uno].
+
+[uno]: https://a.example
+
+<div>x</div>
+",
     );
+
+    assert!(out.body.contains("`[texto][uno]`"), "{:?}", out.body);
+    assert!(
+        out.body.contains("[texto](https://a.example)"),
+        "{:?}",
+        out.body
+    );
+}
+
+#[test]
+fn the_blank_lines_a_code_block_holds_are_its_own() {
+    let said = "<div>x</div>
+
+```python
+def a():
+    pass
+
+
+def b():
+    pass
+```
+";
+
+    let out = tidied(said);
+
+    assert!(
+        out.body.contains(
+            "pass
+
+
+def b()"
+        ),
+        "{:?}",
+        out.body
+    );
+}
+
+#[test]
+fn a_document_tisty_already_takes_comes_back_byte_for_byte() {
+    for said in [
+        "# Sin salto final",
+        "# Uno
+
+
+
+muchas lineas en blanco
+",
+        "- uno
+- dos",
+    ] {
+        assert!(survives(said).is_ok(), "{said:?} is the premise");
+        let out = tidied(said);
+        assert_eq!(out.body, said, "nothing to fix is nothing to touch");
+        assert!(out.changed.is_empty());
+    }
+}
+
+#[test]
+fn maths_between_dollars_inside_a_line_becomes_something_that_survives() {
+    let out = tidied(
+        "Ver esta formula $$x=1$$ en el medio.
+",
+    );
+
+    assert!(survives(&out.body).is_ok(), "{:?}", out.body);
+    assert!(
+        out.body.contains("x=1"),
+        "the maths is still there: {:?}",
+        out.body
+    );
+    assert!(out.changed.contains(&"maths written between dollars"));
+}
+
+#[test]
+fn maths_left_open_does_not_swallow_the_paragraphs_after_it() {
+    let out = tidied(
+        "Antes
+
+$$
+x = 1
+
+Despues sin cerrar
+",
+    );
+
+    assert!(survives(&out.body).is_ok(), "{:?}", out.body);
+    let after = out.body.split("```").last().unwrap_or_default();
+    assert!(
+        after.contains("Despues sin cerrar"),
+        "the paragraph was eaten: {:?}",
+        out.body
+    );
+}
+
+#[test]
+fn a_rule_that_merely_looks_like_front_matter_keeps_what_is_under_it() {
+    let said = "---
+
+Un parrafo de verdad.
+
+---
+
+Otro despues del corte.
+
+<div>x</div>
+";
+
+    let out = tidied(said);
+
+    assert!(out.body.contains("Un parrafo de verdad"), "{:?}", out.body);
+    assert!(!out.changed.contains(&"front matter"));
+}
+
+#[test]
+fn a_comment_that_spans_lines_is_taken_out_whole() {
+    let out = tidied(
+        "Antes
+
+<!--
+oculto
+-->
+
+Despues
+",
+    );
+
+    assert!(!out.body.contains("oculto"), "{:?}", out.body);
+    assert!(!out.body.contains("-->"), "{:?}", out.body);
+    assert!(survives(&out.body).is_ok());
+}
+
+#[test]
+fn entities_written_twice_over_are_resolved_all_the_way() {
+    let out = tidied(
+        "esto es &amp;amp; y listo
+",
+    );
+
+    assert_eq!(
+        out.body,
+        "esto es & y listo
+"
+    );
+    assert!(survives(&out.body).is_ok());
+    assert_eq!(tidied(&out.body).body, out.body, "and it settles");
+}
+
+#[test]
+fn a_type_with_angle_brackets_is_not_a_tag() {
+    let out = tidied(
+        "Vec<String> es un tipo
+
+<div>x</div>
+",
+    );
+
+    assert!(out.body.contains("Vec<String>"), "{:?}", out.body);
 }

@@ -142,7 +142,7 @@ fn a_page_written_by_an_assistant_is_named_at_the_end_of_its_document() {
 
     let body = served.body_of(&book);
     assert!(
-        body.contains(&format!("[Marzo](tisty:doc/{page})")),
+        body.contains(&format!("![Marzo](tisty:doc/{page})")),
         "the document has to say where the page goes: {body}"
     );
     assert!(
@@ -178,8 +178,8 @@ fn moving_the_line_that_names_a_page_moves_the_page() {
         "edit_doc",
         serde_json::json!({
             "doc": book,
-            "old": format!("[Marzo](tisty:doc/{one})\n\n[Abril](tisty:doc/{two})"),
-            "new": format!("[Abril](tisty:doc/{two})\n\n[Marzo](tisty:doc/{one})"),
+            "old": format!("![Marzo](tisty:doc/{one})\n\n![Abril](tisty:doc/{two})"),
+            "new": format!("![Abril](tisty:doc/{two})\n\n![Marzo](tisty:doc/{one})"),
         }),
     );
 
@@ -226,7 +226,7 @@ fn naming_a_hung_page_in_the_text_with_edit_doc_moves_it_from_the_end_to_where_i
         vec![one.clone(), two.clone(), loose.clone()]
     );
 
-    let old = format!("[Marzo](tisty:doc/{one})\n\n");
+    let old = format!("![Marzo](tisty:doc/{one})\n\n");
     let new = format!("![Enero](tisty:doc/{loose})\n\n{old}");
     let said = served.call(
         "edit_doc",
@@ -277,8 +277,8 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
     let there = Served::new();
     copied(&here.data().join("docs"), &there.data().join("docs"));
     copied(&here.data().join("store"), &there.data().join("store"));
-    let old = format!("[Marzo](tisty:doc/{one})\n\n[Abril](tisty:doc/{two})");
-    let new = format!("[Abril](tisty:doc/{two})\n\n[Marzo](tisty:doc/{one})");
+    let old = format!("![Marzo](tisty:doc/{one})\n\n![Abril](tisty:doc/{two})");
+    let new = format!("![Abril](tisty:doc/{two})\n\n![Marzo](tisty:doc/{one})");
     let said = there.call(
         "edit_doc",
         serde_json::json!({ "doc": book, "old": old, "new": new }),
@@ -654,4 +654,91 @@ fn a_document_goes_out_to_a_folder_and_nothing_here_changes() {
         "the cover and its page: {found:?}"
     );
     assert!(served.body_of(&book).contains("lo que hay"));
+}
+
+#[test]
+fn a_key_renamed_as_markdown_is_still_a_key() {
+    let served = Served::new();
+    let (_dir, at) = on_disk(
+        "inocente.md",
+        "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n-----END RSA PRIVATE KEY-----\n",
+    );
+
+    let why = served.refused(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert!(why.contains("key or a password"), "{why}");
+}
+
+#[test]
+fn a_file_past_what_tisty_opens_is_turned_away_before_it_is_read() {
+    let served = Served::new();
+    let (_dir, at) = on_disk("enorme.md", &"a".repeat(600 * 1024));
+
+    let why = served.refused(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert!(why.contains("past the"), "{why}");
+}
+
+#[test]
+fn control_characters_do_not_walk_in_through_a_file() {
+    let served = Served::new();
+    let (_dir, at) = on_disk("escapes.md", "# Uno\n\nantes \u{1b}[31m rojo\n");
+
+    let why = served.refused(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert!(why.contains("control characters"), "{why}");
+}
+
+#[test]
+fn the_print_a_write_hands_back_is_the_one_the_document_reads_at() {
+    let served = Served::new();
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Sin salto\n\nsin newline final" }),
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let told = said["result"]["structuredContent"]["print"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let back = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    assert_eq!(
+        back["result"]["structuredContent"]["print"].as_str(),
+        Some(told.as_str()),
+        "a print that does not match disk turns the next write into a false conflict"
+    );
+
+    let again = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": doc, "print": told, "body": "# Sin salto\n\notra cosa" }),
+    );
+    assert_ne!(again["result"]["isError"].as_bool(), Some(true), "{again}");
+}
+
+#[test]
+fn archived_takes_true_or_false_and_says_so_when_it_is_neither() {
+    let served = Served::new();
+    let doc = served.wrote("# Actas", None);
+
+    let why = served.refused(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": "false" }),
+    );
+
+    assert!(why.contains("true or false"), "{why}");
+    let listed = served.call("docs", serde_json::json!({ "scope": "open" }));
+    assert!(
+        serde_json::to_string(&listed).unwrap().contains(&doc),
+        "it must not have been put away on a word it did not understand"
+    );
 }

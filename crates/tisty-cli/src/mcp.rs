@@ -66,7 +66,7 @@ A document can be locked, and a locked one is refused every write: not `write_do
 
 A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
-A page sits where its document names it. Writing one adds the line `[Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `edit_doc` that line into the place it belongs — moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
+A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `edit_doc` that line into the place it belongs — moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
 `page_doc` changes no text, so a document hung as a page that way is loose: it belongs to the document and goes everywhere with it, but sits where it landed until the document names it. A body says nothing about the pages it does not name, and those are left where they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
@@ -90,7 +90,7 @@ than trying a shorter passage.
 
 `attach` copies a file from this machine into Tisty and keeps it in one of two places. Named a \
 `task`, it lands on that task's journal with a line saying where it came from; named a `doc`, it \
-is added at the end of that document, written as a picture when it is one and as a link when it is not — a document nobody can draw is a broken picture in every reader. Name one or the \
+is added at the end of that document, and shows there as a picture or a card. Name one or the \
 other, never both. A document holds a far larger file than a task does — a video, a recording, a \
 deck of slides belongs in a document, and the refusal tells you the size that place takes when \
 one is too big. The file is copied into Tisty, not pointed at, so a copy stays behind when the \
@@ -1028,17 +1028,17 @@ fn over_again(
 
     let made = tisty_core::docs::rewrite(&paths.docs(), which, body, &print).map_err(hitch)?;
     match made {
-        tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
-            "{which:?} does not read as it did when you took that print — the person, or another agent, wrote in it since. Nothing was changed, and nothing of theirs was lost. What it says now is here, with the print that goes with it, so you can work from it without reading it again:
+        tisty_core::docs::Rewrite::Moved => Err(Refused::Tool({
+            let now = tisty_core::docs::read(&paths.docs(), which).unwrap_or_default();
+            format!(
+                "{which:?} does not read as it did when you took that print — the person, or another agent, wrote in it since. Nothing was changed, and nothing of theirs was lost. What it says now is here, with the print that goes with it, so you can work from it without reading it again:
 
-{}
+{now}
 
 print: {}",
-            tisty_core::docs::read(&paths.docs(), which).unwrap_or_default(),
-            tisty_core::docs::read(&paths.docs(), which)
-                .map(|one| tisty_core::attach::printed(one.as_bytes()))
-                .unwrap_or_default()
-        ))),
+                tisty_core::attach::printed(now.as_bytes())
+            )
+        })),
         tisty_core::docs::Rewrite::Made { was, whole } => {
             let saved = tisty_core::docs::kept_before(paths.data(), which, &was).is_ok();
             let settled = retold(state, store, which, &whole).is_ok();
@@ -1053,7 +1053,7 @@ print: {}",
                     match kept_back.is_empty() {
                         true => String::new(),
                         false => format!(
-                            " The body you sent named none of {}, which are pages of it, so their                              lines were put back at the end rather than left with nothing pointing                              at them. Move them with `edit_doc` if they belong somewhere else.",
+                            " The body you sent named none of {}, which are pages of it, so their lines were put back at the end rather than left with nothing pointing at them. Move them with `edit_doc` if they belong somewhere else.",
                             kept_back.join(", ")
                         ),
                     },
@@ -1205,7 +1205,9 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "title": made.title,
             "folder": where_at,
             "page_of": under,
-            "print": tisty_core::attach::printed(body.as_bytes()),
+            "print": tisty_core::docs::read(&paths.docs(), &made.id)
+                .map(|one| tisty_core::attach::printed(one.as_bytes()))
+                .unwrap_or_default(),
         }),
     ))
 }
@@ -1532,7 +1534,7 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     })?;
     if !at.is_file() {
         return Err(Refused::Tool(format!(
-            "{said:?} is not a file. `import_doc` takes one markdown file at a time; call it              once per file when you are bringing a whole export across."
+            "{said:?} is not a file. `import_doc` takes one markdown file at a time; call it once per file when you are bringing a whole export across."
         )));
     }
     if !at
@@ -1540,11 +1542,23 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .is_some_and(|one| one.eq_ignore_ascii_case("md") || one.eq_ignore_ascii_case("markdown"))
     {
         return Err(Refused::Tool(format!(
-            "{said:?} is not markdown. A document is markdown; anything else goes in with              `attach`, which keeps it beside a document or a task."
+            "{said:?} is not markdown. A document is markdown; anything else goes in with `attach`, which keeps it beside a document or a task."
+        )));
+    }
+    let big = std::fs::metadata(&at).map(|one| one.len()).unwrap_or(0);
+    if big > tisty_core::docs::BODY_AT_MOST {
+        return Err(Refused::Tool(format!(
+            "{said:?} is {big} bytes, past the {} Tisty can open. Split it before bringing it in.",
+            tisty_core::docs::BODY_AT_MOST
         )));
     }
     let raw = std::fs::read(&at)
         .map_err(|why| Refused::Tool(format!("{said:?} could not be read: {why}.")))?;
+    if tisty_core::agent::holds_a_secret(&raw[..raw.len().min(4096)]) {
+        return Err(Refused::Tool(format!(
+            "{said:?} holds a key or a password, whatever it is named, so it is not a document an assistant brings in."
+        )));
+    }
     let raw = String::from_utf8(raw).map_err(|_| {
         Refused::Tool(format!(
             "{said:?} is not text this can read. Tisty keeps documents as UTF-8."
@@ -1554,7 +1568,7 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let made = tisty_core::arriving::tidied(&raw);
     tisty_core::docs::survives(&made.body).map_err(|eats| {
         Refused::Tool(format!(
-            "{said:?} still holds {eats} after being tidied, so it would be destroyed the first              time the person opens it. Nothing was written."
+            "{said:?} still holds {eats} after being tidied, so it would be destroyed the first time the person opens it. Nothing was written."
         ))
     })?;
 
@@ -1588,6 +1602,7 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         one.remove("title");
         one.insert("body".into(), json!(body));
     }
+    short_and_plain(&asked_again)?;
     let written = write_doc(paths, &asked_again)?;
 
     let changed = made.changed.join(", ");
@@ -1598,7 +1613,7 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             match made.changed.is_empty() {
                 true => " Nothing had to be changed on the way in.".to_string(),
                 false => format!(
-                    " On the way in it was tidied: {changed}. What the file said is still on                      disk, untouched."
+                    " On the way in it was tidied: {changed}. What the file said is still on disk, untouched."
                 ),
             }
         ),
@@ -1688,10 +1703,15 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "putting a document away needs its `doc` name.".into(),
         ));
     };
-    let away = args
-        .get("archived")
-        .and_then(Value::as_bool)
-        .unwrap_or(true);
+    let away = match args.get("archived") {
+        None | Some(Value::Null) => true,
+        Some(Value::Bool(one)) => *one,
+        Some(other) => {
+            return Err(Refused::Tool(format!(
+                "`archived` is true or false, and {other} is neither. Leave it out to put the document away."
+            )));
+        }
+    };
     let (state, mut store) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(format!(
@@ -1700,7 +1720,7 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
         return Err(Refused::Tool(format!(
-            "{which} is a page of {up}, and a page is put away with the document that holds it.              Name {up} instead, or take the page out first with `page_doc`."
+            "{which} is a page of {up}, and a page is put away with the document that holds it. Name {up} instead, or take the page out first with `page_doc`."
         )));
     }
     if kept.archived == away {
@@ -1729,7 +1749,7 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{}{}",
             match away {
                 true => format!(
-                    "Put {which} away. It is not gone: `docs` and `find` still reach it with                      `scope`, and this same call with `archived` false brings it back."
+                    "Put {which} away. It is not gone: `docs` and `find` still reach it with `scope`, and this same call with `archived` false brings it back."
                 ),
                 false => format!("Brought {which} back out of the archive."),
             },
@@ -2245,7 +2265,7 @@ fn tools() -> Value {
         {
             "name": "attach",
             "title": "Keep a file with a task or in a document",
-            "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a link. One or the other, never both. The file is copied, not linked. A document takes a far larger file than a task does, so a video or a slide deck belongs in one. Only attach what you were asked to.",
+            "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a card. One or the other, never both. The file is copied, not linked. A document takes a far larger file than a task does, so a video or a slide deck belongs in one. Only attach what you were asked to.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -2369,7 +2389,7 @@ fn tools() -> Value {
         {
             "name": "import_doc",
             "title": "Bring a markdown file on this machine in as a document",
-            "description": "Read one markdown file from disk and keep it here as a document,                             tidying on the way in what Tisty's editor could not hold: front                             matter, HTML that markdown can say and HTML it cannot, comments,                             entities, links written by reference, maths between dollars, and                             fences written in from the margin. What it changed comes back with                             the answer, and the file on disk is left untouched. Takes `folder`                             and `page_of` like `write_doc`. One file per call — walk an export                             folder yourself and call it for each, so the person sees what                             happened to each one.",
+            "description": "Read one markdown file from disk and keep it here as a document, tidying on the way in what Tisty's editor could not hold: front matter, HTML that markdown can say and HTML it cannot, comments, entities, links written by reference, maths between dollars, and fences written in from the margin. What it changed comes back with the answer, and the file on disk is left untouched. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -2397,7 +2417,7 @@ fn tools() -> Value {
         {
             "name": "export_doc",
             "title": "Take a document out to a folder on this machine",
-            "description": "Write a document out as markdown files in a folder the person can                             reach, with its pages numbered in reading order and its attachments                             beside them. Nothing here changes and nothing is deleted: an export                             is a copy. Use it to hand work to something outside Tisty.",
+            "description": "Write a document out as markdown files in a folder the person can reach, with its pages numbered in reading order and its attachments beside them. Nothing here changes and nothing is deleted: an export is a copy. Use it to hand work to something outside Tisty.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -2414,7 +2434,7 @@ fn tools() -> Value {
         {
             "name": "archive_doc",
             "title": "Put a document away, or bring it back",
-            "description": "Put a document away when it is finished or was written by mistake,                             and bring it back with `archived` false. Nothing is deleted and no                             text changes: `docs` and `find` still reach it by asking for the                             `archive` scope. Its pages go away and come back with it. Putting a                             document away is not the same as finishing a task — a task is the                             person's to close, and there is no tool here for that.",
+            "description": "Put a document away when it is finished or was written by mistake, and bring it back with `archived` false. Nothing is deleted and no text changes: `docs` and `find` still reach it by asking for the `archive` scope. Its pages go away and come back with it. Putting a document away is not the same as finishing a task — a task is the person's to close, and there is no tool here for that.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,

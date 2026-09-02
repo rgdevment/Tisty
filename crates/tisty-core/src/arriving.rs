@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Tidied {
     pub body: String,
@@ -29,6 +27,13 @@ const ENTITIES: [(&str, &str); 8] = [
 ];
 
 pub fn tidied(body: &str) -> Tidied {
+    if crate::docs::survives(body).is_ok() {
+        return Tidied {
+            body: body.to_string(),
+            changed: Vec::new(),
+        };
+    }
+    let whole_again = body;
     let mut said: Vec<&'static str> = Vec::new();
     let mut note = |what: &'static str, changed: &mut Vec<&'static str>| {
         if !changed.contains(&what) {
@@ -40,6 +45,10 @@ pub fn tidied(body: &str) -> Tidied {
     let (body, cut) = unfronted(&body);
     if cut {
         note("front matter", &mut said);
+    }
+    let (body, less) = uncommented(&body);
+    if less {
+        note("HTML comments", &mut said);
     }
 
     let mut out: Vec<String> = Vec::new();
@@ -88,7 +97,21 @@ pub fn tidied(body: &str) -> Tidied {
 
     let mut whole = out.join("\n");
     for (name, at) in &refs {
-        whole = inlined(&whole, name, at);
+        whole = whole
+            .split_inclusive('\n')
+            .map(|line| {
+                let bare = line.trim_end_matches('\n');
+                let ends = &line[bare.len()..];
+                let said: String = spans(bare)
+                    .into_iter()
+                    .map(|(coded, part)| match coded {
+                        true => part.to_string(),
+                        false => inlined(part, name, at),
+                    })
+                    .collect();
+                format!("{said}{ends}")
+            })
+            .collect();
     }
 
     let mut walked = String::with_capacity(whole.len());
@@ -118,13 +141,79 @@ pub fn tidied(body: &str) -> Tidied {
         note("maths written between dollars", &mut said);
     }
 
-    Tidied {
-        body: spaced(&walked),
-        changed: said,
+    match said.is_empty() {
+        true => Tidied {
+            body: whole_again.to_string(),
+            changed: said,
+        },
+        false => Tidied {
+            body: spaced(&walked),
+            changed: said,
+        },
     }
 }
 
 fn plainer(
+    line: &str,
+    said: &mut Vec<&'static str>,
+    note: &mut impl FnMut(&'static str, &mut Vec<&'static str>),
+) -> String {
+    spans(line)
+        .into_iter()
+        .map(|(coded, part)| match coded {
+            true => part.to_string(),
+            false => bared(part, said, note),
+        })
+        .collect()
+}
+
+fn spans(line: &str) -> Vec<(bool, &str)> {
+    let bytes = line.as_bytes();
+    let mut out = Vec::new();
+    let mut from = 0;
+    let mut at = 0;
+    while at < bytes.len() {
+        if bytes[at] != b'`' {
+            at += 1;
+            continue;
+        }
+        let run = bytes[at..].iter().take_while(|one| **one == b'`').count();
+        let mut walk = at + run;
+        let shut = loop {
+            match line[walk..].find(&"`".repeat(run)) {
+                None => break None,
+                Some(found) => {
+                    let start = walk + found;
+                    let wide = bytes[start..]
+                        .iter()
+                        .take_while(|one| **one == b'`')
+                        .count();
+                    if wide == run {
+                        break Some(start + run);
+                    }
+                    walk = start + wide;
+                }
+            }
+        };
+        match shut {
+            None => at += run,
+            Some(ends) => {
+                if from < at {
+                    out.push((false, &line[from..at]));
+                }
+                out.push((true, &line[at..ends]));
+                from = ends;
+                at = ends;
+            }
+        }
+    }
+    if from < line.len() {
+        out.push((false, &line[from..]));
+    }
+    out
+}
+
+fn bared(
     line: &str,
     said: &mut Vec<&'static str>,
     note: &mut impl FnMut(&'static str, &mut Vec<&'static str>),
@@ -146,10 +235,16 @@ fn plainer(
         note("HTML comments", said);
     }
     if ENTITIES.iter().any(|(one, _)| out.contains(one)) {
-        for (one, plain) in ENTITIES {
-            out = out.replace(one, plain);
-        }
         note("HTML entities", said);
+        for _ in 0..8 {
+            let was = out.clone();
+            for (one, plain) in ENTITIES {
+                out = out.replace(one, plain);
+            }
+            if out == was {
+                break;
+            }
+        }
     }
     if tagged(&out) {
         out = tagless(&out);
@@ -236,24 +331,43 @@ fn languaged(line: &str, open: &str) -> (String, bool) {
 
 fn unfronted(body: &str) -> (String, bool) {
     let mut lines = body.lines();
-    if lines.next().map(str::trim_end) != Some("---") {
+    if lines.next().map(str::trim) != Some("---") {
         return (body.to_string(), false);
     }
+    let mut inside: Vec<&str> = Vec::new();
     let mut kept: Vec<&str> = Vec::new();
     let mut shut = false;
     for line in lines {
-        if !shut && matches!(line.trim_end(), "---" | "...") {
-            shut = true;
+        if !shut {
+            if line.trim().is_empty() {
+                return (body.to_string(), false);
+            }
+            if matches!(line.trim(), "---" | "...") {
+                shut = true;
+                continue;
+            }
+            inside.push(line);
             continue;
         }
-        if shut {
-            kept.push(line);
-        }
+        kept.push(line);
     }
-    match shut {
+    let keyed = inside
+        .iter()
+        .any(|one| keyword(one) && !one.starts_with(' ') && !one.starts_with('-'));
+    match shut && keyed {
         true => (kept.join("\n").trim_start().to_string(), true),
         false => (body.to_string(), false),
     }
+}
+
+fn keyword(line: &str) -> bool {
+    let Some((name, _)) = line.split_once(':') else {
+        return false;
+    };
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|one| one.is_alphanumeric() || matches!(one, '_' | '-' | '.'))
 }
 
 fn defined(line: &str) -> Option<(String, String)> {
@@ -285,7 +399,11 @@ fn inlined(body: &str, name: &str, at: &str) -> String {
             return out;
         };
         let said = &rest[found + 2..found + 2 + shut];
-        if said.to_lowercase() == name {
+        let inner = match said.is_empty() {
+            true => rest[..found].rsplit('[').next().unwrap_or_default(),
+            false => said,
+        };
+        if inner.to_lowercase() == name {
             out.push_str(&rest[..found + 1]);
             out.push_str(&format!("({at})"));
             rest = &rest[found + 3 + shut..];
@@ -343,9 +461,53 @@ fn opened(line: &str, tag: &str) -> Option<(usize, usize)> {
         if name.eq_ignore_ascii_case(tag) {
             return Some((found, found + 1 + shut + 1));
         }
-        at = found + 1;
+        at = match inner.rfind('<') {
+            Some(last) => found + 1 + last,
+            None => found + 1 + shut + 1,
+        };
     }
     None
+}
+
+fn coded_at(rest: &str, found: usize) -> bool {
+    let from = rest[..found].rfind('\n').map(|one| one + 1).unwrap_or(0);
+    let line = &rest[from..];
+    let ends = line.find('\n').unwrap_or(line.len());
+    let at = found - from;
+    let mut walk = 0;
+    for (coded, part) in spans(&line[..ends]) {
+        let wide = part.len();
+        if at >= walk && at < walk + wide {
+            return coded;
+        }
+        walk += wide;
+    }
+    false
+}
+
+fn uncommented(body: &str) -> (String, bool) {
+    if !body.contains("<!--") {
+        return (body.to_string(), false);
+    }
+    let mut out = String::with_capacity(body.len());
+    let mut rest = body;
+    let mut cut = false;
+    while let Some(found) = rest.find("<!--") {
+        if coded_at(rest, found) {
+            let step = found + 4;
+            out.push_str(&rest[..step]);
+            rest = &rest[step..];
+            continue;
+        }
+        out.push_str(&rest[..found]);
+        cut = true;
+        match rest[found..].find("-->") {
+            Some(ends) => rest = &rest[found + ends + 3..],
+            None => return (out, true),
+        }
+    }
+    out.push_str(rest);
+    (out, cut)
 }
 
 fn commentless(line: &str) -> String {
@@ -381,9 +543,24 @@ fn tagless(line: &str) -> String {
             .split(|one: char| one.is_whitespace() || one == '/' || one == '>')
             .next()
             .unwrap_or_default();
-        let letters = !name.is_empty() && name.chars().all(|one| one.is_ascii_alphanumeric());
-        if letters && !crate::docs::kept(inner) {
+        let letters = !name.is_empty()
+            && name
+                .chars()
+                .next()
+                .is_some_and(|one| one.is_ascii_alphabetic())
+            && name.chars().all(|one| one.is_ascii_alphanumeric())
+            && crate::docs::markup(&format!("<{inner}>")).is_some();
+        let shut_too = line.contains(&format!("</{name}>"));
+        if letters && !crate::docs::kept(inner) && shut_too {
             out.push_str(&rest[..found]);
+            rest = &rest[found + 1 + shut + 1..];
+        } else if letters && !crate::docs::kept(inner) {
+            let word = rest[..found]
+                .rfind(char::is_whitespace)
+                .map(|one| one + 1)
+                .unwrap_or(0);
+            out.push_str(&rest[..word]);
+            out.push_str(&format!("`{}`", &rest[word..found + 1 + shut + 1]));
             rest = &rest[found + 1 + shut + 1..];
         } else {
             out.push_str(&rest[..found + 1 + shut + 1]);
@@ -421,6 +598,14 @@ fn mathed(body: &str) -> (String, bool) {
         let said = line.trim();
         match &mut held {
             Some(inner) => {
+                if said.is_empty() {
+                    out.push("```math".into());
+                    out.append(inner);
+                    out.push("```".into());
+                    out.push(String::new());
+                    held = None;
+                    continue;
+                }
                 if said.ends_with("$$") {
                     let last = said.trim_end_matches("$$").trim_end();
                     if !last.is_empty() {
@@ -451,6 +636,10 @@ fn mathed(body: &str) -> (String, bool) {
                         false => vec![rest.to_string()],
                     });
                 }
+                None if said.contains("$$") => {
+                    moved = true;
+                    out.push(coded(line));
+                }
                 None => out.push(line.to_string()),
             },
         }
@@ -463,6 +652,26 @@ fn mathed(body: &str) -> (String, bool) {
     (out.join("\n"), moved)
 }
 
+fn coded(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut rest = line;
+    while let Some(found) = rest.find("$$") {
+        let Some(shut) = rest[found + 2..].find("$$") else {
+            out.push_str(rest);
+            return out;
+        };
+        out.push_str(&rest[..found]);
+        let inner = &rest[found + 2..found + 2 + shut];
+        match inner.contains('`') {
+            true => out.push_str(inner.trim()),
+            false => out.push_str(&format!("`{}`", inner.trim())),
+        }
+        rest = &rest[found + 4 + shut..];
+    }
+    out.push_str(rest);
+    out
+}
+
 fn lone(said: &str) -> Option<String> {
     let rest = said.strip_prefix("$$")?;
     let inner = rest.strip_suffix("$$")?;
@@ -471,21 +680,28 @@ fn lone(said: &str) -> Option<String> {
 
 fn spaced(body: &str) -> String {
     let mut out: Vec<String> = Vec::new();
-    let mut seen: BTreeSet<usize> = BTreeSet::new();
-    for (at, line) in body.lines().enumerate() {
+    let mut fence: Option<String> = None;
+    for line in body.lines() {
+        if let Some(open) = &fence {
+            if line.trim_start().starts_with(open.as_str()) {
+                fence = None;
+            }
+            out.push(line.to_string());
+            continue;
+        }
         if line.trim_start().starts_with("```math")
-            && at > 0
-            && !seen.contains(&at)
             && out.last().is_some_and(|one| !one.trim().is_empty())
         {
             out.push(String::new());
-            seen.insert(at);
+        }
+        if let Some(open) = opens(line) {
+            fence = Some(open);
         }
         out.push(line.to_string());
     }
     let mut whole = out.join("\n");
-    while whole.contains("\n\n\n") {
-        whole = whole.replace("\n\n\n", "\n\n");
+    if !whole.ends_with('\n') {
+        whole.push('\n');
     }
-    whole.trim_end().to_string() + "\n"
+    whole
 }

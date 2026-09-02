@@ -4225,6 +4225,7 @@ fn linked(line: &str, next: &str) -> bool {
 /// back untouched, so it is not markup.
 pub(crate) fn markup(line: &str) -> Option<&'static str> {
     let bytes = line.as_bytes();
+    let mut shut = 0;
     for at in 0..bytes.len() {
         if bytes[at] == b'&' && entity(&line[at..]) {
             return Some("HTML entities");
@@ -4236,7 +4237,13 @@ pub(crate) fn markup(line: &str) -> Option<&'static str> {
         if rest.starts_with("!--") {
             return Some("HTML comments");
         }
-        let inner = rest.find('>').map(|end| &rest[..end]).unwrap_or(rest);
+        if shut <= at {
+            shut = match rest.find('>') {
+                Some(end) => at + 1 + end,
+                None => line.len(),
+            };
+        }
+        let inner = &line[at + 1..shut];
         if inner.contains("://") || (inner.contains('@') && !inner.contains(' ')) {
             continue;
         }

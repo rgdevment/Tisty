@@ -101,7 +101,7 @@ fn signed_as(kind: &str, head: &[u8]) -> bool {
 }
 
 /// Secrets do not announce themselves by extension. These are the shapes they do carry.
-fn holds_a_secret(head: &[u8]) -> bool {
+pub fn holds_a_secret(head: &[u8]) -> bool {
     if head.starts_with(&[0x30, 0x82]) {
         return true;
     }
