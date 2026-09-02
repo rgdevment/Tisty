@@ -149,6 +149,8 @@ interface Props {
   onLaid?: (root: HTMLElement) => void;
   onReady?: (read: () => unknown) => void;
   onInsert?: (put: (file: string, title: string) => void) => void;
+  seek?: number;
+  onSeen?: (at: number) => void;
   above?: React.ReactNode;
   below?: React.ReactNode;
 }
@@ -174,6 +176,8 @@ export default function Editor({
   onLaid,
   onReady,
   onInsert,
+  seek,
+  onSeen,
   above,
   below,
 }: Props) {
@@ -198,6 +202,7 @@ export default function Editor({
   const [glyphing, setGlyphing] = useState<{ x: number; y: number } | null>(null);
   const [naming, setNaming] = useState<{ x: number; y: number; leaf: boolean } | null>(null);
   const mine = useRef(value);
+  const sheet = useRef<HTMLDivElement | null>(null);
   const urls = useRef(new Map<string, string>());
   const weights = useRef(new Map<string, number>());
   const blurbs = useRef(new Map<string, string>());
@@ -667,6 +672,15 @@ export default function Editor({
   const current = Math.min(active, shown.length - 1);
 
   useEffect(() => {
+    const at = sheet.current;
+    if (!at || !editor || editor.isDestroyed || !seek) return;
+    const frame = requestAnimationFrame(() => {
+      at.scrollTop = seek;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editor, seek]);
+
+  useEffect(() => {
     const dom = editor && !editor.isDestroyed ? editor.view.dom : null;
     if (!dom) return;
     dom.setAttribute("aria-expanded", String(opened));
@@ -723,6 +737,8 @@ export default function Editor({
   return (
     <>
       <div
+        ref={sheet}
+        onScroll={(one) => onSeen?.((one.target as HTMLElement).scrollTop)}
         className={`scroller gutter flex min-h-0 flex-1 flex-col${above || below ? " leafed" : ""}`}
       >
         {above}
