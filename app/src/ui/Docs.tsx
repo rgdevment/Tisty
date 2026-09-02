@@ -301,6 +301,8 @@ export default function Docs({
 
   const own = filed(known, open?.file);
   const bolted = Boolean(own?.locked);
+  const stood = useRef(new Map<string, number>());
+  const seek = own?.file ? stood.current.get(own.file) : undefined;
   const pages = pagesOf(known, open?.file);
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
@@ -481,6 +483,10 @@ export default function Docs({
               <Editor
                 key={`${open.file}${reading || bolted ? ":read" : ""}`}
                 value={body}
+                seek={seek}
+                onSeen={(at) => {
+                  if (own?.file) stood.current.set(own.file, at);
+                }}
                 taking={!reading && !bolted}
                 reading={reading || bolted}
                 label={open.title || t("untitledDoc")}

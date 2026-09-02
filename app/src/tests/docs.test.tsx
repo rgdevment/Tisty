@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
@@ -70,17 +70,26 @@ vi.mock("../ui/Editor", () => ({
     onShaped,
     reading,
     below,
+    seek,
+    onSeen,
   }: {
     value: string;
     onWrite: (text: string) => void;
     onShaped?: (text: string) => void;
     reading?: boolean;
     below?: React.ReactNode;
+    seek?: number;
+    onSeen?: (at: number) => void;
   }) => {
     if (!store.mute)
       onShaped?.(store.shape ?? value.replace(/<[^>]+>/g, "").replace(/\n{3,}/g, "\n\n"));
     return (
       <>
+        <div
+          data-testid="sheet"
+          data-seek={seek ?? ""}
+          onScroll={(one) => onSeen?.((one.target as HTMLElement).scrollTop)}
+        />
         <textarea
           aria-label="editor"
           readOnly={reading}
@@ -715,5 +724,51 @@ describe("a document the person locked", () => {
 
     await waitFor(() => screen.getByText(/Bloqueaste|You locked/));
     expect(store.writes).toEqual([]);
+  });
+});
+
+describe("where you were standing in a document", () => {
+  const two: Filed[] = [
+    { id: "01F", file: "a3f1-0001", title: "Curso", folder: null, archived: false },
+    {
+      id: "01G",
+      file: "a3f1-0002",
+      title: "Clase",
+      folder: null,
+      archived: false,
+      pageOf: "01F",
+    },
+  ];
+
+  beforeEach(() => {
+    store.bodies = { "a3f1-0001": "# Curso\n\nlargo", "a3f1-0002": "# Clase\n\ntexto" };
+  });
+
+  it("is where you are put back when you come out of one of its pages", async () => {
+    const shown = render(<Docs open="a3f1-0001" known={two} onKept={vi.fn()} onError={vi.fn()} />);
+    const sheet = await screen.findByTestId("sheet");
+    expect(sheet.getAttribute("data-seek")).toBe("");
+
+    Object.defineProperty(sheet, "scrollTop", { value: 900, writable: true });
+    fireEvent.scroll(sheet);
+
+    shown.rerender(<Docs open="a3f1-0002" known={two} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByDisplayValue(/texto/);
+    shown.rerender(<Docs open="a3f1-0001" known={two} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByDisplayValue(/largo/);
+
+    expect(screen.getByTestId("sheet").getAttribute("data-seek")).toBe("900");
+  });
+
+  it("is not carried from one document to another", async () => {
+    const shown = render(<Docs open="a3f1-0001" known={two} onKept={vi.fn()} onError={vi.fn()} />);
+    const sheet = await screen.findByTestId("sheet");
+    Object.defineProperty(sheet, "scrollTop", { value: 700, writable: true });
+    fireEvent.scroll(sheet);
+
+    shown.rerender(<Docs open="a3f1-0002" known={two} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByDisplayValue(/texto/);
+
+    expect(screen.getByTestId("sheet").getAttribute("data-seek")).toBe("");
   });
 });
