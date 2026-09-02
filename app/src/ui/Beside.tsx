@@ -8,7 +8,7 @@ import Glyph, { known } from "./Glyph";
 import type { Block } from "./Slash";
 import type { Head } from "./writing";
 
-const SHAPES = [
+export const SHAPES = [
   "h1",
   "h2",
   "bullets",
@@ -18,6 +18,7 @@ const SHAPES = [
   "callout",
   "code",
   "mermaid",
+  "math",
   "table",
   "rule",
   "pen",

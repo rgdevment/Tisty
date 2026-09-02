@@ -180,10 +180,12 @@ happens on its own:
   it is an event written into your log rather than a line in a settings file,
   so you can see when it happened and throw it out whenever you want.
 - **What it may do is bounded.** File a task, add to the journal, write a
-  document, keep a copy of a file you point it at, and read what is already
-  there. It may not close or delete anything, reach a task you hid, or take
-  files from outside the folders where a download lands. What it reads comes
-  back without the paths of your disk.
+  document, write one again whole, keep a copy of a file you point it at, and
+  read what is already there. It may not close or delete anything, reach a task
+  you hid, or take files from outside the folders where a download lands. To
+  replace a whole document it has to send back the print it read that document
+  at, so what you wrote while it was thinking cannot be taken. What it reads
+  comes back without the paths of your disk.
 
 The part worth knowing before you open it: **whatever that assistant reads, it
 takes with it.** If it runs against a service, then the moment you ask it to

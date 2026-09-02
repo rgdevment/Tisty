@@ -19,3 +19,6 @@ Thumbs.db
 
 # Built per release, never committed: the CLI rides along with the window.
 app/src-tauri/binaries/
+
+# Written by `npm run notices` for each release, and shipped with it, not here.
+THIRD-PARTY-BUNDLED.md

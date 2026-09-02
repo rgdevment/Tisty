@@ -1,4 +1,5 @@
-const KEPT = /^\/?u$/i;
+const KEPT = /^\/?(u|mark(\s+data-pen="[a-z]+")?)$/i;
+const TITLED = /\btitle="(?:[^"\\]|\\.)*"/;
 const NAMED = /^[a-z0-9#]+$/i;
 const WHY = [
   "frailFront",
@@ -74,7 +75,7 @@ const fenceless = (text: string): { bare: string; told: boolean } => {
       open = null;
     }
     if (marker) {
-      told = told || marker[2].trim().split(/\s+/).length > 1;
+      told = told || marker[2].replace(TITLED, "").trim().split(/\s+/).filter(Boolean).length > 1;
       open = { mark: marker[1][0], many: marker[1].length, held: deep, room: wide };
       continue;
     }

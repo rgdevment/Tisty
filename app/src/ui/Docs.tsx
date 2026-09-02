@@ -70,6 +70,8 @@ interface Props {
   fresh?: number;
 }
 
+const tailless = (said: string): string => said.replace(/\n+$/, "");
+
 export default function Docs({
   open: asked,
   known,
@@ -90,6 +92,8 @@ export default function Docs({
   const seen = useRef(0);
   const [stuck, setStuck] = useState(false);
   const [clashed, setClashed] = useState(false);
+  const [stirred, setStirred] = useState(false);
+  const lastRead = useRef(new Map<string, string>());
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
@@ -127,6 +131,7 @@ export default function Docs({
       const mine = queued(id, () => docWrite(id, text, anyway))
         .then((fresh) => {
           if (held.current?.id === id && held.current.body === text) held.current = null;
+          lastRead.current.set(id, text);
           setClashed(false);
           setSaved((many) => many + 1);
           onKept(fresh);
@@ -167,12 +172,14 @@ export default function Docs({
     drop();
     docRead(open.file)
       .then((text) => {
+        lastRead.current.set(open.file, text);
         setBody(text);
         setPacked(crowd(text));
         const brittle = frail(text);
         setWarned(brittle.length ? brittle : null);
         setReading(brittle.length > 0);
         setClashed(false);
+        setStirred(false);
       })
       .catch((e) => onError(saidPlainly(e)));
   }, [drop, onError, open]);
@@ -224,6 +231,10 @@ export default function Docs({
       .then(() => docRead(wanted.file))
       .then((text) => {
         if (turn.current !== mine) return;
+        const last = lastRead.current.get(wanted.file);
+        const astir = last !== undefined && tailless(last) !== tailless(text);
+        lastRead.current.set(wanted.file, text);
+        setStirred(astir);
         setOpen(wanted);
         setBody(text);
         setPacked(crowd(text));
@@ -270,6 +281,11 @@ export default function Docs({
         setReading(left.length > 0);
       })
       .catch((e) => onError(saidPlainly(e)));
+  };
+
+  const anyway = () => {
+    setStuck(false);
+    setReading(false);
   };
 
   const wrote = (text: string) => {
@@ -537,6 +553,21 @@ export default function Docs({
                 ? fill("docCrowded", String(packed))
                 : ""}
         </div>
+        {stirred && !clashed && open && (
+          <div
+            style={wall}
+            className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
+          >
+            <span className="text-soft">{t("docStirred")}</span>
+            <button
+              type="button"
+              onClick={() => setStirred(false)}
+              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+            >
+              {t("docStirredGone")}
+            </button>
+          </div>
+        )}
         {clashed && open && (
           <div
             style={wall}
@@ -559,19 +590,21 @@ export default function Docs({
             </button>
           </div>
         )}
-        {reading && warned && open && (
+        {warned && open && (
           <div
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
           >
-            <span className="text-soft">{t(stuck ? "frailStuck" : "frailNeeds")}</span>
-            {!stuck && (
+            <span className="text-soft">
+              {t(reading ? (stuck ? "frailStuck" : "frailNeeds") : "frailLosing")}
+            </span>
+            {reading && (
               <button
                 type="button"
-                onClick={() => convert(open.file)}
+                onClick={stuck ? anyway : () => convert(open.file)}
                 className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
               >
-                {t("frailConvert")}
+                {t(stuck ? "frailAnyway" : "frailConvert")}
               </button>
             )}
           </div>

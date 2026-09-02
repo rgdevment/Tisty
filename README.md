@@ -71,6 +71,11 @@
   </p>
 
   <p>
+    <a href="https://github.com/sponsors/rgdevment">
+      <img
+        src="https://img.shields.io/badge/GitHub-Sponsor-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white"
+        alt="Sponsor on GitHub"/>
+    </a>
     <a href="https://buymeacoffee.com/rgdevment">
       <img
         src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"
@@ -331,18 +336,23 @@ document; a document never creates tasks.
 
 Text can be highlighted in a few colours and set apart as an aside — a plain
 quote, or a callout GitHub reads too, written as `> [!WARNING]`. Tables keep how
-their columns lean, and a code block says what language it is and is coloured for
-it, with its lines numbered beside the text rather than in it, so copying takes
-the code and nothing else.
+their columns lean and how wide you drew them, and a code block says what
+language it is and is coloured for it, with its lines numbered beside the text
+rather than in it, so copying takes the code and nothing else. A block can carry
+a name; one whose language is `mermaid` draws the diagram it describes
+underneath — redrawn when you turn the light on or off — and one that says
+`math` sets the formula it holds.
 
 **It stays Markdown**, and that is the point rather than a detail: everything
 above is syntax another reader already understands, so the file survives without
-Tisty. Where Markdown genuinely cannot say a thing — an icon in a line of text —
-Tisty writes the small piece of HTML that can, and reads it back. Where the
-editor meets a shape it is known not to keep — front matter, footnotes, links
-written by reference, blocks of HTML — it says so and opens the document
-read-only rather than quietly destroying it. That list is what it checks, not a
-promise about everything a Markdown file can hold.
+Tisty — a block's name is what Markdown keeps after the language, and a column's
+width rides in how long its rule is drawn, which every other reader ignores and
+draws the same. Where Markdown genuinely cannot say a thing — an icon in a line
+of text — Tisty writes the small piece of HTML that can, and reads it back.
+Where the editor meets a shape it is known not to keep — front matter,
+footnotes, links written by reference, blocks of HTML — it says so and opens
+the document read-only rather than quietly destroying it. That list is what it
+checks, not a promise about everything a Markdown file can hold.
 
 The writing sits on a lit page, and the first line with words in it is both the
 name of the document and its title — reading past a fence or an alert's marker to
@@ -463,15 +473,18 @@ tries is refused.
 
 What it may do is deliberately small: file a task with its steps and its date,
 add to the journal, write a document, add to the end of one that is already
-there, correct a passage of one, file documents into folders, keep a copy of a
-file you point it at — on a task or inside a document, which takes the larger
-file of the two — and read what is already there. What it may not do: close
-a task or delete one, delete a document or hand it a new body whole, rename or
-empty a folder, reach a task you folded away, take files from outside the
-folders where a download lands, or file the same thing twice. To correct a
-passage it has to name it exactly as you wrote it, and if that text is not there
-or is there twice, nothing is written at all. A document you archived it can
-still read, and it is told that you archived it.
+there, correct a passage of one, write one again whole, file documents into
+folders, keep a copy of a file you point it at — on a task or inside a document,
+which takes the larger file of the two — and read what is already there. What it
+may not do: close a task or delete one, delete a document, rename or empty a
+folder, reach a task you folded away, take files from outside the folders where
+a download lands, or file the same thing twice. To correct a passage it has to
+name it exactly as you wrote it, and if that text is not there or is there
+twice, nothing is written at all. To write a whole body again it has to send
+back the print the document read at when it last looked: if you have written in
+it since, the write is refused and it has to read again, so what you typed while
+it was thinking cannot be lost. A document you archived it can still read, and
+it is told that you archived it.
 
 Whatever it reads travels wherever that assistant travels. That is between you
 and it — which is precisely why this is a door you open, and not one that was
@@ -540,8 +553,13 @@ sorts by time and needs no coordination.
 [Tailwind CSS](https://tailwindcss.com) styles it;
 [TipTap](https://tiptap.dev) and [ProseMirror](https://prosemirror.net) are the
 document editor; [markdown-it](https://github.com/markdown-it/markdown-it)
-renders the prose everywhere else; [Vite](https://vite.dev) builds it and
-[Vitest](https://vitest.dev) tests it.
+renders the prose everywhere else;
+[Mermaid](https://mermaid.js.org) draws the diagrams a code block describes and
+[KaTeX](https://katex.org) sets its formulas;
+[lowlight](https://github.com/wooorm/lowlight) and
+[highlight.js](https://highlightjs.org) colour the code;
+[react-pdf](https://react-pdf.org) makes the PDF; [Vite](https://vite.dev)
+builds it and [Vitest](https://vitest.dev) tests it.
 
 The full list, with versions and licences, is in `Cargo.lock` and
 `app/package-lock.json`.

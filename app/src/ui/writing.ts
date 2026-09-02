@@ -1,5 +1,5 @@
 import type { Editor as Writing } from "@tiptap/core";
-import { getHTMLFromFragment, InputRule, Node } from "@tiptap/core";
+import { getHTMLFromFragment, InputRule, Node, textblockTypeInputRule } from "@tiptap/core";
 import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
@@ -664,17 +664,63 @@ const Headed = TableHeader.extend({
   },
 });
 
+interface Marking {
+  core: {
+    ruler: {
+      push: (name: string, rule: (state: { src: string; tokens: Tokened[] }) => boolean) => void;
+    };
+  };
+}
+
+interface Tokened {
+  type: string;
+  info: string;
+  map: [number, number] | null;
+  attrSet: (name: string, value: string) => void;
+}
+
 const RULED: Record<string, string> = {
   left: ":---",
   center: ":---:",
   right: "---:",
 };
 
+const STEP = 10;
+const DASHES = [4, 120];
+
+const dashed = (line: string): number[] | null => {
+  const said = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  if (!said.includes("-")) return null;
+  return said.split("|").map((cell) => {
+    const many = (cell.match(/-/g) ?? []).length;
+    return many > DASHES[0] - 1 ? many * STEP : 0;
+  });
+};
+
+const widths = (md: Marking) => {
+  md.core.ruler.push("tistyWidths", (state) => {
+    const lines = state.src.split("\n");
+    let ruled: number[] | null = null;
+    let column = 0;
+    for (const token of state.tokens) {
+      if (token.type === "table_open") ruled = dashed(lines[(token.map?.[0] ?? -1) + 1] ?? "");
+      else if (token.type === "table_close") ruled = null;
+      else if (token.type === "tr_open") column = 0;
+      else if (token.type === "th_open" || token.type === "td_open") {
+        const wide = ruled?.[column];
+        if (wide) token.attrSet("colwidth", String(wide));
+        column += 1;
+      }
+    }
+    return true;
+  });
+};
+
 interface Celling {
   type: { name: string };
   forEach: (fn: (kid: ProseNode) => void) => void;
   childCount: number;
-  attrs: { textAlign?: string | null; colspan?: number; rowspan?: number };
+  attrs: { textAlign?: string | null; colspan?: number; rowspan?: number; colwidth?: unknown };
 }
 
 interface Rowed {
@@ -684,7 +730,7 @@ interface Rowed {
 
 /// The delimiter row is where Markdown keeps a column's alignment, and tiptap-markdown writes
 /// `---` for every column whatever the cells say.
-const Ruled = Table.configure({ resizable: false }).extend({
+const Ruled = Table.configure({ resizable: true }).extend({
   addStorage() {
     return {
       markdown: {
@@ -700,21 +746,14 @@ const Ruled = Table.configure({ resizable: false }).extend({
         ) {
           // A span or a cell holding more than one block has no markdown to be written in.
           let plain = true;
-          node.forEach((row, _at, index) => {
+          node.forEach((row) => {
             row.forEach((cell) => {
               const { colspan = 1, rowspan = 1 } = cell.attrs;
-              const heading = cell.type.name === "tableHeader";
               let holds = true;
               cell.forEach((kid) => {
                 if (kid.type.name !== "paragraph" && kid.type.name !== "image") holds = false;
               });
-              if (
-                colspan > 1 ||
-                rowspan > 1 ||
-                cell.childCount > 1 ||
-                !holds ||
-                heading !== (index === 0)
-              ) {
+              if (colspan > 1 || rowspan > 1 || cell.childCount > 1 || !holds) {
                 plain = false;
               }
             });
@@ -727,11 +766,16 @@ const Ruled = Table.configure({ resizable: false }).extend({
           }
           state.inTable = true;
           const leans: (string | null)[] = [];
+          const wides: (number | null)[] = [];
           node.forEach((row, _at, index) => {
             state.write("| ");
             row.forEach((cell, _spot, column) => {
               if (column) state.write(" | ");
-              if (!index) leans[column] = cell.attrs.textAlign ?? null;
+              if (!index) {
+                leans[column] = cell.attrs.textAlign ?? null;
+                const held = cell.attrs.colwidth;
+                wides[column] = Array.isArray(held) ? (held[0] ?? null) : null;
+              }
               // Markdown holds only inline content in a cell, and an image node is a block
               // here, so it is written by hand rather than skipped for having no text.
               cell.forEach((kid) => {
@@ -747,9 +791,13 @@ const Ruled = Table.configure({ resizable: false }).extend({
             state.write(" |");
             state.ensureNewLine();
             if (!index) {
-              const ruled = Array.from({ length: row.childCount }, (_, column) =>
-                RULED[leans[column] ?? ""] ? RULED[leans[column] ?? ""] : "---",
-              ).join(" | ");
+              const ruled = Array.from({ length: row.childCount }, (_, column) => {
+                const lean = RULED[leans[column] ?? ""] ?? "---";
+                const wide = wides[column];
+                if (!wide) return lean;
+                const many = Math.min(DASHES[1], Math.max(DASHES[0], Math.round(wide / STEP)));
+                return lean.replace(/-+/, "-".repeat(many));
+              }).join(" | ");
               state.write(`| ${ruled} |`);
               state.ensureNewLine();
             }
@@ -757,7 +805,7 @@ const Ruled = Table.configure({ resizable: false }).extend({
           state.closeBlock(node);
           state.inTable = false;
         },
-        parse: {},
+        parse: { setup: widths },
       },
     };
   },
@@ -802,9 +850,67 @@ export const TONGUES = [
 // One counter for the window: mermaid resolves its id against the whole document.
 let sketches = 0;
 
+const sketchers = new Set<() => void>();
+let watching: MutationObserver | null = null;
+
+const watched = () => {
+  if (watching) return;
+  watching = new MutationObserver(() => {
+    for (const one of sketchers) one();
+  });
+  watching.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+};
+
 type Setting = { set: (options: { langPrefix: string }) => void };
 
+const NAMED = /\btitle="((?:[^"\\\n]|\\.)*)"/;
+
+const named = (md: Marking) => {
+  md.core.ruler.push("tistyNamed", (state) => {
+    for (const token of state.tokens) {
+      const said = token.type === "fence" ? NAMED.exec(token.info ?? "") : null;
+      if (!said) continue;
+      token.attrSet("data-title", said[1].replace(/\\(.)/g, "$1"));
+      token.info = (token.info ?? "").replace(NAMED, "").trim();
+    }
+    return true;
+  });
+};
+
+export const DRAWN = ["mermaid", "math"];
+
+const SHORT: Record<string, string> = { mmd: "mermaid" };
+
 const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) }).extend({
+  addInputRules() {
+    return [
+      textblockTypeInputRule({
+        find: /^```(mmd)[\s\n]$/,
+        type: this.type,
+        getAttributes: ({ 1: said }) => ({ language: SHORT[said] }),
+      }),
+      ...(this.parent?.() ?? []),
+    ];
+  },
+
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      title: {
+        default: null,
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute("data-title") ??
+          element.firstElementChild?.getAttribute("data-title") ??
+          null,
+        renderHTML: (attrs: { title?: string | null }) =>
+          attrs.title ? { "data-title": attrs.title } : {},
+      },
+    };
+  },
+
   addNodeView() {
     return ({ node, editor, getPos }) => {
       const held = document.createElement("div");
@@ -812,7 +918,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
 
       const bar = document.createElement("div");
       bar.className = "lit-bar";
-      bar.contentEditable = "false";
+      bar.setAttribute("contenteditable", "false");
       const picked = document.createElement("select");
       picked.className = "lit-tongue";
       picked.title = t("codeTongue");
@@ -821,14 +927,28 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       none.value = "";
       none.textContent = t("codeNoTongue");
       picked.append(none);
-      for (const one of [...TONGUES, "mermaid"]) {
+      for (const one of [...TONGUES, ...DRAWN]) {
         const said = document.createElement("option");
         said.value = one;
         said.textContent = one;
         picked.append(said);
       }
+      const name = document.createElement("input");
+      name.className = "lit-name";
+      name.type = "text";
+      name.placeholder = t("codeName");
+      name.setAttribute("aria-label", t("codeName"));
+
+      const said = document.createElement("span");
+      said.className = "lit-said";
       const showing = (one: ProseNode) => {
         const now = String(one.attrs.language ?? "");
+        const drawing = DRAWN.includes(now);
+        if (drawing) said.textContent = now;
+        if (document.activeElement !== name) name.value = String(one.attrs.title ?? "");
+        picked.hidden = drawing;
+        said.hidden = !drawing;
+        if (drawing) return;
         if (now && !picked.querySelector(`option[value="${CSS.escape(now)}"]`)) {
           const own = document.createElement("option");
           own.value = now;
@@ -838,6 +958,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         picked.value = now;
       };
       showing(node);
+
       picked.addEventListener("change", () => {
         const at = getPos();
         if (at === undefined) return;
@@ -850,16 +971,28 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
           })
           .run();
       });
-      bar.append(picked);
+      name.addEventListener("change", () => {
+        const at = getPos();
+        if (at === undefined) return;
+        editor
+          .chain()
+          .command(({ tr }) => {
+            tr.setNodeAttribute(at, "title", name.value.trim() || null);
+            return true;
+          })
+          .run();
+      });
+      bar.append(name, said, picked);
 
       const drawn = document.createElement("div");
       drawn.className = "lit-drawn";
-      drawn.contentEditable = "false";
+      drawn.setAttribute("contenteditable", "false");
 
       const body = document.createElement("div");
       body.className = "lit-body";
       const lines = document.createElement("div");
       lines.className = "lit-lines";
+      lines.setAttribute("contenteditable", "false");
       lines.setAttribute("aria-hidden", "true");
       const pre = document.createElement("pre");
       const code = document.createElement("code");
@@ -869,6 +1002,26 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
 
       let asked = 0;
       let drew = "";
+
+      const figured = (source: string) => {
+        asked += 1;
+        const mine = asked;
+        if (!source.trim()) {
+          drawn.replaceChildren();
+          return;
+        }
+        import("katex")
+          .then(({ default: katex }) => {
+            if (mine !== asked) return;
+            drawn.replaceChildren();
+            katex.render(source, drawn, { displayMode: true, throwOnError: false });
+          })
+          .catch(() => {
+            if (mine !== asked) return;
+            drew = "";
+            drawn.replaceChildren();
+          });
+      };
 
       const sketched = (source: string) => {
         asked += 1;
@@ -881,7 +1034,12 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         }
         import("mermaid")
           .then(({ default: mermaid }) => {
-            mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+            const dark = document.documentElement.getAttribute("data-theme") === "dark";
+            mermaid.initialize({
+              startOnLoad: false,
+              securityLevel: "strict",
+              theme: dark ? "dark" : "default",
+            });
             return mermaid.render(named, source, drawn);
           })
           .then(({ svg }) => {
@@ -907,7 +1065,8 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       counted(node);
 
       const sketching = (one: { attrs: Record<string, unknown>; textContent: string | null }) => {
-        if (String(one.attrs.language ?? "") !== "mermaid") {
+        const tongue = String(one.attrs.language ?? "");
+        if (!DRAWN.includes(tongue)) {
           asked += 1;
           drew = "";
           drawn.replaceChildren();
@@ -917,9 +1076,19 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         // Every keystroke would otherwise start a render, and a failed one leaves litter behind.
         if (source === drew) return;
         drew = source;
-        sketched(source);
+        if (tongue === "math") figured(source);
+        else sketched(source);
       };
       sketching(node);
+
+      let mine: { attrs: Record<string, unknown>; textContent: string | null } = node;
+      const again = () => {
+        if (!DRAWN.includes(String(mine.attrs.language ?? ""))) return;
+        drew = "";
+        sketching(mine);
+      };
+      sketchers.add(again);
+      watched();
 
       return {
         dom: held,
@@ -927,10 +1096,12 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         ignoreMutation: (one) => one.type !== "selection" && !code.contains(one.target),
         destroy: () => {
           asked += 1;
+          sketchers.delete(again);
           drawn.replaceChildren();
         },
         update: (fresh) => {
           if (fresh.type.name !== "codeBlock") return false;
+          mine = fresh;
           counted(fresh);
           sketching(fresh);
           showing(fresh);
@@ -950,23 +1121,26 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
             ensureNewLine: () => void;
             closeBlock: (node: unknown) => void;
           },
-          node: { attrs?: { language?: unknown }; textContent: string },
+          node: { attrs?: { language?: unknown; title?: unknown }; textContent: string },
         ) {
           const said = String(node.attrs?.language ?? "");
-          const mark = said.includes("`") ? "~" : "`";
+          const name = String(node.attrs?.title ?? "").replace(/([\\"])/g, "\\$1");
+          const told = name ? `${said} title="${name}"` : said;
+          const mark = told.includes("`") ? "~" : "`";
           const runs = node.textContent.split(new RegExp(`[^\\${mark}]+`));
           const longest = runs.reduce((most, one) => Math.max(most, one.length), 0);
           const wall = mark.repeat(Math.max(3, longest + 1));
 
-          state.write(`${wall}${said}\n`);
+          state.write(`${wall}${told}\n`);
           state.text(node.textContent, false);
           state.ensureNewLine();
           state.write(wall);
           state.closeBlock(node);
         },
         parse: {
-          setup(this: { options: { languageClassPrefix?: string } }, md: Setting) {
+          setup(this: { options: { languageClassPrefix?: string } }, md: Setting & Marking) {
             md.set({ langPrefix: this.options.languageClassPrefix ?? "language-" });
+            named(md);
           },
           updateDOM(element: HTMLElement) {
             element.innerHTML = element.innerHTML.replace(/\n<\/code><\/pre>/g, "</code></pre>");

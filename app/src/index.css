@@ -1,3 +1,4 @@
+@import "katex/dist/katex.min.css";
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -132,6 +133,9 @@
   --shadow-lift-tall: var(--tisty-lift-tall);
 
   --color-pen-yellow: var(--tisty-pen-yellow);
+  --color-pen-green: var(--tisty-pen-green);
+  --color-pen-blue: var(--tisty-pen-blue);
+  --color-pen-pink: var(--tisty-pen-pink);
   --color-mark-date: var(--tisty-mark-date);
   --color-mark-deadline: var(--tisty-mark-deadline);
   --color-mark-list: var(--tisty-mark-list);
@@ -652,13 +656,43 @@ body {
 }
 .tisty-doc .lit-bar {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   padding: 4px 6px 0;
+}
+.tisty-doc .lit-name {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--tisty-soft);
+  font: inherit;
+  font-size: 11.5px;
+  padding: 1px 4px;
+  border-radius: 5px;
+}
+.tisty-doc .lit-name::placeholder {
+  color: transparent;
+}
+.tisty-doc .lit:hover .lit-name::placeholder,
+.tisty-doc .lit-name:focus::placeholder {
+  color: var(--tisty-faint);
+  opacity: 0.7;
+}
+.tisty-doc .lit-name:focus {
+  outline: none;
+  background: var(--tisty-active);
+}
+.tisty-doc .lit-said {
+  font-size: 11px;
+  color: var(--tisty-faint);
+  padding: 1px 3px;
 }
 .tisty-doc .lit-tongue {
   border: 0;
   background: none;
-  color: var(--tisty-faint);
+  color-scheme: light;
+  color: var(--tisty-soft);
   font: inherit;
   font-size: 11px;
   padding: 1px 3px;
@@ -668,6 +702,18 @@ body {
 .tisty-doc .lit-tongue:hover {
   color: var(--tisty-ink);
   background: var(--tisty-active);
+}
+.tisty-doc .lit-tongue option {
+  background: var(--tisty-sheet);
+  color: var(--tisty-ink);
+  font-size: 13px;
+}
+[data-theme="dark"] .tisty-doc .lit-tongue {
+  color-scheme: dark;
+}
+.tisty-doc .lit-tongue:focus-visible {
+  outline: 2px solid var(--tisty-accent);
+  outline-offset: 1px;
 }
 .tisty-doc .lit-body {
   display: flex;
@@ -827,17 +873,42 @@ body {
   background: none;
   border: 0;
 }
+.tisty-doc .tableWrapper {
+  overflow-x: auto;
+  margin: 14px 0;
+}
 .tisty-doc table {
   margin: 14px 0;
   border-collapse: collapse;
+  table-layout: fixed;
   width: 100%;
   font-size: 0.92em;
 }
+.tisty-doc .tableWrapper table {
+  margin: 0;
+}
 .tisty-doc th,
 .tisty-doc td {
+  position: relative;
+  box-sizing: border-box;
+  min-width: 3em;
   border: 1px solid var(--tisty-line);
   padding: 6px 10px;
   text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.tisty-doc .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  width: 4px;
+  background: var(--tisty-accent);
+  pointer-events: none;
+}
+.tisty-doc.resize-cursor {
+  cursor: col-resize;
 }
 .tisty-doc th {
   background: var(--tisty-hover);
