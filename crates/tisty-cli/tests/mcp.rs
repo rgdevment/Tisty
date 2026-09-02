@@ -1058,6 +1058,39 @@ otra cosa entera." }),
 }
 
 #[test]
+fn the_print_read_doc_hands_back_is_the_print_of_the_very_text_it_handed_back() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Acta
+
+sin tocar." }),
+    );
+    let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": name }));
+    let print = read["result"]["structuredContent"]["print"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let body = read["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let again = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": name, "print": print, "body": body }),
+    );
+
+    assert!(
+        again["result"]["isError"] != true,
+        "writing back the very body it read has to be taken: {again}"
+    );
+}
+
+#[test]
 fn a_document_that_moved_since_it_was_read_keeps_what_the_person_put_there() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);

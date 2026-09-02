@@ -68,9 +68,10 @@ a document has to be reorganised rather than added to; a passage you can name is
 named than a whole body replaced.
 
 Prefer adding, and read the document before you edit it. An edit takes a passage away, the \
-person may be typing in that document while you write, and naming the whole body is refused: \
-there is no way to hand a document a new body. If an edit is refused because the text is not \
-there, the document changed under you — read it again rather than trying a shorter passage.
+person may be typing in that document while you write, and naming the whole body as a passage \
+is refused: a whole body goes through `write_doc` with its print, which is checked. If an edit \
+is refused because the text is not there, the document changed under you — read it again rather \
+than trying a shorter passage.
 
 `attach` copies a file from this machine into Tisty and keeps it in one of two places. Named a \
 `task`, it lands on that task's journal with a line saying where it came from; named a `doc`, it \
@@ -933,16 +934,6 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     Ok(told(plainly, whole))
 }
 
-fn fits(body: &str) -> Result<(), Refused> {
-    let limit = tisty_core::docs::BODY_AT_MOST;
-    match body.len() as u64 > limit {
-        true => Err(Refused::Tool(format!(
-            "that body is past the {limit} bytes Tisty can open. Send a shorter document, or split it into pages."
-        ))),
-        false => Ok(()),
-    }
-}
-
 fn over_again(
     paths: &Paths,
     args: &Value,
@@ -978,12 +969,16 @@ fn over_again(
             "{which:?} does not read as it did when you took that print — the person, or another agent, wrote in it since. Nothing was changed, and nothing of theirs was lost. Read it again with `read_doc` and work from what is there now."
         ))),
         tisty_core::docs::Rewrite::Made { was, whole } => {
-            let _ = tisty_core::docs::kept_before(paths.data(), which, &was);
+            let saved = tisty_core::docs::kept_before(paths.data(), which, &was).is_ok();
             let settled = retold(state, store, which, &whole).is_ok();
             Ok(told(
                 format!(
-                    "Wrote {:?} again, whole. What it said before is kept beside the documents.{}",
+                    "Wrote {:?} again, whole. {}{}",
                     tisty_core::docs::titled(&whole),
+                    match saved {
+                        true => "What it said before is kept beside the documents.",
+                        false => "What it said before could not be kept, so it is gone.",
+                    },
                     if settled { "" } else { UNSETTLED }
                 ),
                 json!({
@@ -1003,7 +998,6 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let (state, mut store) = opened(paths)?;
 
-    fits(&body)?;
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]."
@@ -1015,7 +1009,7 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     if text(args, "print").is_some() {
         return Err(Refused::Tool(
-            "`print` says which body you mean to replace, so it needs the `doc` it belongs to.              Without one, `write_doc` writes a new document."
+            "`print` says which body you mean to replace, so it needs the `doc` it belongs to. Without one, `write_doc` writes a new document."
                 .into(),
         ));
     }
@@ -1141,7 +1135,6 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{which:?} is put away, so nothing more goes into it. Write a new document instead."
         )));
     }
-    fits(&body)?;
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
@@ -1222,10 +1215,10 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
              with `read_doc` and copy the passage you mean character for character."
         ))),
         tisty_core::docs::Change::TheLot => Err(Refused::Tool(format!(
-            "that `old` is the whole of {which:?}, and replacing a document wholesale is the one \
-             thing no tool here does — a passage you name can be checked against what is written, \
-             a whole body cannot. Nothing was changed. Edit the passage that differs, or write a \
-             new document."
+            "that `old` is the whole of {which:?}, which `edit_doc` will not take: a passage it \
+             cannot tell from the document is a rewrite wearing an edit's clothes. Nothing was \
+             changed. Edit the passage that differs, or replace the body with `write_doc`, naming \
+             {which:?} and the `print` `read_doc` gave you."
         ))),
         tisty_core::docs::Change::Twice(many) => Err(Refused::Tool(format!(
             "that `old` fits {many} places in {which:?}, and Tisty will not choose for you, so \
@@ -1703,7 +1696,7 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .map(|one| one.file.clone())
                 .collect::<Vec<_>>(),
             "archived": kept.archived,
-            "print": tisty_core::attach::printed(tisty_core::docs::settled(&body).as_bytes()),
+            "print": tisty_core::attach::printed(body.as_bytes()),
         }),
     ))
 }
@@ -1933,11 +1926,11 @@ fn tools() -> Value {
                     },
                     "doc": {
                         "type": "string",
-                        "description": "A document to write again, by name, replacing its body                                         entirely. Needs `print`. Left out, a new document is                                         written instead"
+                        "description": "A document to write again, by name, replacing its body entirely. Needs `print`. Left out, a new document is written instead"
                     },
                     "print": {
                         "type": "string",
-                        "description": "The `print` `read_doc` gave you with the text you are                                         working from. If the document has moved on since, nothing                                         is written and you are told to read it again — so the                                         person cannot lose what they wrote while you were                                         thinking"
+                        "description": "The `print` `read_doc` gave you with the text you are working from. If the document has moved on since, nothing is written and you are told to read it again — so the person cannot lose what they wrote while you were thinking"
                     },
                     "folder": {
                         "type": "string",

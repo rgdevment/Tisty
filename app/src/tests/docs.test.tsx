@@ -112,6 +112,21 @@ describe("the document being written", () => {
     expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
   });
 
+  it("says nothing when the poll finds only what the person themselves saved", async () => {
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs {...props} fresh={0} />);
+    const editor = await waitFor(() => screen.getByLabelText("editor"));
+
+    await userEvent.click(editor);
+    await userEvent.keyboard(" y algo mas");
+    await waitFor(() => expect(store.writes.length).toBeGreaterThan(0));
+
+    rerender(<Docs {...props} fresh={1} />);
+
+    await waitFor(() => expect(store.reads).toBeGreaterThan(1));
+    expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
+  });
+
   it("says nothing when the document was stirred but reads the same", async () => {
     const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
     const { rerender } = render(<Docs {...props} fresh={0} />);

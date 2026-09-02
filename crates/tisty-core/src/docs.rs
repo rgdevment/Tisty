@@ -1959,6 +1959,23 @@ uno
     }
 
     #[test]
+    fn a_body_another_editor_left_without_its_last_line_is_still_replaced() {
+        let room = root();
+        let at = resolve(room.path(), "mac0-0001").unwrap();
+        std::fs::create_dir_all(room.path()).unwrap();
+        std::fs::write(&at, b"# Acta\n\nsin salto final").unwrap();
+        let print = print_of(&at).unwrap().unwrap();
+
+        assert_eq!(
+            rewrite(room.path(), "mac0-0001", "# Otra\n\notra cosa\n", &print).unwrap(),
+            Rewrite::Made {
+                was: "# Acta\n\nsin salto final".to_string(),
+                whole: "# Otra\n\notra cosa\n".to_string(),
+            }
+        );
+    }
+
+    #[test]
     fn a_body_that_moved_since_it_was_read_is_left_exactly_as_the_person_left_it() {
         let room = root();
         write(room.path(), "mac0-0001", "# Acta\n\nlo primero\n").unwrap();
