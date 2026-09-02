@@ -4033,8 +4033,6 @@ fn dashed(line: &str) -> bool {
         && said.chars().all(|one| matches!(one, '|' | '-' | ':' | ' '))
 }
 
-/// A list item holds a paragraph first and blocks after it: whatever opens on a block instead
-/// loses the item it was written in.
 fn blocked(line: &str, next: &str) -> bool {
     let (_, wide, said) = quoted(line);
     if wide >= 4 || ruled(said) {
@@ -4237,11 +4235,41 @@ fn markup(line: &str) -> Option<&'static str> {
     None
 }
 
-fn kept(inner: &str) -> bool {
-    if inner.eq_ignore_ascii_case("u") || inner.eq_ignore_ascii_case("/u") {
+fn quotedly<'a>(said: &'a str, name: &str, plain: fn(char) -> bool) -> Option<&'a str> {
+    let rest = said.strip_prefix(name)?.strip_prefix("=\"")?;
+    let (value, after) = rest.split_once('"')?;
+    if value.is_empty() || !value.chars().all(plain) {
+        return None;
+    }
+    Some(after.trim_start())
+}
+
+fn iconed(inner: &str) -> bool {
+    let Some(rest) = inner
+        .get(..5)
+        .filter(|one| one.eq_ignore_ascii_case("span "))
+        .map(|_| inner[5..].trim())
+    else {
+        return false;
+    };
+    let Some(after) = quotedly(rest, "data-ico", |one| {
+        one.is_ascii_alphanumeric() || one == '-'
+    }) else {
+        return false;
+    };
+    if after.is_empty() {
         return true;
     }
-    if inner.eq_ignore_ascii_case("mark") || inner.eq_ignore_ascii_case("/mark") {
+    quotedly(after, "data-hue", |one| one.is_ascii_alphabetic()).is_some_and(str::is_empty)
+}
+
+fn kept(inner: &str) -> bool {
+    for one in ["u", "/u", "mark", "/mark", "/span"] {
+        if inner.eq_ignore_ascii_case(one) {
+            return true;
+        }
+    }
+    if iconed(inner) {
         return true;
     }
     let Some(pen) = inner

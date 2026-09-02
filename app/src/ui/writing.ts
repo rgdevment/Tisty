@@ -1186,9 +1186,6 @@ const PLAIN = new Set([
   "ordered_list_close",
 ]);
 
-/// A blank line anywhere makes Markdown call the whole list loose, and a nested list carries its
-/// own blank lines up to the one holding it. Both are read here, where the lines are still known.
-/// A list holding anything but prose is left alone: written tight it would not read back the same.
 const spaced = (md: {
   core: { ruler: { push: (name: string, rule: (state: { tokens: Lined[] }) => void) => void } };
 }): void => {

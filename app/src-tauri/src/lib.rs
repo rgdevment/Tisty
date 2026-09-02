@@ -3491,8 +3491,6 @@ fn parted(app: tauri::AppHandle) {
     app.exit(0);
 }
 
-/// The installer carries no loose files, so the notice every bundled licence asks for rides
-/// inside the binary and is shown from the About window.
 const NOTICES: &str = include_str!("../../../THIRD-PARTY-BUNDLED.md");
 
 #[tauri::command]
