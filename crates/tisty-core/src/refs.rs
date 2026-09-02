@@ -24,7 +24,7 @@ pub fn card(file: &str, title: &str) -> String {
             slash.into_iter().chain(std::iter::once(c))
         })
         .collect();
-    format!("![{said}]({DOC}{file})")
+    format!("[{said}]({DOC}{file})")
 }
 
 pub fn papers(text: &str) -> Vec<String> {

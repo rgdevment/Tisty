@@ -148,6 +148,24 @@ fn read_head(at: &std::path::Path) -> std::io::Result<Vec<u8>> {
     Ok(head)
 }
 
+pub fn may_reach(at: &std::path::Path, paths: &Paths) -> Result<std::path::PathBuf> {
+    let refused = || crate::Error::OutsideTheStore(at.display().to_string());
+    let found = at.canonicalize().map_err(|_| refused())?;
+
+    let mine = [paths.data(), paths.config(), paths.cache()];
+    if mine
+        .iter()
+        .filter_map(|one| one.canonicalize().ok())
+        .any(|one| found.starts_with(one))
+    {
+        return Err(refused());
+    }
+    if !reachable().iter().any(|root| found.starts_with(root)) {
+        return Err(refused());
+    }
+    Ok(found)
+}
+
 pub fn reachable() -> Vec<std::path::PathBuf> {
     let mut roots = vec![std::env::temp_dir()];
     if let Some(dirs) = directories::UserDirs::new() {

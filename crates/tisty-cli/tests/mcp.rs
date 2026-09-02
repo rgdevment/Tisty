@@ -272,6 +272,9 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "append_doc",
             "edit_doc",
             "docs",
+            "import_doc",
+            "export_doc",
+            "archive_doc",
             "file_doc",
             "page_doc",
             "folder",
@@ -1123,8 +1126,12 @@ solo lo mio." }),
     assert_eq!(again["result"]["isError"], true, "{again}");
     let why = again["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        why.contains("Read it again"),
-        "it has to say what to do: {why}"
+        why.contains("lo que escribio la persona"),
+        "it has to hand back what the document says now: {why}"
+    );
+    assert!(
+        why.contains("print: "),
+        "and the print that goes with it, so no second read is needed: {why}"
     );
 
     let back = served.call("read_doc", serde_json::json!({ "doc": name }));

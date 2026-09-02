@@ -743,5 +743,43 @@
     "why": [
       "html"
     ]
+  },
+  {
+    "text": "$$\n\\int_0^1 x\n$$",
+    "why": [
+      "maths"
+    ]
+  },
+  {
+    "text": "La formula $$a^2$$ va aqui",
+    "why": [
+      "maths"
+    ]
+  },
+  {
+    "text": "# t\n\n```math\n\\int_0^1 x\n```\n",
+    "why": []
+  },
+  {
+    "text": "Cuesta $$ mucho dinero",
+    "why": [
+      "maths"
+    ]
+  },
+  {
+    "text": "Cuesta 5 dolares y 3 mas",
+    "why": []
+  },
+  {
+    "text": "Un precio de $5 y otro de $7",
+    "why": []
+  },
+  {
+    "text": "# t\n\n```js\nconst a = \"$$\";\n```\n",
+    "why": []
+  },
+  {
+    "text": "Escapado \\$$ no cuenta",
+    "why": []
   }
 ]

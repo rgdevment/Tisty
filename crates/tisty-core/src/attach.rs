@@ -27,8 +27,19 @@ impl Kept {
     pub fn written(&self, label: &str) -> String {
         let name = spoken(label);
         let target = self.at.clone();
-        format!("![{name}](<{target}>)")
+        match pictured(&target) {
+            true => format!("![{name}](<{target}>)"),
+            false => format!("[{name}](<{target}>)"),
+        }
     }
+}
+
+pub fn pictured(at: &str) -> bool {
+    let said = at.rsplit_once('.').map(|(_, one)| one.to_ascii_lowercase());
+    matches!(
+        said.as_deref(),
+        Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" | "avif" | "bmp" | "heic")
+    )
 }
 
 /// In bytes: a body is measured in bytes and an accented label is two apiece.
@@ -1202,7 +1213,7 @@ mod tests {
     }
 
     #[test]
-    fn everything_that_is_kept_comes_in_as_a_card() {
+    fn a_picture_comes_in_as_one_and_everything_else_as_a_link() {
         let held = |at: &str| Kept {
             at: at.into(),
             sha256: "ab".into(),
@@ -1214,8 +1225,13 @@ mod tests {
         );
         assert_eq!(
             held("attachments/ab/cd.pdf").written("the invoice"),
-            "![the invoice](<attachments/ab/cd.pdf>)",
-            "what cannot be drawn still deserves a card, not a bare link"
+            "[the invoice](<attachments/ab/cd.pdf>)",
+            "what no reader can draw is a broken picture everywhere it is opened"
+        );
+        assert_eq!(
+            held("attachments/ab/cd.JPG").written("the roof"),
+            "![the roof](<attachments/ab/cd.JPG>)",
+            "however the extension was typed"
         );
     }
 
@@ -1226,7 +1242,7 @@ mod tests {
             sha256: "ab".into(),
         };
         let written = kept.written("clip (1).mkv");
-        assert!(written.starts_with("![clip (1).mkv](<"), "{written}");
+        assert!(written.starts_with("[clip (1).mkv](<"), "{written}");
         assert!(written.ends_with(">)"), "{written}");
     }
 
