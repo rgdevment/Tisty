@@ -284,10 +284,14 @@ fn main() -> ExitCode {
                 "a command ended in an error",
                 &blamed(asked(), &e),
             );
-            eprintln!(
-                "{}: {e}",
-                style::paint(style::RED, Lang::detect(None).get("error"))
-            );
+            let lang = Lang::detect(None);
+            let said = match e.downcast_ref::<tisty_core::Error>() {
+                Some(tisty_core::Error::UnsupportedVersion(_)) => {
+                    lang.get("store-newer").to_string()
+                }
+                _ => e.to_string(),
+            };
+            eprintln!("{}: {said}", style::paint(style::RED, lang.get("error")));
             ExitCode::from(EXIT_ERROR)
         }
     }

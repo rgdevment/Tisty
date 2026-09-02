@@ -15,6 +15,7 @@ const store = vi.hoisted(() => ({
   mute: false,
   shape: null as string | null,
   agrees: true,
+  locks: [] as { id: string; shut: boolean }[],
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -26,6 +27,9 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     switch (cmd) {
+      case "doc_lock":
+        store.locks.push({ id: String(args?.id), shut: Boolean(args?.shut) });
+        return Promise.resolve(null);
       case "doc_read":
         store.reads += 1;
         return Promise.resolve(store.bodies[String(args?.id)] ?? "");
@@ -65,21 +69,26 @@ vi.mock("../ui/Editor", () => ({
     onWrite,
     onShaped,
     reading,
+    below,
   }: {
     value: string;
     onWrite: (text: string) => void;
     onShaped?: (text: string) => void;
     reading?: boolean;
+    below?: React.ReactNode;
   }) => {
     if (!store.mute)
       onShaped?.(store.shape ?? value.replace(/<[^>]+>/g, "").replace(/\n{3,}/g, "\n\n"));
     return (
-      <textarea
-        aria-label="editor"
-        readOnly={reading}
-        value={value}
-        onChange={(e) => onWrite(e.target.value)}
-      />
+      <>
+        <textarea
+          aria-label="editor"
+          readOnly={reading}
+          value={value}
+          onChange={(e) => onWrite(e.target.value)}
+        />
+        {below}
+      </>
     );
   },
 }));
@@ -263,6 +272,35 @@ describe("the document being written", () => {
 
     expect(screen.getByLabelText("editor").hasAttribute("readonly")).toBe(false);
     expect(screen.getByText(/You are editing it|Lo estás editando/i)).toBeTruthy();
+  });
+
+  it("names what it cannot keep, rather than saying so in general", async () => {
+    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await screen.findByText(/needs to convert|necesita convertir/i);
+    expect(
+      screen.getByText(/HTML, which loses its tags|HTML, que pierde sus etiquetas/),
+    ).toBeTruthy();
+  });
+
+  it("stays shut when the person turns the warning down", async () => {
+    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
+    store.shape = "# Compras\n\n<div>sigue ahi</div>";
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByText(/needs to convert|necesita convertir/i);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
+    );
+    await screen.findByText(/could not be converted|no se pudo convertir/i);
+
+    store.agrees = false;
+    await userEvent.click(
+      screen.getByRole("button", { name: /Edit it anyway|Editarlo igualmente/ }),
+    );
+
+    expect(screen.getByLabelText("editor").hasAttribute("readonly")).toBe(true);
   });
 
   it("keeps what it was before rewriting it, and stops asking", async () => {
@@ -610,5 +648,72 @@ describe("a document that moved on disk while it was open", () => {
     expect(store.writes[store.writes.length - 1]?.anyway).toBe(true);
     expect(store.bodies["a3f1-0001"]).toContain("y pan");
     expect(screen.queryByText(/mientras lo tenías abierto|while you had it open/)).toBeNull();
+  });
+});
+
+describe("a document the person locked", () => {
+  const shut: Filed[] = [
+    { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false, locked: true },
+  ];
+
+  beforeEach(() => {
+    store.bodies = { "a3f1-0001": "# Compras\n\nleche" };
+    store.writes = [];
+  });
+
+  it("says who shut it, and that not even an assistant writes in it", async () => {
+    render(<Docs open="a3f1-0001" known={shut} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => screen.getByText(/Bloqueaste este documento|You locked this document/));
+  });
+
+  it("hands the editor nothing to write with", async () => {
+    render(<Docs open="a3f1-0001" known={shut} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => screen.getByText(/Bloqueaste|You locked/));
+    expect(screen.getByLabelText("editor")).toHaveProperty("readOnly", true);
+  });
+
+  it("unlocks it and asks the tree to look again", async () => {
+    const kept = vi.fn();
+    render(<Docs open="a3f1-0001" known={shut} onKept={kept} onError={vi.fn()} />);
+
+    await waitFor(() => screen.getByText(/Bloqueaste|You locked/));
+    await userEvent.click(screen.getByText(/Desbloquear|Unlock it/));
+
+    await waitFor(() => expect(kept).toHaveBeenCalled());
+    expect(store.locks).toEqual([{ id: "01F", shut: false }]);
+  });
+
+  it("offers no way of putting a loose page into a locked text", async () => {
+    const withPage: Filed[] = [
+      ...shut,
+      {
+        id: "01G",
+        file: "a3f1-0002",
+        title: "Verduras",
+        folder: null,
+        archived: false,
+        locked: true,
+        pageOf: "01F",
+      },
+    ];
+    const putting = { name: /Ponerla en el texto|Put it in the text/ };
+    const open = withPage.map((one) => ({ ...one, locked: false }));
+    const loose = render(<Docs open="a3f1-0001" known={open} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByRole("button", putting);
+    loose.unmount();
+
+    render(<Docs open="a3f1-0001" known={withPage} onKept={vi.fn()} onError={vi.fn()} />);
+    await waitFor(() => screen.getByText(/Bloqueaste|You locked/));
+
+    expect(screen.queryByRole("button", putting)).toBe(null);
+  });
+
+  it("writes nothing while it stays shut", async () => {
+    render(<Docs open="a3f1-0001" known={shut} onKept={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => screen.getByText(/Bloqueaste|You locked/));
+    expect(store.writes).toEqual([]);
   });
 });

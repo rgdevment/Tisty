@@ -157,12 +157,28 @@ pub fn carry_holding(
             moved.freed = let_go_of(data, dest, &carried, tisty_core::attach::COPIED_UP_TO);
         }
     }
-    let alive = match &said {
+    let alive: Vec<String> = match &said {
         Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
         None => alive.to_vec(),
     };
+    let told = said.or_else(|| as_told(&store, aside));
+    let Some(told) = told else {
+        witness::warn(
+            channel::SYNC,
+            "this store would not project, so no document was carried either way",
+            &[],
+        );
+        moved.astray = alive;
+        return Ok(moved);
+    };
+    let shut: Vec<String> = told
+        .docs
+        .values()
+        .filter(|paper| told.shut(paper.id))
+        .map(|paper| paper.file.clone())
+        .collect();
     if !alive.is_empty() {
-        let papers = carry_papers_leaning_on(data, dest, &alive, again)?;
+        let papers = carry_papers_leaning_on(data, dest, &alive, &shut, again)?;
         moved.sent += papers.sent;
         moved.brought += papers.brought;
         moved.undecided = papers.undecided;
@@ -1039,13 +1055,23 @@ fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
 }
 
 pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, false)
+    carry_papers_leaning_on(data, dest, alive, &[], false)
+}
+
+pub fn carry_papers_holding(
+    data: &Path,
+    dest: &Path,
+    alive: &[String],
+    shut: &[String],
+) -> Result<Moved, Trouble> {
+    carry_papers_leaning_on(data, dest, alive, shut, false)
 }
 
 fn carry_papers_leaning_on(
     data: &Path,
     dest: &Path,
     alive: &[String],
+    shut: &[String],
     again: bool,
 ) -> Result<Moved, Trouble> {
     use tisty_core::docs::{Carried, Move, moved, print_of};
@@ -1118,6 +1144,28 @@ fn carry_papers_leaning_on(
                         settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
                     }
+                }
+                Move::Bring if shut.contains(id) => {
+                    witness::warn(
+                        channel::SYNC,
+                        "a locked document arrived changed, so it waits for the person",
+                        &[("at", Fact::Id(id.clone()))],
+                    );
+                    done.undecided.push(Undecided {
+                        id: id.clone(),
+                        theirs: yours.unwrap_or_default(),
+                    });
+                }
+                Move::TheyDecide if shut.contains(id) => {
+                    witness::warn(
+                        channel::SYNC,
+                        "a locked document was written on both sides, and no join writes over it",
+                        &[("at", Fact::Id(id.clone()))],
+                    );
+                    done.undecided.push(Undecided {
+                        id: id.clone(),
+                        theirs: yours.unwrap_or_default(),
+                    });
                 }
                 Move::Bring => {
                     std::fs::create_dir_all(&here).map_err(io)?;
@@ -2641,6 +2689,98 @@ mod tests {
 
         assert_eq!(done.sent, 1);
         assert_eq!(body(shared.path(), "dev_a-0001"), "# Minuta\n\nlo que dije");
+    }
+
+    #[test]
+    fn a_locked_document_is_not_written_over_by_a_round() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let alive = vec!["dev_a-0001".to_string()];
+        let shut = alive.clone();
+        paper(&one, "dev_a-0001", "# Minuta");
+        carry_papers_holding(&one.data, shared.path(), &alive, &shut).unwrap();
+        theirs(
+            shared.path(),
+            "dev_a-0001",
+            "# Minuta
+
+lo suyo",
+        );
+
+        let done = carry_papers_holding(&one.data, shared.path(), &alive, &shut).unwrap();
+
+        assert_eq!(body(&one.data, "dev_a-0001"), "# Minuta");
+        assert_eq!(done.brought, 0, "nothing was written over the lock");
+        assert_eq!(done.undecided_ids(), vec!["dev_a-0001".to_string()]);
+    }
+
+    #[test]
+    fn a_locked_document_written_on_both_sides_waits_instead_of_joining() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        let alive = at_odds(&one, shared.path());
+
+        let done = carry_papers_holding(&one.data, shared.path(), &alive, &alive).unwrap();
+
+        assert_eq!(
+            body(&one.data, "dev_a-0001"),
+            "# Minuta
+
+lo mio"
+        );
+        assert!(done.joined.is_empty(), "a lock is not joined away");
+        assert_eq!(done.undecided_ids(), vec!["dev_a-0001".to_string()]);
+    }
+
+    #[test]
+    fn a_log_that_will_not_project_carries_no_body_either_way() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        paper(&one, "dev_a-0001", "# Mio");
+        theirs(shared.path(), "dev_a-0001", "# Suyo");
+        let mine = one.store.join(&one.device).join("active.tisty");
+        std::fs::create_dir_all(mine.parent().unwrap()).unwrap();
+        std::fs::write(
+            &mine,
+            "{\"v\":99,\"ts\":\"2026-01-01T00:00:00Z\"}
+",
+        )
+        .unwrap();
+
+        let done = carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Pull,
+            &["dev_a-0001".to_string()],
+        )
+        .unwrap();
+
+        assert_eq!(
+            body(&one.data, "dev_a-0001"),
+            "# Mio",
+            "not knowing what is locked is not knowing what may be written"
+        );
+        assert_eq!(done.brought, 0);
+        assert_eq!(done.astray, vec!["dev_a-0001".to_string()]);
+    }
+
+    #[test]
+    fn a_locked_document_still_goes_out_to_the_folder() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        paper(&one, "dev_a-0001", "# Lo que guardo");
+
+        let done = carry_papers_holding(
+            &one.data,
+            shared.path(),
+            &["dev_a-0001".into()],
+            &["dev_a-0001".into()],
+        )
+        .unwrap();
+
+        assert_eq!(done.sent, 1, "the protected copy is the one that travels");
+        assert_eq!(body(shared.path(), "dev_a-0001"), "# Lo que guardo");
     }
 
     #[test]

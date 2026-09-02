@@ -62,6 +62,8 @@ pub const KNOWN_OPS: &[&str] = &[
     "doc.delete",
     "doc.archive",
     "doc.unarchive",
+    "doc.lock",
+    "doc.unlock",
     "device.join",
     "device.remove",
     "attach.retire",
@@ -149,6 +151,10 @@ pub enum Op {
     DocArchive { id: DocId },
     #[serde(rename = "doc.unarchive")]
     DocUnarchive { id: DocId },
+    #[serde(rename = "doc.lock")]
+    DocLock { id: DocId },
+    #[serde(rename = "doc.unlock")]
+    DocUnlock { id: DocId },
 
     #[serde(rename = "device.join")]
     DeviceJoin {
@@ -243,6 +249,8 @@ impl Op {
             Op::DocDelete { .. } => Op::DocDelete { id },
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
+            Op::DocLock { .. } => Op::DocLock { id },
+            Op::DocUnlock { .. } => Op::DocUnlock { id },
             Op::DeviceJoin { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }
@@ -339,7 +347,9 @@ impl Op {
             | Op::DocMove { id, .. }
             | Op::DocDelete { id }
             | Op::DocArchive { id }
-            | Op::DocUnarchive { id } => Some(*id),
+            | Op::DocUnarchive { id }
+            | Op::DocLock { id }
+            | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }

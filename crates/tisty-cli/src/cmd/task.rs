@@ -91,6 +91,9 @@ pub fn attach(
         if kept.archived {
             anyhow::bail!("{}", lang.fill("doc-put-away", &[("name", selector)]));
         }
+        if app.state.shut(kept.id) {
+            anyhow::bail!("{}", lang.fill("doc-locked", &[("name", selector)]));
+        }
         return into_doc(app, selector, at, &named, lang);
     }
     let open: Vec<&tisty_core::Task> = app.state.tasks.values().collect();

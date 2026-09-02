@@ -340,6 +340,9 @@ impl Session {
             .docs
             .get(&id)
             .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+        if self.state.shut(id) {
+            return Err(Refusal::of("documentLocked"));
+        }
         let mut files = vec![kept.file.clone()];
         files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
         self.commit(Op::DocDelete { id })?;
@@ -594,9 +597,67 @@ impl From<tisty_core::Error> for Refusal {
     }
 }
 
+const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
+
+fn speaks_spanish() -> bool {
+    let chosen = tisty_core::Paths::resolve()
+        .ok()
+        .and_then(|paths| tisty_core::config::Config::load_or_init(&paths).ok())
+        .and_then(|config| config.locale);
+    tisty_core::model::spoken(chosen.as_deref())
+        .to_lowercase()
+        .starts_with("es")
+}
+
+fn behind_words(spanish: bool, itself: bool) -> (String, &'static str, &'static str) {
+    let (said, how, yes, no) = if spanish {
+        (
+            "Tus datos los escribió un Tisty más nuevo que el de este equipo.
+
+Actualiza Tisty antes de seguir: abrirlos con esta versión perdería trabajo.",
+            "
+
+Esta copia la actualiza quien la instaló, no Tisty.",
+            "Actualizar",
+            "Cerrar",
+        )
+    } else {
+        (
+            "Your data was written by a newer Tisty than the one on this machine.
+
+Update Tisty before going on: opening it with this version would lose work.",
+            "
+
+This copy is updated by whoever installed it, not by Tisty.",
+            "Update",
+            "Close",
+        )
+    };
+    match itself {
+        true => (said.to_string(), yes, no),
+        false => (format!("{said}{how}"), yes, no),
+    }
+}
+
+fn takes_itself_there() -> bool {
+    update::self_installs(update::route().route) && !update::from_a_mount()
+}
+
+fn behind_said() -> String {
+    behind_words(speaks_spanish(), takes_itself_there()).0
+}
+
+fn behind_buttons() -> (&'static str, &'static str) {
+    let (_, yes, no) = behind_words(speaks_spanish(), takes_itself_there());
+    (yes, no)
+}
+
 fn blamed(channel: &'static str, said: &'static str, error: tisty_core::Error) -> Refusal {
     witness::error(channel, said, &error.told());
-    Refusal::about("internalNamed", error.to_string())
+    match error {
+        tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+        other => Refusal::about("internalNamed", other.to_string()),
+    }
 }
 
 type Answer<T> = std::result::Result<T, Refusal>;
@@ -2433,6 +2494,7 @@ struct Filed {
     title: String,
     folder: Option<String>,
     archived: bool,
+    locked: bool,
     gone: bool,
     page_of: Option<String>,
 }
@@ -2458,6 +2520,7 @@ fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
             title: found.map(|one| one.title.clone()).unwrap_or_default(),
             folder: kept.folder.map(|at| at.to_string()),
             archived: kept.archived,
+            locked: session.state.shut(kept.id),
             gone: found.is_none(),
             page_of: kept.page_of.map(|up| up.to_string()),
         });
@@ -2991,6 +3054,9 @@ fn doc_write(
     anyway: Option<bool>,
 ) -> Answer<tisty_core::docs::Doc> {
     let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     if !anyway.unwrap_or(false) && session.moved(&id) {
         return Err(Refusal::about("documentMoved", id));
     }
@@ -3015,6 +3081,23 @@ fn doc_write(
 #[tauri::command(async)]
 fn doc_order(session: tauri::State<'_, Mutex<Session>>, id: String, body: String) -> Answer<bool> {
     Ok(held(&session).retell(&id, &body))
+}
+
+#[tauri::command]
+fn doc_lock(session: tauri::State<'_, Mutex<Session>>, id: String, shut: bool) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let mut session = held(&session);
+    match session.state.docs.get(&id) {
+        None => return Err(Refusal::of("noSuchDoc")),
+        Some(one) if shut && one.page_of.is_some() => return Err(Refusal::of("lockIsTheDocs")),
+        Some(_) => {}
+    }
+    session.commit(if shut {
+        Op::DocLock { id }
+    } else {
+        Op::DocUnlock { id }
+    })?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -3047,6 +3130,9 @@ fn doc_copy(
         .get(&id)
         .cloned()
         .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+    if kept.page_of.is_some_and(|up| session.state.shut(up)) {
+        return Err(Refusal::of("pageOfLocked"));
+    }
 
     let root = session.paths.docs();
     let body = tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
@@ -3274,6 +3360,8 @@ fn doc_new(
         Some(up) => match session.state.docs.get(&up) {
             None => return Err(Refusal::of("noSuchDoc")),
             Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
+            Some(one) if one.archived => return Err(Refusal::of("pageOfAway")),
+            Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
             Some(one) => Some(one.folder),
         },
         None => None,
@@ -3319,6 +3407,9 @@ fn doc_page(
         Some(one) if one.page_of == page_of => return Ok(()),
         Some(_) => {}
     }
+    if session.state.shut(id) {
+        return Err(Refusal::of("lockedStaysPut"));
+    }
     if let Some(up) = page_of {
         if up == id {
             return Err(Refusal::of("pageOfPage"));
@@ -3327,6 +3418,7 @@ fn doc_page(
             None => return Err(Refusal::of("noSuchDoc")),
             Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
             Some(one) if one.archived => return Err(Refusal::of("pageOfAway")),
+            Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
             Some(_) => {}
         }
         // Hanging carries the parent's archived state over, and the inverse cannot carry it back.
@@ -3599,7 +3691,10 @@ async fn settle_in(
                 "the cache could not be audited on settling in",
                 &[("why", Fact::Why(e.to_string()))],
             );
-            Refusal::of("internal")
+            match e {
+                tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+                _ => Refusal::of("internal"),
+            }
         })?;
     let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
     if !agrees {
@@ -3934,7 +4029,10 @@ async fn back_up(
                     "the backup could not be written",
                     &[("why", Fact::Why(e.to_string()))],
                 );
-                Refusal::about("cannotWrite", into)
+                match e {
+                    tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+                    _ => Refusal::about("cannotWrite", into),
+                }
             })?;
 
     let now = jiff::Timestamp::now();
@@ -3949,6 +4047,9 @@ fn convert_paper(
     body: String,
 ) -> Answer<()> {
     let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     let papers = session.paths.docs();
     let was = tisty_core::docs::read(&papers, &id)
         .map_err(|_| Refusal::about("cannotRead", id.clone()))?;
@@ -4003,6 +4104,9 @@ fn print_of_three(base: &str, mine: &str, theirs: &str) -> String {
 #[tauri::command(async)]
 fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Torn> {
     let session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
         return Ok(Torn {
             rifts: Vec::new(),
@@ -4023,6 +4127,9 @@ fn weave_paper(
     print: String,
 ) -> Answer<()> {
     let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
         return Err(Refusal::of("noBase"));
     };
@@ -4059,6 +4166,9 @@ fn settle_paper(
     marked: Option<String>,
 ) -> Answer<Option<String>> {
     let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
         return Err(Refusal::of("noRemote"));
     };
@@ -4314,6 +4424,7 @@ async fn restore(
         .map_err(|e| match e {
             tisty_core::Error::OtherStore { theirs } => Refusal::about("otherStore", theirs),
             tisty_core::Error::Io(why) => Refusal::about("restoreFailed", why.to_string()),
+            tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
             _ => Refusal::about("cannotRead", from.clone()),
         })?;
 
@@ -4808,16 +4919,32 @@ pub fn run() {
             let session = match Session::open() {
                 Ok(session) => session,
                 Err(why) => {
-                    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+                    use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
                     witness::error(channel::WINDOW, "the session would not open", &why.told());
                     for window in app.webview_windows().values() {
                         let _ = window.close();
                     }
-                    app.dialog()
-                        .message(why.to_string())
+                    let behind = matches!(why, tisty_core::Error::UnsupportedVersion(_));
+                    let said = app
+                        .dialog()
+                        .message(if behind {
+                            behind_said()
+                        } else {
+                            why.to_string()
+                        })
                         .kind(MessageDialogKind::Error)
-                        .title("Tisty")
-                        .blocking_show();
+                        .title("Tisty");
+                    if behind {
+                        let (yes, no) = behind_buttons();
+                        if said
+                            .buttons(MessageDialogButtons::OkCancelCustom(yes.into(), no.into()))
+                            .blocking_show()
+                        {
+                            let _ = tauri_plugin_opener::open_url(RELEASES, None::<&str>);
+                        }
+                    } else {
+                        said.blocking_show();
+                    }
                     std::process::exit(1);
                 }
             };
@@ -5062,6 +5189,7 @@ pub fn run() {
             doc_let_go,
             retire_attachments,
             doc_away,
+            doc_lock,
             parted,
             sow,
             printed,
@@ -5828,5 +5956,31 @@ version 0.1.0
                 assert!(root.join(tongue).join(shot).is_file(), "falta {shot}");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod behind_tests {
+    use super::*;
+
+    #[test]
+    fn what_a_machine_left_behind_is_told_says_what_to_do_not_what_broke() {
+        for spanish in [true, false] {
+            for itself in [true, false] {
+                let (said, yes, no) = behind_words(spanish, itself);
+                assert!(!said.contains("schema"), "{said}");
+                assert!(!said.chars().any(|one| one.is_ascii_digit()), "{said}");
+                assert!(!yes.is_empty() && !no.is_empty());
+                assert_eq!(
+                    itself,
+                    !said.contains("instaló") && !said.contains("installed"),
+                    "a copy something else updates has to be told so: {said}"
+                );
+            }
+        }
+        assert!(
+            update::ours(RELEASES),
+            "the offer has to lead where our releases live"
+        );
     }
 }

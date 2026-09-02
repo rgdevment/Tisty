@@ -631,6 +631,7 @@ export interface Filed {
   folder: string | null;
   pageOf?: string | null;
   archived: boolean;
+  locked?: boolean;
   gone?: boolean;
 }
 
@@ -674,6 +675,8 @@ export const sow = (priority?: Priority): Promise<void> => invoke("sow", { prior
 
 export const docAway = (id: string, away: boolean): Promise<void> =>
   invoke("doc_away", { id, away });
+export const docLock = (id: string, shut: boolean): Promise<void> =>
+  invoke("doc_lock", { id, shut });
 
 export const docCopy = (id: string): Promise<Doc> => invoke("doc_copy", { id });
 

@@ -7,6 +7,7 @@ import {
   attached,
   convertPaper,
   docExport,
+  docLock,
   docOrder,
   docRead,
   docWrite,
@@ -283,13 +284,15 @@ export default function Docs({
       .catch((e) => onError(saidPlainly(e)));
   };
 
-  const anyway = () => {
+  const anyway = async () => {
+    const losing = (warned ?? []).map((one) => t(one as Parameters<typeof t>[0])).join(" · ");
+    if (!(await ask(fill("frailAnywaySure", losing), { kind: "warning" }))) return;
     setStuck(false);
     setReading(false);
   };
 
   const wrote = (text: string) => {
-    if (!open || reading) return;
+    if (!open || reading || bolted) return;
     setBody(text);
     held.current = { id: open.file, body: text };
     if (settling.current) clearTimeout(settling.current);
@@ -297,6 +300,7 @@ export default function Docs({
   };
 
   const own = filed(known, open?.file);
+  const bolted = Boolean(own?.locked);
   const pages = pagesOf(known, open?.file);
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
@@ -475,10 +479,10 @@ export default function Docs({
           <div style={wall} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Editor
-                key={`${open.file}${reading ? ":read" : ""}`}
+                key={`${open.file}${reading || bolted ? ":read" : ""}`}
                 value={body}
-                taking={!reading}
-                reading={reading}
+                taking={!reading && !bolted}
+                reading={reading || bolted}
                 label={open.title || t("untitledDoc")}
                 papers={known}
                 folder={open.folder}
@@ -508,7 +512,7 @@ export default function Docs({
                           pages={pages}
                           told={told}
                           onOpen={(page) => onDoc?.(page.file)}
-                          onPut={reading ? undefined : (page) => putting.current?.(page)}
+                          onPut={reading || bolted ? undefined : (page) => putting.current?.(page)}
                         />
                       )
                 }
@@ -590,13 +594,39 @@ export default function Docs({
             </button>
           </div>
         )}
-        {warned && open && (
+        {bolted && open && (
           <div
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
           >
-            <span className="text-soft">
+            <span className="text-soft">{t("docBolted")}</span>
+            <button
+              type="button"
+              onClick={() =>
+                Promise.all(
+                  [own?.id, own?.pageOf]
+                    .filter((one): one is string => typeof one === "string")
+                    .map((one) => docLock(one, false)),
+                )
+                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .catch((e) => onError(saidPlainly(e)))
+              }
+              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+            >
+              {t("unlockIt")}
+            </button>
+          </div>
+        )}
+        {warned && !bolted && open && (
+          <div
+            style={wall}
+            className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
+          >
+            <span className={reading ? "text-soft" : "text-urgent"}>
               {t(reading ? (stuck ? "frailStuck" : "frailNeeds") : "frailLosing")}
+            </span>
+            <span className="text-faint">
+              {warned.map((one) => t(one as Parameters<typeof t>[0])).join(" · ")}
             </span>
             {reading && (
               <button

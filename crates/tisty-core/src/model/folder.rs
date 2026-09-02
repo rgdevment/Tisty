@@ -48,6 +48,8 @@ pub struct Kept {
     pub page_of: Option<DocId>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub archived: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub locked: bool,
 }
 
 #[cfg(test)]
@@ -71,6 +73,7 @@ mod tests {
             folder: None,
             page_of: None,
             archived: false,
+            locked: false,
         };
         let json = serde_json::to_string(&kept).unwrap();
 

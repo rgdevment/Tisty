@@ -504,6 +504,8 @@ pub fn advance(
                 | crate::Op::DocDelete { .. }
                 | crate::Op::DocArchive { .. }
                 | crate::Op::DocUnarchive { .. }
+                | crate::Op::DocLock { .. }
+                | crate::Op::DocUnlock { .. }
         ) || matches!(&e.op, crate::Op::DocMove { d, .. } if d.folder.is_some() || d.page_of.is_some())
     }) {
         cache.invalidate();

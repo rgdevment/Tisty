@@ -49,6 +49,8 @@ to consult. Writing one creates no task: if something has to happen, propose it.
 what is written already and the folders it is kept in; you can make a folder and file documents \
 into it, but you can never delete or rename one.
 
+A document can be locked, and a locked one is refused every write: not `write_doc`, not `append_doc`, not `edit_doc`, not `attach`, not hanging a page off it. Its pages are shut with it — `page_doc` neither hangs one off it nor takes one out — and a page is never locked on its own. Filing it in a folder and putting it away still work: what the lock guards is what the document says and what it holds. `docs` and `read_doc` both say so, so you can see it before you try. Only the person can unlock it, from the window — there is no tool for it here, on purpose. A lock is not the archive: an archived document is finished, a locked one is guarded.
+
 A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
 A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `edit_doc` that line into the place it belongs — moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
@@ -649,6 +651,12 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
                     "no document here is called {which:?}. `docs` lists them all."
                 )));
             };
+            if state.shut(kept.id) {
+                return Err(Refused::Tool(format!(
+                    "{which:?} is locked. The person shut it so nothing writes in it — not the \
+                     window, not you. Ask them to unlock it if the file truly has to go there."
+                )));
+            }
             match kept.archived {
                 true => Err(Refused::Tool(format!(
                     "{which:?} is put away, so nothing more goes into it. Keep the file with a \
@@ -952,6 +960,12 @@ fn over_again(
             "{which:?} is put away, so nothing is written over it."
         )));
     }
+    if state.shut(kept.id) {
+        return Err(Refused::Tool(format!(
+            "{which:?} is locked. The person shut it so nothing writes in it — not the \
+             window, not you. Ask them to unlock it if it truly has to change."
+        )));
+    }
     if text(args, "folder").is_some() || text(args, "page_of").is_some() {
         return Err(Refused::Tool(format!(
             "replacing the body of {which:?} does not move it. `file_doc` puts a document in a folder and `page_doc` makes it a page."
@@ -1043,6 +1057,12 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 return Err(Refused::Tool(format!(
                     "{said} is put away, and a page of it would be put away unread. Write a \
                      document of its own instead."
+                )));
+            }
+            if state.shut(up.id) {
+                return Err(Refused::Tool(format!(
+                    "{said} is locked, and hanging a page off it writes the line that names \
+                     it in its body. Ask the person to unlock it first."
                 )));
             }
             Some(up.id)
@@ -1140,6 +1160,12 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{which:?} is put away, so nothing more goes into it. Write a new document instead."
         )));
     }
+    if state.shut(kept.id) {
+        return Err(Refused::Tool(format!(
+            "{which:?} is locked. The person shut it so nothing writes in it — not the \
+             window, not you. Ask them to unlock it if it truly has to change."
+        )));
+    }
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
@@ -1197,6 +1223,12 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if kept.archived {
         return Err(Refused::Tool(format!(
             "{which:?} is put away, so it is not edited any more."
+        )));
+    }
+    if state.shut(kept.id) {
+        return Err(Refused::Tool(format!(
+            "{which:?} is locked. The person shut it so nothing writes in it — not the \
+             window, not you. Ask them to unlock it if it truly has to change."
         )));
     }
     tisty_core::docs::survives(new).map_err(|eats| {
@@ -1334,6 +1366,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 "page_of": one.page_of.and_then(|up| named_doc(&state, up)),
                 "pages": state.pages_of(one.id).len(),
                 "archived": one.archived,
+                "locked": state.shut(one.id),
             })
         })
         .collect();
@@ -1374,8 +1407,13 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             } else {
                 ""
             };
+            let shut = if one["locked"] == json!(true) {
+                ", locked"
+            } else {
+                ""
+            };
             format!(
-                "{} — {} ({where_at}{holds}{put_away})",
+                "{} — {} ({where_at}{holds}{put_away}{shut})",
                 said(one, "doc"),
                 said(one, "title")
             )
@@ -1465,6 +1503,13 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
+    if state.shut(kept.id) {
+        return Err(Refused::Tool(format!(
+            "{which} is locked. Where a locked document sits is part of what the person shut \
+             away, so it neither becomes a page nor leaves the one that holds it. Ask them to \
+             unlock it first."
+        )));
+    }
     let page_of = match text(args, "page_of") {
         None => None,
         Some(said) => {
@@ -1488,6 +1533,12 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 return Err(Refused::Tool(format!(
                     "{said} is put away, and a page of it is put away with it. Leave {which} \
                      where it is."
+                )));
+            }
+            if state.shut(up.id) {
+                return Err(Refused::Tool(format!(
+                    "{said} is locked, and hanging a page off it writes the line that names \
+                     it. Ask the person to unlock it first."
                 )));
             }
             if state.docs.values().any(|one| one.page_of == Some(kept.id)) {
@@ -1701,6 +1752,7 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .map(|one| one.file.clone())
                 .collect::<Vec<_>>(),
             "archived": kept.archived,
+            "locked": state.shut(kept.id),
             "print": tisty_core::attach::printed(body.as_bytes()),
         }),
     ))
@@ -1994,7 +2046,7 @@ fn tools() -> Value {
         {
             "name": "docs",
             "title": "The documents and the folders",
-            "description": "Everything written down here, newest first, with the folder each one sits in and whether it was put away. Ask for it before writing, so you do not write again what is already kept.",
+            "description": "Everything written down here, newest first, with the folder each one sits in, whether it was put away and whether it is locked. Ask for it before writing, so you do not write again what is already kept.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,

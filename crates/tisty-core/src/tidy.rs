@@ -326,6 +326,7 @@ mod tests {
                     folder: None,
                     page_of: up,
                     archived: false,
+                    locked: false,
                 },
             );
         };

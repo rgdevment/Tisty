@@ -48,6 +48,7 @@ const KNOWN = [
   "sharedIsTheBackup",
   "otherStore",
   "syncNewer",
+  "storeNewer",
   "cannotWrite",
   "attachmentTooBig",
   "attachmentTooBigHere",
@@ -78,6 +79,10 @@ const KNOWN = [
   "awayStaysAway",
   "folderNameTooLong",
   "documentBeingWritten",
+  "documentLocked",
+  "pageOfLocked",
+  "lockedStaysPut",
+  "lockIsTheDocs",
   "documentMoved",
   "comingDown",
   "sharedAway",
@@ -94,12 +99,21 @@ type Known = (typeof KNOWN)[number];
 
 const isKnown = (code: string): code is Known => (KNOWN as readonly string[]).includes(code);
 
+const BEHIND = ["storeNewer", "syncNewer"];
+
+let noticing: ((behind: boolean) => void) | null = null;
+
+export const noticeBehind = (fn: ((behind: boolean) => void) | null) => {
+  noticing = fn;
+};
+
 export function saidPlainly(problem: unknown): string {
   const refusal = problem as Refusal | undefined;
   if (!refusal || typeof refusal.code !== "string") {
     return technical(String(problem));
   }
   noteTrouble(refusal.code).catch(() => {});
+  noticing?.(BEHIND.includes(refusal.code));
   if (!isKnown(refusal.code)) {
     return technical(refusal.name ?? refusal.code);
   }
