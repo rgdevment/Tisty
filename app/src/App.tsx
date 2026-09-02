@@ -132,7 +132,7 @@ export default function App() {
   }, [behind]);
 
   useEffect(() => {
-    noticeBehind(() => setBehind(true));
+    noticeBehind(setBehind);
     return () => noticeBehind(null);
   }, []);
   const twice = useRef(0);
@@ -364,7 +364,7 @@ export default function App() {
         }
         return done.brought && latest.current();
       })
-      .catch(() => {})
+      .catch((problem) => setError(saidPlainly(problem)))
       .finally(() => setSettling(false));
   }, []);
 
@@ -378,6 +378,8 @@ export default function App() {
   latest.current = load;
   const papersAgain = useRef(lookPapers);
   papersAgain.current = lookPapers;
+  const papersNow = useRef(papers.docs);
+  papersNow.current = papers.docs;
   useEffect(() => {
     const carrier = carrying(
       () => {
@@ -386,7 +388,17 @@ export default function App() {
         papersAgain.current();
       },
       (ids) => {
-        decideAll(ids).finally(() => latest.current());
+        decideAll(ids)
+          .then((shut) => {
+            if (!shut.length) return;
+            const named = shut
+              .map((one) => papersNow.current.find((doc) => doc.file === one))
+              .map((one) => `«${one?.title?.trim() || t("untitledDoc")}»`)
+              .join(", ");
+            setError(fill("someLockedAtOdds", named));
+          })
+          .catch((problem) => setError(saidPlainly(problem)))
+          .finally(() => latest.current());
       },
       (why) => {
         const now = why?.why ?? null;
@@ -758,6 +770,7 @@ export default function App() {
           key: "drop",
           icon: "✕",
           label: t("deleteIt"),
+          off: doc.locked,
           danger: true,
           onPick: () => dropDoc(doc),
         },
@@ -825,17 +838,20 @@ export default function App() {
               {t("stuckTakeMe")}
             </button>
           )}
-          {behind && (
+          {behind && ready?.installs && (
             <button
               type="button"
-              onClick={() =>
+              disabled={!!underway}
+              onClick={() => {
+                setUnderway({ stage: "getting", far: 0 });
                 updateInstall().catch((problem) => {
+                  setUnderway(null);
                   setError(saidPlainly(problem));
-                })
-              }
+                });
+              }}
               className="shrink-0 rounded border border-urgent/45 px-1.5 py-0.5 hover:bg-urgent/15"
             >
-              {t("updateInstall")}
+              {t(underway ? "updateInstalling" : "updateInstall")}
             </button>
           )}
           <button

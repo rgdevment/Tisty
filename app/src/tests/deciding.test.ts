@@ -10,6 +10,7 @@ const torn = vi.hoisted(() => ({
   said: { rifts: [] as Rift[], print: "" },
   refuses: false,
   locked: false,
+  blind: false,
 }));
 
 const asked = vi.hoisted(() => ({
@@ -22,6 +23,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "docs") {
+      if (torn.blind) return Promise.reject(new Error("no"));
       return Promise.resolve({
         folders: [],
         docs: [
@@ -55,6 +57,7 @@ beforeEach(() => {
   torn.said = { rifts: [], print: "" };
   torn.refuses = false;
   torn.locked = false;
+  torn.blind = false;
   decidesByBlock(null);
   ipc.calls = [];
   asked.held = [];
@@ -157,6 +160,16 @@ describe("a document the person locked, at odds with another machine", () => {
     expect(asked.said).toEqual([]);
     expect(settled()).toEqual([]);
     expect(woven()).toEqual([]);
+  });
+
+  it("decides nothing at all when it cannot find out what is locked", async () => {
+    torn.blind = true;
+
+    const shut = await decideAll(["dev_a-0001", "dev_a-0002"]);
+
+    expect(shut).toEqual(["dev_a-0001", "dev_a-0002"]);
+    expect(asked.said).toEqual([]);
+    expect(settled()).toEqual([]);
   });
 
   it("still settles the ones that are not locked", async () => {

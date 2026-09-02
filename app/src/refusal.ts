@@ -101,9 +101,9 @@ const isKnown = (code: string): code is Known => (KNOWN as readonly string[]).in
 
 const BEHIND = ["storeNewer", "syncNewer"];
 
-let noticing: (() => void) | null = null;
+let noticing: ((behind: boolean) => void) | null = null;
 
-export const noticeBehind = (fn: (() => void) | null) => {
+export const noticeBehind = (fn: ((behind: boolean) => void) | null) => {
   noticing = fn;
 };
 
@@ -113,7 +113,7 @@ export function saidPlainly(problem: unknown): string {
     return technical(String(problem));
   }
   noteTrouble(refusal.code).catch(() => {});
-  if (BEHIND.includes(refusal.code)) noticing?.();
+  noticing?.(BEHIND.includes(refusal.code));
   if (!isKnown(refusal.code)) {
     return technical(refusal.name ?? refusal.code);
   }

@@ -142,7 +142,9 @@ describe("a shared folder that belongs to another history", () => {
 
 describe("a store written by a newer Tisty", () => {
   it("says so plainly instead of handing over a technical line", async () => {
-    settling = { ran: true, brought: false, agrees: true, stuck: { code: "storeNewer" } };
+    const was = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "settle_in" ? Promise.reject({ code: "storeNewer" }) : was(cmd, args);
     render(<App />);
 
     const said = await screen.findByRole("alert");
@@ -165,7 +167,19 @@ describe("a store written by a newer Tisty", () => {
       }
       return was(cmd, args);
     };
-    settling = { ran: true, brought: false, agrees: true, stuck: { code: "storeNewer" } };
+    ipc.answer = (cmd, args) => {
+      asked.push(cmd);
+      if (cmd === "settle_in") return Promise.reject({ code: "storeNewer" });
+      if (cmd === "update_ready") {
+        return Promise.resolve({
+          version: "9.9.9",
+          route: "download",
+          package: null,
+          installs: true,
+        });
+      }
+      return was(cmd, args);
+    };
     render(<App />);
 
     const said = await screen.findByRole("alert");

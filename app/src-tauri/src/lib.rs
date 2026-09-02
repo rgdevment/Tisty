@@ -600,30 +600,56 @@ impl From<tisty_core::Error> for Refusal {
 const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
 
 fn speaks_spanish() -> bool {
-    tisty_core::model::spoken(None)
+    let chosen = tisty_core::Paths::resolve()
+        .ok()
+        .and_then(|paths| tisty_core::config::Config::load_or_init(&paths).ok())
+        .and_then(|config| config.locale);
+    tisty_core::model::spoken(chosen.as_deref())
         .to_lowercase()
         .starts_with("es")
 }
 
-fn behind_said() -> String {
-    if speaks_spanish() {
-        "Tus datos los escribió un Tisty más nuevo que el de este equipo.
+fn behind_words(spanish: bool, itself: bool) -> (String, &'static str, &'static str) {
+    let (said, how, yes, no) = if spanish {
+        (
+            "Tus datos los escribió un Tisty más nuevo que el de este equipo.
 
-Actualiza Tisty antes de seguir: abrirlos con esta versión perdería trabajo."
+Actualiza Tisty antes de seguir: abrirlos con esta versión perdería trabajo.",
+            "
+
+Esta copia la actualiza quien la instaló, no Tisty.",
+            "Actualizar",
+            "Cerrar",
+        )
     } else {
-        "Your data was written by a newer Tisty than the one on this machine.
+        (
+            "Your data was written by a newer Tisty than the one on this machine.
 
-Update Tisty before going on: opening it with this version would lose work."
+Update Tisty before going on: opening it with this version would lose work.",
+            "
+
+This copy is updated by whoever installed it, not by Tisty.",
+            "Update",
+            "Close",
+        )
+    };
+    match itself {
+        true => (said.to_string(), yes, no),
+        false => (format!("{said}{how}"), yes, no),
     }
-    .to_string()
+}
+
+fn takes_itself_there() -> bool {
+    update::self_installs(update::route().route) && !update::from_a_mount()
+}
+
+fn behind_said() -> String {
+    behind_words(speaks_spanish(), takes_itself_there()).0
 }
 
 fn behind_buttons() -> (&'static str, &'static str) {
-    if speaks_spanish() {
-        ("Actualizar", "Cerrar")
-    } else {
-        ("Update", "Close")
-    }
+    let (_, yes, no) = behind_words(speaks_spanish(), takes_itself_there());
+    (yes, no)
 }
 
 fn blamed(channel: &'static str, said: &'static str, error: tisty_core::Error) -> Refusal {
@@ -3063,7 +3089,7 @@ fn doc_lock(session: tauri::State<'_, Mutex<Session>>, id: String, shut: bool) -
     let mut session = held(&session);
     match session.state.docs.get(&id) {
         None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if one.page_of.is_some() => return Err(Refusal::of("lockIsTheDocs")),
+        Some(one) if shut && one.page_of.is_some() => return Err(Refusal::of("lockIsTheDocs")),
         Some(_) => {}
     }
     session.commit(if shut {
@@ -3104,6 +3130,9 @@ fn doc_copy(
         .get(&id)
         .cloned()
         .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+    if kept.page_of.is_some_and(|up| session.state.shut(up)) {
+        return Err(Refusal::of("pageOfLocked"));
+    }
 
     let root = session.paths.docs();
     let body = tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
@@ -3662,7 +3691,10 @@ async fn settle_in(
                 "the cache could not be audited on settling in",
                 &[("why", Fact::Why(e.to_string()))],
             );
-            Refusal::of("internal")
+            match e {
+                tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+                _ => Refusal::of("internal"),
+            }
         })?;
     let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
     if !agrees {
@@ -3997,7 +4029,10 @@ async fn back_up(
                     "the backup could not be written",
                     &[("why", Fact::Why(e.to_string()))],
                 );
-                Refusal::about("cannotWrite", into)
+                match e {
+                    tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+                    _ => Refusal::about("cannotWrite", into),
+                }
             })?;
 
     let now = jiff::Timestamp::now();
@@ -4386,6 +4421,7 @@ async fn restore(
         .map_err(|e| match e {
             tisty_core::Error::OtherStore { theirs } => Refusal::about("otherStore", theirs),
             tisty_core::Error::Io(why) => Refusal::about("restoreFailed", why.to_string()),
+            tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
             _ => Refusal::about("cannotRead", from.clone()),
         })?;
 
@@ -5926,11 +5962,19 @@ mod behind_tests {
 
     #[test]
     fn what_a_machine_left_behind_is_told_says_what_to_do_not_what_broke() {
-        let said = behind_said();
-        assert!(!said.contains("schema"), "{said}");
-        assert!(!said.contains("version"), "{said}");
-        let (yes, no) = behind_buttons();
-        assert!(!yes.is_empty() && !no.is_empty());
+        for spanish in [true, false] {
+            for itself in [true, false] {
+                let (said, yes, no) = behind_words(spanish, itself);
+                assert!(!said.contains("schema"), "{said}");
+                assert!(!said.chars().any(|one| one.is_ascii_digit()), "{said}");
+                assert!(!yes.is_empty() && !no.is_empty());
+                assert_eq!(
+                    itself,
+                    !said.contains("instaló") && !said.contains("installed"),
+                    "a copy something else updates has to be told so: {said}"
+                );
+            }
+        }
         assert!(
             update::ours(RELEASES),
             "the offer has to lead where our releases live"

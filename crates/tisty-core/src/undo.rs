@@ -231,10 +231,9 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
 
         Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),
-        Op::DocLock { id } => Some(Op::DocUnlock { id: *id }),
-        Op::DocUnlock { id } => Some(Op::DocLock { id: *id }),
-
         Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
+
+        Op::DocLock { .. } | Op::DocUnlock { .. } => None,
 
         Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
 
@@ -496,7 +495,7 @@ mod tests {
     }
 
     #[test]
-    fn a_lock_is_walked_back_by_unlocking_and_the_other_way_round() {
+    fn a_lock_is_not_walked_back_by_undoing_it_from_anywhere_else() {
         let id = Ulid::generate();
         let state = State::replay(&[ev(
             1,
@@ -511,14 +510,8 @@ mod tests {
             },
         )]);
 
-        assert_eq!(
-            inverse(&ev(2, Op::DocLock { id }), &state),
-            Some(vec![Op::DocUnlock { id }])
-        );
-        assert_eq!(
-            inverse(&ev(2, Op::DocUnlock { id }), &state),
-            Some(vec![Op::DocLock { id }])
-        );
+        assert_eq!(inverse(&ev(2, Op::DocLock { id }), &state), None);
+        assert_eq!(inverse(&ev(2, Op::DocUnlock { id }), &state), None);
     }
 
     #[test]

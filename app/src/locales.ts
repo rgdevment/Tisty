@@ -668,7 +668,7 @@ const en = {
   storeNewer:
     "This log was written by a newer Tisty than the one on this machine. Update before going on — reading half of it would lose work.",
   someLockedAtOdds:
-    "{name} changed on both machines and is locked here, so nothing was written over it. Unlock it to decide which version stays.",
+    "{name} is locked here and another machine carries a different text, so nothing was written over it. Unlock it to decide which version stays.",
   syncUnreadable: "What came back does not read: {name}",
   syncBroke: "The copy could not be finished: {name}",
   notAllowed:
@@ -1756,7 +1756,7 @@ const es: Catalog = {
   storeNewer:
     "Este registro lo escribió un Tisty más nuevo que el de este equipo. Actualiza antes de seguir: leer la mitad perdería trabajo.",
   someLockedAtOdds:
-    "{name} cambió en las dos máquinas y aquí está bloqueado, así que no se escribió nada encima. Desbloquéalo para decidir qué versión queda.",
+    "{name} está bloqueado aquí y otra máquina trae un texto distinto, así que no se escribió nada encima. Desbloquéalo para decidir qué versión queda.",
   syncUnreadable: "Lo que llegó no se puede leer: {name}",
   syncBroke: "No se pudo terminar la copia: {name}",
   notAllowed:

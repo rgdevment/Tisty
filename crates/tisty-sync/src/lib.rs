@@ -162,16 +162,21 @@ pub fn carry_holding(
         None => alive.to_vec(),
     };
     let told = said.or_else(|| as_told(&store, aside));
+    let Some(told) = told else {
+        witness::warn(
+            channel::SYNC,
+            "this store would not project, so no document was carried either way",
+            &[],
+        );
+        moved.astray = alive;
+        return Ok(moved);
+    };
     let shut: Vec<String> = told
-        .as_ref()
-        .map(|one| {
-            one.docs
-                .values()
-                .filter(|paper| one.shut(paper.id))
-                .map(|paper| paper.file.clone())
-                .collect()
-        })
-        .unwrap_or_default();
+        .docs
+        .values()
+        .filter(|paper| told.shut(paper.id))
+        .map(|paper| paper.file.clone())
+        .collect();
     if !alive.is_empty() {
         let papers = carry_papers_leaning_on(data, dest, &alive, &shut, again)?;
         moved.sent += papers.sent;
@@ -2725,6 +2730,39 @@ lo mio"
         );
         assert!(done.joined.is_empty(), "a lock is not joined away");
         assert_eq!(done.undecided_ids(), vec!["dev_a-0001".to_string()]);
+    }
+
+    #[test]
+    fn a_log_that_will_not_project_carries_no_body_either_way() {
+        let one = machine("dev_a");
+        let shared = tempfile::tempdir().unwrap();
+        paper(&one, "dev_a-0001", "# Mio");
+        theirs(shared.path(), "dev_a-0001", "# Suyo");
+        let mine = one.store.join(&one.device).join("active.tisty");
+        std::fs::create_dir_all(mine.parent().unwrap()).unwrap();
+        std::fs::write(
+            &mine,
+            "{\"v\":99,\"ts\":\"2026-01-01T00:00:00Z\"}
+",
+        )
+        .unwrap();
+
+        let done = carry(
+            &one.data,
+            &one.device,
+            shared.path(),
+            Way::Pull,
+            &["dev_a-0001".to_string()],
+        )
+        .unwrap();
+
+        assert_eq!(
+            body(&one.data, "dev_a-0001"),
+            "# Mio",
+            "not knowing what is locked is not knowing what may be written"
+        );
+        assert_eq!(done.brought, 0);
+        assert_eq!(done.astray, vec!["dev_a-0001".to_string()]);
     }
 
     #[test]

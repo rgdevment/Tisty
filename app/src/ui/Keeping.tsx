@@ -298,12 +298,12 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
         return "declined";
       }
       const shut = await decideAll(answer.undecided);
-      if (shut.length) {
-        setTrouble({ card: "sync", text: fill("someLockedAtOdds", await namedDocs(shut)) });
-      } else if (answer.astray?.length) {
+      if (answer.astray?.length) {
         setTrouble({ card: "sync", text: t("someDocsAstray") });
       } else if (answer.unreadable?.length) {
         setTrouble({ card: "sync", text: t("someoneUnreadable") });
+      } else if (shut.length) {
+        setTrouble({ card: "sync", text: fill("someLockedAtOdds", await namedDocs(shut)) });
       } else if (answer.joined?.length) {
         setSaid({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
       } else {

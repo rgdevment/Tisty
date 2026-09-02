@@ -301,7 +301,6 @@ export default function Docs({
 
   const own = filed(known, open?.file);
   const bolted = Boolean(own?.locked);
-  const holder = own?.pageOf ?? own?.id;
   const pages = pagesOf(known, open?.file);
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
@@ -604,7 +603,11 @@ export default function Docs({
             <button
               type="button"
               onClick={() =>
-                docLock(holder ?? open.id, false)
+                Promise.all(
+                  [own?.id, own?.pageOf]
+                    .filter((one): one is string => typeof one === "string")
+                    .map((one) => docLock(one, false)),
+                )
                   .then(() => onKept({ id: open.id, title: open.title }))
                   .catch((e) => onError(saidPlainly(e)))
               }

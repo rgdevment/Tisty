@@ -1909,6 +1909,37 @@ fn a_document_landing_under_a_locked_book_is_locked_by_being_there() {
 }
 
 #[test]
+fn a_page_that_replay_left_holding_a_lock_can_always_be_let_go_of() {
+    let world = World::new();
+    let mut store = world.store("a");
+    let book = doc_add(&mut store, "a3f1-0001", "V", None, None);
+    let mine = doc_add(&mut store, "a3f1-0002", "W", None, None);
+    store.append(Op::DocLock { id: mine }).unwrap();
+    store
+        .append(Op::DocMove {
+            id: mine,
+            d: Filed {
+                folder: None,
+                page_of: Some(Some(book)),
+                order: None,
+            },
+        })
+        .unwrap();
+
+    let state = replayed(&world);
+    assert!(
+        !state.docs.get(&mine).unwrap().locked,
+        "landing as a page leaves no lock of its own behind"
+    );
+
+    let mut store = world.store("b");
+    store.append(Op::DocLock { id: mine }).unwrap();
+    store.append(Op::DocUnlock { id: mine }).unwrap();
+    let state = replayed(&world);
+    assert!(!state.shut(mine), "there is always a way out");
+}
+
+#[test]
 fn a_locked_document_is_told_apart_from_an_archived_one() {
     let world = World::new();
     let mut store = world.store("a");

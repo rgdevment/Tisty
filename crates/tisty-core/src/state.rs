@@ -73,7 +73,7 @@ impl State {
     }
 
     fn bolt(&mut self, id: DocId, shut: bool) {
-        if self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
+        if shut && self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
             return;
         }
         if let Some(doc) = self.docs.get_mut(&id) {
@@ -291,6 +291,7 @@ impl State {
                             if let Some((folder, archived)) = under {
                                 doc.folder = folder;
                                 doc.archived = archived;
+                                doc.locked = false;
                                 doc.order = beside.unwrap_or_else(|| doc.order.clone());
                             }
                         }
