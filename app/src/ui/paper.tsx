@@ -1,6 +1,7 @@
 import { Document, Font, Image, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { Paper } from "../core";
 import { led } from "../leading";
+import { t } from "../locales";
 
 export const SIZES: Record<Paper, [number, number]> = {
   a4: [595.28, 841.89],
@@ -28,11 +29,12 @@ export type Shape =
   | { kind: "heading"; level: number; runs: Run[] }
   | { kind: "para"; runs: Run[] }
   | { kind: "quote"; runs: Run[] }
+  | { kind: "said"; said: string; inner: Shape[] }
   | { kind: "code"; runs: Run[]; deep: number }
   | { kind: "bullet"; mark: string; runs: Run[]; deep: number }
   | { kind: "image"; src: string; alt?: string }
   | { kind: "file"; name: string; said: string }
-  | { kind: "table"; rows: Run[][][] }
+  | { kind: "table"; rows: Run[][][]; leans?: (string | null)[] }
   | { kind: "rule" };
 
 const sheet = StyleSheet.create({
@@ -56,6 +58,18 @@ const sheet = StyleSheet.create({
   piece: { lineHeight: LEADING },
   said: { flex: 1, lineHeight: LEADING },
   saidFlow: { flex: 1, flexDirection: "row", flexWrap: "wrap" },
+  noted: {
+    marginBottom: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderLeftWidth: 3,
+    borderRadius: 3,
+  },
+  notedWho: {
+    fontSize: 8,
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
   quote: {
     marginBottom: 9,
     paddingLeft: 12,
@@ -231,6 +245,14 @@ const plain = (runs: Run[]): Run[] => {
   return worn.mark ? [{ ...first, text: worn.rest }, ...rest] : runs;
 };
 
+const HUED: Record<string, string> = {
+  note: "#1f6fb2",
+  tip: "#3f8a24",
+  important: "#4a58c4",
+  warning: "#8a6a00",
+  caution: "#c62f45",
+};
+
 const shaped = (one: Shape, at: number, room: number) => {
   const key = `${one.kind}:${at}`;
   switch (one.kind) {
@@ -248,8 +270,24 @@ const shaped = (one: Shape, at: number, room: number) => {
           {drawn(one.runs)}
         </Text>
       );
+    case "said": {
+      const hue = HUED[one.said] ?? HUED.note;
+      return (
+        <View
+          key={key}
+          style={[sheet.noted, { borderLeftColor: hue, backgroundColor: `${hue}12` }]}
+        >
+          <Text style={[sheet.notedWho, { color: hue }]}>
+            {t(`said${one.said}` as Parameters<typeof t>[0]).toUpperCase()}
+          </Text>
+          {one.inner
+            .filter((kid) => kid.kind !== "rule")
+            .map((kid, deep) => shaped(kid, deep, room - 27))}
+        </View>
+      );
+    }
     case "code": {
-      const columns = Math.floor((room - one.deep * 14 - PAD * 2) / (CODE * PITCH));
+      const columns = Math.max(8, Math.floor((room - one.deep * 14 - PAD * 2) / (CODE * PITCH)));
       const lines = one.runs.flatMap((run, line) =>
         folded(run.text, columns).map((text, cut) => ({ text, id: `${line}.${cut}` })),
       );
@@ -299,21 +337,25 @@ const shaped = (one: Shape, at: number, room: number) => {
     case "table":
       return (
         <View key={key} style={sheet.table}>
-          {one.rows.map((row, at) => {
-            const said = row.map((cell) => cell.map((run) => run.text).join("|")).join("¦");
-            return (
-              <View key={said} style={sheet.tr} wrap={false}>
-                {row.map((cell) => (
+          {one.rows.map((row, at) => (
+            <View key={`row.${at}`} style={sheet.tr} wrap={false}>
+              {row.map((cell, column) => {
+                const leans = one.leans?.[column];
+                return (
                   <Text
-                    key={`${said}:${cell.map((run) => run.text).join("")}`}
-                    style={at === 0 ? [sheet.td, sheet.th] : sheet.td}
+                    key={`cell.${at}.${column}`}
+                    style={[
+                      sheet.td,
+                      ...(at === 0 ? [sheet.th] : []),
+                      ...(leans ? [{ textAlign: leans as "left" | "center" | "right" }] : []),
+                    ]}
                   >
                     {drawn(cell)}
                   </Text>
-                ))}
-              </View>
-            );
-          })}
+                );
+              })}
+            </View>
+          ))}
         </View>
       );
     case "rule":

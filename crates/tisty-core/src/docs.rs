@@ -143,24 +143,149 @@ pub fn moved(base: Option<&str>, here: Option<&str>, there: Option<&str>) -> Mov
     }
 }
 
+/// A fence opens on three or more of one marker and closes on the same, at least as long.
+/// The quote prefix comes off first, or a fence written inside a quote is never seen.
+#[derive(Default)]
+struct Fencing {
+    open: Option<(char, usize, usize, usize)>,
+    base: usize,
+    told: bool,
+}
+
+impl Fencing {
+    fn inside(&mut self, line: &str) -> bool {
+        let (deep, wide, said) = quoted(line);
+        if self.open.is_none() {
+            self.base = listed(self.base, wide, said);
+        }
+        let (wide, said) = match bullet(said) {
+            Some(after) => (wide + after, &said[after..]),
+            None => (wide, said),
+        };
+        self.told = false;
+        let marker = ['`', '~'].into_iter().find_map(|mark| {
+            let many = said.chars().take_while(|c| *c == mark).count();
+            let after = &said[many.min(said.len())..];
+            let opens = many >= 3 && wide < self.base + 4 && (mark == '~' || !after.contains('`'));
+            opens.then_some((mark, many))
+        });
+
+        if let Some((open, was, held, room)) = self.open {
+            if said.is_empty() {
+                return true;
+            }
+            if deep >= held && wide >= room {
+                if let Some((mark, many)) = marker
+                    && mark == open
+                    && many >= was
+                    && deep == held
+                {
+                    self.open = None;
+                }
+                return true;
+            }
+            self.open = None;
+        }
+
+        match marker {
+            Some((mark, many)) => {
+                self.told = said[many..].split_whitespace().count() > 1;
+                self.open = Some((mark, many, deep, wide));
+                true
+            }
+            None => false,
+        }
+    }
+}
+
+fn bullet(said: &str) -> Option<usize> {
+    let bytes = said.as_bytes();
+    let mut at = 0;
+    if matches!(bytes.first(), Some(b'-' | b'*' | b'+')) {
+        at = 1;
+    } else {
+        while bytes.get(at).is_some_and(u8::is_ascii_digit) {
+            at += 1;
+        }
+        if at == 0 || at > 9 || !matches!(bytes.get(at), Some(b'.' | b')')) {
+            return None;
+        }
+        at += 1;
+    }
+    let gap = said[at..].chars().take_while(|c| *c == ' ').count();
+    (gap > 0).then_some(at + gap)
+}
+
+fn listed(base: usize, wide: usize, said: &str) -> usize {
+    if said.is_empty() {
+        return base;
+    }
+    match bullet(said) {
+        Some(after) if wide <= base => wide + after,
+        _ if wide < base => 0,
+        _ => base,
+    }
+}
+
+fn spacing(said: &str) -> usize {
+    said.chars()
+        .take_while(|c| *c == ' ' || *c == '\t')
+        .map(|c| if c == '\t' { 4 } else { 1 })
+        .sum()
+}
+
+fn quoted(line: &str) -> (usize, usize, &str) {
+    let mut said = line;
+    let mut deep = 0;
+    let mut wide = spacing(said);
+
+    while wide < 4 {
+        let Some(rest) = said.trim_start().strip_prefix('>') else {
+            break;
+        };
+        said = rest.strip_prefix(' ').unwrap_or(rest);
+        deep += 1;
+        wide = spacing(said);
+    }
+    (deep, wide, said.trim())
+}
+
+fn quoteless(line: &str) -> &str {
+    quoted(line).2
+}
+
 pub fn titled(body: &str) -> String {
     let body = body.strip_prefix('\u{feff}').unwrap_or(body);
-    let mut said: Vec<&str> = body
-        .lines()
-        .map(str::trim)
-        .filter(|one| !one.is_empty())
-        .collect();
-    if said.first() == Some(&"---")
-        && let Some(shuts) = said.iter().skip(1).position(|one| *one == "---")
+    let mut said: Vec<&str> = body.lines().collect();
+    if let Some(start) = said.iter().position(|one| !one.trim().is_empty())
+        && said[start].trim() == "---"
+        && let Some(shuts) = said
+            .iter()
+            .skip(start + 1)
+            .position(|one| one.trim() == "---")
     {
-        said.drain(..shuts + 2);
+        said.drain(..start + shuts + 2);
     }
+    let mut fence = Fencing::default();
     let first = said
         .iter()
-        .find(|one| !wordless(one))
-        .copied()
+        .find_map(|one| {
+            if fence.inside(one) {
+                return None;
+            }
+            let flat = one.trim();
+            if flat.is_empty() {
+                return None;
+            }
+            let opened = quoteless(one).trim_start_matches('#').trim_start();
+            let said = match flat.starts_with('>') {
+                true => crate::refs::alerted(opened).unwrap_or(opened),
+                false => opened,
+            };
+            (!wordless(said)).then_some(said)
+        })
         .unwrap_or_default();
-    crate::text::plainly(unspanned(first.trim_start_matches('#')).trim())
+    crate::text::plainly(unspanned(first).trim())
 }
 
 pub fn marked(body: &str, said: &str) -> String {
@@ -168,6 +293,7 @@ pub fn marked(body: &str, said: &str) -> String {
     let mut seen = 0;
     let mut out: Vec<String> = Vec::new();
     let mut done = false;
+    let mut fence = Fencing::default();
 
     for line in bare.lines() {
         let trimmed = line.trim();
@@ -190,12 +316,21 @@ pub fn marked(body: &str, said: &str) -> String {
             out.push(line.to_string());
             continue;
         }
-        if wordless(trimmed) {
+        if fence.inside(line) || wordless(trimmed) {
             out.push(line.to_string());
             continue;
         }
-        out.push(format!("{} ({said})", line.trim_end()));
-        done = true;
+        let after = quoteless(line);
+        // A row of a table, and a marker with nothing after it, are lines a name would break.
+        let bare_line = trimmed.starts_with('|')
+            || matches!(crate::refs::alerted(after), Some(rest) if rest.is_empty());
+        match bare_line {
+            false => {
+                out.push(format!("{} ({said})", line.trim_end()));
+                done = true;
+            }
+            true => out.push(line.to_string()),
+        }
     }
 
     if !done {
@@ -830,8 +965,9 @@ fn unspanned(line: &str) -> String {
 
 pub fn bare(line: &str) -> String {
     let line = &unspanned(line);
-    let said = line
-        .trim()
+    let flat = line.trim();
+    let quoted = flat.starts_with('>');
+    let said = flat
         .trim_start_matches(['>', '#', ' '])
         .trim_start()
         .trim_start_matches(['-', '*', '+'])
@@ -840,6 +976,10 @@ pub fn bare(line: &str) -> String {
         .strip_prefix("[ ] ")
         .or(said.strip_prefix("[x] "))
         .unwrap_or(said);
+    let said = match quoted {
+        true => crate::refs::alerted(said).unwrap_or(said),
+        false => said,
+    };
 
     let mut out = String::with_capacity(said.len());
     let mut chars = said.chars().peekable();
@@ -1049,6 +1189,248 @@ fn opening(at: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn the_other_copy_is_always_told_apart_from_this_one() {
+        for body in [
+            "````
+```
+titulo falso
+````
+
+# Real
+",
+            "~~~
+```
+titulo falso
+~~~
+
+# Real
+",
+            "> [!NOTE]
+> ```bash
+> rm -rf /tmp
+> ```
+
+# Guia
+",
+            "> > [!NOTE]
+> > hola
+",
+            "# Titulo
+
+texto
+",
+        ] {
+            let out = marked(body, "otra");
+            assert_ne!(
+                titled(body),
+                titled(&out),
+                "two copies of {body:?} read the same"
+            );
+        }
+    }
+
+    #[test]
+    fn naming_the_other_copy_does_not_break_a_table_or_a_marker() {
+        let table = marked(
+            "| a | b |
+| --- | --- |
+| 1 | 2 |
+",
+            "otra",
+        );
+        assert!(
+            table.contains(
+                "| a | b |
+"
+            ),
+            "the header row keeps its cells: {table:?}"
+        );
+        let alert = marked(
+            "> [!NOTE]
+> Un aviso
+",
+            "otra",
+        );
+        assert!(
+            alert.starts_with(
+                "> [!NOTE]
+"
+            ),
+            "the marker line is left alone: {alert:?}"
+        );
+    }
+
+    #[test]
+    fn a_fence_inside_a_quote_is_still_a_fence() {
+        assert_eq!(
+            titled(
+                "> [!NOTE]
+> ```bash
+> rm -rf /tmp
+> ```
+
+# Guia
+"
+            ),
+            "Guia"
+        );
+    }
+
+    #[test]
+    fn a_fence_is_closed_by_its_own_marker_and_nothing_shorter() {
+        assert_eq!(
+            titled(
+                "```
+~~~
+no soy titulo
+```
+
+# Real"
+            ),
+            "Real"
+        );
+        assert_eq!(
+            titled(
+                "````
+```
+````
+
+# Real"
+            ),
+            "Real"
+        );
+        assert_eq!(
+            titled(
+                "~~~
+```
+tampoco
+~~~
+
+# Real"
+            ),
+            "Real"
+        );
+    }
+
+    #[test]
+    fn a_marker_that_is_a_link_is_not_a_marker() {
+        assert_eq!(bare("[!important](https://ejemplo.com)"), "!important");
+        assert_eq!(
+            bare("[!tip]: https://ejemplo.com"),
+            "!tip: https://ejemplo.com"
+        );
+        assert_eq!(
+            bare("[!CAUTION] es solo texto"),
+            "!CAUTION es solo texto",
+            "a marker only means something at the head of a quote"
+        );
+        assert_eq!(bare("- [!NOTE] revisar esto"), "!NOTE revisar esto");
+        assert_eq!(bare("> [!WARNING] Cuidado"), "Cuidado");
+    }
+
+    #[test]
+    fn a_quote_of_a_quote_is_still_read_through() {
+        assert_eq!(
+            titled(
+                "> > [!NOTE]
+> > hola"
+            ),
+            "hola"
+        );
+    }
+
+    #[test]
+    fn a_document_that_opens_with_a_diagram_is_not_titled_after_the_fence() {
+        assert_eq!(
+            titled(
+                "```mermaid
+graph TD;
+A --> B
+```
+
+# El plano de la red"
+            ),
+            "El plano de la red"
+        );
+        assert_eq!(
+            titled(
+                "```
+solo codigo
+```"
+            ),
+            "",
+            "a fence alone names nothing"
+        );
+    }
+
+    #[test]
+    fn a_fence_a_list_item_held_stops_hiding_what_comes_after_it_too() {
+        assert_eq!(
+            titled("-\n\n  ```\n  aun es codigo\n\n# El titulo real\n"),
+            "El titulo real"
+        );
+        assert_eq!(
+            titled("- uno\n\n  ```\n  codigo\n\n# El titulo real\n"),
+            "- uno",
+            "the list item still speaks first"
+        );
+        assert_eq!(
+            titled("```\n# aun es codigo\n"),
+            "",
+            "nothing outside a container closes a fence nobody closed"
+        );
+    }
+
+    #[test]
+    fn a_fence_the_quote_around_it_closed_stops_hiding_what_comes_after() {
+        assert_eq!(titled("> ```\n> code\n\n# El titulo\n"), "El titulo");
+        assert_eq!(titled("> ```\n> code\n> ```\n\n# El titulo\n"), "El titulo");
+        assert_eq!(
+            titled("```\ncode\n\n# El titulo\n"),
+            "",
+            "nobody closed it and nothing outside a quote closes it either"
+        );
+    }
+
+    #[test]
+    fn a_document_that_opens_with_an_alert_is_titled_by_what_the_alert_says() {
+        assert_eq!(
+            titled(
+                "> [!NOTE]
+> Un aviso importante"
+            ),
+            "Un aviso importante"
+        );
+        assert_eq!(
+            titled(
+                "> [!WARNING] Cuidado
+
+texto"
+            ),
+            "Cuidado"
+        );
+        assert_eq!(
+            titled("> Una cita cualquiera"),
+            "Una cita cualquiera",
+            "a quote with no marker is still its own first line"
+        );
+    }
+
+    #[test]
+    fn the_alert_marker_is_not_a_word_the_search_can_find() {
+        assert_eq!(
+            bare("> [!WARNING] Cuidado con el horno"),
+            "Cuidado con el horno"
+        );
+        assert_eq!(bare("> [!NOTE]"), "");
+        assert_eq!(
+            bare("> [!raro] no es un aviso"),
+            "!raro no es un aviso",
+            "only the five GitHub reads are markers"
+        );
+    }
 
     #[test]
     fn a_stray_paper_is_listed_with_what_it_weighs_and_what_it_says() {
@@ -3420,59 +3802,131 @@ despues
 /// What the window's editor destroys the first time somebody opens a document. It rewrites the
 /// whole file, so anything it cannot represent is gone on the first keystroke.
 pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
-    let body = body.strip_prefix('\u{feff}').unwrap_or(body);
-    let mut first = true;
-    let mut fenced = false;
+    if fronted(body) {
+        return Err("YAML frontmatter");
+    }
+    let mut fence = Fencing::default();
 
-    for line in body.lines() {
-        let flat = line.trim();
-
-        if fenced {
-            if flat.starts_with("```") || flat.starts_with("~~~") {
-                fenced = false;
+    let said: Vec<&str> = body.lines().collect();
+    for (at, line) in said.iter().enumerate() {
+        if fence.inside(line) {
+            if fence.told {
+                return Err("what a fence says after its language");
             }
-            first = false;
-            continue;
-        }
-        if flat.starts_with("```") || flat.starts_with("~~~") {
-            fenced = true;
-            first = false;
             continue;
         }
         if line.starts_with("    ") || line.starts_with('\t') {
-            first = false;
             continue;
         }
 
-        if first && flat == "---" {
-            return Err("YAML frontmatter");
-        }
-        first = false;
-
-        if let Some(why) = markup(&outside_code_spans(line)) {
+        let plain = outside_code_spans(line);
+        if let Some(why) = markup(&plain) {
             return Err(why);
         }
-        if flat.starts_with("[^") {
+        let flat = plain.trim();
+        if noted(flat) {
             return Err("footnotes");
         }
-        if flat.starts_with('[') && flat.contains("]:") {
+        if linked(flat, said.get(at + 1).unwrap_or(&"")) {
             return Err("reference links");
         }
     }
     Ok(())
 }
 
+fn fronted(body: &str) -> bool {
+    let mut lines = body.strip_prefix('\u{feff}').unwrap_or(body).lines();
+    if lines.next().map(str::trim) != Some("---") {
+        return false;
+    }
+    lines.any(|line| line.trim() == "---")
+}
+
 fn outside_code_spans(line: &str) -> String {
+    let bytes = line.as_bytes();
+    let ticks = |from: usize| bytes[from..].iter().take_while(|c| **c == b'`').count();
     let mut out = String::with_capacity(line.len());
-    let mut inside = false;
-    for c in line.chars() {
-        if c == '`' {
-            inside = !inside;
-        } else if !inside {
-            out.push(c);
+    let mut at = 0;
+
+    while at < bytes.len() {
+        if bytes[at] != b'`' {
+            let one = line[at..].chars().next().unwrap_or('\0');
+            out.push(one);
+            at += one.len_utf8();
+            continue;
+        }
+        let open = ticks(at);
+        let mut scan = at + open;
+        let mut shut = None;
+        while scan < bytes.len() {
+            if bytes[scan] != b'`' {
+                scan += 1;
+                continue;
+            }
+            let many = ticks(scan);
+            if many == open {
+                shut = Some(scan + many);
+                break;
+            }
+            scan += many;
+        }
+        match shut {
+            Some(end) => at = end,
+            None => {
+                out.push_str(&line[at..at + open]);
+                at += open;
+            }
         }
     }
     out
+}
+
+fn noted(line: &str) -> bool {
+    let bytes = line.as_bytes();
+    let mut at = 0;
+    while let Some(found) = line[at..].find("[^") {
+        let start = at + found;
+        at = start + 2;
+        if start > 0 && bytes[start - 1] == b'\\' {
+            continue;
+        }
+        let Some(end) = line[at..].find(']') else {
+            return false;
+        };
+        if end > 0 && !matches!(bytes.get(at + end + 1), Some(b'(') | Some(b'[')) {
+            return true;
+        }
+        at += end + 1;
+    }
+    false
+}
+
+fn labelled(rest: &str) -> Option<(&str, &str)> {
+    let bytes = rest.as_bytes();
+    let mut at = 0;
+    while at < bytes.len() {
+        match bytes[at] {
+            b'\\' => at += 2,
+            b']' if bytes.get(at + 1) == Some(&b':') => {
+                return Some((&rest[..at], &rest[at + 2..]));
+            }
+            b']' => return None,
+            _ => at += 1,
+        }
+    }
+    None
+}
+
+fn linked(line: &str, next: &str) -> bool {
+    let Some(rest) = line.strip_prefix('[') else {
+        return false;
+    };
+    let Some((label, told)) = labelled(rest) else {
+        return false;
+    };
+    !label.is_empty()
+        && !label.starts_with('^')
+        && (!told.trim().is_empty() || !next.trim().is_empty())
 }
 
 /// A `<` that opens a tag, wherever it sits on the line. An autolink is markdown and comes
@@ -3496,14 +3950,24 @@ fn markup(line: &str) -> Option<&'static str> {
         }
         // `](<…>)` is where markdown puts a target that has spaces or brackets in it, and it is
         // what an attachment is written as.
-        if line[..at].ends_with("](") && !inner.contains('<') {
+        if line[..at].ends_with("](") && !inner.contains('<') && anchored(&line[..at - 2]) {
             continue;
         }
-        if rest.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!') {
+        if inner.eq_ignore_ascii_case("u") || inner.eq_ignore_ascii_case("/u") {
+            continue;
+        }
+        if rest.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!' || c == '?') {
             return Some("HTML");
         }
     }
     None
+}
+
+fn anchored(said: &str) -> bool {
+    match said.rfind('[') {
+        Some(open) => !said[open + 1..].contains(']'),
+        None => false,
+    }
 }
 
 fn entity(from: &str) -> bool {
@@ -3511,9 +3975,7 @@ fn entity(from: &str) -> bool {
         return false;
     };
     let name = &from[1..shut];
-    !name.is_empty()
-        && name.len() < 12
-        && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '#')
+    name.len() > 1 && name.len() < 12 && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '#')
 }
 
 #[cfg(test)]
@@ -3540,6 +4002,8 @@ mod survival {
                 "see [the thread][one]\n\n[one]: https://example.com",
                 "reference links",
             ),
+            ("> ```\n> code\n\n<div>real</div>", "HTML"),
+            ("```text\n> ```\n```\n\n<div>real</div>", "HTML"),
         ] {
             assert_eq!(super::survives(body), Err(why), "{body:?}");
         }
@@ -3559,9 +4023,52 @@ mod survival {
             "# t\n\n    <div>indented is code too</div>\n",
             "# t\n\nuse `<T>` inline, and `&amp;` too",
             "# t\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n",
+            "---\n\nUna raya que nadie cierra no es un front matter.",
+            "> ```html\n> <div>x</div>\n> ```\n",
+            "# t\n\n````\ncode\n```\naun es codigo <div>x</div>\n````\n",
+            "# t\n\n```\ncode\n~~~\naun es codigo <div>x</div>\n```\n",
             "",
         ] {
             assert_eq!(super::survives(body), Ok(()), "{body:?}");
+        }
+    }
+    #[test]
+    fn both_halves_read_the_same_corpus_the_same_way() {
+        let raw = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/frail.json"),
+        )
+        .expect("the corpus the window reads too");
+        let corpus: Vec<serde_json::Value> = serde_json::from_str(&raw).expect("a list of cases");
+
+        for one in corpus {
+            let text = one["text"].as_str().expect("text");
+            let why: Vec<&str> = one["why"]
+                .as_array()
+                .expect("why")
+                .iter()
+                .filter_map(|it| it.as_str())
+                .collect();
+            let said = super::survives(text).err().map(|it| match it {
+                "YAML frontmatter" => "front",
+                "HTML" => "html",
+                "HTML comments" => "comments",
+                "HTML entities" => "entities",
+                "footnotes" => "notes",
+                "reference links" => "refs",
+                "what a fence says after its language" => "fence",
+                other => other,
+            });
+
+            match said {
+                None => assert!(
+                    why.is_empty(),
+                    "{text:?} was let through, corpus says {why:?}"
+                ),
+                Some(found) => assert!(
+                    why.contains(&found),
+                    "{text:?} was refused for {found:?}, corpus says {why:?}"
+                ),
+            }
         }
     }
 }

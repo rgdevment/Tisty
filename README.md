@@ -329,12 +329,24 @@ never gets ticked. They are Markdown files you edit as documents — tables,
 checklists, code, images — and search reads them too. A task can point at a
 document; a document never creates tasks.
 
-Text can be highlighted in a few colours, centred or aligned, and set apart as
-an aside. It stays Markdown: where Markdown cannot say a thing, Tisty writes the
-small piece of HTML that can, and reads it back.
+Text can be highlighted in a few colours and set apart as an aside — a plain
+quote, or a callout GitHub reads too, written as `> [!WARNING]`. Tables keep how
+their columns lean, and a code block says what language it is and is coloured for
+it, with its lines numbered beside the text rather than in it, so copying takes
+the code and nothing else.
 
-The writing sits on a lit page, and its first line is both the name of the
-document and its title. When the window is wide enough a column opens beside it
+**It stays Markdown**, and that is the point rather than a detail: everything
+above is syntax another reader already understands, so the file survives without
+Tisty. Where Markdown genuinely cannot say a thing — an icon in a line of text —
+Tisty writes the small piece of HTML that can, and reads it back. Where the
+editor meets a shape it is known not to keep — front matter, footnotes, links
+written by reference, blocks of HTML — it says so and opens the document
+read-only rather than quietly destroying it. That list is what it checks, not a
+promise about everything a Markdown file can hold.
+
+The writing sits on a lit page, and the first line with words in it is both the
+name of the document and its title — reading past a fence or an alert's marker to
+find it. When the window is wide enough a column opens beside it
 with what the document is, the formatting the `/` menu used to hide, and its
 outline. **Tisty makes its own PDF** — A4, Letter or one endless sheet, with its
 own margins and the attachments carried inside — and shows it to you before you

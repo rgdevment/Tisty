@@ -47,10 +47,23 @@ fn resolve_reaches_anything_under_the_data_root_not_only_attachments() {
 }
 
 #[test]
-fn resolve_does_not_decode_percent_escapes() {
+fn resolve_refuses_a_climb_written_with_percent_escapes() {
     let root = Path::new("/data");
-    let at = resolve("%2e%2e/%2e%2e/etc/passwd", root).unwrap();
-    assert_eq!(at, root.join("%2e%2e/%2e%2e/etc/passwd"));
+
+    for hidden in [
+        "%2e%2e/%2e%2e/etc/passwd",
+        "%2E%2E/secret",
+        "attachments%2F..%2Fsecret",
+        "attachments%5Cab%5Ccd.png",
+    ] {
+        assert!(
+            resolve(hidden, root).is_err(),
+            "«{hidden}» salió del almacén"
+        );
+    }
+
+    let at = resolve("attachments/ab/mi%20foto.png", root).expect("un nombre con espacios");
+    assert_eq!(at, root.join("attachments").join("ab").join("mi foto.png"));
     assert!(at.starts_with(root), "sigue dentro del almacén");
 }
 

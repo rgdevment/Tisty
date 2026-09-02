@@ -780,7 +780,7 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let Some(source) = text(args, "source") {
         if text(args, "query").is_some() {
             return Err(Refused::Tool(
-                "`find` takes a `source` or a `query`, not both: one asks whether this exact                  thing was already filed, the other searches. Send one."
+                "`find` takes a `source` or a `query`, not both: one asks whether this exact thing was already filed, the other searches. Send one."
                     .into(),
             ));
         }
@@ -926,22 +926,33 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     Ok(told(plainly, whole))
 }
 
+fn fits(body: &str) -> Result<(), Refused> {
+    let limit = tisty_core::docs::BODY_AT_MOST;
+    match body.len() as u64 > limit {
+        true => Err(Refused::Tool(format!(
+            "that body is past the {limit} bytes Tisty can open. Send a shorter document, or split it into pages."
+        ))),
+        false => Ok(()),
+    }
+}
+
 fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a document needs a `body`.".into()));
     };
     let (state, mut store) = opened(paths)?;
 
+    fits(&body)?;
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
-            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person              opens the document. Send plain markdown: headings, lists, emphasis, inline links."
+            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]."
         ))
     })?;
 
     // An append-only store keeps every one of these forever, and the window replays them all.
     if state.docs.len() >= DOCS_AT_MOST {
         return Err(Refused::Tool(format!(
-            "there are already {DOCS_AT_MOST} documents here. Add to a task's journal instead, or              ask the person to clear some."
+            "there are already {DOCS_AT_MOST} documents here. Add to a task's journal instead, or ask the person to clear some."
         )));
     }
     // Before the file exists, so a folder that does not is not paid for with an orphan on disk.
@@ -1059,10 +1070,11 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{which:?} is put away, so nothing more goes into it. Write a new document instead."
         )));
     }
+    fits(&body)?;
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
-             opens the document. Send plain markdown: headings, lists, emphasis, inline links."
+             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]."
         ))
     })?;
 
@@ -1121,7 +1133,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     tisty_core::docs::survives(new).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
-             opens the document. Send plain markdown: headings, lists, emphasis, inline links."
+             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]."
         ))
     })?;
 
@@ -1770,7 +1782,7 @@ fn tools() -> Value {
                     },
                     "list": {
                         "type": "string",
-                        "description": "An existing list, by name. Ask `lists` first. Leave it out                                         and it lands in the inbox for the person to place"
+                        "description": "An existing list, by name. Ask `lists` first. Leave it out and it lands in the inbox for the person to place"
                     },
                     "tags": {
                         "type": "array",
@@ -1838,7 +1850,7 @@ fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary,                             something to keep. Plain markdown only — headings, lists, emphasis,                             inline links. Documents do not create tasks.",
+            "description": "Write something down that is not work to do: a note, a summary, something to keep. Plain markdown only — headings, lists, emphasis, inline links, tables, fenced code with its language, and GitHub alerts (> [!NOTE] and its kin). Documents do not create tasks.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -1849,7 +1861,7 @@ fn tools() -> Value {
                     },
                     "folder": {
                         "type": "string",
-                        "description": "A folder to keep it in, by name. `docs` says which exist,                                         and `folder` makes one. Left out, it sits outside them all"
+                        "description": "A folder to keep it in, by name. `docs` says which exist, and `folder` makes one. Left out, it sits outside them all"
                     },
                     "page_of": {
                         "type": "string",
@@ -1866,7 +1878,7 @@ fn tools() -> Value {
         {
             "name": "append_doc",
             "title": "Add to a document",
-            "description": "Add to the end of a document that exists. What is already written                             stays exactly as it is — you are adding, never rewriting, so                             nothing the person wrote can be lost. Use it to keep a document                             alive: a running minute, a log, a list that grows.",
+            "description": "Add to the end of a document that exists. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost. Use it to keep a document alive: a running minute, a log, a list that grows.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -1874,7 +1886,7 @@ fn tools() -> Value {
                     "doc": { "type": "string", "description": "The document's name" },
                     "body": {
                         "type": "string",
-                        "description": "Markdown to add at the end. A blank line is put between                                         this and what was there"
+                        "description": "Markdown to add at the end. A blank line is put between this and what was there"
                     }
                 },
                 "required": ["doc", "body"]
@@ -1883,7 +1895,7 @@ fn tools() -> Value {
         {
             "name": "edit_doc",
             "title": "Change a passage of a document",
-            "description": "Replace one passage of a document with another. `old` has to match                             what is written character for character and appear exactly once —                             if it appears twice, or not at all, nothing is written and you are                             told which. Use it to correct a passage or take one out; to say                             something new at the end, `append_doc` is safer.",
+            "description": "Replace one passage of a document with another. `old` has to match what is written character for character and appear exactly once — if it appears twice, or not at all, nothing is written and you are told which. Use it to correct a passage or take one out; to say something new at the end, `append_doc` is safer.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -1891,7 +1903,7 @@ fn tools() -> Value {
                     "doc": { "type": "string", "description": "The document's name" },
                     "old": {
                         "type": "string",
-                        "description": "The passage as it is written now, copied from `read_doc`.                                         Take in the lines around it if a short one would fit twice"
+                        "description": "The passage as it is written now, copied from `read_doc`. Take in the lines around it if a short one would fit twice"
                     },
                     "new": {
                         "type": "string",
@@ -1904,7 +1916,7 @@ fn tools() -> Value {
         {
             "name": "docs",
             "title": "The documents and the folders",
-            "description": "Everything written down here, newest first, with the folder each one                             sits in and whether it was put away. Ask for it before writing, so                             you do not write again what is already kept.",
+            "description": "Everything written down here, newest first, with the folder each one sits in and whether it was put away. Ask for it before writing, so you do not write again what is already kept.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -1926,7 +1938,7 @@ fn tools() -> Value {
         {
             "name": "file_doc",
             "title": "Put a document in a folder",
-            "description": "Move a document into a folder, or out of every folder by leaving                             `folder` out. Nothing is deleted and no text changes.",
+            "description": "Move a document into a folder, or out of every folder by leaving `folder` out. Nothing is deleted and no text changes.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -1934,7 +1946,7 @@ fn tools() -> Value {
                     "doc": { "type": "string", "description": "The document's name" },
                     "folder": {
                         "type": "string",
-                        "description": "An existing folder, by name. Leave it out to take the                                         document out of every folder"
+                        "description": "An existing folder, by name. Leave it out to take the document out of every folder"
                     }
                 },
                 "required": ["doc"]
@@ -1977,7 +1989,7 @@ fn tools() -> Value {
                     },
                     "inside": {
                         "type": "string",
-                        "description": "An existing folder to nest it in, by name. Four deep at                                         most"
+                        "description": "An existing folder to nest it in, by name. Four deep at most"
                     },
                     "icon": {
                         "type": "string",
@@ -1994,7 +2006,7 @@ fn tools() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document",
-            "description": "The whole text of a document that already exists. You can write new                             ones, read any of them and add to the end of one with `append_doc`.                             What is already written you can never rewrite: the person may be                             editing it as you read.",
+            "description": "The whole text of a document that already exists. You can write new ones, read any of them and add to the end of one with `append_doc`. What is already written you can never rewrite: the person may be editing it as you read.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -2007,7 +2019,7 @@ fn tools() -> Value {
         {
             "name": "read",
             "title": "Read a whole task",
-            "description": "Everything one task holds: its description, its steps, its journal                             and what it keeps. Ask for it before adding a note, so you do not                             write down something already written.",
+            "description": "Everything one task holds: its description, its steps, its journal and what it keeps. Ask for it before adding a note, so you do not write down something already written.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -2050,7 +2062,7 @@ fn tools() -> Value {
         json!({
             "name": "lists",
             "title": "The lists that exist",
-            "description": "The names of the person's lists, so you can file a task into one.                             You cannot make a list; anything you propose without one lands in                             the inbox.",
+            "description": "The names of the person's lists, so you can file a task into one. You cannot make a list; anything you propose without one lands in the inbox.",
             "inputSchema": { "type": "object", "additionalProperties": false }
         })
     ])

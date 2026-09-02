@@ -2,6 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Editor as Writing } from "@tiptap/core";
 import type { Node as Written } from "@tiptap/pm/model";
 import { type EditorState, NodeSelection } from "@tiptap/pm/state";
+import { CellSelection } from "@tiptap/pm/tables";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { docRead, type Filed, noteTrouble, served, weighs } from "../core";
@@ -19,7 +20,8 @@ import Papers from "./Papers";
 import { previewing, type Reach } from "./previewing";
 import Shot from "./Shot";
 import Slash, { asked, type Block, narrowed } from "./Slash";
-import { asMarkdown, type Head, headed, written } from "./writing";
+import Tabled from "./Tabled";
+import { asMarkdown, type Head, headed, loosened, written } from "./writing";
 
 export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
@@ -78,6 +80,18 @@ const middle = (editor: Writing, from: number, to: number) => {
   const a = caret(editor, from);
   const b = caret(editor, to);
   return { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) };
+};
+
+const topOf = (editor: Writing, at: number) => {
+  try {
+    const held = editor.view.domAtPos(at).node as HTMLElement | null;
+    const table = (held?.nodeType === 1 ? held : held?.parentElement)?.closest("table");
+    if (!table) return caret(editor, at);
+    const box = table.getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top - 6 };
+  } catch {
+    return caret(editor, at);
+  }
 };
 
 const caret = (editor: Writing, at: number) => {
@@ -166,6 +180,7 @@ export default function Editor({
   const [asking, setAsking] = useState<{ at: { x: number; y: number }; word: string } | null>(null);
   const [active, setActive] = useState(0);
   const [picked, setPicked] = useState<{ at: { x: number; y: number } } | null>(null);
+  const [tabled, setTabled] = useState<{ at: { x: number; y: number } } | null>(null);
   const [shot, setShot] = useState<{
     at: { x: number; y: number };
     src: string;
@@ -214,6 +229,12 @@ export default function Editor({
         : null,
     );
     setShot(shotAt(editor));
+    const cells = editor.state.selection instanceof CellSelection;
+    setTabled(
+      !hushed.current && (empty || cells) && editor.isActive("table")
+        ? { at: topOf(editor, $from.pos) }
+        : null,
+    );
     if (hushed.current || !empty || code || editor.isActive("code")) {
       return setAsking(null);
     }
@@ -345,7 +366,7 @@ export default function Editor({
     autofocus: taking,
     editable: !reading,
     extensions: shapes,
-    content: value,
+    content: loosened(value),
     editorProps: props,
     onUpdate: wrote,
     onSelectionUpdate: moved,
@@ -395,6 +416,20 @@ export default function Editor({
           hint: ">",
           icon: "quote",
           run: () => editor.chain().focus().toggleBlockquote().run(),
+        },
+        {
+          key: "callout",
+          label: t("calloutIt"),
+          hint: "[!",
+          icon: "warning",
+          run: () => editor.chain().focus().toggleWrap("callout", { kind: "note" }).run(),
+        },
+        {
+          key: "mermaid",
+          label: t("diagramIt"),
+          hint: "```mermaid",
+          icon: "graph",
+          run: () => editor.chain().focus().toggleCodeBlock({ language: "mermaid" }).run(),
         },
         {
           key: "code",
@@ -523,7 +558,7 @@ export default function Editor({
     if (!editor || editor.isDestroyed) return;
     if (!stale(value, mine.current, () => asMarkdown(editor))) return;
     mine.current = value;
-    editor.commands.setContent(value, { emitUpdate: false });
+    editor.commands.setContent(loosened(value), { emitUpdate: false });
   }, [editor, value]);
 
   nudge.current = () => {
@@ -682,6 +717,7 @@ export default function Editor({
       {picked && editor && !asking && !tying && !reading && (
         <Floats editor={editor} at={picked.at} />
       )}
+      {tabled && editor && !reading && <Tabled editor={editor} at={tabled.at} />}
       {shot && editor && (
         <Shot
           at={shot.at}

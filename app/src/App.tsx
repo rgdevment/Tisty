@@ -1009,6 +1009,11 @@ export default function App() {
           <Docs
             open={chosen.doc}
             known={papers.docs}
+            folders={papers.folders}
+            onFolder={(id) => {
+              setHere(id);
+              setChosen({ named: "docs" });
+            }}
             onKept={lookPapers}
             onError={told}
             onShown={setShowing}

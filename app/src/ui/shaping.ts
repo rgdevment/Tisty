@@ -85,6 +85,12 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
     case "blockquote":
       out.push({ kind: "quote", runs: inked(node.content) });
       return;
+    case "callout": {
+      const inner: Shape[] = [];
+      for (const kid of node.content ?? []) shape(kid, inner, deep);
+      out.push({ kind: "said", said: String(node.attrs?.kind ?? "note"), inner });
+      return;
+    }
     case "codeBlock":
       out.push({
         kind: "code",
@@ -106,7 +112,10 @@ const shape = (node: Node, out: Shape[], deep = 0): void => {
       const rows = (node.content ?? []).map((row) =>
         (row.content ?? []).map((cell) => inked(cell.content?.[0]?.content)),
       );
-      if (rows.length) out.push({ kind: "table", rows });
+      const leans = (node.content?.[0]?.content ?? []).map(
+        (cell) => (cell.attrs?.textAlign as string | undefined) ?? null,
+      );
+      if (rows.length) out.push({ kind: "table", rows, leans });
       return;
     }
     default:
@@ -186,6 +195,10 @@ export const fetched = async (
   });
 
   for (const one of shapes) {
+    if (one.kind === "said") {
+      out.push({ ...one, inner: await fetched(one.inner, read, leaf) });
+      continue;
+    }
     if (one.kind !== "image" || /^(https?|data):/i.test(one.src)) {
       out.push(one);
       continue;

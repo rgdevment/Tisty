@@ -42,8 +42,8 @@ describe("what a document brings that the editor cannot keep", () => {
     expect(frail("mira [esto][uno]\n\n[uno]: https://ejemplo.org")).toContain("frailRefs");
   });
 
-  it("sees the alignment of a table, which comes back centred on nothing", () => {
-    expect(frail("| tarea | horas |\n| :--- | ---: |\n| una | 3 |")).toContain("frailAligned");
+  it("leaves an aligned table alone, now that the alignment comes back", () => {
+    expect(frail("| tarea | horas |\n| :--- | ---: |\n| una | 3 |")).toEqual([]);
   });
 
   it("leaves alone what a person wrote inside a code fence", () => {
@@ -79,7 +79,7 @@ describe("what a document brings that the editor cannot keep", () => {
   });
 
   it("names every kind it finds, not only the first", () => {
-    const messy = "---\na: b\n---\n\n<div>x</div>\n\nnota[^1]\n\n[^1]: pie";
+    const messy = "---\na: b\n---\n\n<div>x</div>\n\nnota[^1]\n\n[^1]: pie\n\n[uno]: https://x.dev";
 
     expect(frail(messy)).toEqual(["frailFront", "frailHtml", "frailNotes", "frailRefs"]);
   });
@@ -105,5 +105,60 @@ describe("what a document brings that the editor cannot keep", () => {
   it("does not warn about <u>, the one raw tag Tisty keeps on purpose", () => {
     expect(frail("un <u>subrayado</u> normal")).toEqual([]);
     expect(frail("- **negrita** y <u>subrayado</u>\n- otro")).toEqual([]);
+  });
+});
+
+describe("a fence is a fence however it is written", () => {
+  it("leaves html inside a tilde fence alone", () => {
+    expect(frail("~~~html\n<div>x</div>\n~~~")).toEqual([]);
+  });
+
+  it("leaves html inside an indented fence alone", () => {
+    expect(frail("- Ejemplo:\n\n  ```html\n  <div>x</div>\n  ```")).toEqual([]);
+  });
+
+  it("leaves html inside a fence within a callout alone", () => {
+    expect(frail("> [!NOTE]\n> ```html\n> <div>x</div>\n> ```")).toEqual([]);
+  });
+
+  it("still sees html that is not fenced at all", () => {
+    expect(frail("# t\n\n<div>x</div>")).toContain("frailHtml");
+  });
+});
+
+describe("a fence ends where the quote that opened it ends", () => {
+  it("still sees html past a fence left open inside a quote", () => {
+    expect(frail('> ```\n> code\n\n<div class="warn">Cuidado</div>')).toContain("frailHtml");
+  });
+
+  it("still sees a footnote past a fence left open inside a quote", () => {
+    expect(frail("> ```\n> code\n\nuna nota[^1]\n\n[^1]: el pie")).toContain("frailNotes");
+  });
+
+  it("reads a fence nobody closed as code to the end, which is what markdown says", () => {
+    expect(frail("~~~\nno cierra\n\nmira [esto][uno]\n\n[uno]: https://x.dev")).toEqual([]);
+  });
+
+  it("is not fooled by a fence marker quoted inside a code block", () => {
+    expect(frail("```text\n> ```\n```\n\n<div>real</div>")).toContain("frailHtml");
+  });
+
+  it("is not closed by a marker shorter than the one that opened it", () => {
+    expect(frail("````\ncode\n```\naun es codigo <div>x</div>\n````\n")).toEqual([]);
+    expect(frail("````\ncode\n```\n````\n\n<div>real</div>")).toContain("frailHtml");
+  });
+});
+
+describe("what the agent is allowed to send opens for editing", () => {
+  it("leaves a tag named inside a code span alone", () => {
+    expect(frail("# Guia\n\nEscribe `<div>` para abrir un bloque.")).toEqual([]);
+  });
+
+  it("leaves a footnote shape named inside a code span alone", () => {
+    expect(frail("# Guia\n\nvea `[^1]` en el codigo")).toEqual([]);
+  });
+
+  it("leaves html written as tab-indented code alone", () => {
+    expect(frail("Ejemplo:\n\n\t<div>x</div>")).toEqual([]);
   });
 });

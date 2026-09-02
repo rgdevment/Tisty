@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
@@ -14,14 +15,27 @@ const SHAPES = [
   "numbers",
   "todo",
   "quote",
+  "callout",
   "code",
+  "mermaid",
   "table",
   "rule",
   "pen",
-  "middle",
-  "rightwards",
-  "leftwards",
 ];
+
+export const trailed = (folders: Folded[], at: string | null): Folded[] => {
+  const by = new Map(folders.map((one) => [one.id, one]));
+  const walk: Folded[] = [];
+  const seen = new Set<string>();
+  for (let up = at; up && !seen.has(up); ) {
+    seen.add(up);
+    const one = by.get(up);
+    if (!one) break;
+    walk.unshift(one);
+    up = one.parent;
+  }
+  return walk;
+};
 
 export const worded = (body: string): number =>
   body
@@ -55,6 +69,8 @@ interface Props {
   onCopy: () => void;
   onTakeOut: () => void;
   onShut: () => void;
+  trail?: Folded[];
+  onFolder?: (id: string | null) => void;
 }
 
 export default function Beside({
@@ -72,6 +88,8 @@ export default function Beside({
   onCopy,
   onTakeOut,
   onShut,
+  trail = [],
+  onFolder,
 }: Props) {
   const [facts, setFacts] = useState<DocFacts | null>(null);
 
@@ -99,9 +117,30 @@ export default function Beside({
       className="absolute top-11 right-3 bottom-3 flex w-[320px] flex-col overflow-hidden rounded-[11px] border border-hair bg-panel shadow-lift"
     >
       <div className="flex items-start gap-2 px-4 pt-3.5">
-        <h2 className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">
-          {title || t("untitledDoc")}
-        </h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-[13.5px] font-semibold">{title || t("untitledDoc")}</h2>
+          <p className="mt-0.5 truncate text-[11.5px] text-faint">
+            <button
+              type="button"
+              onClick={() => onFolder?.(null)}
+              className="hover:text-ink hover:underline"
+            >
+              {t("everyPaper")}
+            </button>
+            {trail.map((one) => (
+              <span key={one.id}>
+                <span aria-hidden="true"> / </span>
+                <button
+                  type="button"
+                  onClick={() => onFolder?.(one.id)}
+                  className="hover:text-ink hover:underline"
+                >
+                  {one.name}
+                </button>
+              </span>
+            ))}
+          </p>
+        </div>
         <button
           type="button"
           onClick={onShut}

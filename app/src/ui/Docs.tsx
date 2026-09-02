@@ -11,6 +11,7 @@ import {
   docRead,
   docWrite,
   type Filed,
+  type Folded,
   keepPdf,
   opened,
   type Paper,
@@ -22,7 +23,7 @@ import { filed, named, pagesOf, under } from "../paging";
 import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
-import Beside from "./Beside";
+import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import Ribbon, { Onward } from "./Ribbon";
 import type { Block } from "./Slash";
@@ -59,6 +60,8 @@ const EMPTY: Set<string> = new Set();
 interface Props {
   open?: string;
   known: Filed[];
+  folders?: Folded[];
+  onFolder?: (id: string | null) => void;
   onKept: (doc: { id: string; title: string }) => void;
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
@@ -70,6 +73,8 @@ interface Props {
 export default function Docs({
   open: asked,
   known,
+  folders = [],
+  onFolder,
   onKept,
   onError,
   onDoc,
@@ -326,7 +331,7 @@ export default function Docs({
     registered();
     const pages = known.filter((one) => one.pageOf === open.id);
     const written = await Promise.all(pages.map((one) => docRead(one.file)));
-    const [{ generateJSON }, { written: shapes }, { composed }] = await Promise.all([
+    const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
       import("@tiptap/core"),
       import("./writing"),
       import("../markdown"),
@@ -336,8 +341,8 @@ export default function Docs({
       return found < 0 ? null : found + 1;
     };
     const sheets = await Promise.all(
-      [read(), ...written.map((body) => generateJSON(composed(body), shapes()))].map((one) =>
-        fetched(shapesOf(one), attached, at),
+      [read(), ...written.map((body) => generateJSON(composed(loosened(body)), shapes()))].map(
+        (one) => fetched(shapesOf(one), attached, at),
       ),
     );
     return pdf(<Papered sheets={sheets} leaf={leaf} />).toBlob();
@@ -600,6 +605,8 @@ export default function Docs({
           making={making}
           onPdf={toPdf}
           onSee={preview}
+          trail={trailed(folders, known.find((one) => one.file === open.file)?.folder ?? null)}
+          onFolder={onFolder}
           onCopy={() => {
             asPlain(open.file)
               .then(() => onShown?.(open.file))

@@ -1,16 +1,20 @@
 import type { Editor as Writing } from "@tiptap/core";
-import { Node } from "@tiptap/core";
+import { getHTMLFromFragment, InputRule, Node } from "@tiptap/core";
+import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { Highlight } from "@tiptap/extension-highlight";
 import { Image } from "@tiptap/extension-image";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { TaskList } from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
+import { Fragment, type Node as ProseNode } from "@tiptap/pm/model";
 import StarterKit from "@tiptap/starter-kit";
+import { common, createLowlight } from "lowlight";
 import markPlugin from "markdown-it-mark";
 import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
 import { markup } from "../glyphs";
+import { t } from "../locales";
 import { spared } from "./Icons";
 
 /// A bracket left bare closes the label early, and the reference stops naming anything.
@@ -465,6 +469,514 @@ const Lit = Highlight.configure({ multicolor: true }).extend({
   },
 });
 
+export const CALLOUTS = ["note", "tip", "important", "warning", "caution"] as const;
+
+export type Callout = (typeof CALLOUTS)[number];
+
+const MARKED = /^\s*\[!(note|tip|important|warning|caution)\](?=\s|$)\s*/i;
+
+const kindOf = (text: string): Callout | null => {
+  const said = MARKED.exec(text);
+  return said ? (said[1].toLowerCase() as Callout) : null;
+};
+
+const UNDER = /^ {0,3}(-+|=+)\s*$/;
+const FENCED = /^ {0,3}(`{3,}|~{3,})/;
+
+const deepened = (line: string): [number, string] => {
+  let said = line.trim();
+  let deep = 0;
+  for (;;) {
+    const mark = /^ {0,3}>/.exec(said);
+    if (!mark) return [deep, said];
+    said = said.slice(mark[0].length);
+    if (said.startsWith(" ")) said = said.slice(1);
+    deep += 1;
+  }
+};
+
+export const loosened = (markdown: string): string => {
+  const lines = markdown.split("\n");
+  const out: string[] = [];
+  for (let at = 0; at < lines.length; at += 1) {
+    out.push(lines[at]);
+    const [deep, said] = deepened(lines[at]);
+    if (!deep || !MARKED.test(said)) continue;
+    if (at > 0 && deepened(lines[at - 1])[0] >= deep) continue;
+    let ruled = false;
+    for (let next = at + 1; next < lines.length && !ruled; next += 1) {
+      const [under, text] = deepened(lines[next]);
+      if (under !== deep || !text.trim() || FENCED.test(text)) break;
+      ruled = UNDER.test(text);
+    }
+    if (ruled) out.push(lines[at].slice(0, lines[at].indexOf("[!")).trimEnd());
+  }
+  return out.join("\n");
+};
+
+const Said = Node.create({
+  name: "callout",
+  group: "block",
+  content: "block+",
+  defining: true,
+
+  addAttributes() {
+    return { kind: { default: "note" as Callout } };
+  },
+
+  addInputRules() {
+    return [
+      new InputRule({
+        find: /^\[!(note|tip|important|warning|caution)\]\s$/i,
+        handler: ({ state, range, match, chain }) => {
+          const at = state.doc.resolve(range.from);
+          let quoted: number | null = null;
+          for (let deep = at.depth; deep > 0; deep -= 1) {
+            if (at.node(deep).type.name === "blockquote") {
+              quoted = at.before(deep);
+              break;
+            }
+          }
+          if (quoted === null) return null;
+          const kind = match[1].toLowerCase();
+          chain()
+            .deleteRange(range)
+            .command(({ tr }) => {
+              tr.setNodeMarkup(quoted, state.schema.nodes.callout, { kind });
+              return true;
+            })
+            .run();
+        },
+      }),
+    ];
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "blockquote",
+        priority: 60,
+        getAttrs: (node) => {
+          // The quote's own first paragraph, not any paragraph inside anything it holds.
+          const first = (node as HTMLElement).firstElementChild;
+          if (first?.tagName !== "P") return false;
+          const walk = document.createTreeWalker(first, NodeFilter.SHOW_TEXT);
+          const kind = kindOf(walk.nextNode()?.nodeValue ?? "");
+          return kind ? { kind } : false;
+        },
+        contentElement: (node) => {
+          const held = (node as HTMLElement).cloneNode(true) as HTMLElement;
+          const first = held.firstElementChild;
+          if (first?.tagName !== "P") return held;
+          const walk = document.createTreeWalker(first, NodeFilter.SHOW_TEXT);
+          const start = walk.nextNode();
+          if (start) start.nodeValue = (start.nodeValue ?? "").replace(MARKED, "");
+          if (!start?.nodeValue?.trim()) {
+            const after = first.firstChild;
+            if (after?.nodeName === "BR") after.remove();
+            else if (
+              start &&
+              start.parentElement === first &&
+              first.childNodes[1]?.nodeName === "BR"
+            )
+              first.childNodes[1].remove();
+          }
+          if (!first.textContent?.trim()) first.remove();
+          return held;
+        },
+      },
+    ];
+  },
+
+  renderHTML({ node }) {
+    const kind = String(node.attrs.kind ?? "note");
+    return [
+      "blockquote",
+      { "data-callout": kind, "data-said": t(`said${kind}` as Parameters<typeof t>[0]) },
+      0,
+    ];
+  },
+
+  addStorage() {
+    return {
+      markdown: {
+        serialize(
+          state: {
+            write: (value: string) => void;
+            wrapBlock: (delim: string, first: string | null, node: unknown, fn: () => void) => void;
+            renderContent: (node: unknown) => void;
+          },
+          node: { attrs?: { kind?: string } },
+        ) {
+          const kind = String(node.attrs?.kind ?? "note").toUpperCase();
+          state.wrapBlock("> ", null, node, () => {
+            state.write(`[!${kind}]
+`);
+            state.renderContent(node);
+          });
+        },
+        parse: {},
+      },
+    };
+  },
+});
+
+const ALIGNED = ["left", "center", "right"] as const;
+
+const leaning = () => ({
+  textAlign: {
+    default: null as string | null,
+    parseHTML: (element: HTMLElement) => {
+      const said = (element.style.textAlign || element.getAttribute("align") || "").toLowerCase();
+      return (ALIGNED as readonly string[]).includes(said) ? said : null;
+    },
+    renderHTML: (attrs: { textAlign?: string | null }) =>
+      attrs.textAlign ? { style: `text-align: ${attrs.textAlign}` } : {},
+  },
+});
+
+const inACell = (editor: Writing): boolean => {
+  const { $from } = editor.state.selection;
+  for (let deep = $from.depth; deep > 0; deep -= 1) {
+    const named = $from.node(deep).type.name;
+    if (named === "tableCell" || named === "tableHeader") return true;
+  }
+  return false;
+};
+
+const barred = {
+  addKeyboardShortcuts(this: { editor: Writing }) {
+    return { Enter: () => inACell(this.editor) };
+  },
+};
+
+const Celled = TableCell.extend({
+  ...barred,
+  addAttributes() {
+    return { ...this.parent?.(), ...leaning() };
+  },
+});
+
+const Headed = TableHeader.extend({
+  ...barred,
+  addAttributes() {
+    return { ...this.parent?.(), ...leaning() };
+  },
+});
+
+const RULED: Record<string, string> = {
+  left: ":---",
+  center: ":---:",
+  right: "---:",
+};
+
+interface Celling {
+  type: { name: string };
+  forEach: (fn: (kid: ProseNode) => void) => void;
+  childCount: number;
+  attrs: { textAlign?: string | null; colspan?: number; rowspan?: number };
+}
+
+interface Rowed {
+  childCount: number;
+  forEach: (fn: (cell: Celling, offset: number, at: number) => void) => void;
+}
+
+/// The delimiter row is where Markdown keeps a column's alignment, and tiptap-markdown writes
+/// `---` for every column whatever the cells say.
+const Ruled = Table.configure({ resizable: false }).extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize(
+          state: {
+            write: (value: string) => void;
+            ensureNewLine: () => void;
+            renderInline: (node: unknown) => void;
+            closeBlock: (node: unknown) => void;
+            inTable?: boolean;
+          },
+          node: { forEach: (fn: (row: Rowed, offset: number, at: number) => void) => void },
+        ) {
+          // A span or a cell holding more than one block has no markdown to be written in.
+          let plain = true;
+          node.forEach((row, _at, index) => {
+            row.forEach((cell) => {
+              const { colspan = 1, rowspan = 1 } = cell.attrs;
+              const heading = cell.type.name === "tableHeader";
+              let holds = true;
+              cell.forEach((kid) => {
+                if (kid.type.name !== "paragraph" && kid.type.name !== "image") holds = false;
+              });
+              if (
+                colspan > 1 ||
+                rowspan > 1 ||
+                cell.childCount > 1 ||
+                !holds ||
+                heading !== (index === 0)
+              ) {
+                plain = false;
+              }
+            });
+          });
+          if (!plain) {
+            const held = node as unknown as ProseNode;
+            state.write(getHTMLFromFragment(Fragment.from(held), held.type.schema));
+            state.closeBlock(node);
+            return;
+          }
+          state.inTable = true;
+          const leans: (string | null)[] = [];
+          node.forEach((row, _at, index) => {
+            state.write("| ");
+            row.forEach((cell, _spot, column) => {
+              if (column) state.write(" | ");
+              if (!index) leans[column] = cell.attrs.textAlign ?? null;
+              // Markdown holds only inline content in a cell, and an image node is a block
+              // here, so it is written by hand rather than skipped for having no text.
+              cell.forEach((kid) => {
+                if (kid.type.name === "image") {
+                  state.write(
+                    `![${labelled(String(kid.attrs.alt ?? ""))}](${String(kid.attrs.src ?? "")})`,
+                  );
+                } else if (kid.content.size > 0) {
+                  state.renderInline(kid);
+                }
+              });
+            });
+            state.write(" |");
+            state.ensureNewLine();
+            if (!index) {
+              const ruled = Array.from({ length: row.childCount }, (_, column) =>
+                RULED[leans[column] ?? ""] ? RULED[leans[column] ?? ""] : "---",
+              ).join(" | ");
+              state.write(`| ${ruled} |`);
+              state.ensureNewLine();
+            }
+          });
+          state.closeBlock(node);
+          state.inTable = false;
+        },
+        parse: {},
+      },
+    };
+  },
+});
+
+export const TONGUES = [
+  "bash",
+  "c",
+  "cpp",
+  "csharp",
+  "css",
+  "diff",
+  "go",
+  "graphql",
+  "ini",
+  "java",
+  "javascript",
+  "json",
+  "kotlin",
+  "less",
+  "lua",
+  "makefile",
+  "markdown",
+  "objectivec",
+  "perl",
+  "php",
+  "python",
+  "r",
+  "ruby",
+  "rust",
+  "scss",
+  "shell",
+  "sql",
+  "swift",
+  "typescript",
+  "vbnet",
+  "wasm",
+  "xml",
+  "yaml",
+] as const;
+
+// One counter for the window: mermaid resolves its id against the whole document.
+let sketches = 0;
+
+type Setting = { set: (options: { langPrefix: string }) => void };
+
+const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) }).extend({
+  addNodeView() {
+    return ({ node, editor, getPos }) => {
+      const held = document.createElement("div");
+      held.className = "lit";
+
+      const bar = document.createElement("div");
+      bar.className = "lit-bar";
+      bar.contentEditable = "false";
+      const picked = document.createElement("select");
+      picked.className = "lit-tongue";
+      picked.title = t("codeTongue");
+      picked.setAttribute("aria-label", t("codeTongue"));
+      const none = document.createElement("option");
+      none.value = "";
+      none.textContent = t("codeNoTongue");
+      picked.append(none);
+      for (const one of [...TONGUES, "mermaid"]) {
+        const said = document.createElement("option");
+        said.value = one;
+        said.textContent = one;
+        picked.append(said);
+      }
+      const showing = (one: ProseNode) => {
+        const now = String(one.attrs.language ?? "");
+        if (now && !picked.querySelector(`option[value="${CSS.escape(now)}"]`)) {
+          const own = document.createElement("option");
+          own.value = now;
+          own.textContent = now;
+          picked.append(own);
+        }
+        picked.value = now;
+      };
+      showing(node);
+      picked.addEventListener("change", () => {
+        const at = getPos();
+        if (at === undefined) return;
+        editor
+          .chain()
+          .focus()
+          .command(({ tr }) => {
+            tr.setNodeAttribute(at, "language", picked.value || null);
+            return true;
+          })
+          .run();
+      });
+      bar.append(picked);
+
+      const drawn = document.createElement("div");
+      drawn.className = "lit-drawn";
+      drawn.contentEditable = "false";
+
+      const body = document.createElement("div");
+      body.className = "lit-body";
+      const lines = document.createElement("div");
+      lines.className = "lit-lines";
+      lines.setAttribute("aria-hidden", "true");
+      const pre = document.createElement("pre");
+      const code = document.createElement("code");
+      pre.append(code);
+      body.append(lines, pre);
+      held.append(bar, body, drawn);
+
+      let asked = 0;
+      let drew = "";
+
+      const sketched = (source: string) => {
+        asked += 1;
+        sketches += 1;
+        const mine = asked;
+        const named = `said${sketches}`;
+        if (!source.trim()) {
+          drawn.replaceChildren();
+          return;
+        }
+        import("mermaid")
+          .then(({ default: mermaid }) => {
+            mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+            return mermaid.render(named, source, drawn);
+          })
+          .then(({ svg }) => {
+            if (mine !== asked) return;
+            drawn.innerHTML = svg;
+          })
+          .catch(() => {
+            if (mine !== asked) return;
+            drew = "";
+            drawn.replaceChildren();
+          });
+      };
+
+      const counted = (one: { textContent: string | null }) => {
+        const many = Math.max(1, (one.textContent ?? "").split("\n").length);
+        lines.replaceChildren();
+        for (let n = 1; n <= many; n += 1) {
+          const said = document.createElement("span");
+          said.textContent = String(n);
+          lines.append(said);
+        }
+      };
+      counted(node);
+
+      const sketching = (one: { attrs: Record<string, unknown>; textContent: string | null }) => {
+        if (String(one.attrs.language ?? "") !== "mermaid") {
+          asked += 1;
+          drew = "";
+          drawn.replaceChildren();
+          return;
+        }
+        const source = one.textContent ?? "";
+        // Every keystroke would otherwise start a render, and a failed one leaves litter behind.
+        if (source === drew) return;
+        drew = source;
+        sketched(source);
+      };
+      sketching(node);
+
+      return {
+        dom: held,
+        contentDOM: code,
+        ignoreMutation: (one) => one.type !== "selection" && !code.contains(one.target),
+        destroy: () => {
+          asked += 1;
+          drawn.replaceChildren();
+        },
+        update: (fresh) => {
+          if (fresh.type.name !== "codeBlock") return false;
+          counted(fresh);
+          sketching(fresh);
+          showing(fresh);
+          return true;
+        },
+      };
+    };
+  },
+
+  addStorage() {
+    return {
+      markdown: {
+        serialize(
+          state: {
+            write: (value: string) => void;
+            text: (value: string, escaped?: boolean) => void;
+            ensureNewLine: () => void;
+            closeBlock: (node: unknown) => void;
+          },
+          node: { attrs?: { language?: unknown }; textContent: string },
+        ) {
+          const said = String(node.attrs?.language ?? "");
+          const mark = said.includes("`") ? "~" : "`";
+          const runs = node.textContent.split(new RegExp(`[^\\${mark}]+`));
+          const longest = runs.reduce((most, one) => Math.max(most, one.length), 0);
+          const wall = mark.repeat(Math.max(3, longest + 1));
+
+          state.write(`${wall}${said}\n`);
+          state.text(node.textContent, false);
+          state.ensureNewLine();
+          state.write(wall);
+          state.closeBlock(node);
+        },
+        parse: {
+          setup(this: { options: { languageClassPrefix?: string } }, md: Setting) {
+            md.set({ langPrefix: this.options.languageClassPrefix ?? "language-" });
+          },
+          updateDOM(element: HTMLElement) {
+            element.innerHTML = element.innerHTML.replace(/\n<\/code><\/pre>/g, "</code></pre>");
+          },
+        },
+      },
+    };
+  },
+});
+
 const Tightened = TaskList.extend({
   addAttributes() {
     return { ...this.parent?.(), tight: { default: true, rendered: false } };
@@ -475,13 +987,16 @@ export const written = () => [
   StarterKit.configure({
     link: { openOnClick: false, autolink: true, protocols: ["tisty"] },
     text: false,
+    codeBlock: false,
   }),
+  Lettered,
   Pictured,
-  Table.configure({ resizable: false }),
+  Ruled,
   TableRow,
-  TableHeader,
-  TableCell,
+  Headed,
+  Celled,
   Tightened,
+  Said,
   Ico,
   Lit,
   TaskItem.configure({ nested: true }),
