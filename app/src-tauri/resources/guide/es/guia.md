@@ -145,7 +145,7 @@ Y dentro de un aviso cabe casi todo, no solo texto:
 > - Copiar la carpeta entera
 >
 > ```bash
-> cp -r ~/Tisty ~/Respaldo
+> cp -r ~/Tisty ~/Backup
 > ```
 >
 > ---
@@ -227,17 +227,21 @@ Las dos cosas se dibujan con código que viaja dentro de Tisty. No se pide nada 
 
 Un bloque de código se colorea según su lenguaje, y le puedes poner nombre: escribe el lenguaje y después `title="lo que sea"`. El nombre se ve en la cabecera del bloque, y el color llega también al PDF.
 
-```bash title="respaldo.sh"
-rsync -a ~/Tisty/ /Volumes/Respaldo/Tisty/
+```bash title="backup.sh"
+rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 ```
 
-```json title="ajustes.json"
-{ "idioma": "es", "carpeta": "~/Tisty" }
+```json title="settings.json"
+{ "language": "es", "folder": "~/Tisty" }
 ```
 
 #### Salto de página
 
 Una raya sola parte la hoja. En pantalla se ve como un corte de verdad, y al imprimir o guardar en PDF lo que sigue empieza en la hoja siguiente. Es lo único de esta lista que no se nota leyendo, sino imprimiendo.
+
+De código hay más que decir, y cabe en su propia hoja:
+
+![Cuando lo que apuntas es código](tisty:code)
 
 ---
 
@@ -257,6 +261,10 @@ Una página es un documento como cualquier otro —mismo archivo en el disco, mi
 Al final del documento, en su propia hoja, va el índice: las páginas que el texto nombra, numeradas, y tras una raya las que no, a un clic de tener su sitio en el texto. Dentro de una página verás arriba de qué documento es y en qué lugar va, flechas a sus hermanas, y abajo el paso a la siguiente.
 
 En el árbol, un documento soltado encima de otro se vuelve página suya.
+
+Esta guía tiene una. Aquí debajo está nombrada, y por eso aquí es donde va:
+
+![La Rina](tisty:page)
 
 ### 10. Cuando Tisty solo puede leerlo
 

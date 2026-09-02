@@ -26,13 +26,32 @@
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
+  ; The window is not the only thing running: an assistant keeps `tisty.exe mcp`
+  ; alive for as long as its client lives, and a locked binary leaves the folder
+  ; behind. Both are closed before anything is taken away.
+  !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
+  !insertmacro CheckIfAppIsRunning "tisty.exe" "${PRODUCTNAME}"
+
   ; The app put the PATH entry and the startup entry there, and is the only
-  ; thing that can read the PATH value whole to take it back out.
+  ; thing that can read the PATH value whole to take it back out. It also sweeps
+  ; its own settings and cache on the way, which are the program's, not the
+  ; person's.
   ;
   ; Not while updating: the generated installer.nsi guards its own shortcuts and
   ; startup key the same way, and an update has no business undoing either.
   ${If} $UpdateMode <> 1
   ${AndIf} ${FileExists} "$INSTDIR\${MAINBINARYNAME}.exe"
     ExecWait '"$INSTDIR\${MAINBINARYNAME}.exe" --unreach'
+  ${EndIf}
+!macroend
+
+!macro NSIS_HOOK_POSTUNINSTALL
+  ; What the binary could not sweep because it was already gone. The store is
+  ; left where it is on purpose: wanting the program gone is not wanting the
+  ; documents gone, and they are the person's.
+  ${If} $UpdateMode <> 1
+    RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\config"
+    RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\cache"
+    RMDir "$INSTDIR"
   ${EndIf}
 !macroend

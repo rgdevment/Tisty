@@ -35,6 +35,22 @@ impl Paths {
         })
     }
 
+    pub fn swept_on_leaving(&self) -> Vec<PathBuf> {
+        vec![self.config.clone(), self.cache.clone()]
+    }
+
+    pub fn shims() -> Vec<PathBuf> {
+        let Some(dirs) = directories::UserDirs::new() else {
+            return Vec::new();
+        };
+        let home = dirs.home_dir();
+        ["tisty-mcp", "tisty"]
+            .iter()
+            .map(|one| home.join(".local").join("bin").join(one))
+            .filter(|at| at.is_file())
+            .collect()
+    }
+
     pub fn new(data: impl Into<PathBuf>, config: impl Into<PathBuf>) -> Self {
         let config = config.into();
         Self {

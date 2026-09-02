@@ -239,6 +239,10 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 
 A rule on its own splits the sheet. On screen it looks like a real break, and when you print or save as PDF what follows starts on the next sheet. It is the only thing in this list you notice by printing rather than by reading.
 
+There is more to say about code, and it fits on a sheet of its own:
+
+![When what you keep is code](tisty:code)
+
 ---
 
 This bit here is already on the sheet after it.
@@ -257,6 +261,10 @@ A page is a document like any other — same file on disk, same way out — with
 At the end of the document, on its own sheet, comes the index: the pages the text names, numbered, and after a rule the ones it does not, one click from a place in the text. Inside a page you see which document it belongs to and where it sits, arrows to its sisters, and the step to the next one at the foot.
 
 In the tree, a document dropped on another becomes a page of it.
+
+This guide has one. It is named right here, and so here is where it goes:
+
+![Rina](tisty:page)
 
 ### 10. When Tisty can only read it
 

@@ -20,7 +20,7 @@ pub const EXIT_NOT_FOUND: u8 = 4;
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
     "show", "story", "series", "undo", "redo", "sync", "doctor", "demo", "lists", "list", "tag",
-    "config", "export", "help", "mcp", "agent", "attach", "doc",
+    "config", "export", "help", "mcp", "agent", "attach", "doc", "leave",
 ];
 
 #[derive(Parser)]
@@ -206,6 +206,13 @@ pub enum Command {
     },
     /// Speak MCP over stdin and stdout, so an assistant can file work here
     Mcp,
+    /// Take Tisty's own settings, cache and command line off this machine. Your documents,
+    /// tasks and attachments stay where they are.
+    Leave {
+        /// Say it without being asked
+        #[arg(long)]
+        yes: bool,
+    },
     /// Let an assistant file work here, or stop it
     Agent {
         #[arg(long, conflicts_with = "off")]
@@ -323,6 +330,50 @@ fn named(first: Option<&str>) -> &'static str {
         .unwrap_or("add")
 }
 
+fn leaving(paths: &tisty_core::Paths, yes: bool, lang: Lang) -> anyhow::Result<ExitCode> {
+    let swept: Vec<std::path::PathBuf> = paths
+        .swept_on_leaving()
+        .into_iter()
+        .chain(tisty_core::Paths::shims())
+        .filter(|at| at.exists())
+        .collect();
+
+    println!(
+        "  {}",
+        lang.fill(
+            "leave-keeps",
+            &[("at", &paths.data().display().to_string())]
+        )
+    );
+    for at in &swept {
+        println!("  {}", style::dim(&at.display().to_string()));
+    }
+    if swept.is_empty() {
+        println!("  {}", style::dim(lang.get("leave-nothing")));
+        return Ok(ExitCode::SUCCESS);
+    }
+    if !yes
+        && !dialoguer::Confirm::new()
+            .with_prompt(lang.get("leave-sure"))
+            .default(false)
+            .interact()
+            .unwrap_or(false)
+    {
+        return Ok(ExitCode::SUCCESS);
+    }
+    for at in &swept {
+        let gone = match at.is_dir() {
+            true => std::fs::remove_dir_all(at),
+            false => std::fs::remove_file(at),
+        };
+        if let Err(why) = gone {
+            eprintln!("  {}: {why}", at.display());
+        }
+    }
+    println!("  {}", lang.get("leave-done"));
+    Ok(ExitCode::SUCCESS)
+}
+
 fn run() -> anyhow::Result<ExitCode> {
     let cli = Cli::parse_from(normalise(std::env::args()));
     let paths = tisty_core::Paths::resolve()?;
@@ -343,6 +394,10 @@ fn run() -> anyhow::Result<ExitCode> {
     // beside it is never a stale read.
     if matches!(cli.command, Command::Mcp) {
         return mcp::serve(paths);
+    }
+    if let Command::Leave { yes } = cli.command {
+        let lang = Lang::detect(tisty_core::Config::load_or_init(&paths)?.locale.as_deref());
+        return leaving(&paths, yes, lang);
     }
     if let Command::Agent { on, off } = cli.command {
         let lang = Lang::detect(tisty_core::Config::load_or_init(&paths)?.locale.as_deref());
