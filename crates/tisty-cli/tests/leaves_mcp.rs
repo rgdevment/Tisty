@@ -742,3 +742,253 @@ fn archived_takes_true_or_false_and_says_so_when_it_is_neither() {
         "it must not have been put away on a word it did not understand"
     );
 }
+
+fn beside(dir: &std::path::Path, named: &str, bytes: &[u8]) {
+    let at = dir.join(named);
+    if let Some(up) = at.parent() {
+        std::fs::create_dir_all(up).unwrap();
+    }
+    std::fs::write(at, bytes).unwrap();
+}
+
+const A_PNG: &[u8] = &[
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+];
+
+#[test]
+fn a_picture_beside_the_file_comes_in_with_it() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(dir.path(), "Risk Matrix/Untitled.png", A_PNG);
+    let at = dir.path().join("Risk Matrix.md");
+    std::fs::write(
+        &at,
+        "# Risk Matrix\n\n![Untitled](Risk%20Matrix/Untitled.png)\n",
+    )
+    .unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(
+        body.contains("attachments/"),
+        "the picture was not brought in: {body}"
+    );
+    assert!(
+        !body.contains("Risk%20Matrix"),
+        "it still points outside Tisty: {body}"
+    );
+    assert_eq!(
+        said["result"]["structuredContent"]["files"].as_u64(),
+        Some(1)
+    );
+}
+
+#[test]
+fn what_cannot_come_in_leaves_no_link_pointing_outside() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(
+        dir.path(),
+        "secretos/server.key",
+        b"-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n-----END RSA PRIVATE KEY-----\n",
+    );
+    let at = dir.path().join("Notas.md");
+    std::fs::write(
+        &at,
+        "# Notas\n\nLa [clave del servidor](secretos/server.key) y nada mas.\n",
+    )
+    .unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(!body.contains("server.key"), "the key was linked: {body}");
+    assert!(
+        body.contains("clave del servidor"),
+        "the words that named it are kept: {body}"
+    );
+    let left = said["result"]["structuredContent"]["left_behind"].to_string();
+    assert!(left.contains("key or a password"), "{left}");
+}
+
+#[test]
+fn a_file_that_is_not_there_leaves_words_and_not_a_broken_link() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    let at = dir.path().join("Suelto.md");
+    std::fs::write(&at, "# Suelto\n\n![foto](assets/no-esta.png)\n").unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(!body.contains("no-esta.png"), "{body}");
+    assert!(body.contains("foto"), "{body}");
+}
+
+#[test]
+fn another_markdown_file_comes_in_and_is_named_as_one_to_import_too() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(dir.path(), "Sub/Otra.md", b"# Otra\n");
+    let at = dir.path().join("Padre.md");
+    std::fs::write(&at, "# Padre\n\nVer [Otra](Sub/Otra.md).\n").unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    let named = said["result"]["structuredContent"]["names_markdown"].to_string();
+    assert!(named.contains("Otra.md"), "{named}");
+    assert_eq!(
+        said["result"]["structuredContent"]["files"].as_u64(),
+        Some(1),
+        "it still comes in, so the link does not point outside Tisty"
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(body.contains("attachments/"), "{body}");
+    assert!(!body.contains("Sub/Otra.md"), "{body}");
+}
+
+#[test]
+fn a_path_on_this_machine_is_never_left_in_the_text() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    let at = dir.path().join("Rutas.md");
+    std::fs::write(
+        &at,
+        "# Rutas\n\nUno [passwd](/etc/passwd), dos [ini](file:///C:/Windows/win.ini), tres [share](//servidor/x/y.png) y un [sitio](https://example.com) de verdad.\n",
+    )
+    .unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    for gone in ["/etc/passwd", "file:///", "//servidor"] {
+        assert!(!body.contains(gone), "{gone} stayed in: {body}");
+    }
+    assert!(
+        body.contains("https://example.com"),
+        "a link to the web is not a path: {body}"
+    );
+    for kept in ["passwd", "ini", "share"] {
+        assert!(body.contains(kept), "the words were lost: {body}");
+    }
+}
+
+#[test]
+fn a_link_shown_as_an_example_inside_code_is_not_followed() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(dir.path(), "real.png", A_PNG);
+    let at = dir.path().join("Ejemplo.md");
+    std::fs::write(
+        &at,
+        "# Ejemplo\n\nAsi se escribe: `![alt](real.png)`\n\n```md\n![alt](real.png)\n```\n",
+    )
+    .unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert_eq!(
+        said["result"]["structuredContent"]["files"].as_u64(),
+        Some(0),
+        "an example is not a file to keep"
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert_eq!(
+        body.matches("![alt](real.png)").count(),
+        2,
+        "both examples read as they were written: {body}"
+    );
+}
+
+#[test]
+fn a_label_with_brackets_of_its_own_keeps_every_character() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    let at = dir.path().join("Corchetes.md");
+    std::fs::write(
+        &at,
+        "# Corchetes\n\nAntes [a [b] c](no-existe.png) despues.\n",
+    )
+    .unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(body.contains("a [b] c"), "a bracket was eaten: {body}");
+    assert!(!body.contains("no-existe.png"), "{body}");
+}
+
+#[test]
+fn nothing_is_copied_in_when_the_document_itself_is_turned_away() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(dir.path(), "real.png", A_PNG);
+    let at = dir.path().join("Enorme.md");
+    let body = format!(
+        "# Enorme\n\n![foto](real.png)\n\n{}\n",
+        "palabra ".repeat(9000)
+    );
+    std::fs::write(&at, body).unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let shelf = served.data().join("attachments");
+    let left = std::fs::read_dir(&shelf)
+        .map(|one| one.count())
+        .unwrap_or(0);
+    assert_eq!(
+        left, 0,
+        "a refused import must leave no file no document names"
+    );
+}

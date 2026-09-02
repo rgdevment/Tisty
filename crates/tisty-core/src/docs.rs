@@ -4237,6 +4237,10 @@ pub(crate) fn markup(line: &str) -> Option<&'static str> {
         if rest.starts_with("!--") {
             return Some("HTML comments");
         }
+        if !rest.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!' || c == '?')
+        {
+            continue;
+        }
         if shut <= at {
             shut = match rest.find('>') {
                 Some(end) => at + 1 + end,
@@ -4255,9 +4259,7 @@ pub(crate) fn markup(line: &str) -> Option<&'static str> {
         if kept(inner) {
             continue;
         }
-        if rest.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!' || c == '?') {
-            return Some("HTML");
-        }
+        return Some("HTML");
     }
     None
 }

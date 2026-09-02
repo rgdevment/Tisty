@@ -735,7 +735,7 @@ const en = {
   sharedIsTheBackup: "Your shared folder already holds every machine's history",
   otherStore: "That belongs to another store ({name})",
   attachmentTooBig:
-    "That file is over {name}, the most a task takes. Raise it in Settings → Writing, or attach it inside a document, which takes up to 500 MB.",
+    "That file is over {name}, the most a task takes. Raise it in Settings → Writing, or attach it inside a document, which takes up to 750 MB.",
   attachmentTooBigHere: "That file is over {name}, which is as much as a document will hold.",
   textTooLong:
     "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
@@ -1824,7 +1824,7 @@ const es: Catalog = {
   sharedIsTheBackup: "Tu carpeta compartida ya guarda el historial de todos tus equipos",
   otherStore: "Eso es de otro almacén ({name})",
   attachmentTooBig:
-    "Ese archivo pasa de {name}, el máximo de una tarea. Súbelo en Configuración → Escribir, o adjúntalo dentro de un documento, que admite hasta 500 MB.",
+    "Ese archivo pasa de {name}, el máximo de una tarea. Súbelo en Configuración → Escribir, o adjúntalo dentro de un documento, que admite hasta 750 MB.",
   attachmentTooBigHere: "Ese archivo pasa de {name}, que es todo lo que un documento admite.",
   textTooLong:
     "Eso supera los {name} de texto. Algo tan largo va mejor en un documento, y lo enlazas desde aquí.",
