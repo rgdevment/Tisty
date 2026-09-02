@@ -148,8 +148,14 @@ describe("a rule under the marker does not swallow the callout", () => {
   it("keeps the marker and the words when a rule follows them", () => {
     const one = opened("> [!WARNING]\n> algo importante\n> ---");
     expect(one.editor.state.doc.firstChild?.attrs.kind).toBe("warning");
-    expect(one.markdown()).toContain("[!WARNING]");
-    expect(one.markdown()).toContain("algo importante");
+    expect(one.markdown()).toBe("> [!WARNING]\n> ## algo importante");
+    one.shut();
+  });
+
+  it("underlines only the words the rule stood under, however many they were", () => {
+    const one = opened("> [!WARNING]\n> uno\n> dos\n> ---");
+    expect(one.editor.state.doc.firstChild?.attrs.kind).toBe("warning");
+    expect(one.markdown()).toBe("> [!WARNING]\n> ## uno\\\n> dos");
     one.shut();
   });
 

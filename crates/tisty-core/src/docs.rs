@@ -158,11 +158,15 @@ impl Fencing {
         if self.open.is_none() {
             self.base = listed(self.base, wide, said);
         }
+        let (wide, said) = match bullet(said) {
+            Some(after) => (wide + after, &said[after..]),
+            None => (wide, said),
+        };
         self.told = false;
         let marker = ['`', '~'].into_iter().find_map(|mark| {
             let many = said.chars().take_while(|c| *c == mark).count();
-            let told = &said[many.min(said.len())..];
-            let opens = many >= 3 && wide < self.base + 4 && (mark == '~' || !told.contains('`'));
+            let after = &said[many.min(said.len())..];
+            let opens = many >= 3 && wide < self.base + 4 && (mark == '~' || !after.contains('`'));
             opens.then_some((mark, many))
         });
 
@@ -252,15 +256,15 @@ fn quoteless(line: &str) -> &str {
 
 pub fn titled(body: &str) -> String {
     let body = body.strip_prefix('\u{feff}').unwrap_or(body);
-    let mut said: Vec<&str> = body
-        .lines()
-        .map(str::trim)
-        .filter(|one| !one.is_empty())
-        .collect();
-    if said.first() == Some(&"---")
-        && let Some(shuts) = said.iter().skip(1).position(|one| *one == "---")
+    let mut said: Vec<&str> = body.lines().collect();
+    if let Some(start) = said.iter().position(|one| !one.trim().is_empty())
+        && said[start].trim() == "---"
+        && let Some(shuts) = said
+            .iter()
+            .skip(start + 1)
+            .position(|one| one.trim() == "---")
     {
-        said.drain(..shuts + 2);
+        said.drain(..start + shuts + 2);
     }
     let mut fence = Fencing::default();
     let first = said
@@ -269,8 +273,12 @@ pub fn titled(body: &str) -> String {
             if fence.inside(one) {
                 return None;
             }
+            let flat = one.trim();
+            if flat.is_empty() {
+                return None;
+            }
             let opened = quoteless(one).trim_start_matches('#').trim_start();
-            let said = match one.starts_with('>') {
+            let said = match flat.starts_with('>') {
                 true => crate::refs::alerted(opened).unwrap_or(opened),
                 false => opened,
             };
@@ -1354,6 +1362,24 @@ solo codigo
             ),
             "",
             "a fence alone names nothing"
+        );
+    }
+
+    #[test]
+    fn a_fence_a_list_item_held_stops_hiding_what_comes_after_it_too() {
+        assert_eq!(
+            titled("-\n\n  ```\n  aun es codigo\n\n# El titulo real\n"),
+            "El titulo real"
+        );
+        assert_eq!(
+            titled("- uno\n\n  ```\n  codigo\n\n# El titulo real\n"),
+            "- uno",
+            "the list item still speaks first"
+        );
+        assert_eq!(
+            titled("```\n# aun es codigo\n"),
+            "",
+            "nothing outside a container closes a fence nobody closed"
         );
     }
 
@@ -3776,15 +3802,13 @@ despues
 /// What the window's editor destroys the first time somebody opens a document. It rewrites the
 /// whole file, so anything it cannot represent is gone on the first keystroke.
 pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
-    let body = body.strip_prefix('\u{feff}').unwrap_or(body);
     if fronted(body) {
         return Err("YAML frontmatter");
     }
     let mut fence = Fencing::default();
 
-    for line in body.lines() {
-        let flat = line.trim();
-
+    let said: Vec<&str> = body.lines().collect();
+    for (at, line) in said.iter().enumerate() {
         if fence.inside(line) {
             if fence.told {
                 return Err("what a fence says after its language");
@@ -3795,14 +3819,15 @@ pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
             continue;
         }
 
-        if let Some(why) = markup(&outside_code_spans(line)) {
+        let plain = outside_code_spans(line);
+        if let Some(why) = markup(&plain) {
             return Err(why);
         }
-        let plain = outside_code_spans(flat);
-        if noted(&plain) {
+        let flat = plain.trim();
+        if noted(flat) {
             return Err("footnotes");
         }
-        if linked(&plain) {
+        if linked(flat, said.get(at + 1).unwrap_or(&"")) {
             return Err("reference links");
         }
     }
@@ -3810,7 +3835,7 @@ pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
 }
 
 fn fronted(body: &str) -> bool {
-    let mut lines = body.lines();
+    let mut lines = body.strip_prefix('\u{feff}').unwrap_or(body).lines();
     if lines.next().map(str::trim) != Some("---") {
         return false;
     }
@@ -3876,18 +3901,32 @@ fn noted(line: &str) -> bool {
     false
 }
 
-fn linked(line: &str) -> bool {
+fn labelled(rest: &str) -> Option<(&str, &str)> {
+    let bytes = rest.as_bytes();
+    let mut at = 0;
+    while at < bytes.len() {
+        match bytes[at] {
+            b'\\' => at += 2,
+            b']' if bytes.get(at + 1) == Some(&b':') => {
+                return Some((&rest[..at], &rest[at + 2..]));
+            }
+            b']' => return None,
+            _ => at += 1,
+        }
+    }
+    None
+}
+
+fn linked(line: &str, next: &str) -> bool {
     let Some(rest) = line.strip_prefix('[') else {
         return false;
     };
-    let Some(shut) = rest.find("]:") else {
+    let Some((label, told)) = labelled(rest) else {
         return false;
     };
-    let label = &rest[..shut];
     !label.is_empty()
         && !label.starts_with('^')
-        && !label.contains(']')
-        && !rest[shut + 2..].trim().is_empty()
+        && (!told.trim().is_empty() || !next.trim().is_empty())
 }
 
 /// A `<` that opens a tag, wherever it sits on the line. An autolink is markdown and comes

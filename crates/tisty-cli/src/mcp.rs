@@ -926,12 +926,23 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     Ok(told(plainly, whole))
 }
 
+fn fits(body: &str) -> Result<(), Refused> {
+    let limit = tisty_core::docs::BODY_AT_MOST;
+    match body.len() as u64 > limit {
+        true => Err(Refused::Tool(format!(
+            "that body is past the {limit} bytes Tisty can open. Send a shorter document, or split it into pages."
+        ))),
+        false => Ok(()),
+    }
+}
+
 fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a document needs a `body`.".into()));
     };
     let (state, mut store) = opened(paths)?;
 
+    fits(&body)?;
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]."
@@ -1059,6 +1070,7 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{which:?} is put away, so nothing more goes into it. Write a new document instead."
         )));
     }
+    fits(&body)?;
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \

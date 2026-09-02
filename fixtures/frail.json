@@ -406,5 +406,53 @@
     "why": [
       "fence"
     ]
+  },
+  {
+    "text": "﻿```html\n<div>x</div>\n```",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "﻿hola mundo",
+    "why": []
+  },
+  {
+    "text": "- ```js hola mundo\n  code\n  ```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "- ```js\n  code\n  ```",
+    "why": []
+  },
+  {
+    "text": "- one\n  - ```js dos palabras\n    code\n    ```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "[ref]:\n  https://example.com",
+    "why": [
+      "refs"
+    ]
+  },
+  {
+    "text": "mira [esto][ref]\n\n[ref]:\n  https://example.com",
+    "why": [
+      "refs"
+    ]
+  },
+  {
+    "text": "[a\\]b]: https://example.com",
+    "why": [
+      "refs"
+    ]
+  },
+  {
+    "text": "[ref]:\n\nsuelto",
+    "why": []
   }
 ]

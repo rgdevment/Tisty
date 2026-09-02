@@ -20,20 +20,22 @@ const spacing = (said: string): number => {
   return wide;
 };
 
+const flat = (said: string): string => said.replace(/^[ \t\r]+|[ \t\r]+$/g, "");
+
 const quoted = (line: string): [number, number, string] => {
   let said = line;
   let deep = 0;
   let wide = spacing(said);
 
   while (wide < 4) {
-    const rest = said.trimStart();
+    const rest = flat(said);
     if (!rest.startsWith(">")) break;
     said = rest.slice(1);
     if (said.startsWith(" ")) said = said.slice(1);
     deep += 1;
     wide = spacing(said);
   }
-  return [deep, wide, said.trim()];
+  return [deep, wide, flat(said)];
 };
 
 const bullet = (said: string): number | null => {
@@ -55,8 +57,11 @@ const fenceless = (text: string): { bare: string; told: boolean } => {
   let told = false;
 
   for (const line of text.split("\n")) {
-    const [deep, wide, said] = quoted(line);
-    if (!open) base = listed(base, wide, said);
+    const [deep, held, held2] = quoted(line);
+    if (!open) base = listed(base, held, held2);
+    const after = bullet(held2);
+    const wide = after === null ? held : held + after;
+    const said = after === null ? held2 : held2.slice(after);
     const found = wide < base + 4 ? /^(`{3,}|~{3,})(.*)$/.exec(said) : null;
     const marker = found && (found[1][0] === "~" || !found[2].includes("`")) ? found : null;
     if (open) {
@@ -167,13 +172,24 @@ const noted = (line: string): boolean => {
   }
 };
 
-const linked = (line: string): boolean => {
+const labelled = (rest: string): [string, string] | null => {
+  let at = 0;
+  while (at < rest.length) {
+    if (rest[at] === "\\") at += 2;
+    else if (rest[at] !== "]") at += 1;
+    else if (rest[at + 1] === ":") return [rest.slice(0, at), rest.slice(at + 2)];
+    else return null;
+  }
+  return null;
+};
+
+const linked = (line: string, next: string): boolean => {
   if (!line.startsWith("[")) return false;
-  const shut = line.indexOf("]:");
-  if (shut < 0) return false;
-  const label = line.slice(1, shut);
-  if (!label || label.startsWith("^") || label.includes("]")) return false;
-  return line.slice(shut + 2).trim() !== "";
+  const found = labelled(line.slice(1));
+  if (!found) return false;
+  const [label, told] = found;
+  if (!label || label.startsWith("^")) return false;
+  return told.trim() !== "" || next.trim() !== "";
 };
 
 export const frail = (text: string): string[] => {
@@ -183,13 +199,15 @@ export const frail = (text: string): string[] => {
 
   if (fronted(text)) seen.add("frailFront");
   if (said.told) seen.add("frailFence");
-  for (const line of bare.split("\n")) {
+
+  const lines = bare.split("\n");
+  for (const [at, line] of lines.entries()) {
     const plain = spanless(line);
     const why = markup(plain);
     if (why) seen.add(why);
-    const flat = plain.trim();
-    if (noted(flat)) seen.add("frailNotes");
-    if (linked(flat)) seen.add("frailRefs");
+    const one = plain.trim();
+    if (noted(one)) seen.add("frailNotes");
+    if (linked(one, lines[at + 1] ?? "")) seen.add("frailRefs");
   }
 
   return WHY.filter((one) => seen.has(one));

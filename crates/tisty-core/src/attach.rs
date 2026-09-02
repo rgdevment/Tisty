@@ -816,13 +816,20 @@ fn decoded(said: &str) -> Option<String> {
     let mut at = 0;
 
     while at < bytes.len() {
-        if bytes[at] == b'%' {
-            out.push(u8::from_str_radix(said.get(at + 1..at + 3)?, 16).ok()?);
-            at += 3;
-            continue;
+        let pair = (bytes[at] == b'%')
+            .then(|| said.get(at + 1..at + 3))
+            .flatten()
+            .and_then(|hex| u8::from_str_radix(hex, 16).ok());
+        match pair {
+            Some(byte) => {
+                out.push(byte);
+                at += 3;
+            }
+            None => {
+                out.push(bytes[at]);
+                at += 1;
+            }
         }
-        out.push(bytes[at]);
-        at += 1;
     }
     String::from_utf8(out).ok()
 }
@@ -863,7 +870,12 @@ pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
 }
 
 pub fn reserved(name: &str) -> bool {
-    let stem = name.split('.').next().unwrap_or(name).to_ascii_uppercase();
+    let stem = name
+        .split('.')
+        .next()
+        .unwrap_or(name)
+        .trim()
+        .to_ascii_uppercase();
     matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
         || (stem.len() == 4
             && (stem.starts_with("COM") || stem.starts_with("LPT"))
@@ -1324,12 +1336,18 @@ mod tests {
             "%2E%2E/secret.png",
             "attachments%5Cab%5Ccd.png",
             "attachments/%00/cd.png",
-            "attachments/ab/%zz.png",
-            "attachments/ab/cd.png%",
+            "attachments/CON%20/cd.png",
+            "attachments/%252e%252e/../secret.png",
         ] {
             assert!(
                 resolve(hidden, root).is_err(),
                 "«{hidden}» got out of the store"
+            );
+        }
+        for kept in ["attachments/ab/%zz.png", "attachments/ab/100%.png"] {
+            assert!(
+                resolve(kept, root).is_ok(),
+                "«{kept}» is a name, not an escape"
             );
         }
     }
