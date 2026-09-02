@@ -1,4 +1,5 @@
 import type { Editor as Writing } from "@tiptap/core";
+import { TableMap } from "@tiptap/pm/tables";
 import { useEffect, useState } from "react";
 import { t } from "../locales";
 import Glyph from "./Glyph";
@@ -21,41 +22,30 @@ export const leaning = (editor: Writing, which: string | null): boolean =>
     .command(({ tr, state }) => {
       const { $from } = state.selection;
       let cell: number | null = null;
-      let column: number | null = null;
-      for (let deep = $from.depth; deep > 0; deep -= 1) {
+      let table: number | null = null;
+      for (let deep = $from.depth; deep > 1; deep -= 1) {
         const named = $from.node(deep).type.name;
         if (named === "tableCell" || named === "tableHeader") {
           cell = $from.before(deep);
-          const index = $from.index(deep - 1);
-          let grid = 0;
-          $from.node(deep - 1).forEach((one, _at, spot) => {
-            if (spot < index) grid += Number(one.attrs.colspan ?? 1) || 1;
-          });
-          column = grid;
+          table = $from.before(deep - 2);
           break;
         }
       }
-      if (cell === null || column === null) return false;
+      if (cell === null || table === null) return false;
 
-      const table = state.doc.resolve(cell).node(-1) ? state.doc.resolve(cell).before(-1) : null;
-      if (table === null) return false;
       const held = state.doc.nodeAt(table);
-      if (!held) return false;
+      if (held?.type.name !== "table") return false;
 
-      let at = table + 1;
-      held.forEach((row) => {
-        let spot = at + 1;
-        let grid = 0;
-        row.forEach((one) => {
-          const wide = Number(one.attrs.colspan ?? 1) || 1;
-          if (grid <= column && column < grid + wide) {
-            tr.setNodeAttribute(spot, "textAlign", which);
-          }
-          grid += wide;
-          spot += one.nodeSize;
-        });
-        at += row.nodeSize;
-      });
+      const start = table + 1;
+      const map = TableMap.get(held);
+      const index = map.map.indexOf(cell - start);
+      if (index < 0) return false;
+      const column = index % map.width;
+
+      const rect = { left: column, right: column + 1, top: 0, bottom: map.height };
+      for (const spot of map.cellsInRect(rect)) {
+        tr.setNodeAttribute(start + spot, "textAlign", which);
+      }
       return true;
     })
     .run();

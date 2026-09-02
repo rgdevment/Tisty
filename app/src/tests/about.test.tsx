@@ -99,3 +99,28 @@ describe("the other tools", () => {
     expect(opened.urls).toContain("https://github.com/rgdevment/tisty");
   });
 });
+
+describe("the notice every bundled licence asks for", () => {
+  it("is shown from the window, and asked for only when it is", async () => {
+    let asked = 0;
+    ipc.answer = (cmd) => {
+      if (cmd !== "notices") return Promise.resolve(build);
+      asked += 1;
+      return Promise.resolve("MIT License\n\nCopyright (c) alguien");
+    };
+    render(<About ready={null} onError={() => {}} />);
+
+    const button = await screen.findByText("Third-party notices");
+    expect(asked).toBe(0);
+
+    await userEvent.click(button);
+
+    expect(await screen.findByText(/Copyright \(c\) alguien/)).toBeTruthy();
+    expect(asked).toBe(1);
+
+    await userEvent.click(button);
+    await waitFor(() => {
+      expect(screen.queryByText(/Copyright \(c\) alguien/)).toBeNull();
+    });
+  });
+});

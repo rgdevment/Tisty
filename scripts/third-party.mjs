@@ -27,12 +27,86 @@ const told = (pkg) =>
     ? pkg.license
     : (pkg.license?.type ?? pkg.licenses?.map((one) => one.type).join(" OR ") ?? "see the package");
 
+const MIT = (who) => `MIT License
+
+Copyright (c) ${who}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.`;
+
+const ISC = (who) => `ISC License
+
+Copyright (c) ${who}
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.`;
+
+const STANDARD = { MIT, ISC };
+
+const authored = (pkg) => {
+  const who = typeof pkg.author === "string" ? pkg.author : pkg.author?.name;
+  const named = who ?? pkg.contributors?.[0]?.name ?? pkg.maintainers?.[0]?.name;
+  return named ? named.replace(/\s*<[^>]*>\s*/g, "").trim() : null;
+};
+
+const homed = (pkg) => {
+  const at = pkg.repository?.url ?? pkg.repository ?? pkg.homepage;
+  if (typeof at !== "string") return null;
+  return at
+    .replace(/^git\+/, "")
+    .replace(/^git:\/\//, "https://")
+    .replace(/^git@github\.com:/, "https://github.com/")
+    .replace(/^git\+ssh:\/\/git@/, "https://")
+    .replace(/\.git$/, "");
+};
+
+/// npm lets a package publish without its licence file, and MIT and ISC both ask for the notice
+/// to travel. The standard text under the name the package itself declares is what is left.
+const drafted = (pkg, licence) => {
+  const make = STANDARD[licence];
+  if (!make) return null;
+  const who = authored(pkg);
+  const at = homed(pkg);
+  const said = make(who ?? `the ${pkg.name} authors`);
+  const from = at ? `\n\nThe package ships no licence file. Its text is at ${at}` : "";
+  return `${said}${from}`;
+};
+
 const noticed = (at) => {
   if (!existsSync(at)) return null;
   const named = readdirSync(at).find((one) => /^(licen[cs]e|copying)/i.test(one));
-  if (!named) return null;
-  const said = readFileSync(join(at, named), "utf8").trim();
-  return said.length > 4000 ? `${said.slice(0, 4000)}\n…` : said;
+  if (named) {
+    const said = readFileSync(join(at, named), "utf8").trim();
+    return said.length > 4000 ? `${said.slice(0, 4000)}\n…` : said;
+  }
+  const where = join(at, "package.json");
+  if (!existsSync(where)) return null;
+  const pkg = JSON.parse(readFileSync(where, "utf8"));
+  return drafted(pkg, told(pkg));
 };
 
 const crates = () => {

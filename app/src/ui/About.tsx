@@ -2,7 +2,14 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import copypaste from "../assets/copypaste.png";
 import linkunbound from "../assets/linkunbound.png";
-import { about, type About as Build, type Ready, type Underway, updateInstall } from "../core";
+import {
+  about,
+  type About as Build,
+  notices,
+  type Ready,
+  type Underway,
+  updateInstall,
+} from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 
@@ -37,6 +44,7 @@ export default function About({
   const [build, setBuild] = useState<Build | null>(null);
   const [trouble, setTrouble] = useState<string | null>(null);
   const [asked, setAsked] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
 
   const look = useCallback(() => {
     setTrouble(null);
@@ -129,7 +137,7 @@ export default function About({
                 )}
               </div>
             )}
-            <div className="mt-2.5">
+            <div className="mt-2.5 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => openUrl(build.repository).catch(onError)}
@@ -137,7 +145,23 @@ export default function About({
               >
                 {t("aboutRepo")}
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (said !== null) return setSaid(null);
+                  notices().then(setSaid).catch(onError);
+                }}
+                aria-expanded={said !== null}
+                className={mild}
+              >
+                {t("aboutNotices")}
+              </button>
             </div>
+            {said !== null && (
+              <pre className="scroller mt-2.5 max-h-[320px] rounded-[8px] border border-hair px-3 py-2 text-[11.5px] leading-relaxed whitespace-pre-wrap text-faint">
+                {said}
+              </pre>
+            )}
           </Card>
         )}
 
