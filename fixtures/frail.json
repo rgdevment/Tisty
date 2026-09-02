@@ -711,5 +711,37 @@
   {
     "text": "-\ttexto normal",
     "why": []
+  },
+  {
+    "text": "<span data-ico=\"rocket\" data-hue=\"blue\">:rocket:</span> despega",
+    "why": []
+  },
+  {
+    "text": "<span data-ico=\"house-plug\">:house-plug:</span> en casa",
+    "why": []
+  },
+  {
+    "text": "<span data-hue=\"blue\">sin icono</span>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "<span>vacio</span>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "<span data-ico=\"mal nombre\">x</span>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "<span data-ico=\"rocket\" onclick=\"x\">x</span>",
+    "why": [
+      "html"
+    ]
   }
 ]

@@ -84,8 +84,6 @@ const homed = (pkg) => {
     .replace(/\.git$/, "");
 };
 
-/// npm lets a package publish without its licence file, and MIT and ISC both ask for the notice
-/// to travel. The standard text under the name the package itself declares is what is left.
 const drafted = (pkg, licence) => {
   const make = STANDARD[licence];
   if (!make) return null;

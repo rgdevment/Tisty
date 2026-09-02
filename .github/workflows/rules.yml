@@ -54,7 +54,8 @@ jobs:
       - name: No voseo in the Spanish anywhere
         run: |
           if grep -rniE '\b(vos|tenés|querés|podés|andá|mirá|hacé|che)\b' \
-             app/src/locales.ts crates/tisty-cli/locales README.es.md; then
+             app/src/locales.ts crates/tisty-cli/locales README.es.md \
+             app/src-tauri/resources/guide/es/guia.md; then
             echo "::error::Spanish is neutral: no voseo"
             exit 1
           fi
@@ -62,7 +63,8 @@ jobs:
       - name: No peninsular Spanish in what a person reads
         run: |
           if grep -rniE '\b(fichero|ficheros|ordenador|pulsa|pulsar|pulsando)\b' \
-             app/src/locales.ts crates/tisty-cli/locales README.es.md; then
+             app/src/locales.ts crates/tisty-cli/locales README.es.md \
+             app/src-tauri/resources/guide/es/guia.md; then
             echo "::error::use archivo, equipo, presionar"
             exit 1
           fi
@@ -80,6 +82,7 @@ jobs:
             done
           }
           same README.md README.es.md
+          same app/src-tauri/resources/guide/en/guide.md app/src-tauri/resources/guide/es/guia.md
 
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2

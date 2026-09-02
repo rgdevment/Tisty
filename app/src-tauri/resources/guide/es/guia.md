@@ -1,16 +1,12 @@
 # Cómo funciona Tisty
 
-Tisty guarda tus tareas en archivos tuyos, en este equipo. No hay cuenta que
-crear ni servidor al que pedir permiso: lo que escribes se queda donde tú puedas
-leerlo, incluso sin Tisty delante.
+Tisty guarda tus tareas en archivos tuyos, en este equipo. No hay cuenta que crear ni servidor al que pedir permiso: lo que escribes se queda donde tú puedas leerlo, incluso sin Tisty delante.
 
-Este documento se lee en diez minutos y puedes volver a él cuando quieras desde
-Ajustes.
+Este documento se lee en un rato y puedes volver a él cuando quieras desde Ajustes. Está escrito con las mismas herramientas que te enseña, así que todo lo que veas aquí puedes escribirlo tú.
 
 ## 1. Escribe como hablas
 
-No hay formulario que rellenar. Escribe la frase entera en la barra de arriba y
-Tisty va separando el día, la lista y la prioridad mientras la escribes.
+No hay formulario que rellenar. Escribe la frase entera en la barra de arriba y Tisty va separando el día, la lista y la prioridad mientras la escribes.
 
 ![La barra de captura de Tisty, con las pistas debajo](captura.png)
 
@@ -23,24 +19,21 @@ Cada color dice qué entendió, y son estos:
 | <mark data-pen="pink">cada martes</mark> | algo que vuelve solo |
 | <mark data-pen="pink">#casa</mark> | una etiqueta: de qué va |
 | <mark data-pen="green">@trabajo</mark> | una lista: dónde ocurre |
-| <mark>!planificar</mark> | hacer, planificar, delegar o prescindible |
+| ==!planificar== | hacer, planificar, delegar o prescindible |
 
 Si una parte no se colorea, se queda en el título, que tampoco es grave.
 
 Prueba con estas:
 
-- `Revisar el informe el viernes !hacer @trabajo`
-- `Regar las plantas cada martes`
-- `Renovar el pasaporte el 3 de octubre #papeles`
+- `Vacuna de Rina el 3 de octubre !hacer #salud`
+- `Sacar a Rina cada mañana`
+- `Revisar el informe el viernes @trabajo`
 
 ## 2. Captura sin abrir la ventana
 
-Pulsa <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd> desde donde estés y
-se abre una ventanita para escribir una tarea. Enter la guarda, Esc la cierra, y
-sigues con lo tuyo.
+Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para escribir una tarea. Enter la guarda, Esc la cierra, y sigues con lo tuyo.
 
-Si ese atajo ya lo usa otro programa, Tisty prueba con otro y te dice cuál quedó
-en Ajustes.
+Si ese atajo ya lo usa otro programa, Tisty prueba con otro y te dice cuál quedó en Ajustes.
 
 ## 3. El día de hoy
 
@@ -60,71 +53,217 @@ Dos preguntas, cuatro casillas: si corre prisa y si importa.
 ![Los cuatro cuadrantes y la bandeja](prioridades.png)
 
 - **Hacer** — urgente e importante. Hoy.
-- **Planificar** — importante, sin prisa. Ponle fecha antes de que se vuelva
-  urgente.
+- **Planificar** — importante, sin prisa. Ponle fecha antes de que se vuelva urgente.
 - **Delegar** — corre, pero no es tuyo. Que lo lleve quien deba.
-- **Prescindible** — ni corre ni importa. Ese cuadrante tiene su propio «No haré
-  ninguna».
+- **Prescindible** — ni corre ni importa. Ese cuadrante tiene su propio «No haré ninguna».
 
-Arrastra una tarea al cuadrante que le toque. Lo que no clasificas espera en la
-bandeja de al lado, sin regañarte.
+Arrastra una tarea al cuadrante que le toque. Lo que no clasificas espera en la bandeja de al lado, sin regañarte.
 
 ## 5. Listas y etiquetas
 
 Dos formas de ordenar que no compiten:
 
-- Una **lista** dice dónde ocurre: <mark data-pen="green">@casa</mark>,
-  <mark data-pen="green">@trabajo</mark>. Una tarea está en una sola.
-- Una **etiqueta** dice de qué va: <mark data-pen="pink">#salud</mark>,
-  <mark data-pen="pink">#compras</mark>. Una tarea lleva las que quieras.
+- Una **lista** dice dónde ocurre: <mark data-pen="green">@casa</mark>, <mark data-pen="green">@trabajo</mark>. Una tarea está en una sola.
+- Una **etiqueta** dice de qué va: <mark data-pen="pink">#salud</mark>, <mark data-pen="pink">#compras</mark>. Una tarea lleva las que quieras.
 
 ## 6. Documentos
 
-Un documento es texto tuyo, guardado en Markdown, que puedes escribir aquí o
-leer con cualquier otro programa.
+Un documento es texto tuyo, guardado en Markdown, que puedes escribir aquí o leer con cualquier otro programa. El archivo es lo que vale: si mañana borras Tisty, tus documentos siguen abriéndose en cualquier editor de texto.
 
-- Escribe con negritas, listas, tablas y bloques de código.
-- Arrastra un archivo dentro para adjuntarlo.
-- Escribe `/` para insertar una imagen, un enlace o **otro documento**, que entra
-  como una tarjeta que se puede abrir.
-- Con `/` también puedes ==destacar== una frase, centrar un párrafo o llevarlo a
-  la derecha.
+Escribe `/` en cualquier punto y sale el menú de lo que cabe dentro. Además:
+
+- Arrastra un archivo dentro para adjuntarlo — la foto del veterinario, el PDF del seguro.
+- Inserta **otro documento**, que entra como una tarjeta que se puede abrir.
+- Centra un párrafo o llévalo a la derecha.
 - Imprime, o guarda en PDF, desde el propio panel.
 
-Los saltos de página se ven como saltos de verdad: la hoja se corta y empieza
-otra.
+Los saltos de página se ven como saltos de verdad: la hoja se corta y empieza otra.
 
-## 7. Tus copias
+## 7. Lo que cabe dentro de un documento
 
-Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, apúntalo
-a una carpeta que ya sincronicen iCloud, Google Drive u OneDrive: las copias van
-ahí y el otro equipo las recoge.
+Todo lo de aquí abajo es Markdown corriente. Lo escribes con `/`, y el archivo que queda en el disco lo entiende GitHub igual que Tisty. Esta sección no lo cuenta: te lo enseña.
 
-> No hay servidor nuestro por medio. Sincronizar te da redundancia, no vuelta
-> atrás en el tiempo: si borras una tarea, el borrado también viaja.
+### Lo de siempre
+
+**Negrita**, *cursiva*, ~~tachado~~, <u>subrayado</u>, `código suelto` y un [enlace a una web](https://tisty.dev). Listas con viñetas, numeradas, y citas de las de toda la vida:
+
+> Lo que no está escrito, no ocurrió.
+
+1. Primero esto
+2. Después lo otro
+3. Y al final lo de más allá
+
+### Avisos
+
+Cinco tipos, cada uno con su color. Por dentro es una cita que empieza por su nombre entre corchetes, que es como los escribe GitHub.
+
+> [!NOTE]
+> Para lo que conviene saber, sin urgencia ninguna.
+
+> [!TIP]
+> Si ya estás dentro de un aviso y eliges otro tipo, cambia el que hay en vez de meter uno dentro de otro.
+
+> [!IMPORTANT]
+> Para lo que no se puede pasar por alto.
+
+> [!WARNING]
+> Para lo que puede salir mal si no miras.
+
+> [!CAUTION]
+> Para lo que no tiene vuelta atrás.
+
+Y dentro de un aviso cabe casi todo, no solo texto:
+
+> [!TIP]
+> Los pasos de un respaldo a mano:
+>
+> - Cerrar Tisty
+> - Copiar la carpeta entera
+>
+> ```bash
+> cp -r ~/Tisty ~/Respaldo
+> ```
+>
+> ---
+>
+> Todo esto llega igual al PDF.
+
+### Destacar
+
+Cuatro colores de rotulador: ==amarillo==, <mark data-pen="green">verde</mark>, <mark data-pen="blue">azul</mark> y <mark data-pen="pink">rosa</mark>. Eliges el color en la barra que sale al seleccionar texto.
+
+### Iconos
+
+<span data-ico="dog" data-hue="orange">:dog:</span> Un icono se busca por lo que dibuja, y en español: pide «perro», «moto» o «puño» y sale el que esperas. Sirve para marcar una línea sin gastar un título en ella.
+
+### Pasos
+
+Una lista de casillas que se marcan. No son tareas de Tisty: no se cierran, no tienen fecha y no salen en Hoy. Son los pasos de algo que estás escribiendo.
+
+- [x] Llevar la cartilla de Rina
+- [x] Pesarla antes de la consulta
+- [ ] Preguntar por la pastilla de las garrapatas
+
+### Tablas
+
+Una tabla se puede trabajar: añadir filas y columnas, alinear a izquierda, centro o derecha, y estirar el ancho de una columna arrastrando su borde.
+
+| Vacuna | Puesta | Toca otra vez |
+| :--- | :---: | ---: |
+| Séxtuple | marzo | 12 meses |
+| Antirrábica | marzo | 12 meses |
+| Desparasitación | agosto | 3 meses |
+
+El ancho viaja en lo larga que se dibuja la raya de debajo del encabezado, así que cualquier otro lector de Markdown ve una tabla normal y Tisty ve el ancho que le diste.
+
+### Diagramas
+
+Un bloque de código cuyo lenguaje es `mermaid` deja de ser código y se dibuja. Sirve para un esquema:
+
+```mermaid
+graph TD
+  R[Rina] --> V[Vacunas]
+  R --> P[Paseos]
+  R --> C[Veterinario]
+```
+
+Para repartir un total:
+
+```mermaid
+pie title Paseos de la semana
+  "Mañana" : 7
+  "Tarde" : 5
+  "Los dos" : 2
+```
+
+O para contar quién habla con quién:
+
+```mermaid
+sequenceDiagram
+  Tú->>Tisty: escribo una tarea
+  Tisty->>Disco: la anoto en el registro
+  Disco-->>Tisty: guardada
+```
+
+### Fórmulas
+
+Y un bloque cuyo lenguaje es `math` compone la fórmula.
+
+```math
+dosis = \frac{peso \times 0.5}{2}
+```
+
+```math
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+```
+
+Las dos cosas se dibujan con código que viaja dentro de Tisty. No se pide nada a internet, y funcionan con el cable desenchufado.
+
+### Código, con nombre y con color
+
+Un bloque de código se colorea según su lenguaje, y le puedes poner nombre: escribe el lenguaje y después `title="lo que sea"`. El nombre se ve en la cabecera del bloque, y el color llega también al PDF.
+
+```bash title="respaldo.sh"
+rsync -a ~/Tisty/ /Volumes/Respaldo/Tisty/
+```
+
+```json title="ajustes.json"
+{ "idioma": "es", "carpeta": "~/Tisty" }
+```
+
+## 8. Un documento con páginas
+
+Un año de actas, un libro por capítulos, la vida de un perro contada año a año. Eso no cabe en un solo papel, y tampoco en una carpeta de papeles sueltos que no ata nada.
+
+Una página es un documento como cualquier otro —mismo archivo en el disco, misma salida— con una sola cosa que la distingue: dice de qué documento es. Hay un nivel y no más: una página no tiene páginas.
+
+Con `/` insertas **una página nueva** o **una que ya existe**. Se queda nombrada en el texto, en la línea donde el asunto se abre, dibujada como un hueco en la hoja con lo que esa página contiene debajo.
+
+> [!IMPORTANT]
+> El orden en que están nombradas en el texto es el orden en que van las páginas: en el árbol, en la exportación y al imprimir. Mover un capítulo es cortar y pegar su bloque.
+
+Al final del documento, en su propia hoja, va el índice: las páginas que el texto nombra, numeradas, y tras una raya las que no, a un clic de tener su sitio en el texto. Dentro de una página verás arriba de qué documento es y en qué lugar va, flechas a sus hermanas, y abajo el paso a la siguiente.
+
+En el árbol, un documento soltado encima de otro se vuelve página suya.
+
+## 9. Cuando Tisty solo puede leerlo
+
+Tisty escribe Markdown de vuelta, y unas pocas formas no sobreviven ese viaje: la cabecera del principio, las notas al pie, los enlaces escritos por referencia, el HTML y sus comentarios, y algún caso raro de las vallas de código y de las listas.
+
+Antes que abrirlo y destruirte eso en la primera tecla, Tisty lo dice y lo abre para leer. La barra de abajo ofrece convertirlo —lo reescribe a lo que sí sabe conservar y guarda una copia de cómo estaba— y si la conversión no puede con todo, **Editarlo igualmente** te lo abre con el aviso a la vista. Nunca te quedas encerrado.
+
+## 10. Un asistente puede escribir aquí
+
+Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste.
+
+Para reescribir un documento entero se le entrega una huella del texto exacto que leyó, y tiene que devolverla al escribir. Si escribiste tú en medio, la huella ya no cuadra: no se escribe nada y se le dice que vuelva a leerlo. La ventana te avisa cuando algo ha escrito en el documento que tienes abierto.
+
+## 11. Tus copias
+
+Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, apúntalo a una carpeta que ya sincronicen iCloud, Google Drive u OneDrive: las copias van ahí y el otro equipo las recoge.
+
+> No hay servidor nuestro por medio. Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.
 
 En Ajustes puedes además guardar un respaldo completo cuando quieras.
 
-## 8. Terminar, descartar y borrar
+## 12. Terminar, descartar y borrar
 
 - **Terminar** una tarea la marca hecha y la manda al Archivo.
 - **Descartar** la aparta sin hacerla: también acaba en el Archivo.
 - Lo del Archivo sigue ahí por si lo buscas. No estorba.
 
-> **Antes de borrar de verdad.** Solo se puede con lo que ya está archivado
-> **y** apartado de la vista. Al borrar desaparece de este equipo y de los demás
-> en la siguiente sincronización, y no hay deshacer.
+> **Antes de borrar de verdad.** Solo se puede con lo que ya está archivado **y** apartado de la vista. Al borrar desaparece de este equipo y de los demás en la siguiente sincronización, y no hay deshacer.
 
-Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en
-uso en otro documento. Quedan sueltos, y Ajustes → Mantenimiento te los lista
-para soltarlos cuando quieras.
+Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en uso en otro documento. Quedan sueltos, y Ajustes → Mantenimiento te los lista para soltarlos cuando quieras.
 
-## 9. Atajos
+Ahí mismo está **Revisar el almacén**: cuenta lo que sobra, lo que falta y lo que puedes recuperar, y no cambia nada por su cuenta. Los adjuntos que ya no nombra nadie se van a la papelera con treinta días para arrepentirte. Los documentos que están en el disco pero el registro no nombra se apartan para mirarlos primero, porque pueden ser la única copia de algo que perdió su evento: recogerlos nunca puede estar mal.
+
+## 13. Atajos
 
 | Atajo | Qué hace |
 | --- | --- |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd> | Capturar sin abrir la ventana |
-| <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> | Terminar la tarea señalada |
-| <kbd>/</kbd> | Insertar dentro de un documento |
-| <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>X</kbd> · <kbd>V</kbd> | Mover un documento entre carpetas |
-| <kbd>Esc</kbd> | Cerrar lo que esté abierto |
+| `Ctrl` + `Shift` + `Space` | Capturar sin abrir la ventana |
+| `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada |
+| `/` | Insertar dentro de un documento |
+| `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
+| `Esc` | Cerrar lo que esté abierto |
