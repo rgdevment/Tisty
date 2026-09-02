@@ -7,10 +7,11 @@
 
   <h1>Tisty — Notas, documentos y tareas, libres y de código abierto</h1>
 
-  <p><strong>Un histórico local de lo que sabes: notas, documentos y tareas para
-  Windows y macOS.<br/>Archivos llanos en tu disco —o en la carpeta de nube que
-  tú elijas— con la puerta abierta a tus asistentes. Sin cuentas. Sin
-  telemetría. Sin servidor.</strong></p>
+  <p><strong>Notas, documentos y tareas que siguen siendo tuyos: Markdown llano
+  en tu disco, para Windows y macOS.<br/>No es una lista que se vacía, es el
+  historial de cómo resolviste las cosas, buscable años después, con una puerta
+  MCP para tu asistente.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin
+  servidor.</strong></p>
 
   <p>
     <a href="README.md">English</a> ·
@@ -86,18 +87,20 @@
 
 ---
 
-**Tisty** es un **gestor de tareas** libre y de código abierto para Windows y
-macOS, construido sobre una idea: una tarea terminada vale más que el tache que
-la cierra. La mayoría de las **aplicaciones de tareas** son una lista que se
-tacha — en cuanto completas algo, los pasos que diste, las notas que escribiste
-y los documentos en los que te apoyaste se van con ello. Tisty archiva todo eso
-en vez de perderlo, y la búsqueda llega a cada palabra.
+**Tisty** es Opensource. Puedes leerlo, compilarlo, probarlo o descargar las
+versiones estables que ya están publicadas. No hay nada oculto: todo es
+auditable.
 
-Esto no es el producto de una empresa. Soy un desarrollador que resolvió dos
-veces el mismo problema, así que hice el **gestor de tareas personal** que
-quería y lo regalé. Sin anuncios, sin telemetría, sin cuentas, sin
-suscripciones — solo una **herramienta de productividad local** que vive en tu
-equipo y en ninguna otra parte.
+No es una **aplicación de tareas** como la conoces. Una lista se vacía y se
+olvida. Aquí lo que cierras se queda: lo que hiciste, cuándo, y lo que fuiste
+averiguando por el camino. Meses después buscas cómo resolviste algo y está ahí:
+la descripción, el diario, los pasos y los documentos en los que te apoyaste.
+
+No soy una empresa. Soy un desarrollador que resolvió dos veces el mismo
+problema, así que hice el **gestor de notas, documentos y tareas** que quería y
+lo regalé. Quiero que siga siendo pequeño y útil, no que crezca con mil funciones
+que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: una
+**herramienta local** que vive en tu equipo y en ninguna otra parte.
 
 **Por qué alguien elige Tisty antes que otros gestores de tareas:**
 

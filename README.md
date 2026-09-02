@@ -7,10 +7,11 @@
 
   <h1>Tisty — Free Open Source Notes, Documents and Tasks</h1>
 
-  <p><strong>A local-first record of what you know: notes, documents and tasks
-  for Windows and macOS.<br/>Plain files on your own disk — or in the cloud
-  folder you choose — with the door open for your assistants. No accounts. No
-  telemetry. No server.</strong></p>
+  <p><strong>Notes, documents and tasks that stay yours: plain Markdown on your
+  own disk, for Windows and macOS.<br/>Not a to-do list you empty — a record of
+  what you worked out, searchable years later, with an MCP door for your
+  assistant.<br/>No accounts. No subscriptions. No telemetry. No
+  server.</strong></p>
 
   <p>
     <strong>English</strong> ·
@@ -54,12 +55,12 @@
     <a href="https://apps.microsoft.com/detail/9PGVWXD8X93N">
       <img
         src="https://img.shields.io/badge/Windows-Microsoft_Store-0078D4?style=for-the-badge&logo=microsoft"
-        alt="Get the Tisty task manager from the Microsoft Store"/>
+        alt="Get Tisty — notes, documents and tasks — from the Microsoft Store"/>
     </a>
     <a href="#getting-started">
       <img
         src="https://img.shields.io/badge/macOS-Homebrew-FBB040?style=for-the-badge&logo=homebrew&logoColor=black"
-        alt="Install the Tisty task manager with Homebrew on macOS"/>
+        alt="Install Tisty — notes, documents and tasks — with Homebrew on macOS"/>
     </a>
   </p>
 
@@ -86,16 +87,19 @@
 
 ---
 
-**Tisty** is a free, open source **task manager** for Windows and macOS, built
-on one idea: a finished task is worth more than the tick that closes it. Most
-**to-do apps** are a list you cross out — the moment you complete something, the
-steps you took, the notes you wrote and the documents you leaned on go with it.
-Tisty archives all of that instead, and search reaches every word of it.
+**Tisty** is Opensource. Read it, build it, run it, or take one of the stable
+releases already out there. Nothing is hidden and all of it can be audited.
 
-This is not a company product. I am a developer who kept solving the same
-problem twice, so I built the **personal task manager** I wanted and gave it
-away. No ads, no telemetry, no accounts, no subscriptions — just a
-**local-first productivity tool** that lives on your machine and nowhere else.
+It is not a **to-do app** as you know it. A list gets emptied and forgotten. Here
+what you close stays: what you did, when, and what you worked out on the way.
+Months later you search for how you solved something and it is there — the
+description, the journal, the steps, the documents you leaned on.
+
+I am not a company. I am a developer who kept solving the same problem twice, so
+I built the **notes, documents and task manager** I wanted and gave it away. It
+is meant to stay small and useful, not to grow a thousand features nobody uses.
+No ads, no telemetry, no accounts, no subscriptions — a **local-first
+productivity tool** that lives on your machine and nowhere else.
 
 **Why people choose Tisty over other task managers:**
 

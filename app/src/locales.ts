@@ -159,8 +159,9 @@ const en = {
   aboutBuild: "This build",
   insertLabel: "What to add",
   aboutWhat:
-    "A local, private, minimal task manager. Your tasks never leave this machine unless you set up syncing yourself.",
-  aboutPrivacy: "No account, no telemetry, no server. What you write stays in the store above.",
+    "A local, private place for what you know: notes, documents and tasks. Nothing leaves this machine unless you set up syncing yourself.",
+  aboutPrivacy:
+    "No account, no subscription, no telemetry, no server. What you write stays in the store above.",
   repeating: "Repeating",
   insertAttach: "Attach",
   sayAttach: "a file, copied in",
@@ -1229,9 +1230,9 @@ const es: Catalog = {
   aboutBuild: "Esta versión",
   insertLabel: "Qué añadir",
   aboutWhat:
-    "Un gestor de tareas local, privado y minimalista. Tus tareas no salen de esta máquina salvo que configures la sincronización tú.",
+    "Un lugar local y privado para lo que sabes: notas, documentos y tareas. Nada sale de esta máquina salvo que configures la sincronización tú.",
   aboutPrivacy:
-    "Sin cuenta, sin telemetría, sin servidor. Lo que escribes se queda en el almacén de arriba.",
+    "Sin cuenta, sin suscripción, sin telemetría, sin servidor. Lo que escribes se queda en el almacén de arriba.",
   repeating: "Se repiten",
   insertAttach: "Adjuntar",
   sayAttach: "un archivo, copiado",

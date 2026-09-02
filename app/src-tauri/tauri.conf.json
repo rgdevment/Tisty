@@ -83,8 +83,8 @@
     "publisher": "rgdevment",
     "copyright": "Copyright © 2026 rgdevment",
     "category": "Productivity",
-    "shortDescription": "Local, private task manager whose archive is the point",
-    "longDescription": "Tisty keeps your tasks on your own machine, in plain files you can read without it. No account, no telemetry, no server. Sync, if you want it, goes through a folder both your machines already reach.",
+    "shortDescription": "Notes, documents and tasks, all local. No subscription, no telemetry",
+    "longDescription": "Tisty keeps what you know on your own machine: notes, documents and tasks, in plain Markdown files you can read without it. Everything you do is written to an append-only log, so nothing is lost and every change can be walked back. No account, no subscription, no telemetry, no server. Sync, if you want it, goes through a folder both your machines already reach, and an assistant can come in through a door you open.",
     "licenseFile": "../../LICENSE",
     "windows": {
       "minimumWebview2Version": "111.0.0.0",

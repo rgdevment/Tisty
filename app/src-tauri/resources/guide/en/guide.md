@@ -1,10 +1,22 @@
 # How Tisty works
 
-Tisty keeps your tasks in files of your own, on this computer. There is no account to create and no server to ask: what you write stays where you can read it, even without Tisty in front of you.
+Tisty is Opensource. You can read it yourself, build it, try it, or download the stable releases already out there. Nothing is hidden: all of it can be audited.
 
-This document takes a while to read and you can come back to it whenever you like from Settings. It is written with the same tools it shows you, so everything you see here is something you can write yourself.
+We work on it constantly, on fixes and on new things, but we want it to stay small and useful. We are not going to load it with a thousand features nobody will use, the way commercial tools do.
 
-## 1. Write it the way you would say it
+Tisty is not a TODO app as you know it. It is a record of what you learned and worked out, with figures and searches over your own work. How did you solve that? Cannot remember? Tisty has it.
+
+All local, no accounts, no subscriptions and no telemetry: your data is yours. Write notes in Markdown, documentation, reminders and much more. It is your notebook, personal and for work, and private.
+
+And if you work with an assistant, it has a door through MCP to read your documents, write a new one or propose tasks to you. The program that opens that door runs on this machine. Closing and deleting it cannot do.
+
+This guide takes a couple of minutes, and you will come out of it knowing a little more about what you can do in Tisty. You can come back to it from Settings whenever you like.
+
+---
+
+## Tasks
+
+### 1. Write it the way you would say it
 
 There is no form to fill in. Type the whole sentence in the bar at the top and Tisty pulls the day, the list and the priority out of it as you go.
 
@@ -29,13 +41,13 @@ Try these:
 - `Walk Rina every morning`
 - `Go through the report on friday @work`
 
-## 2. Capture without opening the window
+### 2. Capture without opening the window
 
 Press `Ctrl` + `Shift` + `Space` wherever you are and a small window opens for one task. Enter files it, Esc closes it, and you carry on with what you were doing.
 
 If another program already holds that shortcut, Tisty takes another one and tells you which in Settings.
 
-## 3. Today
+### 3. Today
 
 The task list is read in stretches:
 
@@ -46,7 +58,7 @@ The task list is read in stretches:
 
 Anything overdue sits at the top, in red. There is no prize for emptying the list.
 
-## 4. Priorities are a map, not a ladder
+### 4. Priorities are a map, not a ladder
 
 Two questions, four boxes: whether it is pressing, and whether it matters.
 
@@ -59,16 +71,30 @@ Two questions, four boxes: whether it is pressing, and whether it matters.
 
 Drag a task into the box it belongs in. Whatever you leave unclassified waits in the tray beside it, without nagging.
 
-## 5. Lists and tags
+### 5. Lists and tags
 
 Two ways of sorting that do not compete:
 
 - A **list** says where it happens: <mark data-pen="green">@home</mark>, <mark data-pen="green">@work</mark>. A task belongs to one.
 - A **tag** says what it is about: <mark data-pen="pink">#health</mark>, <mark data-pen="pink">#shopping</mark>. A task carries as many as you like.
 
-## 6. Documents
+### 6. What stays written
+
+A task keeps more than its title. Give it a description, note in its journal what you were working out, and leave it the steps you followed. Completing it erases none of that: it is archived with its date.
+
+That is the difference. The list tells you what is left; the archive tells you how you solved it last time. Search for a word you remember and it comes up, even if you closed it two years ago.
+
+---
+
+## Documents
+
+### 7. A document
 
 A document is text of yours, kept as Markdown, that you can write here and read with anything else. The file is what counts: delete Tisty tomorrow and your documents still open in any text editor.
+
+**For making one**, go to Documents and use the **+** at the top: **New document**. That same button, inside a folder, makes it there. **New folder** groups them, and a folder can hold folders of its own.
+
+The first line of the document is its title. There is no name to fill in anywhere: whatever you write at the top is what it is called.
 
 Type `/` anywhere and the menu of what fits inside comes up. Besides that:
 
@@ -77,13 +103,11 @@ Type `/` anywhere and the menu of what fits inside comes up. Besides that:
 - Centre a paragraph or push it to the right.
 - Print, or save as PDF, from the panel itself.
 
-Page breaks look like real breaks: the sheet ends and another one starts.
-
-## 7. What fits inside a document
+### 8. What fits inside a document
 
 Everything below is ordinary Markdown. You write it with `/`, and the file left on disk reads the same to GitHub as it does to Tisty. This section does not describe it: it shows it to you.
 
-### The usual
+#### The usual
 
 **Bold**, *italic*, ~~struck through~~, <u>underlined</u>, `loose code` and a [link to a website](https://tisty.dev). Bulleted lists, numbered ones, and quotes of the ordinary kind:
 
@@ -93,7 +117,7 @@ Everything below is ordinary Markdown. You write it with `/`, and the file left 
 2. Then the other thing
 3. And that one at the end
 
-### Callouts
+#### Callouts
 
 Five kinds, each with its own colour. Underneath it is a quote that opens with its name in brackets, which is how GitHub writes them too.
 
@@ -128,15 +152,15 @@ And nearly anything fits inside a callout, not only text:
 >
 > All of that reaches the PDF just the same.
 
-### Highlighting
+#### Highlighting
 
 Four pens: ==yellow==, <mark data-pen="green">green</mark>, <mark data-pen="blue">blue</mark> and <mark data-pen="pink">pink</mark>. You pick the colour in the bar that appears when you select text.
 
-### Icons
+#### Icons
 
 <span data-ico="dog" data-hue="orange">:dog:</span> An icon is looked up by what it draws: ask for «dog», «motorcycle» or «fist» and you get the one you expected. It marks a line without spending a heading on it.
 
-### Steps
+#### Steps
 
 A list of boxes you tick. They are not Tisty tasks: they never close, they have no date and they never show up in Today. They are the steps of something you are writing.
 
@@ -144,7 +168,7 @@ A list of boxes you tick. They are not Tisty tasks: they never close, they have 
 - [x] Weigh her before the appointment
 - [ ] Ask about the tick tablet
 
-### Tables
+#### Tables
 
 A table can be worked on: add rows and columns, lean a column left, centre or right, and drag its edge to make it wider.
 
@@ -156,7 +180,7 @@ A table can be worked on: add rows and columns, lean a column left, centre or ri
 
 The width rides in how long the rule under the header is drawn, so every other Markdown reader sees a plain table and Tisty sees the width you gave it.
 
-### Diagrams
+#### Diagrams
 
 A code block whose language is `mermaid` stops being code and gets drawn. Good for a shape:
 
@@ -185,7 +209,7 @@ sequenceDiagram
   Disk-->>Tisty: filed
 ```
 
-### Formulas
+#### Formulas
 
 And a block that says `math` sets the formula.
 
@@ -199,7 +223,7 @@ dose = \frac{weight \times 0.5}{2}
 
 Both are drawn by code that ships inside Tisty. Nothing is fetched, and it works with the cable unplugged.
 
-### Code, with a name and a colour
+#### Code, with a name and a colour
 
 A code block is coloured by its language, and it can carry a name: write the language and then `title="whatever"`. The name shows in the block's header, and the colour reaches the PDF too.
 
@@ -211,13 +235,21 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 { "language": "en", "folder": "~/Tisty" }
 ```
 
-## 8. A document with pages
+#### Page break
+
+A rule on its own splits the sheet. On screen it looks like a real break, and when you print or save as PDF what follows starts on the next sheet. It is the only thing in this list you notice by printing rather than by reading.
+
+---
+
+This bit here is already on the sheet after it.
+
+### 9. A document with pages
 
 A year of minutes, a book in chapters, a dog's life told year by year. That does not fit on one sheet, and it does not fit in a folder of loose papers with nothing tying them together either.
 
 A page is a document like any other — same file on disk, same way out — with one thing that sets it apart: it says which document it belongs to. There is one level and no more: a page holds no pages.
 
-With `/` you insert **a new page** or **one that already exists**. It stays named in the text, at the line where the subject opens, drawn as a gap in the sheet with the leaves of that page under it.
+**For adding one**, type `/` where that chapter should start and pick **A new page**, or **A page that already exists** if the document is already written. It stays named right there, drawn as a gap in the sheet with the leaves of that page under it.
 
 > [!IMPORTANT]
 > The order they are named in is the order the pages sit in: in the tree, in the export and in print. Moving a chapter is cutting and pasting its block.
@@ -226,19 +258,23 @@ At the end of the document, on its own sheet, comes the index: the pages the tex
 
 In the tree, a document dropped on another becomes a page of it.
 
-## 9. When Tisty can only read it
+### 10. When Tisty can only read it
 
 Tisty writes Markdown back out, and a few shapes do not survive that trip: the front matter at the top, footnotes, links written by reference, HTML and its comments, and the odd case of a code fence or a list.
 
 Rather than open it and destroy those on your first keystroke, Tisty says so and opens it for reading. The bar at the foot offers to convert it — rewriting it into what Tisty can keep, and keeping a copy of how it was — and if the conversion cannot manage all of it, **Edit it anyway** opens it with the warning in view. You are never stuck.
 
-## 10. An assistant can write here
+---
+
+## What holds for all of it
+
+### 11. An assistant can write here
 
 If you use an assistant, it can file documents and propose tasks of its own accord. What it cannot do is close, delete or touch what you wrote.
 
 To rewrite a whole document it is handed a print of the exact text it read, and it has to send that print back when it writes. If you wrote in between, the print no longer matches: nothing is written and it is told to read the document again. The window tells you when something wrote in the document you have open.
 
-## 11. Your copies
+### 12. Your copies
 
 Tisty always works on this computer. To reach it from another one, point it at a folder iCloud, Google Drive or OneDrive already keeps in sync: copies go there and the other computer picks them up.
 
@@ -246,7 +282,7 @@ Tisty always works on this computer. To reach it from another one, point it at a
 
 Settings can also write you a full backup whenever you want one.
 
-## 12. Completing, dropping and erasing
+### 13. Completing, dropping and erasing
 
 - **Completing** a task marks it done and sends it to the Archive.
 - **Dropping** puts it aside without doing it: it lands in the Archive too.
@@ -258,7 +294,7 @@ Files you had attached do not go with it, because another document might still b
 
 Right there is **Review the store**: it counts what is spare, what is missing and what you can get back, and changes nothing on its own. Attachments nothing names any more go to the bin with thirty days to change your mind. Documents on disk the log does not name are set apart to look at first, because they may be the only copy of something that lost its event: taking one in can never be wrong.
 
-## 13. Shortcuts
+### 14. Shortcuts
 
 | Shortcut | What it does |
 | --- | --- |
