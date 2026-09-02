@@ -9,6 +9,7 @@ const WHY = [
   "frailNotes",
   "frailRefs",
   "frailFence",
+  "frailBlocked",
 ];
 
 const spacing = (said: string): number => {
@@ -40,7 +41,7 @@ const quoted = (line: string): [number, number, string] => {
 };
 
 const bullet = (said: string): number | null => {
-  const found = /^([-*+]|\d{1,9}[.)])( +)/.exec(said);
+  const found = /^([-*+]|\d{1,9}[.)])([ \t]+)/.exec(said);
   return found ? found[1].length + found[2].length : null;
 };
 
@@ -51,20 +52,65 @@ const listed = (base: number, wide: number, said: string): number => {
   return wide < base ? 0 : base;
 };
 
-const fenceless = (text: string): { bare: string; told: boolean } => {
+const ruled = (rest: string): boolean => {
+  const mark = rest.trim()[0];
+  if (mark !== "*" && mark !== "_" && mark !== "-") return false;
+  let many = 0;
+  for (const one of rest) {
+    if (one === mark) many += 1;
+    else if (one !== " " && one !== "\t") return false;
+  }
+  return many >= 3;
+};
+
+const dashed = (line: string): boolean => {
+  const said = quoted(line)[2];
+  return said.startsWith("|") && said.includes("-") && /^[|\-: ]+$/.test(said);
+};
+
+const blocked = (line: string, next: string): boolean => {
+  const [, wide, said] = quoted(line);
+  if (wide >= 4 || ruled(said)) return false;
+  const after = bullet(said);
+  if (after === null) return false;
+  const mark = said.slice(0, after).trimEnd().length;
+  let gap = 0;
+  for (const one of said.slice(mark, after)) gap += one === "\t" ? 4 : 1;
+  if (gap >= 5) return true;
+  const rest = said.slice(after);
+  if (
+    rest.startsWith(">") ||
+    rest.startsWith("```") ||
+    rest.startsWith("~~~") ||
+    rest.startsWith("![") ||
+    bullet(rest) !== null ||
+    ruled(rest)
+  ) {
+    return true;
+  }
+  if (/^#{1,6}([ \t]|$)/.test(rest)) return true;
+  return rest.startsWith("|") && dashed(next);
+};
+
+const fenceless = (text: string): { bare: string; told: boolean; broke: boolean } => {
   const out: string[] = [];
   let open: { mark: string; many: number; held: number; room: number } | null = null;
   let base = 0;
   let told = false;
+  let broke = false;
 
-  for (const line of text.split("\n")) {
+  const lines = text.split("\n");
+  for (const [at, line] of lines.entries()) {
+    if (!open && blocked(line, lines[at + 1] ?? "")) broke = true;
     const [deep, held, held2] = quoted(line);
     if (!open) base = listed(base, held, held2);
     const after = bullet(held2);
     const wide = after === null ? held : held + after;
     const said = after === null ? held2 : held2.slice(after);
     const found = wide < base + 4 ? /^(`{3,}|~{3,})(.*)$/.exec(said) : null;
-    const marker = found && (found[1][0] === "~" || !found[2].includes("`")) ? found : null;
+    const wrong = found?.[1][0] === "`" && found[2].includes("`");
+    if (wrong && !open) told = true;
+    const marker = found && !wrong ? found : null;
     if (open) {
       if (!said) continue;
       if (deep >= open.held && wide >= open.room) {
@@ -81,7 +127,7 @@ const fenceless = (text: string): { bare: string; told: boolean } => {
     }
     out.push(line);
   }
-  return { bare: out.join("\n"), told };
+  return { bare: out.join("\n"), told, broke };
 };
 
 const fronted = (text: string): boolean => {
@@ -193,13 +239,15 @@ const linked = (line: string, next: string): boolean => {
   return told.trim() !== "" || next.trim() !== "";
 };
 
-export const frail = (text: string): string[] => {
+export const frail = (whole: string): string[] => {
+  const text = whole.replace(/^\ufeff+/, "");
   const said = fenceless(text);
   const bare = said.bare.replace(/^ {4}.*$/gm, "").replace(/^\t.*$/gm, "");
   const seen = new Set<string>();
 
   if (fronted(text)) seen.add("frailFront");
   if (said.told) seen.add("frailFence");
+  if (said.broke) seen.add("frailBlocked");
 
   const lines = bare.split("\n");
   for (const [at, line] of lines.entries()) {

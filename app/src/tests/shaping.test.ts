@@ -91,10 +91,10 @@ describe("turning a document into shapes for the page", () => {
       doc({ type: "codeBlock", content: [{ type: "text", text: "uno\ndos" }] }),
     );
 
-    expect(found[0].kind === "code" && found[0].runs.map((one) => one.text)).toEqual([
-      "uno",
-      "dos",
-    ]);
+    expect(
+      found[0].kind === "code" &&
+        found[0].lines.map((line) => line.map((one) => one.text).join("")),
+    ).toEqual(["uno", "dos"]);
   });
 
   it("keeps a rule, which is where a page break lives", () => {
@@ -307,5 +307,54 @@ describe("a page that is not the one being edited", () => {
     const found = shapesOf(generateJSON(composed(body), written()));
 
     expect(found.map((one) => one.kind)).toEqual(["quote", "table"]);
+  });
+});
+
+describe("a code block on its way to the page", () => {
+  const lit = (language: string, text: string) => {
+    const found = shapesOf(
+      doc({ type: "codeBlock", attrs: { language }, content: [{ type: "text", text }] }),
+    );
+    const one = found[0];
+    if (one.kind !== "code") throw new Error("no es código");
+    return one.lines;
+  };
+
+  it("colours what the language says, and only that", () => {
+    const lines = lit("js", "const uno = 1;");
+    expect(lines).toHaveLength(1);
+    expect(lines[0].map((one) => one.text).join("")).toBe("const uno = 1;");
+    expect(lines[0].some((one) => one.hue)).toBe(true);
+    expect(lines[0].every((one) => one.text.length > 0)).toBe(true);
+  });
+
+  it("leaves a language nobody knows in one plain piece", () => {
+    expect(lit("brainfuck", "+++.")).toEqual([[{ text: "+++." }]]);
+    expect(lit("", "+++.")).toEqual([[{ text: "+++." }]]);
+  });
+
+  it("does not try to colour a diagram or a formula", () => {
+    expect(lit("mermaid", "graph TD;\nA-->B;")).toEqual([
+      [{ text: "graph TD;" }],
+      [{ text: "A-->B;" }],
+    ]);
+    expect(lit("math", "x^2")).toEqual([[{ text: "x^2" }]]);
+  });
+
+  it("keeps the lines apart, blank ones included", () => {
+    const lines = lit("js", "const a = 1;\n\nconst b = 2;");
+    expect(lines).toHaveLength(3);
+    expect(lines[1]).toEqual([]);
+    expect(lines.map((line) => line.map((one) => one.text).join(""))).toEqual([
+      "const a = 1;",
+      "",
+      "const b = 2;",
+    ]);
+  });
+
+  it("gives back every letter of what was written", () => {
+    const text = 'function saluda(quien) {\n  return "hola " + quien; // saludo\n}';
+    const lines = lit("ts", text);
+    expect(lines.map((line) => line.map((one) => one.text).join("")).join("\n")).toBe(text);
   });
 });

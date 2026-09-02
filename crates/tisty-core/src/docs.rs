@@ -163,12 +163,20 @@ impl Fencing {
             None => (wide, said),
         };
         self.told = false;
-        let marker = ['`', '~'].into_iter().find_map(|mark| {
+        let mut marker = None;
+        for mark in ['`', '~'] {
             let many = said.chars().take_while(|c| *c == mark).count();
+            if many < 3 || wide >= self.base + 4 {
+                continue;
+            }
             let after = &said[many.min(said.len())..];
-            let opens = many >= 3 && wide < self.base + 4 && (mark == '~' || !after.contains('`'));
-            opens.then_some((mark, many))
-        });
+            if mark == '`' && after.contains('`') {
+                self.told = self.open.is_none();
+                continue;
+            }
+            marker = Some((mark, many));
+            break;
+        }
 
         if let Some((open, was, held, room)) = self.open {
             if said.is_empty() {
@@ -212,7 +220,10 @@ fn bullet(said: &str) -> Option<usize> {
         }
         at += 1;
     }
-    let gap = said[at..].chars().take_while(|c| *c == ' ').count();
+    let gap = said[at..]
+        .chars()
+        .take_while(|c| matches!(c, ' ' | '\t'))
+        .count();
     (gap > 0).then_some(at + gap)
 }
 
@@ -283,7 +294,7 @@ fn quoteless(line: &str) -> &str {
 }
 
 pub fn titled(body: &str) -> String {
-    let body = body.strip_prefix('\u{feff}').unwrap_or(body);
+    let body = body.trim_start_matches('\u{feff}');
     let mut said: Vec<&str> = body.lines().collect();
     if let Some(start) = said.iter().position(|one| !one.trim().is_empty())
         && said[start].trim() == "---"
@@ -317,7 +328,7 @@ pub fn titled(body: &str) -> String {
 }
 
 pub fn marked(body: &str, said: &str) -> String {
-    let bare = body.strip_prefix('\u{feff}').unwrap_or(body);
+    let bare = body.trim_start_matches('\u{feff}');
     let mut seen = 0;
     let mut out: Vec<String> = Vec::new();
     let mut done = false;
@@ -1079,15 +1090,17 @@ fn cut(said: String) -> String {
 fn shown_around(body: &str, terms: &[String]) -> Option<String> {
     let mut best: Option<(usize, String)> = None;
     let mut backup: Option<(usize, String)> = None;
+    let mut fence = Fencing::default();
 
     for line in body.lines() {
+        let drawn = fence.inside(line);
         let said = bare(line);
         let flat = crate::text::folded(&said);
         let held = terms.iter().filter(|term| flat.contains(*term)).count();
         if held == 0 {
             continue;
         }
-        let slot = if wordless(&said) {
+        let slot = if drawn || wordless(&said) {
             &mut backup
         } else {
             &mut best
@@ -1538,6 +1551,79 @@ Algo escrito.",
             write(room.path(), id, body).unwrap();
         }
         room
+    }
+
+    #[test]
+    fn a_diagram_is_still_found_but_never_shown_as_the_line() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0009",
+            "# El plano
+
+La red pasa por el proxy de casa.
+
+```mermaid
+graph TD;
+proxy --> salida
+```
+",
+        )
+        .unwrap();
+
+        let found = Corpus::default().searching(room.path(), "proxy", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(
+            found[0].line, "La red pasa por el proxy de casa.",
+            "prose wins over the diagram that also holds the word"
+        );
+    }
+
+    #[test]
+    fn what_only_the_diagram_says_is_shown_rather_than_hidden() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0010",
+            "# El plano
+
+```mermaid
+graph TD;
+proxy --> salida
+```
+",
+        )
+        .unwrap();
+
+        let found = Corpus::default().searching(room.path(), "proxy", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].line, "proxy --> salida");
+    }
+
+    #[test]
+    fn a_fence_inside_a_quote_hides_its_lines_from_the_excerpt_too() {
+        let room = root();
+        write(
+            room.path(),
+            "mac0-0011",
+            "# El plano
+
+> [!NOTE]
+> ```bash
+> rsync respaldo
+> ```
+
+Cada noche corre el respaldo.
+",
+        )
+        .unwrap();
+
+        let found = Corpus::default().searching(room.path(), "respaldo", 40, |_| true);
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].line, "Cada noche corre el respaldo.");
     }
 
     #[test]
@@ -3922,7 +4008,69 @@ despues
 
 /// What the window's editor destroys the first time somebody opens a document. It rewrites the
 /// whole file, so anything it cannot represent is gone on the first keystroke.
+fn ruled(rest: &str) -> bool {
+    let Some(mark) = rest.chars().find(|c| !c.is_whitespace()) else {
+        return false;
+    };
+    if !matches!(mark, '*' | '_' | '-') {
+        return false;
+    }
+    let mut many = 0;
+    for one in rest.chars() {
+        if one == mark {
+            many += 1;
+        } else if one != ' ' && one != '\t' {
+            return false;
+        }
+    }
+    many >= 3
+}
+
+fn dashed(line: &str) -> bool {
+    let said = quoteless(line);
+    said.starts_with('|')
+        && said.contains('-')
+        && said.chars().all(|one| matches!(one, '|' | '-' | ':' | ' '))
+}
+
+/// A list item holds a paragraph first and blocks after it: whatever opens on a block instead
+/// loses the item it was written in.
+fn blocked(line: &str, next: &str) -> bool {
+    let (_, wide, said) = quoted(line);
+    if wide >= 4 || ruled(said) {
+        return false;
+    }
+    let Some(after) = bullet(said) else {
+        return false;
+    };
+    let mark = said[..after].trim_end().len();
+    let gap: usize = said[mark..after]
+        .chars()
+        .map(|one| if one == '\t' { 4 } else { 1 })
+        .sum();
+    if gap >= 5 {
+        return true;
+    }
+    let rest = &said[after..];
+    if rest.starts_with('>')
+        || rest.starts_with("```")
+        || rest.starts_with("~~~")
+        || rest.starts_with("![")
+        || bullet(rest).is_some()
+        || ruled(rest)
+    {
+        return true;
+    }
+    let hashed = rest.chars().take_while(|c| *c == '#').count();
+    let after_hash = &rest[hashed..];
+    if (1..=6).contains(&hashed) && (after_hash.is_empty() || after_hash.starts_with([' ', '\t'])) {
+        return true;
+    }
+    rest.starts_with('|') && dashed(next)
+}
+
 pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
+    let body = body.trim_start_matches('\u{feff}');
     if fronted(body) {
         return Err("YAML frontmatter");
     }
@@ -3930,10 +4078,15 @@ pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
 
     let said: Vec<&str> = body.lines().collect();
     for (at, line) in said.iter().enumerate() {
-        if fence.inside(line) {
-            if fence.told {
-                return Err("what a fence says after its language");
-            }
+        let coded = fence.open.is_some();
+        let within = fence.inside(line);
+        if fence.told {
+            return Err("what a fence says after its language");
+        }
+        if !coded && blocked(line, said.get(at + 1).unwrap_or(&"")) {
+            return Err("a list item that opens on a block");
+        }
+        if within {
             continue;
         }
         if line.starts_with("    ") || line.starts_with('\t') {
@@ -3956,7 +4109,7 @@ pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
 }
 
 fn fronted(body: &str) -> bool {
-    let mut lines = body.strip_prefix('\u{feff}').unwrap_or(body).lines();
+    let mut lines = body.trim_start_matches('\u{feff}').lines();
     if lines.next().map(str::trim) != Some("---") {
         return false;
     }
@@ -4200,6 +4353,7 @@ mod survival {
                 "footnotes" => "notes",
                 "reference links" => "refs",
                 "what a fence says after its language" => "fence",
+                "a list item that opens on a block" => "block",
                 other => other,
             });
 

@@ -475,6 +475,7 @@ export const keepSettings = (settings: Settings): Promise<Settings> =>
   invoke("keep_settings", { settings });
 
 export const about = (): Promise<About> => invoke("about");
+export const notices = (): Promise<string> => invoke("notices");
 export const facts = (names: boolean, paths: boolean): Promise<Facts> =>
   invoke("facts", { names, paths });
 export const keepReport = (at: string, text: string, logs: boolean): Promise<void> =>

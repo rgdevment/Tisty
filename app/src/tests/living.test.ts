@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { frail } from "../frail";
 import { SHAPES } from "../ui/Beside";
-import { DRAWN, loosened } from "../ui/writing";
+import { DRAWN, KINDS, loosened } from "../ui/writing";
 import { inCell, opened } from "./mounted";
 
 describe("what only a mounted editor can be asked", () => {
@@ -170,6 +170,111 @@ describe("what only a mounted editor can be asked", () => {
   });
 });
 
+describe("a fence line that is not a fence is not taken for one", () => {
+  const BT = String.fromCharCode(96);
+
+  it("says a backtick fence whose name holds a backtick will not survive", () => {
+    const was = `${BT.repeat(3)}js title="a${BT}b"
+algo
+${BT.repeat(3)}`;
+
+    expect(frail(was)).toContain("frailFence");
+    const one = opened(was);
+    expect(one.markdown()).not.toBe(was);
+    one.shut();
+  });
+
+  it("leaves the same name alone on a tilde fence, which markdown allows", () => {
+    const was = `~~~js title="a${BT}b"
+algo
+~~~`;
+
+    expect(frail(was)).toEqual([]);
+    const one = opened(was);
+    expect(one.markdown()).toBe(was);
+    one.shut();
+  });
+
+  it("says nothing about a fence with no backtick in what it says", () => {
+    const was = `${BT.repeat(3)}js title="normal"
+algo
+${BT.repeat(3)}`;
+
+    expect(frail(was)).toEqual([]);
+    const one = opened(was);
+    expect(one.markdown()).toBe(was);
+    one.shut();
+  });
+});
+
+describe("a cell keeps the bar somebody escaped into it", () => {
+  const BAR = String.fromCharCode(92);
+
+  it("reads it as one cell and writes it back the same", () => {
+    const was = `| a | b |\n| --- | --- |\n| uno ${BAR}| dos | tres |`;
+    const one = opened(was);
+
+    expect(one.editor.state.doc.firstChild?.child(1).child(0).textContent).toBe("uno | dos");
+    expect(one.markdown()).toBe(`${was}\n`);
+    one.shut();
+  });
+
+  it("gains no backslash however many times it is saved", () => {
+    let body = `| a | b |\n| --- | --- |\n| uno ${BAR}| dos | tres |`;
+    for (let round = 0; round < 3; round += 1) {
+      const one = opened(body);
+      body = one.markdown();
+      one.shut();
+    }
+
+    expect(body).toBe(`| a | b |\n| --- | --- |\n| uno ${BAR}| dos | tres |\n`);
+  });
+
+  it("still escapes what markdown would otherwise read as marks", () => {
+    const one = opened("| a |\n| --- |\n| con \\*asterisco\\* |");
+
+    expect(one.editor.state.doc.firstChild?.child(1).child(0).textContent).toBe("con *asterisco*");
+    one.shut();
+  });
+});
+
+describe("a list that mixes bullets and tasks is parted, not haunted", () => {
+  const kindsOf = (one: ReturnType<typeof opened>) => {
+    const said: string[] = [];
+    one.editor.state.doc.forEach((node) => {
+      said.push(node.type.name);
+    });
+    return said;
+  };
+
+  it.each([
+    ["- uno\n- [x] hecho", ["bulletList", "taskList"]],
+    ["- [x] hecho\n- uno", ["taskList", "bulletList"]],
+    ["- uno\n- [x] hecho\n- dos", ["bulletList", "taskList", "bulletList"]],
+    ["- [ ] a\n- [x] b", ["taskList"]],
+    ["- uno\n- dos", ["bulletList"]],
+  ])("reads %j as the blocks it really is", (was, want) => {
+    const one = opened(was);
+    expect(kindsOf(one)).toEqual(want);
+    one.shut();
+  });
+
+  it("settles instead of growing a new empty task on every save", () => {
+    let body = "- uno\n\n\n- [x] hecho";
+    const seen: string[] = [];
+    for (let round = 0; round < 3; round += 1) {
+      const one = opened(body);
+      body = one.markdown();
+      one.shut();
+      seen.push(body);
+    }
+
+    expect(seen[0]).toBe(seen[1]);
+    expect(seen[1]).toBe(seen[2]);
+    expect(body).not.toContain("- [ ] \n");
+  });
+});
+
 describe("a pen and an aside keep what they say in the file", () => {
   it.each(["green", "blue", "pink"])("writes a %s pen as markdown the editor reads back", (pen) => {
     const one = opened("");
@@ -210,6 +315,10 @@ describe("a pen and an aside keep what they say in the file", () => {
 describe("a block that draws is offered where every other block is", () => {
   it.each(DRAWN)("has %s in the column beside the document", (tongue) => {
     expect(SHAPES).toContain(tongue);
+  });
+
+  it.each(KINDS)("shapes an aside that is a %s, rather than inserting one", (kind) => {
+    expect(SHAPES).toContain(`callout-${kind}`);
   });
 
   it("takes ```mmd and writes the fence out as mermaid, which github draws", () => {
@@ -454,4 +563,193 @@ describe("a key bound inside one node stays inside it", () => {
       one.shut();
     },
   );
+});
+
+describe("a list that mixes bullets and tasks reads back as it was written", () => {
+  const thrice = (source: string): string[] => {
+    const seen: string[] = [];
+    let held = source;
+    for (let round = 0; round < 3; round += 1) {
+      const one = opened(held);
+      held = one.markdown();
+      one.shut();
+      seen.push(held);
+    }
+    return seen;
+  };
+
+  it.each([
+    ["- [ ] cero\n- uno\n- dos", "- [ ] cero\n- uno\n- dos"],
+    ["- [x] a\n- [x] b\n\n- c", "- [x] a\n- [x] b\n\n- c"],
+    ["- a\n- b\n\n- [x] c", "- a\n- b\n\n- [x] c"],
+    ["- [x] a\n\n- [x] b\n\n- c", "- [x] a\n\n- [x] b\n\n- c"],
+    ["- a\n- [x] b\n\n- c\n- d", "- a\n- [x] b\n\n- c\n- d"],
+    ["- a\n  - [x] b\n  - c", "- a\n  - [x] b\n  - c"],
+    ["- [ ] a\n  - b\n\n  - c\n- [ ] d", "- [ ] a\n  - b\n\n  - c\n- [ ] d"],
+    ["- uno\n- dos\n- [x] tres", "- uno\n- dos\n- [x] tres"],
+    ["- uno\n- [x] dos\n- tres", "- uno\n- [x] dos\n- tres"],
+    ["- [ ] a\n\n- b\n\n- c", "- [ ] a\n\n- b\n\n- c"],
+  ])("leaves %j alone, save after save", (was, want) => {
+    const seen = thrice(was);
+    expect(seen[0]).toBe(want);
+    expect(seen[1]).toBe(want);
+    expect(seen[2]).toBe(want);
+  });
+
+  it("keeps counting where the numbers left off", () => {
+    const seen = thrice("1. uno\n2. [x] dos\n3. tres");
+
+    expect(seen[0]).toBe("1. uno\n\n- [x] dos\n\n3. tres");
+    expect(seen[2]).toBe(seen[0]);
+  });
+
+  it("reads a numbered list of tasks as tasks, with nothing left empty", () => {
+    const seen = thrice("1. [ ] uno\n2. [x] dos");
+
+    expect(seen[0]).toBe("- [ ] uno\n- [x] dos");
+    expect(seen[2]).toBe(seen[0]);
+  });
+});
+
+describe("a document another editor left a byte order mark in", () => {
+  const BOM = "﻿";
+
+  it.each([
+    ["# Hola\n\ntexto", "a heading"],
+    ["```js\nalgo\n```", "a fence"],
+    ["- uno\n- dos", "a list"],
+  ])("opens %j as %s, not as escaped text", (was) => {
+    const one = opened(BOM + was);
+    const out = one.markdown();
+    one.shut();
+
+    expect(out).toBe(was);
+  });
+});
+
+describe("a bar inside a link, a code span or a picture in a cell", () => {
+  const BAR = String.fromCharCode(92);
+  const head = "| a | b | c |";
+  const ruled = "| --- | --- | --- |";
+
+  const sided = (held: unknown) => ({
+    type: "doc",
+    content: [
+      {
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: ["a", "b", "c"].map((text) => ({
+              type: "tableHeader",
+              content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+            })),
+          },
+          {
+            type: "tableRow",
+            content: [
+              {
+                type: "tableCell",
+                content: [{ type: "paragraph", content: [{ type: "text", text: "left" }] }],
+              },
+              held,
+              {
+                type: "tableCell",
+                content: [{ type: "paragraph", content: [{ type: "text", text: "right" }] }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  const inked = (kind: string, text: string, attrs: Record<string, unknown>) => ({
+    type: "tableCell",
+    content: [
+      {
+        type: "paragraph",
+        content: [{ type: "text", text, marks: [{ type: kind, attrs }] }],
+      },
+    ],
+  });
+
+  const written = (held: unknown): string => {
+    const one = opened("");
+    one.editor.commands.setContent(sided(held) as never);
+    const out = one.markdown();
+    one.shut();
+    return out;
+  };
+
+  const cells = (body: string): string[] => {
+    const one = opened(body);
+    const said: string[] = [];
+    one.editor.state.doc.firstChild?.child(1).forEach((cell) => {
+      said.push(cell.textContent);
+    });
+    one.shut();
+    return said;
+  };
+
+  it.each([
+    ["a code span", inked("code", "a|b", {}), `\`a${BAR}|b\``],
+    ["a link", inked("link", "ver", { href: "http://x.dev/a|b" }), `[ver](http://x.dev/a${BAR}|b)`],
+    [
+      "a picture",
+      {
+        type: "tableCell",
+        content: [{ type: "image", attrs: { src: "http://x.dev/a|b.png", alt: "f" } }],
+      },
+      `![f](http://x.dev/a${BAR}|b.png)`,
+    ],
+  ])("writes %s with the bar escaped, so the row keeps its cells", (_what, held, said) => {
+    const body = written(held);
+
+    expect(body).toBe(`${head}\n${ruled}\n| left | ${said} | right |\n`);
+    expect(cells(body)).toHaveLength(3);
+    expect(cells(body)[2]).toBe("right");
+  });
+});
+
+describe("a list item that opens on a block is caught before it is opened", () => {
+  const TAB = String.fromCharCode(9);
+
+  it.each([
+    ["a quote", "- > una cita"],
+    ["a numbered quote", "1. > una cita"],
+    ["a fence", "- ```js\n  algo\n  ```"],
+    ["a heading", "- # un titulo"],
+    ["a picture", "- ![foto](x.png)"],
+    ["a list", "- - anidada"],
+    ["a rule", "- ***"],
+    ["indented code", "-      codigo"],
+    ["a table", "- | a |\n  | --- |\n  | uno |"],
+    ["a heading with no words", "- #"],
+    ["a quote behind a tab", `-${TAB}> una cita`],
+    ["code behind two tabs", `-${TAB}${TAB}codigo`],
+    ["a rule of dashes", "* ---"],
+  ])("says %s cannot be kept, and it truly cannot", (_what, was) => {
+    const one = opened(was);
+    const out = one.markdown();
+    one.shut();
+
+    expect(frail(was)).toContain("frailBlocked");
+    expect(out).not.toBe(`${was}\n`);
+  });
+
+  it.each([
+    ["a hash that is no heading", "- #hashtag"],
+    ["a row that is no table", "- | a | b |"],
+    ["bold that is no rule", "- ***fuerte*** y nada mas"],
+    ["a task", "- [ ] una tarea"],
+    ["a quote below the first line", "- uno\n\n  > la cita"],
+    ["what a fence holds", "```\n- > dentro de una valla\n```"],
+    ["a line that is a rule, not a list", "- ---"],
+    ["a rule written with spaces", "- - -"],
+    ["seven hashes, which name nothing", "- #######"],
+    ["a tab before plain words", `-${TAB}texto normal`],
+  ])("leaves %s alone", (_what, was) => {
+    expect(frail(was)).not.toContain("frailBlocked");
+  });
 });

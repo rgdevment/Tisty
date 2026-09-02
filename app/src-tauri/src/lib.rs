@@ -3491,6 +3491,15 @@ fn parted(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+/// The installer carries no loose files, so the notice every bundled licence asks for rides
+/// inside the binary and is shown from the About window.
+const NOTICES: &str = include_str!("../../../THIRD-PARTY-BUNDLED.md");
+
+#[tauri::command]
+fn notices() -> &'static str {
+    NOTICES
+}
+
 #[tauri::command]
 fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
     let session = held(&session);
@@ -5018,6 +5027,7 @@ pub fn run() {
             twinned,
             rebuild,
             about,
+            notices,
             settings,
             keep_settings,
             facts,

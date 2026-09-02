@@ -17,9 +17,10 @@ for the formulas, [lowlight](https://github.com/wooorm/lowlight) and
 underneath. Each one is permissively licensed, and `Cargo.lock` and
 `app/package-lock.json` name every last transitive one with its version.
 
-`npm run notices` writes the whole list out with each licence's own text, so
-that file travels with a release rather than living here: a notice discharges
-nothing sitting in a repository the person who installed Tisty never opens.
+`npm run notices` writes that whole list out with each licence's own text into
+[THIRD-PARTY-BUNDLED.md](THIRD-PARTY-BUNDLED.md), and the binary carries it:
+Tisty shows it under About. A notice discharges nothing sitting in a repository
+the person who installed Tisty never opens, so it travels with the program.
 
 ## Lucide Icons
 

@@ -16,6 +16,7 @@ const SAID: Record<string, string> = {
   notes: "frailNotes",
   refs: "frailRefs",
   fence: "frailFence",
+  block: "frailBlocked",
 };
 
 const corpus: Case[] = JSON.parse(

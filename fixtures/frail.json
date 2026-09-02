@@ -342,7 +342,8 @@
   {
     "text": "``` unclosed then ` also unclosed <div>x</div>",
     "why": [
-      "html"
+      "html",
+      "fence"
     ]
   },
   {
@@ -407,9 +408,23 @@
   },
   {
     "text": "﻿```html\n<div>x</div>\n```",
+    "why": []
+  },
+  {
+    "text": "﻿```js `title\nalgo\n```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "﻿<div>hola</div>",
     "why": [
       "html"
     ]
+  },
+  {
+    "text": "﻿# Hola\n\nnada raro aqui",
+    "why": []
   },
   {
     "text": "﻿hola mundo",
@@ -418,17 +433,21 @@
   {
     "text": "- ```js hola mundo\n  code\n  ```",
     "why": [
-      "fence"
+      "fence",
+      "block"
     ]
   },
   {
     "text": "- ```js\n  code\n  ```",
-    "why": []
+    "why": [
+      "block"
+    ]
   },
   {
     "text": "- one\n  - ```js dos palabras\n    code\n    ```",
     "why": [
-      "fence"
+      "fence",
+      "block"
     ]
   },
   {
@@ -531,6 +550,166 @@
   },
   {
     "text": "texto ==amarillo== normal",
+    "why": []
+  },
+  {
+    "text": "```js title=\"a`b\"\nalgo\n```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "~~~js title=\"a`b\"\nalgo\n~~~",
+    "why": []
+  },
+  {
+    "text": "```js title=\"normal\"\nalgo\n```",
+    "why": []
+  },
+  {
+    "text": "texto con `codigo` normal",
+    "why": []
+  },
+  {
+    "text": "- > una cita",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "1. > una cita",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "- # un titulo",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "- ![foto](x.png)",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "- - anidada",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "- ***",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "-      codigo con sangria",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "- | a |\n  | --- |\n  | uno |",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "- #hashtag no es titulo",
+    "why": []
+  },
+  {
+    "text": "- | a | b |",
+    "why": []
+  },
+  {
+    "text": "- ***fuerte*** y nada mas",
+    "why": []
+  },
+  {
+    "text": "- uno\n- dos\n\n  > la cita viene despues",
+    "why": []
+  },
+  {
+    "text": "- [ ] una tarea",
+    "why": []
+  },
+  {
+    "text": "```\n- > dentro de una valla\n```",
+    "why": []
+  },
+  {
+    "text": "- texto y luego ![foto](x.png)",
+    "why": []
+  },
+  {
+    "text": "- #",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "- ######",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "-\t> una cita tras un tabulador",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "-\t\tcodigo con dos tabuladores",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "* ---",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "1. ---",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "- ___",
+    "why": [
+      "block"
+    ]
+  },
+  {
+    "text": "- ---",
+    "why": []
+  },
+  {
+    "text": "- - -",
+    "why": []
+  },
+  {
+    "text": "* ***",
+    "why": []
+  },
+  {
+    "text": "- #######",
+    "why": []
+  },
+  {
+    "text": "- ###titulo",
+    "why": []
+  },
+  {
+    "text": "-\ttexto normal",
     "why": []
   }
 ]

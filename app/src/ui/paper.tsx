@@ -22,6 +22,7 @@ export interface Run {
   italic?: boolean;
   code?: boolean;
   lit?: string;
+  hue?: string;
   href?: string;
 }
 
@@ -30,7 +31,7 @@ export type Shape =
   | { kind: "para"; runs: Run[] }
   | { kind: "quote"; runs: Run[] }
   | { kind: "said"; said: string; inner: Shape[] }
-  | { kind: "code"; runs: Run[]; deep: number }
+  | { kind: "code"; lines: Run[][]; deep: number }
   | { kind: "bullet"; mark: string; runs: Run[]; deep: number }
   | { kind: "image"; src: string; alt?: string }
   | { kind: "file"; name: string; said: string }
@@ -69,6 +70,10 @@ const sheet = StyleSheet.create({
     fontSize: 8,
     letterSpacing: 0.5,
     marginBottom: 3,
+  },
+  notedRule: {
+    borderTopWidth: 1,
+    marginVertical: 6,
   },
   quote: {
     marginBottom: 9,
@@ -214,6 +219,19 @@ const folded = (text: string, columns: number): string[] => {
   return lines;
 };
 
+export const sliced = (parts: Run[], from: number, to: number): Run[] => {
+  const out: Run[] = [];
+  let at = 0;
+  for (const part of parts) {
+    const start = at;
+    at += part.text.length;
+    if (at <= from || start >= to) continue;
+    const text = part.text.slice(Math.max(0, from - start), Math.min(part.text.length, to - start));
+    if (text) out.push({ ...part, text });
+  }
+  return out;
+};
+
 const drawn = (runs: Run[], flowing = false) =>
   runs.map((run, at) => {
     const style = [
@@ -280,21 +298,39 @@ const shaped = (one: Shape, at: number, room: number) => {
           <Text style={[sheet.notedWho, { color: hue }]}>
             {t(`said${one.said}` as Parameters<typeof t>[0]).toUpperCase()}
           </Text>
-          {one.inner
-            .filter((kid) => kid.kind !== "rule")
-            .map((kid, deep) => shaped(kid, deep, room - 27))}
+          {one.inner.map((kid, deep) =>
+            kid.kind === "rule" ? (
+              <View key={`rule:${deep}`} style={[sheet.notedRule, { borderTopColor: hue }]} />
+            ) : (
+              shaped(kid, deep, room - 27)
+            ),
+          )}
         </View>
       );
     }
     case "code": {
       const columns = Math.max(8, Math.floor((room - one.deep * 14 - PAD * 2) / (CODE * PITCH)));
-      const lines = one.runs.flatMap((run, line) =>
-        folded(run.text, columns).map((text, cut) => ({ text, id: `${line}.${cut}` })),
-      );
+      const lines = one.lines.flatMap((parts, line) => {
+        let at = 0;
+        return folded(parts.map((part) => part.text).join(""), columns).map((chunk, cut) => {
+          const from = at;
+          at += chunk.length;
+          return { parts: sliced(parts, from, at), id: `${line}.${cut}` };
+        });
+      });
       return (
         <View key={key} style={[sheet.code, { marginLeft: one.deep * 14 }]}>
           {lines.map((line) => (
-            <Text key={line.id}>{line.text}</Text>
+            <Text key={line.id}>
+              {line.parts.map((part, spot) => (
+                <Text
+                  key={`${spot}:${part.text.slice(0, 12)}`}
+                  style={part.hue ? { color: part.hue } : undefined}
+                >
+                  {part.text}
+                </Text>
+              ))}
+            </Text>
           ))}
         </View>
       );
