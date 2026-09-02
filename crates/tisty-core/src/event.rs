@@ -8,7 +8,7 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 8;
+pub const SCHEMA_VERSION: u32 = 9;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -108,7 +108,9 @@ impl Event {
             | Op::DocMove { id, .. }
             | Op::DocDelete { id }
             | Op::DocArchive { id }
-            | Op::DocUnarchive { id } => Some(*id),
+            | Op::DocUnarchive { id }
+            | Op::DocLock { id }
+            | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }

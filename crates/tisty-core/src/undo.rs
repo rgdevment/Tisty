@@ -231,8 +231,9 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
 
         Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),
-
         Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
+
+        Op::DocLock { .. } | Op::DocUnlock { .. } => None,
 
         Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
 
@@ -491,6 +492,26 @@ mod tests {
         state.apply(&ev(3, undo[0].clone()));
 
         assert_eq!(state.tasks[&id].entry(entry).unwrap().body, "");
+    }
+
+    #[test]
+    fn a_lock_is_not_walked_back_by_undoing_it_from_anywhere_else() {
+        let id = Ulid::generate();
+        let state = State::replay(&[ev(
+            1,
+            Op::DocAdd {
+                id,
+                d: crate::event::DocAdd {
+                    file: "dev0-0001".into(),
+                    order: "a0".into(),
+                    folder: None,
+                    page_of: None,
+                },
+            },
+        )]);
+
+        assert_eq!(inverse(&ev(2, Op::DocLock { id }), &state), None);
+        assert_eq!(inverse(&ev(2, Op::DocUnlock { id }), &state), None);
     }
 
     #[test]

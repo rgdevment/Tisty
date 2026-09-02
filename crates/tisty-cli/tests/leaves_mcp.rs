@@ -318,3 +318,133 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
         "saving settles the order back to what the text in front of the person says"
     );
 }
+
+impl Served {
+    fn bolt(&self, doc: &str) {
+        let store = self.data().join("store");
+        let events = tisty_core::store::read_all(&store).unwrap();
+        let state = tisty_core::State::replay(&events);
+        let kept = state.docs.values().find(|one| one.file == doc).unwrap();
+        let device = events.last().unwrap().device.clone();
+        let mut open = tisty_core::Store::open(&store, device).unwrap();
+        open.append(tisty_core::Op::DocLock { id: kept.id })
+            .unwrap();
+    }
+
+    fn complained(&self, args: &[&str]) -> String {
+        let out = self
+            .command()
+            .args(args)
+            .stdin(Stdio::null())
+            .output()
+            .unwrap();
+        assert!(!out.status.success(), "the command went through");
+        String::from_utf8_lossy(&out.stderr).into_owned()
+    }
+
+    fn refused(&self, name: &str, args: serde_json::Value) -> String {
+        let said = self.call(name, args);
+        assert_eq!(
+            said["result"]["isError"].as_bool(),
+            Some(true),
+            "{name} went through: {said}"
+        );
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    }
+}
+
+#[test]
+fn a_locked_document_turns_away_every_way_an_assistant_has_of_writing() {
+    let served = Served::new();
+    let book = served.wrote("# Minuta\n\nlo que dije", None);
+    served.bolt(&book);
+
+    for (name, args) in [
+        (
+            "append_doc",
+            serde_json::json!({ "doc": &book, "body": "y algo mas" }),
+        ),
+        (
+            "edit_doc",
+            serde_json::json!({ "doc": &book, "old": "lo que dije", "new": "otra cosa" }),
+        ),
+    ] {
+        let why = served.refused(name, args);
+        assert!(why.contains("locked"), "{name} said: {why}");
+    }
+    assert_eq!(served.body_of(&book).trim_end(), "# Minuta\n\nlo que dije");
+}
+
+#[test]
+fn a_locked_book_gains_no_page_and_keeps_the_ones_it_has() {
+    let served = Served::new();
+    let book = served.wrote("# Curso", None);
+    let page = served.wrote("# Clase uno", Some(&book));
+    let loose = served.wrote("# Suelto", None);
+    served.bolt(&book);
+
+    let why = served.refused(
+        "write_doc",
+        serde_json::json!({ "body": "# Clase dos", "page_of": &book }),
+    );
+    assert!(why.contains("locked"), "{why}");
+
+    let why = served.refused(
+        "page_doc",
+        serde_json::json!({ "doc": &loose, "page_of": &book }),
+    );
+    assert!(why.contains("locked"), "{why}");
+
+    let why = served.refused("page_doc", serde_json::json!({ "doc": &page }));
+    assert!(why.contains("locked"), "{why}");
+    assert_eq!(served.pages_of(&book), vec![page]);
+}
+
+#[test]
+fn a_page_of_a_locked_book_is_shut_as_tightly_as_the_book() {
+    let served = Served::new();
+    let book = served.wrote("# Curso", None);
+    let page = served.wrote("# Clase uno", Some(&book));
+    served.bolt(&book);
+
+    let why = served.refused(
+        "append_doc",
+        serde_json::json!({ "doc": &page, "body": "y algo mas" }),
+    );
+
+    assert!(why.contains("locked"), "{why}");
+    assert!(
+        served.call("read_doc", serde_json::json!({ "doc": &page }))["result"]["structuredContent"]
+            ["locked"]
+            .as_bool()
+            .unwrap(),
+        "read_doc has to say so before an assistant tries"
+    );
+}
+
+#[test]
+fn the_terminal_puts_no_file_into_a_locked_document_either() {
+    let served = Served::new();
+    let book = served.wrote(
+        "# Minuta
+
+lo que dije",
+        None,
+    );
+    served.bolt(&book);
+    let at = served.home.path().join("nota.txt");
+    std::fs::write(&at, b"algo").unwrap();
+
+    let why = served.complained(&["attach", &book, at.to_str().unwrap()]);
+
+    assert!(why.contains("locked"), "{why}");
+    assert_eq!(
+        served.body_of(&book).trim_end(),
+        "# Minuta
+
+lo que dije"
+    );
+}

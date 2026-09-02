@@ -1825,3 +1825,130 @@ fn a_book_whose_pages_arrived_two_different_ways_still_keeps_every_key_apart() {
         "and asking again asks for nothing"
     );
 }
+
+#[test]
+fn locking_a_document_locks_the_pages_it_holds() {
+    let world = World::new();
+    let mut store = world.store("a");
+    let book = doc_add(&mut store, "a3f1-0001", "V", None, None);
+    let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+
+    store.append(Op::DocLock { id: book }).unwrap();
+    let state = replayed(&world);
+
+    for id in [book, one, two] {
+        assert!(state.shut(id), "{id} should be locked");
+    }
+    assert!(state.bolted("a3f1-0002"), "a page is asked for by its file");
+
+    store.append(Op::DocUnlock { id: book }).unwrap();
+    let state = replayed(&world);
+    for id in [book, one, two] {
+        assert!(!state.shut(id), "{id} should be open");
+    }
+}
+
+#[test]
+fn a_page_written_into_a_locked_document_is_born_locked() {
+    let world = World::new();
+    let mut store = world.store("a");
+    let book = doc_add(&mut store, "a3f1-0001", "V", None, None);
+    store.append(Op::DocLock { id: book }).unwrap();
+    let late = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+
+    let state = replayed(&world);
+    assert!(state.shut(late));
+}
+
+#[test]
+fn a_page_carries_no_lock_of_its_own_to_lose() {
+    let world = World::new();
+    let mut store = world.store("a");
+    let book = doc_add(&mut store, "a3f1-0001", "V", None, None);
+    let page = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+
+    store.append(Op::DocLock { id: page }).unwrap();
+    let state = replayed(&world);
+    assert!(
+        !state.shut(page),
+        "a page is locked with the book that holds it"
+    );
+
+    store.append(Op::DocLock { id: book }).unwrap();
+    store.append(Op::DocUnlock { id: book }).unwrap();
+    let state = replayed(&world);
+    assert!(
+        !state.shut(page),
+        "unlocking the book leaves nothing of its own behind"
+    );
+}
+
+#[test]
+fn a_document_landing_under_a_locked_book_is_locked_by_being_there() {
+    let world = World::new();
+    let mut store = world.store("a");
+    let book = doc_add(&mut store, "a3f1-0001", "V", None, None);
+    let loose = doc_add(&mut store, "a3f1-0002", "W", None, None);
+    store.append(Op::DocLock { id: book }).unwrap();
+
+    store
+        .append(Op::DocMove {
+            id: loose,
+            d: Filed {
+                folder: None,
+                page_of: Some(Some(book)),
+                order: None,
+            },
+        })
+        .unwrap();
+
+    let state = replayed(&world);
+    assert!(state.shut(loose), "a page of a locked book is not a way in");
+    assert!(state.bolted("a3f1-0002"));
+}
+
+#[test]
+fn a_page_that_replay_left_holding_a_lock_can_always_be_let_go_of() {
+    let world = World::new();
+    let mut store = world.store("a");
+    let book = doc_add(&mut store, "a3f1-0001", "V", None, None);
+    let mine = doc_add(&mut store, "a3f1-0002", "W", None, None);
+    store.append(Op::DocLock { id: mine }).unwrap();
+    store
+        .append(Op::DocMove {
+            id: mine,
+            d: Filed {
+                folder: None,
+                page_of: Some(Some(book)),
+                order: None,
+            },
+        })
+        .unwrap();
+
+    let state = replayed(&world);
+    assert!(
+        !state.docs.get(&mine).unwrap().locked,
+        "landing as a page leaves no lock of its own behind"
+    );
+
+    let mut store = world.store("b");
+    store.append(Op::DocLock { id: mine }).unwrap();
+    store.append(Op::DocUnlock { id: mine }).unwrap();
+    let state = replayed(&world);
+    assert!(!state.shut(mine), "there is always a way out");
+}
+
+#[test]
+fn a_locked_document_is_told_apart_from_an_archived_one() {
+    let world = World::new();
+    let mut store = world.store("a");
+    let doc = doc_add(&mut store, "a3f1-0001", "V", None, None);
+
+    store.append(Op::DocLock { id: doc }).unwrap();
+    let state = replayed(&world);
+    let kept = state.docs.get(&doc).unwrap();
+
+    assert!(kept.locked);
+    assert!(!kept.archived, "locking is not putting away");
+}

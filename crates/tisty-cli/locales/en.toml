@@ -75,6 +75,7 @@ no-meeting-place = "{at} cannot be reached: is the drive plugged in, or the fold
 emptied-place = "{at} was the shared folder and it is empty now: nothing was written, in case the drive or the folder is simply not mounted."
 other-store    = "that remote already belongs to another store ({id})"
 sync-newer        = "nothing was synced: «{id}» writes with a newer Tisty than this one. Update this machine and try again — carrying half of it would lose work"
+store-newer       = "this log was written by a newer Tisty than the one on this machine. Update before going on — reading half of it would lose work"
 sync-unreadable = "what came back does not read: {why}"
 sync-refused   = "the system refused access to that folder: {why}"
 sync-broke     = "the copy could not be finished: {why}"
@@ -196,6 +197,7 @@ doc-eaten          = "the editor cannot keep {what}, and would destroy it when y
 doc-no-room        = "that document has no room left for the line that names a file"
 doc-crowded        = "that document already carries {count} files, as many as one is read with"
 doc-put-away       = "{name} is put away, so nothing more goes into it"
+doc-locked         = "{name} is locked, so nothing writes in it until you unlock it"
 
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }

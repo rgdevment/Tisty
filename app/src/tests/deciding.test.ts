@@ -9,6 +9,9 @@ const ipc = vi.hoisted(() => ({
 const torn = vi.hoisted(() => ({
   said: { rifts: [] as Rift[], print: "" },
   refuses: false,
+  locked: false,
+  blind: false,
+  shut: false,
 }));
 
 const asked = vi.hoisted(() => ({
@@ -21,6 +24,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "docs") {
+      if (torn.blind) return Promise.reject(new Error("no"));
       return Promise.resolve({
         folders: [],
         docs: [
@@ -30,11 +34,14 @@ vi.mock("@tauri-apps/api/core", () => ({
             title: "Kit de transmisión",
             folder: null,
             archived: false,
+            locked: torn.locked,
           },
         ],
       });
     }
-    if (cmd === "paper_rifts") return Promise.resolve(torn.said);
+    if (cmd === "paper_rifts") {
+      return torn.shut ? Promise.reject({ code: "documentLocked" }) : Promise.resolve(torn.said);
+    }
     if (cmd === "weave_paper" && torn.refuses) return Promise.reject(new Error("cannotWeave"));
     return Promise.resolve(null);
   },
@@ -52,6 +59,9 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 beforeEach(() => {
   torn.said = { rifts: [], print: "" };
   torn.refuses = false;
+  torn.locked = false;
+  torn.blind = false;
+  torn.shut = false;
   decidesByBlock(null);
   ipc.calls = [];
   asked.held = [];
@@ -140,5 +150,48 @@ describe("deciding what to do with a document written on both sides", () => {
     await panel;
 
     expect(settled()).toHaveLength(1);
+  });
+});
+
+describe("a document the person locked, at odds with another machine", () => {
+  it("asks nothing and writes nothing, and hands it back to be told about", async () => {
+    torn.locked = true;
+    torn.said = { rifts: [{ was: ["antes"], mine: ["lo mio"], theirs: ["lo suyo"] }], print: "h" };
+
+    const shut = await decideAll(["dev_a-0001"]);
+
+    expect(shut).toEqual(["dev_a-0001"]);
+    expect(asked.said).toEqual([]);
+    expect(settled()).toEqual([]);
+    expect(woven()).toEqual([]);
+  });
+
+  it("decides nothing at all when it cannot find out what is locked", async () => {
+    torn.blind = true;
+
+    const shut = await decideAll(["dev_a-0001", "dev_a-0002"]);
+
+    expect(shut).toEqual(["dev_a-0001", "dev_a-0002"]);
+    expect(asked.said).toEqual([]);
+    expect(settled()).toEqual([]);
+  });
+
+  it("opens no block view when the window turns the reading down", async () => {
+    torn.shut = true;
+    torn.said = { rifts: [{ was: ["antes"], mine: ["lo mio"], theirs: ["lo suyo"] }], print: "h" };
+    const byBlock = vi.fn();
+    decidesByBlock(byBlock);
+
+    await decideAll(["dev_a-0002"]);
+
+    expect(byBlock).not.toHaveBeenCalled();
+    expect(woven()).toEqual([]);
+  });
+
+  it("still settles the ones that are not locked", async () => {
+    const shut = await decideAll(["dev_a-0002"]);
+
+    expect(shut).toEqual([]);
+    expect(settled().length).toBe(1);
   });
 });
