@@ -2939,6 +2939,22 @@ const PICTURES: &[&str] = &[
     "prioridades.png",
     "capture.png",
     "priorities.png",
+    "rina.jpg",
+];
+
+const GUIDE_PAGES_ES: &[(&str, &str)] = &[
+    (
+        "tisty:code",
+        include_str!("../resources/guide/es/codigo.md"),
+    ),
+    (
+        "tisty:page",
+        include_str!("../resources/guide/es/pagina.md"),
+    ),
+];
+const GUIDE_PAGES_EN: &[(&str, &str)] = &[
+    ("tisty:code", include_str!("../resources/guide/en/code.md")),
+    ("tisty:page", include_str!("../resources/guide/en/page.md")),
 ];
 
 // The MSIX package ships the executable alone, so the guide travels inside the binary.
@@ -2957,6 +2973,11 @@ fn guide(
     };
     let called = if tongue == "es" { "Guía" } else { "Guide" };
     let told = if tongue == "es" { GUIDE_ES } else { GUIDE_EN };
+    let leaves = if tongue == "es" {
+        GUIDE_PAGES_ES
+    } else {
+        GUIDE_PAGES_EN
+    };
 
     let from = app
         .path()
@@ -2982,6 +3003,10 @@ fn guide(
     let data = session.paths.data().to_path_buf();
 
     let mut body = told.to_string();
+    let mut pages: Vec<(&str, String)> = leaves
+        .iter()
+        .map(|(named, one)| (*named, one.to_string()))
+        .collect();
     for shot in PICTURES {
         let Some(at) = from
             .as_ref()
@@ -2992,7 +3017,11 @@ fn guide(
         };
         let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-        body = body.replace(&format!("]({shot})"), &format!("](<{}>)", kept.at));
+        let named = format!("](<{}>)", kept.at);
+        body = body.replace(&format!("]({shot})"), &named);
+        for (_, one) in pages.iter_mut() {
+            *one = one.replace(&format!("]({shot})"), &named);
+        }
     }
 
     let folder = ulid::Ulid::generate();
@@ -3016,6 +3045,16 @@ fn guide(
 
     let root = session.paths.docs();
     let device = session.store.device().clone();
+    let mut leafed = Vec::new();
+    for (marker, one) in &pages {
+        let made = tisty_core::docs::create(&root, &device, one)
+            .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+        body = body.replace(
+            &format!("]({marker})"),
+            &format!("]({}{})", tisty_core::refs::DOC, made.id),
+        );
+        leafed.push(made.id);
+    }
     let made = tisty_core::docs::create(&root, &device, &body)
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
 
@@ -3036,6 +3075,27 @@ fn guide(
             page_of: None,
         },
     })?;
+    let held = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == made.id)
+        .map(|one| one.id);
+    if let Some(up) = held {
+        let mut order = tisty_core::order::first();
+        for file in &leafed {
+            session.commit(Op::DocAdd {
+                id: ulid::Ulid::generate(),
+                d: tisty_core::event::DocAdd {
+                    file: file.clone(),
+                    order: order.clone(),
+                    folder: Some(folder),
+                    page_of: Some(up),
+                },
+            })?;
+            order = tisty_core::order::after(&order);
+        }
+    }
     let written = made.id.clone();
     session.keep(|c| c.guide = Some(written))?;
 
@@ -4895,7 +4955,16 @@ impl OneAtATime {
 
 pub fn unreach() -> std::io::Result<bool> {
     let _ = waking::wake(false);
-    command::within_reach(false)
+    let reached = command::within_reach(false);
+    if let Ok(paths) = tisty_core::Paths::resolve() {
+        for at in paths.swept_on_leaving() {
+            let _ = std::fs::remove_dir_all(&at);
+        }
+    }
+    for at in tisty_core::Paths::shims() {
+        let _ = std::fs::remove_file(&at);
+    }
+    reached
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -5943,6 +6012,39 @@ version 0.1.0
     fn the_guide_travels_inside_the_binary_rather_than_beside_it() {
         assert!(GUIDE_ES.starts_with("# "), "la guia en espanol no viaja");
         assert!(GUIDE_EN.starts_with("# "), "la guia en ingles no viaja");
+    }
+
+    #[test]
+    fn the_guide_carries_pages_of_its_own_to_show_what_a_page_is() {
+        for (told, leaves, tongue) in [
+            (GUIDE_ES, GUIDE_PAGES_ES, "es"),
+            (GUIDE_EN, GUIDE_PAGES_EN, "en"),
+        ] {
+            assert_eq!(leaves.len(), 2, "the {tongue} guide lost a page");
+            for (marker, leaf) in leaves {
+                assert!(
+                    told.contains(&format!("]({marker})")),
+                    "the {tongue} guide never names {marker}"
+                );
+                assert!(
+                    leaf.starts_with("# "),
+                    "a {tongue} page has no title: {marker}"
+                );
+                assert!(
+                    tisty_core::docs::survives(leaf).is_ok(),
+                    "the {tongue} page {marker} would open read-only: {:?}",
+                    tisty_core::docs::survives(leaf)
+                );
+            }
+            assert!(
+                leaves.iter().any(|(_, one)| one.contains("](rina.jpg)")),
+                "no {tongue} page shows the picture"
+            );
+            assert!(
+                leaves.iter().any(|(_, one)| one.contains("```rust")),
+                "no {tongue} page shows any code"
+            );
+        }
     }
 
     #[test]

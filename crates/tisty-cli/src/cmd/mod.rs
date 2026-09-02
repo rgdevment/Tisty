@@ -93,7 +93,7 @@ pub fn dispatch(
             path,
             label,
         } => task::attach(app, &selector, &path, label, today, lang),
-        Command::Mcp | Command::Agent { .. } => {
+        Command::Mcp | Command::Agent { .. } | Command::Leave { .. } => {
             unreachable!("both are handled before a store is opened")
         }
     }

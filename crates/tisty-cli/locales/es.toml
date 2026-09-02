@@ -195,6 +195,10 @@ doc-no-room        = "a ese documento no le queda sitio para la línea que nombr
 doc-crowded        = "ese documento ya lleva {count} archivos, tantos como se lee uno"
 doc-put-away       = "{name} está archivado, así que no entra nada más ahí"
 doc-locked         = "{name} está bloqueado, así que nada escribe en él hasta que lo desbloquees"
+leave-keeps        = "tus documentos, tareas y adjuntos se quedan en {at}. Esto se va:"
+leave-nothing      = "no queda nada propio de Tisty en este equipo"
+leave-sure         = "¿Lo quito?"
+leave-done         = "listo. La aplicación se quita como la instalaste"
 
 [plural]
 tasks = { one = "1 tarea", other = "{n} tareas" }

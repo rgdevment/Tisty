@@ -198,6 +198,10 @@ doc-no-room        = "that document has no room left for the line that names a f
 doc-crowded        = "that document already carries {count} files, as many as one is read with"
 doc-put-away       = "{name} is put away, so nothing more goes into it"
 doc-locked         = "{name} is locked, so nothing writes in it until you unlock it"
+leave-keeps        = "your documents, tasks and attachments stay in {at}. These go:"
+leave-nothing      = "nothing of Tisty's own is left on this machine"
+leave-sure         = "Take those away?"
+leave-done         = "gone. The app itself you remove the way you installed it"
 
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
