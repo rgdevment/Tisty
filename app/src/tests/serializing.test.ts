@@ -138,7 +138,6 @@ describe("converting a document the editor cannot keep", () => {
       "una nota[^1] y otra[^2]\n\n[^1]: uno\n\n[^2]: dos",
       "tres[^a] notas[^b] aqui[^c]\n\n[^a]: uno\n\n[^b]: dos\n\n[^c]: tres",
       "mira [esto][uno]\n\n[uno]: https://x.dev",
-      "| a | b |\n| :--- | ---: |\n| 1 | 2 |",
       "<div><ul><li>uno</li><li>dos<ul><li>anidado</li></ul></li></ul></div>",
       'mira este video <video src="clip.mp4"></video> antes de seguir',
       '<figure><img src="a.png"><figcaption>pie</figcaption></figure>',

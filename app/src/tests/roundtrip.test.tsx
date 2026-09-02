@@ -428,3 +428,268 @@ describe("the highlighter stops where it is told", () => {
     expect(out).toBe("say this out loud");
   });
 });
+
+describe("a callout is a quote GitHub reads, and comes back as it went", () => {
+  const KINDS = ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"];
+
+  it.each(KINDS)("keeps a %s exactly as written", (kind) => {
+    const was = `> [!${kind}]\n> Cuidado con esto.`;
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("does not escape the marker, which is what broke it before", () => {
+    expect(roundtripped("> [!WARNING]\n> Algo.")).not.toContain("\\[");
+  });
+
+  it("does not put a hard break after the marker", () => {
+    expect(roundtripped("> [!NOTE]\n> Algo.")).not.toContain("\\\n");
+  });
+
+  it("leaves a quote with no marker a quote", () => {
+    const was = "> Una cita normal, sin marcador.";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps what the callout holds, marks and all", () => {
+    const was = "> [!TIP]\n> Con **negrita** y `código`.";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps more than one paragraph inside", () => {
+    const was = "> [!CAUTION]\n> Primera.\n>\n> Segunda.";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("reads the marker whatever case it is written in", () => {
+    expect(roundtripped("> [!warning]\n> Algo.")).toBe("> [!WARNING]\n> Algo.");
+  });
+
+  it("is a fixed point: writing it twice changes nothing", () => {
+    const once = roundtripped("> [!NOTE]\n> Algo.");
+    expect(roundtripped(once)).toBe(once);
+  });
+});
+
+describe("a table keeps the alignment its columns were given", () => {
+  it("keeps a column leaning right", () => {
+    expect(roundtripped("| a | b |\n| --- | ---: |\n| 1 | 2 |")).toBe(
+      "| a | b |\n| --- | ---: |\n| 1 | 2 |\n",
+    );
+  });
+
+  it("keeps left, centre and right at once", () => {
+    expect(roundtripped("| a | b | c |\n| :--- | :---: | ---: |\n| 1 | 2 | 3 |")).toBe(
+      "| a | b | c |\n| :--- | :---: | ---: |\n| 1 | 2 | 3 |\n",
+    );
+  });
+
+  it("leaves a table with no alignment plain", () => {
+    expect(roundtripped("| a | b |\n| --- | --- |\n| 1 | 2 |")).toBe(
+      "| a | b |\n| --- | --- |\n| 1 | 2 |\n",
+    );
+  });
+
+  it("is a fixed point: writing it twice changes nothing", () => {
+    const once = roundtripped("| a | b |\n| :---: | ---: |\n| 1 | 2 |");
+    expect(roundtripped(once)).toBe(once);
+  });
+});
+
+describe("a code block keeps its language, now that it can be given one", () => {
+  it.each(["rust", "js", "python", "sql", "mermaid"])("keeps %s on the fence", (tongue) => {
+    const was = `\`\`\`${tongue}\nalgo\n\`\`\``;
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("leaves a fence with no language alone", () => {
+    const was = "```\nsin lenguaje\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps what is inside untouched, blank lines and all", () => {
+    const was = "```mermaid\ngraph TD;\n\nA[Inicio] --> B{Sigue?}\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("is a fixed point", () => {
+    const once = roundtripped("```rust\nfn main() {}\n```");
+    expect(roundtripped(once)).toBe(once);
+  });
+});
+
+describe("a mermaid diagram is a code block, so the file never learns about it", () => {
+  it("comes back with its fence and its language", () => {
+    const was = "```mermaid\ngraph TD;\nA[Inicio] --> B{Sigue?}\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps the blank lines inside, which mermaid reads as separators", () => {
+    const was = "```mermaid\nsequenceDiagram\n\nA->>B: hola\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("keeps a diagram that does not parse, because the file is not ours to fix", () => {
+    const was = "```mermaid\nesto no compila {{{\n```";
+    expect(roundtripped(was)).toBe(was);
+  });
+});
+
+describe("typing a callout by hand, which is how one actually gets written", () => {
+  const typed = (editor: Editor, text: string) => {
+    for (const one of text) {
+      const { from, to } = editor.state.selection;
+      const took = editor.view.someProp("handleTextInput", (fn) =>
+        fn(editor.view, from, to, one, () => editor.state.tr),
+      );
+      if (!took) editor.view.dispatch(editor.state.tr.insertText(one, from, to));
+    }
+  };
+
+  const written_ = (text: string) => {
+    const editor = build("");
+    editor.chain().focus().toggleBlockquote().run();
+    typed(editor, text);
+    const out = markdown(editor);
+    editor.destroy();
+    return out;
+  };
+
+  it.each(["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"])("makes a %s as it is typed", (k) => {
+    expect(written_(`[!${k}] Cuidado`)).toBe(`> [!${k}]\n> Cuidado`);
+  });
+
+  it("does not escape the marker, which is what typing used to do", () => {
+    expect(written_("[!WARNING] Algo")).not.toContain("\\[");
+  });
+
+  it("reads it typed in lower case", () => {
+    expect(written_("[!tip] Algo")).toBe("> [!TIP]\n> Algo");
+  });
+
+  it("leaves a marker it does not know as the text it is", () => {
+    expect(written_("[!raro] Algo")).toContain("raro");
+  });
+
+  it("leaves a plain quote alone", () => {
+    expect(written_("Una cita normal")).toBe("> Una cita normal");
+  });
+});
+
+describe("a table holds what markdown can hold, and keeps the rest whole", () => {
+  it("keeps a picture in a cell instead of emptying it", () => {
+    const was =
+      "| build | cover |\n| --- | --- |\n| ![b](https://x/b.svg) | ![c](https://x/c.svg) |\n";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("is a fixed point with a picture in a cell", () => {
+    const once = roundtripped("| a |\n| --- |\n| ![b](https://x/b.svg) |");
+    expect(roundtripped(once)).toBe(once);
+  });
+});
+
+describe("a callout is the quote's own first line, never one it holds", () => {
+  it("leaves a marker inside a list inside a quote as the text it is", () => {
+    const was = "> - [!NOTE] item\n>\n> - dos";
+    expect(roundtripped(was)).toContain("item");
+    expect(roundtripped(roundtripped(was))).toBe(roundtripped(was));
+  });
+
+  it("leaves a nested callout at the depth it was written", () => {
+    const was = "> > [!NOTE]\n> > dentro";
+    expect(roundtripped(was)).toBe(was);
+  });
+
+  it("does not empty a nested quote", () => {
+    const was = "> > [!NOTE]\n>\n> texto";
+    expect(roundtripped(was)).toBe(was);
+  });
+});
+
+describe("a cell holds what markdown can hold, and says so when it cannot", () => {
+  const inACell = (kid: unknown) => ({
+    type: "doc",
+    content: [
+      {
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: [
+              {
+                type: "tableHeader",
+                content: [{ type: "paragraph", content: [{ type: "text", text: "a" }] }],
+              },
+            ],
+          },
+          { type: "tableRow", content: [{ type: "tableCell", content: [kid] }] },
+        ],
+      },
+    ],
+  });
+
+  const written_ = (doc: unknown) => {
+    const editor = new Editor({ extensions: written(), content: doc as never });
+    const out = markdown(editor);
+    editor.destroy();
+    return out;
+  };
+
+  it("writes a picture in a cell as markdown", () => {
+    const out = written_(inACell({ type: "image", attrs: { src: "shot.png", alt: "foto" } }));
+    expect(out).toContain("![foto](shot.png)");
+    expect(out).not.toContain("<table");
+  });
+
+  it.each([
+    ["a rule", { type: "horizontalRule" }],
+    ["a heading", { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "t" }] }],
+    ["a code block", { type: "codeBlock", content: [{ type: "text", text: "a | b" }] }],
+    [
+      "a quote",
+      {
+        type: "blockquote",
+        content: [{ type: "paragraph", content: [{ type: "text", text: "c" }] }],
+      },
+    ],
+  ])("keeps %s as html rather than losing it", (_name, kid) => {
+    const out = written_(inACell(kid));
+    expect(out).toContain("<table");
+    expect(written_(new Editor({ extensions: written(), content: out }).state.doc.toJSON())).toBe(
+      out,
+    );
+  });
+});
+
+describe("Enter is only held back inside a table cell", () => {
+  const pressed = (content: string, at: number) => {
+    const el = document.createElement("div");
+    document.body.append(el);
+    const editor = new Editor({ extensions: written(), content, element: el });
+    editor.commands.setTextSelection(at);
+    editor.view.dom.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+    );
+    const out = markdown(editor);
+    editor.destroy();
+    el.remove();
+    return out;
+  };
+
+  it("splits a paragraph", () => {
+    expect(pressed("hola mundo", 5)).toContain("\n\n");
+  });
+
+  it("splits a list item", () => {
+    expect(pressed("- uno", 5)).toBe("- un\n- o");
+  });
+
+  it("splits a quote", () => {
+    expect(pressed("> una cita", 6)).toContain(">\n>");
+  });
+
+  it("does nothing in a table cell, where markdown has no second paragraph", () => {
+    const was = "| a | b |\n| --- | --- |\n| uno | dos |";
+    expect(pressed(was, 14)).toBe(`${was}\n`);
+  });
+});
