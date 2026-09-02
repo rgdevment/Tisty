@@ -415,6 +415,8 @@ const en = {
   folderNameTooLong: "A folder name fits 40 characters at most",
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
   documentMoved: "Something wrote in this document while you had it open here",
+  docStirred: "Something wrote in this document, and what you are reading is what it left",
+  docStirredGone: "Got it",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   attachmentTorn:
     "{name} does not yet hold what its name says it holds. If it was attached elsewhere a moment ago, your cloud may still be sending it — try again shortly. If it does not settle, the copy up there is not the one that was kept",
@@ -1475,6 +1477,8 @@ const es: Catalog = {
   documentBeingWritten:
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
+  docStirred: "Algo escribió en este documento, y lo que lees es lo que dejó",
+  docStirredGone: "Entendido",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   attachmentTorn:
     "{name} todavía no tiene lo que su nombre dice. Si lo adjuntaron en otro equipo hace un momento, tu nube puede seguir enviándolo — vuelve a intentarlo en un rato. Si no se asienta, la copia de allá no es la que se guardó",

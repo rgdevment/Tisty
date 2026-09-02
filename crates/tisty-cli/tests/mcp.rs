@@ -994,7 +994,7 @@ what the thread said" }),
 }
 
 #[test]
-fn there_is_no_way_for_it_to_rewrite_a_document() {
+fn a_document_is_never_rewritten_by_an_agent_that_did_not_read_it() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     let made = served.call(
@@ -1024,6 +1024,80 @@ something else." }),
             .unwrap()
             .contains("as written")
     );
+}
+
+#[test]
+fn a_document_is_written_again_whole_by_whoever_read_it_last() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Acta
+
+lo primero." }),
+    );
+    let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": name }));
+    let print = read["result"]["structuredContent"]["print"]
+        .as_str()
+        .expect("read_doc hands back the print it read at");
+
+    let again = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": name, "print": print, "body": "# Acta
+
+otra cosa entera." }),
+    );
+
+    assert!(again["result"]["isError"] != true, "{again}");
+    let back = served.call("read_doc", serde_json::json!({ "doc": name }));
+    let text = back["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("otra cosa entera"), "{text}");
+    assert!(!text.contains("lo primero"), "{text}");
+}
+
+#[test]
+fn a_document_that_moved_since_it_was_read_keeps_what_the_person_put_there() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Acta
+
+lo primero." }),
+    );
+    let name = made["result"]["structuredContent"]["doc"].as_str().unwrap();
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": name }));
+    let print = read["result"]["structuredContent"]["print"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": name, "body": "lo que escribio la persona." }),
+    );
+
+    let again = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": name, "print": print, "body": "# Acta
+
+solo lo mio." }),
+    );
+
+    assert_eq!(again["result"]["isError"], true, "{again}");
+    let why = again["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        why.contains("Read it again"),
+        "it has to say what to do: {why}"
+    );
+
+    let back = served.call("read_doc", serde_json::json!({ "doc": name }));
+    let text = back["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("lo que escribio la persona"), "{text}");
+    assert!(!text.contains("solo lo mio"), "{text}");
 }
 
 #[test]

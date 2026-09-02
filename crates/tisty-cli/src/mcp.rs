@@ -60,6 +60,13 @@ A page sits where its document names it. Writing one adds the line `![Its title]
 matching one place only. Adding to the document that already covers something beats writing a \
 second one about it.
 
+To replace a body entirely, `write_doc` takes the document's name and the `print` `read_doc` \
+handed you with its text. If anyone wrote in it between your reading and your writing the print \
+no longer matches, nothing is written, and you are told to read it again — the person may be \
+editing that same document in the window, and this is what keeps their words. Reach for it when \
+a document has to be reorganised rather than added to; a passage you can name is still better \
+named than a whole body replaced.
+
 Prefer adding, and read the document before you edit it. An edit takes a passage away, the \
 person may be typing in that document while you write, and naming the whole body is refused: \
 there is no way to hand a document a new body. If an edit is refused because the text is not \
@@ -936,6 +943,60 @@ fn fits(body: &str) -> Result<(), Refused> {
     }
 }
 
+fn over_again(
+    paths: &Paths,
+    args: &Value,
+    state: &tisty_core::State,
+    store: &mut tisty_core::Store,
+    which: &str,
+    body: &str,
+) -> Result<Value, Refused> {
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Err(Refused::Tool(format!(
+            "no document here is called {which:?}. `docs` lists them all."
+        )));
+    };
+    if kept.archived {
+        return Err(Refused::Tool(format!(
+            "{which:?} is put away, so nothing is written over it."
+        )));
+    }
+    if text(args, "folder").is_some() || text(args, "page_of").is_some() {
+        return Err(Refused::Tool(format!(
+            "replacing the body of {which:?} does not move it. `file_doc` puts a document in a folder and `page_doc` makes it a page."
+        )));
+    }
+    let Some(print) = text(args, "print") else {
+        return Err(Refused::Tool(format!(
+            "replacing the body of {which:?} needs the `print` you read it at, which `read_doc` hands back beside the text. Read it, then send that print with the new body."
+        )));
+    };
+
+    let made = tisty_core::docs::rewrite(&paths.docs(), which, body, &print).map_err(hitch)?;
+    match made {
+        tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
+            "{which:?} does not read as it did when you took that print — the person, or another agent, wrote in it since. Nothing was changed, and nothing of theirs was lost. Read it again with `read_doc` and work from what is there now."
+        ))),
+        tisty_core::docs::Rewrite::Made { was, whole } => {
+            let _ = tisty_core::docs::kept_before(paths.data(), which, &was);
+            let settled = retold(state, store, which, &whole).is_ok();
+            Ok(told(
+                format!(
+                    "Wrote {:?} again, whole. What it said before is kept beside the documents.{}",
+                    tisty_core::docs::titled(&whole),
+                    if settled { "" } else { UNSETTLED }
+                ),
+                json!({
+                "doc": which,
+                "title": tisty_core::docs::titled(&whole),
+                "body": whole,
+                "print": tisty_core::attach::printed(whole.as_bytes()),
+                }),
+            ))
+        }
+    }
+}
+
 fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a document needs a `body`.".into()));
@@ -948,6 +1009,16 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]."
         ))
     })?;
+
+    if let Some(which) = text(args, "doc") {
+        return over_again(paths, args, &state, &mut store, &which, &body);
+    }
+    if text(args, "print").is_some() {
+        return Err(Refused::Tool(
+            "`print` says which body you mean to replace, so it needs the `doc` it belongs to.              Without one, `write_doc` writes a new document."
+                .into(),
+        ));
+    }
 
     // An append-only store keeps every one of these forever, and the window replays them all.
     if state.docs.len() >= DOCS_AT_MOST {
@@ -1632,6 +1703,7 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .map(|one| one.file.clone())
                 .collect::<Vec<_>>(),
             "archived": kept.archived,
+            "print": tisty_core::attach::printed(tisty_core::docs::settled(&body).as_bytes()),
         }),
     ))
 }
@@ -1850,7 +1922,7 @@ fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary, something to keep. Plain markdown only — headings, lists, emphasis, inline links, tables, fenced code with its language, and GitHub alerts (> [!NOTE] and its kin). Documents do not create tasks.",
+            "description": "Write something down that is not work to do: a note, a summary, something to keep. Plain markdown only — headings, lists, emphasis, inline links, tables, fenced code with its language, and GitHub alerts (> [!NOTE] and its kin). Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -1858,6 +1930,14 @@ fn tools() -> Value {
                     "body": {
                         "type": "string",
                         "description": "The whole document. Its first line becomes its title"
+                    },
+                    "doc": {
+                        "type": "string",
+                        "description": "A document to write again, by name, replacing its body                                         entirely. Needs `print`. Left out, a new document is                                         written instead"
+                    },
+                    "print": {
+                        "type": "string",
+                        "description": "The `print` `read_doc` gave you with the text you are                                         working from. If the document has moved on since, nothing                                         is written and you are told to read it again — so the                                         person cannot lose what they wrote while you were                                         thinking"
                     },
                     "folder": {
                         "type": "string",
@@ -2006,7 +2086,7 @@ fn tools() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document",
-            "description": "The whole text of a document that already exists. You can write new ones, read any of them and add to the end of one with `append_doc`. What is already written you can never rewrite: the person may be editing it as you read.",
+            "description": "The whole text of a document that already exists, and the `print` it reads at. Add to the end of one with `append_doc`, change a passage with `edit_doc`, or send that `print` back to `write_doc` to write the whole body again. The print is what keeps the person from losing what they wrote while you were thinking.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,

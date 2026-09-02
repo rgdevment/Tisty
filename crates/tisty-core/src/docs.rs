@@ -428,6 +428,27 @@ pub enum Change {
     TheLot,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum Rewrite {
+    Made { was: String, whole: String },
+    Moved,
+}
+
+pub fn rewrite(root: &Path, id: &str, body: &str, print: &str) -> Result<Rewrite> {
+    alone(root, || {
+        let at = resolve(root, id)?;
+        if print_of(&at)?.as_deref() != Some(print) {
+            return Ok(Rewrite::Moved);
+        }
+        let was = read(root, id)?;
+        written(root, id, body)?;
+        Ok(Rewrite::Made {
+            was,
+            whole: settled(body),
+        })
+    })
+}
+
 pub fn edit(root: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
     if old.is_empty() {
         return Ok(Change::Missing);
@@ -1906,6 +1927,61 @@ uno
 
 uno
 "
+        );
+    }
+
+    #[test]
+    fn a_body_is_replaced_whole_by_whoever_read_what_is_there_now() {
+        let room = root();
+        let was = "# Acta\n\nlo que escribio la persona\n";
+        write(room.path(), "mac0-0001", was).unwrap();
+        let print = print_of(&resolve(room.path(), "mac0-0001").unwrap())
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            rewrite(
+                room.path(),
+                "mac0-0001",
+                "# Otra acta\n\notra cosa\n",
+                &print
+            )
+            .unwrap(),
+            Rewrite::Made {
+                was: was.to_string(),
+                whole: "# Otra acta\n\notra cosa\n".to_string(),
+            }
+        );
+        assert_eq!(
+            read(room.path(), "mac0-0001").unwrap(),
+            "# Otra acta\n\notra cosa\n"
+        );
+    }
+
+    #[test]
+    fn a_body_that_moved_since_it_was_read_is_left_exactly_as_the_person_left_it() {
+        let room = root();
+        write(room.path(), "mac0-0001", "# Acta\n\nlo primero\n").unwrap();
+        let print = print_of(&resolve(room.path(), "mac0-0001").unwrap())
+            .unwrap()
+            .unwrap();
+
+        let mine = "# Acta\n\nlo que escribio la persona despues\n";
+        write(room.path(), "mac0-0001", mine).unwrap();
+
+        assert_eq!(
+            rewrite(room.path(), "mac0-0001", "# Otra\n\notra cosa\n", &print).unwrap(),
+            Rewrite::Moved
+        );
+        assert_eq!(read(room.path(), "mac0-0001").unwrap(), mine);
+    }
+
+    #[test]
+    fn a_print_of_a_document_that_is_not_there_replaces_nothing() {
+        let room = root();
+        assert_eq!(
+            rewrite(room.path(), "mac0-0009", "# Algo\n", "sea lo que sea").unwrap(),
+            Rewrite::Moved
         );
     }
 

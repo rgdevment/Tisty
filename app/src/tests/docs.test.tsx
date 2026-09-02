@@ -97,6 +97,32 @@ describe("the document being written", () => {
   const show = (open?: string, onKept = vi.fn()) =>
     render(<Docs open={open} known={known} onKept={onKept} onError={vi.fn()} />);
 
+  it("says so when something wrote in the document while it was open", async () => {
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs {...props} fresh={0} />);
+    await waitFor(() => screen.getByLabelText("editor"));
+
+    store.bodies["a3f1-0001"] = "# Acta\n\nlo que dejo el asistente.";
+    rerender(<Docs {...props} fresh={1} />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/wrote in this document, and what you are reading/i)).toBeTruthy(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /got it/i }));
+    expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
+  });
+
+  it("says nothing when the document was stirred but reads the same", async () => {
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs {...props} fresh={0} />);
+    await waitFor(() => screen.getByLabelText("editor"));
+
+    rerender(<Docs {...props} fresh={1} />);
+
+    await waitFor(() => expect(store.reads).toBeGreaterThan(1));
+    expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
+  });
+
   it("does not read the document again when the parent renders with the same words", async () => {
     store.delays = [];
     const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
