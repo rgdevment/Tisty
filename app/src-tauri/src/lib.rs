@@ -4104,6 +4104,9 @@ fn print_of_three(base: &str, mine: &str, theirs: &str) -> String {
 #[tauri::command(async)]
 fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Torn> {
     let session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
         return Ok(Torn {
             rifts: Vec::new(),
