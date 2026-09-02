@@ -18,6 +18,7 @@ import {
   docExport,
   docFile,
   docImport,
+  docLock,
   docNew,
   docPage,
   docs,
@@ -49,6 +50,7 @@ import {
   syncState,
   type Task,
   type Underway,
+  updateInstall,
   updateReady,
   writeLog,
   writeStep,
@@ -57,7 +59,7 @@ import { decideAll, decidesByBlock } from "./deciding";
 import { handTo, whenFilesLand } from "./dropped";
 import { todayLong } from "./format";
 import { adopt, fill, t } from "./locales";
-import { saidPlainly } from "./refusal";
+import { noticeBehind, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
 import CaptureField from "./ui/CaptureField";
@@ -121,10 +123,17 @@ export default function App() {
   const [ready, setReady] = useState<Ready | null>(null);
   const [underway, setUnderway] = useState<Underway | null>(null);
 
+  const [behind, setBehind] = useState(false);
+
   useEffect(() => {
-    updateReady()
+    updateReady(behind)
       .then(setReady)
       .catch(() => {});
+  }, [behind]);
+
+  useEffect(() => {
+    noticeBehind(() => setBehind(true));
+    return () => noticeBehind(null);
   }, []);
   const twice = useRef(0);
   const say = (words: string) => {
@@ -622,11 +631,15 @@ export default function App() {
           key: "pageOf",
           icon: "⇥",
           label: t("pageOf"),
-          off: doc.archived || !!doc.pageOf || papers.docs.some((one) => one.pageOf === doc.id),
+          off:
+            doc.archived ||
+            doc.locked ||
+            !!doc.pageOf ||
+            papers.docs.some((one) => one.pageOf === doc.id),
           into: {
             label: t("pageOfWhich"),
             choices: papers.docs
-              .filter((one) => one.id !== doc.id && !one.pageOf && !one.archived)
+              .filter((one) => one.id !== doc.id && !one.pageOf && !one.archived && !one.locked)
               .map((one) => ({
                 key: one.id,
                 icon: "▤",
@@ -720,6 +733,17 @@ export default function App() {
               .catch((e) => setError(saidPlainly(e))),
         },
         {
+          key: "lock",
+          icon: doc.locked ? "◉" : "○",
+          label: doc.locked ? t("unlockIt") : t("lockIt"),
+          off: !!doc.pageOf,
+          apart: true,
+          onPick: () =>
+            docLock(doc.id, !doc.locked)
+              .then(lookPapers)
+              .catch((e) => setError(saidPlainly(e))),
+        },
+        {
           key: "away",
           icon: doc.archived ? "▢" : "▣",
           label: doc.archived ? t("bringBack") : t("putAway"),
@@ -801,10 +825,26 @@ export default function App() {
               {t("stuckTakeMe")}
             </button>
           )}
+          {behind && (
+            <button
+              type="button"
+              onClick={() =>
+                updateInstall().catch((problem) => {
+                  setError(saidPlainly(problem));
+                })
+              }
+              className="shrink-0 rounded border border-urgent/45 px-1.5 py-0.5 hover:bg-urgent/15"
+            >
+              {t("updateInstall")}
+            </button>
+          )}
           <button
             type="button"
             aria-label={t("close")}
-            onClick={() => setError(null)}
+            onClick={() => {
+              setError(null);
+              setBehind(false);
+            }}
             className="-mr-1 shrink-0 rounded px-1 hover:bg-urgent/15"
           >
             ✕

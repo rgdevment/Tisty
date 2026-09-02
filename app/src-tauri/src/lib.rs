@@ -340,6 +340,9 @@ impl Session {
             .docs
             .get(&id)
             .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+        if self.state.shut(id) {
+            return Err(Refusal::of("documentLocked"));
+        }
         let mut files = vec![kept.file.clone()];
         files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
         self.commit(Op::DocDelete { id })?;
@@ -596,7 +599,10 @@ impl From<tisty_core::Error> for Refusal {
 
 fn blamed(channel: &'static str, said: &'static str, error: tisty_core::Error) -> Refusal {
     witness::error(channel, said, &error.told());
-    Refusal::about("internalNamed", error.to_string())
+    match error {
+        tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+        other => Refusal::about("internalNamed", other.to_string()),
+    }
 }
 
 type Answer<T> = std::result::Result<T, Refusal>;
@@ -2433,6 +2439,7 @@ struct Filed {
     title: String,
     folder: Option<String>,
     archived: bool,
+    locked: bool,
     gone: bool,
     page_of: Option<String>,
 }
@@ -2458,6 +2465,7 @@ fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
             title: found.map(|one| one.title.clone()).unwrap_or_default(),
             folder: kept.folder.map(|at| at.to_string()),
             archived: kept.archived,
+            locked: session.state.shut(kept.id),
             gone: found.is_none(),
             page_of: kept.page_of.map(|up| up.to_string()),
         });
@@ -2991,6 +2999,9 @@ fn doc_write(
     anyway: Option<bool>,
 ) -> Answer<tisty_core::docs::Doc> {
     let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     if !anyway.unwrap_or(false) && session.moved(&id) {
         return Err(Refusal::about("documentMoved", id));
     }
@@ -3015,6 +3026,23 @@ fn doc_write(
 #[tauri::command(async)]
 fn doc_order(session: tauri::State<'_, Mutex<Session>>, id: String, body: String) -> Answer<bool> {
     Ok(held(&session).retell(&id, &body))
+}
+
+#[tauri::command]
+fn doc_lock(session: tauri::State<'_, Mutex<Session>>, id: String, shut: bool) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let mut session = held(&session);
+    match session.state.docs.get(&id) {
+        None => return Err(Refusal::of("noSuchDoc")),
+        Some(one) if one.page_of.is_some() => return Err(Refusal::of("lockIsTheDocs")),
+        Some(_) => {}
+    }
+    session.commit(if shut {
+        Op::DocLock { id }
+    } else {
+        Op::DocUnlock { id }
+    })?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -3274,6 +3302,8 @@ fn doc_new(
         Some(up) => match session.state.docs.get(&up) {
             None => return Err(Refusal::of("noSuchDoc")),
             Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
+            Some(one) if one.archived => return Err(Refusal::of("pageOfAway")),
+            Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
             Some(one) => Some(one.folder),
         },
         None => None,
@@ -3319,6 +3349,9 @@ fn doc_page(
         Some(one) if one.page_of == page_of => return Ok(()),
         Some(_) => {}
     }
+    if session.state.shut(id) {
+        return Err(Refusal::of("lockedStaysPut"));
+    }
     if let Some(up) = page_of {
         if up == id {
             return Err(Refusal::of("pageOfPage"));
@@ -3327,6 +3360,7 @@ fn doc_page(
             None => return Err(Refusal::of("noSuchDoc")),
             Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
             Some(one) if one.archived => return Err(Refusal::of("pageOfAway")),
+            Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
             Some(_) => {}
         }
         // Hanging carries the parent's archived state over, and the inverse cannot carry it back.
@@ -3949,6 +3983,9 @@ fn convert_paper(
     body: String,
 ) -> Answer<()> {
     let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of("documentLocked"));
+    }
     let papers = session.paths.docs();
     let was = tisty_core::docs::read(&papers, &id)
         .map_err(|_| Refusal::about("cannotRead", id.clone()))?;
@@ -5062,6 +5099,7 @@ pub fn run() {
             doc_let_go,
             retire_attachments,
             doc_away,
+            doc_lock,
             parted,
             sow,
             printed,

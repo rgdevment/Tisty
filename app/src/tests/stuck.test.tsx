@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Settling, Snapshot } from "../core";
@@ -136,5 +137,40 @@ describe("a shared folder that belongs to another history", () => {
     await screen.findByText("call the bank");
 
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("a store written by a newer Tisty", () => {
+  it("says so plainly instead of handing over a technical line", async () => {
+    settling = { ran: true, brought: false, agrees: true, stuck: { code: "storeNewer" } };
+    render(<App />);
+
+    const said = await screen.findByRole("alert");
+    expect(said.textContent).toMatch(/newer Tisty/i);
+    expect(said.textContent).not.toMatch(/schema/i);
+  });
+
+  it("offers the update in the same breath", async () => {
+    const asked: string[] = [];
+    const was = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      asked.push(cmd);
+      if (cmd === "update_ready") {
+        return Promise.resolve({
+          version: "9.9.9",
+          route: "download",
+          package: null,
+          installs: true,
+        });
+      }
+      return was(cmd, args);
+    };
+    settling = { ran: true, brought: false, agrees: true, stuck: { code: "storeNewer" } };
+    render(<App />);
+
+    const said = await screen.findByRole("alert");
+    await userEvent.click(within(said).getByRole("button", { name: /^update$/i }));
+
+    expect(asked).toContain("update_install");
   });
 });

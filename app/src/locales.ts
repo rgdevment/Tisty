@@ -414,11 +414,16 @@ const en = {
   pageStaysPut: "A page goes where its document goes",
   holdsPages: "This document has pages of its own",
   pageOfAway: "That document is put away, and its pages would be put away unread",
+  pageOfLocked: "That document is locked. Unlock it before hanging a page off it",
+  lockedStaysPut: "This document is locked, and where it sits is part of what you shut away",
+  lockIsTheDocs: "A page is locked with the document that holds it. Lock that one instead",
   awayStaysAway: "A document put away has to come back before it can be a page",
   folderNameTooLong: "A folder name fits 40 characters at most",
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
+  documentLocked: "This document is locked. Unlock it before writing in it",
   documentMoved: "Something wrote in this document while you had it open here",
   docStirred: "Something wrote in this document, and what you are reading is what it left",
+  docBolted: "You locked this document. Nothing writes in it, not even an assistant",
   docStirredGone: "Got it",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   attachmentTorn:
@@ -477,6 +482,8 @@ const en = {
   notAnAddress: "That address has a space in it",
   noClipboard: "Tisty could not reach the clipboard",
   putAway: "Archive",
+  lockIt: "Lock it",
+  unlockIt: "Unlock it",
   bringBack: "Unarchive",
   deleteIt: "Delete",
   copyOf: "{name} (copy)",
@@ -658,6 +665,8 @@ const en = {
     "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncNewer:
     "Nothing was synced. The machine «{name}» writes with a newer Tisty than this one, and carrying half of it would lose work. Update this machine and try again.",
+  storeNewer:
+    "This log was written by a newer Tisty than the one on this machine. Update before going on — reading half of it would lose work.",
   syncUnreadable: "What came back does not read: {name}",
   syncBroke: "The copy could not be finished: {name}",
   notAllowed:
@@ -754,6 +763,8 @@ const en = {
   frailStuck:
     "It could not be converted whole. A copy of how it was is kept, so you can edit it anyway.",
   frailAnyway: "Edit it anyway",
+  frailAnywaySure:
+    "Edit it anyway? What Tisty cannot keep goes on the first save: {name}. A copy of how it was is kept on this machine.",
   frailLosing: "You are editing it. What Tisty cannot keep goes on the first save.",
   frailConvert: "Try converting it and edit",
   frailKept: "What it was before is kept on this machine",
@@ -1485,12 +1496,17 @@ const es: Catalog = {
   pageStaysPut: "Una página va donde va su documento",
   holdsPages: "Este documento tiene páginas propias",
   pageOfAway: "Ese documento está archivado, y sus páginas quedarían archivadas sin leerse",
+  pageOfLocked: "Ese documento está bloqueado. Desbloquéalo antes de colgarle una página",
+  lockedStaysPut: "Este documento está bloqueado, y dónde vive es parte de lo que protegiste",
+  lockIsTheDocs: "Una página se bloquea con el documento que la contiene. Bloquea ese",
   awayStaysAway: "Un documento archivado tiene que volver antes de ser página",
   folderNameTooLong: "El nombre de una carpeta admite 40 caracteres como máximo",
   documentBeingWritten:
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
+  documentLocked: "Este documento está bloqueado. Desbloquéalo antes de escribir en él",
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
   docStirred: "Algo escribió en este documento, y lo que lees es lo que dejó",
+  docBolted: "Bloqueaste este documento. Nada escribe en él, ni siquiera un asistente",
   docStirredGone: "Entendido",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   attachmentTorn:
@@ -1550,6 +1566,8 @@ const es: Catalog = {
   notAnAddress: "Esa dirección lleva un espacio",
   noClipboard: "Tisty no pudo llegar al portapapeles",
   putAway: "Archivar",
+  lockIt: "Bloquear",
+  unlockIt: "Desbloquear",
   bringBack: "Desarchivar",
   deleteIt: "Eliminar",
   copyOf: "{name} (copia)",
@@ -1733,6 +1751,8 @@ const es: Catalog = {
     "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
   syncNewer:
     "No se sincronizó nada. La máquina «{name}» escribe con un Tisty más nuevo que este, y traer la mitad perdería trabajo. Actualiza este equipo y vuelve a intentarlo.",
+  storeNewer:
+    "Este registro lo escribió un Tisty más nuevo que el de este equipo. Actualiza antes de seguir: leer la mitad perdería trabajo.",
   syncUnreadable: "Lo que llegó no se puede leer: {name}",
   syncBroke: "No se pudo terminar la copia: {name}",
   notAllowed:
@@ -1828,6 +1848,8 @@ const es: Catalog = {
   frailStuck:
     "No se pudo convertir entero. Queda guardada una copia de cómo estaba, así que puedes editarlo igualmente.",
   frailAnyway: "Editarlo igualmente",
+  frailAnywaySure:
+    "¿Editarlo igualmente? Lo que Tisty no puede conservar se irá al guardar: {name}. Queda una copia de cómo estaba en este equipo.",
   frailLosing: "Lo estás editando. Lo que Tisty no puede conservar se irá al guardar.",
   frailConvert: "Intentar convertirlo y editar",
   frailKept: "Lo que era antes queda guardado en esta máquina",

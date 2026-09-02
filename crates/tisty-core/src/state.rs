@@ -57,7 +57,30 @@ impl State {
         state
     }
 
-    /// A page is put away and brought back with its document, never on its own.
+    pub fn shut(&self, id: DocId) -> bool {
+        self.docs.get(&id).is_some_and(|one| {
+            one.locked
+                || one
+                    .page_of
+                    .is_some_and(|up| self.docs.get(&up).is_some_and(|doc| doc.locked))
+        })
+    }
+
+    pub fn bolted(&self, file: &str) -> bool {
+        self.docs
+            .values()
+            .any(|one| one.file == file && self.shut(one.id))
+    }
+
+    fn bolt(&mut self, id: DocId, shut: bool) {
+        if self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
+            return;
+        }
+        if let Some(doc) = self.docs.get_mut(&id) {
+            doc.locked = shut;
+        }
+    }
+
     fn shelve(&mut self, id: DocId, away: bool) {
         if self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
             return;
@@ -238,6 +261,7 @@ impl State {
                         },
                         page_of,
                         archived: under.is_some_and(|one| one.archived),
+                        locked: false,
                     },
                 );
             }
@@ -309,6 +333,8 @@ impl State {
                 }
             }
             Op::DocArchive { id } => self.shelve(*id, true),
+            Op::DocLock { id } => self.bolt(*id, true),
+            Op::DocUnlock { id } => self.bolt(*id, false),
             Op::DocUnarchive { id } => self.shelve(*id, false),
             Op::DeviceJoin { d, k } => {
                 self.dropped.remove(d);

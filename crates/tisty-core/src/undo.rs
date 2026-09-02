@@ -231,6 +231,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
 
         Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),
+        Op::DocLock { id } => Some(Op::DocUnlock { id: *id }),
+        Op::DocUnlock { id } => Some(Op::DocLock { id: *id }),
 
         Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
 
@@ -491,6 +493,32 @@ mod tests {
         state.apply(&ev(3, undo[0].clone()));
 
         assert_eq!(state.tasks[&id].entry(entry).unwrap().body, "");
+    }
+
+    #[test]
+    fn a_lock_is_walked_back_by_unlocking_and_the_other_way_round() {
+        let id = Ulid::generate();
+        let state = State::replay(&[ev(
+            1,
+            Op::DocAdd {
+                id,
+                d: crate::event::DocAdd {
+                    file: "dev0-0001".into(),
+                    order: "a0".into(),
+                    folder: None,
+                    page_of: None,
+                },
+            },
+        )]);
+
+        assert_eq!(
+            inverse(&ev(2, Op::DocLock { id }), &state),
+            Some(vec![Op::DocUnlock { id }])
+        );
+        assert_eq!(
+            inverse(&ev(2, Op::DocUnlock { id }), &state),
+            Some(vec![Op::DocLock { id }])
+        );
     }
 
     #[test]
