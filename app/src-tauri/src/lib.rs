@@ -597,6 +597,35 @@ impl From<tisty_core::Error> for Refusal {
     }
 }
 
+const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
+
+fn speaks_spanish() -> bool {
+    tisty_core::model::spoken(None)
+        .to_lowercase()
+        .starts_with("es")
+}
+
+fn behind_said() -> String {
+    if speaks_spanish() {
+        "Tus datos los escribió un Tisty más nuevo que el de este equipo.
+
+Actualiza Tisty antes de seguir: abrirlos con esta versión perdería trabajo."
+    } else {
+        "Your data was written by a newer Tisty than the one on this machine.
+
+Update Tisty before going on: opening it with this version would lose work."
+    }
+    .to_string()
+}
+
+fn behind_buttons() -> (&'static str, &'static str) {
+    if speaks_spanish() {
+        ("Actualizar", "Cerrar")
+    } else {
+        ("Update", "Close")
+    }
+}
+
 fn blamed(channel: &'static str, said: &'static str, error: tisty_core::Error) -> Refusal {
     witness::error(channel, said, &error.told());
     match error {
@@ -4851,16 +4880,32 @@ pub fn run() {
             let session = match Session::open() {
                 Ok(session) => session,
                 Err(why) => {
-                    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+                    use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
                     witness::error(channel::WINDOW, "the session would not open", &why.told());
                     for window in app.webview_windows().values() {
                         let _ = window.close();
                     }
-                    app.dialog()
-                        .message(why.to_string())
+                    let behind = matches!(why, tisty_core::Error::UnsupportedVersion(_));
+                    let said = app
+                        .dialog()
+                        .message(if behind {
+                            behind_said()
+                        } else {
+                            why.to_string()
+                        })
                         .kind(MessageDialogKind::Error)
-                        .title("Tisty")
-                        .blocking_show();
+                        .title("Tisty");
+                    if behind {
+                        let (yes, no) = behind_buttons();
+                        if said
+                            .buttons(MessageDialogButtons::OkCancelCustom(yes.into(), no.into()))
+                            .blocking_show()
+                        {
+                            let _ = tauri_plugin_opener::open_url(RELEASES, None::<&str>);
+                        }
+                    } else {
+                        said.blocking_show();
+                    }
                     std::process::exit(1);
                 }
             };
@@ -5872,5 +5917,23 @@ version 0.1.0
                 assert!(root.join(tongue).join(shot).is_file(), "falta {shot}");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod behind_tests {
+    use super::*;
+
+    #[test]
+    fn what_a_machine_left_behind_is_told_says_what_to_do_not_what_broke() {
+        let said = behind_said();
+        assert!(!said.contains("schema"), "{said}");
+        assert!(!said.contains("version"), "{said}");
+        let (yes, no) = behind_buttons();
+        assert!(!yes.is_empty() && !no.is_empty());
+        assert!(
+            update::ours(RELEASES),
+            "the offer has to lead where our releases live"
+        );
     }
 }
