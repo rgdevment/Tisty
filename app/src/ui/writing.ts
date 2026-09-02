@@ -685,10 +685,9 @@ const RULED: Record<string, string> = {
   right: "---:",
 };
 
-const STEP = 20;
-const DASHES = [4, 40];
+const STEP = 10;
+const DASHES = [4, 120];
 
-/// Markdown keeps no column width, so it rides in how long the delimiter row is drawn.
 const dashed = (line: string): number[] | null => {
   const said = line.trim().replace(/^\|/, "").replace(/\|$/, "");
   if (!said.includes("-")) return null;
@@ -867,14 +866,14 @@ const watched = () => {
 
 type Setting = { set: (options: { langPrefix: string }) => void };
 
-const NAMED = /\btitle="([^"\n]*)"/;
+const NAMED = /\btitle="((?:[^"\\\n]|\\.)*)"/;
 
 const named = (md: Marking) => {
   md.core.ruler.push("tistyNamed", (state) => {
     for (const token of state.tokens) {
       const said = token.type === "fence" ? NAMED.exec(token.info ?? "") : null;
       if (!said) continue;
-      token.attrSet("data-title", said[1]);
+      token.attrSet("data-title", said[1].replace(/\\(.)/g, "$1"));
       token.info = (token.info ?? "").replace(NAMED, "").trim();
     }
     return true;
@@ -1125,7 +1124,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
           node: { attrs?: { language?: unknown; title?: unknown }; textContent: string },
         ) {
           const said = String(node.attrs?.language ?? "");
-          const name = String(node.attrs?.title ?? "").replace(/"/g, "'");
+          const name = String(node.attrs?.title ?? "").replace(/([\\"])/g, "\\$1");
           const told = name ? `${said} title="${name}"` : said;
           const mark = told.includes("`") ? "~" : "`";
           const runs = node.textContent.split(new RegExp(`[^\\${mark}]+`));

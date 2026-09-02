@@ -14,6 +14,13 @@ const store = vi.hoisted(() => ({
   converted: [] as { id: string; was: string }[],
   mute: false,
   shape: null as string | null,
+  agrees: true,
+}));
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  ask: () => Promise.resolve(store.agrees),
+  save: () => Promise.resolve(null),
+  open: () => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -92,6 +99,7 @@ describe("the document being written", () => {
     store.mute = false;
     store.shape = null;
     store.clash = false;
+    store.agrees = true;
   });
 
   const show = (open?: string, onKept = vi.fn()) =>
@@ -127,6 +135,21 @@ describe("the document being written", () => {
     expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
   });
 
+  it("still says so about a document it left and came back to", async () => {
+    const props = { known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs open="a3f1-0001" {...props} fresh={0} />);
+    await waitFor(() => screen.getByLabelText("editor"));
+
+    rerender(<Docs open="a3f1-0002" {...props} fresh={0} />);
+    await waitFor(() => expect(store.reads).toBeGreaterThan(1));
+    store.bodies["a3f1-0001"] = "# Compras\n\nlo que dejo el asistente.";
+    rerender(<Docs open="a3f1-0001" {...props} fresh={0} />);
+
+    await waitFor(() =>
+      expect(screen.getByText(/wrote in this document, and what you are reading/i)).toBeTruthy(),
+    );
+  });
+
   it("says nothing when the document was stirred but reads the same", async () => {
     const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
     const { rerender } = render(<Docs {...props} fresh={0} />);
@@ -136,6 +159,42 @@ describe("the document being written", () => {
 
     await waitFor(() => expect(store.reads).toBeGreaterThan(1));
     expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
+  });
+
+  it("reads the document again when the person says theirs stands", async () => {
+    store.clash = true;
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    render(<Docs {...props} />);
+    const editor = await waitFor(() => screen.getByLabelText("editor"));
+    await userEvent.click(editor);
+    await userEvent.keyboard(" y algo mio");
+    await screen.findByText(/wrote in this document while you had it open/i);
+
+    store.bodies["a3f1-0001"] = "# Compras\n\nlo que dejo el otro";
+    const reads = store.reads;
+    await userEvent.click(screen.getByRole("button", { name: /Read it again|Volver a leerlo/ }));
+
+    await waitFor(() => expect(store.reads).toBeGreaterThan(reads));
+    await waitFor(() =>
+      expect(screen.queryByText(/wrote in this document while you had it open/i)).toBeNull(),
+    );
+  });
+
+  it("changes nothing when the person backs out of reading it again", async () => {
+    store.clash = true;
+    store.agrees = false;
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    render(<Docs {...props} />);
+    const editor = await waitFor(() => screen.getByLabelText("editor"));
+    await userEvent.click(editor);
+    await userEvent.keyboard(" y algo mio");
+    await screen.findByText(/wrote in this document while you had it open/i);
+
+    const reads = store.reads;
+    await userEvent.click(screen.getByRole("button", { name: /Read it again|Volver a leerlo/ }));
+
+    expect(store.reads).toBe(reads);
+    expect(screen.getByText(/wrote in this document while you had it open/i)).toBeTruthy();
   });
 
   it("does not read the document again when the parent renders with the same words", async () => {

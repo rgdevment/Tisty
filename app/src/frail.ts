@@ -1,5 +1,5 @@
-const KEPT = /^\/?u$/i;
-const TITLED = /\btitle="[^"]*"/;
+const KEPT = /^\/?(u|mark(\s+data-pen="[a-z]+")?)$/i;
+const TITLED = /\btitle="(?:[^"\\]|\\.)*"/;
 const NAMED = /^[a-z0-9#]+$/i;
 const WHY = [
   "frailFront",

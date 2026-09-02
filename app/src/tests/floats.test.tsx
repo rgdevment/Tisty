@@ -51,6 +51,9 @@ describe("the panel that appears over a selection", () => {
       "Strikethrough",
       "Code",
       "Highlight",
+      "Highlight in green",
+      "Highlight in blue",
+      "Highlight in pink",
       "Link",
     ]);
 

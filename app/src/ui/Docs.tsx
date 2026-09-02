@@ -93,7 +93,7 @@ export default function Docs({
   const [stuck, setStuck] = useState(false);
   const [clashed, setClashed] = useState(false);
   const [stirred, setStirred] = useState(false);
-  const lastRead = useRef<{ id: string; text: string } | null>(null);
+  const lastRead = useRef(new Map<string, string>());
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
@@ -131,7 +131,7 @@ export default function Docs({
       const mine = queued(id, () => docWrite(id, text, anyway))
         .then((fresh) => {
           if (held.current?.id === id && held.current.body === text) held.current = null;
-          lastRead.current = { id, text };
+          lastRead.current.set(id, text);
           setClashed(false);
           setSaved((many) => many + 1);
           onKept(fresh);
@@ -172,7 +172,7 @@ export default function Docs({
     drop();
     docRead(open.file)
       .then((text) => {
-        lastRead.current = { id: open.file, text };
+        lastRead.current.set(open.file, text);
         setBody(text);
         setPacked(crowd(text));
         const brittle = frail(text);
@@ -231,9 +231,9 @@ export default function Docs({
       .then(() => docRead(wanted.file))
       .then((text) => {
         if (turn.current !== mine) return;
-        const last = lastRead.current;
-        const astir = last?.id === wanted.file && tailless(last.text) !== tailless(text);
-        lastRead.current = { id: wanted.file, text };
+        const last = lastRead.current.get(wanted.file);
+        const astir = last !== undefined && tailless(last) !== tailless(text);
+        lastRead.current.set(wanted.file, text);
         setStirred(astir);
         setOpen(wanted);
         setBody(text);

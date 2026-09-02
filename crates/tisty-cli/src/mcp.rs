@@ -1052,7 +1052,12 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         Some(up) => up.folder,
         None => folder,
     };
-    let made = tisty_core::docs::create(&paths.docs(), store.device(), &body).map_err(hitch)?;
+    let made = tisty_core::docs::create(&paths.docs(), store.device(), &body).map_err(|e| match e {
+        tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
+            "that body is past the {limit} bytes Tisty can open. Send a shorter document, or split it into pages."
+        )),
+        other => hitch(other),
+    })?;
     let order = tisty_core::order::last_of(
         state
             .docs

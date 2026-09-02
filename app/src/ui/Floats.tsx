@@ -55,6 +55,21 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
     { key: "pen", glyph: "A", name: t("penIt"), weight: "rounded-[3px] bg-pen-yellow px-1" },
   ] as const;
 
+  const kinds = ["note", "tip", "important", "warning", "caution"] as const;
+  const said = String(editor.getAttributes("callout").kind ?? "");
+
+  const pens = [
+    { key: "green", name: t("penGreen"), paint: "bg-pen-green" },
+    { key: "blue", name: t("penBlue"), paint: "bg-pen-blue" },
+    { key: "pink", name: t("penPink"), paint: "bg-pen-pink" },
+  ] as const;
+
+  const inked = (pen: string) => {
+    const chain = editor.chain().focus().setTextSelection(live);
+    if (editor.isActive("highlight", { color: pen })) return chain.unsetHighlight().run();
+    chain.setHighlight({ color: pen }).run();
+  };
+
   const turn = (key: string) => {
     const chain = editor.chain().focus().setTextSelection(live);
     if (key === "bold") return chain.toggleBold().run();
@@ -186,6 +201,32 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
       }}
       className="fixed z-40 flex items-center gap-0.5 rounded-[10px] border border-hair bg-rail p-1 shadow-xl"
     >
+      {said && (
+        <select
+          data-tool
+          tabIndex={-1}
+          aria-label={t("calloutKind")}
+          title={t("calloutKind")}
+          value={said}
+          onMouseDown={(e) => e.stopPropagation()}
+          onChange={(e) =>
+            editor
+              .chain()
+              .focus()
+              .setTextSelection(live)
+              .updateAttributes("callout", { kind: e.target.value })
+              .run()
+          }
+          className="mr-0.5 h-7 rounded-md border-0 bg-transparent px-1 text-[12px] text-soft hover:bg-hover"
+        >
+          {kinds.map((one) => (
+            <option key={one} value={one}>
+              {t(`said${one}` as Parameters<typeof t>[0])}
+            </option>
+          ))}
+        </select>
+      )}
+
       {marks.map((one, i) => {
         const on = editor.isActive(one.key);
         return (
@@ -209,6 +250,26 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
           </button>
         );
       })}
+
+      {pens.map((one) => (
+        <button
+          key={one.key}
+          type="button"
+          data-tool
+          tabIndex={-1}
+          disabled={locked}
+          aria-label={one.name}
+          aria-pressed={editor.isActive("highlight", { color: one.key })}
+          title={one.name}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => inked(one.key)}
+          className={`grid h-7 w-5 place-items-center rounded-md hover:bg-hover disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent ${
+            editor.isActive("highlight", { color: one.key }) ? "bg-accent-soft" : ""
+          }`}
+        >
+          <span className={`h-3 w-3 rounded-[3px] border border-line ${one.paint}`} />
+        </button>
+      ))}
 
       <button
         type="button"

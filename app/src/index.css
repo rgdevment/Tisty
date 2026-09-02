@@ -133,6 +133,9 @@
   --shadow-lift-tall: var(--tisty-lift-tall);
 
   --color-pen-yellow: var(--tisty-pen-yellow);
+  --color-pen-green: var(--tisty-pen-green);
+  --color-pen-blue: var(--tisty-pen-blue);
+  --color-pen-pink: var(--tisty-pen-pink);
   --color-mark-date: var(--tisty-mark-date);
   --color-mark-deadline: var(--tisty-mark-deadline);
   --color-mark-list: var(--tisty-mark-list);

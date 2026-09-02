@@ -462,5 +462,75 @@
   {
     "text": "``` title=\"sin lenguaje\"\nalgo\n```",
     "why": []
+  },
+  {
+    "text": "```js mytitle=\"a b c\"\nalgo\n```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "```js subtitle=\"a b c\"\nalgo\n```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "```js _title=\"a b c\"\nalgo\n```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "```js 5title=\"a b c\"\nalgo\n```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "```mytitle=\"a b c\"\nalgo\n```",
+    "why": [
+      "fence"
+    ]
+  },
+  {
+    "text": "```js title=\"a b c\"\nalgo\n```",
+    "why": []
+  },
+  {
+    "text": "```js title=\"dijo \\\"hola\\\"\"\nalgo\n```",
+    "why": []
+  },
+  {
+    "text": "texto <mark data-pen=\"green\">verde</mark> normal",
+    "why": []
+  },
+  {
+    "text": "texto <mark data-pen=\"pink\">rosa</mark> y <mark data-pen=\"blue\">azul</mark>",
+    "why": []
+  },
+  {
+    "text": "<mark>sin pluma</mark>",
+    "why": []
+  },
+  {
+    "text": "<mark onclick=\"x\">no</mark>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "<mark data-pen=\"green\" onclick=\"x\">no</mark>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "<mark data-pen=\"VERDE\">no</mark>",
+    "why": []
+  },
+  {
+    "text": "texto ==amarillo== normal",
+    "why": []
   }
 ]

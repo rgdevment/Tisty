@@ -86,6 +86,18 @@ describe("what only a mounted editor can be asked", () => {
     two.shut();
   });
 
+  it.each([
+    ['dijo "hola"', '```ts title="dijo \\"hola\\""\nx\n```'],
+    ["con | tubo", '```ts title="con | tubo"\nx\n```'],
+    ["con = igual", '```ts title="con = igual"\nx\n```'],
+  ])("keeps a name that says %s exactly as it was written", (name, was) => {
+    const one = opened(was);
+
+    expect(one.editor.state.doc.firstChild?.attrs.title).toBe(name);
+    expect(one.markdown()).toBe(was);
+    one.shut();
+  });
+
   it("draws a formula from a block that says it holds one", async () => {
     const one = opened("```math\nE = mc^2\n```");
     await vi.waitFor(() => expect(one.dom.querySelector(".lit-drawn .katex")).toBeTruthy(), {
@@ -105,10 +117,10 @@ describe("what only a mounted editor can be asked", () => {
   });
 
   it("leaves a formula it cannot read as the text somebody wrote", async () => {
-    const one = opened("```math\n\frac{sin cerrar\n```");
+    const one = opened("```math\n\\frac{sin cerrar\n```");
     await new Promise((go) => setTimeout(go, 300));
 
-    expect(one.markdown()).toBe("```math\n\frac{sin cerrar\n```");
+    expect(one.markdown()).toBe("```math\n\\frac{sin cerrar\n```");
     one.shut();
   });
 
@@ -158,6 +170,43 @@ describe("what only a mounted editor can be asked", () => {
   });
 });
 
+describe("a pen and an aside keep what they say in the file", () => {
+  it.each(["green", "blue", "pink"])("writes a %s pen as markdown the editor reads back", (pen) => {
+    const one = opened("");
+    one.editor.chain().focus().insertContent("resaltado").run();
+    one.editor
+      .chain()
+      .focus()
+      .setTextSelection({ from: 1, to: 10 })
+      .setHighlight({ color: pen })
+      .run();
+    const out = one.markdown();
+    one.shut();
+
+    expect(out).toContain(`data-pen="${pen}"`);
+    expect(frail(out)).toEqual([]);
+    expect(opened(out).editor.state.doc.textContent).toBe("resaltado");
+  });
+
+  it("writes the yellow pen as plain markdown, with no html at all", () => {
+    const one = opened("");
+    one.editor.chain().focus().insertContent("resaltado").run();
+    one.editor.chain().focus().setTextSelection({ from: 1, to: 10 }).toggleHighlight().run();
+
+    expect(one.markdown()).toBe("==resaltado==");
+    one.shut();
+  });
+
+  it.each(["tip", "important", "warning", "caution"])("turns an aside into a %s", (kind) => {
+    const one = opened("> [!NOTE]\n> algo");
+    one.editor.chain().focus().updateAttributes("callout", { kind }).run();
+
+    expect(one.markdown()).toBe(`> [!${kind.toUpperCase()}]\n> algo`);
+    expect(frail(one.markdown())).toEqual([]);
+    one.shut();
+  });
+});
+
 describe("a block that draws is offered where every other block is", () => {
   it.each(DRAWN)("has %s in the column beside the document", (tongue) => {
     expect(SHAPES).toContain(tongue);
@@ -196,7 +245,7 @@ describe("a table markdown can hold is never written as html", () => {
     const one = opened("| a | b |\n| -------- | --- |\n| uno | dos |");
     const head = one.editor.state.doc.firstChild?.firstChild;
 
-    expect(head?.child(0).attrs.colwidth).toEqual([160]);
+    expect(head?.child(0).attrs.colwidth).toEqual([80]);
     expect(head?.child(1).attrs.colwidth).toBeNull();
     expect(one.markdown()).toBe("| a | b |\n| -------- | --- |\n| uno | dos |\n");
     one.shut();

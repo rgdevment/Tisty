@@ -228,14 +228,31 @@ fn listed(base: usize, wide: usize, said: &str) -> usize {
 }
 
 fn nameless(said: &str) -> String {
-    let Some(at) = said.find("title=\"") else {
-        return said.to_string();
-    };
-    let rest = &said[at + 7..];
-    match rest.find('"') {
-        Some(end) => format!("{} {}", &said[..at], &rest[end + 1..]),
-        None => said.to_string(),
+    let mut from = 0;
+    while let Some(found) = said[from..].find("title=\"") {
+        let at = from + found;
+        from = at + 7;
+        if said[..at]
+            .chars()
+            .next_back()
+            .is_some_and(|one| one.is_alphanumeric() || one == '_')
+        {
+            continue;
+        }
+        let rest = &said[from..];
+        let bytes = rest.as_bytes();
+        let mut over = 0;
+        let end = loop {
+            match bytes.get(over) {
+                None => return said.to_string(),
+                Some(b'\\') => over += 2,
+                Some(b'"') => break over,
+                _ => over += 1,
+            }
+        };
+        return format!("{} {}", &said[..at], &rest[end + 1..]);
     }
+    said.to_string()
 }
 
 fn spacing(said: &str) -> usize {
@@ -4057,7 +4074,7 @@ fn markup(line: &str) -> Option<&'static str> {
         if line[..at].ends_with("](") && !inner.contains('<') && anchored(&line[..at - 2]) {
             continue;
         }
-        if inner.eq_ignore_ascii_case("u") || inner.eq_ignore_ascii_case("/u") {
+        if kept(inner) {
             continue;
         }
         if rest.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!' || c == '?') {
@@ -4065,6 +4082,29 @@ fn markup(line: &str) -> Option<&'static str> {
         }
     }
     None
+}
+
+fn kept(inner: &str) -> bool {
+    if inner.eq_ignore_ascii_case("u") || inner.eq_ignore_ascii_case("/u") {
+        return true;
+    }
+    if inner.eq_ignore_ascii_case("mark") || inner.eq_ignore_ascii_case("/mark") {
+        return true;
+    }
+    let Some(pen) = inner
+        .get(..5)
+        .filter(|one| one.eq_ignore_ascii_case("mark "))
+        .map(|_| inner[5..].trim())
+    else {
+        return false;
+    };
+    let Some(said) = pen
+        .strip_prefix("data-pen=\"")
+        .and_then(|one| one.strip_suffix('"'))
+    else {
+        return false;
+    };
+    !said.is_empty() && said.chars().all(|one| one.is_ascii_alphabetic())
 }
 
 fn anchored(said: &str) -> bool {
