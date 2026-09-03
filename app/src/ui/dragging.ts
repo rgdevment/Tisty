@@ -77,12 +77,16 @@ export const settled = (carried: Carried, spot: Spot | null, where: Where): Move
 };
 
 export const BAND = 56;
-export const MOST = 16;
+export const MOST = 960;
+export const LONGEST = 1 / 20;
 
 export const speedAt = (top: number, bottom: number, y: number, band = BAND, most = MOST) => {
   if (bottom - top < band * 2) return 0;
-  const paced = (over: number) => Math.ceil(Math.min(over / band, 1) * most);
+  const paced = (over: number) => Math.min(over / band, 1) * most;
   if (y < top + band) return -paced(top + band - y);
   if (y > bottom - band) return paced(y - (bottom - band));
   return 0;
 };
+
+export const stepOf = (speed: number, seconds: number) =>
+  Math.round(speed * Math.min(Math.max(seconds, 0), LONGEST));

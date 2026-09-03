@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { BAND, fits, LOOSE, marked, type Spot, settled, speedAt, zoneIn } from "../ui/dragging";
+import {
+  BAND,
+  fits,
+  LONGEST,
+  LOOSE,
+  MOST,
+  marked,
+  type Spot,
+  settled,
+  speedAt,
+  stepOf,
+  zoneIn,
+} from "../ui/dragging";
 
 const folder = (over: Partial<Spot> = {}): Spot => ({
   id: "f1",
@@ -177,9 +189,23 @@ describe("rolling the list while something is being carried", () => {
     expect(speedAt(0, 40, 35)).toBe(0);
   });
 
-  it("moves at most one step a frame, however far past the edge the pointer goes", () => {
-    expect(Math.abs(speedAt(0, 600, -500))).toBeLessThanOrEqual(16 * 2);
-    expect(Math.abs(speedAt(0, 600, 1100))).toBeLessThanOrEqual(16 * 2);
+  it("goes no faster than its top speed, however far past the edge the pointer goes", () => {
+    expect(Math.abs(speedAt(0, 600, -5000))).toBeLessThanOrEqual(MOST);
+    expect(Math.abs(speedAt(0, 600, 5000))).toBeLessThanOrEqual(MOST);
+  });
+
+  it("covers the same ground whether the frames come fast or slow", () => {
+    const speed = speedAt(0, 600, 596);
+    const quick = Array.from({ length: 6 }, () => stepOf(speed, 1 / 120));
+    const slow = Array.from({ length: 3 }, () => stepOf(speed, 1 / 60));
+    const sum = (all: number[]) => all.reduce((a, b) => a + b, 0);
+
+    expect(Math.abs(sum(quick) - sum(slow))).toBeLessThanOrEqual(3);
+  });
+
+  it("does not lurch after a frame the machine slept through", () => {
+    const speed = speedAt(0, 600, 596);
+    expect(stepOf(speed, 2)).toBeLessThanOrEqual(stepOf(speed, LONGEST));
   });
 });
 

@@ -80,21 +80,31 @@ const TRIES = 60;
 export const settles = (at: () => HTMLElement | null, want: number, done: () => void) => {
   let frame = 0;
   let tries = 0;
+  let mine = -1;
+  let over = false;
+  const stop = (soon: boolean) => {
+    if (over) return;
+    over = true;
+    if (soon) frame = requestAnimationFrame(done);
+    else done();
+  };
   const put = () => {
     const sheet = at();
-    if (!sheet) return done();
+    if (!sheet) return stop(false);
+    if (mine >= 0 && sheet.scrollTop !== mine) return stop(false);
     sheet.scrollTop = want;
+    mine = sheet.scrollTop;
     tries += 1;
-    if (sheet.scrollTop < want && tries < TRIES) {
+    if (mine < want && tries < TRIES) {
       frame = requestAnimationFrame(put);
       return;
     }
-    done();
+    stop(true);
   };
   frame = requestAnimationFrame(put);
   return () => {
     cancelAnimationFrame(frame);
-    done();
+    stop(false);
   };
 };
 

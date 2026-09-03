@@ -12,6 +12,7 @@ import {
   type Spot,
   settled,
   speedAt,
+  stepOf,
   type Where,
   zoneIn,
 } from "./dragging";
@@ -63,6 +64,7 @@ export default function Tree({
   const took = useRef(false);
   const pointed = useRef<{ x: number; y: number } | null>(null);
   const rolling = useRef(0);
+  const rolled = useRef(0);
 
   const spotAt = (x: number, y: number): { spot: Spot; where: Where } | null => {
     const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop]");
@@ -103,6 +105,7 @@ export default function Tree({
     const tall = kind === "folder" ? tallOf(id) : 0;
     holding.current = { id, kind, tall, x: e.clientX, y: e.clientY, on: false };
     took.current = false;
+    setLifted(null);
   };
 
   const tapped = (go: () => void) => () => {
@@ -120,15 +123,17 @@ export default function Tree({
     setOver(takes && found ? marked(found.spot, found.where) : null);
   };
 
-  const roll = () => {
+  const roll = (now: number) => {
     const at = pointed.current;
     const sheet = listed.current?.closest<HTMLElement>(".scroller");
-    if (at && sheet) {
+    const since = rolled.current ? (now - rolled.current) / 1000 : 0;
+    rolled.current = now;
+    if (at && sheet && since) {
       const box = sheet.getBoundingClientRect();
-      const by = speedAt(box.top, box.bottom, at.y);
+      const by = stepOf(speedAt(box.top, box.bottom, at.y), since);
       if (by) {
         const was = sheet.scrollTop;
-        sheet.scrollTop += by;
+        sheet.scrollTop = Math.max(0, was + by);
         if (sheet.scrollTop !== was) lit(at.x, at.y);
       }
     }
@@ -138,6 +143,7 @@ export default function Tree({
   const stopRolling = () => {
     cancelAnimationFrame(rolling.current);
     rolling.current = 0;
+    rolled.current = 0;
     pointed.current = null;
   };
 
@@ -162,9 +168,6 @@ export default function Tree({
       stopRolling();
       if (!held?.on) return;
       took.current = true;
-      setTimeout(() => {
-        took.current = false;
-      }, 0);
       setCarried(null);
       setOver(null);
       const found = spotAt(e.clientX, e.clientY);
@@ -180,6 +183,7 @@ export default function Tree({
     };
 
     const quit = () => {
+      if (holding.current?.on) took.current = true;
       holding.current = null;
       stopRolling();
       setCarried(null);
@@ -187,25 +191,45 @@ export default function Tree({
     };
 
     const let_go = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || !holding.current?.on) return;
+      if (e.key !== "Escape") return;
+      if (!holding.current?.on) return;
       e.preventDefault();
       e.stopPropagation();
-      took.current = true;
-      setTimeout(() => {
-        took.current = false;
-      }, 0);
       quit();
+      setLifted(null);
     };
 
+    const swallow = (e: MouseEvent) => {
+      if (!took.current) return;
+      took.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const pressed = () => {
+      took.current = false;
+    };
+
+    const slid = () => {
+      const at = pointed.current;
+      if (at && holding.current?.on) lit(at.x, at.y);
+    };
+
+    window.addEventListener("pointerdown", pressed, true);
     window.addEventListener("pointermove", moved);
     window.addEventListener("pointerup", dropped);
     window.addEventListener("pointercancel", quit);
     window.addEventListener("keydown", let_go, true);
+    window.addEventListener("click", swallow, true);
+    window.addEventListener("scroll", slid, true);
     return () => {
+      window.removeEventListener("pointerdown", pressed, true);
       window.removeEventListener("pointermove", moved);
       window.removeEventListener("pointerup", dropped);
       window.removeEventListener("pointercancel", quit);
       window.removeEventListener("keydown", let_go, true);
+      window.removeEventListener("click", swallow, true);
+      window.removeEventListener("scroll", slid, true);
     };
   });
 
@@ -345,7 +369,7 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          data-drop={page ? undefined : doc.id}
+          data-drop={page || doc.archived ? undefined : doc.id}
           data-drop-kind="doc"
           data-drop-parent={doc.folder ?? ""}
           data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
@@ -656,7 +680,7 @@ export default function Tree({
   );
 
   return (
-    <div ref={listed} className={carried ? "select-none" : undefined}>
+    <div ref={listed} className={carried ? "carrying select-none" : undefined}>
       {tree}
       {kept}
     </div>

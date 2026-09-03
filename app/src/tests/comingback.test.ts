@@ -46,7 +46,7 @@ describe("being put back where the sheet was left", () => {
     expect(done).not.toHaveBeenCalled();
 
     room = 2000;
-    frames(1);
+    frames(2);
     expect(at.scrollTop).toBe(900);
     expect(done).toHaveBeenCalled();
   });
@@ -56,9 +56,40 @@ describe("being put back where the sheet was left", () => {
     const done = vi.fn();
     settles(() => at, 900, done);
 
-    frames(1);
+    frames(2);
     expect(at.scrollTop).toBe(900);
     expect(done).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps quiet for one more frame, so its own last scroll is not saved as yours", () => {
+    const at = scroller(() => 2000);
+    const done = vi.fn();
+    settles(() => at, 900, done);
+
+    frames(1);
+    expect(at.scrollTop).toBe(900);
+    expect(done).not.toHaveBeenCalled();
+
+    frames(1);
+    expect(done).toHaveBeenCalled();
+  });
+
+  it("gives way the moment the reader scrolls, instead of dragging them back", () => {
+    let room = 0;
+    const at = scroller(() => room);
+    const done = vi.fn();
+    settles(() => at, 900, done);
+
+    frames(1);
+    room = 2000;
+    at.scrollTop = 120;
+    frames(1);
+
+    expect(at.scrollTop).toBe(120);
+    expect(done).toHaveBeenCalled();
+
+    frames(3);
+    expect(at.scrollTop).toBe(120);
   });
 
   it("gives up rather than asking for ever for a spot that never comes", () => {
