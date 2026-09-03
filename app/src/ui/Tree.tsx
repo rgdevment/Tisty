@@ -3,6 +3,9 @@ import type { Filed, Folded, Papers } from "../core";
 import { led } from "../leading";
 import { fill, t } from "../locales";
 import {
+  type Carried,
+  DEEPEST,
+  fits,
   type Kind,
   LOOSE,
   marked,
@@ -55,10 +58,8 @@ export default function Tree({
 
   const rows = () => Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
 
-  const [carried, setCarried] = useState<{ id: string; kind: Kind } | null>(null);
-  const holding = useRef<{ id: string; kind: Kind; x: number; y: number; on: boolean } | null>(
-    null,
-  );
+  const [carried, setCarried] = useState<Carried | null>(null);
+  const holding = useRef<(Carried & { x: number; y: number; on: boolean }) | null>(null);
   const took = useRef(false);
   const pointed = useRef<{ x: number; y: number } | null>(null);
   const rolling = useRef(0);
@@ -67,20 +68,40 @@ export default function Tree({
     const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop]");
     if (!el) return null;
     const box = el.getBoundingClientRect();
+    const line = (el.dataset.dropLine ?? "").split("/").filter(Boolean);
     const spot: Spot = {
       id: el.dataset.drop ?? "",
       kind: (el.dataset.dropKind as Kind) ?? "doc",
       parent: el.dataset.dropParent || undefined,
       next: el.dataset.dropNext || undefined,
       holds: el.dataset.dropHolds === "yes",
+      line,
+      depth: line.length,
     };
     const thirds = spot.kind === "folder" || spot.holds;
     return { spot, where: zoneIn(box.top, box.height, y, thirds) };
   };
 
+  const lineTo = (parent: string | null): string[] => {
+    const all: string[] = [];
+    let at = parent;
+    while (at) {
+      all.unshift(at);
+      at = papers.folders.find((one) => one.id === at)?.parent ?? null;
+      if (all.length > DEEPEST) break;
+    }
+    return all;
+  };
+
+  const tallOf = (id: string): number => {
+    const kids = under(id);
+    return 1 + Math.max(0, ...kids.map((one) => tallOf(one.id)));
+  };
+
   const grab = (e: React.PointerEvent, id: string, kind: Kind) => {
     if (e.button !== 0 || e.ctrlKey) return;
-    holding.current = { id, kind, x: e.clientX, y: e.clientY, on: false };
+    const tall = kind === "folder" ? tallOf(id) : 0;
+    holding.current = { id, kind, tall, x: e.clientX, y: e.clientY, on: false };
     took.current = false;
   };
 
@@ -93,8 +114,10 @@ export default function Tree({
   };
 
   const lit = (x: number, y: number) => {
+    const held = holding.current;
     const found = spotAt(x, y);
-    setOver(found ? marked(found.spot, found.where) : null);
+    const takes = found && held && (found.spot.id === LOOSE || fits(held, found.spot, found.where));
+    setOver(takes && found ? marked(found.spot, found.where) : null);
   };
 
   const roll = () => {
@@ -125,7 +148,7 @@ export default function Tree({
       if (!held.on) {
         if (Math.hypot(e.clientX - held.x, e.clientY - held.y) < STIRS) return;
         held.on = true;
-        setCarried({ id: held.id, kind: held.kind });
+        setCarried({ id: held.id, kind: held.kind, tall: held.tall });
         if (!rolling.current) rolling.current = requestAnimationFrame(roll);
       }
       e.preventDefault();
@@ -146,7 +169,7 @@ export default function Tree({
       setOver(null);
       const found = spotAt(e.clientX, e.clientY);
       const move = settled(
-        { id: held.id, kind: held.kind },
+        { id: held.id, kind: held.kind, tall: held.tall },
         found?.spot ?? null,
         found?.where ?? "in",
       );
@@ -163,13 +186,26 @@ export default function Tree({
       setOver(null);
     };
 
+    const let_go = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || !holding.current?.on) return;
+      e.preventDefault();
+      e.stopPropagation();
+      took.current = true;
+      setTimeout(() => {
+        took.current = false;
+      }, 0);
+      quit();
+    };
+
     window.addEventListener("pointermove", moved);
     window.addEventListener("pointerup", dropped);
     window.addEventListener("pointercancel", quit);
+    window.addEventListener("keydown", let_go, true);
     return () => {
       window.removeEventListener("pointermove", moved);
       window.removeEventListener("pointerup", dropped);
       window.removeEventListener("pointercancel", quit);
+      window.removeEventListener("keydown", let_go, true);
     };
   });
 
@@ -314,6 +350,7 @@ export default function Tree({
           data-drop-parent={doc.folder ?? ""}
           data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
           data-drop-holds={takesPages(doc) ? "yes" : "no"}
+          data-drop-line={lineTo(doc.folder ?? null).join("/")}
           className={`group/paper relative flex items-center rounded-md focus-within:bg-hover ${
             over === doc.id ? "bg-accent-soft" : ""
           }${
@@ -422,6 +459,7 @@ export default function Tree({
           data-drop-parent={folder.parent ?? ""}
           data-drop-next={nextOf(under(folder.parent ?? null), folder.id) ?? ""}
           data-drop-holds="yes"
+          data-drop-line={lineTo(folder.parent ?? null).join("/")}
           className={`relative rounded-md ${over === folder.id ? "bg-accent-soft" : ""}${
             over === `${folder.id}:before`
               ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent"

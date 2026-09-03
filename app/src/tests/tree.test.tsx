@@ -868,6 +868,44 @@ describe("putting folders and documents in the order you want", () => {
     document.elementFromPoint = seen;
   });
 
+  it("lets go of what it was carrying when Escape is pressed", () => {
+    const { container, onMove } = shown();
+    const onto = rowFor(container, "01F");
+    boxed(onto, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => onto;
+
+    fireEvent.pointerDown(handle(container, "personal"), { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 115 });
+    expect(onto.className).toContain("bg-accent-soft");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onto.className).not.toContain("bg-accent-soft");
+
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 115 });
+    document.elementFromPoint = was;
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("does not offer a folder a place inside its own child", () => {
+    const { container, onMove } = shown();
+    const kid = rowFor(container, "01G");
+    expect(kid.dataset.dropLine).toBe("01F");
+    boxed(kid, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => kid;
+
+    fireEvent.pointerDown(handle(container, "trabajo"), { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 115 });
+    expect(kid.className).not.toContain("bg-accent-soft");
+
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 115 });
+    document.elementFromPoint = was;
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
   it("marks the row it would drop into while the pointer is over it", () => {
     const { container } = shown();
     const onto = rowFor(container, "01F");
