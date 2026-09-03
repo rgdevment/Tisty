@@ -1075,6 +1075,41 @@ print: {}",
     }
 }
 
+fn warned(paths: &Paths, body: &str) -> Option<String> {
+    let told = tisty_core::agent::secrets_in(body.as_bytes());
+    if told.is_empty() {
+        return None;
+    }
+    let lang = crate::i18n::Lang::detect(
+        tisty_core::Config::load_or_init(paths)
+            .ok()
+            .and_then(|one| one.locale)
+            .as_deref(),
+    );
+    let named: Vec<&str> = told
+        .iter()
+        .map(|one| one.named.as_str())
+        .filter(|one| !one.is_empty())
+        .collect();
+    let what = match named.is_empty() {
+        true => lang.get("secret-a-key").to_string(),
+        false => named.join(", "),
+    };
+    Some(format!(
+        "> [!CAUTION]\n> {}",
+        lang.fill("secret-warning", &[("what", &what)])
+    ))
+}
+
+fn under_the_title(body: &str, notice: &str) -> String {
+    match body.split_once('\n') {
+        Some((first, rest)) if first.starts_with("# ") => {
+            format!("{first}\n\n{notice}\n{rest}")
+        }
+        _ => format!("{notice}\n{body}"),
+    }
+}
+
 fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a document needs a `body`.".into()));
@@ -1086,6 +1121,11 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it. A fence carries its language and, if you want, one name: ```rust title=\"src/walk.rs\", and the same for `mermaid` and `math`, which the window draws with that name above them. Nothing else after the language: a second word is dropped when the person opens the document, so it is refused here instead."
         ))
     })?;
+
+    let body = match warned(paths, &body) {
+        Some(notice) => under_the_title(&body, &notice),
+        None => body,
+    };
 
     if let Some(which) = text(args, "doc") {
         return over_again(paths, args, &state, &mut store, &which, &body);
@@ -1249,6 +1289,11 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
              opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it. A fence carries its language and, if you want, one name: ```rust title=\"src/walk.rs\", and the same for `mermaid` and `math`, which the window draws with that name above them. Nothing else after the language: a second word is dropped when the person opens the document, so it is refused here instead."
         ))
     })?;
+
+    let body = match warned(paths, &body) {
+        Some(notice) => under_the_title(&body, &notice),
+        None => body,
+    };
 
     let whole = tisty_core::docs::append(&paths.docs(), &which, &body).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
@@ -1611,13 +1656,10 @@ fn brought_in(
         });
     };
     if tisty_core::agent::fit_to_keep(&at).is_err() {
-        let head = std::fs::read(&at)
-            .map(|one| one[..one.len().min(4096)].to_vec())
-            .unwrap_or_default();
-        return cannot(match tisty_core::agent::holds_a_secret(&head) {
-            true => "it holds a key or a password, whatever it is named".into(),
-            false => "it is not a kind of file an assistant may keep".into(),
-        });
+        return cannot(
+            "its bytes are not the kind of file its name says it is, so what came out of Tisty later would not open"
+                .into(),
+        );
     }
     let heavy = std::fs::metadata(&at).map(|one| one.len()).unwrap_or(0);
     if heavy > tisty_core::attach::COPIED_IN_DOC {
@@ -1817,16 +1859,13 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let raw = std::fs::read(&at)
         .map_err(|why| Refused::Tool(format!("{said:?} could not be read: {why}.")))?;
-    if tisty_core::agent::holds_a_secret(&raw[..raw.len().min(4096)]) {
-        return Err(Refused::Tool(format!(
-            "{said:?} holds a key or a password, whatever it is named, so it is not a document an assistant brings in."
-        )));
-    }
     let raw = String::from_utf8(raw).map_err(|_| {
         Refused::Tool(format!(
             "{said:?} is not text this can read. Tisty keeps documents as UTF-8."
         ))
     })?;
+
+    let looks = tisty_core::agent::secret_in(raw.as_bytes()).map(|one| one.said());
 
     let made = tisty_core::arriving::tidied(&raw);
     tisty_core::docs::survives(&made.body).map_err(|eats| {
@@ -1877,7 +1916,7 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let changed = made.changed.join(", ");
     Ok(told(
         format!(
-            "{}{}{}{}{}",
+            "{}{}{}{}{}{}",
             said_of(&written),
             match made.changed.is_empty() {
                 true => " Nothing had to be changed on the way in.".to_string(),
@@ -1898,6 +1937,12 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     brought.missed.join("; ")
                 ),
             },
+            match &looks {
+                None => String::new(),
+                Some(said) => format!(
+                    " Nothing was held back: what reads like a live credential ({said}) came in as written, under a warning the person will see when they open it."
+                ),
+            },
             match brought.papers.is_empty() {
                 true => String::new(),
                 false => format!(
@@ -1913,6 +1958,7 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 one.insert("files".into(), json!(brought.kept));
                 one.insert("left_behind".into(), json!(brought.missed));
                 one.insert("names_markdown".into(), json!(brought.papers));
+                one.insert("reads_like_a_credential".into(), json!(looks));
                 Value::Object(one)
             }
             other => other,
