@@ -1,9 +1,12 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Filed, Folded, Papers } from "../core";
 import { led } from "../leading";
 import { fill, t } from "../locales";
+import { type Kind, LOOSE, marked, type Spot, settled, type Where, zoneIn } from "./dragging";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
+
+const STIRS = 4;
 
 interface Props {
   papers: Papers;
@@ -42,6 +45,90 @@ export default function Tree({
   const listed = useRef<HTMLDivElement>(null);
 
   const rows = () => Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
+
+  const [carried, setCarried] = useState<{ id: string; kind: Kind } | null>(null);
+  const holding = useRef<{ id: string; kind: Kind; x: number; y: number; on: boolean } | null>(
+    null,
+  );
+  const took = useRef(false);
+
+  const spotAt = (x: number, y: number): { spot: Spot; where: Where } | null => {
+    const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop]");
+    if (!el) return null;
+    const box = el.getBoundingClientRect();
+    const spot: Spot = {
+      id: el.dataset.drop ?? "",
+      kind: (el.dataset.dropKind as Kind) ?? "doc",
+      parent: el.dataset.dropParent || undefined,
+      next: el.dataset.dropNext || undefined,
+      holds: el.dataset.dropHolds === "yes",
+    };
+    const thirds = spot.kind === "folder" || spot.holds;
+    return { spot, where: zoneIn(box.top, box.height, y, thirds) };
+  };
+
+  const grab = (e: React.PointerEvent, id: string, kind: Kind) => {
+    if (e.button !== 0) return;
+    holding.current = { id, kind, x: e.clientX, y: e.clientY, on: false };
+    took.current = false;
+  };
+
+  const tapped = (go: () => void) => () => {
+    if (took.current) {
+      took.current = false;
+      return;
+    }
+    go();
+  };
+
+  useEffect(() => {
+    const moved = (e: PointerEvent) => {
+      const held = holding.current;
+      if (!held) return;
+      if (!held.on) {
+        if (Math.hypot(e.clientX - held.x, e.clientY - held.y) < STIRS) return;
+        held.on = true;
+        setCarried({ id: held.id, kind: held.kind });
+      }
+      e.preventDefault();
+      const found = spotAt(e.clientX, e.clientY);
+      setOver(found ? marked(found.spot, found.where) : null);
+    };
+
+    const dropped = (e: PointerEvent) => {
+      const held = holding.current;
+      holding.current = null;
+      if (!held?.on) return;
+      took.current = true;
+      setCarried(null);
+      setOver(null);
+      const found = spotAt(e.clientX, e.clientY);
+      const move = settled(
+        { id: held.id, kind: held.kind },
+        found?.spot ?? null,
+        found?.where ?? "in",
+      );
+      if (!move) return;
+      if (move.pageOf) return onPage?.(move.moved, move.pageOf);
+      if (move.kind === "doc") return onFile(move.moved, move.folder, move.before);
+      onMove?.(move.moved, move.folder, move.before);
+    };
+
+    const quit = () => {
+      holding.current = null;
+      setCarried(null);
+      setOver(null);
+    };
+
+    window.addEventListener("pointermove", moved);
+    window.addEventListener("pointerup", dropped);
+    window.addEventListener("pointercancel", quit);
+    return () => {
+      window.removeEventListener("pointermove", moved);
+      window.removeEventListener("pointerup", dropped);
+      window.removeEventListener("pointercancel", quit);
+    };
+  });
 
   const first = papers.folders[0]?.id ?? papers.docs[0]?.id ?? "unfiled";
   const stops = (id: string) => (reached ?? first) === id;
@@ -164,138 +251,10 @@ export default function Tree({
 
   const takesPages = (doc: Filed) => !doc.pageOf && !doc.archived && Boolean(onPage);
 
-  const carries = (e: React.DragEvent, doc: Filed) =>
-    takesPages(doc) && e.dataTransfer.types.includes("text/tisty-doc");
-
-  const zoned = (e: React.DragEvent): "before" | "in" | "after" => {
-    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    if (!box.height) return "in";
-    const at = (e.clientY - box.top) / box.height;
-    if (at < 1 / 3) return "before";
-    if (at > 2 / 3) return "after";
-    return "in";
-  };
-
   const nextOf = <T extends { id: string }>(all: T[], id: string) => {
     const at = all.findIndex((one) => one.id === id);
     return at < 0 ? undefined : all[at + 1]?.id;
   };
-
-  const onFolderRow = (folder: Folded) => {
-    const mine = folder.parent ?? undefined;
-    const next = nextOf(under(folder.parent ?? null), folder.id);
-    return {
-      onDragOver: (e: React.DragEvent) => {
-        e.preventDefault();
-        if (!e.dataTransfer.types.includes("text/tisty-folder")) {
-          setOver(folder.id);
-          return;
-        }
-        const where = zoned(e);
-        setOver(where === "in" ? folder.id : `${folder.id}:${where}`);
-      },
-      onDragLeave: () =>
-        setOver((was) => (was?.startsWith(folder.id) ? null : was)),
-      onDrop: (e: React.DragEvent) => {
-        e.preventDefault();
-        const where = zoned(e);
-        setOver(null);
-        const doc = e.dataTransfer.getData("text/tisty-doc");
-        if (doc) return onFile(doc, folder.id);
-        const moved = e.dataTransfer.getData("text/tisty-folder");
-        if (!moved || moved === folder.id) return;
-        if (where === "in") return onMove?.(moved, folder.id);
-        onMove?.(moved, mine, where === "before" ? folder.id : next);
-      },
-    };
-  };
-
-  const onDocRow = (doc: Filed, page: boolean) => {
-    const next = page ? undefined : nextOf(inside(doc.folder ?? null), doc.id);
-    const where = (e: React.DragEvent) => {
-      if (page) return "in" as const;
-      const at = zoned(e);
-      return at === "in" && !takesPages(doc) ? ("before" as const) : at;
-    };
-    return {
-      onDragOver: (e: React.DragEvent) => {
-        if (!carries(e, doc) && page) return;
-        if (!e.dataTransfer.types.includes("text/tisty-doc")) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const at = where(e);
-        setOver(at === "in" ? doc.id : `${doc.id}:${at}`);
-      },
-      onDragLeave: () => setOver((was) => (was?.startsWith(doc.id) ? null : was)),
-      onDrop: (e: React.DragEvent) => {
-        if (!carries(e, doc) && page) return;
-        const moved = e.dataTransfer.getData("text/tisty-doc");
-        if (!moved) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const at = where(e);
-        setOver(null);
-        if (moved === doc.id) return;
-        if (at === "in") return onPage?.(moved, doc.id);
-        onFile(moved, doc.folder ?? undefined, at === "before" ? doc.id : next);
-      },
-    };
-  };
-
-  const dropAt = (kind: "doc" | "folder", folder?: string, before?: string) => {
-    const mark = `${kind}:${before ?? "end"}:${folder ?? "loose"}`;
-    return {
-      mark,
-      onDragOver: (e: React.DragEvent) => {
-        const carried = e.dataTransfer.types.includes(`text/tisty-${kind}`);
-        if (!carried) return;
-        e.preventDefault();
-        e.stopPropagation();
-        setOver(mark);
-      },
-      onDragLeave: () => setOver((was) => (was === mark ? null : was)),
-      onDrop: (e: React.DragEvent) => {
-        const moved = e.dataTransfer.getData(`text/tisty-${kind}`);
-        if (!moved) return;
-        e.preventDefault();
-        e.stopPropagation();
-        setOver(null);
-        if (moved === before) return;
-        if (kind === "doc") return onFile(moved, folder, before);
-        onMove?.(moved, folder, before);
-      },
-    };
-  };
-
-  const between = (kind: "doc" | "folder", folder?: string, before?: string, depth = 0) => {
-    const { mark, ...on } = dropAt(kind, folder, before);
-    return (
-      <li
-        key={mark}
-        {...on}
-        data-seam={mark}
-        aria-hidden="true"
-        style={{ marginLeft: `${8 + depth * STEP}px` }}
-        className={`h-1 rounded-full transition-colors ${over === mark ? "bg-accent" : ""}`}
-      />
-    );
-  };
-
-  const dropOn = (folder?: string) => ({
-    onDragOver: (e: React.DragEvent) => {
-      e.preventDefault();
-      setOver(folder ?? "unfiled");
-    },
-    onDragLeave: () => setOver((was) => (was === (folder ?? "unfiled") ? null : was)),
-    onDrop: (e: React.DragEvent) => {
-      e.preventDefault();
-      setOver(null);
-      const doc = e.dataTransfer.getData("text/tisty-doc");
-      if (doc) return onFile(doc, folder);
-      const moved = e.dataTransfer.getData("text/tisty-folder");
-      if (moved && moved !== folder) onMove?.(moved, folder);
-    },
-  });
 
   const paper = (doc: Filed, depth: number, page = false) => {
     const name = doc.title || t("untitledDoc");
@@ -305,13 +264,21 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          {...onDocRow(doc, page)}
+          data-drop={doc.id}
+          data-drop-kind="doc"
+          data-drop-parent={doc.folder ?? ""}
+          data-drop-next={page ? "" : (nextOf(inside(doc.folder ?? null), doc.id) ?? "")}
+          data-drop-holds={takesPages(doc) ? "yes" : "no"}
           className={`group/paper relative flex items-center rounded-md focus-within:bg-hover ${
             over === doc.id ? "bg-accent-soft" : ""
           }${
-            over === `${doc.id}:before` ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent" : ""
+            over === `${doc.id}:before`
+              ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent"
+              : ""
           }${
-            over === `${doc.id}:after` ? " after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-full after:bg-accent" : ""
+            over === `${doc.id}:after`
+              ? " after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-full after:bg-accent"
+              : ""
           }`}
           onContextMenu={(e) => {
             if (!onDocMenu) return;
@@ -334,29 +301,28 @@ export default function Tree({
               aria-expanded={!closed}
               aria-controls={`pages-${doc.id}`}
               style={{ marginLeft: `${8 + depth * STEP}px` }}
-              className="grid h-5 w-3 shrink-0 place-items-center rounded text-[11px] leading-none font-semibold text-faint opacity-0 transition-opacity group-hover/paper:opacity-100 hover:text-ink focus-visible:opacity-100"
+              className="relative grid h-5 w-3 shrink-0 place-items-center rounded text-[12px] leading-none font-semibold text-faint opacity-0 transition-opacity before:absolute before:-inset-y-0.5 before:-left-2 before:-right-2 before:content-[''] group-hover/paper:opacity-100 hover:text-ink focus-visible:opacity-100"
             >
               {closed ? "+" : "−"}
             </button>
           )}
           <button
             type="button"
-            draggable={!page}
+            onPointerDown={(e) => !page && grab(e, doc.id, "doc")}
             data-row={doc.id}
             tabIndex={stops(doc.id) ? 0 : -1}
             onFocus={() => setReached(doc.id)}
             onKeyDown={(e) => typed(e, { id: doc.id, kind: "doc", name })}
             aria-keyshortcuts={shortcuts(page ? "page" : "doc")}
-            onDragStart={(e) => e.dataTransfer.setData("text/tisty-doc", doc.id)}
-            onClick={() => onOpen(doc)}
+            onClick={tapped(() => onOpen(doc))}
             aria-label={lifted?.id === doc.id ? fill("liftedIs", name) : name}
             aria-current={open === doc.file ? "true" : undefined}
             style={pages.length > 0 ? undefined : { paddingLeft: `${8 + depth * STEP + ICON}px` }}
             className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[12.5px] ${
               pages.length > 0 ? "pl-1.5 " : ""
             }${lifted?.id === doc.id ? "ring-1 ring-accent " : ""}${
-              doc.archived ? "opacity-55 " : ""
-            }${
+              carried?.id === doc.id ? "opacity-45 " : ""
+            }${doc.archived ? "opacity-55 " : ""}${
               open === doc.file
                 ? "bg-active text-ink"
                 : `${page ? "text-faint" : "text-soft"} hover:bg-hover`
@@ -406,11 +372,19 @@ export default function Tree({
     return (
       <li key={folder.id} className="relative">
         <div
-          {...onFolderRow(folder)}
+          data-drop={folder.id}
+          data-drop-kind="folder"
+          data-drop-parent={folder.parent ?? ""}
+          data-drop-next={nextOf(under(folder.parent ?? null), folder.id) ?? ""}
+          data-drop-holds="yes"
           className={`relative rounded-md ${over === folder.id ? "bg-accent-soft" : ""}${
-            over === `${folder.id}:before` ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent" : ""
+            over === `${folder.id}:before`
+              ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent"
+              : ""
           }${
-            over === `${folder.id}:after` ? " after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-full after:bg-accent" : ""
+            over === `${folder.id}:after`
+              ? " after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-full after:bg-accent"
+              : ""
           }`}
         >
           <div
@@ -434,7 +408,6 @@ export default function Tree({
             </button>
             <button
               type="button"
-              draggable
               data-row={folder.id}
               tabIndex={stops(folder.id) ? 0 : -1}
               onFocus={() => setReached(folder.id)}
@@ -442,8 +415,8 @@ export default function Tree({
                 typed(e, { id: folder.id, kind: "folder", name: folder.name }, folder.id)
               }
               aria-keyshortcuts={shortcuts("folder")}
-              onDragStart={(e) => e.dataTransfer.setData("text/tisty-folder", folder.id)}
-              onClick={() => onHere?.(folder.id)}
+              onPointerDown={(e) => grab(e, folder.id, "folder")}
+              onClick={tapped(() => onHere?.(folder.id))}
               aria-label={lifted?.id === folder.id ? fill("liftedIs", folder.name) : folder.name}
               aria-current={here === folder.id ? "true" : undefined}
               className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[12.5px] ${
@@ -469,16 +442,8 @@ export default function Tree({
         )}
         {!closed && (
           <ul id={`holds-${folder.id}`}>
-            {kids.flatMap((child) => [
-              between("folder", folder.id, child.id, depth + 1),
-              branch(child, depth + 1),
-            ])}
-            {kids.length > 0 && between("folder", folder.id, undefined, depth + 1)}
-            {papersIn.flatMap((doc) => [
-              between("doc", folder.id, doc.id, depth + 1),
-              paper(doc, depth + 1),
-            ])}
-            {papersIn.length > 0 && between("doc", folder.id, undefined, depth + 1)}
+            {kids.flatMap((child) => [branch(child, depth + 1)])}
+            {papersIn.flatMap((doc) => [paper(doc, depth + 1)])}
             {!kids.length && !papersIn.length && (
               <li
                 className="py-0.5 text-[11px] text-faint italic"
@@ -513,17 +478,15 @@ export default function Tree({
           {fill("liftedHint", lifted.name)}
         </li>
       )}
-      {under(null).flatMap((folder) => [
-        between("folder", undefined, folder.id),
-        branch(folder, 0),
-      ])}
-      {under(null).length > 0 && between("folder", undefined, undefined)}
+      {under(null).flatMap((folder) => [branch(folder, 0)])}
 
       <li className="relative">
         <div
-          {...dropOn(undefined)}
+          data-drop={LOOSE}
+          data-drop-kind="folder"
+          data-drop-holds="yes"
           className={`group/loose mt-1 flex items-center rounded-md ${
-            over === "unfiled" ? "bg-accent-soft" : ""
+            over === LOOSE ? "bg-accent-soft" : ""
           }`}
         >
           <button
@@ -573,12 +536,7 @@ export default function Tree({
             style={{ left: "14px", top: "30px" }}
           />
         )}
-        {!shut.has("unfiled") && (
-          <ul id="holds-unfiled" {...dropOn(undefined)}>
-            {loose.flatMap((doc) => [between("doc", undefined, doc.id, 1), paper(doc, 1)])}
-            {loose.length > 0 && between("doc", undefined, undefined, 1)}
-          </ul>
-        )}
+        {!shut.has("unfiled") && <ul id="holds-unfiled">{loose.map((doc) => paper(doc, 1))}</ul>}
       </li>
     </ul>
   );
@@ -615,7 +573,7 @@ export default function Tree({
   );
 
   return (
-    <div ref={listed}>
+    <div ref={listed} className={carried ? "select-none" : undefined}>
       {tree}
       {kept}
     </div>
