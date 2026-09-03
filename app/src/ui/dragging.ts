@@ -1,12 +1,22 @@
 export type Kind = "doc" | "folder";
 export type Where = "before" | "in" | "after";
 
+export const DEEPEST = 4;
+
 export interface Spot {
   id: string;
   kind: Kind;
   parent?: string;
   next?: string;
   holds: boolean;
+  line: string[];
+  depth: number;
+}
+
+export interface Carried {
+  id: string;
+  kind: Kind;
+  tall: number;
 }
 
 export interface Move {
@@ -31,14 +41,19 @@ export const marked = (spot: Spot, where: Where) =>
 
 export const LOOSE = "~loose";
 
-export const settled = (
-  carried: { id: string; kind: Kind },
-  spot: Spot | null,
-  where: Where,
-): Move | null => {
+export const fits = (carried: Carried, into: Spot, where: Where) => {
+  if (carried.kind !== "folder") return true;
+  const under = where === "in" ? [...into.line, into.id] : into.line;
+  if (under.includes(carried.id)) return false;
+  const deep = where === "in" ? into.depth + 1 : into.depth;
+  return deep + carried.tall <= DEEPEST;
+};
+
+export const settled = (carried: Carried, spot: Spot | null, where: Where): Move | null => {
   if (!spot) return null;
   if (carried.id === spot.id) return null;
   if (spot.id === LOOSE) return { kind: carried.kind, moved: carried.id };
+  if (!fits(carried, spot, where)) return null;
 
   if (carried.kind === "folder") {
     if (spot.kind === "doc") return { kind: "folder", moved: carried.id, folder: spot.parent };

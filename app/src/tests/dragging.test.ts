@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { BAND, LOOSE, marked, type Spot, settled, speedAt, zoneIn } from "../ui/dragging";
+import { BAND, fits, LOOSE, marked, type Spot, settled, speedAt, zoneIn } from "../ui/dragging";
 
 const folder = (over: Partial<Spot> = {}): Spot => ({
   id: "f1",
   kind: "folder",
   holds: true,
+  line: [],
+  depth: 0,
   ...over,
 });
 
@@ -12,6 +14,8 @@ const doc = (over: Partial<Spot> = {}): Spot => ({
   id: "d1",
   kind: "doc",
   holds: true,
+  line: [],
+  depth: 0,
   ...over,
 });
 
@@ -40,7 +44,7 @@ describe("which third of a row the pointer is in", () => {
 
 describe("where a dragged row lands", () => {
   it("puts a folder inside the folder it was dropped into", () => {
-    expect(settled({ id: "f2", kind: "folder" }, folder(), "in")).toEqual({
+    expect(settled({ id: "f2", kind: "folder", tall: 1 }, folder(), "in")).toEqual({
       kind: "folder",
       moved: "f2",
       folder: "f1",
@@ -49,13 +53,13 @@ describe("where a dragged row lands", () => {
 
   it("orders a folder against its sister, before and after", () => {
     const beside = folder({ parent: "top", next: "f9" });
-    expect(settled({ id: "f2", kind: "folder" }, beside, "before")).toEqual({
+    expect(settled({ id: "f2", kind: "folder", tall: 1 }, beside, "before")).toEqual({
       kind: "folder",
       moved: "f2",
       folder: "top",
       before: "f1",
     });
-    expect(settled({ id: "f2", kind: "folder" }, beside, "after")).toEqual({
+    expect(settled({ id: "f2", kind: "folder", tall: 1 }, beside, "after")).toEqual({
       kind: "folder",
       moved: "f2",
       folder: "top",
@@ -65,7 +69,7 @@ describe("where a dragged row lands", () => {
 
   it("sends a folder dropped past the last sister to the end, with nothing to go before", () => {
     const last = folder({ parent: "top", next: undefined });
-    expect(settled({ id: "f2", kind: "folder" }, last, "after")).toEqual({
+    expect(settled({ id: "f2", kind: "folder", tall: 1 }, last, "after")).toEqual({
       kind: "folder",
       moved: "f2",
       folder: "top",
@@ -74,7 +78,7 @@ describe("where a dragged row lands", () => {
   });
 
   it("takes a folder dropped on a document into the folder that document sits in", () => {
-    expect(settled({ id: "f2", kind: "folder" }, doc({ parent: "f7" }), "in")).toEqual({
+    expect(settled({ id: "f2", kind: "folder", tall: 1 }, doc({ parent: "f7" }), "in")).toEqual({
       kind: "folder",
       moved: "f2",
       folder: "f7",
@@ -82,7 +86,7 @@ describe("where a dragged row lands", () => {
   });
 
   it("files a document into the folder it was dropped into", () => {
-    expect(settled({ id: "d2", kind: "doc" }, folder(), "in")).toEqual({
+    expect(settled({ id: "d2", kind: "doc", tall: 0 }, folder(), "in")).toEqual({
       kind: "doc",
       moved: "d2",
       folder: "f1",
@@ -90,7 +94,9 @@ describe("where a dragged row lands", () => {
   });
 
   it("puts a document dropped at a folder's edge beside the folder, not inside it", () => {
-    expect(settled({ id: "d2", kind: "doc" }, folder({ parent: "top" }), "before")).toEqual({
+    expect(
+      settled({ id: "d2", kind: "doc", tall: 0 }, folder({ parent: "top" }), "before"),
+    ).toEqual({
       kind: "doc",
       moved: "d2",
       folder: "top",
@@ -99,13 +105,13 @@ describe("where a dragged row lands", () => {
 
   it("orders a document against another in the same folder", () => {
     const beside = doc({ parent: "f1", next: "d9" });
-    expect(settled({ id: "d2", kind: "doc" }, beside, "before")).toEqual({
+    expect(settled({ id: "d2", kind: "doc", tall: 0 }, beside, "before")).toEqual({
       kind: "doc",
       moved: "d2",
       folder: "f1",
       before: "d1",
     });
-    expect(settled({ id: "d2", kind: "doc" }, beside, "after")).toEqual({
+    expect(settled({ id: "d2", kind: "doc", tall: 0 }, beside, "after")).toEqual({
       kind: "doc",
       moved: "d2",
       folder: "f1",
@@ -114,7 +120,7 @@ describe("where a dragged row lands", () => {
   });
 
   it("makes a page of a document dropped on the middle of another", () => {
-    expect(settled({ id: "d2", kind: "doc" }, doc(), "in")).toEqual({
+    expect(settled({ id: "d2", kind: "doc", tall: 0 }, doc(), "in")).toEqual({
       kind: "doc",
       moved: "d2",
       pageOf: "d1",
@@ -122,16 +128,16 @@ describe("where a dragged row lands", () => {
   });
 
   it("refuses the middle of a document that holds no pages", () => {
-    expect(settled({ id: "d2", kind: "doc" }, doc({ holds: false }), "in")).toBeNull();
+    expect(settled({ id: "d2", kind: "doc", tall: 0 }, doc({ holds: false }), "in")).toBeNull();
   });
 
   it("takes anything dropped on the loose list out of every folder", () => {
-    expect(settled({ id: "d2", kind: "doc" }, folder({ id: LOOSE }), "in")).toEqual({
+    expect(settled({ id: "d2", kind: "doc", tall: 0 }, folder({ id: LOOSE }), "in")).toEqual({
       kind: "doc",
       moved: "d2",
       folder: undefined,
     });
-    expect(settled({ id: "f2", kind: "folder" }, folder({ id: LOOSE }), "in")).toEqual({
+    expect(settled({ id: "f2", kind: "folder", tall: 1 }, folder({ id: LOOSE }), "in")).toEqual({
       kind: "folder",
       moved: "f2",
       folder: undefined,
@@ -140,13 +146,13 @@ describe("where a dragged row lands", () => {
 
   it("does nothing for a row dropped on itself, at any edge", () => {
     for (const where of ["before", "in", "after"] as const) {
-      expect(settled({ id: "f1", kind: "folder" }, folder(), where)).toBeNull();
-      expect(settled({ id: "d1", kind: "doc" }, doc(), where)).toBeNull();
+      expect(settled({ id: "f1", kind: "folder", tall: 1 }, folder(), where)).toBeNull();
+      expect(settled({ id: "d1", kind: "doc", tall: 0 }, doc(), where)).toBeNull();
     }
   });
 
   it("does nothing when the pointer is over no row at all", () => {
-    expect(settled({ id: "d2", kind: "doc" }, null, "in")).toBeNull();
+    expect(settled({ id: "d2", kind: "doc", tall: 0 }, null, "in")).toBeNull();
   });
 });
 
@@ -174,5 +180,34 @@ describe("rolling the list while something is being carried", () => {
   it("moves at most one step a frame, however far past the edge the pointer goes", () => {
     expect(Math.abs(speedAt(0, 600, -500))).toBeLessThanOrEqual(16 * 2);
     expect(Math.abs(speedAt(0, 600, 1100))).toBeLessThanOrEqual(16 * 2);
+  });
+});
+
+describe("what the window must not promise", () => {
+  it("refuses a folder dropped inside itself, however deep the row sits", () => {
+    const kid = folder({ id: "f9", line: ["f2"], depth: 1 });
+    expect(fits({ id: "f2", kind: "folder", tall: 2 }, kid, "in")).toBe(false);
+    expect(settled({ id: "f2", kind: "folder", tall: 2 }, kid, "in")).toBeNull();
+  });
+
+  it("refuses a folder dropped beside a row that sits under it", () => {
+    const kid = folder({ id: "f9", line: ["f2", "f8"], depth: 2 });
+    expect(fits({ id: "f2", kind: "folder", tall: 1 }, kid, "before")).toBe(false);
+  });
+
+  it("refuses a branch that would push the tree past four levels", () => {
+    const deep = folder({ id: "f9", line: ["a", "b", "c"], depth: 3 });
+    expect(fits({ id: "f2", kind: "folder", tall: 1 }, deep, "in")).toBe(false);
+    expect(fits({ id: "f2", kind: "folder", tall: 1 }, deep, "before")).toBe(true);
+  });
+
+  it("lets a lone folder into a folder three levels down, which still fits", () => {
+    const deep = folder({ id: "f9", line: ["a", "b"], depth: 2 });
+    expect(fits({ id: "f2", kind: "folder", tall: 1 }, deep, "in")).toBe(true);
+  });
+
+  it("never blocks a document, which has no branch to carry", () => {
+    const deep = folder({ id: "f9", line: ["a", "b", "c"], depth: 3 });
+    expect(fits({ id: "d2", kind: "doc", tall: 0 }, deep, "in")).toBe(true);
   });
 });
