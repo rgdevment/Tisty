@@ -33,9 +33,17 @@ describe("what a link is worth showing as", () => {
   });
 
   it("says nothing about a link with no file at the end of it", () => {
-    expect(previewOf("attachments/sinextension")).toBeNull();
     expect(previewOf("")).toBeNull();
     expect(previewOf("   ")).toBeNull();
+    expect(previewOf("otra-pagina")).toBeNull();
+  });
+
+  it("still draws a card for a kept file with no ending, as a dotfile has none", () => {
+    expect(previewOf("attachments/df/env-36481ea0")).toEqual({
+      as: "file",
+      at: "attachments/df/env-36481ea0",
+      kind: "",
+    });
   });
 
   it("reads the ending past a query, and not from a dotted folder", () => {

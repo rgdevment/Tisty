@@ -774,3 +774,25 @@ describe("a list item that opens on a block is caught before it is opened", () =
     expect(frail(was)).not.toContain("frailBlocked");
   });
 });
+
+describe("el aviso que Tisty pone cuando ve una credencial", () => {
+  const notice =
+    "# Despliegue\n\n> [!CAUTION]\n> Aqui hay algo que parece una credencial de verdad, no un ejemplo: GITHUB_TOKEN.\n\nPara publicar:\n\n```bash\nGITHUB_TOKEN=ghp_16C7e42F292c6912E7710c838347Ae178B4a\n```";
+
+  it("se dibuja como alerta y no como texto suelto", () => {
+    const one = opened(notice);
+    const callout = one.dom.querySelector("blockquote[data-callout]");
+    expect(callout?.getAttribute("data-callout")).toBe("caution");
+    expect(one.dom.querySelectorAll("p")[1]?.textContent).toBe("Para publicar:");
+    one.shut();
+  });
+
+  it("vuelve a salir tal como entro, sin comerse lo de abajo", () => {
+    const one = opened(notice);
+    const back = one.markdown();
+    expect(back).toBe(notice);
+    expect(back).toContain("Para publicar:");
+    expect(back).toContain("```bash");
+    one.shut();
+  });
+});

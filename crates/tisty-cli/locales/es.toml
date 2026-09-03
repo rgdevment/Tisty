@@ -200,7 +200,7 @@ leave-nothing      = "no queda nada propio de Tisty en este equipo"
 leave-sure         = "¿Lo quito?"
 leave-done         = "listo. La aplicación se quita como la instalaste"
 
-secret-warning = "Esto parece una credencial de verdad, no un ejemplo: {what}. Entró tal como llegó: bórrala, cámbiala, o borra este aviso."
+secret-warning = "Aquí hay algo que parece una credencial de verdad, no un ejemplo: {what}. Entró tal como llegó: bórralo, cámbialo, o borra este aviso."
 secret-a-key   = "una clave privada"
 [plural]
 tasks = { one = "1 tarea", other = "{n} tareas" }

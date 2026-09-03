@@ -51,11 +51,13 @@ four tags of its own, because it writes them itself — `<u>`, `<mark>`, a colou
 
 `import_doc` brings a markdown file on this machine in as a document, tidying on the way what \
 the editor could not have held, and saying what it changed. Everything the text points at beside \
-it comes in too — pictures, video, PDFs — and the text is pointed at Tisty's own copies, because \
+it comes in too — pictures, video, PDFs, whatever sits beside it — and the text is pointed at Tisty's own copies, because \
 a document that leans on a file outside Tisty is a document that breaks the day it moves. What \
 cannot come in has its link taken out and its words left in place, and you are told which and \
-why: a key or a password never comes in, whatever it is named, and a file past what a document \
-holds has to be made smaller first. `export_doc` writes a document back out to a folder, pages \
+why: a file whose bytes are not the kind its name says, and a file past what a document \
+holds, which has to be made smaller first. Nothing is turned away for what it holds: a \
+document carrying what looks like a live credential comes in as written, with a warning \
+added at the top for the person to decide about. `export_doc` writes a document back out to a folder, pages \
 and attachments and all. Both only reach the places the person keeps files — Downloads, \
 Documents, Pictures, Desktop, the temporary folder — and neither touches what is already on \
 disk. To bring a whole export across, walk it yourself and import one file per call, so what \
@@ -724,9 +726,9 @@ fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let at = &tisty_core::agent::may_attach(asked, paths).map_err(|why| {
         Refused::Tool(match why {
             tisty_core::Error::NotForAnAgent(_) => format!(
-                "{said:?} is not a kind of file an assistant may keep. Pictures, video, sound, \
-                 PDFs, plain text, office documents and archives like zip are; anything holding \
-                 a key or a password is not, whatever it is named."
+                "{said:?} does not hold what its name says it does — a .png whose bytes are not a \
+                 PNG, say — so what came back out of Tisty would not open. Any kind of \
+                 file is kept; this one is turned away only because its name lies."
             ),
             _ => format!(
                 "{said:?} is not somewhere an assistant may take files from. Those are: {}.",
@@ -1075,6 +1077,9 @@ print: {}",
     }
 }
 
+const NAMES_IN_A_WARNING: usize = 6;
+const A_NAME_AT_MOST: usize = 40;
+
 fn warned(paths: &Paths, body: &str) -> Option<String> {
     let told = tisty_core::agent::secrets_in(body.as_bytes());
     if told.is_empty() {
@@ -1086,14 +1091,19 @@ fn warned(paths: &Paths, body: &str) -> Option<String> {
             .and_then(|one| one.locale)
             .as_deref(),
     );
-    let named: Vec<&str> = told
-        .iter()
-        .map(|one| one.named.as_str())
-        .filter(|one| !one.is_empty())
-        .collect();
-    let what = match named.is_empty() {
-        true => lang.get("secret-a-key").to_string(),
-        false => named.join(", "),
+    let mut named: Vec<&str> = Vec::new();
+    for one in told.iter().map(|one| one.named.as_str()) {
+        let one = &one[..one.len().min(A_NAME_AT_MOST)];
+        if !one.is_empty() && !named.contains(&one) {
+            named.push(one);
+        }
+    }
+    let over = named.len().saturating_sub(NAMES_IN_A_WARNING);
+    named.truncate(NAMES_IN_A_WARNING);
+    let what = match (named.is_empty(), over) {
+        (true, _) => lang.get("secret-a-key").to_string(),
+        (false, 0) => named.join(", "),
+        (false, more) => format!("{} +{more}", named.join(", ")),
     };
     Some(format!(
         "> [!CAUTION]\n> {}",
@@ -1101,13 +1111,69 @@ fn warned(paths: &Paths, body: &str) -> Option<String> {
     ))
 }
 
-fn under_the_title(body: &str, notice: &str) -> String {
-    match body.split_once('\n') {
-        Some((first, rest)) if first.starts_with("# ") => {
-            format!("{first}\n\n{notice}\n{rest}")
+fn already_warned(body: &str) -> bool {
+    body.lines().any(|one| {
+        one.trim_start()
+            .trim_start_matches('>')
+            .trim_start()
+            .starts_with("[!CAUTION]")
+    })
+}
+
+fn room_for_a_notice(body: &str) -> usize {
+    let bom = body.len() - body.trim_start_matches('\u{feff}').len();
+    let mut walk = bom;
+    let mut started = false;
+    for line in body[bom..].split_inclusive('\n') {
+        let flat = line.trim();
+        match (started, flat.is_empty()) {
+            (false, true) => walk += line.len(),
+            (false, false) if flat.starts_with('#') => return walk + line.len(),
+            (false, false) => {
+                started = true;
+                walk += line.len();
+            }
+            (true, true) => return walk,
+            (true, false) => walk += line.len(),
         }
-        _ => format!("{notice}\n{body}"),
     }
+    body.len()
+}
+
+fn put_in(body: &str, at: usize, notice: &str) -> String {
+    let (head, tail) = body.split_at(at);
+    let head = head.trim_end_matches('\n');
+    let tail = tail.trim_start_matches('\n');
+    match (head.is_empty(), tail.is_empty()) {
+        (true, true) => notice.to_string(),
+        (true, false) => format!("{notice}\n\n{tail}"),
+        (false, true) => format!("{head}\n\n{notice}\n"),
+        (false, false) => format!("{head}\n\n{notice}\n\n{tail}"),
+    }
+}
+
+fn warned_into(before: &str, body: &str, notice: &str) -> Option<String> {
+    if already_warned(before) || already_warned(body) {
+        return None;
+    }
+    let whole = format!("{before}{body}");
+    let code = written_as_code(&whole);
+    let inside = |at: usize| code.get(before.len() + at).copied().unwrap_or(false);
+
+    let at = room_for_a_notice(body);
+    let at = match inside(at) {
+        false => at,
+        true => body.len(),
+    };
+    if inside(at) || inside(at.saturating_sub(1)) {
+        return None;
+    }
+    let made = put_in(body, at, notice);
+    let made = match tisty_core::docs::titled(&made) == tisty_core::docs::titled(body) {
+        true => made,
+        false => put_in(body, body.len(), notice),
+    };
+    tisty_core::docs::survives(&made).is_ok().then_some(made)
 }
 
 fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -1122,8 +1188,8 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ))
     })?;
 
-    let body = match warned(paths, &body) {
-        Some(notice) => under_the_title(&body, &notice),
+    let body = match warned(paths, &body).and_then(|notice| warned_into("", &body, &notice)) {
+        Some(made) => made,
         None => body,
     };
 
@@ -1290,8 +1356,9 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ))
     })?;
 
-    let body = match warned(paths, &body) {
-        Some(notice) => under_the_title(&body, &notice),
+    let before = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
+    let body = match warned(paths, &body).and_then(|notice| warned_into(&before, &body, &notice)) {
+        Some(made) => made,
         None => body,
     };
 
@@ -1865,7 +1932,11 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ))
     })?;
 
-    let looks = tisty_core::agent::secret_in(raw.as_bytes()).map(|one| one.said());
+    let looks =
+        tisty_core::agent::secret_in(raw.as_bytes()).map(|one| match one.named.is_empty() {
+            true => one.why.to_string(),
+            false => one.named,
+        });
 
     let made = tisty_core::arriving::tidied(&raw);
     tisty_core::docs::survives(&made.body).map_err(|eats| {
@@ -1940,7 +2011,7 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             match &looks {
                 None => String::new(),
                 Some(said) => format!(
-                    " Nothing was held back: what reads like a live credential ({said}) came in as written, under a warning the person will see when they open it."
+                    " Nothing was held back: what reads like a live credential ({said}) came in as written, under a warning the person sees when they open it."
                 ),
             },
             match brought.papers.is_empty() {
