@@ -4,6 +4,18 @@ import { SHAPES } from "../ui/Beside";
 import { DRAWN, KINDS, loosened } from "../ui/writing";
 import { inCell, opened } from "./mounted";
 
+const sketch = vi.hoisted(() => ({ calls: [] as unknown[][] }));
+
+vi.mock("mermaid", () => ({
+  default: {
+    initialize: () => {},
+    render: (...args: unknown[]) => {
+      sketch.calls.push(args);
+      return Promise.resolve({ svg: "<svg data-drawn=\"yes\"></svg>" });
+    },
+  },
+}));
+
 describe("what only a mounted editor can be asked", () => {
   it("draws the code block's own frame, which no unmounted editor builds", () => {
     const one = opened("```rust\nfn main() {}\n```");
@@ -105,6 +117,15 @@ describe("what only a mounted editor can be asked", () => {
     });
 
     expect(one.markdown()).toBe("```math\nE = mc^2\n```");
+    one.shut();
+  });
+
+  it("draws a diagram without handing mermaid the box it will be shown in", async () => {
+    sketch.calls.length = 0;
+    const one = opened("```mermaid\ngraph TD\n  A --> B\n```");
+    await vi.waitFor(() => expect(sketch.calls).toHaveLength(1), { timeout: 5000 });
+
+    expect(sketch.calls[0]).toHaveLength(2);
     one.shut();
   });
 

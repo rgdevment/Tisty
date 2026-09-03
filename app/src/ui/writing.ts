@@ -1052,7 +1052,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
               securityLevel: "strict",
               theme: dark ? "dark" : "default",
             });
-            return mermaid.render(named, source, drawn);
+            return mermaid.render(named, source);
           })
           .then(({ svg }) => {
             if (mine !== asked) return;
