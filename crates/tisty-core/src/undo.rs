@@ -236,7 +236,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),
         Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
 
-        Op::DocLock { .. } | Op::DocUnlock { .. } => None,
+        Op::DocLock { .. } | Op::DocUnlock { .. } | Op::DocSaid { .. } => None,
 
         Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
 
@@ -505,6 +505,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    said: None,
                     file: "dev0-0001".into(),
                     order: "a0".into(),
                     folder: None,
@@ -662,6 +663,7 @@ mod hanging {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    said: None,
                     file: format!("dev_a-{ms:04}"),
                     order,
                     folder,
@@ -758,6 +760,7 @@ mod hanging {
             Op::DocAdd {
                 id: page,
                 d: crate::event::DocAdd {
+                    said: None,
                     file: "dev_a-0004".into(),
                     order: crate::order::first(),
                     folder: None,

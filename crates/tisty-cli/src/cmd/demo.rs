@@ -296,6 +296,10 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
             page_of: None,
             file: one.id,
             order: format!("a{n}"),
+            said: Some(tisty_core::event::Said {
+                title: one.title,
+                bytes: None,
+            }),
             folder: (n >= 2).then_some(shelf),
         },
     }));

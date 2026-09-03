@@ -820,6 +820,7 @@ mod tests {
                 .append(Op::DocAdd {
                     id,
                     d: crate::event::DocAdd {
+                        said: None,
                         file: file.into(),
                         order: "a0".into(),
                         folder: None,
@@ -863,6 +864,7 @@ mod tests {
             .append(Op::DocAdd {
                 id: Ulid::generate(),
                 d: crate::event::DocAdd {
+                    said: None,
                     file: "a3f1-0001".into(),
                     order: "a0".into(),
                     folder: Some(folder),

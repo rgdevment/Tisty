@@ -24,6 +24,12 @@ const papers: Papers = {
   ],
 };
 
+const rail = (row: HTMLElement): HTMLElement => {
+  const found = row.previousElementSibling as HTMLElement | null;
+  if (!found) throw new Error("la fila no tiene carril delante");
+  return found;
+};
+
 describe("the document tree", () => {
   const show = (onFile = vi.fn(), onOpen = vi.fn(), here?: string | null) => {
     const onFolderMenu = vi.fn();
@@ -59,7 +65,7 @@ describe("the document tree", () => {
     const inside = screen.getByRole("button", { name: "Compras" });
 
     const folderText = parseInt(work.style.marginLeft, 10) + 12 + 6 + 21;
-    const docText = parseInt(inside.style.paddingLeft, 10) + 12 + 6;
+    const docText = parseInt(rail(inside).style.marginLeft, 10) + 12 + 6 + 12 + 6;
 
     expect(docText).toBeGreaterThan(folderText);
   });
@@ -476,9 +482,19 @@ describe("a document with pages", () => {
     show();
     await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
 
-    const inside = screen.getByRole("button", { name: "Compras" });
-    const page = screen.getByRole("button", { name: "Marzo" });
-    expect(page.style.paddingLeft).not.toBe(inside.style.paddingLeft);
+    const inside = rail(screen.getByRole("button", { name: "Compras" }));
+    const page = rail(screen.getByRole("button", { name: "Marzo" }));
+    expect(page.style.marginLeft).not.toBe(inside.style.marginLeft);
+  });
+
+  it("starts a document with pages exactly where one without them starts", () => {
+    show();
+    const plain = rail(screen.getByRole("button", { name: "Compras" }));
+    const holds = rail(screen.getByRole("button", { name: "Actas" }));
+
+    expect(holds.style.marginLeft).toBe(plain.style.marginLeft);
+    expect(holds.className).toContain("w-3");
+    expect(plain.className).toContain("w-3");
   });
 
   it("leaves a document with no pages exactly as it was", () => {

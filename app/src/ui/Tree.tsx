@@ -316,7 +316,7 @@ export default function Tree({
     }
   };
 
-  const ICON = 20;
+  const ICON = 18;
   const STEP = 15;
   const ELBOW = 26;
 
@@ -399,6 +399,13 @@ export default function Tree({
               style={{ left: `${14 + (depth - 1) * STEP}px`, width: `${ELBOW}px` }}
             />
           )}
+          {pages.length === 0 && (
+            <span
+              aria-hidden="true"
+              style={{ marginLeft: `${8 + depth * STEP}px` }}
+              className="grid h-5 w-3 shrink-0"
+            />
+          )}
           {pages.length > 0 && (
             <button
               type="button"
@@ -423,12 +430,9 @@ export default function Tree({
             onClick={tapped(() => onOpen(doc))}
             aria-label={lifted?.id === doc.id ? fill("liftedIs", name) : name}
             aria-current={open === doc.file ? "true" : undefined}
-            style={pages.length > 0 ? undefined : { paddingLeft: `${8 + depth * STEP + ICON}px` }}
-            className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pr-2 text-left text-[12.5px] ${
-              pages.length > 0 ? "pl-1.5 " : ""
-            }${lifted?.id === doc.id ? "ring-1 ring-accent " : ""}${
-              carried?.id === doc.id ? "opacity-45 " : ""
-            }${doc.archived ? "opacity-55 " : ""}${
+            className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] ${
+              lifted?.id === doc.id ? "ring-1 ring-accent " : ""
+            }${carried?.id === doc.id ? "opacity-45 " : ""}${doc.archived ? "opacity-55 " : ""}${
               open === doc.file
                 ? "bg-active text-ink"
                 : `${page ? "text-faint" : "text-soft"} hover:bg-hover`
@@ -526,7 +530,7 @@ export default function Tree({
               onClick={tapped(() => onHere?.(folder.id))}
               aria-label={lifted?.id === folder.id ? fill("liftedIs", folder.name) : folder.name}
               aria-current={here === folder.id ? "true" : undefined}
-              className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[12.5px] ${
+              className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-left text-[13px] ${
                 here === folder.id ? "text-ink" : "text-soft"
               }`}
             >
@@ -623,7 +627,7 @@ export default function Tree({
             onClick={() => onHere?.(undefined)}
             aria-label={t("unfiled")}
             aria-current={here === null ? "true" : undefined}
-            className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pr-2 pl-1.5 text-left text-[12.5px] ${
+            className={`flex min-w-0 flex-1 items-center gap-1.5 py-1 pr-2 pl-1.5 text-left text-[13px] ${
               here === null ? "text-ink" : "text-faint"
             }`}
           >

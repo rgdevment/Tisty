@@ -75,37 +75,66 @@ export const stale = (value: string, mine: string, shown: () => string | null): 
   value !== mine && shown() !== value;
 
 const GLYPHS_TALL = 330;
-const TRIES = 60;
+const WAITS = 10_000;
 
-export const settles = (at: () => HTMLElement | null, want: number, done: () => void) => {
+export interface Settling {
+  at: () => HTMLElement | null;
+  want: number;
+  done: () => void;
+  put: (down: number) => void;
+  watch?: () => HTMLElement | null;
+}
+
+export const settles = ({ at, want, done, put, watch }: Settling) => {
   let frame = 0;
-  let tries = 0;
   let mine = -1;
   let over = false;
-  const stop = (soon: boolean) => {
+  let seeing: ResizeObserver | null = null;
+  let timer = 0;
+  let writing = false;
+
+  const sheet = at();
+
+  function nudged() {
+    if (writing) return;
+    const room = at();
+    if (room && mine >= 0 && room.scrollTop !== mine) stop();
+  }
+
+  function stop() {
     if (over) return;
     over = true;
-    if (soon) frame = requestAnimationFrame(done);
-    else done();
-  };
-  const put = () => {
-    const sheet = at();
-    if (!sheet) return stop(false);
-    if (mine >= 0 && sheet.scrollTop !== mine) return stop(false);
-    sheet.scrollTop = want;
-    mine = sheet.scrollTop;
-    tries += 1;
-    if (mine < want && tries < TRIES) {
-      frame = requestAnimationFrame(put);
-      return;
-    }
-    stop(true);
-  };
-  frame = requestAnimationFrame(put);
-  return () => {
+    seeing?.disconnect();
+    sheet?.removeEventListener("scroll", nudged);
+    window.clearTimeout(timer);
     cancelAnimationFrame(frame);
-    stop(false);
+    done();
+  }
+
+  const reach = () => {
+    const room = at();
+    if (!room) return stop();
+    writing = true;
+    room.scrollTop = want;
+    mine = room.scrollTop;
+    writing = false;
+    put(mine);
+    if (mine >= want) stop();
   };
+
+  frame = requestAnimationFrame(reach);
+  sheet?.addEventListener("scroll", nudged);
+  timer = window.setTimeout(stop, WAITS);
+
+  const grows = watch?.();
+  if (grows && typeof ResizeObserver !== "undefined") {
+    seeing = new ResizeObserver(() => {
+      if (!over) reach();
+    });
+    seeing.observe(grows);
+  }
+
+  return stop;
 };
 
 const middle = (editor: Writing, from: number, to: number) => {
@@ -704,18 +733,22 @@ export default function Editor({
   const current = Math.min(active, shown.length - 1);
 
   const wanted = useRef(seek);
-  const settling = useRef(false);
+  const putting = useRef(-1);
   useEffect(() => {
     const want = wanted.current;
     if (!sheet.current || !editor || editor.isDestroyed || !want) return;
-    settling.current = true;
-    return settles(
-      () => sheet.current,
+    putting.current = 0;
+    return settles({
+      at: () => sheet.current,
       want,
-      () => {
-        settling.current = false;
+      done: () => {
+        putting.current = -1;
       },
-    );
+      put: (down) => {
+        putting.current = down;
+      },
+      watch: () => (editor && !editor.isDestroyed ? editor.view.dom : null),
+    });
   }, [editor]);
 
   useEffect(() => {
@@ -777,8 +810,9 @@ export default function Editor({
       <div
         ref={sheet}
         onScroll={(one) => {
-          if (settling.current) return;
-          onSeen?.((one.currentTarget as HTMLElement).scrollTop);
+          const down = (one.currentTarget as HTMLElement).scrollTop;
+          if (putting.current >= 0 && down === putting.current) return;
+          onSeen?.(down);
         }}
         className={`scroller gutter flex min-h-0 flex-1 flex-col${above || below ? " leafed" : ""}`}
       >

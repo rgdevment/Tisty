@@ -53,6 +53,7 @@ fn doc_add(
         .append(Op::DocAdd {
             id,
             d: DocAdd {
+                said: None,
                 file: file.into(),
                 order: order.into(),
                 folder,
@@ -94,6 +95,7 @@ fn make(
         .append(Op::DocAdd {
             id,
             d: DocAdd {
+                said: None,
                 file: made.id.clone(),
                 order: order.into(),
                 folder,
@@ -447,6 +449,7 @@ fn a_document_cannot_become_a_page_of_itself_at_creation_or_by_moving() {
         .append(Op::DocAdd {
             id: itself,
             d: DocAdd {
+                said: None,
                 file: "a3f1-0001".into(),
                 order: "a0".into(),
                 folder: None,
@@ -539,6 +542,7 @@ fn undoing_a_creation_and_a_plain_move_restores_the_exact_state_before() {
         .append(Op::DocAdd {
             id: Ulid::generate(),
             d: DocAdd {
+                said: None,
                 file: "a3f1-0002".into(),
                 order: "a1".into(),
                 folder: None,
@@ -672,6 +676,7 @@ fn two_stores_that_diverge_over_a_page_and_a_deleted_parent_converge_regardless_
             Op::DocAdd {
                 id: parent,
                 d: DocAdd {
+                    said: None,
                     file: "a3f1-0001".into(),
                     order: "a0".into(),
                     folder: None,
@@ -690,6 +695,7 @@ fn two_stores_that_diverge_over_a_page_and_a_deleted_parent_converge_regardless_
             Op::DocAdd {
                 id: page,
                 d: DocAdd {
+                    said: None,
                     file: "a3f1-0002".into(),
                     order: "a0".into(),
                     folder: None,
@@ -739,6 +745,7 @@ fn a_page_written_with_a_timestamp_before_its_parent_is_kept_as_its_own_document
             Op::DocAdd {
                 id: page,
                 d: DocAdd {
+                    said: None,
                     file: "a3f1-0002".into(),
                     order: "a0".into(),
                     folder: None,
@@ -754,6 +761,7 @@ fn a_page_written_with_a_timestamp_before_its_parent_is_kept_as_its_own_document
             Op::DocAdd {
                 id: parent,
                 d: DocAdd {
+                    said: None,
                     file: "a3f1-0001".into(),
                     order: "a0".into(),
                     folder: None,

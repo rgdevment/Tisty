@@ -130,8 +130,10 @@ impl Store {
 
     fn minted(&mut self, op: Op) -> Event {
         let (timestamp, seq) = self.stamp();
+        let optional = op.is_optional();
         let mut event = Event::new(self.device.clone(), timestamp, op);
         event.seq = seq;
+        event.optional = optional;
         // Read per write, not once at open: the window keeps a Store alive for the whole session
         // and a laptop that travels would keep stamping the zone it started in.
         event.zone = jiff::tz::TimeZone::system()

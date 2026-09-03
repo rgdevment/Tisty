@@ -131,6 +131,7 @@ pub fn doc(
             d: tisty_core::event::DocAdd {
                 file: made.id.clone(),
                 order,
+                said: Some(tisty_core::event::Said::of(&body)),
                 folder: None,
                 page_of: None,
             },

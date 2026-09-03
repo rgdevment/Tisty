@@ -1360,6 +1360,7 @@ mod tests {
         held.append(Op::DocAdd {
             id: Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                said: None,
                 file: file.to_string(),
                 order: "a0".into(),
                 folder: None,

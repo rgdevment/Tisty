@@ -266,6 +266,9 @@ impl State {
                         id: *id,
                         file: d.file.clone(),
                         order: d.order.clone(),
+                        title: d.said.as_ref().map(|one| one.title.clone()),
+                        bytes: d.said.as_ref().and_then(|one| one.bytes),
+                        wrote: Some(event.timestamp),
                         folder: match under {
                             Some(one) => one.folder,
                             None => d.folder,
@@ -275,6 +278,13 @@ impl State {
                         locked: false,
                     },
                 );
+            }
+            Op::DocSaid { id, d } => {
+                if let Some(kept) = self.docs.get_mut(id) {
+                    kept.title = Some(d.title.clone());
+                    kept.bytes = d.bytes;
+                    kept.wrote = Some(event.timestamp);
+                }
             }
             Op::DocMove { id, d } => {
                 if let Some(page_of) = d.page_of {
@@ -2185,6 +2195,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    said: None,
                     file: "a note.md".into(),
                     order: order::first(),
                     folder: None,
@@ -3791,6 +3802,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    said: None,
                     file: file.into(),
                     order: "a0".into(),
                     folder,
@@ -3943,6 +3955,7 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    said: None,
                     file: "a-0001".into(),
                     order: "a0".into(),
                     folder: None,
@@ -3972,6 +3985,7 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    said: None,
                     file: "a3f1-0001".into(),
                     order: "a0".into(),
                     folder: None,
@@ -4406,6 +4420,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    said: None,
                     file: file.into(),
                     order: "a0".into(),
                     folder: None,
@@ -4797,6 +4812,7 @@ mod compacting {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    said: None,
                     file: format!("dev_a-{ms:04}"),
                     order,
                     folder: None,
