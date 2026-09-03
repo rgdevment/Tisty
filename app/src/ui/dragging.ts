@@ -1,0 +1,62 @@
+export type Kind = "doc" | "folder";
+export type Where = "before" | "in" | "after";
+
+export interface Spot {
+  id: string;
+  kind: Kind;
+  parent?: string;
+  next?: string;
+  holds: boolean;
+}
+
+export interface Move {
+  kind: Kind;
+  moved: string;
+  folder?: string;
+  before?: string;
+  pageOf?: string;
+}
+
+export const zoneIn = (top: number, height: number, y: number, thirds: boolean): Where => {
+  if (!height) return "in";
+  const at = (y - top) / height;
+  if (!thirds) return at < 0.5 ? "before" : "after";
+  if (at < 1 / 3) return "before";
+  if (at > 2 / 3) return "after";
+  return "in";
+};
+
+export const marked = (spot: Spot, where: Where) =>
+  where === "in" ? spot.id : `${spot.id}:${where}`;
+
+export const LOOSE = "~loose";
+
+export const settled = (
+  carried: { id: string; kind: Kind },
+  spot: Spot | null,
+  where: Where,
+): Move | null => {
+  if (!spot) return null;
+  if (carried.id === spot.id) return null;
+  if (spot.id === LOOSE) return { kind: carried.kind, moved: carried.id };
+
+  if (carried.kind === "folder") {
+    if (spot.kind === "doc") return { kind: "folder", moved: carried.id, folder: spot.parent };
+    if (where === "in") return { kind: "folder", moved: carried.id, folder: spot.id };
+    const before = where === "before" ? spot.id : spot.next;
+    if (before === carried.id) return null;
+    return { kind: "folder", moved: carried.id, folder: spot.parent, before };
+  }
+
+  if (spot.kind === "folder") {
+    if (where === "in") return { kind: "doc", moved: carried.id, folder: spot.id };
+    return { kind: "doc", moved: carried.id, folder: spot.parent };
+  }
+
+  if (where === "in") {
+    return spot.holds ? { kind: "doc", moved: carried.id, pageOf: spot.id } : null;
+  }
+  const before = where === "before" ? spot.id : spot.next;
+  if (before === carried.id) return null;
+  return { kind: "doc", moved: carried.id, folder: spot.parent, before };
+};

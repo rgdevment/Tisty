@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Papers } from "../core";
@@ -199,18 +199,6 @@ describe("the document tree", () => {
     );
   });
 
-  it("hangs a folder from the one it was dropped on", () => {
-    const { onMove } = show();
-    const work = screen.getByRole("button", { name: "trabajo" }).parentElement
-      ?.parentElement as HTMLElement;
-
-    fireEvent.drop(work, {
-      dataTransfer: { getData: (kind: string) => (kind === "text/tisty-folder" ? "01H" : "") },
-    });
-
-    expect(onMove).toHaveBeenCalledWith("01H", "01F");
-  });
-
   it("never hangs a folder from itself", () => {
     const { onMove } = show();
     const work = screen.getByRole("button", { name: "trabajo" }).parentElement
@@ -388,15 +376,6 @@ describe("the document tree", () => {
     ).toContain("Shift+F10");
   });
 
-  it("takes a document dropped anywhere on the unfiled list", () => {
-    const { onFile } = show();
-    const list = screen.getByRole("button", { name: "Suelto" }).closest("ul") as HTMLElement;
-
-    fireEvent.drop(list, { dataTransfer: { getData: () => "01A" } });
-
-    expect(onFile).toHaveBeenCalledWith("01A", undefined);
-  });
-
   it("keeps what was archived out of its folder and in its own place", () => {
     show();
 
@@ -436,25 +415,6 @@ describe("the document tree", () => {
     await userEvent.keyboard("{Shift>}{F10}{/Shift}");
 
     expect(onFolderMenu).not.toHaveBeenCalled();
-  });
-
-  it("files a document into the folder it was dropped on", () => {
-    const { onFile } = show();
-    const work = screen.getByRole("button", { name: "trabajo" }).parentElement
-      ?.parentElement as HTMLElement;
-
-    fireEvent.drop(work, { dataTransfer: { getData: () => "01C" } });
-
-    expect(onFile).toHaveBeenCalledWith("01C", "01F");
-  });
-
-  it("takes a document out of every folder when dropped on unfiled", () => {
-    const { onFile } = show();
-    const loose = screen.getByRole("button", { name: "Unfiled" }).parentElement as HTMLElement;
-
-    fireEvent.drop(loose, { dataTransfer: { getData: () => "01A" } });
-
-    expect(onFile).toHaveBeenCalledWith("01A", undefined);
   });
 
   it("still shows a document whose file is not here, so it can be seen and removed", () => {
@@ -545,23 +505,6 @@ describe("a document with pages", () => {
     expect(screen.getByRole("button", { name: "Compras" }).textContent).not.toContain("page");
   });
 
-  it("takes a document dropped on another as a page of it", () => {
-    const onPage = vi.fn();
-    render(
-      <Tree
-        papers={withPages}
-        onOpen={vi.fn()}
-        onFile={vi.fn()}
-        onPage={onPage}
-        onHere={vi.fn()}
-      />,
-    );
-    const row = screen.getByRole("button", { name: "Actas" }).closest("div") as HTMLElement;
-    fireEvent.drop(row, { dataTransfer: carrying("01C") });
-
-    expect(onPage).toHaveBeenCalledWith("01C", "01K");
-  });
-
   it("does not take a document dropped on a page, because a page holds none", async () => {
     const onPage = vi.fn();
     render(
@@ -578,26 +521,6 @@ describe("a document with pages", () => {
     fireEvent.drop(row, { dataTransfer: carrying("01C") });
 
     expect(onPage).not.toHaveBeenCalled();
-  });
-
-  it("lets a folder dragged over a document reach the folder underneath", () => {
-    const onPage = vi.fn();
-    const onMove = vi.fn();
-    render(
-      <Tree
-        papers={withPages}
-        onOpen={vi.fn()}
-        onFile={vi.fn()}
-        onPage={onPage}
-        onMove={onMove}
-        onHere={vi.fn()}
-      />,
-    );
-    const row = screen.getByRole("button", { name: "Actas" }).closest("div") as HTMLElement;
-    const over = fireEvent.dragOver(row, { dataTransfer: carrying() });
-
-    expect(onPage).not.toHaveBeenCalled();
-    expect(over).toBe(true);
   });
 
   it("does not let a page be dragged out from under its document", async () => {
@@ -707,113 +630,193 @@ describe("a document with pages", () => {
 });
 
 describe("putting folders and documents in the order you want", () => {
-  const shown = (onMove = vi.fn(), onFile = vi.fn()) => {
+  const shown = (onMove = vi.fn(), onFile = vi.fn(), onPage = vi.fn()) => {
     const { container } = render(
       <Tree
         papers={papers}
         onOpen={vi.fn()}
         onFile={onFile}
+        onPage={onPage}
         onHere={vi.fn()}
         onMove={onMove}
         onFolderMenu={vi.fn()}
         onDocMenu={vi.fn()}
       />,
     );
-    return { container, onMove, onFile };
+    return { container, onMove, onFile, onPage };
   };
 
-  const carrying = (kind: string, id: string) => ({
-    dataTransfer: {
-      types: [`text/tisty-${kind}`],
-      getData: (asked: string) => (asked === `text/tisty-${kind}` ? id : ""),
-    },
-  });
+  const boxed = (at: HTMLElement, top: number) => {
+    at.getBoundingClientRect = () =>
+      ({ top, height: 30, left: 0, right: 200, bottom: top + 30, width: 200 }) as DOMRect;
+  };
 
-  const seams = (container: HTMLElement) =>
-    Array.from(container.querySelectorAll("li[aria-hidden='true']"));
+  const rowFor = (container: HTMLElement, id: string) =>
+    container.querySelector<HTMLElement>(`[data-drop="${id}"]`) as HTMLElement;
+
+  const dragged = (from: HTMLElement, onto: HTMLElement, y: number) => {
+    boxed(onto, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => onto;
+    fireEvent.pointerDown(from, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 40 });
+    fireEvent.pointerUp(window, { clientX: 0, clientY: y });
+    document.elementFromPoint = was;
+  };
+
+  const handle = (container: HTMLElement, name: string) =>
+    within(container).getByRole("button", { name }) as HTMLElement;
 
   it("drops a folder above another and says which one it goes before", () => {
     const { container, onMove } = shown();
-    const seam = seams(container)[0];
 
-    fireEvent.drop(seam, carrying("folder", "01H"));
+    dragged(handle(container, "personal"), rowFor(container, "01F"), 104);
 
     expect(onMove).toHaveBeenCalledWith("01H", undefined, "01F");
   });
 
-  it("drops a document above another inside the same folder", () => {
-    const onFile = vi.fn();
-    const { container } = shown(vi.fn(), onFile);
-    const seam = container.querySelector("li[data-seam='doc:01A:01F']") as HTMLElement;
-    expect(seam).toBeTruthy();
+  it("drops a folder below the last one, which is how a row reaches the end", () => {
+    const { container, onMove } = shown();
 
-    fireEvent.drop(seam, carrying("doc", "01B"));
+    dragged(handle(container, "trabajo"), rowFor(container, "01H"), 126);
 
-    expect(onFile).toHaveBeenCalledWith("01B", "01F", "01A");
+    expect(onMove).toHaveBeenCalledWith("01F", undefined, undefined);
   });
 
-  it("drops a document at the end of a folder when no row follows", () => {
-    const onFile = vi.fn();
-    const { container } = shown(vi.fn(), onFile);
-    const seam = container.querySelector("li[data-seam='doc:end:01F']") as HTMLElement;
-    expect(seam).toBeTruthy();
+  it("does nothing when a row is dropped back into the place it already holds", () => {
+    const { container, onMove } = shown();
 
-    fireEvent.drop(seam, carrying("doc", "01C"));
+    dragged(handle(container, "personal"), rowFor(container, "01F"), 126);
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("hangs a folder from the one it was dropped into", () => {
+    const { container, onMove } = shown();
+
+    dragged(handle(container, "personal"), rowFor(container, "01F"), 115);
+
+    expect(onMove).toHaveBeenCalledWith("01H", "01F", undefined);
+  });
+
+  it("does nothing when a row is dropped on itself", () => {
+    const { container, onMove } = shown();
+
+    dragged(handle(container, "trabajo"), rowFor(container, "01F"), 104);
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("does not move anything on a press that never travelled", () => {
+    const { container, onMove } = shown();
+    const onto = rowFor(container, "01F");
+    boxed(onto, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => onto;
+
+    fireEvent.pointerDown(handle(container, "personal"), { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerUp(window, { clientX: 1, clientY: 1 });
+    document.elementFromPoint = was;
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("carries nothing on a right-hand press, which is for the menu", () => {
+    const { container, onMove } = shown();
+    const onto = rowFor(container, "01F");
+    boxed(onto, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => onto;
+
+    fireEvent.pointerDown(handle(container, "personal"), { button: 2, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 40 });
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 104 });
+    document.elementFromPoint = was;
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("files a document into the folder it was dropped into", () => {
+    const { container, onFile } = shown();
+
+    dragged(handle(container, "Suelto"), rowFor(container, "01F"), 115);
 
     expect(onFile).toHaveBeenCalledWith("01C", "01F", undefined);
   });
 
-  it("does nothing when a folder is dropped on the seam above itself", () => {
+  it("takes a document dropped on the middle of another as a page of it", () => {
+    const { container, onFile, onPage } = shown();
+
+    dragged(handle(container, "Suelto"), rowFor(container, "01A"), 115);
+
+    expect(onPage).toHaveBeenCalledWith("01C", "01A");
+    expect(onFile).not.toHaveBeenCalled();
+  });
+
+  it("orders a document against another instead of making it a page, at the edge", () => {
+    const { container, onFile, onPage } = shown();
+
+    dragged(handle(container, "Suelto"), rowFor(container, "01A"), 104);
+
+    expect(onFile).toHaveBeenCalledWith("01C", "01F", "01A");
+    expect(onPage).not.toHaveBeenCalled();
+  });
+
+  it("takes a folder dropped on a document into the folder that document sits in", () => {
     const { container, onMove } = shown();
-    const seam = seams(container)[0];
 
-    fireEvent.drop(seam, carrying("folder", "01F"));
+    dragged(handle(container, "personal"), rowFor(container, "01A"), 115);
 
-    expect(onMove).not.toHaveBeenCalled();
+    expect(onMove).toHaveBeenCalledWith("01H", "01F", undefined);
   });
 
-  it("does not take a document through a seam meant for folders", () => {
-    const onFile = vi.fn();
-    const { container, onMove } = shown(vi.fn(), onFile);
-    const seam = seams(container)[0];
+  it("does not open the document it just finished dragging", () => {
+    const onOpen = vi.fn();
+    const { container } = render(
+      <Tree papers={papers} onOpen={onOpen} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />,
+    );
+    const row = within(container).getByRole("button", { name: "Suelto" }) as HTMLElement;
+    const onto = container.querySelector<HTMLElement>('[data-drop="01F"]') as HTMLElement;
+    boxed(onto, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => onto;
 
-    fireEvent.drop(seam, carrying("doc", "01C"));
+    fireEvent.pointerDown(row, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 40 });
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 115 });
+    fireEvent.click(row);
+    document.elementFromPoint = was;
 
-    expect(onMove).not.toHaveBeenCalled();
-    expect(onFile).not.toHaveBeenCalled();
+    expect(onOpen).not.toHaveBeenCalled();
   });
 
-  it("lights the seam only while something it takes is over it", () => {
+  it("still opens a document on a plain press that never moved", () => {
+    const onOpen = vi.fn();
+    const { container } = render(
+      <Tree papers={papers} onOpen={onOpen} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />,
+    );
+    const row = within(container).getByRole("button", { name: "Suelto" }) as HTMLElement;
+
+    fireEvent.pointerDown(row, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 0 });
+    fireEvent.click(row);
+
+    expect(onOpen).toHaveBeenCalled();
+  });
+
+  it("marks the row it would drop into while the pointer is over it", () => {
     const { container } = shown();
-    const seam = container.querySelector("li[data-seam='folder:01F:loose']") as HTMLElement;
+    const onto = rowFor(container, "01F");
+    boxed(onto, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => onto;
 
-    fireEvent.dragOver(seam, carrying("folder", "01H"));
-    expect(seam.className).toContain("bg-accent");
+    fireEvent.pointerDown(handle(container, "personal"), { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 115 });
+    expect(onto.className).toContain("bg-accent-soft");
 
-    fireEvent.dragLeave(seam);
-    expect(seam.className).not.toContain("bg-accent");
-  });
-
-  it("does not light up for something it will not take", () => {
-    const { container } = shown();
-    const seam = container.querySelector("li[data-seam='folder:01F:loose']") as HTMLElement;
-
-    fireEvent.dragOver(seam, carrying("doc", "01C"));
-
-    expect(seam.className).not.toContain("bg-accent");
-  });
-
-  it("ignores a file dragged in from outside", () => {
-    const onFile = vi.fn();
-    const { container, onMove } = shown(vi.fn(), onFile);
-    const seam = container.querySelector("li[data-seam='folder:01F:loose']") as HTMLElement;
-    const files = { dataTransfer: { types: ["Files"], getData: () => "" } };
-
-    fireEvent.dragOver(seam, files);
-    fireEvent.drop(seam, files);
-
-    expect(seam.className).not.toContain("bg-accent");
-    expect(onMove).not.toHaveBeenCalled();
-    expect(onFile).not.toHaveBeenCalled();
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 115 });
+    expect(onto.className).not.toContain("bg-accent-soft");
+    document.elementFromPoint = was;
   });
 });
