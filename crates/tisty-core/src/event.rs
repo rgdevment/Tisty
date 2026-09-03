@@ -2,13 +2,13 @@ mod op;
 
 pub use op::{
     Body, DeviceKind, DocAdd, Filed, FolderAdd, KNOWN_OPS, ListAdd, LogAdd, LogEdit, Look, Name,
-    Op, StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
+    Op, Said, StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 9;
+pub const SCHEMA_VERSION: u32 = 10;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -106,6 +106,7 @@ impl Event {
             | Op::FolderDelete { id }
             | Op::DocAdd { id, .. }
             | Op::DocMove { id, .. }
+            | Op::DocSaid { id, .. }
             | Op::DocDelete { id }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id }

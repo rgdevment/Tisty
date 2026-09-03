@@ -238,7 +238,7 @@ fn listed(base: usize, wide: usize, said: &str) -> usize {
     }
 }
 
-fn nameless(said: &str) -> String {
+pub(crate) fn nameless(said: &str) -> String {
     let mut from = 0;
     while let Some(found) = said[from..].find("title=\"") {
         let at = from + found;
@@ -872,6 +872,22 @@ pub fn sweep(root: &Path, shed: &std::collections::BTreeSet<String>) -> usize {
         forget_carried(root.parent().unwrap_or(root), id);
     }
     gone
+}
+
+pub fn names(root: &Path) -> std::collections::BTreeSet<String> {
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return std::collections::BTreeSet::new();
+    };
+    entries
+        .filter_map(|one| one.ok())
+        .filter(|one| one.file_type().map(|kind| kind.is_file()).unwrap_or(false))
+        .filter_map(|one| named(&one.path()))
+        .collect()
+}
+
+pub fn title_of(root: &Path, id: &str) -> Option<String> {
+    let at = resolve(root, id).ok()?;
+    at.is_file().then(|| opening(&at))
 }
 
 pub fn all(root: &Path) -> Vec<Doc> {

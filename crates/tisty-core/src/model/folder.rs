@@ -43,6 +43,12 @@ pub struct Kept {
     pub file: String,
     pub order: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wrote: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page_of: Option<DocId>,
@@ -67,6 +73,9 @@ mod tests {
     #[test]
     fn a_document_with_no_folder_is_unfiled_rather_than_absent() {
         let kept = Kept {
+            title: None,
+            bytes: None,
+            wrote: None,
             id: Ulid::generate(),
             file: "a3f1-0001".into(),
             order: "a0".into(),

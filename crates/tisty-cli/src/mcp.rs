@@ -484,7 +484,16 @@ const UNSETTLED: &str = " Where its pages sit could not be settled just now — 
                          this again.";
 
 fn retold(state: &State, store: &mut Store, doc: &str, body: &str) -> Result<(), Refused> {
-    let told = state.settling(doc, body);
+    let mut told = state.settling(doc, body);
+    if let Some(kept) = state.docs.values().find(|one| one.file == doc) {
+        let said = tisty_core::event::Said::of(body);
+        if said.news_for(kept) {
+            told.push(Op::DocSaid {
+                id: kept.id,
+                d: said,
+            });
+        }
+    }
     if told.is_empty() {
         return Ok(());
     }
@@ -1266,6 +1275,7 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         d: tisty_core::event::DocAdd {
             file: made.id.clone(),
             order,
+            said: Some(tisty_core::event::Said::of(&body)),
             folder,
             page_of,
         },

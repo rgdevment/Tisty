@@ -796,3 +796,26 @@ describe("el aviso que Tisty pone cuando ve una credencial", () => {
     one.shut();
   });
 });
+
+describe("el nombre de un bloque de codigo", () => {
+  const pasted = (at: HTMLElement, text: string) => {
+    const one = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(one, "clipboardData", {
+      value: { getData: () => text, types: ["text/plain"], files: [] },
+    });
+    at.dispatchEvent(one);
+  };
+
+  it("se pega en su casilla y no en el documento", () => {
+    const one = opened("```rust\nfn main() {}\n```");
+    const box = one.dom.querySelector<HTMLInputElement>(".lit-name");
+    expect(box).not.toBeNull();
+    if (!box) return;
+
+    box.focus();
+    pasted(box, "src/walk.rs");
+
+    expect(one.markdown()).toBe("```rust\nfn main() {}\n```");
+    one.shut();
+  });
+});

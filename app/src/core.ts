@@ -628,6 +628,9 @@ export interface Filed {
   id: string;
   file: string;
   title: string;
+  told?: boolean;
+  bytes?: number | null;
+  wrote?: string | null;
   folder: string | null;
   pageOf?: string | null;
   archived: boolean;
@@ -650,8 +653,13 @@ export interface DocFacts {
 export const docFacts = (id: string): Promise<DocFacts> => invoke("doc_facts", { id });
 
 export const docs = (): Promise<Papers> => invoke("docs");
-export const folderAdd = (name: string, parent?: string, icon?: string): Promise<void> =>
-  invoke("folder_add", { name, parent, icon });
+export const docsCatchUp = (): Promise<Filed[]> => invoke("docs_catch_up");
+export const folderAdd = (
+  name: string,
+  parent?: string,
+  icon?: string,
+  color?: string,
+): Promise<void> => invoke("folder_add", { name, parent, icon, color });
 export const folderRename = (id: string, name: string): Promise<void> =>
   invoke("folder_rename", { id, name });
 export const folderLook = (id: string, icon?: string, color?: string): Promise<void> =>

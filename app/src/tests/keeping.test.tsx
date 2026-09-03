@@ -396,7 +396,7 @@ describe("the maintenance panel", () => {
     await screen.findByText(/only on this machine/i);
     await go(/writing/i);
 
-    const where = await screen.findByRole("combobox", { name: /where the big/i });
+    const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     expect((where as HTMLSelectElement).value).toBe("everywhere");
 
     await userEvent.selectOptions(where, "shared");
@@ -410,7 +410,7 @@ describe("the maintenance panel", () => {
     await screen.findByText(/only on this machine/i);
     await go(/writing/i);
 
-    const where = await screen.findByRole("combobox", { name: /where the big/i });
+    const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     await userEvent.selectOptions(where, "shared");
 
     await waitFor(() => expect(sent("free_up")).toHaveLength(1));

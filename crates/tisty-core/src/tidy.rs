@@ -320,6 +320,9 @@ mod tests {
             state.docs.insert(
                 id,
                 crate::model::Kept {
+                    title: None,
+                    bytes: None,
+                    wrote: None,
                     id,
                     file: file.into(),
                     order: order.into(),

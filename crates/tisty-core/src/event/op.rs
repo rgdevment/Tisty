@@ -59,6 +59,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "folder.delete",
     "doc.add",
     "doc.move",
+    "doc.said",
     "doc.delete",
     "doc.archive",
     "doc.unarchive",
@@ -145,6 +146,8 @@ pub enum Op {
     DocAdd { id: DocId, d: DocAdd },
     #[serde(rename = "doc.move")]
     DocMove { id: DocId, d: Filed },
+    #[serde(rename = "doc.said")]
+    DocSaid { id: DocId, d: Said },
     #[serde(rename = "doc.delete")]
     DocDelete { id: DocId },
     #[serde(rename = "doc.archive")]
@@ -202,15 +205,20 @@ impl Op {
     pub fn settles(&self) -> bool {
         matches!(
             self,
-            Op::DocMove {
-                d: Filed {
-                    folder: None,
-                    page_of: None,
-                    order: Some(_)
-                },
-                ..
-            }
+            Op::DocSaid { .. }
+                | Op::DocMove {
+                    d: Filed {
+                        folder: None,
+                        page_of: None,
+                        order: Some(_)
+                    },
+                    ..
+                }
         )
+    }
+
+    pub fn is_optional(&self) -> bool {
+        matches!(self, Op::DocSaid { .. })
     }
 
     pub fn about(self, id: TaskId) -> Self {
@@ -246,6 +254,7 @@ impl Op {
             Op::FolderDelete { .. } => Op::FolderDelete { id },
             Op::DocAdd { d, .. } => Op::DocAdd { id, d },
             Op::DocMove { d, .. } => Op::DocMove { id, d },
+            Op::DocSaid { d, .. } => Op::DocSaid { id, d },
             Op::DocDelete { .. } => Op::DocDelete { id },
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
@@ -345,6 +354,7 @@ impl Op {
             | Op::FolderDelete { id }
             | Op::DocAdd { id, .. }
             | Op::DocMove { id, .. }
+            | Op::DocSaid { id, .. }
             | Op::DocDelete { id }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id }
@@ -527,9 +537,31 @@ pub struct FolderAdd {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Said {
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bytes: Option<u64>,
+}
+
+impl Said {
+    pub fn of(body: &str) -> Self {
+        Self {
+            title: crate::docs::titled(body),
+            bytes: Some(body.len() as u64),
+        }
+    }
+
+    pub fn news_for(&self, kept: &crate::model::Kept) -> bool {
+        kept.title.as_deref() != Some(self.title.as_str()) || kept.bytes != self.bytes
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DocAdd {
     pub file: String,
     pub order: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub said: Option<Said>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
     /// The document this one is a page of. A page never has pages of its own.

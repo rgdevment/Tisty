@@ -1106,6 +1106,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         dom: held,
         contentDOM: code,
         ignoreMutation: (one) => one.type !== "selection" && !code.contains(one.target),
+        stopEvent: (one: Event) => bar.contains(one.target as HTMLElement),
         destroy: () => {
           asked += 1;
           sketchers.delete(again);

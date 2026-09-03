@@ -299,3 +299,59 @@ describe("what a folder shows without being entered", () => {
     expect(screen.getByRole("button", { name: /^Revisión/ })).toBeTruthy();
   });
 });
+
+describe("what a paper says about itself without being opened", () => {
+  it("shows when it was written and what it weighs", () => {
+    const docs: Filed[] = [
+      {
+        id: "a",
+        file: "0001",
+        title: "Contrato",
+        folder: "2",
+        archived: false,
+        bytes: 4200,
+        wrote: "2026-03-14T10:00:00Z",
+      },
+    ];
+    render(
+      <Folder
+        folder={folders.find((one) => one.id === "2") as Folded}
+        folders={folders}
+        docs={docs}
+        onOpen={vi.fn()}
+        onHere={vi.fn()}
+      />,
+    );
+
+    const row = screen.getByRole("button", { name: /Contrato/ });
+    expect(row.textContent).toContain("4.2 kB");
+    expect(row.textContent).toMatch(/mar/i);
+  });
+
+  it("says nothing about a paper whose file is gone", () => {
+    const docs: Filed[] = [
+      {
+        id: "a",
+        file: "0001",
+        title: "Contrato",
+        folder: "2",
+        archived: false,
+        gone: true,
+        bytes: 4200,
+        wrote: "2026-03-14T10:00:00Z",
+      },
+    ];
+    render(
+      <Folder
+        folder={folders.find((one) => one.id === "2") as Folded}
+        folders={folders}
+        docs={docs}
+        onOpen={vi.fn()}
+        onHere={vi.fn()}
+      />,
+    );
+
+    const row = screen.getByRole("button", { name: /Contrato/ });
+    expect(row.textContent).not.toContain("4.2 kB");
+  });
+});

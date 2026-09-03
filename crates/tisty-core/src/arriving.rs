@@ -332,11 +332,17 @@ fn opens(line: &str) -> Option<String> {
 fn languaged(line: &str, open: &str) -> (String, bool) {
     let said = line.trim_start();
     let rest = said[open.len()..].trim();
-    let mut words = rest.split_whitespace();
+    let lead = &line[..line.len() - said.len()];
+    let bare = crate::docs::nameless(rest);
+    let mut words = bare.split_whitespace();
     let first = words.next().unwrap_or_default();
     let told = words.next().is_some();
-    let lead = &line[..line.len() - said.len()];
-    (format!("{lead}{open}{first}"), told)
+    let fenced = open.starts_with('`') && rest.contains('`');
+    let kept = match told || fenced {
+        true => first,
+        false => rest,
+    };
+    (format!("{lead}{open}{kept}"), told)
 }
 
 fn unfronted(body: &str) -> (String, bool) {

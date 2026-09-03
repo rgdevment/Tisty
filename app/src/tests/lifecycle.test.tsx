@@ -12,6 +12,7 @@ interface FakeFolder {
   name: string;
   parent: string | null;
   icon: string | null;
+  color: string | null;
 }
 
 interface FakeDoc {
@@ -204,6 +205,7 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
         name: String(args.name),
         parent: (args.parent as string | undefined) ?? null,
         icon: (args.icon as string | undefined) ?? null,
+        color: (args.color as string | undefined) ?? null,
       });
       return Promise.resolve(null);
     }
@@ -235,7 +237,7 @@ function seedDoc(over: Partial<FakeDoc> = {}): FakeDoc {
 
 function seedFolder(over: Partial<FakeFolder> = {}): FakeFolder {
   const id = mkId("folder");
-  const folder: FakeFolder = { id, name: "Folder", parent: null, icon: null, ...over };
+  const folder: FakeFolder = { id, name: "Folder", parent: null, icon: null, color: null, ...over };
   store.folders.push(folder);
   return folder;
 }
@@ -584,6 +586,21 @@ describe("what the menus reach for outside the tree", () => {
     await userEvent.click(screen.getByRole("button", { name: t("create") }));
 
     await waitFor(() => expect(store.folders.map((one) => one.name)).toEqual(["Casa"]));
+  });
+
+  it("keeps the colour picked while the folder was being made", async () => {
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("newFolder") }));
+
+    const box = await screen.findByLabelText(t("folderName"));
+    fireEvent.change(box, { target: { value: "Casa" } });
+    await userEvent.click(screen.getByRole("button", { name: t("hue_teal") }));
+    await userEvent.click(screen.getByRole("button", { name: t("create") }));
+
+    await waitFor(() => expect(store.folders).toHaveLength(1));
+    expect(store.folders[0].color).toBe("teal");
   });
 
   it("writes a document out to the folder it was pointed at, and counts what went", async () => {

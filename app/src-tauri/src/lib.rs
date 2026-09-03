@@ -169,7 +169,16 @@ impl Session {
     }
 
     fn retell(&mut self, file: &str, body: &str) -> bool {
-        let told = self.state.settling(file, body);
+        let mut told = self.state.settling(file, body);
+        if let Some(kept) = self.state.docs.values().find(|one| one.file == file) {
+            let said = tisty_core::event::Said::of(body);
+            if said.news_for(kept) {
+                told.push(Op::DocSaid {
+                    id: kept.id,
+                    d: said,
+                });
+            }
+        }
         if told.is_empty() {
             return false;
         }
@@ -311,6 +320,7 @@ impl Session {
             d: tisty_core::event::DocAdd {
                 file: file.to_string(),
                 order,
+                said: Some(tisty_core::event::Said::of(&body)),
                 folder: None,
                 page_of: None,
             },
@@ -2492,6 +2502,9 @@ struct Filed {
     id: String,
     file: String,
     title: String,
+    told: bool,
+    bytes: Option<u64>,
+    wrote: Option<String>,
     folder: Option<String>,
     archived: bool,
     locked: bool,
@@ -2499,36 +2512,83 @@ struct Filed {
     page_of: Option<String>,
 }
 
+const CATCHING_UP_AT_ONCE: usize = 500;
+
+#[tauri::command(async)]
+fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Filed>> {
+    let (root, owing) = {
+        let held = held(&session);
+        let owing: std::collections::BTreeSet<String> = held
+            .state
+            .docs
+            .values()
+            .filter(|one| one.title.is_none())
+            .map(|one| one.file.clone())
+            .collect();
+        (held.paths.docs(), owing)
+    };
+
+    let found: Vec<tisty_core::docs::Doc> = match owing.is_empty() {
+        true => Vec::new(),
+        false => tisty_core::docs::all(&root)
+            .into_iter()
+            .filter(|one| owing.contains(&one.id))
+            .collect(),
+    };
+
+    for some in found.chunks(CATCHING_UP_AT_ONCE) {
+        let mut held = held(&session);
+        let ops: Vec<Op> = some
+            .iter()
+            .filter_map(|one| {
+                let kept = held.state.docs.values().find(|kept| kept.file == one.id)?;
+                (kept.title.as_deref() != Some(one.title.as_str())).then(|| Op::DocSaid {
+                    id: kept.id,
+                    d: tisty_core::event::Said {
+                        title: one.title.clone(),
+                        bytes: None,
+                    },
+                })
+            })
+            .collect();
+        if !ops.is_empty() {
+            held.commit_all(ops)
+                .map_err(|e| blamed(channel::WINDOW, "the titles could not be written down", e))?;
+        }
+    }
+    Ok(gathered(&held(&session)))
+}
+
 #[tauri::command(async)]
 fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
     let session = held(&session);
-    let root = session.paths.docs();
-    let on_disk = tisty_core::docs::all(&root);
+    Ok(Papers {
+        folders: hanging(&session.state, None),
+        docs: gathered(&session),
+    })
+}
 
-    let mut docs: Vec<Filed> = Vec::new();
-    let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
-        on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
-
+fn gathered(session: &Session) -> Vec<Filed> {
+    let on_disk = tisty_core::docs::names(&session.paths.docs());
     let mut kept_in_order: Vec<&tisty_core::model::Kept> = session.state.docs.values().collect();
     kept_in_order.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
 
-    for kept in kept_in_order {
-        let found = named.get(kept.file.as_str());
-        docs.push(Filed {
+    kept_in_order
+        .into_iter()
+        .map(|kept| Filed {
             id: kept.id.to_string(),
             file: kept.file.clone(),
-            title: found.map(|one| one.title.clone()).unwrap_or_default(),
+            title: kept.title.clone().unwrap_or_default(),
+            told: kept.title.is_some(),
+            bytes: kept.bytes,
+            wrote: kept.wrote.map(|at| at.to_string()),
             folder: kept.folder.map(|at| at.to_string()),
             archived: kept.archived,
             locked: session.state.shut(kept.id),
-            gone: found.is_none(),
+            gone: !on_disk.contains(&kept.file),
             page_of: kept.page_of.map(|up| up.to_string()),
-        });
-    }
-    Ok(Papers {
-        folders: hanging(&session.state, None),
-        docs,
-    })
+        })
+        .collect()
 }
 
 fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Folded> {
@@ -2567,11 +2627,20 @@ fn folder_add(
     name: String,
     parent: Option<String>,
     icon: Option<String>,
+    color: Option<String>,
 ) -> Answer<()> {
     let name = named_folder(&name)?;
     let parent = parent
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
+    let painted = match color {
+        Some(key) => Some(
+            tisty_core::model::hue::kept(&key)
+                .map(str::to_string)
+                .ok_or_else(|| Refusal::about("noSuchColour", key))?,
+        ),
+        None => None,
+    };
 
     let mut session = held(&session);
     if let Some(at) = parent {
@@ -2596,7 +2665,7 @@ fn folder_add(
             order,
             parent,
             icon: icon.filter(|key| tisty_core::model::icon::known(key)),
-            color: None,
+            color: painted,
         },
     })?;
     Ok(())
@@ -2838,7 +2907,10 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
     let root = held(&session).paths.docs();
     let read = tisty_core::docs::read(&root, &id);
     if let Ok(body) = &read {
-        held(&session).mind_body(&id, body);
+        let mut session = held(&session);
+        session.mind_body(&id, body);
+        let title = tisty_core::docs::titled(body);
+        noted(&mut session, &id, &title);
     }
     read.map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { bytes, limit } => {
@@ -3162,6 +3234,10 @@ fn guide(
         d: tisty_core::event::DocAdd {
             file: made.id.clone(),
             order: sorted,
+            said: Some(tisty_core::event::Said {
+                title: made.title.clone(),
+                bytes: None,
+            }),
             folder: Some(folder),
             page_of: None,
         },
@@ -3174,12 +3250,17 @@ fn guide(
         .map(|one| one.id);
     if let Some(up) = held {
         let mut order = tisty_core::order::first();
+        let shelf = session.paths.docs();
         for file in &leafed {
+            let said = tisty_core::docs::read(&shelf, file)
+                .ok()
+                .map(|body| tisty_core::event::Said::of(&body));
             session.commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
                     file: file.clone(),
                     order: order.clone(),
+                    said,
                     folder: Some(folder),
                     page_of: Some(up),
                 },
@@ -3222,10 +3303,25 @@ fn doc_write(
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
     let _ = session.retell(&id, &body);
-    Ok(tisty_core::docs::Doc {
-        title: tisty_core::docs::titled(&body),
+    let title = tisty_core::docs::titled(&body);
+    Ok(tisty_core::docs::Doc { title, id })
+}
+
+fn noted(session: &mut Session, file: &str, title: &str) {
+    let Some(kept) = session.state.docs.values().find(|one| one.file == file) else {
+        return;
+    };
+    if kept.title.as_deref() == Some(title) {
+        return;
+    }
+    let id = kept.id;
+    let _ = session.commit(Op::DocSaid {
         id,
-    })
+        d: tisty_core::event::Said {
+            title: title.to_string(),
+            bytes: None,
+        },
+    });
 }
 
 /// Read as a file, ordered from the log: a body that arrived from elsewhere may say otherwise.
@@ -3313,6 +3409,10 @@ fn doc_copy(
         d: tisty_core::event::DocAdd {
             file: made.id.clone(),
             order,
+            said: Some(tisty_core::event::Said {
+                title: made.title.clone(),
+                bytes: None,
+            }),
             folder: kept.folder,
             page_of: kept.page_of,
         },
@@ -3347,6 +3447,10 @@ fn doc_copy(
             d: tisty_core::event::DocAdd {
                 file: leaf.id,
                 order,
+                said: Some(tisty_core::event::Said {
+                    title: leaf.title,
+                    bytes: None,
+                }),
                 folder: kept.folder,
                 page_of: Some(twin),
             },
@@ -3469,6 +3573,10 @@ fn doc_import(
         d: tisty_core::event::DocAdd {
             file: made.id.clone(),
             order,
+            said: Some(tisty_core::event::Said {
+                title: made.title.clone(),
+                bytes: None,
+            }),
             folder,
             page_of: None,
         },
@@ -3534,6 +3642,10 @@ fn doc_new(
         d: tisty_core::event::DocAdd {
             file: made.id.clone(),
             order,
+            said: Some(tisty_core::event::Said {
+                title: made.title.clone(),
+                bytes: None,
+            }),
             folder,
             page_of,
         },
@@ -4355,6 +4467,10 @@ fn settle_paper(
                 file: file.clone(),
                 folder,
                 order,
+                said: Some(tisty_core::event::Said {
+                    title: made.title.clone(),
+                    bytes: None,
+                }),
                 page_of,
             },
         })
@@ -5329,6 +5445,7 @@ pub fn run() {
             list_rename,
             list_drop,
             docs,
+            docs_catch_up,
             folder_add,
             folder_rename,
             folder_look,
@@ -5390,6 +5507,7 @@ mod deleting {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    said: None,
                     file: made.id.clone(),
                     order: tisty_core::order::first(),
                     folder: None,
@@ -6290,6 +6408,7 @@ mod ordering {
                 .commit(Op::DocAdd {
                     id,
                     d: tisty_core::event::DocAdd {
+                        said: None,
                         file: name.into(),
                         order: order.into(),
                         folder: None,

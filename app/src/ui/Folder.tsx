@@ -1,7 +1,9 @@
 import { useState } from "react";
 import type { Filed, Folded } from "../core";
+import { shortStamp } from "../format";
 import { led } from "../leading";
 import { fill, t, type Word } from "../locales";
+import { weighed } from "../previews";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 
@@ -134,6 +136,13 @@ export default function Folder({
             </span>
           )}
           {one.gone && <span className="shrink-0 text-[11.5px] text-urgent">{t("goneDoc")}</span>}
+          {!one.gone && (one.wrote || one.bytes) && (
+            <span className="ml-auto shrink-0 text-[11px] text-faint tabular-nums">
+              {[one.wrote ? shortStamp(one.wrote) : "", one.bytes ? weighed(one.bytes) : ""]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          )}
         </button>
       </li>
     );

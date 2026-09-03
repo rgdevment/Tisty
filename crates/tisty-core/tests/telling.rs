@@ -163,3 +163,226 @@ fn prose_and_paths_that_merely_look_long_are_left_alone() {
         assert_eq!(told(plain), None, "lo tomo por secreto: {plain}");
     }
 }
+
+#[test]
+fn tidying_a_document_keeps_the_name_a_fence_carries() {
+    let raw = r#"---
+title: viejo
+---
+
+# Guia
+
+```rust title="src/walk.rs"
+fn main() {}
+```
+
+```mermaid title="el flujo"
+graph TD
+  A --> B
+```
+"#;
+
+    let made = tisty_core::arriving::tidied(raw);
+
+    assert!(
+        made.body.contains(r#"```rust title="src/walk.rs""#),
+        "se perdio el nombre: {}",
+        made.body
+    );
+    assert!(
+        made.body.contains(r#"```mermaid title="el flujo""#),
+        "se perdio el nombre del diagrama: {}",
+        made.body
+    );
+    assert!(
+        !made.changed.iter().any(|one| one.contains("fence")),
+        "dijo que cambio el fence sin cambiarlo: {:?}",
+        made.changed
+    );
+}
+
+#[test]
+fn a_fence_that_says_more_than_it_should_is_still_trimmed() {
+    let raw = r#"---
+title: viejo
+---
+
+```rust vamos a ver que pasa
+fn main() {}
+```
+"#;
+
+    let made = tisty_core::arriving::tidied(raw);
+
+    assert!(
+        made.body.contains(
+            "```rust
+"
+        ),
+        "{}",
+        made.body
+    );
+    assert!(!made.body.contains("vamos a ver"), "{}", made.body);
+}
+
+#[test]
+fn a_name_with_a_backtick_never_leaves_a_fence_a_document_cannot_reopen() {
+    for raw in [
+        r#"---
+title: viejo
+---
+
+```rust title="usar `map`"
+fn main() {}
+```
+"#,
+        r#"---
+title: viejo
+---
+
+```sh title="echo `date`"
+ls
+```
+"#,
+    ] {
+        let made = tisty_core::arriving::tidied(raw);
+
+        assert!(
+            tisty_core::docs::survives(&made.body).is_ok(),
+            "lo que salio del arreglo ya no se puede abrir: {}",
+            made.body
+        );
+    }
+}
+
+#[test]
+fn a_note_of_what_a_document_said_is_one_an_older_build_can_walk_past() {
+    let op = tisty_core::Op::DocSaid {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::Said {
+            title: "Lo que dice".into(),
+            bytes: Some(12),
+        },
+    };
+
+    assert!(op.is_optional(), "un lector viejo se atragantaria con ella");
+    assert!(op.settles(), "sin esto, deshacer se rompe tras escribir");
+}
+
+#[test]
+fn no_other_operation_is_written_as_one_to_skip() {
+    let told = tisty_core::Op::DocDelete {
+        id: ulid::Ulid::generate(),
+    };
+    let moved = tisty_core::Op::DocMove {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::Filed::default(),
+    };
+
+    assert!(!told.is_optional(), "borrar no se puede saltar");
+    assert!(!moved.is_optional(), "mover no se puede saltar");
+}
+
+#[test]
+fn a_note_reaches_the_document_it_speaks_of() {
+    let room = tempfile::tempdir().unwrap();
+    let store = room.path().join("store");
+    let device = tisty_core::DeviceId("uno".into());
+    let mut open = tisty_core::Store::open(&store, device).unwrap();
+
+    let id = ulid::Ulid::generate();
+    open.append(tisty_core::Op::DocAdd {
+        id,
+        d: tisty_core::event::DocAdd {
+            file: "aaaa-0001".into(),
+            order: "a0".into(),
+            said: Some(tisty_core::event::Said {
+                title: "Como nacio".into(),
+                bytes: None,
+            }),
+            folder: None,
+            page_of: None,
+        },
+    })
+    .unwrap();
+
+    let events = tisty_core::store::read_all(&store).unwrap();
+    let state = tisty_core::State::replay(&events);
+    assert_eq!(
+        state.docs.get(&id).unwrap().title.as_deref(),
+        Some("Como nacio")
+    );
+
+    open.append(tisty_core::Op::DocSaid {
+        id,
+        d: tisty_core::event::Said {
+            title: "Como se llama ahora".into(),
+            bytes: Some(40),
+        },
+    })
+    .unwrap();
+
+    let events = tisty_core::store::read_all(&store).unwrap();
+    let state = tisty_core::State::replay(&events);
+    let kept = state.docs.get(&id).unwrap();
+    assert_eq!(kept.title.as_deref(), Some("Como se llama ahora"));
+    assert_eq!(kept.bytes, Some(40));
+    assert!(kept.wrote.is_some(), "la fecha sale del propio evento");
+}
+
+#[test]
+fn a_log_written_before_the_note_existed_still_opens() {
+    let room = tempfile::tempdir().unwrap();
+    let store = room.path().join("store");
+    let mut open = tisty_core::Store::open(&store, tisty_core::DeviceId("uno".into())).unwrap();
+
+    let id = ulid::Ulid::generate();
+    open.append(tisty_core::Op::DocAdd {
+        id,
+        d: tisty_core::event::DocAdd {
+            file: "aaaa-0001".into(),
+            order: "a0".into(),
+            said: None,
+            folder: None,
+            page_of: None,
+        },
+    })
+    .unwrap();
+
+    let raw = std::fs::read_to_string(store.join("uno").join("active.tisty")).unwrap();
+    assert!(
+        !raw.contains("said"),
+        "un documento sin nota escribe lo mismo que antes: {raw}"
+    );
+
+    let state = tisty_core::State::replay(&tisty_core::store::read_all(&store).unwrap());
+    assert_eq!(state.docs.get(&id).unwrap().title, None);
+}
+
+#[test]
+fn the_note_goes_out_marked_so_an_older_build_skips_it() {
+    let room = tempfile::tempdir().unwrap();
+    let store = room.path().join("store");
+    let mut open = tisty_core::Store::open(&store, tisty_core::DeviceId("uno".into())).unwrap();
+
+    open.append(tisty_core::Op::DocSaid {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::Said {
+            title: "Algo".into(),
+            bytes: None,
+        },
+    })
+    .unwrap();
+
+    let raw = std::fs::read_to_string(store.join("uno").join("active.tisty")).unwrap();
+
+    assert!(raw.contains("doc.said"), "{raw}");
+    assert!(
+        raw.contains("\"opt\":true"),
+        "sin la marca, un Tisty anterior se niega a abrir el almacen: {raw}"
+    );
+    assert!(
+        raw.contains(&format!("\"v\":{}", tisty_core::event::SCHEMA_VERSION)),
+        "la nota va con la version del formato en vigor: {raw}"
+    );
+}

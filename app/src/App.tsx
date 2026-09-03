@@ -22,6 +22,7 @@ import {
   docNew,
   docPage,
   docs,
+  docsCatchUp,
   dropStep,
   erase,
   type Filed,
@@ -311,9 +312,20 @@ export default function App() {
 
   const told = useCallback((problem: unknown) => setError(saidPlainly(problem)), []);
 
+  const caught = useRef(false);
   const lookPapers = useCallback(() => {
     docs()
-      .then((found) => setPapers((was) => steady(was, found ?? { folders: [], docs: [] })))
+      .then((found) => {
+        const now = found ?? { folders: [], docs: [] };
+        setPapers((was) => steady(was, now));
+        if (caught.current || now.docs.every((one) => one.told !== false)) return;
+        caught.current = true;
+        return docsCatchUp()
+          .then((all) => setPapers((was) => steady(was, { folders: was.folders, docs: all })))
+          .catch(() => {
+            caught.current = false;
+          });
+      })
       .catch(() => {});
   }, []);
   useEffect(lookPapers, [lookPapers]);
@@ -802,7 +814,7 @@ export default function App() {
   };
 
   return (
-    <div className="grid h-full bg-rail font-sans [grid-template-columns:300px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:340px_minmax(0,1fr)]">
+    <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
       <WindowChrome />
 
       <p role="status" aria-live="polite" className="sr-only">
@@ -902,8 +914,8 @@ export default function App() {
           invite={t("folderName")}
           most={FOLDER_NAME_AT_MOST}
           onClose={() => setMakingFolder(false)}
-          onName={(name, icon) =>
-            folderAdd(name, roomBelow ? (here ?? undefined) : undefined, icon)
+          onName={(name, icon, colour) =>
+            folderAdd(name, roomBelow ? (here ?? undefined) : undefined, icon, colour)
               .then(() => {
                 setMakingFolder(false);
                 papersChanged();

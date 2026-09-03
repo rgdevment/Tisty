@@ -322,8 +322,8 @@ body {
 
 .tisty-doc {
   outline: none;
-  font-size: 15px;
-  line-height: 1.75;
+  font-size: 16px;
+  line-height: 1.7;
   padding: 36px 40px 40vh;
   background-color: var(--tisty-sheet);
   border-radius: 10px;
