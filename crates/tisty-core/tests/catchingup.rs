@@ -190,3 +190,45 @@ fn catching_up_does_not_read_the_whole_log_again() {
         "the tail was not taken on its own: the whole log was read again"
     );
 }
+
+#[test]
+fn a_sync_tools_conflict_copy_is_not_taken_as_a_tail() {
+    let room = tempfile::tempdir().unwrap();
+    let store_root = room.path().join("store");
+    let cache_dir = room.path().join("cache");
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+    store
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("la mia", "a0"),
+        })
+        .unwrap();
+
+    let beside = store_root.join("dev_a").join("active 2.tisty");
+    std::fs::write(&beside, "\n").unwrap();
+    let seen = cache::project(&store_root, &cache_dir).unwrap();
+
+    store
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("la del conflicto", "a1"),
+        })
+        .unwrap();
+    let told = std::fs::read_to_string(store_root.join("dev_a").join("active.tisty")).unwrap();
+    let ghost = told.lines().next_back().unwrap();
+    std::fs::write(
+        store_root.join("dev_a").join("active.tisty"),
+        format!("{}\n", told.lines().next().unwrap()),
+    )
+    .unwrap();
+    std::fs::write(&beside, format!("\n{ghost}\n")).unwrap();
+
+    let after = cache::project(&store_root, &cache_dir).unwrap();
+    let whole = tisty_core::State::replay(&tisty_core::store::read_all(&store_root).unwrap());
+    assert_eq!(
+        after.tasks.len(),
+        whole.tasks.len(),
+        "a file no replay reads was taken as the log growing"
+    );
+    assert_eq!(after.tasks.len(), seen.tasks.len());
+}

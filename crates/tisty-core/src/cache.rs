@@ -369,6 +369,9 @@ impl Cache {
     }
 
     pub fn mark(&mut self, key: &str) {
+        if self.meta("last_key").is_some_and(|had| had.as_str() >= key) {
+            return;
+        }
         let _ = self
             .db
             .execute("INSERT OR REPLACE INTO meta VALUES ('last_key', ?)", [key]);
@@ -493,6 +496,16 @@ pub fn advance(
     overtaken: bool,
 ) -> String {
     let print = fingerprint(store_root);
+    reached(cache, state, events, print, overtaken)
+}
+
+fn reached(
+    cache: Option<&mut Cache>,
+    state: &State,
+    events: &[crate::Event],
+    print: String,
+    overtaken: bool,
+) -> String {
     let Some(cache) = cache else { return print };
 
     if overtaken {
@@ -570,7 +583,7 @@ fn grown(before: &str, now: &str) -> Option<(std::path::PathBuf, u64)> {
 fn keyed(event: &crate::Event) -> Option<String> {
     let (at, device, seq) = event.sort_key();
     let nanos = at.as_nanosecond();
-    (nanos >= 0).then(|| format!("{nanos:039}:{}:{seq:020}", device.0))
+    (nanos >= 0).then(|| format!("{nanos:039}\u{1}{}\u{1}{seq:020}", device.0))
 }
 
 fn highest(events: &[crate::Event]) -> Option<String> {
@@ -590,10 +603,20 @@ fn appended(at: &Path, from: u64) -> bool {
     file.read_exact(&mut byte).is_ok() && byte[0] == b'\n'
 }
 
-fn caught_up(cache: &mut Cache, store_root: &Path, print: &str, bodies: bool) -> Option<State> {
+fn caught_up(cache: &mut Cache, print: &str, bodies: bool) -> Option<State> {
+    if !bodies {
+        return None;
+    }
     let before = cache.meta("fingerprint")?;
     let last = cache.meta("last_key")?;
     let (at, from) = grown(&before, print)?;
+    if !at
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(store::is_segment)
+    {
+        return None;
+    }
     if !appended(&at, from) {
         return None;
     }
@@ -612,9 +635,7 @@ fn caught_up(cache: &mut Cache, store_root: &Path, print: &str, bodies: bool) ->
     for event in &fresh {
         state.apply(event);
     }
-    if bodies {
-        advance(Some(cache), &state, &fresh, store_root, false);
-    }
+    reached(Some(cache), &state, &fresh, print.to_string(), false);
     Some(state)
 }
 
@@ -637,7 +658,7 @@ fn projected(store_root: &Path, cache_dir: &Path, bodies: bool) -> Result<State>
     }
 
     if let Some(cache) = &mut cache
-        && let Some(state) = caught_up(cache, store_root, &print, bodies)
+        && let Some(state) = caught_up(cache, &print, bodies)
     {
         return Ok(state);
     }
@@ -1083,5 +1104,103 @@ mod tests {
             fresh.load(&fingerprint(&f.store_root), true).is_none(),
             "a cache written from an overtaken state must not answer as fresh"
         );
+    }
+
+    #[test]
+    fn one_file_growing_is_told_apart_on_either_platform() {
+        let mac = |n: u64, m: u64| {
+            format!(
+                "/Users/mario/Library/Tisty/store/dev_a/0001.tisty:{n}|/Users/mario/Library/Tisty/store/dev_a/active.tisty:{m}"
+            )
+        };
+        let (at, from) = grown(&mac(8330, 3936), &mac(8330, 4100)).expect("a tail on macOS");
+        assert_eq!(from, 3936);
+        assert!(at.ends_with("active.tisty"));
+
+        let win = |n: u64, m: u64| {
+            format!(
+                "D:\\Code\\Tisty\\store\\dev_a\\0001.tisty:{n}|D:\\Code\\Tisty\\store\\dev_a\\active.tisty:{m}"
+            )
+        };
+        let (at, from) =
+            grown(&win(8330, 3936), &win(8330, 4100)).expect("a drive letter is not a separator");
+        assert_eq!(from, 3936);
+        assert!(at.ends_with("active.tisty"));
+    }
+
+    #[test]
+    fn anything_but_one_file_growing_is_refused() {
+        let two = |n: u64, m: u64| format!("/s/a.tisty:{n}|/s/b.tisty:{m}");
+        assert!(
+            grown(&two(10, 20), &two(11, 21)).is_none(),
+            "two files changed"
+        );
+        assert!(
+            grown(&two(10, 20), &two(10, 19)).is_none(),
+            "a file that shrank"
+        );
+        assert!(
+            grown(&two(10, 20), &two(10, 20)).is_none(),
+            "nothing changed"
+        );
+        assert!(
+            grown(&two(10, 20), "/s/a.tisty:10|/s/b.tisty:20|/s/c.tisty:5").is_none(),
+            "a file appeared"
+        );
+        assert!(grown("", &two(10, 20)).is_none(), "no cache to catch up");
+        assert!(
+            grown("/s/a.tisty:0", "/s/a.tisty:9").is_none(),
+            "a file that was empty has no line to land after"
+        );
+    }
+
+    #[test]
+    fn a_key_compares_as_its_parts_do() {
+        let one = |at: i64, who: &str, seq: u64| {
+            let mut event = crate::Event::new(
+                crate::event::DeviceId(who.into()),
+                jiff::Timestamp::from_second(at).unwrap(),
+                crate::Op::TaskReopen {
+                    id: ulid::Ulid::generate(),
+                },
+            );
+            event.seq = seq;
+            keyed(&event).unwrap()
+        };
+        assert!(
+            one(10, "dev_a", 1) < one(11, "dev_a", 1),
+            "an earlier second sorts first"
+        );
+        assert!(
+            one(10, "dev_a", 1) < one(10, "dev_b", 1),
+            "a tie breaks by device"
+        );
+        assert!(
+            one(10, "dev_a", 2) < one(10, "dev_a", 30),
+            "seq is not compared as text"
+        );
+        assert!(
+            one(10, "dev_a", 9) < one(10, "dev_b", 1),
+            "device outranks seq"
+        );
+        assert!(
+            one(10, "dev_a", 1) < one(10, "dev_a1", 1),
+            "a device id that is another's prefix must not invert the order"
+        );
+    }
+
+    #[test]
+    fn the_mark_only_ever_climbs() {
+        let room = tempfile::tempdir().unwrap();
+        let mut cache = Cache::open(room.path()).unwrap().unwrap();
+        cache.mark("b");
+        cache.mark("a");
+        assert_eq!(
+            cache.meta("last_key").as_deref(),
+            Some("b"),
+            "a batch of fresh events must not lower what the cache already holds"
+        );
+        cache.mark("c");
+        assert_eq!(cache.meta("last_key").as_deref(), Some("c"));
     }
 }
