@@ -368,6 +368,12 @@ impl Cache {
         }
     }
 
+    pub fn mark(&mut self, key: &str) {
+        let _ = self
+            .db
+            .execute("INSERT OR REPLACE INTO meta VALUES ('last_key', ?)", [key]);
+    }
+
     fn meta(&self, key: &str) -> Option<String> {
         self.db
             .query_row("SELECT value FROM meta WHERE key = ?", [key], |r| r.get(0))
@@ -472,6 +478,13 @@ pub fn discard(cache_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+fn reaches_pages(state: &State, id: &crate::model::DocId, d: &crate::event::Filed) -> bool {
+    if d.page_of.is_some() {
+        return true;
+    }
+    d.folder.is_some() && state.docs.values().any(|one| one.page_of == Some(*id))
+}
+
 pub fn advance(
     cache: Option<&mut Cache>,
     state: &State,
@@ -506,7 +519,7 @@ pub fn advance(
                 | crate::Op::DocUnarchive { .. }
                 | crate::Op::DocLock { .. }
                 | crate::Op::DocUnlock { .. }
-        ) || matches!(&e.op, crate::Op::DocMove { d, .. } if d.folder.is_some() || d.page_of.is_some())
+        ) || matches!(&e.op, crate::Op::DocMove { id, d } if reaches_pages(state, id, d))
     }) {
         cache.invalidate();
         return print;
@@ -517,7 +530,92 @@ pub fn advance(
             let _ = cache.touch(state, id, &print);
         }
     }
+    if let Some(onward) = highest(events) {
+        cache.mark(&onward);
+    }
     print
+}
+
+/// The log only ever grows, so a cache left behind by one file growing can be caught up from
+/// that file's tail instead of replaying every event again.
+fn grown(before: &str, now: &str) -> Option<(std::path::PathBuf, u64)> {
+    if before.is_empty() || now.is_empty() {
+        return None;
+    }
+    let was: Vec<&str> = before.split('|').collect();
+    let is: Vec<&str> = now.split('|').collect();
+    if was.len() != is.len() {
+        return None;
+    }
+    let mut found = None;
+    for (a, b) in was.iter().zip(is.iter()) {
+        if a == b {
+            continue;
+        }
+        if found.is_some() {
+            return None;
+        }
+        let (at, was_len) = a.rsplit_once(':')?;
+        let (also, is_len) = b.rsplit_once(':')?;
+        let (was_len, is_len) = (was_len.parse::<u64>().ok()?, is_len.parse::<u64>().ok()?);
+        if at != also || is_len <= was_len || was_len == 0 {
+            return None;
+        }
+        found = Some((std::path::PathBuf::from(at), was_len));
+    }
+    found
+}
+
+/// Padded so that comparing the text compares the same way the tuple does.
+fn keyed(event: &crate::Event) -> Option<String> {
+    let (at, device, seq) = event.sort_key();
+    let nanos = at.as_nanosecond();
+    (nanos >= 0).then(|| format!("{nanos:039}:{}:{seq:020}", device.0))
+}
+
+fn highest(events: &[crate::Event]) -> Option<String> {
+    events.iter().filter_map(keyed).max()
+}
+
+/// A tail that begins mid-line is not a tail: the file was rewritten, not appended to.
+fn appended(at: &Path, from: u64) -> bool {
+    use std::io::{Read, Seek};
+    let Ok(mut file) = std::fs::File::open(at) else {
+        return false;
+    };
+    if file.seek(std::io::SeekFrom::Start(from - 1)).is_err() {
+        return false;
+    }
+    let mut byte = [0u8; 1];
+    file.read_exact(&mut byte).is_ok() && byte[0] == b'\n'
+}
+
+fn caught_up(cache: &mut Cache, store_root: &Path, print: &str, bodies: bool) -> Option<State> {
+    let before = cache.meta("fingerprint")?;
+    let last = cache.meta("last_key")?;
+    let (at, from) = grown(&before, print)?;
+    if !appended(&at, from) {
+        return None;
+    }
+
+    let mut state = cache.load(&before, bodies)?;
+    let fresh = store::read_tail(&at, from).ok()?;
+    if fresh.is_empty() {
+        return None;
+    }
+    // Replaying sorts every event together. Applying a tail on top only lands in the same place
+    // when nothing in it belongs before what the cache already holds.
+    if fresh.iter().any(|one| keyed(one).is_none_or(|k| k <= last)) {
+        return None;
+    }
+
+    for event in &fresh {
+        state.apply(event);
+    }
+    if bodies {
+        advance(Some(cache), &state, &fresh, store_root, false);
+    }
+    Some(state)
 }
 
 pub fn project(store_root: &Path, cache_dir: &Path) -> Result<State> {
@@ -538,11 +636,20 @@ fn projected(store_root: &Path, cache_dir: &Path, bodies: bool) -> Result<State>
         return Ok(state);
     }
 
+    if let Some(cache) = &mut cache
+        && let Some(state) = caught_up(cache, store_root, &print, bodies)
+    {
+        return Ok(state);
+    }
+
     let events: Vec<Event> = store::read_all(store_root)?;
     let state = State::replay(&events);
 
     if let Some(cache) = &mut cache {
         let _ = cache.store(&state, &print);
+        if let Some(onward) = highest(&events) {
+            cache.mark(&onward);
+        }
         if !bodies && let Some(light) = cache.load(&print, false) {
             return Ok(light);
         }

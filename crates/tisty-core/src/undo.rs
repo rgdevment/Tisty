@@ -207,14 +207,17 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 },
             })
         }
-        Op::FolderMove { id, .. } => Some(Op::FolderMove {
-            id: *id,
-            d: crate::event::Filed {
-                folder: Some(before.folders.get(id)?.parent),
-                page_of: None,
-                order: None,
-            },
-        }),
+        Op::FolderMove { id, .. } => {
+            let was = before.folders.get(id)?;
+            Some(Op::FolderMove {
+                id: *id,
+                d: crate::event::Filed {
+                    folder: Some(was.parent),
+                    page_of: None,
+                    order: Some(was.order.clone()),
+                },
+            })
+        }
         Op::DocAdd { id, .. } => Some(Op::DocDelete { id: *id }),
         Op::DocMove { id, d } => {
             let was = before.docs.get(id)?;

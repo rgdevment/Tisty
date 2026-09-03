@@ -15,8 +15,8 @@ interface Props {
 
   here?: string | null;
   onHere: (folder?: string) => void;
-  onMove: (folder: string, parent?: string) => void;
-  onFile: (doc: string, folder?: string) => void;
+  onMove: (folder: string, parent?: string, before?: string) => void;
+  onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
   onFolderMenu: (folder: Folded, at: { x: number; y: number }) => void;
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;

@@ -499,8 +499,24 @@ struct Stamped {
 /// A sealed segment declares lines, not events, so a skipped one must still be counted or the
 /// count check reads it as a truncated download.
 fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<usize> {
+    read_segment_from(path, 0, out)
+}
+
+/// A segment only ever grows, so what sits past a known length is the whole of what is new.
+pub fn read_tail(path: &Path, from: u64) -> Result<Vec<Event>> {
+    let mut out = Vec::new();
+    read_segment_from(path, from, &mut out)?;
+    Ok(out)
+}
+
+fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<usize> {
+    let mut file = File::open(path)?;
+    if from > 0 {
+        use std::io::Seek;
+        file.seek(std::io::SeekFrom::Start(from))?;
+    }
     let mut lines = 0;
-    for (i, line) in BufReader::new(File::open(path)?).lines().enumerate() {
+    for (i, line) in BufReader::new(file).lines().enumerate() {
         let line = line?;
         if line.trim().is_empty() {
             continue;

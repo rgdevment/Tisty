@@ -33,12 +33,27 @@ const store = vi.hoisted(() => ({
 
 const picked = vi.hoisted(() => ({ path: Promise.resolve(null as string | null) }));
 
+const carrier = vi.hoisted(() => ({ made: 0, asked: 0 }));
+
 const ipc = vi.hoisted(() => ({
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => ipc.answer(cmd, args ?? {}),
+}));
+
+vi.mock("../carrying", () => ({
+  carrying: () => {
+    carrier.made += 1;
+    return {
+      changed: () => {
+        carrier.asked += 1;
+      },
+      recheck: () => {},
+      stop: () => {},
+    };
+  },
 }));
 
 vi.mock("@tauri-apps/api/webview", () => ({
@@ -205,6 +220,8 @@ beforeEach(() => {
   store.copied = [];
   store.seq = 0;
   picked.path = Promise.resolve(null);
+  carrier.made = 0;
+  carrier.asked = 0;
   ipc.answer = backend;
 });
 
@@ -600,5 +617,34 @@ describe("what the menus reach for outside the tree", () => {
     await waitFor(() =>
       expect(store.folders.find((one) => one.name === "Legal")?.parent).toBe(work.id),
     );
+  });
+});
+
+describe("what asks the other machine to be told", () => {
+  it("asks after a document is made, moved, archived or written", async () => {
+    const folder = seedFolder({ name: "Trabajo" });
+    seedDoc({ title: "Acta", folder: null });
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("newDoc") }));
+    await waitFor(() => expect(carrier.asked).toBeGreaterThan(0));
+
+    const afterMaking = carrier.asked;
+    await moveTo("Acta", "Trabajo");
+    await waitFor(() => expect(carrier.asked).toBeGreaterThan(afterMaking));
+    expect(store.docs.find((one) => one.title === "Acta")?.folder).toBe(folder.id);
+
+    const afterMoving = carrier.asked;
+    await chooseFor("Acta", t("archive"));
+    await waitFor(() => expect(carrier.asked).toBeGreaterThan(afterMoving));
+  });
+
+  it("does not ask merely for opening the window", async () => {
+    seedDoc({ title: "Acta" });
+    await boot();
+
+    expect(carrier.made).toBeGreaterThan(0);
+    expect(carrier.asked).toBe(0);
   });
 });

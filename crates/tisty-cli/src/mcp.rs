@@ -1083,7 +1083,7 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
-            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it."
+            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it. A fence carries its language and, if you want, one name: ```rust title=\"src/walk.rs\", and the same for `mermaid` and `math`, which the window draws with that name above them. Nothing else after the language: a second word is dropped when the person opens the document, so it is refused here instead."
         ))
     })?;
 
@@ -1246,7 +1246,7 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     tisty_core::docs::survives(&body).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
-             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it."
+             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it. A fence carries its language and, if you want, one name: ```rust title=\"src/walk.rs\", and the same for `mermaid` and `math`, which the window draws with that name above them. Nothing else after the language: a second word is dropped when the person opens the document, so it is refused here instead."
         ))
     })?;
 
@@ -1312,7 +1312,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     tisty_core::docs::survives(new).map_err(|eats| {
         Refused::Tool(format!(
             "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
-             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it."
+             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it. A fence carries its language and, if you want, one name: ```rust title=\"src/walk.rs\", and the same for `mermaid` and `math`, which the window draws with that name above them. Nothing else after the language: a second word is dropped when the person opens the document, so it is refused here instead."
         ))
     })?;
 
@@ -2596,7 +2596,7 @@ fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary, something to keep. Markdown — headings, lists, emphasis, inline links, tables, fenced code with its language, and GitHub alerts (> [!NOTE] and its kin) — plus the four tags the editor writes itself: <u>, <mark>, a coloured <mark data-pen=\"…\"> and the icon span. No other HTML. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole.",
+            "description": "Write something down that is not work to do: a note, a summary, something to keep. Markdown — headings, lists, emphasis, inline links, tables, fenced code with its language and an optional title=\"…\" after it (which `mermaid` and `math` fences take too), and GitHub alerts (> [!NOTE] and its kin) — plus the four tags the editor writes itself: <u>, <mark>, a coloured <mark data-pen=\"…\"> and the icon span. No other HTML. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,

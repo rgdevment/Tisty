@@ -657,13 +657,13 @@ export const folderRename = (id: string, name: string): Promise<void> =>
 export const folderLook = (id: string, icon?: string, color?: string): Promise<void> =>
   invoke("folder_look", { id, icon, color });
 export const folderDrop = (id: string): Promise<void> => invoke("folder_drop", { id });
-export const docFile = (id: string, folder?: string): Promise<void> =>
-  invoke("doc_file", { id, folder });
+export const docFile = (id: string, folder?: string, before?: string): Promise<void> =>
+  invoke("doc_file", { id, folder, before });
 export const docRead = (id: string): Promise<string> => invoke("doc_read", { id });
 export const docWrite = (id: string, body: string, anyway?: boolean): Promise<Doc> =>
   invoke("doc_write", { id, body, anyway });
-export const folderFile = (id: string, parent?: string): Promise<void> =>
-  invoke("folder_file", { id, parent });
+export const folderFile = (id: string, parent?: string, before?: string): Promise<void> =>
+  invoke("folder_file", { id, parent, before });
 
 export const printed = (): Promise<void> => invoke("printed");
 

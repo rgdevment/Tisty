@@ -693,3 +693,30 @@ describe("Enter is only held back inside a table cell", () => {
     expect(pressed(was, 14)).toBe(`${was}\n`);
   });
 });
+
+describe("a fence that carries a name", () => {
+  it("keeps the name on the language the window colours", () => {
+    const said = '```rust title="src/walk.rs"' + "\n" + "fn a() {}" + "\n" + "```";
+    expect(roundtripped(said)).toBe(said);
+  });
+
+  it("keeps it on the two that are drawn rather than coloured", () => {
+    for (const said of [
+      '```mermaid title="El paseo"' + "\n" + "graph TD" + "\n" + "  A --> B" + "\n" + "```",
+      '```math title="Dosis"' + "\n" + "a + b" + "\n" + "```",
+    ]) {
+      expect(roundtripped(said)).toBe(said);
+    }
+  });
+
+  it("settles, so opening it twice does not change it", () => {
+    const said =
+      '```mermaid title="El paseo"' + "\n" + "graph TD" + "\n" + "  A --> B" + "\n" + "```";
+    expect(roundtripped(roundtripped(said))).toBe(said);
+  });
+
+  it("leaves a fence with no name exactly as it was", () => {
+    const said = "```mermaid" + "\n" + "graph TD" + "\n" + "  A --> B" + "\n" + "```";
+    expect(roundtripped(said)).toBe(said);
+  });
+});
