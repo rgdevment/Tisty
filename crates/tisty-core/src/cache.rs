@@ -472,6 +472,13 @@ pub fn discard(cache_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+fn reaches_pages(state: &State, id: &crate::model::DocId, d: &crate::event::Filed) -> bool {
+    if d.page_of.is_some() {
+        return true;
+    }
+    d.folder.is_some() && state.docs.values().any(|one| one.page_of == Some(*id))
+}
+
 pub fn advance(
     cache: Option<&mut Cache>,
     state: &State,
@@ -506,7 +513,7 @@ pub fn advance(
                 | crate::Op::DocUnarchive { .. }
                 | crate::Op::DocLock { .. }
                 | crate::Op::DocUnlock { .. }
-        ) || matches!(&e.op, crate::Op::DocMove { d, .. } if d.folder.is_some() || d.page_of.is_some())
+        ) || matches!(&e.op, crate::Op::DocMove { id, d } if reaches_pages(state, id, d))
     }) {
         cache.invalidate();
         return print;

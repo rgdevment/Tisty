@@ -26,6 +26,29 @@ pub fn last_of<'a>(keys: impl IntoIterator<Item = &'a str>) -> String {
     }
 }
 
+pub fn slotted(keys: &[&str], stop: Option<usize>) -> String {
+    match stop {
+        None => last_of(keys.iter().copied()),
+        Some(at) => between(
+            at.checked_sub(1).map(|one| keys[one]),
+            keys.get(at).copied(),
+        ),
+    }
+}
+
+pub fn dealt(keys: &[&str], stop: Option<usize>) -> (String, Vec<Option<String>>) {
+    let mine = slotted(keys, stop);
+    if mine.len() <= LONG {
+        return (mine, vec![None; keys.len()]);
+    }
+    let at = stop.unwrap_or(keys.len());
+    let mut run: Vec<&str> = keys.to_vec();
+    run.insert(at, mine.as_str());
+    let mut fresh = afresh(&run);
+    let taken = fresh.remove(at).unwrap_or(mine);
+    (taken, fresh)
+}
+
 const LONG: usize = 20;
 
 /// Squeezing a key in before another lengthens it, and a run reordered from its text is
@@ -181,6 +204,74 @@ fn digit(i: usize) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_row_dropped_at_the_end_lands_after_everything_there() {
+        assert_eq!(slotted(&["a0", "a1"], None), after("a1"));
+        assert_eq!(slotted(&[], None), first());
+    }
+
+    #[test]
+    fn a_row_dropped_on_the_first_seam_lands_before_the_first() {
+        let now = slotted(&["a0", "a1"], Some(0));
+        assert!(now.as_str() < "a0", "{now} is not before a0");
+    }
+
+    #[test]
+    fn a_row_dropped_between_two_lands_between_them() {
+        let now = slotted(&["a0", "a1", "a2"], Some(2));
+        assert!(now.as_str() > "a1" && now.as_str() < "a2", "{now}");
+    }
+
+    #[test]
+    fn dropping_a_row_at_the_front_for_ever_does_not_grow_a_key_for_ever() {
+        let mut keys: Vec<String> = vec!["a0".into(), "a1".into()];
+        for _ in 0..2000 {
+            let held: Vec<&str> = keys[..keys.len() - 1].iter().map(String::as_str).collect();
+            let (mine, fresh) = dealt(&held, Some(0));
+            let mut now: Vec<String> = held
+                .iter()
+                .zip(&fresh)
+                .map(|(was, one)| one.clone().unwrap_or_else(|| (*was).to_string()))
+                .collect();
+            now.insert(0, mine);
+            keys = now;
+            assert!(keys.windows(2).all(|two| two[0] < two[1]), "{keys:?}");
+        }
+        let longest = keys.iter().map(String::len).max().unwrap_or(0);
+        assert!(longest <= 24, "a key grew to {longest}: {keys:?}");
+    }
+
+    #[test]
+    fn dealing_again_leaves_the_rows_in_the_order_they_were() {
+        let keys = ["a0", "a1", "a2", "a3"];
+        let (_, fresh) = dealt(&keys, Some(2));
+        let now: Vec<&str> = keys
+            .iter()
+            .zip(&fresh)
+            .map(|(was, one)| one.as_deref().unwrap_or(was))
+            .collect();
+        assert!(now.windows(2).all(|two| two[0] < two[1]), "{now:?}");
+    }
+
+    #[test]
+    fn a_slot_with_room_left_deals_nobody_a_new_key() {
+        let (_, fresh) = dealt(&["a0", "a1"], Some(1));
+        assert!(fresh.iter().all(Option::is_none), "{fresh:?}");
+    }
+
+    #[test]
+    fn the_same_seam_taken_a_thousand_times_still_orders() {
+        let mut keys: Vec<String> = vec!["a0".into(), "a1".into()];
+        for _ in 0..1000 {
+            let held: Vec<&str> = keys.iter().map(String::as_str).collect();
+            let now = slotted(&held, Some(1));
+            assert!(held[0] < now.as_str() && now.as_str() < held[1], "{now}");
+            keys.insert(1, now);
+            keys.remove(2);
+        }
+        assert!(keys[0] < keys[1], "{keys:?}");
+    }
     use super::*;
 
     #[test]

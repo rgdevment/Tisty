@@ -214,15 +214,21 @@ impl State {
                 }
             }
             Op::FolderMove { id, d } => {
-                if let Some(parent) = d.folder
-                    && parent.is_none_or(|at| self.has_room_under(at))
-                    && !self.would_loop(*id, parent)
-                    && self.depth(parent) + self.tallest_under(*id) <= crate::model::DEEPEST
-                    && let Some(folder) = self.folders.get_mut(id)
-                {
-                    folder.parent = parent;
-                }
-                if let Some(order) = d.order.clone()
+                let landed = match d.folder {
+                    None => true,
+                    Some(parent) => {
+                        let room = parent.is_none_or(|at| self.has_room_under(at))
+                            && !self.would_loop(*id, parent)
+                            && self.depth(parent) + self.tallest_under(*id)
+                                <= crate::model::DEEPEST;
+                        if room && let Some(folder) = self.folders.get_mut(id) {
+                            folder.parent = parent;
+                        }
+                        room
+                    }
+                };
+                if landed
+                    && let Some(order) = d.order.clone()
                     && let Some(folder) = self.folders.get_mut(id)
                 {
                     folder.order = order;

@@ -174,7 +174,7 @@ export default function Tree({
       e.stopPropagation();
       setOver(doc.id);
     },
-    onDragLeave: () => setOver(null),
+    onDragLeave: () => setOver((was) => (was === doc.id ? null : was)),
     onDrop: (e: React.DragEvent) => {
       if (!carries(e, doc)) return;
       e.preventDefault();
@@ -229,7 +229,7 @@ export default function Tree({
       e.preventDefault();
       setOver(folder ?? "unfiled");
     },
-    onDragLeave: () => setOver(null),
+    onDragLeave: () => setOver((was) => (was === (folder ?? "unfiled") ? null : was)),
     onDrop: (e: React.DragEvent) => {
       e.preventDefault();
       setOver(null);

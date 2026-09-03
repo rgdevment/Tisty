@@ -782,4 +782,38 @@ describe("putting folders and documents in the order you want", () => {
     expect(onMove).not.toHaveBeenCalled();
     expect(onFile).not.toHaveBeenCalled();
   });
+
+  it("lights the seam only while something it takes is over it", () => {
+    const { container } = shown();
+    const seam = container.querySelector("li[data-seam='folder:01F:loose']") as HTMLElement;
+
+    fireEvent.dragOver(seam, carrying("folder", "01H"));
+    expect(seam.className).toContain("bg-accent");
+
+    fireEvent.dragLeave(seam);
+    expect(seam.className).not.toContain("bg-accent");
+  });
+
+  it("does not light up for something it will not take", () => {
+    const { container } = shown();
+    const seam = container.querySelector("li[data-seam='folder:01F:loose']") as HTMLElement;
+
+    fireEvent.dragOver(seam, carrying("doc", "01C"));
+
+    expect(seam.className).not.toContain("bg-accent");
+  });
+
+  it("ignores a file dragged in from outside", () => {
+    const onFile = vi.fn();
+    const { container, onMove } = shown(vi.fn(), onFile);
+    const seam = container.querySelector("li[data-seam='folder:01F:loose']") as HTMLElement;
+    const files = { dataTransfer: { types: ["Files"], getData: () => "" } };
+
+    fireEvent.dragOver(seam, files);
+    fireEvent.drop(seam, files);
+
+    expect(seam.className).not.toContain("bg-accent");
+    expect(onMove).not.toHaveBeenCalled();
+    expect(onFile).not.toHaveBeenCalled();
+  });
 });
