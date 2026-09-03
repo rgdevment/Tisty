@@ -167,23 +167,80 @@ export default function Tree({
   const carries = (e: React.DragEvent, doc: Filed) =>
     takesPages(doc) && e.dataTransfer.types.includes("text/tisty-doc");
 
-  const dropInto = (doc: Filed) => ({
-    onDragOver: (e: React.DragEvent) => {
-      if (!carries(e, doc)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      setOver(doc.id);
-    },
-    onDragLeave: () => setOver((was) => (was === doc.id ? null : was)),
-    onDrop: (e: React.DragEvent) => {
-      if (!carries(e, doc)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      setOver(null);
-      const moved = e.dataTransfer.getData("text/tisty-doc");
-      if (moved && moved !== doc.id) onPage?.(moved, doc.id);
-    },
-  });
+  const zoned = (e: React.DragEvent): "before" | "in" | "after" => {
+    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (!box.height) return "in";
+    const at = (e.clientY - box.top) / box.height;
+    if (at < 1 / 3) return "before";
+    if (at > 2 / 3) return "after";
+    return "in";
+  };
+
+  const nextOf = <T extends { id: string }>(all: T[], id: string) => {
+    const at = all.findIndex((one) => one.id === id);
+    return at < 0 ? undefined : all[at + 1]?.id;
+  };
+
+  const onFolderRow = (folder: Folded) => {
+    const mine = folder.parent ?? undefined;
+    const next = nextOf(under(folder.parent ?? null), folder.id);
+    return {
+      onDragOver: (e: React.DragEvent) => {
+        e.preventDefault();
+        if (!e.dataTransfer.types.includes("text/tisty-folder")) {
+          setOver(folder.id);
+          return;
+        }
+        const where = zoned(e);
+        setOver(where === "in" ? folder.id : `${folder.id}:${where}`);
+      },
+      onDragLeave: () =>
+        setOver((was) => (was?.startsWith(folder.id) ? null : was)),
+      onDrop: (e: React.DragEvent) => {
+        e.preventDefault();
+        const where = zoned(e);
+        setOver(null);
+        const doc = e.dataTransfer.getData("text/tisty-doc");
+        if (doc) return onFile(doc, folder.id);
+        const moved = e.dataTransfer.getData("text/tisty-folder");
+        if (!moved || moved === folder.id) return;
+        if (where === "in") return onMove?.(moved, folder.id);
+        onMove?.(moved, mine, where === "before" ? folder.id : next);
+      },
+    };
+  };
+
+  const onDocRow = (doc: Filed, page: boolean) => {
+    const next = page ? undefined : nextOf(inside(doc.folder ?? null), doc.id);
+    const where = (e: React.DragEvent) => {
+      if (page) return "in" as const;
+      const at = zoned(e);
+      return at === "in" && !takesPages(doc) ? ("before" as const) : at;
+    };
+    return {
+      onDragOver: (e: React.DragEvent) => {
+        if (!carries(e, doc) && page) return;
+        if (!e.dataTransfer.types.includes("text/tisty-doc")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const at = where(e);
+        setOver(at === "in" ? doc.id : `${doc.id}:${at}`);
+      },
+      onDragLeave: () => setOver((was) => (was?.startsWith(doc.id) ? null : was)),
+      onDrop: (e: React.DragEvent) => {
+        if (!carries(e, doc) && page) return;
+        const moved = e.dataTransfer.getData("text/tisty-doc");
+        if (!moved) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const at = where(e);
+        setOver(null);
+        if (moved === doc.id) return;
+        if (at === "in") return onPage?.(moved, doc.id);
+        onFile(moved, doc.folder ?? undefined, at === "before" ? doc.id : next);
+      },
+    };
+  };
 
   const dropAt = (kind: "doc" | "folder", folder?: string, before?: string) => {
     const mark = `${kind}:${before ?? "end"}:${folder ?? "loose"}`;
@@ -248,9 +305,13 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          {...dropInto(doc)}
+          {...onDocRow(doc, page)}
           className={`group/paper relative flex items-center rounded-md focus-within:bg-hover ${
             over === doc.id ? "bg-accent-soft" : ""
+          }${
+            over === `${doc.id}:before` ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent" : ""
+          }${
+            over === `${doc.id}:after` ? " after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-full after:bg-accent" : ""
           }`}
           onContextMenu={(e) => {
             if (!onDocMenu) return;
@@ -269,13 +330,13 @@ export default function Tree({
             <button
               type="button"
               onClick={() => unfold(doc.id)}
-              aria-label={fill(closed ? "openFolder" : "closeFolder", name)}
+              aria-label={fill(closed ? "showPages" : "hidePages", name)}
               aria-expanded={!closed}
               aria-controls={`pages-${doc.id}`}
               style={{ marginLeft: `${8 + depth * STEP}px` }}
-              className="grid h-5 w-3 shrink-0 place-items-center rounded text-[9px] text-faint hover:text-ink"
+              className="grid h-5 w-3 shrink-0 place-items-center rounded text-[11px] leading-none font-semibold text-faint opacity-0 transition-opacity group-hover/paper:opacity-100 hover:text-ink focus-visible:opacity-100"
             >
-              <span className={`transition-transform ${closed ? "-rotate-90" : ""}`}>▼</span>
+              {closed ? "+" : "−"}
             </button>
           )}
           <button
@@ -345,8 +406,12 @@ export default function Tree({
     return (
       <li key={folder.id} className="relative">
         <div
-          {...dropOn(folder.id)}
-          className={`rounded-md ${over === folder.id ? "bg-accent-soft" : ""}`}
+          {...onFolderRow(folder)}
+          className={`relative rounded-md ${over === folder.id ? "bg-accent-soft" : ""}${
+            over === `${folder.id}:before` ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent" : ""
+          }${
+            over === `${folder.id}:after` ? " after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-full after:bg-accent" : ""
+          }`}
         >
           <div
             className="group/folder flex items-center rounded-md"

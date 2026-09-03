@@ -523,15 +523,15 @@ describe("a document with pages", () => {
     show();
 
     expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
     expect(screen.getByRole("button", { name: "Marzo" })).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Close Actas" }));
+    await userEvent.click(screen.getByRole("button", { name: "Hide the pages of Actas" }));
     expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
   });
 
   it("keeps a page out of the folder that holds its document", async () => {
     show();
-    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
 
     const inside = screen.getByRole("button", { name: "Compras" });
     const page = screen.getByRole("button", { name: "Marzo" });
@@ -573,7 +573,7 @@ describe("a document with pages", () => {
         onHere={vi.fn()}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
     const row = screen.getByRole("button", { name: "Marzo" }).closest("div") as HTMLElement;
     fireEvent.drop(row, { dataTransfer: carrying("01C") });
 
@@ -602,7 +602,7 @@ describe("a document with pages", () => {
 
   it("does not let a page be dragged out from under its document", async () => {
     show();
-    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
 
     expect(screen.getByRole("button", { name: "Marzo" }).draggable).toBe(false);
   });
@@ -663,7 +663,7 @@ describe("a document with pages", () => {
 
   it("does not offer to cut a page out from under its document", async () => {
     render(<Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Open Actas" }));
+    await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
     const page = screen.getByRole("button", { name: "Marzo" });
 
     expect(page.getAttribute("aria-keyshortcuts")).toBe("Shift+F10");
@@ -678,7 +678,7 @@ describe("a document with pages", () => {
       <Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
     expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Open Actas" }).getAttribute("aria-expanded")).toBe(
+    expect(screen.getByRole("button", { name: "Show the pages of Actas" }).getAttribute("aria-expanded")).toBe(
       "false",
     );
 

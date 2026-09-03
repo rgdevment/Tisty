@@ -75,6 +75,28 @@ export const stale = (value: string, mine: string, shown: () => string | null): 
   value !== mine && shown() !== value;
 
 const GLYPHS_TALL = 330;
+const TRIES = 60;
+
+export const settles = (at: () => HTMLElement | null, want: number, done: () => void) => {
+  let frame = 0;
+  let tries = 0;
+  const put = () => {
+    const sheet = at();
+    if (!sheet) return done();
+    sheet.scrollTop = want;
+    tries += 1;
+    if (sheet.scrollTop < want && tries < TRIES) {
+      frame = requestAnimationFrame(put);
+      return;
+    }
+    done();
+  };
+  frame = requestAnimationFrame(put);
+  return () => {
+    cancelAnimationFrame(frame);
+    done();
+  };
+};
 
 const middle = (editor: Writing, from: number, to: number) => {
   const a = caret(editor, from);
@@ -671,14 +693,20 @@ export default function Editor({
   const opened = Boolean(asking) && shown.length > 0;
   const current = Math.min(active, shown.length - 1);
 
+  const wanted = useRef(seek);
+  const settling = useRef(false);
   useEffect(() => {
-    const at = sheet.current;
-    if (!at || !editor || editor.isDestroyed || !seek) return;
-    const frame = requestAnimationFrame(() => {
-      at.scrollTop = seek;
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [editor, seek]);
+    const want = wanted.current;
+    if (!sheet.current || !editor || editor.isDestroyed || !want) return;
+    settling.current = true;
+    return settles(
+      () => sheet.current,
+      want,
+      () => {
+        settling.current = false;
+      },
+    );
+  }, [editor]);
 
   useEffect(() => {
     const dom = editor && !editor.isDestroyed ? editor.view.dom : null;
@@ -738,7 +766,10 @@ export default function Editor({
     <>
       <div
         ref={sheet}
-        onScroll={(one) => onSeen?.((one.target as HTMLElement).scrollTop)}
+        onScroll={(one) => {
+          if (settling.current) return;
+          onSeen?.((one.currentTarget as HTMLElement).scrollTop);
+        }}
         className={`scroller gutter flex min-h-0 flex-1 flex-col${above || below ? " leafed" : ""}`}
       >
         {above}
