@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LOOSE, marked, settled, type Spot, zoneIn } from "../ui/dragging";
+import { BAND, LOOSE, marked, type Spot, settled, speedAt, zoneIn } from "../ui/dragging";
 
 const folder = (over: Partial<Spot> = {}): Spot => ({
   id: "f1",
@@ -147,5 +147,32 @@ describe("where a dragged row lands", () => {
 
   it("does nothing when the pointer is over no row at all", () => {
     expect(settled({ id: "d2", kind: "doc" }, null, "in")).toBeNull();
+  });
+});
+
+describe("rolling the list while something is being carried", () => {
+  it("stands still in the middle, where there is nothing to reach for", () => {
+    expect(speedAt(0, 600, 300)).toBe(0);
+  });
+
+  it("climbs near the top and falls near the bottom", () => {
+    expect(speedAt(0, 600, 10)).toBeLessThan(0);
+    expect(speedAt(0, 600, 590)).toBeGreaterThan(0);
+  });
+
+  it("hurries the closer the pointer gets to the edge", () => {
+    const near = speedAt(0, 600, 4);
+    const far = speedAt(0, 600, BAND - 4);
+    expect(Math.abs(near)).toBeGreaterThan(Math.abs(far));
+  });
+
+  it("keeps still in a pane too short to have two bands, so it cannot jitter", () => {
+    expect(speedAt(0, 40, 5)).toBe(0);
+    expect(speedAt(0, 40, 35)).toBe(0);
+  });
+
+  it("moves at most one step a frame, however far past the edge the pointer goes", () => {
+    expect(Math.abs(speedAt(0, 600, -500))).toBeLessThanOrEqual(16 * 2);
+    expect(Math.abs(speedAt(0, 600, 1100))).toBeLessThanOrEqual(16 * 2);
   });
 });

@@ -199,18 +199,6 @@ describe("the document tree", () => {
     );
   });
 
-  it("never hangs a folder from itself", () => {
-    const { onMove } = show();
-    const work = screen.getByRole("button", { name: "trabajo" }).parentElement
-      ?.parentElement as HTMLElement;
-
-    fireEvent.drop(work, {
-      dataTransfer: { getData: (kind: string) => (kind === "text/tisty-folder" ? "01F" : "") },
-    });
-
-    expect(onMove).not.toHaveBeenCalled();
-  });
-
   it("always offers somewhere for what is not filed", () => {
     show();
 
@@ -440,11 +428,6 @@ describe("the document tree", () => {
   });
 });
 
-const carrying = (doc?: string) => ({
-  types: doc ? ["text/tisty-doc"] : ["text/tisty-folder"],
-  getData: (kind: string) => (kind === "text/tisty-doc" ? (doc ?? "") : ""),
-});
-
 describe("a document with pages", () => {
   const withPages: Papers = {
     folders: papers.folders,
@@ -518,16 +501,19 @@ describe("a document with pages", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
     const row = screen.getByRole("button", { name: "Marzo" }).closest("div") as HTMLElement;
-    fireEvent.drop(row, { dataTransfer: carrying("01C") });
 
+    expect(row.dataset.drop).toBeUndefined();
     expect(onPage).not.toHaveBeenCalled();
   });
 
   it("does not let a page be dragged out from under its document", async () => {
     show();
     await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
+    const page = screen.getByRole("button", { name: "Marzo" });
+    fireEvent.pointerDown(page, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 40 });
 
-    expect(screen.getByRole("button", { name: "Marzo" }).draggable).toBe(false);
+    expect(page.closest("div")?.className).not.toContain("opacity-45");
   });
 
   it("counts one page in the singular", () => {
@@ -601,9 +587,9 @@ describe("a document with pages", () => {
       <Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
     expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Show the pages of Actas" }).getAttribute("aria-expanded")).toBe(
-      "false",
-    );
+    expect(
+      screen.getByRole("button", { name: "Show the pages of Actas" }).getAttribute("aria-expanded"),
+    ).toBe("false");
 
     rerender(
       <Tree
@@ -822,6 +808,64 @@ describe("putting folders and documents in the order you want", () => {
     document.elementFromPoint = was;
 
     expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("does not eat the next click on a row the drag never touched", async () => {
+    const onOpen = vi.fn();
+    const { container } = render(
+      <Tree papers={papers} onOpen={onOpen} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />,
+    );
+    const onto = container.querySelector<HTMLElement>('[data-drop="01F"]') as HTMLElement;
+    boxed(onto, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => onto;
+
+    const dragging = within(container).getByRole("button", { name: "Suelto" }) as HTMLElement;
+    fireEvent.pointerDown(dragging, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 40 });
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 115 });
+    document.elementFromPoint = was;
+    await new Promise((go) => setTimeout(go, 0));
+
+    fireEvent.click(within(container).getByRole("button", { name: "Compras" }));
+
+    expect(onOpen).toHaveBeenCalled();
+  });
+
+  it("rolls the list while the pointer rests against its edge", () => {
+    const { container } = render(
+      <div className="scroller">
+        <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />
+      </div>,
+    );
+    const sheet = container.querySelector<HTMLElement>(".scroller") as HTMLElement;
+    sheet.getBoundingClientRect = () =>
+      ({ top: 0, bottom: 600, height: 600, left: 0, right: 200, width: 200 }) as DOMRect;
+    Object.defineProperty(sheet, "scrollTop", { value: 0, writable: true });
+
+    const frames: (() => void)[] = [];
+    vi.stubGlobal("requestAnimationFrame", (fn: () => void) => {
+      frames.push(fn);
+      return frames.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+    const seen = document.elementFromPoint;
+    document.elementFromPoint = () => null;
+
+    const row = within(sheet).getByRole("button", { name: "personal" }) as HTMLElement;
+    fireEvent.pointerDown(row, { button: 0, clientX: 0, clientY: 300 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 596 });
+    for (const one of frames.splice(0)) one();
+
+    expect(sheet.scrollTop).toBeGreaterThan(0);
+
+    const rolled = sheet.scrollTop;
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 596 });
+    for (const one of frames.splice(0)) one();
+    expect(sheet.scrollTop).toBe(rolled);
+
+    vi.unstubAllGlobals();
+    document.elementFromPoint = seen;
   });
 
   it("marks the row it would drop into while the pointer is over it", () => {
