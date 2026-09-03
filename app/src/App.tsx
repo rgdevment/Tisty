@@ -180,7 +180,7 @@ export default function App() {
   const newDoc = (folder?: string, pageOf?: string) =>
     docNew(folder, pageOf)
       .then((made) => {
-        lookPapers();
+        papersChanged();
         setChosen({ named: "docs", doc: made.id });
       })
       .catch((e) => setError(saidPlainly(e)));
@@ -196,7 +196,7 @@ export default function App() {
       .then((at) => (typeof at === "string" ? docImport(at, folder) : null))
       .then((made) => {
         if (!made) return;
-        lookPapers();
+        papersChanged();
         setChosen({ named: "docs", doc: made.id });
       })
       .catch((e) => setError(saidPlainly(e)));
@@ -207,7 +207,7 @@ export default function App() {
         if (!yes) return;
         if (here === folder.id) setHere(undefined);
         setReturning(folder.parent ?? "unfiled");
-        return folderDrop(folder.id).then(lookPapers);
+        return folderDrop(folder.id).then(papersChanged);
       })
       .catch((e) => setError(saidPlainly(e)));
 
@@ -227,7 +227,7 @@ export default function App() {
         ];
         if (chosen.doc && going.includes(chosen.doc)) setChosen({ named: "docs" });
         setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
-        return docDrop(doc.id).then(lookPapers);
+        return docDrop(doc.id).then(papersChanged);
       })
       .catch((e) => setError(saidPlainly(e)));
 
@@ -337,6 +337,11 @@ export default function App() {
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
   const wasAwry = useRef<string | null>(null);
+
+  const papersChanged = useCallback(() => {
+    lookPapers();
+    carries.current?.changed();
+  }, [lookPapers]);
 
   useEffect(() => {
     /// A slow answer must not open a strip over the view the person moved on to.
@@ -600,7 +605,7 @@ export default function App() {
               folder.id,
               (parent) =>
                 folderFile(folder.id, parent)
-                  .then(lookPapers)
+                  .then(papersChanged)
                   .catch((e) => setError(saidPlainly(e))),
               folder,
             ),
@@ -623,7 +628,7 @@ export default function App() {
       papers.docs.find((one) => one.id === id)?.title || t("untitledDoc");
     if (!(await ask(fill("pageOfSure", named(doc), named(pageOf)), { kind: "warning" }))) return;
     docPage(doc, pageOf)
-      .then(lookPapers)
+      .then(papersChanged)
       .catch((e) => setError(saidPlainly(e)));
   };
 
@@ -667,7 +672,7 @@ export default function App() {
           off: !doc.pageOf,
           onPick: () =>
             docPage(doc.id)
-              .then(lookPapers)
+              .then(papersChanged)
               .catch((e) => setError(saidPlainly(e))),
         },
         {
@@ -679,7 +684,7 @@ export default function App() {
             label: t("moveHere"),
             choices: destinations(doc.folder, (folder) =>
               docFile(doc.id, folder)
-                .then(lookPapers)
+                .then(papersChanged)
                 .catch((e) => setError(saidPlainly(e))),
             ),
           },
@@ -739,7 +744,7 @@ export default function App() {
           onPick: () =>
             docCopy(doc.id)
               .then((made) => {
-                lookPapers();
+                papersChanged();
                 if (!doc.archived) setChosen({ named: "docs", doc: made.id });
               })
               .catch((e) => setError(saidPlainly(e))),
@@ -752,7 +757,7 @@ export default function App() {
           apart: true,
           onPick: () =>
             docLock(doc.id, !doc.locked)
-              .then(lookPapers)
+              .then(papersChanged)
               .catch((e) => setError(saidPlainly(e))),
         },
         {
@@ -763,7 +768,7 @@ export default function App() {
           apart: true,
           onPick: () =>
             docAway(doc.id, !doc.archived)
-              .then(lookPapers)
+              .then(papersChanged)
               .catch((e) => setError(saidPlainly(e))),
         },
         {
@@ -901,7 +906,7 @@ export default function App() {
             folderAdd(name, roomBelow ? (here ?? undefined) : undefined, icon)
               .then(() => {
                 setMakingFolder(false);
-                lookPapers();
+                papersChanged();
               })
               .catch((e) => setError(saidPlainly(e)))
           }
@@ -927,7 +932,7 @@ export default function App() {
             ])
               .then(() => {
                 setRenaming(null);
-                lookPapers();
+                papersChanged();
               })
               .catch((e) => setError(saidPlainly(e)))
           }
@@ -987,12 +992,12 @@ export default function App() {
         }}
         onMove={(folder, parent, before) =>
           folderFile(folder, parent, before)
-            .then(lookPapers)
+            .then(papersChanged)
             .catch((e) => setError(saidPlainly(e)))
         }
         onFile={(doc, folder, before) =>
           docFile(doc, folder, before)
-            .then(lookPapers)
+            .then(papersChanged)
             .catch((e) => setError(saidPlainly(e)))
         }
         onPage={(doc, pageOf) => hangIt(doc, pageOf)}
@@ -1070,13 +1075,13 @@ export default function App() {
               setHere(id);
               setChosen({ named: "docs" });
             }}
-            onKept={lookPapers}
+            onKept={papersChanged}
             onError={told}
             onShown={setShowing}
             onDoc={openDoc}
             onOwned={(id) =>
               docPage(id)
-                .then(lookPapers)
+                .then(papersChanged)
                 .catch((e) => setError(saidPlainly(e)))
             }
             fresh={carried}

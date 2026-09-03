@@ -122,11 +122,15 @@ pub fn carry_holding(
             ),
         }
     }
+    let mut pushed = None;
     if matches!(way, Way::Both | Way::Push | Way::Again) {
+        if said.is_none() {
+            pushed = as_told(&store, aside);
+        }
         let Some(buried) = said
             .as_ref()
+            .or(pushed.as_ref())
             .map(|one| one.retired.clone())
-            .or_else(|| as_told(&store, aside).map(|one| one.retired))
         else {
             return Err(Trouble::Unreadable(store.display().to_string()));
         };
@@ -161,7 +165,7 @@ pub fn carry_holding(
         Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
         None => alive.to_vec(),
     };
-    let told = said.or_else(|| as_told(&store, aside));
+    let told = said.or(pushed).or_else(|| as_told(&store, aside));
     let Some(told) = told else {
         witness::warn(
             channel::SYNC,
