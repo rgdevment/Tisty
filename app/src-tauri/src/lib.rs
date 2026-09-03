@@ -2675,9 +2675,13 @@ fn folder_file(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     parent: Option<String>,
+    before: Option<String>,
 ) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
     let parent = parent
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+    let before: Option<tisty_core::model::FolderId> = before
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
 
@@ -2697,15 +2701,45 @@ fn folder_file(
             return Err(Refusal::of("tooDeep"));
         }
     }
+    if before.is_some_and(|at| at == id) {
+        return Err(Refusal::of("intoItself"));
+    }
+    let beside = beside_folders(&session.state, id, parent, before);
     session.commit(Op::FolderMove {
         id,
         d: tisty_core::event::Filed {
             folder: Some(parent),
             page_of: None,
-            order: None,
+            order: beside,
         },
     })?;
     Ok(())
+}
+
+fn beside_folders(
+    state: &State,
+    id: tisty_core::model::FolderId,
+    parent: Option<tisty_core::model::FolderId>,
+    before: Option<tisty_core::model::FolderId>,
+) -> Option<String> {
+    let sitting: Vec<&tisty_core::model::Folder> = state
+        .under(parent)
+        .into_iter()
+        .filter(|one| one.id != id)
+        .collect();
+    let Some(before) = before else {
+        return match sitting.is_empty() {
+            true => Some(tisty_core::order::first()),
+            false => Some(tisty_core::order::last_of(
+                sitting.iter().map(|one| one.order.as_str()),
+            )),
+        };
+    };
+    let at = sitting.iter().position(|one| one.id == before)?;
+    Some(tisty_core::order::between(
+        at.checked_sub(1).map(|one| sitting[one].order.as_str()),
+        Some(sitting[at].order.as_str()),
+    ))
 }
 
 #[tauri::command]
@@ -2713,6 +2747,7 @@ fn doc_file(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     folder: Option<String>,
+    before: Option<String>,
 ) -> Answer<()> {
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
@@ -2720,6 +2755,9 @@ fn doc_file(
     let mut session = held(&session);
 
     let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let before: Option<tisty_core::model::DocId> = before
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchDoc")))
+        .transpose()?;
     match session.state.docs.get(&id) {
         None => return Err(Refusal::of("noSuchDoc")),
         Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageStaysPut")),
@@ -2731,15 +2769,49 @@ fn doc_file(
         return Err(Refusal::of("noSuchFolder"));
     }
 
+    if before.is_some_and(|at| at == id) {
+        return Err(Refusal::of("intoItself"));
+    }
+    let beside = beside_docs(&session.state, id, folder, before);
     session.commit(Op::DocMove {
         id,
         d: tisty_core::event::Filed {
             folder: Some(folder),
             page_of: None,
-            order: None,
+            order: beside,
         },
     })?;
     Ok(())
+}
+
+fn beside_docs(
+    state: &State,
+    id: tisty_core::model::DocId,
+    folder: Option<tisty_core::model::FolderId>,
+    before: Option<tisty_core::model::DocId>,
+) -> Option<String> {
+    let mut sitting: Vec<&tisty_core::model::Kept> = state
+        .docs
+        .values()
+        .filter(|one| {
+            one.page_of.is_none() && !one.archived && one.folder == folder && one.id != id
+        })
+        .collect();
+    sitting.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
+
+    let Some(before) = before else {
+        return match sitting.is_empty() {
+            true => Some(tisty_core::order::first()),
+            false => Some(tisty_core::order::last_of(
+                sitting.iter().map(|one| one.order.as_str()),
+            )),
+        };
+    };
+    let at = sitting.iter().position(|one| one.id == before)?;
+    Some(tisty_core::order::between(
+        at.checked_sub(1).map(|one| sitting[one].order.as_str()),
+        Some(sitting[at].order.as_str()),
+    ))
 }
 
 #[tauri::command(async)]

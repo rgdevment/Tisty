@@ -10,10 +10,10 @@ interface Props {
   open?: string;
   here?: string | null;
   onOpen: (doc: Filed) => void;
-  onFile: (doc: string, folder?: string) => void;
+  onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
   onHere?: (folder?: string) => void;
-  onMove?: (folder: string, parent?: string) => void;
+  onMove?: (folder: string, parent?: string, before?: string) => void;
   onFolderMenu?: (folder: Folded, at: { x: number; y: number }) => void;
   onHereMenu?: (at: { x: number; y: number }) => void;
   onDocMenu?: (doc: Filed, at: { x: number; y: number }) => void;
@@ -184,6 +184,45 @@ export default function Tree({
       if (moved && moved !== doc.id) onPage?.(moved, doc.id);
     },
   });
+
+  const dropAt = (kind: "doc" | "folder", folder?: string, before?: string) => {
+    const mark = `${kind}:${before ?? "end"}:${folder ?? "loose"}`;
+    return {
+      mark,
+      onDragOver: (e: React.DragEvent) => {
+        const carried = e.dataTransfer.types.includes(`text/tisty-${kind}`);
+        if (!carried) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setOver(mark);
+      },
+      onDragLeave: () => setOver((was) => (was === mark ? null : was)),
+      onDrop: (e: React.DragEvent) => {
+        const moved = e.dataTransfer.getData(`text/tisty-${kind}`);
+        if (!moved) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setOver(null);
+        if (moved === before) return;
+        if (kind === "doc") return onFile(moved, folder, before);
+        onMove?.(moved, folder, before);
+      },
+    };
+  };
+
+  const between = (kind: "doc" | "folder", folder?: string, before?: string, depth = 0) => {
+    const { mark, ...on } = dropAt(kind, folder, before);
+    return (
+      <li
+        key={mark}
+        {...on}
+        data-seam={mark}
+        aria-hidden="true"
+        style={{ marginLeft: `${8 + depth * STEP}px` }}
+        className={`h-1 rounded-full transition-colors ${over === mark ? "bg-accent" : ""}`}
+      />
+    );
+  };
 
   const dropOn = (folder?: string) => ({
     onDragOver: (e: React.DragEvent) => {
@@ -365,8 +404,16 @@ export default function Tree({
         )}
         {!closed && (
           <ul id={`holds-${folder.id}`}>
-            {kids.map((child) => branch(child, depth + 1))}
-            {papersIn.map((doc) => paper(doc, depth + 1))}
+            {kids.flatMap((child) => [
+              between("folder", folder.id, child.id, depth + 1),
+              branch(child, depth + 1),
+            ])}
+            {kids.length > 0 && between("folder", folder.id, undefined, depth + 1)}
+            {papersIn.flatMap((doc) => [
+              between("doc", folder.id, doc.id, depth + 1),
+              paper(doc, depth + 1),
+            ])}
+            {papersIn.length > 0 && between("doc", folder.id, undefined, depth + 1)}
             {!kids.length && !papersIn.length && (
               <li
                 className="py-0.5 text-[11px] text-faint italic"
@@ -401,7 +448,11 @@ export default function Tree({
           {fill("liftedHint", lifted.name)}
         </li>
       )}
-      {under(null).map((folder) => branch(folder, 0))}
+      {under(null).flatMap((folder) => [
+        between("folder", undefined, folder.id),
+        branch(folder, 0),
+      ])}
+      {under(null).length > 0 && between("folder", undefined, undefined)}
 
       <li className="relative">
         <div
@@ -459,7 +510,8 @@ export default function Tree({
         )}
         {!shut.has("unfiled") && (
           <ul id="holds-unfiled" {...dropOn(undefined)}>
-            {loose.map((doc) => paper(doc, 1))}
+            {loose.flatMap((doc) => [between("doc", undefined, doc.id, 1), paper(doc, 1)])}
+            {loose.length > 0 && between("doc", undefined, undefined, 1)}
           </ul>
         )}
       </li>

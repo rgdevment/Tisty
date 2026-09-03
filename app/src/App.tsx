@@ -985,13 +985,13 @@ export default function App() {
           setHere(folder ?? null);
           setChosen({ named: "docs" });
         }}
-        onMove={(folder, parent) =>
-          folderFile(folder, parent)
+        onMove={(folder, parent, before) =>
+          folderFile(folder, parent, before)
             .then(lookPapers)
             .catch((e) => setError(saidPlainly(e)))
         }
-        onFile={(doc, folder) =>
-          docFile(doc, folder)
+        onFile={(doc, folder, before) =>
+          docFile(doc, folder, before)
             .then(lookPapers)
             .catch((e) => setError(saidPlainly(e)))
         }

@@ -222,6 +222,11 @@ impl State {
                 {
                     folder.parent = parent;
                 }
+                if let Some(order) = d.order.clone()
+                    && let Some(folder) = self.folders.get_mut(id)
+                {
+                    folder.order = order;
+                }
             }
             Op::FolderDelete { id } => {
                 self.folders.remove(id);

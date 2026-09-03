@@ -705,3 +705,81 @@ describe("a document with pages", () => {
     expect(document.activeElement).not.toBe(away);
   });
 });
+
+describe("putting folders and documents in the order you want", () => {
+  const shown = (onMove = vi.fn(), onFile = vi.fn()) => {
+    const { container } = render(
+      <Tree
+        papers={papers}
+        onOpen={vi.fn()}
+        onFile={onFile}
+        onHere={vi.fn()}
+        onMove={onMove}
+        onFolderMenu={vi.fn()}
+        onDocMenu={vi.fn()}
+      />,
+    );
+    return { container, onMove, onFile };
+  };
+
+  const carrying = (kind: string, id: string) => ({
+    dataTransfer: {
+      types: [`text/tisty-${kind}`],
+      getData: (asked: string) => (asked === `text/tisty-${kind}` ? id : ""),
+    },
+  });
+
+  const seams = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll("li[aria-hidden='true']"));
+
+  it("drops a folder above another and says which one it goes before", () => {
+    const { container, onMove } = shown();
+    const seam = seams(container)[0];
+
+    fireEvent.drop(seam, carrying("folder", "01H"));
+
+    expect(onMove).toHaveBeenCalledWith("01H", undefined, "01F");
+  });
+
+  it("drops a document above another inside the same folder", () => {
+    const onFile = vi.fn();
+    const { container } = shown(vi.fn(), onFile);
+    const seam = container.querySelector("li[data-seam='doc:01A:01F']") as HTMLElement;
+    expect(seam).toBeTruthy();
+
+    fireEvent.drop(seam, carrying("doc", "01B"));
+
+    expect(onFile).toHaveBeenCalledWith("01B", "01F", "01A");
+  });
+
+  it("drops a document at the end of a folder when no row follows", () => {
+    const onFile = vi.fn();
+    const { container } = shown(vi.fn(), onFile);
+    const seam = container.querySelector("li[data-seam='doc:end:01F']") as HTMLElement;
+    expect(seam).toBeTruthy();
+
+    fireEvent.drop(seam, carrying("doc", "01C"));
+
+    expect(onFile).toHaveBeenCalledWith("01C", "01F", undefined);
+  });
+
+  it("does nothing when a folder is dropped on the seam above itself", () => {
+    const { container, onMove } = shown();
+    const seam = seams(container)[0];
+
+    fireEvent.drop(seam, carrying("folder", "01F"));
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("does not take a document through a seam meant for folders", () => {
+    const onFile = vi.fn();
+    const { container, onMove } = shown(vi.fn(), onFile);
+    const seam = seams(container)[0];
+
+    fireEvent.drop(seam, carrying("doc", "01C"));
+
+    expect(onMove).not.toHaveBeenCalled();
+    expect(onFile).not.toHaveBeenCalled();
+  });
+});
