@@ -45,7 +45,7 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("{0} points outside the store")]
     OutsideTheStore(String),
-    #[error("{0} is not a kind of file an assistant may keep")]
+    #[error("{0} does not hold what its name says it holds")]
     NotForAnAgent(String),
     #[error("that backup belongs to another store ({theirs})")]
     OtherStore { theirs: String },

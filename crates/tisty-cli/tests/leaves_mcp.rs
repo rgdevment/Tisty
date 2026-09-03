@@ -1209,3 +1209,246 @@ fn a_document_that_only_names_its_variables_gets_no_warning() {
 
     assert!(!body.contains("[!CAUTION]"), "aviso de mas: {body}");
 }
+
+#[test]
+fn many_secrets_get_one_warning_at_the_top_and_leave_the_body_alone() {
+    let served = Served::new();
+    let sent = "# Despliegue\n\nDB_PASSWORD=Tr0ub4dor3xK\n\nY mas abajo:\n\nDB_PASSWORD=Tr0ub4dor3xK\nSMTP_PASSWORD=h4nsel4ndGretel\n";
+
+    let said = served.call("write_doc", serde_json::json!({ "body": sent }));
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+
+    assert_eq!(
+        body.matches("[!CAUTION]").count(),
+        1,
+        "mas de un aviso: {body}"
+    );
+    assert_eq!(
+        body.matches("DB_PASSWORD").count(),
+        3,
+        "el nombre se repitio en el aviso o se perdio del cuerpo: {body}"
+    );
+    assert!(
+        body.ends_with("SMTP_PASSWORD=h4nsel4ndGretel\n"),
+        "el cuerpo cambio: {body}"
+    );
+}
+
+const A_SECRET: &str = "GITHUB_TOKEN=ghp_16C7e42F292c6912E7710c838347Ae178B4a";
+
+fn written(served: &Served, body: &str) -> String {
+    let said = served.call("write_doc", serde_json::json!({ "body": body }));
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    served.body_of(doc)
+}
+
+#[test]
+fn the_warning_is_a_block_of_its_own_with_blank_lines_around_it() {
+    let served = Served::new();
+    for sent in [
+        format!("# Despliegue\nEl entorno usa esto:\n\n{A_SECRET}\n"),
+        format!("| a | b |\n| --- | --- |\n| 1 | 2 |\n\n{A_SECRET}\n"),
+        format!("Notas sueltas\n{A_SECRET}\n"),
+    ] {
+        let body = written(&served, &sent);
+        let lines: Vec<&str> = body.lines().collect();
+        let at = lines
+            .iter()
+            .position(|one| one.contains("[!CAUTION]"))
+            .unwrap_or_else(|| panic!("sin aviso: {body}"));
+        let shut = lines[at..]
+            .iter()
+            .position(|one| !one.trim_start().starts_with('>'))
+            .map(|one| at + one)
+            .unwrap_or(lines.len());
+
+        assert!(
+            at == 0 || lines[at - 1].trim().is_empty(),
+            "sin hueco antes del aviso: {body}"
+        );
+        assert!(
+            shut >= lines.len() || lines[shut].trim().is_empty(),
+            "sin hueco despues del aviso, se traga lo de abajo: {body}"
+        );
+    }
+}
+
+#[test]
+fn a_table_at_the_top_is_still_a_table() {
+    let served = Served::new();
+    let body = written(
+        &served,
+        &format!("| a | b |\n| --- | --- |\n| 1 | 2 |\n\n{A_SECRET}\n"),
+    );
+
+    for row in ["| a | b |", "| --- | --- |", "| 1 | 2 |"] {
+        assert!(
+            body.lines().any(|one| one.trim() == row),
+            "la fila {row:?} dejo de ser fila: {body}"
+        );
+    }
+    let rows = body
+        .lines()
+        .position(|one| one.trim() == "| a | b |")
+        .expect("la tabla sigue");
+    let mark = body
+        .lines()
+        .position(|one| one.contains("[!CAUTION]"))
+        .expect("hay aviso");
+    assert!(mark > rows, "el aviso partio la tabla por arriba: {body}");
+}
+
+#[test]
+fn writing_the_same_body_again_does_not_stack_warnings() {
+    let served = Served::new();
+    let sent = format!("# Despliegue\n\n{A_SECRET}\n");
+    let said = served.call("write_doc", serde_json::json!({ "body": sent }));
+    let doc = said["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let mut body = served.body_of(&doc);
+    assert!(body.contains("[!CAUTION]"), "no hubo aviso: {body}");
+
+    for round in 0..3 {
+        let print = tisty_core::attach::printed(body.as_bytes());
+        let again = served.call(
+            "write_doc",
+            serde_json::json!({ "doc": doc, "print": print, "body": body.clone() }),
+        );
+        assert!(
+            again["result"]["isError"] != serde_json::json!(true),
+            "la reescritura {round} fallo: {again}"
+        );
+        body = served.body_of(&doc);
+    }
+
+    assert_eq!(
+        body.matches("[!CAUTION]").count(),
+        1,
+        "se apilaron avisos: {body}"
+    );
+}
+
+#[test]
+fn adding_to_a_document_again_does_not_stack_warnings() {
+    let served = Served::new();
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Notas\n\nnada por aqui\n" }),
+    );
+    let doc = said["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    for _ in 0..3 {
+        served.call(
+            "append_doc",
+            serde_json::json!({ "doc": doc, "body": format!("\n{A_SECRET}\n") }),
+        );
+    }
+
+    let body = served.body_of(&doc);
+    assert_eq!(
+        body.matches("[!CAUTION]").count(),
+        1,
+        "se apilaron avisos: {body}"
+    );
+}
+
+#[test]
+fn a_warning_never_lands_inside_a_fence() {
+    let served = Served::new();
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Abierto\n\n```sh\necho hola\n" }),
+    );
+    let doc = said["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": doc, "body": format!("{A_SECRET}\n") }),
+    );
+
+    let body = served.body_of(&doc);
+    let fences = body.matches("```").count();
+    assert!(
+        !body.contains("[!CAUTION]") || fences.is_multiple_of(2),
+        "el aviso quedo dentro del codigo: {body}"
+    );
+}
+
+#[test]
+fn the_warning_never_becomes_the_title() {
+    let served = Served::new();
+    for sent in [
+        format!("Notas de despliegue\n\n{A_SECRET}\n"),
+        format!("\n\n# Con hueco arriba\n\n{A_SECRET}\n"),
+        format!("## Solo un subtitulo\n\n{A_SECRET}\n"),
+        format!("| a | b |\n| --- | --- |\n\n{A_SECRET}\n"),
+        format!("> Una cita\n>\n> {A_SECRET}\n"),
+        format!("\u{feff}# Con marca de orden\n\n{A_SECRET}\n"),
+    ] {
+        let said = served.call("write_doc", serde_json::json!({ "body": sent }));
+        let title = said["result"]["structuredContent"]["title"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string();
+        assert!(
+            !title.contains("credential") && !title.contains("credencial"),
+            "el aviso se quedo de titulo: {title:?} para {sent:?}"
+        );
+    }
+}
+
+#[test]
+fn a_markdown_file_written_on_windows_comes_in() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    let at = dir.path().join("Windows.md");
+    std::fs::write(&at, "# Notas de Windows\r\n\r\nUna linea cualquiera.\r\n").unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap_or_else(|| panic!("no entro: {said}"));
+    let body = served.body_of(doc);
+    assert!(!body.contains('\r'), "quedaron retornos de carro: {body:?}");
+    assert!(body.contains("Una linea cualquiera."));
+}
+
+#[test]
+fn a_body_the_editor_could_not_keep_is_never_written_by_the_warning() {
+    let served = Served::new();
+    for sent in [
+        format!("# Titulo\n\n{A_SECRET}\n"),
+        format!("> [!NOTE]\n> Una nota del principio\n\n{A_SECRET}\n"),
+        format!("```math\nx = 1\n```\n\n{A_SECRET}\n"),
+        format!("- una lista\n- con puntos\n\n{A_SECRET}\n"),
+    ] {
+        let said = served.call("write_doc", serde_json::json!({ "body": sent }));
+        let doc = said["result"]["structuredContent"]["doc"]
+            .as_str()
+            .unwrap_or_else(|| panic!("no entro: {said} para {sent:?}"));
+        let body = served.body_of(doc);
+
+        let again = served.call("write_doc", serde_json::json!({ "body": body.clone() }));
+        assert!(
+            again["result"]["isError"] != serde_json::json!(true),
+            "lo que se guardo ya no se puede volver a escribir: {again} para {body:?}"
+        );
+    }
+}

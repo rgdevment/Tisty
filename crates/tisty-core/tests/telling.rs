@@ -140,3 +140,26 @@ fn nothing_is_turned_away_for_what_it_holds() {
         "un png que no es png entro igual"
     );
 }
+
+#[test]
+fn a_token_nobody_assigned_to_anything_is_still_a_token() {
+    for plain in [
+        r#"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0"#,
+        r#"ghp_16C7e42F292c6912E7710c838347Ae178B4a"#,
+        r#"postgres://admin:Pa55word123@db.example.com:5432/prod"#,
+        r#"https://hooks.slack.com/services/EJEMPLO/EJEMPLO/EJEMPLO"#,
+    ] {
+        assert!(told(plain).is_some(), "se le escapo: {plain}");
+    }
+}
+
+#[test]
+fn prose_and_paths_that_merely_look_long_are_left_alone() {
+    for plain in [
+        r#"Descarga el instalador desde https://ejemplo.cl/descargas/tisty-1.4.1-x64.msi"#,
+        r#"El fichero vive en /home/mario/proyectos/tisty/crates/tisty-core/src/agent.rs"#,
+        r#"git clone https://github.com/rgdevment/tisty.git"#,
+    ] {
+        assert_eq!(told(plain), None, "lo tomo por secreto: {plain}");
+    }
+}

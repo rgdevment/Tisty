@@ -27,21 +27,31 @@ const ENTITIES: [(&str, &str); 8] = [
 ];
 
 pub fn tidied(body: &str) -> Tidied {
-    if crate::docs::survives(body).is_ok() {
+    let windows = body.contains("\r\n");
+    let plain = match windows {
+        true => body.replace("\r\n", "\n"),
+        false => body.to_string(),
+    };
+    let opened = match windows {
+        true => vec!["Windows line endings"],
+        false => Vec::new(),
+    };
+    if crate::docs::survives(&plain).is_ok() {
         return Tidied {
-            body: body.to_string(),
-            changed: Vec::new(),
+            body: plain,
+            changed: opened,
         };
     }
+    let body = plain.as_str();
     let whole_again = body;
-    let mut said: Vec<&'static str> = Vec::new();
+    let mut said: Vec<&'static str> = opened;
     let mut note = |what: &'static str, changed: &mut Vec<&'static str>| {
         if !changed.contains(&what) {
             changed.push(what);
         }
     };
 
-    let body = body.trim_start_matches('\u{feff}').replace("\r\n", "\n");
+    let body = body.trim_start_matches('\u{feff}').to_string();
     let (body, cut) = unfronted(&body);
     if cut {
         note("front matter", &mut said);

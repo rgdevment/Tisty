@@ -114,7 +114,7 @@ export const previewOf = (href: string): Preview | null => {
   const kind = ending(at);
   if (WATCHABLE.includes(kind)) return { as: "video", at };
   if (HEARABLE.includes(kind)) return { as: "audio", at };
-  if (!kind) return null;
+  if (!kind && !at.startsWith("attachments/")) return null;
   return { as: "file", at, kind };
 };
 

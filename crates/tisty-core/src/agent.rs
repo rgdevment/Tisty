@@ -153,6 +153,8 @@ const KNOWN_STARTS: &[&str] = &[
     "sq0atp-",
     "sq0csp-",
     "lin_api_",
+    "https://hooks.slack.com/services/",
+    "https://discord.com/api/webhooks/",
     "figd_",
 ];
 
@@ -218,6 +220,34 @@ fn only_a_link(value: &str) -> bool {
     value.contains("://") && !a_link_with_a_password(value)
 }
 
+fn carries_a_prefix(value: &str) -> bool {
+    value.split_whitespace().any(|word| {
+        word.len() >= SHORTEST_KNOWN && KNOWN_STARTS.iter().any(|one| word.starts_with(one))
+    })
+}
+
+fn told_alone(line: &str) -> Option<(bool, &str, &'static str)> {
+    let flat = bared(line.trim());
+    if flat.split_whitespace().count() != 1 {
+        return None;
+    }
+    if carries_a_prefix(flat) {
+        let named = KNOWN_STARTS
+            .iter()
+            .find(|one| flat.starts_with(*one))
+            .copied()
+            .unwrap_or_default();
+        return Some((true, named, "a value carrying a provider's key prefix"));
+    }
+    a_link_with_a_password(flat).then(|| {
+        (
+            true,
+            flat.split("://").next().unwrap_or_default(),
+            "a link with a password written into it",
+        )
+    })
+}
+
 fn told_by(line: &str) -> Option<(bool, &str, &'static str)> {
     written_as(line, '=').or_else(|| written_as(line, ':'))
 }
@@ -226,7 +256,7 @@ fn written_as(line: &str, mark: char) -> Option<(bool, &str, &'static str)> {
     let (key, value) = line.split_once(mark)?;
     let name = a_name(bared(key))?;
     let value = bared(value);
-    if value.len() >= SHORTEST_KNOWN && KNOWN_STARTS.iter().any(|one| value.starts_with(one)) {
+    if carries_a_prefix(value) {
         return Some((true, name, "a value carrying a provider's key prefix"));
     }
     if a_link_with_a_password(value) {
@@ -274,7 +304,7 @@ pub fn secrets_in(head: &[u8]) -> Vec<Telling> {
     let mut seen = Vec::new();
     let mut sure = false;
     for (at, line) in text.lines().enumerate() {
-        let Some((certain, name, why)) = told_by(line) else {
+        let Some((certain, name, why)) = told_by(line).or_else(|| told_alone(line)) else {
             continue;
         };
         sure |= certain;
