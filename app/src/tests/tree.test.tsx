@@ -804,6 +804,26 @@ describe("putting folders and documents in the order you want", () => {
     expect(onOpen).toHaveBeenCalled();
   });
 
+  it("carries nothing on a control-click, which is how macOS asks for the menu", () => {
+    const { container, onMove } = shown();
+    const onto = rowFor(container, "01F");
+    boxed(onto, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => onto;
+
+    fireEvent.pointerDown(handle(container, "personal"), {
+      button: 0,
+      ctrlKey: true,
+      clientX: 0,
+      clientY: 0,
+    });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 40 });
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 104 });
+    document.elementFromPoint = was;
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
   it("marks the row it would drop into while the pointer is over it", () => {
     const { container } = shown();
     const onto = rowFor(container, "01F");
