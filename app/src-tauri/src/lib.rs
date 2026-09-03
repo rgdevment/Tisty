@@ -2675,9 +2675,13 @@ fn folder_file(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     parent: Option<String>,
+    before: Option<String>,
 ) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
     let parent = parent
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
+        .transpose()?;
+    let before: Option<tisty_core::model::FolderId> = before
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
 
@@ -2697,15 +2701,57 @@ fn folder_file(
             return Err(Refusal::of("tooDeep"));
         }
     }
-    session.commit(Op::FolderMove {
+    if before.is_some_and(|at| at == id) {
+        return Err(Refusal::of("intoItself"));
+    }
+    let ops = beside_folders(&session.state, id, parent, before);
+    session.commit_all(ops)?;
+    Ok(())
+}
+
+fn beside_folders(
+    state: &State,
+    id: tisty_core::model::FolderId,
+    parent: Option<tisty_core::model::FolderId>,
+    before: Option<tisty_core::model::FolderId>,
+) -> Vec<Op> {
+    let sitting: Vec<&tisty_core::model::Folder> = state
+        .under(parent)
+        .into_iter()
+        .filter(|one| one.id != id)
+        .collect();
+    let keys: Vec<&str> = sitting.iter().map(|one| one.order.as_str()).collect();
+    let (mine, fresh) = tisty_core::order::dealt(
+        &keys,
+        stop(before.map(|at| sitting.iter().position(|one| one.id == at))),
+    );
+    let mut ops: Vec<Op> = sitting
+        .iter()
+        .zip(fresh)
+        .filter_map(|(one, order)| {
+            order.map(|order| Op::FolderMove {
+                id: one.id,
+                d: tisty_core::event::Filed {
+                    folder: None,
+                    page_of: None,
+                    order: Some(order),
+                },
+            })
+        })
+        .collect();
+    ops.push(Op::FolderMove {
         id,
         d: tisty_core::event::Filed {
             folder: Some(parent),
             page_of: None,
-            order: None,
+            order: Some(mine),
         },
-    })?;
-    Ok(())
+    });
+    ops
+}
+
+fn stop(found: Option<Option<usize>>) -> Option<usize> {
+    found.flatten()
 }
 
 #[tauri::command]
@@ -2713,6 +2759,7 @@ fn doc_file(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     folder: Option<String>,
+    before: Option<String>,
 ) -> Answer<()> {
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
@@ -2720,6 +2767,9 @@ fn doc_file(
     let mut session = held(&session);
 
     let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let before: Option<tisty_core::model::DocId> = before
+        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchDoc")))
+        .transpose()?;
     match session.state.docs.get(&id) {
         None => return Err(Refusal::of("noSuchDoc")),
         Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageStaysPut")),
@@ -2731,15 +2781,56 @@ fn doc_file(
         return Err(Refusal::of("noSuchFolder"));
     }
 
-    session.commit(Op::DocMove {
+    if before.is_some_and(|at| at == id) {
+        return Err(Refusal::of("intoItself"));
+    }
+    let ops = beside_docs(&session.state, id, folder, before);
+    session.commit_all(ops)?;
+    Ok(())
+}
+
+fn beside_docs(
+    state: &State,
+    id: tisty_core::model::DocId,
+    folder: Option<tisty_core::model::FolderId>,
+    before: Option<tisty_core::model::DocId>,
+) -> Vec<Op> {
+    let mut sitting: Vec<&tisty_core::model::Kept> = state
+        .docs
+        .values()
+        .filter(|one| {
+            one.page_of.is_none() && !one.archived && one.folder == folder && one.id != id
+        })
+        .collect();
+    sitting.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
+    let keys: Vec<&str> = sitting.iter().map(|one| one.order.as_str()).collect();
+    let (mine, fresh) = tisty_core::order::dealt(
+        &keys,
+        stop(before.map(|at| sitting.iter().position(|one| one.id == at))),
+    );
+    let mut ops: Vec<Op> = sitting
+        .iter()
+        .zip(fresh)
+        .filter_map(|(one, order)| {
+            order.map(|order| Op::DocMove {
+                id: one.id,
+                d: tisty_core::event::Filed {
+                    folder: None,
+                    page_of: None,
+                    order: Some(order),
+                },
+            })
+        })
+        .collect();
+    ops.push(Op::DocMove {
         id,
         d: tisty_core::event::Filed {
             folder: Some(folder),
             page_of: None,
-            order: None,
+            order: Some(mine),
         },
-    })?;
-    Ok(())
+    });
+    ops
 }
 
 #[tauri::command(async)]
@@ -6083,6 +6174,143 @@ mod behind_tests {
         assert!(
             update::ours(RELEASES),
             "the offer has to lead where our releases live"
+        );
+    }
+}
+
+#[cfg(test)]
+mod ordering {
+    use super::{Session, beside_docs, beside_folders};
+    use tisty_core::{Op, Paths};
+
+    struct Desk {
+        _tmp: tempfile::TempDir,
+        paths: Paths,
+    }
+
+    fn desk() -> Desk {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        std::fs::create_dir_all(paths.docs()).unwrap();
+        Desk { _tmp: tmp, paths }
+    }
+
+    fn folder(session: &mut Session, name: &str, order: &str) -> tisty_core::model::FolderId {
+        let id = ulid::Ulid::generate();
+        session
+            .commit(Op::FolderAdd {
+                id,
+                d: tisty_core::event::FolderAdd {
+                    name: name.into(),
+                    order: order.into(),
+                    parent: None,
+                    icon: None,
+                    color: None,
+                },
+            })
+            .unwrap();
+        id
+    }
+
+    fn shelf(session: &Session) -> Vec<String> {
+        session
+            .state
+            .under(None)
+            .into_iter()
+            .map(|one| one.name.clone())
+            .collect()
+    }
+
+    #[test]
+    fn a_folder_dropped_before_one_that_is_gone_lands_last_rather_than_nowhere() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let moving = folder(&mut session, "mover", "a0");
+        folder(&mut session, "uno", "a1");
+        folder(&mut session, "dos", "a2");
+
+        let ops = beside_folders(&session.state, moving, None, Some(ulid::Ulid::generate()));
+        session.commit_all(ops).unwrap();
+
+        assert_eq!(
+            shelf(&session),
+            ["uno", "dos", "mover"],
+            "a neighbour that vanished must not leave the row where it was"
+        );
+    }
+
+    #[test]
+    fn a_folder_dropped_before_another_lands_right_there() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        folder(&mut session, "uno", "a1");
+        let two = folder(&mut session, "dos", "a2");
+        let moving = folder(&mut session, "mover", "a3");
+
+        let ops = beside_folders(&session.state, moving, None, Some(two));
+        session.commit_all(ops).unwrap();
+
+        assert_eq!(shelf(&session), ["uno", "mover", "dos"]);
+    }
+
+    #[test]
+    fn dropping_at_the_front_over_and_over_never_grows_a_key_out_of_hand() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let one = folder(&mut session, "uno", "a1");
+        let two = folder(&mut session, "dos", "a2");
+
+        for n in 0..600 {
+            let (moving, before) = match n % 2 {
+                0 => (two, one),
+                _ => (one, two),
+            };
+            let ops = beside_folders(&session.state, moving, None, Some(before));
+            session.commit_all(ops).unwrap();
+        }
+
+        let longest = session
+            .state
+            .under(None)
+            .into_iter()
+            .map(|one| one.order.len())
+            .max()
+            .unwrap_or(0);
+        assert!(longest <= 24, "a key grew to {longest}");
+        assert_eq!(shelf(&session).len(), 2);
+    }
+
+    #[test]
+    fn a_document_dropped_before_one_that_is_gone_lands_last_too() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let mut made = |name: &str, order: &str| {
+            let id = ulid::Ulid::generate();
+            session
+                .commit(Op::DocAdd {
+                    id,
+                    d: tisty_core::event::DocAdd {
+                        file: name.into(),
+                        order: order.into(),
+                        folder: None,
+                        page_of: None,
+                    },
+                })
+                .unwrap();
+            id
+        };
+        let moving = made("dev_a-0001", "a0");
+        made("dev_a-0002", "a1");
+        made("dev_a-0003", "a2");
+
+        let ops = beside_docs(&session.state, moving, None, Some(ulid::Ulid::generate()));
+        session.commit_all(ops).unwrap();
+
+        let mut sitting: Vec<&tisty_core::model::Kept> = session.state.docs.values().collect();
+        sitting.sort_by(|a, b| a.order.cmp(&b.order));
+        assert_eq!(
+            sitting.last().map(|one| one.file.as_str()),
+            Some("dev_a-0001")
         );
     }
 }

@@ -781,5 +781,19 @@
   {
     "text": "Escapado \\$$ no cuenta",
     "why": []
+  },
+  {
+    "text": "# t\n\n```mermaid title=\"El paseo\"\ngraph TD\n  A --> B\n```\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\n```math title=\"Dosis\"\na + b\n```\n",
+    "why": []
+  },
+  {
+    "text": "# t\n\n```mermaid showLineNumbers title=\"x\"\ngraph TD\n  A --> B\n```\n",
+    "why": [
+      "fence"
+    ]
   }
 ]
