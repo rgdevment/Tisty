@@ -1115,7 +1115,10 @@ mod tests {
         };
         let (at, from) = grown(&mac(8330, 3936), &mac(8330, 4100)).expect("a tail on macOS");
         assert_eq!(from, 3936);
-        assert!(at.ends_with("active.tisty"));
+        assert_eq!(
+            at.to_str(),
+            Some("/Users/mario/Library/Tisty/store/dev_a/active.tisty")
+        );
 
         let win = |n: u64, m: u64| {
             format!(
@@ -1125,7 +1128,7 @@ mod tests {
         let (at, from) =
             grown(&win(8330, 3936), &win(8330, 4100)).expect("a drive letter is not a separator");
         assert_eq!(from, 3936);
-        assert!(at.ends_with("active.tisty"));
+        assert_eq!(at.to_str(), Some(r"D:\Code\Tisty\store\dev_a\active.tisty"));
     }
 
     #[test]
