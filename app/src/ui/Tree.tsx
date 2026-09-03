@@ -2,7 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import type { Filed, Folded, Papers } from "../core";
 import { led } from "../leading";
 import { fill, t } from "../locales";
-import { type Kind, LOOSE, marked, type Spot, settled, type Where, zoneIn } from "./dragging";
+import {
+  type Kind,
+  LOOSE,
+  marked,
+  type Spot,
+  settled,
+  speedAt,
+  type Where,
+  zoneIn,
+} from "./dragging";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 
@@ -51,6 +60,8 @@ export default function Tree({
     null,
   );
   const took = useRef(false);
+  const pointed = useRef<{ x: number; y: number } | null>(null);
+  const rolling = useRef(0);
 
   const spotAt = (x: number, y: number): { spot: Spot; where: Where } | null => {
     const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop]");
@@ -81,6 +92,32 @@ export default function Tree({
     go();
   };
 
+  const lit = (x: number, y: number) => {
+    const found = spotAt(x, y);
+    setOver(found ? marked(found.spot, found.where) : null);
+  };
+
+  const roll = () => {
+    const at = pointed.current;
+    const sheet = listed.current?.closest<HTMLElement>(".scroller");
+    if (at && sheet) {
+      const box = sheet.getBoundingClientRect();
+      const by = speedAt(box.top, box.bottom, at.y);
+      if (by) {
+        const was = sheet.scrollTop;
+        sheet.scrollTop += by;
+        if (sheet.scrollTop !== was) lit(at.x, at.y);
+      }
+    }
+    rolling.current = requestAnimationFrame(roll);
+  };
+
+  const stopRolling = () => {
+    cancelAnimationFrame(rolling.current);
+    rolling.current = 0;
+    pointed.current = null;
+  };
+
   useEffect(() => {
     const moved = (e: PointerEvent) => {
       const held = holding.current;
@@ -89,17 +126,22 @@ export default function Tree({
         if (Math.hypot(e.clientX - held.x, e.clientY - held.y) < STIRS) return;
         held.on = true;
         setCarried({ id: held.id, kind: held.kind });
+        if (!rolling.current) rolling.current = requestAnimationFrame(roll);
       }
       e.preventDefault();
-      const found = spotAt(e.clientX, e.clientY);
-      setOver(found ? marked(found.spot, found.where) : null);
+      pointed.current = { x: e.clientX, y: e.clientY };
+      lit(e.clientX, e.clientY);
     };
 
     const dropped = (e: PointerEvent) => {
       const held = holding.current;
       holding.current = null;
+      stopRolling();
       if (!held?.on) return;
       took.current = true;
+      setTimeout(() => {
+        took.current = false;
+      }, 0);
       setCarried(null);
       setOver(null);
       const found = spotAt(e.clientX, e.clientY);
@@ -116,6 +158,7 @@ export default function Tree({
 
     const quit = () => {
       holding.current = null;
+      stopRolling();
       setCarried(null);
       setOver(null);
     };
@@ -129,6 +172,8 @@ export default function Tree({
       window.removeEventListener("pointercancel", quit);
     };
   });
+
+  useEffect(() => () => cancelAnimationFrame(rolling.current), []);
 
   const first = papers.folders[0]?.id ?? papers.docs[0]?.id ?? "unfiled";
   const stops = (id: string) => (reached ?? first) === id;
@@ -264,10 +309,10 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          data-drop={doc.id}
+          data-drop={page ? undefined : doc.id}
           data-drop-kind="doc"
           data-drop-parent={doc.folder ?? ""}
-          data-drop-next={page ? "" : (nextOf(inside(doc.folder ?? null), doc.id) ?? "")}
+          data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
           data-drop-holds={takesPages(doc) ? "yes" : "no"}
           className={`group/paper relative flex items-center rounded-md focus-within:bg-hover ${
             over === doc.id ? "bg-accent-soft" : ""
@@ -301,7 +346,7 @@ export default function Tree({
               aria-expanded={!closed}
               aria-controls={`pages-${doc.id}`}
               style={{ marginLeft: `${8 + depth * STEP}px` }}
-              className="relative grid h-5 w-3 shrink-0 place-items-center rounded text-[12px] leading-none font-semibold text-faint opacity-0 transition-opacity before:absolute before:-inset-y-0.5 before:-left-2 before:-right-2 before:content-[''] group-hover/paper:opacity-100 hover:text-ink focus-visible:opacity-100"
+              className="relative grid h-5 w-3 shrink-0 place-items-center rounded text-[12px] leading-none font-semibold text-faint opacity-0 transition-opacity before:absolute before:-inset-y-1 before:-left-2.5 before:right-0 before:content-[''] group-hover/paper:opacity-100 hover:text-ink focus-visible:opacity-100"
             >
               {closed ? "+" : "−"}
             </button>

@@ -11,7 +11,7 @@ vi.mock("mermaid", () => ({
     initialize: () => {},
     render: (...args: unknown[]) => {
       sketch.calls.push(args);
-      return Promise.resolve({ svg: "<svg data-drawn=\"yes\"></svg>" });
+      return Promise.resolve({ svg: '<svg data-drawn="yes"></svg>' });
     },
   },
 }));
