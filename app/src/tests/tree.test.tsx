@@ -825,9 +825,11 @@ describe("putting folders and documents in the order you want", () => {
     fireEvent.pointerMove(window, { clientX: 0, clientY: 40 });
     fireEvent.pointerUp(window, { clientX: 0, clientY: 115 });
     document.elementFromPoint = was;
-    await new Promise((go) => setTimeout(go, 0));
 
-    fireEvent.click(within(container).getByRole("button", { name: "Compras" }));
+    const next = within(container).getByRole("button", { name: "Compras" });
+    fireEvent.pointerDown(next, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 0 });
+    fireEvent.click(next);
 
     expect(onOpen).toHaveBeenCalled();
   });
@@ -843,8 +845,8 @@ describe("putting folders and documents in the order you want", () => {
       ({ top: 0, bottom: 600, height: 600, left: 0, right: 200, width: 200 }) as DOMRect;
     Object.defineProperty(sheet, "scrollTop", { value: 0, writable: true });
 
-    const frames: (() => void)[] = [];
-    vi.stubGlobal("requestAnimationFrame", (fn: () => void) => {
+    const frames: ((now: number) => void)[] = [];
+    vi.stubGlobal("requestAnimationFrame", (fn: (now: number) => void) => {
       frames.push(fn);
       return frames.length;
     });
@@ -852,16 +854,23 @@ describe("putting folders and documents in the order you want", () => {
     const seen = document.elementFromPoint;
     document.elementFromPoint = () => null;
 
+    let clock = 1000;
+    const tick = () => {
+      clock += 16;
+      for (const one of frames.splice(0)) one(clock);
+    };
+
     const row = within(sheet).getByRole("button", { name: "personal" }) as HTMLElement;
     fireEvent.pointerDown(row, { button: 0, clientX: 0, clientY: 300 });
     fireEvent.pointerMove(window, { clientX: 0, clientY: 596 });
-    for (const one of frames.splice(0)) one();
+    tick();
+    tick();
 
     expect(sheet.scrollTop).toBeGreaterThan(0);
 
     const rolled = sheet.scrollTop;
     fireEvent.pointerUp(window, { clientX: 0, clientY: 596 });
-    for (const one of frames.splice(0)) one();
+    tick();
     expect(sheet.scrollTop).toBe(rolled);
 
     vi.unstubAllGlobals();
@@ -904,6 +913,76 @@ describe("putting folders and documents in the order you want", () => {
     document.elementFromPoint = was;
 
     expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("does not open the row when a cancelled drag is let go over it", () => {
+    const onOpen = vi.fn();
+    const { container } = render(
+      <Tree papers={papers} onOpen={onOpen} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />,
+    );
+    const row = within(container).getByRole("button", { name: "Compras" }) as HTMLElement;
+    const onto = container.querySelector<HTMLElement>('[data-drop="01F"]') as HTMLElement;
+    boxed(onto, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => onto;
+
+    fireEvent.pointerDown(row, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 40 });
+    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 40 });
+    fireEvent.click(row);
+    document.elementFromPoint = was;
+
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("puts down what the keyboard was holding when the pointer picks something up", () => {
+    const onFile = vi.fn();
+    render(
+      <Tree papers={papers} onOpen={vi.fn()} onFile={onFile} onHere={vi.fn()} onMove={vi.fn()} />,
+    );
+    const loose = screen.getByRole("button", { name: "Suelto" });
+    loose.focus();
+    fireEvent.keyDown(loose, { key: "x", ctrlKey: true });
+    expect(screen.getByRole("status").textContent).toContain("Suelto");
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Contrato" }), {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+    });
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("does not take a document dropped among the archived", () => {
+    const { container } = shown();
+    const row = container.querySelector<HTMLElement>('[data-drop="01E"]');
+
+    expect(row).toBeNull();
+  });
+
+  it("marks again when the list slides under a pointer that never moved", () => {
+    const { container } = shown();
+    const first = rowFor(container, "01F");
+    const other = rowFor(container, "01H");
+    boxed(first, 100);
+    boxed(other, 100);
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => first;
+
+    fireEvent.pointerDown(handle(container, "Suelto"), { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 115 });
+    expect(first.className).toContain("bg-accent-soft");
+
+    document.elementFromPoint = () => other;
+    fireEvent.scroll(window);
+
+    expect(first.className).not.toContain("bg-accent-soft");
+    expect(other.className).toContain("bg-accent-soft");
+
+    fireEvent.pointerUp(window, { clientX: 0, clientY: 115 });
+    document.elementFromPoint = was;
   });
 
   it("marks the row it would drop into while the pointer is over it", () => {

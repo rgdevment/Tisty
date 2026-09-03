@@ -196,6 +196,9 @@ body {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
+.scroller:has(.carrying) {
+  overscroll-behavior-y: contain;
+}
 .scroller:hover {
   scrollbar-color: var(--tisty-line) transparent;
 }
