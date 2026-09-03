@@ -203,6 +203,8 @@ leave-nothing      = "nothing of Tisty's own is left on this machine"
 leave-sure         = "Take those away?"
 leave-done         = "gone. The app itself you remove the way you installed it"
 
+secret-warning = "This reads like a live credential rather than an example: {what}. It came in as written — remove it, change it, or delete this notice."
+secret-a-key   = "a private key"
 [plural]
 tasks = { one = "1 task", other = "{n} tasks" }
 lines = { one = "1 line", other = "{n} lines" }

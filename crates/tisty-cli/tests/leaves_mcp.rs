@@ -657,19 +657,53 @@ fn a_document_goes_out_to_a_folder_and_nothing_here_changes() {
 }
 
 #[test]
-fn a_key_renamed_as_markdown_is_still_a_key() {
+fn a_key_renamed_as_markdown_comes_in_under_a_warning() {
     let served = Served::new();
     let (_dir, at) = on_disk(
         "inocente.md",
         "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n-----END RSA PRIVATE KEY-----\n",
     );
 
-    let why = served.refused(
+    let said = served.call(
         "import_doc",
         serde_json::json!({ "path": at.to_str().unwrap() }),
     );
 
-    assert!(why.contains("key or a password"), "{why}");
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(body.contains("[!CAUTION]"), "sin aviso: {body}");
+    assert!(body.contains("BEGIN RSA PRIVATE KEY"), "no entro: {body}");
+}
+
+#[test]
+fn a_guide_that_documents_its_environment_variables_comes_in() {
+    let served = Served::new();
+    let (_dir, at) = on_disk(
+        "Que instalar.md",
+        "# Que instalar
+
+La configuracion queda asi:
+
+```bash
+FOO_URL=\"https://ejemplo.cl/x\"
+FOO_VALOR=\"«REDACTADO»\"
+FOO_CLIENT_KEY=\"$FOO_CLIENT_KEY\"
+FOO_TOKEN=\"REDACTADO\"
+```
+
+| Variable | Valor |
+| --- | --- |
+| FOO_KEY | pendiente |
+",
+    );
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    assert!(served.body_of(doc).contains("FOO_CLIENT_KEY"));
 }
 
 #[test]
@@ -792,7 +826,7 @@ fn a_picture_beside_the_file_comes_in_with_it() {
 }
 
 #[test]
-fn what_cannot_come_in_leaves_no_link_pointing_outside() {
+fn a_key_beside_a_document_comes_in_as_a_copy_tisty_keeps() {
     let served = Served::new();
     let dir = tempfile::Builder::new()
         .tempdir_in(std::env::temp_dir())
@@ -800,7 +834,7 @@ fn what_cannot_come_in_leaves_no_link_pointing_outside() {
     beside(
         dir.path(),
         "secretos/server.key",
-        b"-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n-----END RSA PRIVATE KEY-----\n",
+        b"-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA\n",
     );
     let at = dir.path().join("Notas.md");
     std::fs::write(
@@ -816,13 +850,10 @@ fn what_cannot_come_in_leaves_no_link_pointing_outside() {
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     let body = served.body_of(doc);
-    assert!(!body.contains("server.key"), "the key was linked: {body}");
-    assert!(
-        body.contains("clave del servidor"),
-        "the words that named it are kept: {body}"
-    );
+    assert!(body.contains("attachments/"), "no se copio: {body}");
+    assert!(body.contains("clave del servidor"), "{body}");
     let left = said["result"]["structuredContent"]["left_behind"].to_string();
-    assert!(left.contains("key or a password"), "{left}");
+    assert_eq!(left, "[]", "nada quedo fuera: {left}");
 }
 
 #[test]
@@ -1138,4 +1169,43 @@ fn an_exported_book_reads_as_a_book_outside_tisty() {
         !cover.contains("tisty:doc/"),
         "nothing outside Tisty can follow that: {cover}"
     );
+}
+
+#[test]
+fn a_token_an_assistant_sends_comes_in_under_a_warning_the_person_will_see() {
+    let served = Served::new();
+
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({
+            "body": "# Despliegue\n\nEl token es GITHUB_TOKEN=ghp_16C7e42F292c6912E7710c838347Ae178B4a\n"
+        }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+
+    assert!(body.contains("[!CAUTION]"), "sin aviso: {body}");
+    assert!(body.contains("GITHUB_TOKEN"), "no se guardo: {body}");
+    assert!(
+        body.starts_with("# Despliegue"),
+        "el aviso se puso antes del titulo: {body}"
+    );
+}
+
+#[test]
+fn a_document_that_only_names_its_variables_gets_no_warning() {
+    let served = Served::new();
+
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({
+            "body": "# Que instalar\n\n```bash\nFOO_URL=\"https://ejemplo.cl/x\"\nFOO_CLIENT_KEY=\"REDACTADO\"\n```\n"
+        }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+
+    assert!(!body.contains("[!CAUTION]"), "aviso de mas: {body}");
 }

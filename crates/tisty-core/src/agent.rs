@@ -64,20 +64,10 @@ pub fn may_attach(source: &std::path::Path, paths: &Paths) -> Result<std::path::
     Ok(at)
 }
 
-/// What an assistant may keep, and how it is judged: by the bytes, never by the name. A denylist
-/// of extensions is one rename away from useless, so this asks the file what it is.
-const FOR_AN_AGENT: &[&str] = &[
-    "png", "jpg", "jpeg", "gif", "webp", "avif", "heic", "svg", "pdf", "txt", "md", "csv", "xml",
-    "html", "htm", "docx", "xlsx", "pptx", "odt", "ods", "mp4", "m4v", "mov", "webm", "ogv", "mp3",
-    "m4a", "wav", "ogg", "zip", "7z", "gz", "tgz", "tar",
-];
-
 fn named_type(at: &std::path::Path) -> Option<String> {
     Some(at.extension()?.to_str()?.to_ascii_lowercase())
 }
 
-/// A signature the bytes must carry for the name to be believed. Text formats have none, so they
-/// are judged by what they must not contain instead.
 fn signed_as(kind: &str, head: &[u8]) -> bool {
     let starts = |mark: &[u8]| head.starts_with(mark);
     match kind {
@@ -100,41 +90,216 @@ fn signed_as(kind: &str, head: &[u8]) -> bool {
     }
 }
 
-/// Secrets do not announce themselves by extension. These are the shapes they do carry.
-pub fn holds_a_secret(head: &[u8]) -> bool {
-    if head.starts_with(&[0x30, 0x82]) {
-        return true;
+pub struct Telling {
+    pub line: usize,
+    pub named: String,
+    pub why: &'static str,
+}
+
+impl Telling {
+    pub fn said(&self) -> String {
+        match self.named.is_empty() {
+            true => format!("line {}: {}", self.line, self.why),
+            false => format!("line {}, {}: {}", self.line, self.named, self.why),
+        }
     }
-    let Ok(text) = std::str::from_utf8(head) else {
+}
+
+const SOUNDS_LIKE: &[&str] = &[
+    "SECRET",
+    "PASSWORD",
+    "PASSWD",
+    "PWD",
+    "TOKEN",
+    "APIKEY",
+    "API_KEY",
+    "CREDENTIAL",
+    "PRIVATE",
+    "AUTH",
+    "SIGNATURE",
+    "KEY",
+];
+
+const KNOWN_STARTS: &[&str] = &[
+    "AKIA",
+    "ASIA",
+    "ghp_",
+    "gho_",
+    "ghu_",
+    "ghs_",
+    "ghr_",
+    "github_pat_",
+    "glpat-",
+    "sk-",
+    "sk_live_",
+    "sk_test_",
+    "rk_live_",
+    "pk_live_",
+    "xoxb-",
+    "xoxp-",
+    "xoxa-",
+    "xoxe-",
+    "xapp-",
+    "AIza",
+    "ya29.",
+    "eyJ",
+    "SG.",
+    "npm_",
+    "dop_v1_",
+    "doo_v1_",
+    "hf_",
+    "shpat_",
+    "shpss_",
+    "sq0atp-",
+    "sq0csp-",
+    "lin_api_",
+    "figd_",
+];
+
+const SHORTEST: usize = 8;
+const SHORTEST_ALONE: usize = 24;
+const SHORTEST_KNOWN: usize = 20;
+
+fn bared(said: &str) -> &str {
+    let said = said.trim().trim_end_matches([',', ';']).trim();
+    for mark in ['"', '\'', '`'] {
+        if let Some(inner) = said
+            .strip_prefix(mark)
+            .and_then(|one| one.strip_suffix(mark))
+        {
+            return inner.trim();
+        }
+    }
+    said
+}
+
+fn a_name(key: &str) -> Option<&str> {
+    let name = key.trim().rsplit([' ', '\t']).next()?.trim();
+    let plain = !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'));
+    plain.then_some(name)
+}
+
+fn sounds_like_a_credential(name: &str) -> bool {
+    let loud = name.to_ascii_uppercase();
+    SOUNDS_LIKE.iter().any(|one| loud.contains(one))
+}
+
+fn stands_for_something_else(value: &str) -> bool {
+    value.len() < SHORTEST
+        || value.chars().any(char::is_whitespace)
+        || value.starts_with(['$', '%', '<', '{', '~', '/'])
+        || value.starts_with("./")
+        || value.starts_with("..")
+        || value.contains("${")
+        || value.contains("$(")
+}
+
+fn mixed(value: &str) -> bool {
+    let upper = value.chars().any(|c| c.is_ascii_uppercase());
+    let lower = value.chars().any(|c| c.is_ascii_lowercase());
+    let digit = value.chars().any(|c| c.is_ascii_digit());
+    usize::from(upper) + usize::from(lower) + usize::from(digit) >= 2
+}
+
+fn a_link_with_a_password(value: &str) -> bool {
+    let Some((_, rest)) = value.split_once("://") else {
         return false;
     };
+    let host = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    host.split_once('@')
+        .and_then(|(who, _)| who.split_once(':'))
+        .is_some_and(|(_, word)| !stands_for_something_else(word) && mixed(word))
+}
+
+fn only_a_link(value: &str) -> bool {
+    value.contains("://") && !a_link_with_a_password(value)
+}
+
+fn told_by(line: &str) -> Option<(bool, &str, &'static str)> {
+    written_as(line, '=').or_else(|| written_as(line, ':'))
+}
+
+fn written_as(line: &str, mark: char) -> Option<(bool, &str, &'static str)> {
+    let (key, value) = line.split_once(mark)?;
+    let name = a_name(bared(key))?;
+    let value = bared(value);
+    if value.len() >= SHORTEST_KNOWN && KNOWN_STARTS.iter().any(|one| value.starts_with(one)) {
+        return Some((true, name, "a value carrying a provider's key prefix"));
+    }
+    if a_link_with_a_password(value) {
+        return Some((true, name, "a link with a password written into it"));
+    }
+    if stands_for_something_else(value) || only_a_link(value) || !mixed(value) {
+        return None;
+    }
+    if !sounds_like_a_credential(name) {
+        return None;
+    }
+    Some((
+        value.len() >= SHORTEST_ALONE,
+        name,
+        "a name that says credential and a value that is not a placeholder",
+    ))
+}
+
+pub fn a_key_itself(head: &[u8]) -> Option<Telling> {
+    let told = |line: usize, why| Telling {
+        line,
+        named: String::new(),
+        why,
+    };
+    if head.starts_with(&[0x30, 0x82]) {
+        return Some(told(1, "a DER-encoded key"));
+    }
+    let text = String::from_utf8_lossy(head);
     if text.contains("-----BEGIN") && (text.contains("PRIVATE KEY") || text.contains("CERTIFICATE"))
     {
-        return true;
+        let at = text
+            .lines()
+            .position(|one| one.contains("-----BEGIN"))
+            .unwrap_or(0);
+        return Some(told(at + 1, "a PEM private key or certificate"));
     }
-    let telling = |line: &str| {
-        let line = line.trim();
-        line.split_once('=').is_some_and(|(key, value)| {
-            !key.is_empty()
-                && key
-                    .chars()
-                    .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
-                && value.len() > 12
-        })
-    };
-    text.lines().filter(|one| telling(one)).count() >= 2
+    None
+}
+
+pub fn secrets_in(head: &[u8]) -> Vec<Telling> {
+    if let Some(told) = a_key_itself(head) {
+        return vec![told];
+    }
+    let text = String::from_utf8_lossy(head);
+    let mut seen = Vec::new();
+    let mut sure = false;
+    for (at, line) in text.lines().enumerate() {
+        let Some((certain, name, why)) = told_by(line) else {
+            continue;
+        };
+        sure |= certain;
+        seen.push(Telling {
+            line: at + 1,
+            named: name.to_string(),
+            why,
+        });
+    }
+    match sure || seen.len() >= 2 {
+        true => seen,
+        false => Vec::new(),
+    }
+}
+
+pub fn secret_in(head: &[u8]) -> Option<Telling> {
+    secrets_in(head).into_iter().next()
 }
 
 /// Whether the file itself, not its name, is something an assistant is allowed to copy.
 pub fn fit_to_keep(at: &std::path::Path) -> Result<()> {
     let refused = || crate::Error::NotForAnAgent(at.display().to_string());
-    let kind = named_type(at).ok_or_else(refused)?;
-    if !FOR_AN_AGENT.contains(&kind.as_str()) {
-        return Err(refused());
-    }
-
+    let kind = named_type(at).unwrap_or_default();
     let head = read_head(at).map_err(|_| refused())?;
-    if !signed_as(&kind, &head) || holds_a_secret(&head) {
+    if !signed_as(&kind, &head) {
         return Err(refused());
     }
     Ok(())
@@ -195,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn what_an_assistant_may_keep_is_judged_by_the_bytes_not_the_name() {
+    fn what_an_assistant_may_keep_is_anything_whose_bytes_match_its_name() {
         let room = tempfile::tempdir().unwrap();
         let at = room.path();
 
@@ -206,17 +371,22 @@ mod tests {
             assert!(fit_to_keep(one).is_ok(), "{}", one.display());
         }
 
-        // The four that were sitting in a real Downloads folder when this was written.
-        let env = wrote(
+        let code = wrote(at, "subir.py", b"import os\n\nprint(os.getcwd())\n");
+        let stack = wrote(
             at,
-            "shell-secrets.env",
-            b"AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCY\nGITHUB_TOKEN=ghp_16C7e42F292c6912",
+            "compose.yaml",
+            b"services:\n  db:\n    image: postgres\n",
         );
+        let conf = wrote(at, "vpn.conf", b"[main]\nserver=vpn.example.com");
+        let built = wrote(at, "tisty.exe", b"MZ\x90\x00this is a binary");
+        for one in [&code, &stack, &conf, &built] {
+            assert!(fit_to_keep(one).is_ok(), "{}", one.display());
+        }
+
         let p12 = wrote(at, "privada.p12", &[0x30, 0x82, 0x0A, 0x00]);
         let pem = wrote(at, "key.pem", b"-----BEGIN RSA PRIVATE KEY-----\nMIIEow\n");
-        let conf = wrote(at, "vpn.conf", b"[main]\nserver=vpn.example.com");
-        for one in [&env, &p12, &pem, &conf] {
-            assert!(fit_to_keep(one).is_err(), "{}", one.display());
+        for one in [&p12, &pem] {
+            assert!(fit_to_keep(one).is_ok(), "{}", one.display());
         }
     }
 
@@ -243,11 +413,10 @@ mod tests {
     }
 
     #[test]
-    fn renaming_a_secret_does_not_get_it_past() {
+    fn a_file_dressed_as_another_kind_does_not_get_it_past() {
         let room = tempfile::tempdir().unwrap();
         let at = room.path();
 
-        // The defect a denylist of extensions cannot fix: the name says one thing, the bytes another.
         let dressed = wrote(at, "holiday.png", &[0x30, 0x82, 0x0A, 0x00]);
         let also = wrote(
             at,
@@ -256,11 +425,11 @@ mod tests {
         );
         assert!(
             fit_to_keep(&dressed).is_err(),
-            "a p12 called .png is still a p12"
+            "un p12 llamado .png no es un png"
         );
         assert!(
             fit_to_keep(&also).is_err(),
-            "a key called .pdf is still a key"
+            "una clave llamada .pdf no es un pdf"
         );
     }
 
