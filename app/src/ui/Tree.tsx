@@ -68,7 +68,7 @@ export default function Tree({
   };
 
   const grab = (e: React.PointerEvent, id: string, kind: Kind) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || e.ctrlKey) return;
     holding.current = { id, kind, x: e.clientX, y: e.clientY, on: false };
     took.current = false;
   };
