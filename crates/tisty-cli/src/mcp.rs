@@ -2360,9 +2360,10 @@ fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let icon = match text(args, "icon") {
         Some(key) => Some(tisty_core::model::icon::kept(&key).ok_or_else(|| {
             Refused::Tool(format!(
-                "there is no icon called {key:?}. The names are a closed catalogue — \
-                         home, work, money, study, travel, health, food, shopping, family, code, \
-                         folder, archive are some of them. Leave `icon` out if none fits."
+                "there is no icon called {key:?}. Send a single emoji, or one name from the drawn \
+                         catalogue — home, work, money, study, travel, health, food, \
+                         shopping, family, code, folder, archive are some of them. Leave \
+                         `icon` out if none fits."
             ))
         })?),
         None => None,
@@ -2932,7 +2933,7 @@ fn tools() -> Value {
                     },
                     "icon": {
                         "type": "string",
-                        "description": "One name from Tisty's catalogue, like home, work, money, study, travel, health, food, family or code"
+                        "description": "A single emoji, or one name from the drawn catalogue: home, work, money, study, travel, health, food, family, code and the like. An emoji is often the plainer choice"
                     },
                     "color": {
                         "type": "string",
