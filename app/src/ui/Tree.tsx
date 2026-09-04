@@ -319,7 +319,7 @@ export default function Tree({
 
   const ICON = 18;
   const STEP = 15;
-  const ELBOW = 26;
+  const SPINE = 8 + ICON / 2;
 
   const shortcuts = (kind: "doc" | "folder" | "page") =>
     kind === "page"
@@ -367,6 +367,14 @@ export default function Tree({
     const worn = page ? { mark: null, rest: name } : led(name);
     const pages = pagesOf(doc.id);
     const closed = !spread.has(doc.id) && !pages.some((one) => one.file === open);
+    const mark = worn.mark ? (
+      <span className="text-[12px] leading-none">{worn.mark}</span>
+    ) : (
+      <Glyph
+        name={page ? "alignleft" : "page"}
+        className={page ? "h-[11px] w-[11px] opacity-70" : "h-[13px] w-[13px]"}
+      />
+    );
     return (
       <li key={doc.id} className="relative">
         <div
@@ -376,7 +384,7 @@ export default function Tree({
           data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
           data-drop-holds={takesPages(doc) ? "yes" : "no"}
           data-drop-line={lineTo(doc.folder ?? null).join("/")}
-          className={`group/paper relative flex items-center rounded-md focus-within:bg-hover ${
+          className={`group/row relative flex items-center rounded-md focus-within:bg-hover ${
             over === doc.id ? "bg-accent-soft" : ""
           }${
             over === `${doc.id}:before`
@@ -393,32 +401,24 @@ export default function Tree({
             onDocMenu(doc, { x: e.clientX, y: e.clientY });
           }}
         >
-          {depth > 0 && (
-            <span
-              aria-hidden="true"
-              className="absolute top-1/2 h-px bg-hair"
-              style={{ left: `${14 + (depth - 1) * STEP}px`, width: `${ELBOW}px` }}
-            />
-          )}
-          {pages.length === 0 && (
-            <span
-              aria-hidden="true"
-              style={{ marginLeft: `${8 + depth * STEP}px` }}
-              className="grid h-5 w-3 shrink-0"
-            />
-          )}
-          {pages.length > 0 && (
-            <button
-              type="button"
-              onClick={() => unfold(doc.id)}
-              aria-label={fill(closed ? "showPages" : "hidePages", name)}
-              aria-expanded={!closed}
-              aria-controls={`pages-${doc.id}`}
-              style={{ marginLeft: `${8 + depth * STEP}px` }}
-              className="relative grid h-5 w-3 shrink-0 place-items-center rounded text-[12px] leading-none font-semibold text-faint opacity-0 transition-opacity before:absolute before:-inset-y-1 before:-left-2.5 before:right-0 before:content-[''] group-hover/paper:opacity-100 hover:text-ink focus-visible:opacity-100"
+          {pages.length > 0 ? (
+            <Grip
+              at={8 + depth * STEP}
+              open={!closed}
+              label={fill(closed ? "showPages" : "hidePages", name)}
+              controls={`pages-${doc.id}`}
+              onPress={() => unfold(doc.id)}
             >
-              {closed ? "+" : "−"}
-            </button>
+              {mark}
+            </Grip>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
+              style={{ marginLeft: `${8 + depth * STEP}px` }}
+            >
+              {mark}
+            </span>
           )}
           <button
             type="button"
@@ -439,16 +439,6 @@ export default function Tree({
                 : `${page ? "text-faint" : "text-soft"} hover:bg-hover`
             }`}
           >
-            <span className="flex w-3 shrink-0 justify-center text-faint">
-              {worn.mark ? (
-                <span className="text-[12px] leading-none">{worn.mark}</span>
-              ) : (
-                <Glyph
-                  name={page ? "alignleft" : "page"}
-                  className={page ? "h-[11px] w-[11px] opacity-70" : "h-[13px] w-[13px]"}
-                />
-              )}
-            </span>
             <span className="truncate">{worn.rest}</span>
             {doc.gone && (
               <span title={t("goneDoc")} className="shrink-0 text-[9px] text-urgent">
@@ -466,7 +456,7 @@ export default function Tree({
           <span
             aria-hidden="true"
             className="absolute bottom-1 w-px bg-hair"
-            style={{ left: `${14 + depth * STEP}px`, top: "26px" }}
+            style={{ left: `${SPINE + depth * STEP}px`, top: "26px" }}
           />
         )}
         {pages.length > 0 && !closed && (
@@ -500,24 +490,24 @@ export default function Tree({
           }`}
         >
           <div
-            className="group/folder flex items-center rounded-md"
+            className="group/row flex items-center rounded-md"
             onContextMenu={(e) => {
               if (!onFolderMenu) return;
               e.preventDefault();
               onFolderMenu(folder, { x: e.clientX, y: e.clientY });
             }}
           >
-            <button
-              type="button"
-              onClick={() => fold(folder.id)}
-              aria-label={fill(closed ? "openFolder" : "closeFolder", folder.name)}
-              aria-expanded={!closed}
-              aria-controls={`holds-${folder.id}`}
-              style={{ marginLeft: `${8 + depth * STEP}px` }}
-              className="grid h-5 w-3 shrink-0 place-items-center rounded text-[9px] text-faint hover:text-ink"
+            <Grip
+              at={8 + depth * STEP}
+              open={!closed}
+              label={fill(closed ? "openFolder" : "closeFolder", folder.name)}
+              controls={`holds-${folder.id}`}
+              onPress={() => fold(folder.id)}
             >
-              <span className={`transition-transform ${closed ? "-rotate-90" : ""}`}>▼</span>
-            </button>
+              <span className={`flex items-center ${painted(folder.color)}`}>
+                <Glyph name={folder.icon ?? "folder"} className="h-[15px] w-[15px]" />
+              </span>
+            </Grip>
             <button
               type="button"
               data-row={folder.id}
@@ -535,11 +525,8 @@ export default function Tree({
                 here === folder.id ? "text-ink" : "text-soft"
               }`}
             >
-              <span className={`flex shrink-0 items-center ${painted(folder.color)}`}>
-                <Glyph name={folder.icon ?? "folder"} />
-              </span>
               <span className="truncate">{folder.name}</span>
-              <span className="ml-auto pr-1 text-[11px] text-faint opacity-0 transition-opacity group-hover/folder:opacity-100">
+              <span className="ml-auto pr-1 text-[11px] text-faint opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
                 {folder.holds || ""}
               </span>
             </button>
@@ -549,7 +536,7 @@ export default function Tree({
           <span
             aria-hidden="true"
             className="absolute bottom-1 w-px bg-hair"
-            style={{ left: `${14 + depth * STEP}px`, top: "26px" }}
+            style={{ left: `${SPINE + depth * STEP}px`, top: "26px" }}
           />
         )}
         {!closed && (
@@ -597,22 +584,19 @@ export default function Tree({
           data-drop={LOOSE}
           data-drop-kind="folder"
           data-drop-holds="yes"
-          className={`group/loose mt-1 flex items-center rounded-md ${
+          className={`group/row mt-1 flex items-center rounded-md ${
             over === LOOSE ? "bg-accent-soft" : ""
           }`}
         >
-          <button
-            type="button"
-            onClick={() => fold("unfiled")}
-            aria-label={fill(shut.has("unfiled") ? "openFolder" : "closeFolder", t("unfiled"))}
-            aria-expanded={!shut.has("unfiled")}
-            aria-controls="holds-unfiled"
-            className="ml-2 grid h-5 w-3 shrink-0 place-items-center rounded text-[9px] text-faint hover:text-ink"
+          <Grip
+            at={8}
+            open={!shut.has("unfiled")}
+            label={fill(shut.has("unfiled") ? "openFolder" : "closeFolder", t("unfiled"))}
+            controls="holds-unfiled"
+            onPress={() => fold("unfiled")}
           >
-            <span className={`transition-transform ${shut.has("unfiled") ? "-rotate-90" : ""}`}>
-              ▼
-            </span>
-          </button>
+            <Glyph name="inbox" className="h-[15px] w-[15px]" />
+          </Grip>
           <button
             type="button"
             onContextMenu={(e) => {
@@ -632,11 +616,8 @@ export default function Tree({
               here === null ? "text-ink" : "text-faint"
             }`}
           >
-            <span className="flex shrink-0 items-center">
-              <Glyph name="inbox" />
-            </span>
             <span className="truncate">{t("unfiled")}</span>
-            <span className="ml-auto text-[11px] opacity-0 transition-opacity group-hover/loose:opacity-100">
+            <span className="ml-auto text-[11px] opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
               {loose.length || ""}
             </span>
           </button>
@@ -645,7 +626,7 @@ export default function Tree({
           <span
             aria-hidden="true"
             className="absolute bottom-1 w-px bg-hair"
-            style={{ left: "14px", top: "30px" }}
+            style={{ left: `${SPINE}px`, top: "30px" }}
           />
         )}
         {!shut.has("unfiled") && <ul id="holds-unfiled">{loose.map((doc) => paper(doc, 1))}</ul>}
@@ -689,5 +670,45 @@ export default function Tree({
       {tree}
       {kept}
     </div>
+  );
+}
+
+/// The mark is the button: the icon gives way to the chevron under the pointer, so nothing appears
+/// out of thin air and every row keeps one column before the name.
+function Grip({
+  at,
+  open,
+  label,
+  controls,
+  onPress,
+  children,
+}: {
+  at: number;
+  open: boolean;
+  label: string;
+  controls: string;
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      aria-label={label}
+      aria-expanded={open}
+      aria-controls={controls}
+      style={{ marginLeft: `${at}px` }}
+      className="grid h-5 w-[18px] shrink-0 place-items-center rounded text-faint hover:text-ink"
+    >
+      <span className="col-start-1 row-start-1 flex items-center transition-opacity group-hover/row:opacity-0 group-focus-within/row:opacity-0 motion-reduce:transition-none">
+        {children}
+      </span>
+      <Glyph
+        name="chevron"
+        className={`col-start-1 row-start-1 h-[13px] w-[13px] opacity-0 transition-[opacity,transform] group-hover/row:opacity-100 group-focus-within/row:opacity-100 motion-reduce:transition-none ${
+          open ? "" : "-rotate-90"
+        }`}
+      />
+    </button>
   );
 }

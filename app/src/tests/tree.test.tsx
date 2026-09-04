@@ -122,16 +122,27 @@ describe("the document tree", () => {
     expect(container.querySelectorAll("li.relative > span[aria-hidden].w-px").length).toBe(4);
   });
 
-  it("reaches across to each paper, which has no arrow of its own to say whose it is", () => {
+  it("says whose a paper is with one guide down the branch, and no elbow reaching across", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
 
-    const elbows = Array.from(
-      container.querySelectorAll<HTMLElement>("li.relative span[aria-hidden].h-px"),
+    expect(container.querySelectorAll("span[aria-hidden].h-px")).toHaveLength(0);
+
+    const guides = Array.from(
+      container.querySelectorAll<HTMLElement>("li.relative > span[aria-hidden].w-px"),
     );
-    expect(elbows).toHaveLength(5);
-    expect(new Set(elbows.map((one) => one.style.left))).toEqual(new Set(["14px", "29px"]));
+    expect(new Set(guides.map((one) => one.style.left))).toEqual(new Set(["17px", "32px"]));
+  });
+
+  it("draws the guides in the hairline, standing whether or not the pointer is near", () => {
+    const { container } = render(
+      <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
+    );
+
+    const guide = container.querySelector<HTMLElement>("li.relative > span[aria-hidden].w-px");
+    expect(guide?.className).toContain("bg-hair");
+    expect(guide?.className).not.toContain("opacity-0");
   });
 
   it("takes a folder's guide away with the branch it was drawing", async () => {
@@ -493,8 +504,8 @@ describe("a document with pages", () => {
     const holds = rail(screen.getByRole("button", { name: "Actas" }));
 
     expect(holds.style.marginLeft).toBe(plain.style.marginLeft);
-    expect(holds.className).toContain("w-3");
-    expect(plain.className).toContain("w-3");
+    expect(holds.className).toContain("w-[18px]");
+    expect(plain.className).toContain("w-[18px]");
   });
 
   it("leaves a document with no pages exactly as it was", () => {
@@ -502,6 +513,15 @@ describe("a document with pages", () => {
 
     expect(screen.queryByRole("button", { name: "Close Compras" })).toBeNull();
     expect(screen.getByRole("button", { name: "Compras" }).textContent).not.toContain("page");
+  });
+
+  it("makes the mark itself the button, so no column is added to hold an arrow", () => {
+    show();
+    const folding = rail(screen.getByRole("button", { name: "Actas" }));
+
+    expect(folding.tagName).toBe("BUTTON");
+    expect(folding.querySelectorAll("svg.glyph").length).toBe(2);
+    expect(screen.getByRole("button", { name: "Actas" }).querySelector("svg.glyph")).toBeNull();
   });
 
   it("does not take a document dropped on a page, because a page holds none", async () => {

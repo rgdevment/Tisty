@@ -1244,6 +1244,7 @@ const PATHS: string[] = [
   '<path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /> <path d="M20 2v4" /> <path d="M22 4h-4" /> <circle cx="4" cy="20" r="2" />',
   '<circle cx="11" cy="11" r="8" /> <line x1="21" x2="16.65" y1="21" y2="16.65" /> <line x1="11" x2="11" y1="8" y2="14" /> <line x1="8" x2="14" y1="11" y2="11" />',
   '<circle cx="11" cy="11" r="8" /> <line x1="21" x2="16.65" y1="21" y2="16.65" /> <line x1="8" x2="14" y1="11" y2="11" />',
+  '<path d="m6 9 6 6 6-6" />',
 ];
 
 /// An index into PATHS: the keys that share a Lucide drawing carry it once between them.
@@ -1488,6 +1489,7 @@ const AT: Record<string, number> = {
   chemistry: 225,
   cherry: 226,
   chess: 227,
+  chevron: 1241,
   "chess-bishop": 228,
   "chess-king": 229,
   "chess-knight": 230,
