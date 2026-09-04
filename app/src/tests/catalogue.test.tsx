@@ -26,6 +26,7 @@ const OURS = [
   "alignright",
   "bullets",
   "checks",
+  "chevron",
   "doc",
   "emoji",
   "grid",

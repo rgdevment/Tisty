@@ -80,12 +80,7 @@ export default function Sidebar({
             aria-label={t("docs")}
             className="flex flex-1 items-center gap-1.5 px-2.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
           >
-            <span
-              aria-hidden
-              className={`text-[9px] transition-transform ${openDocs ? "" : "-rotate-90"}`}
-            >
-              ▼
-            </span>
+            {!openDocs && <Glyph name="chevron" className="h-3 w-3 shrink-0 -rotate-90" />}
             {t("docs")}
             <span className="ml-auto text-[11px] font-normal">
               {papers.docs.filter((one) => !one.pageOf).length || ""}
