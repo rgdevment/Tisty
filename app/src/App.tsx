@@ -1148,7 +1148,9 @@ export default function App() {
               onError={(e) => setError(saidPlainly(e))}
             />
           ) : chosen.named === "quadrants" && !(open && mode === "sheet") ? (
-            <>
+            // One child, one track: a fragment of two would push the board into the next column,
+            // which is nought pixels wide whenever nothing is open beside it.
+            <div className="flex min-w-0 flex-col overflow-hidden">
               {strip && <div className="shrink-0 px-5 pt-2">{strip}</div>}
               <Matrix
                 tasks={data.tasks}
@@ -1172,7 +1174,7 @@ export default function App() {
                     .catch((e) => setError(saidPlainly(e)));
                 }}
               />
-            </>
+            </div>
           ) : chosen.named === "keeping" ? (
             <Keeping
               greeted={greeted}

@@ -23,19 +23,31 @@ export const spots = (doc: Written): { from: number; to: number }[] => {
   doc.descendants((node, at) => {
     if (!node.isText || !node.text) return;
     if (node.marks.some((mark) => mark.type.name === "code")) return;
+    // A backtick pair marks code here too, the way the core reads it off the saved markdown.
+    const said = node.text.replace(/`[^`]*`/g, (one) => " ".repeat(one.length));
     AT.lastIndex = 0;
-    let hit = AT.exec(node.text);
+    let hit = AT.exec(said);
     while (hit) {
       const from = at + hit.index + hit[1].length;
       found.push({ from, to: from + hit[2].length + 1 });
-      hit = AT.exec(node.text);
+      hit = AT.exec(said);
     }
   });
   return found;
 };
 
-/// The same shape the core gives a tag: lowercase, underscores as dashes.
-export const named = (said: string): string => said.toLowerCase().replace(/_/g, "-");
+/// The same shape the core gives a tag — accents off, lowercase, underscores and spaces as dashes,
+/// nothing else kept, and never two dashes in a row. A word that lands anywhere else opens a
+/// screen with nothing on it.
+export const named = (said: string): string =>
+  said
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[\s_]/g, "-")
+    .replace(/[^\p{L}\p{N}-]/gu, "")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 export const tagging = (onTag?: (tag: string) => void) =>
   Extension.create({

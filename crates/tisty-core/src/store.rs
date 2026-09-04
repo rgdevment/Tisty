@@ -48,7 +48,7 @@ impl Store {
             let _ = crate::paths::ours_alone(parent);
         }
 
-        mend(&dir.join(ACTIVE));
+        mend(&dir);
         let (active_events, head, seq) = tail_of(&dir.join(ACTIVE))?;
         let seen = active_size(&dir.join(ACTIVE));
 
@@ -804,22 +804,66 @@ fn active_size(path: &Path) -> u64 {
 /// than read, because refusing it would take every whole event before it down as well. Only ever
 /// the last line, only ever this machine's own active segment: a sealed one has its count to
 /// answer for, and another machine's history is not ours to mend.
-fn mend(path: &Path) {
-    let Ok(whole) = std::fs::read_to_string(path) else {
+fn mend(dir: &Path) {
+    // Behind the same lock every writer takes: mending renames a fresh file over the old one, so
+    // whatever somebody appended meanwhile would go down with the inode it was written to. A lock
+    // that will not come means a writer is alive, and a live writer's tail is not torn.
+    let Ok(guard) = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(dir.join(LOCK))
+    else {
         return;
     };
-    let Some(shut) = whole.rfind('\n') else {
-        return;
-    };
-    let tail = &whole[shut + 1..];
-    if tail.trim().is_empty() || serde_json::from_str::<Stamped>(tail).is_ok() {
+    if !guard.try_lock_exclusive().unwrap_or(false) {
         return;
     }
+
+    let path = &dir.join(ACTIVE);
+    // Read as bytes: half of a multi-byte letter is not text, and refusing to look at it would
+    // leave the very file this exists to save unreadable.
+    let Ok(whole) = std::fs::read(path) else {
+        return;
+    };
+    let shut = whole.iter().rposition(|one| *one == b'\n');
+    let tail = match shut {
+        Some(at) => &whole[at + 1..],
+        None => &whole[..],
+    };
+    if tail.is_empty() {
+        return;
+    }
+
+    // A tail that parses is a whole event whose newline the cut took. Give the newline back: an
+    // append lands right behind it otherwise, and two events on one line take both down.
+    let said = std::str::from_utf8(tail).ok();
+    if said.is_some_and(|one| one.trim().is_empty() || serde_json::from_str::<Stamped>(one).is_ok())
+    {
+        let mut kept = whole.clone();
+        kept.push(b'\n');
+        if let Err(why) = write_atomic(path, &kept) {
+            witness::warn(
+                channel::STORE,
+                "the last line of the log could not be given its newline back",
+                &[
+                    ("at", Fact::Path(path.to_path_buf())),
+                    ("why", Fact::Why(why.to_string())),
+                ],
+            );
+        }
+        return;
+    }
+
     let aside = path.with_extension("torn");
     if std::fs::write(&aside, tail).is_err() {
         return;
     }
-    if let Err(why) = write_atomic(path, &whole.as_bytes()[..=shut]) {
+    let kept: &[u8] = match shut {
+        Some(at) => &whole[..=at],
+        None => &[],
+    };
+    if let Err(why) = write_atomic(path, kept) {
         witness::warn(
             channel::STORE,
             "the half line a power cut left could not be set aside",

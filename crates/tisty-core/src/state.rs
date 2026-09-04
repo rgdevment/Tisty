@@ -279,7 +279,7 @@ impl State {
                         tags: d
                             .said
                             .as_ref()
-                            .map(|one| one.tags.clone())
+                            .and_then(|one| one.tags.clone())
                             .unwrap_or_default(),
                     },
                 );
@@ -288,7 +288,10 @@ impl State {
                 if let Some(kept) = self.docs.get_mut(id) {
                     kept.title = Some(d.title.clone());
                     kept.bytes = d.bytes;
-                    kept.tags = d.tags.clone();
+                    // A note from a build that never read tags says nothing about them.
+                    if let Some(tags) = &d.tags {
+                        kept.tags = tags.clone();
+                    }
                     kept.wrote = Some(event.timestamp);
                 }
             }
@@ -987,21 +990,22 @@ impl State {
     }
 
     pub fn ordered_open(&self) -> Vec<&Task> {
+        // Borrowed, not cloned: sort_by asks for the key on both sides of every comparison, and
+        // the tally alone sorts this list thirteen times for one snapshot.
+        fn key(t: &Task) -> (Option<jiff::civil::DateTime>, Priority, &str, TaskId) {
+            (
+                t.date.as_ref().map(|d| d.at),
+                t.priority,
+                t.order.as_str(),
+                t.id,
+            )
+        }
+
         let mut tasks: Vec<_> = self.open_tasks().collect();
-        tasks.sort_by(|a, b| {
-            let key = |t: &Task| {
-                (
-                    t.date.as_ref().map(|d| d.at),
-                    t.priority,
-                    t.order.clone(),
-                    t.id,
-                )
-            };
-            match (&a.date, &b.date) {
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                _ => key(a).cmp(&key(b)),
-            }
+        tasks.sort_by(|a, b| match (&a.date, &b.date) {
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            _ => key(a).cmp(&key(b)),
         });
         tasks
     }
