@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
@@ -31,26 +32,35 @@ pub fn kept(cache: &Path, at: &str) -> Option<Glimpse> {
 }
 
 const KEEPS: usize = 200;
+/// Counting files is not counting weight: each one carries a picture, and two hundred of the
+/// largest would be a hundred megabytes of somebody's disk for cards they can ask for again.
+const WEIGHS_AT_MOST: u64 = 24 * 1024 * 1024;
 
-/// Nothing here is worth more than the asking: past a few hundred, the oldest go so a cache never
-/// becomes a place things pile up in for good.
+/// Nothing here is worth more than the asking: past a few hundred, or past the weight, the oldest
+/// go so a cache never becomes a place things pile up in for good.
 fn thinned(dir: &Path) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
-    let mut held: Vec<(std::time::SystemTime, PathBuf)> = entries
+    let mut held: Vec<(std::time::SystemTime, u64, PathBuf)> = entries
         .filter_map(|one| one.ok())
         .filter_map(|one| {
-            let when = one.metadata().ok()?.modified().ok()?;
-            Some((when, one.path()))
+            let facts = one.metadata().ok()?;
+            Some((facts.modified().ok()?, facts.len(), one.path()))
         })
         .collect();
-    if held.len() <= KEEPS {
-        return;
-    }
-    held.sort_by_key(|(when, _)| *when);
-    for (_, at) in held.iter().take(held.len() - KEEPS) {
-        let _ = std::fs::remove_file(at);
+    held.sort_by_key(|(when, _, _)| *when);
+
+    let mut weighs: u64 = held.iter().map(|(_, bytes, _)| bytes).sum();
+    let mut many = held.len();
+    for (_, bytes, at) in held.iter() {
+        if many <= KEEPS && weighs <= WEIGHS_AT_MOST {
+            break;
+        }
+        if std::fs::remove_file(at).is_ok() {
+            weighs = weighs.saturating_sub(*bytes);
+            many -= 1;
+        }
     }
 }
 
@@ -101,8 +111,9 @@ pub fn fetch(at: &str) -> Option<Glimpse> {
     if !page.status().is_success() {
         return None;
     }
-    let body = page.text().ok()?;
-    let head = &body[..body.len().min(READS)];
+    // Read to the cap rather than reading it all and cutting: how much of our memory a page
+    // takes is not the page's decision. Lossy because a cut lands mid-character sooner or later.
+    let head = &held(page, READS)?;
 
     let mut one = Glimpse {
         title: named(head, "og:title")
@@ -138,7 +149,11 @@ fn pictured(client: &reqwest::blocking::Client, at: &str) -> Option<String> {
     if !kind.starts_with("image/") {
         return None;
     }
-    let bytes = asked.bytes().ok()?;
+    let mut bytes = Vec::new();
+    asked
+        .take(SHOT_AT_MOST as u64 + 1)
+        .read_to_end(&mut bytes)
+        .ok()?;
     if bytes.len() > SHOT_AT_MOST {
         return None;
     }
@@ -175,22 +190,41 @@ fn whole(page: &str, shot: &str) -> String {
     }
 }
 
+/// What a server sends is not ours to hold whole: nothing past the cap is ever read off the wire.
+fn held(page: reqwest::blocking::Response, most: usize) -> Option<String> {
+    let mut raw = Vec::new();
+    page.take(most as u64).read_to_end(&mut raw).ok()?;
+    Some(String::from_utf8_lossy(&raw).into_owned())
+}
+
+/// Lowercased in place, byte for byte: `to_lowercase` can change a letter's length, and an
+/// index taken from the copy would land in the middle of another letter in the original.
+fn flattened(head: &str) -> String {
+    head.chars()
+        .map(|one| match one.is_ascii_uppercase() {
+            true => one.to_ascii_lowercase(),
+            false => one,
+        })
+        .collect()
+}
+
 fn titled(head: &str) -> Option<String> {
-    let at = head.to_lowercase().find("<title")?;
+    let low = flattened(head);
+    let at = low.find("<title")?;
     let rest = &head[at..];
     let opens = rest.find('>')? + 1;
-    let shuts = rest.to_lowercase().find("</title>")?;
+    let shuts = flattened(rest).find("</title>")?;
     (opens < shuts).then(|| tidy(&rest[opens..shuts]))?
 }
 
 fn named(head: &str, want: &str) -> Option<String> {
-    let low = head.to_lowercase();
+    let low = flattened(head);
     let mut from = 0;
     while let Some(at) = low[from..].find("<meta") {
         let start = from + at;
         let end = low[start..].find('>').map(|one| start + one)?;
         let tag = &head[start..end];
-        if holds(&tag.to_lowercase(), want)
+        if holds(&flattened(tag), want)
             && let Some(said) = valued(tag, "content")
         {
             return tidy(&said);
@@ -232,6 +266,50 @@ fn tidy(said: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    /// A page cut at the cap lands mid-character sooner or later, and slicing a string there is a
+    /// panic. What is read off the wire is bytes, so the cut is made where bytes may be cut.
+    #[test]
+    fn a_page_cut_in_the_middle_of_a_letter_is_still_read() {
+        let mut raw = "a".repeat(super::READS - 1).into_bytes();
+        raw.extend_from_slice("ñ".as_bytes());
+        let said = String::from_utf8_lossy(&raw[..super::READS]).into_owned();
+
+        assert_eq!(
+            said.len(),
+            super::READS + 2,
+            "el trozo partido se reemplaza"
+        );
+        assert!(said.ends_with('\u{fffd}'), "y nada estalla al leerlo");
+    }
+
+    #[test]
+    fn a_cache_of_glimpses_stops_growing_by_weight_as_well_as_by_count() {
+        let room = tempfile::tempdir().unwrap();
+        let heavy = "x".repeat(600 * 1024);
+        for n in 0..60 {
+            keep(
+                room.path(),
+                &format!("https://ejemplo.com/{n}"),
+                &super::Glimpse {
+                    title: Some(format!("uno {n}")),
+                    said: None,
+                    shot: Some(heavy.clone()),
+                },
+            );
+        }
+
+        let weighs: u64 = std::fs::read_dir(room.path())
+            .unwrap()
+            .filter_map(|one| one.ok()?.metadata().ok())
+            .map(|one| one.len())
+            .sum();
+
+        assert!(
+            weighs <= super::WEIGHS_AT_MOST,
+            "sesenta caratulas grandes caben en menos de lo que pesan: {weighs}"
+        );
+    }
+
     #[test]
     fn a_cache_of_glimpses_stops_growing_and_lets_the_oldest_go() {
         let room = tempfile::tempdir().unwrap();

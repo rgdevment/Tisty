@@ -33,6 +33,12 @@ describe("what the editor paints as a tag", () => {
 
   it("holds nothing where the hash stands alone", () => {
     expect(lit("un # suelto")).toEqual([]);
+    expect(lit("#_borrador y #-legal")).toEqual([]);
+  });
+
+  it("reads a run of code the way the core reads it, and a lone backtick as prose", () => {
+    expect(lit("el operador ` marca código y esto es #legal")).toEqual(["#legal"]);
+    expect(lit("`#rojo` no, pero #legal sí")).toEqual(["#legal"]);
   });
 
   it("reads the same as the core does, hyphens and all", () => {
@@ -43,5 +49,14 @@ describe("what the editor paints as a tag", () => {
     expect(named("Contrato")).toBe("contrato");
     expect(named("pago_mensual")).toBe("pago-mensual");
     expect(named("legal")).toBe("legal");
+  });
+
+  it("shapes the odd ones the way the core does, or the screen opens empty", () => {
+    expect(named("legal_")).toBe("legal");
+    expect(named("legal__mensual")).toBe("legal-mensual");
+    expect(named("-legal-")).toBe("legal");
+    expect(named("diseño")).toBe("diseno");
+    expect(named("camión")).toBe(named("camion"));
+    expect(named("CAMIÓN")).toBe("camion");
   });
 });

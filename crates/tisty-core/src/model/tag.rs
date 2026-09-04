@@ -1,6 +1,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+use unicode_normalization::UnicodeNormalization;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("a tag needs at least one letter or digit")]
@@ -12,10 +13,14 @@ pub struct Tag(String);
 
 impl Tag {
     pub fn new(raw: &str) -> Result<Self, InvalidTag> {
+        // Accents come off: somebody writes #camion on Monday and #camión on Friday, and one tag
+        // is what they meant both times. Read back through serde, so tags already written fold
+        // themselves the next time the log is read.
         let normalised: String = crate::text::composed(raw)
             .trim()
             .to_lowercase()
-            .chars()
+            .nfd()
+            .filter(|c| !unicode_normalization::char::is_combining_mark(*c))
             .map(|c| {
                 if c.is_whitespace() || c == '_' {
                     '-'
@@ -101,10 +106,9 @@ mod tests {
     }
 
     #[test]
-    fn an_accent_written_apart_from_its_letter_is_still_that_letter() {
-        assert_eq!(tag("disen\u{0303}o"), "diseño");
+    fn an_accent_written_apart_from_its_letter_lands_on_the_same_tag() {
         assert_eq!(tag("disen\u{0303}o"), tag("diseño"));
-        assert_eq!(tag("gestio\u{0301}n"), "gestión");
+        assert_eq!(tag("gestio\u{0301}n"), tag("gestión"));
     }
 
     #[test]
@@ -113,9 +117,20 @@ mod tests {
         assert_eq!(tag("#bug!"), "bug");
     }
 
+    /// One word, one tag: nobody writes the accent the same way twice, and a tag people cannot
+    /// hit reliably is a tag that quietly splits their work in two.
     #[test]
-    fn accents_survive() {
-        assert_eq!(tag("migración"), "migración");
+    fn a_word_is_one_tag_however_its_accents_were_typed() {
+        assert_eq!(tag("migración"), "migracion");
+        assert_eq!(tag("camión"), tag("camion"));
+        assert_eq!(tag("camión"), tag("CAMIÓN"));
+        assert_eq!(tag("niño"), "nino");
+    }
+
+    #[test]
+    fn an_accent_that_is_the_whole_letter_still_leaves_something_behind() {
+        assert_eq!(tag("año"), "ano");
+        assert_eq!(Tag::new("´"), Err(InvalidTag));
     }
 
     #[test]

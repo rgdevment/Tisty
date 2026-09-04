@@ -262,7 +262,7 @@ fn a_note_of_what_a_document_said_is_one_an_older_build_can_walk_past() {
         d: tisty_core::event::Said {
             title: "Lo que dice".into(),
             bytes: Some(12),
-            tags: Vec::new(),
+            tags: Some(Vec::new()),
         },
     };
 
@@ -300,7 +300,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
             said: Some(tisty_core::event::Said {
                 title: "Como nacio".into(),
                 bytes: None,
-                tags: Vec::new(),
+                tags: Some(Vec::new()),
             }),
             folder: None,
             page_of: None,
@@ -320,7 +320,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
         d: tisty_core::event::Said {
             title: "Como se llama ahora".into(),
             bytes: Some(40),
-            tags: Vec::new(),
+            tags: Some(Vec::new()),
         },
     })
     .unwrap();
@@ -373,7 +373,7 @@ fn the_note_goes_out_marked_so_an_older_build_skips_it() {
         d: tisty_core::event::Said {
             title: "Algo".into(),
             bytes: None,
-            tags: Vec::new(),
+            tags: Some(Vec::new()),
         },
     })
     .unwrap();
