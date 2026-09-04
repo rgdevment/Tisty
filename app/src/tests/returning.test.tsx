@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
 import Docs from "../ui/Docs";
 
@@ -45,6 +45,8 @@ const largo = (title: string) =>
 
 beforeEach(() => {
   watching = [];
+  tall = 4000;
+  restore = measured();
   vi.stubGlobal("ResizeObserver", Watcher);
   store.bodies = {
     "a3f1-0001": largo("El documento"),
@@ -55,20 +57,50 @@ beforeEach(() => {
 const scroller = () => document.querySelector<HTMLElement>(".scroller");
 
 const SEEN = 600;
+let tall = 4000;
+const puts = new WeakMap<HTMLElement, number>();
 
-const clamped = (at: HTMLElement, room: () => number) => {
-  if (Object.getOwnPropertyDescriptor(at, "scrollTop")) return;
-  let put = 0;
-  Object.defineProperty(at, "clientHeight", { get: () => SEEN, configurable: true });
-  Object.defineProperty(at, "scrollHeight", { get: room, configurable: true });
-  Object.defineProperty(at, "scrollTop", {
+const rolls = (one: HTMLElement) => one.classList?.contains("scroller") ?? false;
+
+const measured = () => {
+  const proto = HTMLElement.prototype;
+  const kept = {
+    clientHeight: Object.getOwnPropertyDescriptor(proto, "clientHeight"),
+    scrollHeight: Object.getOwnPropertyDescriptor(proto, "scrollHeight"),
+    scrollTop: Object.getOwnPropertyDescriptor(proto, "scrollTop"),
+  };
+  Object.defineProperty(proto, "clientHeight", {
     configurable: true,
-    get: () => put,
-    set: (asked: number) => {
-      put = Math.max(0, Math.min(asked, room() - SEEN));
+    get(this: HTMLElement) {
+      return rolls(this) ? SEEN : 0;
     },
   });
+  Object.defineProperty(proto, "scrollHeight", {
+    configurable: true,
+    get(this: HTMLElement) {
+      return rolls(this) ? tall : 0;
+    },
+  });
+  Object.defineProperty(proto, "scrollTop", {
+    configurable: true,
+    get(this: HTMLElement) {
+      return puts.get(this) ?? 0;
+    },
+    set(this: HTMLElement, asked: number) {
+      puts.set(this, rolls(this) ? Math.max(0, Math.min(asked, tall - SEEN)) : asked);
+    },
+  });
+  return () => {
+    for (const [name, one] of Object.entries(kept)) {
+      if (one) Object.defineProperty(proto, name, one);
+      else delete (proto as unknown as Record<string, unknown>)[name];
+    }
+  };
 };
+
+let restore = () => {};
+
+afterEach(() => restore());
 
 describe("volver de una pagina a su documento", () => {
   it("deja el documento donde estaba cuando la altura ya esta", async () => {
@@ -80,7 +112,6 @@ describe("volver de una pagina a su documento", () => {
 
     const at = scroller();
     if (!at) throw new Error("sin scroller");
-    clamped(at, () => 4000);
     at.scrollTop = 800;
     at.dispatchEvent(new Event("scroll", { bubbles: true }));
 
@@ -91,7 +122,6 @@ describe("volver de una pagina a su documento", () => {
     await screen.findByText(/Parrafo numero 3 /);
     const back = scroller();
     if (!back) throw new Error("sin scroller al volver");
-    clamped(back, () => 4000);
 
     await waitFor(() => expect(back.scrollTop).toBe(800), { timeout: 3000 });
   });
@@ -105,20 +135,17 @@ describe("volver de una pagina a su documento", () => {
 
     const at = scroller();
     if (!at) throw new Error("sin scroller");
-    clamped(at, () => 4000);
     at.scrollTop = 800;
     at.dispatchEvent(new Event("scroll", { bubbles: true }));
 
     shown.rerender(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
     await screen.findByText(/Su pagina/);
 
+    tall = SEEN;
     shown.rerender(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
     await screen.findByText(/Parrafo numero 3 /);
     const back = scroller();
     if (!back) throw new Error("sin scroller al volver");
-
-    let tall = SEEN;
-    clamped(back, () => tall);
 
     await waitFor(() => expect(back.scrollTop).toBe(0));
     tall = 4000;

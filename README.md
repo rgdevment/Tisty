@@ -509,8 +509,6 @@ already open.
 | ✅ | Folders and documents reordered by hand, carried to where you want them |
 | ✅ | Icons: 1,381 drawings and 1,609 emoji, searchable in your own language |
 | ✅ | macOS: signed and notarised. Windows: signed installer |
-| ◐ | Daily use, which is what turns up the bugs tests do not — what the release candidate is for |
-| ◐ | The Microsoft Store listing, whose screenshots have to be retaken on Windows |
 
 One thing is known and accepted rather than pending: nothing has been tested
 with a real screen reader, though the keyboard path has.
