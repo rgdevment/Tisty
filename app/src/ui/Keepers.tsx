@@ -53,7 +53,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
       .then(async (at) => {
         if (typeof at !== "string") return;
         const told = await keeperOf(at);
-        setStanding({ at, keeper: told.keeper, named: told.named });
+        setStanding({ at: told.into, keeper: told.keeper, named: told.named });
       })
       .catch((e) => onTrouble(saidPlainly(e)))
       .finally(() => setHeld(false));

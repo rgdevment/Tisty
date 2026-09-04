@@ -105,6 +105,8 @@ pub struct Config {
     pub holds: Option<Holds>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub guide: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sown: Option<bool>,
 }
 
 impl Config {
@@ -130,6 +132,7 @@ impl Config {
             synced_at: None,
             heard_at: None,
             guide: None,
+            sown: Some(false),
         };
         config.save(paths)?;
         Ok(config)
@@ -137,7 +140,11 @@ impl Config {
 
     pub fn load(file: &Path) -> Result<Option<Self>> {
         match std::fs::read_to_string(file) {
-            Ok(text) => Ok(Some(toml::from_str(&text)?)),
+            Ok(text) => {
+                let mut config: Self = toml::from_str(&text)?;
+                config.sown.get_or_insert(true);
+                Ok(Some(config))
+            }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
             Err(e) => Err(Error::Io(e)),
         }
@@ -414,6 +421,7 @@ mod tests {
             attach_up_to: None,
             holds: None,
             guide: Some("mac0-0001".into()),
+            sown: Some(true),
         };
 
         let written = toml::to_string_pretty(&config).unwrap();
@@ -432,6 +440,7 @@ mod tests {
             Config {
                 device_id: DeviceId(new_device_id()),
                 agent_id: None,
+                sown: None,
                 locale: None,
                 editor: None,
                 quiet: None,

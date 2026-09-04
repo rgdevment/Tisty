@@ -74,7 +74,7 @@ const rousing = {
 
 const holders = {
   offers: [] as { key: string; named: string; at?: string; into?: string }[],
-  told: { keeper: "plain" } as { keeper: string; named?: string },
+  told: { keeper: "plain" } as { keeper: string; named?: string; into?: string },
 };
 
 const carrying = {
@@ -138,8 +138,10 @@ beforeEach(() => {
     switch (cmd) {
       case "keepers":
         return Promise.resolve(holders.offers.map((one) => ({ ...one })));
-      case "keeper_of":
-        return Promise.resolve({ ...holders.told });
+      case "keeper_of": {
+        const at = String(ipc.calls[ipc.calls.length - 1]?.args.at);
+        return Promise.resolve({ into: at, ...holders.told });
+      }
       case "make_room":
         return Promise.resolve(null);
       case "sync_state":
@@ -1261,6 +1263,32 @@ describe("the first-run assistant", () => {
     expect(sent("choose_sync")[0].args.dest).toBe("G:/My Drive/Tisty");
   });
 
+  it("brings the folder home before it plants anything of its own", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await waitFor(() => expect(sent("guide")).toHaveLength(1));
+    expect(
+      ipc.calls
+        .map((one) => one.cmd)
+        .filter((cmd) => ["sync_now", "sow_lists", "guide"].includes(cmd)),
+    ).toEqual(["sync_now", "sow_lists", "guide"]);
+  });
+
+  it("has nowhere to bring anything home from when you stay on this machine", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await alone();
+
+    await waitFor(() => expect(sent("guide")).toHaveLength(1));
+    expect(sent("sync_now")).toHaveLength(0);
+    expect(sent("sow_lists")).toHaveLength(1);
+  });
+
   it("says as much when nobody is known to keep a folder in step", async () => {
     asked.folder = "D:/Tasks";
     render(<Welcome onDone={vi.fn()} />);
@@ -1269,6 +1297,20 @@ describe("the first-run assistant", () => {
     await userEvent.click(await screen.findByRole("button", { name: /another folder/i }));
 
     expect(await screen.findByText(/do not recognise/i)).toBeTruthy();
+  });
+
+  it("hangs a folder of ours inside the one you pointed at", async () => {
+    asked.folder = "D:/Tasks";
+    holders.told = { keeper: "plain", into: "D:/Tasks/Tisty" };
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /another folder/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await waitFor(() => expect(sent("choose_sync")).toHaveLength(1));
+    expect(sent("make_room")[0].args.at).toBe("D:/Tasks/Tisty");
+    expect(sent("choose_sync")[0].args.dest).toBe("D:/Tasks/Tisty");
   });
 
   it("names the provider of a folder it does recognise", async () => {

@@ -115,6 +115,8 @@ export const kept = (key: string): string[] => {
   }
 };
 
+const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
+
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -126,11 +128,24 @@ export default function App() {
 
   const [behind, setBehind] = useState(false);
 
+  const looked = useRef(false);
+
   useEffect(() => {
-    updateReady(behind)
+    const first = !looked.current;
+    looked.current = true;
+    updateReady(behind || first)
       .then(setReady)
       .catch(() => {});
   }, [behind]);
+
+  useEffect(() => {
+    const again = setInterval(() => {
+      updateReady()
+        .then(setReady)
+        .catch(() => {});
+    }, LOOKS_AGAIN);
+    return () => clearInterval(again);
+  }, []);
 
   useEffect(() => {
     noticeBehind(setBehind);

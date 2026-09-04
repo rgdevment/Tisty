@@ -326,11 +326,13 @@ export interface Offering {
 export interface Told {
   keeper: Keeper;
   named?: string;
+  into: string;
 }
 
 export const keepers = (): Promise<Offering[]> => invoke("keepers");
 export const keeperOf = (at: string): Promise<Told> => invoke("keeper_of", { at });
 export const makeRoom = (at: string): Promise<void> => invoke("make_room", { at });
+export const sowLists = (): Promise<void> => invoke("sow_lists");
 
 export interface Carrying {
   chosen?: string;

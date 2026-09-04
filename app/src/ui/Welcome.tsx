@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { guide, keepClosing, keepLocale, wakeFor } from "../core";
+import { guide, keepClosing, keepLocale, sowLists, syncNow, wakeFor } from "../core";
 import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Keepers from "./Keepers";
@@ -69,10 +69,12 @@ export default function Welcome({ onDone }: Props) {
       .finally(() => setBusy(false));
   };
 
-  const leave = () => {
+  const leave = (at?: string) => {
     setBusy(true);
     setTrouble(undefined);
     Promise.allSettled([wakeFor(true), keepClosing("hide")])
+      .then(() => (at ? syncNow().catch(() => undefined) : undefined))
+      .then(() => sowLists().catch(() => undefined))
       .then(() =>
         guide()
           .then((paper) => paper.id as string | undefined)
