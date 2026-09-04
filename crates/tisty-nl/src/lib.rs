@@ -558,6 +558,33 @@ fn ends_the_series(parsed: &mut Parsed, input: &str, v: &vocab::Vocabulary) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_span_counts_letters_and_not_bytes() {
+        for text in [
+            "revisión del informe #trabajo",
+            "🎉 la fiesta de mañana #casa",
+            "compra pan #ñandú y leche",
+        ] {
+            let read = parse(text, &now(), "es");
+            let letters: Vec<char> = text.chars().collect();
+            for span in &read.spans {
+                assert!(
+                    span.to <= letters.len(),
+                    "{text}: span {}..{} sale de {} letras ({} bytes)",
+                    span.from,
+                    span.to,
+                    letters.len(),
+                    text.len()
+                );
+                let written: String = letters[span.from..span.to].iter().collect();
+                assert!(
+                    text.contains(written.trim()),
+                    "{text}: el span dice «{written}», que no está en el texto"
+                );
+            }
+        }
+    }
+
     use super::*;
 
     fn now() -> Zoned {

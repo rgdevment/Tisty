@@ -27,12 +27,20 @@ export default function Search({ fixed, onFound, onError }: Props) {
       onFound(null);
       return;
     }
+    let mine = true;
     const timer = setTimeout(() => {
       search(query, scope)
-        .then(onFound)
-        .catch((problem) => onError(saidPlainly(problem)));
+        .then((found) => {
+          // A wider question takes longer, so its answer can land after a narrower one and leave
+          // the screen saying what nobody asked any more.
+          if (mine) onFound(found);
+        })
+        .catch((problem) => mine && onError(saidPlainly(problem)));
     }, SETTLES);
-    return () => clearTimeout(timer);
+    return () => {
+      mine = false;
+      clearTimeout(timer);
+    };
   }, [query, scope, onFound, onError]);
 
   return (

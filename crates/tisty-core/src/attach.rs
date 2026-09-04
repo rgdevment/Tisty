@@ -601,7 +601,13 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
         .filter_map(|one| serde_json::to_string(one).ok())
         .map(|line| format!("{line}\n"))
         .collect();
-    let _ = std::fs::write(bin_ledger(root), left);
+    if let Err(why) = crate::store::write_atomic(&bin_ledger(root), left.as_bytes()) {
+        witness::warn(
+            channel::ATTACH,
+            "the bin was emptied but its ledger was not written, so what went may be named still",
+            &[("why", Fact::Why(why.to_string()))],
+        );
+    }
     gone
 }
 
@@ -715,7 +721,7 @@ pub fn twins(root: &Path) -> Vec<Twins> {
                         let Ok(shown) = resolve(&one, root) else {
                             continue;
                         };
-                        let Ok(body) = std::fs::read(&shown) else {
+                        let Ok(said) = fingerprint_of(&shown) else {
                             witness::warn(
                                 channel::ATTACH,
                                 "an attachment could not be read while looking for twins",
@@ -723,7 +729,7 @@ pub fn twins(root: &Path) -> Vec<Twins> {
                             );
                             continue;
                         };
-                        fingerprint(&body)
+                        said
                     }
                 };
                 same.entry(said).or_default().push(one);
@@ -894,6 +900,21 @@ fn fingerprint(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     hexed(hasher.finalize())
+}
+
+/// A file this app admits reaches the size of a film, and the answer wanted is 32 bytes long.
+fn fingerprint_of(at: &Path) -> Result<String> {
+    let mut file = std::fs::File::open(at)?;
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; AT_A_TIME];
+    loop {
+        let read = file.read(&mut buf)?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buf[..read]);
+    }
+    Ok(hexed(hasher.finalize()))
 }
 
 fn hexed(sum: impl AsRef<[u8]>) -> String {

@@ -3484,15 +3484,32 @@ fn doc_copy(
                 )
             })
         };
-        let _ = tisty_core::docs::write(&root, &made.id, &mine(body));
+        // A copy whose links were not rewritten points at what it was copied from, which reads
+        // as if the pages belonged to the other one.
+        let mut astray = Vec::new();
+        if let Err(why) = tisty_core::docs::write(&root, &made.id, &mine(body)) {
+            astray.push(why.to_string());
+        }
         for (_, now) in &renamed {
             let Ok(body) = tisty_core::docs::read(&root, now) else {
                 continue;
             };
             let told = mine(body.clone());
-            if told != body {
-                let _ = tisty_core::docs::write(&root, now, &told);
+            if told != body
+                && let Err(why) = tisty_core::docs::write(&root, now, &told)
+            {
+                astray.push(why.to_string());
             }
+        }
+        if !astray.is_empty() {
+            witness::warn(
+                channel::WINDOW,
+                "a copy was made but some of its links still point at the original",
+                &[
+                    ("doc", Fact::Id(made.id.clone())),
+                    ("why", Fact::Why(astray.join("; "))),
+                ],
+            );
         }
     }
     Ok(made)

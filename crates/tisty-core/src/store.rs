@@ -48,6 +48,7 @@ impl Store {
             let _ = crate::paths::ours_alone(parent);
         }
 
+        mend(&dir.join(ACTIVE));
         let (active_events, head, seq) = tail_of(&dir.join(ACTIVE))?;
         let seen = active_size(&dir.join(ACTIVE));
 
@@ -176,9 +177,9 @@ impl Store {
                 event.batch = batch;
                 event.undo = undo;
                 event.redo = redo;
-                s.write(&event)?;
                 written.push(event);
             }
+            s.write_all(&written)?;
             Ok(written)
         })
     }
@@ -201,9 +202,9 @@ impl Store {
             for op in ops {
                 let mut event = s.minted(op);
                 event.batch = batch;
-                s.write(&event)?;
                 written.push(event);
             }
+            s.write_all(&written)?;
             Ok(Some(written))
         })
     }
@@ -213,21 +214,36 @@ impl Store {
     }
 
     fn write(&mut self, event: &Event) -> Result<()> {
-        if self.active_events >= SEGMENT_MAX_EVENTS {
-            self.rotate()?;
+        self.write_all(std::slice::from_ref(event))
+    }
+
+    /// One open and one `fsync` for the whole lot: a batch is durable before this returns, but a
+    /// pasted list of two hundred does not pay the wait two hundred times over.
+    fn write_all(&mut self, events: &[Event]) -> Result<()> {
+        let mut at = 0;
+        while at < events.len() {
+            if self.active_events >= SEGMENT_MAX_EVENTS {
+                self.rotate()?;
+            }
+            let room = SEGMENT_MAX_EVENTS - self.active_events;
+            let lot = &events[at..(at + room).min(events.len())];
+
+            let mut said = String::new();
+            for event in lot {
+                said.push_str(&serde_json::to_string(event)?);
+                said.push('\n');
+            }
+
+            let mut file = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(self.dir.join(ACTIVE))?;
+            file.write_all(said.as_bytes())?;
+            file.sync_all()?;
+
+            self.active_events += lot.len();
+            at += lot.len();
         }
-
-        let mut line = serde_json::to_string(event)?;
-        line.push('\n');
-
-        let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(self.dir.join(ACTIVE))?;
-        file.write_all(line.as_bytes())?;
-        file.sync_all()?;
-
-        self.active_events += 1;
         self.seen = active_size(&self.dir.join(ACTIVE));
         Ok(())
     }
@@ -781,6 +797,48 @@ mod atomic_tests {
 
 fn active_size(path: &Path) -> u64 {
     std::fs::metadata(path).map(|m| m.len()).unwrap_or(0)
+}
+
+/// A line is written whole or not at all, so one that will not parse at the very end of the
+/// segment still being written is the half of an event a power cut took. It is set aside rather
+/// than read, because refusing it would take every whole event before it down as well. Only ever
+/// the last line, only ever this machine's own active segment: a sealed one has its count to
+/// answer for, and another machine's history is not ours to mend.
+fn mend(path: &Path) {
+    let Ok(whole) = std::fs::read_to_string(path) else {
+        return;
+    };
+    let Some(shut) = whole.rfind('\n') else {
+        return;
+    };
+    let tail = &whole[shut + 1..];
+    if tail.trim().is_empty() || serde_json::from_str::<Stamped>(tail).is_ok() {
+        return;
+    }
+    let aside = path.with_extension("torn");
+    if std::fs::write(&aside, tail).is_err() {
+        return;
+    }
+    if let Err(why) = write_atomic(path, &whole.as_bytes()[..=shut]) {
+        witness::warn(
+            channel::STORE,
+            "the half line a power cut left could not be set aside",
+            &[
+                ("at", Fact::Path(path.to_path_buf())),
+                ("why", Fact::Why(why.to_string())),
+            ],
+        );
+        return;
+    }
+    witness::warn(
+        channel::STORE,
+        "a half written event was set aside so the rest of the history could be read",
+        &[
+            ("at", Fact::Path(path.to_path_buf())),
+            ("kept", Fact::Path(aside)),
+            ("bytes", Fact::Count(tail.len())),
+        ],
+    );
 }
 
 fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {

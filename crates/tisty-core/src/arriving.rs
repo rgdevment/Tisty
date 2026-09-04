@@ -572,9 +572,10 @@ fn tagless(line: &str) -> String {
             rest = &rest[found + 1 + shut + 1..];
         } else if letters && !crate::docs::kept(inner) {
             let word = rest[..found]
-                .rfind(char::is_whitespace)
-                .map(|one| one + 1)
-                .unwrap_or(0);
+                .char_indices()
+                .rev()
+                .find(|(_, one)| one.is_whitespace())
+                .map_or(0, |(at, one)| at + one.len_utf8());
             out.push_str(&rest[..word]);
             out.push_str(&format!("`{}`", &rest[word..found + 1 + shut + 1]));
             rest = &rest[found + 1 + shut + 1..];

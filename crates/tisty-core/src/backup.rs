@@ -105,17 +105,18 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
                 continue;
             }
             let named = rest.to_string_lossy().replace('\\', "/");
-            let body = std::fs::read(&at)?;
+            let weighs = std::fs::metadata(&at)?.len();
 
             made.files += 1;
-            made.bytes += body.len() as u64;
+            made.bytes += weighs;
             if made.bytes > AT_MOST || made.files > AT_MOST_FILES {
                 return Err(Error::TooBig);
             }
 
             zip.start_file(named, zip::write::SimpleFileOptions::default())
                 .map_err(zipped)?;
-            zip.write_all(&body)?;
+            let mut file = std::fs::File::open(&at)?;
+            std::io::copy(&mut file, &mut zip)?;
         }
     }
     zip.finish().map_err(zipped)?;

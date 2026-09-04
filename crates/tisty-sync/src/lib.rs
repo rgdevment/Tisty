@@ -1239,8 +1239,10 @@ fn docs_lock(here: &Path, id: &str) -> Option<tisty_core::docs::Alone> {
 
 fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     plainly(from)?;
-    let body = std::fs::read(from).map_err(io)?;
-    written(at, &body)
+    let mut source = std::fs::File::open(from).map_err(io)?;
+    laid(at, |file| {
+        std::io::copy(&mut source, &mut &*file).map(|_| ())
+    })
 }
 
 fn plainly(at: &Path) -> Result<(), Trouble> {
@@ -1285,6 +1287,15 @@ fn beside(at: &Path) -> std::path::PathBuf {
 }
 
 fn written(at: &Path, body: &[u8]) -> Result<(), Trouble> {
+    laid(at, |file| std::io::Write::write_all(&mut &*file, body))
+}
+
+/// The bytes go through a part file and a rename, so a reader in the shared folder never meets
+/// half of anything — and never through memory, because an attachment is as big as it likes.
+fn laid(
+    at: &Path,
+    fill: impl FnOnce(&std::fs::File) -> std::io::Result<()>,
+) -> Result<(), Trouble> {
     if let Some(parent) = at.parent() {
         std::fs::create_dir_all(parent).map_err(io)?;
         let _ = tisty_core::paths::ours_alone(parent);
@@ -1294,7 +1305,7 @@ fn written(at: &Path, body: &[u8]) -> Result<(), Trouble> {
 
     let done = (|| {
         let file = std::fs::File::create(&tmp)?;
-        std::io::Write::write_all(&mut &file, body)?;
+        fill(&file)?;
         file.sync_all()?;
         std::fs::rename(&tmp, at)
     })();
