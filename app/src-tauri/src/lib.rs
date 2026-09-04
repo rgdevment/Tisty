@@ -1670,6 +1670,8 @@ fn note_break(kind: String, frames: String) {
 #[serde(rename_all = "camelCase")]
 struct Carrying {
     chosen: Option<String>,
+    keeper: Option<String>,
+    kept_by: Option<String>,
     asked: bool,
     backs_up: bool,
     last: Option<String>,
@@ -4068,11 +4070,16 @@ fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
         .collect();
     held.extend(tisty_core::docs::referenced(&session.paths.docs()));
 
+    let held_at = match &config.sync {
+        Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
+        _ => None,
+    };
+    let said = held_at.as_deref().map(told);
+
     Ok(Carrying {
-        chosen: match &config.sync {
-            Some(tisty_core::config::Sync::Folder(at)) => Some(at.display().to_string()),
-            _ => None,
-        },
+        chosen: held_at.as_deref().map(|at| at.display().to_string()),
+        keeper: said.as_ref().map(|one| one.keeper.clone()),
+        kept_by: said.and_then(|one| one.named),
         asked: config.sync.is_some(),
         backs_up: config.backs_up(),
         last: config.synced_at.map(|at| at.to_string()),
@@ -4094,6 +4101,68 @@ fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
         weight: report::weighed(session.paths.data()),
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
     })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Offering {
+    key: String,
+    named: String,
+    at: Option<String>,
+    into: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Told {
+    keeper: String,
+    named: Option<String>,
+}
+
+#[tauri::command]
+fn keepers() -> Vec<Offering> {
+    tisty_core::keepers::offers()
+        .into_iter()
+        .map(|one| Offering {
+            key: one.key.to_string(),
+            named: one.named.to_string(),
+            into: one
+                .at
+                .as_deref()
+                .map(|at| tisty_core::keepers::suggested(at).display().to_string()),
+            at: one.at.map(|at| at.display().to_string()),
+        })
+        .collect()
+}
+
+#[tauri::command]
+fn keeper_of(at: String) -> Told {
+    told(&std::path::PathBuf::from(at))
+}
+
+#[tauri::command]
+fn make_room(at: String) -> Answer<()> {
+    std::fs::create_dir_all(&at).map_err(|e| Refusal::about("cannotWrite", e.to_string()))
+}
+
+fn told(at: &std::path::Path) -> Told {
+    match tisty_core::keepers::keeper(at) {
+        tisty_core::keepers::Keeper::Cloud(key) => Told {
+            keeper: "cloud".into(),
+            named: tisty_core::keepers::offers()
+                .into_iter()
+                .find(|one| one.key == key)
+                .map(|one| one.named.to_string()),
+        },
+        tisty_core::keepers::Keeper::Away => Told {
+            keeper: "away".into(),
+            named: None,
+        },
+        tisty_core::keepers::Keeper::Plain => Told {
+            keeper: "plain".into(),
+            named: None,
+        },
+    }
 }
 
 #[tauri::command]
@@ -5365,6 +5434,9 @@ pub fn run() {
         .manage(Leaving::default())
         .invoke_handler(tauri::generate_handler![
             snapshot,
+            keepers,
+            keeper_of,
+            make_room,
             task_story,
             task_series,
             task_left,

@@ -24,6 +24,7 @@ import {
   guide,
   type Holds,
   joinThem,
+  type Keeper,
   type Kin,
   keepLocale,
   keepReport,
@@ -65,6 +66,7 @@ import {
 } from "../core";
 import { decideAll } from "../deciding";
 import { daysFrom, stamped, weigh } from "../format";
+import { warningOf } from "../keepers";
 import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { written } from "../report";
@@ -555,6 +557,9 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
               <p className="text-[12.5px] leading-relaxed text-soft">
                 {state.chosen ? fill("syncOn", state.chosen) : t("syncOff")}
               </p>
+              {state.chosen && state.keeper && (
+                <Warned keeper={state.keeper} named={state.keptBy} />
+              )}
               <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
                 {state.chosen ? (
                   <>
@@ -1699,6 +1704,20 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
 
 const TAIL = 300;
 const LOGS = "\n--- tisty.log ---";
+
+function Warned({ keeper, named }: { keeper: Keeper; named?: string }) {
+  const warning = warningOf(keeper, named);
+  return (
+    <div
+      className={`mt-2 rounded-lg px-3 py-2 text-[12px] leading-relaxed text-soft ${
+        warning.mild ? "bg-accent-soft" : "border border-hue-amber/40"
+      }`}
+    >
+      <span className="block text-[12.5px] font-semibold text-ink">{warning.said}</span>
+      {warning.why}
+    </div>
+  );
+}
 
 function Card({ title, which, busy, said, trouble, children }: CardProps) {
   const waiting = busy !== null && busy !== which;

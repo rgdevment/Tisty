@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { adopt } from "../locales";
 import Keeping from "../ui/Keeping";
 import Welcome from "../ui/Welcome";
 
@@ -71,6 +72,11 @@ const rousing = {
   theirs: false,
 };
 
+const holders = {
+  offers: [] as { key: string; named: string; at?: string; into?: string }[],
+  told: { keeper: "plain" } as { keeper: string; named?: string },
+};
+
 const carrying = {
   chosen: undefined as string | undefined,
   asked: true,
@@ -82,6 +88,7 @@ const carrying = {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  adopt("en");
   ipc.calls = [];
   Object.assign(rousing, { offered: true, wakes: false, theirs: false });
   Object.assign(standing, {
@@ -120,8 +127,21 @@ beforeEach(() => {
     last: undefined,
     loose: 0,
   });
+  holders.offers = [
+    { key: "drive", named: "Google Drive", at: "G:/My Drive", into: "G:/My Drive/Tisty" },
+    { key: "onedrive", named: "OneDrive" },
+    { key: "dropbox", named: "Dropbox" },
+    { key: "icloud", named: "iCloud Drive" },
+  ];
+  holders.told = { keeper: "plain" };
   ipc.answer = (cmd) => {
     switch (cmd) {
+      case "keepers":
+        return Promise.resolve(holders.offers.map((one) => ({ ...one })));
+      case "keeper_of":
+        return Promise.resolve({ ...holders.told });
+      case "make_room":
+        return Promise.resolve(null);
       case "sync_state":
         return Promise.resolve({ ...carrying });
       case "agent":
@@ -1161,93 +1181,99 @@ describe("the first-run assistant", () => {
     await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
   };
 
+  const alone = async () => {
+    await userEvent.click(await screen.findByRole("button", { name: /only on this machine/i }));
+  };
+
   it("asks for the language before anything else, and keeps it", async () => {
     render(<Welcome onDone={vi.fn()} />);
 
     await spoken();
 
     expect(sent("keep_locale")[0].args.locale).toBe("en");
-    expect(await screen.findByRole("button", { name: /only on this machine/i })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+  });
+
+  it("offers what it found and turns away what it did not", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    const drive = await screen.findByRole("button", { name: /google drive/i });
+
+    expect(drive.hasAttribute("disabled")).toBe(false);
+    expect(screen.getByRole("button", { name: /dropbox/i }).hasAttribute("disabled")).toBe(true);
   });
 
   it("takes «only here» as an answer, not as a blank", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
 
-    await userEvent.click(screen.getByRole("button", { name: /only on this machine/i }));
+    await alone();
 
     await waitFor(() => expect(sent("choose_sync").length).toBe(1));
     expect(sent("choose_sync")[0].args.dest).toBeUndefined();
   });
 
-  it("decides nothing about copies when they are put off", async () => {
+  it("keeps a folder of ours inside the one the provider holds", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
 
-    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
 
-    expect(sent("choose_sync").length).toBe(0);
-    expect(await screen.findByRole("button", { name: /open it at sign-in/i })).toBeTruthy();
+    expect(await screen.findByText("G:/My Drive/Tisty")).toBeTruthy();
+    expect(screen.getByText(/has to be open and up to date/i)).toBeTruthy();
   });
 
-  it("asks the machine to open at sign-in when that is the answer", async () => {
+  it("makes that folder before writing it down", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
-    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
 
-    await userEvent.click(await screen.findByRole("button", { name: /open it at sign-in/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await waitFor(() => expect(sent("choose_sync").length).toBe(1));
+    expect(sent("make_room")[0].args.at).toBe("G:/My Drive/Tisty");
+    expect(sent("choose_sync")[0].args.dest).toBe("G:/My Drive/Tisty");
+  });
+
+  it("says as much when nobody is known to keep a folder in step", async () => {
+    asked.folder = "D:/Tasks";
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await userEvent.click(await screen.findByRole("button", { name: /another folder/i }));
+
+    expect(await screen.findByText(/do not recognise/i)).toBeTruthy();
+  });
+
+  it("names the provider of a folder it does recognise", async () => {
+    asked.folder = "G:/My Drive/Tasks";
+    holders.told = { keeper: "cloud", named: "Google Drive" };
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await userEvent.click(await screen.findByRole("button", { name: /another folder/i }));
+
+    expect(await screen.findByText(/google drive has to be open/i)).toBeTruthy();
+  });
+
+  it("turns on start-up and the tray without asking", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await alone();
 
     await waitFor(() => expect(sent("wake_for").length).toBe(1));
     expect(sent("wake_for")[0].args.wanted).toBe(true);
-  });
-
-  it("skips the sign-in step where the machine cannot offer it", async () => {
-    rousing.offered = false;
-    render(<Welcome onDone={vi.fn()} />);
-    await spoken();
-
-    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
-
-    expect(await screen.findByRole("button", { name: /leave it in the tray/i })).toBeTruthy();
-    expect(sent("wake_for").length).toBe(0);
-  });
-
-  it("remembers what closing the window should do", async () => {
-    render(<Welcome onDone={vi.fn()} />);
-    await spoken();
-    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /open it at sign-in/i }));
-
-    await userEvent.click(await screen.findByRole("button", { name: /leave it in the tray/i }));
-
-    await waitFor(() => expect(sent("keep_closing").length).toBe(1));
     expect(sent("keep_closing")[0].args.how).toBe("hide");
-  });
-
-  it("still marks the run as done when copies were put off", async () => {
-    const done = vi.fn();
-    render(<Welcome onDone={done} />);
-    await spoken();
-    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /open it at sign-in/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /leave it in the tray/i }));
-
-    await userEvent.click(await screen.findByRole("button", { name: /open the guide/i }));
-
-    await waitFor(() => expect(done).toHaveBeenCalled());
-    expect(sent("choose_sync")).toHaveLength(1);
-    expect(sent("choose_sync")[0].args.dest).toBeUndefined();
   });
 
   it("ends on the guide, and hands back the document it planted", async () => {
     const done = vi.fn();
     render(<Welcome onDone={done} />);
     await spoken();
-    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /open it at sign-in/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /leave it in the tray/i }));
 
-    await userEvent.click(await screen.findByRole("button", { name: /open the guide/i }));
+    await alone();
 
     await waitFor(() => expect(sent("guide")).toHaveLength(1));
     expect(done).toHaveBeenCalledWith("guide-0001");
@@ -1260,18 +1286,10 @@ describe("the first-run assistant", () => {
       cmd === "guide"
         ? Promise.reject({ code: "cannotRead", name: "os error 3" })
         : answered(cmd, args);
-
     render(<Welcome onDone={done} />);
     await spoken();
-    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /open it at sign-in/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /leave it in the tray/i }));
 
-    await userEvent.click(await screen.findByRole("button", { name: /open the guide/i }));
-    expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(done).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole("button", { name: /get started/i }));
+    await alone();
 
     await waitFor(() => expect(done).toHaveBeenCalled());
     expect(done.mock.calls[0][0]).toBeUndefined();
@@ -1280,7 +1298,7 @@ describe("the first-run assistant", () => {
   it("goes back, and shows what was already chosen", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
-    await screen.findByRole("button", { name: /only on this machine/i });
+    await screen.findByRole("button", { name: /google drive/i });
 
     await userEvent.click(screen.getByRole("button", { name: /^back$/i }));
 
@@ -1296,20 +1314,6 @@ describe("the first-run assistant", () => {
     await userEvent.click(screen.getByRole("button", { name: /^español$/i }));
 
     expect(sent("keep_locale").map((one) => one.args.locale)).toEqual(["en", "es"]);
-  });
-
-  it("is done only once the last step says so", async () => {
-    const done = vi.fn();
-    render(<Welcome onDone={done} />);
-    await spoken();
-    await userEvent.click(screen.getByRole("button", { name: /decide later/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /open it at sign-in/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /leave it in the tray/i }));
-
-    expect(done).not.toHaveBeenCalled();
-    await userEvent.click(await screen.findByRole("button", { name: /open the guide/i }));
-
-    expect(done).toHaveBeenCalled();
   });
 
   it("offers the command line, and says what to do next", async () => {
