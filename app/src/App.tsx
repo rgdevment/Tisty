@@ -1011,7 +1011,7 @@ export default function App() {
         papers={papers}
         counts={data.counts}
         chosen={chosen}
-        ready={ready !== null}
+        waiting={ready?.version}
         here={here}
         onHere={(folder) => {
           setHere(folder ?? null);
@@ -1151,6 +1151,7 @@ export default function App() {
           <Keeping
             greeted={greeted}
             onGreet={() => setGreet(true)}
+            onDoc={openDoc}
             onChanged={() => {
               load();
               lookPapers();

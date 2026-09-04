@@ -10,7 +10,7 @@ interface Props {
   papers: Papers;
   counts: Record<string, number>;
   chosen: Chosen;
-  ready: boolean;
+  waiting?: string;
   onChoose: (chosen: Chosen) => void;
 
   here?: string | null;
@@ -38,7 +38,7 @@ export default function Sidebar({
   papers,
   counts,
   chosen,
-  ready,
+  waiting,
   onChoose,
   here,
   onHere,
@@ -128,31 +128,41 @@ export default function Sidebar({
           aria-label={t("keeping")}
           title={t("keeping")}
           onClick={() => onChoose({ named: "keeping" })}
-          className={`grid h-7 w-7 place-items-center rounded-[7px] text-[17px] hover:bg-hover ${
+          className={`grid size-7 place-items-center rounded-[7px] hover:bg-hover ${
             chosen.named === "keeping" ? "bg-active text-accent" : "text-soft"
           }`}
         >
-          <span aria-hidden="true">⚙</span>
+          <Drawn>
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.62.77 1.05 1.42 1.06H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+          </Drawn>
         </button>
-        <button
-          type="button"
-          aria-label={ready ? `${t("aboutScreen")} · ${t("updateWaiting")}` : t("aboutScreen")}
-          title={t("aboutScreen")}
-          onClick={() => onChoose({ named: "aboutScreen" })}
-          className={`relative ml-auto grid h-7 w-7 place-items-center rounded-[7px] hover:bg-hover ${
-            chosen.named === "aboutScreen" ? "bg-active text-accent" : "text-soft"
-          }`}
-        >
-          {ready && (
-            <span
-              aria-hidden
-              className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-accent"
-            />
-          )}
-          <span aria-hidden="true" className="text-[11px]">
-            ⓘ
-          </span>
-        </button>
+        {waiting ? (
+          <button
+            type="button"
+            aria-label={`${t("aboutScreen")} · ${t("updateWaiting")}`}
+            onClick={() => onChoose({ named: "aboutScreen" })}
+            className="ml-auto flex items-center gap-1.5 rounded-[7px] bg-accent-soft px-2 py-1 text-[11.5px] font-medium text-accent hover:bg-hover"
+          >
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+            Tisty {waiting}
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label={t("aboutScreen")}
+            title={t("aboutScreen")}
+            onClick={() => onChoose({ named: "aboutScreen" })}
+            className={`ml-auto grid size-7 place-items-center rounded-[7px] hover:bg-hover ${
+              chosen.named === "aboutScreen" ? "bg-active text-accent" : "text-soft"
+            }`}
+          >
+            <Drawn>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 16v-4M12 8h.01" />
+            </Drawn>
+          </button>
+        )}
       </div>
     </aside>
   );
@@ -188,5 +198,22 @@ function Entry({ icon, label, count, on, muted, onClick }: EntryProps) {
         <span className="ml-auto text-xs text-faint tabular-nums">{count}</span>
       )}
     </button>
+  );
+}
+
+function Drawn({ children }: { children: React.ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-[17px]"
+    >
+      {children}
+    </svg>
   );
 }

@@ -4,7 +4,8 @@
 
 Tisty is AGPL-3.0-only. The binary carries the work below, each under its own
 licence. Anything copied into Tisty's own source rather than bundled is in
-[THIRD-PARTY.md](THIRD-PARTY.md) instead.
+[THIRD-PARTY.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY.md)
+instead.
 
 ## In the window (257 packages)
 
@@ -641,8 +642,7 @@ licence. Anything copied into Tisty's own source rather than bundled is in
 
 ## The notices themselves
 
-<details>
-<summary><code>@antfu/install-pkg</code> — MIT</summary>
+### `@antfu/install-pkg` — MIT
 
 ```text
 MIT License
@@ -668,10 +668,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@babel/runtime</code> — MIT</summary>
+### `@babel/runtime` — MIT
 
 ```text
 MIT License
@@ -698,10 +695,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@braintree/sanitize-url</code> — MIT</summary>
+### `@braintree/sanitize-url` — MIT
 
 ```text
 MIT License
@@ -727,10 +721,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@chevrotain/types</code> — Apache-2.0</summary>
+### `@chevrotain/types` — Apache-2.0
 
 ```text
 Apache License
@@ -810,10 +801,7 @@ Apache License
 …
 ```
 
-</details>
-
-<details>
-<summary><code>@floating-ui/core</code> — MIT</summary>
+### `@floating-ui/core` — MIT
 
 ```text
 MIT License
@@ -838,10 +826,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@floating-ui/dom</code> — MIT</summary>
+### `@floating-ui/dom` — MIT
 
 ```text
 MIT License
@@ -866,10 +851,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@floating-ui/utils</code> — MIT</summary>
+### `@floating-ui/utils` — MIT
 
 ```text
 MIT License
@@ -894,10 +876,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@iconify/types</code> — MIT</summary>
+### `@iconify/types` — MIT
 
 ```text
 MIT License
@@ -923,10 +902,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@iconify/utils</code> — MIT</summary>
+### `@iconify/utils` — MIT
 
 ```text
 MIT License
@@ -952,10 +928,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@mermaid-js/parser</code> — MIT</summary>
+### `@mermaid-js/parser` — MIT
 
 ```text
 The MIT License (MIT)
@@ -981,10 +954,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@noble/ciphers</code> — MIT</summary>
+### `@noble/ciphers` — MIT
 
 ```text
 The MIT License (MIT)
@@ -1011,10 +981,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@noble/hashes</code> — MIT</summary>
+### `@noble/hashes` — MIT
 
 ```text
 The MIT License (MIT)
@@ -1040,10 +1007,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/fns</code> — MIT</summary>
+### `@react-pdf/fns` — MIT
 
 ```text
 MIT License
@@ -1071,10 +1035,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/font</code> — MIT</summary>
+### `@react-pdf/font` — MIT
 
 ```text
 MIT License
@@ -1102,10 +1063,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/image</code> — MIT</summary>
+### `@react-pdf/image` — MIT
 
 ```text
 MIT License
@@ -1133,10 +1091,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/layout</code> — MIT</summary>
+### `@react-pdf/layout` — MIT
 
 ```text
 MIT License
@@ -1164,10 +1119,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/pdfkit</code> — MIT</summary>
+### `@react-pdf/pdfkit` — MIT
 
 ```text
 MIT LICENSE
@@ -1180,10 +1132,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/primitives</code> — MIT</summary>
+### `@react-pdf/primitives` — MIT
 
 ```text
 MIT License
@@ -1211,10 +1160,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/reconciler</code> — MIT</summary>
+### `@react-pdf/reconciler` — MIT
 
 ```text
 MIT License
@@ -1242,10 +1188,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/render</code> — MIT</summary>
+### `@react-pdf/render` — MIT
 
 ```text
 MIT License
@@ -1273,10 +1216,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/renderer</code> — MIT</summary>
+### `@react-pdf/renderer` — MIT
 
 ```text
 MIT License
@@ -1304,10 +1244,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/stylesheet</code> — MIT</summary>
+### `@react-pdf/stylesheet` — MIT
 
 ```text
 MIT License
@@ -1335,10 +1272,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/svg</code> — MIT</summary>
+### `@react-pdf/svg` — MIT
 
 ```text
 MIT License
@@ -1366,10 +1300,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/textkit</code> — MIT</summary>
+### `@react-pdf/textkit` — MIT
 
 ```text
 MIT License
@@ -1397,10 +1328,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@react-pdf/types</code> — MIT</summary>
+### `@react-pdf/types` — MIT
 
 ```text
 MIT License
@@ -1428,10 +1356,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-</details>
-
-<details>
-<summary><code>@swc/helpers</code> — Apache-2.0</summary>
+### `@swc/helpers` — Apache-2.0
 
 ```text
 Apache License
@@ -1514,10 +1439,7 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 …
 ```
 
-</details>
-
-<details>
-<summary><code>@tauri-apps/api</code> — Apache-2.0 OR MIT</summary>
+### `@tauri-apps/api` — Apache-2.0 OR MIT
 
 ```text
 Apache License
@@ -1597,10 +1519,7 @@ Apache License
 …
 ```
 
-</details>
-
-<details>
-<summary><code>@tauri-apps/plugin-clipboard-manager</code> — MIT OR Apache-2.0</summary>
+### `@tauri-apps/plugin-clipboard-manager` — MIT OR Apache-2.0
 
 ```text
 SPDXVersion: SPDX-2.1
@@ -1625,10 +1544,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 ```
 
-</details>
-
-<details>
-<summary><code>@tauri-apps/plugin-dialog</code> — MIT OR Apache-2.0</summary>
+### `@tauri-apps/plugin-dialog` — MIT OR Apache-2.0
 
 ```text
 SPDXVersion: SPDX-2.1
@@ -1653,10 +1569,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 ```
 
-</details>
-
-<details>
-<summary><code>@tauri-apps/plugin-global-shortcut</code> — MIT OR Apache-2.0</summary>
+### `@tauri-apps/plugin-global-shortcut` — MIT OR Apache-2.0
 
 ```text
 SPDXVersion: SPDX-2.1
@@ -1681,10 +1594,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 ```
 
-</details>
-
-<details>
-<summary><code>@tauri-apps/plugin-opener</code> — MIT OR Apache-2.0</summary>
+### `@tauri-apps/plugin-opener` — MIT OR Apache-2.0
 
 ```text
 SPDXVersion: SPDX-2.1
@@ -1709,10 +1619,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/core</code> — MIT</summary>
+### `@tiptap/core` — MIT
 
 ```text
 MIT License
@@ -1738,10 +1645,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-blockquote</code> — MIT</summary>
+### `@tiptap/extension-blockquote` — MIT
 
 ```text
 MIT License
@@ -1767,10 +1671,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-bold</code> — MIT</summary>
+### `@tiptap/extension-bold` — MIT
 
 ```text
 MIT License
@@ -1796,10 +1697,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-bubble-menu</code> — MIT</summary>
+### `@tiptap/extension-bubble-menu` — MIT
 
 ```text
 MIT License
@@ -1825,10 +1723,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-bullet-list</code> — MIT</summary>
+### `@tiptap/extension-bullet-list` — MIT
 
 ```text
 MIT License
@@ -1854,10 +1749,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-code</code> — MIT</summary>
+### `@tiptap/extension-code` — MIT
 
 ```text
 MIT License
@@ -1883,10 +1775,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-code-block</code> — MIT</summary>
+### `@tiptap/extension-code-block` — MIT
 
 ```text
 MIT License
@@ -1912,10 +1801,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-code-block-lowlight</code> — MIT</summary>
+### `@tiptap/extension-code-block-lowlight` — MIT
 
 ```text
 MIT License
@@ -1941,10 +1827,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-document</code> — MIT</summary>
+### `@tiptap/extension-document` — MIT
 
 ```text
 MIT License
@@ -1970,10 +1853,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-dropcursor</code> — MIT</summary>
+### `@tiptap/extension-dropcursor` — MIT
 
 ```text
 MIT License
@@ -1999,10 +1879,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-floating-menu</code> — MIT</summary>
+### `@tiptap/extension-floating-menu` — MIT
 
 ```text
 MIT License
@@ -2028,10 +1905,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-gapcursor</code> — MIT</summary>
+### `@tiptap/extension-gapcursor` — MIT
 
 ```text
 MIT License
@@ -2057,10 +1931,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-hard-break</code> — MIT</summary>
+### `@tiptap/extension-hard-break` — MIT
 
 ```text
 MIT License
@@ -2086,10 +1957,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-heading</code> — MIT</summary>
+### `@tiptap/extension-heading` — MIT
 
 ```text
 MIT License
@@ -2115,10 +1983,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-highlight</code> — MIT</summary>
+### `@tiptap/extension-highlight` — MIT
 
 ```text
 MIT License
@@ -2144,10 +2009,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-horizontal-rule</code> — MIT</summary>
+### `@tiptap/extension-horizontal-rule` — MIT
 
 ```text
 MIT License
@@ -2173,10 +2035,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-image</code> — MIT</summary>
+### `@tiptap/extension-image` — MIT
 
 ```text
 MIT License
@@ -2202,10 +2061,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-italic</code> — MIT</summary>
+### `@tiptap/extension-italic` — MIT
 
 ```text
 MIT License
@@ -2231,10 +2087,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-link</code> — MIT</summary>
+### `@tiptap/extension-link` — MIT
 
 ```text
 MIT License
@@ -2260,10 +2113,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-list</code> — MIT</summary>
+### `@tiptap/extension-list` — MIT
 
 ```text
 MIT License
@@ -2289,10 +2139,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-list-item</code> — MIT</summary>
+### `@tiptap/extension-list-item` — MIT
 
 ```text
 MIT License
@@ -2318,10 +2165,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-list-keymap</code> — MIT</summary>
+### `@tiptap/extension-list-keymap` — MIT
 
 ```text
 MIT License
@@ -2347,10 +2191,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-ordered-list</code> — MIT</summary>
+### `@tiptap/extension-ordered-list` — MIT
 
 ```text
 MIT License
@@ -2376,10 +2217,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-paragraph</code> — MIT</summary>
+### `@tiptap/extension-paragraph` — MIT
 
 ```text
 MIT License
@@ -2405,10 +2243,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-strike</code> — MIT</summary>
+### `@tiptap/extension-strike` — MIT
 
 ```text
 MIT License
@@ -2434,10 +2269,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-table</code> — MIT</summary>
+### `@tiptap/extension-table` — MIT
 
 ```text
 MIT License
@@ -2463,10 +2295,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-task-item</code> — MIT</summary>
+### `@tiptap/extension-task-item` — MIT
 
 ```text
 MIT License
@@ -2492,10 +2321,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-task-list</code> — MIT</summary>
+### `@tiptap/extension-task-list` — MIT
 
 ```text
 MIT License
@@ -2521,10 +2347,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-text</code> — MIT</summary>
+### `@tiptap/extension-text` — MIT
 
 ```text
 MIT License
@@ -2550,10 +2373,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extension-underline</code> — MIT</summary>
+### `@tiptap/extension-underline` — MIT
 
 ```text
 MIT License
@@ -2579,10 +2399,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/extensions</code> — MIT</summary>
+### `@tiptap/extensions` — MIT
 
 ```text
 MIT License
@@ -2608,10 +2425,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/pm</code> — MIT</summary>
+### `@tiptap/pm` — MIT
 
 ```text
 MIT License
@@ -2637,10 +2451,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/react</code> — MIT</summary>
+### `@tiptap/react` — MIT
 
 ```text
 MIT License
@@ -2666,10 +2477,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@tiptap/starter-kit</code> — MIT</summary>
+### `@tiptap/starter-kit` — MIT
 
 ```text
 MIT License
@@ -2695,10 +2503,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3</code> — MIT</summary>
+### `@types/d3` — MIT
 
 ```text
 MIT License
@@ -2724,10 +2529,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-array</code> — MIT</summary>
+### `@types/d3-array` — MIT
 
 ```text
 MIT License
@@ -2753,10 +2555,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-axis</code> — MIT</summary>
+### `@types/d3-axis` — MIT
 
 ```text
 MIT License
@@ -2782,10 +2581,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-brush</code> — MIT</summary>
+### `@types/d3-brush` — MIT
 
 ```text
 MIT License
@@ -2811,10 +2607,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-chord</code> — MIT</summary>
+### `@types/d3-chord` — MIT
 
 ```text
 MIT License
@@ -2840,10 +2633,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-color</code> — MIT</summary>
+### `@types/d3-color` — MIT
 
 ```text
 MIT License
@@ -2869,10 +2659,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-contour</code> — MIT</summary>
+### `@types/d3-contour` — MIT
 
 ```text
 MIT License
@@ -2898,10 +2685,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-delaunay</code> — MIT</summary>
+### `@types/d3-delaunay` — MIT
 
 ```text
 MIT License
@@ -2927,10 +2711,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-dispatch</code> — MIT</summary>
+### `@types/d3-dispatch` — MIT
 
 ```text
 MIT License
@@ -2956,10 +2737,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-drag</code> — MIT</summary>
+### `@types/d3-drag` — MIT
 
 ```text
 MIT License
@@ -2985,10 +2763,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-dsv</code> — MIT</summary>
+### `@types/d3-dsv` — MIT
 
 ```text
 MIT License
@@ -3014,10 +2789,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-ease</code> — MIT</summary>
+### `@types/d3-ease` — MIT
 
 ```text
 MIT License
@@ -3043,10 +2815,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-fetch</code> — MIT</summary>
+### `@types/d3-fetch` — MIT
 
 ```text
 MIT License
@@ -3072,10 +2841,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-force</code> — MIT</summary>
+### `@types/d3-force` — MIT
 
 ```text
 MIT License
@@ -3101,10 +2867,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-format</code> — MIT</summary>
+### `@types/d3-format` — MIT
 
 ```text
 MIT License
@@ -3130,10 +2893,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-geo</code> — MIT</summary>
+### `@types/d3-geo` — MIT
 
 ```text
 MIT License
@@ -3159,10 +2919,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-hierarchy</code> — MIT</summary>
+### `@types/d3-hierarchy` — MIT
 
 ```text
 MIT License
@@ -3188,10 +2945,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-interpolate</code> — MIT</summary>
+### `@types/d3-interpolate` — MIT
 
 ```text
 MIT License
@@ -3217,10 +2971,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-path</code> — MIT</summary>
+### `@types/d3-path` — MIT
 
 ```text
 MIT License
@@ -3246,10 +2997,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-polygon</code> — MIT</summary>
+### `@types/d3-polygon` — MIT
 
 ```text
 MIT License
@@ -3275,10 +3023,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-quadtree</code> — MIT</summary>
+### `@types/d3-quadtree` — MIT
 
 ```text
 MIT License
@@ -3304,10 +3049,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-random</code> — MIT</summary>
+### `@types/d3-random` — MIT
 
 ```text
 MIT License
@@ -3333,10 +3075,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-scale</code> — MIT</summary>
+### `@types/d3-scale` — MIT
 
 ```text
 MIT License
@@ -3362,10 +3101,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-scale-chromatic</code> — MIT</summary>
+### `@types/d3-scale-chromatic` — MIT
 
 ```text
 MIT License
@@ -3391,10 +3127,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-selection</code> — MIT</summary>
+### `@types/d3-selection` — MIT
 
 ```text
 MIT License
@@ -3420,10 +3153,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-shape</code> — MIT</summary>
+### `@types/d3-shape` — MIT
 
 ```text
 MIT License
@@ -3449,10 +3179,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-time</code> — MIT</summary>
+### `@types/d3-time` — MIT
 
 ```text
 MIT License
@@ -3478,10 +3205,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-time-format</code> — MIT</summary>
+### `@types/d3-time-format` — MIT
 
 ```text
 MIT License
@@ -3507,10 +3231,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-timer</code> — MIT</summary>
+### `@types/d3-timer` — MIT
 
 ```text
 MIT License
@@ -3536,10 +3257,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-transition</code> — MIT</summary>
+### `@types/d3-transition` — MIT
 
 ```text
 MIT License
@@ -3565,10 +3283,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/d3-zoom</code> — MIT</summary>
+### `@types/d3-zoom` — MIT
 
 ```text
 MIT License
@@ -3594,10 +3309,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/geojson</code> — MIT</summary>
+### `@types/geojson` — MIT
 
 ```text
 MIT License
@@ -3623,10 +3335,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/hast</code> — MIT</summary>
+### `@types/hast` — MIT
 
 ```text
 MIT License
@@ -3652,10 +3361,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/katex</code> — MIT</summary>
+### `@types/katex` — MIT
 
 ```text
 MIT License
@@ -3681,10 +3387,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/linkify-it</code> — MIT</summary>
+### `@types/linkify-it` — MIT
 
 ```text
 MIT License
@@ -3710,10 +3413,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/markdown-it</code> — MIT</summary>
+### `@types/markdown-it` — MIT
 
 ```text
 MIT License
@@ -3739,10 +3439,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/mdurl</code> — MIT</summary>
+### `@types/mdurl` — MIT
 
 ```text
 MIT License
@@ -3768,10 +3465,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/react</code> — MIT</summary>
+### `@types/react` — MIT
 
 ```text
 MIT License
@@ -3797,10 +3491,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/react-dom</code> — MIT</summary>
+### `@types/react-dom` — MIT
 
 ```text
 MIT License
@@ -3826,10 +3517,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/trusted-types</code> — MIT</summary>
+### `@types/trusted-types` — MIT
 
 ```text
 MIT License
@@ -3855,10 +3543,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/unist</code> — MIT</summary>
+### `@types/unist` — MIT
 
 ```text
 MIT License
@@ -3884,10 +3569,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@types/use-sync-external-store</code> — MIT</summary>
+### `@types/use-sync-external-store` — MIT
 
 ```text
 MIT License
@@ -3913,10 +3595,7 @@ MIT License
     SOFTWARE
 ```
 
-</details>
-
-<details>
-<summary><code>@upsetjs/venn.js</code> — MIT</summary>
+### `@upsetjs/venn.js` — MIT
 
 ```text
 MIT License
@@ -3943,10 +3622,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>abs-svg-path</code> — MIT</summary>
+### `abs-svg-path` — MIT
 
 ```text
 MIT License
@@ -3974,10 +3650,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/jkroso/abs-svg-path
 ```
 
-</details>
-
-<details>
-<summary><code>argparse</code> — Python-2.0</summary>
+### `argparse` — Python-2.0
 
 ```text
 A. HISTORY OF THE SOFTWARE
@@ -4065,10 +3738,7 @@ the derivative
 …
 ```
 
-</details>
-
-<details>
-<summary><code>base64-js</code> — MIT</summary>
+### `base64-js` — MIT
 
 ```text
 The MIT License (MIT)
@@ -4094,10 +3764,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>bidi-js</code> — MIT</summary>
+### `bidi-js` — MIT
 
 ```text
 Copyright (c) 2021 Jason Johnston
@@ -4124,10 +3791,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>brotli</code> — MIT</summary>
+### `brotli` — MIT
 
 ```text
 MIT License
@@ -4155,10 +3819,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/devongovett/brotli.js
 ```
 
-</details>
-
-<details>
-<summary><code>clone</code> — MIT</summary>
+### `clone` — MIT
 
 ```text
 Copyright © 2011-2015 Paul Vorbach <paul@vorba.ch>
@@ -4181,10 +3842,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>color-name</code> — MIT</summary>
+### `color-name` — MIT
 
 ```text
 The MIT License (MIT)
@@ -4197,10 +3855,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>color-string</code> — MIT</summary>
+### `color-string` — MIT
 
 ```text
 Copyright (c) 2011 Heather Arthur <fayearthur@gmail.com>
@@ -4225,10 +3880,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>commander</code> — MIT</summary>
+### `commander` — MIT
 
 ```text
 (The MIT License)
@@ -4255,10 +3907,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>cose-base</code> — MIT</summary>
+### `cose-base` — MIT
 
 ```text
 MIT License
@@ -4284,10 +3933,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>csstype</code> — MIT</summary>
+### `csstype` — MIT
 
 ```text
 Copyright (c) 2017-2018 Fredrik Nicol
@@ -4311,10 +3957,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>cytoscape</code> — MIT</summary>
+### `cytoscape` — MIT
 
 ```text
 Copyright (c) 2016-2026, The Cytoscape Consortium.
@@ -4338,10 +3981,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>cytoscape-cose-bilkent</code> — MIT</summary>
+### `cytoscape-cose-bilkent` — MIT
 
 ```text
 Copyright (c) 2016-2018, The Cytoscape Consortium.
@@ -4365,10 +4005,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>cytoscape-fcose</code> — MIT</summary>
+### `cytoscape-fcose` — MIT
 
 ```text
 Copyright (c) 2018 - present, iVis-at-Bilkent.
@@ -4392,10 +4029,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3</code> — ISC</summary>
+### `d3` — ISC
 
 ```text
 Copyright 2010-2023 Mike Bostock
@@ -4413,10 +4047,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-array</code> — ISC</summary>
+### `d3-array` — ISC
 
 ```text
 Copyright 2010-2023 Mike Bostock
@@ -4434,10 +4065,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-axis</code> — ISC</summary>
+### `d3-axis` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4455,10 +4083,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-brush</code> — ISC</summary>
+### `d3-brush` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4476,10 +4101,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-chord</code> — ISC</summary>
+### `d3-chord` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4497,10 +4119,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-color</code> — ISC</summary>
+### `d3-color` — ISC
 
 ```text
 Copyright 2010-2022 Mike Bostock
@@ -4518,10 +4137,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-contour</code> — ISC</summary>
+### `d3-contour` — ISC
 
 ```text
 Copyright 2012-2023 Mike Bostock
@@ -4539,10 +4155,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-delaunay</code> — ISC</summary>
+### `d3-delaunay` — ISC
 
 ```text
 Copyright 2018-2021 Observable, Inc.
@@ -4561,10 +4174,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-dispatch</code> — ISC</summary>
+### `d3-dispatch` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4582,10 +4192,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-drag</code> — ISC</summary>
+### `d3-drag` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4603,10 +4210,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-dsv</code> — ISC</summary>
+### `d3-dsv` — ISC
 
 ```text
 Copyright 2013-2021 Mike Bostock
@@ -4624,10 +4228,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-ease</code> — BSD-3-Clause</summary>
+### `d3-ease` — BSD-3-Clause
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4660,10 +4261,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-fetch</code> — ISC</summary>
+### `d3-fetch` — ISC
 
 ```text
 Copyright 2016-2021 Mike Bostock
@@ -4681,10 +4279,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-force</code> — ISC</summary>
+### `d3-force` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4702,10 +4297,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-format</code> — ISC</summary>
+### `d3-format` — ISC
 
 ```text
 Copyright 2010-2026 Mike Bostock
@@ -4723,10 +4315,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-geo</code> — ISC</summary>
+### `d3-geo` — ISC
 
 ```text
 Copyright 2010-2024 Mike Bostock
@@ -4765,10 +4354,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-hierarchy</code> — ISC</summary>
+### `d3-hierarchy` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4786,10 +4372,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-interpolate</code> — ISC</summary>
+### `d3-interpolate` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4807,10 +4390,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-path</code> — ISC</summary>
+### `d3-path` — ISC
 
 ```text
 Copyright 2015-2022 Mike Bostock
@@ -4828,10 +4408,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-polygon</code> — ISC</summary>
+### `d3-polygon` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4849,10 +4426,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-quadtree</code> — ISC</summary>
+### `d3-quadtree` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4870,10 +4444,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-random</code> — ISC</summary>
+### `d3-random` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4891,10 +4462,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-sankey</code> — BSD-3-Clause</summary>
+### `d3-sankey` — BSD-3-Clause
 
 ```text
 Copyright 2015, Mike Bostock
@@ -4926,10 +4494,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-scale</code> — ISC</summary>
+### `d3-scale` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -4947,10 +4512,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-scale-chromatic</code> — ISC</summary>
+### `d3-scale-chromatic` — ISC
 
 ```text
 Copyright 2010-2024 Mike Bostock
@@ -4983,10 +4545,7 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-selection</code> — ISC</summary>
+### `d3-selection` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -5004,10 +4563,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-shape</code> — BSD-3-Clause</summary>
+### `d3-shape` — BSD-3-Clause
 
 ```text
 Copyright 2010-2015 Mike Bostock
@@ -5039,10 +4595,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-time</code> — ISC</summary>
+### `d3-time` — ISC
 
 ```text
 Copyright 2010-2022 Mike Bostock
@@ -5060,10 +4613,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-time-format</code> — ISC</summary>
+### `d3-time-format` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -5081,10 +4631,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-timer</code> — ISC</summary>
+### `d3-timer` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -5102,10 +4649,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-transition</code> — ISC</summary>
+### `d3-transition` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -5123,10 +4667,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>d3-zoom</code> — ISC</summary>
+### `d3-zoom` — ISC
 
 ```text
 Copyright 2010-2021 Mike Bostock
@@ -5144,10 +4685,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>dagre-d3-es</code> — MIT</summary>
+### `dagre-d3-es` — MIT
 
 ```text
 Original dagre-d3 copyright: Copyright (c) 2013 Chris Pettitt
@@ -5175,10 +4713,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>dayjs</code> — MIT</summary>
+### `dayjs` — MIT
 
 ```text
 MIT License
@@ -5204,10 +4739,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>delaunator</code> — ISC</summary>
+### `delaunator` — ISC
 
 ```text
 ISC License
@@ -5227,10 +4759,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>dequal</code> — MIT</summary>
+### `dequal` — MIT
 
 ```text
 The MIT License (MIT)
@@ -5256,10 +4785,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>devlop</code> — MIT</summary>
+### `devlop` — MIT
 
 ```text
 (The MIT License)
@@ -5286,10 +4812,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>dfa</code> — MIT</summary>
+### `dfa` — MIT
 
 ```text
 MIT License
@@ -5317,10 +4840,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at ssh://git@github.com/devongovett/dfa
 ```
 
-</details>
-
-<details>
-<summary><code>dompurify</code> — (MPL-2.0 OR Apache-2.0)</summary>
+### `dompurify` — (MPL-2.0 OR Apache-2.0)
 
 ```text
 Apache License
@@ -5400,10 +4920,7 @@ Apache License
 …
 ```
 
-</details>
-
-<details>
-<summary><code>emoji-regex-xs</code> — MIT</summary>
+### `emoji-regex-xs` — MIT
 
 ```text
 MIT License
@@ -5429,10 +4946,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>entities</code> — BSD-2-Clause</summary>
+### `entities` — BSD-2-Clause
 
 ```text
 Copyright (c) Felix Böhm
@@ -5448,10 +4962,7 @@ THIS IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRE
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-</details>
-
-<details>
-<summary><code>es-toolkit</code> — MIT</summary>
+### `es-toolkit` — MIT
 
 ```text
 MIT License
@@ -5477,10 +4988,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>events</code> — MIT</summary>
+### `events` — MIT
 
 ```text
 MIT
@@ -5507,10 +5015,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>fast-deep-equal</code> — MIT</summary>
+### `fast-deep-equal` — MIT
 
 ```text
 MIT License
@@ -5536,10 +5041,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>fast-equals</code> — MIT</summary>
+### `fast-equals` — MIT
 
 ```text
 MIT License
@@ -5565,10 +5067,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>fastdom</code> — MIT</summary>
+### `fastdom` — MIT
 
 ```text
 MIT License
@@ -5596,10 +5095,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/wilsonpage/fastdom
 ```
 
-</details>
-
-<details>
-<summary><code>fflate</code> — MIT</summary>
+### `fflate` — MIT
 
 ```text
 MIT License
@@ -5625,10 +5121,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>fontkit</code> — MIT</summary>
+### `fontkit` — MIT
 
 ```text
 MIT License
@@ -5656,10 +5149,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/foliojs/fontkit
 ```
 
-</details>
-
-<details>
-<summary><code>hachure-fill</code> — MIT</summary>
+### `hachure-fill` — MIT
 
 ```text
 MIT License
@@ -5685,10 +5175,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>highlight.js</code> — BSD-3-Clause</summary>
+### `highlight.js` — BSD-3-Clause
 
 ```text
 BSD 3-Clause License
@@ -5722,10 +5209,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-</details>
-
-<details>
-<summary><code>hsl-to-hex</code> — MIT</summary>
+### `hsl-to-hex` — MIT
 
 ```text
 MIT License
@@ -5753,10 +5237,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at ssh://git@github.com/davidmarkclements/hsl-to-hex
 ```
 
-</details>
-
-<details>
-<summary><code>hsl-to-rgb-for-reals</code> — ISC</summary>
+### `hsl-to-rgb-for-reals` — ISC
 
 ```text
 ISC License
@@ -5778,10 +5259,7 @@ PERFORMANCE OF THIS SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/davidmarkclements/hsl_rgb_converter/
 ```
 
-</details>
-
-<details>
-<summary><code>hyphen</code> — ISC</summary>
+### `hyphen` — ISC
 
 ```text
 ISC License (ISC)
@@ -5801,10 +5279,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>iconv-lite</code> — MIT</summary>
+### `iconv-lite` — MIT
 
 ```text
 Copyright (c) 2011 Alexander Shtuchkin
@@ -5829,10 +5304,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>import-meta-resolve</code> — MIT</summary>
+### `import-meta-resolve` — MIT
 
 ```text
 (The MIT License)
@@ -5911,10 +5383,7 @@ IN THE SOFTWARE.
 """
 ```
 
-</details>
-
-<details>
-<summary><code>inherits</code> — ISC</summary>
+### `inherits` — ISC
 
 ```text
 The ISC License
@@ -5934,10 +5403,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>internmap</code> — ISC</summary>
+### `internmap` — ISC
 
 ```text
 Copyright 2021 Mike Bostock
@@ -5955,10 +5421,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>is-url</code> — MIT</summary>
+### `is-url` — MIT
 
 ```text
 MIT LICENSE
@@ -5982,10 +5445,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>jay-peg</code> — MIT</summary>
+### `jay-peg` — MIT
 
 ```text
 MIT License
@@ -6011,10 +5471,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>js-md5</code> — MIT</summary>
+### `js-md5` — MIT
 
 ```text
 Copyright 2014-2023 Chen, Yi-Cyuan
@@ -6039,10 +5496,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>js-tokens</code> — MIT</summary>
+### `js-tokens` — MIT
 
 ```text
 The MIT License (MIT)
@@ -6068,10 +5522,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>katex</code> — MIT</summary>
+### `katex` — MIT
 
 ```text
 The MIT License (MIT)
@@ -6097,10 +5548,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>khroma</code> — see the package</summary>
+### `khroma` — see the package
 
 ```text
 The MIT License (MIT)
@@ -6126,10 +5574,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>layout-base</code> — MIT</summary>
+### `layout-base` — MIT
 
 ```text
 MIT License
@@ -6155,10 +5600,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>linebreak</code> — MIT</summary>
+### `linebreak` — MIT
 
 ```text
 MIT License
@@ -6184,10 +5626,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>linkify-it</code> — MIT</summary>
+### `linkify-it` — MIT
 
 ```text
 Copyright (c) 2015 Vitaly Puzrin.
@@ -6214,10 +5653,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>linkifyjs</code> — MIT</summary>
+### `linkifyjs` — MIT
 
 ```text
 Copyright (c) 2024 Nick Frasser
@@ -6241,10 +5677,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>lodash-es</code> — MIT</summary>
+### `lodash-es` — MIT
 
 ```text
 Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
@@ -6296,10 +5729,7 @@ licenses; we recommend you read them, as their terms may differ from the
 terms above.
 ```
 
-</details>
-
-<details>
-<summary><code>loose-envify</code> — MIT</summary>
+### `loose-envify` — MIT
 
 ```text
 The MIT License (MIT)
@@ -6325,10 +5755,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>lowlight</code> — MIT</summary>
+### `lowlight` — MIT
 
 ```text
 (The MIT License)
@@ -6355,10 +5782,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>markdown-it</code> — MIT</summary>
+### `markdown-it` — MIT
 
 ```text
 Copyright (c) 2014 Vitaly Puzrin, Alex Kocharin.
@@ -6385,10 +5809,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>markdown-it-mark</code> — MIT</summary>
+### `markdown-it-mark` — MIT
 
 ```text
 Copyright (c) 2014-2015 Vitaly Puzrin, Alex Kocharin.
@@ -6415,10 +5836,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>markdown-it-task-lists</code> — ISC</summary>
+### `markdown-it-task-lists` — ISC
 
 ```text
 Copyright (c) 2016, Revin Guillen
@@ -6436,10 +5854,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>marked</code> — MIT</summary>
+### `marked` — MIT
 
 ```text
 # License information
@@ -6488,10 +5903,7 @@ Redistribution and use in source and binary forms, with or without modification,
 This software is provided by the copyright holders and contributors “as is” and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the copyright owner or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.
 ```
 
-</details>
-
-<details>
-<summary><code>mdurl</code> — MIT</summary>
+### `mdurl` — MIT
 
 ```text
 Copyright (c) 2015 Vitaly Puzrin, Alex Kocharin.
@@ -6541,10 +5953,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>media-engine</code> — MIT</summary>
+### `media-engine` — MIT
 
 ```text
 MIT License
@@ -6570,10 +5979,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>mermaid</code> — MIT</summary>
+### `mermaid` — MIT
 
 ```text
 The MIT License (MIT)
@@ -6599,10 +6005,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>normalize-svg-path</code> — MIT</summary>
+### `normalize-svg-path` — MIT
 
 ```text
 The MIT License
@@ -6631,10 +6034,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>object-assign</code> — MIT</summary>
+### `object-assign` — MIT
 
 ```text
 The MIT License (MIT)
@@ -6660,10 +6060,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>orderedmap</code> — MIT</summary>
+### `orderedmap` — MIT
 
 ```text
 Copyright (C) 2016 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -6687,10 +6084,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>package-manager-detector</code> — MIT</summary>
+### `package-manager-detector` — MIT
 
 ```text
 MIT License
@@ -6716,10 +6110,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>pako</code> — MIT</summary>
+### `pako` — MIT
 
 ```text
 (The MIT License)
@@ -6745,10 +6136,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>parse-svg-path</code> — MIT</summary>
+### `parse-svg-path` — MIT
 
 ```text
 The MIT License
@@ -6775,10 +6163,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>path-data-parser</code> — MIT</summary>
+### `path-data-parser` — MIT
 
 ```text
 MIT License
@@ -6804,10 +6189,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>png-js</code> — see the package</summary>
+### `png-js` — see the package
 
 ```text
 MIT License
@@ -6833,10 +6215,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>points-on-curve</code> — MIT</summary>
+### `points-on-curve` — MIT
 
 ```text
 MIT License
@@ -6862,10 +6241,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>points-on-path</code> — MIT</summary>
+### `points-on-path` — MIT
 
 ```text
 MIT License
@@ -6891,10 +6267,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>postcss-value-parser</code> — MIT</summary>
+### `postcss-value-parser` — MIT
 
 ```text
 Copyright (c) Bogdan Chadkin <trysound@yandex.ru>
@@ -6921,10 +6294,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prop-types</code> — MIT</summary>
+### `prop-types` — MIT
 
 ```text
 MIT License
@@ -6950,10 +6320,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-changeset</code> — MIT</summary>
+### `prosemirror-changeset` — MIT
 
 ```text
 Copyright (C) 2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -6977,10 +6344,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-commands</code> — MIT</summary>
+### `prosemirror-commands` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7004,10 +6368,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-dropcursor</code> — MIT</summary>
+### `prosemirror-dropcursor` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7031,10 +6392,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-gapcursor</code> — MIT</summary>
+### `prosemirror-gapcursor` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7058,10 +6416,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-history</code> — MIT</summary>
+### `prosemirror-history` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7085,10 +6440,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-inputrules</code> — MIT</summary>
+### `prosemirror-inputrules` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7112,10 +6464,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-keymap</code> — MIT</summary>
+### `prosemirror-keymap` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7139,10 +6488,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-markdown</code> — MIT</summary>
+### `prosemirror-markdown` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7166,10 +6512,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-model</code> — MIT</summary>
+### `prosemirror-model` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7193,10 +6536,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-schema-list</code> — MIT</summary>
+### `prosemirror-schema-list` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7220,10 +6560,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-state</code> — MIT</summary>
+### `prosemirror-state` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7247,10 +6584,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-tables</code> — MIT</summary>
+### `prosemirror-tables` — MIT
 
 ```text
 Copyright (C) 2015-2016 by Marijn Haverbeke <marijnh@gmail.com> and others
@@ -7274,10 +6608,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-transform</code> — MIT</summary>
+### `prosemirror-transform` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7301,10 +6632,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>prosemirror-view</code> — MIT</summary>
+### `prosemirror-view` — MIT
 
 ```text
 Copyright (C) 2015-2017 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -7328,10 +6656,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>punycode.js</code> — MIT</summary>
+### `punycode.js` — MIT
 
 ```text
 Copyright Mathias Bynens <https://mathiasbynens.be/>
@@ -7356,10 +6681,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>queue</code> — MIT</summary>
+### `queue` — MIT
 
 ```text
 The MIT License (MIT)
@@ -7372,10 +6694,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>react</code> — MIT</summary>
+### `react` — MIT
 
 ```text
 MIT License
@@ -7401,10 +6720,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>react-dom</code> — MIT</summary>
+### `react-dom` — MIT
 
 ```text
 MIT License
@@ -7430,10 +6746,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>react-is</code> — MIT</summary>
+### `react-is` — MIT
 
 ```text
 MIT License
@@ -7459,10 +6772,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>require-from-string</code> — MIT</summary>
+### `require-from-string` — MIT
 
 ```text
 The MIT License (MIT)
@@ -7488,10 +6798,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>restructure</code> — MIT</summary>
+### `restructure` — MIT
 
 ```text
 MIT License
@@ -7517,10 +6824,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>robust-predicates</code> — Unlicense</summary>
+### `robust-predicates` — Unlicense
 
 ```text
 This is free and unencumbered software released into the public domain.
@@ -7549,10 +6853,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org>
 ```
 
-</details>
-
-<details>
-<summary><code>rope-sequence</code> — MIT</summary>
+### `rope-sequence` — MIT
 
 ```text
 Copyright (C) 2016 by Marijn Haverbeke <marijn@haverbeke.berlin>
@@ -7576,10 +6877,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>roughjs</code> — MIT</summary>
+### `roughjs` — MIT
 
 ```text
 MIT License
@@ -7605,10 +6903,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>rw</code> — BSD-3-Clause</summary>
+### `rw` — BSD-3-Clause
 
 ```text
 Copyright (c) 2014-2016, Michael Bostock
@@ -7639,10 +6934,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-</details>
-
-<details>
-<summary><code>safe-buffer</code> — MIT</summary>
+### `safe-buffer` — MIT
 
 ```text
 The MIT License (MIT)
@@ -7668,10 +6960,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>safer-buffer</code> — MIT</summary>
+### `safer-buffer` — MIT
 
 ```text
 MIT License
@@ -7697,10 +6986,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>scheduler</code> — MIT</summary>
+### `scheduler` — MIT
 
 ```text
 MIT License
@@ -7726,10 +7012,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>strictdom</code> — MIT</summary>
+### `strictdom` — MIT
 
 ```text
 MIT License
@@ -7757,10 +7040,7 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/wilsonpage/strictdom
 ```
 
-</details>
-
-<details>
-<summary><code>string_decoder</code> — MIT</summary>
+### `string_decoder` — MIT
 
 ```text
 Node.js is licensed for use as follows:
@@ -7812,10 +7092,7 @@ IN THE SOFTWARE.
 """
 ```
 
-</details>
-
-<details>
-<summary><code>stylis</code> — MIT</summary>
+### `stylis` — MIT
 
 ```text
 MIT License
@@ -7841,10 +7118,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>svg-arc-to-cubic-bezier</code> — ISC</summary>
+### `svg-arc-to-cubic-bezier` — ISC
 
 ```text
 Internet Systems Consortium license
@@ -7865,10 +7139,7 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>tiny-inflate</code> — MIT</summary>
+### `tiny-inflate` — MIT
 
 ```text
 MIT License
@@ -7894,10 +7165,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>tinyexec</code> — MIT</summary>
+### `tinyexec` — MIT
 
 ```text
 MIT License
@@ -7923,10 +7191,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>tiptap-markdown</code> — MIT</summary>
+### `tiptap-markdown` — MIT
 
 ```text
 MIT License
@@ -7952,10 +7217,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>ts-dedent</code> — MIT</summary>
+### `ts-dedent` — MIT
 
 ```text
 MIT License
@@ -7981,10 +7243,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>tslib</code> — 0BSD</summary>
+### `tslib` — 0BSD
 
 ```text
 Copyright (c) Microsoft Corporation.
@@ -8001,10 +7260,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>uc.micro</code> — MIT</summary>
+### `uc.micro` — MIT
 
 ```text
 Copyright Mathias Bynens <https://mathiasbynens.be/>
@@ -8029,10 +7285,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>unicode-properties</code> — MIT</summary>
+### `unicode-properties` — MIT
 
 ```text
 Copyright 2018
@@ -8044,10 +7297,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>unicode-trie</code> — MIT</summary>
+### `unicode-trie` — MIT
 
 ```text
 Copyright 2018
@@ -8059,10 +7309,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>use-sync-external-store</code> — MIT</summary>
+### `use-sync-external-store` — MIT
 
 ```text
 MIT License
@@ -8088,10 +7335,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>util-deprecate</code> — MIT</summary>
+### `util-deprecate` — MIT
 
 ```text
 (The MIT License)
@@ -8120,10 +7364,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>uuid</code> — MIT</summary>
+### `uuid` — MIT
 
 ```text
 The MIT License (MIT)
@@ -8137,10 +7378,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>vite-compatible-readable-stream</code> — MIT</summary>
+### `vite-compatible-readable-stream` — MIT
 
 ```text
 Node.js is licensed for use as follows:
@@ -8192,10 +7430,7 @@ IN THE SOFTWARE.
 """
 ```
 
-</details>
-
-<details>
-<summary><code>w3c-keyname</code> — MIT</summary>
+### `w3c-keyname` — MIT
 
 ```text
 Copyright (C) 2016 by Marijn Haverbeke <marijn@haverbeke.berlin> and others
@@ -8219,10 +7454,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-</details>
-
-<details>
-<summary><code>yoga-layout</code> — MIT</summary>
+### `yoga-layout` — MIT
 
 ```text
 MIT License
@@ -8249,5 +7481,3 @@ SOFTWARE.
 
 The package ships no licence file. Its text is at https://github.com/facebook/yoga
 ```
-
-</details>

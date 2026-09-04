@@ -27,14 +27,14 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const chosen = { named: "aboutScreen" } as Parameters<typeof Sidebar>[0]["chosen"];
 
-function bar(ready: boolean) {
+function bar(waiting?: string) {
   render(
     <Sidebar
       lists={[]}
       papers={{ folders: [], docs: [] }}
       counts={{}}
       chosen={chosen}
-      ready={ready}
+      waiting={waiting}
       onChoose={vi.fn()}
       onFile={vi.fn()}
       onHere={vi.fn()}
@@ -49,13 +49,13 @@ function bar(ready: boolean) {
 
 describe("the update dot", () => {
   it("names itself for a reader that cannot see it", () => {
-    bar(true);
+    bar("0.2.0");
 
     expect(screen.getByLabelText(/a newer version exists/)).toBeTruthy();
   });
 
   it("says nothing at all when this is the newest one", () => {
-    bar(false);
+    bar();
 
     expect(screen.queryByLabelText(/a newer version exists/)).toBeNull();
     expect(screen.getByLabelText("About")).toBeTruthy();
