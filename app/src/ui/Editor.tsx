@@ -76,10 +76,11 @@ export const stale = (value: string, mine: string, shown: () => string | null): 
 
 const GLYPHS_TALL = 330;
 const WAITS = 10_000;
+const ASIDE_MARGIN = 80;
 
 export interface Settling {
   at: () => HTMLElement | null;
-  want: number;
+  want: number | (() => number | null);
   done: () => void;
   put: (down: number) => void;
   watch?: () => HTMLElement | null;
@@ -92,13 +93,16 @@ export const settles = ({ at, want, done, put, watch }: Settling) => {
   let seeing: ResizeObserver | null = null;
   let timer = 0;
   let writing = false;
+  let tallness = -1;
 
   const sheet = at();
 
   function nudged() {
     if (writing) return;
     const room = at();
-    if (room && mine >= 0 && room.scrollTop !== mine) stop();
+    if (!room || mine < 0) return;
+    if (room.scrollHeight !== tallness) return;
+    if (room.scrollTop !== mine) stop();
   }
 
   function stop() {
@@ -114,12 +118,15 @@ export const settles = ({ at, want, done, put, watch }: Settling) => {
   const reach = () => {
     const room = at();
     if (!room) return stop();
+    const asked = typeof want === "function" ? want() : want;
+    if (asked === null) return;
     writing = true;
-    room.scrollTop = want;
+    room.scrollTop = asked;
     mine = room.scrollTop;
     writing = false;
     put(mine);
-    if (mine >= want) stop();
+    tallness = room.scrollHeight;
+    if (mine >= asked) stop();
   };
 
   frame = requestAnimationFrame(reach);
@@ -191,7 +198,6 @@ const aimed = (editor: Writing) => {
 
 interface Props {
   value: string;
-  taking?: boolean;
   reading?: boolean;
   folder?: string | null;
   paper?: string;
@@ -211,6 +217,7 @@ interface Props {
   onReady?: (read: () => unknown) => void;
   onInsert?: (put: (file: string, title: string) => void) => void;
   seek?: number;
+  anchor?: string;
   onSeen?: (at: number) => void;
   above?: React.ReactNode;
   below?: React.ReactNode;
@@ -218,7 +225,6 @@ interface Props {
 
 export default function Editor({
   value,
-  taking,
   reading,
   folder,
   paper,
@@ -238,6 +244,7 @@ export default function Editor({
   onReady,
   onInsert,
   seek,
+  anchor,
   onSeen,
   above,
   below,
@@ -429,7 +436,7 @@ export default function Editor({
   });
 
   const editor = useEditor({
-    autofocus: taking,
+    autofocus: false,
     editable: !reading,
     extensions: shapes,
     content: loosened(value),
@@ -645,6 +652,12 @@ export default function Editor({
     editor.commands.setContent(loosened(value), { emitUpdate: false });
   }, [editor, value]);
 
+  /// The reader gets the keyboard without a caret: focus on the sheet moves nothing, while focus
+  /// in the text drags the view to wherever the caret sits.
+  useEffect(() => {
+    sheet.current?.focus({ preventScroll: true });
+  }, []);
+
   nudge.current = () => {
     if (waiting.current) return;
     waiting.current = true;
@@ -733,16 +746,30 @@ export default function Editor({
   const current = Math.min(active, shown.length - 1);
 
   const wanted = useRef(seek);
+  const marked = useRef(anchor);
   const putting = useRef(-1);
   useEffect(() => {
     const want = wanted.current;
-    if (!sheet.current || !editor || editor.isDestroyed || !want) return;
+    const mark = marked.current;
+    if (!sheet.current || !editor || editor.isDestroyed || (!want && !mark)) return;
+    const spot = () => {
+      const room = sheet.current;
+      if (!room) return null;
+      const found = mark ? room.querySelector<HTMLElement>(`[data-doc="${mark}"]`) : null;
+      const box = found?.getBoundingClientRect();
+      if (!box || (!box.height && !box.top)) return want ?? null;
+      const above = box.top - room.getBoundingClientRect().top;
+      return Math.max(0, Math.round(above + room.scrollTop - ASIDE_MARGIN));
+    };
     putting.current = 0;
     return settles({
       at: () => sheet.current,
-      want,
+      want: spot,
       done: () => {
         putting.current = -1;
+        const room = sheet.current;
+        if (!room || room.scrollHeight <= room.clientHeight) return;
+        onSeen?.(room.scrollTop);
       },
       put: (down) => {
         putting.current = down;
@@ -809,9 +836,12 @@ export default function Editor({
     <>
       <div
         ref={sheet}
+        tabIndex={0}
         onScroll={(one) => {
-          const down = (one.currentTarget as HTMLElement).scrollTop;
-          if (putting.current >= 0 && down === putting.current) return;
+          const room = one.currentTarget as HTMLElement;
+          const down = room.scrollTop;
+          if (putting.current >= 0) return;
+          if (room.scrollHeight <= room.clientHeight) return;
           onSeen?.(down);
         }}
         className={`scroller gutter flex min-h-0 flex-1 flex-col${above || below ? " leafed" : ""}`}

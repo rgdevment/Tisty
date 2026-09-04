@@ -21,7 +21,6 @@ const write = async () => {
   render(
     <Editor
       value="hola"
-      taking
       paper="mac0-0001"
       papers={known}
       label="Paper"

@@ -224,6 +224,15 @@ export default function Docs({
     seen.current = fresh;
     const wanted = known.find((one) => one.file === asked);
     if (!wanted) return;
+    const before = open?.file;
+    if (before && before !== asked) {
+      const leaving = known.find((one) => one.file === before);
+      if (wanted.pageOf && leaving && wanted.pageOf === leaving.id) {
+        from.current = { doc: before, page: asked };
+      } else if (from.current?.doc !== asked) {
+        from.current = null;
+      }
+    }
     putting.current = null;
     flush();
     const mine = ++turn.current;
@@ -302,7 +311,9 @@ export default function Docs({
   const own = filed(known, open?.file);
   const bolted = Boolean(own?.locked);
   const stood = useRef(new Map<string, number>());
+  const from = useRef<{ doc: string; page: string } | null>(null);
   const seek = own?.file ? stood.current.get(own.file) : undefined;
+  const anchor = own?.file && from.current?.doc === own.file ? from.current.page : undefined;
   const pages = pagesOf(known, open?.file);
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
@@ -484,10 +495,10 @@ export default function Docs({
                 key={`${open.file}${reading || bolted ? ":read" : ""}`}
                 value={body}
                 seek={seek}
+                anchor={anchor}
                 onSeen={(at) => {
                   if (own?.file) stood.current.set(own.file, at);
                 }}
-                taking={!reading && !bolted}
                 reading={reading || bolted}
                 label={open.title || t("untitledDoc")}
                 papers={known}
