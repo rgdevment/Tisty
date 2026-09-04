@@ -508,14 +508,17 @@ abierta.
 | ✅ | Un asistente puede anotar por ti, por MCP, si lo dejas entrar |
 | ✅ | Recordatorios, respaldo, y sincronización por una carpeta compartida |
 | ✅ | Bienvenida guiada, una guía escrita en tu almacén, español e inglés |
+| ✅ | Carpetas y documentos reordenados a mano, llevados adonde quieras |
+| ✅ | Iconos: 1.381 dibujos y 1.609 emoji, buscables en tu idioma |
 | ✅ | macOS: firmado y notarizado. Windows: instalador firmado |
-| ◐ | Uso diario, que es lo que saca los fallos que los tests no — para eso es la candidata |
-| ◐ | La ficha de la Microsoft Store, cuyas capturas hay que rehacer en Windows |
 
-Dos cosas están asumidas en vez de pendientes: no se puede reordenar a mano en la
-ventana —el arrastre de HTML no sobrevive al de archivos nativo que necesitan los
-adjuntos, y los adjuntos eran el mejor trato— y nada se ha probado con un lector
-de pantalla real, aunque el camino por teclado sí.
+Una cosa está asumida en vez de pendiente: nada se ha probado con un lector de
+pantalla real, aunque el camino por teclado sí.
+
+Reordenar a mano estuvo en esta lista, descartado por una buena razón: el arrastre
+de HTML no sobrevive al de archivos nativo que necesitan los adjuntos. Está aquí
+ahora porque el árbol dejó de preguntarle al navegador y sigue el puntero por su
+cuenta, lo que cuesta algo de código y conserva las dos cosas.
 
 ## Qué nunca va a hacer
 
