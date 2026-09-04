@@ -47,6 +47,7 @@ describe("icons on a list", () => {
       <Lists
         lists={lists}
         counts={{ "01A": 2 }}
+        tasks={[]}
         onOpen={vi.fn()}
         onChanged={vi.fn()}
         onError={vi.fn()}

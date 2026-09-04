@@ -10,9 +10,12 @@ interface Props {
   heading?: React.ReactNode;
   lists: List[];
   onError?: (problem: unknown) => void;
+  /// Drawn above the trail with the day the first page was written: the age of a task is only
+  /// known here, and asking for the story twice to count it would read the log twice.
+  before?: (from: string) => React.ReactNode;
 }
 
-export default function Trail({ task, lists, onError, heading }: Props) {
+export default function Trail({ task, lists, onError, heading, before }: Props) {
   const told = useAsked(() => taskStory(task), [task], onError);
 
   if (!told) return null;
@@ -29,6 +32,7 @@ export default function Trail({ task, lists, onError, heading }: Props) {
 
   return (
     <>
+      {before?.(told.pages[0].at)}
       {heading}
       <ol className="flex flex-col">
         {told.pages.map((page) => (

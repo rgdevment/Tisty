@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { List } from "../core";
+import type { List, Task } from "../core";
 import Lists from "../ui/Lists";
 
 const store = vi.hoisted(() => ({
@@ -56,6 +56,7 @@ describe("tending a list", () => {
       <Lists
         lists={lists}
         counts={{ "01A": 2 }}
+        tasks={[]}
         onOpen={vi.fn()}
         onChanged={changed}
         onError={vi.fn()}
@@ -129,5 +130,62 @@ describe("tending a list", () => {
     await waitFor(() => expect(store.asked.length).toBe(1));
     expect(store.dropped.length).toBe(0);
     expect(changed).not.toHaveBeenCalled();
+  });
+});
+
+describe("what a list card says about what is inside", () => {
+  const task = (id: string, title: string, at?: string, list = "01A"): Task => ({
+    id,
+    title,
+    status: "open",
+    priority: "unset",
+    order: `a${id}`,
+    list,
+    ...(at ? { date: { at, tz: "UTC", floating: true, has_time: false } } : {}),
+  });
+
+  const withTasks = (tasks: Task[]) =>
+    render(
+      <Lists
+        lists={lists}
+        counts={{ "01A": tasks.filter((one) => one.list === "01A").length }}
+        tasks={tasks}
+        onOpen={vi.fn()}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+  it("puts what comes soonest first, and dated work before undated", () => {
+    withTasks([
+      task("1", "sin fecha"),
+      task("2", "la lejana", "2030-01-01"),
+      task("3", "la cercana", "2020-01-01"),
+    ]);
+
+    const said = screen.getAllByRole("button").map((one) => one.textContent);
+    const order = said.filter((one) => one?.includes("fecha") || one?.includes("la "));
+    expect(order[0]).toContain("la cercana");
+    expect(order[1]).toContain("la lejana");
+    expect(order[2]).toContain("sin fecha");
+  });
+
+  it("names three and no more, however many the list holds", () => {
+    withTasks(["1", "2", "3", "4", "5"].map((n) => task(n, `tarea ${n}`, `2030-01-0${n}`)));
+
+    expect(screen.getByText("tarea 3")).toBeTruthy();
+    expect(screen.queryByText("tarea 4")).toBeNull();
+  });
+
+  it("says it is settled where nothing is open, rather than leaving the card bare", () => {
+    withTasks([]);
+
+    expect(screen.getAllByText("Nothing open").length).toBe(lists.length);
+  });
+
+  it("marks a task with no date so the column beside it is not left short", () => {
+    withTasks([task("1", "algún día")]);
+
+    expect(screen.getByText("—")).toBeTruthy();
   });
 });

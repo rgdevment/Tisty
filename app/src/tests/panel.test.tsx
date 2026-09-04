@@ -1,10 +1,15 @@
+import { invoke } from "@tauri-apps/api/core";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
 import Detail from "../ui/Detail";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(() => Promise.resolve(null)) }));
+
+beforeEach(() => {
+  vi.mocked(invoke).mockImplementation(() => Promise.resolve(null));
+});
 
 const task: Task = {
   id: "01A",
@@ -100,5 +105,29 @@ describe("what only the mouse used to see", () => {
     const prose = screen.getByLabelText(/description/i);
     expect(prose.getAttribute("tabindex")).toBe("0");
     expect(prose.className).toContain("focus-visible:ring-2");
+  });
+});
+
+describe("what an open task carries, once it takes the whole page", () => {
+  it("counts what it has gathered beside the trail, from the day it was made", async () => {
+    vi.mocked(invoke).mockImplementation((cmd: string) =>
+      Promise.resolve(
+        cmd === "task_story"
+          ? { pages: [{ n: 1, at: "2026-08-30T09:00:00Z", chapter: "made" }] }
+          : null,
+      ),
+    );
+    show(true);
+
+    expect(await screen.findByText("5")).toBeTruthy();
+    expect(screen.getByText("days open")).toBeTruthy();
+    expect(screen.getByText("0/0")).toBeTruthy();
+    expect(screen.getByText("What it carries")).toBeTruthy();
+  });
+
+  it("leaves the trail out of the panel, where the column has no room for it", () => {
+    show(false);
+
+    expect(screen.queryByText("What it carries")).toBeNull();
   });
 });
