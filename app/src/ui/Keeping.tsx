@@ -87,11 +87,16 @@ const carried = {
 type Which =
   | "sync"
   | "backup"
+  | "restore"
   | "review"
   | "terminal"
   | "quick"
   | "waking"
   | "settings"
+  | "notices"
+  | "updates"
+  | "attach"
+  | "holds"
   | "wiring"
   | "report"
   | "store"
@@ -99,12 +104,11 @@ type Which =
   | "greet"
   | "tongue";
 type Word = { card: Which; text: string };
-type Tab = "data" | "notices" | "writing" | "agents" | "upkeep";
+type Tab = "general" | "data" | "agents" | "upkeep";
 
 const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
+  { key: "general", label: "tabGeneral" },
   { key: "data", label: "tabData" },
-  { key: "notices", label: "tabNotices" },
-  { key: "writing", label: "tabWriting" },
   { key: "agents", label: "tabAgents" },
   { key: "upkeep", label: "tabUpkeep" },
 ];
@@ -112,11 +116,12 @@ const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
 interface Props {
   onChanged: () => void;
   onGreet: () => void;
+  onDoc: (paper: string) => void;
   greeted?: number;
 }
 
-export default function Keeping({ onChanged, onGreet, greeted }: Props) {
-  const [tab, setTab] = useState<Tab>("data");
+export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
+  const [tab, setTab] = useState<Tab>("general");
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agents, setAgents] = useState<Wired[] | null>(null);
   const [wired, setWired] = useState(false);
@@ -151,6 +156,9 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
     syncState()
       .then(setState)
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
+    readSettings()
+      .then(setKept)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -174,9 +182,6 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
       .catch(() => {});
     shortcut()
       .then(setKeys)
-      .catch(() => {});
-    readSettings()
-      .then(setKept)
       .catch(() => {});
     about()
       .then(setBuild)
@@ -326,10 +331,10 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
     }
   };
 
-  const remember = (next: Settings) =>
-    run("settings", keepSettings(next), (now) => {
+  const remember = (next: Settings, card: Which) =>
+    run(card, keepSettings(next), (now) => {
       setKept(now);
-      setSaid({ card: "settings", text: t("settingsKept") });
+      setSaid({ card, text: t("settingsKept") });
     });
 
   const pickFolder = () => {
@@ -461,11 +466,11 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
       .then(async (at) => {
         if (typeof at !== "string") return;
         if (!(await ask(t("restoreSure"), { kind: "warning" }))) return;
-        run("backup", restore(at), (files) =>
-          setSaid({ card: "backup", text: fill("restored", String(files)) }),
+        run("restore", restore(at), (files) =>
+          setSaid({ card: "restore", text: fill("restored", String(files)) }),
         );
       })
-      .catch((e) => setTrouble({ card: "backup", text: saidPlainly(e) }));
+      .catch((e) => setTrouble({ card: "restore", text: saidPlainly(e) }));
   };
 
   const compose = () => facts(told.names, told.paths).then(written);
@@ -565,9 +570,264 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
           ))}
         </div>
 
+        {busy !== null && (tab === "general" || tab === "data") && (
+          <p className="text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
+        )}
+
+        {tab === "general" && (
+          <>
+            <Band label={t("bandWindow")} />
+            <div className="border-t border-hair">
+              {kept && (
+                <Line
+                  title={t("tongue")}
+                  why={t("tongueWhy")}
+                  which="tongue"
+                  said={said}
+                  trouble={trouble}
+                >
+                  <select
+                    aria-label={t("tongue")}
+                    value={kept.locale ?? ""}
+                    disabled={held}
+                    onChange={(e) => {
+                      const wanted = e.target.value || undefined;
+                      run("tongue", keepLocale(wanted), (now) => {
+                        adopt(now ?? undefined);
+                        setKept({ ...kept, locale: now ?? undefined });
+                        onChanged();
+                      });
+                    }}
+                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  >
+                    <option value="">{t("tongueTheirs")}</option>
+                    <option value="es">Español</option>
+                    <option value="en">English</option>
+                  </select>
+                </Line>
+              )}
+
+              {wake?.offered && (
+                <Line
+                  title={t("wake")}
+                  why={t(wake.wakes ? "wakeOn" : "wakeOff")}
+                  which="waking"
+                  said={said}
+                  trouble={trouble}
+                  more={
+                    wake.theirs &&
+                    !wake.wakes && (
+                      <div className="mt-2 rounded-lg bg-mark-priority px-3 py-2.5">
+                        <p className="text-[12.5px] leading-relaxed text-ink">{t("wakeTheirs")}</p>
+                      </div>
+                    )
+                  }
+                >
+                  <Knob
+                    on={wake.wakes}
+                    label={t("wakeAdd")}
+                    disabled={held}
+                    onPress={() =>
+                      run("waking", wakeFor(!wake.wakes), (now) => {
+                        setWake(now);
+                        if (now.wakes === wake.wakes) {
+                          return;
+                        }
+                        setSaid({
+                          card: "waking",
+                          text: t(now.wakes ? "wakeFresh" : "wakeGone"),
+                        });
+                      })
+                    }
+                  />
+                </Line>
+              )}
+
+              <Line
+                title={t("quick")}
+                why={keys ? fill("quickOn", keys) : t("quickNone")}
+                which="quick"
+                said={said}
+                trouble={trouble}
+              />
+            </div>
+
+            <Band label={t("bandNotices")} />
+            <div className="border-t border-hair">
+              {kept &&
+                (["screen", "chime"] as const).map((channel) => (
+                  <Line
+                    key={channel}
+                    title={t(channel === "screen" ? "noticeScreen" : "noticeChime")}
+                    why={channel === "screen" ? t("noticesWhy") : undefined}
+                    which="notices"
+                    said={said}
+                    trouble={trouble}
+                  >
+                    <Knob
+                      on={!kept.quiet.includes(channel)}
+                      label={t(channel === "screen" ? "noticeScreen" : "noticeChime")}
+                      disabled={held}
+                      onPress={() =>
+                        remember(
+                          {
+                            ...kept,
+                            quiet: kept.quiet.includes(channel)
+                              ? kept.quiet.filter((one) => one !== channel)
+                              : [...kept.quiet, channel],
+                          },
+                          "notices",
+                        )
+                      }
+                    />
+                  </Line>
+                ))}
+
+              <Line
+                title={t("updates")}
+                why={t("lookNowWhen")}
+                which="updates"
+                said={said}
+                trouble={trouble}
+                more={
+                  <>
+                    {found === "none" && (
+                      <p className="mt-1.5 text-[12px] text-soft">{t("lookNowNone")}</p>
+                    )}
+                    {found !== null && found !== "none" && (
+                      <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px] text-soft">
+                        {fill("lookNowFound", found.version)}
+                        {found.installs ? (
+                          <button
+                            type="button"
+                            disabled={asked}
+                            onClick={() => {
+                              setAsked(true);
+                              updateInstall().catch((e) => {
+                                setAsked(false);
+                                setTrouble({ card: "updates", text: saidPlainly(e) });
+                              });
+                            }}
+                            className="cursor-pointer rounded-lg bg-accent px-2.5 py-1 text-[12px] text-bg disabled:opacity-60"
+                          >
+                            {t("updateInstall")}
+                          </button>
+                        ) : found.route === "store" ? (
+                          <span className="text-faint">{t("updateStore")}</span>
+                        ) : (
+                          <code className="text-faint">
+                            {fill("updateBrewCli", found.package ?? "tisty")}
+                          </code>
+                        )}
+                      </p>
+                    )}
+                  </>
+                }
+              >
+                <button
+                  type="button"
+                  disabled={held || looking}
+                  onClick={() => {
+                    setLooking(true);
+                    setFound(null);
+                    updateReady(true)
+                      .then((ready) => setFound(ready ?? "none"))
+                      .catch((e) => setTrouble({ card: "updates", text: saidPlainly(e) }))
+                      .finally(() => setLooking(false));
+                  }}
+                  className={mild}
+                >
+                  {looking ? t("lookingNow") : t("lookNow")}
+                </button>
+              </Line>
+            </div>
+            <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("noticesMore")}</p>
+
+            <Band label={t("bandOutside")} />
+            <div className="border-t border-hair">
+              {reach?.shipped && (
+                <Line
+                  title={t("terminal")}
+                  why={
+                    reach.withinReach
+                      ? fill("terminalOn", reach.through ?? reach.at ?? "")
+                      : t("terminalOff")
+                  }
+                  which="terminal"
+                  said={said}
+                  trouble={trouble}
+                  more={
+                    reach.withinReach &&
+                    !reach.onPath && (
+                      <div className="mt-2 rounded-lg bg-mark-priority px-3 py-2.5">
+                        <p className="text-[12.5px] leading-relaxed text-ink">
+                          {t("terminalNotOnPath")}
+                        </p>
+                        <code className="mt-1.5 block font-mono text-[11.5px] break-all text-soft">
+                          export PATH=&quot;$HOME/.local/bin:$PATH&quot;
+                        </code>
+                        <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">
+                          {t("terminalOrBrew")}
+                        </p>
+                      </div>
+                    )
+                  }
+                >
+                  <Knob
+                    on={reach.withinReach}
+                    label={t(reach.withinReach ? "terminalRemove" : "terminalAdd")}
+                    disabled={held}
+                    onPress={() =>
+                      run("terminal", reachFor(!reach.withinReach), (now) => {
+                        setReach(now);
+                        setSaid({
+                          card: "terminal",
+                          text: t(
+                            now.withinReach
+                              ? onMac
+                                ? "terminalFreshNow"
+                                : "terminalFresh"
+                              : "terminalGone",
+                          ),
+                        });
+                      })
+                    }
+                  />
+                </Line>
+              )}
+
+              <Line
+                title={t("greetAgain")}
+                why={t("greetAgainWhy")}
+                which="greet"
+                said={said}
+                trouble={trouble}
+              >
+                <button type="button" onClick={onGreet} className={mild}>
+                  {t("greetAgainDo")}
+                </button>
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={() =>
+                    run("greet", guide(), (paper) => {
+                      onChanged();
+                      onDoc(paper.id);
+                    })
+                  }
+                  className={mild}
+                >
+                  {t("welcomeGuide")}
+                </button>
+              </Line>
+            </div>
+          </>
+        )}
+
         {tab === "data" && (
           <>
-            <Card title={t("syncing")} which="sync" busy={busy} said={said} trouble={trouble}>
+            <Band label={t("syncing")} />
+            <section className="rounded-[10px] border border-hair px-4 py-3.5">
               <p className="text-[12.5px] leading-relaxed text-soft">
                 {state.chosen ? fill("syncOn", state.chosen) : t("syncOff")}
               </p>
@@ -648,63 +908,156 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                   </div>
                 </>
               )}
-            </Card>
+              {trouble?.card === "sync" && (
+                <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
+              )}
+              {said?.card === "sync" && (
+                <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>
+              )}
+            </section>
 
-            <Group label={t("backup")} />
-
-            {state.backsUp ? (
-              <>
-                <Card
-                  title={t("backupSave")}
-                  which="backup"
-                  busy={busy}
+            <Band label={t("attachTitle")} />
+            <div className="border-t border-hair">
+              {kept && (
+                <Line
+                  title={t("attachRow")}
+                  why={t("attachWhy")}
+                  which="attach"
                   said={said}
                   trouble={trouble}
                 >
-                  <p className="text-[12.5px] leading-relaxed text-soft">{t("backupWhat")}</p>
-                  <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 text-[12.5px]">
-                    <dt className="text-faint">{t("backupHolds")}</dt>
-                    <dd className="text-soft">{holds}</dd>
-                    <dt className="text-faint">{t("backupWeighs")}</dt>
-                    <dd className="tabular-nums text-soft">
-                      {fill("backupAbout", weigh(state.weight))}
-                    </dd>
-                    <dt className="text-faint">{t("backupLast")}</dt>
-                    <dd className="text-soft">
-                      {state.backedUpAt ? stamped(state.backedUpAt) : t("backupNever")}
-                    </dd>
-                  </dl>
-                  <div className="mt-2.5 flex items-center gap-2.5">
-                    <button type="button" disabled={held} onClick={makeBackup} className={strong}>
+                  <select
+                    aria-label={t("attachUpTo")}
+                    value={String(kept.attachUpTo)}
+                    disabled={held}
+                    onChange={(e) =>
+                      remember({ ...kept, attachUpTo: Number(e.target.value) }, "attach")
+                    }
+                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  >
+                    {SIZES.map((bytes) => (
+                      <option key={bytes} value={bytes}>
+                        {weigh(bytes)}
+                      </option>
+                    ))}
+                  </select>
+                </Line>
+              )}
+
+              {kept && (
+                <Line
+                  title={t("holdsTitle")}
+                  why={
+                    kept.shares
+                      ? fill("holdsWhy", weigh(kept.onlySharedAbove))
+                      : t("holdsNeedsShared")
+                  }
+                  which="holds"
+                  said={said}
+                  trouble={trouble}
+                  more={
+                    freeing && (
+                      <div className="mt-2 flex items-center gap-2.5">
+                        <span className="text-[11.5px] leading-relaxed text-soft">
+                          {fill(freeing.done ? "holdsFreed" : "holdsFreeing", weigh(freeing.freed))}
+                        </span>
+                        {!freeing.done && (
+                          <button
+                            type="button"
+                            onClick={() => void stopFreeing()}
+                            className="rounded-md border border-line px-2.5 py-0.5 text-[11.5px] text-soft hover:border-urgent hover:text-urgent"
+                          >
+                            {t("holdsStop")}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  }
+                >
+                  <select
+                    aria-label={t("holdsTitle")}
+                    value={kept.holds}
+                    disabled={held || !kept.shares}
+                    onChange={(e) => {
+                      const holds = e.target.value as Holds;
+                      remember({ ...kept, holds }, "holds");
+                      if (holds === "shared") {
+                        setFreeing({ gone: 0, freed: 0, done: false });
+                        freeUp().catch((e) => {
+                          setFreeing(null);
+                          setTrouble({ card: "holds", text: saidPlainly(e) });
+                        });
+                      }
+                    }}
+                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  >
+                    <option value="everywhere">{t("holdsEverywhere")}</option>
+                    <option value="mine">{t("holdsMine")}</option>
+                    <option value="shared">{t("holdsShared")}</option>
+                  </select>
+                </Line>
+              )}
+            </div>
+            <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("attachBig")}</p>
+
+            {state.backsUp && (
+              <>
+                <Band label={t("backup")} />
+                <div className="border-t border-hair">
+                  <Line
+                    title={t("backupSave")}
+                    why={
+                      <>
+                        <span className="block">{t("backupWhat")}</span>
+                        <span className="mt-0.5 block tabular-nums">
+                          {[
+                            holds,
+                            fill("backupAbout", weigh(state.weight)),
+                            state.backedUpAt ? stamped(state.backedUpAt) : t("backupNever"),
+                          ].join(" · ")}
+                        </span>
+                      </>
+                    }
+                    which="backup"
+                    said={said}
+                    trouble={trouble}
+                  >
+                    <button type="button" disabled={held} onClick={makeBackup} className={mild}>
                       {t("backupMake")}
                     </button>
-                  </div>
-                </Card>
+                  </Line>
 
-                <section className="mb-3 rounded-[10px] border border-urgent/35 bg-urgent/8 px-4 py-3.5">
-                  <h3 className="mb-0.5 text-[13.5px] font-semibold">{t("restoreTitle")}</h3>
-                  <p className="text-[12.5px] leading-relaxed text-urgent">{t("restoreWhat")}</p>
-                  <div className="mt-2.5 flex items-center gap-2.5">
+                  <Line
+                    title={t("restoreTitle")}
+                    why={t("restoreWhat")}
+                    which="restore"
+                    said={said}
+                    trouble={trouble}
+                  >
                     <button type="button" disabled={held} onClick={takeBackup} className={risky}>
                       {t("restoreFrom")}
                     </button>
-                  </div>
-                </section>
+                  </Line>
+                </div>
               </>
-            ) : (
-              <Card title={t("backup")} which="backup" busy={busy} said={said} trouble={trouble}>
-                <p className="text-[12.5px] leading-relaxed text-soft">{t("backupOffWhy")}</p>
-              </Card>
             )}
 
-            <Group label={t("whereItLives")} />
-
-            <Card title={t("aboutStore")} which="store" busy={busy} said={said} trouble={trouble}>
-              <p className="font-mono text-[11.5px] leading-relaxed break-all text-soft">
-                {build?.store ?? "…"}
-              </p>
-              <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">{t("storeFixed")}</p>
-              <div className="mt-2.5 flex items-center gap-2.5">
+            <Band label={t("whereItLives")} />
+            <div className="border-t border-hair">
+              <Line
+                title={t("aboutStore")}
+                why={
+                  <>
+                    <span className="block font-mono text-[11.5px] break-all">
+                      {build?.store ?? "…"}
+                    </span>
+                    <span className="mt-0.5 block">{t("storeFixed")}</span>
+                  </>
+                }
+                which="store"
+                said={said}
+                trouble={trouble}
+              >
                 <button
                   type="button"
                   disabled={!build}
@@ -718,336 +1071,8 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
                 >
                   {t("aboutReveal")}
                 </button>
-              </div>
-            </Card>
-          </>
-        )}
-
-        {tab === "notices" && (
-          <>
-            {kept && (
-              <Card
-                title={t("settingsTitle")}
-                which="settings"
-                busy={busy}
-                said={said}
-                trouble={trouble}
-              >
-                <p className="text-[12.5px] leading-relaxed text-soft">{t("noticesWhy")}</p>
-                <div className="mt-2.5 flex flex-col gap-1.5">
-                  {(["screen", "chime"] as const).map((channel) => (
-                    <label key={channel} className="flex items-center gap-2 text-[12.5px]">
-                      <input
-                        type="checkbox"
-                        checked={!kept.quiet.includes(channel)}
-                        disabled={held}
-                        onChange={(e) =>
-                          remember({
-                            ...kept,
-                            quiet: e.target.checked
-                              ? kept.quiet.filter((one) => one !== channel)
-                              : [...kept.quiet, channel],
-                          })
-                        }
-                      />
-                      {t(channel === "screen" ? "noticeScreen" : "noticeChime")}
-                    </label>
-                  ))}
-                </div>
-                <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
-                  {t("noticesMore")}
-                </p>
-              </Card>
-            )}
-
-            <Card title={t("quick")} which="quick" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">
-                {keys ? fill("quickOn", keys) : t("quickNone")}
-              </p>
-            </Card>
-
-            <Card title={t("lookNow")} which="settings" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("lookNowWhen")}</p>
-              <div className="mt-2 flex items-center gap-3">
-                <button
-                  type="button"
-                  disabled={held || looking}
-                  onClick={() => {
-                    setLooking(true);
-                    setFound(null);
-                    updateReady(true)
-                      .then((ready) => setFound(ready ?? "none"))
-                      .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }))
-                      .finally(() => setLooking(false));
-                  }}
-                  className="rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-accent hover:text-accent disabled:text-faint"
-                >
-                  {looking ? t("lookingNow") : t("lookNow")}
-                </button>
-                {found === "none" && (
-                  <span className="text-[12.5px] text-soft">{t("lookNowNone")}</span>
-                )}
-                {found !== null && found !== "none" && (
-                  <span className="text-[12.5px] text-soft">
-                    {fill("lookNowFound", found.version)}
-                  </span>
-                )}
-              </div>
-
-              {found !== null && found !== "none" && (
-                <p className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-soft">
-                  {found.installs ? (
-                    <button
-                      type="button"
-                      disabled={asked}
-                      onClick={() => {
-                        setAsked(true);
-                        updateInstall().catch((e) => {
-                          setAsked(false);
-                          setTrouble({ card: "settings", text: saidPlainly(e) });
-                        });
-                      }}
-                      className="cursor-pointer rounded-lg bg-accent px-2.5 py-1 text-[12px] text-bg disabled:opacity-60"
-                    >
-                      {t("updateInstall")}
-                    </button>
-                  ) : found.route === "store" ? (
-                    <span className="text-faint">{t("updateStore")}</span>
-                  ) : (
-                    <code className="text-faint">
-                      {fill("updateBrewCli", found.package ?? "tisty")}
-                    </code>
-                  )}
-                </p>
-              )}
-            </Card>
-
-            {wake?.offered && (
-              <Card title={t("wake")} which="waking" busy={busy} said={said} trouble={trouble}>
-                <p className="text-[12.5px] leading-relaxed text-soft">
-                  {t(wake.wakes ? "wakeOn" : "wakeOff")}
-                </p>
-
-                {wake.theirs && !wake.wakes && (
-                  <div className="mt-2 rounded-lg bg-mark-priority px-3 py-2.5">
-                    <p className="text-[12.5px] leading-relaxed text-ink">{t("wakeTheirs")}</p>
-                  </div>
-                )}
-
-                <label className="mt-2.5 flex items-center gap-2 text-[12.5px]">
-                  <input
-                    type="checkbox"
-                    checked={wake.wakes}
-                    disabled={held}
-                    onChange={() =>
-                      run("waking", wakeFor(!wake.wakes), (now) => {
-                        setWake(now);
-                        if (now.wakes === wake.wakes) {
-                          return;
-                        }
-                        setSaid({
-                          card: "waking",
-                          text: t(now.wakes ? "wakeFresh" : "wakeGone"),
-                        });
-                      })
-                    }
-                  />
-                  {t("wakeAdd")}
-                </label>
-              </Card>
-            )}
-
-            {kept && (
-              <Card title={t("tongue")} which="tongue" busy={busy} said={said} trouble={trouble}>
-                <p className="text-[12.5px] leading-relaxed text-soft">{t("tongueWhy")}</p>
-                <select
-                  aria-label={t("tongue")}
-                  value={kept.locale ?? ""}
-                  disabled={held}
-                  onChange={(e) => {
-                    const wanted = e.target.value || undefined;
-                    run("tongue", keepLocale(wanted), (now) => {
-                      adopt(now ?? undefined);
-                      setKept({ ...kept, locale: now ?? undefined });
-                      onChanged();
-                    });
-                  }}
-                  className={`mt-2.5 rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-                >
-                  <option value="">{t("tongueTheirs")}</option>
-                  <option value="es">Español</option>
-                  <option value="en">English</option>
-                </select>
-              </Card>
-            )}
-
-            <Card title={t("greetAgain")} which="greet" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("greetAgainWhy")}</p>
-              <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-                <button type="button" onClick={onGreet} className={mild}>
-                  {t("greetAgainDo")}
-                </button>
-                <button
-                  type="button"
-                  disabled={held}
-                  onClick={() =>
-                    run("greet", guide(), () => {
-                      setSaid({ card: "greet", text: t("guideKept") });
-                      onChanged();
-                    })
-                  }
-                  className={mild}
-                >
-                  {t("welcomeGuide")}
-                </button>
-              </div>
-            </Card>
-          </>
-        )}
-
-        {tab === "writing" && (
-          <>
-            {kept && (
-              <Card
-                title={t("attachTitle")}
-                which="settings"
-                busy={busy}
-                said={said}
-                trouble={trouble}
-              >
-                <p className="text-[12.5px] leading-relaxed text-soft">{t("attachWhy")}</p>
-                <div className="mt-2 flex items-center gap-2.5">
-                  <select
-                    aria-label={t("attachUpTo")}
-                    value={String(kept.attachUpTo)}
-                    disabled={held}
-                    onChange={(e) => remember({ ...kept, attachUpTo: Number(e.target.value) })}
-                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-                  >
-                    {SIZES.map((bytes) => (
-                      <option key={bytes} value={bytes}>
-                        {weigh(bytes)}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-[11.5px] text-faint">{t("attachUpTo")}</span>
-                </div>
-                <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">{t("attachBig")}</p>
-              </Card>
-            )}
-
-            {kept && (
-              <Card
-                title={t("holdsTitle")}
-                which="settings"
-                busy={busy}
-                said={said}
-                trouble={trouble}
-              >
-                <p className="text-[12.5px] leading-relaxed text-soft">
-                  {fill("holdsWhy", weigh(kept.onlySharedAbove))}
-                </p>
-                <div className="mt-2 flex items-center gap-2.5">
-                  <select
-                    aria-label={t("holdsTitle")}
-                    value={kept.holds}
-                    disabled={held || !kept.shares}
-                    onChange={(e) => {
-                      const holds = e.target.value as Holds;
-                      remember({ ...kept, holds });
-                      if (holds === "shared") {
-                        setFreeing({ gone: 0, freed: 0, done: false });
-                        freeUp().catch((e) => {
-                          setFreeing(null);
-                          setTrouble({ card: "settings", text: saidPlainly(e) });
-                        });
-                      }
-                    }}
-                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-                  >
-                    <option value="everywhere">{t("holdsEverywhere")}</option>
-                    <option value="mine">{t("holdsMine")}</option>
-                    <option value="shared">{t("holdsShared")}</option>
-                  </select>
-                </div>
-                {!kept.shares && (
-                  <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
-                    {t("holdsNeedsShared")}
-                  </p>
-                )}
-                {freeing && (
-                  <div className="mt-2.5 flex items-center gap-2.5">
-                    <span className="text-[11.5px] leading-relaxed text-soft">
-                      {fill(freeing.done ? "holdsFreed" : "holdsFreeing", weigh(freeing.freed))}
-                    </span>
-                    {!freeing.done && (
-                      <button
-                        type="button"
-                        onClick={() => void stopFreeing()}
-                        className="rounded-md border border-line px-2.5 py-0.5 text-[11.5px] text-soft hover:border-urgent hover:text-urgent"
-                      >
-                        {t("holdsStop")}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </Card>
-            )}
-
-            {reach?.shipped && (
-              <Card
-                title={t("terminal")}
-                which="terminal"
-                busy={busy}
-                said={said}
-                trouble={trouble}
-              >
-                <p className="text-[12.5px] leading-relaxed text-soft">
-                  {reach.withinReach
-                    ? fill("terminalOn", reach.through ?? reach.at ?? "")
-                    : t("terminalOff")}
-                </p>
-
-                {reach.withinReach && !reach.onPath && (
-                  <div className="mt-2 rounded-lg bg-mark-priority px-3 py-2.5">
-                    <p className="text-[12.5px] leading-relaxed text-ink">
-                      {t("terminalNotOnPath")}
-                    </p>
-                    <code className="mt-1.5 block font-mono text-[11.5px] break-all text-soft">
-                      export PATH=&quot;$HOME/.local/bin:$PATH&quot;
-                    </code>
-                    <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">
-                      {t("terminalOrBrew")}
-                    </p>
-                  </div>
-                )}
-
-                <div className="mt-2.5 flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    disabled={held}
-                    onClick={() =>
-                      run("terminal", reachFor(!reach.withinReach), (now) => {
-                        setReach(now);
-                        setSaid({
-                          card: "terminal",
-                          text: t(
-                            now.withinReach
-                              ? onMac
-                                ? "terminalFreshNow"
-                                : "terminalFresh"
-                              : "terminalGone",
-                          ),
-                        });
-                      })
-                    }
-                    className={mild}
-                  >
-                    {t(reach.withinReach ? "terminalRemove" : "terminalAdd")}
-                  </button>
-                </div>
-              </Card>
-            )}
+              </Line>
+            </div>
           </>
         )}
 
@@ -1682,6 +1707,83 @@ const wiring = (at?: string) =>
 const oneLine = (at?: string, agent = "agent") =>
   `${agent} mcp add tisty -- ${JSON.stringify(at ?? "tisty")} mcp`;
 
+function Band({ label }: { label: string }) {
+  return (
+    <div className="mt-5 mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase">
+      {label}
+    </div>
+  );
+}
+
+function Line({
+  title,
+  why,
+  which,
+  said,
+  trouble,
+  children,
+  more,
+}: {
+  title: string;
+  why?: React.ReactNode;
+  which: Which;
+  said?: Word;
+  trouble?: Word;
+  children?: React.ReactNode;
+  more?: React.ReactNode;
+}) {
+  return (
+    <div className="border-b border-hair py-2.5">
+      <div className="flex items-center gap-4">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-medium">{title}</span>
+          {why && <span className="mt-px block text-[12px] leading-snug text-faint">{why}</span>}
+        </span>
+        {children && (
+          <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">{children}</span>
+        )}
+      </div>
+      {more}
+      {trouble?.card === which && (
+        <p className="mt-1.5 text-[11.5px] text-urgent">{trouble.text}</p>
+      )}
+      {said?.card === which && <p className="mt-1.5 text-[11.5px] text-faint">{said.text}</p>}
+    </div>
+  );
+}
+
+function Knob({
+  on,
+  label,
+  disabled,
+  onPress,
+}: {
+  on: boolean;
+  label: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onPress}
+      className={`relative h-5 w-[34px] shrink-0 rounded-full transition-colors motion-reduce:transition-none disabled:opacity-50 ${
+        on ? "bg-accent" : "bg-hair"
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 block size-4 rounded-full bg-bg shadow-sm transition-[left] motion-reduce:transition-none ${
+          on ? "left-[16px]" : "left-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
 function Group({ label }: { label: string }) {
   return (
     <div className="mt-5 mb-2 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
@@ -1703,6 +1805,7 @@ interface CardProps {
 const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
   backup: "backup",
+  restore: "restoreTitle",
   review: "review",
   brittle: "brittleAre",
   terminal: "terminal",
@@ -1711,6 +1814,10 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   greet: "greetAgain",
   tongue: "tongue",
   settings: "settingsTitle",
+  notices: "bandNotices",
+  updates: "updates",
+  attach: "attachTitle",
+  holds: "holdsTitle",
   wiring: "wiringTitle",
   report: "reportTitle",
   store: "aboutStore",

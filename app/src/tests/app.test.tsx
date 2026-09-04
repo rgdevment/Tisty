@@ -463,7 +463,8 @@ describe("the views nothing else opens", () => {
 
     await user.click(screen.getByRole("button", { name: /about|acerca/i }));
 
-    expect(await screen.findByText(/9\.9\.9/)).toBeTruthy();
+    // The waiting version is named twice on purpose: once in the rail, once on the screen itself.
+    expect((await screen.findAllByText(/9\.9\.9/)).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /^update$/i })).toBeTruthy();
   });
 

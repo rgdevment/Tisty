@@ -123,4 +123,21 @@ describe("the notice every bundled licence asks for", () => {
       expect(screen.queryByText(/Copyright \(c\) alguien/)).toBeNull();
     });
   });
+
+  it("draws the notice as prose, not as the markdown it is written in", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "notices"
+        ? Promise.resolve(
+            "## In the window\n\n| Package | Licence |\n| --- | --- |\n| jiff | MIT |",
+          )
+        : Promise.resolve(build);
+    render(<About ready={null} onError={() => {}} />);
+
+    await userEvent.click(await screen.findByText("Third-party notices"));
+
+    const row = await screen.findByRole("cell", { name: "jiff" });
+    expect(row.closest("table")).toBeTruthy();
+    expect(screen.queryByText(/\| --- \|/)).toBeNull();
+    expect(screen.queryByText(/^## /)).toBeNull();
+  });
 });

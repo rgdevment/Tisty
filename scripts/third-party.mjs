@@ -140,18 +140,21 @@ const rs = crates();
 const kept = [...js.entries()]
   .filter(([, one]) => one.notice)
   .sort(([a], [b]) => a.localeCompare(b))
-  .map(([name, one]) => `<details>\n<summary><code>${name}</code> — ${one.licence}</summary>\n\n\`\`\`text\n${one.notice}\n\`\`\`\n\n</details>`)
+  .map(([name, one]) => `### \`${name}\` — ${one.licence}\n\n\`\`\`text\n${one.notice}\n\`\`\``)
   .join("\n\n");
+
+const asWritten = (text) => text.replace(/\r\n/g, "\n");
 
 writeFileSync(
   out,
-  `# Third-party notices — what ships inside Tisty
+  asWritten(`# Third-party notices — what ships inside Tisty
 
 <!-- Written by \`npm run notices\`. Do not edit by hand. -->
 
 Tisty is AGPL-3.0-only. The binary carries the work below, each under its own
 licence. Anything copied into Tisty's own source rather than bundled is in
-[THIRD-PARTY.md](THIRD-PARTY.md) instead.
+[THIRD-PARTY.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY.md)
+instead.
 
 ## In the window (${js.size} packages)
 
@@ -168,7 +171,7 @@ ${listed(rs)}
 ## The notices themselves
 
 ${kept}
-`,
+`),
 );
 
 console.log(`${js.size} packages, ${rs.size} crates -> ${out}`);

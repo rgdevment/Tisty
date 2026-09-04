@@ -267,6 +267,26 @@ body {
   cursor: zoom-in;
 }
 
+.prose table {
+  display: block;
+  overflow-x: auto;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.prose th,
+.prose td {
+  padding: 3px 10px 3px 0;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--tisty-hair);
+  white-space: nowrap;
+}
+.prose th {
+  font-weight: 600;
+  color: var(--tisty-faint);
+}
+
 .clamped {
   max-height: 22rem;
   overflow: hidden;
