@@ -58,7 +58,6 @@ impl Session {
     }
 
     fn at(paths: Paths) -> tisty_core::Result<Self> {
-        let clean = !paths.config_file().exists();
         let config = Config::load_or_init(&paths)?;
         let store = Store::open(paths.store(), config.device_id.clone())?;
         let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
@@ -78,12 +77,20 @@ impl Session {
             log: None,
         };
         session.tidy_up(true);
-        session.sow_if_clean(clean);
+        if session.config.sync.is_some() {
+            session.sow_if_due();
+        }
         Ok(session)
     }
 
-    fn sow_if_clean(&mut self, clean: bool) {
-        if !clean || !self.state.lists.is_empty() || !self.state.tasks.is_empty() {
+    /// A first run holds its lists back until the welcome has said where the copies go: sown, this
+    /// store stops looking new, and a folder that already holds another machine could not be
+    /// adopted without asking somebody to throw one of the two away.
+    fn sow_if_due(&mut self) {
+        if self.config.sown == Some(true)
+            || !self.state.lists.is_empty()
+            || !self.state.tasks.is_empty()
+        {
             return;
         }
         let code = tisty_core::model::spoken(self.config.locale.as_deref());
@@ -93,7 +100,9 @@ impl Session {
                 "the lists a fresh install starts with were not written",
                 &[("why", Fact::Why(why.to_string()))],
             );
+            return;
         }
+        let _ = self.keep(|config| config.sown = Some(true));
     }
 
     fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
@@ -1670,6 +1679,8 @@ fn note_break(kind: String, frames: String) {
 #[serde(rename_all = "camelCase")]
 struct Carrying {
     chosen: Option<String>,
+    keeper: Option<String>,
+    kept_by: Option<String>,
     asked: bool,
     backs_up: bool,
     last: Option<String>,
@@ -3163,6 +3174,12 @@ fn guide(
         }
     }
 
+    if let Some((file, title)) = guide_already_here(&session) {
+        let taken = file.clone();
+        session.keep(|config| config.guide = Some(taken))?;
+        return Ok(tisty_core::docs::Doc { id: file, title });
+    }
+
     let data = session.paths.data().to_path_buf();
 
     let mut body = told.to_string();
@@ -4029,12 +4046,15 @@ fn wake_for(wanted: bool) -> Answer<waking::Waking> {
 
 #[tauri::command]
 fn keep_locale(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     locale: Option<String>,
 ) -> Answer<Option<String>> {
     let mut session = held(&session);
     let wanted = locale.filter(|one| !one.trim().is_empty());
     session.keep(|config| config.locale = wanted.clone())?;
+    session.locale = wanted.clone();
+    language(&app, &wanted);
     Ok(wanted)
 }
 
@@ -4068,11 +4088,16 @@ fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
         .collect();
     held.extend(tisty_core::docs::referenced(&session.paths.docs()));
 
+    let held_at = match &config.sync {
+        Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
+        _ => None,
+    };
+    let said = held_at.as_deref().map(told);
+
     Ok(Carrying {
-        chosen: match &config.sync {
-            Some(tisty_core::config::Sync::Folder(at)) => Some(at.display().to_string()),
-            _ => None,
-        },
+        chosen: held_at.as_deref().map(|at| at.display().to_string()),
+        keeper: said.as_ref().map(|one| one.keeper.clone()),
+        kept_by: said.and_then(|one| one.named),
         asked: config.sync.is_some(),
         backs_up: config.backs_up(),
         last: config.synced_at.map(|at| at.to_string()),
@@ -4094,6 +4119,105 @@ fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
         weight: report::weighed(session.paths.data()),
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
     })
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Offering {
+    key: String,
+    named: String,
+    at: Option<String>,
+    into: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Told {
+    keeper: String,
+    named: Option<String>,
+    into: String,
+}
+
+#[tauri::command]
+fn keepers() -> Vec<Offering> {
+    tisty_core::keepers::offers()
+        .into_iter()
+        .map(|one| Offering {
+            key: one.key.to_string(),
+            named: one.named.to_string(),
+            into: one.at.as_deref().map(|at| room(at).display().to_string()),
+            at: one.at.map(|at| at.display().to_string()),
+        })
+        .collect()
+}
+
+#[tauri::command]
+fn keeper_of(at: String) -> Told {
+    told(&std::path::PathBuf::from(at))
+}
+
+/// A folder that already holds a store is the meeting place itself; anywhere else we hang ours
+/// inside, so pointing at Documents does not scatter the store through it.
+fn room(at: &std::path::Path) -> std::path::PathBuf {
+    if tisty_sync::theirs(at).is_some() || at.join(tisty_sync::STORE).is_dir() {
+        return at.to_path_buf();
+    }
+    tisty_core::keepers::suggested(at)
+}
+
+/// The guide another machine planted arrives through the shared folder like any other document,
+/// and planting a second one would leave a copy per machine.
+fn guide_already_here(session: &Session) -> Option<(String, String)> {
+    let named: Vec<String> = [GUIDE_ES, GUIDE_EN]
+        .iter()
+        .map(|one| tisty_core::docs::titled(one))
+        .collect();
+    session
+        .state
+        .docs
+        .values()
+        .filter(|one| one.page_of.is_none())
+        .find(|one| {
+            one.title
+                .as_ref()
+                .is_some_and(|title| named.iter().any(|one| one == title))
+        })
+        .map(|one| (one.file.clone(), one.title.clone().unwrap_or_default()))
+}
+
+#[tauri::command]
+fn sow_lists(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
+    held(&session).sow_if_due();
+    Ok(())
+}
+
+#[tauri::command]
+fn make_room(at: String) -> Answer<()> {
+    std::fs::create_dir_all(&at).map_err(|e| Refusal::about("cannotWrite", e.to_string()))
+}
+
+fn told(at: &std::path::Path) -> Told {
+    let into = room(at).display().to_string();
+    match tisty_core::keepers::keeper(at) {
+        tisty_core::keepers::Keeper::Cloud(key) => Told {
+            keeper: "cloud".into(),
+            named: tisty_core::keepers::offers()
+                .into_iter()
+                .find(|one| one.key == key)
+                .map(|one| one.named.to_string()),
+            into,
+        },
+        tisty_core::keepers::Keeper::Away => Told {
+            keeper: "away".into(),
+            named: None,
+            into,
+        },
+        tisty_core::keepers::Keeper::Plain => Told {
+            keeper: "plain".into(),
+            named: None,
+            into,
+        },
+    }
 }
 
 #[tauri::command]
@@ -5365,6 +5489,10 @@ pub fn run() {
         .manage(Leaving::default())
         .invoke_handler(tauri::generate_handler![
             snapshot,
+            keepers,
+            keeper_of,
+            make_room,
+            sow_lists,
             task_story,
             task_series,
             task_left,
@@ -6337,6 +6465,102 @@ mod ordering {
             .into_iter()
             .map(|one| one.name.clone())
             .collect()
+    }
+
+    #[test]
+    fn a_first_run_holds_its_lists_until_the_welcome_says_where_the_copies_go() {
+        let desk = desk();
+        let session = Session::at(desk.paths.clone()).unwrap();
+
+        assert!(
+            session.state.lists.is_empty(),
+            "sown, this store stops looking new and could not adopt a folder that already holds one"
+        );
+    }
+
+    #[test]
+    fn the_lists_arrive_once_the_welcome_is_through_and_never_a_second_time() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+
+        session.sow_if_due();
+        let first = session.state.lists.len();
+        session.sow_if_due();
+
+        assert!(
+            first > 0,
+            "a machine that syncs nothing still starts with lists"
+        );
+        assert_eq!(session.state.lists.len(), first);
+        assert_eq!(session.config.sown, Some(true));
+    }
+
+    #[test]
+    fn a_folder_that_already_holds_a_store_is_the_meeting_place_itself() {
+        let desk = desk();
+        let shared = desk.paths.data().join("shared");
+        std::fs::create_dir_all(shared.join(tisty_sync::STORE)).unwrap();
+
+        assert_eq!(super::room(&shared), shared);
+    }
+
+    #[test]
+    fn anywhere_else_holds_a_folder_of_ours_inside_it() {
+        let desk = desk();
+        let shared = desk.paths.data().join("Documents");
+        std::fs::create_dir_all(&shared).unwrap();
+
+        assert_eq!(super::room(&shared), shared.join(tisty_core::keepers::OURS));
+    }
+
+    #[test]
+    fn a_guide_that_came_from_another_machine_is_taken_rather_than_planted_again() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let file = "guia-a1b2".to_string();
+        session
+            .commit(Op::DocAdd {
+                id: ulid::Ulid::generate(),
+                d: tisty_core::event::DocAdd {
+                    file: file.clone(),
+                    order: "a1".into(),
+                    said: Some(tisty_core::event::Said {
+                        title: tisty_core::docs::titled(super::GUIDE_ES),
+                        bytes: None,
+                    }),
+                    folder: None,
+                    page_of: None,
+                },
+            })
+            .unwrap();
+
+        assert_eq!(
+            super::guide_already_here(&session).map(|one| one.0),
+            Some(file)
+        );
+    }
+
+    #[test]
+    fn a_document_of_your_own_is_never_mistaken_for_the_guide() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        session
+            .commit(Op::DocAdd {
+                id: ulid::Ulid::generate(),
+                d: tisty_core::event::DocAdd {
+                    file: "notas-c3d4".into(),
+                    order: "a1".into(),
+                    said: Some(tisty_core::event::Said {
+                        title: "Mis notas".into(),
+                        bytes: None,
+                    }),
+                    folder: None,
+                    page_of: None,
+                },
+            })
+            .unwrap();
+
+        assert_eq!(super::guide_already_here(&session), None);
     }
 
     #[test]

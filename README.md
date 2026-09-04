@@ -398,17 +398,18 @@ files stay readable with tools you already have. It is written out in
 [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md), including the parts
 that are not reassuring.
 
-Tisty makes **one** network request a day, unasked: it checks whether a newer
-version exists. It sends nothing. If one does exist and you press the button
-that offers it, two more follow — the file naming the release, and the
-installer — and Tisty refuses to install anything not signed with a key
-compiled into the copy you already have.
+Tisty makes **one** network request unasked — when it opens, and once a day
+after that: it checks whether a newer version exists. It sends nothing. If one
+does exist and you press the button that offers it, two more follow — the file
+naming the release, and the installer — and Tisty refuses to install anything
+not signed with a key compiled into the copy you already have.
 
 ## Two Machines, If You Have Two
 
-Point Tisty at a folder both computers already reach — whatever your Google
-Drive, OneDrive or iCloud client keeps in step, a NAS, a drive you plug in on
-Fridays — and it does the rest on its own.
+Tell Tisty where to leave the copies. It offers Google Drive, OneDrive, iCloud
+and Dropbox — whichever it finds installed, folder already worked out — or any
+other folder both computers reach, a NAS, a drive you plug in on Fridays. The
+rest it does on its own.
 
 There is nothing of mine in the middle: no account, no server, no daemon. Who
 runs that folder is your business, not Tisty's. If you sync nothing, it never

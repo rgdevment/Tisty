@@ -398,17 +398,18 @@ legibles con las herramientas que ya tienes. Está explicado en
 [PRIVACY.md](PRIVACY.md) y [SECURITY.md](SECURITY.md), incluidas las partes que
 no son tranquilizadoras.
 
-Tisty hace **una** petición de red al día sin que se la pidas: mira si existe
-una versión más nueva. No envía nada. Si existe y presionas el botón que te la
-ofrece, vienen dos más — el archivo que nombra la versión y el instalador — y
-Tisty se niega a instalar nada que no esté firmado con una clave compilada
-dentro de la copia que ya tienes.
+Tisty hace **una** petición de red sin que se la pidas —al abrirse, y una vez
+al día mientras siga en marcha—: mira si existe una versión más nueva. No envía
+nada. Si existe y presionas el botón que te la ofrece, vienen dos más — el
+archivo que nombra la versión y el instalador — y Tisty se niega a instalar nada
+que no esté firmado con una clave compilada dentro de la copia que ya tienes.
 
 ## Dos equipos, si tienes dos
 
-Apunta Tisty a una carpeta que tus dos computadores ya alcancen —la que mantiene
-al día tu cliente de Google Drive, OneDrive o iCloud; un NAS; un disco que
-enchufas los viernes— y el resto lo hace solo.
+Dile a Tisty dónde dejar las copias. Te ofrece Google Drive, OneDrive, iCloud y
+Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier
+otra que tus dos computadores alcancen: un NAS, un disco que enchufas los
+viernes. El resto lo hace solo.
 
 No hay nada mío en el medio: ni cuenta, ni servidor, ni proceso residente. Quién
 mantenga esa carpeta es asunto tuyo, no de Tisty. Si no sincronizas nada, no abre

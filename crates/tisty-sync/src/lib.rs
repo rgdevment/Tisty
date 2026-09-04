@@ -6,7 +6,7 @@ use tisty_core::witness::{self, Fact, channel};
 
 pub use tisty_core::store::MARKER;
 
-const STORE: &str = "store";
+pub const STORE: &str = "store";
 const HELD: &str = "attachments";
 const PAPERS: &str = "docs";
 const CARRIED_TO: &str = "carried-to";

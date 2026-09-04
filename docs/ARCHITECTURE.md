@@ -660,6 +660,14 @@ folder and **brings home the copies others left**. Whatever keeps the folder
 alive — the Google Drive, OneDrive or iCloud client you already run, a mounted
 NAS, an external drive you plug in once a week — is not Tisty's business.
 
+The window offers the four it can recognise — Google Drive, OneDrive, iCloud,
+Dropbox — by the folder each one actually keeps on this machine, so nobody has
+to go hunting for a path. Of Drive it takes **My Drive** and never the
+per-machine backup section: two computers pointed there would never meet, and a
+Drive holding only that section is not offered at all. What it cannot place is
+said out loud rather than guessed at, because a folder nothing syncs looks
+exactly like one that works, right up until the other machine never answers.
+
 That folder is **not** the data directory, and pointing a cloud client at
 `AppData` is still the wrong thing to do. The store stays on your disk; only
 copies travel.
