@@ -24,6 +24,7 @@ import {
   guide,
   type Holds,
   joinThem,
+  type Keeper,
   type Kin,
   keepLocale,
   keepReport,
@@ -65,11 +66,14 @@ import {
 } from "../core";
 import { decideAll } from "../deciding";
 import { daysFrom, stamped, weigh } from "../format";
+import { warningOf } from "../keepers";
 import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { written } from "../report";
 import { type Brittle, scanned } from "../scanning";
 import Apart, { type Door } from "./Apart";
+import Keepers from "./Keepers";
+import Modal from "./Modal";
 import { onMac } from "./WindowChrome";
 
 const carried = {
@@ -212,6 +216,8 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
     });
   };
 
+  const [picking, setPicking] = useState(false);
+  const [was, setWas] = useState<string>();
   const [apart, setApart] = useState<((door: Door | "else" | null) => void) | null>(null);
   const [kin, setKin] = useState<Kin>("unsure");
 
@@ -328,19 +334,19 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
 
   const pickFolder = () => {
     if (held) return;
-    open({ directory: true })
-      .then(async (at) => {
-        if (typeof at !== "string") return;
-        const was = state?.chosen;
-        await chooseSync(at);
-        look();
-        onChanged();
-        if ((await carryNow()) !== "declined") return;
-        await chooseSync(was);
-        look();
-        onChanged();
-      })
-      .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
+    setWas(state?.chosen);
+    setPicking(true);
+  };
+
+  const picked = async (at?: string) => {
+    setPicking(false);
+    look();
+    onChanged();
+    if (!at) return;
+    if ((await carryNow()) !== "declined") return;
+    await chooseSync(was).catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
+    look();
+    onChanged();
   };
 
   const makeBackup = () => {
@@ -518,6 +524,16 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
 
   return (
     <main className="flex flex-col overflow-hidden">
+      {picking && (
+        <Modal title={t("welcomeCopies")} wide onClose={() => setPicking(false)}>
+          <p className="mb-4 text-[12.5px] leading-relaxed text-soft">{t("keepersWhy")}</p>
+          <Keepers
+            busy={held}
+            onTrouble={(text) => setTrouble({ card: "sync", text })}
+            onDone={picked}
+          />
+        </Modal>
+      )}
       {apart && (
         <Apart
           kin={kin}
@@ -555,6 +571,9 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
               <p className="text-[12.5px] leading-relaxed text-soft">
                 {state.chosen ? fill("syncOn", state.chosen) : t("syncOff")}
               </p>
+              {state.chosen && state.keeper && (
+                <Warned keeper={state.keeper} named={state.keptBy} />
+              )}
               <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
                 {state.chosen ? (
                   <>
@@ -1699,6 +1718,20 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
 
 const TAIL = 300;
 const LOGS = "\n--- tisty.log ---";
+
+function Warned({ keeper, named }: { keeper: Keeper; named?: string }) {
+  const warning = warningOf(keeper, named);
+  return (
+    <div
+      className={`mt-2 rounded-lg px-3 py-2 text-[12px] leading-relaxed text-soft ${
+        warning.mild ? "bg-accent-soft" : "border border-hue-amber/40"
+      }`}
+    >
+      <span className="block text-[12.5px] font-semibold text-ink">{warning.said}</span>
+      {warning.why}
+    </div>
+  );
+}
 
 function Card({ title, which, busy, said, trouble, children }: CardProps) {
   const waiting = busy !== null && busy !== which;

@@ -314,8 +314,30 @@ export const attachExport = (reference: string, into: string): Promise<void> =>
 
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 
+export type Keeper = "cloud" | "away" | "plain";
+
+export interface Offering {
+  key: string;
+  named: string;
+  at?: string;
+  into?: string;
+}
+
+export interface Told {
+  keeper: Keeper;
+  named?: string;
+  into: string;
+}
+
+export const keepers = (): Promise<Offering[]> => invoke("keepers");
+export const keeperOf = (at: string): Promise<Told> => invoke("keeper_of", { at });
+export const makeRoom = (at: string): Promise<void> => invoke("make_room", { at });
+export const sowLists = (): Promise<void> => invoke("sow_lists");
+
 export interface Carrying {
   chosen?: string;
+  keeper?: Keeper;
+  keptBy?: string;
   asked: boolean;
   backsUp: boolean;
   last?: string;

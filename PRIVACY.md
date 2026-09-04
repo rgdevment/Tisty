@@ -1,16 +1,16 @@
 # Privacy policy
 
-**Last updated:** August 27, 2026
+**Last updated:** September 4, 2026
 
 ## The short version
 
 Tisty does not collect anything and has no server to transmit to. No account,
 no telemetry, no analytics, no crash reporting.
 
-It makes **one** network request on its own: once a day it downloads a small
-file to see whether a newer version exists. It sends nothing. Two more follow
-only if you press the button that offers you an update, and never otherwise.
-All three are described in full below.
+It makes **one** network request on its own — when it opens, and once a day
+after that: it downloads a small file to see whether a newer version exists.
+It sends nothing. Two more follow only if you press the button that offers you
+an update, and never otherwise. All three are described in full below.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -121,9 +121,9 @@ repository, and this section was written before the release that carries it.
 | **What it asks for** | `https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json` |
 | **Method** | GET. Nothing is uploaded |
 | **What it sends** | The headers a request cannot avoid, and a user agent that says `tisty/<version>` — the same thing the download itself would reveal. No identifier, no store, no task, no name |
-| **How often** | At most once a day, and only while the window is open |
+| **How often** | When Tisty opens, and at most once a day for as long as it keeps running |
 | **Timeout** | 5 seconds |
-| **If it fails** | Nothing is said and nothing is retried until tomorrow |
+| **If it fails** | Nothing is said and nothing is retried: the next look is the next day, or the next time Tisty opens |
 
 The file it downloads contains version numbers and nothing else — no address, so
 nothing that arrives from it can send you anywhere.

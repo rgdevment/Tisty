@@ -843,24 +843,30 @@ const en = {
   reviewDiffers: "the cache disagrees with the log",
   reviewRun: "Review",
   reviewLoose: "{name} loose attachments",
-  welcomeWhy:
-    "Tisty always works on this machine. To share tasks with another one, point it at a folder both computers already reach — the one your Google Drive, OneDrive or iCloud client keeps in step, a mounted NAS, an external drive.",
+  keepersWhy:
+    "Tisty writes and reads in a folder both computers can reach. Whoever uploads it is your provider's program, not Tisty.",
+  keepersHere: "on this computer",
+  keepersGone: "not installed",
+  keepersMissing: "we did not find it here",
+  keepersOther: "Another folder…",
+  keepersOtherWhy: "a NAS, an external disk, whatever it is",
+  keepersSave: "Save here",
+  keepersCloud: "{name} has to be open and up to date",
+  keepersCloudWhy:
+    "Tisty leaves the copies there; taking them up and down is that program's job. If it is not running — here or on the other computer — the tasks wait, and Tisty cannot tell.",
+  keepersAway: "It has to be there when you open Tisty",
+  keepersAwayWhy:
+    "That folder lives on a server or on a disk you plug in. If it does not answer it looks empty, and you will not see what arrived.",
+  keepersPlain: "We do not recognise what keeps this folder in step",
+  keepersPlainWhy:
+    "If your own program keeps it up to date, all good. If there is none, the other computer will not see any of this.",
   welcomeAlone: "Only on this machine",
   welcomeAloneWhy: "Nothing leaves. You can back up by hand whenever you want.",
-  welcomeLater: "Decide later",
   welcomeTongue: "Which language?",
   welcomeTongueWhy:
     "I take the one your computer uses. You can change it whenever you like in Settings.",
   welcomeCopies: "Where do you want your copies?",
-  welcomeCloud: "Keep them in my cloud",
-  welcomeCloudWhy:
-    "Pick a folder iCloud, Google Drive or OneDrive already keeps in sync: copies go there, and the other computer picks them up.",
-  welcomeClosing: "When you close the window",
-  welcomeReady: "All set",
-  welcomeBegin: "Get started",
   welcomeGuide: "Open the guide",
-  welcomeGuideWhy:
-    "Nine short sections, with the app inside. It lands in your documents, yours to keep or throw away. Everything you chose here can be changed later in Settings.",
   guideKept: "The guide is in your documents",
   welcomeNext: "Next",
   welcomeBack: "Back",
@@ -1949,23 +1955,29 @@ const es: Catalog = {
   reviewDiffers: "el caché no coincide con el registro",
   reviewRun: "Revisar",
   reviewLoose: "{name} adjuntos sueltos",
-  welcomeWhy:
-    "Tisty trabaja siempre en este equipo. Para compartir tus tareas con otro, apúntalo a una carpeta que los dos alcancen: la que mantiene al día tu cliente de Google Drive, OneDrive o iCloud, un NAS montado, un disco externo.",
+  keepersWhy:
+    "Tisty escribe y lee en una carpeta que los dos equipos alcancen. Quien la sube es el programa de tu proveedor, no Tisty.",
+  keepersHere: "en este equipo",
+  keepersGone: "sin instalar",
+  keepersMissing: "no lo encontramos aquí",
+  keepersOther: "Otra carpeta…",
+  keepersOtherWhy: "un NAS, un disco externo, lo que sea",
+  keepersSave: "Guardar aquí",
+  keepersCloud: "{name} tiene que estar abierto y al día",
+  keepersCloudWhy:
+    "Tisty deja las copias ahí; subirlas y bajarlas es cosa de ese programa. Si no está en marcha —aquí o en el otro equipo—, las tareas esperan y Tisty no puede saberlo.",
+  keepersAway: "Tiene que estar disponible cuando abras Tisty",
+  keepersAwayWhy:
+    "Esa carpeta vive en un servidor o en un disco que se conecta. Si no responde se ve vacía, y no verás lo que haya llegado.",
+  keepersPlain: "No reconocemos quién sincroniza esta carpeta",
+  keepersPlainWhy:
+    "Si tu propio programa la mantiene al día, perfecto. Si no hay ninguno, el otro equipo no verá nada de esto.",
   welcomeAlone: "Solo en este equipo",
   welcomeAloneWhy: "No sale nada. Puedes respaldar a mano cuando quieras.",
-  welcomeLater: "Decidir luego",
   welcomeTongue: "¿En qué idioma?",
   welcomeTongueWhy: "Tomo el que usa tu equipo. Puedes cambiarlo cuando quieras en Ajustes.",
   welcomeCopies: "¿Dónde quieres tus copias?",
-  welcomeCloud: "Guárdalas en mi nube",
-  welcomeCloudWhy:
-    "Elige una carpeta que ya sincronicen iCloud, Google Drive u OneDrive: las copias van ahí, y el otro equipo las recoge.",
-  welcomeClosing: "Al cerrar la ventana",
-  welcomeReady: "Listo",
-  welcomeBegin: "Empezar",
   welcomeGuide: "Abrir la guía",
-  welcomeGuideWhy:
-    "Nueve secciones cortas, con la app dentro. Queda en tus documentos, tuya para guardarla o tirarla. Todo lo que has elegido aquí se cambia después en Ajustes.",
   guideKept: "La guía está en tus documentos",
   welcomeNext: "Siguiente",
   welcomeBack: "Atrás",
