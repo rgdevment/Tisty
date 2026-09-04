@@ -37,6 +37,16 @@ const SETTLES = 700;
 
 const REMEMBERS = 12;
 
+const remembered = (held: Map<string, string>, file: string, text: string) => {
+  held.delete(file);
+  held.set(file, text);
+  while (held.size > REMEMBERS) {
+    const oldest = held.keys().next().value;
+    if (oldest === undefined) break;
+    held.delete(oldest);
+  }
+};
+
 const WIDE = 1440;
 
 const RAIL = 284;
@@ -97,16 +107,6 @@ export default function Docs({
   const [clashed, setClashed] = useState(false);
   const [stirred, setStirred] = useState(false);
   const lastRead = useRef(new Map<string, string>());
-  const remember = (file: string, text: string) => {
-    const held = lastRead.current;
-    held.delete(file);
-    held.set(file, text);
-    while (held.size > REMEMBERS) {
-      const oldest = held.keys().next().value;
-      if (oldest === undefined) break;
-      held.delete(oldest);
-    }
-  };
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
@@ -144,7 +144,7 @@ export default function Docs({
       const mine = queued(id, () => docWrite(id, text, anyway))
         .then((fresh) => {
           if (held.current?.id === id && held.current.body === text) held.current = null;
-          remember(id, text);
+          remembered(lastRead.current, id, text);
           setClashed(false);
           setSaved((many) => many + 1);
           onKept(fresh);
@@ -185,7 +185,7 @@ export default function Docs({
     drop();
     docRead(open.file)
       .then((text) => {
-        remember(open.file, text);
+        remembered(lastRead.current, open.file, text);
         setBody(text);
         setPacked(crowd(text));
         const brittle = frail(text);
@@ -255,7 +255,7 @@ export default function Docs({
         if (turn.current !== mine) return;
         const last = lastRead.current.get(wanted.file);
         const astir = last !== undefined && tailless(last) !== tailless(text);
-        remember(wanted.file, text);
+        remembered(lastRead.current, wanted.file, text);
         setStirred(astir);
         setOpen(wanted);
         setBody(text);

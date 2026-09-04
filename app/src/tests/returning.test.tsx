@@ -161,7 +161,7 @@ describe("volver de una pagina a su documento", () => {
     const at = scroller();
     if (!at) throw new Error("sin scroller");
 
-    expect(at.getAttribute("tabindex")).toBe("0");
+    expect(at.getAttribute("tabindex")).toBe("-1");
     expect(document.activeElement).toBe(at);
     expect(at.querySelector(".ProseMirror")).not.toBe(document.activeElement);
   });
