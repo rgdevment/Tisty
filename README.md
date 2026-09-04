@@ -506,14 +506,19 @@ already open.
 | ✅ | An assistant can file for you, over MCP, if you let it in |
 | ✅ | Reminders, backup, and sync through a folder both machines reach |
 | ✅ | A guided welcome, a guide written into your store, English and Spanish |
+| ✅ | Folders and documents reordered by hand, carried to where you want them |
+| ✅ | Icons: 1,381 drawings and 1,609 emoji, searchable in your own language |
 | ✅ | macOS: signed and notarised. Windows: signed installer |
 | ◐ | Daily use, which is what turns up the bugs tests do not — what the release candidate is for |
 | ◐ | The Microsoft Store listing, whose screenshots have to be retaken on Windows |
 
-Two things are known and accepted rather than pending: you cannot reorder by
-hand in the window — HTML drag and drop does not survive the native file drop
-that attachments need, and attachments were the better trade — and nothing has
-been tested with a real screen reader, though the keyboard path has.
+One thing is known and accepted rather than pending: nothing has been tested
+with a real screen reader, though the keyboard path has.
+
+Reordering by hand used to be on this list, refused for a good reason: HTML drag
+and drop does not survive the native file drop that attachments need. It is here
+now because the tree stopped asking the browser and follows the pointer itself,
+which costs a little code and keeps both.
 
 ## What It Will Never Do
 
