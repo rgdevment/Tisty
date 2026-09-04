@@ -851,7 +851,6 @@ const en = {
   keepersOther: "Another folder…",
   keepersOtherWhy: "a NAS, an external disk, whatever it is",
   keepersSave: "Save here",
-  keepersChange: "Change the folder",
   keepersCloud: "{name} has to be open and up to date",
   keepersCloudWhy:
     "Tisty leaves the copies there; taking them up and down is that program's job. If it is not running — here or on the other computer — the tasks wait, and Tisty cannot tell.",
@@ -1964,7 +1963,6 @@ const es: Catalog = {
   keepersOther: "Otra carpeta…",
   keepersOtherWhy: "un NAS, un disco externo, lo que sea",
   keepersSave: "Guardar aquí",
-  keepersChange: "Cambiar la carpeta",
   keepersCloud: "{name} tiene que estar abierto y al día",
   keepersCloudWhy:
     "Tisty deja las copias ahí; subirlas y bajarlas es cosa de ese programa. Si no está en marcha —aquí o en el otro equipo—, las tareas esperan y Tisty no puede saberlo.",

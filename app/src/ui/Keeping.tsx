@@ -72,6 +72,8 @@ import { saidPlainly } from "../refusal";
 import { written } from "../report";
 import { type Brittle, scanned } from "../scanning";
 import Apart, { type Door } from "./Apart";
+import Keepers from "./Keepers";
+import Modal from "./Modal";
 import { onMac } from "./WindowChrome";
 
 const carried = {
@@ -214,6 +216,8 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
     });
   };
 
+  const [picking, setPicking] = useState(false);
+  const [was, setWas] = useState<string>();
   const [apart, setApart] = useState<((door: Door | "else" | null) => void) | null>(null);
   const [kin, setKin] = useState<Kin>("unsure");
 
@@ -330,19 +334,19 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
 
   const pickFolder = () => {
     if (held) return;
-    open({ directory: true })
-      .then(async (at) => {
-        if (typeof at !== "string") return;
-        const was = state?.chosen;
-        await chooseSync(at);
-        look();
-        onChanged();
-        if ((await carryNow()) !== "declined") return;
-        await chooseSync(was);
-        look();
-        onChanged();
-      })
-      .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
+    setWas(state?.chosen);
+    setPicking(true);
+  };
+
+  const picked = async (at?: string) => {
+    setPicking(false);
+    look();
+    onChanged();
+    if (!at) return;
+    if ((await carryNow()) !== "declined") return;
+    await chooseSync(was).catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
+    look();
+    onChanged();
   };
 
   const makeBackup = () => {
@@ -520,6 +524,16 @@ export default function Keeping({ onChanged, onGreet, greeted }: Props) {
 
   return (
     <main className="flex flex-col overflow-hidden">
+      {picking && (
+        <Modal title={t("welcomeCopies")} wide onClose={() => setPicking(false)}>
+          <p className="mb-4 text-[12.5px] leading-relaxed text-soft">{t("keepersWhy")}</p>
+          <Keepers
+            busy={held}
+            onTrouble={(text) => setTrouble({ card: "sync", text })}
+            onDone={picked}
+          />
+        </Modal>
+      )}
       {apart && (
         <Apart
           kin={kin}

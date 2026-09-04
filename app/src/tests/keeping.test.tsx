@@ -317,6 +317,12 @@ const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 const go = (tab: RegExp) => userEvent.click(screen.getByRole("tab", { name: tab }));
 
+const turnedOn = async () => {
+  await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+  await userEvent.click(await screen.findByRole("button", { name: /another folder/i }));
+  await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+};
+
 describe("the maintenance panel", () => {
   it("offers to turn syncing on when there is no folder", async () => {
     render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
@@ -326,12 +332,22 @@ describe("the maintenance panel", () => {
     expect(screen.queryByRole("button", { name: /sync now/i })).toBeNull();
   });
 
+  it("offers the same list here as on the first run, never a bare file dialog", async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
+    await screen.findByText(/only on this machine/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+
+    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /another folder/i })).toBeTruthy();
+  });
+
   it("remembers the folder that was picked", async () => {
     asked.folder = "G:/My Drive/tisty";
     render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
 
-    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+    await turnedOn();
 
     await waitFor(() => expect(sent("choose_sync").length).toBe(1));
     expect(sent("choose_sync")[0].args.dest).toBe("G:/My Drive/tisty");
@@ -865,7 +881,7 @@ describe("the maintenance panel", () => {
     render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
 
-    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+    await turnedOn();
 
     await waitFor(() => expect(sent("choose_sync")).toHaveLength(1));
     await waitFor(() => expect(sent("sync_now")).toHaveLength(1));
@@ -877,7 +893,7 @@ describe("the maintenance panel", () => {
     render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
 
-    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+    await turnedOn();
 
     expect((await screen.findByRole("dialog")).textContent).toMatch(/already holds another Tisty/i);
   });
@@ -887,7 +903,7 @@ describe("the maintenance panel", () => {
     asked.folder = "G:/My Drive/tisty";
     render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
-    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+    await turnedOn();
 
     const doors = await screen.findByRole("dialog");
     await userEvent.click(within(doors).getByRole("button", { name: /^close$/i }));
@@ -902,7 +918,7 @@ describe("the maintenance panel", () => {
     asked.file = "C:/keep/tisty-folder-before.zip";
     render(<Keeping onGreet={() => {}} onChanged={() => {}} />);
     await screen.findByText(/only on this machine/i);
-    await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+    await turnedOn();
 
     await userEvent.click(await screen.findByRole("button", { name: /keep this machine/i }));
 
@@ -1222,6 +1238,15 @@ describe("the first-run assistant", () => {
 
     expect(await screen.findByText("G:/My Drive/Tisty")).toBeTruthy();
     expect(screen.getByText(/has to be open and up to date/i)).toBeTruthy();
+  });
+
+  it("keeps one way back, never two at once", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    expect(screen.getAllByRole("button", { name: /^back$/i })).toHaveLength(1);
   });
 
   it("makes that folder before writing it down", async () => {

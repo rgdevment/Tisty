@@ -4031,12 +4031,15 @@ fn wake_for(wanted: bool) -> Answer<waking::Waking> {
 
 #[tauri::command]
 fn keep_locale(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     locale: Option<String>,
 ) -> Answer<Option<String>> {
     let mut session = held(&session);
     let wanted = locale.filter(|one| !one.trim().is_empty());
     session.keep(|config| config.locale = wanted.clone())?;
+    session.locale = wanted.clone();
+    language(&app, &wanted);
     Ok(wanted)
 }
 

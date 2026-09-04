@@ -284,7 +284,9 @@ Para reescribir un documento entero se le entrega una huella del texto exacto qu
 
 ### 12. Tus copias
 
-Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, apúntalo a una carpeta que ya sincronicen iCloud, Google Drive u OneDrive: las copias van ahí y el otro equipo las recoge.
+Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo.
+
+Quien sube y baja esa carpeta es el programa de tu proveedor, no Tisty. Si no está en marcha, las tareas esperan ahí hasta que lo esté.
 
 > No hay servidor nuestro por medio. Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.
 

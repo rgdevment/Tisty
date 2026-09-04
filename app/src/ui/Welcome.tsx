@@ -52,6 +52,7 @@ export default function Welcome({ onDone }: Props) {
   const [busy, setBusy] = useState(false);
   const [trouble, setTrouble] = useState<string>();
   const [tongue, setTongue] = useState<string>();
+  const [deciding, setDeciding] = useState(false);
 
   const at = STEPS.indexOf(step);
 
@@ -116,7 +117,7 @@ export default function Welcome({ onDone }: Props) {
             />
           ))
         ) : (
-          <Keepers busy={busy} onTrouble={setTrouble} onDone={leave} />
+          <Keepers busy={busy} onTrouble={setTrouble} onDeciding={setDeciding} onDone={leave} />
         )}
       </div>
 
@@ -131,7 +132,7 @@ export default function Welcome({ onDone }: Props) {
       )}
 
       <div className="mt-4 flex items-center gap-4 text-xs">
-        {step === "copies" && (
+        {step === "copies" && !deciding && (
           <button
             type="button"
             disabled={busy}

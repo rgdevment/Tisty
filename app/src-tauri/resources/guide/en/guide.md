@@ -284,7 +284,9 @@ To rewrite a whole document it is handed a print of the exact text it read, and 
 
 ### 12. Your copies
 
-Tisty always works on this computer. To reach it from another one, point it at a folder iCloud, Google Drive or OneDrive already keeps in sync: copies go there and the other computer picks them up.
+Tisty always works on this computer. To reach it from another one, tell it where to leave the copies: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk.
+
+Whoever takes that folder up and down is your provider's program, not Tisty. If it is not running, the tasks wait there until it is.
 
 > There is no server of ours in between. Syncing gives you redundancy, not time travel: if you delete a task, the deletion travels too.
 

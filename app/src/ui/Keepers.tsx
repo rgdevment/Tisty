@@ -8,14 +8,14 @@ import { saidPlainly } from "../refusal";
 interface Props {
   busy: boolean;
   onTrouble: (said: string) => void;
-  onDone: () => void;
+  onDeciding?: (deciding: boolean) => void;
+  onDone: (at?: string) => void;
 }
 
 interface Standing {
   at: string;
   keeper: Keeper;
   named?: string;
-  from?: string;
 }
 
 const HUE: Record<string, string> = {
@@ -29,7 +29,7 @@ const row =
   "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left hover:bg-hover disabled:opacity-50 disabled:hover:bg-transparent";
 const badge = "flex-none rounded-md px-1.5 py-0.5 text-[10px] tracking-wide";
 
-export default function Keepers({ busy, onTrouble, onDone }: Props) {
+export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) {
   const [offers, setOffers] = useState<Offering[]>([]);
   const [standing, setStanding] = useState<Standing>();
   const [held, setHeld] = useState(false);
@@ -40,12 +40,16 @@ export default function Keepers({ busy, onTrouble, onDone }: Props) {
       .catch((e) => onTrouble(saidPlainly(e)));
   }, [onTrouble]);
 
+  useEffect(() => {
+    onDeciding?.(Boolean(standing));
+  }, [standing, onDeciding]);
+
   const stuck = busy || held;
 
-  const browse = (from?: string) => {
+  const browse = () => {
     if (stuck) return;
     setHeld(true);
-    open({ directory: true, defaultPath: from })
+    open({ directory: true })
       .then(async (at) => {
         if (typeof at !== "string") return;
         const told = await keeperOf(at);
@@ -57,13 +61,13 @@ export default function Keepers({ busy, onTrouble, onDone }: Props) {
 
   const take = (one: Offering) => {
     if (stuck || !one.at || !one.into) return;
-    setStanding({ at: one.into, keeper: "cloud", named: one.named, from: one.at });
+    setStanding({ at: one.into, keeper: "cloud", named: one.named });
   };
 
-  const settle = (work: Promise<unknown>) => {
+  const settle = (work: Promise<unknown>, at?: string) => {
     setHeld(true);
     work
-      .then(() => onDone())
+      .then(() => onDone(at))
       .catch((e) => {
         onTrouble(saidPlainly(e));
         setHeld(false);
@@ -72,7 +76,10 @@ export default function Keepers({ busy, onTrouble, onDone }: Props) {
 
   const keep = () => {
     if (stuck || !standing) return;
-    settle(makeRoom(standing.at).then(() => chooseSync(standing.at)));
+    settle(
+      makeRoom(standing.at).then(() => chooseSync(standing.at)),
+      standing.at,
+    );
   };
 
   const alone = () => {
@@ -106,10 +113,10 @@ export default function Keepers({ busy, onTrouble, onDone }: Props) {
           <button
             type="button"
             disabled={stuck}
-            onClick={() => browse(standing.from ?? standing.at)}
+            onClick={() => setStanding(undefined)}
             className="text-faint hover:text-ink disabled:opacity-60"
           >
-            {t("keepersChange")}
+            {t("welcomeBack")}
           </button>
           <button
             type="button"
@@ -157,12 +164,7 @@ export default function Keepers({ busy, onTrouble, onDone }: Props) {
         </button>
       ))}
 
-      <button
-        type="button"
-        disabled={stuck}
-        onClick={() => browse()}
-        className={`${row} border-line`}
-      >
+      <button type="button" disabled={stuck} onClick={browse} className={`${row} border-line`}>
         <span className="grid size-6 flex-none place-items-center rounded-md border border-dashed border-line text-[11px] text-faint">
           +
         </span>
