@@ -2336,12 +2336,16 @@ fn keep_settings(
 
 #[tauri::command]
 fn icons() -> Vec<&'static str> {
-    tisty_core::model::icon::ICONS.to_vec()
+    let mut all = tisty_core::model::mark::MARKS.to_vec();
+    all.extend_from_slice(tisty_core::model::icon::ICONS);
+    all
 }
 
 #[tauri::command]
 fn families() -> Vec<(&'static str, usize)> {
-    tisty_core::model::icon::FAMILIES.to_vec()
+    let mut all = tisty_core::model::mark::MARK_FAMILIES.to_vec();
+    all.extend_from_slice(tisty_core::model::icon::FAMILIES);
+    all
 }
 
 #[tauri::command]
@@ -2399,9 +2403,7 @@ fn list_look(
     let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
     let kept = match icon {
         Some(key) => Some(
-            tisty_core::model::icon::kept(&key)
-                .map(str::to_string)
-                .ok_or_else(|| Refusal::about("noSuchIcon", key))?,
+            tisty_core::model::icon::kept(&key).ok_or_else(|| Refusal::about("noSuchIcon", key))?,
         ),
         None => None,
     };
@@ -2700,9 +2702,7 @@ fn folder_look(
     let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
     let kept = match icon {
         Some(key) => Some(
-            tisty_core::model::icon::kept(&key)
-                .map(str::to_string)
-                .ok_or_else(|| Refusal::about("noSuchIcon", key))?,
+            tisty_core::model::icon::kept(&key).ok_or_else(|| Refusal::about("noSuchIcon", key))?,
         ),
         None => None,
     };

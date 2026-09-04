@@ -17,6 +17,7 @@ import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
 import { markup } from "../glyphs";
 import { t } from "../locales";
+import { isMark } from "../marks";
 import { spared } from "./Icons";
 
 /// A bracket left bare closes the label early, and the reference stops naming anything.
@@ -402,11 +403,16 @@ const Ico = Node.create({
       held.className = `ico${hue ? ` ico-${hue}` : ""}`;
       held.dataset.ico = name;
       if (hue) held.dataset.hue = hue;
+      const paths = markup(name);
+      if (!paths) {
+        if (isMark(name)) held.textContent = name;
+        return { dom: held };
+      }
       const drawn = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       drawn.setAttribute("viewBox", "0 0 24 24");
       drawn.setAttribute("aria-hidden", "true");
       drawn.setAttribute("class", "glyph");
-      drawn.innerHTML = markup(name) ?? "";
+      drawn.innerHTML = paths;
       held.append(drawn);
       return { dom: held };
     };

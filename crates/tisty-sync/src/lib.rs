@@ -1586,6 +1586,7 @@ mod tests {
                 d: tisty_core::event::DocAdd {
                     file: "uno-0001".into(),
                     order: "a0".into(),
+                    said: None,
                     folder: None,
                     page_of: None,
                 },

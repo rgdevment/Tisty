@@ -45,12 +45,12 @@ describe("an icon written into a document", () => {
   });
 
   it("hangs a drawing where the name was, rather than the name itself", () => {
-    const editor = made('<p><span data-ico="rocket"></span></p>');
+    const editor = made('<p><span data-ico="star"></span></p>');
     const held = editor.view.dom.querySelector(".ico");
     const drawn = held?.querySelector("svg");
     editor.destroy();
 
-    expect(held?.getAttribute("data-ico")).toBe("rocket");
+    expect(held?.getAttribute("data-ico")).toBe("star");
     expect(drawn?.getAttribute("viewBox")).toBe("0 0 24 24");
     expect(held?.textContent).toBe("");
   });

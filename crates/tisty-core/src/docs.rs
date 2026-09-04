@@ -4289,6 +4289,18 @@ fn quotedly<'a>(said: &'a str, name: &str, plain: fn(char) -> bool) -> Option<&'
     Some(after.trim_start())
 }
 
+fn named_or_marked(said: &str) -> Option<&str> {
+    let rest = said.strip_prefix("data-ico")?.strip_prefix("=\"")?;
+    let (value, after) = rest.split_once('"')?;
+    if value.is_empty() {
+        return None;
+    }
+    let plain = value
+        .chars()
+        .all(|one| one.is_ascii_alphanumeric() || one == '-');
+    (plain || crate::model::icon::a_mark(value)).then(|| after.trim_start())
+}
+
 fn iconed(inner: &str) -> bool {
     let Some(rest) = inner
         .get(..5)
@@ -4297,9 +4309,7 @@ fn iconed(inner: &str) -> bool {
     else {
         return false;
     };
-    let Some(after) = quotedly(rest, "data-ico", |one| {
-        one.is_ascii_alphanumeric() || one == '-'
-    }) else {
+    let Some(after) = named_or_marked(rest) else {
         return false;
     };
     if after.is_empty() {

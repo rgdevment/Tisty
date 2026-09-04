@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { families as readFamilies, icons as readIcons } from "../core";
+import { isMark, markedAs } from "../marks";
 import { alsoNamed } from "../synonyms";
 
 export interface Family {
@@ -43,11 +44,11 @@ export function useCatalogue(): Catalogue {
 }
 
 /// What another program shows where Tisty draws the glyph.
-export const spared = (key: string): string => `:${key}:`;
+export const spared = (key: string): string => (isMark(key) ? key : `:${key}:`);
 
 export const sifted = (all: string[], word: string): string[] => {
   const said = word.trim().toLowerCase();
   if (!said) return all;
-  const also = new Set(alsoNamed(said));
-  return all.filter((key) => key.includes(said) || also.has(key));
+  const also = new Set([...alsoNamed(said), ...markedAs(said)]);
+  return all.filter((key) => (isMark(key) ? also.has(key) : key.includes(said) || also.has(key)));
 };

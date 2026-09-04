@@ -3,6 +3,7 @@ mod folder;
 pub mod hue;
 pub mod icon;
 mod list;
+pub mod mark;
 mod repeat;
 mod tag;
 mod task;

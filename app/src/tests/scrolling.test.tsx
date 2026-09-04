@@ -35,7 +35,7 @@ class Watcher {
 
 const opened = async () => {
   vi.stubGlobal("ResizeObserver", Watcher);
-  const { container } = render(<Pick onIcon={vi.fn()} />);
+  const { container } = render(<Pick onIcon={vi.fn()} opens="icons" />);
   const box = container.querySelector("fieldset") as HTMLFieldSetElement;
   wide = 377;
   for (const tell of watching) tell();

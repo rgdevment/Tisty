@@ -15,7 +15,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-const show = () => render(<Pick onIcon={vi.fn()} />);
+const show = () => render(<Pick onIcon={vi.fn()} opens="icons" />);
 
 describe("a catalogue offered by family", () => {
   it("names each family in the reader's own words", async () => {

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { known, markup } from "../glyphs";
+import { isMark, MARKS, markedAs } from "../marks";
 import Pick from "../ui/Pick";
 
 const named = (): string[] => {
@@ -75,9 +76,39 @@ describe("a catalogue too long to draw at once", () => {
     Object.defineProperty(HTMLFieldSetElement.prototype, "clientWidth", { value: 200 });
     Object.defineProperty(HTMLFieldSetElement.prototype, "clientHeight", { value: 200 });
 
-    render(<Pick onIcon={vi.fn()} />);
+    render(<Pick onIcon={vi.fn()} opens="icons" />);
     await waitFor(() => screen.getByRole("button", { name: "home" }));
 
     expect(screen.getAllByRole("button").length).toBeLessThan(all.length / 10);
+  });
+});
+
+describe("the marks the core offers and the words the window knows", () => {
+  const carved = (): string[] => {
+    const at = resolve(process.cwd(), "../crates/tisty-core/src/model/mark.rs");
+    const said = readFileSync(at, "utf8");
+    const body = said.slice(said.indexOf("MARKS"), said.indexOf("];"));
+    return [...body.matchAll(/"([^"]+)"/g)].map((found) => found[1]);
+  };
+
+  it("offers exactly the marks the window can search for", () => {
+    const mine = carved();
+
+    expect(mine.length).toBeGreaterThan(300);
+    expect(new Set(mine).size).toBe(mine.length);
+    expect(MARKS).toEqual(mine);
+  });
+
+  it("finds a mark by what a person would type, in Spanish", () => {
+    expect(markedAs("basura")).toContain("\u{1F5D1}\u{FE0F}");
+    expect(markedAs("coche")).toContain("\u{1F697}");
+    expect(markedAs("hecho")).toContain("\u{2705}");
+    expect(markedAs("cara").length).toBeGreaterThan(0);
+  });
+
+  it("keeps the drawn icons and the marks apart", () => {
+    for (const one of MARKS) expect(known(one)).toBe(false);
+    expect(isMark("home")).toBe(false);
+    expect(isMark("page")).toBe(false);
   });
 });
