@@ -109,7 +109,7 @@ Everything below is ordinary Markdown. You write it with `/`, and the file left 
 
 #### The usual
 
-**Bold**, *italic*, ~~struck through~~, <u>underlined</u>, `loose code` and a [link to a website](https://tisty.dev). Bulleted lists, numbered ones, and quotes of the ordinary kind:
+**Bold**, *italic*, ~~struck through~~, <u>underlined</u>, `loose code` and a [link to a website](https://github.com/rgdevment/Tisty). Bulleted lists, numbered ones, and quotes of the ordinary kind:
 
 > What is not written down did not happen.
 
@@ -313,3 +313,18 @@ Right there is **Review the store**: it counts what is spare, what is missing an
 | `/` | Insert inside a document |
 | `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
 | `Esc` | Close whatever is open |
+
+### 15. If it was any use
+
+Tisty is open source and can be read in full at
+[github.com/rgdevment/Tisty](https://github.com/rgdevment/Tisty): that is where
+the bugs you find and the ideas you have should go.
+
+[The same profile](https://github.com/rgdevment) holds two more tools, same idea
+and same terms — free, open, no ads, no telemetry, all on your own machine:
+
+- **[CopyPaste](https://github.com/rgdevment/CopyPaste)** — a clipboard manager
+  for Windows, macOS and Linux.
+- **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — a browser picker
+  for Windows and macOS: it asks which one should open a link instead of
+  assuming.

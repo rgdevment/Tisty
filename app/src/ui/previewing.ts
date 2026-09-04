@@ -243,6 +243,7 @@ const built = (
 
   if (seen.as === "doc") {
     const title = reach.title(seen.id);
+    box.dataset.doc = seen.id;
     box.classList.add("card-doc");
     if (leaf === null) box.prepend(papered());
     else {

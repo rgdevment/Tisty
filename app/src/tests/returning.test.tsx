@@ -49,8 +49,11 @@ beforeEach(() => {
   restore = measured();
   vi.stubGlobal("ResizeObserver", Watcher);
   store.bodies = {
-    "a3f1-0001": largo("El documento"),
-    "a3f1-0002": largo("Su pagina"),
+    "a3f1-0001": `${largo("El documento")}
+
+![La Rina](tisty:doc/a3f1-0002)
+`,
+    "a3f1-0002": `# Su pagina\n\nUna hoja aparte, corta y con sus propias palabras.`,
   };
 });
 
@@ -107,7 +110,7 @@ describe("volver de una pagina a su documento", () => {
     const shown = render(
       <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />,
     );
-    await waitFor(() => expect(scroller()).not.toBeNull());
+    await waitFor(() => expect(scroller()).not.toBeNull(), { timeout: 3000 });
     await screen.findByText(/Parrafo numero 3 /);
 
     const at = scroller();
@@ -126,11 +129,83 @@ describe("volver de una pagina a su documento", () => {
     await waitFor(() => expect(back.scrollTop).toBe(800), { timeout: 3000 });
   });
 
+  it("lo deja donde estaba aunque la lista de documentos se rehaga por el camino", async () => {
+    const again = () => known.map((one) => ({ ...one }));
+    const shown = render(
+      <Docs open="a3f1-0001" known={again()} onKept={vi.fn()} onError={vi.fn()} />,
+    );
+    await waitFor(() => expect(scroller()).not.toBeNull(), { timeout: 3000 });
+    await screen.findByText(/Parrafo numero 3 /);
+
+    const at = scroller();
+    if (!at) throw new Error("sin scroller");
+    at.scrollTop = 800;
+    at.dispatchEvent(new Event("scroll", { bubbles: true }));
+
+    shown.rerender(<Docs open="a3f1-0002" known={again()} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByText(/Su pagina/);
+
+    shown.rerender(<Docs open="a3f1-0001" known={again()} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByText(/Parrafo numero 3 /);
+    const back = scroller();
+    if (!back) throw new Error("sin scroller al volver");
+
+    await waitFor(() => expect(back.scrollTop).toBe(800), { timeout: 3000 });
+  });
+
+  it("da el teclado a la hoja, nunca al texto, para que nada arrastre la vista", async () => {
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    await waitFor(() => expect(scroller()).not.toBeNull(), { timeout: 3000 });
+    await screen.findByText(/Parrafo numero 3 /);
+
+    const at = scroller();
+    if (!at) throw new Error("sin scroller");
+
+    expect(at.getAttribute("tabindex")).toBe("0");
+    expect(document.activeElement).toBe(at);
+    expect(at.querySelector(".ProseMirror")).not.toBe(document.activeElement);
+  });
+
+  it("nombra en el texto la pagina a la que se puede volver", async () => {
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    await waitFor(() => expect(scroller()).not.toBeNull(), { timeout: 3000 });
+
+    await waitFor(() => expect(document.querySelector('[data-doc="a3f1-0002"]')).not.toBeNull());
+  });
+
+  it("no toma por tuya la posicion que deja el documento al vaciarse", async () => {
+    const shown = render(
+      <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />,
+    );
+    await waitFor(() => expect(scroller()).not.toBeNull(), { timeout: 3000 });
+    await screen.findByText(/Parrafo numero 3 /);
+
+    const at = scroller();
+    if (!at) throw new Error("sin scroller");
+    at.scrollTop = 800;
+    at.dispatchEvent(new Event("scroll", { bubbles: true }));
+
+    tall = SEEN;
+    at.scrollTop = 0;
+    at.dispatchEvent(new Event("scroll", { bubbles: true }));
+    tall = 4000;
+
+    shown.rerender(<Docs open="a3f1-0002" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByText(/Su pagina/);
+
+    shown.rerender(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
+    await screen.findByText(/Parrafo numero 3 /);
+    const back = scroller();
+    if (!back) throw new Error("sin scroller al volver");
+
+    await waitFor(() => expect(back.scrollTop).toBe(800), { timeout: 3000 });
+  });
+
   it("lo deja donde estaba tambien cuando la altura tarda en llegar", async () => {
     const shown = render(
       <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />,
     );
-    await waitFor(() => expect(scroller()).not.toBeNull());
+    await waitFor(() => expect(scroller()).not.toBeNull(), { timeout: 3000 });
     await screen.findByText(/Parrafo numero 3 /);
 
     const at = scroller();

@@ -109,7 +109,7 @@ Todo lo de aquí abajo es Markdown corriente. Lo escribes con `/`, y el archivo 
 
 #### Lo de siempre
 
-**Negrita**, *cursiva*, ~~tachado~~, <u>subrayado</u>, `código suelto` y un [enlace a una web](https://tisty.dev). Listas con viñetas, numeradas, y citas de las de toda la vida:
+**Negrita**, *cursiva*, ~~tachado~~, <u>subrayado</u>, `código suelto` y un [enlace a una web](https://github.com/rgdevment/Tisty). Listas con viñetas, numeradas, y citas de las de toda la vida:
 
 > Lo que no está escrito, no ocurrió.
 
@@ -313,3 +313,19 @@ Ahí mismo está **Revisar el almacén**: cuenta lo que sobra, lo que falta y lo
 | `/` | Insertar dentro de un documento |
 | `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
 | `Esc` | Cerrar lo que esté abierto |
+
+### 15. Si te sirvió
+
+Tisty es de código abierto y se lee entero en
+[github.com/rgdevment/Tisty](https://github.com/rgdevment/Tisty): ahí van los
+fallos que encuentres y las ideas que se te ocurran.
+
+En [el mismo perfil](https://github.com/rgdevment) hay dos herramientas más, con
+la misma idea y los mismos términos —gratis, abiertas, sin anuncios, sin
+telemetría, todo en tu equipo—:
+
+- **[CopyPaste](https://github.com/rgdevment/CopyPaste)** — un gestor de
+  portapapeles para Windows, macOS y Linux.
+- **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — un selector de
+  navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de
+  suponerlo.
