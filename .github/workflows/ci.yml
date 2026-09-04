@@ -155,7 +155,7 @@ jobs:
             -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,crates/*/locales/**
             -Dsonar.rust.lcov.reportPaths=lcov-rust.info
             -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
-            -Dsonar.cpd.exclusions=app/src/locales.ts,app/src/glyphs.ts,crates/tisty-core/src/model/icon.rs
+            -Dsonar.cpd.exclusions=app/src/locales.ts,app/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-core/src/model/mark.rs
             -Dsonar.rust.clippy.enabled=false
             -Dsonar.jasmin.internal.js.ts.disabled=true
             -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**
