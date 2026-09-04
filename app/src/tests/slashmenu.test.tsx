@@ -9,8 +9,8 @@ const lists: List[] = [
   { id: "l2", name: "Casa", order: "b", archived: false },
 ];
 const tags: Counted[] = [
-  { tag: "dinero", tasks: 4 },
-  { tag: "casa", tasks: 2 },
+  { tag: "dinero", tasks: 4, docs: 0 },
+  { tag: "casa", tasks: 2, docs: 0 },
 ];
 
 const show = (query = "") => {

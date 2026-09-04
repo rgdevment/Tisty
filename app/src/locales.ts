@@ -618,6 +618,11 @@ const en = {
   owedFill: "Add {name}",
   left: "What it left",
   carries: "What it carries",
+  tagsRead: "Tags in documents",
+  tagsReadWhy:
+    "A document learns its tags when it is saved. Everything written before Tisty could read them stays bare until it is touched — unless you read them all now, in one pass over the folder.",
+  tagsReadDo: "Read them now",
+  tagsReadDone: "{name} documents took a tag",
   theDay: "The day",
   pulseElse: "Everything else",
   pulseUndated: "With no date",
@@ -1749,6 +1754,11 @@ const es: Catalog = {
   owedFill: "Añadir {name}",
   left: "Lo que dejó",
   carries: "Lo que lleva",
+  tagsRead: "Etiquetas en los documentos",
+  tagsReadWhy:
+    "Un documento aprende sus etiquetas al guardarse. Todo lo escrito antes de que Tisty supiera leerlas se queda sin ellas hasta que lo toques, salvo que las leas todas ahora de una pasada por la carpeta.",
+  tagsReadDo: "Leerlas ahora",
+  tagsReadDone: "{name} documentos tomaron etiqueta",
   theDay: "El día",
   pulseElse: "Todo lo demás",
   pulseUndated: "Sin fecha",

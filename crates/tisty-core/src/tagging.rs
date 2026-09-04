@@ -1,0 +1,179 @@
+use crate::model::Tag;
+
+/// A hash pinned to a letter or a digit. `# Heading` carries a space and stays a heading, a colour
+/// or a fragment sits behind something that is not a separator, and a fenced block is skipped
+/// whole — the same fencing the title reader steps over.
+pub fn tags_in(body: &str) -> Vec<Tag> {
+    let mut found: Vec<Tag> = Vec::new();
+    let mut fenced = crate::docs::fencing();
+    for line in body.lines() {
+        if fenced(line) {
+            continue;
+        }
+        for tag in tags_on(line) {
+            if !found.contains(&tag) {
+                found.push(tag);
+            }
+        }
+    }
+    found
+}
+
+fn tags_on(line: &str) -> Vec<Tag> {
+    let mut found = Vec::new();
+    let mut ticks = false;
+    let bytes = line.as_bytes();
+    let mut at = 0;
+    while at < line.len() {
+        if bytes[at] == b'`' {
+            ticks = !ticks;
+            at += 1;
+            continue;
+        }
+        if bytes[at] != b'#' || ticks {
+            at += 1;
+            continue;
+        }
+        let before = line[..at].chars().next_back();
+        // Anything but a separator before the hash means it belongs to what came first: a colour
+        // in `bg-#fff`, the fragment of an address, a word someone hyphenated.
+        if before.is_some_and(|one| one.is_alphanumeric() || "#/-_.:".contains(one)) {
+            at += 1;
+            continue;
+        }
+        let rest = &line[at + 1..];
+        let word: String = rest
+            .chars()
+            .take_while(|one| one.is_alphanumeric() || *one == '-' || *one == '_')
+            .collect();
+        if word.is_empty() || !word.chars().any(char::is_alphanumeric) {
+            at += 1;
+            continue;
+        }
+        if let Ok(tag) = Tag::new(&word) {
+            found.push(tag);
+        }
+        at += 1 + word.len();
+    }
+    found
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn said(body: &str) -> Vec<String> {
+        tags_in(body)
+            .into_iter()
+            .map(|one| one.as_str().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn a_hash_against_a_word_is_a_tag() {
+        assert_eq!(said("esto es #legal antes que nada"), ["legal"]);
+    }
+
+    #[test]
+    fn a_heading_keeps_its_space_and_is_left_alone() {
+        assert_eq!(
+            said("# Alquiler del local\n\n## Lo que falta"),
+            Vec::<String>::new()
+        );
+    }
+
+    #[test]
+    fn the_fragment_of_an_address_belongs_to_the_address() {
+        assert_eq!(
+            said("mira https://ejemplo.com/pagina#seccion"),
+            Vec::<String>::new()
+        );
+    }
+
+    #[test]
+    fn a_colour_written_inline_is_not_a_tag_either() {
+        assert_eq!(said("el fondo es `#ff0000` y ya"), Vec::<String>::new());
+        assert_eq!(said("border: 1px solid #hair"), ["hair"]);
+    }
+
+    #[test]
+    fn a_fenced_block_is_stepped_over_whole() {
+        assert_eq!(
+            said("antes #uno\n\n```css\ncolor: #rojo;\n```\n\ndespués #dos"),
+            ["uno", "dos"]
+        );
+    }
+
+    #[test]
+    fn the_same_tag_twice_is_kept_once_and_in_the_order_it_was_written() {
+        assert_eq!(
+            said("#dinero y luego #legal y otra vez #dinero"),
+            ["dinero", "legal"]
+        );
+    }
+
+    #[test]
+    fn it_is_normalised_the_way_a_task_normalises_its_own() {
+        assert_eq!(said("#Contrato #CONTRATO #contrato"), ["contrato"]);
+        assert_eq!(said("#pago_mensual"), ["pago-mensual"]);
+    }
+
+    #[test]
+    fn a_hash_on_its_own_holds_nothing() {
+        assert_eq!(said("un # suelto y un #- también"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn punctuation_around_it_does_not_travel_with_it() {
+        assert_eq!(said("queda (#legal), sí."), ["legal"]);
+    }
+
+    #[test]
+    fn several_on_one_line_are_all_read() {
+        assert_eq!(said("#uno #dos #tres"), ["uno", "dos", "tres"]);
+    }
+
+    #[test]
+    fn what_a_document_says_of_itself_carries_them() {
+        let said = crate::event::Said::of("# Alquiler\n\nesto es #legal y #dinero");
+
+        assert_eq!(said.title, "Alquiler");
+        assert_eq!(
+            said.tags.iter().map(|one| one.as_str()).collect::<Vec<_>>(),
+            ["legal", "dinero"]
+        );
+    }
+
+    #[test]
+    fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
+        let kept = crate::model::Kept {
+            id: ulid::Ulid::generate(),
+            file: "a3f1-0001".into(),
+            order: "a0".into(),
+            title: Some("Alquiler".into()),
+            bytes: Some(31),
+            wrote: None,
+            folder: None,
+            page_of: None,
+            archived: false,
+            locked: false,
+            tags: vec![Tag::new("legal").unwrap()],
+        };
+
+        let same = crate::event::Said {
+            title: "Alquiler".into(),
+            bytes: Some(31),
+            tags: vec![Tag::new("legal").unwrap()],
+        };
+        assert!(!same.news_for(&kept));
+
+        let fresh = crate::event::Said {
+            tags: vec![Tag::new("legal").unwrap(), Tag::new("dinero").unwrap()],
+            ..same
+        };
+        assert!(
+            fresh.news_for(&kept),
+            "una etiqueta nueva es algo que contar"
+        );
+    }
+}

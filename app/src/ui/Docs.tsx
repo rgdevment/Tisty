@@ -78,6 +78,7 @@ interface Props {
   onKept: (doc: { id: string; title: string }) => void;
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
+  onTag?: (tag: string) => void;
   onOwned?: (id: string) => void;
   onShown?: (file: string | null) => void;
   fresh?: number;
@@ -93,6 +94,7 @@ export default function Docs({
   onKept,
   onError,
   onDoc,
+  onTag,
   onOwned,
   onShown,
   fresh = 0,
@@ -518,6 +520,7 @@ export default function Docs({
                 paper={open.file}
                 onMade={(id, name) => onKept({ id, title: name })}
                 onDoc={onDoc}
+                onTag={onTag}
                 onOwn={(file) => {
                   const page = known.find((one) => one.file === file);
                   if (page) onOwned?.(page.id);
@@ -689,6 +692,7 @@ export default function Docs({
           title={open.title}
           paper={open.file}
           body={body}
+          tags={known.find((one) => one.file === open.file)?.tags ?? []}
           kept={saved}
           blocks={blocks}
           heads={heads}

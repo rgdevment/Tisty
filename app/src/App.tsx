@@ -83,6 +83,7 @@ import Search from "./ui/Search";
 import Shelf from "./ui/Shelf";
 import Sidebar from "./ui/Sidebar";
 import Sightings from "./ui/Sightings";
+import Tagged from "./ui/Tagged";
 import Tags from "./ui/Tags";
 import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
@@ -168,6 +169,8 @@ export default function App() {
     lists: kept("tisty.only"),
   }));
   const [found, setFound] = useState<Found | null>(null);
+  /// Where a tag was pressed, so leaving it goes back there rather than to a fixed screen.
+  const [cameFrom, setCameFrom] = useState<Chosen | null>(null);
 
   useEffect(() => {
     const wanted = chosen.lists;
@@ -528,6 +531,13 @@ export default function App() {
   const task = fresh ?? (held?.id === selected ? held : undefined) ?? undefined;
   const open = task !== undefined;
   if (fresh && fresh !== held && acted.current !== fresh.id) setHeld(fresh);
+
+  const wanted = chosen.tags ?? [];
+  const taggedDocs = wanted.length
+    ? papers.docs.filter(
+        (one) => !one.archived && wanted.every((tag) => (one.tags ?? []).includes(tag)),
+      )
+    : [];
 
   const beside = open && mode === "columns" && chosen.named !== "keeping";
   const aside =
@@ -1066,6 +1076,7 @@ export default function App() {
         }
         onChoose={(next) => {
           setChosen(next);
+          setCameFrom(null);
           setSelected(undefined);
           setFound(null);
           setError(null);
@@ -1112,6 +1123,11 @@ export default function App() {
                 setChosen({ named: "docs" });
               }}
               onKept={papersChanged}
+              onTag={(tag) => {
+                setSelected(undefined);
+                setCameFrom(chosen);
+                setChosen({ named: "tags", tags: [tag] });
+              }}
               onError={told}
               onShown={setShowing}
               onDoc={openDoc}
@@ -1219,7 +1235,8 @@ export default function App() {
                     }
                   : chosen.named === "tags"
                     ? () => {
-                        setChosen({ named: "tasks" });
+                        setChosen(cameFrom ?? { named: "tasks" });
+                        setCameFrom(null);
                         setSelected(undefined);
                       }
                     : undefined
@@ -1267,6 +1284,8 @@ export default function App() {
               below={
                 found?.papers.length ? (
                   <Sightings papers={found.papers} onOpen={openDoc} />
+                ) : chosen.tags?.length ? (
+                  <Tagged docs={taggedDocs} onOpen={openDoc} />
                 ) : undefined
               }
               instead={

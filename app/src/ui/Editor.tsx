@@ -31,6 +31,7 @@ import { previewing, type Reach } from "./previewing";
 import Shot from "./Shot";
 import Slash, { asked, type Block, narrowed } from "./Slash";
 import Tabled from "./Tabled";
+import { tagging } from "./tagging";
 import { asMarkdown, type Head, headed, loosened, written } from "./writing";
 
 export const stripped = (html: string): string =>
@@ -218,6 +219,7 @@ interface Props {
   onOpen?: (reference: string) => void;
   onKeep?: (reference: string, name: string) => void;
   onDoc?: (id: string) => void;
+  onTag?: (tag: string) => void;
   onOwn?: (id: string) => void;
   onWrite: (text: string) => void;
   onShaped?: (text: string) => void;
@@ -245,6 +247,7 @@ export default function Editor({
   onOpen,
   onKeep,
   onDoc,
+  onTag,
   onOwn,
   onWrite,
   onShaped,
@@ -354,7 +357,12 @@ export default function Editor({
   };
   looked.current = look;
 
-  const shapes = useMemo(() => [...written(), previewing(() => reach.current)], []);
+  const picking = useRef(onTag);
+  picking.current = onTag;
+  const shapes = useMemo(
+    () => [...written(), previewing(() => reach.current), tagging((tag) => picking.current?.(tag))],
+    [],
+  );
 
   const own = filed(papers, paper);
   const leaves = useMemo(() => paged(papers, paper), [papers, paper]);

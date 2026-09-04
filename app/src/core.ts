@@ -78,6 +78,7 @@ export interface List {
 export interface Counted {
   tag: string;
   tasks: number;
+  docs: number;
 }
 
 export interface Snapshot {
@@ -668,6 +669,7 @@ export interface Filed {
   archived: boolean;
   locked?: boolean;
   gone?: boolean;
+  tags?: string[];
 }
 
 export interface Papers {
@@ -686,6 +688,7 @@ export const docFacts = (id: string): Promise<DocFacts> => invoke("doc_facts", {
 
 export const docs = (): Promise<Papers> => invoke("docs");
 export const docsCatchUp = (): Promise<Filed[]> => invoke("docs_catch_up");
+export const readTags = (): Promise<number> => invoke("read_tags");
 export const folderAdd = (
   name: string,
   parent?: string,

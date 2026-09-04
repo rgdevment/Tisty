@@ -17,7 +17,7 @@ const picked = () => ({
 
 const show = (
   counts: Record<string, number>,
-  tags: { tag: string; tasks: number }[] = [],
+  tags: { tag: string; tasks: number; docs: number }[] = [],
   hands = picked(),
 ) => {
   render(
@@ -78,8 +78,8 @@ describe("the day beside the list", () => {
 
   it("puts the most used tag first and carries its count", async () => {
     const hands = show({}, [
-      { tag: "banco", tasks: 1 },
-      { tag: "casa", tasks: 4 },
+      { tag: "banco", tasks: 1, docs: 0 },
+      { tag: "casa", tasks: 4, docs: 0 },
     ]);
 
     const first = screen.getAllByRole("button", { name: /^#/ })[0];

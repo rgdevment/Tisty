@@ -323,6 +323,7 @@ mod tests {
                     title: None,
                     bytes: None,
                     wrote: None,
+                    tags: Vec::new(),
                     id,
                     file: file.into(),
                     order: order.into(),
