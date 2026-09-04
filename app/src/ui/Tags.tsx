@@ -11,7 +11,7 @@ export default function Tags({ tags, chosen, onToggle }: Props) {
 
   return (
     <div className="scroller flex max-h-[38vh] flex-wrap content-start gap-2 px-2.5 pb-4">
-      {tags.map(({ tag, tasks }) => {
+      {tags.map(({ tag, tasks, docs }) => {
         const on = chosen.includes(tag);
         return (
           <button
@@ -23,7 +23,9 @@ export default function Tags({ tags, chosen, onToggle }: Props) {
             }`}
           >
             #{tag}
-            <span className="text-xs text-faint tabular-nums">{tasks}</span>
+            <span className="text-xs text-faint tabular-nums">
+              {docs ? `${tasks} · ${docs}` : tasks}
+            </span>
           </button>
         );
       })}

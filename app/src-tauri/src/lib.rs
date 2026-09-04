@@ -597,6 +597,7 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
 struct Counted {
     tag: String,
     tasks: usize,
+    docs: usize,
 }
 
 fn tags_in_use(state: &State) -> Vec<Counted> {
@@ -606,6 +607,7 @@ fn tags_in_use(state: &State) -> Vec<Counted> {
         .map(|tag| Counted {
             tag: tag.to_string(),
             tasks: state.tasks_tagged(tag).filter(|t| !t.hidden).count(),
+            docs: state.docs_tagged(tag).count(),
         })
         .collect()
 }
@@ -2558,6 +2560,7 @@ struct Folded {
 struct Filed {
     id: String,
     file: String,
+    tags: Vec<String>,
     title: String,
     told: bool,
     bytes: Option<u64>,
@@ -2599,12 +2602,17 @@ fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Filed>
             .iter()
             .filter_map(|one| {
                 let kept = held.state.docs.values().find(|kept| kept.file == one.id)?;
-                (kept.title.as_deref() != Some(one.title.as_str())).then(|| Op::DocSaid {
-                    id: kept.id,
-                    d: tisty_core::event::Said {
+                let said = match tisty_core::docs::read(&root, &one.id) {
+                    Ok(body) => tisty_core::event::Said::of(&body),
+                    Err(_) => tisty_core::event::Said {
                         title: one.title.clone(),
                         bytes: None,
+                        tags: kept.tags.clone(),
                     },
+                };
+                said.news_for(kept).then_some(Op::DocSaid {
+                    id: kept.id,
+                    d: said,
                 })
             })
             .collect();
@@ -2644,8 +2652,40 @@ fn gathered(session: &Session) -> Vec<Filed> {
             locked: session.state.shut(kept.id),
             gone: !on_disk.contains(&kept.file),
             page_of: kept.page_of.map(|up| up.to_string()),
+            tags: kept.tags.iter().map(|one| one.to_string()).collect(),
         })
         .collect()
+}
+
+/// A document only learns its tags where its body is read, and a body is read when it is saved.
+/// Everything written before this existed is caught up here, in one pass over the folder.
+#[tauri::command(async)]
+fn read_tags(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
+    let root = held(&session).paths.docs();
+    let owing: Vec<(tisty_core::model::DocId, String)> = held(&session)
+        .state
+        .docs
+        .values()
+        .map(|one| (one.id, one.file.clone()))
+        .collect();
+
+    let mut told = 0;
+    for (id, file) in owing {
+        let Ok(body) = tisty_core::docs::read(&root, &file) else {
+            continue;
+        };
+        let said = tisty_core::event::Said::of(&body);
+        let mut session = held(&session);
+        let Some(kept) = session.state.docs.get(&id) else {
+            continue;
+        };
+        if !said.news_for(kept) {
+            continue;
+        }
+        session.commit(Op::DocSaid { id, d: said })?;
+        told += 1;
+    }
+    Ok(told)
 }
 
 fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Folded> {
@@ -2964,8 +3004,7 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
     if let Ok(body) = &read {
         let mut session = held(&session);
         session.mind_body(&id, body);
-        let title = tisty_core::docs::titled(body);
-        noted(&mut session, &id, &title);
+        noted(&mut session, &id, body);
     }
     read.map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { bytes, limit } => {
@@ -3298,6 +3337,7 @@ fn guide(
             said: Some(tisty_core::event::Said {
                 title: made.title.clone(),
                 bytes: None,
+                tags: Vec::new(),
             }),
             folder: Some(folder),
             page_of: None,
@@ -3364,25 +3404,27 @@ fn doc_write(
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
     let _ = session.retell(&id, &body);
+    noted(&mut session, &id, &body);
     let title = tisty_core::docs::titled(&body);
     Ok(tisty_core::docs::Doc { title, id })
 }
 
-fn noted(session: &mut Session, file: &str, title: &str) {
+/// The title and the tags both come out of the body, and neither is worth a line in the log
+/// unless it changed. The size is left as the log already has it: it is not read from here.
+fn noted(session: &mut Session, file: &str, body: &str) {
     let Some(kept) = session.state.docs.values().find(|one| one.file == file) else {
         return;
     };
-    if kept.title.as_deref() == Some(title) {
+    let said = tisty_core::event::Said {
+        title: tisty_core::docs::titled(body),
+        bytes: kept.bytes,
+        tags: tisty_core::tagging::tags_in(body),
+    };
+    if !said.news_for(kept) {
         return;
     }
     let id = kept.id;
-    let _ = session.commit(Op::DocSaid {
-        id,
-        d: tisty_core::event::Said {
-            title: title.to_string(),
-            bytes: None,
-        },
-    });
+    let _ = session.commit(Op::DocSaid { id, d: said });
 }
 
 /// Read as a file, ordered from the log: a body that arrived from elsewhere may say otherwise.
@@ -3473,6 +3515,7 @@ fn doc_copy(
             said: Some(tisty_core::event::Said {
                 title: made.title.clone(),
                 bytes: None,
+                tags: kept.tags.clone(),
             }),
             folder: kept.folder,
             page_of: kept.page_of,
@@ -3511,6 +3554,7 @@ fn doc_copy(
                 said: Some(tisty_core::event::Said {
                     title: leaf.title,
                     bytes: None,
+                    tags: Vec::new(),
                 }),
                 folder: kept.folder,
                 page_of: Some(twin),
@@ -3654,6 +3698,7 @@ fn doc_import(
             said: Some(tisty_core::event::Said {
                 title: made.title.clone(),
                 bytes: None,
+                tags: Vec::new(),
             }),
             folder,
             page_of: None,
@@ -3723,6 +3768,7 @@ fn doc_new(
             said: Some(tisty_core::event::Said {
                 title: made.title.clone(),
                 bytes: None,
+                tags: Vec::new(),
             }),
             folder,
             page_of,
@@ -4678,6 +4724,7 @@ fn settle_paper(
                 said: Some(tisty_core::event::Said {
                     title: made.title.clone(),
                     bytes: None,
+                    tags: Vec::new(),
                 }),
                 page_of,
             },
@@ -5660,6 +5707,7 @@ pub fn run() {
             list_drop,
             docs,
             docs_catch_up,
+            read_tags,
             folder_add,
             folder_rename,
             folder_look,
@@ -6613,6 +6661,7 @@ mod ordering {
                     said: Some(tisty_core::event::Said {
                         title: tisty_core::docs::titled(super::GUIDE_ES),
                         bytes: None,
+                        tags: Vec::new(),
                     }),
                     folder: None,
                     page_of: None,
@@ -6639,6 +6688,7 @@ mod ordering {
                     said: Some(tisty_core::event::Said {
                         title: "Mis notas".into(),
                         bytes: None,
+                        tags: Vec::new(),
                     }),
                     folder: None,
                     page_of: None,

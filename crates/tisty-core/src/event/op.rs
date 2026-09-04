@@ -541,6 +541,9 @@ pub struct Said {
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bytes: Option<u64>,
+    /// Written by a version that reads them; one from before simply carries none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<crate::model::Tag>,
 }
 
 impl Said {
@@ -548,11 +551,14 @@ impl Said {
         Self {
             title: crate::docs::titled(body),
             bytes: Some(body.len() as u64),
+            tags: crate::tagging::tags_in(body),
         }
     }
 
     pub fn news_for(&self, kept: &crate::model::Kept) -> bool {
-        kept.title.as_deref() != Some(self.title.as_str()) || kept.bytes != self.bytes
+        kept.title.as_deref() != Some(self.title.as_str())
+            || kept.bytes != self.bytes
+            || kept.tags != self.tags
     }
 }
 

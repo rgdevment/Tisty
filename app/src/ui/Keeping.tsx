@@ -38,6 +38,7 @@ import {
   reachable,
   reachFor,
   settings as readSettings,
+  readTags,
   rebuild,
   removeMachine,
   restore,
@@ -97,6 +98,7 @@ type Which =
   | "updates"
   | "attach"
   | "holds"
+  | "tagging"
   | "wiring"
   | "report"
   | "store"
@@ -1372,6 +1374,24 @@ export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
               )}
             </Card>
 
+            <Card title={t("tagsRead")} which="tagging" busy={busy} said={said} trouble={trouble}>
+              <p className="text-[12.5px] leading-relaxed text-soft">{t("tagsReadWhy")}</p>
+              <div className="mt-2.5 flex items-center gap-2.5">
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={() =>
+                    run("tagging", readTags(), (many) =>
+                      setSaid({ card: "tagging", text: fill("tagsReadDone", String(many)) }),
+                    )
+                  }
+                  className={mild}
+                >
+                  {t("tagsReadDo")}
+                </button>
+              </div>
+            </Card>
+
             <Group label={t("looseAre")} />
 
             <Card title={t("looseAre")} which="review" busy={busy} said={said} trouble={trouble}>
@@ -1818,6 +1838,7 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   updates: "updates",
   attach: "attachTitle",
   holds: "holdsTitle",
+  tagging: "tagsRead",
   wiring: "wiringTitle",
   report: "reportTitle",
   store: "aboutStore",

@@ -1338,6 +1338,13 @@ body {
   color: var(--tisty-faint);
 }
 
+.tag-said {
+  background: var(--tisty-mark-tag);
+  border-radius: 4px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
 .card-source,
 .tisty-doc img.card-source {
   display: none;

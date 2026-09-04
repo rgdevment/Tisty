@@ -143,6 +143,12 @@ pub fn moved(base: Option<&str>, here: Option<&str>, there: Option<&str>) -> Mov
     }
 }
 
+/// Steps over fenced blocks line by line, for anything that reads a body and must not read code.
+pub(crate) fn fencing() -> impl FnMut(&str) -> bool {
+    let mut fence = Fencing::default();
+    move |line| fence.inside(line)
+}
+
 /// A fence opens on three or more of one marker and closes on the same, at least as long.
 /// The quote prefix comes off first, or a fence written inside a quote is never seen.
 #[derive(Default)]

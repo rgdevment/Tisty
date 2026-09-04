@@ -276,6 +276,11 @@ impl State {
                         page_of,
                         archived: under.is_some_and(|one| one.archived),
                         locked: false,
+                        tags: d
+                            .said
+                            .as_ref()
+                            .map(|one| one.tags.clone())
+                            .unwrap_or_default(),
                     },
                 );
             }
@@ -283,6 +288,7 @@ impl State {
                 if let Some(kept) = self.docs.get_mut(id) {
                     kept.title = Some(d.title.clone());
                     kept.bytes = d.bytes;
+                    kept.tags = d.tags.clone();
                     kept.wrote = Some(event.timestamp);
                 }
             }
@@ -1114,7 +1120,17 @@ impl State {
     }
 
     pub fn tags(&self) -> BTreeSet<&Tag> {
-        self.tasks.values().flat_map(|t| &t.tags).collect()
+        self.tasks
+            .values()
+            .flat_map(|t| &t.tags)
+            .chain(self.docs.values().flat_map(|one| &one.tags))
+            .collect()
+    }
+
+    pub fn docs_tagged(&self, tag: &Tag) -> impl Iterator<Item = &crate::model::Kept> {
+        self.docs
+            .values()
+            .filter(move |one| !one.archived && one.tags.contains(tag))
     }
 }
 

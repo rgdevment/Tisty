@@ -63,6 +63,7 @@ interface Props {
   title: string;
   paper: string;
   body: string;
+  tags: string[];
   kept: number;
   blocks: Block[];
   heads: Head[];
@@ -82,6 +83,7 @@ export default function Beside({
   title,
   paper,
   body,
+  tags,
   kept,
   blocks,
   heads,
@@ -201,6 +203,22 @@ export default function Beside({
             )}
           </dl>
         </section>
+
+        {tags.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("tags")}</h3>
+            <div className="flex flex-wrap gap-1">
+              {tags.map((one) => (
+                <span
+                  key={one}
+                  className="rounded-full bg-mark-tag px-2 py-0.5 text-[11px] text-ink"
+                >
+                  #{one}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="flex flex-col gap-2">
           <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("leafIs")}</h3>

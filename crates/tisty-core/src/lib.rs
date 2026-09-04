@@ -20,6 +20,7 @@ pub mod shape;
 pub mod state;
 pub mod store;
 pub mod story;
+pub mod tagging;
 pub mod text;
 pub mod tidy;
 pub mod undo;

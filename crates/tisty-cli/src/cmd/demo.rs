@@ -299,6 +299,7 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
             said: Some(tisty_core::event::Said {
                 title: one.title,
                 bytes: None,
+                tags: Vec::new(),
             }),
             folder: (n >= 2).then_some(shelf),
         },

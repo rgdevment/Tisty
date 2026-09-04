@@ -56,6 +56,8 @@ pub struct Kept {
     pub archived: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub locked: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<crate::model::Tag>,
 }
 
 #[cfg(test)]
@@ -76,6 +78,7 @@ mod tests {
             title: None,
             bytes: None,
             wrote: None,
+            tags: Vec::new(),
             id: Ulid::generate(),
             file: "a3f1-0001".into(),
             order: "a0".into(),
