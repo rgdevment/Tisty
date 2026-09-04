@@ -18,6 +18,7 @@ import {
 } from "./dragging";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
+import { onMac } from "./WindowChrome";
 
 const STIRS = 4;
 
@@ -586,7 +587,7 @@ export default function Tree({
           role="status"
           className="mx-1 mb-1 rounded-md bg-accent-soft px-2 py-1 text-[11.5px] text-accent"
         >
-          {fill("liftedHint", lifted.name)}
+          {fill("liftedHint", lifted.name, onMac ? "⌘" : "Ctrl+")}
         </li>
       )}
       {under(null).flatMap((folder) => [branch(folder, 0)])}

@@ -111,8 +111,11 @@ describe("what a link is worth showing as", () => {
     expect(previewOf("..")).toBeNull();
   });
 
-  it.fails("never shows a unit one step behind what the rounded number reads", () => {
-    expect(weighed(999_960)).not.toBe("1000.0 kB");
+  it("never shows a unit one step behind what the rounded number reads", () => {
+    expect(weighed(999_960)).toBe("1.0 MB");
+    expect(weighed(999_949)).toBe("999.9 kB");
+    expect(weighed(1_500)).toBe("1.5 kB");
+    expect(weighed(999)).toBe("999 B");
   });
 });
 

@@ -175,13 +175,15 @@ describe("what only a mounted editor can be asked", () => {
 
   it("lets go of a diagram it drew, so turning the theme never wakes a dead block", async () => {
     const one = opened("```mermaid\ngraph TD;\nA --> B;\n```");
+    await Promise.resolve();
+    const drawn = sketch.calls.length;
     one.shut();
 
     document.documentElement.setAttribute("data-theme", "dark");
     await Promise.resolve();
     document.documentElement.removeAttribute("data-theme");
 
-    expect(true).toBe(true);
+    expect(sketch.calls.length).toBe(drawn);
   });
 
   it("keeps the diagram's frame out of the way when there is no diagram", () => {

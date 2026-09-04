@@ -663,10 +663,38 @@ fn a_broken_store_does_not_lock_the_user_out_of_config() {
     text.push_str("{\"v\":1,\"ts\":\"2026-0");
     std::fs::write(&active, text).unwrap();
 
+    let read = cli.run(&["ls", "all"]);
+    assert_eq!(read.code, 0, "{}", read.out);
+    assert!(
+        read.out.contains("a task"),
+        "a store cut short must not read as an empty one: {}",
+        read.out
+    );
+    assert!(
+        device.path().join("active.torn").is_file(),
+        "the half line a power cut left is set aside where somebody can look at it"
+    );
+    assert_eq!(cli.run(&["config", "get", "device_id"]).code, 0);
+}
+
+#[test]
+fn a_store_broken_anywhere_but_the_end_is_still_refused() {
+    let cli = Cli::new();
+    cli.ok(&["a task"]);
+    cli.ok(&["another task"]);
+
+    let store = cli.home.path().join("data").join("store");
+    let device = std::fs::read_dir(&store).unwrap().next().unwrap().unwrap();
+    let active = device.path().join("active.tisty");
+    let text = std::fs::read_to_string(&active).unwrap();
+    let (first, rest) = text.split_once('\n').unwrap();
+    let half = "{\"v\":1,\"ts\":\"2026-0".to_string();
+    std::fs::write(&active, format!("{first}\n{half}\n{rest}")).unwrap();
+
     assert_ne!(
         cli.run(&["ls", "all"]).code,
         0,
-        "a broken store must not read as an empty one"
+        "only the last line is ever set aside; a hole in the middle is still a broken store"
     );
     assert_eq!(cli.run(&["config", "get", "device_id"]).code, 0);
 }

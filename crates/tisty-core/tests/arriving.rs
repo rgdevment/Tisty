@@ -442,3 +442,10 @@ fn a_type_with_angle_brackets_is_not_a_tag() {
 
     assert!(out.body.contains("Vec<String>"), "{:?}", out.body);
 }
+
+#[test]
+fn a_tag_after_a_wide_space_is_fenced_rather_than_splitting_a_letter() {
+    let said = tisty_core::arriving::tidied("uno\u{a0}<div> dos");
+
+    assert!(said.body.contains("div"), "{}", said.body);
+}

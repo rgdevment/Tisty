@@ -190,9 +190,11 @@ impl Watching {
         let mut read = true;
         let mut stirred = false;
         if print != self.print {
-            match tisty_core::store::read_all(paths.store()) {
-                Ok(events) => {
-                    self.state = tisty_core::State::replay(&events);
+            // The same catch-up the window uses: replaying the whole history every half minute
+            // costs the years, not the minute that passed.
+            match tisty_core::cache::project(&paths.store(), paths.cache()) {
+                Ok(state) => {
+                    self.state = state;
                     stirred = self.looked;
                     self.print = print;
                 }

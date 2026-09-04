@@ -30,6 +30,30 @@ pub fn kept(cache: &Path, at: &str) -> Option<Glimpse> {
     serde_json::from_str(&said).ok()
 }
 
+const KEEPS: usize = 200;
+
+/// Nothing here is worth more than the asking: past a few hundred, the oldest go so a cache never
+/// becomes a place things pile up in for good.
+fn thinned(dir: &Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let mut held: Vec<(std::time::SystemTime, PathBuf)> = entries
+        .filter_map(|one| one.ok())
+        .filter_map(|one| {
+            let when = one.metadata().ok()?.modified().ok()?;
+            Some((when, one.path()))
+        })
+        .collect();
+    if held.len() <= KEEPS {
+        return;
+    }
+    held.sort_by_key(|(when, _)| *when);
+    for (_, at) in held.iter().take(held.len() - KEEPS) {
+        let _ = std::fs::remove_file(at);
+    }
+}
+
 pub fn keep(cache: &Path, at: &str, one: &Glimpse) {
     let file = file(cache, at);
     if let Some(parent) = file.parent()
@@ -40,6 +64,9 @@ pub fn keep(cache: &Path, at: &str, one: &Glimpse) {
     let Ok(said) = serde_json::to_string(one) else {
         return;
     };
+    if let Some(parent) = file.parent() {
+        thinned(parent);
+    }
     if let Err(why) = std::fs::write(&file, said) {
         witness::warn(
             channel::WINDOW,
@@ -205,6 +232,29 @@ fn tidy(said: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_cache_of_glimpses_stops_growing_and_lets_the_oldest_go() {
+        let room = tempfile::tempdir().unwrap();
+        for n in 0..(KEEPS + 20) {
+            keep(
+                room.path(),
+                &format!("https://ejemplo.org/{n}"),
+                &Glimpse {
+                    title: Some(format!("uno {n}")),
+                    said: None,
+                    shot: None,
+                },
+            );
+        }
+
+        let held = std::fs::read_dir(room.path().join("glimpses"))
+            .unwrap()
+            .count();
+
+        assert!(held <= KEEPS + 1, "quedaron {held}");
+        assert!(kept(room.path(), &format!("https://ejemplo.org/{}", KEEPS + 19)).is_some());
+    }
+
     use super::*;
 
     #[test]
