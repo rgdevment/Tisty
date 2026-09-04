@@ -90,7 +90,7 @@ export default function TaskList({
   const columns = onFold
     ? "grid-cols-[20px_minmax(0,1fr)_auto_16px]"
     : "grid-cols-[20px_minmax(0,1fr)_auto]";
-  const width = "mx-auto w-full max-w-[780px]";
+  const width = "w-full max-w-[900px]";
 
   const asked = useRef<HTMLDivElement>(null);
   useEffect(() => {

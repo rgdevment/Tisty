@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Change, List, Task } from "../core";
-import { cadence, whenLabel, wroteAt } from "../format";
+import { cadence, daysFrom, whenLabel, wroteAt } from "../format";
 import { t } from "../locales";
 import { composed } from "../markdown";
 import { placed, said } from "../quadrants";
@@ -68,6 +68,29 @@ export default function Detail({
     event.preventDefault();
     onClose();
   };
+
+  const aside = (
+    <>
+      <Trail
+        task={task.id}
+        lists={lists}
+        onError={onError}
+        heading={<Section label={t("trail")} />}
+        before={(from) => <Facts task={task} from={from} />}
+      />
+      <Left
+        task={task.id}
+        onDoc={onDoc}
+        onError={onError}
+        heading={<Section label={t("left")} />}
+      />
+      {task.status !== "open" && (
+        <p className="mt-4 border-t border-hair pt-3 text-[11.5px] leading-relaxed text-faint">
+          {t("trailSealed")}
+        </p>
+      )}
+    </>
+  );
 
   const body = (
     <>
@@ -186,22 +209,7 @@ export default function Detail({
         <Routine task={task.id} onError={onError} heading={<Section label={t("routine")} />} />
       )}
 
-      <Left
-        task={task.id}
-        onDoc={onDoc}
-        onError={onError}
-        heading={<Section label={t("left")} />}
-      />
-
-      <Trail
-        task={task.id}
-        lists={lists}
-        onError={onError}
-        heading={<Section label={t("trail")} />}
-      />
-      <p className="mt-4 border-t border-hair pt-3 text-[11.5px] leading-relaxed text-faint">
-        {t("trailSealed")}
-      </p>
+      {!expanded && aside}
     </>
   );
 
@@ -226,7 +234,12 @@ export default function Detail({
             <span aria-hidden="true">‹</span> {from || t("collapse")}
           </button>
         </div>
-        <div className="scroller mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-12">{shown}</div>
+        <div className="scroller @container flex-1 px-6 pt-4 pb-12">
+          <div className="mx-auto grid w-fit grid-cols-1 gap-x-10 @min-[1120px]:grid-cols-[minmax(0,720px)_320px]">
+            <div className="min-w-0">{shown}</div>
+            <div className="min-w-0">{aside}</div>
+          </div>
+        </div>
         <Settled
           task={task}
           wide
@@ -431,6 +444,29 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
           ))}
         </div>
       )}
+    </>
+  );
+}
+
+function Facts({ task, from }: { task: Task; from: string }) {
+  const days = Math.max(0, -daysFrom(from));
+  const kept: [string, string][] = [
+    [String(days), t("factDays")],
+    [`${task.volume?.steps_done ?? 0}/${task.volume?.steps ?? 0}`, t("factSteps")],
+    [String(task.volume?.journal ?? 0), t("factJournal")],
+    [String(task.volume?.refs ?? 0), t("factRefs")],
+  ];
+  return (
+    <>
+      <Section label={t("carries")} />
+      <dl className="grid grid-cols-2 gap-1.5">
+        {kept.map(([count, said]) => (
+          <div key={said} className="rounded-lg border border-hair px-2.5 py-1.5">
+            <dt className="text-[16px] leading-tight font-semibold tabular-nums">{count}</dt>
+            <dd className="text-[10.5px] text-faint">{said}</dd>
+          </div>
+        ))}
+      </dl>
     </>
   );
 }

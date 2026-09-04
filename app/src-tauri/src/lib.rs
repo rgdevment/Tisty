@@ -532,6 +532,49 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             },
         );
     }
+    count(
+        "overdue",
+        Filter {
+            window: Some(Window::Overdue),
+            ..Default::default()
+        },
+    );
+    count(
+        "dueToday",
+        Filter {
+            window: Some(Window::On(today())),
+            ..Default::default()
+        },
+    );
+    count(
+        "undated",
+        Filter {
+            window: Some(Window::Undated),
+            ..Default::default()
+        },
+    );
+    count(
+        "inbox",
+        Filter {
+            inbox: true,
+            ..Default::default()
+        },
+    );
+    for (key, wanted) in [
+        ("do", tisty_core::model::Priority::Do),
+        ("decide", tisty_core::model::Priority::Decide),
+        ("delegate", tisty_core::model::Priority::Delegate),
+        ("minor", tisty_core::model::Priority::Minor),
+    ] {
+        count(
+            key,
+            Filter {
+                priority: Some(wanted),
+                ..Default::default()
+            },
+        );
+    }
+
     counts.insert("routines".to_string(), tisty_core::series::how_many(state));
 
     counts.insert("tags".to_string(), state.tags().len());

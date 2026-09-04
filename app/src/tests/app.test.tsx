@@ -295,16 +295,17 @@ describe("closing an open task", () => {
 });
 
 describe("opening a task beside the list", () => {
-  it("does not throw the list to the left", async () => {
+  it("stands the list where it was, rather than centring it on what is left", async () => {
     const user = userEvent.setup();
     await started();
     const list = screen.getByRole("list", { name: "Tasks" });
-    expect(list.className).toContain("mx-auto");
+    const was = list.className;
+    expect(was).not.toContain("mx-auto");
 
     await user.click(screen.getByText("write the report"));
     await screen.findByRole("textbox", { name: "Title" });
 
-    expect(list.className).toContain("mx-auto");
+    expect(list.className).toBe(was);
   });
 });
 
