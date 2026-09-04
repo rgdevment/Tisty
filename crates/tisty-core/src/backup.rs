@@ -1,4 +1,4 @@
-use std::io::{Read, Seek, Write};
+use std::io::{Read, Seek};
 use std::path::{Component, Path, PathBuf};
 
 use crate::{
@@ -497,6 +497,8 @@ fn zipped(e: zip::result::ZipError) -> Error {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
+
     use super::*;
 
     fn tmp() -> tempfile::TempDir {

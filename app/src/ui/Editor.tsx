@@ -780,6 +780,8 @@ export default function Editor({
   const wanted = useRef(seek);
   const marked = useRef(anchor);
   const putting = useRef(-1);
+  const seen = useRef(onSeen);
+  seen.current = onSeen;
   useEffect(() => {
     const want = wanted.current;
     const mark = marked.current;
@@ -801,7 +803,7 @@ export default function Editor({
         putting.current = -1;
         const room = sheet.current;
         if (!room || room.scrollHeight <= room.clientHeight) return;
-        onSeen?.(room.scrollTop);
+        seen.current?.(room.scrollTop);
       },
       put: (down) => {
         putting.current = down;
@@ -868,7 +870,7 @@ export default function Editor({
     <>
       <div
         ref={sheet}
-        tabIndex={0}
+        tabIndex={-1}
         onScroll={(one) => {
           const room = one.currentTarget as HTMLElement;
           const down = room.scrollTop;
