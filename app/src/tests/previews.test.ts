@@ -26,7 +26,11 @@ describe("what a link is worth showing as", () => {
   });
 
   it("leaves alone anything that points out of the machine", () => {
-    expect(previewOf("https://ejemplo.org/charla.mp4")).toBeNull();
+    expect(previewOf("https://ejemplo.org/charla.mp4")).toEqual({
+      as: "web",
+      at: "https://ejemplo.org/charla.mp4",
+      host: "ejemplo.org",
+    });
     expect(previewOf("mailto:a@b.test")).toBeNull();
     expect(previewOf("/Users/alguien/charla.mp4")).toBeNull();
     expect(previewOf("\\\\servidor\\charla.mp4")).toBeNull();

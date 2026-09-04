@@ -33,8 +33,6 @@ const drawn = (content: string, how: Partial<Reach> = {}): HTMLElement => {
 describe("previewOf nunca trata como interno lo que sale de la máquina", () => {
   it("rechaza esquemas, rutas absolutas y UNC", () => {
     for (const href of [
-      "http://evil.example/x.mp4",
-      "https://evil.example/x.mp4",
       "file:///etc/passwd",
       "data:text/html,<script>alert(1)</script>",
       "javascript:alert(1)",
@@ -51,6 +49,20 @@ describe("previewOf nunca trata como interno lo que sale de la máquina", () => 
     ]) {
       expect(previewOf(href), href).toBeNull();
     }
+  });
+
+  it("una direccion de la web es una web, y nunca un archivo de aqui", () => {
+    for (const href of ["http://evil.example/x.mp4", "https://evil.example/x.mp4"]) {
+      expect(previewOf(href), href).toEqual({ as: "web", at: href, host: "evil.example" });
+    }
+  });
+
+  it("el nombre del sitio sale de la direccion, no de lo que diga el texto", () => {
+    expect(previewOf("https://www.github.com/rgdevment/Tisty")).toEqual({
+      as: "web",
+      at: "https://www.github.com/rgdevment/Tisty",
+      host: "github.com",
+    });
   });
 
   it("sí acepta rutas relativas con .., que quedan para que Rust las rechace", () => {

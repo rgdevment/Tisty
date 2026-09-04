@@ -158,6 +158,109 @@ describe("what the editor makes of a reference marked as a card", () => {
     editor.destroy();
   });
 
+  it("draws a card for a link left alone in its paragraph", () => {
+    const editor = made(
+      `Mira esto:
+
+[CopyPaste](https://github.com/rgdevment/CopyPaste)`,
+    );
+
+    const card = editor.view.dom.querySelector(".card-web");
+
+    expect(card).not.toBeNull();
+    expect(card?.textContent).toContain("github.com");
+
+    editor.destroy();
+  });
+
+  it("sends a web card to the browser, never to the store", () => {
+    const world = vi.fn();
+    const opened = vi.fn();
+    const editor = made(
+      `Mira esto:
+
+[CopyPaste](https://github.com/rgdevment/CopyPaste)`,
+      { onWorld: world, onOpen: opened },
+    );
+
+    editor.view.dom.querySelector<HTMLElement>(".card-web")?.click();
+
+    expect(world).toHaveBeenCalledWith("https://github.com/rgdevment/CopyPaste");
+    expect(opened).not.toHaveBeenCalled();
+
+    editor.destroy();
+  });
+
+  it("offers a web card nothing it cannot do", () => {
+    let held: { untie?: () => void; kept?: unknown } | null = null;
+    const editor = made(
+      `Mira esto:
+
+[CopyPaste](https://github.com/rgdevment/CopyPaste)`,
+      {
+        onMenu: (_at, untie, _drop, kept) => {
+          held = { untie, kept };
+        },
+      },
+    );
+
+    editor.view.dom.querySelector<HTMLElement>(".card-swap")?.click();
+
+    expect(held).not.toBeNull();
+    expect((held as { untie?: () => void } | null)?.untie).toBeUndefined();
+    expect((held as { kept?: unknown } | null)?.kept).toBeUndefined();
+
+    editor.destroy();
+  });
+
+  it("offers to bring the preview, and asks for it only when pressed", () => {
+    const ask = vi.fn();
+    const editor = made(
+      `Mira esto:
+
+[CopyPaste](https://github.com/rgdevment/CopyPaste)`,
+      { glimpse: () => null, onGlimpse: ask },
+    );
+
+    const said = editor.view.dom.querySelector<HTMLElement>(".card-pull");
+    expect(said).not.toBeNull();
+    expect(ask).not.toHaveBeenCalled();
+
+    said?.click();
+
+    expect(ask).toHaveBeenCalledWith("https://github.com/rgdevment/CopyPaste");
+
+    editor.destroy();
+  });
+
+  it("draws what the site said once it has been brought", () => {
+    const editor = made(
+      `Mira esto:
+
+[CopyPaste](https://github.com/rgdevment/CopyPaste)`,
+      {
+        glimpse: () => ({ title: "rgdevment/CopyPaste", said: "Un gestor de portapapeles" }),
+        onGlimpse: vi.fn(),
+      },
+    );
+
+    const card = editor.view.dom.querySelector(".card-web");
+
+    expect(card?.textContent).toContain("Un gestor de portapapeles");
+    expect(card?.textContent).toContain("github.com");
+    expect(editor.view.dom.querySelector(".card-pull")).toBeNull();
+
+    editor.destroy();
+  });
+
+  it("leaves a link inside a sentence as a link", () => {
+    const editor = made("Mira [CopyPaste](https://github.com/rgdevment/CopyPaste) y ya.");
+
+    expect(editor.view.dom.querySelector(".card-web")).toBeNull();
+
+    editor.destroy();
+  });
+
   it("never writes the name twice, which is what a card is for", () => {
     const editor = made("![el canario](tisty:doc/mac0-0007)");
 
@@ -247,7 +350,7 @@ describe("a picture is still a picture", () => {
 
 describe("swapping one for the other", () => {
   const menued = (md: string) => {
-    let held: { untie: () => void; drop: () => void } | null = null;
+    let held: { untie?: () => void; drop: () => void } | null = null;
     const editor = made(md, {
       onMenu: (_at, untie, drop) => {
         held = { untie, drop };
@@ -269,7 +372,7 @@ describe("swapping one for the other", () => {
   it("turns a card back into a link, keeping the name and the address", () => {
     const { editor, said } = menued("![contrato](<attachments/contrato-91f2.pdf>)");
 
-    said()?.untie();
+    said()?.untie?.();
 
     expect(asMarkdown(editor)?.trim()).toBe("[contrato](attachments/contrato-91f2.pdf)");
     expect(editor.view.dom.querySelector(".preview")).toBeNull();
@@ -304,7 +407,7 @@ describe("swapping one for the other", () => {
   it("falls back to the file name when the card carried none", () => {
     const { editor, said } = menued("![](<attachments/contrato-91f2.pdf>)");
 
-    said()?.untie();
+    said()?.untie?.();
 
     expect(asMarkdown(editor)?.trim()).toBe("[contrato-91f2.pdf](attachments/contrato-91f2.pdf)");
 

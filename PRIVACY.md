@@ -10,7 +10,8 @@ no telemetry, no analytics, no crash reporting.
 It makes **one** network request on its own — when it opens, and once a day
 after that: it downloads a small file to see whether a newer version exists.
 It sends nothing. Two more follow only if you press the button that offers you
-an update, and never otherwise. All three are described in full below.
+an update, and one more only if you ask a link in a document for its preview.
+Never otherwise. All of them are described in full below.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -128,7 +129,7 @@ repository, and this section was written before the release that carries it.
 The file it downloads contains version numbers and nothing else — no address, so
 nothing that arrives from it can send you anywhere.
 
-## The two requests only you can start
+## The requests only you can start
 
 Pressing **Update** in *About* makes Tisty fetch a second file, which does name
 an address, and then the installer at that address. Both go to
@@ -152,6 +153,16 @@ opens your browser, the way any Markdown reader does. Tisty does not follow it
 on its own, and never opens anything without a click. Worth knowing if a
 document reached you from a shared folder someone else can write to — the words
 of a link and where it goes are not obliged to agree, in Tisty or anywhere else.
+
+A link left alone in its own paragraph is drawn as a card, and that card is made
+of the address itself: the site's name and the words you wrote. Nothing is
+fetched to draw it. If you press **Bring the preview**, Tisty asks that page
+once for its title, its description and the picture it offers — and that request
+is like any other visit: the site learns an address to answer to and the time of
+day. What comes back is kept on this machine, so the card never asks again, not
+tomorrow and not on your other computer, which would have to be told to bring it
+too. The picture is stored inside that record rather than in your documents, so
+nothing of the world ends up in the folder your machines share.
 
 **Nothing is downloaded or installed unless you ask for it.** What the daily
 check brings back is a line of text you can ignore. If a newer version exists, a

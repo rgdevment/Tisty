@@ -843,6 +843,7 @@ const en = {
   reviewDiffers: "the cache disagrees with the log",
   reviewRun: "Review",
   reviewLoose: "{name} loose attachments",
+  linkGlimpse: "Bring the preview",
   keepersWhy:
     "Tisty writes and reads in a folder both computers can reach. Whoever uploads it is your provider's program, not Tisty.",
   keepersHere: "on this computer",
@@ -1955,6 +1956,7 @@ const es: Catalog = {
   reviewDiffers: "el caché no coincide con el registro",
   reviewRun: "Revisar",
   reviewLoose: "{name} adjuntos sueltos",
+  linkGlimpse: "Traer la vista previa",
   keepersWhy:
     "Tisty escribe y lee en una carpeta que los dos equipos alcancen. Quien la sube es el programa de tu proveedor, no Tisty.",
   keepersHere: "en este equipo",

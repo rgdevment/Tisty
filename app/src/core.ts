@@ -334,6 +334,16 @@ export const keeperOf = (at: string): Promise<Told> => invoke("keeper_of", { at 
 export const makeRoom = (at: string): Promise<void> => invoke("make_room", { at });
 export const sowLists = (): Promise<void> => invoke("sow_lists");
 
+export interface Glimpse {
+  title?: string;
+  said?: string;
+  shot?: string;
+}
+
+export const glimpseKept = (at: string): Promise<Glimpse | null> => invoke("glimpse_kept", { at });
+export const glimpseFetch = (at: string): Promise<Glimpse | null> =>
+  invoke("glimpse_fetch", { at });
+
 export interface Carrying {
   chosen?: string;
   keeper?: Keeper;
