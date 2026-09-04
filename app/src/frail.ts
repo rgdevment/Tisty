@@ -1,5 +1,5 @@
 const KEPT =
-  /^(\/(u|mark|span)|u|mark(\s+data-pen="[a-z]+")?|span\s+data-ico="[a-z0-9-]+"(\s+data-hue="[a-z]+")?)$/i;
+  /^(\/(u|mark|span)|u|mark(\s+data-pen="[a-z]+")?|span\s+data-ico="(?:[a-z0-9-]+|\p{Extended_Pictographic}[^"]*)"(\s+data-hue="[a-z]+")?)$/iu;
 const TITLED = /\btitle="(?:[^"\\]|\\.)*"/;
 const NAMED = /^[a-z0-9#]+$/i;
 const WHY = [

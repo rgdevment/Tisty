@@ -1,4 +1,5 @@
 import { markup } from "../glyphs";
+import { onlyMark } from "../leading";
 
 interface Props {
   name: string;
@@ -9,7 +10,14 @@ export { known, markup } from "../glyphs";
 
 export default function Glyph({ name, className = "h-4 w-4" }: Props) {
   const drawn = markup(name);
-  if (!drawn) return null;
+  if (!drawn) {
+    if (!onlyMark(name)) return null;
+    return (
+      <span aria-hidden="true" className={`glyph grid shrink-0 place-items-center ${className}`}>
+        {name}
+      </span>
+    );
+  }
   return (
     <svg
       viewBox="0 0 24 24"

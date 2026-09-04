@@ -386,3 +386,84 @@ fn the_note_goes_out_marked_so_an_older_build_skips_it() {
         "la nota va con la version del formato en vigor: {raw}"
     );
 }
+
+#[test]
+fn a_mark_a_person_typed_is_as_good_an_icon_as_one_we_drew() {
+    use tisty_core::model::icon;
+
+    for one in [
+        "\u{2705}",
+        "\u{1F534}",
+        "\u{1F6E0}\u{FE0F}",
+        "\u{1F9D1}\u{200D}\u{1F4BB}",
+    ] {
+        assert!(icon::known(one), "no lo acepto: {one:?}");
+        assert_eq!(icon::kept(one).as_deref(), Some(one));
+    }
+
+    for one in ["star", "home", "page"] {
+        assert!(icon::known(one), "perdio un icono de siempre: {one}");
+    }
+}
+
+#[test]
+fn what_is_not_a_mark_is_still_turned_away() {
+    use tisty_core::model::icon;
+
+    for one in [
+        "",
+        "hola",
+        "no-existe",
+        "\u{2705} y algo mas",
+        "a\u{2705}",
+        "\u{2705}\u{2705}\u{2705}\u{2705}\u{2705}\u{2705}\u{2705}\u{2705}\u{2705}",
+    ] {
+        assert!(!icon::known(one), "lo dejo pasar: {one:?}");
+    }
+}
+
+#[test]
+fn every_mark_the_window_offers_is_one_the_core_accepts() {
+    use tisty_core::model::{icon, mark};
+
+    for one in mark::MARKS {
+        assert!(
+            icon::known(one),
+            "el selector lo ofrece y el nucleo lo rechaza: {one:?}"
+        );
+    }
+
+    let counted: usize = mark::MARK_FAMILIES.iter().map(|(_, many)| many).sum();
+    assert_eq!(
+        counted,
+        mark::MARKS.len(),
+        "las familias no cubren el catalogo"
+    );
+}
+
+#[test]
+fn a_mark_written_into_the_text_is_something_the_editor_can_keep() {
+    let good = "Lanzamiento <span data-ico=\"\u{1F680}\">\u{1F680}</span> del jueves";
+    assert!(
+        tisty_core::docs::survives(good).is_ok(),
+        "no lo deja guardar: {good}"
+    );
+
+    let hued = "Cara <span data-ico=\"\u{1F600}\" data-hue=\"blue\">\u{1F600}</span> aqui";
+    assert!(
+        tisty_core::docs::survives(hued).is_ok(),
+        "con color tampoco: {hued}"
+    );
+
+    let drawn = "Plan <span data-ico=\"star\">:star:</span> de marzo";
+    assert!(
+        tisty_core::docs::survives(drawn).is_ok(),
+        "perdio los de siempre: {drawn}"
+    );
+
+    let bad = "Roto <span data-ico=\"hola mundo\">x</span>";
+    assert!(
+        tisty_core::docs::survives(bad).is_err(),
+        "acepto cualquier cosa: {bad}"
+    );
+}

@@ -1,9 +1,12 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { known } from "../glyphs";
+import { known as drawn } from "../glyphs";
 import { t, type Word } from "../locales";
+import { isMark } from "../marks";
 import Glyph from "./Glyph";
 import Hue from "./Hue";
 import { type Family, sifted, useCatalogue } from "./Icons";
+
+const known = (key: string) => drawn(key) || isMark(key);
 
 const ROW = 36;
 const SPARE = 2;
@@ -30,6 +33,7 @@ interface Props {
   keepFocus?: boolean;
   clears?: boolean;
   tall?: string;
+  opens?: "marks" | "icons";
 }
 
 export default function Pick({
@@ -41,9 +45,11 @@ export default function Pick({
   keepFocus,
   clears = true,
   tall = "max-h-52",
+  opens,
 }: Props) {
   const { all, families } = useCatalogue();
   const [word, setWord] = useState("");
+  const [marks, setMarks] = useState(opens ? opens === "marks" : !icon || isMark(icon));
   const [only, setOnly] = useState<string>();
   const box = useRef<HTMLFieldSetElement>(null);
   const [sized, setSized] = useState(false);
@@ -53,12 +59,23 @@ export default function Pick({
   const hold = keepFocus ? (e: React.MouseEvent) => e.preventDefault() : undefined;
   const said = word.trim();
 
+  const marking = useMemo(
+    () => families.filter((one) => one.icons.length > 0 && one.icons.every(isMark)),
+    [families],
+  );
+  const split = marking.length > 0 && marking.length < families.length;
+  const mine = useMemo(() => {
+    if (!split) return families;
+    return marks ? marking : families.filter((one) => !marking.includes(one));
+  }, [families, marking, marks, split]);
+  const ours = useMemo(() => (mine.length ? mine.flatMap((one) => one.icons) : all), [mine, all]);
+
   const shown = useMemo(() => {
-    if (said) return [{ name: "", icons: sifted(all, said).filter(known) }];
-    const kept = only ? families.filter((family) => family.name === only) : families;
-    if (!kept.length) return [{ name: "", icons: all.filter(known) }];
+    if (said) return [{ name: "", icons: sifted(ours, said).filter(known) }];
+    const kept = only ? mine.filter((family) => family.name === only) : mine;
+    if (!kept.length) return [{ name: "", icons: ours.filter(known) }];
     return kept.map((family) => ({ ...family, icons: family.icons.filter(known) }));
-  }, [all, families, only, said]);
+  }, [ours, mine, only, said]);
 
   const titled = shown.length > 1;
   const columns = wide ? Math.max(1, Math.floor(wide / ROW)) : 0;
@@ -141,13 +158,36 @@ export default function Pick({
           </button>
         )}
       </div>
-      {families.length > 0 && !said && (
+      {split && (
+        <div role="tablist" aria-label={t("iconKinds")} className="flex shrink-0 gap-1">
+          {[true, false].map((mine) => (
+            <button
+              key={String(mine)}
+              type="button"
+              role="tab"
+              onMouseDown={hold}
+              onClick={() => {
+                setMarks(mine);
+                setOnly(undefined);
+                restart();
+              }}
+              aria-selected={marks === mine}
+              className={`flex-1 rounded-lg px-2 py-1 text-[11.5px] ${
+                marks === mine ? "bg-accent-soft text-accent" : "text-faint hover:bg-hover"
+              }`}
+            >
+              {mine ? t("marksTab") : t("iconsTab")}
+            </button>
+          ))}
+        </div>
+      )}
+      {mine.length > 0 && !said && (
         <div
           role="group"
           aria-label={t("iconFamilies")}
           className="scroller flex shrink-0 gap-1 overflow-x-auto pb-0.5"
         >
-          {[undefined, ...families.map((family) => family.name)].map((name) => (
+          {[undefined, ...mine.map((family) => family.name)].map((name) => (
             <button
               key={name ?? "all"}
               type="button"
@@ -207,7 +247,7 @@ export default function Pick({
           </div>
         )}
       </fieldset>
-      {onColour && (
+      {onColour && (!split || !marks) && (
         <div className="shrink-0 border-t border-hair pt-2">
           <Hue chosen={colour} onPick={onColour} onHold={hold} />
         </div>

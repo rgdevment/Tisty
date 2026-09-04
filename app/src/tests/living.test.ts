@@ -819,3 +819,30 @@ describe("el nombre de un bloque de codigo", () => {
     one.shut();
   });
 });
+
+describe("una marca puesta dentro del texto", () => {
+  it("se dibuja, en vez de dejar un hueco", () => {
+    const one = opened('Lanzamiento <span data-ico="\u{1F680}">\u{1F680}</span> del jueves');
+    const held = one.dom.querySelector<HTMLElement>("[data-ico]");
+
+    expect(held).not.toBeNull();
+    expect(held?.textContent).toBe("\u{1F680}");
+    expect(held?.querySelector("svg")).toBeNull();
+    one.shut();
+  });
+
+  it("sigue dibujando los iconos de trazo con su svg", () => {
+    const one = opened('Plan <span data-ico="star">:star:</span> de marzo');
+    const held = one.dom.querySelector<HTMLElement>("[data-ico]");
+
+    expect(held?.querySelector("svg")).not.toBeNull();
+    one.shut();
+  });
+
+  it("escribe la marca tal cual al guardar, no entre dos puntos", () => {
+    const one = opened('Lanzamiento <span data-ico="\u{1F680}">\u{1F680}</span> del jueves');
+
+    expect(one.markdown()).toContain('data-ico="\u{1F680}">\u{1F680}</span>');
+    one.shut();
+  });
+});

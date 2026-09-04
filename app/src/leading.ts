@@ -1,5 +1,9 @@
 const PICTURE = "(?:\\p{Extended_Pictographic}|\\p{Regional_Indicator}{2})";
 const TRAILS = `(?:\\uFE0F|[\\u{1F3FB}-\\u{1F3FF}]|\\u200D${PICTURE}\\uFE0F?)*`;
+const ONLY = new RegExp(`^${PICTURE}${TRAILS}$`, "u");
+
+export const onlyMark = (text: string): boolean => ONLY.test(text.trim());
+
 const LED = new RegExp(`^(${PICTURE}${TRAILS})\\s*(.+)$`, "u");
 
 export interface Led {

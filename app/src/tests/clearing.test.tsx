@@ -17,20 +17,20 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 describe("the button that clears an icon already chosen", () => {
   it("stays off the page where no icon can be unset, as in the doc's own picker", () => {
-    render(<Pick onIcon={vi.fn()} clears={false} />);
+    render(<Pick onIcon={vi.fn()} clears={false} opens="icons" />);
 
     expect(screen.queryByRole("button", { name: "No icon" })).toBeNull();
   });
 
   it("shows up beside the search box once an icon can be unset", async () => {
-    render(<Pick onIcon={vi.fn()} />);
+    render(<Pick onIcon={vi.fn()} opens="icons" />);
 
     expect(await screen.findByRole("button", { name: "No icon" })).toBeTruthy();
   });
 
   it("hands back no key at all when pressed", async () => {
     const onIcon = vi.fn();
-    render(<Pick onIcon={onIcon} icon="home" />);
+    render(<Pick onIcon={onIcon} icon="home" opens="icons" />);
 
     await userEvent.click(await screen.findByRole("button", { name: "No icon" }));
 
@@ -38,7 +38,7 @@ describe("the button that clears an icon already chosen", () => {
   });
 
   it("keeps its place beside the search box while the family chips are typed away", async () => {
-    render(<Pick onIcon={vi.fn()} />);
+    render(<Pick onIcon={vi.fn()} opens="icons" />);
     await screen.findByRole("button", { name: "Kitchen" });
 
     await userEvent.type(screen.getByRole("textbox"), "bed");

@@ -2358,17 +2358,13 @@ fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(Refused::Tool("a folder needs a `name`.".into()));
     }
     let icon = match text(args, "icon") {
-        Some(key) => Some(
-            tisty_core::model::icon::kept(&key)
-                .map(str::to_string)
-                .ok_or_else(|| {
-                    Refused::Tool(format!(
-                        "there is no icon called {key:?}. The names are a closed catalogue — \
+        Some(key) => Some(tisty_core::model::icon::kept(&key).ok_or_else(|| {
+            Refused::Tool(format!(
+                "there is no icon called {key:?}. The names are a closed catalogue — \
                          home, work, money, study, travel, health, food, shopping, family, code, \
                          folder, archive are some of them. Leave `icon` out if none fits."
-                    ))
-                })?,
-        ),
+            ))
+        })?),
         None => None,
     };
     let color = match text(args, "color") {
