@@ -316,15 +316,13 @@ Right there is **Review the store**: it counts what is spare, what is missing an
 
 ### 15. If it was any use
 
-Tisty is open source and can be read in full at
-[github.com/rgdevment/Tisty](https://github.com/rgdevment/Tisty): that is where
-the bugs you find and the ideas you have should go.
+Tisty is open source and can be read in full here; that is where the bugs you find and the ideas you have should go.
 
-[The same profile](https://github.com/rgdevment) holds two more tools, same idea
-and same terms — free, open, no ads, no telemetry, all on your own machine:
+[Tisty on GitHub](https://github.com/rgdevment/Tisty)
 
-- **[CopyPaste](https://github.com/rgdevment/CopyPaste)** — a clipboard manager
-  for Windows, macOS and Linux.
-- **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — a browser picker
-  for Windows and macOS: it asks which one should open a link instead of
-  assuming.
+A link left alone in its paragraph, like that one, is drawn as a card; the same link inside a sentence stays a link. The card is made of the address alone, without asking anybody anything: if you want the site's title and picture, you ask for them with **Bring the preview**, and they are kept here.
+
+[The same profile](https://github.com/rgdevment) holds two more tools, same idea and same terms: free, open, no ads, no telemetry, all on your own machine.
+
+- [**CopyPaste**](https://github.com/rgdevment/CopyPaste) — a clipboard manager for Windows, macOS and Linux.
+- [**LinkUnbound**](https://github.com/rgdevment/LinkUnbound) — a browser picker for Windows and macOS: it asks which one should open a link instead of assuming.

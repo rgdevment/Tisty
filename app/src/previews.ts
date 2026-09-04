@@ -4,7 +4,8 @@ export type Preview =
   | { as: "video"; at: string }
   | { as: "audio"; at: string }
   | { as: "file"; at: string; kind: string }
-  | { as: "doc"; id: string };
+  | { as: "doc"; id: string }
+  | { as: "web"; at: string; host: string };
 
 export const KINDS: Record<string, string> = {
   pdf: "kindPdf",
@@ -102,6 +103,18 @@ export const named = (href: string): string => {
   }
 };
 
+/// Only the two schemes a person can be shown safely, and never the machine's own paths: what
+/// comes back is a name and a host, never something a card would go and load.
+export const hosting = (href: string): string | null => {
+  try {
+    const said = new URL(href);
+    if (said.protocol !== "http:" && said.protocol !== "https:") return null;
+    return said.hostname.replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
+};
+
 export const previewOf = (href: string): Preview | null => {
   const at = href.trim();
   if (!at) return null;
@@ -109,7 +122,10 @@ export const previewOf = (href: string): Preview | null => {
   const paper = at.startsWith(DOC) ? at.slice(DOC.length) : null;
   if (paper) return { as: "doc", id: paper };
 
-  if (outside(at)) return null;
+  if (outside(at)) {
+    const host = hosting(at);
+    return host ? { as: "web", at, host } : null;
+  }
 
   const kind = ending(at);
   if (WATCHABLE.includes(kind)) return { as: "video", at };
@@ -144,7 +160,8 @@ export const crowd = (body: string): number => {
       .slice(at + 2, end)
       .trim()
       .replace(/^<|>$/g, "");
-    if (previewOf(href)) count += 1;
+    const seen = previewOf(href);
+    if (seen && seen.as !== "web") count += 1;
     at = body.indexOf("](", end + 1);
   }
   return count;

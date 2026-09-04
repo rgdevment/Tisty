@@ -316,16 +316,13 @@ Ahí mismo está **Revisar el almacén**: cuenta lo que sobra, lo que falta y lo
 
 ### 15. Si te sirvió
 
-Tisty es de código abierto y se lee entero en
-[github.com/rgdevment/Tisty](https://github.com/rgdevment/Tisty): ahí van los
-fallos que encuentres y las ideas que se te ocurran.
+Tisty es de código abierto y se lee entero aquí; ahí van los fallos que encuentres y las ideas que se te ocurran.
 
-En [el mismo perfil](https://github.com/rgdevment) hay dos herramientas más, con
-la misma idea y los mismos términos —gratis, abiertas, sin anuncios, sin
-telemetría, todo en tu equipo—:
+[Tisty en GitHub](https://github.com/rgdevment/Tisty)
 
-- **[CopyPaste](https://github.com/rgdevment/CopyPaste)** — un gestor de
-  portapapeles para Windows, macOS y Linux.
-- **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — un selector de
-  navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de
-  suponerlo.
+Un enlace solo en su párrafo, como ese, se dibuja como tarjeta; el mismo enlace dentro de una frase se queda como enlace. La tarjeta se dibuja con lo que ya dice la dirección, sin preguntarle nada a nadie: si quieres el título y la imagen del sitio, se los pides tú con **Traer la vista previa** y quedan guardados aquí.
+
+En [el mismo perfil](https://github.com/rgdevment) hay dos herramientas más, con la misma idea y los mismos términos: gratis, abiertas, sin anuncios, sin telemetría, todo en tu equipo.
+
+- [**CopyPaste**](https://github.com/rgdevment/CopyPaste) — un gestor de portapapeles para Windows, macOS y Linux.
+- [**LinkUnbound**](https://github.com/rgdevment/LinkUnbound) — un selector de navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de suponerlo.

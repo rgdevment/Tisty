@@ -3,6 +3,7 @@ import type { Node as Written } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import type { Glimpse } from "../core";
 import { markup } from "../glyphs";
 import { t, type Word } from "../locales";
 import {
@@ -22,12 +23,15 @@ export interface Reach {
   title: (id: string) => string | null | undefined;
   here?: string;
   blurb?: (id: string) => string | null;
+  glimpse?: (at: string) => Glimpse | null;
+  onGlimpse?: (at: string) => void;
   page?: (id: string) => number | null;
   gone?: (reference: string) => boolean;
   onDoc?: (id: string) => void;
+  onWorld?: (at: string) => void;
   onMenu?: (
     at: { x: number; y: number },
-    untie: () => void,
+    untie: (() => void) | undefined,
     drop: () => void,
     kept?: { at: string; name: string },
     leaf?: string,
@@ -40,6 +44,7 @@ export const plugged = new PluginKey("previewing");
 
 interface Spot {
   at: number;
+  size: number;
   seen: Preview;
   href: string;
   label: string;
@@ -50,15 +55,36 @@ export const asCard = (node: Written): { href: string; seen: Preview; label: str
   const href = String(node.attrs.src ?? "");
   if (pictured(href)) return null;
   const seen = previewOf(href);
-  return seen ? { href, seen, label: String(node.attrs.alt ?? "") } : null;
+  if (!seen || seen.as === "web") return null;
+  return { href, seen, label: String(node.attrs.alt ?? "") };
+};
+
+/// A link alone in its paragraph is a card; the same link inside a sentence stays a link. The
+/// shape in the file is the whole answer, so nothing has to be remembered beside it.
+export const asBookmark = (
+  node: Written,
+): { href: string; seen: Preview; label: string } | null => {
+  if (node.type.name !== "paragraph" || node.childCount !== 1) return null;
+  const only = node.firstChild;
+  if (!only?.isText) return null;
+  const tied = only.marks.find((one) => one.type.name === "link");
+  const href = String(tied?.attrs.href ?? "");
+  if (!href) return null;
+  const seen = previewOf(href);
+  return seen?.as === "web" ? { href, seen, label: only.text ?? "" } : null;
 };
 
 const found = (doc: Written): Spot[] => {
   const all: Spot[] = [];
   doc.descendants((node, at) => {
     const card = asCard(node);
-    if (!card) return true;
-    all.push({ at, seen: card.seen, href: card.href, label: card.label });
+    if (card) {
+      all.push({ at, size: 1, seen: card.seen, href: card.href, label: card.label });
+      return false;
+    }
+    const mark = asBookmark(node);
+    if (!mark) return true;
+    all.push({ at, size: node.nodeSize, seen: mark.seen, href: mark.href, label: mark.label });
     return false;
   });
   return all;
@@ -197,7 +223,7 @@ const built = (
   drop: () => void,
   untie: () => void,
 ): HTMLElement => {
-  const lost = seen.as !== "doc" && Boolean(reach.gone?.(seen.at));
+  const lost = seen.as !== "doc" && seen.as !== "web" && Boolean(reach.gone?.(seen.at));
 
   if (seen.as === "video" && !lost) return played(seen, reach, label);
 
@@ -260,6 +286,19 @@ const built = (
       name.textContent = title;
       under.textContent = itself ? t("docItself") : (reach.blurb?.(seen.id) ?? "");
     }
+  } else if (seen.as === "web") {
+    const glimpse = reach.glimpse?.(seen.at) ?? null;
+    box.classList.add("card-web");
+    box.prepend(badged(seen.host));
+    name.textContent = glimpse?.title || label.trim() || seen.host;
+    under.textContent = glimpse?.said ?? "";
+    under.classList.toggle("card-said-two", Boolean(glimpse?.said));
+    const where = document.createElement("span");
+    where.className = "card-where";
+    where.textContent = seen.host;
+    said.append(where);
+    if (glimpse?.shot) box.append(shotted(glimpse.shot));
+    else if (!glimpse && reach.onGlimpse) box.append(asking(seen.at, reach.onGlimpse));
   } else if (lost) {
     box.classList.add("card-gone");
     box.prepend(carded(ending(seen.at) || "?"));
@@ -299,8 +338,11 @@ const built = (
     e.stopPropagation();
     const box = more.getBoundingClientRect();
     const kept =
-      seen.as === "doc" || lost ? undefined : { at: seen.at, name: label || named(seen.at) };
-    reach.onMenu?.({ x: box.left, y: box.bottom + 4 }, untie, drop, kept, asPage);
+      seen.as === "doc" || seen.as === "web" || lost
+        ? undefined
+        : { at: seen.at, name: label || named(seen.at) };
+    const back = seen.as === "web" ? undefined : untie;
+    reach.onMenu?.({ x: box.left, y: box.bottom + 4 }, back, drop, kept, asPage);
   });
   box.append(more);
   if (leaf !== null) leaves(box);
@@ -322,6 +364,7 @@ const sayable = (
   box.setAttribute("tabindex", "0");
   const go = () => {
     if (seen.as === "doc") return reach.onDoc?.(seen.id);
+    if (seen.as === "web") return reach.onWorld?.(seen.at);
     if (lost) return reach.onAgain?.(seen.at);
     reach.onOpen?.(seen.at);
   };
@@ -337,9 +380,10 @@ const sayable = (
 const shed = (
   view: { state: EditorState; dispatch: (tr: Transaction) => void },
   at: number | undefined,
+  size: number,
 ) => {
   if (at === undefined) return;
-  view.dispatch(view.state.tr.delete(at, at + 1));
+  view.dispatch(view.state.tr.delete(at, at + size));
 };
 
 const untied = (
@@ -355,7 +399,58 @@ const untied = (
   view.dispatch(view.state.tr.replaceWith(at, at + 1, schema.nodes.paragraph.create(null, words)));
 };
 
+const HOSTS: Record<string, string> = {
+  "github.com":
+    "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z",
+};
+
+const ANY =
+  "M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm5.5 5H11.3a12.6 12.6 0 0 0-1-2.5A6.5 6.5 0 0 1 13.5 5ZM8 1.6c.5.7 1 1.8 1.4 3.4H6.6C7 3.4 7.5 2.3 8 1.6ZM1.7 9.5A6.6 6.6 0 0 1 1.5 8c0-.5.1-1 .2-1.5h2.5a15 15 0 0 0 0 3H1.7Zm.8 1.5h2.2c.2 1 .6 1.8 1 2.5A6.5 6.5 0 0 1 2.5 11Zm2.2-6H2.5a6.5 6.5 0 0 1 3.2-2.5c-.4.7-.8 1.5-1 2.5ZM8 14.4c-.5-.7-1-1.8-1.4-3.4h2.8c-.4 1.6-.9 2.7-1.4 3.4Zm1.7-4.9H6.3a13.6 13.6 0 0 1 0-3h3.4a13.6 13.6 0 0 1 0 3Zm.6 4.1c.4-.7.8-1.5 1-2.6h2.2a6.5 6.5 0 0 1-3.2 2.6Zm1.2-4.1a15 15 0 0 0 0-3h2.5c.1.5.2 1 .2 1.5s-.1 1-.2 1.5h-2.5Z";
+
+const badged = (host: string): HTMLElement => {
+  const box = document.createElement("span");
+  box.className = "card-host";
+  const glyph = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  glyph.setAttribute("viewBox", "0 0 16 16");
+  glyph.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("fill", "currentColor");
+  path.setAttribute("d", HOSTS[host] ?? ANY);
+  glyph.append(path);
+  box.append(glyph);
+  return box;
+};
+
+const shotted = (src: string): HTMLElement => {
+  const box = document.createElement("span");
+  box.className = "card-shot";
+  const shot = document.createElement("img");
+  shot.src = src;
+  shot.alt = "";
+  shot.loading = "lazy";
+  box.append(shot);
+  return box;
+};
+
+const asking = (at: string, ask: (at: string) => void): HTMLElement => {
+  const said = document.createElement("button");
+  said.type = "button";
+  said.className = "card-pull";
+  said.textContent = t("linkGlimpse");
+  said.addEventListener("click", (e) => {
+    e.stopPropagation();
+    ask(at);
+  });
+  return said;
+};
+
 const settled = (seen: Preview, reach: Reach): string => {
+  if (seen.as === "web") {
+    const one = reach.glimpse?.(seen.at);
+    return one
+      ? `${seen.host}:${one.title ?? ""}:${one.said ?? ""}:${one.shot ? "shot" : ""}`
+      : seen.host;
+  }
   if (seen.as === "doc") {
     if (seen.id === reach.here) return "itself";
     const title = reach.title(seen.id);
@@ -390,7 +485,7 @@ export const previewing = (reach: () => Reach) => {
               return DecorationSet.create(
                 state.doc,
                 scan(state.doc).flatMap((one) => [
-                  Decoration.node(one.at, one.at + 1, { class: "card-source" }),
+                  Decoration.node(one.at, one.at + one.size, { class: "card-source" }),
                   Decoration.widget(
                     one.at,
                     (view, getPos) =>
@@ -399,7 +494,7 @@ export const previewing = (reach: () => Reach) => {
                         now,
                         one.label,
                         () => view.focus(),
-                        () => shed(view, getPos()),
+                        () => shed(view, getPos(), one.size),
                         () => untied(view, getPos(), one.href, one.label),
                       ),
                     {

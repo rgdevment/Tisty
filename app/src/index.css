@@ -1162,6 +1162,63 @@ body {
     inset 0 0 0 1px var(--tisty-line),
     inset 0 2.5px 0 0 var(--card-tint, transparent);
 }
+.card-host {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--tisty-desk);
+  color: var(--tisty-soft);
+}
+.card-host svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+.card-web .card-under {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 11.5px;
+}
+
+.card-shot {
+  flex: none;
+  width: 92px;
+  height: 58px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--tisty-hair);
+  background: var(--tisty-desk);
+}
+.card-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card-pull {
+  flex: none;
+  font-size: 12px;
+  color: var(--tisty-accent);
+  border: 1px solid var(--tisty-hair);
+  border-radius: 7px;
+  padding: 3px 9px;
+  background: var(--tisty-accent-soft);
+  white-space: nowrap;
+}
+.card-pull:hover {
+  background: var(--tisty-hover);
+}
+.card-said-two {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .card-page {
   position: relative;
   max-width: none;

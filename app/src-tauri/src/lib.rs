@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 
 mod command;
+mod glimpse;
 mod herald;
 mod report;
 mod tray;
@@ -4192,6 +4193,29 @@ fn sow_lists(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
 }
 
 #[tauri::command]
+fn glimpse_kept(session: tauri::State<'_, Mutex<Session>>, at: String) -> Option<glimpse::Glimpse> {
+    let cache = held(&session).paths.cache().to_path_buf();
+    glimpse::kept(&cache, &at)
+}
+
+/// Only ever from a press of somebody's: the card draws itself out of the address until then.
+#[tauri::command(async)]
+async fn glimpse_fetch(
+    session: tauri::State<'_, Mutex<Session>>,
+    at: String,
+) -> Answer<Option<glimpse::Glimpse>> {
+    let cache = held(&session).paths.cache().to_path_buf();
+    let asked = at.clone();
+    let found = tauri::async_runtime::spawn_blocking(move || glimpse::fetch(&asked))
+        .await
+        .map_err(|_| Refusal::of("internal"))?;
+    if let Some(one) = &found {
+        glimpse::keep(&cache, &at, one);
+    }
+    Ok(found)
+}
+
+#[tauri::command]
 fn make_room(at: String) -> Answer<()> {
     std::fs::create_dir_all(&at).map_err(|e| Refusal::about("cannotWrite", e.to_string()))
 }
@@ -5492,6 +5516,8 @@ pub fn run() {
             keepers,
             keeper_of,
             make_room,
+            glimpse_kept,
+            glimpse_fetch,
             sow_lists,
             task_story,
             task_series,

@@ -1,11 +1,21 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Editor as Writing } from "@tiptap/core";
 import type { Node as Written } from "@tiptap/pm/model";
 import { type EditorState, NodeSelection } from "@tiptap/pm/state";
 import { CellSelection } from "@tiptap/pm/tables";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { docRead, type Filed, noteTrouble, served, weighs } from "../core";
+import {
+  docRead,
+  type Filed,
+  type Glimpse,
+  glimpseFetch,
+  glimpseKept,
+  noteTrouble,
+  served,
+  weighs,
+} from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { spawned } from "../making";
@@ -262,7 +272,7 @@ export default function Editor({
   const [choosing, setChoosing] = useState<{ x: number; y: number; leaf: boolean } | null>(null);
   const [swapping, setSwapping] = useState<{
     at: { x: number; y: number };
-    untie: () => void;
+    untie?: () => void;
     drop: () => void;
     keep?: () => void;
     own?: () => void;
@@ -274,6 +284,7 @@ export default function Editor({
   const urls = useRef(new Map<string, string>());
   const weights = useRef(new Map<string, number>());
   const blurbs = useRef(new Map<string, string>());
+  const glimpses = useRef(new Map<string, Glimpse | null>());
   const pending = useRef(new Set<string>());
   const missing = useRef(new Set<string>());
   const nudge = useRef(() => {});
@@ -694,6 +705,9 @@ export default function Editor({
             keep: kept && onKeep ? () => hands.current.onKeep?.(kept.at, kept.name) : undefined,
             own: leaf && onOwn ? () => hands.current.onOwn?.(leaf) : undefined,
           }),
+    onWorld: (at) => {
+      void openUrl(at).catch(() => {});
+    },
     gone: (reference) => missing.current.has(reference),
     onAgain: (reference) => {
       missing.current.delete(reference);
@@ -729,6 +743,24 @@ export default function Editor({
     page: (id) => {
       const at = leaves.indexOf(id);
       return at < 0 ? null : at + 1;
+    },
+    glimpse: (at) => {
+      const held = glimpses.current.get(at);
+      if (held !== undefined) return held;
+      fetches(`glimpse:${at}`, () =>
+        glimpseKept(at).then((one) => {
+          glimpses.current.set(at, one);
+        }),
+      );
+      return null;
+    },
+    onGlimpse: (at) => {
+      glimpses.current.set(at, null);
+      fetches(`glimpsing:${at}`, () =>
+        glimpseFetch(at).then((one) => {
+          glimpses.current.set(at, one);
+        }),
+      );
     },
     blurb: (id) => {
       const held = blurbs.current.get(id);
@@ -979,7 +1011,13 @@ export default function Editor({
               off: !swapping.own,
               onPick: swapping.own,
             },
-            { key: "link", label: t("showAsLink"), icon: "↩", onPick: swapping.untie },
+            {
+              key: "link",
+              label: t("showAsLink"),
+              icon: "↩",
+              off: !swapping.untie,
+              onPick: swapping.untie,
+            },
             { key: "drop", label: t("remove"), icon: "✕", danger: true, onPick: swapping.drop },
           ]}
           onClose={() => setSwapping(null)}
