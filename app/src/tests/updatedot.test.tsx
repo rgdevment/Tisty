@@ -75,11 +75,12 @@ describe("what About suggests", () => {
     installs: route === "download" || route === "brew",
   });
 
-  it("asks nothing of a Store install", async () => {
+  it("tells a Store install it is coming, and how to have it sooner", async () => {
     render(<About ready={ready("store")} onError={vi.fn()} />);
 
     expect(await screen.findByText(/Tisty 0.3.0 is out/)).toBeTruthy();
-    expect(screen.getByText(/Microsoft Store installs it for you/)).toBeTruthy();
+    const said = screen.getByText(/Microsoft Store brings it to you/);
+    expect(said.textContent).toContain("get updates");
     expect(screen.queryByRole("button", { name: "Update" })).toBeNull();
   });
 
@@ -101,6 +102,7 @@ describe("what About suggests", () => {
     render(<About ready={ready("brewCli", "tisty-cli")} onError={vi.fn()} />);
 
     const said = await screen.findByText(/brew upgrade tisty-cli/);
+    expect(said.textContent).toContain("brew update &&");
     expect(said.textContent).not.toContain("--cask");
     expect(screen.queryByRole("button", { name: "Update" })).toBeNull();
   });
