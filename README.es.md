@@ -365,7 +365,7 @@ tarea puede apuntar a un documento; un documento nunca crea tareas.
 una frase y el documento queda archivado bajo ella. La etiqueta vive en la
 frase, no en una cabecera oculta, así que llevarte el archivo a otro editor se
 lleva la etiqueta contigo. Etiquetas es donde se encuentran: una pantalla, las
-tareas de una etiqueta y debajo los documentos, y pulsar una etiqueta dentro de
+tareas de una etiqueta y debajo los documentos, y presionar una etiqueta dentro de
 un documento abre justo eso. Los acentos se pliegan y las mayúsculas también,
 así que `#camion` y `#camión` son una sola palabra la escribas como la
 escribas.
@@ -381,7 +381,7 @@ debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que 
 
 **Un enlace solo en su línea se dibuja como tarjeta**, hecha con la dirección
 misma: el nombre del sitio y las palabras que escribiste. No se descarga nada
-para dibujarla. Pulsa **Traer la vista previa** y Tisty le pide a esa página una
+para dibujarla. Presiona **Traer la vista previa** y Tisty le pide a esa página una
 sola vez su título, su descripción y la imagen que ofrezca, guarda la respuesta
 aquí para no volver a preguntar, y no lee más de lo que necesita: una página no
 decide cuánto de tu equipo ocupa.
