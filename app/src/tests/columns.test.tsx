@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Snapshot, Task } from "../core";
 
+/// Yesterday, not a date written down: a day owed has to stay owed whenever this is run.
+const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
 const ipc = vi.hoisted(() => ({
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
@@ -72,7 +75,7 @@ beforeEach(() => {
       case "read":
         return Promise.resolve({ title: String(args.text ?? ""), tags: [], spans: [], offers: [] });
       case "owed":
-        return Promise.resolve(["2026-09-03"]);
+        return Promise.resolve([yesterday]);
       default:
         return Promise.resolve(held);
     }
