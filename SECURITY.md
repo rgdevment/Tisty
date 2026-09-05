@@ -40,6 +40,15 @@ report will never be dismissed for being inconvenient.
   where this project's releases live, not merely whatever the feed named, and
   the download is given a deadline, so a server that answers slowly forever is
   eventually hung up on.
+- **What the world sends is read to a limit, never to the end.** One preview of
+  one link, asked for by a button, is the only request Tisty makes to an address
+  it did not choose. A page is read to 256 KiB and the picture it offers to
+  400 KiB — read *to* the cap off the wire, not fetched whole and measured
+  afterwards, so how much of your memory a page takes is not that page's
+  decision. The request has a deadline of six seconds, the answer is parsed
+  without executing anything, and what is kept is bounded by weight as well as
+  by count, so the cache cannot quietly become a folder of somebody else's
+  pictures.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
   them. There is no Tisty-operated backend at any tier, and no transport of ours

@@ -54,7 +54,11 @@ visible instead of making it for you.
 
 - **Tasks, projects and events** — plain-text JSONL files. Readable with
   `cat`, searchable with `grep`, parseable with `jq`.
-- **Documents** — plain Markdown files.
+- **Documents** — plain Markdown files. The log keeps a note of each one: its
+  title, its size, and the tags it carries, all three read out of the body you
+  wrote. A tag is a word you typed with a hash against it, so nothing is
+  recorded that you did not write in the document itself, and taking the file
+  elsewhere takes its tags with it.
 - **Attachments** — the files themselves, unmodified.
 - **Local configuration** — including the device identifier. The *file* never
   leaves this machine, and it lives in the local application data directory,
@@ -159,10 +163,14 @@ of the address itself: the site's name and the words you wrote. Nothing is
 fetched to draw it. If you press **Bring the preview**, Tisty asks that page
 once for its title, its description and the picture it offers — and that request
 is like any other visit: the site learns an address to answer to and the time of
-day. What comes back is kept on this machine, so the card never asks again, not
-tomorrow and not on your other computer, which would have to be told to bring it
-too. The picture is stored inside that record rather than in your documents, so
-nothing of the world ends up in the folder your machines share.
+day. Tisty reads its answer up to 256 KiB and the picture it offers up to
+400 KiB, and stops there — read to the limit off the wire, so a page cannot
+decide how much of your machine it takes. What comes back is kept here, so the
+card never asks again, not tomorrow and not on your other computer, which would
+have to be told to bring it too. The picture is stored inside that record rather
+than in your documents, so nothing of the world ends up in the folder your
+machines share, and the whole store of them is capped by weight, so old cards go
+rather than pile up.
 
 **Nothing is downloaded or installed unless you ask for it.** What the daily
 check brings back is a line of text you can ignore. If a newer version exists, a

@@ -290,16 +290,31 @@ dos sistemas.
 
 ## Qué hace
 
-**La primera vez que se abre**, Tisty pregunta cuatro cosas —en qué idioma,
-dónde quieres tus copias, si puede despertarte para un recordatorio y qué
-significa cerrar la ventana— y después te escribe una guía. La guía es un
+**La primera vez que se abre**, Tisty pregunta dos cosas —en qué idioma y dónde
+quieres tus copias— y después te escribe una guía y te la abre. Lo demás lo
+decide por ti y lo puedes cambiar luego: arranca con el equipo y espera
+apartado, porque eran preguntas con una respuesta evidente. La guía es un
 documento en tu propio almacén, en una carpeta suya: tuya para leerla, editarla
-o tirarla como cualquier otra cosa que escribas. Desde ajustes vuelve la
-bienvenida, se abre otra vez la guía y se cambia el idioma, que empieza siendo
-el de tu sistema.
+o tirarla como cualquier otra cosa que escribas.
+
+**La configuración responde cuatro preguntas en vez de llevar cinco etiquetas.**
+*General* es cómo se porta Tisty contigo: idioma, arranque, captura rápida,
+avisos, actualizaciones, y las dos cosas que ocurren fuera de la ventana —la
+línea de comandos y la bienvenida—. *Tus datos* es todo lo que toca tus
+archivos, con la sincronización como bloque propio porque tiene estado, un aviso
+que depende de quién guarde tu carpeta y cuatro acciones. *Asistentes* y
+*Mantenimiento* son lo que dicen.
 
 **Tres columnas como máximo:** qué estás mirando, la lista, y la tarea que
 abriste. Nada más en pantalla.
+
+**La lista se queda donde está.** No se va al centro de lo que sobra, así que
+abrir una tarea no mueve nada. Cuando la ventana da de sí, el sitio que se abre
+no se queda en blanco: una columna te cuenta el día —lo vencido, lo de hoy, lo
+que viene, los cuatro cuadrantes con sus cuentas, las listas con algo abierto y
+las etiquetas en uso—. Todo eso cuenta tu almacén entero, no lo que hay en
+pantalla, y cada cifra es una puerta. Estrecha la ventana y se aparta: una tarea
+siempre le gana el sitio.
 
 **Lee lo que escribes.** Escribes una frase y Tisty le saca la fecha, deja la
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
@@ -320,6 +335,9 @@ plan, y lo abren tres palabras: **antes de**, **para** y **hasta**.
 **La tarea se abre al lado de la lista**, no encima: fechas, lista, etiquetas,
 prioridad, una descripción y una bitácora en Markdown, pasos que vas marcando de
 a uno, y lo que le hayas soltado encima. Completarla no aleja nada de eso.
+Abierta a toda la página gana una columna con su propio trayecto: cuántos días
+lleva abierta, cuánto va hecho y cada cambio por el que ha pasado, que hasta
+ahora vivía al final, donde nadie bajaba.
 
 **Las prioridades son una matriz, no una escalera.** Tisty toma los cuatro
 cuadrantes de la matriz de Eisenhower — el método que se atribuye al presidente
@@ -343,6 +361,15 @@ tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
 —tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una
 tarea puede apuntar a un documento; un documento nunca crea tareas.
 
+**Un documento se etiqueta como una tarea**: escribes `#contrato` en mitad de
+una frase y el documento queda archivado bajo ella. La etiqueta vive en la
+frase, no en una cabecera oculta, así que llevarte el archivo a otro editor se
+lleva la etiqueta contigo. Etiquetas es donde se encuentran: una pantalla, las
+tareas de una etiqueta y debajo los documentos, y pulsar una etiqueta dentro de
+un documento abre justo eso. Los acentos se pliegan y las mayúsculas también,
+así que `#camion` y `#camión` son una sola palabra la escribas como la
+escribas.
+
 El texto se puede resaltar en unos cuantos colores y apartar como un aviso: una
 cita normal, o un callout que GitHub también lee, escrito `> [!WARNING]`. Las
 tablas conservan hacia dónde se inclinan sus columnas y con qué ancho las
@@ -351,6 +378,13 @@ con sus líneas numeradas al lado del texto y no dentro, así copiar se lleva el
 código y nada más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
 debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que dice
 `math` compone la fórmula que guarda.
+
+**Un enlace solo en su línea se dibuja como tarjeta**, hecha con la dirección
+misma: el nombre del sitio y las palabras que escribiste. No se descarga nada
+para dibujarla. Pulsa **Traer la vista previa** y Tisty le pide a esa página una
+sola vez su título, su descripción y la imagen que ofrezca, guarda la respuesta
+aquí para no volver a preguntar, y no lee más de lo que necesita: una página no
+decide cuánto de tu equipo ocupa.
 
 **Sigue siendo Markdown**, y eso es lo importante, no un detalle: todo lo de
 arriba es sintaxis que otro lector ya entiende, así que el archivo sobrevive sin
@@ -502,6 +536,7 @@ abierta.
 | | |
 |---|---|
 | ✅ | Tareas, listas, etiquetas, pasos, bitácora, adjuntos, búsqueda |
+| ✅ | Etiquetas también en los documentos, escritas en la frase y leídas de ella |
 | ✅ | Un archivo que se lee en tres capas, con lo que dejó cada tarea |
 | ✅ | Lenguaje natural para fechas, límites y repeticiones |
 | ✅ | La ventana, la bandeja, y captura rápida con un atajo global |
