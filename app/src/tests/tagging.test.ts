@@ -3,16 +3,17 @@ import { Document } from "@tiptap/extension-document";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import { Text } from "@tiptap/extension-text";
 import { describe, expect, it } from "vitest";
-import { named, spots } from "../ui/tagging";
+import { drawn, named, pressed, spots } from "../ui/tagging";
 
 const schema = getSchema([Document, Paragraph, Text]);
 
-const lit = (said: string): string[] => {
-  const doc = schema.node("doc", null, [
-    schema.node("paragraph", null, said ? [schema.text(said)] : []),
-  ]);
-  return spots(doc).map((one) => said.slice(one.from - 1, one.to - 1));
-};
+const written = (said: string) =>
+  schema.node("doc", null, [schema.node("paragraph", null, said ? [schema.text(said)] : [])]);
+
+const lit = (said: string): string[] =>
+  spots(written(said)).map((one) => said.slice(one.from - 1, one.to - 1));
+
+const reading = (said: string) => ({ doc: written(said), schema: { nodes: schema.nodes } });
 
 describe("what the editor paints as a tag", () => {
   it("lights a hash pinned to a word", () => {
@@ -43,6 +44,20 @@ describe("what the editor paints as a tag", () => {
 
   it("reads the same as the core does, hyphens and all", () => {
     expect(lit("#pago-mensual y #Contrato")).toEqual(["#pago-mensual", "#Contrato"]);
+  });
+
+  it("hands over the tag under the press, and nothing under plain words", () => {
+    const said = "esto es #legal hoy";
+    const at = said.indexOf("#legal") + 3;
+
+    expect(pressed(reading(said), at)).toBe("legal");
+    expect(pressed(reading(said), 2)).toBeNull();
+  });
+
+  it("draws what it would light, so a press and a paint never disagree", () => {
+    const shown = drawn(reading("#uno y #dos"));
+
+    expect(shown).toHaveLength(2);
   });
 
   it("hands the pressed word over in the shape the core keeps it", () => {

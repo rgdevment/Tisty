@@ -10,7 +10,16 @@ export const tagged = new PluginKey("tagging");
 /// something that is not a separator.
 const AT = /(^|[^\p{L}\p{N}#/\-_.:])#([\p{L}\p{N}][\p{L}\p{N}\-_]*)/gu;
 
-const drawn = (state: { doc: Written; schema: { nodes: Record<string, unknown> } }) => {
+type Reading = { doc: Written; schema: { nodes: Record<string, unknown> } };
+
+/// The tag under a position, in the shape the core keeps it, or nothing where the press landed
+/// on ordinary text.
+export const pressed = (state: Reading, at: number): string | null => {
+  const hit = drawn(state).find((one) => at > one.from && at < one.to);
+  return hit ? named(state.doc.textBetween(hit.from + 1, hit.to)) : null;
+};
+
+export const drawn = (state: Reading) => {
   const codes = state.schema.nodes.codeBlock;
   return spots(state.doc).filter(({ from }) => {
     const at = state.doc.resolve(from);
@@ -66,10 +75,9 @@ export const tagging = (onTag?: (tag: string) => void) =>
               );
             },
             handleClick(view, at) {
-              if (!onTag) return false;
-              const hit = drawn(view.state).find((one) => at > one.from && at < one.to);
-              if (!hit) return false;
-              onTag(named(view.state.doc.textBetween(hit.from + 1, hit.to)));
+              const tag = onTag && pressed(view.state, at);
+              if (!tag) return false;
+              onTag(tag);
               return true;
             },
           },

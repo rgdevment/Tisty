@@ -87,6 +87,12 @@ const cells = () => {
 };
 
 describe("the three columns of the window", () => {
+  beforeEach(() => {
+    // The board takes the pointer when a card is pressed, and jsdom has no such thing.
+    Element.prototype.setPointerCapture = () => {};
+    Element.prototype.releasePointerCapture = () => {};
+  });
+
   it("gives the board one cell, strip and all, so it never lands in a track of nought", async () => {
     const user = userEvent.setup();
     render(<App />);

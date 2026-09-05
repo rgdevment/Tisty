@@ -286,15 +286,31 @@ Or take the disk image and the installer straight from
 
 ## What It Does
 
-**The first time it opens**, Tisty asks four things — which language, where your
-copies should go, whether it may wake you for a reminder, and what closing the
-window ought to mean — and then writes you a guide. The guide is a document in
-your own store, in a folder of its own: yours to read, edit, or throw away like
-anything else you wrote. Settings brings the welcome back, opens the guide
-again, and changes the language, which starts as your system's.
+**The first time it opens**, Tisty asks two things — which language, and where
+your copies should go — and then writes you a guide and opens it. Everything
+else it decides for you and lets you change later: it starts with the computer
+and waits out of the way, because those were questions with an obvious answer.
+The guide is a document in your own store, in a folder of its own: yours to
+read, edit, or throw away like anything else you wrote.
+
+**Settings answers four questions rather than wearing five labels.** *General*
+is how Tisty behaves towards you — language, start-up, the quick capture,
+notices, updates, and the two things that happen outside the window: the command
+line and the welcome. *Your data* is everything that touches your files, with
+syncing as a block of its own because it has a state, a warning that depends on
+who keeps your folder, and four actions. *Assistants* and *Maintenance* are what
+they say.
 
 **Three columns at most:** what you are looking at, the list, and the task you
 opened. Nothing else on screen.
+
+**The list stands where it stands.** It does not drift to the middle of whatever
+room is left, so opening a task moves nothing. Where the window is wide enough,
+the space that opens up is not left blank: a column tells you the day — what is
+overdue, what is for today, what is ahead, the four quadrants with their counts,
+the lists holding something and the tags in use. All of it counts your whole
+store rather than the slice on screen, and every figure is a way in. Narrow the
+window and it steps aside; a task always wins the room over it.
 
 **It reads what you write.** You type a sentence and Tisty takes the date out of
 it, leaves the sentence readable, and shows you what it understood *before*
@@ -314,7 +330,10 @@ three words open one: **before**, **due**, **until**.
 
 **A task opens beside the list**, not on top of it: dates, list, tags, priority,
 a description and a journal in Markdown, steps you tick one at a time, and
-whatever you dropped on it. Completing it puts none of that out of reach.
+whatever you dropped on it. Completing it puts none of that out of reach. Opened
+to the whole page it gains a column of its own trail — how long it has been
+open, how much of it is done, and every change it has been through, which until
+now sat at the bottom where nobody scrolled.
 
 **Priorities are a matrix, not a ladder.** Tisty borrows the four quadrants
 of the Eisenhower matrix — the method President Dwight D. Eisenhower is
@@ -338,6 +357,14 @@ never gets ticked. They are Markdown files you edit as documents — tables,
 checklists, code, images — and search reads them too. A task can point at a
 document; a document never creates tasks.
 
+**A document takes tags the way a task does** — you write `#contract` in the
+middle of a sentence and the document is filed under it. The tag lives in the
+sentence rather than in a hidden header, so carrying the file to another editor
+carries the tag with it. Tags is where they meet: one screen, the tasks under a
+tag and the documents beneath them, and pressing a tag inside a document opens
+exactly that. Accents come off and case is folded, so `#camion` and `#camión`
+are one word however you typed them that day.
+
 Text can be highlighted in a few colours and set apart as an aside — a plain
 quote, or a callout GitHub reads too, written as `> [!WARNING]`. Tables keep how
 their columns lean and how wide you drew them, and a code block says what
@@ -346,6 +373,13 @@ rather than in it, so copying takes the code and nothing else. A block can carry
 a name; one whose language is `mermaid` draws the diagram it describes
 underneath — redrawn when you turn the light on or off — and one that says
 `math` sets the formula it holds.
+
+**A web link on a line of its own is drawn as a card**, made from the address
+itself — the site's name and the words you wrote. Nothing is fetched to draw it.
+Press **Bring the preview** and Tisty asks that page once for its title, its
+description and the picture it offers, keeps the answer here so it never asks
+again, and reads no more of it than it needs: a page cannot decide how much of
+your machine it takes.
 
 **It stays Markdown**, and that is the point rather than a detail: everything
 above is syntax another reader already understands, so the file survives without
@@ -500,6 +534,7 @@ already open.
 | | |
 |---|---|
 | ✅ | Tasks, lists, tags, steps, journal, attachments, search |
+| ✅ | Tags in documents too, written into the sentence and read from it |
 | ✅ | An archive read in three layers, with what each task left behind |
 | ✅ | Natural language for dates, deadlines and repeats |
 | ✅ | The window, the tray, and quick capture on a global shortcut |

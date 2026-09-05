@@ -56,9 +56,35 @@ Three payload fields carry more than their name says:
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
+| `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
 
 `active.tisty` is sealed as `NNNNNN.tisty` every 5.000 events. Sealed segments
 are numbered from one without gaps.
+
+### What a power cut leaves behind
+
+A line is written whole or not at all, so one that will not parse at the very
+end of the segment still being written is the half of an event a cut took. It is
+set aside as `active.torn` rather than read: refusing it would take every whole
+event before it down as well. Only ever the last line, only ever this machine's
+own active segment — a sealed one has its count to answer for, and another
+machine's history is not ours to mend.
+
+Three things it must get right, and each of them was once wrong:
+
+- The file is read as **bytes**. Half of an accented letter is not text, and a
+  reader that gives up there leaves the very store this exists to save unopenable.
+- A tail that parses is a whole event whose **newline** the cut took, and it is
+  given the newline back. Left without it, the next append lands on the same
+  line and takes both events down for good — and mending never sees it again,
+  because the file now ends properly.
+- Mending happens **behind the lock** every writer takes. It rewrites the
+  segment by renaming a fresh file over the old one, and a rename under a live
+  writer drops whatever they appended to the inode that just went away.
+
+Damage anywhere but the tail is a different accident. It is not mended and not
+guessed at: the read fails and says so, which is better than handing back half a
+history as though it were whole.
 
 ### An assistant is a second writer, never a second decider
 
@@ -862,6 +888,23 @@ reading, exporting and printing all stopped at 500 KB, so pasting enough text
 produced a document that could no longer be opened, exported or carried — with
 no warning until it was too late. The refusal now happens where the writing
 does.
+
+**What a document says about itself is read from the body, never asked for
+separately.** Saving one writes a note with three things read out of what you
+typed: the title, the size, and the tags. A tag is a hash with a letter or a
+digit against it — `# Heading` carries a space and stays a heading, and a colour
+or the fragment of a web address sits behind something that is not a separator.
+Fenced blocks and runs between backticks are stepped over, so pasted code is not
+mistaken for labelling. Accents come off and case is folded, so `#camion` and
+`#camión` are one word however anybody typed them that day, and a word pasted
+from a Mac — where an accent is a letter of its own — folds to the same place.
+
+Two limits are the point rather than the detail. **Sixty-four tags is where a
+body stops tagging**: a stylesheet pasted outside a fence reads every colour as
+one, and the log is append-only, so a line of four thousand would be written
+once and kept forever, on every machine. And **the note is only written when the
+title or the tags changed** — size moves with every keystroke, so it never
+counts as news on its own, though it rides along whenever there is news anyway.
 
 **A deletion is carried out, not inferred.** Deleting a document names its file
 in the log, and every machine that reads that event removes its own copy — the
