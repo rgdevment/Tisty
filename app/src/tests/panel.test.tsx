@@ -110,11 +110,11 @@ describe("what only the mouse used to see", () => {
 
 describe("what an open task carries, once it takes the whole page", () => {
   it("counts what it has gathered beside the trail, from the day it was made", async () => {
+    // Five days back from now, not a date written down: one of those is right today only.
+    const made = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
     vi.mocked(invoke).mockImplementation((cmd: string) =>
       Promise.resolve(
-        cmd === "task_story"
-          ? { pages: [{ n: 1, at: "2026-08-30T09:00:00Z", chapter: "made" }] }
-          : null,
+        cmd === "task_story" ? { pages: [{ n: 1, at: made, chapter: "made" }] } : null,
       ),
     );
     show(true);
