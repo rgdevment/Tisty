@@ -622,9 +622,9 @@ const en = {
   carries: "What it carries",
   tagsRead: "Tags in documents",
   tagsReadWhy:
-    "A document learns its tags when it is saved. Everything written before Tisty could read them stays bare until it is touched — unless you read them all now, in one pass over the folder.",
+    "A document learns its tags when it is saved. Everything written before Tisty could read them stays bare until it is touched, and whatever was filed under an older rule — a bare number, a single letter — stays filed under it. Reading them all now, in one pass over the folder, settles both.",
   tagsReadDo: "Read them now",
-  tagsReadDone: "{name} documents took a tag",
+  tagsReadDone: "{name} documents changed tags",
   theDay: "The day",
   pulseElse: "Everything else",
   pulseUndated: "With no date",
@@ -1760,9 +1760,9 @@ const es: Catalog = {
   carries: "Lo que lleva",
   tagsRead: "Etiquetas en los documentos",
   tagsReadWhy:
-    "Un documento aprende sus etiquetas al guardarse. Todo lo escrito antes de que Tisty supiera leerlas se queda sin ellas hasta que lo toques, salvo que las leas todas ahora de una pasada por la carpeta.",
+    "Un documento aprende sus etiquetas al guardarse. Todo lo escrito antes de que Tisty supiera leerlas se queda sin ellas hasta que lo toques, y lo que quedó archivado bajo una regla vieja —un número suelto, una sola letra— sigue ahí. Leerlas todas ahora, de una pasada por la carpeta, resuelve las dos cosas.",
   tagsReadDo: "Leerlas ahora",
-  tagsReadDone: "{name} documentos tomaron etiqueta",
+  tagsReadDone: "{name} documentos cambiaron de etiquetas",
   theDay: "El día",
   pulseElse: "Todo lo demás",
   pulseUndated: "Sin fecha",

@@ -899,6 +899,18 @@ mistaken for labelling. Accents come off and case is folded, so `#camion` and
 `#camión` are one word however anybody typed them that day, and a word pasted
 from a Mac — where an accent is a letter of its own — folds to the same place.
 
+**What is read has to be narrower than what is kept**, and the two rules live
+apart on purpose. `Tag::worth_reading` in `model/tag.rs` is what a reader may
+take from writing nobody meant as labelling: two characters at least, one of
+them a letter, so `#1234` stays the ticket somebody wrote down and `#1` the
+item they numbered. `Tag::new` stays as forgiving as it always was, because it
+is also what deserialises the log — a line that fails to parse stops the whole
+store from opening, and a tag saved before this rule still has to come back.
+The capture bar (`tisty-nl`) reads the same way, and so does the editor, which
+paints only what will be saved. What was recorded before is corrected by the
+maintenance panel's **Tags in documents**: it re-reads every body and writes
+the difference.
+
 Two limits are the point rather than the detail. **Sixty-four tags is where a
 body stops tagging**: a stylesheet pasted outside a fence reads every colour as
 one, and the log is append-only, so a line of four thousand would be written

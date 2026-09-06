@@ -27,6 +27,8 @@ export const drawn = (state: Reading) => {
   });
 };
 
+export const worthReading = (tag: string): boolean => tag.length > 1 && /\p{L}/u.test(tag);
+
 export const spots = (doc: Written): { from: number; to: number }[] => {
   const found: { from: number; to: number }[] = [];
   doc.descendants((node, at) => {
@@ -38,7 +40,7 @@ export const spots = (doc: Written): { from: number; to: number }[] => {
     let hit = AT.exec(said);
     while (hit) {
       const from = at + hit.index + hit[1].length;
-      found.push({ from, to: from + hit[2].length + 1 });
+      if (worthReading(named(hit[2]))) found.push({ from, to: from + hit[2].length + 1 });
       hit = AT.exec(said);
     }
   });
@@ -73,7 +75,7 @@ export const often = (body: string): Map<string, number> => {
     AT.lastIndex = 0;
     for (let hit = AT.exec(said); hit; hit = AT.exec(said)) {
       const tag = named(hit[2]);
-      if (tag) many.set(tag, (many.get(tag) ?? 0) + 1);
+      if (worthReading(tag)) many.set(tag, (many.get(tag) ?? 0) + 1);
     }
   }
   return many;

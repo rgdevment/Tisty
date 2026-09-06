@@ -38,6 +38,13 @@ impl Tag {
         Ok(Self(collapse_dashes(trimmed)))
     }
 
+    /// What a reader may take from writing nobody meant as a label. It stands apart from `new`,
+    /// which stays as forgiving as the log it reads back: «#1234» is a ticket, not a tag, but a
+    /// tag saved before this rule still has to deserialise.
+    pub fn worth_reading(&self) -> bool {
+        self.0.chars().nth(1).is_some() && self.0.chars().any(char::is_alphabetic)
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -138,6 +145,20 @@ mod tests {
         assert_eq!(Tag::new("---"), Err(InvalidTag));
         assert_eq!(Tag::new("  "), Err(InvalidTag));
         assert_eq!(Tag::new(""), Err(InvalidTag));
+    }
+
+    /// The rule lives here and not in `new` on purpose: a line of the log that fails to parse
+    /// stops the whole store from opening, and tags like these were saved before it existed.
+    #[test]
+    fn what_a_reader_takes_is_narrower_than_what_the_log_keeps() {
+        for passed_over in ["1", "1234", "12-34", "2026", "a", "x"] {
+            let tag = Tag::new(passed_over).unwrap();
+            assert!(!tag.worth_reading(), "{passed_over}");
+            assert!(serde_json::from_str::<Tag>(&format!("\"{passed_over}\"")).is_ok());
+        }
+        for kept in ["ia", "ux", "b2b", "pepe32", "1a", "legal"] {
+            assert!(Tag::new(kept).unwrap().worth_reading(), "{kept}");
+        }
     }
 
     #[test]

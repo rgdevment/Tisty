@@ -363,7 +363,9 @@ sentence rather than in a hidden header, so carrying the file to another editor
 carries the tag with it. Tags is where they meet: one screen, the tasks under a
 tag and the documents beneath them, and pressing a tag inside a document opens
 exactly that. Accents come off and case is folded, so `#camion` and `#camión`
-are one word however you typed them that day.
+are one word however you typed them that day. A bare number is not a tag —
+`#1234` is the ticket somebody wrote down, not a subject — and neither is a
+single letter: two characters, one of them a letter.
 
 Text can be highlighted in a few colours and set apart as an aside — a plain
 quote, or a callout GitHub reads too, written as `> [!WARNING]`. Tables keep how

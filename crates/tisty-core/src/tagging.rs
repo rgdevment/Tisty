@@ -65,7 +65,9 @@ fn tags_on(line: &str) -> Vec<Tag> {
             .chars()
             .take_while(|one| one.is_alphanumeric() || *one == '-' || *one == '_')
             .collect();
-        if let Ok(tag) = Tag::new(&word) {
+        if let Ok(tag) = Tag::new(&word)
+            && tag.worth_reading()
+        {
             found.push(tag);
         }
         at += 1 + word.len();
@@ -168,7 +170,23 @@ mod tests {
     fn a_hash_needs_a_letter_against_it() {
         assert_eq!(said("#_borrador y #-legal"), Vec::<String>::new());
         assert_eq!(said("#borrador y #legal"), ["borrador", "legal"]);
-        assert_eq!(said("#2026 cuenta"), ["2026"]);
+    }
+
+    #[test]
+    fn a_number_behind_the_hash_is_a_reference_somebody_wrote_down() {
+        assert_eq!(
+            said("cierra el ticket #1234 antes del viernes"),
+            Vec::<String>::new()
+        );
+        assert_eq!(said("el punto #1 y luego el #2"), Vec::<String>::new());
+        assert_eq!(said("#2026 tampoco"), Vec::<String>::new());
+        assert_eq!(said("#pepe32 y #b2b si"), ["pepe32", "b2b"]);
+    }
+
+    #[test]
+    fn one_letter_labels_nothing() {
+        assert_eq!(said("#a y #x"), Vec::<String>::new());
+        assert_eq!(said("#ia y #ux"), ["ia", "ux"]);
     }
 
     #[test]
