@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { stamped, weigh } from "../format";
@@ -6,6 +6,7 @@ import { fill, t } from "../locales";
 import { DOC } from "../markdown";
 import Glyph, { known } from "./Glyph";
 import type { Block } from "./Slash";
+import { often } from "./tagging";
 import type { Head } from "./writing";
 
 export const SHAPES = [
@@ -113,6 +114,7 @@ export default function Beside({
   }, [paper, kept]);
 
   const words = worded(body);
+  const times = useMemo(() => often(body), [body]);
   const papers = counted(body, DOC);
   const files = counted(body, "attachments/");
   const shapes = blocks.filter((one) => SHAPES.includes(one.key));
@@ -208,14 +210,19 @@ export default function Beside({
           <section className="flex flex-col gap-2">
             <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("tags")}</h3>
             <div className="flex flex-wrap gap-1">
-              {tags.map((one) => (
-                <span
-                  key={one}
-                  className="rounded-full bg-mark-tag px-2 py-0.5 text-[11px] text-ink"
-                >
-                  #{one}
-                </span>
-              ))}
+              {tags.map((one) => {
+                const many = times.get(one) ?? 0;
+                return (
+                  <span
+                    key={one}
+                    title={many > 0 ? fill("tagTimes", String(many)) : undefined}
+                    className="inline-flex items-baseline gap-1 rounded-full bg-mark-tag px-2 py-0.5 text-[11px] text-ink"
+                  >
+                    #{one}
+                    {many > 0 && <span className="tabular-nums text-faint">{many}</span>}
+                  </span>
+                );
+              })}
             </div>
           </section>
         )}

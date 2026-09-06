@@ -58,6 +58,27 @@ export const named = (said: string): string =>
     .replace(/-{2,}/g, "-")
     .replace(/^-+|-+$/g, "");
 
+export const often = (body: string): Map<string, number> => {
+  const many = new Map<string, number>();
+  let fence: string | null = null;
+  for (const line of body.split(/\r?\n/)) {
+    const rail = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+    if (rail) {
+      if (!fence) fence = rail[1][0];
+      else if (rail[1][0] === fence) fence = null;
+      continue;
+    }
+    if (fence) continue;
+    const said = line.replace(/`[^`]*`/g, (one) => " ".repeat(one.length));
+    AT.lastIndex = 0;
+    for (let hit = AT.exec(said); hit; hit = AT.exec(said)) {
+      const tag = named(hit[2]);
+      if (tag) many.set(tag, (many.get(tag) ?? 0) + 1);
+    }
+  }
+  return many;
+};
+
 export const tagging = (onTag?: (tag: string) => void) =>
   Extension.create({
     name: "tagging",
