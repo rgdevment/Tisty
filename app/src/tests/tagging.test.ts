@@ -37,6 +37,13 @@ describe("what the editor paints as a tag", () => {
     expect(lit("#_borrador y #-legal")).toEqual([]);
   });
 
+  it("leaves a number to whatever it numbers, and a lone letter to the sentence", () => {
+    expect(lit("cierra el ticket #1234 antes del viernes")).toEqual([]);
+    expect(lit("el punto #1 y luego el #2")).toEqual([]);
+    expect(lit("#a y #x")).toEqual([]);
+    expect(lit("#ia, #b2b y #pepe32")).toEqual(["#ia", "#b2b", "#pepe32"]);
+  });
+
   it("reads a run of code the way the core reads it, and a lone backtick as prose", () => {
     expect(lit("el operador ` marca código y esto es #legal")).toEqual(["#legal"]);
     expect(lit("`#rojo` no, pero #legal sí")).toEqual(["#legal"]);
@@ -78,6 +85,10 @@ describe("what the editor paints as a tag", () => {
 
 describe("how often the writing leans on each tag", () => {
   const counted = (body: string) => Object.fromEntries(often(body));
+
+  it("counts nothing where the writing was numbering, not labelling", () => {
+    expect(counted("el punto #1, el #2 y el ticket #1234")).toEqual({});
+  });
 
   it("counts every mention, not the tags the document ends up with", () => {
     expect(counted("#dinero arriba, #legal y otra vez #dinero")).toEqual({ dinero: 2, legal: 1 });

@@ -382,7 +382,7 @@ fn take_markers(input: &str, v: &vocab::Vocabulary) -> Taken {
 
         let mark = if let Some(raw) = word.strip_prefix('#') {
             match Tag::new(raw) {
-                Ok(tag) if raw.parse::<u64>().is_err() => {
+                Ok(tag) if tag.worth_reading() => {
                     taken.tags.push(tag);
                     Mark::Tag
                 }

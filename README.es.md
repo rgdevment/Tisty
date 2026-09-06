@@ -368,7 +368,9 @@ lleva la etiqueta contigo. Etiquetas es donde se encuentran: una pantalla, las
 tareas de una etiqueta y debajo los documentos, y presionar una etiqueta
 dentro de un documento abre justo eso. Los acentos se pliegan y las mayúsculas también,
 así que `#camion` y `#camión` son una sola palabra la escribas como la
-escribas.
+escribas. Un número suelto no es una etiqueta —`#1234` es el ticket que
+alguien anotó, no un tema— y una sola letra tampoco: hacen falta dos
+caracteres y que alguno sea una letra.
 
 El texto se puede resaltar en unos cuantos colores y apartar como un aviso: una
 cita normal, o un callout que GitHub también lee, escrito `> [!WARNING]`. Las
