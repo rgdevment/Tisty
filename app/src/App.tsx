@@ -760,6 +760,12 @@ export default function App() {
                   );
                   return;
                 }
+                if (took.left > 0) {
+                  setError(
+                    took.left === 1 ? t("takenLess") : fill("takenLesser", String(took.left)),
+                  );
+                  return;
+                }
                 setNote(took.files ? fill("takenOut", String(took.files)) : t("takenOutAlone"));
                 setTimeout(() => setNote(null), 3200);
               })

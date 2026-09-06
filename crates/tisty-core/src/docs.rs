@@ -642,10 +642,11 @@ pub fn read(root: &Path, id: &str) -> Result<String> {
 
 /// What came out, and what could not: a page missing from disk is left behind, and saying so
 /// is the only way the person learns their book came out a chapter short.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Taken {
     pub files: usize,
     pub missed: usize,
+    pub left: Vec<String>,
 }
 
 pub fn exported(data: &Path, id: &str, into: &Path) -> Result<Taken> {
@@ -700,11 +701,16 @@ pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Resul
         &format!("{named}.{EXTENSION}"),
     )?;
     for (_, at, body) in &written {
-        taken += laid_out(data, &beside(body), &folder, at)?;
+        let more = laid_out(data, &beside(body), &folder, at)?;
+        taken.files += more.files;
+        for one in more.left {
+            left_behind(&mut taken.left, one);
+        }
     }
     Ok(Taken {
-        files: taken,
+        files: taken.files,
         missed,
+        left: taken.left,
     })
 }
 
@@ -743,27 +749,40 @@ fn began(before: &str) -> Option<usize> {
     open
 }
 
-fn laid_out(data: &Path, body: &str, folder: &Path, named: &str) -> Result<usize> {
+fn left_behind(left: &mut Vec<String>, one: String) {
+    if !left.contains(&one) {
+        left.push(one);
+    }
+}
+
+fn laid_out(data: &Path, body: &str, folder: &Path, named: &str) -> Result<Taken> {
     write_atomic(&folder.join(named), body.as_bytes())?;
 
     let held = data.join("attachments");
-    let mut taken = 0;
+    let mut taken = Taken::default();
     for one in crate::refs::extract(body).into_iter().map(|one| one.target) {
         if !one.starts_with("attachments/") {
             continue;
         }
         let Ok(from) = crate::attach::resolve(&one, data) else {
+            left_behind(&mut taken.left, one);
             continue;
         };
         let Ok(rest) = from.strip_prefix(&held) else {
             continue;
         };
+        if !from.is_file() {
+            left_behind(&mut taken.left, one);
+            continue;
+        }
         let at = folder.join("attachments").join(rest);
         if let Some(under) = at.parent() {
             std::fs::create_dir_all(under)?;
         }
         if std::fs::copy(&from, &at).is_ok() {
-            taken += 1;
+            taken.files += 1;
+        } else {
+            left_behind(&mut taken.left, one);
         }
     }
     Ok(taken)
@@ -3861,6 +3880,53 @@ despues
             said.contains("attachments/ab/foto-91f2ab00.png"),
             "the reference was rewritten when it did not need to be"
         );
+    }
+
+    #[test]
+    fn a_file_that_is_not_in_the_store_is_named_rather_than_dropped_in_silence() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path();
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        let shelf = data.join("attachments").join("ab");
+        std::fs::create_dir_all(&shelf).unwrap();
+        std::fs::write(shelf.join("foto-91f2ab00.png"), b"a picture").unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0001.md"),
+            "# Minuta\n\n![una foto](<attachments/ab/foto-91f2ab00.png>)\n\n![un video](<attachments/6d/clip-da1d77da.mov>)",
+        )
+        .unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let taken = exported(data, "mac0-0001", out.path()).unwrap();
+
+        assert_eq!(taken.files, 1);
+        assert_eq!(taken.left, ["attachments/6d/clip-da1d77da.mov"]);
+        assert!(
+            !out.path().join("Minuta/attachments/6d").exists(),
+            "it left an empty shelf where the file was not"
+        );
+    }
+
+    #[test]
+    fn a_file_named_by_a_page_and_by_its_document_is_only_missed_once() {
+        let room = tempfile::tempdir().unwrap();
+        let data = room.path();
+        std::fs::create_dir_all(data.join("docs")).unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0001.md"),
+            "# Libro\n\n![un video](<attachments/6d/clip-da1d77da.mov>)",
+        )
+        .unwrap();
+        std::fs::write(
+            data.join("docs").join("mac0-0002.md"),
+            "# Capitulo\n\n![el mismo video](<attachments/6d/clip-da1d77da.mov>)",
+        )
+        .unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let taken = with_pages(data, "mac0-0001", &["mac0-0002".into()], out.path()).unwrap();
+
+        assert_eq!(taken.left, ["attachments/6d/clip-da1d77da.mov"]);
     }
 
     #[test]

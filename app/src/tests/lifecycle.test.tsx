@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Papers } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import Docs from "../ui/Docs";
 import Tree from "../ui/Tree";
 
@@ -33,6 +33,8 @@ const store = vi.hoisted(() => ({
 }));
 
 const picked = vi.hoisted(() => ({ path: Promise.resolve(null as string | null) }));
+
+const taking = vi.hoisted(() => ({ files: 0, missed: 0, left: 0 }));
 
 const carrier = vi.hoisted(() => ({ made: 0, asked: 0 }));
 
@@ -180,7 +182,7 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
       return Promise.resolve(null);
     }
     case "doc_export":
-      return Promise.resolve(0);
+      return Promise.resolve({ ...taking });
     case "folder_rename": {
       const folder = store.folders.find((one) => one.id === args.id);
       if (folder) folder.name = String(args.name);
@@ -222,6 +224,9 @@ beforeEach(() => {
   store.copied = [];
   store.seq = 0;
   picked.path = Promise.resolve(null);
+  taking.files = 0;
+  taking.missed = 0;
+  taking.left = 0;
   carrier.made = 0;
   carrier.asked = 0;
   ipc.answer = backend;
@@ -611,6 +616,18 @@ describe("what the menus reach for outside the tree", () => {
     await chooseFor("Acta", t("takeOut"));
 
     await waitFor(() => expect(screen.getByText(t("takenOutAlone"))).toBeTruthy());
+  });
+
+  it("says which files it points at were not there to take", async () => {
+    seedDoc({ title: "Acta" });
+    picked.path = Promise.resolve("D:/salida");
+    taking.files = 2;
+    taking.left = 3;
+    await boot();
+
+    await chooseFor("Acta", t("takeOut"));
+
+    await waitFor(() => expect(screen.getByText(fill("takenLesser", "3"))).toBeTruthy());
   });
 
   it("says nothing at all when the export was called off", async () => {

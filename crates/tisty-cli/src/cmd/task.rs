@@ -338,7 +338,7 @@ fn merged_tags(
 
     let mut tags = app.state.tasks[&id].tags.clone();
     for raw in add {
-        let tag = Tag::new(raw.trim_start_matches('@'))?;
+        let tag = Tag::written(raw.trim_start_matches('@'))?;
         if !tags.contains(&tag) {
             tags.push(tag);
         }

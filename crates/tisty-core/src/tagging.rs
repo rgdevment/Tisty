@@ -8,6 +8,13 @@ use crate::model::Tag;
 /// them is written once and kept forever, on every machine.
 pub const AT_MOST: usize = 64;
 
+pub fn worth_keeping(tags: &[Tag]) -> Vec<Tag> {
+    tags.iter()
+        .filter(|one| one.worth_reading())
+        .cloned()
+        .collect()
+}
+
 pub fn tags_in(body: &str) -> Vec<Tag> {
     let mut found: Vec<Tag> = Vec::new();
     let mut seen: std::collections::HashSet<Tag> = std::collections::HashSet::new();

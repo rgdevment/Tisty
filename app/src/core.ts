@@ -726,6 +726,7 @@ export const docCopy = (id: string): Promise<Doc> => invoke("doc_copy", { id });
 export interface Taken {
   files: number;
   missed: number;
+  left: number;
 }
 
 export const docExport = (id: string, into: string): Promise<Taken> =>

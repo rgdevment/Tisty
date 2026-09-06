@@ -711,6 +711,18 @@ export default function Docs({
           onTakeOut={() => {
             pick({ directory: true })
               .then((at) => (typeof at === "string" ? docExport(open.file, at) : null))
+              .then((took) => {
+                if (took === null) return;
+                if (took.missed > 0) {
+                  onError(
+                    took.missed === 1 ? t("takenShort") : fill("takenShorter", String(took.missed)),
+                  );
+                } else if (took.left > 0) {
+                  onError(
+                    took.left === 1 ? t("takenLess") : fill("takenLesser", String(took.left)),
+                  );
+                }
+              })
               .catch((e) => onError(saidPlainly(e)));
           }}
           onShut={() => setShown(false)}

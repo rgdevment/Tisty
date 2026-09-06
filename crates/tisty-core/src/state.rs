@@ -276,11 +276,12 @@ impl State {
                         page_of,
                         archived: under.is_some_and(|one| one.archived),
                         locked: false,
-                        tags: d
-                            .said
-                            .as_ref()
-                            .and_then(|one| one.tags.clone())
-                            .unwrap_or_default(),
+                        tags: crate::tagging::worth_keeping(
+                            &d.said
+                                .as_ref()
+                                .and_then(|one| one.tags.clone())
+                                .unwrap_or_default(),
+                        ),
                     },
                 );
             }
@@ -290,7 +291,7 @@ impl State {
                     kept.bytes = d.bytes;
                     // A note from a build that never read tags says nothing about them.
                     if let Some(tags) = &d.tags {
-                        kept.tags = tags.clone();
+                        kept.tags = crate::tagging::worth_keeping(tags);
                     }
                     kept.wrote = Some(event.timestamp);
                 }
@@ -1166,7 +1167,7 @@ fn task_from(id: TaskId, d: &TaskAdd) -> Task {
         date: d.date.clone(),
         deadline: d.deadline.clone(),
         list: d.list,
-        tags: d.tags.clone(),
+        tags: crate::tagging::worth_keeping(&d.tags),
         reminders: d.reminders.clone(),
         repeat: d.repeat,
         after: d.after,
@@ -1189,7 +1190,7 @@ fn patch(task: &mut Task, d: &TaskPatch) {
         task.priority = v;
     }
     if let Some(v) = &d.tags {
-        task.tags = v.clone();
+        task.tags = crate::tagging::worth_keeping(v);
     }
     if let Some(v) = &d.reminders {
         task.reminders = v.clone();
@@ -3132,6 +3133,45 @@ mod tests {
 
         assert_eq!(state.tags().len(), 2);
         assert_eq!(state.tasks_tagged(&Tag::new("work").unwrap()).count(), 2);
+    }
+
+    #[test]
+    fn a_number_filed_as_a_tag_under_an_older_rule_is_not_read_back_as_one() {
+        let (task, doc) = (Ulid::generate(), Ulid::generate());
+        let state = State::replay(&[
+            ev(
+                1,
+                "dev_a",
+                Op::TaskAdd {
+                    id: task,
+                    d: TaskAdd {
+                        tags: vec![Tag::new("1").unwrap(), Tag::new("legal").unwrap()],
+                        ..TaskAdd::new("one", "a0")
+                    },
+                },
+            ),
+            ev(
+                2,
+                "dev_a",
+                Op::DocAdd {
+                    id: doc,
+                    d: crate::event::DocAdd {
+                        file: "dev0-0001".into(),
+                        order: "a0".into(),
+                        said: Some(crate::event::Said {
+                            title: "Acta".into(),
+                            bytes: None,
+                            tags: Some(vec![Tag::new("2").unwrap(), Tag::new("casa").unwrap()]),
+                        }),
+                        ..Default::default()
+                    },
+                },
+            ),
+        ]);
+
+        assert_eq!(state.tasks[&task].tags, [Tag::new("legal").unwrap()]);
+        assert_eq!(state.docs[&doc].tags, [Tag::new("casa").unwrap()]);
+        assert_eq!(state.tags().len(), 2);
     }
 
     #[test]

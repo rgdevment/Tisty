@@ -1412,7 +1412,7 @@ fn tagged(task: &Task, change: &Change) -> Result<Option<Vec<Tag>>, Refusal> {
         tags.retain(|kept| *kept != gone);
     }
     if let Some(name) = &change.add_tag {
-        let one = Tag::new(name).map_err(|_| Refusal::about("badTag", name))?;
+        let one = Tag::written(name).map_err(|_| Refusal::about("badTag", name))?;
         if !tags.contains(&one) {
             tags.push(one);
         }
@@ -3660,9 +3660,22 @@ fn doc_export(
         );
         Refusal::about("cannotWrite", into)
     })
-    .map(|took| Taken {
-        files: took.files,
-        missed: took.missed,
+    .map(|took| {
+        if !took.left.is_empty() {
+            witness::warn(
+                channel::WINDOW,
+                "a document went out without everything it points at",
+                &[
+                    ("id", Fact::Id(id.clone())),
+                    ("left", Fact::Why(took.left.join("; "))),
+                ],
+            );
+        }
+        Taken {
+            files: took.files,
+            missed: took.missed,
+            left: took.left.len(),
+        }
     })
 }
 
@@ -3671,6 +3684,7 @@ fn doc_export(
 struct Taken {
     files: usize,
     missed: usize,
+    left: usize,
 }
 
 #[tauri::command(async)]

@@ -531,7 +531,7 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut tags: Vec<Tag> = Vec::new();
     for one in listed(args, "tags")
         .iter()
-        .filter_map(|said| Tag::new(said).ok())
+        .filter_map(|said| Tag::written(said).ok())
     {
         if !tags.contains(&one) {
             tags.push(one);
@@ -2107,13 +2107,20 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Took {which} out to {} — its cover, {} page(s) and {} file(s) beside them{}. Nothing here changed: an export is a copy.",
+            "Took {which} out to {} — its cover, {} page(s) and {} file(s) beside them{}{}. Nothing here changed: an export is a copy.",
             into.display(),
             pages.len(),
             taken.files,
             match taken.missed {
                 0 => String::new(),
                 many => format!(", and {many} page(s) could not be read, so they are not there"),
+            },
+            match taken.left.len() {
+                0 => String::new(),
+                many => format!(
+                    ", and {many} file(s) it points at are not in the store, so they did not come along: {}",
+                    taken.left.join(", ")
+                ),
             }
         ),
         json!({
@@ -2122,6 +2129,7 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "pages_out": pages.len(),
             "files": taken.files,
             "missed": taken.missed,
+            "left_behind": taken.left,
             "pages": pages,
         }),
     ))
