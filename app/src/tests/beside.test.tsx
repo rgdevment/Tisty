@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -335,5 +335,22 @@ describe("what the column offers for the document", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Close" }));
 
     expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+  });
+
+  it("says how often the writing leans on each tag it carries", async () => {
+    render(
+      <Docs
+        open="a3f1-0001"
+        known={[{ ...known[0], tags: ["legal"] }]}
+        onKept={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+    const editor = await screen.findByLabelText("editor");
+
+    fireEvent.change(editor, { target: { value: "#legal arriba y otra vez #legal" } });
+
+    const chip = await screen.findByTitle("2 times in this document");
+    expect(chip.textContent).toBe("#legal2");
   });
 });

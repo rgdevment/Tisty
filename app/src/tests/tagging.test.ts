@@ -3,7 +3,7 @@ import { Document } from "@tiptap/extension-document";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import { Text } from "@tiptap/extension-text";
 import { describe, expect, it } from "vitest";
-import { drawn, named, pressed, spots } from "../ui/tagging";
+import { drawn, named, often, pressed, spots } from "../ui/tagging";
 
 const schema = getSchema([Document, Paragraph, Text]);
 
@@ -73,5 +73,30 @@ describe("what the editor paints as a tag", () => {
     expect(named("diseño")).toBe("diseno");
     expect(named("camión")).toBe(named("camion"));
     expect(named("CAMIÓN")).toBe("camion");
+  });
+});
+
+describe("how often the writing leans on each tag", () => {
+  const counted = (body: string) => Object.fromEntries(often(body));
+
+  it("counts every mention, not the tags the document ends up with", () => {
+    expect(counted("#dinero arriba, #legal y otra vez #dinero")).toEqual({ dinero: 2, legal: 1 });
+  });
+
+  it("counts a written form and a normalised one as the same tag", () => {
+    expect(counted("#Camión, #camion y #CAMION")).toEqual({ camion: 3 });
+  });
+
+  it("passes over what the core passes over, so no number outruns the chip", () => {
+    const body = [
+      "#legal una vez",
+      "`#legal` entre comillas no",
+      "```",
+      "#legal dentro del bloque tampoco",
+      "```",
+      "y https://ejemplo.com/pagina#legal es una direccion",
+    ].join(String.fromCharCode(10));
+
+    expect(counted(body)).toEqual({ legal: 1 });
   });
 });
