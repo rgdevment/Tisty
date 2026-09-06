@@ -82,6 +82,8 @@ impl Room {
         self.tell(Op::DocAdd {
             id,
             d: DocAdd {
+                made: None,
+                by: None,
                 file: made.id.clone(),
                 order,
                 said: Some(Said {
@@ -641,5 +643,392 @@ fn a_deep_tree_with_long_names_still_lands_on_a_system_that_counts_its_path_char
     assert!(
         folder.join("attachments").join("ab").join(named).is_file(),
         "{folder:?}"
+    );
+}
+
+#[test]
+fn what_somebody_else_wrote_keeps_their_name_on_it_after_it_lands() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("fulanito".into()),
+            ..Default::default()
+        },
+    });
+    here.doc("# Acta\n\nlo que escribi", None, None);
+
+    let box_at = room.path().join("firmado.tistydoc");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    there.take_in(&box_at);
+
+    let acta = there.titled("Acta");
+    assert_eq!(there.state.author_of(acta), Some("fulanito"));
+    assert_eq!(
+        there.state.editor_of(acta),
+        None,
+        "nobody has touched it yet"
+    );
+    assert_eq!(
+        acta.made,
+        here.titled("Acta").made,
+        "the day it was written changed"
+    );
+}
+
+#[test]
+fn signing_the_store_signs_what_comes_next_and_leaves_what_was_already_written() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc(
+        "# Antes
+
+sin firmar",
+        None,
+        None,
+    );
+    let before = here.titled("Antes").id;
+
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("  rgdevment  ".into()),
+            name: Some("Mario".into()),
+            ..Default::default()
+        },
+    });
+    here.doc(
+        "# Despues
+
+ya firmado",
+        None,
+        None,
+    );
+
+    assert_eq!(here.state.author_of(&here.state.docs[&before]), None);
+    assert_eq!(
+        here.state.author_of(here.titled("Despues")),
+        Some("rgdevment")
+    );
+    assert_eq!(here.state.signed.name.as_deref(), Some("Mario"));
+
+    assert_eq!(here.state.mine_to_sign(), [before]);
+    here.tell(Op::DocSigned {
+        id: before,
+        d: "rgdevment".into(),
+    });
+    assert_eq!(
+        here.state.author_of(&here.state.docs[&before]),
+        Some("rgdevment")
+    );
+    assert!(here.state.mine_to_sign().is_empty());
+}
+
+#[test]
+fn signing_again_offers_only_what_this_store_signed_before_and_never_a_guest() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("fulanito".into()),
+            ..Default::default()
+        },
+    });
+    here.doc(
+        "# Suyo
+
+lo suyo",
+        None,
+        None,
+    );
+    let box_at = room.path().join("suyo.tistydoc");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("mario".into()),
+            ..Default::default()
+        },
+    });
+    there.doc(
+        "# Mio
+
+lo mio",
+        None,
+        None,
+    );
+    there.take_in(&box_at);
+    there.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+
+    let mine = there.titled("Mio").id;
+    assert_eq!(
+        there.state.mine_to_sign(),
+        [mine],
+        "a document somebody else signed was offered up for re-signing"
+    );
+    assert_eq!(
+        there.state.author_of(there.titled("Suyo")),
+        Some("fulanito")
+    );
+}
+
+#[test]
+fn taking_in_and_then_writing_says_who_wrote_last_without_taking_the_name_away() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("fulanito".into()),
+            ..Default::default()
+        },
+    });
+    here.doc("# Acta\n\nlo suyo", None, None);
+    let box_at = room.path().join("firmado.tistydoc");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    there.take_in(&box_at);
+
+    let acta = there.titled("Acta").id;
+    there.tell(Op::DocSaid {
+        id: acta,
+        d: Said {
+            title: "Acta".into(),
+            bytes: Some(20),
+            tags: Some(Vec::new()),
+        },
+    });
+
+    let acta = &there.state.docs[&acta];
+    assert_eq!(there.state.author_of(acta), Some("fulanito"));
+    assert_eq!(there.state.editor_of(acta), Some("rgdevment"));
+}
+
+#[test]
+fn the_aliases_this_store_signed_with_are_kept_apart_from_the_ones_that_arrived() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("fulanito".into()),
+            ..Default::default()
+        },
+    });
+    here.doc("# Suyo\n\nlo que escribio", None, None);
+    let box_at = room.path().join("suyo.tistydoc");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    for alias in ["rgdevment", "mario", "rgdevment"] {
+        there.tell(Op::Signed {
+            d: tisty_core::event::Signature {
+                alias: Some(alias.into()),
+                ..Default::default()
+            },
+        });
+    }
+    there.take_in(&box_at);
+
+    assert_eq!(there.state.signed_before, ["mario", "rgdevment"]);
+    assert_eq!(there.state.signed.alias.as_deref(), Some("rgdevment"));
+    assert_eq!(
+        there.state.author_of(there.titled("Suyo")),
+        Some("fulanito")
+    );
+}
+
+#[test]
+fn signing_with_the_same_name_as_a_guest_never_makes_their_writing_yours() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("fulanito".into()),
+            ..Default::default()
+        },
+    });
+    here.doc("# Suyo\n\nlo suyo", None, None);
+    let box_at = room.path().join("suyo.tistydoc");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+    for alias in ["fulanito", "rgdevment"] {
+        there.tell(Op::Signed {
+            d: tisty_core::event::Signature {
+                alias: Some(alias.into()),
+                ..Default::default()
+            },
+        });
+    }
+
+    assert!(
+        there.state.mine_to_sign().is_empty(),
+        "taking somebody's alias handed you their writing"
+    );
+    for id in there.state.mine_to_sign() {
+        there.tell(Op::DocSigned {
+            id,
+            d: "rgdevment".into(),
+        });
+    }
+    assert_eq!(
+        there.state.author_of(there.titled("Suyo")),
+        Some("fulanito")
+    );
+}
+
+#[test]
+fn a_document_remembers_the_name_it_was_born_under_after_it_is_signed_again() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("mario".into()),
+            ..Default::default()
+        },
+    });
+    here.doc("# Acta\n\nlo mio", None, None);
+    let acta = here.titled("Acta").id;
+
+    assert_eq!(here.state.born_of(&here.state.docs[&acta]), None);
+
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    here.tell(Op::DocSigned {
+        id: acta,
+        d: "rgdevment".into(),
+    });
+
+    let acta = &here.state.docs[&acta];
+    assert_eq!(here.state.author_of(acta), Some("rgdevment"));
+    assert_eq!(here.state.born_of(acta), Some("mario"));
+}
+
+#[test]
+fn coming_home_under_the_same_name_leaves_no_mark_however_it_was_typed() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    here.doc("# Acta\n\nlo mio", None, None);
+    let box_at = room.path().join("mio.tistydoc");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+    here.take_in(&box_at);
+
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("RGDEVMENT".into()),
+            ..Default::default()
+        },
+    });
+
+    assert!(
+        here.state.mine_to_sign().is_empty(),
+        "the same name in another case asked to be signed again"
+    );
+    assert_eq!(
+        here.state.signed_before,
+        ["RGDEVMENT"],
+        "the history kept the same name twice"
+    );
+    for one in here.state.docs.values() {
+        assert_eq!(
+            here.state.born_of(one),
+            None,
+            "it claimed a change that never happened"
+        );
+    }
+}
+
+#[test]
+fn whoever_signs_first_owns_what_nobody_had_signed() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc("# Huerfano\n\nsin dueño", None, None);
+    let lone = here.titled("Huerfano").id;
+
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    here.tell(Op::DocSigned {
+        id: lone,
+        d: "rgdevment".into(),
+    });
+
+    let lone = &here.state.docs[&lone];
+    assert_eq!(here.state.author_of(lone), Some("rgdevment"));
+    assert_eq!(
+        lone.born_by.as_deref(),
+        Some("rgdevment"),
+        "nobody took it as their own"
+    );
+    assert_eq!(
+        here.state.born_of(lone),
+        None,
+        "it says it changed hands when it never had any"
+    );
+}
+
+#[test]
+fn what_you_wrote_yourself_comes_home_as_yours_and_not_as_a_guest() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    here.doc("# Acta\n\nlo mio", None, None);
+    let box_at = room.path().join("respaldo.tistydoc");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut fresh = Room::new(room.path(), "fresh");
+    fresh.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("RgDevMent".into()),
+            ..Default::default()
+        },
+    });
+    fresh.take_in(&box_at);
+
+    let acta = fresh.titled("Acta");
+    assert!(!acta.guest, "your own writing came home as somebody else's");
+    assert_eq!(fresh.state.author_of(acta), Some("rgdevment"));
+    assert_eq!(fresh.state.editor_of(acta), None);
+    assert!(
+        fresh.state.mine_to_sign().is_empty(),
+        "it asked to be signed with the name it already carries"
     );
 }

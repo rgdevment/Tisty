@@ -682,7 +682,22 @@ export interface DocFacts {
   wrote: number | null;
   bytes: number;
   pages: number;
+  author: string | null;
+  editor: string | null;
+  born: string | null;
 }
+
+export const ALIAS_AT_MOST = 40;
+
+export interface Signed {
+  alias: string | null;
+  before: string[];
+  mine: number;
+}
+
+export const signed = (): Promise<Signed> => invoke("signed");
+export const sign = (alias?: string): Promise<Signed> => invoke("sign", { alias });
+export const signTheRest = (): Promise<number> => invoke("sign_the_rest");
 
 export const docFacts = (id: string): Promise<DocFacts> => invoke("doc_facts", { id });
 

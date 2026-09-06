@@ -328,6 +328,8 @@ impl Session {
         self.commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                made: None,
+                by: None,
                 file: file.to_string(),
                 order,
                 said: Some(tisty_core::event::Said::of(&body)),
@@ -2037,6 +2039,8 @@ const REFUSALS: &[&str] = &[
     "sandboxCannotMerge",
     "noSuchDoc",
     "notAParcel",
+    "stillPacking",
+    "aliasTooLong",
     "tooBig",
     "noSuchIcon",
     "noSuchColour",
@@ -3167,6 +3171,9 @@ struct Facts {
     wrote: Option<i64>,
     bytes: u64,
     pages: usize,
+    author: Option<String>,
+    editor: Option<String>,
+    born: Option<String>,
 }
 
 fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
@@ -3187,13 +3194,103 @@ fn keep_pdf(at: String, bytes: Vec<u8>) -> Answer<()> {
     })
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Signed {
+    alias: Option<String>,
+    before: Vec<String>,
+    mine: usize,
+}
+
+#[tauri::command]
+fn signed(session: tauri::State<'_, Mutex<Session>>) -> Answer<Signed> {
+    let session = held(&session);
+    Ok(as_signed(&session))
+}
+
+fn as_signed(session: &Session) -> Signed {
+    Signed {
+        alias: session.state.signed.alias.clone(),
+        before: session.state.signed_before.iter().rev().cloned().collect(),
+        mine: match session.state.signed.alias.is_some() {
+            true => session.state.mine_to_sign().len(),
+            false => 0,
+        },
+    }
+}
+
+#[tauri::command]
+fn sign_the_rest(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
+    let mut session = held(&session);
+    let Some(alias) = session.state.signed.alias.clone() else {
+        return Ok(0);
+    };
+    let ops: Vec<Op> = session
+        .state
+        .mine_to_sign()
+        .into_iter()
+        .map(|id| Op::DocSigned {
+            id,
+            d: alias.clone(),
+        })
+        .collect();
+    let many = ops.len();
+    if many > 0 {
+        session
+            .commit_all(ops)
+            .map_err(|e| blamed(channel::WINDOW, "the documents could not be signed", e))?;
+    }
+    Ok(many)
+}
+
+#[tauri::command]
+fn sign(session: tauri::State<'_, Mutex<Session>>, alias: Option<String>) -> Answer<Signed> {
+    let said = alias
+        .map(|one| one.trim().to_string())
+        .filter(|one| !one.is_empty());
+    if said
+        .as_ref()
+        .is_some_and(|one| one.chars().count() > tisty_core::event::ALIAS_AT_MOST)
+    {
+        return Err(Refusal::about(
+            "aliasTooLong",
+            tisty_core::event::ALIAS_AT_MOST.to_string(),
+        ));
+    }
+
+    let mut session = held(&session);
+    if said == session.state.signed.alias {
+        return Ok(as_signed(&session));
+    }
+    let mut signature = session.state.signed.clone();
+    signature.alias = said;
+    session
+        .commit(Op::Signed {
+            d: signature.clone(),
+        })
+        .map_err(|e| blamed(channel::WINDOW, "the signature could not be written", e))?;
+    Ok(as_signed(&session))
+}
+
 #[tauri::command]
 fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Facts> {
     let session = held(&session);
     let root = session.paths.docs();
     let kept = session.state.docs.values().find(|one| one.file == id);
-    let made = kept.map(|one| (one.id.timestamp_ms() / 1000) as i64);
+    let made = kept.map(|one| match one.made {
+        Some(at) => at.as_second(),
+        None => (one.id.timestamp_ms() / 1000) as i64,
+    });
     let pages = kept.map_or(0, |one| session.state.pages_of(one.id).len());
+    let author = kept
+        .and_then(|one| session.state.author_of(one))
+        .map(str::to_string);
+    let editor = kept
+        .and_then(|one| session.state.editor_of(one))
+        .map(str::to_string);
+    let born = kept
+        .and_then(|one| session.state.born_of(one))
+        .map(str::to_string);
     let at = tisty_core::docs::resolve(&root, &id)
         .map_err(|_| Refusal::about("noSuchDoc", id.clone()))?;
     let about = std::fs::metadata(&at).map_err(|_| Refusal::about("noSuchDoc", id))?;
@@ -3202,8 +3299,13 @@ fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Fa
         wrote: seconds(about.modified()),
         bytes: about.len(),
         pages,
+        author,
+        editor,
+        born,
     })
 }
+
+const WRITTEN_BY: &str = "Tisty";
 
 const PICTURES: &[&str] = &[
     "captura.png",
@@ -3346,6 +3448,8 @@ fn guide(
     session.commit(Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
+            made: None,
+            by: Some(WRITTEN_BY.into()),
             file: made.id.clone(),
             order: sorted,
             said: Some(tisty_core::event::Said {
@@ -3373,6 +3477,8 @@ fn guide(
             session.commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    made: None,
+                    by: Some(WRITTEN_BY.into()),
                     file: file.clone(),
                     order: order.clone(),
                     said,
@@ -3529,6 +3635,8 @@ fn doc_copy(
     session.commit(Op::DocAdd {
         id: twin,
         d: tisty_core::event::DocAdd {
+            made: None,
+            by: None,
             file: made.id.clone(),
             order,
             said: Some(tisty_core::event::Said {
@@ -3568,6 +3676,8 @@ fn doc_copy(
         session.commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                made: None,
+                by: None,
                 file: leaf.id,
                 order,
                 said: Some(tisty_core::event::Said {
@@ -3773,7 +3883,7 @@ struct Unpacked {
 async fn docs_pack(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
+    alone: tauri::State<'_, Packing>,
     which: Vec<String>,
     into: String,
 ) -> Answer<Packed> {
@@ -3829,7 +3939,7 @@ async fn docs_pack(
 async fn docs_take_out(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
+    alone: tauri::State<'_, Packing>,
     which: Vec<String>,
     into: String,
 ) -> Answer<Packed> {
@@ -3882,7 +3992,7 @@ async fn docs_take_out(
 async fn docs_unpack(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
+    alone: tauri::State<'_, Packing>,
     from: String,
 ) -> Answer<Unpacked> {
     let _done = alone.inner().taken()?;
@@ -3967,6 +4077,8 @@ fn doc_import(
     session.commit(Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
+            made: None,
+            by: None,
             file: made.id.clone(),
             order,
             said: Some(tisty_core::event::Said {
@@ -4037,6 +4149,8 @@ fn doc_new(
     session.commit(Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
+            made: None,
+            by: None,
             file: made.id.clone(),
             order,
             said: Some(tisty_core::event::Said {
@@ -4992,6 +5106,8 @@ fn settle_paper(
         .commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                made: None,
+                by: None,
                 file: file.clone(),
                 folder,
                 order,
@@ -5673,6 +5789,15 @@ fn worded(locale: &Option<String>, key: &str) -> String {
 struct Updating(OneAtATime);
 
 #[derive(Default)]
+struct Packing(OneAtATime);
+
+impl Packing {
+    fn taken(&self) -> Answer<Releasing<'_>> {
+        self.0.claim().ok_or_else(|| Refusal::of("stillPacking"))
+    }
+}
+
+#[derive(Default)]
 struct OneAtATime(std::sync::atomic::AtomicBool);
 
 impl OneAtATime {
@@ -5890,6 +6015,7 @@ pub fn run() {
             }
         })
         .manage(OneAtATime::default())
+        .manage(Packing::default())
         .manage(Updating::default())
         .manage(Leaving::default())
         .invoke_handler(tauri::generate_handler![
@@ -5997,6 +6123,9 @@ pub fn run() {
             doc_drop,
             doc_import,
             doc_export,
+            signed,
+            sign,
+            sign_the_rest,
             docs_pack,
             docs_take_out,
             docs_unpack,
@@ -6046,6 +6175,8 @@ mod deleting {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    made: None,
+                    by: None,
                     said: None,
                     file: made.id.clone(),
                     order: tisty_core::order::first(),
@@ -6933,6 +7064,8 @@ mod ordering {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    made: None,
+                    by: None,
                     file: file.clone(),
                     order: "a1".into(),
                     said: Some(tisty_core::event::Said {
@@ -6960,6 +7093,8 @@ mod ordering {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    made: None,
+                    by: None,
                     file: "notas-c3d4".into(),
                     order: "a1".into(),
                     said: Some(tisty_core::event::Said {
@@ -7045,6 +7180,8 @@ mod ordering {
                 .commit(Op::DocAdd {
                     id,
                     d: tisty_core::event::DocAdd {
+                        made: None,
+                        by: None,
                         said: None,
                         file: name.into(),
                         order: order.into(),

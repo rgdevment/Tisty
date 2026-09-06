@@ -66,6 +66,8 @@ const KNOWN = [
   "noSuchFolder",
   "noSuchDoc",
   "notAParcel",
+  "stillPacking",
+  "aliasTooLong",
   "tooBig",
   "deleteRefused",
   "alreadyKept",

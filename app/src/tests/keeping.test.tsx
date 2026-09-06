@@ -1,7 +1,7 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { adopt } from "../locales";
+import { adopt, t } from "../locales";
 import Keeping from "../ui/Keeping";
 import Welcome from "../ui/Welcome";
 
@@ -26,6 +26,12 @@ const installed = vi.hoisted(() => ({
     astray: boolean;
     points?: string;
   }[],
+}));
+
+const signing = vi.hoisted(() => ({
+  alias: null as string | null,
+  before: [] as string[],
+  mine: 0,
 }));
 
 const asked = vi.hoisted(() => ({
@@ -134,6 +140,9 @@ beforeEach(() => {
     { key: "icloud", named: "iCloud Drive" },
   ];
   holders.told = { keeper: "plain" };
+  signing.alias = null;
+  signing.before = [];
+  signing.mine = 0;
   ipc.answer = (cmd) => {
     switch (cmd) {
       case "keepers":
@@ -144,8 +153,27 @@ beforeEach(() => {
       }
       case "make_room":
         return Promise.resolve(null);
+      case "sign_the_rest": {
+        const many = signing.mine;
+        signing.mine = 0;
+        return Promise.resolve(many);
+      }
       case "sync_state":
         return Promise.resolve({ ...carrying });
+      case "signed":
+        return Promise.resolve({ ...signing });
+      case "sign": {
+        const said = ipc.calls[ipc.calls.length - 1]?.args.alias;
+        if ((typeof said === "string" ? said : null) === signing.alias)
+          return Promise.resolve({ ...signing });
+        signing.alias = typeof said === "string" ? said : null;
+        if (signing.alias)
+          signing.before = [
+            signing.alias,
+            ...signing.before.filter((one) => one !== signing.alias),
+          ];
+        return Promise.resolve({ ...signing });
+      }
       case "agent":
         return Promise.resolve({ ...serving });
       case "agent_turn": {
@@ -1244,6 +1272,7 @@ describe("the maintenance panel", () => {
 describe("the first-run assistant", () => {
   const spoken = async () => {
     await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeNotNow") }));
   };
 
   const alone = async () => {
@@ -1409,12 +1438,37 @@ describe("the first-run assistant", () => {
     expect(done.mock.calls[0][0]).toBeUndefined();
   });
 
+  it("asks for an alias between the language and the copies, and writes it down", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
+
+    const field = await screen.findByRole("textbox", { name: /^alias$/i });
+    await userEvent.type(field, "rgdevment");
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeSigned") }));
+
+    await waitFor(() => expect(sent("sign")).toHaveLength(1));
+    expect(sent("sign")[0].args.alias).toBe("rgdevment");
+    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+  });
+
+  it("lets the alias wait, and writes nothing down when it is skipped", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
+    await screen.findByRole("textbox", { name: /^alias$/i });
+
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeNotNow") }));
+
+    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+    expect(sent("sign")).toHaveLength(0);
+  });
+
   it("goes back, and shows what was already chosen", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
     await screen.findByRole("button", { name: /google drive/i });
 
     await userEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
 
     const english = await screen.findByRole("button", { name: /^english$/i });
     expect(english.getAttribute("aria-pressed")).toBe("true");
@@ -1424,10 +1478,89 @@ describe("the first-run assistant", () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
     await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
 
     await userEvent.click(screen.getByRole("button", { name: /^español$/i }));
 
     expect(sent("keep_locale").map((one) => one.args.locale)).toEqual(["en", "es"]);
+  });
+
+  it("keeps the alias the person signs with, and shows it again on the next look", async () => {
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await ready();
+
+    const field = await screen.findByRole("textbox", { name: /^alias$/i });
+    expect((field as HTMLInputElement).value).toBe("");
+    await userEvent.type(field, "  rgdevment  ");
+    fireEvent.blur(field);
+
+    await waitFor(() => expect(sent("sign")).toHaveLength(1));
+    expect(sent("sign")[0].args.alias).toBe("rgdevment");
+    await waitFor(() => expect((field as HTMLInputElement).value).toBe("rgdevment"));
+  });
+
+  it("offers the aliases this store signed with before, and not the one in use", async () => {
+    signing.alias = "rgdevment";
+    signing.before = ["rgdevment", "mario"];
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await ready();
+
+    const field = await screen.findByRole("combobox", { name: /^alias$/i });
+    expect((field as HTMLInputElement).value).toBe("rgdevment");
+    const offered = Array.from(document.querySelectorAll("#signed-before option")).map(
+      (one) => (one as HTMLOptionElement).value,
+    );
+    expect(offered).toEqual(["mario"]);
+  });
+
+  it("asks in plain words when the alias changes, and only then signs the older ones", async () => {
+    signing.alias = null;
+    signing.mine = 243;
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await ready();
+
+    const field = await screen.findByRole("textbox", { name: /^alias$/i });
+    await userEvent.type(field, "rgdevment");
+    fireEvent.blur(field);
+
+    await screen.findByText("You now sign as rgdevment");
+    await screen.findByText(
+      "What was already written keeps the signature it had. Do you want the 243 older documents to carry this alias instead?",
+    );
+    await screen.findByText("What arrived from somebody else keeps their name, always.");
+
+    await userEvent.click(screen.getByRole("button", { name: /only the new ones/i }));
+    expect(sent("sign_the_rest")).toHaveLength(0);
+
+    await userEvent.click(await screen.findByRole("button", { name: /sign the older ones/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /change them all/i }));
+
+    await waitFor(() => expect(sent("sign_the_rest")).toHaveLength(1));
+    await screen.findByText("243 documents signed");
+  });
+
+  it("says nothing about signing the rest while there is nothing to sign", async () => {
+    signing.alias = "rgdevment";
+    signing.mine = 0;
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await ready();
+    await screen.findByRole("textbox", { name: /^alias$/i });
+
+    expect(screen.queryByRole("button", { name: /sign the older ones/i })).toBeNull();
+  });
+
+  it("takes an emptied alias as leaving it unsigned", async () => {
+    signing.alias = "rgdevment";
+    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    await ready();
+
+    const field = await screen.findByRole("textbox", { name: /^alias$/i });
+    await waitFor(() => expect((field as HTMLInputElement).value).toBe("rgdevment"));
+    await userEvent.clear(field);
+    fireEvent.blur(field);
+
+    await waitFor(() => expect(sent("sign")).toHaveLength(1));
+    expect(sent("sign")[0].args.alias).toBeUndefined();
   });
 
   it("offers the command line, and says what to do next", async () => {

@@ -25,6 +25,8 @@ pub struct State {
     pub folders: BTreeMap<FolderId, Folder>,
     pub docs: BTreeMap<DocId, Kept>,
     pub devices: BTreeSet<DeviceId>,
+    pub signed: crate::event::Signature,
+    pub signed_before: Vec<String>,
     pub agents: BTreeSet<DeviceId>,
     pub assistants: BTreeSet<DeviceId>,
     pub sourced: BTreeMap<String, TaskId>,
@@ -34,6 +36,18 @@ pub struct State {
     pub forebears: BTreeSet<String>,
     pub(crate) fill: Fill,
     tombstones: BTreeSet<Ulid>,
+}
+
+pub fn same_name(one: &str, other: &str) -> bool {
+    one.trim().to_lowercase() == other.trim().to_lowercase()
+}
+
+fn alike(one: Option<&str>, other: Option<&str>) -> bool {
+    match (one, other) {
+        (Some(one), Some(other)) => same_name(one, other),
+        (None, None) => true,
+        _ => false,
+    }
 }
 
 pub const WORDS_AT_MOST: usize = 64 * 1024;
@@ -60,6 +74,7 @@ impl State {
     pub fn shut(&self, id: DocId) -> bool {
         self.docs.get(&id).is_some_and(|one| {
             one.locked
+                || one.archived
                 || one
                     .page_of
                     .is_some_and(|up| self.docs.get(&up).is_some_and(|doc| doc.locked))
@@ -268,7 +283,16 @@ impl State {
                         order: d.order.clone(),
                         title: d.said.as_ref().map(|one| one.title.clone()),
                         bytes: d.said.as_ref().and_then(|one| one.bytes),
-                        wrote: Some(event.timestamp),
+                        wrote: Some(d.made.unwrap_or(event.timestamp)),
+                        made: Some(d.made.unwrap_or(event.timestamp)),
+                        made_by: Some(event.device.clone()),
+                        wrote_by: Some(event.device.clone()),
+                        by: d.by.clone().or_else(|| self.signed.alias.clone()),
+                        born_by: d.by.clone().or_else(|| self.signed.alias.clone()),
+                        guest: d
+                            .by
+                            .as_deref()
+                            .is_some_and(|one| !alike(Some(one), self.signed.alias.as_deref())),
                         folder: match under {
                             Some(one) => one.folder,
                             None => d.folder,
@@ -294,6 +318,7 @@ impl State {
                         kept.tags = crate::tagging::worth_keeping(tags);
                     }
                     kept.wrote = Some(event.timestamp);
+                    kept.wrote_by = Some(event.device.clone());
                 }
             }
             Op::DocMove { id, d } => {
@@ -364,6 +389,16 @@ impl State {
                     self.tombstones.insert(one);
                 }
             }
+            Op::DocSigned { id, d } => {
+                if let Some(kept) = self.docs.get_mut(id) {
+                    let said = d.trim();
+                    let now = (!said.is_empty()).then(|| said.to_string());
+                    if kept.born_by.is_none() {
+                        kept.born_by.clone_from(&now);
+                    }
+                    kept.by = now;
+                }
+            }
             Op::DocArchive { id } => self.shelve(*id, true),
             Op::DocLock { id } => self.bolt(*id, true),
             Op::DocUnlock { id } => self.bolt(*id, false),
@@ -380,6 +415,23 @@ impl State {
                         self.agents.remove(d);
                     }
                     None => {}
+                }
+            }
+            Op::Signed { d } => {
+                let said = |one: &Option<String>| {
+                    one.as_deref()
+                        .map(str::trim)
+                        .filter(|one| !one.is_empty())
+                        .map(str::to_string)
+                };
+                self.signed = crate::event::Signature {
+                    alias: said(&d.alias),
+                    name: said(&d.name),
+                    email: said(&d.email),
+                };
+                if let Some(one) = &self.signed.alias {
+                    self.signed_before.retain(|was| !same_name(was, one));
+                    self.signed_before.push(one.clone());
                 }
             }
             Op::DeviceRemove { d } => {
@@ -1130,6 +1182,32 @@ impl State {
             .flat_map(|t| &t.tags)
             .chain(self.docs.values().flat_map(|one| &one.tags))
             .collect()
+    }
+
+    pub fn author_of<'a>(&'a self, kept: &'a crate::model::Kept) -> Option<&'a str> {
+        kept.by.as_deref()
+    }
+
+    pub fn born_of<'a>(&'a self, kept: &'a crate::model::Kept) -> Option<&'a str> {
+        kept.born_by
+            .as_deref()
+            .filter(|one| !alike(Some(one), kept.by.as_deref()))
+    }
+
+    pub fn mine_to_sign(&self) -> Vec<DocId> {
+        let now = self.signed.alias.as_deref();
+        self.docs
+            .values()
+            .filter(|one| !one.guest && !alike(one.by.as_deref(), now))
+            .map(|one| one.id)
+            .collect()
+    }
+
+    pub fn editor_of(&self, kept: &crate::model::Kept) -> Option<&str> {
+        match kept.guest && kept.wrote != kept.made {
+            true => self.signed.alias.as_deref(),
+            false => None,
+        }
     }
 
     pub fn docs_tagged(&self, tag: &Tag) -> impl Iterator<Item = &crate::model::Kept> {
@@ -2216,6 +2294,8 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a note.md".into(),
                     order: order::first(),
@@ -3156,6 +3236,8 @@ mod tests {
                 Op::DocAdd {
                     id: doc,
                     d: crate::event::DocAdd {
+                        made: None,
+                        by: None,
                         file: "dev0-0001".into(),
                         order: "a0".into(),
                         said: Some(crate::event::Said {
@@ -3862,6 +3944,8 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    made: None,
+                    by: None,
                     said: None,
                     file: file.into(),
                     order: "a0".into(),
@@ -4015,6 +4099,8 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a-0001".into(),
                     order: "a0".into(),
@@ -4045,6 +4131,8 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a3f1-0001".into(),
                     order: "a0".into(),
@@ -4480,6 +4568,8 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    made: None,
+                    by: None,
                     said: None,
                     file: file.into(),
                     order: "a0".into(),
@@ -4872,6 +4962,8 @@ mod compacting {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    made: None,
+                    by: None,
                     said: None,
                     file: format!("dev_a-{ms:04}"),
                     order,

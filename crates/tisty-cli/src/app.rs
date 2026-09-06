@@ -296,6 +296,8 @@ mod undoing {
         app.commit(Op::DocAdd {
             id: book,
             d: tisty_core::event::DocAdd {
+                made: None,
+                by: None,
                 said: None,
                 file: "dev_a-0001".into(),
                 order: order::first(),
@@ -309,6 +311,8 @@ mod undoing {
                 id: *id,
                 d: tisty_core::event::DocAdd {
                     said: None,
+                    made: None,
+                    by: None,
                     file: format!("dev_a-000{}", n + 2),
                     order: order::first(),
                     folder: None,

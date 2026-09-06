@@ -762,6 +762,9 @@ export default function App() {
           },
         },
         { key: "import", icon: "↧", label: t("importDoc"), onPick: () => bringIn(folder.id) },
+        { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => takeParcel() },
+        { key: "packAll", icon: "⇪", label: t("packAll"), onPick: () => packUp([], "tisty") },
+        { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
         {
           key: "drop",
           icon: "✕",

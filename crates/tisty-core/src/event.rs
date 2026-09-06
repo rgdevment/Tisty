@@ -1,14 +1,15 @@
 mod op;
 
 pub use op::{
-    Body, DeviceKind, DocAdd, Filed, FolderAdd, KNOWN_OPS, ListAdd, LogAdd, LogEdit, Look, Name,
-    Op, Said, StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
+    ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Filed, FolderAdd, KNOWN_OPS, ListAdd, LogAdd, LogEdit,
+    Look, Name, Op, Said, Signature, StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd,
+    TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 10;
+pub const SCHEMA_VERSION: u32 = 11;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -108,11 +109,13 @@ impl Event {
             | Op::DocMove { id, .. }
             | Op::DocSaid { id, .. }
             | Op::DocDelete { id }
+            | Op::DocSigned { id, .. }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id }
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
+            | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. } => None,

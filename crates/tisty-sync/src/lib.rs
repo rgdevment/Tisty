@@ -1371,6 +1371,8 @@ mod tests {
         held.append(Op::DocAdd {
             id: Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                made: None,
+                by: None,
                 said: None,
                 file: file.to_string(),
                 order: "a0".into(),
@@ -1595,6 +1597,8 @@ mod tests {
             Op::DocAdd {
                 id: Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    made: None,
+                    by: None,
                     file: "uno-0001".into(),
                     order: "a0".into(),
                     said: None,

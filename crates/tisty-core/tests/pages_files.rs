@@ -39,6 +39,8 @@ fn add_doc(
         Op::DocAdd {
             id,
             d: DocAdd {
+                made: None,
+                by: None,
                 said: None,
                 file: made.id.clone(),
                 order: order::first(),
@@ -68,6 +70,8 @@ fn add_page(
         Op::DocAdd {
             id,
             d: DocAdd {
+                made: None,
+                by: None,
                 said: None,
                 file: made.id.clone(),
                 order: placed,
@@ -296,6 +300,8 @@ fn duplicating_a_document_with_a_page_reuses_the_same_attachment_file_without_co
         Op::DocAdd {
             id: twin,
             d: DocAdd {
+                made: None,
+                by: None,
                 said: None,
                 file: made.id.clone(),
                 order: order::first(),
@@ -321,6 +327,8 @@ fn duplicating_a_document_with_a_page_reuses_the_same_attachment_file_without_co
             Op::DocAdd {
                 id: Ulid::generate(),
                 d: DocAdd {
+                    made: None,
+                    by: None,
                     said: None,
                     file: leaf.id,
                     order: placed,
@@ -910,6 +918,8 @@ fn duplicating_a_book_rewrites_its_cover_to_name_its_own_pages_not_the_originals
         Op::DocAdd {
             id: twin,
             d: DocAdd {
+                made: None,
+                by: None,
                 said: None,
                 file: twin_cover.id.clone(),
                 order: order::first(),
@@ -931,6 +941,8 @@ fn duplicating_a_book_rewrites_its_cover_to_name_its_own_pages_not_the_originals
             Op::DocAdd {
                 id: Ulid::generate(),
                 d: DocAdd {
+                    made: None,
+                    by: None,
                     said: None,
                     file: leaf.id.clone(),
                     order: placed,

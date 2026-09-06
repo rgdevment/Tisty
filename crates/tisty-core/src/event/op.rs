@@ -65,8 +65,10 @@ pub const KNOWN_OPS: &[&str] = &[
     "doc.unarchive",
     "doc.lock",
     "doc.unlock",
+    "doc.signed",
     "device.join",
     "device.remove",
+    "person.signed",
     "attach.retire",
     "stores.joined",
 ];
@@ -159,6 +161,9 @@ pub enum Op {
     #[serde(rename = "doc.unlock")]
     DocUnlock { id: DocId },
 
+    #[serde(rename = "doc.signed")]
+    DocSigned { id: DocId, d: String },
+
     #[serde(rename = "device.join")]
     DeviceJoin {
         d: DeviceId,
@@ -169,6 +174,9 @@ pub enum Op {
     },
     #[serde(rename = "device.remove")]
     DeviceRemove { d: DeviceId },
+
+    #[serde(rename = "person.signed")]
+    Signed { d: Signature },
 
     #[serde(rename = "attach.retire")]
     AttachRetire { d: String },
@@ -218,7 +226,10 @@ impl Op {
     }
 
     pub fn is_optional(&self) -> bool {
-        matches!(self, Op::DocSaid { .. })
+        matches!(
+            self,
+            Op::DocSaid { .. } | Op::Signed { .. } | Op::DocSigned { .. }
+        )
     }
 
     pub fn about(self, id: TaskId) -> Self {
@@ -255,12 +266,14 @@ impl Op {
             Op::DocAdd { d, .. } => Op::DocAdd { id, d },
             Op::DocMove { d, .. } => Op::DocMove { id, d },
             Op::DocSaid { d, .. } => Op::DocSaid { id, d },
+            Op::DocSigned { d, .. } => Op::DocSigned { id, d },
             Op::DocDelete { .. } => Op::DocDelete { id },
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
             Op::DocLock { .. } => Op::DocLock { id },
             Op::DocUnlock { .. } => Op::DocUnlock { id },
             Op::DeviceJoin { .. }
+            | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. } => self,
@@ -355,12 +368,14 @@ impl Op {
             | Op::DocAdd { id, .. }
             | Op::DocMove { id, .. }
             | Op::DocSaid { id, .. }
+            | Op::DocSigned { id, .. }
             | Op::DocDelete { id }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id }
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
+            | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. } => None,
@@ -568,12 +583,30 @@ pub struct DocAdd {
     pub file: String,
     pub order: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub made: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub said: Option<Said>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
     /// The document this one is a page of. A page never has pages of its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page_of: Option<DocId>,
+}
+
+/// Kept whole so that a name or an address can be filled in later without the log learning a
+/// new shape: what is written today is the alias alone.
+pub const ALIAS_AT_MOST: usize = 40;
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Signature {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alias: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

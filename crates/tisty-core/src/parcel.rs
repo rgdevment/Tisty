@@ -54,6 +54,10 @@ pub struct Paper {
     pub page_of: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wrote: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub made: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub archived: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -179,6 +183,8 @@ fn filled(
                     .map(|up| up.file.clone())
                     .filter(|up| held.contains(up.as_str())),
                 wrote: one.wrote,
+                made: one.made,
+                by: one.by.clone().or_else(|| state.signed.alias.clone()),
                 archived: one.archived,
                 locked: one.locked,
             })
@@ -503,6 +509,8 @@ fn taken_in(
             d: DocAdd {
                 file: made.id.clone(),
                 order,
+                made: paper.made,
+                by: paper.by.clone(),
                 said: Some(Said {
                     title: made.title.clone(),
                     bytes: Some(body.len() as u64),
