@@ -384,7 +384,7 @@ export default function Tree({
           data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
           data-drop-holds={takesPages(doc) ? "yes" : "no"}
           data-drop-line={lineTo(doc.folder ?? null).join("/")}
-          className={`group/row relative flex items-center rounded-md focus-within:bg-hover ${
+          className={`group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover ${
             over === doc.id ? "bg-accent-soft" : ""
           }${
             over === `${doc.id}:before`
@@ -700,12 +700,12 @@ function Grip({
       style={{ marginLeft: `${at}px` }}
       className="grid h-5 w-[18px] shrink-0 place-items-center rounded text-faint hover:text-ink"
     >
-      <span className="col-start-1 row-start-1 flex items-center transition-opacity group-hover/row:opacity-0 group-focus-within/row:opacity-0 motion-reduce:transition-none">
+      <span className="col-start-1 row-start-1 flex items-center transition-opacity group-hover/row:opacity-0 group-has-[:focus-visible]/row:opacity-0 motion-reduce:transition-none">
         {children}
       </span>
       <Glyph
         name="chevron"
-        className={`col-start-1 row-start-1 h-[13px] w-[13px] opacity-0 transition-[opacity,transform] group-hover/row:opacity-100 group-focus-within/row:opacity-100 motion-reduce:transition-none ${
+        className={`col-start-1 row-start-1 h-[13px] w-[13px] opacity-0 transition-[opacity,transform] group-hover/row:opacity-100 group-has-[:focus-visible]/row:opacity-100 motion-reduce:transition-none ${
           open ? "" : "-rotate-90"
         }`}
       />
