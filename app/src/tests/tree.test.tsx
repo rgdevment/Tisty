@@ -108,6 +108,16 @@ describe("the document tree", () => {
     expect(screen.getByRole("button", { name: "corporativo" })).toBeTruthy();
   });
 
+  it("gives the icon back when the pointer leaves, not when the focus finally moves on", async () => {
+    show();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close trabajo" }));
+
+    const chevron = screen.getByRole("button", { name: "Open trabajo" }).lastElementChild;
+    expect(chevron?.getAttribute("class")).toContain("group-has-[:focus-visible]/row:opacity-100");
+    expect(chevron?.getAttribute("class")).not.toContain("group-focus-within");
+  });
+
   it("says a folder is empty rather than leaving the gap unexplained", () => {
     show();
 
