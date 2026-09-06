@@ -501,7 +501,12 @@ export default function App() {
         if (caught.current || now.docs.every((one) => one.told !== false)) return;
         caught.current = true;
         return docsCatchUp()
-          .then((all) => setPapers((was) => steady(was, { folders: was.folders, docs: all })))
+          .then((all) => {
+            setPapers((was) => steady(was, { folders: was.folders, docs: all }));
+            // A catch-up that ran before the bodies were here read nothing: the round that brings
+            // them must be free to try again, or every arriving document stays untitled.
+            if (all.some((one) => one.told === false)) caught.current = false;
+          })
           .catch(() => {
             caught.current = false;
           });
@@ -649,6 +654,13 @@ export default function App() {
       lookPapers();
       setCarried((was) => was + 1);
     });
+    // A round says the log is home long before its attachments are; redrawing then is what keeps
+    // the window from sitting empty while bytes nobody is reading come down.
+    const landed = listen("carried", () => {
+      latest.current();
+      lookPapers();
+      setCarried((was) => was + 1);
+    });
     const sound = listen<unknown>("chime", (rung) => {
       if (heard(rung.payload)) play(rung.payload);
     });
@@ -659,6 +671,7 @@ export default function App() {
       stop.then((off) => off()).catch(() => {});
       caught.then((off) => off()).catch(() => {});
       stirred.then((off) => off()).catch(() => {});
+      landed.then((off) => off()).catch(() => {});
       sound.then((off) => off()).catch(() => {});
       along.then((off) => off()).catch(() => {});
     };

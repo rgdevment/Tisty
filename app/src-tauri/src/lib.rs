@@ -3056,8 +3056,25 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
             );
             Refusal::about("documentTooBig", weighed(limit))
         }
+        // Only a body that is genuinely not here is on its way; anything else is a document that
+        // could not be read, and calling that «coming» leaves somebody watching a bar forever.
+        _ if !root.join(format!("{id}.md")).exists() && still_coming(&session, &id) => {
+            Refusal::about("docComing", id)
+        }
         _ => Refusal::about("noSuchDoc", id),
     })
+}
+
+/// A document the log names and the shared folder holds is on its way, not lost: the round that
+/// brings it may still be moving, and saying it is gone would read as somebody having deleted it.
+fn still_coming(session: &tauri::State<'_, Mutex<Session>>, id: &str) -> bool {
+    // The guard goes before the folder is touched: a share that has gone away answers slowly, and
+    // holding the session while it does would stop every other command in the window.
+    let dest = match &held(session).config.sync {
+        Some(tisty_core::config::Sync::Folder(dest)) => dest.clone(),
+        _ => return false,
+    };
+    tisty_sync::paper_waiting(&dest, id)
 }
 
 /// Long enough for a file already on its way, short enough that nobody thinks the app hung.
@@ -4762,6 +4779,13 @@ fn keeper_of(at: String) -> Told {
     told(&std::path::PathBuf::from(at))
 }
 
+/// The window sends the meeting place itself, already settled by `room`; settling it again would
+/// ask about a folder one level further down that nothing has ever written to.
+#[tauri::command(async)]
+fn strays_at(at: String) -> usize {
+    tisty_sync::unclaimed(&std::path::PathBuf::from(at))
+}
+
 /// A folder that already holds a store is the meeting place itself; anywhere else we hang ours
 /// inside, so pointing at Documents does not scatter the store through it.
 fn room(at: &std::path::Path) -> std::path::PathBuf {
@@ -4915,6 +4939,7 @@ fn close_window(
 
 #[tauri::command]
 async fn sync_now(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
     way: Option<String>,
@@ -4953,8 +4978,26 @@ async fn sync_now(
         _ => tisty_sync::Way::Both,
     };
 
+    let telling = app.clone();
     let done = tauri::async_runtime::spawn_blocking(move || {
-        tisty_sync::carry_holding(&data, Some(&aside), &device, &dest, way, &alive, holds)
+        tisty_sync::carry_telling(
+            &data,
+            Some(&aside),
+            &device,
+            &dest,
+            way,
+            &alive,
+            holds,
+            &mut |far| {
+                let _ = telling.emit(
+                    "carried",
+                    match far {
+                        tisty_sync::Reached::Log => "log",
+                        tisty_sync::Reached::Papers => "papers",
+                    },
+                );
+            },
+        )
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
@@ -6147,6 +6190,7 @@ pub fn run() {
             snapshot,
             keepers,
             keeper_of,
+            strays_at,
             make_room,
             glimpse_kept,
             glimpse_fetch,

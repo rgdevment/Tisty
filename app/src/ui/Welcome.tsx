@@ -1,16 +1,20 @@
 import { useState } from "react";
+import { stillApart, walkThrough } from "../apart";
 import {
   ALIAS_AT_MOST,
   guide,
   keepClosing,
   keepLocale,
+  type Kin,
   sign,
   sowLists,
+  syncKin,
   syncNow,
   wakeFor,
 } from "../core";
 import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import Apart, { type Door } from "./Apart";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
 
@@ -63,6 +67,9 @@ export default function Welcome({ onDone }: Props) {
   const [tongue, setTongue] = useState<string>();
   const [alias, setAlias] = useState("");
   const [deciding, setDeciding] = useState(false);
+  const [carrying, setCarrying] = useState(false);
+  const [stuck, setStuck] = useState<string>();
+  const [kin, setKin] = useState<Kin>();
 
   const at = STEPS.indexOf(step);
 
@@ -89,19 +96,57 @@ export default function Welcome({ onDone }: Props) {
       .finally(() => setBusy(false));
   };
 
-  const leave = (at?: string) => {
-    setBusy(true);
-    setTrouble(undefined);
-    Promise.allSettled([wakeFor(true), keepClosing("hide")])
-      .then(() => (at ? syncNow().catch(() => undefined) : undefined))
-      .then(() => sowLists().catch(() => undefined))
+  const finish = () =>
+    sowLists()
+      .catch(() => undefined)
       .then(() =>
         guide()
           .then((paper) => paper.id as string | undefined)
           .catch(() => undefined),
       )
       .then(onDone);
+
+  const leave = (at?: string) => {
+    setBusy(true);
+    setTrouble(undefined);
+    setStuck(undefined);
+    Promise.allSettled([wakeFor(true), keepClosing("hide")])
+      .then(() => {
+        if (!at) return;
+        setCarrying(true);
+        return syncNow();
+      })
+      .then(() => finish())
+      .catch((e) => {
+        setCarrying(false);
+        if (!stillApart(e)) return setStuck(saidPlainly(e));
+        syncKin()
+          .catch(() => "unsure" as const)
+          .then(setKin);
+      });
   };
+
+  // The same choice Settings offers, asked where the trouble turned up rather than somewhere else.
+  const closed = (door: Door | "else" | null) => {
+    setKin(undefined);
+    if (door === null) return setStuck(t("wouldReset"));
+    setCarrying(true);
+    walkThrough(door)
+      .then((went) => (went ? syncNow().then(() => finish()) : setStuck(t("wouldReset"))))
+      .catch((e) => setStuck(saidPlainly(e)))
+      .finally(() => setCarrying(false));
+  };
+
+  if (kin) {
+    return (
+      <Apart
+        kin={kin}
+        onPick={(door) => closed(door)}
+        onElse={() => closed("else")}
+        onClose={() => closed(null)}
+      />
+    );
+  }
 
   return (
     <Modal
@@ -177,6 +222,39 @@ export default function Welcome({ onDone }: Props) {
               onPick={() => speak(one.code)}
             />
           ))
+        ) : stuck ? (
+          <div className="flex flex-col gap-3">
+            <div
+              role="alert"
+              className="rounded-lg border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
+            >
+              <span className="block text-[12.5px] font-semibold text-ink">
+                {t("welcomeCarryStuck")}
+              </span>
+              {stuck}
+            </div>
+            <button
+              type="button"
+              onClick={() => finish()}
+              className="ml-auto rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
+            >
+              {t("welcomeAnyway")}
+            </button>
+          </div>
+        ) : carrying ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-lg border border-hair bg-accent-soft px-3 py-2 text-xs leading-relaxed text-soft"
+          >
+            <span className="block text-[12.5px] font-semibold text-ink">
+              {t("welcomeCarrying")}
+            </span>
+            {t("welcomeCarryingWhy")}
+            <span aria-hidden="true" className="mt-2 block h-1 overflow-hidden rounded-full bg-line">
+              <span className="sliding block h-full w-1/3 rounded-full bg-accent" />
+            </span>
+          </div>
         ) : (
           <Keepers busy={busy} onTrouble={setTrouble} onDeciding={setDeciding} onDone={leave} />
         )}

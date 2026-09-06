@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { stillApart, walkThrough } from "../apart";
 import {
   type About,
   type Agent,
@@ -24,7 +25,6 @@ import {
   type Gone,
   guide,
   type Holds,
-  joinThem,
   type Keeper,
   type Kin,
   keepLocale,
@@ -32,7 +32,6 @@ import {
   keepSettings,
   logs,
   type Machine,
-  mergeStores,
   type Reach,
   type Ready,
   type Reviewed,
@@ -58,7 +57,6 @@ import {
   syncNow,
   syncState,
   type Twins,
-  takeOver,
   twinned,
   unwireAgent,
   updateInstall,
@@ -300,31 +298,11 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
     setTrouble(undefined);
     try {
       const answer = await syncNow(way).catch(async (problem) => {
-        const refusal = problem as { code?: string; name?: string };
-        if (refusal?.code !== "wouldReset" && refusal?.code !== "otherStore") throw problem;
+        if (!stillApart(problem)) throw problem;
         setKin(await syncKin().catch(() => "unsure" as const));
         const door = await new Promise<Door | "else" | null>((settle) => setApart(() => settle));
         if (door === null) return "declined" as const;
-        if (door === "else") {
-          const where = await open({ directory: true });
-          if (typeof where !== "string") return "declined" as const;
-          await chooseSync(where);
-          return syncNow();
-        }
-        const named = {
-          merge: "tisty-before-joining-both",
-          mine: "tisty-folder-before",
-          theirs: "tisty-before-joining",
-        } as const;
-        const day = new Date().toISOString().slice(0, 10);
-        const at = await save({
-          defaultPath: `${named[door]}-${day}.zip`,
-          filters: [{ name: "Tisty", extensions: ["zip"] }],
-        });
-        if (typeof at !== "string") return "declined" as const;
-        if (door === "merge") await mergeStores(at);
-        else if (door === "mine") await takeOver(at);
-        else await joinThem(at);
+        if (!(await walkThrough(door))) return "declined" as const;
         return syncNow();
       });
 
@@ -1112,6 +1090,12 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                           setFreeing(null);
                           setTrouble({ card: "holds", text: saidPlainly(e) });
                         });
+                      }
+                      // Saying «all of them here» has to fetch the ones that are not, the way
+                      // «leave the big ones there» lets go of them — until it does, the folder is
+                      // the only copy and nothing stops somebody leaving it.
+                      if (holds === "everywhere") {
+                        void carryNow();
                       }
                     }}
                     className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}

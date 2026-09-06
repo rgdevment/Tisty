@@ -16,6 +16,18 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
+const bus = vi.hoisted(() => ({
+  heard: new Map<string, ((said: { payload: unknown }) => void)[]>(),
+}));
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: (named: string, fn: (said: { payload: unknown }) => void) => {
+    bus.heard.set(named, [...(bus.heard.get(named) ?? []), fn]);
+    return Promise.resolve(() => {});
+  },
+  emit: () => Promise.resolve(),
+}));
+
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: () => Promise.resolve(null),
   save: () => Promise.resolve(null),
@@ -122,6 +134,46 @@ const started = async () => {
 
 const value = (name: string) =>
   (screen.getByRole("textbox", { name }) as HTMLTextAreaElement | HTMLInputElement).value;
+
+describe("a round landing while the window is open", () => {
+  const untitled = [
+    { id: "01D", file: "a3f1-0001", title: "", told: false, folder: null, archived: false },
+  ];
+
+  beforeEach(() => {
+    bus.heard.clear();
+    ipc.calls = [];
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "docs") return Promise.resolve({ folders: [], docs: untitled });
+      if (cmd === "docs_catch_up") return Promise.resolve(untitled);
+      return answered(cmd, args);
+    };
+  });
+
+  const landed = (what: string) => {
+    for (const fn of bus.heard.get("carried") ?? []) fn({ payload: what });
+  };
+
+  it("reads the titles once the bodies are here, not when the log lands", async () => {
+    render(<App />);
+    await waitFor(() => expect(bus.heard.get("carried")?.length).toBeGreaterThan(0));
+    await waitFor(() => expect(ipc.calls.some((one) => one.cmd === "docs_catch_up")).toBe(true));
+    const first = ipc.calls.filter((one) => one.cmd === "docs_catch_up").length;
+
+    landed("log");
+    await waitFor(() =>
+      expect(ipc.calls.filter((one) => one.cmd === "docs_catch_up").length).toBeGreaterThan(first),
+    );
+    const second = ipc.calls.filter((one) => one.cmd === "docs_catch_up").length;
+
+    landed("papers");
+
+    await waitFor(() =>
+      expect(ipc.calls.filter((one) => one.cmd === "docs_catch_up").length).toBeGreaterThan(second),
+    );
+  });
+});
 
 describe("the open panel", () => {
   it("lets go of the task once it is completed from the list", async () => {

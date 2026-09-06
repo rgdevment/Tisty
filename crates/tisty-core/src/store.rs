@@ -839,6 +839,36 @@ fn active_size(path: &Path) -> u64 {
     std::fs::metadata(path).map(|m| m.len()).unwrap_or(0)
 }
 
+pub struct Alone(File);
+
+impl Drop for Alone {
+    fn drop(&mut self) {
+        let _ = FileExt::unlock(&self.0);
+    }
+}
+
+/// The same lock every writer to this device's history takes. None means somebody is writing, and
+/// what a live writer is appending to is not ours to rename out from under it.
+pub fn alone(device_dir: &Path) -> Option<Alone> {
+    std::fs::create_dir_all(device_dir).ok()?;
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(device_dir.join(LOCK))
+        .ok()?;
+
+    let mut waited = 0;
+    while !file.try_lock_exclusive().ok()? {
+        if waited >= LOCK_WAIT_MS {
+            return None;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(LOCK_POLL_MS));
+        waited += LOCK_POLL_MS;
+    }
+    Some(Alone(file))
+}
+
 /// A line is written whole or not at all, so one that will not parse at the very end of the
 /// segment still being written is the half of an event a power cut took. It is set aside rather
 /// than read, because refusing it would take every whole event before it down as well. Only ever
