@@ -36,6 +36,17 @@ const picked = vi.hoisted(() => ({ path: Promise.resolve(null as string | null) 
 
 const taking = vi.hoisted(() => ({ files: 0, missed: 0, left: 0 }));
 
+const parcel = vi.hoisted(() => ({
+  packed: [] as { which: string[]; into: string }[],
+  docs: 0,
+  pages: 0,
+  folders: 0,
+  joined: 0,
+  files: 0,
+  missed: 0,
+  left: 0,
+}));
+
 const carrier = vi.hoisted(() => ({ made: 0, asked: 0 }));
 
 const ipc = vi.hoisted(() => ({
@@ -76,6 +87,7 @@ vi.mock("@tauri-apps/api/window", () => ({
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: () => Promise.resolve(true),
   open: () => picked.path,
+  save: () => picked.path,
 }));
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
@@ -183,6 +195,35 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
     }
     case "doc_export":
       return Promise.resolve({ ...taking });
+    case "docs_pack":
+      parcel.packed.push({ which: args.which as string[], into: String(args.into) });
+      return Promise.resolve({
+        docs: parcel.docs,
+        pages: parcel.pages,
+        folders: parcel.folders,
+        files: parcel.files,
+        missed: parcel.missed,
+        left: parcel.left,
+      });
+    case "docs_take_out":
+      parcel.packed.push({ which: args.which as string[], into: String(args.into) });
+      return Promise.resolve({
+        docs: parcel.docs,
+        pages: parcel.pages,
+        folders: parcel.folders,
+        files: parcel.files,
+        missed: parcel.missed,
+        left: parcel.left,
+      });
+    case "docs_unpack":
+      return Promise.resolve({
+        docs: parcel.docs,
+        pages: parcel.pages,
+        folders: parcel.folders,
+        joined: parcel.joined,
+        files: parcel.files,
+        missed: parcel.missed,
+      });
     case "folder_rename": {
       const folder = store.folders.find((one) => one.id === args.id);
       if (folder) folder.name = String(args.name);
@@ -227,6 +268,14 @@ beforeEach(() => {
   taking.files = 0;
   taking.missed = 0;
   taking.left = 0;
+  parcel.packed = [];
+  parcel.docs = 0;
+  parcel.pages = 0;
+  parcel.folders = 0;
+  parcel.joined = 0;
+  parcel.files = 0;
+  parcel.missed = 0;
+  parcel.left = 0;
   carrier.made = 0;
   carrier.asked = 0;
   ipc.answer = backend;
@@ -616,6 +665,93 @@ describe("what the menus reach for outside the tree", () => {
     await chooseFor("Acta", t("takeOut"));
 
     await waitFor(() => expect(screen.getByText(t("takenOutAlone"))).toBeTruthy());
+  });
+
+  it("packs everything written into one parcel, and asks for none of it by name", async () => {
+    seedDoc({ title: "Acta" });
+    seedDoc({ title: "Otra" });
+    picked.path = Promise.resolve("D:/salida/tisty.tistydoc");
+    parcel.docs = 2;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("packAll") }));
+
+    await waitFor(() => expect(parcel.packed).toHaveLength(1));
+    expect(parcel.packed[0].which).toEqual([]);
+    await waitFor(() => expect(screen.getByText(fill("packed", "2"))).toBeTruthy());
+  });
+
+  it("writes everything out as plain markdown, saying how many folders it stood up", async () => {
+    seedDoc({ title: "Acta" });
+    picked.path = Promise.resolve("D:/salida");
+    parcel.docs = 5;
+    parcel.folders = 2;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("takeOutAll") }));
+
+    await waitFor(() => expect(parcel.packed).toHaveLength(1));
+    expect(parcel.packed[0].which).toEqual([]);
+    await waitFor(() => expect(screen.getByText(fill("tookOutAll", "5", "2"))).toBeTruthy());
+  });
+
+  it("says it is working, and how far along, rather than going quiet for minutes", async () => {
+    seedDoc({ title: "Acta" });
+    picked.path = Promise.resolve("D:/salida/tisty.tistydoc");
+    parcel.docs = 1;
+    let held: (packed: unknown) => void = () => {};
+    const waiting = new Promise((settle) => {
+      held = settle;
+    });
+    const backend = ipc.answer;
+    ipc.answer = (cmd, args) => (cmd === "docs_pack" ? waiting : backend(cmd, args));
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("packAll") }));
+
+    await waitFor(() => expect(screen.getByText(t("aWhileYet"))).toBeTruthy());
+    expect(screen.getByText(fill("packingOn", "").trim())).toBeTruthy();
+
+    held({ docs: 1, pages: 0, folders: 0, files: 0, missed: 0, left: 0 });
+    await waitFor(() => expect(screen.queryByText(t("aWhileYet"))).toBeNull());
+  });
+
+  it("packs one document by name when the parcel was asked for from its row", async () => {
+    const doc = seedDoc({ title: "Acta" });
+    picked.path = Promise.resolve("D:/salida/Acta.tistydoc");
+    parcel.docs = 1;
+    await boot();
+
+    await chooseFor("Acta", t("packIt"));
+
+    await waitFor(() => expect(parcel.packed).toHaveLength(1));
+    expect(parcel.packed[0].which).toEqual([doc.file]);
+  });
+
+  it("says what came in when a parcel is taken in, folders and all", async () => {
+    picked.path = Promise.resolve("D:/entrada/tisty.tistydoc");
+    parcel.docs = 4;
+    parcel.pages = 2;
+    parcel.folders = 3;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
+
+    await waitFor(() => expect(screen.getByText(fill("landedIn", "6", "3"))).toBeTruthy());
+  });
+
+  it("says so plainly when the parcel held no documents at all", async () => {
+    picked.path = Promise.resolve("D:/entrada/vacio.tistydoc");
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
+
+    await waitFor(() => expect(screen.getByText(t("landedNone"))).toBeTruthy());
   });
 
   it("says which files it points at were not there to take", async () => {

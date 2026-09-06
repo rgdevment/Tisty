@@ -418,7 +418,7 @@ fn exporting_ten_pages_carries_the_cover_the_pages_in_order_and_every_attachment
     assert_eq!(page_files.len(), 10);
 
     let out = tmp();
-    let taken = docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+    let taken = docs::with_pages(data, &book_file, &page_files, out.path(), None).unwrap();
 
     let folder = out.path().join("Book");
     assert!(folder.join("Book.md").exists());
@@ -473,7 +473,7 @@ fn two_pages_that_both_fall_back_to_the_generic_name_still_export_as_two_files()
         .map(|one| one.file.clone())
         .collect();
     let out = tmp();
-    docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+    docs::with_pages(data, &book_file, &page_files, out.path(), None).unwrap();
 
     let folder = out.path().join("Simbolos");
     let a = std::fs::read_to_string(folder.join("01 documento.md")).unwrap();
@@ -523,8 +523,17 @@ fn exporting_with_pages_into_a_path_inside_the_store_is_refused_before_anything_
     let (book, book_file) = add_doc(&mut state, data, &dev, &mut seq, "# Guardado\n\ntexto");
     let (_, page_file) = add_page(&mut state, data, &dev, &mut seq, book, "# Pagina\n\ntexto");
 
-    assert!(docs::with_pages(data, &book_file, std::slice::from_ref(&page_file), data).is_err());
-    assert!(docs::with_pages(data, &book_file, &[page_file], &data.join("docs")).is_err());
+    assert!(
+        docs::with_pages(
+            data,
+            &book_file,
+            std::slice::from_ref(&page_file),
+            data,
+            None
+        )
+        .is_err()
+    );
+    assert!(docs::with_pages(data, &book_file, &[page_file], &data.join("docs"), None).is_err());
 }
 
 #[test]
@@ -556,7 +565,8 @@ fn exporting_skips_a_page_whose_file_vanished_from_disk_without_aborting_the_res
     docs::remove(&data.join("docs"), &gone_file).unwrap();
 
     let out = tmp();
-    let taken = docs::with_pages(data, &book_file, &[gone_file, kept_file], out.path()).unwrap();
+    let taken =
+        docs::with_pages(data, &book_file, &[gone_file, kept_file], out.path(), None).unwrap();
 
     assert_eq!(taken.files, 0);
     assert_eq!(
@@ -797,7 +807,7 @@ fn the_way_into_a_page_is_the_file_beside_it_once_the_book_is_out_of_tisty() {
         .map(|one| one.file.clone())
         .collect();
     let out = tmp();
-    docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+    docs::with_pages(data, &book_file, &page_files, out.path(), None).unwrap();
 
     let said = std::fs::read_to_string(out.path().join("Libro").join("Libro.md")).unwrap();
     assert!(said.contains("[Uno](<01 Uno.md>)"), "{said}");
@@ -838,7 +848,7 @@ fn a_book_of_more_than_ninety_nine_pages_still_comes_out_in_reading_order() {
         .map(|one| one.file.clone())
         .collect();
     let out = tmp();
-    docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+    docs::with_pages(data, &book_file, &page_files, out.path(), None).unwrap();
 
     let folder = out.path().join("Tomo");
     let mut names: Vec<String> = std::fs::read_dir(&folder)
@@ -1011,7 +1021,7 @@ fn exporting_a_book_whose_pages_name_each_other_rewrites_both_sides_of_the_cross
         .map(|one| one.file.clone())
         .collect();
     let out = tmp();
-    docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+    docs::with_pages(data, &book_file, &page_files, out.path(), None).unwrap();
 
     let folder = out.path().join("Libro");
     let said_uno = std::fs::read_to_string(folder.join("01 Uno.md")).unwrap();
@@ -1053,7 +1063,7 @@ fn a_picture_the_person_wrote_is_still_a_picture_when_the_book_comes_out() {
         .map(|one| one.file.clone())
         .collect();
     let out = tmp();
-    docs::with_pages(data, &book_file, &page_files, out.path()).unwrap();
+    docs::with_pages(data, &book_file, &page_files, out.path(), None).unwrap();
 
     let said = std::fs::read_to_string(out.path().join("Libro").join("Libro.md")).unwrap();
     assert!(

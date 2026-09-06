@@ -840,6 +840,17 @@ fn decoded(said: &str) -> Option<String> {
     String::from_utf8(out).ok()
 }
 
+pub fn found(reference: &str, root: &Path, also: Option<&Path>) -> Result<PathBuf> {
+    let here = resolve(reference, root)?;
+    if here.is_file() {
+        return Ok(here);
+    }
+    match also.map(|beside| resolve(reference, beside)) {
+        Some(Ok(there)) if there.is_file() => Ok(there),
+        _ => Ok(here),
+    }
+}
+
 pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
     let cleaned = reference.split(['?', '#']).next().unwrap_or("");
     let refused = || Err(Error::OutsideTheStore(reference.to_string()));

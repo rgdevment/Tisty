@@ -650,18 +650,40 @@ pub struct Taken {
 }
 
 pub fn exported(data: &Path, id: &str, into: &Path) -> Result<Taken> {
-    with_pages(data, id, &[], into)
+    with_pages(data, id, &[], into, None)
 }
 
 /// The pages travel with the document: a book exported by its cover alone is not the book.
-pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Result<Taken> {
+pub fn with_pages(
+    data: &Path,
+    id: &str,
+    pages: &[String],
+    into: &Path,
+    also: Option<&Path>,
+) -> Result<Taken> {
+    laid_out_as(data, id, pages, into, None, also)
+}
+
+pub fn laid_out_as(
+    data: &Path,
+    id: &str,
+    pages: &[String],
+    into: &Path,
+    called: Option<&str>,
+    also: Option<&Path>,
+) -> Result<Taken> {
     if into.starts_with(data) || data.starts_with(into) {
         return Err(Error::OutsideTheStore(into.display().to_string()));
     }
     let body = read(&data.join("docs"), id)?;
 
-    let named = titled(&body);
-    let named = spelled(if named.is_empty() { id } else { &named });
+    let named = match called {
+        Some(one) => one.to_string(),
+        None => {
+            let named = titled(&body);
+            spelled(if named.is_empty() { id } else { &named })
+        }
+    };
     let folder = into.join(&named);
     std::fs::create_dir_all(into)?;
     std::fs::create_dir(&folder)?;
@@ -699,9 +721,10 @@ pub fn with_pages(data: &Path, id: &str, pages: &[String], into: &Path) -> Resul
         &beside(&body),
         &folder,
         &format!("{named}.{EXTENSION}"),
+        also,
     )?;
     for (_, at, body) in &written {
-        let more = laid_out(data, &beside(body), &folder, at)?;
+        let more = laid_out(data, &beside(body), &folder, at, also)?;
         taken.files += more.files;
         for one in more.left {
             left_behind(&mut taken.left, one);
@@ -755,7 +778,19 @@ fn left_behind(left: &mut Vec<String>, one: String) {
     }
 }
 
-fn laid_out(data: &Path, body: &str, folder: &Path, named: &str) -> Result<Taken> {
+fn shelved<'a>(from: &'a Path, held: &Path, also: Option<&Path>) -> Option<&'a Path> {
+    from.strip_prefix(held)
+        .ok()
+        .or_else(|| also.and_then(|beside| from.strip_prefix(beside.join("attachments")).ok()))
+}
+
+fn laid_out(
+    data: &Path,
+    body: &str,
+    folder: &Path,
+    named: &str,
+    also: Option<&Path>,
+) -> Result<Taken> {
     write_atomic(&folder.join(named), body.as_bytes())?;
 
     let held = data.join("attachments");
@@ -764,11 +799,11 @@ fn laid_out(data: &Path, body: &str, folder: &Path, named: &str) -> Result<Taken
         if !one.starts_with("attachments/") {
             continue;
         }
-        let Ok(from) = crate::attach::resolve(&one, data) else {
+        let Ok(from) = crate::attach::found(&one, data, also) else {
             left_behind(&mut taken.left, one);
             continue;
         };
-        let Ok(rest) = from.strip_prefix(&held) else {
+        let Some(rest) = shelved(&from, &held, also) else {
             continue;
         };
         if !from.is_file() {
@@ -788,7 +823,7 @@ fn laid_out(data: &Path, body: &str, folder: &Path, named: &str) -> Result<Taken
     Ok(taken)
 }
 
-fn spelled(said: &str) -> String {
+pub(crate) fn spelled(said: &str) -> String {
     let flat: String = said
         .chars()
         .map(|c| {
@@ -3757,6 +3792,7 @@ despues
             "mac0-0001",
             &["mac0-0002".into(), "mac0-0003".into()],
             out.path(),
+            None,
         )
         .unwrap();
 
@@ -3924,7 +3960,7 @@ despues
         .unwrap();
 
         let out = tempfile::tempdir().unwrap();
-        let taken = with_pages(data, "mac0-0001", &["mac0-0002".into()], out.path()).unwrap();
+        let taken = with_pages(data, "mac0-0001", &["mac0-0002".into()], out.path(), None).unwrap();
 
         assert_eq!(taken.left, ["attachments/6d/clip-da1d77da.mov"]);
     }

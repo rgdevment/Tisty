@@ -1,11 +1,12 @@
 import { listen } from "@tauri-apps/api/event";
-import { ask, open as pick } from "@tauri-apps/plugin-dialog";
+import { ask, save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AXES } from "./archive";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
 import { asPlain } from "./copying";
 import {
+  type Afoot,
   attach,
   type Change,
   capture,
@@ -23,6 +24,9 @@ import {
   docPage,
   docs,
   docsCatchUp,
+  docsPack,
+  docsTakeOut,
+  docsUnpack,
   dropStep,
   erase,
   type Filed,
@@ -59,7 +63,7 @@ import {
 import { decideAll, decidesByBlock } from "./deciding";
 import { handTo, whenFilesLand } from "./dropped";
 import { todayLong } from "./format";
-import { adopt, fill, t } from "./locales";
+import { adopt, fill, t, type Word } from "./locales";
 import { noticeBehind, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
@@ -118,6 +122,8 @@ export const kept = (key: string): string[] => {
 };
 
 const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
+
+const PARCEL = "tistydoc";
 
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -185,6 +191,7 @@ export default function App() {
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [afoot, setAfoot] = useState<Afoot | null>(null);
   const [menu, setMenu] = useState<{
     at: { x: number; y: number };
     label: string;
@@ -220,6 +227,94 @@ export default function App() {
         setChosen({ named: "docs", doc: made.id });
       })
       .catch((e) => setError(saidPlainly(e)));
+
+  const packUp = (which: string[], named: string) =>
+    intoFile({
+      defaultPath: `${named}.${PARCEL}`,
+      filters: [{ name: "Tisty", extensions: [PARCEL] }],
+    })
+      .then((at) => {
+        if (typeof at !== "string") return null;
+        setAfoot({ stage: "packing", far: 0, done: 0, whole: 0 });
+        return docsPack(which, at);
+      })
+      .then((packed) => {
+        setAfoot(null);
+        if (!packed) return;
+        if (packed.left > 0) {
+          setError(packed.left === 1 ? t("takenLess") : fill("takenLesser", String(packed.left)));
+          return;
+        }
+        setNote(packed.docs ? fill("packed", String(packed.docs)) : t("packedAlone"));
+        setTimeout(() => setNote(null), 3200);
+      })
+      .catch((e) => {
+        setAfoot(null);
+        setError(saidPlainly(e));
+      });
+
+  const takeOutAll = () =>
+    pick({ directory: true })
+      .then((at) => {
+        if (typeof at !== "string") return null;
+        setAfoot({ stage: "takingOut", far: 0, done: 0, whole: 0 });
+        return docsTakeOut([], at);
+      })
+      .then((took) => {
+        setAfoot(null);
+        if (!took) return;
+        if (took.missed > 0) {
+          setError(took.missed === 1 ? t("takenShort") : fill("takenShorter", String(took.missed)));
+          return;
+        }
+        if (took.left > 0) {
+          setError(took.left === 1 ? t("takenLess") : fill("takenLesser", String(took.left)));
+          return;
+        }
+        const many = String(took.docs);
+        setNote(
+          took.folders
+            ? fill("tookOutAll", many, String(took.folders))
+            : fill("tookOutAllFlat", many),
+        );
+        setTimeout(() => setNote(null), 3200);
+      })
+      .catch((e) => {
+        setAfoot(null);
+        setError(saidPlainly(e));
+      });
+
+  const takeParcel = () =>
+    pick({ multiple: false, filters: [{ name: "Tisty", extensions: [PARCEL] }] })
+      .then((at) => {
+        if (typeof at !== "string") return null;
+        setAfoot({ stage: "landing", far: 0, done: 0, whole: 0 });
+        return docsUnpack(at);
+      })
+      .then((landed) => {
+        setAfoot(null);
+        if (!landed) return;
+        papersChanged();
+        if (landed.docs + landed.pages === 0) {
+          setError(t("landedNone"));
+          return;
+        }
+        if (landed.missed > 0) {
+          setError(fill("landedShort", String(landed.missed)));
+          return;
+        }
+        const many = String(landed.docs + landed.pages);
+        setNote(
+          landed.folders
+            ? fill("landedIn", many, String(landed.folders))
+            : fill("landedAlone", many),
+        );
+        setTimeout(() => setNote(null), 3200);
+      })
+      .catch((e) => {
+        setAfoot(null);
+        setError(saidPlainly(e));
+      });
 
   const dropFolder = (folder: Folded) =>
     ask(fill("dropFolderSure", folder.name), { kind: "warning" })
@@ -491,11 +586,15 @@ export default function App() {
     const sound = listen<unknown>("chime", (rung) => {
       if (heard(rung.payload)) play(rung.payload);
     });
+    const along = listen<Afoot>("carrying", (step) => {
+      setAfoot((was) => (was ? step.payload : was));
+    });
     return () => {
       stop.then((off) => off()).catch(() => {});
       caught.then((off) => off()).catch(() => {});
       stirred.then((off) => off()).catch(() => {});
       sound.then((off) => off()).catch(() => {});
+      along.then((off) => off()).catch(() => {});
     };
   }, [lookPapers]);
 
@@ -612,6 +711,14 @@ export default function App() {
           apart: true,
           onPick: () => bringIn(undefined),
         },
+        { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => takeParcel() },
+        {
+          key: "packAll",
+          icon: "⇪",
+          label: t("packAll"),
+          onPick: () => packUp([], "tisty"),
+        },
+        { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
       ],
     });
 
@@ -772,6 +879,12 @@ export default function App() {
               .catch((e) => setError(saidPlainly(e))),
         },
         {
+          key: "packIt",
+          icon: "⇪",
+          label: t("packIt"),
+          onPick: () => packUp([doc.file], doc.title || doc.file),
+        },
+        {
           key: "seePdf",
           icon: "▤",
           label: t("seePdf"),
@@ -928,12 +1041,31 @@ export default function App() {
         </p>
       )}
 
-      {note && !error && (
+      {note && !error && !afoot && (
         <p
           role="status"
           className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-fit -translate-x-1/2 rounded-lg border border-hair bg-rail px-3.5 py-2 text-xs text-ink shadow-xl"
         >
           {note}
+        </p>
+      )}
+
+      {afoot && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-64 -translate-x-1/2 rounded-lg border border-hair bg-rail px-3.5 py-2 text-xs text-ink shadow-xl"
+        >
+          <span className="block">
+            {fill(`${afoot.stage}On` as Word, afoot.far ? `${afoot.far} %` : "").trim()}
+          </span>
+          <span className="mt-0.5 block text-[11px] text-soft">{t("aWhileYet")}</span>
+          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-desk">
+            <span
+              className="block h-full rounded-full bg-accent motion-safe:transition-[width]"
+              style={{ width: `${afoot.far}%` }}
+            />
+          </span>
         </p>
       )}
 
@@ -1077,6 +1209,9 @@ export default function App() {
                 apart: true,
                 onPick: () => bringIn(here ?? undefined),
               },
+              { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => takeParcel() },
+              { key: "packAll", icon: "⇪", label: t("packAll"), onPick: () => packUp([], "tisty") },
+              { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
             ],
           })
         }

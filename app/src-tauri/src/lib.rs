@@ -2036,6 +2036,8 @@ const REFUSALS: &[&str] = &[
     "stillCarrying",
     "sandboxCannotMerge",
     "noSuchDoc",
+    "notAParcel",
+    "tooBig",
     "noSuchIcon",
     "noSuchColour",
     "noSuchFolder",
@@ -3643,11 +3645,13 @@ fn doc_export(
                 .collect()
         })
         .unwrap_or_default();
+    let beside = session.dest();
     tisty_core::docs::with_pages(
         session.paths.data(),
         &id,
         &pages,
         std::path::Path::new(&into),
+        beside.as_deref(),
     )
     .map_err(|e| {
         witness::warn(
@@ -3685,6 +3689,245 @@ struct Taken {
     files: usize,
     missed: usize,
     left: usize,
+}
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Afoot {
+    stage: &'static str,
+    far: u64,
+    done: usize,
+    whole: usize,
+}
+
+fn along_the_way(
+    app: &tauri::AppHandle,
+    stage: &'static str,
+) -> impl Fn(tisty_core::parcel::Step) + use<> {
+    let app = app.clone();
+    let said = std::sync::atomic::AtomicU64::new(u64::MAX);
+    move |step| {
+        let far = match step.whole {
+            0 => 0,
+            whole => (step.done as u64 * 100 / whole as u64).min(100),
+        };
+        if said.swap(far, std::sync::atomic::Ordering::Relaxed) == far {
+            return;
+        }
+        let _ = app.emit(
+            "carrying",
+            Afoot {
+                stage,
+                far,
+                done: step.done,
+                whole: step.whole,
+            },
+        );
+    }
+}
+
+fn standing(
+    session: &tauri::State<'_, Mutex<Session>>,
+    which: &[String],
+) -> (
+    std::path::PathBuf,
+    tisty_core::State,
+    Option<std::path::PathBuf>,
+) {
+    let mut session = held(session);
+    for one in which {
+        if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), one) {
+            let _ = session.retell(one, &body);
+        }
+    }
+    (
+        session.paths.data().to_path_buf(),
+        session.state.clone(),
+        session.dest(),
+    )
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Packed {
+    docs: usize,
+    pages: usize,
+    folders: usize,
+    files: usize,
+    missed: usize,
+    left: usize,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Unpacked {
+    docs: usize,
+    pages: usize,
+    folders: usize,
+    joined: usize,
+    files: usize,
+    missed: usize,
+}
+
+#[tauri::command(async)]
+async fn docs_pack(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    which: Vec<String>,
+    into: String,
+) -> Answer<Packed> {
+    let _done = alone.inner().taken()?;
+    let (data, state, beside) = standing(&session, &which);
+    let asked = which.clone();
+    let at = into.clone();
+    let telling = along_the_way(&app, "packing");
+    let sent = tauri::async_runtime::spawn_blocking(move || {
+        tisty_core::parcel::write(
+            &data,
+            &state,
+            &asked,
+            std::path::Path::new(&at),
+            &tisty_core::parcel::Along {
+                also: beside.as_deref(),
+                say: Some(&telling),
+            },
+        )
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(|e| {
+        witness::warn(
+            channel::WINDOW,
+            "a parcel of documents could not be written",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        match e {
+            tisty_core::Error::TooBig => Refusal::of("tooBig"),
+            _ => Refusal::about("cannotWrite", into.clone()),
+        }
+    })?;
+
+    if !sent.left.is_empty() {
+        witness::warn(
+            channel::WINDOW,
+            "a parcel went out without everything it points at",
+            &[("left", Fact::Why(sent.left.join("; ")))],
+        );
+    }
+    Ok(Packed {
+        docs: sent.docs,
+        pages: sent.pages,
+        folders: sent.folders,
+        files: sent.files,
+        missed: sent.missed,
+        left: sent.left.len(),
+    })
+}
+
+#[tauri::command(async)]
+async fn docs_take_out(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    which: Vec<String>,
+    into: String,
+) -> Answer<Packed> {
+    let _done = alone.inner().taken()?;
+    let (data, state, beside) = standing(&session, &which);
+    let asked = which.clone();
+    let at = into.clone();
+    let telling = along_the_way(&app, "takingOut");
+    let sent = tauri::async_runtime::spawn_blocking(move || {
+        tisty_core::parcel::plainly(
+            &data,
+            &state,
+            &asked,
+            std::path::Path::new(&at),
+            &tisty_core::parcel::Along {
+                also: beside.as_deref(),
+                say: Some(&telling),
+            },
+        )
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(|e| {
+        witness::warn(
+            channel::WINDOW,
+            "the documents could not be taken out",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        Refusal::about("cannotWrite", into.clone())
+    })?;
+
+    if !sent.left.is_empty() {
+        witness::warn(
+            channel::WINDOW,
+            "documents went out without everything they point at",
+            &[("left", Fact::Why(sent.left.join("; ")))],
+        );
+    }
+    Ok(Packed {
+        docs: sent.docs,
+        pages: sent.pages,
+        folders: sent.folders,
+        files: sent.files,
+        missed: sent.missed,
+        left: sent.left.len(),
+    })
+}
+
+#[tauri::command(async)]
+async fn docs_unpack(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    from: String,
+) -> Answer<Unpacked> {
+    let _done = alone.inner().taken()?;
+    let (data, state, device) = {
+        let session = held(&session);
+        (
+            session.paths.data().to_path_buf(),
+            session.state.clone(),
+            session.config.device_id.clone(),
+        )
+    };
+    let at = from.clone();
+    let telling = along_the_way(&app, "landing");
+    let (landed, ops) = tauri::async_runtime::spawn_blocking(move || {
+        tisty_core::parcel::read(
+            &data,
+            &state,
+            &device,
+            std::path::Path::new(&at),
+            &tisty_core::parcel::Along {
+                also: None,
+                say: Some(&telling),
+            },
+        )
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(|e| match e {
+        tisty_core::Error::NotForAnAgent(_) => Refusal::about("notAParcel", from.clone()),
+        tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+        tisty_core::Error::TooBig => Refusal::of("tooBig"),
+        other => blamed(channel::WINDOW, "a parcel could not be taken in", other),
+    })?;
+
+    held(&session)
+        .commit_all(ops)
+        .map_err(|e| blamed(channel::WINDOW, "a parcel landed but was not written", e))?;
+    Ok(Unpacked {
+        docs: landed.docs,
+        pages: landed.pages,
+        folders: landed.folders,
+        joined: landed.joined,
+        files: landed.files,
+        missed: landed.missed,
+    })
 }
 
 #[tauri::command(async)]
@@ -5754,6 +5997,9 @@ pub fn run() {
             doc_drop,
             doc_import,
             doc_export,
+            docs_pack,
+            docs_take_out,
+            docs_unpack,
             doc_copy,
             doc_adopt,
             doc_let_go,

@@ -731,6 +731,37 @@ export interface Taken {
 
 export const docExport = (id: string, into: string): Promise<Taken> =>
   invoke("doc_export", { id, into });
+
+export interface Afoot {
+  stage: "packing" | "takingOut" | "landing";
+  far: number;
+  done: number;
+  whole: number;
+}
+
+export interface Packed {
+  docs: number;
+  pages: number;
+  folders: number;
+  files: number;
+  missed: number;
+  left: number;
+}
+
+export interface Unpacked {
+  docs: number;
+  pages: number;
+  folders: number;
+  joined: number;
+  files: number;
+  missed: number;
+}
+
+export const docsPack = (which: string[], into: string): Promise<Packed> =>
+  invoke("docs_pack", { which, into });
+export const docsUnpack = (from: string): Promise<Unpacked> => invoke("docs_unpack", { from });
+export const docsTakeOut = (which: string[], into: string): Promise<Packed> =>
+  invoke("docs_take_out", { which, into });
 export const docImport = (from: string, folder?: string): Promise<Doc> =>
   invoke("doc_import", { from, folder });
 
