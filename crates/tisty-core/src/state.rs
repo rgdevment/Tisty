@@ -451,8 +451,14 @@ impl State {
                     name: said(&d.name),
                     email: said(&d.email),
                 };
-                if let Some(one) = &self.signed.alias {
-                    self.signed_before.retain(|was| !same_name(was, one));
+                // Kept in the order they were signed, and never thinned: going back to a
+                // name years later must not move it ahead of whoever was first.
+                if let Some(one) = &self.signed.alias
+                    && !self
+                        .signed_before
+                        .last()
+                        .is_some_and(|was| same_name(was, one))
+                {
                     self.signed_before.push(one.clone());
                 }
             }
@@ -1220,7 +1226,9 @@ impl State {
         let now = self.signed.alias.as_deref();
         self.docs
             .values()
-            .filter(|one| !self.written_shut(one.id) && !one.guest)
+            .filter(|one| !self.written_shut(one.id))
+            // Somebody else's writing is theirs; what nobody ever signed is there to be claimed.
+            .filter(|one| !one.guest || one.by.is_none())
             .filter(|one| !alike(one.by.as_deref(), now))
             .map(|one| one.id)
             .collect()

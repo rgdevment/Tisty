@@ -938,7 +938,11 @@ fn the_aliases_this_store_signed_with_are_kept_apart_from_the_ones_that_arrived(
     }
     there.take_in(&box_at);
 
-    assert_eq!(there.state.signed_before, ["mario", "rgdevment"]);
+    assert_eq!(
+        there.state.signed_before,
+        ["rgdevment", "mario", "rgdevment"],
+        "going back to a name it had signed with before was not written down"
+    );
     assert_eq!(there.state.signed.alias.as_deref(), Some("rgdevment"));
     assert_eq!(
         there.state.author_of(there.titled("Suyo")),
@@ -1046,7 +1050,7 @@ fn coming_home_under_the_same_name_leaves_no_mark_however_it_was_typed() {
     );
     assert_eq!(
         here.state.signed_before,
-        ["RGDEVMENT"],
+        ["rgdevment"],
         "the history kept the same name twice"
     );
     for one in here.state.docs.values() {
@@ -1139,15 +1143,31 @@ fn a_parcel_from_a_store_that_never_signed_is_not_yours_to_claim() {
     });
     there.take_in(&box_at);
 
-    let acta = there.titled("Acta");
+    let acta = there.titled("Acta").id;
     assert_eq!(
-        there.state.author_of(acta),
+        there.state.author_of(&there.state.docs[&acta]),
         None,
         "an unsigned document was credited to whoever took it in"
     );
-    assert!(
-        there.state.mine_to_sign().is_empty(),
-        "it offered to sign somebody else's writing"
+    assert_eq!(
+        there.state.mine_to_sign(),
+        [acta],
+        "writing nobody ever signed was not there to be claimed"
+    );
+
+    there.tell(Op::DocSigned {
+        id: acta,
+        d: "rgdevment".into(),
+    });
+    assert_eq!(
+        there.state.author_of(&there.state.docs[&acta]),
+        Some("rgdevment"),
+        "the first to sign it did not become its author"
+    );
+    assert_eq!(
+        there.state.born_of(&there.state.docs[&acta]),
+        None,
+        "it claimed a name it never had before"
     );
 }
 

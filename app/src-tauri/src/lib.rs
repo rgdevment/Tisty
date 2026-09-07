@@ -3226,7 +3226,18 @@ fn signing(state: &tisty_core::State) -> Option<String> {
 fn as_signed(session: &Session) -> Signed {
     Signed {
         alias: session.state.signed.alias.clone(),
-        before: session.state.signed_before.iter().rev().cloned().collect(),
+        before: {
+            let mut seen: Vec<String> = Vec::new();
+            for was in session.state.signed_before.iter().rev() {
+                if !seen
+                    .iter()
+                    .any(|one| tisty_core::state::same_name(one, was))
+                {
+                    seen.push(was.clone());
+                }
+            }
+            seen
+        },
         mine: match session.state.signed.alias.is_some() {
             true => session.state.mine_to_sign().len(),
             false => 0,
@@ -3274,7 +3285,11 @@ fn sign(session: tauri::State<'_, Mutex<Session>>, alias: Option<String>) -> Ans
     }
 
     let mut session = held(&session);
-    if said == session.state.signed.alias {
+    let same = match (said.as_deref(), session.state.signed.alias.as_deref()) {
+        (Some(one), Some(was)) => tisty_core::state::same_name(one, was),
+        (one, was) => one == was,
+    };
+    if same {
         return Ok(as_signed(&session));
     }
     let mut signature = session.state.signed.clone();
