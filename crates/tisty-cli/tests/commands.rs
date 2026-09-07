@@ -657,7 +657,11 @@ fn a_broken_store_does_not_lock_the_user_out_of_config() {
     cli.ok(&["a task"]);
 
     let store = cli.home.path().join("data").join("store");
-    let device = std::fs::read_dir(&store).unwrap().next().unwrap().unwrap();
+    let device = std::fs::read_dir(&store)
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .find(|one| one.path().is_dir())
+        .unwrap();
     let active = device.path().join("active.tisty");
     let mut text = std::fs::read_to_string(&active).unwrap();
     text.push_str("{\"v\":1,\"ts\":\"2026-0");
@@ -684,7 +688,11 @@ fn a_store_broken_anywhere_but_the_end_is_still_refused() {
     cli.ok(&["another task"]);
 
     let store = cli.home.path().join("data").join("store");
-    let device = std::fs::read_dir(&store).unwrap().next().unwrap().unwrap();
+    let device = std::fs::read_dir(&store)
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .find(|one| one.path().is_dir())
+        .unwrap();
     let active = device.path().join("active.tisty");
     let text = std::fs::read_to_string(&active).unwrap();
     let (first, rest) = text.split_once('\n').unwrap();
@@ -1559,6 +1567,9 @@ fn copy_dirs(from: &std::path::Path, to: &std::path::Path) {
         return;
     };
     for device in entries.filter_map(|e| e.ok()) {
+        if !device.path().is_dir() {
+            continue;
+        }
         let target = to.join(device.file_name());
         std::fs::create_dir_all(&target).unwrap();
         for file in std::fs::read_dir(device.path())

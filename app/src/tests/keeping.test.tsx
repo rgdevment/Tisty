@@ -1,7 +1,7 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { adopt } from "../locales";
+import { adopt, t } from "../locales";
 import Keeping from "../ui/Keeping";
 import Welcome from "../ui/Welcome";
 
@@ -26,6 +26,12 @@ const installed = vi.hoisted(() => ({
     astray: boolean;
     points?: string;
   }[],
+}));
+
+const signing = vi.hoisted(() => ({
+  alias: null as string | null,
+  before: [] as string[],
+  mine: 0,
 }));
 
 const asked = vi.hoisted(() => ({
@@ -134,6 +140,9 @@ beforeEach(() => {
     { key: "icloud", named: "iCloud Drive" },
   ];
   holders.told = { keeper: "plain" };
+  signing.alias = null;
+  signing.before = [];
+  signing.mine = 0;
   ipc.answer = (cmd) => {
     switch (cmd) {
       case "keepers":
@@ -144,8 +153,27 @@ beforeEach(() => {
       }
       case "make_room":
         return Promise.resolve(null);
+      case "sign_the_rest": {
+        const many = signing.mine;
+        signing.mine = 0;
+        return Promise.resolve(many);
+      }
       case "sync_state":
         return Promise.resolve({ ...carrying });
+      case "signed":
+        return Promise.resolve({ ...signing });
+      case "sign": {
+        const said = ipc.calls[ipc.calls.length - 1]?.args.alias;
+        if ((typeof said === "string" ? said : null) === signing.alias)
+          return Promise.resolve({ ...signing });
+        signing.alias = typeof said === "string" ? said : null;
+        if (signing.alias)
+          signing.before = [
+            signing.alias,
+            ...signing.before.filter((one) => one !== signing.alias),
+          ];
+        return Promise.resolve({ ...signing });
+      }
       case "agent":
         return Promise.resolve({ ...serving });
       case "agent_turn": {
@@ -333,7 +361,15 @@ const turnedOn = async () => {
 
 describe("the maintenance panel", () => {
   it("offers to turn syncing on when there is no folder", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
 
     await data();
 
@@ -343,7 +379,15 @@ describe("the maintenance panel", () => {
   });
 
   it("offers the same list here as on the first run, never a bare file dialog", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
@@ -354,7 +398,15 @@ describe("the maintenance panel", () => {
 
   it("remembers the folder that was picked", async () => {
     asked.folder = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await turnedOn();
@@ -366,7 +418,15 @@ describe("the maintenance panel", () => {
   it("hides backing up once a shared folder holds every machine", async () => {
     carrying.chosen = "G:/My Drive/tisty";
     carrying.backsUp = false;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
 
     await data();
 
@@ -377,7 +437,15 @@ describe("the maintenance panel", () => {
 
   it("never restores without asking first", async () => {
     asked.file = "C:/keep/tisty-backup.zip";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /restore/i }));
@@ -388,7 +456,15 @@ describe("the maintenance panel", () => {
   it("restores once the warning is accepted", async () => {
     asked.file = "C:/keep/tisty-backup.zip";
     asked.sure = true;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /restore/i }));
@@ -401,7 +477,15 @@ describe("the maintenance panel", () => {
     carrying.chosen = "G:/My Drive/tisty";
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) => (cmd === "sync_now" ? new Promise(() => {}) : otherwise(cmd, args));
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -426,7 +510,15 @@ describe("the maintenance panel", () => {
         : cmd === "keep_settings"
           ? new Promise(() => {})
           : otherwise(cmd, args);
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
 
     await userEvent.click(await screen.findByRole("switch", { name: /a short tone/i }));
@@ -439,7 +531,15 @@ describe("the maintenance panel", () => {
   });
 
   it("offers where the big attachments live, and says when the choice is idle", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
@@ -467,7 +567,15 @@ describe("the maintenance panel", () => {
             })
           : was(cmd, args)
     )(ipc.answer);
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
@@ -480,7 +588,15 @@ describe("the maintenance panel", () => {
   });
 
   it("frees the disk when told the big ones live in the shared folder, and can be stopped", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
@@ -493,7 +609,15 @@ describe("the maintenance panel", () => {
   });
 
   it("says which loose files are up in the shared folder", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -503,7 +627,15 @@ describe("the maintenance panel", () => {
   });
 
   it("names every machine and when each last wrote", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -515,7 +647,15 @@ describe("the maintenance panel", () => {
   });
 
   it("calls every machine something a person can read out loud", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -526,7 +666,15 @@ describe("the maintenance panel", () => {
   });
 
   it("never offers to remove the machine you are on", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -539,7 +687,15 @@ describe("the maintenance panel", () => {
 
   it("names the machine and when it last wrote before removing it", async () => {
     asked.sure = false;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -553,7 +709,15 @@ describe("the maintenance panel", () => {
   });
 
   it("says out loud that a machine has been away, so nothing is judged on stale news", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -575,7 +739,15 @@ describe("the maintenance panel", () => {
             machines: [{ id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true }],
           }))
         : otherwise(cmd, args);
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -587,7 +759,15 @@ describe("the maintenance panel", () => {
 
   it("never lets go of an attachment without being told twice", async () => {
     asked.sure = false;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -600,7 +780,15 @@ describe("the maintenance panel", () => {
 
   it("lets go of the one it was pointed at, and looks again afterwards", async () => {
     asked.sure = true;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -623,7 +811,15 @@ describe("the maintenance panel", () => {
       said.push(text);
       return was(text);
     });
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -643,7 +839,15 @@ describe("the maintenance panel", () => {
       cmd === "retire_attachment"
         ? Promise.reject({ code: "stillReferenced", name: "charla-a3f9.mp4" })
         : otherwise(cmd, args);
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -657,7 +861,15 @@ describe("the maintenance panel", () => {
   });
 
   it("offers to remove another machine, never this one", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -669,7 +881,15 @@ describe("the maintenance panel", () => {
 
   it("never removes a machine without being told twice", async () => {
     asked.sure = false;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -682,7 +902,15 @@ describe("the maintenance panel", () => {
 
   it("removes the machine it was pointed at, and looks again afterwards", async () => {
     asked.sure = true;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -697,7 +925,15 @@ describe("the maintenance panel", () => {
   });
 
   it("tells you to settle the machines before judging what is left over", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -715,7 +951,15 @@ describe("the maintenance panel", () => {
             machines: [{ id: "mac0-0001", when: Math.floor(Date.now() / 1000), mine: true }],
           }))
         : otherwise(cmd, args);
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -726,7 +970,15 @@ describe("the maintenance panel", () => {
   });
 
   it("shows each loose attachment by name, weight and date", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -747,7 +999,15 @@ describe("the maintenance panel", () => {
             },
           ])
         : otherwise(cmd, args);
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -762,7 +1022,15 @@ describe("the maintenance panel", () => {
   it("says nothing is kept twice when nothing is", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) => (cmd === "twinned" ? Promise.resolve([]) : otherwise(cmd, args));
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -772,7 +1040,15 @@ describe("the maintenance panel", () => {
   });
 
   it("says plainly that another machine may still be using them", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -782,7 +1058,15 @@ describe("the maintenance panel", () => {
   });
 
   it("breaks the weight down, so the size has somewhere to come from", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -796,7 +1080,15 @@ describe("the maintenance panel", () => {
   it("asks after days of hearing nothing, and blames neither side", async () => {
     carrying.chosen = "G:/My Drive/tisty";
     carrying.heard = new Date(Date.now() - 5 * 86_400_000).toISOString();
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     const said = await screen.findByText(/without anything arriving/i);
@@ -808,7 +1100,15 @@ describe("the maintenance panel", () => {
   it("stays quiet while the other machines are still turning up", async () => {
     carrying.chosen = "G:/My Drive/tisty";
     carrying.heard = new Date(Date.now() - 3_600_000).toISOString();
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     expect(screen.queryByText(/without anything arriving/i)).toBeNull();
@@ -821,7 +1121,15 @@ describe("the maintenance panel", () => {
         ? Promise.resolve({ carried: "sent", undecided: [], unreadable: [] })
         : otherwise(cmd, args);
     carrying.chosen = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -844,7 +1152,15 @@ describe("the maintenance panel", () => {
       return Promise.resolve(true);
     });
     carrying.chosen = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -864,7 +1180,15 @@ describe("the maintenance panel", () => {
     let asked = 0;
     vi.spyOn(dialog, "ask").mockImplementation(() => Promise.resolve(++asked > 1));
     carrying.chosen = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -878,7 +1202,15 @@ describe("the maintenance panel", () => {
     const dialog = await import("@tauri-apps/plugin-dialog");
     const spy = vi.spyOn(dialog, "ask");
     carrying.chosen = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -909,14 +1241,30 @@ describe("the maintenance panel", () => {
 
   const carried = async () => {
     carrying.chosen = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
   };
 
   it("carries as soon as a folder is picked, so the doors open there and not later", async () => {
     asked.folder = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await turnedOn();
@@ -928,7 +1276,15 @@ describe("the maintenance panel", () => {
   it("opens the doors on picking a folder that already holds another history", async () => {
     apart();
     asked.folder = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await turnedOn();
@@ -939,7 +1295,15 @@ describe("the maintenance panel", () => {
   it("does not leave you pointing at a folder you walked away from", async () => {
     apart();
     asked.folder = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await turnedOn();
 
@@ -954,7 +1318,15 @@ describe("the maintenance panel", () => {
     onceApart();
     asked.folder = "G:/My Drive/tisty";
     asked.file = "C:/keep/tisty-folder-before.zip";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await turnedOn();
 
@@ -1019,7 +1391,15 @@ describe("the maintenance panel", () => {
           })
         : otherwise(cmd, args);
     carrying.chosen = "G:/My Drive/tisty";
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
@@ -1161,7 +1541,15 @@ describe("the maintenance panel", () => {
   });
 
   it("names the documents that would open read only, and what each brings", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -1176,7 +1564,15 @@ describe("the maintenance panel", () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "doc_read" ? Promise.resolve("# Limpio\n\nun parrafo") : otherwise(cmd, args);
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -1186,7 +1582,15 @@ describe("the maintenance panel", () => {
   });
 
   it("says what the review found", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
 
@@ -1198,18 +1602,42 @@ describe("the maintenance panel", () => {
 
   it("reads its settings again once the welcome has been through", async () => {
     const { rerender } = render(
-      <Keeping greeted={0} onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />,
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        greeted={0}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
     );
     await data();
     const before = sent("settings").length;
 
-    rerender(<Keeping greeted={1} onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    rerender(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        greeted={1}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
 
     await waitFor(() => expect(sent("settings").length).toBe(before + 1));
   });
 
   it("holds a language of its own when one is picked", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
 
     await userEvent.selectOptions(await screen.findByLabelText(/^language$/i), "es");
@@ -1220,7 +1648,15 @@ describe("the maintenance panel", () => {
 
   it("offers the welcome again, without touching what is written", async () => {
     const greet = vi.fn();
-    render(<Keeping onGreet={greet} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={greet}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
 
     await userEvent.click(await screen.findByRole("button", { name: /show it again/i }));
@@ -1231,7 +1667,15 @@ describe("the maintenance panel", () => {
 
   it("opens the guide instead of only saying where it went", async () => {
     const opened = vi.fn();
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={opened} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={opened}
+      />,
+    );
     await ready();
 
     await userEvent.click(await screen.findByRole("button", { name: /open the guide/i }));
@@ -1244,6 +1688,7 @@ describe("the maintenance panel", () => {
 describe("the first-run assistant", () => {
   const spoken = async () => {
     await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeNotNow") }));
   };
 
   const alone = async () => {
@@ -1409,12 +1854,37 @@ describe("the first-run assistant", () => {
     expect(done.mock.calls[0][0]).toBeUndefined();
   });
 
+  it("asks for an alias between the language and the copies, and writes it down", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
+
+    const field = await screen.findByRole("textbox", { name: /^alias$/i });
+    await userEvent.type(field, "rgdevment");
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeSigned") }));
+
+    await waitFor(() => expect(sent("sign")).toHaveLength(1));
+    expect(sent("sign")[0].args.alias).toBe("rgdevment");
+    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+  });
+
+  it("lets the alias wait, and writes nothing down when it is skipped", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
+    await screen.findByRole("textbox", { name: /^alias$/i });
+
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeNotNow") }));
+
+    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+    expect(sent("sign")).toHaveLength(0);
+  });
+
   it("goes back, and shows what was already chosen", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
     await screen.findByRole("button", { name: /google drive/i });
 
     await userEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
 
     const english = await screen.findByRole("button", { name: /^english$/i });
     expect(english.getAttribute("aria-pressed")).toBe("true");
@@ -1424,14 +1894,141 @@ describe("the first-run assistant", () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
     await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
 
     await userEvent.click(screen.getByRole("button", { name: /^español$/i }));
 
     expect(sent("keep_locale").map((one) => one.args.locale)).toEqual(["en", "es"]);
   });
 
+  it("keeps the alias the person signs with, and shows it again on the next look", async () => {
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await ready();
+
+    const field = await screen.findByRole("textbox", { name: /^alias$/i });
+    expect((field as HTMLInputElement).value).toBe("");
+    await userEvent.type(field, "  rgdevment  ");
+    fireEvent.blur(field);
+
+    await waitFor(() => expect(sent("sign")).toHaveLength(1));
+    expect(sent("sign")[0].args.alias).toBe("rgdevment");
+    await waitFor(() => expect((field as HTMLInputElement).value).toBe("rgdevment"));
+  });
+
+  it("offers the aliases this store signed with before, and not the one in use", async () => {
+    signing.alias = "rgdevment";
+    signing.before = ["rgdevment", "mario"];
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await ready();
+
+    const field = await screen.findByRole("combobox", { name: /^alias$/i });
+    expect((field as HTMLInputElement).value).toBe("rgdevment");
+    const offered = Array.from(document.querySelectorAll("#signed-before option")).map(
+      (one) => (one as HTMLOptionElement).value,
+    );
+    expect(offered).toEqual(["mario"]);
+  });
+
+  it("asks in plain words when the alias changes, and only then signs the older ones", async () => {
+    signing.alias = null;
+    signing.mine = 243;
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await ready();
+
+    const field = await screen.findByRole("textbox", { name: /^alias$/i });
+    await userEvent.type(field, "rgdevment");
+    fireEvent.blur(field);
+
+    await screen.findByText("You now sign as rgdevment");
+    await screen.findByText(
+      "What was already written keeps the signature it had. Do you want the 243 older documents to carry this alias instead?",
+    );
+    await screen.findByText("What arrived signed by somebody else keeps their name, always.");
+
+    await userEvent.click(screen.getByRole("button", { name: /only the new ones/i }));
+    expect(sent("sign_the_rest")).toHaveLength(0);
+
+    await userEvent.click(await screen.findByRole("button", { name: /sign the older ones/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /change them all/i }));
+
+    await waitFor(() => expect(sent("sign_the_rest")).toHaveLength(1));
+    await screen.findByText("243 documents signed");
+  });
+
+  it("says nothing about signing the rest while there is nothing to sign", async () => {
+    signing.alias = "rgdevment";
+    signing.mine = 0;
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await ready();
+    await screen.findByRole("textbox", { name: /^alias$/i });
+
+    expect(screen.queryByRole("button", { name: /sign the older ones/i })).toBeNull();
+  });
+
+  it("takes an emptied alias as leaving it unsigned", async () => {
+    signing.alias = "rgdevment";
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await ready();
+
+    const field = await screen.findByRole("textbox", { name: /^alias$/i });
+    await waitFor(() => expect((field as HTMLInputElement).value).toBe("rgdevment"));
+    await userEvent.clear(field);
+    fireEvent.blur(field);
+
+    await waitFor(() => expect(sent("sign")).toHaveLength(1));
+    expect(sent("sign")[0].args.alias).toBeUndefined();
+  });
+
   it("offers the command line, and says what to do next", async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
     expect(await screen.findByText(/cannot find it yet/i)).toBeTruthy();
 
@@ -1444,7 +2041,15 @@ describe("the first-run assistant", () => {
 
   it("takes it back off when asked", async () => {
     standing.withinReach = true;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
     expect(await screen.findByText(/already finds/i)).toBeTruthy();
 
@@ -1455,7 +2060,15 @@ describe("the first-run assistant", () => {
 
   it("says nothing when there is no command line to offer", async () => {
     standing.shipped = false;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
 
     expect(screen.queryByRole("switch", { name: /make it reachable/i })).toBeNull();
@@ -1464,7 +2077,15 @@ describe("the first-run assistant", () => {
 
 describe("the report a bug gets attached to", () => {
   const upkeep = async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
   };
@@ -1511,7 +2132,15 @@ describe("the command line on a Mac", () => {
   it("says so when the link lands where no shell looks", async () => {
     standing.withinReach = true;
     standing.onPath = false;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
 
     expect(await screen.findByText(/no shell looks in that folder/i)).toBeTruthy();
@@ -1522,7 +2151,15 @@ describe("the command line on a Mac", () => {
   it("stays quiet where the folder is already searched", async () => {
     standing.withinReach = true;
     standing.onPath = true;
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
 
     await screen.findByText(/already finds/i);
@@ -1532,7 +2169,15 @@ describe("the command line on a Mac", () => {
 
 describe("opening with the machine", () => {
   const notices = async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
   };
 
@@ -1601,7 +2246,15 @@ describe("documents on disk the log does not name", () => {
   };
 
   const opened = async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -1646,7 +2299,15 @@ describe("documents on disk the log does not name", () => {
 
 describe("looking for an update without waiting for tomorrow", () => {
   const openTab = async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
   };
 
@@ -1699,7 +2360,15 @@ describe("looking for an update without waiting for tomorrow", () => {
 
 describe("letting an assistant file work here", () => {
   const openTab = async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await userEvent.click(screen.getByRole("tab", { name: /assistants/i }));
   };
@@ -1819,7 +2488,15 @@ describe("documents the log names with no file", () => {
   };
 
   const opened = async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
@@ -1852,7 +2529,15 @@ describe("documents the log names with no file", () => {
 
 describe("taking every loose attachment out at once", () => {
   const opened = async () => {
-    render(<Keeping onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await data();
     await go(/maintenance/i);
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));

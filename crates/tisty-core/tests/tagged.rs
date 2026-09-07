@@ -43,6 +43,10 @@ fn the_tags_of_a_body_settle_after_one_note() {
         .append(Op::DocAdd {
             id: doc,
             d: tisty_core::event::DocAdd {
+                wrote: None,
+                guest: false,
+                made: None,
+                by: None,
                 file: "a3f1-0001".into(),
                 order: "a0".into(),
                 said: Some(said.clone()),

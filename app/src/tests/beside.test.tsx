@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,19 +10,37 @@ import Docs from "../ui/Docs";
 const store = vi.hoisted(() => ({
   ran: [] as string[],
   went: [] as string[],
+  author: null as string | null,
+  editor: null as string | null,
+  born: null as string | null,
+  sent: [] as string[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
+    store.sent.push(cmd);
     switch (cmd) {
       case "doc_read":
         return Promise.resolve("# Compras\n\nleche");
       case "doc_facts":
-        return Promise.resolve({ made: 1772668800, wrote: 1772755200, bytes: 8400 });
+        return Promise.resolve({
+          made: 1772668800,
+          wrote: 1772755200,
+          bytes: 8400,
+          author: store.author,
+          editor: store.editor,
+          born: store.born,
+        });
       default:
         return Promise.resolve(null);
     }
   },
+}));
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  save: () => Promise.resolve("D:/salida/Compras.pdf"),
+  open: () => Promise.resolve(null),
+  ask: () => Promise.resolve(true),
 }));
 
 vi.mock("@react-pdf/renderer", () => ({
@@ -105,7 +123,32 @@ describe("the column beside a document", () => {
   beforeEach(() => {
     store.ran = [];
     store.went = [];
+    store.author = null;
+    store.editor = null;
+    store.born = null;
+    store.sent = [];
     widen(1500);
+  });
+
+  it("says nothing about who wrote it while nobody has signed this store", async () => {
+    show();
+
+    const aside = await screen.findByRole("complementary", { name: "About this document" });
+    await within(aside).findByText(/kB/);
+    expect(within(aside).queryByText("Author")).toBeNull();
+    expect(within(aside).queryByText("Edited by")).toBeNull();
+  });
+
+  it("names the author, and names the editor only when somebody else wrote it", async () => {
+    store.author = "fulanito";
+    store.editor = "rgdevment";
+    show();
+
+    const aside = await screen.findByRole("complementary", { name: "About this document" });
+    await within(aside).findByText("Author");
+    expect(within(aside).getByText("fulanito")).toBeTruthy();
+    expect(within(aside).getByText("Edited by")).toBeTruthy();
+    expect(within(aside).getByText("rgdevment")).toBeTruthy();
   });
 
   it("shows itself the first time the window is wide enough", async () => {
@@ -294,6 +337,23 @@ describe("what the column offers for the document", () => {
     await screen.findByRole("complementary", { name: "About this document" });
 
     expect(named()).toEqual(["Preview", "Export", "Copy", "Save a copy"]);
+  });
+
+  it("asks before a PDF leaves, and signs it only when it was asked to", async () => {
+    store.author = "rgdevment";
+    widen(1500);
+    show();
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    await userEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    const box = await screen.findByText("Add who wrote it and when");
+    const tick = within(box.closest("label") as HTMLElement).getByRole("checkbox");
+    expect((tick as HTMLInputElement).checked).toBe(false);
+    await userEvent.click(tick);
+    await userEvent.click(screen.getByRole("button", { name: /^export pdf$/i }));
+
+    await waitFor(() => expect(store.sent).toContain("keep_pdf"));
   });
 
   it("keeps the two trades apart, so no verb has to mean two things", async () => {

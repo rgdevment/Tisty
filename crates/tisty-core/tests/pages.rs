@@ -53,6 +53,10 @@ fn doc_add(
         .append(Op::DocAdd {
             id,
             d: DocAdd {
+                wrote: None,
+                guest: false,
+                made: None,
+                by: None,
                 said: None,
                 file: file.into(),
                 order: order.into(),
@@ -95,6 +99,10 @@ fn make(
         .append(Op::DocAdd {
             id,
             d: DocAdd {
+                wrote: None,
+                guest: false,
+                made: None,
+                by: None,
                 said: None,
                 file: made.id.clone(),
                 order: order.into(),
@@ -449,6 +457,10 @@ fn a_document_cannot_become_a_page_of_itself_at_creation_or_by_moving() {
         .append(Op::DocAdd {
             id: itself,
             d: DocAdd {
+                wrote: None,
+                guest: false,
+                made: None,
+                by: None,
                 said: None,
                 file: "a3f1-0001".into(),
                 order: "a0".into(),
@@ -542,6 +554,10 @@ fn undoing_a_creation_and_a_plain_move_restores_the_exact_state_before() {
         .append(Op::DocAdd {
             id: Ulid::generate(),
             d: DocAdd {
+                wrote: None,
+                guest: false,
+                made: None,
+                by: None,
                 said: None,
                 file: "a3f1-0002".into(),
                 order: "a1".into(),
@@ -676,6 +692,10 @@ fn two_stores_that_diverge_over_a_page_and_a_deleted_parent_converge_regardless_
             Op::DocAdd {
                 id: parent,
                 d: DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a3f1-0001".into(),
                     order: "a0".into(),
@@ -695,6 +715,10 @@ fn two_stores_that_diverge_over_a_page_and_a_deleted_parent_converge_regardless_
             Op::DocAdd {
                 id: page,
                 d: DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a3f1-0002".into(),
                     order: "a0".into(),
@@ -745,6 +769,10 @@ fn a_page_written_with_a_timestamp_before_its_parent_is_kept_as_its_own_document
             Op::DocAdd {
                 id: page,
                 d: DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a3f1-0002".into(),
                     order: "a0".into(),
@@ -761,6 +789,10 @@ fn a_page_written_with_a_timestamp_before_its_parent_is_kept_as_its_own_document
             Op::DocAdd {
                 id: parent,
                 d: DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a3f1-0001".into(),
                     order: "a0".into(),

@@ -232,6 +232,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             })
         }
 
+        Op::DocSigned { .. } => None,
         Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),
         Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
@@ -242,6 +243,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
 
         Op::DeviceJoin { .. }
         | Op::DeviceRemove { .. }
+        | Op::Signed { .. }
         | Op::AttachRetire { .. }
         | Op::StoresJoined { .. } => None,
     }
@@ -505,6 +507,10 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: "dev0-0001".into(),
                     order: "a0".into(),
@@ -663,6 +669,10 @@ mod hanging {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: format!("dev_a-{ms:04}"),
                     order,
@@ -760,6 +770,10 @@ mod hanging {
             Op::DocAdd {
                 id: page,
                 d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: "dev_a-0004".into(),
                     order: crate::order::first(),

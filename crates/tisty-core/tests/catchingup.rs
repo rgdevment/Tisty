@@ -232,3 +232,59 @@ fn a_sync_tools_conflict_copy_is_not_taken_as_a_tail() {
     );
     assert_eq!(after.tasks.len(), seen.tasks.len());
 }
+
+#[test]
+fn a_cache_thrown_out_is_not_declared_current_again_by_the_next_ordinary_event() {
+    let room = tempfile::tempdir().unwrap();
+    let store_root = room.path().join("store");
+    let cache_dir = room.path().join("cache");
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+
+    let paper = Ulid::generate();
+    store
+        .append(Op::DocAdd {
+            id: paper,
+            d: tisty_core::event::DocAdd {
+                file: "dev_a-0001".into(),
+                order: "a0".into(),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    let _ = cache::project(&store_root, &cache_dir).unwrap();
+
+    let mut cache = cache::Cache::open(&cache_dir).unwrap().unwrap();
+    let mut state = tisty_core::State::replay(&store.read_all().unwrap());
+
+    let shelved = store.append(Op::DocArchive { id: paper }).unwrap();
+    state.apply(&shelved);
+    cache::advance(
+        Some(&mut cache),
+        &state,
+        std::slice::from_ref(&shelved),
+        &store_root,
+        false,
+    );
+
+    let after = store
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("cualquier otra cosa", "a0"),
+        })
+        .unwrap();
+    state.apply(&after);
+    cache::advance(
+        Some(&mut cache),
+        &state,
+        std::slice::from_ref(&after),
+        &store_root,
+        false,
+    );
+    drop(cache);
+
+    let read = cache::project(&store_root, &cache_dir).unwrap();
+    assert!(
+        read.docs[&paper].archived,
+        "the cache came back to life and unarchived a document"
+    );
+}

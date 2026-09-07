@@ -1,9 +1,10 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type About,
   type Agent,
+  ALIAS_AT_MOST,
   type Astray,
   about,
   agentState,
@@ -49,6 +50,9 @@ import {
   type Stray,
   seenAgents,
   shortcut,
+  sign,
+  signed,
+  signTheRest,
   stopFreeing,
   syncKin,
   syncNow,
@@ -104,6 +108,8 @@ type Which =
   | "store"
   | "brittle"
   | "greet"
+  | "signing"
+  | "parcel"
   | "tongue";
 type Word = { card: Which; text: string };
 type Tab = "general" | "data" | "agents" | "upkeep";
@@ -116,13 +122,15 @@ const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
 ];
 
 interface Props {
+  onPack: () => void;
+  onUnpack: () => void;
   onChanged: () => void;
   onGreet: () => void;
   onDoc: (paper: string) => void;
   greeted?: number;
 }
 
-export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
+export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, greeted }: Props) {
   const [tab, setTab] = useState<Tab>("general");
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agents, setAgents] = useState<Wired[] | null>(null);
@@ -152,9 +160,23 @@ export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
   const [said, setSaid] = useState<Word>();
   const [trouble, setTrouble] = useState<Word>();
   const [told, setTold] = useState({ names: false, paths: false, logs: true });
+  const [alias, setAlias] = useState("");
+  const signed_as = useRef("");
+  const [aliases, setAliases] = useState<string[]>([]);
+  const [mine, setMine] = useState(0);
+  const [asking, setAsking] = useState<string | null>(null);
+  const before = aliases.filter((one) => one !== alias);
   const [paper, setPaper] = useState<string | null>(null);
 
   const look = useCallback(() => {
+    signed()
+      .then((one) => {
+        setAlias(one.alias ?? "");
+        signed_as.current = one.alias ?? "";
+        setAliases(one.before);
+        setMine(one.mine);
+      })
+      .catch(() => {});
     syncState()
       .then(setState)
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
@@ -531,6 +553,40 @@ export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
 
   return (
     <main className="flex flex-col overflow-hidden">
+      {asking && (
+        <Modal title={fill("aliasNow", asking)} onClose={() => setAsking(null)}>
+          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">
+            {mine === 1 ? t("aliasRestAskOne") : fill("aliasRestAsk", String(mine))}
+          </p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("aliasRestNever")}</p>
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
+            <button
+              type="button"
+              onClick={() => setAsking(null)}
+              className="rounded-lg px-3 py-1.5 text-faint hover:text-ink"
+            >
+              {t("aliasRestNo")}
+            </button>
+            <button
+              type="button"
+              disabled={held}
+              onClick={() => {
+                setAsking(null);
+                run("signing", signTheRest(), (many) => {
+                  setMine(0);
+                  setSaid({
+                    card: "signing",
+                    text: many === 1 ? t("aliasRestDoneOne") : fill("aliasRestDone", String(many)),
+                  });
+                });
+              }}
+              className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
+            >
+              {t("aliasRestYes")}
+            </button>
+          </div>
+        </Modal>
+      )}
       {picking && (
         <Modal title={t("welcomeCopies")} wide onClose={() => setPicking(false)}>
           <p className="mb-4 text-[12.5px] leading-relaxed text-soft">{t("keepersWhy")}</p>
@@ -652,6 +708,73 @@ export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
                 said={said}
                 trouble={trouble}
               />
+            </div>
+
+            <Band label={t("bandSigning")} />
+            <div className="border-t border-hair">
+              <Line
+                title={
+                  <span className="flex items-center gap-1.5">
+                    {t("alias")}
+                    <Ask said={t("aliasWhy")} />
+                  </span>
+                }
+                why={t("aliasShort")}
+                which="signing"
+                said={said}
+                trouble={trouble}
+              >
+                <input
+                  type="text"
+                  aria-label={t("alias")}
+                  value={alias}
+                  disabled={held}
+                  maxLength={ALIAS_AT_MOST}
+                  placeholder={t("aliasNone")}
+                  onChange={(e) => setAlias(e.target.value)}
+                  onBlur={() => {
+                    const said = alias.trim();
+                    if (
+                      said.localeCompare(signed_as.current, undefined, {
+                        sensitivity: "accent",
+                      }) === 0
+                    ) {
+                      setAlias(signed_as.current);
+                      return;
+                    }
+                    run("signing", sign(said || undefined), (now) => {
+                      setAlias(now.alias ?? "");
+                      setAliases(now.before);
+                      setMine(now.mine);
+                      signed_as.current = now.alias ?? "";
+                      setSaid({
+                        card: "signing",
+                        text: now.alias ? fill("aliasKept", now.alias) : t("aliasGone"),
+                      });
+                      if (now.alias && now.mine > 0) setAsking(now.alias);
+                    });
+                  }}
+                  list={before.length > 0 ? "signed-before" : undefined}
+                  className={`w-40 rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                />
+                {mine > 0 && (
+                  <button
+                    type="button"
+                    disabled={held}
+                    onClick={() => setAsking(alias)}
+                    className="rounded-[7px] border border-line px-2 py-1 text-[12px] hover:bg-hover disabled:opacity-60"
+                  >
+                    {t("aliasRest")}
+                  </button>
+                )}
+                {before.length > 0 && (
+                  <datalist id="signed-before">
+                    {before.map((one) => (
+                      <option key={one} value={one} />
+                    ))}
+                  </datalist>
+                )}
+              </Line>
             </div>
 
             <Band label={t("bandNotices")} />
@@ -1001,6 +1124,42 @@ export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
               )}
             </div>
             <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("attachBig")}</p>
+
+            <Band label={t("bandParcels")} />
+            <div className="border-t border-hair">
+              <Line
+                title={t("packAllPlain")}
+                why={t("packAllWhy")}
+                which="parcel"
+                said={said}
+                trouble={trouble}
+              >
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={onPack}
+                  className={`rounded-[7px] border border-line px-2 py-1 text-[12px] hover:bg-hover ${off}`}
+                >
+                  {t("packAllDo")}
+                </button>
+              </Line>
+              <Line
+                title={t("unpackPlain")}
+                why={t("unpackWhy")}
+                which="parcel"
+                said={said}
+                trouble={trouble}
+              >
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={onUnpack}
+                  className={`rounded-[7px] border border-line px-2 py-1 text-[12px] hover:bg-hover ${off}`}
+                >
+                  {t("unpackDo")}
+                </button>
+              </Line>
+            </div>
 
             {state.backsUp && (
               <>
@@ -1735,6 +1894,26 @@ function Band({ label }: { label: string }) {
   );
 }
 
+function Ask({ said }: { said: string }) {
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        aria-label={said}
+        className="peer flex h-[15px] w-[15px] items-center justify-center rounded text-[11px] leading-none text-faint hover:bg-line hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+      >
+        ?
+      </button>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute top-6 left-0 z-20 w-[300px] rounded-[10px] border border-line bg-bg p-3 text-[12.5px] leading-relaxed font-normal whitespace-pre-line text-soft opacity-0 shadow-lift transition-opacity peer-hover:opacity-100 peer-focus-visible:opacity-100 motion-reduce:transition-none"
+      >
+        {said}
+      </span>
+    </span>
+  );
+}
+
 function Line({
   title,
   why,
@@ -1744,7 +1923,7 @@ function Line({
   children,
   more,
 }: {
-  title: string;
+  title: React.ReactNode;
   why?: React.ReactNode;
   which: Which;
   said?: Word;
@@ -1824,6 +2003,8 @@ interface CardProps {
 
 const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
+  signing: "alias",
+  parcel: "bandParcels",
   backup: "backup",
   restore: "restoreTitle",
   review: "review",

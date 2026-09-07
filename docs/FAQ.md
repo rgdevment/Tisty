@@ -77,7 +77,14 @@ at once.
 
 ## A document opened read-only and I did not ask for that
 
-Tisty's editor writes Markdown back out, and a few shapes do not survive that
+Two different reasons, and the bar at the foot of the document tells you which.
+
+**It is in the archive.** Archiving a document closes it to writing — from the
+window, from the terminal and from an assistant alike — because putting
+something away means it is finished. Bring it back and it writes again.
+
+**Or the writing itself is at risk.** Tisty's editor writes Markdown back out,
+and a few shapes do not survive that
 trip: front matter, footnotes, links written by reference, blocks of HTML, HTML
 comments and entities, whatever a code fence says after its language beyond a
 name, and a list item that opens on a block — a quote, a fence, a heading, a

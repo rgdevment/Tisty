@@ -402,6 +402,18 @@ columna con de qué va el documento, el formato que el menú `/` escondía y su
 índice. **Tisty genera su propio PDF** —A4, Carta o una hoja sin fin, con sus
 propios márgenes y los adjuntos dentro— y te lo enseña antes de exportarlo.
 
+**Y salen enteros.** Un documento se copia como Markdown, se escribe en una
+carpeta con sus páginas y sus adjuntos al lado, o se exporta para Tisty en un
+archivo `.tistyx` que además guarda lo que el Markdown no sabe decir: las
+carpetas con su orden, su icono y su color, de qué documento cuelga cada
+página, qué está archivado y con qué alias se firmó. Al exportarlos todos te
+pregunta para quién son: abiertos, para dárselos a alguien, o cerrados con seis
+dígitos para otro equipo tuyo —que es lo que hace que allí lleguen como tuyos y
+no como de un desconocido—. En cualquiera de los dos casos, dentro no viaja ni
+una línea del historial. Si escribes un alias —opcional, y solo tú decides
+cuál—, cada documento queda firmado con él, y lo que te llegue de otra persona
+conserva el suyo.
+
 ![Documentos en Markdown, con adjuntos](assets/Store/jpg/es-03-documentos.jpg)
 
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así

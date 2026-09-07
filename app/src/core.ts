@@ -669,6 +669,7 @@ export interface Filed {
   archived: boolean;
   locked?: boolean;
   gone?: boolean;
+  guest?: string | null;
   tags?: string[];
 }
 
@@ -682,7 +683,22 @@ export interface DocFacts {
   wrote: number | null;
   bytes: number;
   pages: number;
+  author: string | null;
+  editor: string | null;
+  born: string | null;
 }
+
+export const ALIAS_AT_MOST = 40;
+
+export interface Signed {
+  alias: string | null;
+  before: string[];
+  mine: number;
+}
+
+export const signed = (): Promise<Signed> => invoke("signed");
+export const sign = (alias?: string): Promise<Signed> => invoke("sign", { alias });
+export const signTheRest = (): Promise<number> => invoke("sign_the_rest");
 
 export const docFacts = (id: string): Promise<DocFacts> => invoke("doc_facts", { id });
 
@@ -726,10 +742,44 @@ export const docCopy = (id: string): Promise<Doc> => invoke("doc_copy", { id });
 export interface Taken {
   files: number;
   missed: number;
+  left: number;
 }
 
 export const docExport = (id: string, into: string): Promise<Taken> =>
   invoke("doc_export", { id, into });
+
+export interface Afoot {
+  stage: "packing" | "takingOut" | "landing";
+  far: number;
+  done: number;
+  whole: number;
+}
+
+export interface Packed {
+  docs: number;
+  pages: number;
+  folders: number;
+  files: number;
+  missed: number;
+  left: number;
+}
+
+export interface Unpacked {
+  docs: number;
+  pages: number;
+  folders: number;
+  joined: number;
+  files: number;
+  missed: number;
+}
+
+export const spelled = (said: string): Promise<string> => invoke("spelled", { said });
+export const docsPack = (which: string[], into: string, number?: string): Promise<Packed> =>
+  invoke("docs_pack", { which, into, number });
+export const docsUnpack = (from: string, number?: string): Promise<Unpacked> =>
+  invoke("docs_unpack", { from, number });
+export const docsTakeOut = (which: string[], into: string): Promise<Packed> =>
+  invoke("docs_take_out", { which, into });
 export const docImport = (from: string, folder?: string): Promise<Doc> =>
   invoke("doc_import", { from, folder });
 

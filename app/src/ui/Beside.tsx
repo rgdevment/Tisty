@@ -167,6 +167,24 @@ export default function Beside({
             {t("aboutPaper")}
           </h3>
           <dl className="flex flex-col gap-1.5 text-[12px]">
+            {facts?.author && (
+              <div className="flex items-baseline justify-between gap-2.5">
+                <dt className="text-faint">{t("paperAuthor")}</dt>
+                <dd className="truncate text-ink">{facts.author}</dd>
+              </div>
+            )}
+            {facts?.born && (
+              <div className="flex items-baseline justify-between gap-2.5">
+                <dt className="text-faint">{t("paperBorn")}</dt>
+                <dd className="truncate text-soft">{facts.born}</dd>
+              </div>
+            )}
+            {facts?.editor && (
+              <div className="flex items-baseline justify-between gap-2.5">
+                <dt className="text-faint">{t("paperEditor")}</dt>
+                <dd className="truncate text-ink">{facts.editor}</dd>
+              </div>
+            )}
             <div className="flex items-baseline justify-between gap-2.5">
               <dt className="text-faint">{t("paperMade")}</dt>
               <dd className="tabular-nums text-soft">{dated(facts?.made ?? null)}</dd>

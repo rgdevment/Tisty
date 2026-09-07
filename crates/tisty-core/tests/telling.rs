@@ -263,6 +263,7 @@ fn a_note_of_what_a_document_said_is_one_an_older_build_can_walk_past() {
             title: "Lo que dice".into(),
             bytes: Some(12),
             tags: Some(Vec::new()),
+            by: None,
         },
     };
 
@@ -295,12 +296,17 @@ fn a_note_reaches_the_document_it_speaks_of() {
     open.append(tisty_core::Op::DocAdd {
         id,
         d: tisty_core::event::DocAdd {
+            wrote: None,
+            guest: false,
+            made: None,
+            by: None,
             file: "aaaa-0001".into(),
             order: "a0".into(),
             said: Some(tisty_core::event::Said {
                 title: "Como nacio".into(),
                 bytes: None,
                 tags: Some(Vec::new()),
+                by: None,
             }),
             folder: None,
             page_of: None,
@@ -321,6 +327,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
             title: "Como se llama ahora".into(),
             bytes: Some(40),
             tags: Some(Vec::new()),
+            by: None,
         },
     })
     .unwrap();
@@ -343,6 +350,10 @@ fn a_log_written_before_the_note_existed_still_opens() {
     open.append(tisty_core::Op::DocAdd {
         id,
         d: tisty_core::event::DocAdd {
+            wrote: None,
+            guest: false,
+            made: None,
+            by: None,
             file: "aaaa-0001".into(),
             order: "a0".into(),
             said: None,
@@ -374,6 +385,7 @@ fn the_note_goes_out_marked_so_an_older_build_skips_it() {
             title: "Algo".into(),
             bytes: None,
             tags: Some(Vec::new()),
+            by: None,
         },
     })
     .unwrap();

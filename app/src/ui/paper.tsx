@@ -151,6 +151,13 @@ const sheet = StyleSheet.create({
   cardLine: { height: 1.4, backgroundColor: "#c4c4c8", marginVertical: 1.4 },
   cardName: { fontSize: 10.5, fontWeight: 700 },
   cardSaid: { fontSize: 9, color: "#71717a", marginTop: 2 },
+  signed: {
+    marginTop: 18,
+    paddingTop: 8,
+    borderTop: "0.5pt solid #e4e4e7",
+    fontSize: 8.5,
+    color: "#a1a1aa",
+  },
   foot: {
     position: "absolute",
     bottom: 24,
@@ -409,7 +416,15 @@ const shaped = (one: Shape, at: number, room: number) => {
   }
 };
 
-export const Papered = ({ sheets, leaf }: { sheets: Shape[][]; leaf: Paper }) => {
+export const Papered = ({
+  sheets,
+  leaf,
+  signed,
+}: {
+  sheets: Shape[][];
+  leaf: Paper;
+  signed?: string;
+}) => {
   const size = SIZES[leaf];
 
   return (
@@ -417,6 +432,7 @@ export const Papered = ({ sheets, leaf }: { sheets: Shape[][]; leaf: Paper }) =>
       {sheets.map((shapes, sheet_at) => (
         <Page key={`sheet:${sheet_at}`} size={size} style={sheet.page}>
           {shapes.map((one, at) => shaped(one, at, size[0] - MARGIN * 2))}
+          {signed && sheet_at === sheets.length - 1 && <Text style={sheet.signed}>{signed}</Text>}
           <Text
             fixed
             style={sheet.foot}
