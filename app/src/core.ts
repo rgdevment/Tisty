@@ -628,6 +628,15 @@ export const mergeStores = (into: string): Promise<boolean> => invoke("merge_sto
 export type Kin = "sameLineage" | "clash" | "unsure" | "strangers";
 
 export const syncKin = (): Promise<Kin> => invoke("sync_kin");
+
+export interface Joining {
+  kin: Kin;
+  fresh: boolean;
+  holds: boolean;
+  alias: string | null;
+}
+
+export const joining = (): Promise<Joining> => invoke("joining");
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });

@@ -128,7 +128,9 @@ const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
 
 const PARCEL = "tistyx";
 // Long enough to have walked away from: past this, the notice waits rather than fading.
-const AT_A_GLANCE = 20_000;
+export const AT_A_GLANCE = 20_000;
+
+export const SHOWN = 3_200;
 
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -196,6 +198,7 @@ export default function App() {
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [waited, setWaited] = useState(false);
   const [afoot, setAfoot] = useState<Afoot | null>(null);
   const [whoFor, setWhoFor] = useState<string | null>(null);
   const [movingTo, setMovingTo] = useState<string | null>(null);
@@ -250,11 +253,31 @@ export default function App() {
   };
 
   const said = (text: string, since: number) => {
+    const long = Date.now() - since >= AT_A_GLANCE;
     setNote(text);
-    if (Date.now() - since < AT_A_GLANCE) {
-      setTimeout(() => setNote(null), 3200);
-    }
+    setWaited(long);
+    if (!long) setTimeout(() => setNote(null), SHOWN);
   };
+
+  useEffect(() => {
+    if (!waited) return;
+    let ready = false;
+    const soon = setTimeout(() => {
+      ready = true;
+    }, SHOWN);
+    const gone = () => {
+      if (!ready) return;
+      setNote(null);
+      setWaited(false);
+    };
+    window.addEventListener("pointerdown", gone);
+    window.addEventListener("keydown", gone);
+    return () => {
+      clearTimeout(soon);
+      window.removeEventListener("pointerdown", gone);
+      window.removeEventListener("keydown", gone);
+    };
+  }, [waited]);
 
   const packing = (which: string[], named: string, number?: string) => {
     const since = Date.now();
@@ -322,7 +345,7 @@ export default function App() {
                   ? fill("tookOutAll", String(many), String(took.folders))
                   : fill("tookOutAllFlat", String(many)),
             );
-            setTimeout(() => setNote(null), 3200);
+            setTimeout(() => setNote(null), SHOWN);
           })
           .catch((e) => {
             setAfoot(null);
@@ -926,7 +949,7 @@ export default function App() {
             asPlain(doc.file)
               .then(() => {
                 setNote(t("copied"));
-                setTimeout(() => setNote(null), 3200);
+                setTimeout(() => setNote(null), SHOWN);
               })
               .catch((e) => setError(saidPlainly(e))),
         },
@@ -952,7 +975,7 @@ export default function App() {
                   return;
                 }
                 setNote(took.files ? fill("takenOut", String(took.files)) : t("takenOutAlone"));
-                setTimeout(() => setNote(null), 3200);
+                setTimeout(() => setNote(null), SHOWN);
               })
               .catch((e) => setError(saidPlainly(e))),
         },

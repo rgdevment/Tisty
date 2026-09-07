@@ -924,7 +924,7 @@ const en = {
   keepersSave: "Save here",
   keepersCloud: "{name} has to be open and up to date",
   keepersCloudWhy:
-    "Tisty leaves the copies there; taking them up and down is that program's job. If it is not running — here or on the other computer — the tasks wait, and Tisty cannot tell.",
+    "Tisty leaves the copies there; taking them up and down is that program's job. If it is not running — here or on the other computer — the tasks wait, and Tisty cannot tell. If you already use Tisty elsewhere, let the folder finish downloading before you settle on it: one still arriving looks empty.",
   keepersAway: "It has to be there when you open Tisty",
   keepersAwayWhy:
     "That folder lives on a server or on a disk you plug in. If it does not answer it looks empty, and you will not see what arrived.",
@@ -1028,11 +1028,11 @@ const en = {
   aliasKept: "Signed as {name}",
   aliasGone: "Your writing goes out unsigned from now on",
   aliasRestAsk:
-    "What was already written keeps the signature it had. Do you want the {name} older documents to carry this alias instead?",
+    "Nothing already written changes hands on its own. Do you want the {name} documents behind you to stand in your name?",
   aliasRestAskOne:
-    "What was already written keeps the signature it had. Do you want the one older document to carry this alias instead?",
+    "Nothing already written changes hands on its own. Do you want the one document behind you to stand in your name?",
   aliasRestNever: "What arrived signed by somebody else keeps their name, always.",
-  aliasRestYes: "Yes, change them all",
+  aliasRestYes: "Yes, put them in my name",
   aliasRestNo: "No, only the new ones",
   aliasRestDone: "{name} documents signed",
   aliasRestDoneOne: "One document signed",
@@ -1237,8 +1237,16 @@ const en = {
   welcomeCarrying: "Bringing what the folder already holds",
   welcomeCarryingWhy:
     "The first round reads everything that is up there. You go in as soon as your tasks and documents are named; on a cloud folder the bodies and the files keep landing behind you.",
-  welcomeCarryStuck: "Nothing came from the folder",
+  welcomeCarryStuck: "The folder's writing could not be brought here",
   welcomeAnyway: "Go in anyway",
+  welcomeFolderHolds: "This folder already holds a Tisty",
+  welcomeFolderHoldsWhy: "It looks like the history of another machine of yours. Bring it here?",
+  welcomeFolderHoldsHow:
+    "Its tasks and its documents come along, and this machine joins that history. Nothing in the folder is lost.",
+  welcomeFolderHoldsAs:
+    "Its tasks and its documents come along, and you will sign as {name}. This machine joins that history, and nothing in the folder is lost.",
+  welcomeBringIt: "Yes, bring it",
+  welcomeMoreDoors: "More choices",
   keepersUnreadable: "This folder's history could not be read",
   keepersUnreadableWhy:
     "It may still be arriving, or this machine may not be allowed to read it. Choosing it now would look like an empty folder and start a history of its own beside the one already there.",
@@ -2180,7 +2188,7 @@ const es: Catalog = {
   keepersSave: "Guardar aquí",
   keepersCloud: "{name} tiene que estar abierto y al día",
   keepersCloudWhy:
-    "Tisty deja las copias ahí; subirlas y bajarlas es cosa de ese programa. Si no está en marcha —aquí o en el otro equipo—, las tareas esperan y Tisty no puede saberlo.",
+    "Tisty deja las copias ahí; subirlas y bajarlas es cosa de ese programa. Si no está en marcha —aquí o en el otro equipo—, las tareas esperan y Tisty no puede saberlo. Si ya usas Tisty en otro equipo, deja que la carpeta termine de descargar antes de quedarte con ella: una que todavía llega se ve vacía.",
   keepersAway: "Tiene que estar disponible cuando abras Tisty",
   keepersAwayWhy:
     "Esa carpeta vive en un servidor o en un disco que se conecta. Si no responde se ve vacía, y no verás lo que haya llegado.",
@@ -2283,11 +2291,11 @@ const es: Catalog = {
   aliasKept: "Firmas como {name}",
   aliasGone: "A partir de ahora lo que escribas sale sin firma",
   aliasRestAsk:
-    "Lo que ya estaba escrito conserva la firma que tenía. ¿Quieres que los {name} documentos anteriores pasen a este alias?",
+    "Nada de lo ya escrito cambia de manos solo. ¿Quieres que los {name} documentos que tienes detrás queden a tu nombre?",
   aliasRestAskOne:
-    "Lo que ya estaba escrito conserva la firma que tenía. ¿Quieres que el documento anterior pase a este alias?",
+    "Nada de lo ya escrito cambia de manos solo. ¿Quieres que el documento que tienes detrás quede a tu nombre?",
   aliasRestNever: "Lo que llegó firmado por otra persona conserva su nombre, siempre.",
-  aliasRestYes: "Sí, cambiar todos",
+  aliasRestYes: "Sí, ponerlos a mi nombre",
   aliasRestNo: "No, solo los nuevos",
   aliasRestDone: "{name} documentos firmados",
   aliasRestDoneOne: "Un documento firmado",
@@ -2493,8 +2501,16 @@ const es: Catalog = {
   welcomeCarrying: "Trayendo lo que ya hay en la carpeta",
   welcomeCarryingWhy:
     "La primera vuelta lee todo lo que hay allá arriba. Entras en cuanto tus tareas y documentos tienen nombre; en una carpeta de nube los cuerpos y los archivos siguen llegando detrás de ti.",
-  welcomeCarryStuck: "No llegó nada de la carpeta",
+  welcomeCarryStuck: "No se pudo traer lo que hay en la carpeta",
   welcomeAnyway: "Entrar de todos modos",
+  welcomeFolderHolds: "Esta carpeta ya trae un Tisty",
+  welcomeFolderHoldsWhy: "Parece la historia de otra máquina tuya. ¿La traemos aquí?",
+  welcomeFolderHoldsHow:
+    "Llegan sus tareas y sus documentos, y esta máquina se suma a esa historia. No se pierde nada de la carpeta.",
+  welcomeFolderHoldsAs:
+    "Llegan sus tareas y sus documentos, y firmarás como {name}. Esta máquina se suma a esa historia y no se pierde nada de la carpeta.",
+  welcomeBringIt: "Sí, traerla",
+  welcomeMoreDoors: "Ver más opciones",
   keepersUnreadable: "No se pudo leer el historial de esta carpeta",
   keepersUnreadableWhy:
     "Puede que todavía esté llegando, o que este equipo no tenga permiso para leerlo. Elegirla ahora se vería como una carpeta vacía y empezaría un historial propio al lado del que ya está.",

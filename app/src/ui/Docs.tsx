@@ -340,6 +340,8 @@ export default function Docs({
   const wrote = (text: string) => {
     if (!open || reading || bolted) return;
     setBody(text);
+    const last = lastRead.current.get(open.file);
+    if (last !== undefined && tailless(last) === tailless(text)) return;
     held.current = { id: open.file, body: text };
     if (settling.current) clearTimeout(settling.current);
     settling.current = setTimeout(flush, SETTLES);
