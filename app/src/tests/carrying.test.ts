@@ -57,8 +57,9 @@ describe("carrying on its own", () => {
     await vi.advanceTimersByTimeAsync(30_000);
     await settle();
 
-    expect(sent("sync_now").length).toBe(before + 1);
-    expect(sent("sync_now").at(-1)?.args.way).toBe("pull");
+    const rounds = sent("sync_now");
+    expect(rounds.length).toBe(before + 1);
+    expect(rounds[rounds.length - 1].args.way).toBe("pull");
   });
 
   it("does not glance while the window is out of sight", async () => {
