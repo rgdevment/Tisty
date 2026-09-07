@@ -55,7 +55,7 @@ name it was written under in its own `doc.add`. `doc.signed`, which re-signs a
 document already written, is **not** marked — dropping it would show the old
 name on one machine and the new one on the next.
 
-Three payload fields carry more than their name says:
+Some payload fields carry more than their name says:
 
 | Field | On | Meaning |
 |---|---|---|
@@ -63,6 +63,7 @@ Three payload fields carry more than their name says:
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
 | `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
+| `by` | `doc.said` | the alias the body was saved under, sealed at the writing rather than worked out afterwards from whoever happens to be signing now. Absent is a hand that did not sign, not the reader's own |
 
 `active.tisty` is sealed as `NNNNNN.tisty` every 5.000 events. Sealed segments
 are numbered from one without gaps.
@@ -1148,9 +1149,18 @@ of everything, because nothing in it says «you already have this».
 
 The store that receives it decides what is a guest by the identity of the store
 that sent it, written in the manifest, and never by the name inside: two people
-who happen to share an alias do not inherit each other's writing, and a parcel
+who happen to share an alias do not inherit each other's writing, and what comes
 from somebody who never signed lands without an author rather than under the
 name of whoever opened it.
+
+Who *edited* it does not travel at all. The author is the document's, and it is
+the same wherever the document goes; the hand that last wrote is this store's
+own reading, sealed in `doc.said` as it was written. Changing an alias rewrites
+neither one: the log keeps what it kept, «signed before as» keeps the name the
+document was born under, and re-signing what is mine is a deliberate act with
+its own event. What the reading does is resolve — an alias this store signed
+with before reads as the alias it signs with now, because it is the same hand,
+while somebody else's stays theirs however this machine signs today.
 
 **Export to PDF** is the one that leaves Markdown behind, and Tisty composes it
 rather than asking the system to print. That is a deliberate cost. Printing hands

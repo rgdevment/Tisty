@@ -337,6 +337,7 @@ mod tests {
                     page_of: up,
                     archived: false,
                     locked: false,
+                    edited_by: None,
                 },
             );
         };

@@ -58,6 +58,8 @@ pub struct Kept {
     pub by: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub born_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edited_by: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub guest: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -104,6 +106,7 @@ mod tests {
             page_of: None,
             archived: false,
             locked: false,
+            edited_by: None,
         };
         let json = serde_json::to_string(&kept).unwrap();
 

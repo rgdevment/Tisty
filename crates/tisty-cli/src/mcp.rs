@@ -486,7 +486,7 @@ const UNSETTLED: &str = " Where its pages sit could not be settled just now — 
 fn retold(state: &State, store: &mut Store, doc: &str, body: &str) -> Result<(), Refused> {
     let mut told = state.settling(doc, body);
     if let Some(kept) = state.docs.values().find(|one| one.file == doc) {
-        let said = tisty_core::event::Said::of(body);
+        let said = tisty_core::event::Said::of(body).by(state.signed.alias.clone());
         if said.news_for(kept) {
             told.push(Op::DocSaid {
                 id: kept.id,

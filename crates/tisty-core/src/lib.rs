@@ -83,7 +83,9 @@ pub enum Error {
     },
     #[error("segment {number:06} of {device} is missing: that slice of history is not here")]
     MissingSegment { number: usize, device: String },
-    #[error("event schema version {0} is newer than this build understands")]
+    #[error(
+        "event schema version {0} is newer than this build understands: update Tisty on this machine before going on, or reading half of it would lose work"
+    )]
     UnsupportedVersion(u32),
     #[error("another tisty process is using this device's store")]
     AlreadyRunning,

@@ -312,6 +312,7 @@ impl State {
                         wrote_by: Some(event.device.clone()),
                         by: d.by.clone().or_else(|| here(d, &self.signed)),
                         born_by: d.by.clone().or_else(|| here(d, &self.signed)),
+                        edited_by: d.said.as_ref().and_then(|one| one.by.clone()),
                         guest: d.guest,
                         folder: match under {
                             Some(one) => one.folder,
@@ -339,6 +340,7 @@ impl State {
                     }
                     kept.wrote = Some(event.timestamp);
                     kept.wrote_by = Some(event.device.clone());
+                    kept.edited_by = d.by.clone();
                 }
             }
             Op::DocMove { id, d } => {
@@ -1224,11 +1226,25 @@ impl State {
             .collect()
     }
 
-    pub fn editor_of(&self, kept: &crate::model::Kept) -> Option<&str> {
-        match !alike(kept.by.as_deref(), self.signed.alias.as_deref()) && kept.wrote != kept.made {
-            true => self.signed.alias.as_deref(),
-            false => None,
+    /// A hand of mine reads as the alias I sign with now: the log keeps what it was, and
+    /// changing an alias rewrites nothing behind it.
+    pub fn editor_of<'a>(&'a self, kept: &'a crate::model::Kept) -> Option<&'a str> {
+        let hand = kept.edited_by.as_deref()?;
+        if alike(Some(hand), kept.by.as_deref()) {
+            return None;
         }
+        if !self.mine_to_write(hand) {
+            return Some(hand);
+        }
+        match kept.by.as_deref().is_some_and(|by| self.mine_to_write(by)) {
+            true => None,
+            false => Some(self.signed.alias.as_deref().unwrap_or(hand)),
+        }
+    }
+
+    fn mine_to_write(&self, hand: &str) -> bool {
+        alike(Some(hand), self.signed.alias.as_deref())
+            || self.signed_before.iter().any(|was| same_name(was, hand))
     }
 
     pub fn docs_tagged(&self, tag: &Tag) -> impl Iterator<Item = &crate::model::Kept> {
@@ -3269,6 +3285,7 @@ mod tests {
                             title: "Acta".into(),
                             bytes: None,
                             tags: Some(vec![Tag::new("2").unwrap(), Tag::new("casa").unwrap()]),
+                            by: None,
                         }),
                         ..Default::default()
                     },

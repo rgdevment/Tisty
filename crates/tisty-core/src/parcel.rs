@@ -612,6 +612,7 @@ fn taken_in(
                     title: made.title.clone(),
                     bytes: Some(body.len() as u64),
                     tags: Some(crate::tagging::tags_in(&body)),
+                    by: None,
                 }),
                 folder,
                 page_of: up,

@@ -329,7 +329,14 @@ impl Op {
             }
             Op::DocAdd { id, mut d } => {
                 d.by = maybe(d.by);
+                if let Some(said) = d.said.as_mut() {
+                    said.by = maybe(said.by.take());
+                }
                 Op::DocAdd { id, d }
+            }
+            Op::DocSaid { id, mut d } => {
+                d.by = maybe(d.by);
+                Op::DocSaid { id, d }
             }
             Op::DocSigned { id, d } => Op::DocSigned { id, d: one(d) },
             Op::Signed { mut d } => {
@@ -568,6 +575,8 @@ pub struct Said {
     /// that has none, and telling them apart is what keeps a sync from wiping them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<crate::model::Tag>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
 }
 
 impl Said {
@@ -576,7 +585,13 @@ impl Said {
             title: crate::docs::titled(body),
             bytes: Some(body.len() as u64),
             tags: Some(crate::tagging::tags_in(body)),
+            by: None,
         }
+    }
+
+    pub fn by(mut self, who: Option<String>) -> Self {
+        self.by = who;
+        self
     }
 
     pub fn news_for(&self, kept: &crate::model::Kept) -> bool {

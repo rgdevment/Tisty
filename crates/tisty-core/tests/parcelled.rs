@@ -92,6 +92,7 @@ impl Room {
                     title: made.title.clone(),
                     bytes: None,
                     tags: Some(Vec::new()),
+                    by: None,
                 }),
                 folder,
                 page_of,
@@ -811,18 +812,105 @@ fn taking_in_and_then_writing_says_who_wrote_last_without_taking_the_name_away()
     there.take_in(&box_at);
 
     let acta = there.titled("Acta").id;
+    assert_eq!(
+        there.state.editor_of(&there.state.docs[&acta]),
+        None,
+        "nobody has written it here yet"
+    );
     there.tell(Op::DocSaid {
         id: acta,
         d: Said {
             title: "Acta".into(),
             bytes: Some(20),
             tags: Some(Vec::new()),
+            by: Some("rgdevment".into()),
         },
     });
 
     let acta = &there.state.docs[&acta];
     assert_eq!(there.state.author_of(acta), Some("fulanito"));
     assert_eq!(there.state.editor_of(acta), Some("rgdevment"));
+}
+
+#[test]
+fn a_hand_of_mine_reads_as_the_alias_i_sign_with_now() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("mario".into()),
+            ..Default::default()
+        },
+    });
+    here.doc(
+        "# Acta
+
+lo suyo",
+        None,
+        None,
+    );
+    let acta = here.titled("Acta").id;
+    here.tell(Op::DocSaid {
+        id: acta,
+        d: Said {
+            title: "Acta".into(),
+            bytes: Some(20),
+            tags: Some(Vec::new()),
+            by: Some("mario".into()),
+        },
+    });
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+
+    let kept = &here.state.docs[&acta];
+    assert_eq!(
+        here.state.editor_of(kept),
+        None,
+        "the author signs it as well, so there is nothing to add"
+    );
+    assert_eq!(
+        here.state.docs[&acta].edited_by.as_deref(),
+        Some("mario"),
+        "the log keeps the hand it was written with"
+    );
+}
+
+#[test]
+fn somebody_elses_hand_stays_theirs_however_i_sign() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    here.doc(
+        "# Acta
+
+lo mio",
+        None,
+        None,
+    );
+    let acta = here.titled("Acta").id;
+    here.tell(Op::DocSaid {
+        id: acta,
+        d: Said {
+            title: "Acta".into(),
+            bytes: Some(20),
+            tags: Some(Vec::new()),
+            by: Some("fulanito".into()),
+        },
+    });
+
+    assert_eq!(
+        here.state.editor_of(&here.state.docs[&acta]),
+        Some("fulanito")
+    );
 }
 
 #[test]
@@ -1136,6 +1224,7 @@ soy el largo",
                     title: docs::titled(body),
                     bytes: None,
                     tags: Some(Vec::new()),
+                    by: None,
                 }),
                 ..Default::default()
             },

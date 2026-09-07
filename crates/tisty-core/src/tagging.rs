@@ -249,12 +249,14 @@ mod tests {
             archived: false,
             locked: false,
             tags: vec![Tag::new("legal").unwrap()],
+            edited_by: None,
         };
 
         let same = crate::event::Said {
             title: "Alquiler".into(),
             bytes: Some(31),
             tags: Some(vec![Tag::new("legal").unwrap()]),
+            by: None,
         };
         assert!(!same.news_for(&kept));
 

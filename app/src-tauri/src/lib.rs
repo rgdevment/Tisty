@@ -181,7 +181,7 @@ impl Session {
     fn retell(&mut self, file: &str, body: &str) -> bool {
         let mut told = self.state.settling(file, body);
         if let Some(kept) = self.state.docs.values().find(|one| one.file == file) {
-            let said = tisty_core::event::Said::of(body);
+            let said = tisty_core::event::Said::of(body).by(signing(&self.state));
             if said.news_for(kept) {
                 told.push(Op::DocSaid {
                     id: kept.id,
@@ -2627,11 +2627,14 @@ fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Filed>
             .into_iter()
             .filter_map(|(one, said)| {
                 let kept = held.state.docs.values().find(|kept| kept.file == one.id)?;
-                let said = said.unwrap_or_else(|| tisty_core::event::Said {
-                    title: one.title.clone(),
-                    bytes: None,
-                    tags: Some(kept.tags.clone()),
-                });
+                let said = said
+                    .unwrap_or_else(|| tisty_core::event::Said {
+                        title: one.title.clone(),
+                        bytes: None,
+                        tags: Some(kept.tags.clone()),
+                        by: None,
+                    })
+                    .by(signing(&held.state));
                 said.news_for(kept).then_some(Op::DocSaid {
                     id: kept.id,
                     d: said,
@@ -2697,8 +2700,8 @@ fn read_tags(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
         let Ok(body) = tisty_core::docs::read(&root, &file) else {
             continue;
         };
-        let said = tisty_core::event::Said::of(&body);
         let session = held(&session);
+        let said = tisty_core::event::Said::of(&body).by(signing(&session.state));
         let Some(kept) = session.state.docs.get(&id) else {
             continue;
         };
@@ -3474,6 +3477,7 @@ fn guide(
                 title: made.title.clone(),
                 bytes: None,
                 tags: Some(Vec::new()),
+                by: None,
             }),
             folder: Some(folder),
             page_of: None,
@@ -3563,6 +3567,7 @@ fn noted(session: &mut Session, file: &str, body: &str) {
         title: tisty_core::docs::titled(body),
         bytes: kept.bytes,
         tags: Some(tisty_core::tagging::tags_in(body)),
+        by: None,
     };
     if !told.news_for(kept) {
         return;
@@ -3570,6 +3575,7 @@ fn noted(session: &mut Session, file: &str, body: &str) {
     let id = kept.id;
     let said = tisty_core::event::Said {
         bytes: Some(body.len() as u64),
+        by: signing(&session.state),
         ..told
     };
     let _ = session.commit(Op::DocSaid { id, d: said });
@@ -3669,6 +3675,7 @@ fn doc_copy(
                 title: made.title.clone(),
                 bytes: None,
                 tags: Some(kept.tags.clone()),
+                by: None,
             }),
             folder: kept.folder,
             page_of: kept.page_of,
@@ -3713,6 +3720,7 @@ fn doc_copy(
                     title: leaf.title,
                     bytes: None,
                     tags: Some(Vec::new()),
+                    by: None,
                 }),
                 folder: kept.folder,
                 page_of: Some(twin),
@@ -4126,6 +4134,7 @@ fn doc_import(
                 title: made.title.clone(),
                 bytes: None,
                 tags: Some(Vec::new()),
+                by: None,
             }),
             folder,
             page_of: None,
@@ -4201,6 +4210,7 @@ fn doc_new(
                 title: made.title.clone(),
                 bytes: None,
                 tags: Some(Vec::new()),
+                by: None,
             }),
             folder,
             page_of,
@@ -5174,6 +5184,7 @@ fn settle_paper(
                     title: made.title.clone(),
                     bytes: None,
                     tags: Some(Vec::new()),
+                    by: None,
                 }),
                 page_of,
             },
@@ -7136,6 +7147,7 @@ mod ordering {
                         title: tisty_core::docs::titled(super::GUIDE_ES),
                         bytes: None,
                         tags: Some(Vec::new()),
+                        by: None,
                     }),
                     folder: None,
                     page_of: None,
@@ -7167,6 +7179,7 @@ mod ordering {
                         title: "Mis notas".into(),
                         bytes: None,
                         tags: Some(Vec::new()),
+                        by: None,
                     }),
                     folder: None,
                     page_of: None,
