@@ -261,6 +261,13 @@ impl Cache {
             self.invalidate();
             return Ok(());
         }
+        // A cache that was thrown out stays thrown out. Writing one row and stamping the
+        // fingerprint again would declare the whole of it current, and every row nobody
+        // touched since — an archived document, a deleted list and its tombstone — would
+        // read back as it was before.
+        if self.meta("fingerprint").is_none_or(|one| one.is_empty()) {
+            return Ok(());
+        }
         let carried = (|| -> rusqlite::Result<()> {
             let id = entity.to_string();
             if let Some(folder) = state.folders.get(&entity) {

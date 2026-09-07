@@ -833,6 +833,307 @@ fn taking_in_and_then_writing_says_who_wrote_last_without_taking_the_name_away()
 }
 
 #[test]
+fn a_parcel_locked_with_a_number_lands_as_my_own_writing() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    here.doc(
+        "# Acta
+
+lo mio",
+        None,
+        None,
+    );
+    let box_at = room.path().join("mudanza.tistyx");
+    parcel::written(
+        &here.data,
+        &here.state,
+        &[],
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+
+    assert!(parcel::locked(&box_at), "it went out in the clear");
+
+    let mut fresh = Room::new(room.path(), "fresh");
+    assert!(
+        matches!(
+            parcel::read(
+                &fresh.data,
+                &fresh.state,
+                &fresh.dev.clone(),
+                &box_at,
+                &Along::default()
+            ),
+            Err(tisty_core::Error::ParcelLocked)
+        ),
+        "a locked parcel opened without the number"
+    );
+    assert!(
+        matches!(
+            parcel::taken(
+                &fresh.data,
+                &fresh.state,
+                &fresh.dev.clone(),
+                &box_at,
+                &Along::default(),
+                Some("000000")
+            ),
+            Err(tisty_core::Error::WrongNumber)
+        ),
+        "any number at all opened it"
+    );
+
+    let (landed, ops) = parcel::taken(
+        &fresh.data,
+        &fresh.state,
+        &fresh.dev.clone(),
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+    assert_eq!(landed.docs, 1);
+    for op in ops {
+        fresh.tell(op);
+    }
+
+    let acta = fresh.titled("Acta");
+    assert!(!acta.guest, "my own writing came home as somebody else's");
+    assert_eq!(fresh.state.author_of(acta), Some("rgdevment"));
+}
+
+#[test]
+fn a_locked_parcel_cut_short_does_not_open_as_a_whole_one() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    // Long enough to be sealed in more than one block once zipped, so it has to be a body that
+    // does not compress away: cutting it then leaves whole blocks behind.
+    let mut seed = 0x2545_f491_4f6c_dd1du64;
+    let mut body = String::from(
+        "# Largo
+
+",
+    );
+    for _ in 0..200_000 {
+        seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+        body.push(char::from(b'a' + ((seed >> 33) % 26) as u8));
+    }
+    here.doc(&body, None, None);
+    let box_at = room.path().join("largo.tistyx");
+    parcel::written(
+        &here.data,
+        &here.state,
+        &[],
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+
+    let whole = std::fs::read(&box_at).unwrap();
+    assert!(whole.len() > 64 * 1024, "the parcel fit in a single block");
+
+    let mut fresh = Room::new(room.path(), "fresh");
+    let (landed, _) = parcel::taken(
+        &fresh.data,
+        &fresh.state,
+        &fresh.dev.clone(),
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+    assert_eq!(landed.docs, 1, "a parcel of several blocks did not open");
+
+    std::fs::write(&box_at, &whole[..whole.len() - 4_000]).unwrap();
+    let mut cut = Room::new(room.path(), "cut");
+    assert!(
+        parcel::taken(
+            &cut.data,
+            &cut.state,
+            &cut.dev.clone(),
+            &box_at,
+            &Along::default(),
+            Some("123456")
+        )
+        .is_err(),
+        "a parcel cut short opened as if it were whole"
+    );
+}
+
+#[test]
+fn a_guest_in_a_locked_parcel_is_still_a_guest_at_the_other_end() {
+    let room = tmp();
+    let mut theirs = Room::new(room.path(), "theirs");
+    theirs.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("fulanito".into()),
+            ..Default::default()
+        },
+    });
+    theirs.doc(
+        "# Suyo
+
+lo suyo",
+        None,
+        None,
+    );
+    let handed = room.path().join("suyo.tistyx");
+    parcel::write(&theirs.data, &theirs.state, &[], &handed, &Along::default()).unwrap();
+
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    here.take_in(&handed);
+    here.doc(
+        "# Mio
+
+lo mio",
+        None,
+        None,
+    );
+
+    let moving = room.path().join("mudanza.tistyx");
+    parcel::written(
+        &here.data,
+        &here.state,
+        &[],
+        &moving,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+
+    let mut fresh = Room::new(room.path(), "fresh");
+    let (_, ops) = parcel::taken(
+        &fresh.data,
+        &fresh.state,
+        &fresh.dev.clone(),
+        &moving,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+    for op in ops {
+        fresh.tell(op);
+    }
+
+    assert!(
+        !fresh.titled("Mio").guest,
+        "what I wrote did not come home as mine"
+    );
+    assert!(
+        fresh.titled("Suyo").guest,
+        "somebody else's writing turned into mine by riding along"
+    );
+    assert_eq!(
+        fresh.state.author_of(fresh.titled("Suyo")),
+        Some("fulanito")
+    );
+}
+
+#[test]
+fn a_guest_stays_a_guest_after_a_trip_out_and_back_through_my_own_store() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("fulanito".into()),
+            ..Default::default()
+        },
+    });
+    here.doc(
+        "# Acta
+
+lo suyo",
+        None,
+        None,
+    );
+    let theirs = room.path().join("suyo.tistyx");
+    parcel::write(&here.data, &here.state, &[], &theirs, &Along::default()).unwrap();
+
+    let mut mine = Room::new(room.path(), "theirs");
+    std::fs::create_dir_all(mine.data.join("store")).unwrap();
+    std::fs::write(
+        mine.data.join("store").join(tisty_core::store::MARKER),
+        "store-of-mine",
+    )
+    .unwrap();
+    mine.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    mine.take_in(&theirs);
+    assert!(mine.titled("Acta").guest, "it arrived as my own writing");
+
+    let round = room.path().join("vuelta.tistyx");
+    parcel::write(&mine.data, &mine.state, &[], &round, &Along::default()).unwrap();
+    mine.take_in(&round);
+
+    for one in mine.state.docs.values() {
+        assert!(
+            one.guest,
+            "a trip out of my own store and back made somebody else's writing mine"
+        );
+    }
+    assert!(
+        mine.state.mine_to_sign().is_empty(),
+        "it offered to sign writing that is not mine"
+    );
+}
+
+#[test]
+fn what_was_never_signed_leaves_unsigned_however_i_sign_today() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc(
+        "# Antes
+
+sin firmar",
+        None,
+        None,
+    );
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+
+    let box_at = room.path().join("sin-firma.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("fulanito".into()),
+            ..Default::default()
+        },
+    });
+    there.take_in(&box_at);
+
+    assert_eq!(
+        there.state.author_of(there.titled("Antes")),
+        None,
+        "what its writer chose to leave unsigned went out under their alias"
+    );
+}
+
+#[test]
 fn a_hand_of_mine_reads_as_the_alias_i_sign_with_now() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");
@@ -1168,6 +1469,73 @@ fn a_parcel_from_a_store_that_never_signed_is_not_yours_to_claim() {
         there.state.born_of(&there.state.docs[&acta]),
         None,
         "it claimed a name it never had before"
+    );
+    assert!(
+        !there.state.docs[&acta].guest,
+        "claiming it left it flagged as somebody else's for ever"
+    );
+}
+
+#[test]
+fn a_parcel_that_carries_nothing_leaves_the_one_already_there_alone() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (_, gone) = here.doc(
+        "# Solo
+
+se va",
+        None,
+        None,
+    );
+    std::fs::remove_file(here.data.join("docs").join(format!("{gone}.md"))).unwrap();
+
+    let box_at = room.path().join("copia.tistyx");
+    std::fs::write(&box_at, b"lo de la semana pasada").unwrap();
+
+    assert!(
+        parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).is_err(),
+        "it found something to carry where there was nothing"
+    );
+    assert_eq!(
+        std::fs::read(&box_at).unwrap(),
+        b"lo de la semana pasada",
+        "a parcel that carried nothing took the last one down with it"
+    );
+}
+
+#[test]
+fn no_event_can_sign_over_what_somebody_else_wrote() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("fulanito".into()),
+            ..Default::default()
+        },
+    });
+    here.doc(
+        "# Acta
+
+lo suyo",
+        None,
+        None,
+    );
+    let box_at = room.path().join("suyo.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+    let acta = there.titled("Acta").id;
+
+    there.tell(Op::DocSigned {
+        id: acta,
+        d: "rgdevment".into(),
+    });
+
+    assert_eq!(
+        there.state.author_of(&there.state.docs[&acta]),
+        Some("fulanito"),
+        "an event signed over somebody else's writing"
     );
 }
 

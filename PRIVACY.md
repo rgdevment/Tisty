@@ -38,6 +38,7 @@ What you can choose, and what each implies:
 | **A folder on hardware you own** (a NAS, an external drive) | Whoever can reach that hardware |
 | **A backup zip you keep somewhere** | Wherever you put it |
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when |
+| **A `.tistyx` parcel locked with a number, for another machine of yours** | Whoever has both the file and the number. Without it the contents are unreadable |
 
 For syncing, Tisty only ever reads and writes local paths. It has no network
 code for it, no credentials, and no idea which provider — if any — is behind the

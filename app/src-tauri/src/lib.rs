@@ -178,10 +178,12 @@ impl Session {
             .insert(id.to_string(), tisty_core::attach::printed(body.as_bytes()));
     }
 
-    fn retell(&mut self, file: &str, body: &str) -> bool {
+    /// `hand` is the alias to seal on the note, and only a write by the person has one: reading
+    /// a body back to keep the state honest is not writing into it.
+    fn retell(&mut self, file: &str, body: &str, hand: Option<String>) -> bool {
         let mut told = self.state.settling(file, body);
         if let Some(kept) = self.state.docs.values().find(|one| one.file == file) {
-            let said = tisty_core::event::Said::of(body).by(signing(&self.state));
+            let said = tisty_core::event::Said::of(body).by(hand);
             if said.news_for(kept) {
                 told.push(Op::DocSaid {
                     id: kept.id,
@@ -2043,6 +2045,8 @@ const REFUSALS: &[&str] = &[
     "noSuchDoc",
     "notAParcel",
     "parcelNewer",
+    "parcelLocked",
+    "wrongNumber",
     "nothingToCarry",
     "stillPacking",
     "aliasTooLong",
@@ -2634,7 +2638,7 @@ fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Filed>
                         tags: Some(kept.tags.clone()),
                         by: None,
                     })
-                    .by(signing(&held.state));
+                    .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {
                     id: kept.id,
                     d: said,
@@ -2676,7 +2680,9 @@ fn gathered(session: &Session) -> Vec<Filed> {
             archived: kept.archived,
             locked: session.state.shut(kept.id),
             gone: !on_disk.contains(&kept.file),
-            guest: kept.guest.then(|| kept.by.clone()).flatten(),
+            // Empty means it came from elsewhere under nobody's name: the list still has to
+            // say so before anybody signs it as their own.
+            guest: kept.guest.then(|| kept.by.clone().unwrap_or_default()),
             page_of: kept.page_of.map(|up| up.to_string()),
             tags: kept.tags.iter().map(|one| one.to_string()).collect(),
         })
@@ -2701,7 +2707,7 @@ fn read_tags(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
             continue;
         };
         let session = held(&session);
-        let said = tisty_core::event::Said::of(&body).by(signing(&session.state));
+        let said = tisty_core::event::Said::of(&body).by(None);
         let Some(kept) = session.state.docs.get(&id) else {
             continue;
         };
@@ -3565,7 +3571,8 @@ fn doc_write(
     })?;
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
-    let _ = session.retell(&id, &body);
+    let hand = signing(&session.state);
+    let _ = session.retell(&id, &body, hand);
     noted(&mut session, &id, &body);
     let title = tisty_core::docs::titled(&body);
     Ok(tisty_core::docs::Doc { title, id })
@@ -3589,7 +3596,7 @@ fn noted(session: &mut Session, file: &str, body: &str) {
     }
     let id = kept.id;
     let said = tisty_core::event::Said {
-        bytes: Some(body.len() as u64),
+        bytes: Some(tisty_core::docs::settled(body).len() as u64),
         by: signing(&session.state),
         ..told
     };
@@ -3599,7 +3606,7 @@ fn noted(session: &mut Session, file: &str, body: &str) {
 /// Read as a file, ordered from the log: a body that arrived from elsewhere may say otherwise.
 #[tauri::command(async)]
 fn doc_order(session: tauri::State<'_, Mutex<Session>>, id: String, body: String) -> Answer<bool> {
-    Ok(held(&session).retell(&id, &body))
+    Ok(held(&session).retell(&id, &body, None))
 }
 
 #[tauri::command]
@@ -3791,7 +3798,7 @@ fn doc_export(
 ) -> Answer<Taken> {
     let mut session = held(&session);
     if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), &id) {
-        let _ = session.retell(&id, &body);
+        let _ = session.retell(&id, &body, None);
     }
     let pages: Vec<String> = session
         .state
@@ -3899,7 +3906,7 @@ fn standing(
     let mut session = held(session);
     for one in which {
         if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), one) {
-            let _ = session.retell(one, &body);
+            let _ = session.retell(one, &body, None);
         }
     }
     (
@@ -3943,6 +3950,7 @@ async fn docs_pack(
     alone: tauri::State<'_, Packing>,
     which: Vec<String>,
     into: String,
+    number: Option<String>,
 ) -> Answer<Packed> {
     let _done = alone.inner().taken()?;
     let (data, state, beside) = standing(&session, &which);
@@ -3950,7 +3958,7 @@ async fn docs_pack(
     let at = into.clone();
     let telling = along_the_way(&app, "packing");
     let sent = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::parcel::write(
+        tisty_core::parcel::written(
             &data,
             &state,
             &asked,
@@ -3959,6 +3967,7 @@ async fn docs_pack(
                 also: beside.as_deref(),
                 say: Some(&telling),
             },
+            number.as_deref(),
         )
     })
     .await
@@ -4055,6 +4064,7 @@ async fn docs_unpack(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, Packing>,
     from: String,
+    number: Option<String>,
 ) -> Answer<Unpacked> {
     let _done = alone.inner().taken()?;
     let (data, state, device) = {
@@ -4068,7 +4078,7 @@ async fn docs_unpack(
     let at = from.clone();
     let telling = along_the_way(&app, "landing");
     let (landed, ops) = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::parcel::read(
+        tisty_core::parcel::taken(
             &data,
             &state,
             &device,
@@ -4077,6 +4087,7 @@ async fn docs_unpack(
                 also: None,
                 say: Some(&telling),
             },
+            number.as_deref(),
         )
     })
     .await
@@ -4084,6 +4095,8 @@ async fn docs_unpack(
     .map_err(|e| match e {
         tisty_core::Error::NotAParcel(_) => Refusal::about("notAParcel", from.clone()),
         tisty_core::Error::ParcelNewer(_) => Refusal::of("parcelNewer"),
+        tisty_core::Error::ParcelLocked => Refusal::of("parcelLocked"),
+        tisty_core::Error::WrongNumber => Refusal::of("wrongNumber"),
         tisty_core::Error::TooBig => Refusal::of("tooBig"),
         other => blamed(channel::WINDOW, "a parcel could not be taken in", other),
     })?;
@@ -5107,11 +5120,10 @@ fn weave_paper(
     print: String,
 ) -> Answer<()> {
     let mut session = held(&session);
-    if session.state.bolted(&id) {
-        return Err(Refusal::of(match session.state.away(&id) {
-            true => "documentAway",
-            false => "documentLocked",
-        }));
+    // Settling what two machines already wrote is not writing into it, so being archived is no
+    // reason to leave the rift with no way out. Only a lock guards the text itself.
+    if session.state.shut_tight(&id) {
+        return Err(Refusal::of("documentLocked"));
     }
     let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
         return Err(Refusal::of("noBase"));
@@ -5149,11 +5161,10 @@ fn settle_paper(
     marked: Option<String>,
 ) -> Answer<Option<String>> {
     let mut session = held(&session);
-    if session.state.bolted(&id) {
-        return Err(Refusal::of(match session.state.away(&id) {
-            true => "documentAway",
-            false => "documentLocked",
-        }));
+    // Settling what two machines already wrote is not writing into it, so being archived is no
+    // reason to leave the rift with no way out. Only a lock guards the text itself.
+    if session.state.shut_tight(&id) {
+        return Err(Refusal::of("documentLocked"));
     }
     let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
         return Err(Refusal::of("noRemote"));

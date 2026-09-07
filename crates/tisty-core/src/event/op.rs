@@ -583,7 +583,10 @@ impl Said {
     pub fn of(body: &str) -> Self {
         Self {
             title: crate::docs::titled(body),
-            bytes: Some(body.len() as u64),
+            // What the file will hold, not what was handed in: a body without its last newline
+            // is written with one, and noting the shorter count makes every later read look
+            // like news and write another note.
+            bytes: Some(crate::docs::settled(body).len() as u64),
             tags: Some(crate::tagging::tags_in(body)),
             by: None,
         }

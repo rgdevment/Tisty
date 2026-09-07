@@ -1967,7 +1967,7 @@ describe("the first-run assistant", () => {
     await screen.findByText(
       "What was already written keeps the signature it had. Do you want the 243 older documents to carry this alias instead?",
     );
-    await screen.findByText("What arrived from somebody else keeps their name, always.");
+    await screen.findByText("What arrived signed by somebody else keeps their name, always.");
 
     await userEvent.click(screen.getByRole("button", { name: /only the new ones/i }));
     expect(sent("sign_the_rest")).toHaveLength(0);

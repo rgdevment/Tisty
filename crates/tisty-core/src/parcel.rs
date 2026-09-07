@@ -65,6 +65,10 @@ pub struct Paper {
     pub archived: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub locked: bool,
+    /// Somebody else's writing that this store is only holding: it stays theirs wherever it
+    /// goes next, rather than turning native by passing through here.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub guest: bool,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -109,12 +113,170 @@ pub struct Landed {
     pub missed: usize,
 }
 
+/// What a locked parcel says it is, before anybody is asked for a number.
+const LOCKED: &[u8; 8] = b"TISTYX1
+";
+/// scrypt is deliberately slow: a short number is worth little if a key is cheap to try.
+const WORK: u8 = 16;
+/// What we will grind for somebody else's file, either way: 2^14 is a fifth of a second, and
+/// 2^18 already asks for a quarter of a gigabyte.
+const WORK_AT_LEAST: u8 = 14;
+const WORK_AT_MOST: u8 = 18;
+const BLOCK: usize = 64 * 1024;
+const TAG: usize = 16;
+
+pub fn locked(at: &Path) -> bool {
+    let mut head = [0u8; 8];
+    std::fs::File::open(at)
+        .and_then(|mut file| std::io::Read::read_exact(&mut file, &mut head))
+        .is_ok_and(|()| &head == LOCKED)
+}
+
+fn keyed(number: &str, salt: &[u8]) -> Result<[u8; 32]> {
+    let mut key = [0u8; 32];
+    let how = scrypt::Params::new(WORK, 8, 1, 32).map_err(|_| Error::WrongNumber)?;
+    scrypt::scrypt(number.as_bytes(), salt, &how, &mut key).map_err(|_| Error::WrongNumber)?;
+    Ok(key)
+}
+
+/// Each block is sealed under its own nonce: the salt's own bytes, then the block's number, then
+/// a byte that is only set on the last one. Truncating the file drops that byte with it, so a
+/// parcel that was cut short cannot read as a whole one.
+fn nonced(head: &[u8; 19], at: u32, last: bool) -> [u8; 24] {
+    let mut nonce = [0u8; 24];
+    nonce[..19].copy_from_slice(head);
+    nonce[19..23].copy_from_slice(&at.to_be_bytes());
+    nonce[23] = u8::from(last);
+    nonce
+}
+
+fn shut(from: &Path, into: &Path, number: &str) -> Result<()> {
+    use chacha20poly1305::aead::{Aead, KeyInit};
+    use rand_core::{RngCore, TryRngCore};
+    use std::io::{Read, Write};
+
+    let mut salt = [0u8; 16];
+    let mut head = [0u8; 19];
+    let mut seed = rand_core::OsRng.unwrap_err();
+    seed.fill_bytes(&mut salt);
+    seed.fill_bytes(&mut head);
+
+    let key = keyed(number, &salt)?;
+    let sealer = chacha20poly1305::XChaCha20Poly1305::new((&key).into());
+
+    let mut plain = std::io::BufReader::new(std::fs::File::open(from)?);
+    let mut out = std::io::BufWriter::new(std::fs::File::create(into)?);
+    out.write_all(LOCKED)?;
+    out.write_all(&[WORK])?;
+    out.write_all(&salt)?;
+    out.write_all(&head)?;
+
+    let mut block = vec![0u8; BLOCK];
+    let mut at = 0u32;
+    let mut held: Option<Vec<u8>> = None;
+    loop {
+        let mut filled = 0;
+        while filled < BLOCK {
+            match plain.read(&mut block[filled..])? {
+                0 => break,
+                got => filled += got,
+            }
+        }
+        let last = filled < BLOCK;
+        if let Some(before) = held.take() {
+            let sealed = sealer
+                .encrypt(&nonced(&head, at, false).into(), before.as_slice())
+                .map_err(|_| Error::WrongNumber)?;
+            out.write_all(&sealed)?;
+            at = at.checked_add(1).ok_or(Error::TooBig)?;
+        }
+        if last {
+            let sealed = sealer
+                .encrypt(&nonced(&head, at, true).into(), &block[..filled])
+                .map_err(|_| Error::WrongNumber)?;
+            out.write_all(&sealed)?;
+            break;
+        }
+        held = Some(block[..filled].to_vec());
+    }
+    out.flush()?;
+    Ok(())
+}
+
+fn opened(from: &Path, into: &Path, number: Option<&str>) -> Result<()> {
+    use chacha20poly1305::aead::{Aead, KeyInit};
+    use std::io::{Read, Write};
+
+    let Some(number) = number else {
+        return Err(Error::ParcelLocked);
+    };
+    let mut held = std::io::BufReader::new(std::fs::File::open(from)?);
+    let mut mark = [0u8; 8];
+    let mut work = [0u8; 1];
+    let mut salt = [0u8; 16];
+    let mut head = [0u8; 19];
+    held.read_exact(&mut mark)?;
+    held.read_exact(&mut work)?;
+    held.read_exact(&mut salt)?;
+    held.read_exact(&mut head)?;
+    if &mark != LOCKED {
+        return Err(Error::NotAParcel(from.display().to_string()));
+    }
+
+    // The file says how hard its key was to make, and a file is not to be trusted: a number a
+    // stranger wrote there would have us grind a gigabyte of memory on their say-so.
+    if work[0] < WORK_AT_LEAST || work[0] > WORK_AT_MOST {
+        return Err(Error::NotAParcel(from.display().to_string()));
+    }
+    let mut key = [0u8; 32];
+    let how = scrypt::Params::new(work[0], 8, 1, 32).map_err(|_| Error::WrongNumber)?;
+    scrypt::scrypt(number.as_bytes(), &salt, &how, &mut key).map_err(|_| Error::WrongNumber)?;
+    let sealer = chacha20poly1305::XChaCha20Poly1305::new((&key).into());
+
+    let mut out = std::io::BufWriter::new(std::fs::File::create(into)?);
+    let mut block = vec![0u8; BLOCK + TAG];
+    let mut at = 0u32;
+    loop {
+        let mut filled = 0;
+        while filled < block.len() {
+            match held.read(&mut block[filled..])? {
+                0 => break,
+                got => filled += got,
+            }
+        }
+        let last = filled < block.len();
+        let plain = sealer
+            .decrypt(&nonced(&head, at, last).into(), &block[..filled])
+            .map_err(|_| Error::WrongNumber)?;
+        out.write_all(&plain)?;
+        if last {
+            break;
+        }
+        at = at.checked_add(1).ok_or(Error::TooBig)?;
+    }
+    out.flush()?;
+    Ok(())
+}
+
 pub fn write(
     data: &Path,
     state: &State,
     which: &[String],
     into: &Path,
     along: &Along,
+) -> Result<Sent> {
+    written(data, state, which, into, along, None)
+}
+
+/// `number` locks the parcel: only a store whose person knows it takes what is inside as their
+/// own writing rather than as a guest's.
+pub fn written(
+    data: &Path,
+    state: &State,
+    which: &[String],
+    into: &Path,
+    along: &Along,
+    number: Option<&str>,
 ) -> Result<Sent> {
     if into.starts_with(data) || data.starts_with(into) {
         return Err(Error::OutsideTheStore(into.display().to_string()));
@@ -124,11 +286,32 @@ pub fn write(
         return Err(Error::NothingToCarry);
     }
 
-    let made = filled(data, state, &papers, into, along);
-    if made.is_err() {
-        let _ = std::fs::remove_file(into);
-    }
-    made
+    // Written beside the destination and moved onto it at the end: exporting over last week's
+    // parcel must not cost it when this one turns out to have nothing to carry.
+    let aside = into.with_file_name(format!(
+        ".{}.{}.part",
+        into.file_name().unwrap_or_default().to_string_lossy(),
+        std::process::id()
+    ));
+    let made = filled(data, state, &papers, &aside, along);
+    let done = match (made, number) {
+        (Ok(sent), None) => std::fs::rename(&aside, into)
+            .map(|()| sent)
+            .map_err(Error::Io),
+        (Ok(sent), Some(number)) => {
+            let sealed = aside.with_extension("locked");
+            let done = shut(&aside, &sealed, number)
+                .and_then(|()| std::fs::rename(&sealed, into).map_err(Error::Io))
+                .map(|()| sent);
+            if done.is_err() {
+                let _ = std::fs::remove_file(&sealed);
+            }
+            done
+        }
+        (Err(e), _) => Err(e),
+    };
+    let _ = std::fs::remove_file(&aside);
+    done
 }
 
 fn filled(
@@ -201,9 +384,10 @@ fn filled(
                     .filter(|up| held.contains(up.as_str())),
                 wrote: one.wrote,
                 made: one.made,
-                by: one.by.clone().or_else(|| state.signed.alias.clone()),
+                by: one.by.clone(),
                 archived: one.archived,
                 locked: one.locked,
+                guest: one.guest,
             })
             .collect(),
     };
@@ -343,10 +527,12 @@ fn trails(state: &State, into: &Path) -> BTreeMap<FolderId, PathBuf> {
                 continue;
             }
             let mut named = crate::docs::spelled(&one.name);
-            if !taken.insert(named.clone()) {
+            // Windows and macOS hand back one directory for «Casa» and «CASA», so telling them
+            // apart by their exact spelling would pour two folders into the same one.
+            if !taken.insert(crate::text::composed(&named).to_lowercase()) {
                 for n in 2..100 {
                     let tried = format!("{named} {n}");
-                    if taken.insert(tried.clone()) {
+                    if taken.insert(crate::text::composed(&tried).to_lowercase()) {
                         named = tried;
                         break;
                     }
@@ -443,34 +629,78 @@ pub fn read(
     from: &Path,
     along: &Along,
 ) -> Result<(Landed, Vec<Op>)> {
+    taken(data, state, device, from, along, None)
+}
+
+/// A parcel that opens with the number was locked by whoever holds it, and what is inside is
+/// theirs: only writing that was already a guest where it came from stays one.
+pub fn taken(
+    data: &Path,
+    state: &State,
+    device: &DeviceId,
+    from: &Path,
+    along: &Along,
+    number: Option<&str>,
+) -> Result<(Landed, Vec<Op>)> {
+    let staged = data.join(format!(".landing-{}", std::process::id()));
+    swept(data);
+
+    let shut = locked(from);
+    // Inside the landing directory, so the sweep that clears an interrupted landing carries the
+    // opened copy out with it: what a locked parcel holds must not be left lying in the clear.
+    let plain = staged.join("opened.tistyx");
+    if shut {
+        std::fs::create_dir_all(&staged)?;
+        let _ = crate::paths::ours_alone(&staged);
+        if let Err(e) = opened(from, &plain, number) {
+            let _ = std::fs::remove_dir_all(&staged);
+            return Err(e);
+        }
+    }
+    let at = match shut {
+        true => plain.as_path(),
+        false => from,
+    };
+
+    let done = carried(data, state, device, at, along, &staged, shut);
+    let _ = std::fs::remove_dir_all(&staged);
+    done
+}
+
+fn carried(
+    data: &Path,
+    state: &State,
+    device: &DeviceId,
+    from: &Path,
+    along: &Along,
+    staged: &Path,
+    unlocked: bool,
+) -> Result<(Landed, Vec<Op>)> {
     let file = std::fs::File::open(from)?;
     let mut zip = zip::ZipArchive::new(file).map_err(zipped)?;
     let manifest = manifest_in(&mut zip, from)?;
 
     let mine = crate::store::peek_identity(data.join("store"));
-    let elsewhere = match (&mine, manifest.from.trim()) {
-        (Some(mine), from) if !from.is_empty() => mine != from,
-        _ => true,
-    };
-    let staged = data.join(format!(".landing-{}", std::process::id()));
-    swept(data);
+    let elsewhere = !unlocked
+        && match (&mine, manifest.from.trim()) {
+            (Some(mine), from) if !from.is_empty() => mine != from,
+            _ => true,
+        };
     let whole = zip.len() + manifest.docs.len();
-    let done = unpack(&mut zip, &staged, along, whole).and_then(|_| {
+    unpack(&mut zip, staged, along, whole).and_then(|_| {
         taken_in(
             data,
             state,
             device,
             &Landing {
                 manifest: &manifest,
-                staged: &staged,
+                staged,
                 along,
                 whole,
                 elsewhere,
             },
         )
-    });
-    let _ = std::fs::remove_dir_all(&staged);
-    done
+    })
 }
 
 pub fn swept(data: &Path) {
@@ -550,7 +780,7 @@ fn taken_in(
     let mut carried: BTreeMap<String, String> = BTreeMap::new();
     let mut named: BTreeMap<String, (String, DocId)> = BTreeMap::new();
     let mut ordered: Vec<(Option<FolderId>, String)> = Vec::new();
-    let mut written: Vec<(String, String)> = Vec::new();
+    let mut written: Vec<(String, String, usize)> = Vec::new();
 
     for paper in ordering(manifest) {
         let Ok(body) = crate::docs::read(&staged.join("docs"), &paper.file) else {
@@ -595,10 +825,11 @@ fn taken_in(
         );
         ordered.push((folder, order.clone()));
 
+        let at = ops.len();
         ops.push(Op::DocAdd {
             id,
             d: DocAdd {
-                wrote: None,
+                wrote: paper.wrote,
                 file: made.id.clone(),
                 order,
                 made: paper.made,
@@ -607,10 +838,10 @@ fn taken_in(
                     .as_deref()
                     .map(signed_as)
                     .filter(|one| !one.is_empty()),
-                guest: elsewhere,
+                guest: elsewhere || paper.guest,
                 said: Some(Said {
                     title: made.title.clone(),
-                    bytes: Some(body.len() as u64),
+                    bytes: Some(crate::docs::settled(&body).len() as u64),
                     tags: Some(crate::tagging::tags_in(&body)),
                     by: None,
                 }),
@@ -633,13 +864,24 @@ fn taken_in(
             whole,
             0,
         );
-        written.push((made.id, body));
+        written.push((made.id, body, at));
     }
 
-    for (file, body) in written {
+    for (file, body, at) in written {
         let told = pointed(&body, &named);
-        if told != body && crate::docs::write(&root, &file, &told).is_err() {
+        if told == body {
+            continue;
+        }
+        if crate::docs::write(&root, &file, &told).is_err() {
             landed.missed += 1;
+            continue;
+        }
+        // The references inside it changed length, so the note taken before must say what the
+        // file now holds; otherwise the first read counts as news and stamps a hand on it.
+        if let Some(Op::DocAdd { d, .. }) = ops.get_mut(at)
+            && let Some(said) = d.said.as_mut()
+        {
+            said.bytes = Some(crate::docs::settled(&told).len() as u64);
         }
     }
 
@@ -879,7 +1121,11 @@ fn unpack<R: Read + Seek>(
         if let Some(parent) = at.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let mut file = std::fs::File::create(&at)?;
+        // A name this system will not take is one entry lost, not the whole parcel: what needed
+        // it is counted as missing when nothing turns up under that name.
+        let Ok(mut file) = std::fs::File::create(&at) else {
+            continue;
+        };
         let _ = crate::paths::ours_alone(&at);
         let room = AT_MOST.saturating_sub(bytes).saturating_add(1);
         let written = std::io::copy(&mut held.by_ref().take(room), &mut file)?;

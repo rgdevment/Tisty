@@ -418,6 +418,7 @@ export default function Docs({
 
   const preview = async () => {
     if (!open || making) return;
+    setSigning(false);
     setMaking(true);
     try {
       const blob = await blobOf(signing ? await signature(open.file) : undefined);

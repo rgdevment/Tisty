@@ -360,3 +360,45 @@ fn the_shape_of_the_archive_survives_the_round_trip_through_json() {
     assert_eq!(told, back);
     assert_eq!(back.months.len(), 6, "the strip keeps its quiet months");
 }
+
+#[test]
+fn what_a_note_says_a_body_weighs_is_what_the_file_holds() {
+    let room = tempfile::tempdir().unwrap();
+    let root = room.path().join("docs");
+    std::fs::create_dir_all(&root).unwrap();
+
+    let body = "# Acta\n\nsin salto final";
+    let made = tisty_core::docs::create(&root, &tisty_core::event::DeviceId("dev_a".into()), body)
+        .unwrap();
+    let said = tisty_core::event::Said::of(body);
+    let read = tisty_core::docs::read(&root, &made.id).unwrap();
+
+    assert_eq!(
+        said.bytes,
+        Some(read.len() as u64),
+        "reading it back would count as news for ever"
+    );
+    assert!(
+        !tisty_core::event::Said::of(&read).news_for(&tisty_core::model::Kept {
+            id: ulid::Ulid::generate(),
+            file: made.id.clone(),
+            order: "a0".into(),
+            title: Some(said.title.clone()),
+            bytes: said.bytes,
+            wrote: None,
+            made: None,
+            made_by: None,
+            wrote_by: None,
+            by: None,
+            born_by: None,
+            edited_by: None,
+            guest: false,
+            folder: None,
+            page_of: None,
+            archived: false,
+            locked: false,
+            tags: Vec::new(),
+        }),
+        "opening it again is news, so it writes another note"
+    );
+}

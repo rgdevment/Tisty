@@ -48,6 +48,17 @@ impl Store {
             let _ = crate::paths::ours_alone(parent);
         }
 
+        // Every store knows what it is from its first breath, not only once it syncs: without
+        // that, a parcel leaves with no origin and even the store that wrote it cannot tell
+        // its own writing from a stranger's when it comes back.
+        if let Err(e) = identity(&root) {
+            witness::warn(
+                channel::STORE,
+                "the store could not be given a name of its own",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+        }
+
         mend(&dir);
         let (active_events, head, seq) = tail_of(&dir.join(ACTIVE))?;
         let seen = active_size(&dir.join(ACTIVE));

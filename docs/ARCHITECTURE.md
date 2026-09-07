@@ -1147,6 +1147,17 @@ the names of their new home. It is how a document moves between installations,
 and it is not a backup — bringing the same parcel in twice makes a second copy
 of everything, because nothing in it says «you already have this».
 
+A parcel of everything can be **locked with a number**, and that is what tells a
+move from a hand-over. Locked, it is not a zip at all: the zip is sealed in
+64 KiB blocks with XChaCha20-Poly1305, under a key scrypt grinds out of the
+number, and each block's nonce carries its own count and a byte that is only set
+on the last one — so a file cut short cannot read as a whole one. Whoever opens
+it with the number gets what is inside as their own writing, because only the
+machine it was packed for knows it; what was already a guest where it came from
+stays one, because the manifest says so. Without the number the parcel says it
+is locked and nothing lands. A single document is never locked: it is always
+somebody else's to keep.
+
 The store that receives it decides what is a guest by the identity of the store
 that sent it, written in the manifest, and never by the name inside: two people
 who happen to share an alias do not inherit each other's writing, and what comes

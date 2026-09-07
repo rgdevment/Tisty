@@ -445,12 +445,12 @@ export default function Tree({
                 ⚠
               </span>
             )}
-            {doc.guest && (
+            {doc.guest !== null && doc.guest !== undefined && (
               <span
-                title={fill("guestDoc", doc.guest)}
+                title={doc.guest ? fill("guestDoc", doc.guest) : t("guestDocPlain")}
                 className="shrink-0 truncate text-[10.5px] text-faint"
               >
-                {doc.guest}
+                {doc.guest || t("guestNone")}
               </span>
             )}
             {pages.length > 0 && (

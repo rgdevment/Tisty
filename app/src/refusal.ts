@@ -67,6 +67,8 @@ const KNOWN = [
   "noSuchDoc",
   "notAParcel",
   "parcelNewer",
+  "parcelLocked",
+  "wrongNumber",
   "nothingToCarry",
   "stillPacking",
   "aliasTooLong",

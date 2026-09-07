@@ -37,7 +37,9 @@ const picked = vi.hoisted(() => ({ path: Promise.resolve(null as string | null) 
 const taking = vi.hoisted(() => ({ files: 0, missed: 0, left: 0 }));
 
 const parcel = vi.hoisted(() => ({
-  packed: [] as { which: string[]; into: string }[],
+  packed: [] as { which: string[]; into: string; number?: string }[],
+  opened: [] as (string | undefined)[],
+  locked: "",
   docs: 0,
   pages: 0,
   folders: 0,
@@ -196,7 +198,11 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
     case "doc_export":
       return Promise.resolve({ ...taking });
     case "docs_pack":
-      parcel.packed.push({ which: args.which as string[], into: String(args.into) });
+      parcel.packed.push({
+        which: args.which as string[],
+        into: String(args.into),
+        number: args.number as string | undefined,
+      });
       return Promise.resolve({
         docs: parcel.docs,
         pages: parcel.pages,
@@ -216,6 +222,10 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
         left: parcel.left,
       });
     case "docs_unpack":
+      parcel.opened.push(args.number as string | undefined);
+      if (parcel.locked && args.number !== parcel.locked) {
+        return Promise.reject({ code: args.number ? "wrongNumber" : "parcelLocked" });
+      }
       return Promise.resolve({
         docs: parcel.docs,
         pages: parcel.pages,
@@ -269,6 +279,8 @@ beforeEach(() => {
   taking.missed = 0;
   taking.left = 0;
   parcel.packed = [];
+  parcel.opened = [];
+  parcel.locked = "";
   parcel.docs = 0;
   parcel.pages = 0;
   parcel.folders = 0;
@@ -676,10 +688,46 @@ describe("what the menus reach for outside the tree", () => {
 
     await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
     await userEvent.click(await screen.findByRole("menuitem", { name: t("packAll") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("packToShare") }));
 
     await waitFor(() => expect(parcel.packed).toHaveLength(1));
     expect(parcel.packed[0].which).toEqual([]);
     await waitFor(() => expect(screen.getByText(fill("packed", "2"))).toBeTruthy());
+  });
+
+  it("locks what is going to another machine of its own, and hands over what is not", async () => {
+    seedDoc({ title: "Acta" });
+    picked.path = Promise.resolve("D:/salida/tisty.tistyx");
+    parcel.docs = 1;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("packAll") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("packToMove") }));
+    await userEvent.type(await screen.findByLabelText(fill("digitOf", "1", "6")), "123456");
+    await userEvent.click(screen.getByRole("button", { name: t("packLockIt") }));
+
+    await waitFor(() => expect(parcel.packed).toHaveLength(1));
+    expect(parcel.packed[0].number).toBe("123456");
+  });
+
+  it("asks for the number a parcel was locked with, and says so when it is not the one", async () => {
+    picked.path = Promise.resolve("D:/entrada/mudanza.tistyx");
+    parcel.locked = "123456";
+    parcel.docs = 3;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
+
+    await userEvent.type(await screen.findByLabelText(fill("digitOf", "1", "6")), "000000");
+    await userEvent.click(screen.getByRole("button", { name: t("openLocked") }));
+    await waitFor(() => expect(screen.getByText(t("wrongNumber"))).toBeTruthy());
+
+    await userEvent.type(await screen.findByLabelText(fill("digitOf", "1", "6")), "123456");
+    await userEvent.click(screen.getByRole("button", { name: t("openLocked") }));
+    await waitFor(() => expect(screen.getByText(fill("landedAlone", "3"))).toBeTruthy());
+    expect(parcel.opened).toEqual([undefined, "000000", "123456"]);
   });
 
   it("writes everything out as plain markdown, saying how many folders it stood up", async () => {
@@ -711,6 +759,7 @@ describe("what the menus reach for outside the tree", () => {
 
     await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
     await userEvent.click(await screen.findByRole("menuitem", { name: t("packAll") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("packToShare") }));
 
     await waitFor(() => expect(screen.getByText(t("aWhileYet"))).toBeTruthy());
     expect(screen.getByText(fill("packingOn", "").trim())).toBeTruthy();
@@ -740,6 +789,7 @@ describe("what the menus reach for outside the tree", () => {
 
     await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
     await userEvent.click(await screen.findByRole("menuitem", { name: t("packAll") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("packToShare") }));
 
     await waitFor(() => expect(screen.getByText(fill("packed", "11"))).toBeTruthy());
   });
@@ -753,6 +803,7 @@ describe("what the menus reach for outside the tree", () => {
 
     await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
     await userEvent.click(await screen.findByRole("menuitem", { name: t("packAll") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("packToShare") }));
 
     await waitFor(() => expect(screen.getByText(fill("packedLess", "400", "1"))).toBeTruthy());
   });

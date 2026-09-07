@@ -72,12 +72,14 @@ import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Cover from "./ui/Cover";
 import Detail from "./ui/Detail";
+import Digits, { HOW_MANY } from "./ui/Digits";
 import Docs from "./ui/Docs";
 import Folder from "./ui/Folder";
 import Keeping from "./ui/Keeping";
 import Lists from "./ui/Lists";
 import Matrix from "./ui/Matrix";
 import Menu, { type Choice } from "./ui/Menu";
+import Modal from "./ui/Modal";
 import Naming from "./ui/Naming";
 import Notice from "./ui/Notice";
 import Only from "./ui/Only";
@@ -193,6 +195,11 @@ export default function App() {
   const [renaming, setRenaming] = useState<Folded | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [afoot, setAfoot] = useState<Afoot | null>(null);
+  const [whoFor, setWhoFor] = useState<string | null>(null);
+  const [moving, setMoving] = useState<string | null>(null);
+  const [locked, setLocked] = useState<string | null>(null);
+  const [number, setNumber] = useState("");
+  const [wrong, setWrong] = useState(false);
   const [menu, setMenu] = useState<{
     at: { x: number; y: number };
     label: string;
@@ -229,7 +236,18 @@ export default function App() {
       })
       .catch((e) => setError(saidPlainly(e)));
 
+  // One at a time: starting a second one paints over the first one's progress and the backend
+  // refuses it anyway, leaving the bar gone and the first one's success unsaid.
+  // Everything at once is the one that may be a move rather than a hand-over, so it asks first;
+  // a single document is always somebody else's to keep.
   const packUp = (which: string[], named: string) =>
+    afoot
+      ? Promise.resolve()
+      : which.length
+        ? packing(which, named)
+        : (setWhoFor(named), undefined);
+
+  const packing = (which: string[], named: string, number?: string) =>
     spelled(named)
       .catch(() => "tisty")
       .then((safe) =>
@@ -241,7 +259,7 @@ export default function App() {
       .then((at) => {
         if (typeof at !== "string") return null;
         setAfoot({ stage: "packing", far: 0, done: 0, whole: 0 });
-        return docsPack(which, at);
+        return docsPack(which, at, number);
       })
       .then((packed) => {
         setAfoot(null);
@@ -266,44 +284,52 @@ export default function App() {
       });
 
   const takeOutAll = () =>
-    pick({ directory: true })
-      .then((at) => {
-        if (typeof at !== "string") return null;
-        setAfoot({ stage: "takingOut", far: 0, done: 0, whole: 0 });
-        return docsTakeOut([], at);
-      })
-      .then((took) => {
-        setAfoot(null);
-        if (!took) return;
-        const many = took.docs;
-        if (took.missed > 0 || took.left > 0) {
-          setError(
-            took.missed > 0
-              ? fill("packedShort", String(many), String(took.missed))
-              : fill("packedLess", String(many), String(took.left)),
-          );
-          return;
-        }
-        setNote(
-          many === 1
-            ? t("tookOutOne")
-            : took.folders
-              ? fill("tookOutAll", String(many), String(took.folders))
-              : fill("tookOutAllFlat", String(many)),
-        );
-        setTimeout(() => setNote(null), 3200);
-      })
-      .catch((e) => {
-        setAfoot(null);
-        setError(saidPlainly(e));
-      });
+    afoot
+      ? Promise.resolve()
+      : pick({ directory: true })
+          .then((at) => {
+            if (typeof at !== "string") return null;
+            setAfoot({ stage: "takingOut", far: 0, done: 0, whole: 0 });
+            return docsTakeOut([], at);
+          })
+          .then((took) => {
+            setAfoot(null);
+            if (!took) return;
+            const many = took.docs;
+            if (took.missed > 0 || took.left > 0) {
+              setError(
+                took.missed > 0
+                  ? fill("packedShort", String(many), String(took.missed))
+                  : fill("packedLess", String(many), String(took.left)),
+              );
+              return;
+            }
+            setNote(
+              many === 1
+                ? t("tookOutOne")
+                : took.folders
+                  ? fill("tookOutAll", String(many), String(took.folders))
+                  : fill("tookOutAllFlat", String(many)),
+            );
+            setTimeout(() => setNote(null), 3200);
+          })
+          .catch((e) => {
+            setAfoot(null);
+            setError(saidPlainly(e));
+          });
 
   const takeParcel = () =>
-    pick({ multiple: false, filters: [{ name: "Tisty", extensions: [PARCEL] }] })
-      .then((at) => {
-        if (typeof at !== "string") return null;
+    afoot
+      ? Promise.resolve()
+      : pick({ multiple: false, filters: [{ name: "Tisty", extensions: [PARCEL] }] }).then((at) =>
+          typeof at === "string" ? landing(at) : undefined,
+        );
+
+  const landing = (at: string, said?: string) =>
+    Promise.resolve()
+      .then(() => {
         setAfoot({ stage: "landing", far: 0, done: 0, whole: 0 });
-        return docsUnpack(at);
+        return docsUnpack(at, said);
       })
       .then((landed) => {
         setAfoot(null);
@@ -311,7 +337,7 @@ export default function App() {
         papersChanged();
         const many = landed.docs + landed.pages;
         if (landed.missed > 0 && many > 0) {
-          setError(fill("packedShort", String(many), String(landed.missed)));
+          setError(fill("landedShort", String(landed.missed)));
           return;
         }
         if (many === 0) {
@@ -331,6 +357,15 @@ export default function App() {
       })
       .catch((e) => {
         setAfoot(null);
+        // Locked is not a failure: it is the parcel asking whether this is the machine it was
+        // packed for, and only the number answers that.
+        const why = (e as { code?: string } | undefined)?.code;
+        if (why === "parcelLocked" || why === "wrongNumber") {
+          setWrong(why === "wrongNumber");
+          setNumber("");
+          setLocked(at);
+          return;
+        }
         setError(saidPlainly(e));
       });
 
@@ -987,6 +1022,91 @@ export default function App() {
   return (
     <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
       <WindowChrome />
+
+      {whoFor !== null && (
+        <Modal title={t("packWho")} onClose={() => setWhoFor(null)}>
+          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("packWhoWhy")}</p>
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
+            <button
+              type="button"
+              onClick={() => {
+                const named = whoFor;
+                setWhoFor(null);
+                packing([], named);
+              }}
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-faint hover:text-ink"
+            >
+              {t("packToShare")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setNumber("");
+                setMoving(whoFor);
+                setWhoFor(null);
+              }}
+              className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg"
+            >
+              {t("packToMove")}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {moving !== null && (
+        <Modal title={t("packToMove")} onClose={() => setMoving(null)}>
+          <p className="mt-3 text-[12.5px] text-soft">{t("packNumber")}</p>
+          <Digits label={t("packNumber")} value={number} onChange={setNumber} />
+          <p className="mt-3 text-[11.5px] leading-relaxed text-faint">{t("packNumberWhy")}</p>
+          <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
+            <button
+              type="button"
+              disabled={number.length < HOW_MANY}
+              onClick={() => {
+                const named = moving;
+                const said = number;
+                setMoving(null);
+                setNumber("");
+                packing([], named, said);
+              }}
+              className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
+            >
+              {t("packLockIt")}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {locked !== null && (
+        <Modal title={t("parcelLocked")} onClose={() => setLocked(null)}>
+          <p className="mt-3 text-[12.5px] text-soft">{t("openNumber")}</p>
+          <Digits
+            label={t("openNumber")}
+            value={number}
+            onChange={(said) => {
+              setWrong(false);
+              setNumber(said);
+            }}
+          />
+          {wrong && <p className="mt-3 text-[11.5px] text-urgent">{t("wrongNumber")}</p>}
+          <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
+            <button
+              type="button"
+              disabled={number.length < HOW_MANY}
+              onClick={() => {
+                const at = locked;
+                const said = number;
+                setLocked(null);
+                setNumber("");
+                landing(at, said);
+              }}
+              className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
+            >
+              {t("openLocked")}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       <p role="status" aria-live="polite" className="sr-only">
         {aloud}

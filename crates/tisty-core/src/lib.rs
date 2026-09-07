@@ -54,6 +54,10 @@ pub enum Error {
     NotAParcel(String),
     #[error("that parcel was written by a newer Tisty (version {0})")]
     ParcelNewer(u32),
+    #[error("that parcel is locked: it was made to be carried to another machine of its own")]
+    ParcelLocked,
+    #[error("that is not the number this parcel was locked with")]
+    WrongNumber,
     #[error("there is nothing here to carry out")]
     NothingToCarry,
     #[error("that backup belongs to another store ({theirs})")]
@@ -111,6 +115,8 @@ impl Error {
             Error::NotForAnAgent(_) => "notForAnAgent",
             Error::NotAParcel(_) => "notAParcel",
             Error::ParcelNewer(_) => "parcelNewer",
+            Error::ParcelLocked => "parcelLocked",
+            Error::WrongNumber => "wrongNumber",
             Error::NothingToCarry => "nothingToCarry",
             Error::OtherStore { .. } => "otherStore",
             Error::TooBig => "tooBig",

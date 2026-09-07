@@ -224,18 +224,22 @@ fn as_told(store: &Path, aside: Option<&Path>) -> Option<tisty_core::State> {
 fn settled(store: &Path, dest: &Path, carried_here: bool) -> Result<String, Trouble> {
     let ours = tisty_core::store::peek_identity(store);
     let theirs = theirs(dest);
-    let we_are_new = ours.is_none() && !tisty_core::store::inhabited(store);
+    // Written when the store is made, so having a name of its own says nothing about
+    // having a history: what makes a machine new is that it has never written anything.
+    let we_are_new = !tisty_core::store::inhabited(store);
     let they_are_new = theirs.is_none() && !tisty_core::store::inhabited(dest.join(STORE));
 
+    if let Some(theirs) = &theirs
+        && we_are_new
+    {
+        write(&store.join(MARKER), theirs.as_bytes())?;
+        return Ok(theirs.clone());
+    }
     if let (Some(ours), Some(theirs)) = (&ours, &theirs) {
         claims(theirs, ours)?;
         return Ok(ours.clone());
     }
     match (&ours, &theirs) {
-        (None, Some(theirs)) if we_are_new => {
-            write(&store.join(MARKER), theirs.as_bytes())?;
-            return Ok(theirs.clone());
-        }
         (Some(ours), None) if they_are_new => {
             if carried_here {
                 return Err(Trouble::Emptied(dest.display().to_string()));

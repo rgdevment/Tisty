@@ -290,6 +290,9 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
     // of the document's text, leaves the tree and the visible text disagreeing about the order.
     for device in std::fs::read_dir(there.data().join("store")).unwrap() {
         let device = device.unwrap();
+        if !device.path().is_dir() {
+            continue;
+        }
         copied(
             &device.path(),
             &here.data().join("store").join(device.file_name()),

@@ -41,6 +41,11 @@ fs4 = "0.13"
 same-file = "1"
 thiserror = "2"
 sha2 = "0.10"
+# A parcel meant for another machine of your own is locked with these: scrypt turns the
+# number into a key, and the sealed stream carries the parcel in blocks.
+chacha20poly1305 = "0.10"
+scrypt = { version = "0.11", default-features = false }
+rand_core = { version = "0.9", features = ["os_rng"] }
 zip = { version = "6", default-features = false, features = ["deflate"] }
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
@@ -54,6 +59,20 @@ unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
+
+# Turning a number into a key is meant to be slow, but only as slowly as the machine can
+# manage: unoptimised it takes tens of seconds, which no test run or debug build wants.
+[profile.dev.package.scrypt]
+opt-level = 3
+
+[profile.dev.package.salsa20]
+opt-level = 3
+
+[profile.dev.package.chacha20]
+opt-level = 3
+
+[profile.dev.package.chacha20poly1305]
+opt-level = 3
 
 [profile.release]
 lto = true

@@ -134,6 +134,16 @@ Being explicit here matters more than sounding reassuring.
   somebody else's writing into yours — but a name in a parcel is a claim, not a
   signature, and nothing here verifies it.
 
+  The one parcel that carries proof is the one you lock. Exporting everything to
+  another machine of your own seals it with a number: XChaCha20-Poly1305 over
+  64 KiB blocks, under a key scrypt grinds out of that number, with each block's
+  nonce carrying its count and a last-block byte, so a file cut short will not
+  open as a whole one. Opening it is the proof — nobody who lacks the number can
+  claim what is inside as their own writing — and what was somebody else's where
+  it was packed stays theirs at the other end. Lose the number and the parcel is
+  gone: nothing here can open it for you. A short number is a short number, and
+  scrypt only makes each guess expensive rather than impossible.
+
 ## An assistant, if you admit one
 
 Tisty speaks MCP so an assistant already running on your machine can file work

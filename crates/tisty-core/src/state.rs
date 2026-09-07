@@ -413,11 +413,19 @@ impl State {
             }
             Op::DocSigned { id, d } => {
                 if let Some(kept) = self.docs.get_mut(id) {
+                    // Held at the projection, not only where the event is written: a build that
+                    // read the rule differently must not be able to sign over what somebody
+                    // else wrote. What nobody signed is another matter — the first to sign it
+                    // owns it, and owning it makes it no longer a guest.
+                    if kept.guest && kept.by.is_some() {
+                        return;
+                    }
                     let said = d.trim();
                     let now = (!said.is_empty()).then(|| said.to_string());
                     if kept.born_by.is_none() {
                         kept.born_by.clone_from(&now);
                     }
+                    kept.guest = false;
                     kept.by = now;
                 }
             }
@@ -1227,8 +1235,13 @@ impl State {
         self.docs
             .values()
             .filter(|one| !self.written_shut(one.id))
-            // Somebody else's writing is theirs; what nobody ever signed is there to be claimed.
-            .filter(|one| !one.guest || one.by.is_none())
+            // Mine to re-sign is what a hand of mine signed, or what nobody ever signed at all.
+            // Another name is another person, whether it arrived in a parcel or through a store
+            // two people share.
+            .filter(|one| match one.by.as_deref() {
+                Some(by) => !one.guest && self.mine_to_write(by),
+                None => true,
+            })
             .filter(|one| !alike(one.by.as_deref(), now))
             .map(|one| one.id)
             .collect()
@@ -1241,7 +1254,8 @@ impl State {
         if alike(Some(hand), kept.by.as_deref()) {
             return None;
         }
-        if !self.mine_to_write(hand) {
+        // Signing once under the name a guest writes with must not hide my own hand on it.
+        if kept.guest || !self.mine_to_write(hand) {
             return Some(hand);
         }
         match kept.by.as_deref().is_some_and(|by| self.mine_to_write(by)) {

@@ -556,7 +556,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
       {asking && (
         <Modal title={fill("aliasNow", asking)} onClose={() => setAsking(null)}>
           <p className="mt-3 text-[12.5px] leading-relaxed text-soft">
-            {fill("aliasRestAsk", String(mine))}
+            {mine === 1 ? t("aliasRestAskOne") : fill("aliasRestAsk", String(mine))}
           </p>
           <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("aliasRestNever")}</p>
           <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
@@ -574,7 +574,10 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                 setAsking(null);
                 run("signing", signTheRest(), (many) => {
                   setMine(0);
-                  setSaid({ card: "signing", text: fill("aliasRestDone", String(many)) });
+                  setSaid({
+                    card: "signing",
+                    text: many === 1 ? t("aliasRestDoneOne") : fill("aliasRestDone", String(many)),
+                  });
                 });
               }}
               className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
@@ -731,7 +734,14 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                   onChange={(e) => setAlias(e.target.value)}
                   onBlur={() => {
                     const said = alias.trim();
-                    if (said === signed_as.current) return;
+                    if (
+                      said.localeCompare(signed_as.current, undefined, {
+                        sensitivity: "accent",
+                      }) === 0
+                    ) {
+                      setAlias(signed_as.current);
+                      return;
+                    }
                     run("signing", sign(said || undefined), (now) => {
                       setAlias(now.alias ?? "");
                       setAliases(now.before);
