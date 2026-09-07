@@ -7,6 +7,7 @@ import {
   keepers,
   makeRoom,
   type Offering,
+  type Strays,
   straysAt,
 } from "../core";
 import { warningOf } from "../keepers";
@@ -41,14 +42,14 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
   const [offers, setOffers] = useState<Offering[]>([]);
   const [standing, setStanding] = useState<Standing>();
   const [held, setHeld] = useState(false);
-  const [strays, setStrays] = useState(0);
+  const [strays, setStrays] = useState<Strays>();
 
   useEffect(() => {
-    setStrays(0);
+    setStrays(undefined);
     if (!standing) return;
     let mounted = true;
     straysAt(standing.at)
-      .then((found) => mounted && setStrays(found ?? 0))
+      .then((found) => mounted && setStrays(found))
       .catch(() => undefined);
     return () => {
       mounted = false;
@@ -130,13 +131,13 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
           {warning.why}
         </div>
 
-        {strays > 0 && (
+        {(strays?.adrift ?? 0) > 0 && (
           <div
             role="alert"
             className="rounded-lg border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
           >
             <span className="block text-[12.5px] font-semibold text-ink">
-              {fill("keepersStrays", `${strays}`)}
+              {fill("keepersStrays", `${strays?.adrift}`)}
             </span>
             {t("keepersStraysWhy")}
           </div>

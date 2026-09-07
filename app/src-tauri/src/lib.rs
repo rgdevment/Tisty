@@ -4782,8 +4782,25 @@ fn keeper_of(at: String) -> Told {
 /// The window sends the meeting place itself, already settled by `room`; settling it again would
 /// ask about a folder one level further down that nothing has ever written to.
 #[tauri::command(async)]
-fn strays_at(at: String) -> usize {
-    tisty_sync::unclaimed(&std::path::PathBuf::from(at))
+fn strays_at(at: String) -> Strays {
+    match tisty_sync::unclaimed(&std::path::PathBuf::from(at)) {
+        tisty_sync::Holding::Whole => Strays::default(),
+        tisty_sync::Holding::Strays(adrift) => Strays {
+            adrift,
+            unreadable: false,
+        },
+        tisty_sync::Holding::Unreadable => Strays {
+            adrift: 0,
+            unreadable: true,
+        },
+    }
+}
+
+#[derive(Default, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Strays {
+    adrift: usize,
+    unreadable: bool,
 }
 
 /// A folder that already holds a store is the meeting place itself; anywhere else we hang ours

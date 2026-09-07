@@ -17,6 +17,7 @@ const store = vi.hoisted(() => ({
   agrees: true,
   locks: [] as { id: string; shut: boolean }[],
   coming: false,
+  refuse: null as { code: string; name: string } | null,
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -34,6 +35,7 @@ vi.mock("@tauri-apps/api/core", () => ({
       case "doc_read":
         store.reads += 1;
         if (store.coming) return Promise.reject({ code: "docComing" });
+        if (store.refuse) return Promise.reject(store.refuse);
         return Promise.resolve(store.bodies[String(args?.id)] ?? "");
       case "convert_paper": {
         const id = String(args?.id);
@@ -121,6 +123,7 @@ describe("the document being written", () => {
     store.clash = false;
     store.agrees = true;
     store.coming = false;
+    store.refuse = null;
   });
 
   const show = (open?: string, onKept = vi.fn()) =>
@@ -145,6 +148,21 @@ describe("the document being written", () => {
     rerender(<Docs open={undefined} {...props} />);
 
     await screen.findByText(/pick a document/i);
+    expect(screen.queryByText(/bringing this document from the shared folder/i)).toBeNull();
+  });
+
+  it("does not go on saying a document is coming when the next one plainly refused", async () => {
+    store.coming = true;
+    const onError = vi.fn();
+    const props = { known, onKept: vi.fn(), onError };
+    const { rerender } = render(<Docs open="a3f1-0001" {...props} />);
+    await screen.findByText(/bringing this document from the shared folder/i);
+
+    store.coming = false;
+    store.refuse = { code: "documentTooBig", name: "5 MB" };
+    rerender(<Docs open="a3f1-0002" {...props} />);
+
+    await waitFor(() => expect(onError).toHaveBeenCalled());
     expect(screen.queryByText(/bringing this document from the shared folder/i)).toBeNull();
   });
 

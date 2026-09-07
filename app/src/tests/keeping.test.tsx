@@ -1793,7 +1793,8 @@ describe("the first-run assistant", () => {
 
   it("asks about the meeting place itself, not a folder below it", async () => {
     const answered = ipc.answer;
-    ipc.answer = (cmd, args) => (cmd === "strays_at" ? Promise.resolve(0) : answered(cmd, args));
+    ipc.answer = (cmd, args) =>
+      cmd === "strays_at" ? Promise.resolve({ adrift: 0, unreadable: false }) : answered(cmd, args);
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
 
@@ -1806,7 +1807,10 @@ describe("the first-run assistant", () => {
 
   it("says when the folder is holding documents no history accounts for", async () => {
     const answered = ipc.answer;
-    ipc.answer = (cmd, args) => (cmd === "strays_at" ? Promise.resolve(239) : answered(cmd, args));
+    ipc.answer = (cmd, args) =>
+      cmd === "strays_at"
+        ? Promise.resolve({ adrift: 239, unreadable: false })
+        : answered(cmd, args);
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
 
@@ -1818,7 +1822,8 @@ describe("the first-run assistant", () => {
 
   it("stays quiet about strays when the folder accounts for everything", async () => {
     const answered = ipc.answer;
-    ipc.answer = (cmd, args) => (cmd === "strays_at" ? Promise.resolve(0) : answered(cmd, args));
+    ipc.answer = (cmd, args) =>
+      cmd === "strays_at" ? Promise.resolve({ adrift: 0, unreadable: false }) : answered(cmd, args);
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
 

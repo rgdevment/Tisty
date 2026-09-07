@@ -155,6 +155,36 @@ describe("a round landing while the window is open", () => {
     for (const fn of bus.heard.get("carried") ?? []) fn({ payload: what });
   };
 
+  it("stops asking about a document whose body is not here at all", async () => {
+    const astray = [
+      {
+        id: "01E",
+        file: "a3f1-0009",
+        title: "",
+        told: false,
+        gone: true,
+        folder: null,
+        archived: false,
+      },
+    ];
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "docs") return Promise.resolve({ folders: [], docs: astray });
+      if (cmd === "docs_catch_up") return Promise.resolve(astray);
+      return answered(cmd, args);
+    };
+    render(<App />);
+    await waitFor(() => expect(bus.heard.get("carried")?.length).toBeGreaterThan(0));
+    await waitFor(() => expect(ipc.calls.some((one) => one.cmd === "docs_catch_up")).toBe(true));
+    const first = ipc.calls.filter((one) => one.cmd === "docs_catch_up").length;
+
+    landed("log");
+    landed("papers");
+
+    await waitFor(() => expect(ipc.calls.some((one) => one.cmd === "docs")).toBe(true));
+    expect(ipc.calls.filter((one) => one.cmd === "docs_catch_up").length).toBe(first);
+  });
+
   it("reads the titles once the bodies are here, not when the log lands", async () => {
     render(<App />);
     await waitFor(() => expect(bus.heard.get("carried")?.length).toBeGreaterThan(0));

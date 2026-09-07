@@ -291,10 +291,13 @@ export default function Docs({
       })
       .catch((e) => {
         if (turn.current !== mine) return;
-        // Not a refusal to show in red: the round that brings it may still be running.
-        if ((e as { code?: string })?.code === "docComing") {
+        // Not a refusal to show in red: the round that brings it may still be running. Anything
+        // else is a refusal, and leaving the notice up would say «on its way» about a document
+        // that is not coming at all.
+        const coming = (e as { code?: string })?.code === "docComing";
+        setComing(coming);
+        if (coming) {
           setOpen(null);
-          setComing(true);
           return;
         }
         onError(saidPlainly(e));

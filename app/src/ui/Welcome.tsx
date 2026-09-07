@@ -3,9 +3,9 @@ import { stillApart, walkThrough } from "../apart";
 import {
   ALIAS_AT_MOST,
   guide,
+  type Kin,
   keepClosing,
   keepLocale,
-  type Kin,
   sign,
   sowLists,
   syncKin,
@@ -251,7 +251,10 @@ export default function Welcome({ onDone }: Props) {
               {t("welcomeCarrying")}
             </span>
             {t("welcomeCarryingWhy")}
-            <span aria-hidden="true" className="mt-2 block h-1 overflow-hidden rounded-full bg-line">
+            <span
+              aria-hidden="true"
+              className="mt-2 block h-1 overflow-hidden rounded-full bg-line"
+            >
               <span className="sliding block h-full w-1/3 rounded-full bg-accent" />
             </span>
           </div>

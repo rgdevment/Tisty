@@ -504,8 +504,9 @@ export default function App() {
           .then((all) => {
             setPapers((was) => steady(was, { folders: was.folders, docs: all }));
             // A catch-up that ran before the bodies were here read nothing: the round that brings
-            // them must be free to try again, or every arriving document stays untitled.
-            if (all.some((one) => one.told === false)) caught.current = false;
+            // them must be free to try again. Only for bodies that are here — one still astray can
+            // never be read, and waiting on it would scan the whole folder every round for good.
+            if (all.some((one) => one.told === false && !one.gone)) caught.current = false;
           })
           .catch(() => {
             caught.current = false;

@@ -186,6 +186,7 @@ pub fn carry_telling(
             again,
             None,
             None,
+            None,
             Some(&mut carried),
         )?;
         if holds == Holds::Shared {
@@ -207,6 +208,11 @@ pub fn carry_telling(
     // Last coming down, and on purpose: what somebody reads is the log and the documents, and a
     // shelf of attachments ahead of them would hold the window empty for as long as the bytes take.
     if taking {
+        // A folder whose own history cannot account for its documents cannot account for its
+        // files either, and mirroring a shelf nothing reaches is how one machine spends an hour
+        // fetching what no document will ever name. Whole folders travel as they always did.
+        let reachable =
+            matches!(unclaimed(dest), Holding::Strays(_)).then(|| named_now(&told, data));
         moved.brought += copy_held(
             &dest.join(HELD),
             &data.join(HELD),
@@ -214,6 +220,7 @@ pub fn carry_telling(
             false,
             Some(data),
             left_behind(holds),
+            reachable.as_ref(),
             None,
         )?;
     }
@@ -244,6 +251,13 @@ fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeS
     if told.retired.is_empty() {
         return Default::default();
     }
+    let named = named_now(told, data);
+    told.retired.difference(&named).cloned().collect()
+}
+
+/// Every attachment a task or a document still points at. The documents are the local ones, which
+/// the round has already brought home by the time this is asked.
+fn named_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
     let mut named: std::collections::BTreeSet<String> = told
         .tasks
         .values()
@@ -251,7 +265,7 @@ fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeS
         .map(|one| one.target)
         .collect();
     named.extend(tisty_core::docs::referenced(&data.join(PAPERS)));
-    told.retired.difference(&named).cloned().collect()
+    named
 }
 
 fn as_told(store: &Path, aside: Option<&Path>) -> Option<tisty_core::State> {
@@ -325,21 +339,36 @@ pub fn paper_waiting(dest: &Path, id: &str) -> bool {
 /// Documents sitting in a shared folder that no history there accounts for. A folder whose logs
 /// went missing still looks full from the outside, and adopting it would quietly leave every one
 /// of them unreachable.
-pub fn unclaimed(dest: &Path) -> usize {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Holding {
+    Whole,
+    Strays(usize),
+    /// Told apart from strays on purpose: a folder a cloud client is still filling in reads the
+    /// same as a broken one, and calling every document adrift would frighten somebody whose
+    /// folder is merely on its way.
+    Unreadable,
+}
+
+pub fn unclaimed(dest: &Path) -> Holding {
     let here = tisty_core::docs::names(&dest.join(PAPERS));
-    // A history nobody can read accounts for nothing, so every document there is adrift — the
-    // shape closest to the one this exists to catch, and the one a count of zero would hide.
-    let Ok(events) = tisty_core::store::read_all(dest.join(STORE)) else {
-        return here.len();
-    };
-    let told = tisty_core::State::replay(&events);
-    let named: std::collections::BTreeSet<String> = told
-        .docs
-        .values()
-        .map(|one| one.file.clone())
-        .chain(told.shed.iter().cloned())
-        .collect();
-    here.difference(&named).count()
+    let named: std::collections::BTreeSet<String> =
+        match tisty_core::store::read_all(dest.join(STORE)) {
+            Ok(events) => {
+                let told = tisty_core::State::replay(&events);
+                told.docs
+                    .values()
+                    .map(|one| one.file.clone())
+                    .chain(told.shed.iter().cloned())
+                    .collect()
+            }
+            // Nothing was ever written there, so nothing accounts for these.
+            Err(_) if !tisty_core::store::inhabited(dest.join(STORE)) => Default::default(),
+            Err(_) => return Holding::Unreadable,
+        };
+    match here.difference(&named).count() {
+        0 => Holding::Whole,
+        adrift => Holding::Strays(adrift),
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -720,12 +749,17 @@ fn ours_reaches_further(mine: &Path, theirs: &Path) -> bool {
     let Ok(ours) = tisty_core::store::distinct_in(mine) else {
         return false;
     };
-    let held = match tisty_core::store::check_device(theirs) {
-        Ok(held) => held,
+    // check_device to know it can be read whole, distinct_in to count it the way ours was counted:
+    // one dedups and the other does not, and comparing the two would refuse an honest handover.
+    match tisty_core::store::check_device(theirs) {
+        Ok(_) => {}
         Err(tisty_core::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => {
             return ours > 0;
         }
         Err(_) => return false,
+    }
+    let Ok(held) = tisty_core::store::distinct_in(theirs) else {
+        return false;
     };
     ours > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
 }
@@ -911,6 +945,7 @@ fn left_behind(holds: Holds) -> Option<u64> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn copy_held(
     from: &Path,
     into: &Path,
@@ -918,9 +953,11 @@ fn copy_held(
     again: bool,
     ledger: Option<&Path>,
     above: Option<u64>,
+    reachable: Option<&std::collections::BTreeSet<String>>,
     carried: Option<&mut Vec<(String, u64)>>,
 ) -> Result<usize, Trouble> {
     let mut done = 0;
+    let mut left = 0;
     let mut carried = carried;
     let written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
     let shelves = match std::fs::read_dir(from) {
@@ -979,6 +1016,10 @@ fn copy_held(
                     "a retired attachment was left where it was instead of coming back",
                     &[("at", Fact::Id(reference))],
                 );
+                continue;
+            }
+            if reachable.is_some_and(|named| !named.contains(&reference)) {
+                left += 1;
                 continue;
             }
             let weighs = std::fs::metadata(&at).map(|m| m.len()).unwrap_or(0);
@@ -1050,6 +1091,13 @@ fn copy_held(
             }
             done += 1;
         }
+    }
+    if left > 0 {
+        witness::note(
+            channel::SYNC,
+            "this folder's history does not account for its documents, so files nothing names were left up there",
+            &[("left", Fact::Count(left))],
+        );
     }
     Ok(done)
 }
@@ -4489,7 +4537,7 @@ lo mio"
 
         assert_eq!(
             unclaimed(later.path()),
-            0,
+            Holding::Whole,
             "the folder holds a document no history there can name"
         );
         assert!(later.path().join(STORE).join(&gone.device).is_dir());
@@ -4534,18 +4582,22 @@ lo mio"
         filed(&one, "dev_a-0001", "# Lo escrito\n");
         let shared = tempfile::tempdir().unwrap();
         carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
-        assert_eq!(unclaimed(shared.path()), 0, "a whole folder claims its own");
+        assert_eq!(
+            unclaimed(shared.path()),
+            Holding::Whole,
+            "a whole folder claims its own"
+        );
 
         std::fs::remove_dir_all(shared.path().join(STORE).join(&one.device)).unwrap();
 
-        assert_eq!(unclaimed(shared.path()), 1);
+        assert_eq!(unclaimed(shared.path()), Holding::Strays(1));
     }
 
     #[test]
     fn a_folder_nobody_has_written_to_is_holding_nothing() {
         let empty = tempfile::tempdir().unwrap();
 
-        assert_eq!(unclaimed(empty.path()), 0);
+        assert_eq!(unclaimed(empty.path()), Holding::Whole);
     }
 
     #[cfg(unix)]
@@ -4814,7 +4866,7 @@ lo mio"
         filed(&one, "dev_a-0001", "# lo escrito\n");
         let shared = tempfile::tempdir().unwrap();
         carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
-        assert_eq!(unclaimed(shared.path()), 0);
+        assert_eq!(unclaimed(shared.path()), Holding::Whole);
 
         let theirs = shared.path().join(STORE).join(&one.device);
         let whole = std::fs::read_to_string(theirs.join("active.tisty")).unwrap();
@@ -4825,9 +4877,9 @@ lo mio"
         )
         .unwrap();
 
-        assert_ne!(
+        assert_eq!(
             unclaimed(shared.path()),
-            0,
+            Holding::Unreadable,
             "a folder nobody can read was called whole"
         );
     }
@@ -4838,7 +4890,7 @@ lo mio"
         filed(&one, "dev_b-0001", "# lo escrito\n");
         let shared = tempfile::tempdir().unwrap();
         carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
-        assert_eq!(unclaimed(shared.path()), 0);
+        assert_eq!(unclaimed(shared.path()), Holding::Whole);
 
         let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
             .docs
@@ -4851,7 +4903,7 @@ lo mio"
 
         assert_eq!(
             unclaimed(shared.path()),
-            0,
+            Holding::Whole,
             "a document the log itself deleted was reported as belonging to no history"
         );
     }
@@ -4866,7 +4918,7 @@ lo mio"
 
         std::fs::remove_dir_all(shared.path().join(STORE)).unwrap();
 
-        assert_eq!(unclaimed(shared.path()), 2);
+        assert_eq!(unclaimed(shared.path()), Holding::Strays(2));
     }
 
     #[test]
@@ -5218,6 +5270,122 @@ lo mio"
     }
 
     #[test]
+    fn a_document_arrives_with_its_name_before_its_body_is_read() {
+        let one = machine("uno");
+        let id = Ulid::generate();
+        says(
+            &one,
+            Op::DocAdd {
+                id,
+                d: tisty_core::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
+                    said: None,
+                    file: "uno-0001".into(),
+                    order: "a0".into(),
+                    folder: None,
+                    page_of: None,
+                },
+            },
+        );
+        says(
+            &one,
+            Op::DocSaid {
+                id,
+                d: tisty_core::event::Said {
+                    title: "Cómo funciona esto".into(),
+                    bytes: Some(42),
+                    tags: Some(vec![tisty_core::Tag::new("casa").unwrap()]),
+                    by: None,
+                },
+            },
+        );
+        tisty_core::docs::write(&one.data.join(PAPERS), "uno-0001", "# Cómo funciona esto\n")
+            .unwrap();
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+        let two = blank("dos");
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        let kept = seen(&two.store);
+        let paper = kept
+            .docs
+            .get(&id)
+            .expect("the log never named the document");
+        assert_eq!(paper.title.as_deref(), Some("Cómo funciona esto"));
+        assert_eq!(paper.bytes, Some(42));
+        assert_eq!(paper.tags.len(), 1, "the tags did not travel in the log");
+        assert_eq!(
+            body(&two.data, "uno-0001"),
+            "# Cómo funciona esto\n",
+            "the body did not travel"
+        );
+
+        // The window this branch opens: the log is here, the body is not yet.
+        std::fs::remove_file(two.data.join(PAPERS).join("uno-0001.md")).unwrap();
+        let still = seen(&two.store);
+        assert_eq!(
+            still
+                .docs
+                .get(&id)
+                .and_then(|one| one.title.clone())
+                .as_deref(),
+            Some("Cómo funciona esto"),
+            "the name needs the body to be read"
+        );
+        assert!(
+            paper_waiting(shared.path(), "uno-0001"),
+            "a document the folder holds was not told apart from one that is lost"
+        );
+    }
+
+    #[test]
+    fn a_folder_that_cannot_name_its_documents_hands_over_no_file_nothing_reaches() {
+        let one = machine("uno");
+        let kept = planted(&one.data, "contrato.pdf", b"lo que nadie nombra");
+        filed(&one, "uno-0001", "# sin adjuntos\n");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+        assert!(shared.path().join(&kept).is_file());
+
+        // The shape of the field folder: documents up there that its own log cannot name.
+        std::fs::remove_dir_all(shared.path().join(STORE).join(&one.device)).unwrap();
+        assert!(matches!(unclaimed(shared.path()), Holding::Strays(_)));
+
+        let two = blank("dos");
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert!(
+            !two.data.join(&kept).exists(),
+            "a fresh machine fetched bytes no document up there will ever name"
+        );
+        assert!(
+            shared.path().join(&kept).is_file(),
+            "and they stay where they were"
+        );
+    }
+
+    #[test]
+    fn a_whole_folder_still_hands_over_every_file_it_holds() {
+        let one = machine("uno");
+        let kept = planted(&one.data, "contrato.pdf", b"lo que nadie nombra");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+        assert_eq!(unclaimed(shared.path()), Holding::Whole);
+
+        let two = blank("dos");
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert!(
+            two.data.join(&kept).is_file(),
+            "a whole folder stopped handing over what it holds"
+        );
+    }
+
+    #[test]
     fn what_a_machine_leaves_behind_depends_on_how_it_holds_them() {
         assert_eq!(left_behind(Holds::Everywhere), None);
         assert_eq!(
@@ -5246,6 +5414,7 @@ lo mio"
             false,
             Some(&other.data),
             Some(1000),
+            None,
             None,
         )
         .unwrap();
