@@ -88,7 +88,7 @@ interface Props {
   fresh?: number;
 }
 
-const tailless = (said: string): string => said.replace(/\n+$/, "");
+const tailless = (said: string): string => said.replace(/\r\n/g, "\n").replace(/\n+$/, "");
 
 const dated = (when: number): string => stamped(new Date(when * 1000).toISOString());
 
