@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import App from "../App";
+import App, { AT_A_GLANCE, SHOWN } from "../App";
 import type { Papers } from "../core";
 import { fill, t } from "../locales";
 import Docs from "../ui/Docs";
@@ -21,6 +21,7 @@ interface FakeDoc {
   title: string;
   folder: string | null;
   archived: boolean;
+  pageOf?: string;
 }
 
 const store = vi.hoisted(() => ({
@@ -159,6 +160,8 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
     }
     case "doc_read":
       return Promise.resolve(store.bodies[String(args.id)] ?? "");
+    case "doc_order":
+      return Promise.resolve(false);
     case "doc_write": {
       const id = String(args.id);
       const body = String(args.body);
@@ -404,6 +407,37 @@ describe("archiving and bringing back a document", () => {
       within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Report" }),
     ).toBeTruthy();
     expect(screen.queryByRole("list", { name: t("archived") })).toBeNull();
+  });
+});
+
+describe("reading a document", () => {
+  it("writes nothing in your name for opening one that holds pages", async () => {
+    const parent = seedDoc({ title: "Guide" });
+    seedDoc({ title: "Page", pageOf: parent.id });
+    await boot();
+
+    await userEvent.click(
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Guide" }),
+    );
+
+    await screen.findByTestId("editor");
+    expect(store.writes).toEqual([]);
+  });
+
+  it("writes nothing when the editor hands back what it read, bar the trailing newline", async () => {
+    const doc = seedDoc({ title: "Guide" });
+    const read = ["# Guide", "", "what it holds", ""].join("\n");
+    store.bodies[doc.file] = read;
+    await boot();
+    await userEvent.click(
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Guide" }),
+    );
+    const editor = await screen.findByTestId("editor");
+
+    fireEvent.change(editor, { target: { value: read.trimEnd() } });
+
+    await new Promise((soon) => setTimeout(soon, 900));
+    expect(store.writes).toEqual([]);
   });
 });
 
@@ -840,6 +874,32 @@ describe("what the menus reach for outside the tree", () => {
     await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
 
     await waitFor(() => expect(screen.getByText(t("landedNone"))).toBeTruthy());
+  });
+
+  it("keeps a notice you were away for, and lets it go when you come back", async () => {
+    const clock = Date.now;
+    let late = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => clock.call(Date) + late);
+    picked.path = Promise.resolve("D:/entrada/tisty.tistyx");
+    parcel.docs = 240;
+    parcel.folders = 31;
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "docs_unpack") late = AT_A_GLANCE + 1_000;
+      return answered(cmd, args);
+    };
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
+    const said = await screen.findByText(fill("landedIn", "240", "31"));
+
+    await new Promise((soon) => setTimeout(soon, SHOWN + 200));
+    expect(said.isConnected).toBe(true);
+
+    fireEvent.pointerDown(window);
+
+    await waitFor(() => expect(screen.queryByText(fill("landedIn", "240", "31"))).toBeNull());
   });
 
   it("says which files it points at were not there to take", async () => {

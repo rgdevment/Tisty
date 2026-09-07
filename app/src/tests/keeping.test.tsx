@@ -104,11 +104,19 @@ const carrying = {
   loose: 0,
 };
 
+const arriving = {
+  kin: "strangers" as string,
+  fresh: true,
+  holds: false,
+  alias: null as string | null,
+};
+
 beforeEach(() => {
   vi.restoreAllMocks();
   adopt("en");
   ipc.calls = [];
   bus.heard.clear();
+  Object.assign(arriving, { kin: "strangers", fresh: true, holds: false, alias: null });
   Object.assign(rousing, { offered: true, wakes: false, theirs: false });
   Object.assign(standing, {
     shipped: true,
@@ -200,6 +208,8 @@ beforeEach(() => {
       }
       case "sync_now":
         return Promise.resolve({ carried: "came", undecided: [] });
+      case "joining":
+        return Promise.resolve({ ...arriving });
       case "reachable":
         return Promise.resolve({ ...standing });
       case "wiring":
@@ -1722,11 +1732,11 @@ describe("the maintenance panel", () => {
 describe("the first-run assistant", () => {
   const spoken = async () => {
     await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
-    await userEvent.click(await screen.findByRole("button", { name: t("welcomeNotNow") }));
   };
 
   const alone = async () => {
     await userEvent.click(await screen.findByRole("button", { name: /only on this machine/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeNotNow") }));
   };
 
   it("asks for the language before anything else, and keeps it", async () => {
@@ -1795,6 +1805,7 @@ describe("the first-run assistant", () => {
     await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
 
     await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeNotNow") }));
 
     await waitFor(() => expect(sent("guide")).toHaveLength(1));
     expect(
@@ -1891,6 +1902,7 @@ describe("the first-run assistant", () => {
     await screen.findByRole("alert");
 
     await userEvent.click(screen.getByRole("button", { name: /go in anyway/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeNotNow") }));
 
     await waitFor(() => expect(done).toHaveBeenCalled());
   });
@@ -1947,27 +1959,88 @@ describe("the first-run assistant", () => {
     await screen.findByRole("status");
   };
 
-  it("lets you in once the folder's own writing has landed, files or no files", async () => {
-    const done = vi.fn();
-    render(<Welcome onDone={done} />);
+  it("moves on once the folder's own writing has landed, files or no files", async () => {
+    render(<Welcome onDone={vi.fn()} />);
     await halfway();
 
     await carried("papers");
 
-    await waitFor(() => expect(done).toHaveBeenCalled());
+    expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
   });
 
-  it("goes in once however many times the round says it reached somewhere", async () => {
+  it("takes the name the folder already signs with, and does not ask for one", async () => {
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
     const done = vi.fn();
     render(<Welcome onDone={done} />);
-    await halfway();
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
 
-    await carried("log");
-    await carried("papers");
+    await screen.findByText(/already holds a tisty/i);
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeBringIt") }));
 
     await waitFor(() => expect(done).toHaveBeenCalled());
-    expect(done).toHaveBeenCalledTimes(1);
-    expect(sent("guide")).toHaveLength(1);
+    expect(sent("sign")).toHaveLength(0);
+    expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
+  });
+
+  it("says whose name it is taking before it takes it", async () => {
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    expect(await screen.findByText(/sign as rgdevment/i)).toBeTruthy();
+  });
+
+  it("still asks for a name when the folder it joins never had one", async () => {
+    Object.assign(arriving, { holds: true, alias: null });
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeBringIt") }));
+
+    expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
+  });
+
+  it("keeps every door within reach for whoever wants them", async () => {
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_kin" ? Promise.resolve("strangers") : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
+
+    expect(await screen.findByText(/already holds another tisty/i)).toBeTruthy();
+  });
+
+  it("waits its turn instead of walking in with nothing when a round is already running", async () => {
+    let turns = 0;
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd !== "sync_now") return answered(cmd, args);
+      turns += 1;
+      return Promise.resolve({
+        carried: turns === 1 ? "busy" : "came",
+        undecided: [],
+      });
+    };
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await screen.findByRole("textbox", { name: /^alias$/i }, { timeout: 3000 });
+    expect(turns).toBeGreaterThan(1);
   });
 
   it("has nowhere to bring anything home from when you stay on this machine", async () => {
@@ -2054,27 +2127,32 @@ describe("the first-run assistant", () => {
     expect(done.mock.calls[0][0]).toBeUndefined();
   });
 
-  it("asks for an alias between the language and the copies, and writes it down", async () => {
+  it("asks where things go before it asks who you are, and writes the name down", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
 
+    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: /only on this machine/i }));
     const field = await screen.findByRole("textbox", { name: /^alias$/i });
     await userEvent.type(field, "rgdevment");
     await userEvent.click(screen.getByRole("button", { name: t("welcomeSigned") }));
 
     await waitFor(() => expect(sent("sign")).toHaveLength(1));
     expect(sent("sign")[0].args.alias).toBe("rgdevment");
-    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
   });
 
   it("lets the alias wait, and writes nothing down when it is skipped", async () => {
-    render(<Welcome onDone={vi.fn()} />);
-    await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
+    const done = vi.fn();
+    render(<Welcome onDone={done} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /only on this machine/i }));
     await screen.findByRole("textbox", { name: /^alias$/i });
 
     await userEvent.click(screen.getByRole("button", { name: t("welcomeNotNow") }));
 
-    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+    await waitFor(() => expect(done).toHaveBeenCalled());
     expect(sent("sign")).toHaveLength(0);
   });
 
@@ -2084,7 +2162,6 @@ describe("the first-run assistant", () => {
     await screen.findByRole("button", { name: /google drive/i });
 
     await userEvent.click(screen.getByRole("button", { name: /^back$/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
 
     const english = await screen.findByRole("button", { name: /^english$/i });
     expect(english.getAttribute("aria-pressed")).toBe("true");
@@ -2093,7 +2170,6 @@ describe("the first-run assistant", () => {
   it("takes a change of mind about the language", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
-    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
     await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
 
     await userEvent.click(screen.getByRole("button", { name: /^español$/i }));
@@ -2165,7 +2241,7 @@ describe("the first-run assistant", () => {
 
     await screen.findByText("You now sign as rgdevment");
     await screen.findByText(
-      "What was already written keeps the signature it had. Do you want the 243 older documents to carry this alias instead?",
+      "Nothing already written changes hands on its own. Do you want the 243 documents behind you to stand in your name?",
     );
     await screen.findByText("What arrived signed by somebody else keeps their name, always.");
 
@@ -2173,7 +2249,7 @@ describe("the first-run assistant", () => {
     expect(sent("sign_the_rest")).toHaveLength(0);
 
     await userEvent.click(await screen.findByRole("button", { name: /sign the older ones/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /change them all/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /put them in my name/i }));
 
     await waitFor(() => expect(sent("sign_the_rest")).toHaveLength(1));
     await screen.findByText("243 documents signed");

@@ -5421,17 +5421,45 @@ async fn take_over(
     Ok(made.bytes)
 }
 
+fn kinned(store: &std::path::Path, dest: &std::path::Path) -> &'static str {
+    match tisty_sync::kinship(store, dest) {
+        tisty_sync::Kin::SameLineage => "sameLineage",
+        tisty_sync::Kin::Clash(_) => "clash",
+        tisty_sync::Kin::Unsure(_) => "unsure",
+        tisty_sync::Kin::Strangers => "strangers",
+    }
+}
+
 #[tauri::command(async)]
 fn sync_kin(session: tauri::State<'_, Mutex<Session>>) -> Answer<&'static str> {
     let session = held(&session);
     let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
         return Err(Refusal::of("noRemote"));
     };
-    Ok(match tisty_sync::kinship(&session.paths.store(), &dest) {
-        tisty_sync::Kin::SameLineage => "sameLineage",
-        tisty_sync::Kin::Clash(_) => "clash",
-        tisty_sync::Kin::Unsure(_) => "unsure",
-        tisty_sync::Kin::Strangers => "strangers",
+    Ok(kinned(&session.paths.store(), &dest))
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Joining {
+    kin: &'static str,
+    fresh: bool,
+    holds: bool,
+    alias: Option<String>,
+}
+
+#[tauri::command(async)]
+fn joining(session: tauri::State<'_, Mutex<Session>>) -> Answer<Joining> {
+    let session = held(&session);
+    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+        return Err(Refusal::of("noRemote"));
+    };
+    let store = session.paths.store();
+    Ok(Joining {
+        kin: kinned(&store, &dest),
+        fresh: !tisty_core::store::inhabited(&store),
+        holds: tisty_core::store::inhabited(dest.join(tisty_sync::STORE)),
+        alias: tisty_sync::signed_at(&dest),
     })
 }
 
@@ -6257,6 +6285,7 @@ pub fn run() {
             take_over,
             merge_stores,
             sync_kin,
+            joining,
             remove_machine,
             retire_attachment,
             settle_paper,

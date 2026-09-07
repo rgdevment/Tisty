@@ -348,6 +348,11 @@ pub fn unclaimed(dest: &Path) -> Holding {
     }
 }
 
+pub fn signed_at(dest: &Path) -> Option<String> {
+    let events = tisty_core::store::read_all(dest.join(STORE)).ok()?;
+    tisty_core::State::replay(&events).signed.alias
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Kin {
     Strangers,
@@ -758,6 +763,9 @@ fn copy_segments(from: &Path, into: &Path, again: bool) -> Result<usize, Trouble
             return Ok(0);
         }
     };
+    if carried.is_empty() {
+        return Ok(0);
+    }
     std::fs::create_dir_all(into).map_err(io)?;
     sweep(into);
     let mut done = 0;
@@ -2470,6 +2478,77 @@ mod tests {
     fn says(who: &Machine, op: Op) {
         let mut held = Store::open(&who.store, DeviceId(who.device.clone())).unwrap();
         held.append(op).unwrap();
+    }
+
+    fn signs(who: &Machine, alias: &str) {
+        says(
+            who,
+            Op::Signed {
+                d: tisty_core::event::Signature {
+                    alias: Some(alias.to_string()),
+                    name: None,
+                    email: None,
+                },
+            },
+        );
+    }
+
+    #[test]
+    fn a_seat_nobody_ever_wrote_in_is_not_taken_home() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+        std::fs::create_dir_all(shared.path().join(STORE).join("dev_ghost")).unwrap();
+
+        let fresh = blank("dos");
+        carry(&fresh.data, &fresh.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert!(
+            !fresh.store.join("dev_ghost").exists(),
+            "an empty device directory travelled as though it were a machine"
+        );
+    }
+
+    #[test]
+    fn a_machine_that_wrote_nothing_takes_up_the_folder_it_is_pointed_at() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let fresh = blank("dos");
+        carry(&fresh.data, &fresh.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert_eq!(titles(&fresh.store), vec!["lo de uno".to_string()]);
+        assert_eq!(
+            signed_at(shared.path()),
+            None,
+            "nobody signed, so there is no name to take"
+        );
+    }
+
+    #[test]
+    fn signing_before_the_folder_is_chosen_makes_a_new_machine_look_like_another_history() {
+        let one = machine("uno");
+        signs(&one, "mario");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let fresh = blank("dos");
+        signs(&fresh, "mario");
+        let outcome = carry(&fresh.data, &fresh.device, shared.path(), Way::Both, &[]);
+
+        assert!(
+            matches!(
+                outcome,
+                Err(Trouble::OtherStore { .. }) | Err(Trouble::WouldReset { .. })
+            ),
+            "a name of its own is a history of its own: {outcome:?}"
+        );
+        assert_eq!(
+            signed_at(shared.path()).as_deref(),
+            Some("mario"),
+            "the folder carries the name, so asking for one first is asking twice"
+        );
     }
 
     #[test]

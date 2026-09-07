@@ -4,6 +4,8 @@ import { stillApart, walkThrough } from "../apart";
 import {
   ALIAS_AT_MOST,
   guide,
+  type Joining,
+  joining,
   type Kin,
   keepClosing,
   keepLocale,
@@ -23,14 +25,18 @@ interface Props {
   onDone: (paper?: string) => void;
 }
 
-type Step = "tongue" | "signing" | "copies";
+type Step = "tongue" | "copies" | "signing";
 
-const STEPS: Step[] = ["tongue", "signing", "copies"];
+const STEPS: Step[] = ["tongue", "copies", "signing"];
 
 const TONGUES = [
   { code: "es", name: "Español" },
   { code: "en", name: "English" },
 ];
+
+const TRIES = 3;
+
+const BREATH = 500;
 
 function Choice({
   said,
@@ -71,9 +77,12 @@ export default function Welcome({ onDone }: Props) {
   const [carrying, setCarrying] = useState(false);
   const [stuck, setStuck] = useState<string>();
   const [kin, setKin] = useState<Kin>();
+  const [offer, setOffer] = useState<Joining>();
+  const [named, setNamed] = useState<string>();
   const went = useRef(false);
 
-  const at = STEPS.indexOf(step);
+  const path = named ? STEPS.filter((one) => one !== "signing") : STEPS;
+  const at = Math.min(path.indexOf(step), path.length - 1);
 
   const speak = (code: string) => {
     setBusy(true);
@@ -82,18 +91,8 @@ export default function Welcome({ onDone }: Props) {
       .then(() => adopt(code))
       .then(() => {
         setTongue(code);
-        setStep("signing");
+        setStep("copies");
       })
-      .catch((e) => setTrouble(saidPlainly(e)))
-      .finally(() => setBusy(false));
-  };
-
-  const signAs = () => {
-    const said = alias.trim();
-    setBusy(true);
-    setTrouble(undefined);
-    (said ? sign(said) : Promise.resolve(null))
-      .then(() => setStep("copies"))
       .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => setBusy(false));
   };
@@ -101,7 +100,8 @@ export default function Welcome({ onDone }: Props) {
   const finish = useCallback(() => {
     if (went.current) return Promise.resolve();
     went.current = true;
-    return sowLists()
+    return Promise.allSettled([wakeFor(true), keepClosing("hide")])
+      .then(() => sowLists())
       .catch(() => undefined)
       .then(() =>
         guide()
@@ -111,28 +111,45 @@ export default function Welcome({ onDone }: Props) {
       .then(onDone);
   }, [onDone]);
 
-  // The round outlives this window: the log names the work, and the bodies land behind you.
+  const next = useCallback(
+    (name?: string) => {
+      if (name ?? named) return finish();
+      setCarrying(false);
+      setStep("signing");
+      return Promise.resolve();
+    },
+    [finish, named],
+  );
+
   useEffect(() => {
     if (!carrying) return;
     const off = listen("carried", () => {
-      void finish();
+      void next();
     });
     return () => {
       off.then((stop) => stop()).catch(() => {});
     };
-  }, [carrying, finish]);
+  }, [carrying, next]);
 
-  const leave = (at?: string) => {
+  const round = (left = TRIES): Promise<string | undefined> =>
+    syncNow().then((how) =>
+      how?.carried === "busy" && left > 0
+        ? new Promise((soon) => setTimeout(soon, BREATH)).then(() => round(left - 1))
+        : how?.carried,
+    );
+
+  const carryOn = (name?: string) => {
     setBusy(true);
     setTrouble(undefined);
     setStuck(undefined);
-    Promise.allSettled([wakeFor(true), keepClosing("hide")])
-      .then(() => {
-        if (!at) return;
-        setCarrying(true);
-        return syncNow();
+    setCarrying(true);
+    return round()
+      .then((how) => {
+        if (how !== "busy") return next(name);
+        setCarrying(false);
+        setStuck(t("syncBusy"));
+        return Promise.resolve();
       })
-      .then(() => finish())
       .catch((e) => {
         if (went.current) return;
         setCarrying(false);
@@ -140,7 +157,38 @@ export default function Welcome({ onDone }: Props) {
         syncKin()
           .catch(() => "unsure" as const)
           .then(setKin);
+      })
+      .finally(() => setBusy(false));
+  };
+
+  const chose = (at?: string) => {
+    setTrouble(undefined);
+    setStuck(undefined);
+    if (!at) {
+      setStep("signing");
+      return;
+    }
+    setBusy(true);
+    joining()
+      .then((how) => {
+        setBusy(false);
+        if (how.fresh && how.holds) {
+          setOffer(how);
+          return;
+        }
+        return carryOn();
+      })
+      .catch(() => {
+        setBusy(false);
+        return carryOn();
       });
+  };
+
+  const takeItAll = () => {
+    const name = offer?.alias ?? undefined;
+    setOffer(undefined);
+    setNamed(name);
+    void carryOn(name);
   };
 
   const closed = (door: Door | "else" | null) => {
@@ -148,13 +196,23 @@ export default function Welcome({ onDone }: Props) {
     if (door === null) return setStuck(t("wouldReset"));
     setCarrying(true);
     walkThrough(door)
-      .then((gone) => (gone ? syncNow().then(() => finish()) : setStuck(t("wouldReset"))))
+      .then((gone) => (gone ? round().then(() => next()) : setStuck(t("wouldReset"))))
       .catch((e) => {
         if (!went.current) setStuck(saidPlainly(e));
       })
       .finally(() => {
         if (!went.current) setCarrying(false);
       });
+  };
+
+  const signAs = () => {
+    const said = alias.trim();
+    setBusy(true);
+    setTrouble(undefined);
+    (said ? sign(said) : Promise.resolve(null))
+      .then(() => finish())
+      .catch((e) => setTrouble(saidPlainly(e)))
+      .finally(() => setBusy(false));
   };
 
   if (kin) {
@@ -165,6 +223,38 @@ export default function Welcome({ onDone }: Props) {
         onElse={() => closed("else")}
         onClose={() => closed(null)}
       />
+    );
+  }
+
+  if (offer) {
+    return (
+      <Modal title={t("welcomeFolderHolds")}>
+        <p className="mt-3 text-[13px] leading-relaxed text-soft">{t("welcomeFolderHoldsWhy")}</p>
+        <p className="mt-2 text-[12px] leading-relaxed text-faint">
+          {offer.alias ? fill("welcomeFolderHoldsAs", offer.alias) : t("welcomeFolderHoldsHow")}
+        </p>
+        <div className="mt-5 flex items-center gap-3 text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              setOffer(undefined);
+              syncKin()
+                .catch(() => "unsure" as const)
+                .then(setKin);
+            }}
+            className="text-faint hover:text-ink"
+          >
+            {t("welcomeMoreDoors")}
+          </button>
+          <button
+            type="button"
+            onClick={takeItAll}
+            className="ml-auto cursor-pointer rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-bg"
+          >
+            {t("welcomeBringIt")}
+          </button>
+        </div>
+      </Modal>
     );
   }
 
@@ -183,11 +273,11 @@ export default function Welcome({ onDone }: Props) {
         role="progressbar"
         aria-label={fill("welcomeStep", `${at + 1}`)}
         aria-valuemin={1}
-        aria-valuemax={STEPS.length}
+        aria-valuemax={path.length}
         aria-valuenow={at + 1}
         className="mt-3 flex items-center gap-1.5"
       >
-        {STEPS.map((one, n) => (
+        {path.map((one, n) => (
           <span
             key={one}
             className={`h-1.5 rounded-full ${
@@ -255,7 +345,7 @@ export default function Welcome({ onDone }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => finish()}
+              onClick={() => next()}
               className="ml-auto rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
             >
               {t("welcomeAnyway")}
@@ -279,7 +369,7 @@ export default function Welcome({ onDone }: Props) {
             </span>
           </div>
         ) : (
-          <Keepers busy={busy} onTrouble={setTrouble} onDeciding={setDeciding} onDone={leave} />
+          <Keepers busy={busy} onTrouble={setTrouble} onDeciding={setDeciding} onDone={chose} />
         )}
       </div>
 
@@ -294,11 +384,11 @@ export default function Welcome({ onDone }: Props) {
       )}
 
       <div className="mt-4 flex items-center gap-4 text-xs">
-        {step === "copies" && !deciding && (
+        {step === "copies" && !deciding && !carrying && (
           <button
             type="button"
             disabled={busy}
-            onClick={() => setStep("signing")}
+            onClick={() => setStep("tongue")}
             className="text-faint hover:text-ink disabled:opacity-60"
           >
             {t("welcomeBack")}
@@ -309,7 +399,7 @@ export default function Welcome({ onDone }: Props) {
             <button
               type="button"
               disabled={busy}
-              onClick={() => setStep("tongue")}
+              onClick={() => setStep("copies")}
               className="text-faint hover:text-ink disabled:opacity-60"
             >
               {t("welcomeBack")}
@@ -317,7 +407,7 @@ export default function Welcome({ onDone }: Props) {
             <button
               type="button"
               disabled={busy}
-              onClick={() => setStep("copies")}
+              onClick={() => finish()}
               className="ml-auto text-faint hover:text-ink disabled:opacity-60"
             >
               {t("welcomeNotNow")}
@@ -328,7 +418,7 @@ export default function Welcome({ onDone }: Props) {
           <button
             type="button"
             disabled={busy}
-            onClick={() => setStep("signing")}
+            onClick={() => setStep("copies")}
             className="ml-auto text-faint hover:text-ink disabled:opacity-60"
           >
             {t("welcomeNext")}
