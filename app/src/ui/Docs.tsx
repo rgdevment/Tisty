@@ -112,6 +112,7 @@ export default function Docs({
   const shaped = useRef("");
   const seen = useRef(0);
   const [stuck, setStuck] = useState(false);
+  const [coming, setComing] = useState(false);
   const [clashed, setClashed] = useState(false);
   const [stirred, setStirred] = useState(false);
   const lastRead = useRef(new Map<string, string>());
@@ -237,6 +238,7 @@ export default function Docs({
   useEffect(() => {
     if (!asked) {
       turn.current += 1;
+      setComing(false);
       return;
     }
     if (asked === open?.file && (fresh === seen.current || held.current)) {
@@ -245,7 +247,10 @@ export default function Docs({
     }
     seen.current = fresh;
     const wanted = known.find((one) => one.file === asked);
-    if (!wanted) return;
+    if (!wanted) {
+      setComing(false);
+      return;
+    }
     const before = open?.file;
     if (before && before !== asked) {
       const leaving = known.find((one) => one.file === before);
@@ -282,8 +287,18 @@ export default function Docs({
             })
             .catch(() => {});
         }
+        setComing(false);
       })
-      .catch((e) => onError(saidPlainly(e)));
+      .catch((e) => {
+        if (turn.current !== mine) return;
+        const coming = (e as { code?: string })?.code === "docComing";
+        setComing(coming);
+        if (coming) {
+          setOpen(null);
+          return;
+        }
+        onError(saidPlainly(e));
+      });
   }, [asked, known, open, flush, onError, fresh]);
 
   useEffect(() => {
@@ -599,6 +614,16 @@ export default function Docs({
                 }}
               />
             </Suspense>
+          </div>
+        ) : coming ? (
+          <div role="status" aria-live="polite" style={wall} className="mx-auto w-full px-10">
+            <p className="text-[12.5px] text-faint">{t("docComingHere")}</p>
+            <span
+              aria-hidden="true"
+              className="mt-2.5 block h-0.5 w-32 overflow-hidden rounded-full bg-line"
+            >
+              <span className="sliding block h-full w-1/3 rounded-full bg-soft" />
+            </span>
           </div>
         ) : (
           <p style={wall} className="mx-auto w-full px-10 text-[12.5px] text-faint">

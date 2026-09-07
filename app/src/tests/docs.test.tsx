@@ -16,6 +16,8 @@ const store = vi.hoisted(() => ({
   shape: null as string | null,
   agrees: true,
   locks: [] as { id: string; shut: boolean }[],
+  coming: false,
+  refuse: null as { code: string; name: string } | null,
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -32,6 +34,8 @@ vi.mock("@tauri-apps/api/core", () => ({
         return Promise.resolve(null);
       case "doc_read":
         store.reads += 1;
+        if (store.coming) return Promise.reject({ code: "docComing" });
+        if (store.refuse) return Promise.reject(store.refuse);
         return Promise.resolve(store.bodies[String(args?.id)] ?? "");
       case "convert_paper": {
         const id = String(args?.id);
@@ -118,10 +122,62 @@ describe("the document being written", () => {
     store.shape = null;
     store.clash = false;
     store.agrees = true;
+    store.coming = false;
+    store.refuse = null;
   });
 
   const show = (open?: string, onKept = vi.fn()) =>
     render(<Docs open={open} known={known} onKept={onKept} onError={vi.fn()} />);
+
+  it("says a document is on its way instead of throwing a refusal at the person", async () => {
+    store.coming = true;
+    const onError = vi.fn();
+
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={onError} />);
+
+    await screen.findByText(/bringing this document from the shared folder/i);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("takes the bringing notice away when the document is let go", async () => {
+    store.coming = true;
+    const props = { known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs open="a3f1-0001" {...props} />);
+    await screen.findByText(/bringing this document from the shared folder/i);
+
+    rerender(<Docs open={undefined} {...props} />);
+
+    await screen.findByText(/pick a document/i);
+    expect(screen.queryByText(/bringing this document from the shared folder/i)).toBeNull();
+  });
+
+  it("does not go on saying a document is coming when the next one plainly refused", async () => {
+    store.coming = true;
+    const onError = vi.fn();
+    const props = { known, onKept: vi.fn(), onError };
+    const { rerender } = render(<Docs open="a3f1-0001" {...props} />);
+    await screen.findByText(/bringing this document from the shared folder/i);
+
+    store.coming = false;
+    store.refuse = { code: "documentTooBig", name: "5 MB" };
+    rerender(<Docs open="a3f1-0002" {...props} />);
+
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(screen.queryByText(/bringing this document from the shared folder/i)).toBeNull();
+  });
+
+  it("opens it by itself once the round has brought it down", async () => {
+    store.coming = true;
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs {...props} fresh={0} />);
+    await screen.findByText(/bringing this document from the shared folder/i);
+
+    store.coming = false;
+    rerender(<Docs {...props} fresh={1} />);
+
+    await waitFor(() => screen.getByLabelText("editor"));
+    expect(screen.queryByText(/bringing this document from the shared folder/i)).toBeNull();
+  });
 
   it("says so when something wrote in the document while it was open", async () => {
     const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
