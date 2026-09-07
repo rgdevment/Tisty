@@ -637,6 +637,8 @@ export interface Joining {
 }
 
 export const joining = (): Promise<Joining> => invoke("joining");
+
+export const folderAstir = (): Promise<string> => invoke("folder_astir");
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });
