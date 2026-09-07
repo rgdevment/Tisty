@@ -28,8 +28,64 @@ pub struct Manifest {
     pub kind: String,
     pub version: u32,
     pub from: String,
+    /// Proof that the store named in `from` really wrote this, and not somebody who read its
+    /// name off a parcel it once handed out. Absent, or wrong, and it lands as a stranger's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seal: Option<String>,
     pub folders: Vec<Shelf>,
     pub docs: Vec<Paper>,
+}
+
+fn sealed(manifest: &Manifest, keep: &[u8]) -> Option<String> {
+    use hmac::Mac;
+    let bare = Manifest {
+        seal: None,
+        ..manifest.clone()
+    };
+    let said = serde_json::to_vec(&bare).ok()?;
+    let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(keep).ok()?;
+    mac.update(&said);
+    Some(
+        mac.finalize()
+            .into_bytes()
+            .iter()
+            .map(|one| format!("{one:02x}"))
+            .collect(),
+    )
+}
+
+/// Written here, or only claiming to be. A parcel with no seal at all is somebody else's by
+/// definition: every Tisty that writes one seals it.
+fn ours(manifest: &Manifest, data: &Path) -> bool {
+    let mine = crate::store::peek_identity(data.join("store"));
+    let said = manifest.from.trim();
+    if said.is_empty() || mine.as_deref() != Some(said) {
+        return false;
+    }
+    let Some(keep) = crate::store::secret(data.join("store")) else {
+        return false;
+    };
+    match (&manifest.seal, sealed(manifest, &keep)) {
+        (Some(theirs), Some(ours)) => theirs.as_bytes().ct_eq(ours.as_bytes()),
+        _ => false,
+    }
+}
+
+trait Steady {
+    fn ct_eq(&self, other: &Self) -> bool;
+}
+
+impl Steady for [u8] {
+    /// Compared to the end however early it differs, so the time it takes says nothing about
+    /// how much of the seal was right.
+    fn ct_eq(&self, other: &Self) -> bool {
+        self.len() == other.len()
+            && self
+                .iter()
+                .zip(other)
+                .fold(0u8, |told, (a, b)| told | (a ^ b))
+                == 0
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -310,10 +366,9 @@ pub fn written(
         return Err(Error::WrongNumber);
     }
 
-    // Written to one side and moved onto the destination at the end: exporting over last week's
-    // parcel must not cost it when this one turns out to have nothing to carry. What is going
-    // out locked is built inside the store, because the whole point of locking it is that the
-    // folder it lands in — a stick, a shared drive — never holds it in the clear.
+    // Moved onto the destination only at the end, so exporting over last week's parcel cannot
+    // cost it. A locked one is built inside the store: the folder it lands in — a stick, a
+    // shared drive — is the one place it must never sit in the clear.
     let name = into.file_name().unwrap_or_default().to_string_lossy();
     let aside = Aside(match number {
         Some(_) => data.join(format!(".packing-{}.part", std::process::id())),
@@ -395,10 +450,11 @@ fn filled(
     }
 
     let held: BTreeSet<&str> = bodies.iter().map(|(one, _)| one.file.as_str()).collect();
-    let manifest = Manifest {
+    let mut manifest = Manifest {
         kind: KIND.into(),
         version: VERSION,
         from: crate::store::peek_identity(data.join("store")).unwrap_or_default(),
+        seal: None,
         folders: shelves(state, &bodies),
         docs: bodies
             .iter()
@@ -426,6 +482,9 @@ fn filled(
             })
             .collect(),
     };
+
+    manifest.seal =
+        crate::store::secret(data.join("store")).and_then(|keep| sealed(&manifest, &keep));
 
     let weighs = serde_json::to_string(&manifest)?.len() as u64;
     if weighs > MANIFEST_AT_MOST || manifest.docs.len() > PAPERS_AT_MOST {
@@ -680,6 +739,17 @@ pub fn taken(
     let staged = data.join(format!(".landing-{}", std::process::id()));
     swept(data);
 
+    // Opening one takes the parcel out whole and then unpacks it, so the store needs twice what
+    // the file weighs. Better said before than as an i/o error halfway through.
+    if let Ok(weighs) = std::fs::metadata(from).map(|one| one.len()) {
+        let needs = weighs.saturating_mul(2);
+        if let Ok(free) = fs4::available_space(data)
+            && free < needs
+        {
+            return Err(Error::NoRoom { needs, free });
+        }
+    }
+
     let shut = locked(from);
     // Inside the landing directory, so the sweep that clears an interrupted landing carries the
     // opened copy out with it: what a locked parcel holds must not be left lying in the clear.
@@ -718,12 +788,7 @@ fn carried(
         zip::ZipArchive::new(file).map_err(|_| Error::NotAParcel(from.display().to_string()))?;
     let manifest = manifest_in(&mut zip, from)?;
 
-    let mine = crate::store::peek_identity(data.join("store"));
-    let elsewhere = !unlocked
-        && match (&mine, manifest.from.trim()) {
-            (Some(mine), from) if !from.is_empty() => mine != from,
-            _ => true,
-        };
+    let elsewhere = !unlocked && !ours(&manifest, data);
     let whole = zip.len() + manifest.docs.len();
     unpack(&mut zip, staged, along, whole).and_then(|_| {
         taken_in(

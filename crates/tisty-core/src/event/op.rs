@@ -210,10 +210,14 @@ impl Op {
         )
     }
 
+    /// Settles by itself, so undo steps over it rather than stopping there. Signing is not a
+    /// change to take back — it has no inverse — but it must not bar the way to what is behind.
     pub fn settles(&self) -> bool {
         matches!(
             self,
             Op::DocSaid { .. }
+                | Op::Signed { .. }
+                | Op::DocSigned { .. }
                 | Op::DocMove {
                     d: Filed {
                         folder: None,

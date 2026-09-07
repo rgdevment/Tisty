@@ -70,6 +70,7 @@ const KNOWN = [
   "parcelLocked",
   "wrongNumber",
   "parcelTorn",
+  "noRoom",
   "nothingToCarry",
   "stillPacking",
   "aliasTooLong",

@@ -438,6 +438,7 @@ impl Session {
 
     fn tidy_up(&mut self, bin: bool) {
         tisty_core::parcel::swept(self.paths.data());
+        tisty_core::attach::swept(self.paths.data());
         let dest = self.dest();
         tisty_core::tidy::all_of_it(
             &self.paths,
@@ -2048,6 +2049,7 @@ const REFUSALS: &[&str] = &[
     "parcelLocked",
     "wrongNumber",
     "parcelTorn",
+    "noRoom",
     "nothingToCarry",
     "stillPacking",
     "aliasTooLong",
@@ -3574,14 +3576,13 @@ fn doc_write(
     session.corpus.forget(&id);
     let hand = signing(&session.state);
     let _ = session.retell(&id, &body, hand);
-    noted(&mut session, &id, &body);
     let title = tisty_core::docs::titled(&body);
     Ok(tisty_core::docs::Doc { title, id })
 }
 
-/// The title and the tags both come out of the body, and neither is worth a line in the log
-/// unless it changed. Size alone is not news — it moves with every keystroke — but where there is
-/// news anyway, the note may as well carry the size it was written at.
+/// What reading a body catches up with: the title and the tags both come out of it, and neither
+/// is worth a line in the log unless it changed. Size alone is not news — it moves with every
+/// keystroke — but where there is news anyway, the note carries the size it was read at.
 fn noted(session: &mut Session, file: &str, body: &str) {
     let Some(kept) = session.state.docs.values().find(|one| one.file == file) else {
         return;
@@ -3598,7 +3599,8 @@ fn noted(session: &mut Session, file: &str, body: &str) {
     let id = kept.id;
     let said = tisty_core::event::Said {
         bytes: Some(tisty_core::docs::settled(body).len() as u64),
-        by: signing(&session.state),
+        // Reading a document is not writing into it, whoever happens to be signing.
+        by: None,
         ..told
     };
     let _ = session.commit(Op::DocSaid { id, d: said });
@@ -4099,13 +4101,33 @@ async fn docs_unpack(
         tisty_core::Error::ParcelLocked => Refusal::of("parcelLocked"),
         tisty_core::Error::WrongNumber => Refusal::of("wrongNumber"),
         tisty_core::Error::ParcelTorn => Refusal::of("parcelTorn"),
+        tisty_core::Error::NoRoom { needs, .. } => Refusal::about("noRoom", weighed(needs)),
         tisty_core::Error::TooBig => Refusal::of("tooBig"),
         other => blamed(channel::WINDOW, "a parcel could not be taken in", other),
     })?;
 
-    held(&session)
-        .commit_all(ops)
-        .map_err(|e| blamed(channel::WINDOW, "a parcel landed but was not written", e))?;
+    // What landed is only real once the log says so: if it cannot be written, the bodies go
+    // rather than sit in the folder as documents nobody knows about.
+    let files: Vec<String> = ops
+        .iter()
+        .filter_map(|one| match one {
+            tisty_core::Op::DocAdd { d, .. } => Some(d.file.clone()),
+            _ => None,
+        })
+        .collect();
+    let mut held = held(&session);
+    if let Err(e) = held.commit_all(ops) {
+        let papers = held.paths.docs();
+        for file in files {
+            let _ = tisty_core::docs::remove(&papers, &file);
+        }
+        return Err(blamed(
+            channel::WINDOW,
+            "a parcel landed but was not written",
+            e,
+        ));
+    }
+    drop(held);
     Ok(Unpacked {
         docs: landed.docs,
         pages: landed.pages,

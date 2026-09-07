@@ -47,6 +47,7 @@ chacha20poly1305 = "0.10"
 scrypt = { version = "0.11", default-features = false }
 rand_core = { version = "0.9", features = ["os_rng"] }
 zeroize = "1"
+hmac = "0.12"
 zip = { version = "6", default-features = false, features = ["deflate"] }
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }

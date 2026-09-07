@@ -418,10 +418,9 @@ impl State {
             }
             Op::DocSigned { id, d } => {
                 if let Some(kept) = self.docs.get_mut(id) {
-                    // Held at the projection, not only where the event is written: a build that
-                    // read the rule differently must not be able to sign over what somebody
-                    // else wrote. What nobody signed is another matter — the first to sign it
-                    // owns it, and owning it makes it no longer a guest.
+                    // Held here and not only where the event is written, so a build that read
+                    // the rule differently cannot sign over somebody else's writing. What
+                    // nobody signed is another matter: signing it is owning it.
                     if kept.guest && kept.by.is_some() {
                         return;
                     }

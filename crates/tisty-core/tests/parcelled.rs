@@ -6,6 +6,37 @@ use tisty_core::parcel::Along;
 use tisty_core::{DeviceId, Event, Op, State, attach, docs, order, parcel};
 use ulid::Ulid;
 
+/// Opens the zip, hands the manifest over to be changed, and writes it back — which is all
+/// anybody needs to forge one.
+fn reworded(at: &std::path::Path, mut hand: impl FnMut(&mut serde_json::Value)) {
+    let mut zip = zip::ZipArchive::new(std::fs::File::open(at).unwrap()).unwrap();
+    let mut kept: Vec<(String, Vec<u8>)> = Vec::new();
+    for n in 0..zip.len() {
+        let mut one = zip.by_index(n).unwrap();
+        let named = one.name().to_string();
+        let mut body = Vec::new();
+        std::io::Read::read_to_end(&mut one, &mut body).unwrap();
+        kept.push((named, body));
+    }
+
+    let out = std::fs::File::create(at).unwrap();
+    let mut writing = zip::ZipWriter::new(out);
+    let how = zip::write::SimpleFileOptions::default();
+    for (named, body) in kept {
+        writing.start_file(&named, how).unwrap();
+        let body = match named == "tisty-docs.json" {
+            true => {
+                let mut manifest: serde_json::Value = serde_json::from_slice(&body).unwrap();
+                hand(&mut manifest);
+                serde_json::to_vec(&manifest).unwrap()
+            }
+            false => body,
+        };
+        std::io::Write::write_all(&mut writing, &body).unwrap();
+    }
+    writing.finish().unwrap();
+}
+
 fn tmp() -> tempfile::TempDir {
     tempfile::tempdir().unwrap()
 }
@@ -967,6 +998,132 @@ fn a_locked_parcel_cut_short_does_not_open_as_a_whole_one() {
         .is_err(),
         "a parcel cut short opened as if it were whole"
     );
+}
+
+#[test]
+fn a_lock_shuts_a_document_to_everything_and_the_archive_only_to_writing() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (shelved, away) = here.doc(
+        "# Guardado
+
+terminado",
+        None,
+        None,
+    );
+    let (bolted, shut) = here.doc(
+        "# Cerrado
+
+guardado",
+        None,
+        None,
+    );
+    here.tell(Op::DocArchive { id: shelved });
+    here.tell(Op::DocLock { id: bolted });
+
+    // Writing into either is refused, so an archived document reads and does not change.
+    assert!(here.state.written_shut(shelved));
+    assert!(here.state.written_shut(bolted));
+
+    // Settling what two machines already wrote is not writing into it: only the lock bars that,
+    // or an archived document caught in a conflict would have no way out of it.
+    assert!(!here.state.shut_tight(&away));
+    assert!(here.state.shut_tight(&shut));
+}
+
+#[test]
+fn two_folders_that_only_differ_in_case_do_not_pour_into_one() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    for (named, title) in [("Casa", "Uno"), ("CASA", "Dos"), ("casa", "Tres")] {
+        let shelf = Ulid::generate();
+        here.tell(Op::FolderAdd {
+            id: shelf,
+            d: tisty_core::event::FolderAdd {
+                name: named.into(),
+                order: format!("a{title}"),
+                parent: None,
+                icon: None,
+                color: None,
+            },
+        });
+        here.doc(
+            &format!(
+                "# {title}
+
+lo suyo"
+            ),
+            Some(shelf),
+            None,
+        );
+    }
+
+    let out = room.path().join("plano");
+    let sent = parcel::plainly(&here.data, &here.state, &[], &out, &Along::default()).unwrap();
+    assert_eq!(sent.folders, 3);
+
+    // Windows and macOS hand back one directory for «Casa» and «CASA», so three folders that
+    // spell the same must reach disk under three names of their own.
+    let mut stood: Vec<String> = std::fs::read_dir(&out)
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .filter(|one| one.path().is_dir())
+        .map(|one| one.file_name().to_string_lossy().to_string())
+        .collect();
+    stood.sort();
+    assert_eq!(stood.len(), 3, "folders poured into one another: {stood:?}");
+    for at in &stood {
+        let held = std::fs::read_dir(out.join(at)).unwrap().count();
+        assert_eq!(held, 1, "{at} holds what belongs to another folder");
+    }
+}
+
+#[test]
+fn a_parcel_that_wears_my_stores_name_without_its_seal_is_a_strangers() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let mine = tisty_core::store::identity(here.data.join("store")).unwrap();
+    here.doc(
+        "# Acta
+
+lo mio",
+        None,
+        None,
+    );
+    let box_at = room.path().join("mio.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    // Anybody who was ever handed a parcel of mine knows that name.
+    let mut there = Room::new(room.path(), "theirs");
+    there.doc(
+        "# Suyo
+
+lo suyo",
+        None,
+        None,
+    );
+    let forged = room.path().join("forjado.tistyx");
+    parcel::write(&there.data, &there.state, &[], &forged, &Along::default()).unwrap();
+    reworded(&forged, |manifest| {
+        manifest["from"] = serde_json::Value::String(mine.clone());
+    });
+
+    here.take_in(&forged);
+    assert!(
+        here.titled("Suyo").guest,
+        "a forged name was taken for writing born in this store"
+    );
+
+    // And what this store really wrote still comes home as its own.
+    here.take_in(&box_at);
+    for one in here
+        .state
+        .docs
+        .values()
+        .filter(|one| one.title.as_deref() == Some("Acta"))
+    {
+        assert!(!one.guest, "my own parcel stopped being mine");
+    }
 }
 
 #[test]

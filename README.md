@@ -406,11 +406,12 @@ export it.
 folder with its pages and attachments beside it, or is exported for Tisty into a
 `.tistyx` file that also carries what Markdown cannot say: folders with their order,
 icon and colour, which document each page hangs from, what is archived, and the
-alias it was signed with. That is how your documents move to another machine
-or reach somebody else who uses Tisty, and not one line of the history travels
-inside it. Write an alias — optional, and yours to choose — and every
-document is signed with it, while whatever arrives from somebody else keeps
-theirs.
+alias it was signed with. Exporting all of them asks who they
+are for: open, to hand to somebody, or locked with six digits for another
+machine of your own — which is what makes them arrive there as yours rather
+than as a stranger's. Either way, not one line of the history travels inside.
+Write an alias — optional, and yours to choose — and every document is signed
+with it, while whatever arrives from somebody else keeps theirs.
 
 ![Documents in Markdown, with attachments](assets/Store/jpg/en-03-documents.jpg)
 

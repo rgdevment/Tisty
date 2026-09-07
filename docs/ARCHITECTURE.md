@@ -1158,6 +1158,20 @@ stays one, because the manifest says so. Without the number the parcel says it
 is locked and nothing lands. A single document is never locked: it is always
 somebody else's to keep.
 
+Every store is given two things when it is made: a name of its own, which travels
+inside every parcel it writes, and a secret that never leaves the machine. The
+manifest carries a seal — an HMAC of itself under that secret — so a store can
+tell a parcel it really wrote from one that merely wears its name. Anybody handed
+a parcel knows the name written in it; without the secret they cannot forge the
+seal, and what they send lands as a stranger's however it is addressed. A parcel
+with no seal at all is a stranger's by definition.
+
+The secret belongs to the machine, not to the shared folder: two machines that
+sync carry the same name but not the same secret, so an open parcel written on
+one lands on the other as somebody else's. What carries writing between machines
+of your own is the number, not the name — which is the whole reason the number
+exists.
+
 The store that receives it decides what is a guest by the identity of the store
 that sent it, written in the manifest, and never by the name inside: two people
 who happen to share an alias do not inherit each other's writing, and what comes

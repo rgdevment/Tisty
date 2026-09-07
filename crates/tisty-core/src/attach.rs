@@ -94,6 +94,21 @@ pub fn called(source: &Path, label: Option<String>) -> String {
     })
 }
 
+/// A copy that never finished, left by a process that is gone. Nothing else looks in here for
+/// them, and one can be as large as the attachment it was going to become.
+pub fn swept(data: &Path) {
+    let Ok(entries) = std::fs::read_dir(data.join("attachments")) else {
+        return;
+    };
+    let mine = format!(".{}.", std::process::id());
+    for at in entries.filter_map(|one| one.ok()).map(|one| one.path()) {
+        let named = at.file_name().and_then(|one| one.to_str()).unwrap_or("");
+        if named.ends_with(".part") && !named.starts_with(&mine) && at.is_file() {
+            let _ = std::fs::remove_file(&at);
+        }
+    }
+}
+
 pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
     let mut file = std::fs::File::open(source)?;
     let opened = file.metadata()?;

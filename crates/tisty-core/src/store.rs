@@ -48,9 +48,10 @@ impl Store {
             let _ = crate::paths::ours_alone(parent);
         }
 
-        // Every store knows what it is from its first breath, not only once it syncs: without
-        // that, a parcel leaves with no origin and even the store that wrote it cannot tell
-        // its own writing from a stranger's when it comes back.
+        // Its name and what proves the name is its own, from its first breath rather than
+        // once it syncs: without them a parcel leaves with no origin, and the store that
+        // wrote it cannot tell its own writing from a stranger's when it comes back.
+        let _ = secret(&root);
         if let Err(e) = identity(&root) {
             witness::warn(
                 channel::STORE,
@@ -283,6 +284,10 @@ impl Store {
 }
 
 pub const MARKER: &str = ".store-id";
+/// The identity says which store a parcel came from, and travels inside every one of them.
+/// This says it is really that store: it never leaves the machine, and without it nobody
+/// can write a parcel that lands here as though it had been born here.
+pub const KEEP: &str = ".store-key";
 
 pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
     if let Some(held) = peek_identity(&store_root) {
@@ -307,6 +312,30 @@ pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
             Ok(peek_identity(&store_root).unwrap_or(fresh))
         }
         Err(e) => Err(Error::Io(e)),
+    }
+}
+
+pub fn secret(store_root: impl AsRef<Path>) -> Option<[u8; 32]> {
+    let at = store_root.as_ref().join(KEEP);
+    if let Ok(held) = std::fs::read(&at)
+        && let Ok(kept) = <[u8; 32]>::try_from(held.as_slice())
+    {
+        return Some(kept);
+    }
+    let mut fresh = [0u8; 32];
+    rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
+    std::fs::create_dir_all(store_root.as_ref()).ok()?;
+    match File::create_new(&at) {
+        Ok(mut file) => {
+            file.write_all(&fresh).ok()?;
+            file.sync_all().ok()?;
+            let _ = crate::paths::ours_alone(&at);
+            Some(fresh)
+        }
+        // Somebody else got there first, and theirs is the one that counts.
+        Err(_) => std::fs::read(&at)
+            .ok()
+            .and_then(|held| <[u8; 32]>::try_from(held.as_slice()).ok()),
     }
 }
 

@@ -261,10 +261,9 @@ impl Cache {
             self.invalidate();
             return Ok(());
         }
-        // A cache that was thrown out stays thrown out. Writing one row and stamping the
-        // fingerprint again would declare the whole of it current, and every row nobody
-        // touched since — an archived document, a deleted list and its tombstone — would
-        // read back as it was before.
+        // A cache thrown out stays thrown out: stamping the fingerprint for one row would
+        // declare the whole of it current, and every row nobody touched since — an archived
+        // document, a deleted list and its tombstone — would read back as it was.
         if self.meta("fingerprint").is_none_or(|one| one.is_empty()) {
             return Ok(());
         }
