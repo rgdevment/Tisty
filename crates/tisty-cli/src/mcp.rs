@@ -304,6 +304,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "page_doc" => page_doc(paths, &args),
         "folder" => folder(paths, &args),
         "lists" => lists(paths),
+        "tags" => tags(paths),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
         other => Err(Refused::Protocol(-32602, format!("unknown tool: {other}"))),
@@ -2486,6 +2487,48 @@ fn lists(paths: &Paths) -> Result<Value, Refused> {
     Ok(told(text, json!({ "lists": named })))
 }
 
+const TAGS_SHOWN: usize = 40;
+
+fn tags(paths: &Paths) -> Result<Value, Refused> {
+    let (state, _) = opened(paths)?;
+    let mut how: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+    for one in state
+        .tasks
+        .values()
+        .flat_map(|task| &task.tags)
+        .chain(state.docs.values().flat_map(|one| &one.tags))
+    {
+        *how.entry(one.as_str()).or_default() += 1;
+    }
+    let mut named: Vec<(&str, usize)> = how.into_iter().collect();
+    named.sort_by(|(one, mine), (other, theirs)| theirs.cmp(mine).then(one.cmp(other)));
+
+    let text = match named.len() {
+        0 => "No tags here yet. Write the word the person would use, not one of your own.".into(),
+        many => {
+            let shown = named
+                .iter()
+                .take(TAGS_SHOWN)
+                .map(|(one, times)| format!("#{one} ({times})"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            match many > TAGS_SHOWN {
+                true => format!("{shown}, and {} more.", many - TAGS_SHOWN),
+                false => shown,
+            }
+        }
+    };
+    Ok(told(
+        text,
+        json!({
+            "tags": named
+                .iter()
+                .map(|(one, times)| json!({ "tag": one, "times": times }))
+                .collect::<Vec<_>>()
+        }),
+    ))
+}
+
 fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(which) = text(args, "doc") else {
         return Err(Refused::Tool(
@@ -2675,7 +2718,7 @@ fn tools() -> Value {
                     "tags": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Lowercase words; spaces become dashes"
+                        "description": "One word each and no spaces — a space becomes a dash. Capitals and accents make no difference to which tag it is, so send it as it reads. Tag the subjects the task is about — what it is for, where it belongs, what it is part of — and six different subjects is already a lot for one task. It is subjects that are counted, not tags: a subject takes as many words as it truly needs, while a word that merely appears in the title is no subject at all. In the plain words the person would say, never a phrase. Call `tags` first and reuse one whose subject is the same."
                     },
                     "steps": {
                         "type": "array",
@@ -2738,7 +2781,7 @@ fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary, something to keep. Markdown — headings, lists, emphasis, inline links, tables, fenced code with its language and an optional title=\"…\" after it (which `mermaid` and `math` fences take too), and GitHub alerts (> [!NOTE] and its kin) — plus the four tags the editor writes itself: <u>, <mark>, a coloured <mark data-pen=\"…\"> and the icon span. No other HTML. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole.",
+            "description": "Write something down that is not work to do: a note, a summary, something to keep. Markdown — headings, lists, emphasis, inline links, tables, fenced code with its language and an optional title=\"…\" after it (which `mermaid` and `math` fences take too), and GitHub alerts (> [!NOTE] and its kin) — plus the four tags the editor writes itself: <u>, <mark>, a coloured <mark data-pen=\"…\"> and the icon span. No other HTML. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole. A document takes no tag of its own: it is tagged by writing #word in the text itself, one word and no spaces, for the subjects the writing is about and no more than six of them — a subject takes as many words as it needs, and a word that merely appears in the text is no subject — `tags` says which are already in use. Write it as the sentence needs it, capitals and accents and all: #Salud and #salud are the same tag, so how it reads is yours to choose and which tag it is never changes.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -2757,7 +2800,7 @@ fn tools() -> Value {
                     },
                     "folder": {
                         "type": "string",
-                        "description": "A folder to keep it in, by name. `docs` says which exist, and `folder` makes one. Left out, it sits outside them all"
+                        "description": "A folder to keep it in, by its plain name and never a path. `docs` says which exist, and `folder` makes one. Left out, it sits outside them all. Writing an existing document again with `doc` and `print` cannot take `folder`: `file_doc` moves one that is already here"
                     },
                     "page_of": {
                         "type": "string",
@@ -2849,7 +2892,7 @@ fn tools() -> Value {
                     },
                     "folder": {
                         "type": "string",
-                        "description": "An existing folder, by name, to keep it in"
+                        "description": "An existing folder, by its plain name and never a path, to keep it in"
                     },
                     "page_of": {
                         "type": "string",
@@ -3021,6 +3064,12 @@ fn tools() -> Value {
             "name": "lists",
             "title": "The lists that exist",
             "description": "The names of the person's lists, so you can file a task into one. You cannot make a list; anything you propose without one lands in the inbox.",
+            "inputSchema": { "type": "object", "additionalProperties": false }
+        }),
+        json!({
+            "name": "tags",
+            "title": "The tags already in use",
+            "description": "Every tag the person already writes, the most used first, with how many times each one appears, in the plain form they are filed under. Capitals and accents decide nothing: #Camión and #camion are one tag. Ask for it before you tag anything and reuse one when the subject really is the same; a second word for something already tagged splits it in two.",
             "inputSchema": { "type": "object", "additionalProperties": false }
         })
     ])
