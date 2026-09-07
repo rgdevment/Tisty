@@ -1236,7 +1236,7 @@ const en = {
     "Syncing gives you redundancy, not a way back in time: delete a task and the deletion travels too.",
   welcomeCarrying: "Bringing what the folder already holds",
   welcomeCarryingWhy:
-    "The first round reads everything that is up there. On a cloud folder with files in it this can take several minutes.",
+    "The first round reads everything that is up there. You go in as soon as your tasks and documents are named; on a cloud folder the bodies and the files keep landing behind you.",
   welcomeCarryStuck: "Nothing came from the folder",
   welcomeAnyway: "Go in anyway",
   keepersUnreadable: "This folder's history could not be read",
@@ -2492,7 +2492,7 @@ const es: Catalog = {
     "Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.",
   welcomeCarrying: "Trayendo lo que ya hay en la carpeta",
   welcomeCarryingWhy:
-    "La primera vuelta lee todo lo que hay allá arriba. En una carpeta de nube con archivos dentro esto puede tardar varios minutos.",
+    "La primera vuelta lee todo lo que hay allá arriba. Entras en cuanto tus tareas y documentos tienen nombre; en una carpeta de nube los cuerpos y los archivos siguen llegando detrás de ti.",
   welcomeCarryStuck: "No llegó nada de la carpeta",
   welcomeAnyway: "Entrar de todos modos",
   keepersUnreadable: "No se pudo leer el historial de esta carpeta",
