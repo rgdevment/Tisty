@@ -205,6 +205,41 @@ fn it_files_into_a_list_that_exists_and_nowhere_else() {
 }
 
 #[test]
+fn it_can_read_which_tags_are_already_in_use_and_how_often() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.cli(&["add", "cambiar el aceite #auto #casa"]);
+    served.cli(&["add", "pagar el seguro #auto"]);
+
+    let said = served.call("tags", serde_json::json!({}));
+    let told = said["result"]["structuredContent"]["tags"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| {
+            (
+                one["tag"].as_str().unwrap_or(""),
+                one["times"].as_u64().unwrap_or(0),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        told.first(),
+        Some(&("auto", 2)),
+        "the most used comes first: {said}"
+    );
+    assert!(told.contains(&("casa", 1)), "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("#auto (2)"),
+        "{said}"
+    );
+}
+
+#[test]
 fn it_can_read_which_lists_exist_without_being_able_to_make_one() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
@@ -281,7 +316,8 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "read_doc",
             "read",
             "find",
-            "lists"
+            "lists",
+            "tags"
         ]
     );
     for barred in ["done", "drop", "rm", "undo", "sync", "set"] {
