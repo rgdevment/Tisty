@@ -3056,8 +3056,6 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
             );
             Refusal::about("documentTooBig", weighed(limit))
         }
-        // Only a body that is genuinely not here is on its way; anything else is a document that
-        // could not be read, and calling that «coming» leaves somebody watching a bar forever.
         _ if !root.join(format!("{id}.md")).exists() && still_coming(&session, &id) => {
             Refusal::about("docComing", id)
         }
@@ -3065,11 +3063,7 @@ fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Str
     })
 }
 
-/// A document the log names and the shared folder holds is on its way, not lost: the round that
-/// brings it may still be moving, and saying it is gone would read as somebody having deleted it.
 fn still_coming(session: &tauri::State<'_, Mutex<Session>>, id: &str) -> bool {
-    // The guard goes before the folder is touched: a share that has gone away answers slowly, and
-    // holding the session while it does would stop every other command in the window.
     let dest = match &held(session).config.sync {
         Some(tisty_core::config::Sync::Folder(dest)) => dest.clone(),
         _ => return false,
@@ -4779,8 +4773,6 @@ fn keeper_of(at: String) -> Told {
     told(&std::path::PathBuf::from(at))
 }
 
-/// The window sends the meeting place itself, already settled by `room`; settling it again would
-/// ask about a folder one level further down that nothing has ever written to.
 #[tauri::command(async)]
 fn strays_at(at: String) -> Strays {
     match tisty_sync::unclaimed(&std::path::PathBuf::from(at)) {

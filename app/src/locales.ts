@@ -1239,6 +1239,9 @@ const en = {
     "The first round reads everything that is up there. On a cloud folder with files in it this can take several minutes.",
   welcomeCarryStuck: "Nothing came from the folder",
   welcomeAnyway: "Go in anyway",
+  keepersUnreadable: "This folder's history could not be read",
+  keepersUnreadableWhy:
+    "It may still be arriving, or this machine may not be allowed to read it. Choosing it now would look like an empty folder and start a history of its own beside the one already there.",
   keepersStrays: "{name} documents here belong to no history",
   keepersStraysWhy:
     "They were written by a machine whose log is not in this folder. Until that machine syncs here too, Tisty cannot open them and they stay where they are.",
@@ -2492,6 +2495,9 @@ const es: Catalog = {
     "La primera vuelta lee todo lo que hay allá arriba. En una carpeta de nube con archivos dentro esto puede tardar varios minutos.",
   welcomeCarryStuck: "No llegó nada de la carpeta",
   welcomeAnyway: "Entrar de todos modos",
+  keepersUnreadable: "No se pudo leer el historial de esta carpeta",
+  keepersUnreadableWhy:
+    "Puede que todavía esté llegando, o que este equipo no tenga permiso para leerlo. Elegirla ahora se vería como una carpeta vacía y empezaría un historial propio al lado del que ya está.",
   keepersStrays: "{name} documentos de aquí no pertenecen a ningún historial",
   keepersStraysWhy:
     "Los escribió un equipo cuyo registro no está en esta carpeta. Hasta que ese equipo también sincronice aquí, Tisty no puede abrirlos y se quedan donde están.",

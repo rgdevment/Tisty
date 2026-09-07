@@ -192,15 +192,13 @@ describe("a round landing while the window is open", () => {
     const first = ipc.calls.filter((one) => one.cmd === "docs_catch_up").length;
 
     landed("log");
-    await waitFor(() =>
-      expect(ipc.calls.filter((one) => one.cmd === "docs_catch_up").length).toBeGreaterThan(first),
-    );
-    const second = ipc.calls.filter((one) => one.cmd === "docs_catch_up").length;
+    await waitFor(() => expect(ipc.calls.some((one) => one.cmd === "snapshot")).toBe(true));
+    expect(ipc.calls.filter((one) => one.cmd === "docs_catch_up").length).toBe(first);
 
     landed("papers");
 
     await waitFor(() =>
-      expect(ipc.calls.filter((one) => one.cmd === "docs_catch_up").length).toBeGreaterThan(second),
+      expect(ipc.calls.filter((one) => one.cmd === "docs_catch_up").length).toBeGreaterThan(first),
     );
   });
 });

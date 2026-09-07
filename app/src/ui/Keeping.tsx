@@ -1091,9 +1091,6 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                           setTrouble({ card: "holds", text: saidPlainly(e) });
                         });
                       }
-                      // Saying «all of them here» has to fetch the ones that are not, the way
-                      // «leave the big ones there» lets go of them — until it does, the folder is
-                      // the only copy and nothing stops somebody leaving it.
                       if (holds === "everywhere") {
                         void carryNow();
                       }

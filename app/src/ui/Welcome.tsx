@@ -126,7 +126,6 @@ export default function Welcome({ onDone }: Props) {
       });
   };
 
-  // The same choice Settings offers, asked where the trouble turned up rather than somewhere else.
   const closed = (door: Door | "else" | null) => {
     setKin(undefined);
     if (door === null) return setStuck(t("wouldReset"));

@@ -131,6 +131,18 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
           {warning.why}
         </div>
 
+        {strays?.unreadable && (
+          <div
+            role="alert"
+            className="rounded-lg border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
+          >
+            <span className="block text-[12.5px] font-semibold text-ink">
+              {t("keepersUnreadable")}
+            </span>
+            {t("keepersUnreadableWhy")}
+          </div>
+        )}
+
         {(strays?.adrift ?? 0) > 0 && (
           <div
             role="alert"

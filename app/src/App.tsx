@@ -503,9 +503,6 @@ export default function App() {
         return docsCatchUp()
           .then((all) => {
             setPapers((was) => steady(was, { folders: was.folders, docs: all }));
-            // A catch-up that ran before the bodies were here read nothing: the round that brings
-            // them must be free to try again. Only for bodies that are here — one still astray can
-            // never be read, and waiting on it would scan the whole folder every round for good.
             if (all.some((one) => one.told === false && !one.gone)) caught.current = false;
           })
           .catch(() => {
@@ -655,11 +652,9 @@ export default function App() {
       lookPapers();
       setCarried((was) => was + 1);
     });
-    // A round says the log is home long before its attachments are; redrawing then is what keeps
-    // the window from sitting empty while bytes nobody is reading come down.
-    const landed = listen("carried", () => {
+    const landed = listen<string>("carried", (far) => {
       latest.current();
-      lookPapers();
+      if (far.payload === "papers") lookPapers();
       setCarried((was) => was + 1);
     });
     const sound = listen<unknown>("chime", (rung) => {

@@ -13,7 +13,6 @@ export const stillApart = (problem: unknown): boolean => {
   return refusal?.code === "wouldReset" || refusal?.code === "otherStore";
 };
 
-/// Whether the person went through with it: every door but «somewhere else» backs up first.
 export const walkThrough = async (door: Door | "else"): Promise<boolean> => {
   if (door === "else") {
     const where = await open({ directory: true });

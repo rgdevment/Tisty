@@ -847,8 +847,6 @@ impl Drop for Alone {
     }
 }
 
-/// The same lock every writer to this device's history takes. None means somebody is writing, and
-/// what a live writer is appending to is not ours to rename out from under it.
 pub fn alone(device_dir: &Path) -> Option<Alone> {
     std::fs::create_dir_all(device_dir).ok()?;
     let file = OpenOptions::new()

@@ -1805,6 +1805,19 @@ describe("the first-run assistant", () => {
     expect(sent("make_room")).toHaveLength(0);
   });
 
+  it("says a folder whose history it could not read at all, not that it is empty", async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "strays_at" ? Promise.resolve({ adrift: 0, unreadable: true }) : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    const said = await screen.findByRole("alert");
+    expect(said.textContent).toMatch(/history could not be read/i);
+  });
+
   it("says when the folder is holding documents no history accounts for", async () => {
     const answered = ipc.answer;
     ipc.answer = (cmd, args) =>
