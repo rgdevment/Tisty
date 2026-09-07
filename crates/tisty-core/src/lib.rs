@@ -50,6 +50,12 @@ pub enum Error {
     OutsideTheStore(String),
     #[error("{0} does not hold what its name says it holds")]
     NotForAnAgent(String),
+    #[error("{0} is not a Tisty parcel")]
+    NotAParcel(String),
+    #[error("that parcel was written by a newer Tisty (version {0})")]
+    ParcelNewer(u32),
+    #[error("there is nothing here to carry out")]
+    NothingToCarry,
     #[error("that backup belongs to another store ({theirs})")]
     OtherStore { theirs: String },
 
@@ -101,6 +107,9 @@ impl Error {
             Error::Io(_) => "io",
             Error::OutsideTheStore(_) => "outsideTheStore",
             Error::NotForAnAgent(_) => "notForAnAgent",
+            Error::NotAParcel(_) => "notAParcel",
+            Error::ParcelNewer(_) => "parcelNewer",
+            Error::NothingToCarry => "nothingToCarry",
             Error::OtherStore { .. } => "otherStore",
             Error::TooBig => "tooBig",
             Error::AttachmentTooBig { .. } => "attachmentTooBig",

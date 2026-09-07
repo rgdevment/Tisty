@@ -123,7 +123,7 @@ export const kept = (key: string): string[] => {
 
 const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
 
-const PARCEL = "tistydoc";
+const PARCEL = "tistyx";
 
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -241,6 +241,12 @@ export default function App() {
       .then((packed) => {
         setAfoot(null);
         if (!packed) return;
+        if (packed.missed > 0) {
+          setError(
+            packed.missed === 1 ? t("takenShort") : fill("takenShorter", String(packed.missed)),
+          );
+          return;
+        }
         if (packed.left > 0) {
           setError(packed.left === 1 ? t("takenLess") : fill("takenLesser", String(packed.left)));
           return;

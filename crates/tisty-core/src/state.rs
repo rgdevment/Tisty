@@ -38,8 +38,16 @@ pub struct State {
     tombstones: BTreeSet<Ulid>,
 }
 
+fn here(d: &crate::event::DocAdd, signed: &crate::event::Signature) -> Option<String> {
+    match d.guest {
+        true => None,
+        false => signed.alias.clone(),
+    }
+}
+
 pub fn same_name(one: &str, other: &str) -> bool {
-    one.trim().to_lowercase() == other.trim().to_lowercase()
+    crate::text::composed(one.trim()).to_lowercase()
+        == crate::text::composed(other.trim()).to_lowercase()
 }
 
 fn alike(one: Option<&str>, other: Option<&str>) -> bool {
@@ -74,17 +82,26 @@ impl State {
     pub fn shut(&self, id: DocId) -> bool {
         self.docs.get(&id).is_some_and(|one| {
             one.locked
-                || one.archived
                 || one
                     .page_of
                     .is_some_and(|up| self.docs.get(&up).is_some_and(|doc| doc.locked))
         })
     }
 
+    pub fn away(&self, file: &str) -> bool {
+        self.docs
+            .values()
+            .any(|one| one.file == file && one.archived)
+    }
+
+    pub fn written_shut(&self, id: DocId) -> bool {
+        self.shut(id) || self.docs.get(&id).is_some_and(|one| one.archived)
+    }
+
     pub fn bolted(&self, file: &str) -> bool {
         self.docs
             .values()
-            .any(|one| one.file == file && self.shut(one.id))
+            .any(|one| one.file == file && self.written_shut(one.id))
     }
 
     fn bolt(&mut self, id: DocId, shut: bool) {
@@ -287,12 +304,9 @@ impl State {
                         made: Some(d.made.unwrap_or(event.timestamp)),
                         made_by: Some(event.device.clone()),
                         wrote_by: Some(event.device.clone()),
-                        by: d.by.clone().or_else(|| self.signed.alias.clone()),
-                        born_by: d.by.clone().or_else(|| self.signed.alias.clone()),
-                        guest: d
-                            .by
-                            .as_deref()
-                            .is_some_and(|one| !alike(Some(one), self.signed.alias.as_deref())),
+                        by: d.by.clone().or_else(|| here(d, &self.signed)),
+                        born_by: d.by.clone().or_else(|| here(d, &self.signed)),
+                        guest: d.guest,
                         folder: match under {
                             Some(one) => one.folder,
                             None => d.folder,
@@ -1198,13 +1212,15 @@ impl State {
         let now = self.signed.alias.as_deref();
         self.docs
             .values()
-            .filter(|one| !one.guest && !alike(one.by.as_deref(), now))
+            .filter(|one| !self.written_shut(one.id))
+            .filter(|one| !one.guest || alike(one.by.as_deref(), now))
+            .filter(|one| !alike(one.by.as_deref(), now))
             .map(|one| one.id)
             .collect()
     }
 
     pub fn editor_of(&self, kept: &crate::model::Kept) -> Option<&str> {
-        match kept.guest && kept.wrote != kept.made {
+        match !alike(kept.by.as_deref(), self.signed.alias.as_deref()) && kept.wrote != kept.made {
             true => self.signed.alias.as_deref(),
             false => None,
         }
@@ -2294,6 +2310,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,
@@ -3236,6 +3253,7 @@ mod tests {
                 Op::DocAdd {
                     id: doc,
                     d: crate::event::DocAdd {
+                        guest: false,
                         made: None,
                         by: None,
                         file: "dev0-0001".into(),
@@ -3944,6 +3962,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,
@@ -4099,6 +4118,7 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,
@@ -4131,6 +4151,7 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,
@@ -4568,6 +4589,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,
@@ -4962,6 +4984,7 @@ mod compacting {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,

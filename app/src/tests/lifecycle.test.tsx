@@ -670,7 +670,7 @@ describe("what the menus reach for outside the tree", () => {
   it("packs everything written into one parcel, and asks for none of it by name", async () => {
     seedDoc({ title: "Acta" });
     seedDoc({ title: "Otra" });
-    picked.path = Promise.resolve("D:/salida/tisty.tistydoc");
+    picked.path = Promise.resolve("D:/salida/tisty.tistyx");
     parcel.docs = 2;
     await boot();
 
@@ -699,7 +699,7 @@ describe("what the menus reach for outside the tree", () => {
 
   it("says it is working, and how far along, rather than going quiet for minutes", async () => {
     seedDoc({ title: "Acta" });
-    picked.path = Promise.resolve("D:/salida/tisty.tistydoc");
+    picked.path = Promise.resolve("D:/salida/tisty.tistyx");
     parcel.docs = 1;
     let held: (packed: unknown) => void = () => {};
     const waiting = new Promise((settle) => {
@@ -721,7 +721,7 @@ describe("what the menus reach for outside the tree", () => {
 
   it("packs one document by name when the parcel was asked for from its row", async () => {
     const doc = seedDoc({ title: "Acta" });
-    picked.path = Promise.resolve("D:/salida/Acta.tistydoc");
+    picked.path = Promise.resolve("D:/salida/Acta.tistyx");
     parcel.docs = 1;
     await boot();
 
@@ -732,7 +732,7 @@ describe("what the menus reach for outside the tree", () => {
   });
 
   it("says what came in when a parcel is taken in, folders and all", async () => {
-    picked.path = Promise.resolve("D:/entrada/tisty.tistydoc");
+    picked.path = Promise.resolve("D:/entrada/tisty.tistyx");
     parcel.docs = 4;
     parcel.pages = 2;
     parcel.folders = 3;
@@ -745,7 +745,7 @@ describe("what the menus reach for outside the tree", () => {
   });
 
   it("says so plainly when the parcel held no documents at all", async () => {
-    picked.path = Promise.resolve("D:/entrada/vacio.tistydoc");
+    picked.path = Promise.resolve("D:/entrada/vacio.tistyx");
     await boot();
 
     await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));

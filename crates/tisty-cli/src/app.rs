@@ -296,6 +296,7 @@ mod undoing {
         app.commit(Op::DocAdd {
             id: book,
             d: tisty_core::event::DocAdd {
+                guest: false,
                 made: None,
                 by: None,
                 said: None,
@@ -310,6 +311,7 @@ mod undoing {
             app.commit(Op::DocAdd {
                 id: *id,
                 d: tisty_core::event::DocAdd {
+                    guest: false,
                     said: None,
                     made: None,
                     by: None,

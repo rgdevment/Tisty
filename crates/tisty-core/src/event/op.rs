@@ -226,10 +226,7 @@ impl Op {
     }
 
     pub fn is_optional(&self) -> bool {
-        matches!(
-            self,
-            Op::DocSaid { .. } | Op::Signed { .. } | Op::DocSigned { .. }
-        )
+        matches!(self, Op::DocSaid { .. } | Op::Signed { .. })
     }
 
     pub fn about(self, id: TaskId) -> Self {
@@ -329,6 +326,17 @@ impl Op {
             Op::ListRename { id, mut d } => {
                 d.name = one(d.name);
                 Op::ListRename { id, d }
+            }
+            Op::DocAdd { id, mut d } => {
+                d.by = maybe(d.by);
+                Op::DocAdd { id, d }
+            }
+            Op::DocSigned { id, d } => Op::DocSigned { id, d: one(d) },
+            Op::Signed { mut d } => {
+                d.alias = maybe(d.alias);
+                d.name = maybe(d.name);
+                d.email = maybe(d.email);
+                Op::Signed { d }
             }
             plain => plain,
         }
@@ -586,6 +594,8 @@ pub struct DocAdd {
     pub made: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub guest: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub said: Option<Said>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

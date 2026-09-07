@@ -328,8 +328,9 @@ impl Session {
         self.commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                guest: false,
                 made: None,
-                by: None,
+                by: signing(&self.state),
                 file: file.to_string(),
                 order,
                 said: Some(tisty_core::event::Said::of(&body)),
@@ -433,6 +434,7 @@ impl Session {
     }
 
     fn tidy_up(&mut self, bin: bool) {
+        tisty_core::parcel::swept(self.paths.data());
         let dest = self.dest();
         tisty_core::tidy::all_of_it(
             &self.paths,
@@ -1210,7 +1212,7 @@ fn capture(
             draft.filing = Some(tisty_core::capture::Filing::Kept(id));
         }
         for name in &view.tags {
-            if let Ok(tag) = Tag::new(name)
+            if let Ok(tag) = Tag::written(name)
                 && !draft.tags.contains(&tag)
             {
                 draft.tags.push(tag);
@@ -2039,6 +2041,8 @@ const REFUSALS: &[&str] = &[
     "sandboxCannotMerge",
     "noSuchDoc",
     "notAParcel",
+    "parcelNewer",
+    "nothingToCarry",
     "stillPacking",
     "aliasTooLong",
     "tooBig",
@@ -3208,6 +3212,10 @@ fn signed(session: tauri::State<'_, Mutex<Session>>) -> Answer<Signed> {
     Ok(as_signed(&session))
 }
 
+fn signing(state: &tisty_core::State) -> Option<String> {
+    state.signed.alias.clone()
+}
+
 fn as_signed(session: &Session) -> Signed {
     Signed {
         alias: session.state.signed.alias.clone(),
@@ -3448,6 +3456,7 @@ fn guide(
     session.commit(Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
+            guest: true,
             made: None,
             by: Some(WRITTEN_BY.into()),
             file: made.id.clone(),
@@ -3477,6 +3486,7 @@ fn guide(
             session.commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    guest: true,
                     made: None,
                     by: Some(WRITTEN_BY.into()),
                     file: file.clone(),
@@ -3508,7 +3518,10 @@ fn doc_write(
 ) -> Answer<tisty_core::docs::Doc> {
     let mut session = held(&session);
     if session.state.bolted(&id) {
-        return Err(Refusal::of("documentLocked"));
+        return Err(Refusal::of(match session.state.away(&id) {
+            true => "documentAway",
+            false => "documentLocked",
+        }));
     }
     if !anyway.unwrap_or(false) && session.moved(&id) {
         return Err(Refusal::about("documentMoved", id));
@@ -3632,11 +3645,13 @@ fn doc_copy(
             .map(|one| one.order.as_str()),
     );
     let twin = ulid::Ulid::generate();
+    let signed_as = signing(&session.state);
     session.commit(Op::DocAdd {
         id: twin,
         d: tisty_core::event::DocAdd {
+            guest: false,
             made: None,
-            by: None,
+            by: signed_as.clone(),
             file: made.id.clone(),
             order,
             said: Some(tisty_core::event::Said {
@@ -3673,11 +3688,13 @@ fn doc_copy(
                 .filter(|one| one.page_of == Some(twin))
                 .map(|one| one.order.as_str()),
         );
+        let signed_as = signing(&session.state);
         session.commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                guest: false,
                 made: None,
-                by: None,
+                by: signed_as.clone(),
                 file: leaf.id,
                 order,
                 said: Some(tisty_core::event::Said {
@@ -3914,6 +3931,7 @@ async fn docs_pack(
         );
         match e {
             tisty_core::Error::TooBig => Refusal::of("tooBig"),
+            tisty_core::Error::NothingToCarry => Refusal::of("nothingToCarry"),
             _ => Refusal::about("cannotWrite", into.clone()),
         }
     })?;
@@ -3968,7 +3986,10 @@ async fn docs_take_out(
             "the documents could not be taken out",
             &[("why", Fact::Why(e.to_string()))],
         );
-        Refusal::about("cannotWrite", into.clone())
+        match e {
+            tisty_core::Error::NothingToCarry => Refusal::of("nothingToCarry"),
+            _ => Refusal::about("cannotWrite", into.clone()),
+        }
     })?;
 
     if !sent.left.is_empty() {
@@ -4021,8 +4042,8 @@ async fn docs_unpack(
     .await
     .map_err(|_| Refusal::of("internal"))?
     .map_err(|e| match e {
-        tisty_core::Error::NotForAnAgent(_) => Refusal::about("notAParcel", from.clone()),
-        tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+        tisty_core::Error::NotAParcel(_) => Refusal::about("notAParcel", from.clone()),
+        tisty_core::Error::ParcelNewer(_) => Refusal::of("parcelNewer"),
         tisty_core::Error::TooBig => Refusal::of("tooBig"),
         other => blamed(channel::WINDOW, "a parcel could not be taken in", other),
     })?;
@@ -4074,11 +4095,13 @@ fn doc_import(
             .filter(|one| one.folder == folder)
             .map(|one| one.order.as_str()),
     );
+    let signed_as = signing(&session.state);
     session.commit(Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
+            guest: false,
             made: None,
-            by: None,
+            by: signed_as.clone(),
             file: made.id.clone(),
             order,
             said: Some(tisty_core::event::Said {
@@ -4146,11 +4169,13 @@ fn doc_new(
             .filter(|one| one.page_of == page_of && (page_of.is_some() || one.folder == folder))
             .map(|one| one.order.as_str()),
     );
+    let signed_as = signing(&session.state);
     session.commit(Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
+            guest: false,
             made: None,
-            by: None,
+            by: signed_as.clone(),
             file: made.id.clone(),
             order,
             said: Some(tisty_core::event::Said {
@@ -4953,7 +4978,10 @@ fn convert_paper(
 ) -> Answer<()> {
     let mut session = held(&session);
     if session.state.bolted(&id) {
-        return Err(Refusal::of("documentLocked"));
+        return Err(Refusal::of(match session.state.away(&id) {
+            true => "documentAway",
+            false => "documentLocked",
+        }));
     }
     let papers = session.paths.docs();
     let was = tisty_core::docs::read(&papers, &id)
@@ -5010,7 +5038,10 @@ fn print_of_three(base: &str, mine: &str, theirs: &str) -> String {
 fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Torn> {
     let session = held(&session);
     if session.state.bolted(&id) {
-        return Err(Refusal::of("documentLocked"));
+        return Err(Refusal::of(match session.state.away(&id) {
+            true => "documentAway",
+            false => "documentLocked",
+        }));
     }
     let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
         return Ok(Torn {
@@ -5033,7 +5064,10 @@ fn weave_paper(
 ) -> Answer<()> {
     let mut session = held(&session);
     if session.state.bolted(&id) {
-        return Err(Refusal::of("documentLocked"));
+        return Err(Refusal::of(match session.state.away(&id) {
+            true => "documentAway",
+            false => "documentLocked",
+        }));
     }
     let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
         return Err(Refusal::of("noBase"));
@@ -5072,7 +5106,10 @@ fn settle_paper(
 ) -> Answer<Option<String>> {
     let mut session = held(&session);
     if session.state.bolted(&id) {
-        return Err(Refusal::of("documentLocked"));
+        return Err(Refusal::of(match session.state.away(&id) {
+            true => "documentAway",
+            false => "documentLocked",
+        }));
     }
     let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
         return Err(Refusal::of("noRemote"));
@@ -5102,12 +5139,14 @@ fn settle_paper(
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     let file = made.id.clone();
     let (folder, page_of, order) = placed(beside, &made.id);
+    let signed_as = signing(&session.state);
     session
         .commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                guest: false,
                 made: None,
-                by: None,
+                by: signed_as.clone(),
                 file: file.clone(),
                 folder,
                 order,
@@ -6175,6 +6214,7 @@ mod deleting {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,
@@ -7064,6 +7104,7 @@ mod ordering {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     file: file.clone(),
@@ -7093,6 +7134,7 @@ mod ordering {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     file: "notas-c3d4".into(),
@@ -7180,6 +7222,7 @@ mod ordering {
                 .commit(Op::DocAdd {
                     id,
                     d: tisty_core::event::DocAdd {
+                        guest: false,
                         made: None,
                         by: None,
                         said: None,

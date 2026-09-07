@@ -129,6 +129,7 @@ pub fn doc(
         app.commit(tisty_core::Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                guest: false,
                 made: None,
                 by: None,
                 file: made.id.clone(),

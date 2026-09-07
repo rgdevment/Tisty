@@ -507,6 +507,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,
@@ -667,6 +668,7 @@ mod hanging {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,
@@ -766,6 +768,7 @@ mod hanging {
             Op::DocAdd {
                 id: page,
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,

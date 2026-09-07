@@ -116,6 +116,24 @@ Being explicit here matters more than sounding reassuring.
   outright — that removal is absorbing, so a removed identifier is never valid
   again and a machine that returns comes back as a new one.
 
+- **A parcel of documents is a file somebody hands you**, and it is treated as
+  such. Every path inside the zip must be an ordinary relative path under
+  `docs/` or `attachments/` — anything climbing out with `..`, an absolute path
+  or a drive prefix is dropped rather than written. The names written in the
+  manifest go through the same door as any other document name, so a manifest
+  cannot point the reader at a file elsewhere on your disk. The manifest itself
+  is read under a ceiling, and so is the parcel: bytes actually written are
+  counted rather than the sizes the archive declares, and both the number of
+  files and the number of entries in the manifest are capped. A folder name or
+  an alias arriving inside is trimmed to the same limits the window applies, and
+  an icon or a colour it does not recognise is dropped instead of stored.
+
+  What a parcel cannot do is prove who wrote what: anyone can edit the manifest
+  in a zip. Tisty decides what came from elsewhere by the identity of the store
+  that sent it, not by the name written inside, so a parcel never quietly turns
+  somebody else's writing into yours — but a name in a parcel is a claim, not a
+  signature, and nothing here verifies it.
+
 ## An assistant, if you admit one
 
 Tisty speaks MCP so an assistant already running on your machine can file work

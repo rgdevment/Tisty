@@ -12,13 +12,15 @@ use crate::{
     state::State,
 };
 
-pub const EXTENSION: &str = "tistydoc";
+pub const EXTENSION: &str = "tistyx";
 const KIND: &str = "tisty-docs";
 const VERSION: u32 = 1;
 const MANIFEST: &str = "tisty-docs.json";
 const CARRIED: [&str; 2] = ["docs", "attachments"];
 const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
 const AT_MOST_FILES: usize = 200_000;
+const MANIFEST_AT_MOST: u64 = 16 * 1024 * 1024;
+const PAPERS_AT_MOST: usize = 50_000;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Manifest {
@@ -118,7 +120,7 @@ pub fn write(
     }
     let papers = chosen(state, which);
     if papers.is_empty() {
-        return Err(Error::OutsideTheStore(into.display().to_string()));
+        return Err(Error::NothingToCarry);
     }
 
     let made = filled(data, state, &papers, into, along);
@@ -140,6 +142,7 @@ fn filled(
     let mut bodies: Vec<(&Kept, String)> = Vec::new();
     for one in papers {
         let Ok(body) = crate::docs::read(&root, &one.file) else {
+            sent.missed += 1;
             continue;
         };
         bodies.push((one, body));
@@ -153,7 +156,15 @@ fn filled(
             }
             match crate::attach::found(&one, data, along.also) {
                 Ok(from) if from.is_file() => {
-                    beside.insert(one, from);
+                    let held = along.also.unwrap_or(data).join("attachments");
+                    let named = from
+                        .strip_prefix(data.join("attachments"))
+                        .or_else(|_| from.strip_prefix(&held))
+                        .map(|rest| {
+                            format!("attachments/{}", rest.display()).replace(char::from(92), "/")
+                        })
+                        .unwrap_or_else(|_| one.clone());
+                    beside.insert(named, from);
                 }
                 _ => {
                     if !sent.left.contains(&one) {
@@ -217,14 +228,22 @@ fn filled(
     }
 
     for (named, from) in &beside {
-        let weighs = std::fs::metadata(from)?.len();
+        let Ok(weighs) = std::fs::metadata(from).map(|one| one.len()) else {
+            left_behind(&mut sent.left, named.clone());
+            continue;
+        };
         sent.files += 1;
         sent.bytes = sent.bytes.saturating_add(weighs);
         if sent.bytes > AT_MOST || sent.files + bodies.len() > AT_MOST_FILES {
             return Err(Error::TooBig);
         }
+        let Ok(mut file) = std::fs::File::open(from) else {
+            sent.files -= 1;
+            sent.bytes = sent.bytes.saturating_sub(weighs);
+            left_behind(&mut sent.left, named.clone());
+            continue;
+        };
         zip.start_file(named, kept).map_err(zipped)?;
-        let mut file = std::fs::File::open(from)?;
         std::io::copy(&mut file, &mut zip)?;
         along.at(bodies.len() + sent.files, whole, sent.bytes);
     }
@@ -246,15 +265,25 @@ pub fn plainly(
     }
     let papers = chosen(state, which);
     if papers.is_empty() {
-        return Err(Error::OutsideTheStore(into.display().to_string()));
+        return Err(Error::NothingToCarry);
     }
 
     let mut sent = Sent::default();
     let mut shelves: BTreeSet<PathBuf> = BTreeSet::new();
+    let fresh = !into.exists();
+    let shelved = trails(state, into);
     let whole = papers.iter().filter(|one| one.page_of.is_none()).count();
     for one in papers.iter().filter(|one| one.page_of.is_none()) {
-        let under = trail(state, one.folder, into);
-        std::fs::create_dir_all(&under)?;
+        let under = one
+            .folder
+            .and_then(|at| shelved.get(&at).cloned())
+            .unwrap_or_else(|| into.to_path_buf());
+        if let Err(e) = std::fs::create_dir_all(&under) {
+            if fresh {
+                let _ = std::fs::remove_dir_all(into);
+            }
+            return Err(Error::Io(e));
+        }
         for at in under.ancestors().take_while(|at| *at != into) {
             shelves.insert(at.to_path_buf());
         }
@@ -290,23 +319,33 @@ pub fn plainly(
     Ok(sent)
 }
 
-fn trail(state: &State, folder: Option<FolderId>, into: &Path) -> PathBuf {
-    let mut names: Vec<String> = Vec::new();
-    let mut at = folder;
-    while let Some(id) = at {
-        let Some(one) = state.folders.get(&id) else {
-            break;
-        };
-        names.push(crate::docs::spelled(&one.name));
-        at = one.parent;
-        if names.len() > DEEPEST {
+fn trails(state: &State, into: &Path) -> BTreeMap<FolderId, PathBuf> {
+    let mut found: BTreeMap<FolderId, PathBuf> = BTreeMap::new();
+    let mut left: Vec<(Option<FolderId>, PathBuf)> = vec![(None, into.to_path_buf())];
+    let mut deep = 0;
+    while let Some((parent, at)) = left.pop() {
+        deep += 1;
+        if deep > DEEPEST * DEEPEST {
             break;
         }
+        let mut taken: BTreeSet<String> = BTreeSet::new();
+        for one in state.under(parent) {
+            let mut named = crate::docs::spelled(&one.name);
+            if !taken.insert(named.clone()) {
+                for n in 2..100 {
+                    let tried = format!("{named} {n}");
+                    if taken.insert(tried.clone()) {
+                        named = tried;
+                        break;
+                    }
+                }
+            }
+            let mine = at.join(&named);
+            found.insert(one.id, mine.clone());
+            left.push((Some(one.id), mine));
+        }
     }
-    names
-        .iter()
-        .rev()
-        .fold(into.to_path_buf(), |at, one| at.join(one))
+    found
 }
 
 fn free(under: &Path, named: &str) -> String {
@@ -396,16 +435,33 @@ pub fn read(
     let mut zip = zip::ZipArchive::new(file).map_err(zipped)?;
     let manifest = manifest_in(&mut zip, from)?;
 
+    let mine = crate::store::peek_identity(data.join("store"));
+    let elsewhere = match (&mine, manifest.from.trim()) {
+        (Some(mine), from) if !from.is_empty() => mine != from,
+        _ => true,
+    };
     let staged = data.join(format!(".landing-{}", std::process::id()));
     swept(data);
     let whole = zip.len() + manifest.docs.len();
-    let done = unpack(&mut zip, &staged, along, whole)
-        .and_then(|_| taken_in(data, state, device, &manifest, &staged, along, whole));
+    let done = unpack(&mut zip, &staged, along, whole).and_then(|_| {
+        taken_in(
+            data,
+            state,
+            device,
+            &Landing {
+                manifest: &manifest,
+                staged: &staged,
+                along,
+                whole,
+                elsewhere,
+            },
+        )
+    });
     let _ = std::fs::remove_dir_all(&staged);
     done
 }
 
-fn swept(data: &Path) {
+pub fn swept(data: &Path) {
     let Ok(entries) = std::fs::read_dir(data) else {
         return;
     };
@@ -428,29 +484,50 @@ fn swept(data: &Path) {
 fn manifest_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>, from: &Path) -> Result<Manifest> {
     let mut held = zip
         .by_name(MANIFEST)
-        .map_err(|_| Error::NotForAnAgent(from.display().to_string()))?;
+        .map_err(|_| Error::NotAParcel(from.display().to_string()))?;
     let mut said = String::new();
-    held.read_to_string(&mut said)?;
-    let manifest: Manifest = serde_json::from_str(&said)
-        .map_err(|_| Error::NotForAnAgent(from.display().to_string()))?;
+    let read = held
+        .by_ref()
+        .take(MANIFEST_AT_MOST + 1)
+        .read_to_string(&mut said)? as u64;
+    if read > MANIFEST_AT_MOST {
+        return Err(Error::TooBig);
+    }
+    let manifest: Manifest =
+        serde_json::from_str(&said).map_err(|_| Error::NotAParcel(from.display().to_string()))?;
     if manifest.kind != KIND {
-        return Err(Error::NotForAnAgent(from.display().to_string()));
+        return Err(Error::NotAParcel(from.display().to_string()));
     }
     if manifest.version > VERSION {
-        return Err(Error::UnsupportedVersion(manifest.version));
+        return Err(Error::ParcelNewer(manifest.version));
+    }
+    if manifest.docs.len() > PAPERS_AT_MOST || manifest.folders.len() > PAPERS_AT_MOST {
+        return Err(Error::TooBig);
     }
     Ok(manifest)
+}
+
+struct Landing<'a> {
+    manifest: &'a Manifest,
+    staged: &'a Path,
+    along: &'a Along<'a>,
+    whole: usize,
+    elsewhere: bool,
 }
 
 fn taken_in(
     data: &Path,
     state: &State,
     device: &DeviceId,
-    manifest: &Manifest,
-    staged: &Path,
-    along: &Along,
-    whole: usize,
+    landing: &Landing,
 ) -> Result<(Landed, Vec<Op>)> {
+    let Landing {
+        manifest,
+        staged,
+        along,
+        whole,
+        elsewhere,
+    } = *landing;
     let mut landed = Landed::default();
     let mut ops: Vec<Op> = Vec::new();
 
@@ -463,9 +540,7 @@ fn taken_in(
     let mut written: Vec<(String, String)> = Vec::new();
 
     for paper in ordering(manifest) {
-        let Ok(body) =
-            std::fs::read_to_string(staged.join("docs").join(format!("{}.md", paper.file)))
-        else {
+        let Ok(body) = crate::docs::read(&staged.join("docs"), &paper.file) else {
             landed.missed += 1;
             continue;
         };
@@ -485,7 +560,10 @@ fn taken_in(
             None => paper.folder.as_ref().and_then(|at| filed.get(at)).copied(),
         };
 
-        let made = crate::docs::create(&root, device, &body)?;
+        let Ok(made) = crate::docs::create(&root, device, &body) else {
+            landed.missed += 1;
+            continue;
+        };
         let id = Ulid::generate();
         named.insert(paper.file.clone(), (made.id.clone(), id));
 
@@ -510,7 +588,12 @@ fn taken_in(
                 file: made.id.clone(),
                 order,
                 made: paper.made,
-                by: paper.by.clone(),
+                by: paper
+                    .by
+                    .as_deref()
+                    .map(signed_as)
+                    .filter(|one| !one.is_empty()),
+                guest: elsewhere,
                 said: Some(Said {
                     title: made.title.clone(),
                     bytes: Some(body.len() as u64),
@@ -540,8 +623,8 @@ fn taken_in(
 
     for (file, body) in written {
         let told = pointed(&body, &named);
-        if told != body {
-            crate::docs::write(&root, &file, &told)?;
+        if told != body && crate::docs::write(&root, &file, &told).is_err() {
+            landed.missed += 1;
         }
     }
 
@@ -623,7 +706,7 @@ fn shelved(
         ops.push(Op::FolderAdd {
             id,
             d: FolderAdd {
-                name: shelf.name.clone(),
+                name: named(&shelf.name),
                 order: order.clone(),
                 parent,
                 icon: shelf
@@ -643,6 +726,27 @@ fn shelved(
         landed.folders += 1;
     }
     filed
+}
+
+fn named(said: &str) -> String {
+    let plain = crate::text::plainly(said);
+    let mut cut: String = plain
+        .chars()
+        .take(crate::model::FOLDER_NAME_AT_MOST)
+        .collect();
+    if cut.trim().is_empty() {
+        cut = "?".into();
+    }
+    cut.trim().to_string()
+}
+
+fn signed_as(said: &str) -> String {
+    crate::text::plainly(said)
+        .chars()
+        .take(crate::event::ALIAS_AT_MOST)
+        .collect::<String>()
+        .trim()
+        .to_string()
 }
 
 fn downwards(manifest: &Manifest) -> Vec<&Shelf> {
@@ -710,17 +814,23 @@ fn brought(
     told
 }
 
+const MARK: char = '\u{0}';
+
 fn pointed(body: &str, named: &BTreeMap<String, (String, DocId)>) -> String {
-    let mut told = body.to_string();
-    for file in crate::refs::papers(body) {
+    let mut found: Vec<String> = crate::refs::papers(body);
+    // The long name first: one id can be a prefix of another, and a plain replace would rewrite
+    // the middle of the longer one.
+    found.sort_by_key(|one| std::cmp::Reverse(one.len()));
+    let mut told = body.replace(MARK, "");
+    for file in found {
         if let Some((now, _)) = named.get(&file) {
             told = told.replace(
                 &format!("{}{file}", crate::refs::DOC),
-                &format!("{}{now}", crate::refs::DOC),
+                &format!("{MARK}{now}"),
             );
         }
     }
-    told
+    told.replace(MARK, crate::refs::DOC)
 }
 
 fn unpack<R: Read + Seek>(

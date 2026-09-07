@@ -293,6 +293,7 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
     ops.extend(made.into_iter().enumerate().map(|(n, one)| Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: DocAdd {
+            guest: false,
             made: None,
             by: None,
             page_of: None,

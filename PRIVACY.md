@@ -37,6 +37,7 @@ What you can choose, and what each implies:
 | **A folder your cloud client keeps in step** (Google Drive, OneDrive, iCloud, Dropbox, pCloud…) | That provider, under their terms and their jurisdiction |
 | **A folder on hardware you own** (a NAS, an external drive) | Whoever can reach that hardware |
 | **A backup zip you keep somewhere** | Wherever you put it |
+| **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when |
 
 For syncing, Tisty only ever reads and writes local paths. It has no network
 code for it, no credentials, and no idea which provider — if any — is behind the
@@ -66,6 +67,15 @@ visible instead of making it for you.
   identifier itself does appear in the shared folder — it names your device's
   directory and stamps every event — because that is what tells two writers
   apart. What must never be shared is the file that binds it to this machine.
+- **An alias, if you write one** — it exists so that a document you share still
+  says who wrote it. It is optional, it lives in the log like everything else,
+  and so it reaches your other machines through the folder you sync and travels
+  inside any parcel you hand out. It goes out with the sync before you share
+  anything, which is why it should be a name you are content for others to read.
+  A log only ever grows: an alias you write today can be changed tomorrow, but
+  the old one stays written. Your real name and your address are **not** asked
+  for anywhere, and the two fields reserved for them in the log are written by
+  nothing in this version.
 - **The time zone you were in** — every event carries the IANA zone of whoever
   wrote it, so an hour reads back where it happened instead of drifting when you
   travel. It goes to the shared folder with the rest, and a long enough history

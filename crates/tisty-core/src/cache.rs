@@ -68,6 +68,14 @@ impl Cache {
         }
 
         let mut state = State::default();
+        state.signed = self
+            .meta("signed")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
+        state.signed_before = self
+            .meta("signed_before")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
         state.devices = self
             .meta("devices")
             .and_then(|said| serde_json::from_str(&said).ok())
@@ -221,10 +229,12 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
+                    serde_json::to_string(&state.signed).unwrap_or_default(),
+                    serde_json::to_string(&state.signed_before).unwrap_or_default(),
                     serde_json::to_string(&state.devices).unwrap_or_default(),
                     serde_json::to_string(&state.dropped).unwrap_or_default(),
                     serde_json::to_string(&state.retired).unwrap_or_default(),
@@ -526,6 +536,7 @@ fn reached(
                 | crate::Op::DeviceJoin { .. }
                 | crate::Op::DeviceRemove { .. }
                 | crate::Op::AttachRetire { .. }
+                | crate::Op::Signed { .. }
                 // These reach the pages of a document, and a row at a time cannot say so.
                 | crate::Op::DocDelete { .. }
                 | crate::Op::DocArchive { .. }
@@ -820,6 +831,7 @@ mod tests {
                 .append(Op::DocAdd {
                     id,
                     d: crate::event::DocAdd {
+                        guest: false,
                         made: None,
                         by: None,
                         said: None,
@@ -866,6 +878,7 @@ mod tests {
             .append(Op::DocAdd {
                 id: Ulid::generate(),
                 d: crate::event::DocAdd {
+                    guest: false,
                     made: None,
                     by: None,
                     said: None,
