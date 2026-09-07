@@ -1,9 +1,10 @@
-import { syncNow, syncState } from "./core";
+import { folderAstir, syncNow, syncState } from "./core";
 import { saidPlainly } from "./refusal";
 
 const AFTER_A_CHANGE = 4_000;
 const EVERY_SO_OFTEN = 15 * 60_000;
 const TAKING_LONG = 60_000;
+const A_GLANCE = 30_000;
 
 type Way = "push" | "pull" | undefined;
 
@@ -70,10 +71,24 @@ export function carrying(
       })
       .catch(() => {});
 
+  let astir: string | undefined;
+  const glance = () => {
+    if (gone || folder === undefined || document.visibilityState !== "visible") return;
+    folderAstir()
+      .then((mark) => {
+        if (gone) return;
+        const was = astir;
+        astir = mark;
+        if (was !== undefined && was !== mark) pull();
+      })
+      .catch(() => {});
+  };
+
   settings(() => pull());
 
   window.addEventListener("focus", pull);
   const beat = setInterval(both, EVERY_SO_OFTEN);
+  const glancing = setInterval(glance, A_GLANCE);
 
   return {
     changed() {
@@ -88,6 +103,7 @@ export function carrying(
       clearTimeout(soon);
       clearTimeout(expire);
       clearInterval(beat);
+      clearInterval(glancing);
       window.removeEventListener("focus", pull);
     },
   };

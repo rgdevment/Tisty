@@ -5438,6 +5438,15 @@ fn kinned(store: &std::path::Path, dest: &std::path::Path) -> &'static str {
 }
 
 #[tauri::command(async)]
+fn folder_astir(session: tauri::State<'_, Mutex<Session>>) -> Answer<String> {
+    let session = held(&session);
+    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+        return Err(Refusal::of("noRemote"));
+    };
+    Ok(tisty_sync::stirring(&dest).to_string())
+}
+
+#[tauri::command(async)]
 fn sync_kin(session: tauri::State<'_, Mutex<Session>>) -> Answer<&'static str> {
     let session = held(&session);
     let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
@@ -6293,6 +6302,7 @@ pub fn run() {
             merge_stores,
             sync_kin,
             joining,
+            folder_astir,
             remove_machine,
             retire_attachment,
             settle_paper,

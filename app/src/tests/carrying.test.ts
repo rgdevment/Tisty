@@ -36,6 +36,46 @@ const settle = () => vi.advanceTimersByTimeAsync(0);
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 describe("carrying on its own", () => {
+  it("glances at the folder and brings it home only when something stirred", async () => {
+    let mark = "one";
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "folder_astir") return Promise.resolve(mark);
+      return Promise.resolve({ carried: "came", undecided: [] });
+    };
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(sent("folder_astir").length).toBeGreaterThan(1);
+    expect(sent("sync_now")).toHaveLength(before);
+
+    mark = "two";
+    await vi.advanceTimersByTimeAsync(30_000);
+    await settle();
+
+    expect(sent("sync_now").length).toBe(before + 1);
+    expect(sent("sync_now").at(-1)?.args.way).toBe("pull");
+  });
+
+  it("does not glance while the window is out of sight", async () => {
+    const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : Promise.resolve({ carried: "came", undecided: [] });
+    carried = carrying(() => {});
+    await settle();
+
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(sent("folder_astir")).toHaveLength(0);
+    seen.mockRestore();
+  });
+
   it("says out loud that a round broke instead of swallowing it", async () => {
     ipc.answer = (cmd) =>
       cmd === "sync_state"

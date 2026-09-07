@@ -353,6 +353,47 @@ pub fn signed_at(dest: &Path) -> Option<String> {
     tisty_core::State::replay(&events).signed.alias
 }
 
+/// Metadata only, so a window can ask often: nothing here reads a byte of what the folder holds.
+pub fn stirring(dest: &Path) -> u64 {
+    use std::hash::{Hash, Hasher};
+
+    let mut seen: Vec<(std::path::PathBuf, u64, u64)> = Vec::new();
+    let when = |at: &Path| {
+        std::fs::metadata(at)
+            .and_then(|one| Ok((one.len(), one.modified()?)))
+            .ok()
+            .map(|(len, when)| {
+                (
+                    len,
+                    when.duration_since(std::time::UNIX_EPOCH)
+                        .map(|since| since.as_secs())
+                        .unwrap_or(0),
+                )
+            })
+    };
+
+    if let Some((len, at)) = when(&dest.join(PAPERS)) {
+        seen.push((dest.join(PAPERS), len, at));
+    }
+    if let Ok(entries) = std::fs::read_dir(dest.join(STORE)) {
+        for entry in entries.filter_map(|one| one.ok()) {
+            let Ok(segments) = tisty_core::store::segments_in(&entry.path()) else {
+                continue;
+            };
+            for at in segments {
+                if let Some((len, stamped)) = when(&at) {
+                    seen.push((at, len, stamped));
+                }
+            }
+        }
+    }
+
+    seen.sort();
+    let mut told = std::collections::hash_map::DefaultHasher::new();
+    seen.hash(&mut told);
+    told.finish()
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Kin {
     Strangers,
@@ -2490,6 +2531,25 @@ mod tests {
                     email: None,
                 },
             },
+        );
+    }
+
+    #[test]
+    fn a_folder_says_it_stirred_without_being_read() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let still = stirring(shared.path());
+        assert_eq!(still, stirring(shared.path()), "a folder at rest changed");
+
+        wrote(&one, "lo que vino despues".into());
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        assert_ne!(
+            still,
+            stirring(shared.path()),
+            "the folder grew and said nothing"
         );
     }
 
