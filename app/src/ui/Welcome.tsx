@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
 import {
   ALIAS_AT_MOST,
@@ -70,6 +71,7 @@ export default function Welcome({ onDone }: Props) {
   const [carrying, setCarrying] = useState(false);
   const [stuck, setStuck] = useState<string>();
   const [kin, setKin] = useState<Kin>();
+  const went = useRef(false);
 
   const at = STEPS.indexOf(step);
 
@@ -96,8 +98,10 @@ export default function Welcome({ onDone }: Props) {
       .finally(() => setBusy(false));
   };
 
-  const finish = () =>
-    sowLists()
+  const finish = useCallback(() => {
+    if (went.current) return Promise.resolve();
+    went.current = true;
+    return sowLists()
       .catch(() => undefined)
       .then(() =>
         guide()
@@ -105,6 +109,18 @@ export default function Welcome({ onDone }: Props) {
           .catch(() => undefined),
       )
       .then(onDone);
+  }, [onDone]);
+
+  // The round outlives this window: the log names the work, and the bodies land behind you.
+  useEffect(() => {
+    if (!carrying) return;
+    const off = listen("carried", () => {
+      void finish();
+    });
+    return () => {
+      off.then((stop) => stop()).catch(() => {});
+    };
+  }, [carrying, finish]);
 
   const leave = (at?: string) => {
     setBusy(true);
@@ -118,6 +134,7 @@ export default function Welcome({ onDone }: Props) {
       })
       .then(() => finish())
       .catch((e) => {
+        if (went.current) return;
         setCarrying(false);
         if (!stillApart(e)) return setStuck(saidPlainly(e));
         syncKin()
@@ -131,9 +148,13 @@ export default function Welcome({ onDone }: Props) {
     if (door === null) return setStuck(t("wouldReset"));
     setCarrying(true);
     walkThrough(door)
-      .then((went) => (went ? syncNow().then(() => finish()) : setStuck(t("wouldReset"))))
-      .catch((e) => setStuck(saidPlainly(e)))
-      .finally(() => setCarrying(false));
+      .then((gone) => (gone ? syncNow().then(() => finish()) : setStuck(t("wouldReset"))))
+      .catch((e) => {
+        if (!went.current) setStuck(saidPlainly(e));
+      })
+      .finally(() => {
+        if (!went.current) setCarrying(false);
+      });
   };
 
   if (kin) {

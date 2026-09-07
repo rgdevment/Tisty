@@ -41,6 +41,10 @@ const asked = vi.hoisted(() => ({
   said: "",
 }));
 
+const bus = vi.hoisted(() => ({
+  heard: new Map<string, ((said: { payload: unknown }) => void)[]>(),
+}));
+
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
@@ -49,7 +53,15 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: () => Promise.resolve(() => {}),
+  listen: (named: string, fn: (said: { payload: unknown }) => void) => {
+    bus.heard.set(named, [...(bus.heard.get(named) ?? []), fn]);
+    return Promise.resolve(() => {
+      bus.heard.set(
+        named,
+        (bus.heard.get(named) ?? []).filter((one) => one !== fn),
+      );
+    });
+  },
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -96,6 +108,7 @@ beforeEach(() => {
   vi.restoreAllMocks();
   adopt("en");
   ipc.calls = [];
+  bus.heard.clear();
   Object.assign(rousing, { offered: true, wakes: false, theirs: false });
   Object.assign(standing, {
     shipped: true,
@@ -1917,6 +1930,44 @@ describe("the first-run assistant", () => {
 
     await screen.findByRole("status");
     letGo();
+  });
+
+  const carried = async (far: string) => {
+    const waiting = new Promise<void>((keep) => setTimeout(keep, 0));
+    for (const heard of bus.heard.get("carried") ?? []) heard({ payload: far });
+    await waiting;
+  };
+
+  const halfway = async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => (cmd === "sync_now" ? new Promise(() => {}) : answered(cmd, args));
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await screen.findByRole("status");
+  };
+
+  it("lets you in once the folder's own writing has landed, files or no files", async () => {
+    const done = vi.fn();
+    render(<Welcome onDone={done} />);
+    await halfway();
+
+    await carried("papers");
+
+    await waitFor(() => expect(done).toHaveBeenCalled());
+  });
+
+  it("goes in once however many times the round says it reached somewhere", async () => {
+    const done = vi.fn();
+    render(<Welcome onDone={done} />);
+    await halfway();
+
+    await carried("log");
+    await carried("papers");
+
+    await waitFor(() => expect(done).toHaveBeenCalled());
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(sent("guide")).toHaveLength(1);
   });
 
   it("has nowhere to bring anything home from when you stay on this machine", async () => {
