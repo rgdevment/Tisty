@@ -2022,6 +2022,24 @@ describe("the first-run assistant", () => {
     expect(await screen.findByText(/already holds another tisty/i)).toBeTruthy();
   });
 
+  it("looks again at what it holds when another folder is picked from the doors", async () => {
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    asked.folder = "D:/Otra";
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_kin" ? Promise.resolve("strangers") : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("apartElse") }));
+
+    expect(await screen.findByText(/already holds a tisty/i)).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
+  });
+
   it("waits its turn instead of walking in with nothing when a round is already running", async () => {
     let turns = 0;
     const answered = ipc.answer;
