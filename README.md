@@ -402,6 +402,17 @@ outline. **Tisty makes its own PDF** — A4, Letter or one endless sheet, with i
 own margins and the attachments carried inside — and shows it to you before you
 export it.
 
+**And they leave whole.** A document copies as Markdown, writes out into a
+folder with its pages and attachments beside it, or is exported for Tisty into a
+`.tistyx` file that also carries what Markdown cannot say: folders with their order,
+icon and colour, which document each page hangs from, what is archived, and the
+alias it was signed with. Exporting all of them asks who they
+are for: open, to hand to somebody, or locked with six digits for another
+machine of your own — which is what makes them arrive there as yours rather
+than as a stranger's. Either way, not one line of the history travels inside.
+Write an alias — optional, and yours to choose — and every document is signed
+with it, while whatever arrives from somebody else keeps theirs.
+
 ![Documents in Markdown, with attachments](assets/Store/jpg/en-03-documents.jpg)
 
 **A global shortcut** opens a small field over whatever you are doing, so a task

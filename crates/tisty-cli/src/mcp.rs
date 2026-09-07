@@ -69,7 +69,7 @@ to consult. Writing one creates no task: if something has to happen, propose it.
 what is written already and the folders it is kept in; you can make a folder and file documents \
 into it, but you can never delete or rename one.
 
-A document can be locked, and a locked one is refused every write: not `write_doc`, not `append_doc`, not `edit_doc`, not `attach`, not hanging a page off it. Its pages are shut with it — `page_doc` neither hangs one off it nor takes one out — and a page is never locked on its own. Filing it in a folder and putting it away still work: what the lock guards is what the document says and what it holds. `docs` and `read_doc` both say so, so you can see it before you try. Only the person can unlock it, from the window — there is no tool for it here, on purpose. A lock is not the archive: an archived document is finished, a locked one is guarded.
+A document can be locked, and a locked one is refused every write: not `write_doc`, not `append_doc`, not `edit_doc`, not `attach`, not hanging a page off it. Its pages are shut with it — `page_doc` neither hangs one off it nor takes one out — and a page is never locked on its own. Filing it in a folder and putting it away still work: what the lock guards is what the document says and what it holds. `docs` and `read_doc` both say so, so you can see it before you try. Only the person can unlock it, from the window — there is no tool for it here, on purpose. A lock is not the archive, though neither one is written in: an archived document is finished, a locked one is guarded. Bring it back with `archive_doc` and it writes again; a lock only the person can lift, from the window.
 
 A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
@@ -486,7 +486,7 @@ const UNSETTLED: &str = " Where its pages sit could not be settled just now — 
 fn retold(state: &State, store: &mut Store, doc: &str, body: &str) -> Result<(), Refused> {
     let mut told = state.settling(doc, body);
     if let Some(kept) = state.docs.values().find(|one| one.file == doc) {
-        let said = tisty_core::event::Said::of(body);
+        let said = tisty_core::event::Said::of(body).by(state.signed.alias.clone());
         if said.news_for(kept) {
             told.push(Op::DocSaid {
                 id: kept.id,
@@ -531,7 +531,7 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut tags: Vec<Tag> = Vec::new();
     for one in listed(args, "tags")
         .iter()
-        .filter_map(|said| Tag::new(said).ok())
+        .filter_map(|said| Tag::written(said).ok())
     {
         if !tags.contains(&one) {
             tags.push(one);
@@ -1273,6 +1273,10 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let Err(e) = store.append(Op::DocAdd {
         id,
         d: tisty_core::event::DocAdd {
+            wrote: None,
+            guest: false,
+            made: None,
+            by: state.signed.alias.clone(),
             file: made.id.clone(),
             order,
             said: Some(tisty_core::event::Said::of(&body)),
@@ -2103,17 +2107,30 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .iter()
         .map(|one| one.file.clone())
         .collect();
-    let taken = tisty_core::docs::with_pages(paths.data(), &which, &pages, &into).map_err(hitch)?;
+    let beside = match tisty_core::Config::load_or_init(paths).map_err(hitch)?.sync {
+        Some(tisty_core::config::Sync::Folder(at)) => Some(at),
+        _ => None,
+    };
+    let taken =
+        tisty_core::docs::with_pages(paths.data(), &which, &pages, &into, beside.as_deref())
+            .map_err(hitch)?;
 
     Ok(told(
         format!(
-            "Took {which} out to {} — its cover, {} page(s) and {} file(s) beside them{}. Nothing here changed: an export is a copy.",
+            "Took {which} out to {} — its cover, {} page(s) and {} file(s) beside them{}{}. Nothing here changed: an export is a copy.",
             into.display(),
             pages.len(),
             taken.files,
             match taken.missed {
                 0 => String::new(),
                 many => format!(", and {many} page(s) could not be read, so they are not there"),
+            },
+            match taken.left.len() {
+                0 => String::new(),
+                many => format!(
+                    ", and {many} file(s) it points at are not in the store, so they did not come along: {}",
+                    taken.left.join(", ")
+                ),
             }
         ),
         json!({
@@ -2122,6 +2139,7 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "pages_out": pages.len(),
             "files": taken.files,
             "missed": taken.missed,
+            "left_behind": taken.left,
             "pages": pages,
         }),
     ))

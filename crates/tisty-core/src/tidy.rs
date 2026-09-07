@@ -320,6 +320,12 @@ mod tests {
             state.docs.insert(
                 id,
                 crate::model::Kept {
+                    born_by: None,
+                    guest: false,
+                    made: None,
+                    made_by: None,
+                    wrote_by: None,
+                    by: None,
                     title: None,
                     bytes: None,
                     wrote: None,
@@ -331,6 +337,7 @@ mod tests {
                     page_of: up,
                     archived: false,
                     locked: false,
+                    edited_by: None,
                 },
             );
         };

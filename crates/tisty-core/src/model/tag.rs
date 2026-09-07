@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use unicode_normalization::UnicodeNormalization;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("a tag needs at least one letter or digit")]
+#[error("a tag needs two characters, one of them a letter")]
 pub struct InvalidTag;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -43,6 +43,13 @@ impl Tag {
     /// tag saved before this rule still has to deserialise.
     pub fn worth_reading(&self) -> bool {
         self.0.chars().nth(1).is_some() && self.0.chars().any(char::is_alphabetic)
+    }
+
+    pub fn written(raw: &str) -> Result<Self, InvalidTag> {
+        Self::new(raw)
+            .ok()
+            .filter(Self::worth_reading)
+            .ok_or(InvalidTag)
     }
 
     pub fn as_str(&self) -> &str {
@@ -159,6 +166,15 @@ mod tests {
         for kept in ["ia", "ux", "b2b", "pepe32", "1a", "legal"] {
             assert!(Tag::new(kept).unwrap().worth_reading(), "{kept}");
         }
+    }
+
+    #[test]
+    fn what_is_written_now_answers_to_the_rule_of_now() {
+        for turned_away in ["1", "1234", "2026", "a", "x", "---", ""] {
+            assert_eq!(Tag::written(turned_away), Err(InvalidTag), "{turned_away}");
+        }
+        assert_eq!(Tag::written("  Legal  ").unwrap().as_str(), "legal");
+        assert_eq!(Tag::written("b2b").unwrap().as_str(), "b2b");
     }
 
     #[test]

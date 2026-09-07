@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { guide, keepClosing, keepLocale, sowLists, syncNow, wakeFor } from "../core";
+import {
+  ALIAS_AT_MOST,
+  guide,
+  keepClosing,
+  keepLocale,
+  sign,
+  sowLists,
+  syncNow,
+  wakeFor,
+} from "../core";
 import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Keepers from "./Keepers";
@@ -9,9 +18,9 @@ interface Props {
   onDone: (paper?: string) => void;
 }
 
-type Step = "tongue" | "copies";
+type Step = "tongue" | "signing" | "copies";
 
-const STEPS: Step[] = ["tongue", "copies"];
+const STEPS: Step[] = ["tongue", "signing", "copies"];
 
 const TONGUES = [
   { code: "es", name: "Español" },
@@ -52,6 +61,7 @@ export default function Welcome({ onDone }: Props) {
   const [busy, setBusy] = useState(false);
   const [trouble, setTrouble] = useState<string>();
   const [tongue, setTongue] = useState<string>();
+  const [alias, setAlias] = useState("");
   const [deciding, setDeciding] = useState(false);
 
   const at = STEPS.indexOf(step);
@@ -63,8 +73,18 @@ export default function Welcome({ onDone }: Props) {
       .then(() => adopt(code))
       .then(() => {
         setTongue(code);
-        setStep("copies");
+        setStep("signing");
       })
+      .catch((e) => setTrouble(saidPlainly(e)))
+      .finally(() => setBusy(false));
+  };
+
+  const signAs = () => {
+    const said = alias.trim();
+    setBusy(true);
+    setTrouble(undefined);
+    (said ? sign(said) : Promise.resolve(null))
+      .then(() => setStep("copies"))
       .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => setBusy(false));
   };
@@ -84,7 +104,16 @@ export default function Welcome({ onDone }: Props) {
   };
 
   return (
-    <Modal title={step === "tongue" ? t("welcomeTongue") : t("welcomeCopies")} wide={at > 0}>
+    <Modal
+      title={
+        step === "tongue"
+          ? t("welcomeTongue")
+          : step === "signing"
+            ? t("welcomeSigning")
+            : t("welcomeCopies")
+      }
+      wide={step === "copies"}
+    >
       <div
         role="progressbar"
         aria-label={fill("welcomeStep", `${at + 1}`)}
@@ -104,11 +133,41 @@ export default function Welcome({ onDone }: Props) {
       </div>
 
       <p className="mt-3 text-[12.5px] leading-relaxed text-soft">
-        {step === "tongue" ? t("welcomeTongueWhy") : t("keepersWhy")}
+        {step === "tongue"
+          ? t("welcomeTongueWhy")
+          : step === "signing"
+            ? t("welcomeSigningWhy")
+            : t("keepersWhy")}
       </p>
 
       <div className="mt-5 flex flex-col gap-2">
-        {step === "tongue" ? (
+        {step === "signing" ? (
+          <>
+            <p className="text-[12.5px] leading-relaxed text-soft">{t("welcomeSigningHow")}</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                aria-label={t("alias")}
+                value={alias}
+                disabled={busy}
+                maxLength={ALIAS_AT_MOST}
+                placeholder={t("aliasLike")}
+                onChange={(e) => setAlias(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && signAs()}
+                className="min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 py-2 text-[13px] disabled:opacity-60"
+              />
+              <button
+                type="button"
+                disabled={busy}
+                onClick={signAs}
+                className="cursor-pointer rounded-lg bg-accent px-3.5 py-2 text-[13px] text-bg disabled:opacity-60"
+              >
+                {t("welcomeSigned")}
+              </button>
+            </div>
+            <p className="text-[11.5px] leading-relaxed text-faint">{t("welcomeSigningNote")}</p>
+          </>
+        ) : step === "tongue" ? (
           TONGUES.map((one) => (
             <Choice
               key={one.code}
@@ -138,17 +197,37 @@ export default function Welcome({ onDone }: Props) {
           <button
             type="button"
             disabled={busy}
-            onClick={() => setStep("tongue")}
+            onClick={() => setStep("signing")}
             className="text-faint hover:text-ink disabled:opacity-60"
           >
             {t("welcomeBack")}
           </button>
         )}
+        {step === "signing" && (
+          <>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setStep("tongue")}
+              className="text-faint hover:text-ink disabled:opacity-60"
+            >
+              {t("welcomeBack")}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setStep("copies")}
+              className="ml-auto text-faint hover:text-ink disabled:opacity-60"
+            >
+              {t("welcomeNotNow")}
+            </button>
+          </>
+        )}
         {step === "tongue" && (
           <button
             type="button"
             disabled={busy}
-            onClick={() => setStep("copies")}
+            onClick={() => setStep("signing")}
             className="ml-auto text-faint hover:text-ink disabled:opacity-60"
           >
             {t("welcomeNext")}

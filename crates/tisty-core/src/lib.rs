@@ -13,6 +13,7 @@ pub mod keepers;
 pub mod merge;
 pub mod model;
 pub mod order;
+pub mod parcel;
 pub mod paths;
 pub mod refs;
 pub mod series;
@@ -49,6 +50,20 @@ pub enum Error {
     OutsideTheStore(String),
     #[error("{0} does not hold what its name says it holds")]
     NotForAnAgent(String),
+    #[error("{0} is not a Tisty parcel")]
+    NotAParcel(String),
+    #[error("that parcel was written by a newer Tisty (version {0})")]
+    ParcelNewer(u32),
+    #[error("that parcel is locked: it was made to be carried to another machine of its own")]
+    ParcelLocked,
+    #[error("that is not the number this parcel was locked with")]
+    WrongNumber,
+    #[error("that parcel opened, and then came apart: it did not arrive whole")]
+    ParcelTorn,
+    #[error("there is not enough room to open that here: it needs {needs} and {free} is free")]
+    NoRoom { needs: u64, free: u64 },
+    #[error("there is nothing here to carry out")]
+    NothingToCarry,
     #[error("that backup belongs to another store ({theirs})")]
     OtherStore { theirs: String },
 
@@ -76,7 +91,9 @@ pub enum Error {
     },
     #[error("segment {number:06} of {device} is missing: that slice of history is not here")]
     MissingSegment { number: usize, device: String },
-    #[error("event schema version {0} is newer than this build understands")]
+    #[error(
+        "event schema version {0} is newer than this build understands: update Tisty on this machine before going on, or reading half of it would lose work"
+    )]
     UnsupportedVersion(u32),
     #[error("another tisty process is using this device's store")]
     AlreadyRunning,
@@ -100,6 +117,13 @@ impl Error {
             Error::Io(_) => "io",
             Error::OutsideTheStore(_) => "outsideTheStore",
             Error::NotForAnAgent(_) => "notForAnAgent",
+            Error::NotAParcel(_) => "notAParcel",
+            Error::ParcelNewer(_) => "parcelNewer",
+            Error::ParcelLocked => "parcelLocked",
+            Error::WrongNumber => "wrongNumber",
+            Error::ParcelTorn => "parcelTorn",
+            Error::NoRoom { .. } => "noRoom",
+            Error::NothingToCarry => "nothingToCarry",
             Error::OtherStore { .. } => "otherStore",
             Error::TooBig => "tooBig",
             Error::AttachmentTooBig { .. } => "attachmentTooBig",

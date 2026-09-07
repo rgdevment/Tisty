@@ -293,6 +293,10 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
     ops.extend(made.into_iter().enumerate().map(|(n, one)| Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: DocAdd {
+            wrote: None,
+            guest: false,
+            made: None,
+            by: None,
             page_of: None,
             file: one.id,
             order: format!("a{n}"),
@@ -300,6 +304,7 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
                 title: one.title,
                 bytes: None,
                 tags: Some(Vec::new()),
+                by: None,
             }),
             folder: (n >= 2).then_some(shelf),
         },

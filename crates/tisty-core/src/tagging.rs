@@ -8,6 +8,13 @@ use crate::model::Tag;
 /// them is written once and kept forever, on every machine.
 pub const AT_MOST: usize = 64;
 
+pub fn worth_keeping(tags: &[Tag]) -> Vec<Tag> {
+    tags.iter()
+        .filter(|one| one.worth_reading())
+        .cloned()
+        .collect()
+}
+
 pub fn tags_in(body: &str) -> Vec<Tag> {
     let mut found: Vec<Tag> = Vec::new();
     let mut seen: std::collections::HashSet<Tag> = std::collections::HashSet::new();
@@ -225,6 +232,12 @@ mod tests {
     #[test]
     fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         let kept = crate::model::Kept {
+            born_by: None,
+            guest: false,
+            made: None,
+            made_by: None,
+            wrote_by: None,
+            by: None,
             id: ulid::Ulid::generate(),
             file: "a3f1-0001".into(),
             order: "a0".into(),
@@ -236,12 +249,14 @@ mod tests {
             archived: false,
             locked: false,
             tags: vec![Tag::new("legal").unwrap()],
+            edited_by: None,
         };
 
         let same = crate::event::Said {
             title: "Alquiler".into(),
             bytes: Some(31),
             tags: Some(vec![Tag::new("legal").unwrap()]),
+            by: None,
         };
         assert!(!same.news_for(&kept));
 

@@ -49,6 +49,20 @@ pub struct Kept {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wrote: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub made: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub made_by: Option<crate::event::DeviceId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wrote_by: Option<crate::event::DeviceId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub born_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edited_by: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub guest: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<FolderId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page_of: Option<DocId>,
@@ -75,9 +89,15 @@ mod tests {
     #[test]
     fn a_document_with_no_folder_is_unfiled_rather_than_absent() {
         let kept = Kept {
+            born_by: None,
+            guest: false,
             title: None,
             bytes: None,
             wrote: None,
+            made: None,
+            made_by: None,
+            wrote_by: None,
+            by: None,
             tags: Vec::new(),
             id: Ulid::generate(),
             file: "a3f1-0001".into(),
@@ -86,6 +106,7 @@ mod tests {
             page_of: None,
             archived: false,
             locked: false,
+            edited_by: None,
         };
         let json = serde_json::to_string(&kept).unwrap();
 

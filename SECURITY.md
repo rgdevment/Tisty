@@ -116,6 +116,37 @@ Being explicit here matters more than sounding reassuring.
   outright — that removal is absorbing, so a removed identifier is never valid
   again and a machine that returns comes back as a new one.
 
+- **A parcel of documents is a file somebody hands you**, and it is treated as
+  such. Every path inside the zip must be an ordinary relative path under
+  `docs/` or `attachments/` — anything climbing out with `..`, an absolute path
+  or a drive prefix is dropped rather than written. The names written in the
+  manifest go through the same door as any other document name, so a manifest
+  cannot point the reader at a file elsewhere on your disk. The manifest itself
+  is read under a ceiling, and so is the parcel: bytes actually written are
+  counted rather than the sizes the archive declares, and both the number of
+  files and the number of entries in the manifest are capped. A folder name or
+  an alias arriving inside is trimmed to the same limits the window applies, and
+  an icon or a colour it does not recognise is dropped instead of stored.
+
+  What a parcel cannot do is prove who wrote what: anyone can edit the manifest
+  in a zip, and a name in a parcel is a claim, not a signature. What it can prove
+  is which store wrote it. Every store keeps a secret alongside its name — the
+  name travels in every parcel, the secret never leaves the machine — and the
+  manifest carries an HMAC of itself under it. So a parcel that arrives wearing
+  your store's name, from somebody who read that name off a parcel you once
+  handed them, lands as a stranger's: they cannot forge the seal, and neither
+  claiming your name nor stripping the seal off gets them any further.
+
+  The one parcel that carries proof is the one you lock. Exporting everything to
+  another machine of your own seals it with a number: XChaCha20-Poly1305 over
+  64 KiB blocks, under a key scrypt grinds out of that number, with each block's
+  nonce carrying its count and a last-block byte, so a file cut short will not
+  open as a whole one. Opening it is the proof — nobody who lacks the number can
+  claim what is inside as their own writing — and what was somebody else's where
+  it was packed stays theirs at the other end. Lose the number and the parcel is
+  gone: nothing here can open it for you. A short number is a short number, and
+  scrypt only makes each guess expensive rather than impossible.
+
 ## An assistant, if you admit one
 
 Tisty speaks MCP so an assistant already running on your machine can file work

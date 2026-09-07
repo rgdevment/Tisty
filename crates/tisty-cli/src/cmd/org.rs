@@ -177,7 +177,7 @@ pub fn tag(app: &mut App, action: Option<TagAction>, lang: Lang) -> anyhow::Resu
         }
 
         TagAction::Rename { old, new } => {
-            let (old, new) = (parse_tag(&old)?, parse_tag(&new)?);
+            let (old, new) = (parse_tag(&old)?, fresh_tag(&new)?);
             let ops = retag(app, &old, Some(new.clone()));
             if ops.is_empty() {
                 return Ok(missing_tag(&old, lang));
@@ -241,6 +241,10 @@ fn retag(app: &App, from: &Tag, to: Option<Tag>) -> Vec<Op> {
 
 fn parse_tag(raw: &str) -> anyhow::Result<Tag> {
     Ok(Tag::new(raw.trim_start_matches('@'))?)
+}
+
+fn fresh_tag(raw: &str) -> anyhow::Result<Tag> {
+    Ok(Tag::written(raw.trim_start_matches('@'))?)
 }
 
 fn missing_tag(tag: &Tag, lang: Lang) -> ExitCode {

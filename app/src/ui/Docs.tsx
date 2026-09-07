@@ -6,7 +6,9 @@ import {
   attachExport,
   attached,
   convertPaper,
+  docAway,
   docExport,
+  docFacts,
   docLock,
   docOrder,
   docRead,
@@ -18,6 +20,7 @@ import {
   type Paper,
   roomy,
 } from "../core";
+import { stamped } from "../format";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
 import { filed, named, pagesOf, under } from "../paging";
@@ -26,6 +29,7 @@ import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
+import Modal from "./Modal";
 import Ribbon, { Onward } from "./Ribbon";
 import type { Block } from "./Slash";
 import { clearOfChrome } from "./WindowChrome";
@@ -86,6 +90,8 @@ interface Props {
 
 const tailless = (said: string): string => said.replace(/\n+$/, "");
 
+const dated = (when: number): string => stamped(new Date(when * 1000).toISOString());
+
 export default function Docs({
   open: asked,
   known,
@@ -121,6 +127,8 @@ export default function Docs({
   const [sized, setSized] = useState<Record<string, Paper>>(leaves);
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
+  const [pdfAsked, setPdfAsked] = useState(false);
+  const [signing, setSigning] = useState(false);
   const giving = useRef<(() => unknown) | null>(null);
   const putting = useRef<((page: Filed) => void) | null>(null);
   const handed = useCallback((read: () => unknown) => {
@@ -323,7 +331,8 @@ export default function Docs({
   };
 
   const own = filed(known, open?.file);
-  const bolted = Boolean(own?.locked);
+  const shelved = Boolean(own?.archived);
+  const bolted = Boolean(own?.locked) || shelved;
   const stood = useRef(new Map<string, number>());
   const from = useRef<{ doc: string; page: string } | null>(null);
   const seek = own?.file ? stood.current.get(own.file) : undefined;
@@ -367,7 +376,7 @@ export default function Docs({
     tag.textContent = `@page { size: ${PAGE[leaf]}; margin: 22mm 20mm; }`;
   }, [leaf]);
 
-  const blobOf = async (): Promise<Blob | null> => {
+  const blobOf = async (signed?: string): Promise<Blob | null> => {
     const read = giving.current;
     if (!open || !read) return null;
     const [{ pdf }, { Papered, registered }, { fetched, shapesOf }] = await Promise.all([
@@ -392,14 +401,26 @@ export default function Docs({
         (one) => fetched(shapesOf(one), attached, at),
       ),
     );
-    return pdf(<Papered sheets={sheets} leaf={leaf} />).toBlob();
+    return pdf(<Papered sheets={sheets} leaf={leaf} signed={signed} />).toBlob();
+  };
+
+  const signature = async (file: string): Promise<string | undefined> => {
+    const facts = await docFacts(file).catch(() => null);
+    if (!facts) return undefined;
+    const said = [
+      facts.author ? fill("pdfBy", facts.author) : "",
+      facts.editor ? fill("pdfEditedBy", facts.editor) : "",
+      facts.made ? fill("pdfMade", dated(facts.made)) : "",
+      facts.wrote ? fill("pdfWrote", dated(facts.wrote)) : "",
+    ].filter(Boolean);
+    return said.length ? said.join("  ·  ") : undefined;
   };
 
   const preview = async () => {
-    if (making) return;
+    if (!open || making) return;
     setMaking(true);
     try {
-      const blob = await blobOf();
+      const blob = await blobOf(signing ? await signature(open.file) : undefined);
       if (blob) setSeeing(URL.createObjectURL(blob));
     } catch (e) {
       onError(saidPlainly(e));
@@ -428,9 +449,17 @@ export default function Docs({
 
   const toPdf = async () => {
     if (!open || making) return;
+    setSigning(false);
+    setPdfAsked(true);
+  };
+
+  const madePdf = async (signed: boolean) => {
+    if (!open || making) return;
+    setPdfAsked(false);
     setMaking(true);
     try {
-      const blob = await blobOf();
+      const said = signed ? await signature(open.file) : undefined;
+      const blob = await blobOf(said);
       if (!blob) return;
       const where = await intoFile({
         defaultPath: `${open.title || t("untitledDoc")}.pdf`,
@@ -626,7 +655,26 @@ export default function Docs({
             </button>
           </div>
         )}
-        {bolted && open && (
+        {shelved && open && (
+          <div
+            style={wall}
+            className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
+          >
+            <span className="text-soft">{t("docShelved")}</span>
+            <button
+              type="button"
+              onClick={() =>
+                docAway(own?.id ?? "", false)
+                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .catch((e) => onError(saidPlainly(e)))
+              }
+              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+            >
+              {t("bringBack")}
+            </button>
+          </div>
+        )}
+        {bolted && !shelved && open && (
           <div
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
@@ -687,6 +735,46 @@ export default function Docs({
           <iframe src={seeing} title={t("seePdf")} className="min-h-0 flex-1 border-0 bg-bg" />
         </div>
       )}
+      {pdfAsked && open && (
+        <Modal
+          title={t("toPdf")}
+          onClose={() => {
+            setPdfAsked(false);
+            setSigning(false);
+          }}
+        >
+          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("pdfSignWhy")}</p>
+          <label className="mt-4 flex items-center gap-2.5 text-[13px]">
+            <input
+              type="checkbox"
+              checked={signing}
+              onChange={(e) => setSigning(e.target.checked)}
+              className="h-3.5 w-3.5 accent-accent"
+            />
+            {t("pdfSign")}
+          </label>
+          <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
+            <button
+              type="button"
+              onClick={() => {
+                setPdfAsked(false);
+                setSigning(false);
+              }}
+              className="rounded-lg px-3 py-1.5 text-faint hover:text-ink"
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={() => madePdf(signing)}
+              className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg"
+            >
+              {t("toPdfDo")}
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {beside && open && (
         <Beside
           title={open.title}
@@ -711,6 +799,18 @@ export default function Docs({
           onTakeOut={() => {
             pick({ directory: true })
               .then((at) => (typeof at === "string" ? docExport(open.file, at) : null))
+              .then((took) => {
+                if (took === null) return;
+                if (took.missed > 0) {
+                  onError(
+                    took.missed === 1 ? t("takenShort") : fill("takenShorter", String(took.missed)),
+                  );
+                } else if (took.left > 0) {
+                  onError(
+                    took.left === 1 ? t("takenLess") : fill("takenLesser", String(took.left)),
+                  );
+                }
+              })
               .catch((e) => onError(saidPlainly(e)));
           }}
           onShut={() => setShown(false)}

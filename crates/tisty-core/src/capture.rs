@@ -87,7 +87,7 @@ pub fn plan(state: &State, draft: Draft) -> Result<Plan, Rejected> {
             date: draft.date,
             deadline: draft.deadline,
             priority: draft.priority,
-            tags: draft.tags,
+            tags: crate::tagging::worth_keeping(&draft.tags),
             list,
             repeat: draft.repeat,
             source: draft.source,

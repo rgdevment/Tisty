@@ -25,6 +25,8 @@ pub struct State {
     pub folders: BTreeMap<FolderId, Folder>,
     pub docs: BTreeMap<DocId, Kept>,
     pub devices: BTreeSet<DeviceId>,
+    pub signed: crate::event::Signature,
+    pub signed_before: Vec<String>,
     pub agents: BTreeSet<DeviceId>,
     pub assistants: BTreeSet<DeviceId>,
     pub sourced: BTreeMap<String, TaskId>,
@@ -34,6 +36,26 @@ pub struct State {
     pub forebears: BTreeSet<String>,
     pub(crate) fill: Fill,
     tombstones: BTreeSet<Ulid>,
+}
+
+fn here(d: &crate::event::DocAdd, signed: &crate::event::Signature) -> Option<String> {
+    match d.guest {
+        true => None,
+        false => signed.alias.clone(),
+    }
+}
+
+pub fn same_name(one: &str, other: &str) -> bool {
+    crate::text::composed(one.trim()).to_lowercase()
+        == crate::text::composed(other.trim()).to_lowercase()
+}
+
+fn alike(one: Option<&str>, other: Option<&str>) -> bool {
+    match (one, other) {
+        (Some(one), Some(other)) => same_name(one, other),
+        (None, None) => true,
+        _ => false,
+    }
 }
 
 pub const WORDS_AT_MOST: usize = 64 * 1024;
@@ -66,10 +88,26 @@ impl State {
         })
     }
 
-    pub fn bolted(&self, file: &str) -> bool {
+    pub fn away(&self, file: &str) -> bool {
+        self.docs
+            .values()
+            .any(|one| one.file == file && one.archived)
+    }
+
+    pub fn written_shut(&self, id: DocId) -> bool {
+        self.shut(id) || self.docs.get(&id).is_some_and(|one| one.archived)
+    }
+
+    pub fn shut_tight(&self, file: &str) -> bool {
         self.docs
             .values()
             .any(|one| one.file == file && self.shut(one.id))
+    }
+
+    pub fn bolted(&self, file: &str) -> bool {
+        self.docs
+            .values()
+            .any(|one| one.file == file && self.written_shut(one.id))
     }
 
     fn bolt(&mut self, id: DocId, shut: bool) {
@@ -268,7 +306,14 @@ impl State {
                         order: d.order.clone(),
                         title: d.said.as_ref().map(|one| one.title.clone()),
                         bytes: d.said.as_ref().and_then(|one| one.bytes),
-                        wrote: Some(event.timestamp),
+                        wrote: Some(d.wrote.or(d.made).unwrap_or(event.timestamp)),
+                        made: Some(d.made.unwrap_or(event.timestamp)),
+                        made_by: Some(event.device.clone()),
+                        wrote_by: Some(event.device.clone()),
+                        by: d.by.clone().or_else(|| here(d, &self.signed)),
+                        born_by: d.by.clone().or_else(|| here(d, &self.signed)),
+                        edited_by: d.said.as_ref().and_then(|one| one.by.clone()),
+                        guest: d.guest,
                         folder: match under {
                             Some(one) => one.folder,
                             None => d.folder,
@@ -276,11 +321,12 @@ impl State {
                         page_of,
                         archived: under.is_some_and(|one| one.archived),
                         locked: false,
-                        tags: d
-                            .said
-                            .as_ref()
-                            .and_then(|one| one.tags.clone())
-                            .unwrap_or_default(),
+                        tags: crate::tagging::worth_keeping(
+                            &d.said
+                                .as_ref()
+                                .and_then(|one| one.tags.clone())
+                                .unwrap_or_default(),
+                        ),
                     },
                 );
             }
@@ -290,9 +336,16 @@ impl State {
                     kept.bytes = d.bytes;
                     // A note from a build that never read tags says nothing about them.
                     if let Some(tags) = &d.tags {
-                        kept.tags = tags.clone();
+                        kept.tags = crate::tagging::worth_keeping(tags);
                     }
                     kept.wrote = Some(event.timestamp);
+                    kept.wrote_by = Some(event.device.clone());
+                    // A note with no hand on it says nothing about whose it was, which is not
+                    // the same as saying nobody's: settling a body read from disk must not wipe
+                    // the name the machine that wrote it put there.
+                    if let Some(by) = &d.by {
+                        kept.edited_by = Some(by.clone());
+                    }
                 }
             }
             Op::DocMove { id, d } => {
@@ -363,6 +416,23 @@ impl State {
                     self.tombstones.insert(one);
                 }
             }
+            Op::DocSigned { id, d } => {
+                if let Some(kept) = self.docs.get_mut(id) {
+                    // Held here and not only where the event is written, so a build that read
+                    // the rule differently cannot sign over somebody else's writing. What
+                    // nobody signed is another matter: signing it is owning it.
+                    if kept.guest && kept.by.is_some() {
+                        return;
+                    }
+                    let said = d.trim();
+                    let now = (!said.is_empty()).then(|| said.to_string());
+                    if kept.born_by.is_none() {
+                        kept.born_by.clone_from(&now);
+                    }
+                    kept.guest = false;
+                    kept.by = now;
+                }
+            }
             Op::DocArchive { id } => self.shelve(*id, true),
             Op::DocLock { id } => self.bolt(*id, true),
             Op::DocUnlock { id } => self.bolt(*id, false),
@@ -379,6 +449,29 @@ impl State {
                         self.agents.remove(d);
                     }
                     None => {}
+                }
+            }
+            Op::Signed { d } => {
+                let said = |one: &Option<String>| {
+                    one.as_deref()
+                        .map(str::trim)
+                        .filter(|one| !one.is_empty())
+                        .map(str::to_string)
+                };
+                self.signed = crate::event::Signature {
+                    alias: said(&d.alias),
+                    name: said(&d.name),
+                    email: said(&d.email),
+                };
+                // Kept in the order they were signed, and never thinned: going back to a
+                // name years later must not move it ahead of whoever was first.
+                if let Some(one) = &self.signed.alias
+                    && !self
+                        .signed_before
+                        .last()
+                        .is_some_and(|was| same_name(was, one))
+                {
+                    self.signed_before.push(one.clone());
                 }
             }
             Op::DeviceRemove { d } => {
@@ -1131,6 +1224,55 @@ impl State {
             .collect()
     }
 
+    pub fn author_of<'a>(&'a self, kept: &'a crate::model::Kept) -> Option<&'a str> {
+        kept.by.as_deref()
+    }
+
+    pub fn born_of<'a>(&'a self, kept: &'a crate::model::Kept) -> Option<&'a str> {
+        kept.born_by
+            .as_deref()
+            .filter(|one| !alike(Some(one), kept.by.as_deref()))
+    }
+
+    pub fn mine_to_sign(&self) -> Vec<DocId> {
+        let now = self.signed.alias.as_deref();
+        self.docs
+            .values()
+            .filter(|one| !self.written_shut(one.id))
+            // Mine to re-sign is what a hand of mine signed, or what nobody ever signed at all.
+            // Another name is another person, whether it arrived in a parcel or through a store
+            // two people share.
+            .filter(|one| match one.by.as_deref() {
+                Some(by) => !one.guest && self.mine_to_write(by),
+                None => true,
+            })
+            .filter(|one| !alike(one.by.as_deref(), now))
+            .map(|one| one.id)
+            .collect()
+    }
+
+    /// A hand of mine reads as the alias I sign with now: the log keeps what it was, and
+    /// changing an alias rewrites nothing behind it.
+    pub fn editor_of<'a>(&'a self, kept: &'a crate::model::Kept) -> Option<&'a str> {
+        let hand = kept.edited_by.as_deref()?;
+        if alike(Some(hand), kept.by.as_deref()) {
+            return None;
+        }
+        // Signing once under the name a guest writes with must not hide my own hand on it.
+        if kept.guest || !self.mine_to_write(hand) {
+            return Some(hand);
+        }
+        match kept.by.as_deref().is_some_and(|by| self.mine_to_write(by)) {
+            true => None,
+            false => Some(self.signed.alias.as_deref().unwrap_or(hand)),
+        }
+    }
+
+    fn mine_to_write(&self, hand: &str) -> bool {
+        alike(Some(hand), self.signed.alias.as_deref())
+            || self.signed_before.iter().any(|was| same_name(was, hand))
+    }
+
     pub fn docs_tagged(&self, tag: &Tag) -> impl Iterator<Item = &crate::model::Kept> {
         self.docs
             .values()
@@ -1166,7 +1308,7 @@ fn task_from(id: TaskId, d: &TaskAdd) -> Task {
         date: d.date.clone(),
         deadline: d.deadline.clone(),
         list: d.list,
-        tags: d.tags.clone(),
+        tags: crate::tagging::worth_keeping(&d.tags),
         reminders: d.reminders.clone(),
         repeat: d.repeat,
         after: d.after,
@@ -1189,7 +1331,7 @@ fn patch(task: &mut Task, d: &TaskPatch) {
         task.priority = v;
     }
     if let Some(v) = &d.tags {
-        task.tags = v.clone();
+        task.tags = crate::tagging::worth_keeping(v);
     }
     if let Some(v) = &d.reminders {
         task.reminders = v.clone();
@@ -2215,6 +2357,10 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a note.md".into(),
                     order: order::first(),
@@ -3135,6 +3281,50 @@ mod tests {
     }
 
     #[test]
+    fn a_number_filed_as_a_tag_under_an_older_rule_is_not_read_back_as_one() {
+        let (task, doc) = (Ulid::generate(), Ulid::generate());
+        let state = State::replay(&[
+            ev(
+                1,
+                "dev_a",
+                Op::TaskAdd {
+                    id: task,
+                    d: TaskAdd {
+                        tags: vec![Tag::new("1").unwrap(), Tag::new("legal").unwrap()],
+                        ..TaskAdd::new("one", "a0")
+                    },
+                },
+            ),
+            ev(
+                2,
+                "dev_a",
+                Op::DocAdd {
+                    id: doc,
+                    d: crate::event::DocAdd {
+                        wrote: None,
+                        guest: false,
+                        made: None,
+                        by: None,
+                        file: "dev0-0001".into(),
+                        order: "a0".into(),
+                        said: Some(crate::event::Said {
+                            title: "Acta".into(),
+                            bytes: None,
+                            tags: Some(vec![Tag::new("2").unwrap(), Tag::new("casa").unwrap()]),
+                            by: None,
+                        }),
+                        ..Default::default()
+                    },
+                },
+            ),
+        ]);
+
+        assert_eq!(state.tasks[&task].tags, [Tag::new("legal").unwrap()]);
+        assert_eq!(state.docs[&doc].tags, [Tag::new("casa").unwrap()]);
+        assert_eq!(state.tags().len(), 2);
+    }
+
+    #[test]
     fn archived_tasks_stay_out_of_the_open_views_but_remain() {
         let id = Ulid::generate();
         let state = State::replay(&[
@@ -3822,6 +4012,10 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: file.into(),
                     order: "a0".into(),
@@ -3975,6 +4169,10 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a-0001".into(),
                     order: "a0".into(),
@@ -4005,6 +4203,10 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: "a3f1-0001".into(),
                     order: "a0".into(),
@@ -4440,6 +4642,10 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: file.into(),
                     order: "a0".into(),
@@ -4832,6 +5038,10 @@ mod compacting {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
                     said: None,
                     file: format!("dev_a-{ms:04}"),
                     order,

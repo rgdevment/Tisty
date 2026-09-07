@@ -129,9 +129,13 @@ pub fn doc(
         app.commit(tisty_core::Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                wrote: None,
+                guest: false,
+                made: None,
+                by: app.state.signed.alias.clone(),
                 file: made.id.clone(),
                 order,
-                said: Some(tisty_core::event::Said::of(&body)),
+                said: Some(tisty_core::event::Said::of(&body).by(app.state.signed.alias.clone())),
                 folder: None,
                 page_of: None,
             },

@@ -49,7 +49,13 @@ parse is corruption and stops the read regardless — but nothing can stop a
 writer marking something that changes what already exists, and a reader would
 then drop it and diverge in silence.
 
-Three payload fields carry more than their name says:
+`person.signed` sits at the edge of that rule and stays inside it: skipping it
+leaves the alias unshown, and nothing else, because every document carries the
+name it was written under in its own `doc.add`. `doc.signed`, which re-signs a
+document already written, is **not** marked — dropping it would show the old
+name on one machine and the new one on the next.
+
+Some payload fields carry more than their name says:
 
 | Field | On | Meaning |
 |---|---|---|
@@ -57,6 +63,7 @@ Three payload fields carry more than their name says:
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
 | `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
+| `by` | `doc.said` | the alias the body was saved under, sealed at the writing rather than worked out afterwards from whoever happens to be signing now. Absent is a hand that did not sign, not the reader's own |
 
 `active.tisty` is sealed as `NNNNNN.tisty` every 5.000 events. Sealed segments
 are numbered from one without gaps.
@@ -130,8 +137,8 @@ checks that an event in a device's folder was written by that device, and anyone
 who can append there can also delete the files directly. It binds an honest binary,
 which is what the rule is for.
 
-The trade it takes: this changes how an already-written log projects while the
-schema stays 8, so a machine on an older build still honours what this one drops.
+The trade it takes: this changes how an already-written log projects, so a machine
+on an older build still honours what this one drops.
 That is the rule working — the old build is unprotected, not wrong — and it is
 worth being plain that it is the same shape of divergence refused for compaction
 below. The difference is what sets it off: compaction would fork on ordinary
@@ -1059,7 +1066,7 @@ under the earlier one instead of setting it free. Deleting has no such inverse
 and never will: it is permanent by design, which is why it is the one thing
 asked about first.
 
-**The schema is 8 because of this.** A machine still on 1.0.x rejects the whole
+**The schema was raised to 8 for this.** A machine still on 1.0.x rejects the whole
 event rather than reading a page as a loose document and filing it somewhere the
 person never put it.
 
@@ -1101,7 +1108,7 @@ the window keeps less than the list implies, not that the file is safe.
 ## Taking a document out
 
 A document is a Markdown file, and the whole point is that it survives without
-us. Three ways out, and the differences are not cosmetic.
+us. Five ways out, and the differences are not cosmetic.
 
 **Copy as Markdown** hands the text to the clipboard exactly as it is stored,
 references included. Fast, and enough for prose. But an attachment reference
@@ -1121,6 +1128,64 @@ store does not need migrating. The layout does the work.
 What still does not survive the trip is a reference to **another document**
 (`tisty:doc/…`), which means nothing outside Tisty. It stays as written, as a
 piece of text rather than a broken file path.
+
+**Export everything as Markdown** is the same trade repeated across the whole
+store, with the folder tree standing up on disk: `Personal/House/Minutes/`. Two
+folders that spell the same once their names are made safe for a filesystem —
+`Casa` and `Casa?` — are told apart rather than poured into one directory, and
+two documents with the same title inside a folder are numbered rather than
+overwritten.
+
+**Export for Tisty** is the one that does not lose anything, because it is not
+Markdown: a zip named `.tistyx` carrying the bodies byte for byte, the
+attachments they name, and a manifest with what Markdown cannot hold — folders
+with their order, icon and colour, which document each page hangs from, what is
+archived, what is locked, and the alias the writing was signed with. **Not one
+line of the log travels inside it.** What lands in the store that takes it in is
+born there: new ids, new events, the references between documents rewritten to
+the names of their new home. It is how a document moves between installations,
+and it is not a backup — bringing the same parcel in twice makes a second copy
+of everything, because nothing in it says «you already have this».
+
+A parcel of everything can be **locked with a number**, and that is what tells a
+move from a hand-over. Locked, it is not a zip at all: the zip is sealed in
+64 KiB blocks with XChaCha20-Poly1305, under a key scrypt grinds out of the
+number, and each block's nonce carries its own count and a byte that is only set
+on the last one — so a file cut short cannot read as a whole one. Whoever opens
+it with the number gets what is inside as their own writing, because only the
+machine it was packed for knows it; what was already a guest where it came from
+stays one, because the manifest says so. Without the number the parcel says it
+is locked and nothing lands. A single document is never locked: it is always
+somebody else's to keep.
+
+Every store is given two things when it is made: a name of its own, which travels
+inside every parcel it writes, and a secret that never leaves the machine. The
+manifest carries a seal — an HMAC of itself under that secret — so a store can
+tell a parcel it really wrote from one that merely wears its name. Anybody handed
+a parcel knows the name written in it; without the secret they cannot forge the
+seal, and what they send lands as a stranger's however it is addressed. A parcel
+with no seal at all is a stranger's by definition.
+
+The secret belongs to the machine, not to the shared folder: two machines that
+sync carry the same name but not the same secret, so an open parcel written on
+one lands on the other as somebody else's. What carries writing between machines
+of your own is the number, not the name — which is the whole reason the number
+exists.
+
+The store that receives it decides what is a guest by the identity of the store
+that sent it, written in the manifest, and never by the name inside: two people
+who happen to share an alias do not inherit each other's writing, and what comes
+from somebody who never signed lands without an author rather than under the
+name of whoever opened it.
+
+Who *edited* it does not travel at all. The author is the document's, and it is
+the same wherever the document goes; the hand that last wrote is this store's
+own reading, sealed in `doc.said` as it was written. Changing an alias rewrites
+neither one: the log keeps what it kept, «signed before as» keeps the name the
+document was born under, and re-signing what is mine is a deliberate act with
+its own event. What the reading does is resolve — an alias this store signed
+with before reads as the alias it signs with now, because it is the same hand,
+while somebody else's stays theirs however this machine signs today.
 
 **Export to PDF** is the one that leaves Markdown behind, and Tisty composes it
 rather than asking the system to print. That is a deliberate cost. Printing hands
