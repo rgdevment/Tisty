@@ -52,6 +52,7 @@ import {
   settleIn,
   snapshot,
   sow,
+  spelled,
   syncState,
   type Task,
   type Underway,
@@ -229,10 +230,14 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
 
   const packUp = (which: string[], named: string) =>
-    intoFile({
-      defaultPath: `${named}.${PARCEL}`,
-      filters: [{ name: "Tisty", extensions: [PARCEL] }],
-    })
+    spelled(named)
+      .catch(() => "tisty")
+      .then((safe) =>
+        intoFile({
+          defaultPath: `${safe}.${PARCEL}`,
+          filters: [{ name: "Tisty", extensions: [PARCEL] }],
+        }),
+      )
       .then((at) => {
         if (typeof at !== "string") return null;
         setAfoot({ stage: "packing", far: 0, done: 0, whole: 0 });
@@ -241,17 +246,18 @@ export default function App() {
       .then((packed) => {
         setAfoot(null);
         if (!packed) return;
-        if (packed.missed > 0) {
+        const many = packed.docs + packed.pages;
+        if (packed.missed > 0 || packed.left > 0) {
           setError(
-            packed.missed === 1 ? t("takenShort") : fill("takenShorter", String(packed.missed)),
+            packed.missed > 0
+              ? fill("packedShort", String(many), String(packed.missed))
+              : fill("packedLess", String(many), String(packed.left)),
           );
           return;
         }
-        if (packed.left > 0) {
-          setError(packed.left === 1 ? t("takenLess") : fill("takenLesser", String(packed.left)));
-          return;
-        }
-        setNote(packed.docs ? fill("packed", String(packed.docs)) : t("packedAlone"));
+        setNote(
+          many === 1 ? t("packedOne") : many ? fill("packed", String(many)) : t("packedAlone"),
+        );
         setTimeout(() => setNote(null), 3200);
       })
       .catch((e) => {
@@ -269,19 +275,21 @@ export default function App() {
       .then((took) => {
         setAfoot(null);
         if (!took) return;
-        if (took.missed > 0) {
-          setError(took.missed === 1 ? t("takenShort") : fill("takenShorter", String(took.missed)));
+        const many = took.docs;
+        if (took.missed > 0 || took.left > 0) {
+          setError(
+            took.missed > 0
+              ? fill("packedShort", String(many), String(took.missed))
+              : fill("packedLess", String(many), String(took.left)),
+          );
           return;
         }
-        if (took.left > 0) {
-          setError(took.left === 1 ? t("takenLess") : fill("takenLesser", String(took.left)));
-          return;
-        }
-        const many = String(took.docs);
         setNote(
-          took.folders
-            ? fill("tookOutAll", many, String(took.folders))
-            : fill("tookOutAllFlat", many),
+          many === 1
+            ? t("tookOutOne")
+            : took.folders
+              ? fill("tookOutAll", String(many), String(took.folders))
+              : fill("tookOutAllFlat", String(many)),
         );
         setTimeout(() => setNote(null), 3200);
       })
@@ -301,19 +309,23 @@ export default function App() {
         setAfoot(null);
         if (!landed) return;
         papersChanged();
-        if (landed.docs + landed.pages === 0) {
-          setError(t("landedNone"));
+        const many = landed.docs + landed.pages;
+        if (landed.missed > 0 && many > 0) {
+          setError(fill("packedShort", String(many), String(landed.missed)));
           return;
         }
-        if (landed.missed > 0) {
-          setError(fill("landedShort", String(landed.missed)));
+        if (many === 0) {
+          setError(
+            landed.missed > 0 ? fill("landedNoneOfIt", String(landed.missed)) : t("landedNone"),
+          );
           return;
         }
-        const many = String(landed.docs + landed.pages);
         setNote(
-          landed.folders
-            ? fill("landedIn", many, String(landed.folders))
-            : fill("landedAlone", many),
+          many === 1
+            ? t("landedOne")
+            : landed.folders
+              ? fill("landedIn", String(many), String(landed.folders))
+              : fill("landedAlone", String(many)),
         );
         setTimeout(() => setNote(null), 3200);
       })
@@ -1328,6 +1340,8 @@ export default function App() {
           ) : chosen.named === "keeping" ? (
             <Keeping
               greeted={greeted}
+              onPack={() => packUp([], "tisty")}
+              onUnpack={takeParcel}
               onGreet={() => setGreet(true)}
               onDoc={openDoc}
               onChanged={() => {

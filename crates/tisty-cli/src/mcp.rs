@@ -1273,6 +1273,7 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let Err(e) = store.append(Op::DocAdd {
         id,
         d: tisty_core::event::DocAdd {
+            wrote: None,
             guest: false,
             made: None,
             by: state.signed.alias.clone(),

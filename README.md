@@ -403,12 +403,12 @@ own margins and the attachments carried inside — and shows it to you before yo
 export it.
 
 **And they leave whole.** A document copies as Markdown, writes out into a
-folder with its pages and attachments beside it, or travels in a `.tistyx`
-parcel that also carries what Markdown cannot say: folders with their order,
+folder with its pages and attachments beside it, or is exported for Tisty into a
+`.tistyx` file that also carries what Markdown cannot say: folders with their order,
 icon and colour, which document each page hangs from, what is archived, and the
-alias it was signed with. That parcel is how your documents move to another
-machine or reach somebody else who uses Tisty, and not one line of the history
-travels inside it. Write an alias — optional, and yours to choose — and every
+alias it was signed with. That is how your documents move to another machine
+or reach somebody else who uses Tisty, and not one line of the history travels
+inside it. Write an alias — optional, and yours to choose — and every
 document is signed with it, while whatever arrives from somebody else keeps
 theirs.
 

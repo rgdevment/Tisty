@@ -445,6 +445,14 @@ export default function Tree({
                 ⚠
               </span>
             )}
+            {doc.guest && (
+              <span
+                title={fill("guestDoc", doc.guest)}
+                className="shrink-0 truncate text-[10.5px] text-faint"
+              >
+                {doc.guest}
+              </span>
+            )}
             {pages.length > 0 && (
               <span className="ml-auto shrink-0 pl-2 text-[11px] text-faint">
                 {pages.length === 1 ? t("pageHeld") : fill("pagesHeld", String(pages.length))}

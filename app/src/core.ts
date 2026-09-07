@@ -669,6 +669,7 @@ export interface Filed {
   archived: boolean;
   locked?: boolean;
   gone?: boolean;
+  guest?: string | null;
   tags?: string[];
 }
 
@@ -772,6 +773,7 @@ export interface Unpacked {
   missed: number;
 }
 
+export const spelled = (said: string): Promise<string> => invoke("spelled", { said });
 export const docsPack = (which: string[], into: string): Promise<Packed> =>
   invoke("docs_pack", { which, into });
 export const docsUnpack = (from: string): Promise<Unpacked> => invoke("docs_unpack", { from });

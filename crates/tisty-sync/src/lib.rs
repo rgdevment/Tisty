@@ -1371,6 +1371,7 @@ mod tests {
         held.append(Op::DocAdd {
             id: Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                wrote: None,
                 guest: false,
                 made: None,
                 by: None,
@@ -1598,6 +1599,7 @@ mod tests {
             Op::DocAdd {
                 id: Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,

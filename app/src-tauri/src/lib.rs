@@ -328,6 +328,7 @@ impl Session {
         self.commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                wrote: None,
                 guest: false,
                 made: None,
                 by: signing(&self.state),
@@ -2579,6 +2580,8 @@ struct Filed {
     archived: bool,
     locked: bool,
     gone: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    guest: Option<String>,
     page_of: Option<String>,
 }
 
@@ -2670,6 +2673,7 @@ fn gathered(session: &Session) -> Vec<Filed> {
             archived: kept.archived,
             locked: session.state.shut(kept.id),
             gone: !on_disk.contains(&kept.file),
+            guest: kept.guest.then(|| kept.by.clone()).flatten(),
             page_of: kept.page_of.map(|up| up.to_string()),
             tags: kept.tags.iter().map(|one| one.to_string()).collect(),
         })
@@ -3254,7 +3258,7 @@ fn sign_the_rest(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
 #[tauri::command]
 fn sign(session: tauri::State<'_, Mutex<Session>>, alias: Option<String>) -> Answer<Signed> {
     let said = alias
-        .map(|one| one.trim().to_string())
+        .map(|one| tisty_core::text::plainly(&one).trim().to_string())
         .filter(|one| !one.is_empty());
     if said
         .as_ref()
@@ -3302,9 +3306,13 @@ fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Fa
     let at = tisty_core::docs::resolve(&root, &id)
         .map_err(|_| Refusal::about("noSuchDoc", id.clone()))?;
     let about = std::fs::metadata(&at).map_err(|_| Refusal::about("noSuchDoc", id))?;
+    let wrote = kept
+        .and_then(|one| one.wrote)
+        .map(|at| at.as_second())
+        .or_else(|| seconds(about.modified()));
     Ok(Facts {
         made,
-        wrote: seconds(about.modified()),
+        wrote,
         bytes: about.len(),
         pages,
         author,
@@ -3456,6 +3464,7 @@ fn guide(
     session.commit(Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
+            wrote: None,
             guest: true,
             made: None,
             by: Some(WRITTEN_BY.into()),
@@ -3486,6 +3495,7 @@ fn guide(
             session.commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    wrote: None,
                     guest: true,
                     made: None,
                     by: Some(WRITTEN_BY.into()),
@@ -3649,6 +3659,7 @@ fn doc_copy(
     session.commit(Op::DocAdd {
         id: twin,
         d: tisty_core::event::DocAdd {
+            wrote: None,
             guest: false,
             made: None,
             by: signed_as.clone(),
@@ -3692,6 +3703,7 @@ fn doc_copy(
         session.commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                wrote: None,
                 guest: false,
                 made: None,
                 by: signed_as.clone(),
@@ -3894,6 +3906,11 @@ struct Unpacked {
     joined: usize,
     files: usize,
     missed: usize,
+}
+
+#[tauri::command]
+fn spelled(said: String) -> String {
+    tisty_core::docs::spelled(&said)
 }
 
 #[tauri::command(async)]
@@ -4099,6 +4116,7 @@ fn doc_import(
     session.commit(Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
+            wrote: None,
             guest: false,
             made: None,
             by: signed_as.clone(),
@@ -4173,6 +4191,7 @@ fn doc_new(
     session.commit(Op::DocAdd {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::DocAdd {
+            wrote: None,
             guest: false,
             made: None,
             by: signed_as.clone(),
@@ -5037,7 +5056,7 @@ fn print_of_three(base: &str, mine: &str, theirs: &str) -> String {
 #[tauri::command(async)]
 fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Torn> {
     let session = held(&session);
-    if session.state.bolted(&id) {
+    if session.state.shut_tight(&id) {
         return Err(Refusal::of(match session.state.away(&id) {
             true => "documentAway",
             false => "documentLocked",
@@ -5144,6 +5163,7 @@ fn settle_paper(
         .commit(Op::DocAdd {
             id: ulid::Ulid::generate(),
             d: tisty_core::event::DocAdd {
+                wrote: None,
                 guest: false,
                 made: None,
                 by: signed_as.clone(),
@@ -6165,6 +6185,7 @@ pub fn run() {
             signed,
             sign,
             sign_the_rest,
+            spelled,
             docs_pack,
             docs_take_out,
             docs_unpack,
@@ -6214,6 +6235,7 @@ mod deleting {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,
@@ -7104,6 +7126,7 @@ mod ordering {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,
@@ -7134,6 +7157,7 @@ mod ordering {
             .commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,
@@ -7222,6 +7246,7 @@ mod ordering {
                 .commit(Op::DocAdd {
                     id,
                     d: tisty_core::event::DocAdd {
+                        wrote: None,
                         guest: false,
                         made: None,
                         by: None,

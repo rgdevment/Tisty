@@ -331,8 +331,8 @@ export default function Docs({
   };
 
   const own = filed(known, open?.file);
-  const bolted = Boolean(own?.locked);
   const shelved = Boolean(own?.archived);
+  const bolted = Boolean(own?.locked) || shelved;
   const stood = useRef(new Map<string, number>());
   const from = useRef<{ doc: string; page: string } | null>(null);
   const seek = own?.file ? stood.current.get(own.file) : undefined;
@@ -417,10 +417,10 @@ export default function Docs({
   };
 
   const preview = async () => {
-    if (making) return;
+    if (!open || making) return;
     setMaking(true);
     try {
-      const blob = await blobOf();
+      const blob = await blobOf(signing ? await signature(open.file) : undefined);
       if (blob) setSeeing(URL.createObjectURL(blob));
     } catch (e) {
       onError(saidPlainly(e));

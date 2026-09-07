@@ -82,6 +82,7 @@ impl Room {
         self.tell(Op::DocAdd {
             id,
             d: DocAdd {
+                wrote: None,
                 guest: false,
                 made: None,
                 by: None,
@@ -1105,22 +1106,121 @@ fn two_folders_that_spell_the_same_do_not_pour_into_one() {
 fn a_name_that_is_a_prefix_of_another_is_not_rewritten_in_the_middle() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");
-    let (_, first) = here.doc("# Uno\n\nsoy el corto", None, None);
-    let (_, second) = here.doc("# Dos\n\nsoy el largo", None, None);
+    // The store hands out fixed-width names, so a prefix pair has to be written by hand.
+    for (file, body) in [
+        (
+            "mine-0001",
+            "# Corto
+
+soy el corto",
+        ),
+        (
+            "mine-00011",
+            "# Largo
+
+soy el largo",
+        ),
+    ] {
+        std::fs::write(
+            here.data.join("docs").join(format!("{file}.md")),
+            docs::settled(body),
+        )
+        .unwrap();
+        let id = Ulid::generate();
+        here.tell(Op::DocAdd {
+            id,
+            d: DocAdd {
+                file: file.into(),
+                order: order::last_of(here.state.docs.values().map(|one| one.order.as_str())),
+                said: Some(Said {
+                    title: docs::titled(body),
+                    bytes: None,
+                    tags: Some(Vec::new()),
+                }),
+                ..Default::default()
+            },
+        });
+    }
     here.doc(
-        &format!("# Libro\n\n[a](tisty:doc/{first}) y [b](tisty:doc/{second})"),
+        "# Libro
+
+[a](tisty:doc/mine-0001) y [b](tisty:doc/mine-00011)",
         None,
         None,
     );
 
-    let box_at = room.path().join("enlaces.tistyx");
+    let box_at = room.path().join("prefijos.tistyx");
     parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
     let mut there = Room::new(room.path(), "theirs");
     there.take_in(&box_at);
 
     let said = there.body(&there.titled("Libro").file);
-    let uno = there.titled("Uno").file.clone();
-    let dos = there.titled("Dos").file.clone();
-    assert!(said.contains(&format!("tisty:doc/{uno}")), "{said}");
-    assert!(said.contains(&format!("tisty:doc/{dos}")), "{said}");
+    let corto = there.titled("Corto").file.clone();
+    let largo = there.titled("Largo").file.clone();
+    assert!(said.contains(&format!("tisty:doc/{corto})")), "{said}");
+    assert!(
+        !said.contains("mine-0001)"),
+        "the old name survived: {said}"
+    );
+    assert!(said.contains(&format!("tisty:doc/{largo})")), "{said}");
+}
+
+#[test]
+fn a_landing_in_flight_survives_a_sweep_from_the_same_process() {
+    let room = tmp();
+    let data = room.path().join("data");
+    std::fs::create_dir_all(&data).unwrap();
+    let mine = data.join(format!(".landing-{}", std::process::id()));
+    let stale = data.join(".landing-999999");
+    std::fs::create_dir_all(&mine).unwrap();
+    std::fs::create_dir_all(&stale).unwrap();
+
+    parcel::swept(&data);
+
+    assert!(mine.is_dir(), "a landing still in flight was swept away");
+    assert!(!stale.exists(), "the leftovers of another one stayed");
+}
+
+#[test]
+fn a_wide_tree_keeps_every_folder_it_was_kept_in() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    for n in 0..20 {
+        let up = here.folder(&format!("Raiz {n}"), None, "home");
+        let down = here.folder(&format!("Rama {n}"), Some(up), "home");
+        here.doc(&format!("# Doc {n}\n\ntexto"), Some(down), None);
+    }
+
+    let out = room.path().join("plano");
+    let sent = parcel::plainly(&here.data, &here.state, &[], &out, &Along::default()).unwrap();
+
+    assert_eq!(sent.docs, 20);
+    assert_eq!(sent.folders, 40, "some folders never made it into the tree");
+    for n in 0..20 {
+        let at = out.join(format!("Raiz-{n}")).join(format!("Rama-{n}"));
+        assert!(at.is_dir(), "{at:?} was flattened into the root");
+    }
+}
+
+#[test]
+fn an_attachment_named_with_an_anchor_still_lands() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let shed = here.data.join("attachments").join("ab");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
+    here.doc(
+        "# Con ancla\n\n![x](<attachments/ab/foto-91f2ab00.png#arriba>)",
+        None,
+        None,
+    );
+
+    let box_at = room.path().join("ancla.tistyx");
+    let sent = parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+    assert_eq!(sent.files, 1);
+
+    let mut there = Room::new(room.path(), "theirs");
+    let landed = there.take_in(&box_at);
+    assert_eq!(landed.files, 1, "the picture was left behind: {landed:?}");
+    assert_eq!(landed.missed, 0);
 }

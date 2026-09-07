@@ -403,14 +403,14 @@ columna con de qué va el documento, el formato que el menú `/` escondía y su
 propios márgenes y los adjuntos dentro— y te lo enseña antes de exportarlo.
 
 **Y salen enteros.** Un documento se copia como Markdown, se escribe en una
-carpeta con sus páginas y sus adjuntos al lado, o se lleva en un paquete
-`.tistyx` que además guarda lo que el Markdown no sabe decir: las carpetas con
-su orden, su icono y su color, de qué documento cuelga cada página, qué está
-archivado y con qué alias se firmó. Ese paquete es como se mudan tus documentos
-a otro equipo o llegan a otra persona que usa Tisty; dentro no viaja ni una
-línea del historial. Si escribes un alias —opcional, y solo tú decides cuál—,
-cada documento queda firmado con él, y lo que te llegue de otra persona conserva
-el suyo.
+carpeta con sus páginas y sus adjuntos al lado, o se exporta para Tisty en un
+archivo `.tistyx` que además guarda lo que el Markdown no sabe decir: las
+carpetas con su orden, su icono y su color, de qué documento cuelga cada
+página, qué está archivado y con qué alias se firmó. Así se mudan tus
+documentos a otro equipo o llegan a otra persona que usa Tisty; dentro no viaja
+ni una línea del historial. Si escribes un alias —opcional, y solo tú decides
+cuál—, cada documento queda firmado con él, y lo que te llegue de otra persona
+conserva el suyo.
 
 ![Documentos en Markdown, con adjuntos](assets/Store/jpg/es-03-documentos.jpg)
 

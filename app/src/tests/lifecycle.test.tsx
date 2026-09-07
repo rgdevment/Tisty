@@ -731,6 +731,43 @@ describe("what the menus reach for outside the tree", () => {
     expect(parcel.packed[0].which).toEqual([doc.file]);
   });
 
+  it("counts the same going out as coming in, pages included", async () => {
+    seedDoc({ title: "Acta" });
+    picked.path = Promise.resolve("D:/salida/tisty.tistyx");
+    parcel.docs = 1;
+    parcel.pages = 10;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("packAll") }));
+
+    await waitFor(() => expect(screen.getByText(fill("packed", "11"))).toBeTruthy());
+  });
+
+  it("still says how many went out when something was left behind", async () => {
+    seedDoc({ title: "Acta" });
+    picked.path = Promise.resolve("D:/salida/tisty.tistyx");
+    parcel.docs = 400;
+    parcel.left = 1;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("packAll") }));
+
+    await waitFor(() => expect(screen.getByText(fill("packedLess", "400", "1"))).toBeTruthy());
+  });
+
+  it("says nothing came in rather than that the parcel was empty", async () => {
+    picked.path = Promise.resolve("D:/entrada/roto.tistyx");
+    parcel.missed = 7;
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: t("docsActions") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("unpackIt") }));
+
+    await waitFor(() => expect(screen.getByText(fill("landedNoneOfIt", "7"))).toBeTruthy());
+  });
+
   it("says what came in when a parcel is taken in, folders and all", async () => {
     picked.path = Promise.resolve("D:/entrada/tisty.tistyx");
     parcel.docs = 4;

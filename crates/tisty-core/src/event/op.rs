@@ -593,6 +593,8 @@ pub struct DocAdd {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wrote: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub guest: bool,

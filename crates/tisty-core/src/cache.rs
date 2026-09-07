@@ -831,6 +831,7 @@ mod tests {
                 .append(Op::DocAdd {
                     id,
                     d: crate::event::DocAdd {
+                        wrote: None,
                         guest: false,
                         made: None,
                         by: None,
@@ -878,6 +879,7 @@ mod tests {
             .append(Op::DocAdd {
                 id: Ulid::generate(),
                 d: crate::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,

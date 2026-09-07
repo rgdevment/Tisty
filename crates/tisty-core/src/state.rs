@@ -98,6 +98,12 @@ impl State {
         self.shut(id) || self.docs.get(&id).is_some_and(|one| one.archived)
     }
 
+    pub fn shut_tight(&self, file: &str) -> bool {
+        self.docs
+            .values()
+            .any(|one| one.file == file && self.shut(one.id))
+    }
+
     pub fn bolted(&self, file: &str) -> bool {
         self.docs
             .values()
@@ -300,7 +306,7 @@ impl State {
                         order: d.order.clone(),
                         title: d.said.as_ref().map(|one| one.title.clone()),
                         bytes: d.said.as_ref().and_then(|one| one.bytes),
-                        wrote: Some(d.made.unwrap_or(event.timestamp)),
+                        wrote: Some(d.wrote.or(d.made).unwrap_or(event.timestamp)),
                         made: Some(d.made.unwrap_or(event.timestamp)),
                         made_by: Some(event.device.clone()),
                         wrote_by: Some(event.device.clone()),
@@ -1212,8 +1218,7 @@ impl State {
         let now = self.signed.alias.as_deref();
         self.docs
             .values()
-            .filter(|one| !self.written_shut(one.id))
-            .filter(|one| !one.guest || alike(one.by.as_deref(), now))
+            .filter(|one| !self.written_shut(one.id) && !one.guest)
             .filter(|one| !alike(one.by.as_deref(), now))
             .map(|one| one.id)
             .collect()
@@ -2310,6 +2315,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,
@@ -3253,6 +3259,7 @@ mod tests {
                 Op::DocAdd {
                     id: doc,
                     d: crate::event::DocAdd {
+                        wrote: None,
                         guest: false,
                         made: None,
                         by: None,
@@ -3962,6 +3969,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,
@@ -4118,6 +4126,7 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,
@@ -4151,6 +4160,7 @@ mod tests {
             Op::DocAdd {
                 id: one,
                 d: crate::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,
@@ -4589,6 +4599,7 @@ mod tests {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,
@@ -4984,6 +4995,7 @@ mod compacting {
             Op::DocAdd {
                 id,
                 d: crate::event::DocAdd {
+                    wrote: None,
                     guest: false,
                     made: None,
                     by: None,

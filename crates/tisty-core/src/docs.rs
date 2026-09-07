@@ -823,7 +823,7 @@ fn laid_out(
     Ok(taken)
 }
 
-pub(crate) fn spelled(said: &str) -> String {
+pub fn spelled(said: &str) -> String {
     let flat: String = said
         .chars()
         .map(|c| {

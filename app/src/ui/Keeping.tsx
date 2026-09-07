@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type About,
   type Agent,
@@ -109,6 +109,7 @@ type Which =
   | "brittle"
   | "greet"
   | "signing"
+  | "parcel"
   | "tongue";
 type Word = { card: Which; text: string };
 type Tab = "general" | "data" | "agents" | "upkeep";
@@ -121,13 +122,15 @@ const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
 ];
 
 interface Props {
+  onPack: () => void;
+  onUnpack: () => void;
   onChanged: () => void;
   onGreet: () => void;
   onDoc: (paper: string) => void;
   greeted?: number;
 }
 
-export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
+export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, greeted }: Props) {
   const [tab, setTab] = useState<Tab>("general");
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agents, setAgents] = useState<Wired[] | null>(null);
@@ -158,6 +161,7 @@ export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
   const [trouble, setTrouble] = useState<Word>();
   const [told, setTold] = useState({ names: false, paths: false, logs: true });
   const [alias, setAlias] = useState("");
+  const signed_as = useRef("");
   const [aliases, setAliases] = useState<string[]>([]);
   const [mine, setMine] = useState(0);
   const [asking, setAsking] = useState<string | null>(null);
@@ -168,6 +172,7 @@ export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
     signed()
       .then((one) => {
         setAlias(one.alias ?? "");
+        signed_as.current = one.alias ?? "";
         setAliases(one.before);
         setMine(one.mine);
       })
@@ -726,10 +731,16 @@ export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
                   onChange={(e) => setAlias(e.target.value)}
                   onBlur={() => {
                     const said = alias.trim();
+                    if (said === signed_as.current) return;
                     run("signing", sign(said || undefined), (now) => {
                       setAlias(now.alias ?? "");
                       setAliases(now.before);
                       setMine(now.mine);
+                      signed_as.current = now.alias ?? "";
+                      setSaid({
+                        card: "signing",
+                        text: now.alias ? fill("aliasKept", now.alias) : t("aliasGone"),
+                      });
                       if (now.alias && now.mine > 0) setAsking(now.alias);
                     });
                   }}
@@ -1103,6 +1114,42 @@ export default function Keeping({ onChanged, onGreet, onDoc, greeted }: Props) {
               )}
             </div>
             <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("attachBig")}</p>
+
+            <Band label={t("bandParcels")} />
+            <div className="border-t border-hair">
+              <Line
+                title={t("packAllPlain")}
+                why={t("packAllWhy")}
+                which="parcel"
+                said={said}
+                trouble={trouble}
+              >
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={onPack}
+                  className={`rounded-[7px] border border-line px-2 py-1 text-[12px] hover:bg-hover ${off}`}
+                >
+                  {t("packAllDo")}
+                </button>
+              </Line>
+              <Line
+                title={t("unpackPlain")}
+                why={t("unpackWhy")}
+                which="parcel"
+                said={said}
+                trouble={trouble}
+              >
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={onUnpack}
+                  className={`rounded-[7px] border border-line px-2 py-1 text-[12px] hover:bg-hover ${off}`}
+                >
+                  {t("unpackDo")}
+                </button>
+              </Line>
+            </div>
 
             {state.backsUp && (
               <>
@@ -1947,6 +1994,7 @@ interface CardProps {
 const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
   signing: "alias",
+  parcel: "bandParcels",
   backup: "backup",
   restore: "restoreTitle",
   review: "review",
