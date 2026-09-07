@@ -608,6 +608,27 @@ describe("the maintenance panel", () => {
     await waitFor(() => expect(sent("stop_freeing")).toHaveLength(1));
   });
 
+  it("fetches the ones that are not here when told to hold them all", async () => {
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await data();
+    const where = await screen.findByRole("combobox", { name: /where large attachments/i });
+    await userEvent.selectOptions(where, "shared");
+    await waitFor(() => expect(sent("free_up")).toHaveLength(1));
+    const before = sent("sync_now").length;
+
+    await userEvent.selectOptions(where, "everywhere");
+
+    await waitFor(() => expect(sent("sync_now").length).toBeGreaterThan(before));
+  });
+
   it("says which loose files are up in the shared folder", async () => {
     render(
       <Keeping
@@ -1768,6 +1789,134 @@ describe("the first-run assistant", () => {
         .map((one) => one.cmd)
         .filter((cmd) => ["sync_now", "sow_lists", "guide"].includes(cmd)),
     ).toEqual(["sync_now", "sow_lists", "guide"]);
+  });
+
+  it("asks about the meeting place itself, not a folder below it", async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "strays_at" ? Promise.resolve({ adrift: 0, unreadable: false }) : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await waitFor(() => expect(sent("strays_at").length).toBe(1));
+    expect(sent("strays_at")[0].args.at).toBe("G:/My Drive/Tisty");
+    expect(sent("make_room")).toHaveLength(0);
+  });
+
+  it("says a folder whose history it could not read at all, not that it is empty", async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "strays_at" ? Promise.resolve({ adrift: 0, unreadable: true }) : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    const said = await screen.findByRole("alert");
+    expect(said.textContent).toMatch(/history could not be read/i);
+  });
+
+  it("says when the folder is holding documents no history accounts for", async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "strays_at"
+        ? Promise.resolve({ adrift: 239, unreadable: false })
+        : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    const said = await screen.findByRole("alert");
+    expect(said.textContent).toContain("239");
+  });
+
+  it("stays quiet about strays when the folder accounts for everything", async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "strays_at" ? Promise.resolve({ adrift: 0, unreadable: false }) : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await screen.findByRole("button", { name: /save here/i });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("says a carry that would not finish instead of going quiet", async () => {
+    const done = vi.fn();
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.reject({ code: "noMeetingPlace", name: "G:/My Drive/Tisty" })
+        : answered(cmd, args);
+    render(<Welcome onDone={done} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await screen.findByRole("alert");
+    expect(done).not.toHaveBeenCalled();
+    expect(sent("guide")).toHaveLength(0);
+  });
+
+  it("lets you in anyway once it has said what went wrong", async () => {
+    const done = vi.fn();
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.reject({ code: "noMeetingPlace", name: "G:/My Drive/Tisty" })
+        : answered(cmd, args);
+    render(<Welcome onDone={done} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await screen.findByRole("alert");
+
+    await userEvent.click(screen.getByRole("button", { name: /go in anyway/i }));
+
+    await waitFor(() => expect(done).toHaveBeenCalled());
+  });
+
+  it("asks about two histories where the trouble turned up, not in Settings", async () => {
+    const done = vi.fn();
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "sync_now") return Promise.reject({ code: "otherStore", name: "01ABC" });
+      if (cmd === "sync_kin") return Promise.resolve("strangers");
+      return answered(cmd, args);
+    };
+    render(<Welcome onDone={done} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await screen.findByText(/already holds another tisty/i);
+    expect(done).not.toHaveBeenCalled();
+  });
+
+  it("says what it is doing while the first round runs", async () => {
+    let letGo: () => void = () => {};
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? new Promise((keep) => {
+            letGo = () => keep({ carried: "came", undecided: [] });
+          })
+        : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await screen.findByRole("status");
+    letGo();
   });
 
   it("has nowhere to bring anything home from when you stay on this machine", async () => {

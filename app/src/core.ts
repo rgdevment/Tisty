@@ -332,6 +332,11 @@ export interface Told {
 
 export const keepers = (): Promise<Offering[]> => invoke("keepers");
 export const keeperOf = (at: string): Promise<Told> => invoke("keeper_of", { at });
+export interface Strays {
+  adrift: number;
+  unreadable: boolean;
+}
+export const straysAt = (at: string): Promise<Strays> => invoke("strays_at", { at });
 export const makeRoom = (at: string): Promise<void> => invoke("make_room", { at });
 export const sowLists = (): Promise<void> => invoke("sow_lists");
 

@@ -1,8 +1,17 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useState } from "react";
-import { chooseSync, type Keeper, keeperOf, keepers, makeRoom, type Offering } from "../core";
+import {
+  chooseSync,
+  type Keeper,
+  keeperOf,
+  keepers,
+  makeRoom,
+  type Offering,
+  type Strays,
+  straysAt,
+} from "../core";
 import { warningOf } from "../keepers";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 
 interface Props {
@@ -33,6 +42,19 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
   const [offers, setOffers] = useState<Offering[]>([]);
   const [standing, setStanding] = useState<Standing>();
   const [held, setHeld] = useState(false);
+  const [strays, setStrays] = useState<Strays>();
+
+  useEffect(() => {
+    setStrays(undefined);
+    if (!standing) return;
+    let mounted = true;
+    straysAt(standing.at)
+      .then((found) => mounted && setStrays(found))
+      .catch(() => undefined);
+    return () => {
+      mounted = false;
+    };
+  }, [standing]);
 
   useEffect(() => {
     keepers()
@@ -108,6 +130,30 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
           <span className="block text-[12.5px] font-semibold text-ink">{warning.said}</span>
           {warning.why}
         </div>
+
+        {strays?.unreadable && (
+          <div
+            role="alert"
+            className="rounded-lg border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
+          >
+            <span className="block text-[12.5px] font-semibold text-ink">
+              {t("keepersUnreadable")}
+            </span>
+            {t("keepersUnreadableWhy")}
+          </div>
+        )}
+
+        {(strays?.adrift ?? 0) > 0 && (
+          <div
+            role="alert"
+            className="rounded-lg border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
+          >
+            <span className="block text-[12.5px] font-semibold text-ink">
+              {fill("keepersStrays", `${strays?.adrift}`)}
+            </span>
+            {t("keepersStraysWhy")}
+          </div>
+        )}
 
         <div className="flex items-center gap-4 text-xs">
           <button

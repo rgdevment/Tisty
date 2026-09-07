@@ -501,7 +501,10 @@ export default function App() {
         if (caught.current || now.docs.every((one) => one.told !== false)) return;
         caught.current = true;
         return docsCatchUp()
-          .then((all) => setPapers((was) => steady(was, { folders: was.folders, docs: all })))
+          .then((all) => {
+            setPapers((was) => steady(was, { folders: was.folders, docs: all }));
+            if (all.some((one) => one.told === false && !one.gone)) caught.current = false;
+          })
           .catch(() => {
             caught.current = false;
           });
@@ -649,6 +652,11 @@ export default function App() {
       lookPapers();
       setCarried((was) => was + 1);
     });
+    const landed = listen<string>("carried", (far) => {
+      latest.current();
+      if (far.payload === "papers") lookPapers();
+      setCarried((was) => was + 1);
+    });
     const sound = listen<unknown>("chime", (rung) => {
       if (heard(rung.payload)) play(rung.payload);
     });
@@ -659,6 +667,7 @@ export default function App() {
       stop.then((off) => off()).catch(() => {});
       caught.then((off) => off()).catch(() => {});
       stirred.then((off) => off()).catch(() => {});
+      landed.then((off) => off()).catch(() => {});
       sound.then((off) => off()).catch(() => {});
       along.then((off) => off()).catch(() => {});
     };
