@@ -669,6 +669,8 @@ export default function Editor({
     if (!stale(value, mine.current, () => asMarkdown(editor))) return;
     mine.current = value;
     editor.commands.setContent(loosened(value), { emitUpdate: false });
+    const text = asMarkdown(editor);
+    if (text !== null) hands.current.onShaped?.(text);
   }, [editor, value]);
 
   /// The reader gets the keyboard without a caret: focus on the sheet moves nothing, while focus

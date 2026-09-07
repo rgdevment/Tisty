@@ -100,22 +100,39 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   },
 }));
 
+const reshaped = (said: string) => said.replace(/<\/?mark[^>]*>/g, "").trimEnd();
+
 vi.mock("../ui/Editor", () => ({
   default: ({
     value,
     label,
     onWrite,
+    onShaped,
   }: {
     value: string;
     label: string;
     onWrite: (text: string) => void;
+    onShaped?: (text: string) => void;
   }) => (
-    <textarea
-      aria-label={label}
-      data-testid="editor"
-      value={value}
-      onChange={(e) => onWrite(e.target.value)}
-    />
+    <>
+      <textarea
+        aria-label={label}
+        data-testid="editor"
+        value={value}
+        onChange={(e) => onWrite(e.target.value)}
+      />
+      <button
+        type="button"
+        data-testid="reshape"
+        onClick={() => {
+          const said = value.replace(/<\/?mark[^>]*>/g, "").trimEnd();
+          onShaped?.(said);
+          onWrite(said);
+        }}
+      >
+        reshape
+      </button>
+    </>
   ),
 }));
 
@@ -438,6 +455,38 @@ describe("reading a document", () => {
 
     await new Promise((soon) => setTimeout(soon, 900));
     expect(store.writes).toEqual([]);
+  });
+
+  it("writes nothing when what came back is what the editor made of it on the way in", async () => {
+    const doc = seedDoc({ title: "Guide" });
+    store.bodies[doc.file] = '# Guide\n\n| <mark data-pen="blue">hoy</mark> | lo que entiende |\n';
+    await boot();
+    await userEvent.click(
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Guide" }),
+    );
+    await screen.findByTestId("editor");
+
+    await userEvent.click(screen.getByTestId("reshape"));
+
+    await new Promise((soon) => setTimeout(soon, 900));
+    expect(store.writes).toEqual([]);
+  });
+
+  it("writes what you type after the editor settled the document in", async () => {
+    const doc = seedDoc({ title: "Guide" });
+    store.bodies[doc.file] = '# Guide\n\n| <mark data-pen="blue">hoy</mark> | lo que entiende |\n';
+    await boot();
+    await userEvent.click(
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Guide" }),
+    );
+    const editor = await screen.findByTestId("editor");
+    await userEvent.click(screen.getByTestId("reshape"));
+
+    fireEvent.change(editor, {
+      target: { value: `${reshaped(store.bodies[doc.file])}\n\nlo mio` },
+    });
+
+    await waitFor(() => expect(store.writes).toHaveLength(1));
   });
 
   it("writes nothing when all the editor changed was the line endings", async () => {
