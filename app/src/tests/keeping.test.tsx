@@ -1602,12 +1602,28 @@ describe("the maintenance panel", () => {
 
   it("reads its settings again once the welcome has been through", async () => {
     const { rerender } = render(
-      <Keeping onPack={() => {}} onUnpack={() => {}} greeted={0} onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />,
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        greeted={0}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
     );
     await data();
     const before = sent("settings").length;
 
-    rerender(<Keeping onPack={() => {}} onUnpack={() => {}} greeted={1} onGreet={() => {}} onChanged={() => {}} onDoc={() => {}} />);
+    rerender(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        greeted={1}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
 
     await waitFor(() => expect(sent("settings").length).toBe(before + 1));
   });
@@ -1632,7 +1648,15 @@ describe("the maintenance panel", () => {
 
   it("offers the welcome again, without touching what is written", async () => {
     const greet = vi.fn();
-    render(<Keeping onPack={() => {}} onUnpack={() => {}} onGreet={greet} onChanged={() => {}} onDoc={() => {}} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={greet}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
     await ready();
 
     await userEvent.click(await screen.findByRole("button", { name: /show it again/i }));
@@ -1643,7 +1667,15 @@ describe("the maintenance panel", () => {
 
   it("opens the guide instead of only saying where it went", async () => {
     const opened = vi.fn();
-    render(<Keeping onPack={() => {}} onUnpack={() => {}} onGreet={() => {}} onChanged={() => {}} onDoc={opened} />);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={opened}
+      />,
+    );
     await ready();
 
     await userEvent.click(await screen.findByRole("button", { name: /open the guide/i }));
