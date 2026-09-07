@@ -137,6 +137,9 @@ pub struct Step {
 #[derive(Default)]
 pub struct Along<'a> {
     pub also: Option<&'a Path>,
+    /// Locking a parcel, and opening one, are half the work and count in bytes rather than in
+    /// documents. Told apart so the window can name the stage instead of sitting at 100 %.
+    pub then: Option<&'a dyn Fn(Step)>,
     pub say: Option<&'a dyn Fn(Step)>,
 }
 
@@ -144,6 +147,16 @@ impl Along<'_> {
     fn at(&self, done: usize, whole: usize, bytes: u64) {
         if let Some(say) = self.say {
             say(Step { done, whole, bytes });
+        }
+    }
+
+    fn sealing(&self, done: u64, whole: u64) {
+        if let Some(then) = self.then.or(self.say) {
+            then(Step {
+                done: done as usize,
+                whole: whole as usize,
+                bytes: done,
+            });
         }
     }
 }
@@ -211,10 +224,13 @@ fn nonced(head: &[u8; 19], at: u32, last: bool) -> [u8; 24] {
     nonce
 }
 
-fn shut(from: &Path, into: &Path, number: &str) -> Result<()> {
+fn shut(from: &Path, into: &Path, number: &str, along: &Along) -> Result<()> {
     use chacha20poly1305::aead::{Aead, KeyInit};
     use rand_core::TryRngCore;
     use std::io::{Read, Write};
+
+    let whole = std::fs::metadata(from).map(|one| one.len()).unwrap_or(0);
+    let mut done = 0u64;
 
     let mut salt = [0u8; 16];
     let mut head = [0u8; 19];
@@ -260,14 +276,19 @@ fn shut(from: &Path, into: &Path, number: &str) -> Result<()> {
             break;
         }
         held = Some(block[..filled].to_vec());
+        done = done.saturating_add(filled as u64);
+        along.sealing(done, whole);
     }
     out.flush()?;
     Ok(())
 }
 
-fn opened(from: &Path, into: &Path, number: Option<&str>) -> Result<()> {
+fn opened(from: &Path, into: &Path, number: Option<&str>, along: &Along) -> Result<()> {
     use chacha20poly1305::aead::{Aead, KeyInit};
     use std::io::{Read, Write};
+
+    let sealed = std::fs::metadata(from).map(|one| one.len()).unwrap_or(0);
+    let mut read = 0u64;
 
     let Some(number) = number.filter(|one| !one.is_empty()) else {
         return Err(Error::ParcelLocked);
@@ -329,6 +350,8 @@ fn opened(from: &Path, into: &Path, number: Option<&str>) -> Result<()> {
             break;
         }
         at = at.checked_add(1).ok_or(Error::TooBig)?;
+        read = read.saturating_add(filled as u64);
+        along.sealing(read, sealed);
     }
     out.flush()?;
     Ok(())
@@ -386,7 +409,7 @@ pub fn written(
         (Ok(sent), Some(number)) => {
             let sealed =
                 Aside(into.with_file_name(format!(".{name}.{}.locked", std::process::id())));
-            shut(&aside.0, &sealed.0, number)
+            shut(&aside.0, &sealed.0, number, along)
                 .and_then(|()| std::fs::rename(&sealed.0, into).map_err(Error::Io))
                 .map(|()| sent)
         }
@@ -757,7 +780,7 @@ pub fn taken(
     if shut {
         std::fs::create_dir_all(&staged)?;
         let _ = crate::paths::ours_alone(&staged);
-        if let Err(e) = opened(from, &plain, number) {
+        if let Err(e) = opened(from, &plain, number, along) {
             let _ = std::fs::remove_dir_all(&staged);
             return Err(e);
         }

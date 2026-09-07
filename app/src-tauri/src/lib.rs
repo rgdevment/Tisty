@@ -3960,6 +3960,7 @@ async fn docs_pack(
     let asked = which.clone();
     let at = into.clone();
     let telling = along_the_way(&app, "packing");
+    let locking = along_the_way(&app, "locking");
     let sent = tauri::async_runtime::spawn_blocking(move || {
         tisty_core::parcel::written(
             &data,
@@ -3969,6 +3970,7 @@ async fn docs_pack(
             &tisty_core::parcel::Along {
                 also: beside.as_deref(),
                 say: Some(&telling),
+                then: Some(&locking),
             },
             number.as_deref(),
         )
@@ -4027,6 +4029,7 @@ async fn docs_take_out(
             &tisty_core::parcel::Along {
                 also: beside.as_deref(),
                 say: Some(&telling),
+                then: None,
             },
         )
     })
@@ -4080,6 +4083,7 @@ async fn docs_unpack(
     };
     let at = from.clone();
     let telling = along_the_way(&app, "landing");
+    let opening = along_the_way(&app, "opening");
     let (landed, ops) = tauri::async_runtime::spawn_blocking(move || {
         tisty_core::parcel::taken(
             &data,
@@ -4089,6 +4093,7 @@ async fn docs_unpack(
             &tisty_core::parcel::Along {
                 also: None,
                 say: Some(&telling),
+                then: Some(&opening),
             },
             number.as_deref(),
         )

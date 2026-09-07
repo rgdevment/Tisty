@@ -127,6 +127,8 @@ export const kept = (key: string): string[] => {
 const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
 
 const PARCEL = "tistyx";
+// Long enough to have walked away from: past this, the notice waits rather than fading.
+const AT_A_GLANCE = 20_000;
 
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -247,8 +249,16 @@ export default function App() {
     return Promise.resolve();
   };
 
-  const packing = (which: string[], named: string, number?: string) =>
-    spelled(named)
+  const said = (text: string, since: number) => {
+    setNote(text);
+    if (Date.now() - since < AT_A_GLANCE) {
+      setTimeout(() => setNote(null), 3200);
+    }
+  };
+
+  const packing = (which: string[], named: string, number?: string) => {
+    const since = Date.now();
+    return spelled(named)
       .catch(() => "tisty")
       .then((safe) =>
         intoFile({
@@ -273,15 +283,16 @@ export default function App() {
           );
           return;
         }
-        setNote(
+        said(
           many === 1 ? t("packedOne") : many ? fill("packed", String(many)) : t("packedAlone"),
+          since,
         );
-        setTimeout(() => setNote(null), 3200);
       })
       .catch((e) => {
         setAfoot(null);
         setError(saidPlainly(e));
       });
+  };
 
   const takeOutAll = () =>
     afoot
@@ -325,11 +336,12 @@ export default function App() {
           typeof at === "string" ? landing(at) : undefined,
         );
 
-  const landing = (at: string, said?: string) =>
-    Promise.resolve()
+  const landing = (at: string, number?: string) => {
+    const since = Date.now();
+    return Promise.resolve()
       .then(() => {
         setAfoot({ stage: "landing", far: 0, done: 0, whole: 0 });
-        return docsUnpack(at, said);
+        return docsUnpack(at, number);
       })
       .then((landed) => {
         setAfoot(null);
@@ -346,14 +358,14 @@ export default function App() {
           );
           return;
         }
-        setNote(
+        said(
           many === 1
             ? t("landedOne")
             : landed.folders
               ? fill("landedIn", String(many), String(landed.folders))
               : fill("landedAlone", String(many)),
+          since,
         );
-        setTimeout(() => setNote(null), 3200);
       })
       .catch((e) => {
         setAfoot(null);
@@ -368,6 +380,7 @@ export default function App() {
         }
         setError(saidPlainly(e));
       });
+  };
 
   const dropFolder = (folder: Folded) =>
     ask(fill("dropFolderSure", folder.name), { kind: "warning" })
