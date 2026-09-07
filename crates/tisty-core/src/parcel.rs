@@ -129,19 +129,24 @@ pub fn locked(at: &Path) -> bool {
     let mut head = [0u8; 8];
     std::fs::File::open(at)
         .and_then(|mut file| std::io::Read::read_exact(&mut file, &mut head))
-        .is_ok_and(|()| &head == LOCKED)
+        .is_ok_and(|()| head.starts_with(&LOCKED[..6]))
 }
 
-fn keyed(number: &str, salt: &[u8]) -> Result<[u8; 32]> {
-    let mut key = [0u8; 32];
-    let how = scrypt::Params::new(WORK, 8, 1, 32).map_err(|_| Error::WrongNumber)?;
-    scrypt::scrypt(number.as_bytes(), salt, &how, &mut key).map_err(|_| Error::WrongNumber)?;
+/// The key is worth more than the number it came from — a short number is only slow to guess,
+/// while the key it grinds out is not — so it is wiped rather than left in freed memory.
+fn keyed(number: &str, salt: &[u8], work: u8) -> Result<zeroize::Zeroizing<[u8; 32]>> {
+    let mut key = zeroize::Zeroizing::new([0u8; 32]);
+    let how = scrypt::Params::new(work, 8, 1, 32).map_err(|_| Error::WrongNumber)?;
+    // Composed first, so a number typed on a Mac and the same one typed on Windows are the same
+    // number rather than two spellings that grind out different keys.
+    let said = crate::text::composed(number);
+    scrypt::scrypt(said.as_bytes(), salt, &how, key.as_mut()).map_err(|_| Error::WrongNumber)?;
     Ok(key)
 }
 
-/// Each block is sealed under its own nonce: the salt's own bytes, then the block's number, then
-/// a byte that is only set on the last one. Truncating the file drops that byte with it, so a
-/// parcel that was cut short cannot read as a whole one.
+/// Each block is sealed under its own nonce: bytes of its own, then the block's number, then a
+/// byte that is only set on the last one. That byte lives in the nonce and not in the file, so a
+/// parcel cut short has a surviving tail that no longer authenticates as an ending.
 fn nonced(head: &[u8; 19], at: u32, last: bool) -> [u8; 24] {
     let mut nonce = [0u8; 24];
     nonce[..19].copy_from_slice(head);
@@ -152,17 +157,18 @@ fn nonced(head: &[u8; 19], at: u32, last: bool) -> [u8; 24] {
 
 fn shut(from: &Path, into: &Path, number: &str) -> Result<()> {
     use chacha20poly1305::aead::{Aead, KeyInit};
-    use rand_core::{RngCore, TryRngCore};
+    use rand_core::TryRngCore;
     use std::io::{Read, Write};
 
     let mut salt = [0u8; 16];
     let mut head = [0u8; 19];
-    let mut seed = rand_core::OsRng.unwrap_err();
-    seed.fill_bytes(&mut salt);
-    seed.fill_bytes(&mut head);
+    rand_core::OsRng
+        .try_fill_bytes(&mut salt)
+        .and_then(|()| rand_core::OsRng.try_fill_bytes(&mut head))
+        .map_err(|e| Error::Io(std::io::Error::other(e.to_string())))?;
 
-    let key = keyed(number, &salt)?;
-    let sealer = chacha20poly1305::XChaCha20Poly1305::new((&key).into());
+    let key = keyed(number, &salt, WORK)?;
+    let sealer = chacha20poly1305::XChaCha20Poly1305::new(key.as_ref().into());
 
     let mut plain = std::io::BufReader::new(std::fs::File::open(from)?);
     let mut out = std::io::BufWriter::new(std::fs::File::create(into)?);
@@ -207,7 +213,7 @@ fn opened(from: &Path, into: &Path, number: Option<&str>) -> Result<()> {
     use chacha20poly1305::aead::{Aead, KeyInit};
     use std::io::{Read, Write};
 
-    let Some(number) = number else {
+    let Some(number) = number.filter(|one| !one.is_empty()) else {
         return Err(Error::ParcelLocked);
     };
     let mut held = std::io::BufReader::new(std::fs::File::open(from)?);
@@ -215,12 +221,18 @@ fn opened(from: &Path, into: &Path, number: Option<&str>) -> Result<()> {
     let mut work = [0u8; 1];
     let mut salt = [0u8; 16];
     let mut head = [0u8; 19];
-    held.read_exact(&mut mark)?;
-    held.read_exact(&mut work)?;
-    held.read_exact(&mut salt)?;
-    held.read_exact(&mut head)?;
+    let short = |_| Error::NotAParcel(from.display().to_string());
+    held.read_exact(&mut mark).map_err(short)?;
+    held.read_exact(&mut work).map_err(short)?;
+    held.read_exact(&mut salt).map_err(short)?;
+    held.read_exact(&mut head).map_err(short)?;
     if &mark != LOCKED {
-        return Err(Error::NotAParcel(from.display().to_string()));
+        // Locked by a Tisty that seals them some other way: say so, rather than let it read as
+        // a wrong number or a broken file.
+        return match mark.starts_with(&LOCKED[..6]) {
+            true => Err(Error::ParcelNewer(0)),
+            false => Err(Error::NotAParcel(from.display().to_string())),
+        };
     }
 
     // The file says how hard its key was to make, and a file is not to be trusted: a number a
@@ -228,14 +240,13 @@ fn opened(from: &Path, into: &Path, number: Option<&str>) -> Result<()> {
     if work[0] < WORK_AT_LEAST || work[0] > WORK_AT_MOST {
         return Err(Error::NotAParcel(from.display().to_string()));
     }
-    let mut key = [0u8; 32];
-    let how = scrypt::Params::new(work[0], 8, 1, 32).map_err(|_| Error::WrongNumber)?;
-    scrypt::scrypt(number.as_bytes(), &salt, &how, &mut key).map_err(|_| Error::WrongNumber)?;
-    let sealer = chacha20poly1305::XChaCha20Poly1305::new((&key).into());
+    let key = keyed(number, &salt, work[0])?;
+    let sealer = chacha20poly1305::XChaCha20Poly1305::new(key.as_ref().into());
 
     let mut out = std::io::BufWriter::new(std::fs::File::create(into)?);
     let mut block = vec![0u8; BLOCK + TAG];
     let mut at = 0u32;
+    let mut bytes = 0u64;
     loop {
         let mut filled = 0;
         while filled < block.len() {
@@ -247,7 +258,16 @@ fn opened(from: &Path, into: &Path, number: Option<&str>) -> Result<()> {
         let last = filled < block.len();
         let plain = sealer
             .decrypt(&nonced(&head, at, last).into(), &block[..filled])
-            .map_err(|_| Error::WrongNumber)?;
+            // The first block answers for the key: forging its seal would take the key itself,
+            // so anything that fails later is a parcel that came apart, not a number typed wrong.
+            .map_err(|_| match at {
+                0 => Error::WrongNumber,
+                _ => Error::ParcelTorn,
+            })?;
+        bytes = bytes.saturating_add(plain.len() as u64);
+        if bytes > AT_MOST {
+            return Err(Error::TooBig);
+        }
         out.write_all(&plain)?;
         if last {
             break;
@@ -286,32 +306,47 @@ pub fn written(
         return Err(Error::NothingToCarry);
     }
 
-    // Written beside the destination and moved onto it at the end: exporting over last week's
-    // parcel must not cost it when this one turns out to have nothing to carry.
-    let aside = into.with_file_name(format!(
-        ".{}.{}.part",
-        into.file_name().unwrap_or_default().to_string_lossy(),
-        std::process::id()
-    ));
-    let made = filled(data, state, &papers, &aside, along);
-    let done = match (made, number) {
-        (Ok(sent), None) => std::fs::rename(&aside, into)
+    if number.is_some_and(str::is_empty) {
+        return Err(Error::WrongNumber);
+    }
+
+    // Written to one side and moved onto the destination at the end: exporting over last week's
+    // parcel must not cost it when this one turns out to have nothing to carry. What is going
+    // out locked is built inside the store, because the whole point of locking it is that the
+    // folder it lands in — a stick, a shared drive — never holds it in the clear.
+    let name = into.file_name().unwrap_or_default().to_string_lossy();
+    let aside = Aside(match number {
+        Some(_) => data.join(format!(".packing-{}.part", std::process::id())),
+        None => into.with_file_name(format!(".{name}.{}.part", std::process::id())),
+    });
+    if number.is_some() {
+        std::fs::create_dir_all(data)?;
+    }
+
+    let made = filled(data, state, &papers, &aside.0, along);
+    match (made, number) {
+        (Ok(sent), None) => std::fs::rename(&aside.0, into)
             .map(|()| sent)
             .map_err(Error::Io),
         (Ok(sent), Some(number)) => {
-            let sealed = aside.with_extension("locked");
-            let done = shut(&aside, &sealed, number)
-                .and_then(|()| std::fs::rename(&sealed, into).map_err(Error::Io))
-                .map(|()| sent);
-            if done.is_err() {
-                let _ = std::fs::remove_file(&sealed);
-            }
-            done
+            let sealed =
+                Aside(into.with_file_name(format!(".{name}.{}.locked", std::process::id())));
+            shut(&aside.0, &sealed.0, number)
+                .and_then(|()| std::fs::rename(&sealed.0, into).map_err(Error::Io))
+                .map(|()| sent)
         }
         (Err(e), _) => Err(e),
-    };
-    let _ = std::fs::remove_file(&aside);
-    done
+    }
+}
+
+/// A file that must not outlive the call that made it, whatever happens in between — a panic
+/// while packing would otherwise leave the whole of it lying about in the clear.
+struct Aside(std::path::PathBuf);
+
+impl Drop for Aside {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
 }
 
 fn filled(
@@ -677,7 +712,10 @@ fn carried(
     unlocked: bool,
 ) -> Result<(Landed, Vec<Op>)> {
     let file = std::fs::File::open(from)?;
-    let mut zip = zip::ZipArchive::new(file).map_err(zipped)?;
+    // Something that is not an archive at all is not a parcel either, and saying so beats
+    // handing back whatever the zip reader made of it.
+    let mut zip =
+        zip::ZipArchive::new(file).map_err(|_| Error::NotAParcel(from.display().to_string()))?;
     let manifest = manifest_in(&mut zip, from)?;
 
     let mine = crate::store::peek_identity(data.join("store"));
@@ -708,7 +746,14 @@ pub fn swept(data: &Path) {
         return;
     };
     let mine = format!(".landing-{}", std::process::id());
+    let packing = format!(".packing-{}.part", std::process::id());
     for at in entries.filter_map(|one| one.ok()).map(|one| one.path()) {
+        let named = at.file_name().and_then(|one| one.to_str()).unwrap_or("");
+        // A parcel half built by a process that is gone holds everything in the clear.
+        if !at.is_dir() && named.starts_with(".packing-") && named != packing {
+            let _ = std::fs::remove_file(&at);
+            continue;
+        }
         let stale = at.is_dir()
             && at
                 .file_name()

@@ -2047,6 +2047,7 @@ const REFUSALS: &[&str] = &[
     "parcelNewer",
     "parcelLocked",
     "wrongNumber",
+    "parcelTorn",
     "nothingToCarry",
     "stillPacking",
     "aliasTooLong",
@@ -4097,6 +4098,7 @@ async fn docs_unpack(
         tisty_core::Error::ParcelNewer(_) => Refusal::of("parcelNewer"),
         tisty_core::Error::ParcelLocked => Refusal::of("parcelLocked"),
         tisty_core::Error::WrongNumber => Refusal::of("wrongNumber"),
+        tisty_core::Error::ParcelTorn => Refusal::of("parcelTorn"),
         tisty_core::Error::TooBig => Refusal::of("tooBig"),
         other => blamed(channel::WINDOW, "a parcel could not be taken in", other),
     })?;

@@ -941,7 +941,7 @@ fn a_locked_parcel_cut_short_does_not_open_as_a_whole_one() {
     let whole = std::fs::read(&box_at).unwrap();
     assert!(whole.len() > 64 * 1024, "the parcel fit in a single block");
 
-    let mut fresh = Room::new(room.path(), "fresh");
+    let fresh = Room::new(room.path(), "fresh");
     let (landed, _) = parcel::taken(
         &fresh.data,
         &fresh.state,
@@ -954,7 +954,7 @@ fn a_locked_parcel_cut_short_does_not_open_as_a_whole_one() {
     assert_eq!(landed.docs, 1, "a parcel of several blocks did not open");
 
     std::fs::write(&box_at, &whole[..whole.len() - 4_000]).unwrap();
-    let mut cut = Room::new(room.path(), "cut");
+    let cut = Room::new(room.path(), "cut");
     assert!(
         parcel::taken(
             &cut.data,
@@ -966,6 +966,217 @@ fn a_locked_parcel_cut_short_does_not_open_as_a_whole_one() {
         )
         .is_err(),
         "a parcel cut short opened as if it were whole"
+    );
+}
+
+#[test]
+fn a_parcel_cannot_ask_us_to_grind_whatever_it_likes() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc(
+        "# Acta
+
+lo mio",
+        None,
+        None,
+    );
+    let box_at = room.path().join("hostil.tistyx");
+    parcel::written(
+        &here.data,
+        &here.state,
+        &[],
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+
+    // The ninth byte is what the file says its key cost to make.
+    let mut whole = std::fs::read(&box_at).unwrap();
+    whole[8] = 30;
+    std::fs::write(&box_at, &whole).unwrap();
+
+    let fresh = Room::new(room.path(), "fresh");
+    assert!(
+        matches!(
+            parcel::taken(
+                &fresh.data,
+                &fresh.state,
+                &fresh.dev.clone(),
+                &box_at,
+                &Along::default(),
+                Some("123456")
+            ),
+            Err(tisty_core::Error::NotAParcel(_))
+        ),
+        "a file talked us into grinding a gigabyte on its say-so"
+    );
+}
+
+#[test]
+fn a_body_that_fills_its_blocks_exactly_comes_back_whole() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    // Sealed in blocks of 64 KiB, so a zip that lands on the boundary ends with a block of no
+    // bytes at all — the one place the loop could drop the ending and not notice.
+    for n in 0..40 {
+        let mut seed = 0x2545_f491_4f6c_dd1du64 ^ n;
+        let mut body = format!(
+            "# Uno {n}
+
+"
+        );
+        for _ in 0..4_000 {
+            seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+            body.push(char::from(b'a' + ((seed >> 33) % 26) as u8));
+        }
+        here.doc(&body, None, None);
+    }
+    let box_at = room.path().join("justo.tistyx");
+    parcel::written(
+        &here.data,
+        &here.state,
+        &[],
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+
+    let fresh = Room::new(room.path(), "fresh");
+    let (landed, _) = parcel::taken(
+        &fresh.data,
+        &fresh.state,
+        &fresh.dev.clone(),
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+    assert_eq!(landed.docs, 40);
+    assert_eq!(landed.missed, 0);
+}
+
+#[test]
+fn a_number_that_is_no_number_locks_nothing() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc(
+        "# Acta
+
+lo mio",
+        None,
+        None,
+    );
+    let box_at = room.path().join("vacio.tistyx");
+
+    assert!(
+        matches!(
+            parcel::written(
+                &here.data,
+                &here.state,
+                &[],
+                &box_at,
+                &Along::default(),
+                Some("")
+            ),
+            Err(tisty_core::Error::WrongNumber)
+        ),
+        "a parcel locked with nothing at all says it is locked"
+    );
+    assert!(!box_at.exists(), "it left the parcel behind anyway");
+}
+
+#[test]
+fn nothing_of_a_locked_parcel_is_left_in_the_clear_where_it_was_written() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc(
+        "# Acta
+
+lo mio",
+        None,
+        None,
+    );
+    let out = room.path().join("salida");
+    std::fs::create_dir_all(&out).unwrap();
+
+    parcel::written(
+        &here.data,
+        &here.state,
+        &[],
+        &out.join("mudanza.tistyx"),
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+
+    let left: Vec<String> = std::fs::read_dir(&out)
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .map(|one| one.file_name().to_string_lossy().to_string())
+        .collect();
+    assert_eq!(
+        left,
+        ["mudanza.tistyx"],
+        "something other than the locked parcel stayed at the destination"
+    );
+    for at in std::fs::read_dir(&here.data)
+        .unwrap()
+        .filter_map(|one| one.ok())
+    {
+        assert!(
+            !at.file_name().to_string_lossy().starts_with(".packing-"),
+            "the clear copy stayed inside the store"
+        );
+    }
+}
+
+#[test]
+fn a_parcel_that_opens_and_then_comes_apart_is_not_a_wrong_number() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let mut seed = 0x9e37_79b9_7f4a_7c15u64;
+    let mut body = String::from(
+        "# Largo
+
+",
+    );
+    for _ in 0..200_000 {
+        seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+        body.push(char::from(b'a' + ((seed >> 33) % 26) as u8));
+    }
+    here.doc(&body, None, None);
+    let box_at = room.path().join("largo.tistyx");
+    parcel::written(
+        &here.data,
+        &here.state,
+        &[],
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+
+    let mut whole = std::fs::read(&box_at).unwrap();
+    let end = whole.len() - 1;
+    whole[end] ^= 0x40;
+    std::fs::write(&box_at, &whole).unwrap();
+
+    let fresh = Room::new(room.path(), "fresh");
+    assert!(
+        matches!(
+            parcel::taken(
+                &fresh.data,
+                &fresh.state,
+                &fresh.dev.clone(),
+                &box_at,
+                &Along::default(),
+                Some("123456")
+            ),
+            Err(tisty_core::Error::ParcelTorn)
+        ),
+        "a parcel that came apart was blamed on the number"
     );
 }
 

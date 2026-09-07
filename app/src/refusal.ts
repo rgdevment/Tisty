@@ -69,6 +69,7 @@ const KNOWN = [
   "parcelNewer",
   "parcelLocked",
   "wrongNumber",
+  "parcelTorn",
   "nothingToCarry",
   "stillPacking",
   "aliasTooLong",

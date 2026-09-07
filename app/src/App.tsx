@@ -196,7 +196,7 @@ export default function App() {
   const [note, setNote] = useState<string | null>(null);
   const [afoot, setAfoot] = useState<Afoot | null>(null);
   const [whoFor, setWhoFor] = useState<string | null>(null);
-  const [moving, setMoving] = useState<string | null>(null);
+  const [movingTo, setMovingTo] = useState<string | null>(null);
   const [locked, setLocked] = useState<string | null>(null);
   const [number, setNumber] = useState("");
   const [wrong, setWrong] = useState(false);
@@ -240,12 +240,12 @@ export default function App() {
   // refuses it anyway, leaving the bar gone and the first one's success unsaid.
   // Everything at once is the one that may be a move rather than a hand-over, so it asks first;
   // a single document is always somebody else's to keep.
-  const packUp = (which: string[], named: string) =>
-    afoot
-      ? Promise.resolve()
-      : which.length
-        ? packing(which, named)
-        : (setWhoFor(named), undefined);
+  const packUp = (which: string[], named: string) => {
+    if (afoot) return Promise.resolve();
+    if (which.length) return packing(which, named);
+    setWhoFor(named);
+    return Promise.resolve();
+  };
 
   const packing = (which: string[], named: string, number?: string) =>
     spelled(named)
@@ -1019,6 +1019,24 @@ export default function App() {
     setSelected(undefined);
   };
 
+  const lockAndPack = () => {
+    if (movingTo === null || number.length < HOW_MANY) return;
+    const named = movingTo;
+    const said = number;
+    setMovingTo(null);
+    setNumber("");
+    packing([], named, said);
+  };
+
+  const openLocked = () => {
+    if (locked === null || number.length < HOW_MANY) return;
+    const at = locked;
+    const said = number;
+    setLocked(null);
+    setNumber("");
+    landing(at, said);
+  };
+
   return (
     <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
       <WindowChrome />
@@ -1029,12 +1047,19 @@ export default function App() {
           <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
             <button
               type="button"
+              onClick={() => setWhoFor(null)}
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-faint hover:text-ink"
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 const named = whoFor;
                 setWhoFor(null);
                 packing([], named);
               }}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-faint hover:text-ink"
+              className="cursor-pointer rounded-lg border border-line px-3 py-1.5 text-ink hover:bg-line/30"
             >
               {t("packToShare")}
             </button>
@@ -1042,7 +1067,7 @@ export default function App() {
               type="button"
               onClick={() => {
                 setNumber("");
-                setMoving(whoFor);
+                setMovingTo(whoFor);
                 setWhoFor(null);
               }}
               className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg"
@@ -1053,22 +1078,37 @@ export default function App() {
         </Modal>
       )}
 
-      {moving !== null && (
-        <Modal title={t("packToMove")} onClose={() => setMoving(null)}>
+      {movingTo !== null && (
+        <Modal
+          title={t("packToMove")}
+          onClose={() => {
+            setMovingTo(null);
+            setNumber("");
+          }}
+        >
           <p className="mt-3 text-[12.5px] text-soft">{t("packNumber")}</p>
-          <Digits label={t("packNumber")} value={number} onChange={setNumber} />
+          <Digits
+            label={t("packNumber")}
+            value={number}
+            onChange={setNumber}
+            onDone={lockAndPack}
+          />
           <p className="mt-3 text-[11.5px] leading-relaxed text-faint">{t("packNumberWhy")}</p>
           <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
             <button
               type="button"
-              disabled={number.length < HOW_MANY}
               onClick={() => {
-                const named = moving;
-                const said = number;
-                setMoving(null);
+                setMovingTo(null);
                 setNumber("");
-                packing([], named, said);
               }}
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-faint hover:text-ink"
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              disabled={number.length < HOW_MANY}
+              onClick={lockAndPack}
               className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
             >
               {t("packLockIt")}
@@ -1078,8 +1118,15 @@ export default function App() {
       )}
 
       {locked !== null && (
-        <Modal title={t("parcelLocked")} onClose={() => setLocked(null)}>
-          <p className="mt-3 text-[12.5px] text-soft">{t("openNumber")}</p>
+        <Modal
+          title={t("parcelShut")}
+          onClose={() => {
+            setLocked(null);
+            setNumber("");
+          }}
+        >
+          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("parcelLocked")}</p>
+          <p className="mt-4 text-[12.5px] text-soft">{t("openNumber")}</p>
           <Digits
             label={t("openNumber")}
             value={number}
@@ -1087,19 +1134,28 @@ export default function App() {
               setWrong(false);
               setNumber(said);
             }}
+            onDone={openLocked}
           />
-          {wrong && <p className="mt-3 text-[11.5px] text-urgent">{t("wrongNumber")}</p>}
+          {wrong && (
+            <p role="alert" className="mt-3 text-[11.5px] text-urgent">
+              {t("wrongNumber")}
+            </p>
+          )}
           <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
             <button
               type="button"
-              disabled={number.length < HOW_MANY}
               onClick={() => {
-                const at = locked;
-                const said = number;
                 setLocked(null);
                 setNumber("");
-                landing(at, said);
               }}
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-faint hover:text-ink"
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              disabled={number.length < HOW_MANY}
+              onClick={openLocked}
               className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
             >
               {t("openLocked")}

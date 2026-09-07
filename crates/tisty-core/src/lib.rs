@@ -58,6 +58,8 @@ pub enum Error {
     ParcelLocked,
     #[error("that is not the number this parcel was locked with")]
     WrongNumber,
+    #[error("that parcel opened, and then came apart: it did not arrive whole")]
+    ParcelTorn,
     #[error("there is nothing here to carry out")]
     NothingToCarry,
     #[error("that backup belongs to another store ({theirs})")]
@@ -117,6 +119,7 @@ impl Error {
             Error::ParcelNewer(_) => "parcelNewer",
             Error::ParcelLocked => "parcelLocked",
             Error::WrongNumber => "wrongNumber",
+            Error::ParcelTorn => "parcelTorn",
             Error::NothingToCarry => "nothingToCarry",
             Error::OtherStore { .. } => "otherStore",
             Error::TooBig => "tooBig",

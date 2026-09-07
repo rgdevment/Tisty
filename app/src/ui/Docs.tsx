@@ -418,7 +418,6 @@ export default function Docs({
 
   const preview = async () => {
     if (!open || making) return;
-    setSigning(false);
     setMaking(true);
     try {
       const blob = await blobOf(signing ? await signature(open.file) : undefined);
@@ -737,7 +736,13 @@ export default function Docs({
         </div>
       )}
       {pdfAsked && open && (
-        <Modal title={t("toPdf")} onClose={() => setPdfAsked(false)}>
+        <Modal
+          title={t("toPdf")}
+          onClose={() => {
+            setPdfAsked(false);
+            setSigning(false);
+          }}
+        >
           <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("pdfSignWhy")}</p>
           <label className="mt-4 flex items-center gap-2.5 text-[13px]">
             <input
@@ -751,7 +756,10 @@ export default function Docs({
           <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
             <button
               type="button"
-              onClick={() => setPdfAsked(false)}
+              onClick={() => {
+                setPdfAsked(false);
+                setSigning(false);
+              }}
               className="rounded-lg px-3 py-1.5 text-faint hover:text-ink"
             >
               {t("cancel")}

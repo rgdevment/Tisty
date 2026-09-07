@@ -340,7 +340,12 @@ impl State {
                     }
                     kept.wrote = Some(event.timestamp);
                     kept.wrote_by = Some(event.device.clone());
-                    kept.edited_by = d.by.clone();
+                    // A note with no hand on it says nothing about whose it was, which is not
+                    // the same as saying nobody's: settling a body read from disk must not wipe
+                    // the name the machine that wrote it put there.
+                    if let Some(by) = &d.by {
+                        kept.edited_by = Some(by.clone());
+                    }
                 }
             }
             Op::DocMove { id, d } => {
