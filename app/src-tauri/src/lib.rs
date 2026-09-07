@@ -3576,6 +3576,13 @@ fn doc_write(
         return Err(Refusal::about("documentMoved", id));
     }
     let root = session.paths.docs();
+    if tisty_core::docs::read(&root, &id).is_ok_and(|was| tisty_core::docs::unchanged(&was, &body))
+    {
+        return Ok(tisty_core::docs::Doc {
+            title: tisty_core::docs::titled(&body),
+            id,
+        });
+    }
     tisty_core::docs::write(&root, &id, &body).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {
             Refusal::about("documentTooLong", weighed(limit))

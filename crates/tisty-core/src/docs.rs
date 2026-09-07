@@ -432,6 +432,13 @@ pub fn settled(body: &str) -> String {
     format!("{body}\n")
 }
 
+/// The editor hands back what it loaded with its own line endings and without the last newline,
+/// and neither is a change somebody made.
+pub fn unchanged(was: &str, now: &str) -> bool {
+    let plain = |said: &str| settled(&said.replace("\r\n", "\n"));
+    plain(was) == plain(now)
+}
+
 /// One door for every writer: a body read by one is never written under another.
 pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
     alone(root, || written(root, id, body))
@@ -1327,6 +1334,16 @@ fn opening(at: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn line_endings_and_the_last_newline_are_not_a_change_anybody_made() {
+        let told = "# Guia\r\n\r\nlo escrito\r\n";
+
+        assert!(super::unchanged(told, "# Guia\n\nlo escrito\n"));
+        assert!(super::unchanged(told, "# Guia\n\nlo escrito"));
+        assert!(super::unchanged("# Guia\n", "# Guia"));
+        assert!(!super::unchanged(told, "# Guia\n\nlo escrito ya no\n"));
+    }
 
     #[test]
     fn the_other_copy_is_always_told_apart_from_this_one() {

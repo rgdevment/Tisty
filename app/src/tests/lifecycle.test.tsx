@@ -439,6 +439,22 @@ describe("reading a document", () => {
     await new Promise((soon) => setTimeout(soon, 900));
     expect(store.writes).toEqual([]);
   });
+
+  it("writes nothing when all the editor changed was the line endings", async () => {
+    const doc = seedDoc({ title: "Guide" });
+    const read = ["# Guide", "", "what it holds", ""].join("\r\n");
+    store.bodies[doc.file] = read;
+    await boot();
+    await userEvent.click(
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Guide" }),
+    );
+    const editor = await screen.findByTestId("editor");
+
+    fireEvent.change(editor, { target: { value: read.replace(/\r\n/g, "\n").trimEnd() } });
+
+    await new Promise((soon) => setTimeout(soon, 900));
+    expect(store.writes).toEqual([]);
+  });
 });
 
 describe("deleting a document", () => {
