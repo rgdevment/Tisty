@@ -161,6 +161,19 @@ export default function Welcome({ onDone }: Props) {
       .finally(() => setBusy(false));
   };
 
+  const settle = () =>
+    joining()
+      .then((how) => {
+        setBusy(false);
+        if (!how.fresh || !how.holds) return carryOn();
+        setCarrying(false);
+        setOffer(how);
+      })
+      .catch(() => {
+        setBusy(false);
+        return carryOn();
+      });
+
   const chose = (at?: string) => {
     setTrouble(undefined);
     setStuck(undefined);
@@ -169,19 +182,7 @@ export default function Welcome({ onDone }: Props) {
       return;
     }
     setBusy(true);
-    joining()
-      .then((how) => {
-        setBusy(false);
-        if (how.fresh && how.holds) {
-          setOffer(how);
-          return;
-        }
-        return carryOn();
-      })
-      .catch(() => {
-        setBusy(false);
-        return carryOn();
-      });
+    void settle();
   };
 
   const takeItAll = () => {
@@ -196,7 +197,11 @@ export default function Welcome({ onDone }: Props) {
     if (door === null) return setStuck(t("wouldReset"));
     setCarrying(true);
     walkThrough(door)
-      .then((gone) => (gone ? round().then(() => next()) : setStuck(t("wouldReset"))))
+      .then((gone) => {
+        if (!gone) return setStuck(t("wouldReset"));
+        if (door === "else") return settle();
+        return round().then(() => next());
+      })
       .catch((e) => {
         if (!went.current) setStuck(saidPlainly(e));
       })
