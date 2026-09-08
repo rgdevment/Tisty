@@ -5817,8 +5817,9 @@ lo mio"
             "a history handed on came out different from the one that was written"
         );
         let said = String::from_utf8(handed).unwrap();
+        let stamped = format!("\"v\":{}", tisty_core::event::SCHEMA_VERSION);
         for kept in [
-            "\"v\":11",
+            stamped.as_str(),
             "person.signed",
             "mario@example.com",
             "\"guest\":true",

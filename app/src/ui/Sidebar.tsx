@@ -14,6 +14,7 @@ interface Props {
   onChoose: (chosen: Chosen) => void;
 
   here?: string | null;
+  acting?: string | null;
   onHere: (folder?: string) => void;
   onMove: (folder: string, parent?: string, before?: string) => void;
   onFile: (doc: string, folder?: string, before?: string) => void;
@@ -41,6 +42,7 @@ export default function Sidebar({
   waiting,
   onChoose,
   here,
+  acting,
   onHere,
   onMove,
   onFile,
@@ -105,6 +107,7 @@ export default function Sidebar({
             papers={papers}
             open={chosen.doc}
             here={here}
+            acting={acting}
             onHere={onHere}
             onMove={onMove}
             onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}

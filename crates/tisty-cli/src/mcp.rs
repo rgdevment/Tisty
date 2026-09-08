@@ -71,6 +71,8 @@ into it, but you can never delete or rename one.
 
 A document can be locked, and a locked one is refused every write: not `write_doc`, not `append_doc`, not `edit_doc`, not `attach`, not hanging a page off it. Its pages are shut with it — `page_doc` neither hangs one off it nor takes one out — and a page is never locked on its own. Filing it in a folder and putting it away still work: what the lock guards is what the document says and what it holds. `docs` and `read_doc` both say so, so you can see it before you try. Only the person can unlock it, from the window — there is no tool for it here, on purpose. A lock is not the archive, though neither one is written in: an archived document is finished, a locked one is guarded. Bring it back with `archive_doc` and it writes again; a lock only the person can lift, from the window.
 
+A whole folder can be in the archive too, and then everything under it is — every subfolder, every document, every page — without any of them being marked one by one. What the archive reaches that way is read, exported and packed as always, and written by nobody: no `write_doc`, no `append_doc`, no `edit_doc`, no `attach`, no `page_doc`, no `file_doc` in or out of it, and nothing new goes into that folder — `write_doc` with it as `folder`, `import_doc`, and `folder` naming it as `inside` are all refused, as is changing how it looks. A document in there has no door of its own: `archive_doc` will not hand it back, because only the folder can be brought back, and only by the person from the window. Its own mark is kept untouched while it waits, so a document somebody had archived by hand stays archived when the folder returns.
+
 A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
 A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `edit_doc` that line into the place it belongs — moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
@@ -690,7 +692,7 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
                      window, not you. Ask them to unlock it if the file truly has to go there."
                 )));
             }
-            match kept.archived {
+            match state.held_away(kept) {
                 true => Err(Refused::Tool(format!(
                     "{which:?} is put away, so nothing more goes into it. Keep the file with a \
                      task, or in a document that is still open."
@@ -988,7 +990,7 @@ fn over_again(
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
-    if kept.archived {
+    if state.held_away(kept) {
         return Err(Refused::Tool(format!(
             "{which:?} is put away, so nothing is written over it."
         )));
@@ -1238,7 +1240,7 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                      belongs to."
                 )));
             }
-            if up.archived {
+            if state.held_away(up) {
                 return Err(Refused::Tool(format!(
                     "{said} is put away, and a page of it would be put away unread. Write a \
                      document of its own instead."
@@ -1353,7 +1355,7 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
-    if kept.archived {
+    if state.held_away(kept) {
         return Err(Refused::Tool(format!(
             "{which:?} is put away, so nothing more goes into it. Write a new document instead."
         )));
@@ -1425,7 +1427,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
-    if kept.archived {
+    if state.held_away(kept) {
         return Err(Refused::Tool(format!(
             "{which:?} is put away, so it is not edited any more."
         )));
@@ -1507,6 +1509,11 @@ fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId
     if let Ok(id) = said.parse::<Ulid>()
         && state.folders.contains_key(&id)
     {
+        if state.folder_away(id) {
+            return Err(Refused::Tool(format!(
+                "{said:?} is in the archive, so nothing new goes into it. The person brings it                  back from the window when it is meant to be used again."
+            )));
+        }
         return Ok(id);
     }
     let wanted = tisty_core::text::folded(said);
@@ -1517,6 +1524,9 @@ fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId
         .collect();
 
     match hit.as_slice() {
+        [one] if state.folder_away(one.id) => Err(Refused::Tool(format!(
+            "{said:?} is in the archive, so nothing new goes into it. The person brings it back              from the window when it is meant to be used again."
+        ))),
         [one] => Ok(one.id),
         [] => Err(Refused::Tool(format!(
             "no folder here is called {said:?}. `docs` lists the ones that exist, and `folder` \
@@ -1552,8 +1562,8 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .docs
         .values()
         .filter(|one| match scope {
-            tisty_core::view::Scope::Open => !one.archived,
-            tisty_core::view::Scope::Archived => one.archived,
+            tisty_core::view::Scope::Open => !state.held_away(one),
+            tisty_core::view::Scope::Archived => state.held_away(one),
             tisty_core::view::Scope::Either => true,
         })
         .collect();
@@ -1571,7 +1581,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 "folder": one.folder.map(|at| trail(&state, at)),
                 "page_of": one.page_of.and_then(|up| named_doc(&state, up)),
                 "pages": state.pages_of(one.id).len(),
-                "archived": one.archived,
+                "archived": state.held_away(one),
                 "locked": state.shut(one.id),
             })
         })
@@ -2172,6 +2182,14 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{which} is a page of {up}, and a page is put away with the document that holds it. Name {up} instead, or take the page out first with `page_doc`."
         )));
     }
+    // A folder in the archive answers for everything under it, so the document has no say while
+    // it is there. The shortcut below compares its own mark, or archiving one that is already
+    // away by its folder would be swallowed and lost when the folder comes back.
+    if !kept.archived && state.held_away(kept) {
+        return Err(Refused::Tool(format!(
+            "{which} is in the archive with the folder that holds it, so it does not come back              on its own. The person brings the folder back from the window."
+        )));
+    }
     if kept.archived == away {
         return Ok(told(
             match away {
@@ -2227,6 +2245,12 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(Refused::Tool(format!(
             "{which} is a page of {up}, and a page is kept where its document is. `page_doc` \
              takes it out as a document of its own first."
+        )));
+    }
+    if state.held_away(kept) {
+        return Err(Refused::Tool(format!(
+            "{which} is in the archive, and what the archive holds stays where it was put. \
+             The person brings it back from the window first."
         )));
     }
     let folder = match text(args, "folder") {
@@ -2299,7 +2323,7 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                      belongs to."
                 )));
             }
-            if up.archived {
+            if state.held_away(up) {
                 return Err(Refused::Tool(format!(
                     "{said} is put away, and a page of it is put away with it. Leave {which} \
                      where it is."
@@ -2318,7 +2342,7 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 )));
             }
             // Hanging takes the archive of what it hangs from, and nothing can hand it back.
-            if kept.archived {
+            if state.held_away(kept) {
                 return Err(Refused::Tool(format!(
                     "{which} is put away. Bring it back before making it a page, or it leaves \
                      the archive with no way of returning."
@@ -2408,6 +2432,12 @@ fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .values()
         .find(|one| tisty_core::text::folded(&one.name) == wanted)
     {
+        if state.folder_away(one.id) && (icon.is_some() || color.is_some()) {
+            return Err(Refused::Tool(format!(
+                "{:?} is in the archive, and what it looks like is not changed while it is there.",
+                one.name
+            )));
+        }
         if icon.is_some() || color.is_some() {
             store
                 .append(Op::FolderLook {
@@ -2546,7 +2576,7 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let folder = kept.folder.map(|at| trail(&state, at));
     let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
-    let said = match kept.archived {
+    let said = match state.held_away(kept) {
         true => format!("(This document is put away — the person archived it.)\n\n{body}"),
         false => body.clone(),
     };
@@ -2563,7 +2593,7 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .iter()
                 .map(|one| one.file.clone())
                 .collect::<Vec<_>>(),
-            "archived": kept.archived,
+            "archived": state.held_away(kept),
             "locked": state.shut(kept.id),
             "print": tisty_core::attach::printed(body.as_bytes()),
         }),
@@ -2614,15 +2644,15 @@ fn papers_matching(
         .docs
         .values()
         .filter(|one| match scope {
-            tisty_core::view::Scope::Open => !one.archived,
-            tisty_core::view::Scope::Archived => one.archived,
+            tisty_core::view::Scope::Open => !state.held_away(one),
+            tisty_core::view::Scope::Archived => state.held_away(one),
             tisty_core::view::Scope::Either => true,
         })
         .map(|one| {
             (
                 one.file.clone(),
                 (
-                    one.archived,
+                    state.held_away(one),
                     one.page_of.and_then(|up| named_doc(state, up)),
                 ),
             )

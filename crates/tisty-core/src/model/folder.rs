@@ -22,6 +22,8 @@ pub struct Folder {
     pub icon: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub archived: bool,
 }
 
 impl Folder {
@@ -33,6 +35,7 @@ impl Folder {
             parent: None,
             icon: None,
             color: None,
+            archived: false,
         }
     }
 }

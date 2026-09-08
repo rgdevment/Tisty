@@ -10,18 +10,69 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const papers: Papers = {
   folders: [
-    { id: "01F", name: "trabajo", parent: null, icon: "work", holds: 3 },
-    { id: "01G", name: "corporativo", parent: "01F", icon: null, holds: 1 },
-    { id: "01H", name: "personal", parent: null, icon: null, holds: 0 },
+    {
+      id: "01F",
+      name: "trabajo",
+      parent: null,
+      icon: "work",
+      holds: 3,
+      archived: false,
+      away: false,
+    },
+    {
+      id: "01G",
+      name: "corporativo",
+      parent: "01F",
+      icon: null,
+      holds: 1,
+      archived: false,
+      away: false,
+    },
+    {
+      id: "01H",
+      name: "personal",
+      parent: null,
+      icon: null,
+      holds: 0,
+      archived: false,
+      away: false,
+    },
   ],
   docs: [
-    { id: "01A", file: "a3f1-0001", title: "Compras", folder: "01F", archived: false },
-    { id: "01B", file: "a3f1-0002", title: "Contrato", folder: "01G", archived: false },
-    { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null, archived: false },
-    { id: "01D", file: "a3f1-0004", title: "", folder: null, archived: false },
-    { id: "01E", file: "a3f1-0005", title: "Viejo", folder: "01F", archived: true },
-    { id: "01J", file: "a3f1-0006", title: "", folder: null, archived: false, gone: true },
+    { id: "01A", file: "a3f1-0001", title: "Compras", folder: "01F", archived: false, away: false },
+    {
+      id: "01B",
+      file: "a3f1-0002",
+      title: "Contrato",
+      folder: "01G",
+      archived: false,
+      away: false,
+    },
+    { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null, archived: false, away: false },
+    { id: "01D", file: "a3f1-0004", title: "", folder: null, archived: false, away: false },
+    { id: "01E", file: "a3f1-0005", title: "Viejo", folder: "01F", archived: true, away: true },
+    {
+      id: "01J",
+      file: "a3f1-0006",
+      title: "",
+      folder: null,
+      archived: false,
+      away: false,
+      gone: true,
+    },
   ],
+};
+
+/// The tree arrives folded, so anything a test wants to reach has to be opened first.
+const unfoldAll = () => {
+  for (let round = 0; round < 8; round += 1) {
+    const shut = screen.queryAllByRole("button", { name: /^Open / });
+    const shelf = screen
+      .queryAllByRole("button", { name: "Archived" })
+      .filter((one) => one.getAttribute("aria-expanded") === "false");
+    if (shut.length === 0 && shelf.length === 0) return;
+    for (const one of [...shut, ...shelf]) fireEvent.click(one);
+  }
 };
 
 const rail = (row: HTMLElement): HTMLElement => {
@@ -48,8 +99,55 @@ describe("the document tree", () => {
         onDocMenu={onDocMenu}
       />,
     );
+    unfoldAll();
     return { onFile, onOpen, onFolderMenu, onDocMenu, onHere, onMove };
   };
+
+  it("arrives with every branch folded, however much it holds", () => {
+    render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Open trabajo" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Compras" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Suelto" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Archived" }).getAttribute("aria-expanded")).toBe(
+      "false",
+    );
+  });
+
+  it("keeps a whole folder on the shelf, with what it holds still inside it", () => {
+    const shelved: Papers = {
+      folders: [
+        { id: "F1", name: "linio", parent: null, icon: null, holds: 2, archived: true, away: true },
+        { id: "F2", name: "bob", parent: "F1", icon: null, holds: 1, archived: false, away: true },
+        {
+          id: "F3",
+          name: "vivo",
+          parent: null,
+          icon: null,
+          holds: 1,
+          archived: false,
+          away: false,
+        },
+      ],
+      docs: [
+        { id: "D1", file: "f1", title: "Contratos", folder: "F1", archived: false, away: true },
+        { id: "D2", file: "f2", title: "Despliegue", folder: "F2", archived: false, away: true },
+        { id: "D3", file: "f3", title: "Abierto", folder: "F3", archived: false, away: false },
+        { id: "D4", file: "f4", title: "Suelto viejo", folder: null, archived: true, away: true },
+      ],
+    };
+    render(<Tree papers={shelved} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archived" }));
+
+    const shelf = within(screen.getByRole("list", { name: "Archived" }));
+    expect(shelf.getByRole("button", { name: "Open linio" })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: "Suelto viejo" })).toBeTruthy();
+    expect(shelf.queryByRole("button", { name: /vivo/ })).toBeNull();
+
+    const tree = within(screen.getByRole("list", { name: "Documents" }));
+    expect(tree.queryByRole("button", { name: /linio/ })).toBeNull();
+    expect(tree.getByRole("button", { name: "Open vivo" })).toBeTruthy();
+  });
 
   it("hangs each folder from the one it belongs to", () => {
     show();
@@ -128,6 +226,7 @@ describe("the document tree", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
+    unfoldAll();
 
     expect(container.querySelectorAll("li.relative > span[aria-hidden].w-px").length).toBe(4);
   });
@@ -136,6 +235,7 @@ describe("the document tree", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
+    unfoldAll();
 
     expect(container.querySelectorAll("span[aria-hidden].h-px")).toHaveLength(0);
 
@@ -149,6 +249,7 @@ describe("the document tree", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
+    unfoldAll();
 
     const guide = container.querySelector<HTMLElement>("li.relative > span[aria-hidden].w-px");
     expect(guide?.className).toContain("bg-hair");
@@ -159,6 +260,7 @@ describe("the document tree", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
+    unfoldAll();
 
     await userEvent.click(screen.getByRole("button", { name: "Close trabajo" }));
 
@@ -168,14 +270,23 @@ describe("the document tree", () => {
   it("steps four levels of folder in and keeps each one further along", () => {
     const deep: Papers = {
       folders: [
-        { id: "1", name: "uno", parent: null, icon: null, holds: 0 },
-        { id: "2", name: "dos", parent: "1", icon: null, holds: 0 },
-        { id: "3", name: "tres", parent: "2", icon: null, holds: 0 },
-        { id: "4", name: "cuatro", parent: "3", icon: null, holds: 0 },
+        { id: "1", name: "uno", parent: null, icon: null, holds: 0, archived: false, away: false },
+        { id: "2", name: "dos", parent: "1", icon: null, holds: 0, archived: false, away: false },
+        { id: "3", name: "tres", parent: "2", icon: null, holds: 0, archived: false, away: false },
+        {
+          id: "4",
+          name: "cuatro",
+          parent: "3",
+          icon: null,
+          holds: 0,
+          archived: false,
+          away: false,
+        },
       ],
       docs: [],
     };
     render(<Tree papers={deep} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    unfoldAll();
 
     const left = (name: string) =>
       Number.parseFloat(
@@ -414,6 +525,7 @@ describe("the document tree", () => {
   it("offers making something on the shelf itself, not only on a folder", () => {
     const onHereMenu = vi.fn();
     render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHereMenu={onHereMenu} />);
+    unfoldAll();
 
     fireEvent.contextMenu(screen.getByRole("button", { name: "Unfiled" }), {
       clientX: 5,
@@ -460,7 +572,7 @@ describe("a document with pages", () => {
     folders: papers.folders,
     docs: [
       ...papers.docs,
-      { id: "01K", file: "a3f1-0007", title: "Actas", folder: "01F", archived: false },
+      { id: "01K", file: "a3f1-0007", title: "Actas", folder: "01F", archived: false, away: false },
       {
         id: "01L",
         file: "a3f1-0008",
@@ -468,6 +580,7 @@ describe("a document with pages", () => {
         folder: "01F",
         pageOf: "01K",
         archived: false,
+        away: false,
       },
       {
         id: "01M",
@@ -476,12 +589,15 @@ describe("a document with pages", () => {
         folder: "01F",
         pageOf: "01K",
         archived: false,
+        away: false,
       },
     ],
   };
 
-  const show = () =>
+  const show = () => {
     render(<Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    unfoldAll();
+  };
 
   it("says how many pages it holds without being opened", () => {
     show();
@@ -545,6 +661,7 @@ describe("a document with pages", () => {
         onHere={vi.fn()}
       />,
     );
+    unfoldAll();
     await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
     const row = screen.getByRole("button", { name: "Marzo" }).closest("div") as HTMLElement;
 
@@ -568,7 +685,14 @@ describe("a document with pages", () => {
         papers={{
           folders: [],
           docs: [
-            { id: "01K", file: "a3f1-0007", title: "Actas", folder: null, archived: false },
+            {
+              id: "01K",
+              file: "a3f1-0007",
+              title: "Actas",
+              folder: null,
+              archived: false,
+              away: false,
+            },
             {
               id: "01L",
               file: "a3f1-0008",
@@ -576,6 +700,7 @@ describe("a document with pages", () => {
               folder: null,
               pageOf: "01K",
               archived: false,
+              away: false,
             },
           ],
         }}
@@ -584,6 +709,7 @@ describe("a document with pages", () => {
         onHere={vi.fn()}
       />,
     );
+    unfoldAll();
 
     expect(screen.getByRole("button", { name: "Actas" }).textContent).toContain("1 page");
   });
@@ -594,7 +720,14 @@ describe("a document with pages", () => {
         papers={{
           folders: [],
           docs: [
-            { id: "01K", file: "a3f1-0007", title: "Actas", folder: null, archived: true },
+            {
+              id: "01K",
+              file: "a3f1-0007",
+              title: "Actas",
+              folder: null,
+              archived: true,
+              away: true,
+            },
             {
               id: "01L",
               file: "a3f1-0008",
@@ -602,6 +735,7 @@ describe("a document with pages", () => {
               folder: null,
               pageOf: "01K",
               archived: true,
+              away: true,
             },
           ],
         }}
@@ -610,6 +744,7 @@ describe("a document with pages", () => {
         onHere={vi.fn()}
       />,
     );
+    unfoldAll();
 
     const archive = screen.getByRole("list", { name: "Archived" });
     expect(archive.querySelectorAll(":scope > li").length).toBe(1);
@@ -618,6 +753,7 @@ describe("a document with pages", () => {
 
   it("does not offer to cut a page out from under its document", async () => {
     render(<Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    unfoldAll();
     await userEvent.click(screen.getByRole("button", { name: "Show the pages of Actas" }));
     const page = screen.getByRole("button", { name: "Marzo" });
 
@@ -632,6 +768,7 @@ describe("a document with pages", () => {
     const { rerender } = render(
       <Tree papers={withPages} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />,
     );
+    unfoldAll();
     expect(screen.queryByRole("button", { name: "Marzo" })).toBeNull();
     expect(
       screen.getByRole("button", { name: "Show the pages of Actas" }).getAttribute("aria-expanded"),
@@ -646,12 +783,14 @@ describe("a document with pages", () => {
         onHere={vi.fn()}
       />,
     );
+    unfoldAll();
 
     expect(screen.getByRole("button", { name: "Marzo" })).toBeTruthy();
   });
 
   it("keeps the archive within reach of the arrow keys", async () => {
     render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
+    unfoldAll();
     const away = screen.getByRole("button", { name: "Viejo" });
 
     away.focus();
@@ -675,6 +814,7 @@ describe("putting folders and documents in the order you want", () => {
         onDocMenu={vi.fn()}
       />,
     );
+    unfoldAll();
     return { container, onMove, onFile, onPage };
   };
 
@@ -807,6 +947,7 @@ describe("putting folders and documents in the order you want", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={onOpen} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />,
     );
+    unfoldAll();
     const row = within(container).getByRole("button", { name: "Suelto" }) as HTMLElement;
     const onto = container.querySelector<HTMLElement>('[data-drop="01F"]') as HTMLElement;
     boxed(onto, 100);
@@ -827,6 +968,7 @@ describe("putting folders and documents in the order you want", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={onOpen} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />,
     );
+    unfoldAll();
     const row = within(container).getByRole("button", { name: "Suelto" }) as HTMLElement;
 
     fireEvent.pointerDown(row, { button: 0, clientX: 0, clientY: 0 });
@@ -861,6 +1003,7 @@ describe("putting folders and documents in the order you want", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={onOpen} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />,
     );
+    unfoldAll();
     const onto = container.querySelector<HTMLElement>('[data-drop="01F"]') as HTMLElement;
     boxed(onto, 100);
     const was = document.elementFromPoint;
@@ -886,6 +1029,7 @@ describe("putting folders and documents in the order you want", () => {
         <Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />
       </div>,
     );
+    unfoldAll();
     const sheet = container.querySelector<HTMLElement>(".scroller") as HTMLElement;
     sheet.getBoundingClientRect = () =>
       ({ top: 0, bottom: 600, height: 600, left: 0, right: 200, width: 200 }) as DOMRect;
@@ -966,6 +1110,7 @@ describe("putting folders and documents in the order you want", () => {
     const { container } = render(
       <Tree papers={papers} onOpen={onOpen} onFile={vi.fn()} onHere={vi.fn()} onMove={vi.fn()} />,
     );
+    unfoldAll();
     const row = within(container).getByRole("button", { name: "Compras" }) as HTMLElement;
     const onto = container.querySelector<HTMLElement>('[data-drop="01F"]') as HTMLElement;
     boxed(onto, 100);
@@ -987,6 +1132,7 @@ describe("putting folders and documents in the order you want", () => {
     render(
       <Tree papers={papers} onOpen={vi.fn()} onFile={onFile} onHere={vi.fn()} onMove={vi.fn()} />,
     );
+    unfoldAll();
     const loose = screen.getByRole("button", { name: "Suelto" });
     loose.focus();
     fireEvent.keyDown(loose, { key: "x", ctrlKey: true });

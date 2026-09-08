@@ -83,6 +83,12 @@ Two different reasons, and the bar at the foot of the document tells you which.
 window, from the terminal and from an assistant alike — because putting
 something away means it is finished. Bring it back and it writes again.
 
+A whole folder can be in the archive too, and then everything under it is:
+subfolders, documents and pages, without any of them being marked one by one.
+Only the folder comes back, and when it does each document gets its own state
+back — one you had archived by hand before stays archived. Nothing new goes into
+a folder that is away, and nothing in it moves out until it returns.
+
 **Or the writing itself is at risk.** Tisty's editor writes Markdown back out,
 and a few shapes do not survive that
 trip: front matter, footnotes, links written by reference, blocks of HTML, HTML

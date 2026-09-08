@@ -350,8 +350,22 @@ beforeEach(() => {
         return Promise.resolve({
           folders: [],
           docs: [
-            { id: "1", file: "a-0001", title: "Limpio", folder: null, archived: false },
-            { id: "2", file: "a-0002", title: "Minuta del lunes", folder: null, archived: false },
+            {
+              id: "1",
+              file: "a-0001",
+              title: "Limpio",
+              folder: null,
+              archived: false,
+              away: false,
+            },
+            {
+              id: "2",
+              file: "a-0002",
+              title: "Minuta del lunes",
+              folder: null,
+              archived: false,
+              away: false,
+            },
           ],
         });
       case "doc_read":

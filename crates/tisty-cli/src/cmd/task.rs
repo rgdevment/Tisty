@@ -88,7 +88,7 @@ pub fn attach(
 ) -> anyhow::Result<ExitCode> {
     let named = tisty_core::attach::called(at, label);
     if let Some(kept) = app.state.docs.values().find(|one| one.file == selector) {
-        if kept.archived {
+        if app.state.held_away(kept) {
             anyhow::bail!("{}", lang.fill("doc-put-away", &[("name", selector)]));
         }
         if app.state.shut(kept.id) {

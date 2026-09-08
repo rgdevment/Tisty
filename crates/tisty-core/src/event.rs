@@ -9,7 +9,7 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 11;
+pub const SCHEMA_VERSION: u32 = 12;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -105,6 +105,8 @@ impl Event {
             | Op::FolderLook { id, .. }
             | Op::FolderMove { id, .. }
             | Op::FolderDelete { id }
+            | Op::FolderArchive { id }
+            | Op::FolderUnarchive { id }
             | Op::DocAdd { id, .. }
             | Op::DocMove { id, .. }
             | Op::DocSaid { id, .. }

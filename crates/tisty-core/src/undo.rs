@@ -235,6 +235,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         Op::DocSigned { .. } => None,
         Op::DocArchive { id } => Some(Op::DocUnarchive { id: *id }),
         Op::DocUnarchive { id } => Some(Op::DocArchive { id: *id }),
+        Op::FolderArchive { id } => Some(Op::FolderUnarchive { id: *id }),
+        Op::FolderUnarchive { id } => Some(Op::FolderArchive { id: *id }),
         Op::FolderDelete { .. } | Op::DocDelete { .. } => None,
 
         Op::DocLock { .. } | Op::DocUnlock { .. } | Op::DocSaid { .. } => None,

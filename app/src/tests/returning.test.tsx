@@ -29,13 +29,21 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 const known: Filed[] = [
-  { id: "01A", file: "a3f1-0001", title: "El documento", folder: null, archived: false },
+  {
+    id: "01A",
+    file: "a3f1-0001",
+    title: "El documento",
+    folder: null,
+    archived: false,
+    away: false,
+  },
   {
     id: "01B",
     file: "a3f1-0002",
     title: "Su pagina",
     folder: null,
     archived: false,
+    away: false,
     pageOf: "01A",
   } as Filed,
 ];

@@ -103,6 +103,8 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe dentro. Además:
 - Centra un párrafo o llévalo a la derecha.
 - Imprime, o guarda en PDF, desde el propio panel.
 
+**Las carpetas nacen plegadas** y se abren con la flecha. Cuando un asunto ya pasó, archiva la carpeta entera con el botón derecho: baja al estante de **Archivados**, al final del árbol, con su icono y todo lo que tiene dentro tal cual. Ahí se lee y se exporta, pero no se escribe ni entra nada nuevo. Desarchívala y vuelve como estaba.
+
 ### 8. Lo que cabe dentro de un documento
 
 Todo lo de aquí abajo es Markdown corriente. Lo escribes con `/`, y el archivo que queda en el disco lo entiende GitHub igual que Tisty. Esta sección no lo cuenta: te lo enseña.

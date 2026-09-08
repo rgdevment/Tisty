@@ -32,13 +32,14 @@ vi.mock("../ui/Editor", () => ({
 }));
 
 const known: Filed[] = [
-  { id: "01A", file: "a3f1-0001", title: "Frágil", folder: null, archived: false },
+  { id: "01A", file: "a3f1-0001", title: "Frágil", folder: null, archived: false, away: false },
   {
     id: "01B",
     file: "a3f1-0002",
     title: "Una página",
     folder: null,
     archived: false,
+    away: false,
     pageOf: "01A",
   },
 ];

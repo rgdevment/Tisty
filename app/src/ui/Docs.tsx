@@ -355,7 +355,8 @@ export default function Docs({
   };
 
   const own = filed(known, open?.file);
-  const shelved = Boolean(own?.archived);
+  // What the archive holds is read-only, whether the document says so or the folder above it does.
+  const shelved = Boolean(own?.away);
   const bolted = Boolean(own?.locked) || shelved;
   const stood = useRef(new Map<string, number>());
   const from = useRef<{ doc: string; page: string } | null>(null);

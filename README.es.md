@@ -361,6 +361,14 @@ tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
 —tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una
 tarea puede apuntar a un documento; un documento nunca crea tareas.
 
+**El árbol abre en silencio y se guarda entero.** Cada carpeta nace plegada, así
+que un almacén con cientos de documentos son cuatro filas hasta que vas a
+buscar. Cuando un trabajo termina archivas la carpeta, no sus documentos uno a
+uno: baja al estante del final del árbol con su icono, sus subcarpetas y sus
+páginas tal como las dejaste, cerrada a escribir y a que entre nada nuevo.
+Desarchívala y vuelve igual —incluidos los documentos que hubieras archivado a
+mano ahí dentro, que siguen archivados porque nadie dijo lo contrario.
+
 **Un documento se etiqueta como una tarea**: escribes `#contrato` en mitad de
 una frase y el documento queda archivado bajo ella. La etiqueta vive en la
 frase, no en una cabecera oculta, así que llevarte el archivo a otro editor se

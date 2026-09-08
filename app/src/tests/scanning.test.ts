@@ -10,6 +10,7 @@ const filed = (file: string, title: string): Filed => ({
   title,
   folder: null,
   archived: false,
+  away: false,
 });
 
 describe("looking through every document for what the editor cannot keep", () => {

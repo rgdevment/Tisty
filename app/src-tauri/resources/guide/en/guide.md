@@ -103,6 +103,8 @@ Type `/` anywhere and the menu of what fits inside comes up. Besides that:
 - Centre a paragraph or push it to the right.
 - Print, or save as PDF, from the panel itself.
 
+**Folders start folded** and open on the arrow. When something is over, archive the whole folder with the right button: it drops to the **Archived** shelf at the foot of the tree, with its icon and everything inside it just as it was. There it reads and exports, but nothing writes into it and nothing new goes in. Bring it back and it returns as it was.
+
 ### 8. What fits inside a document
 
 Everything below is ordinary Markdown. You write it with `/`, and the file left on disk reads the same to GitHub as it does to Tisty. This section does not describe it: it shows it to you.

@@ -91,11 +91,40 @@ impl State {
     pub fn away(&self, file: &str) -> bool {
         self.docs
             .values()
-            .any(|one| one.file == file && one.archived)
+            .any(|one| one.file == file && self.held_away(one))
+    }
+
+    /// A folder is away when it says so or when any folder above it does.
+    pub fn folder_away(&self, at: FolderId) -> bool {
+        let mut walk = Some(at);
+        let mut deep = 0;
+        while let Some(one) = walk {
+            let Some(folder) = self.folders.get(&one) else {
+                return false;
+            };
+            if folder.archived {
+                return true;
+            }
+            deep += 1;
+            if deep > crate::model::DEEPEST {
+                return false;
+            }
+            walk = folder.parent;
+        }
+        false
+    }
+
+    /// What the archive holds: the document's own mark, or the folder it sits in.
+    pub fn held_away(&self, kept: &Kept) -> bool {
+        kept.archived || kept.folder.is_some_and(|at| self.folder_away(at))
+    }
+
+    pub fn stowed(&self, id: DocId) -> bool {
+        self.docs.get(&id).is_some_and(|one| self.held_away(one))
     }
 
     pub fn written_shut(&self, id: DocId) -> bool {
-        self.shut(id) || self.docs.get(&id).is_some_and(|one| one.archived)
+        self.shut(id) || self.stowed(id)
     }
 
     pub fn shut_tight(&self, file: &str) -> bool {
@@ -116,6 +145,12 @@ impl State {
         }
         if let Some(doc) = self.docs.get_mut(&id) {
             doc.locked = shut;
+        }
+    }
+
+    fn shelf(&mut self, id: FolderId, away: bool) {
+        if let Some(folder) = self.folders.get_mut(&id) {
+            folder.archived = away;
         }
     }
 
@@ -219,6 +254,8 @@ impl State {
                 }
             }
             Op::FolderAdd { id, d } => {
+                // Naming a folder that is already here does not bring it out of the archive.
+                let away = self.folders.get(id).is_some_and(|one| one.archived);
                 self.folders.insert(
                     *id,
                     Folder {
@@ -231,6 +268,7 @@ impl State {
                             .color
                             .clone()
                             .filter(|key| crate::model::hue::kept(key).is_some()),
+                        archived: away,
                     },
                 );
             }
@@ -273,6 +311,10 @@ impl State {
                 }
             }
             Op::FolderDelete { id } => {
+                // What the folder held is only away because the folder said so. Losing the folder
+                // would let all of it back out at once, so the mark is written down before the
+                // anchor goes — here, where a delete arriving from another machine lands too.
+                let away = self.folder_away(*id);
                 self.folders.remove(id);
                 self.tombstones.insert(*id);
                 let orphaned: Vec<FolderId> = self
@@ -284,11 +326,13 @@ impl State {
                 for child in orphaned {
                     if let Some(folder) = self.folders.get_mut(&child) {
                         folder.parent = None;
+                        folder.archived = folder.archived || away;
                     }
                 }
                 for doc in self.docs.values_mut() {
                     if doc.folder == Some(*id) {
                         doc.folder = None;
+                        doc.archived = doc.archived || away;
                     }
                 }
             }
@@ -433,6 +477,8 @@ impl State {
                     kept.by = now;
                 }
             }
+            Op::FolderArchive { id } => self.shelf(*id, true),
+            Op::FolderUnarchive { id } => self.shelf(*id, false),
             Op::DocArchive { id } => self.shelve(*id, true),
             Op::DocLock { id } => self.bolt(*id, true),
             Op::DocUnlock { id } => self.bolt(*id, false),
@@ -600,16 +646,19 @@ impl State {
     pub fn unfiled(&self) -> Vec<&Kept> {
         self.docs
             .values()
-            .filter(|one| !one.archived && one.page_of.is_none())
+            .filter(|one| !self.held_away(one) && one.page_of.is_none())
             .filter(|one| one.folder.is_none_or(|at| !self.folders.contains_key(&at)))
             .collect()
     }
 
-    /// Pages are counted with their document, not beside it.
+    /// Pages are counted with their document, not beside it. A folder shows what stands on the
+    /// same side of the archive as itself: open ones in the tree, the whole of it on the shelf.
     pub fn inside(&self, folder: FolderId) -> Vec<&Kept> {
+        let away = self.folder_away(folder);
         self.docs
             .values()
-            .filter(|one| !one.archived && one.page_of.is_none() && one.folder == Some(folder))
+            .filter(|one| one.page_of.is_none() && one.folder == Some(folder))
+            .filter(|one| self.held_away(one) == away)
             .collect()
     }
 
@@ -693,7 +742,10 @@ impl State {
     }
 
     pub fn put_away(&self) -> Vec<&Kept> {
-        self.docs.values().filter(|one| one.archived).collect()
+        self.docs
+            .values()
+            .filter(|one| self.held_away(one))
+            .collect()
     }
 
     fn adrift(&self, folder: &Folder) -> bool {
@@ -728,10 +780,14 @@ impl State {
         if !seen.insert(folder) {
             return 0;
         }
+        // An open folder does not count what somebody shelved inside it, and the shelf does not
+        // count back out; each side adds up only its own.
+        let away = self.folder_away(folder);
         self.inside(folder).len()
             + self
                 .under(Some(folder))
                 .iter()
+                .filter(|one| self.folder_away(one.id) == away)
                 .map(|one| self.counting(one.id, seen))
                 .sum::<usize>()
     }
@@ -4237,6 +4293,149 @@ mod tests {
         }]);
 
         assert!(matches!(again.first(), Some(Op::FolderAdd { id, .. }) if *id != work));
+    }
+
+    #[test]
+    fn a_folder_put_away_takes_everything_under_it_without_marking_any_of_it() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let gone = folder(&mut state, "linio", Some(work));
+        let deeper = folder(&mut state, "bob", Some(gone));
+        let one = doc(&mut state, "a3f1-0001", Some(gone));
+        let two = doc(&mut state, "a3f1-0002", Some(deeper));
+        let apart = doc(&mut state, "a3f1-0003", Some(work));
+
+        state.apply(&ev(2, "a", Op::FolderArchive { id: gone }));
+
+        assert!(state.stowed(one));
+        assert!(state.stowed(two), "three levels down is still under it");
+        assert!(!state.stowed(apart), "the folder beside it is untouched");
+        assert!(
+            state.written_shut(one),
+            "what the archive holds is not written"
+        );
+        assert!(
+            !state.docs[&one].archived && !state.docs[&two].archived,
+            "the folder holds the mark, not the documents"
+        );
+    }
+
+    #[test]
+    fn bringing_a_folder_back_leaves_what_was_put_away_by_hand_put_away() {
+        let mut state = State::default();
+        let gone = folder(&mut state, "linio", None);
+        let one = doc(&mut state, "a3f1-0001", Some(gone));
+        let by_hand = doc(&mut state, "a3f1-0002", Some(gone));
+
+        state.apply(&ev(2, "a", Op::DocArchive { id: by_hand }));
+        state.apply(&ev(3, "a", Op::FolderArchive { id: gone }));
+        state.apply(&ev(4, "a", Op::FolderUnarchive { id: gone }));
+
+        assert!(!state.stowed(one), "it came back with its folder");
+        assert!(
+            state.stowed(by_hand),
+            "nobody asked for this one to come back"
+        );
+    }
+
+    #[test]
+    fn a_folder_counts_what_stands_on_its_own_side_of_the_archive() {
+        let mut state = State::default();
+        let work = folder(&mut state, "trabajo", None);
+        let gone = folder(&mut state, "linio", Some(work));
+        doc(&mut state, "a3f1-0001", Some(gone));
+        doc(&mut state, "a3f1-0002", Some(gone));
+        doc(&mut state, "a3f1-0003", Some(work));
+
+        assert_eq!(state.held_by(work), 3);
+
+        state.apply(&ev(2, "a", Op::FolderArchive { id: gone }));
+
+        assert_eq!(
+            state.held_by(work),
+            1,
+            "the open tree stops counting the shelf"
+        );
+        assert_eq!(state.held_by(gone), 2, "the shelf counts its own");
+    }
+
+    #[test]
+    fn deleting_a_folder_that_was_put_away_writes_the_mark_down_before_letting_go() {
+        let mut state = State::default();
+        let gone = folder(&mut state, "linio", None);
+        let under = folder(&mut state, "bob", Some(gone));
+        let one = doc(&mut state, "a3f1-0001", Some(gone));
+        let deeper = doc(&mut state, "a3f1-0002", Some(under));
+
+        state.apply(&ev(2, "a", Op::FolderArchive { id: gone }));
+        state.apply(&ev(3, "a", Op::FolderDelete { id: gone }));
+
+        assert!(state.stowed(one), "it would have walked back into the tree");
+        assert!(
+            state.folders[&under].archived,
+            "the subfolder kept the mark"
+        );
+        assert!(state.stowed(deeper), "and so did what the subfolder held");
+    }
+
+    #[test]
+    fn two_machines_shelving_and_deleting_at_once_land_on_the_same_answer() {
+        let gone = Ulid::generate();
+        let one = Ulid::generate();
+        let made = vec![
+            ev(
+                1,
+                "a",
+                Op::FolderAdd {
+                    id: gone,
+                    d: crate::event::FolderAdd {
+                        name: "linio".into(),
+                        order: "a0".into(),
+                        parent: None,
+                        icon: None,
+                        color: None,
+                    },
+                },
+            ),
+            ev(
+                1,
+                "a",
+                Op::DocAdd {
+                    id: one,
+                    d: crate::event::DocAdd {
+                        wrote: None,
+                        guest: false,
+                        made: None,
+                        by: None,
+                        said: None,
+                        file: "a3f1-0001".into(),
+                        order: "a0".into(),
+                        folder: Some(gone),
+                        page_of: None,
+                    },
+                },
+            ),
+            ev(2, "a", Op::FolderArchive { id: gone }),
+            ev(3, "b", Op::FolderDelete { id: gone }),
+        ];
+
+        let settled = |mut events: Vec<Event>| {
+            events.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+            let state = State::replay(&events);
+            (state.stowed(one), state.docs[&one].archived)
+        };
+
+        let backwards: Vec<Event> = made.iter().rev().cloned().collect();
+        assert_eq!(
+            settled(made.clone()),
+            settled(backwards),
+            "the two disagree"
+        );
+        assert_eq!(
+            settled(made),
+            (true, true),
+            "the delete let it back into the tree"
+        );
     }
 
     #[test]

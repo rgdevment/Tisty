@@ -1332,6 +1332,144 @@ impl Served {
             .append(tisty_core::Op::DocArchive { id })
             .unwrap();
     }
+
+    fn shelve_folder(&self, named: &str) {
+        let paths = tisty_core::Paths::new(
+            self.home.path().join("data"),
+            self.home.path().join("config"),
+        );
+        let state = tisty_core::cache::project(&paths.store(), paths.cache()).unwrap();
+        let id = state
+            .folders
+            .values()
+            .find(|one| one.name == named)
+            .unwrap()
+            .id;
+        let who = tisty_core::Config::load_or_init(&paths)
+            .unwrap()
+            .agent_id
+            .unwrap();
+        tisty_core::Store::open(paths.store(), who)
+            .unwrap()
+            .append(tisty_core::Op::FolderArchive { id })
+            .unwrap();
+    }
+}
+
+#[test]
+fn a_folder_in_the_archive_takes_no_writing_of_any_kind() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Linio", "icon": "work" }),
+    );
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Antifraude
+
+Lo de entonces.", "folder": "Linio" }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.shelve_folder("Linio");
+
+    let said = |call: serde_json::Value| call["result"]["content"][0]["text"].to_string();
+
+    let anew = said(served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Otro
+
+Algo.", "folder": "Linio" }),
+    ));
+    assert!(anew.contains("archive"), "nothing new goes in: {anew}");
+
+    let styled = said(served.call(
+        "folder",
+        serde_json::json!({ "name": "Linio", "icon": "home" }),
+    ));
+    assert!(styled.contains("archive"), "nor is it restyled: {styled}");
+
+    let nested = said(served.call(
+        "folder",
+        serde_json::json!({ "name": "BOB", "inside": "Linio" }),
+    ));
+    assert!(nested.contains("archive"), "nor nested into: {nested}");
+
+    let more = said(served.call(
+        "append_doc",
+        serde_json::json!({ "doc": doc, "body": "Una linea mas." }),
+    ));
+    assert!(more.contains("put away"), "nor written in: {more}");
+
+    let moved = said(served.call("file_doc", serde_json::json!({ "doc": doc })));
+    assert!(moved.contains("archive"), "nor moved out of it: {moved}");
+
+    let back = said(served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": doc, "archived": false }),
+    ));
+    assert!(
+        back.contains("folder"),
+        "only the folder comes back, and only from the window: {back}"
+    );
+}
+
+#[test]
+fn what_a_shelved_folder_holds_still_reads_and_is_listed_as_put_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Linio", "icon": "work" }),
+    );
+    let made = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Antifraude
+
+Contratos de entonces.", "folder": "Linio" }),
+    );
+    let doc = made["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.shelve_folder("Linio");
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    assert_eq!(
+        read["result"]["structuredContent"]["archived"], true,
+        "{read}"
+    );
+    assert!(
+        read["result"]["structuredContent"]["body"]
+            .as_str()
+            .unwrap()
+            .contains("Contratos"),
+        "reading it is still fine: {read}"
+    );
+
+    assert_eq!(
+        served.call("docs", serde_json::json!({ "scope": "open" }))["result"]["structuredContent"]
+            ["total"],
+        0,
+        "the open list stops naming it"
+    );
+    assert_eq!(
+        served.call("docs", serde_json::json!({ "scope": "archive" }))["result"]["structuredContent"]
+            ["total"],
+        1,
+        "and the archive names it"
+    );
+    assert_eq!(
+        served.call(
+            "find",
+            serde_json::json!({ "query": "contratos", "scope": "open" })
+        )["result"]["structuredContent"]["docsTotal"],
+        0,
+        "searching the open shelf does not turn it up"
+    );
 }
 
 #[test]

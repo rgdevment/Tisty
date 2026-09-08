@@ -99,6 +99,8 @@ pub struct Shelf {
     pub icon: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub archived: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -118,7 +120,11 @@ pub struct Paper {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    /// What the archive holds, so a reader that knows nothing of shelved folders still closes it.
     pub archived: bool,
+    /// Set when only the folder above put it away, so bringing that folder back opens it again.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub by_folder: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub locked: bool,
     /// Somebody else's writing that this store is only holding: it stays theirs wherever it
@@ -499,7 +505,8 @@ fn filled(
                 wrote: one.wrote,
                 made: one.made,
                 by: one.by.clone(),
-                archived: one.archived,
+                archived: state.held_away(one),
+                by_folder: !one.archived && state.held_away(one),
                 locked: one.locked,
                 guest: one.guest,
             })
@@ -733,6 +740,7 @@ fn shelves(state: &State, bodies: &[(&Kept, String)]) -> Vec<Shelf> {
                 .map(|up| up.to_string()),
             icon: one.icon.clone(),
             color: one.color.clone(),
+            archived: one.archived,
         })
         .collect();
     found.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
@@ -907,7 +915,8 @@ fn taken_in(
     let mut landed = Landed::default();
     let mut ops: Vec<Op> = Vec::new();
 
-    let filed = shelved(state, manifest, &mut landed, &mut ops);
+    let mut shut: BTreeSet<FolderId> = BTreeSet::new();
+    let filed = shelved(state, manifest, &mut landed, &mut ops, &mut shut);
 
     let root = data.join("docs");
     let mut carried: BTreeMap<String, String> = BTreeMap::new();
@@ -982,7 +991,10 @@ fn taken_in(
                 page_of: up,
             },
         });
-        if paper.archived {
+        // A folder that lands closed answers for what it holds; marking the document again would
+        // outlive the folder and never come back with it.
+        let by_folder = paper.by_folder && folder.is_some_and(|at| shut.contains(&at));
+        if paper.archived && !by_folder {
             ops.push(Op::DocArchive { id });
         }
         if paper.locked {
@@ -1035,11 +1047,14 @@ fn ordering(manifest: &Manifest) -> Vec<&Paper> {
     found
 }
 
+/// Which folders the parcel lands in end up closed — the ones it brings closed, and the ones
+/// already here that were closed before it arrived.
 fn shelved(
     state: &State,
     manifest: &Manifest,
     landed: &mut Landed,
     ops: &mut Vec<Op>,
+    shut: &mut BTreeSet<FolderId>,
 ) -> BTreeMap<String, FolderId> {
     let mut filed: BTreeMap<String, FolderId> = BTreeMap::new();
     let mut deep: BTreeMap<FolderId, usize> = BTreeMap::new();
@@ -1074,6 +1089,9 @@ fn shelved(
             });
         if let Some(id) = standing {
             landed.joined += 1;
+            if state.folder_away(id) || parent.is_some_and(|up| shut.contains(&up)) {
+                shut.insert(id);
+            }
             deep.insert(id, under + 1);
             filed.insert(shelf.id.clone(), id);
             continue;
@@ -1110,6 +1128,14 @@ fn shelved(
                     .map(str::to_string),
             },
         });
+        // A folder a parcel brings closed comes in closed. One that was already here decides for
+        // itself: joining by name must not shelve what somebody is still using.
+        if shelf.archived {
+            ops.push(Op::FolderArchive { id });
+        }
+        if shelf.archived || parent.is_some_and(|up| shut.contains(&up)) {
+            shut.insert(id);
+        }
         fresh.push((id, parent, shelf.name.clone(), order));
         deep.insert(id, under + 1);
         filed.insert(shelf.id.clone(), id);

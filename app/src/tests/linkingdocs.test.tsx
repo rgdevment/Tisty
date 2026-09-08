@@ -11,8 +11,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 const known: Filed[] = [
-  { id: "01A", file: "mac0-0001", title: "Aquí", folder: null, archived: false },
-  { id: "01B", file: "mac0-0002", title: "Recetas", folder: null, archived: false },
+  { id: "01A", file: "mac0-0001", title: "Aquí", folder: null, archived: false, away: false },
+  { id: "01B", file: "mac0-0002", title: "Recetas", folder: null, archived: false, away: false },
 ];
 
 const write = async () => {
