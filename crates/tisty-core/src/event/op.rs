@@ -57,6 +57,8 @@ pub const KNOWN_OPS: &[&str] = &[
     "folder.look",
     "folder.move",
     "folder.delete",
+    "folder.archive",
+    "folder.unarchive",
     "doc.add",
     "doc.move",
     "doc.said",
@@ -143,6 +145,10 @@ pub enum Op {
     FolderMove { id: FolderId, d: Filed },
     #[serde(rename = "folder.delete")]
     FolderDelete { id: FolderId },
+    #[serde(rename = "folder.archive")]
+    FolderArchive { id: FolderId },
+    #[serde(rename = "folder.unarchive")]
+    FolderUnarchive { id: FolderId },
 
     #[serde(rename = "doc.add")]
     DocAdd { id: DocId, d: DocAdd },
@@ -264,6 +270,8 @@ impl Op {
             Op::FolderLook { d, .. } => Op::FolderLook { id, d },
             Op::FolderMove { d, .. } => Op::FolderMove { id, d },
             Op::FolderDelete { .. } => Op::FolderDelete { id },
+            Op::FolderArchive { .. } => Op::FolderArchive { id },
+            Op::FolderUnarchive { .. } => Op::FolderUnarchive { id },
             Op::DocAdd { d, .. } => Op::DocAdd { id, d },
             Op::DocMove { d, .. } => Op::DocMove { id, d },
             Op::DocSaid { d, .. } => Op::DocSaid { id, d },
@@ -384,6 +392,8 @@ impl Op {
             | Op::FolderLook { id, .. }
             | Op::FolderMove { id, .. }
             | Op::FolderDelete { id }
+            | Op::FolderArchive { id }
+            | Op::FolderUnarchive { id }
             | Op::DocAdd { id, .. }
             | Op::DocMove { id, .. }
             | Op::DocSaid { id, .. }
