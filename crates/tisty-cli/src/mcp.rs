@@ -2487,7 +2487,7 @@ fn lists(paths: &Paths) -> Result<Value, Refused> {
     Ok(told(text, json!({ "lists": named })))
 }
 
-const TAGS_SHOWN: usize = 40;
+const TAGS_SHOWN: usize = 300;
 
 fn tags(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
@@ -2513,7 +2513,10 @@ fn tags(paths: &Paths) -> Result<Value, Refused> {
                 .collect::<Vec<_>>()
                 .join(", ");
             match many > TAGS_SHOWN {
-                true => format!("{shown}, and {} more.", many - TAGS_SHOWN),
+                true => format!(
+                    "{shown}, and {} more that came back with this answer.",
+                    many - TAGS_SHOWN
+                ),
                 false => shown,
             }
         }

@@ -2658,7 +2658,8 @@ fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Filed>
 
 #[tauri::command(async)]
 fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
-    let session = held(&session);
+    let mut session = held(&session);
+    session.reload()?;
     Ok(Papers {
         folders: hanging(&session.state, None),
         docs: gathered(&session),
@@ -5437,11 +5438,16 @@ fn kinned(store: &std::path::Path, dest: &std::path::Path) -> &'static str {
     }
 }
 
+/// The folder is walked with the session let go of: a cloud folder can take its time, and every
+/// other command waits behind whoever holds it.
 #[tauri::command(async)]
 fn folder_astir(session: tauri::State<'_, Mutex<Session>>) -> Answer<String> {
-    let session = held(&session);
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
+    let dest = {
+        let session = held(&session);
+        match session.config.sync.clone() {
+            Some(tisty_core::config::Sync::Folder(dest)) => dest,
+            _ => return Err(Refusal::of("noRemote")),
+        }
     };
     Ok(tisty_sync::stirring(&dest).to_string())
 }
