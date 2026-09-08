@@ -124,7 +124,7 @@ export function saidPlainly(problem: unknown): string {
   if (!refusal || typeof refusal.code !== "string") {
     return technical(String(problem));
   }
-  noteTrouble(refusal.code).catch(() => {});
+  noteTrouble(refusal.code, refusal.name).catch(() => {});
   noticing?.(BEHIND.includes(refusal.code));
   if (!isKnown(refusal.code)) {
     return technical(refusal.name ?? refusal.code);

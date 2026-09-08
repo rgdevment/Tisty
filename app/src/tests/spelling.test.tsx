@@ -46,7 +46,12 @@ describe("writing help the system provides", () => {
       <Editor value="![charla](<attachments/ab/ausente.mp4>)" papers={[]} onWrite={vi.fn()} />,
     );
 
-    await waitFor(() => expect(noteTrouble).toHaveBeenCalledWith("cannotRead"));
+    await waitFor(() =>
+      expect(noteTrouble).toHaveBeenCalledWith(
+        "cannotRead",
+        expect.stringContaining("ausente.mp4"),
+      ),
+    );
   });
 
   it("tells it which language to check in, or it checks in the wrong one", () => {

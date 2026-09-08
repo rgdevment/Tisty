@@ -695,8 +695,8 @@ export default function Editor({
     get()
       .catch((problem: unknown) => {
         missing.current.add(reference.slice(reference.indexOf(":") + 1));
-        const code = (problem as { code?: string } | null)?.code;
-        if (code) void noteTrouble(code).catch(() => {});
+        const said = problem as { code?: string; name?: string } | null;
+        if (said?.code) void noteTrouble(said.code, said.name ?? reference).catch(() => {});
       })
       .then(() => nudge.current());
   };

@@ -2067,15 +2067,15 @@ fn refusal_code(said: &str) -> Option<&'static str> {
 }
 
 #[tauri::command]
-fn note_trouble(code: String) {
+fn note_trouble(code: String, name: Option<String>) {
     let Some(code) = refusal_code(&code) else {
         return;
     };
-    witness::warn(
-        channel::WINDOW,
-        "the window showed a refusal",
-        &[("code", Fact::Code(code))],
-    );
+    let mut facts = vec![("code", Fact::Code(code))];
+    if let Some(name) = name.filter(|one| !one.is_empty()) {
+        facts.push(("at", Fact::Path(std::path::PathBuf::from(name))));
+    }
+    witness::warn(channel::WINDOW, "the window showed a refusal", &facts);
 }
 
 #[derive(serde::Serialize)]
@@ -7023,6 +7023,36 @@ mod tests {
         assert_eq!(
             edits.retitled(text, &read, "es").as_deref(),
             Some("comprar pan #casa")
+        );
+    }
+
+    #[test]
+    fn a_refusal_the_window_showed_says_what_it_was_about() {
+        use super::note_trouble;
+
+        static ALONE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+
+        let kept = tempfile::tempdir().unwrap();
+        let paths =
+            tisty_core::paths::Paths::new(kept.path().join("data"), kept.path().join("config"));
+        tisty_core::witness::keeps(tisty_core::witness::file(&paths), false);
+
+        note_trouble("noSuchDoc".into(), Some("ycqcwz50-0007".into()));
+        note_trouble("noSuchDoc".into(), None);
+        note_trouble("comprar pan".into(), Some("ycqcwz50-0008".into()));
+
+        let seen = tisty_core::witness::recent(&paths, 50);
+        let shown: Vec<&String> = seen
+            .iter()
+            .filter(|line| line.contains("the window showed a refusal"))
+            .collect();
+        assert_eq!(shown.len(), 2, "{shown:?}");
+        assert!(shown[0].contains("ycqcwz50-0007"), "{shown:?}");
+        assert!(!shown[1].contains("at="), "{shown:?}");
+        assert!(
+            !seen.iter().any(|line| line.contains("ycqcwz50-0008")),
+            "{seen:?}"
         );
     }
 
