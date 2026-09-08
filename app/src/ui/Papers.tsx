@@ -19,14 +19,14 @@ export default function Papers({
   useEffect(() => {
     if (given) return;
     docs()
-      .then((papers) => setFound(papers.docs.filter((one) => !one.archived)))
+      .then((papers) => setFound(papers.docs.filter((one) => !one.away)))
       .catch((problem) => {
         setFound([]);
         onError?.(problem);
       });
   }, [given, onError]);
 
-  const all = given ? given.filter((one) => !one.archived) : found;
+  const all = given ? given.filter((one) => !one.away) : found;
 
   const named = (doc: Filed) => doc.title.trim() || t("untitledDoc");
   const shown = (all ?? []).filter((one) => matched(named(one), word));

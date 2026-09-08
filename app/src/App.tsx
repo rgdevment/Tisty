@@ -35,6 +35,7 @@ import {
   type Found,
   fold,
   folderAdd,
+  folderAway,
   folderDrop,
   folderFile,
   folderLook,
@@ -746,7 +747,7 @@ export default function App() {
   const wanted = chosen.tags ?? [];
   const taggedDocs = wanted.length
     ? papers.docs.filter(
-        (one) => !one.archived && wanted.every((tag) => (one.tags ?? []).includes(tag)),
+        (one) => !one.away && wanted.every((tag) => (one.tags ?? []).includes(tag)),
       )
     : [];
 
@@ -839,12 +840,18 @@ export default function App() {
       at,
       label: t("folderActions"),
       choices: [
-        { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(folder.id) },
+        {
+          key: "newDoc",
+          icon: "+",
+          label: t("newDoc"),
+          off: folder.away,
+          onPick: () => newDoc(folder.id),
+        },
         {
           key: "newFolder",
           icon: "+",
           label: t("newFolder"),
-          off: deep(folder.id) >= DEEPEST,
+          off: folder.away || deep(folder.id) >= DEEPEST,
           onPick: () => {
             setHere(folder.id);
             setMakingFolder(true);
@@ -854,6 +861,7 @@ export default function App() {
           key: "rename",
           icon: "✎",
           label: t("rename"),
+          off: folder.away,
           apart: true,
           onPick: () => setRenaming(folder),
         },
@@ -861,6 +869,7 @@ export default function App() {
           key: "move",
           icon: "⇢",
           label: t("moveTo"),
+          off: folder.away,
           into: {
             label: t("moveHere"),
             choices: destinations(
@@ -873,14 +882,39 @@ export default function App() {
             ),
           },
         },
-        { key: "import", icon: "↧", label: t("importDoc"), onPick: () => bringIn(folder.id) },
-        { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => takeParcel() },
+        {
+          key: "import",
+          icon: "↧",
+          label: t("importDoc"),
+          off: folder.away,
+          onPick: () => bringIn(folder.id),
+        },
+        {
+          key: "unpack",
+          icon: "↧",
+          label: t("unpackIt"),
+          off: folder.away,
+          onPick: () => takeParcel(),
+        },
         { key: "packAll", icon: "⇪", label: t("packAll"), onPick: () => packUp([], "tisty") },
         { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
+        {
+          // Only the folder that was shelved answers for itself; one below it comes back with it.
+          key: "away",
+          icon: folder.archived ? "▢" : "▣",
+          label: folder.archived ? t("bringBack") : t("putAway"),
+          off: folder.away && !folder.archived,
+          apart: true,
+          onPick: () =>
+            folderAway(folder.id, !folder.archived)
+              .then(papersChanged)
+              .catch((e) => setError(saidPlainly(e))),
+        },
         {
           key: "drop",
           icon: "✕",
           label: t("deleteIt"),
+          off: folder.away,
           danger: true,
           apart: true,
           onPick: () => dropFolder(folder),
@@ -897,6 +931,8 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
   };
 
+  const byFolder = (doc: Filed) => doc.away && !doc.archived;
+
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
     setMenu({
       at,
@@ -906,7 +942,7 @@ export default function App() {
           key: "newPage",
           icon: "+",
           label: t("newPage"),
-          off: doc.archived || !!doc.pageOf,
+          off: doc.away || !!doc.pageOf,
           onPick: () => newDoc(undefined, doc.id),
         },
         {
@@ -914,14 +950,14 @@ export default function App() {
           icon: "⇥",
           label: t("pageOf"),
           off:
-            doc.archived ||
+            doc.away ||
             doc.locked ||
             !!doc.pageOf ||
             papers.docs.some((one) => one.pageOf === doc.id),
           into: {
             label: t("pageOfWhich"),
             choices: papers.docs
-              .filter((one) => one.id !== doc.id && !one.pageOf && !one.archived && !one.locked)
+              .filter((one) => one.id !== doc.id && !one.pageOf && !one.away && !one.locked)
               .map((one) => ({
                 key: one.id,
                 icon: "▤",
@@ -944,7 +980,7 @@ export default function App() {
           key: "move",
           icon: "⇢",
           label: t("moveTo"),
-          off: doc.archived || !!doc.pageOf,
+          off: doc.away || !!doc.pageOf,
           into: {
             label: t("moveHere"),
             choices: destinations(doc.folder, (folder) =>
@@ -1022,7 +1058,7 @@ export default function App() {
             docCopy(doc.id)
               .then((made) => {
                 papersChanged();
-                if (!doc.archived) setChosen({ named: "docs", doc: made.id });
+                if (!doc.away) setChosen({ named: "docs", doc: made.id });
               })
               .catch((e) => setError(saidPlainly(e))),
         },
@@ -1030,7 +1066,7 @@ export default function App() {
           key: "lock",
           icon: doc.locked ? "◉" : "○",
           label: doc.locked ? t("unlockIt") : t("lockIt"),
-          off: !!doc.pageOf,
+          off: !!doc.pageOf || byFolder(doc),
           apart: true,
           onPick: () =>
             docLock(doc.id, !doc.locked)
@@ -1038,10 +1074,12 @@ export default function App() {
               .catch((e) => setError(saidPlainly(e))),
         },
         {
+          // What the folder put away has no door of its own: only the folder comes back, and
+          // its own mark is what it recovers when it does.
           key: "away",
           icon: doc.archived ? "▢" : "▣",
           label: doc.archived ? t("bringBack") : t("putAway"),
-          off: !!doc.pageOf,
+          off: !!doc.pageOf || byFolder(doc),
           apart: true,
           onPick: () =>
             docAway(doc.id, !doc.archived)
@@ -1052,7 +1090,7 @@ export default function App() {
           key: "drop",
           icon: "✕",
           label: t("deleteIt"),
-          off: doc.locked,
+          off: doc.locked || byFolder(doc),
           danger: true,
           onPick: () => dropDoc(doc),
         },

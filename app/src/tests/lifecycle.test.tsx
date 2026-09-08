@@ -355,9 +355,22 @@ function seedFolder(over: Partial<FakeFolder> = {}): FakeFolder {
   return folder;
 }
 
+/// The tree arrives folded, so anything a test wants to reach has to be opened first.
+const unfoldAll = () => {
+  for (let round = 0; round < 8; round += 1) {
+    const shut = screen.queryAllByRole("button", { name: /^Open / });
+    const shelf = screen
+      .queryAllByRole("button", { name: "Archived" })
+      .filter((one) => one.getAttribute("aria-expanded") === "false");
+    if (shut.length === 0 && shelf.length === 0) return;
+    for (const one of [...shut, ...shelf]) fireEvent.click(one);
+  }
+};
+
 async function boot() {
   render(<App />);
   await screen.findByRole("button", { name: t("unfiled") });
+  unfoldAll();
 }
 
 function menuFor(rowLabel: string): HTMLElement {
@@ -430,6 +443,7 @@ describe("archiving and bringing back a document", () => {
         }),
       ).toBeNull(),
     );
+    unfoldAll();
     expect(
       within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {
         name: "Report",
@@ -683,6 +697,7 @@ describe("nothing filed yet", () => {
       docs: [{ id: "01A", file: "f1", title: "Old", folder: null, archived: true, away: true }],
     };
     render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} />);
+    unfoldAll();
 
     expect(
       within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {
