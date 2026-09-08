@@ -13,6 +13,7 @@ interface FakeFolder {
   parent: string | null;
   icon: string | null;
   color: string | null;
+  archived?: boolean;
 }
 
 interface FakeDoc {
@@ -148,10 +149,29 @@ function countIn(folder: string): number {
   return store.docs.filter((doc) => doc.folder === folder && !doc.archived).length;
 }
 
+const folderAway = (id: string | null): boolean => {
+  let at = id;
+  for (let deep = 0; at !== null && deep <= 4; deep += 1) {
+    const folder = store.folders.find((one) => one.id === at);
+    if (!folder) return false;
+    if (folder.archived) return true;
+    at = folder.parent;
+  }
+  return false;
+};
+
 function papersOut(): Papers {
   return {
-    folders: store.folders.map((folder) => ({ ...folder, holds: countIn(folder.id) })),
-    docs: store.docs.map((doc) => ({ ...doc })),
+    folders: store.folders.map((folder) => ({
+      ...folder,
+      holds: countIn(folder.id),
+      archived: Boolean(folder.archived),
+      away: folderAway(folder.id),
+    })),
+    docs: store.docs.map((doc) => ({
+      ...doc,
+      away: doc.archived || folderAway(doc.folder),
+    })),
   };
 }
 
@@ -201,6 +221,11 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
     case "doc_away": {
       const doc = store.docs.find((one) => one.id === args.id);
       if (doc) doc.archived = Boolean(args.away);
+      return Promise.resolve(null);
+    }
+    case "folder_away": {
+      const folder = store.folders.find((one) => one.id === args.id);
+      if (folder) folder.archived = Boolean(args.away);
       return Promise.resolve(null);
     }
     case "doc_drop": {
@@ -335,9 +360,22 @@ function seedFolder(over: Partial<FakeFolder> = {}): FakeFolder {
   return folder;
 }
 
+/// The tree arrives folded, so anything a test wants to reach has to be opened first.
+const unfoldAll = () => {
+  for (let round = 0; round < 8; round += 1) {
+    const shut = screen.queryAllByRole("button", { name: /^Open / });
+    const shelf = screen
+      .queryAllByRole("button", { name: "Archived" })
+      .filter((one) => one.getAttribute("aria-expanded") === "false");
+    if (shut.length === 0 && shelf.length === 0) return;
+    for (const one of [...shut, ...shelf]) fireEvent.click(one);
+  }
+};
+
 async function boot() {
   render(<App />);
   await screen.findByRole("button", { name: t("unfiled") });
+  unfoldAll();
 }
 
 function menuFor(rowLabel: string): HTMLElement {
@@ -410,6 +448,7 @@ describe("archiving and bringing back a document", () => {
         }),
       ).toBeNull(),
     );
+    unfoldAll();
     expect(
       within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {
         name: "Report",
@@ -430,6 +469,57 @@ describe("archiving and bringing back a document", () => {
     expect(
       within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Report" }),
     ).toBeTruthy();
+    expect(screen.queryByRole("list", { name: t("archived") })).toBeNull();
+  });
+});
+
+describe("putting a whole folder away", () => {
+  it("takes the folder to the shelf with what it holds, and leaves nothing behind", async () => {
+    const gone = seedFolder({ name: "Linio" });
+    const under = seedFolder({ name: "BOB", parent: gone.id });
+    seedDoc({ title: "Contracts", folder: gone.id });
+    seedDoc({ title: "Rollout", folder: under.id });
+    await boot();
+
+    await chooseFor("Linio", t("putAway"));
+
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("list", { name: t("docs") })).queryByRole("button", {
+          name: /Linio/,
+        }),
+      ).toBeNull(),
+    );
+    unfoldAll();
+    const shelf = within(screen.getByRole("list", { name: t("archived") }));
+    expect(shelf.getByRole("button", { name: "Contracts" })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: "Rollout" })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: "BOB" })).toBeTruthy();
+  });
+
+  it("offers to bring back the folder that was shelved, and nothing under it", async () => {
+    const gone = seedFolder({ name: "Linio" });
+    seedDoc({ title: "Contracts", folder: gone.id });
+    await boot();
+    await chooseFor("Linio", t("putAway"));
+    await waitFor(() => expect(asked("folder_away")).toBe(1));
+    unfoldAll();
+
+    // The one that was shelved answers for itself; what it holds has no door of its own.
+    fireEvent.contextMenu(menuFor("Contracts"), { clientX: 5, clientY: 5 });
+    const held = await screen.findByRole("menu");
+    expect(within(held).queryByRole("menuitem", { name: t("bringBack") })).toBeNull();
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await chooseFor("Linio", t("bringBack"));
+
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("list", { name: t("docs") })).getByRole("button", {
+          name: "Contracts",
+        }),
+      ).toBeTruthy(),
+    );
     expect(screen.queryByRole("list", { name: t("archived") })).toBeNull();
   });
 });
@@ -660,9 +750,10 @@ describe("nothing filed yet", () => {
   it("shows only what was archived, when that is all there ever was", () => {
     const papers: Papers = {
       folders: [],
-      docs: [{ id: "01A", file: "f1", title: "Old", folder: null, archived: true }],
+      docs: [{ id: "01A", file: "f1", title: "Old", folder: null, archived: true, away: true }],
     };
     render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} />);
+    unfoldAll();
 
     expect(
       within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {

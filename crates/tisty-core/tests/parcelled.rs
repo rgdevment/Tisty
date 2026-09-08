@@ -1032,6 +1032,109 @@ guardado",
 }
 
 #[test]
+fn a_folder_the_archive_holds_crosses_in_a_parcel_and_lands_closed() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let gone = here.folder("Linio", None, "work");
+    let under = here.folder("BOB", Some(gone), "robot");
+    here.doc(
+        "# Antifraude
+
+contratos",
+        Some(gone),
+        None,
+    );
+    let (by_hand, _) = here.doc(
+        "# Aparte
+
+guardado antes",
+        Some(gone),
+        None,
+    );
+    here.doc(
+        "# Despliegue
+
+lo de bob",
+        Some(under),
+        None,
+    );
+    here.tell(Op::DocArchive { id: by_hand });
+    here.tell(Op::FolderArchive { id: gone });
+
+    let box_at = room.path().join("linio.tistybox");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    for name in ["Antifraude", "Aparte", "Despliegue"] {
+        let landed = there.titled(name).id;
+        assert!(
+            there.state.stowed(landed),
+            "{name} came out of the parcel into the open tree"
+        );
+    }
+
+    let shelf = there.shelf("Linio").id;
+    assert!(
+        there.shelf("Linio").archived,
+        "the folder itself did not land closed"
+    );
+    let held = there.shelf("BOB");
+    assert!(
+        !held.archived && there.state.folder_away(held.id),
+        "the subfolder is away through the one above it, not by a mark of its own"
+    );
+
+    // Bringing it back has to give each document what it had, not what the folder gave it.
+    there.tell(Op::FolderUnarchive { id: shelf });
+    assert!(!there.state.stowed(there.titled("Antifraude").id));
+    assert!(!there.state.stowed(there.titled("Despliegue").id));
+    assert!(
+        there.state.stowed(there.titled("Aparte").id),
+        "the one archived by hand before the folder was shelved lost its own mark"
+    );
+}
+
+#[test]
+fn a_parcel_read_by_a_build_that_knows_nothing_of_shelved_folders_still_lands_closed() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let gone = here.folder("Linio", None, "work");
+    here.doc(
+        "# Antifraude
+
+contratos",
+        Some(gone),
+        None,
+    );
+    here.tell(Op::FolderArchive { id: gone });
+
+    let box_at = room.path().join("linio.tistybox");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    // What an older reader does with the two fields it has never heard of: drops them. Every
+    // document still says it is in the archive on its own, which is the safe side to land on.
+    reworded(&box_at, |manifest| {
+        for shelf in manifest["folders"].as_array_mut().unwrap() {
+            shelf.as_object_mut().unwrap().remove("archived");
+        }
+        for paper in manifest["docs"].as_array_mut().unwrap() {
+            paper.as_object_mut().unwrap().remove("by_folder");
+        }
+    });
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let landed = there.titled("Antifraude").id;
+    assert!(
+        there.state.stowed(landed),
+        "an older build would have poured the archive into the open tree"
+    );
+}
+
+#[test]
 fn two_folders_that_only_differ_in_case_do_not_pour_into_one() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");

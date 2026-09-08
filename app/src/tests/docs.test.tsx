@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
+import { t } from "../locales";
 import { settled } from "../saving";
 import Docs from "../ui/Docs";
 
@@ -107,9 +108,46 @@ vi.mock("../ui/Editor", () => ({
 }));
 
 const known: Filed[] = [
-  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false },
-  { id: "01G", file: "a3f1-0002", title: "Notas", folder: "01H", archived: false },
+  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false, away: false },
+  { id: "01G", file: "a3f1-0002", title: "Notas", folder: "01H", archived: false, away: false },
 ];
+
+describe("a document the archive holds through its folder", () => {
+  beforeEach(() => {
+    store.bodies = { "a3f1-0003": "# Contratos\n\nlo de entonces" };
+    store.writes = [];
+    store.reads = 0;
+    store.delays = [];
+    store.converted = [];
+    store.mute = false;
+    store.shape = null;
+    store.clash = false;
+    store.agrees = true;
+    store.coming = false;
+    store.refuse = null;
+  });
+
+  // The folder carries the mark, not the document, so reading `archived` here let the editor
+  // open for writing everything a shelved folder held.
+  const held: Filed[] = [
+    {
+      id: "01K",
+      file: "a3f1-0003",
+      title: "Contratos",
+      folder: "01L",
+      archived: false,
+      away: true,
+    },
+  ];
+
+  it("opens for reading, the same as one archived on its own", async () => {
+    render(<Docs open="a3f1-0003" known={held} onKept={vi.fn()} onError={vi.fn()} />);
+
+    expect(await screen.findByText(t("docShelved"))).toBeTruthy();
+    await waitFor(() => screen.getByLabelText("editor"));
+    expect(screen.getByLabelText("editor")).toHaveProperty("readOnly", true);
+  });
+});
 
 describe("the document being written", () => {
   beforeEach(() => {
@@ -718,7 +756,15 @@ describe("a document that moved on disk while it was open", () => {
 
 describe("a document the person locked", () => {
   const shut: Filed[] = [
-    { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false, locked: true },
+    {
+      id: "01F",
+      file: "a3f1-0001",
+      title: "Compras",
+      folder: null,
+      archived: false,
+      away: false,
+      locked: true,
+    },
   ];
 
   beforeEach(() => {
@@ -759,6 +805,7 @@ describe("a document the person locked", () => {
         title: "Verduras",
         folder: null,
         archived: false,
+        away: false,
         locked: true,
         pageOf: "01F",
       },
@@ -785,13 +832,14 @@ describe("a document the person locked", () => {
 
 describe("where you were standing in a document", () => {
   const two: Filed[] = [
-    { id: "01F", file: "a3f1-0001", title: "Curso", folder: null, archived: false },
+    { id: "01F", file: "a3f1-0001", title: "Curso", folder: null, archived: false, away: false },
     {
       id: "01G",
       file: "a3f1-0002",
       title: "Clase",
       folder: null,
       archived: false,
+      away: false,
       pageOf: "01F",
     },
   ];

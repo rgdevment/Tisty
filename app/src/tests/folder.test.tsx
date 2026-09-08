@@ -5,17 +5,53 @@ import type { Filed, Folded } from "../core";
 import Folder from "../ui/Folder";
 
 const folders: Folded[] = [
-  { id: "1", name: "trabajo", parent: null, icon: "briefcase", color: "blue", holds: 2 },
-  { id: "2", name: "corporativo", parent: "1", icon: null, color: null, holds: 1 },
-  { id: "3", name: "actas", parent: "2", icon: null, color: null, holds: 0 },
-  { id: "4", name: "personal", parent: null, icon: null, color: null, holds: 0 },
+  {
+    id: "1",
+    name: "trabajo",
+    parent: null,
+    icon: "briefcase",
+    color: "blue",
+    holds: 2,
+    archived: false,
+    away: false,
+  },
+  {
+    id: "2",
+    name: "corporativo",
+    parent: "1",
+    icon: null,
+    color: null,
+    holds: 1,
+    archived: false,
+    away: false,
+  },
+  {
+    id: "3",
+    name: "actas",
+    parent: "2",
+    icon: null,
+    color: null,
+    holds: 0,
+    archived: false,
+    away: false,
+  },
+  {
+    id: "4",
+    name: "personal",
+    parent: null,
+    icon: null,
+    color: null,
+    holds: 0,
+    archived: false,
+    away: false,
+  },
 ];
 
 const docs: Filed[] = [
-  { id: "a", file: "0001", title: "Contrato", folder: "2", archived: false },
-  { id: "b", file: "0002", title: "", folder: "2", archived: false },
-  { id: "c", file: "0003", title: "Viejo", folder: "2", archived: true },
-  { id: "d", file: "0004", title: "Ajeno", folder: "4", archived: false },
+  { id: "a", file: "0001", title: "Contrato", folder: "2", archived: false, away: false },
+  { id: "b", file: "0002", title: "", folder: "2", archived: false, away: false },
+  { id: "c", file: "0003", title: "Viejo", folder: "2", archived: true, away: true },
+  { id: "d", file: "0004", title: "Ajeno", folder: "4", archived: false, away: false },
 ];
 
 const show = (which: string) => {
@@ -182,7 +218,10 @@ describe("the loose papers, which belong to no folder", () => {
       <Folder
         folder={null}
         folders={folders}
-        docs={[...docs, { id: "e", file: "0005", title: "Suelto", folder: null, archived: false }]}
+        docs={[
+          ...docs,
+          { id: "e", file: "0005", title: "Suelto", folder: null, archived: false, away: false },
+        ]}
         onOpen={onOpen}
         onHere={vi.fn()}
         onHereMenu={onHereMenu}
@@ -225,9 +264,36 @@ describe("the loose papers, which belong to no folder", () => {
 
 describe("what a folder shows without being entered", () => {
   const deep: Folded[] = [
-    { id: "1", name: "personal", parent: null, icon: null, color: null, holds: 0 },
-    { id: "2", name: "condominio", parent: "1", icon: null, color: null, holds: 12 },
-    { id: "3", name: "moto", parent: "1", icon: null, color: null, holds: 1 },
+    {
+      id: "1",
+      name: "personal",
+      parent: null,
+      icon: null,
+      color: null,
+      holds: 0,
+      archived: false,
+      away: false,
+    },
+    {
+      id: "2",
+      name: "condominio",
+      parent: "1",
+      icon: null,
+      color: null,
+      holds: 12,
+      archived: false,
+      away: false,
+    },
+    {
+      id: "3",
+      name: "moto",
+      parent: "1",
+      icon: null,
+      color: null,
+      holds: 1,
+      archived: false,
+      away: false,
+    },
   ];
   const many: Filed[] = Array.from({ length: 12 }, (_, i) => ({
     id: `c${i}`,
@@ -235,7 +301,10 @@ describe("what a folder shows without being entered", () => {
     title: `Acta ${i}`,
     folder: "2",
     archived: false,
-  })).concat([{ id: "m", file: "200", title: "Revisión", folder: "3", archived: false }]);
+    away: false,
+  })).concat([
+    { id: "m", file: "200", title: "Revisión", folder: "3", archived: false, away: false },
+  ]);
 
   const open = () => {
     const onHere = vi.fn();
@@ -263,7 +332,16 @@ describe("what a folder shows without being entered", () => {
       <Folder
         folder={deep[0]}
         folders={deep}
-        docs={[{ id: "z", file: "300", title: "🧰 Herramientas", folder: "3", archived: false }]}
+        docs={[
+          {
+            id: "z",
+            file: "300",
+            title: "🧰 Herramientas",
+            folder: "3",
+            archived: false,
+            away: false,
+          },
+        ]}
         onOpen={vi.fn()}
         onHere={vi.fn()}
       />,
@@ -309,6 +387,7 @@ describe("what a paper says about itself without being opened", () => {
         title: "Contrato",
         folder: "2",
         archived: false,
+        away: false,
         bytes: 4200,
         wrote: "2026-03-14T10:00:00Z",
       },
@@ -336,6 +415,7 @@ describe("what a paper says about itself without being opened", () => {
         title: "Contrato",
         folder: "2",
         archived: false,
+        away: false,
         gone: true,
         bytes: 4200,
         wrote: "2026-03-14T10:00:00Z",

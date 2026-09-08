@@ -126,7 +126,10 @@ Being explicit here matters more than sounding reassuring.
   counted rather than the sizes the archive declares, and both the number of
   files and the number of entries in the manifest are capped. A folder name or
   an alias arriving inside is trimmed to the same limits the window applies, and
-  an icon or a colour it does not recognise is dropped instead of stored.
+  an icon or a colour it does not recognise is dropped instead of stored. A
+  parcel can say a folder was in the archive, and one it creates lands that way;
+  what it cannot do is close a folder you already have, because joining by name
+  leaves the folder that was already here deciding for itself.
 
   What a parcel cannot do is prove who wrote what: anyone can edit the manifest
   in a zip, and a name in a parcel is a claim, not a signature. What it can prove

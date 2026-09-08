@@ -40,13 +40,21 @@ vi.mock("../ui/Editor", () => ({
 }));
 
 const known: Filed[] = [
-  { id: "01A", file: "a3f1-0001", title: "Bases de datos", folder: null, archived: false },
+  {
+    id: "01A",
+    file: "a3f1-0001",
+    title: "Bases de datos",
+    folder: null,
+    archived: false,
+    away: false,
+  },
   {
     id: "01B",
     file: "a3f1-0002",
     title: "El pod",
     folder: null,
     archived: false,
+    away: false,
     pageOf: "01A",
   },
   {
@@ -55,9 +63,10 @@ const known: Filed[] = [
     title: "El túnel",
     folder: null,
     archived: false,
+    away: false,
     pageOf: "01A",
   },
-  { id: "01D", file: "a3f1-0004", title: "Solo", folder: null, archived: false },
+  { id: "01D", file: "a3f1-0004", title: "Solo", folder: null, archived: false, away: false },
 ];
 
 describe("a document that holds pages, open", () => {

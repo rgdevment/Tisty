@@ -26,6 +26,8 @@ interface Props {
   papers: Papers;
   open?: string;
   here?: string | null;
+  /// The row whose menu is open, so a right click says which one it landed on.
+  acting?: string | null;
   onOpen: (doc: Filed) => void;
   onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
@@ -40,6 +42,7 @@ export default function Tree({
   papers,
   open,
   here,
+  acting,
   onOpen,
   onFile,
   onPage,
@@ -49,7 +52,8 @@ export default function Tree({
   onHereMenu,
   onDocMenu,
 }: Props) {
-  const [shut, setShut] = useState<Set<string>>(new Set());
+  // Nothing arrives open: with two hundred documents a tree that unfolds itself is a wall.
+  const [opened, setOpened] = useState<Set<string>>(new Set());
   const [spread, setSpread] = useState<Set<string>>(new Set());
   const [over, setOver] = useState<string | null>(null);
   const [lifted, setLifted] = useState<{ id: string; kind: "doc" | "folder"; name: string } | null>(
@@ -306,11 +310,11 @@ export default function Tree({
       }
     }
     if (row.kind === "folder" && row.id !== "unfiled") {
-      if (e.key === "ArrowRight" && shut.has(row.id)) {
+      if (e.key === "ArrowRight" && !opened.has(row.id)) {
         e.preventDefault();
         return fold(row.id);
       }
-      if (e.key === "ArrowLeft" && !shut.has(row.id)) {
+      if (e.key === "ArrowLeft" && opened.has(row.id)) {
         e.preventDefault();
         return fold(row.id);
       }
@@ -329,8 +333,8 @@ export default function Tree({
         : "Control+X Shift+F10";
 
   const fold = (id: string) => {
-    if (!shut.has(id)) setReached(id);
-    setShut((were) => turned(were, id));
+    if (opened.has(id)) setReached(id);
+    setOpened((were) => turned(were, id));
   };
 
   // A document arrives shut: its pages are inside it, not a level of the tree standing open.
@@ -346,16 +350,27 @@ export default function Tree({
     return now;
   };
 
-  const under = (parent: string | null) => papers.folders.filter((one) => one.parent === parent);
+  const shelved = (folder: string | null) =>
+    papers.folders.some((one) => one.id === folder && one.away);
+
+  const under = (parent: string | null) =>
+    papers.folders.filter((one) => one.parent === parent && one.away === shelved(parent));
 
   const inside = (folder: string | null) =>
-    papers.docs.filter((one) => !one.archived && !one.pageOf && one.folder === folder);
+    papers.docs.filter(
+      (one) => !one.pageOf && one.folder === folder && one.away === shelved(folder),
+    );
 
   const pagesOf = (id: string) => papers.docs.filter((one) => one.pageOf === id);
 
-  const away = papers.docs.filter((one) => one.archived && !one.pageOf);
+  /// The shelf keeps the whole of a folder that was put away, and the loose ones under it in a row.
+  const shelves = papers.folders.filter(
+    (one) => one.archived && !papers.folders.some((up) => up.id === one.parent && up.away),
+  );
 
-  const takesPages = (doc: Filed) => !doc.pageOf && !doc.archived && Boolean(onPage);
+  const away = papers.docs.filter((one) => one.away && !one.pageOf && !shelved(one.folder ?? null));
+
+  const takesPages = (doc: Filed) => !doc.pageOf && !doc.away && Boolean(onPage);
 
   const nextOf = <T extends { id: string }>(all: T[], id: string) => {
     const at = all.findIndex((one) => one.id === id);
@@ -378,15 +393,15 @@ export default function Tree({
     return (
       <li key={doc.id} className="relative">
         <div
-          data-drop={page || doc.archived ? undefined : doc.id}
+          data-drop={page || doc.away ? undefined : doc.id}
           data-drop-kind="doc"
           data-drop-parent={doc.folder ?? ""}
           data-drop-next={nextOf(inside(doc.folder ?? null), doc.id) ?? ""}
           data-drop-holds={takesPages(doc) ? "yes" : "no"}
           data-drop-line={lineTo(doc.folder ?? null).join("/")}
           className={`group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover ${
-            over === doc.id ? "bg-accent-soft" : ""
-          }${
+            acting === doc.id ? "bg-active " : ""
+          }${over === doc.id ? "bg-accent-soft" : ""}${
             over === `${doc.id}:before`
               ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent"
               : ""
@@ -433,7 +448,7 @@ export default function Tree({
             aria-current={open === doc.file ? "true" : undefined}
             className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] ${
               lifted?.id === doc.id ? "ring-1 ring-accent " : ""
-            }${carried?.id === doc.id ? "opacity-45 " : ""}${doc.archived ? "opacity-55 " : ""}${
+            }${carried?.id === doc.id ? "opacity-45 " : ""}${doc.away ? "opacity-55 " : ""}${
               open === doc.file
                 ? "bg-active text-ink"
                 : `${page ? "text-faint" : "text-soft"} hover:bg-hover`
@@ -475,17 +490,17 @@ export default function Tree({
   };
 
   const branch = (folder: Folded, depth: number) => {
-    const closed = shut.has(folder.id);
+    const closed = !opened.has(folder.id);
     const kids = under(folder.id);
     const papersIn = inside(folder.id);
     return (
-      <li key={folder.id} className="relative">
+      <li key={folder.id} className={folder.away ? "relative opacity-55" : "relative"}>
         <div
-          data-drop={folder.id}
+          data-drop={folder.away ? undefined : folder.id}
           data-drop-kind="folder"
           data-drop-parent={folder.parent ?? ""}
           data-drop-next={nextOf(under(folder.parent ?? null), folder.id) ?? ""}
-          data-drop-holds="yes"
+          data-drop-holds={folder.away ? "no" : "yes"}
           data-drop-line={lineTo(folder.parent ?? null).join("/")}
           className={`relative rounded-md ${over === folder.id ? "bg-accent-soft" : ""}${
             over === `${folder.id}:before`
@@ -498,7 +513,9 @@ export default function Tree({
           }`}
         >
           <div
-            className="group/row flex items-center rounded-md"
+            className={`group/row flex items-center rounded-md ${
+              acting === folder.id ? "bg-active" : ""
+            }`}
             onContextMenu={(e) => {
               if (!onFolderMenu) return;
               e.preventDefault();
@@ -567,7 +584,7 @@ export default function Tree({
 
   const loose = papers.docs.filter(
     (one) =>
-      !one.archived &&
+      !one.away &&
       !one.pageOf &&
       (one.folder === null || !papers.folders.some((at) => at.id === one.folder)),
   );
@@ -598,8 +615,8 @@ export default function Tree({
         >
           <Grip
             at={8}
-            open={!shut.has("unfiled")}
-            label={fill(shut.has("unfiled") ? "openFolder" : "closeFolder", t("unfiled"))}
+            open={opened.has("unfiled")}
+            label={fill(opened.has("unfiled") ? "closeFolder" : "openFolder", t("unfiled"))}
             controls="holds-unfiled"
             onPress={() => fold("unfiled")}
           >
@@ -630,19 +647,21 @@ export default function Tree({
             </span>
           </button>
         </div>
-        {!shut.has("unfiled") && (
+        {opened.has("unfiled") && (
           <span
             aria-hidden="true"
             className="absolute bottom-1 w-px bg-hair"
             style={{ left: `${SPINE}px`, top: "30px" }}
           />
         )}
-        {!shut.has("unfiled") && <ul id="holds-unfiled">{loose.map((doc) => paper(doc, 1))}</ul>}
+        {opened.has("unfiled") && <ul id="holds-unfiled">{loose.map((doc) => paper(doc, 1))}</ul>}
       </li>
     </ul>
   );
 
-  const kept = away.length > 0 && (
+  const held = shelves.length + away.length;
+
+  const kept = held > 0 && (
     <div className="mt-2">
       <button
         type="button"
@@ -652,22 +671,23 @@ export default function Tree({
           onHereMenu({ x: e.clientX, y: e.clientY });
         }}
         onClick={() => fold("away")}
-        aria-expanded={!shut.has("away")}
+        aria-expanded={opened.has("away")}
         aria-label={t("archived")}
         className="flex w-full items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
       >
         <span
           aria-hidden
-          className={`text-[9px] transition-transform ${shut.has("away") ? "-rotate-90" : ""}`}
+          className={`text-[9px] transition-transform ${opened.has("away") ? "" : "-rotate-90"}`}
         >
           ▼
         </span>
         {t("archived")}
-        <span className="ml-auto text-[11px] font-normal">{away.length}</span>
+        <span className="ml-auto text-[11px] font-normal">{held}</span>
       </button>
-      {!shut.has("away") && (
+      {opened.has("away") && (
         <ul aria-label={t("archived")} className="flex flex-col gap-px">
-          {away.map((doc) => paper(doc, 0))}
+          {shelves.map((folder) => branch(folder, 1))}
+          {away.map((doc) => paper(doc, 1))}
         </ul>
       )}
     </div>

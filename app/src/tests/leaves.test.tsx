@@ -13,6 +13,7 @@ const page = (id: string, file: string, title: string): Filed => ({
   title,
   folder: null,
   archived: false,
+  away: false,
   pageOf: "01A",
 });
 
@@ -78,6 +79,7 @@ describe("the head of a page", () => {
     title: "Bases de datos",
     folder: null,
     archived: false,
+    away: false,
   };
 
   const told = new Set(pages.map((one) => one.file));

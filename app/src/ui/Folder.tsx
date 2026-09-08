@@ -54,9 +54,10 @@ export default function Folder({
     });
 
   const under = folder ? folders.filter((one) => one.parent === folder.id) : [];
+  const shelved = Boolean(folder?.away);
   const inside = docs.filter(
     (one) =>
-      !one.archived &&
+      one.away === shelved &&
       !one.pageOf &&
       (folder
         ? one.folder === folder.id
@@ -80,7 +81,7 @@ export default function Folder({
     for (let at = left.pop(); at !== undefined; at = left.pop()) {
       if (seen.has(at)) continue;
       seen.add(at);
-      many += docs.filter((one) => !one.archived && !one.pageOf && one.folder === at).length;
+      many += docs.filter((one) => one.away === shelved && !one.pageOf && one.folder === at).length;
       for (const one of folders) if (one.parent === at) left.push(one.id);
     }
     return many;
@@ -233,7 +234,7 @@ export default function Folder({
       {under.map((one) => {
         const closed = shut.has(one.id);
         const deeper = folders.filter((at) => at.parent === one.id);
-        const held = docs.filter((at) => !at.archived && !at.pageOf && at.folder === one.id);
+        const held = docs.filter((at) => at.away === shelved && !at.pageOf && at.folder === one.id);
         const shown = held.slice(0, Math.max(PEEK - deeper.length, 2));
         const left = held.length - shown.length;
         return (

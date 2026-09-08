@@ -670,6 +670,10 @@ export interface Folded {
   icon: string | null;
   color?: string | null;
   holds: number;
+  /// The folder's own mark: only the one that was shelved offers to come back.
+  archived: boolean;
+  /// What the archive holds, the folders above it counted in.
+  away: boolean;
 }
 
 export type Paper = "a4" | "letter" | "tabloid";
@@ -683,7 +687,10 @@ export interface Filed {
   wrote?: string | null;
   folder: string | null;
   pageOf?: string | null;
+  /// The document's own mark, which is what its own menu can answer for.
   archived: boolean;
+  /// What the archive holds, the folder above it counted in.
+  away: boolean;
   locked?: boolean;
   gone?: boolean;
   guest?: string | null;
@@ -751,6 +758,8 @@ export const sow = (priority?: Priority): Promise<void> => invoke("sow", { prior
 
 export const docAway = (id: string, away: boolean): Promise<void> =>
   invoke("doc_away", { id, away });
+export const folderAway = (id: string, away: boolean): Promise<void> =>
+  invoke("folder_away", { id, away });
 export const docLock = (id: string, shut: boolean): Promise<void> =>
   invoke("doc_lock", { id, shut });
 

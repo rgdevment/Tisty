@@ -8,6 +8,8 @@ const folder = (id: string, name: string, parent: string | null): Folded => ({
   parent,
   icon: null,
   holds: 0,
+  archived: false,
+  away: false,
 });
 
 describe("the path that says where a document is kept", () => {

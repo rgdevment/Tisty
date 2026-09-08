@@ -13,6 +13,7 @@ const doc = (id: string, title: string, tags: string[]): Filed => ({
   title,
   folder: null,
   archived: false,
+  away: false,
   tags,
   wrote: "2026-09-02T09:00:00Z",
 });
