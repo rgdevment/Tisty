@@ -39,8 +39,6 @@ const Editor = lazy(() => import("./Editor"));
 
 const SETTLES = 700;
 
-const STILL_AT_IT = 4_000;
-
 const REMEMBERS = 12;
 
 const remembered = (held: Map<string, string>, file: string, text: string) => {
@@ -244,10 +242,7 @@ export default function Docs({
       setComing(false);
       return;
     }
-    // Reading the body back over somebody mid-sentence loses what they wrote and drops the caret
-    // at the end: a save empties what is held, and the next keystroke is not there yet.
-    const writing = held.current || Date.now() - typed.current < STILL_AT_IT;
-    if (asked === open?.file && (fresh === seen.current || writing)) {
+    if (asked === open?.file && (fresh === seen.current || held.current)) {
       turn.current += 1;
       return;
     }
@@ -269,11 +264,15 @@ export default function Docs({
     putting.current = null;
     flush();
     const mine = ++turn.current;
+    const wrote_at = typed.current;
     (busy(wanted.file) ?? Promise.resolve())
       .catch(() => {})
       .then(() => docRead(wanted.file))
       .then((text) => {
         if (turn.current !== mine) return;
+        // Somebody typed while this was in flight: reading it back over them would lose the
+        // words and drop the caret at the end.
+        if (typed.current !== wrote_at) return;
         const last = lastRead.current.get(wanted.file);
         const astir = last !== undefined && tailless(last) !== tailless(text);
         remembered(lastRead.current, wanted.file, text);
