@@ -683,15 +683,17 @@ fn bring(
                 }
             };
             if coming < held {
-                witness::warn(
-                    channel::SYNC,
-                    "a shorter history for a machine was left where it was",
-                    &[
-                        ("at", Fact::Id(named.to_string())),
-                        ("held", Fact::Count(held)),
-                        ("coming", Fact::Count(coming)),
-                    ],
-                );
+                if !matches!(one_grew_from_the_other(&mine, &entry.path()), Grew::Yes) {
+                    witness::warn(
+                        channel::SYNC,
+                        "a shorter history for a machine was left where it was",
+                        &[
+                            ("at", Fact::Id(named.to_string())),
+                            ("held", Fact::Count(held)),
+                            ("coming", Fact::Count(coming)),
+                        ],
+                    );
+                }
                 continue;
             }
         }
@@ -1702,6 +1704,89 @@ mod tests {
             held,
             "una historia mas corta piso la que ya teniamos"
         );
+    }
+
+    static ALONE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn watching(at: &Path) -> tisty_core::paths::Paths {
+        let paths = tisty_core::paths::Paths::new(at.join("data"), at.join("config"));
+        witness::keeps(tisty_core::witness::file(&paths), false);
+        paths
+    }
+
+    fn said_about(paths: &tisty_core::paths::Paths, who: &str) -> Vec<String> {
+        tisty_core::witness::recent(paths, 200)
+            .into_iter()
+            .filter(|line| line.contains("a shorter history") && line.contains(who))
+            .collect()
+    }
+
+    fn trailing(theirs: &Path) {
+        let at = theirs.join("active.tisty");
+        let whole = std::fs::read_to_string(&at).unwrap();
+        let first = whole.lines().next().unwrap();
+        std::fs::write(
+            &at,
+            format!(
+                "{first}
+"
+            ),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn a_shared_folder_merely_behind_ours_is_pushed_to_without_a_word() {
+        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+        let one = machine("uno");
+        for said in ["dos", "tres", "cuatro"] {
+            wrote(&one, said.into());
+        }
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let two = blank("dos");
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+        trailing(&shared.path().join(STORE).join(&one.device));
+
+        let kept = tempfile::tempdir().unwrap();
+        let paths = watching(kept.path());
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert!(said_about(&paths, &one.device).is_empty());
+        assert_eq!(
+            tisty_core::store::check_device(&shared.path().join(STORE).join(&one.device)).unwrap(),
+            tisty_core::store::check_device(&two.store.join(&one.device)).unwrap(),
+        );
+    }
+
+    #[test]
+    fn a_shared_folder_that_walked_off_on_its_own_is_still_reported() {
+        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+        let one = machine("uno");
+        for said in ["dos", "tres", "cuatro"] {
+            wrote(&one, said.into());
+        }
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let two = blank("dos");
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        let apart = blank("uno");
+        wrote(&apart, "otra vida".into());
+        let theirs = shared.path().join(STORE).join(&one.device);
+        std::fs::copy(
+            apart.store.join(&apart.device).join("active.tisty"),
+            theirs.join("active.tisty"),
+        )
+        .unwrap();
+
+        let kept = tempfile::tempdir().unwrap();
+        let paths = watching(kept.path());
+        carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+
+        assert!(!said_about(&paths, &one.device).is_empty());
     }
 
     #[test]

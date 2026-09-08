@@ -484,7 +484,8 @@ export interface Logs {
 }
 
 export const logs = (most: number): Promise<Logs> => invoke("logs", { most });
-export const noteTrouble = (code: string): Promise<void> => invoke("note_trouble", { code });
+export const noteTrouble = (code: string, name?: string): Promise<void> =>
+  invoke("note_trouble", { code, name });
 
 export type Route = "store" | "brew" | "brewCli" | "download";
 
