@@ -39,6 +39,8 @@ const Editor = lazy(() => import("./Editor"));
 
 const SETTLES = 700;
 
+const STILL_AT_IT = 4_000;
+
 const REMEMBERS = 12;
 
 const remembered = (held: Map<string, string>, file: string, text: string) => {
@@ -110,6 +112,7 @@ export default function Docs({
   const [saving, setSaving] = useState(false);
   const [packed, setPacked] = useState(0);
   const shaped = useRef("");
+  const typed = useRef(0);
   const seen = useRef(0);
   const [stuck, setStuck] = useState(false);
   const [coming, setComing] = useState(false);
@@ -241,7 +244,10 @@ export default function Docs({
       setComing(false);
       return;
     }
-    if (asked === open?.file && (fresh === seen.current || held.current)) {
+    // Reading the body back over somebody mid-sentence loses what they wrote and drops the caret
+    // at the end: a save empties what is held, and the next keystroke is not there yet.
+    const writing = held.current || Date.now() - typed.current < STILL_AT_IT;
+    if (asked === open?.file && (fresh === seen.current || writing)) {
       turn.current += 1;
       return;
     }
@@ -339,6 +345,7 @@ export default function Docs({
 
   const wrote = (text: string) => {
     if (!open || reading || bolted) return;
+    typed.current = Date.now();
     setBody(text);
     if (text === shaped.current) return;
     const last = lastRead.current.get(open.file);

@@ -434,6 +434,27 @@ describe("archiving and bringing back a document", () => {
   });
 });
 
+describe("writing while the window refreshes", () => {
+  it("does not read the body back over what was just typed", async () => {
+    const doc = seedDoc({ title: "Guide" });
+    const read = ["# Guide", "", "what it holds", ""].join("\n");
+    store.bodies[doc.file] = read;
+    await boot();
+    await userEvent.click(
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Guide" }),
+    );
+    const editor = await screen.findByTestId("editor");
+    fireEvent.change(editor, { target: { value: `${read}\npegado` } });
+    await waitFor(() => expect(store.writes.length).toBeGreaterThan(0));
+
+    store.bodies[doc.file] = ["# Guide", "", "something else entirely", ""].join("\n");
+    window.dispatchEvent(new Event("focus"));
+    await new Promise((soon) => setTimeout(soon, 400));
+
+    expect((editor as HTMLTextAreaElement).value).toContain("pegado");
+  });
+});
+
 describe("coming back to the window", () => {
   it("asks for the documents again, not only for the tasks", async () => {
     seedDoc({ title: "Report" });
