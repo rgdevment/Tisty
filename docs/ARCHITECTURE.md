@@ -1002,6 +1002,12 @@ unarchive, and a move that changes the folder or the document a page belongs
 to — cannot be told a row at a time, so they throw the cache away and it is
 rebuilt from the log.
 
+**Putting a whole folder away is not one of them.** The mark lives on the folder
+and no document row changes — what the archive holds is worked out on read, by
+walking up from the document — so one row is rewritten and the cache stays true.
+Deleting that folder *is* on the list already, and it is the one case where rows
+do change, because the mark is written down into what the folder lets go of.
+
 A move that carries nothing but an order is the exception, and it has to be, or
 saving a body would cost a rebuild every time the text moved a page. It is safe
 because that move touches one row and no other: the projection does walk every
@@ -1075,6 +1081,49 @@ round takes can order the page's own creation before its document's. Every
 machine still agrees — the log is replayed in one order — but the page is read as
 a document of its own, standing in the folder it was written into. Nothing is
 lost and nothing hides; the tie to the document is what goes.
+
+## Putting a whole folder away
+
+A folder can go into the archive with everything under it — subfolders,
+documents, pages — and comes back the same, which is the whole point: nothing is
+moved, so nothing has to be put back.
+
+**The state is derived, not cascaded.** The folder carries its own `archived`,
+and a document is in the archive when its own mark says so *or* when any folder
+above it does. Marking every document instead would have been shorter and would
+have thrown away the one thing worth keeping: which of them somebody had archived
+by hand before the folder was shelved. Those come back archived when the folder
+returns, and only those.
+
+The cost of deriving is that the mark can be separated from what it applies to,
+and there it would be lost. Three places close that, all in the projection, where
+an event arriving from another machine lands too:
+
+- **Deleting the folder** writes the mark down into the documents and subfolders
+  it lets go of, before it lets go. Both machines replay the same log in the same
+  order, so both land on the same answer.
+- **Packing** writes what the archive holds into every document, not only its own
+  mark, so a parcel opened by a build that knows nothing of shelved folders still
+  restores it closed. A separate `by_folder` flag says which of those are only
+  closed by the folder, so bringing it back opens the right ones.
+- **Naming a folder that already exists** — what merging two stores and restoring
+  a parcel both do — keeps its archive instead of rebuilding it open.
+
+**What the archive holds is read, exported and packed as always, and written by
+nobody** — no window command, no agent tool. Two writes reach it anyway, and both
+predate this: settling a rift, because leaving a conflict with no way out is
+worse, and recording what a body already said when it arrives from the other
+machine.
+
+**Only the folder that was shelved has a door.** A document inside it does not
+unarchive on its own; it would leave a hole in the shape the folder is keeping.
+For the same reason it cannot be deleted from in there, and deleting has no
+inverse.
+
+**The schema was raised to 12 for this.** `folder.archive` changes what already
+exists, so it does not carry the skip-me mark: a build that ignored it would show
+the folder open and write inside it. An older machine stops syncing until it
+updates, which it is told to do the moment it meets the newer store.
 
 ## What the editor may write into a document
 

@@ -827,6 +827,61 @@ mod tests {
     }
 
     #[test]
+    fn shelving_a_folder_needs_no_rebuild_because_no_documents_row_changes() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let shelf = Ulid::generate();
+        store
+            .append(Op::FolderAdd {
+                id: shelf,
+                d: crate::event::FolderAdd {
+                    name: "linio".into(),
+                    order: "a0".into(),
+                    parent: None,
+                    icon: None,
+                    color: None,
+                },
+            })
+            .unwrap();
+        let doc = Ulid::generate();
+        store
+            .append(Op::DocAdd {
+                id: doc,
+                d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
+                    said: None,
+                    file: "a3f1-0001".into(),
+                    order: "a0".into(),
+                    folder: Some(shelf),
+                    page_of: None,
+                },
+            })
+            .unwrap();
+
+        let mut state = project(&f.store_root, &f.cache_dir).unwrap();
+        let mut cache = Cache::open(&f.cache_dir).unwrap();
+        let away = store.append(Op::FolderArchive { id: shelf }).unwrap();
+        state.apply(&away);
+        advance(cache.as_mut(), &state, &[away], &f.store_root, false);
+
+        // The mark lives on the folder, so the documents rows are untouched and the row this
+        // does rewrite carries it: reading it back has to agree with replaying the whole log.
+        let again = project(&f.store_root, &f.cache_dir).unwrap();
+        assert!(
+            again.folders[&shelf].archived,
+            "the shelved folder came back open"
+        );
+        assert!(again.stowed(doc), "what it holds came back into the tree");
+        assert!(
+            !again.docs[&doc].archived,
+            "the document was marked one by one"
+        );
+    }
+
+    #[test]
     fn deleting_a_document_with_pages_leaves_no_page_behind_in_the_cache() {
         let f = loaded();
         let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();

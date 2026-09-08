@@ -357,6 +357,14 @@ never gets ticked. They are Markdown files you edit as documents — tables,
 checklists, code, images — and search reads them too. A task can point at a
 document; a document never creates tasks.
 
+**The tree opens quiet and closes whole.** Every folder starts folded, so a store
+with hundreds of documents is a handful of rows until you go looking. When work
+is over you archive the folder itself, not its documents one by one: it drops to
+the shelf at the foot of the tree with its icon, its subfolders and its pages
+exactly as you left them, closed to writing and to anything new coming in. Bring
+it back and it returns the same — including whichever documents you had archived
+by hand in there, which stay archived because nobody said otherwise.
+
 **A document takes tags the way a task does** — you write `#contract` in the
 middle of a sentence and the document is filed under it. The tag lives in the
 sentence rather than in a hidden header, so carrying the file to another editor
