@@ -116,6 +116,15 @@ describe("a document the archive holds through its folder", () => {
   beforeEach(() => {
     store.bodies = { "a3f1-0003": "# Contratos\n\nlo de entonces" };
     store.writes = [];
+    store.reads = 0;
+    store.delays = [];
+    store.converted = [];
+    store.mute = false;
+    store.shape = null;
+    store.clash = false;
+    store.agrees = true;
+    store.coming = false;
+    store.refuse = null;
   });
 
   // The folder carries the mark, not the document, so reading `archived` here let the editor
@@ -135,6 +144,7 @@ describe("a document the archive holds through its folder", () => {
     render(<Docs open="a3f1-0003" known={held} onKept={vi.fn()} onError={vi.fn()} />);
 
     expect(await screen.findByText(t("docShelved"))).toBeTruthy();
+    await waitFor(() => screen.getByLabelText("editor"));
     expect(screen.getByLabelText("editor")).toHaveProperty("readOnly", true);
   });
 });

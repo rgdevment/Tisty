@@ -401,9 +401,7 @@ export default function Tree({
           data-drop-line={lineTo(doc.folder ?? null).join("/")}
           className={`group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover ${
             acting === doc.id ? "bg-active " : ""
-          }${
-            over === doc.id ? "bg-accent-soft" : ""
-          }${
+          }${over === doc.id ? "bg-accent-soft" : ""}${
             over === `${doc.id}:before`
               ? " before:absolute before:inset-x-0 before:-top-px before:h-0.5 before:rounded-full before:bg-accent"
               : ""

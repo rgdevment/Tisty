@@ -1097,6 +1097,44 @@ lo de bob",
 }
 
 #[test]
+fn a_parcel_read_by_a_build_that_knows_nothing_of_shelved_folders_still_lands_closed() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let gone = here.folder("Linio", None, "work");
+    here.doc(
+        "# Antifraude
+
+contratos",
+        Some(gone),
+        None,
+    );
+    here.tell(Op::FolderArchive { id: gone });
+
+    let box_at = room.path().join("linio.tistybox");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    // What an older reader does with the two fields it has never heard of: drops them. Every
+    // document still says it is in the archive on its own, which is the safe side to land on.
+    reworded(&box_at, |manifest| {
+        for shelf in manifest["folders"].as_array_mut().unwrap() {
+            shelf.as_object_mut().unwrap().remove("archived");
+        }
+        for paper in manifest["docs"].as_array_mut().unwrap() {
+            paper.as_object_mut().unwrap().remove("by_folder");
+        }
+    });
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let landed = there.titled("Antifraude").id;
+    assert!(
+        there.state.stowed(landed),
+        "an older build would have poured the archive into the open tree"
+    );
+}
+
+#[test]
 fn two_folders_that_only_differ_in_case_do_not_pour_into_one() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");
