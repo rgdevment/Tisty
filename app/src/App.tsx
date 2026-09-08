@@ -593,14 +593,28 @@ export default function App() {
 
   useEffect(() => {
     load();
-    window.addEventListener("focus", load);
-    return () => window.removeEventListener("focus", load);
   }, [load]);
 
   const latest = useRef(load);
   latest.current = load;
   const papersAgain = useRef(lookPapers);
   papersAgain.current = lookPapers;
+
+  useEffect(() => {
+    const again = () => {
+      latest.current();
+      papersAgain.current();
+    };
+    const seen = () => {
+      if (document.visibilityState === "visible") again();
+    };
+    window.addEventListener("focus", again);
+    document.addEventListener("visibilitychange", seen);
+    return () => {
+      window.removeEventListener("focus", again);
+      document.removeEventListener("visibilitychange", seen);
+    };
+  }, []);
   const papersNow = useRef(papers.docs);
   papersNow.current = papers.docs;
   useEffect(() => {

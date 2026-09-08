@@ -54,10 +54,14 @@ const carrier = vi.hoisted(() => ({ made: 0, asked: 0 }));
 
 const ipc = vi.hoisted(() => ({
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
+  calls: [] as string[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: Record<string, unknown>) => ipc.answer(cmd, args ?? {}),
+  invoke: (cmd: string, args?: Record<string, unknown>) => {
+    ipc.calls.push(cmd);
+    return ipc.answer(cmd, args ?? {});
+  },
 }));
 
 vi.mock("../carrying", () => ({
@@ -135,6 +139,8 @@ vi.mock("../ui/Editor", () => ({
     </>
   ),
 }));
+
+const asked = (cmd: string) => ipc.calls.filter((one) => one === cmd).length;
 
 const mkId = (prefix: string) => `${prefix}${++store.seq}`;
 
@@ -288,6 +294,7 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
 }
 
 beforeEach(() => {
+  ipc.calls = [];
   store.folders = [];
   store.docs = [];
   store.bodies = {};
@@ -424,6 +431,31 @@ describe("archiving and bringing back a document", () => {
       within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Report" }),
     ).toBeTruthy();
     expect(screen.queryByRole("list", { name: t("archived") })).toBeNull();
+  });
+});
+
+describe("coming back to the window", () => {
+  it("asks for the documents again, not only for the tasks", async () => {
+    seedDoc({ title: "Report" });
+    await boot();
+    const before = { docs: asked("docs"), tasks: asked("snapshot") };
+
+    window.dispatchEvent(new Event("focus"));
+
+    await waitFor(() => expect(asked("docs")).toBeGreaterThan(before.docs));
+    expect(asked("snapshot")).toBeGreaterThan(before.tasks);
+  });
+
+  it("asks again when the window is seen once more", async () => {
+    seedDoc({ title: "Report" });
+    await boot();
+    const before = asked("docs");
+    const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    await waitFor(() => expect(asked("docs")).toBeGreaterThan(before));
+    seen.mockRestore();
   });
 });
 

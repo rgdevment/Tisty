@@ -62,6 +62,51 @@ describe("carrying on its own", () => {
     expect(rounds[rounds.length - 1].args.way).toBe("pull");
   });
 
+  it("does not swallow a push when the round it met was busy", async () => {
+    let hung = true;
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (hung) return new Promise(() => {});
+      return Promise.resolve({ carried: "busy", undecided: [] });
+    };
+    carried = carrying(() => {});
+    await settle();
+
+    hung = false;
+    carried.changed();
+    await vi.advanceTimersByTimeAsync(5_000);
+    await vi.advanceTimersByTimeAsync(60_000);
+    ipc.calls = [];
+
+    window.dispatchEvent(new Event("focus"));
+    await settle();
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    const ways = sent("sync_now").map((one) => one.args.way);
+    expect(ways.some((one) => one === "push" || one === undefined)).toBe(true);
+  });
+
+  it("brings it home the moment the window is seen again, focus or no focus", async () => {
+    let shown = "hidden";
+    const seen = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockImplementation(() => shown as DocumentVisibilityState);
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : Promise.resolve({ carried: "came", undecided: [] });
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    shown = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    await settle();
+
+    expect(sent("sync_now").length).toBe(before + 1);
+    seen.mockRestore();
+  });
+
   it("does not glance while the window is out of sight", async () => {
     const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
     ipc.answer = (cmd) =>

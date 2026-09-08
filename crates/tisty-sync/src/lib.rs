@@ -372,9 +372,6 @@ pub fn stirring(dest: &Path) -> u64 {
             })
     };
 
-    if let Some((len, at)) = when(&dest.join(PAPERS)) {
-        seen.push((dest.join(PAPERS), len, at));
-    }
     if let Ok(entries) = std::fs::read_dir(dest.join(STORE)) {
         for entry in entries.filter_map(|one| one.ok()) {
             let Ok(segments) = tisty_core::store::segments_in(&entry.path()) else {
