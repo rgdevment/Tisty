@@ -26,6 +26,8 @@ interface Props {
   papers: Papers;
   open?: string;
   here?: string | null;
+  /// The row whose menu is open, so a right click says which one it landed on.
+  acting?: string | null;
   onOpen: (doc: Filed) => void;
   onFile: (doc: string, folder?: string, before?: string) => void;
   onPage?: (doc: string, pageOf: string) => void;
@@ -40,6 +42,7 @@ export default function Tree({
   papers,
   open,
   here,
+  acting,
   onOpen,
   onFile,
   onPage,
@@ -397,6 +400,8 @@ export default function Tree({
           data-drop-holds={takesPages(doc) ? "yes" : "no"}
           data-drop-line={lineTo(doc.folder ?? null).join("/")}
           className={`group/row relative flex items-center rounded-md has-[:focus-visible]:bg-hover ${
+            acting === doc.id ? "bg-active " : ""
+          }${
             over === doc.id ? "bg-accent-soft" : ""
           }${
             over === `${doc.id}:before`
@@ -510,7 +515,9 @@ export default function Tree({
           }`}
         >
           <div
-            className="group/row flex items-center rounded-md"
+            className={`group/row flex items-center rounded-md ${
+              acting === folder.id ? "bg-active" : ""
+            }`}
             onContextMenu={(e) => {
               if (!onFolderMenu) return;
               e.preventDefault();
@@ -681,8 +688,8 @@ export default function Tree({
       </button>
       {opened.has("away") && (
         <ul aria-label={t("archived")} className="flex flex-col gap-px">
-          {shelves.map((folder) => branch(folder, 0))}
-          {away.map((doc) => paper(doc, 0))}
+          {shelves.map((folder) => branch(folder, 1))}
+          {away.map((doc) => paper(doc, 1))}
         </ul>
       )}
     </div>

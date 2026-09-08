@@ -210,6 +210,8 @@ export default function App() {
     at: { x: number; y: number };
     label: string;
     choices: Choice[];
+    /// Which row it was opened on, so the tree can say so while it stands.
+    on?: string;
   } | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
   const standing = here ? papers.folders.find((one) => one.id === here) : undefined;
@@ -838,6 +840,7 @@ export default function App() {
   const folderMenu = (folder: Folded, at: { x: number; y: number }) =>
     setMenu({
       at,
+      on: folder.id,
       label: t("folderActions"),
       choices: [
         {
@@ -936,6 +939,7 @@ export default function App() {
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
     setMenu({
       at,
+      on: doc.id,
       label: t("docActions"),
       choices: [
         {
@@ -1461,6 +1465,7 @@ export default function App() {
         chosen={chosen}
         waiting={ready?.version}
         here={here}
+        acting={menu?.on ?? null}
         onHere={(folder) => {
           setHere(folder ?? null);
           setChosen({ named: "docs" });

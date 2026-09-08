@@ -223,6 +223,11 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
       if (doc) doc.archived = Boolean(args.away);
       return Promise.resolve(null);
     }
+    case "folder_away": {
+      const folder = store.folders.find((one) => one.id === args.id);
+      if (folder) folder.archived = Boolean(args.away);
+      return Promise.resolve(null);
+    }
     case "doc_drop": {
       store.docs = store.docs.filter((one) => one.id !== args.id);
       return Promise.resolve(null);
@@ -464,6 +469,57 @@ describe("archiving and bringing back a document", () => {
     expect(
       within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Report" }),
     ).toBeTruthy();
+    expect(screen.queryByRole("list", { name: t("archived") })).toBeNull();
+  });
+});
+
+describe("putting a whole folder away", () => {
+  it("takes the folder to the shelf with what it holds, and leaves nothing behind", async () => {
+    const gone = seedFolder({ name: "Linio" });
+    const under = seedFolder({ name: "BOB", parent: gone.id });
+    seedDoc({ title: "Contracts", folder: gone.id });
+    seedDoc({ title: "Rollout", folder: under.id });
+    await boot();
+
+    await chooseFor("Linio", t("putAway"));
+
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("list", { name: t("docs") })).queryByRole("button", {
+          name: /Linio/,
+        }),
+      ).toBeNull(),
+    );
+    unfoldAll();
+    const shelf = within(screen.getByRole("list", { name: t("archived") }));
+    expect(shelf.getByRole("button", { name: "Contracts" })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: "Rollout" })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: "BOB" })).toBeTruthy();
+  });
+
+  it("offers to bring back the folder that was shelved, and nothing under it", async () => {
+    const gone = seedFolder({ name: "Linio" });
+    seedDoc({ title: "Contracts", folder: gone.id });
+    await boot();
+    await chooseFor("Linio", t("putAway"));
+    await waitFor(() => expect(asked("folder_away")).toBe(1));
+    unfoldAll();
+
+    // The one that was shelved answers for itself; what it holds has no door of its own.
+    fireEvent.contextMenu(menuFor("Contracts"), { clientX: 5, clientY: 5 });
+    const held = await screen.findByRole("menu");
+    expect(within(held).queryByRole("menuitem", { name: t("bringBack") })).toBeNull();
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await chooseFor("Linio", t("bringBack"));
+
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("list", { name: t("docs") })).getByRole("button", {
+          name: "Contracts",
+        }),
+      ).toBeTruthy(),
+    );
     expect(screen.queryByRole("list", { name: t("archived") })).toBeNull();
   });
 });
