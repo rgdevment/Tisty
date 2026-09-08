@@ -369,6 +369,10 @@ impl Session {
         if self.state.shut(id) {
             return Err(Refusal::of("documentLocked"));
         }
+        // Deleting has no undo, and the archive is meant to keep what it holds.
+        if !kept.archived && self.state.held_away(kept) {
+            return Err(Refusal::of("folderIsAway"));
+        }
         let mut files = vec![kept.file.clone()];
         files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
         self.commit(Op::DocDelete { id })?;
@@ -870,7 +874,7 @@ fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Ve
                         .map(|doc| doc.title.clone())
                         .filter(|title| !title.is_empty())
                         .or_else(|| one.label.clone()),
-                    away: held.is_some_and(|doc| doc.archived),
+                    away: held.is_some_and(|doc| session.state.held_away(doc)),
                     gone: held.is_none() || on_paper.is_none(),
                     target: one.target,
                     bytes: None,
@@ -1643,11 +1647,11 @@ fn search(
         .docs
         .values()
         .filter(|one| match scope {
-            Scope::Open => !one.archived,
-            Scope::Archived => one.archived,
+            Scope::Open => !session.state.held_away(one),
+            Scope::Archived => session.state.held_away(one),
             Scope::Either => true,
         })
-        .map(|one| (one.file.clone(), one.archived))
+        .map(|one| (one.file.clone(), session.state.held_away(one)))
         .collect();
     let root = session.paths.docs();
     let papers = session
@@ -2044,6 +2048,9 @@ const REFUSALS: &[&str] = &[
     "stillCarrying",
     "sandboxCannotMerge",
     "noSuchDoc",
+    "folderAway",
+    "folderAwayHolds",
+    "folderIsAway",
     "notAParcel",
     "parcelNewer",
     "parcelLocked",
@@ -2571,6 +2578,10 @@ struct Folded {
     icon: Option<String>,
     color: Option<String>,
     holds: usize,
+    /// The folder's own mark, so only the one that was shelved offers to come back.
+    archived: bool,
+    /// What the archive holds, the folders above it counted in.
+    away: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -2584,7 +2595,10 @@ struct Filed {
     bytes: Option<u64>,
     wrote: Option<String>,
     folder: Option<String>,
+    /// The document's own mark, so the menu offers what the document itself can answer for.
     archived: bool,
+    /// What the archive holds, the folder above it counted in.
+    away: bool,
     locked: bool,
     gone: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2682,6 +2696,7 @@ fn gathered(session: &Session) -> Vec<Filed> {
             wrote: kept.wrote.map(|at| at.to_string()),
             folder: kept.folder.map(|at| at.to_string()),
             archived: kept.archived,
+            away: session.state.held_away(kept),
             locked: session.state.shut(kept.id),
             gone: !on_disk.contains(&kept.file),
             // Empty means it came from elsewhere under nobody's name: the list still has to
@@ -2739,6 +2754,8 @@ fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Fo
                 icon: one.icon.clone(),
                 color: one.color.clone(),
                 holds: state.held_by(one.id),
+                archived: one.archived,
+                away: state.folder_away(one.id),
             }];
             branch.append(&mut hanging(state, Some(one.id)));
             branch
@@ -2783,6 +2800,7 @@ fn folder_add(
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));
         }
+        folder_open(&session.state, at, true)?;
         if session.state.depth(Some(at)) >= tisty_core::model::DEEPEST {
             return Err(Refusal::of("tooDeep"));
         }
@@ -2819,6 +2837,7 @@ fn folder_rename(
     if !session.state.folders.contains_key(&id) {
         return Err(Refusal::of("noSuchFolder"));
     }
+    folder_open(&session.state, id, false)?;
     session.commit(Op::FolderRename {
         id,
         d: tisty_core::event::Name { name },
@@ -2852,6 +2871,7 @@ fn folder_look(
     if !session.state.folders.contains_key(&id) {
         return Err(Refusal::of("noSuchFolder"));
     }
+    folder_open(&session.state, id, false)?;
     session.commit(Op::FolderLook {
         id,
         d: tisty_core::event::Look {
@@ -2869,6 +2889,7 @@ fn folder_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<
     if !session.state.folders.contains_key(&id) {
         return Err(Refusal::of("noSuchFolder"));
     }
+    folder_open(&session.state, id, false)?;
     session.commit(Op::FolderDelete { id })?;
     Ok(())
 }
@@ -2892,10 +2913,12 @@ fn folder_file(
     if !session.state.folders.contains_key(&id) {
         return Err(Refusal::of("noSuchFolder"));
     }
+    folder_open(&session.state, id, false)?;
     if let Some(at) = parent {
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));
         }
+        folder_open(&session.state, at, true)?;
         if session.state.would_swallow(id, at) {
             return Err(Refusal::of("intoItself"));
         }
@@ -2978,10 +3001,15 @@ fn doc_file(
         Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageStaysPut")),
         Some(_) => {}
     }
-    if let Some(at) = folder
-        && !session.state.folders.contains_key(&at)
-    {
-        return Err(Refusal::of("noSuchFolder"));
+    doc_out(&session.state, id)?;
+    if session.state.stowed(id) {
+        return Err(Refusal::of("documentAway"));
+    }
+    if let Some(at) = folder {
+        if !session.state.folders.contains_key(&at) {
+            return Err(Refusal::of("noSuchFolder"));
+        }
+        folder_open(&session.state, at, true)?;
     }
 
     if before.is_some_and(|at| at == id) {
@@ -3002,7 +3030,7 @@ fn beside_docs(
         .docs
         .values()
         .filter(|one| {
-            one.page_of.is_none() && !one.archived && one.folder == folder && one.id != id
+            one.page_of.is_none() && !state.held_away(one) && one.folder == folder && one.id != id
         })
         .collect();
     sitting.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
@@ -3640,12 +3668,36 @@ fn doc_lock(session: tauri::State<'_, Mutex<Session>>, id: String, shut: bool) -
         Some(one) if shut && one.page_of.is_some() => return Err(Refusal::of("lockIsTheDocs")),
         Some(_) => {}
     }
+    doc_out(&session.state, id)?;
     session.commit(if shut {
         Op::DocLock { id }
     } else {
         Op::DocUnlock { id }
     })?;
     Ok(())
+}
+
+/// Changing a folder the archive holds, or filing anything into it, is refused everywhere.
+fn folder_open(state: &State, at: tisty_core::model::FolderId, holds: bool) -> Answer<()> {
+    match state.folder_away(at) {
+        true => Err(Refusal::of(match holds {
+            true => "folderAwayHolds",
+            false => "folderAway",
+        })),
+        false => Ok(()),
+    }
+}
+
+/// A document the archive reaches through its folder has no door of its own.
+fn doc_out(state: &State, id: tisty_core::model::DocId) -> Answer<()> {
+    let held_by_folder = state
+        .docs
+        .get(&id)
+        .is_some_and(|one| !one.archived && state.held_away(one));
+    match held_by_folder {
+        true => Err(Refusal::of("folderIsAway")),
+        false => Ok(()),
+    }
 }
 
 #[tauri::command]
@@ -3657,10 +3709,36 @@ fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -
         Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageStaysPut")),
         Some(_) => {}
     }
+    doc_out(&session.state, id)?;
     session.commit(if away {
         Op::DocArchive { id }
     } else {
         Op::DocUnarchive { id }
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
+fn folder_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
+    let mut session = held(&session);
+    let Some(folder) = session.state.folders.get(&id) else {
+        return Err(Refusal::of("noSuchFolder"));
+    };
+    // A folder inside one the archive already holds has no say of its own, either way.
+    if folder
+        .parent
+        .is_some_and(|up| session.state.folder_away(up))
+    {
+        return Err(Refusal::of("folderAway"));
+    }
+    if folder.archived == away {
+        return Ok(());
+    }
+    session.commit(if away {
+        Op::FolderArchive { id }
+    } else {
+        Op::FolderUnarchive { id }
     })?;
     Ok(())
 }
@@ -3680,6 +3758,9 @@ fn doc_copy(
         .ok_or_else(|| Refusal::of("noSuchDoc"))?;
     if kept.page_of.is_some_and(|up| session.state.shut(up)) {
         return Err(Refusal::of("pageOfLocked"));
+    }
+    if let Some(at) = kept.folder {
+        folder_open(&session.state, at, true)?;
     }
 
     let root = session.paths.docs();
@@ -4180,10 +4261,11 @@ fn doc_import(
         })?;
 
     let mut session = held(&session);
-    if let Some(at) = folder
-        && !session.state.folders.contains_key(&at)
-    {
-        return Err(Refusal::of("noSuchFolder"));
+    if let Some(at) = folder {
+        if !session.state.folders.contains_key(&at) {
+            return Err(Refusal::of("noSuchFolder"));
+        }
+        folder_open(&session.state, at, true)?;
     }
     let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be imported", e))?;
@@ -4245,16 +4327,19 @@ fn doc_new(
         .map(|up| up.parse().map_err(|_| Refusal::of("noSuchDoc")))
         .transpose()?;
     let mut session = held(&session);
-    if let Some(at) = folder
-        && !session.state.folders.contains_key(&at)
-    {
-        return Err(Refusal::of("noSuchFolder"));
+    if let Some(at) = folder {
+        if !session.state.folders.contains_key(&at) {
+            return Err(Refusal::of("noSuchFolder"));
+        }
+        folder_open(&session.state, at, true)?;
     }
     let under = match page_of {
         Some(up) => match session.state.docs.get(&up) {
             None => return Err(Refusal::of("noSuchDoc")),
             Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
-            Some(one) if one.archived => return Err(Refusal::of("pageOfAway")),
+            Some(one) if session.state.held_away(one) => {
+                return Err(Refusal::of("pageOfAway"));
+            }
             Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
             Some(one) => Some(one.folder),
         },
@@ -4315,14 +4400,18 @@ fn doc_page(
     if session.state.shut(id) {
         return Err(Refusal::of("lockedStaysPut"));
     }
+    doc_out(&session.state, id)?;
     if let Some(up) = page_of {
         if up == id {
             return Err(Refusal::of("pageOfPage"));
         }
+        doc_out(&session.state, up)?;
         match session.state.docs.get(&up) {
             None => return Err(Refusal::of("noSuchDoc")),
             Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
-            Some(one) if one.archived => return Err(Refusal::of("pageOfAway")),
+            Some(one) if session.state.held_away(one) => {
+                return Err(Refusal::of("pageOfAway"));
+            }
             Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
             Some(_) => {}
         }
@@ -6365,6 +6454,7 @@ pub fn run() {
             doc_let_go,
             retire_attachments,
             doc_away,
+            folder_away,
             doc_lock,
             parted,
             sow,

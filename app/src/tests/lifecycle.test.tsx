@@ -13,6 +13,7 @@ interface FakeFolder {
   parent: string | null;
   icon: string | null;
   color: string | null;
+  archived?: boolean;
 }
 
 interface FakeDoc {
@@ -148,10 +149,29 @@ function countIn(folder: string): number {
   return store.docs.filter((doc) => doc.folder === folder && !doc.archived).length;
 }
 
+const folderAway = (id: string | null): boolean => {
+  let at = id;
+  for (let deep = 0; at !== null && deep <= 4; deep += 1) {
+    const folder = store.folders.find((one) => one.id === at);
+    if (!folder) return false;
+    if (folder.archived) return true;
+    at = folder.parent;
+  }
+  return false;
+};
+
 function papersOut(): Papers {
   return {
-    folders: store.folders.map((folder) => ({ ...folder, holds: countIn(folder.id) })),
-    docs: store.docs.map((doc) => ({ ...doc })),
+    folders: store.folders.map((folder) => ({
+      ...folder,
+      holds: countIn(folder.id),
+      archived: Boolean(folder.archived),
+      away: folderAway(folder.id),
+    })),
+    docs: store.docs.map((doc) => ({
+      ...doc,
+      away: doc.archived || folderAway(doc.folder),
+    })),
   };
 }
 
@@ -660,7 +680,7 @@ describe("nothing filed yet", () => {
   it("shows only what was archived, when that is all there ever was", () => {
     const papers: Papers = {
       folders: [],
-      docs: [{ id: "01A", file: "f1", title: "Old", folder: null, archived: true }],
+      docs: [{ id: "01A", file: "f1", title: "Old", folder: null, archived: true, away: true }],
     };
     render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} />);
 

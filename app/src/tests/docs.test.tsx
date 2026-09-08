@@ -107,8 +107,8 @@ vi.mock("../ui/Editor", () => ({
 }));
 
 const known: Filed[] = [
-  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false },
-  { id: "01G", file: "a3f1-0002", title: "Notas", folder: "01H", archived: false },
+  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false, away: false },
+  { id: "01G", file: "a3f1-0002", title: "Notas", folder: "01H", archived: false, away: false },
 ];
 
 describe("the document being written", () => {
@@ -718,7 +718,15 @@ describe("a document that moved on disk while it was open", () => {
 
 describe("a document the person locked", () => {
   const shut: Filed[] = [
-    { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false, locked: true },
+    {
+      id: "01F",
+      file: "a3f1-0001",
+      title: "Compras",
+      folder: null,
+      archived: false,
+      away: false,
+      locked: true,
+    },
   ];
 
   beforeEach(() => {
@@ -759,6 +767,7 @@ describe("a document the person locked", () => {
         title: "Verduras",
         folder: null,
         archived: false,
+        away: false,
         locked: true,
         pageOf: "01F",
       },
@@ -785,13 +794,14 @@ describe("a document the person locked", () => {
 
 describe("where you were standing in a document", () => {
   const two: Filed[] = [
-    { id: "01F", file: "a3f1-0001", title: "Curso", folder: null, archived: false },
+    { id: "01F", file: "a3f1-0001", title: "Curso", folder: null, archived: false, away: false },
     {
       id: "01G",
       file: "a3f1-0002",
       title: "Clase",
       folder: null,
       archived: false,
+      away: false,
       pageOf: "01F",
     },
   ];

@@ -4,10 +4,33 @@ import { DOC, docCard } from "../markdown";
 import { card, filed, named, paged, pagesOf, under } from "../paging";
 
 const all: Filed[] = [
-  { id: "01A", file: "a3f1-0001", title: "Bases de datos", folder: null, archived: false },
-  { id: "01B", file: "a3f1-0002", title: "El pod", folder: null, archived: false, pageOf: "01A" },
-  { id: "01C", file: "a3f1-0003", title: "El túnel", folder: null, archived: false, pageOf: "01A" },
-  { id: "01D", file: "a3f1-0004", title: "Otro", folder: null, archived: false },
+  {
+    id: "01A",
+    file: "a3f1-0001",
+    title: "Bases de datos",
+    folder: null,
+    archived: false,
+    away: false,
+  },
+  {
+    id: "01B",
+    file: "a3f1-0002",
+    title: "El pod",
+    folder: null,
+    archived: false,
+    away: false,
+    pageOf: "01A",
+  },
+  {
+    id: "01C",
+    file: "a3f1-0003",
+    title: "El túnel",
+    folder: null,
+    archived: false,
+    away: false,
+    pageOf: "01A",
+  },
+  { id: "01D", file: "a3f1-0004", title: "Otro", folder: null, archived: false, away: false },
 ];
 
 describe("the pages of a document", () => {

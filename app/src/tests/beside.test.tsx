@@ -98,7 +98,7 @@ vi.mock("../ui/Editor", () => ({
 }));
 
 const known: Filed[] = [
-  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false },
+  { id: "01F", file: "a3f1-0001", title: "Compras", folder: null, archived: false, away: false },
 ];
 
 const widen = (px: number) => {

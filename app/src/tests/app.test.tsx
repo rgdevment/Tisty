@@ -137,7 +137,15 @@ const value = (name: string) =>
 
 describe("a round landing while the window is open", () => {
   const untitled = [
-    { id: "01D", file: "a3f1-0001", title: "", told: false, folder: null, archived: false },
+    {
+      id: "01D",
+      file: "a3f1-0001",
+      title: "",
+      told: false,
+      folder: null,
+      archived: false,
+      away: false,
+    },
   ];
 
   beforeEach(() => {
@@ -165,6 +173,7 @@ describe("a round landing while the window is open", () => {
         gone: true,
         folder: null,
         archived: false,
+        away: false,
       },
     ];
     const answered = ipc.answer;

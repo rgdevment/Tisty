@@ -7,9 +7,16 @@ import Insert from "../ui/Insert";
 
 const shelf = vi.hoisted(() => ({
   docs: [
-    { id: "01A", file: "mac0-0001", title: "Informe técnico", folder: null, archived: false },
-    { id: "01B", file: "mac0-0002", title: "Recetas", folder: null, archived: false },
-    { id: "01C", file: "mac0-0003", title: "Lo viejo", folder: null, archived: true },
+    {
+      id: "01A",
+      file: "mac0-0001",
+      title: "Informe técnico",
+      folder: null,
+      archived: false,
+      away: false,
+    },
+    { id: "01B", file: "mac0-0002", title: "Recetas", folder: null, archived: false, away: false },
+    { id: "01C", file: "mac0-0003", title: "Lo viejo", folder: null, archived: true, away: true },
   ],
 }));
 

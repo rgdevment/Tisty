@@ -10,17 +10,56 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const papers: Papers = {
   folders: [
-    { id: "01F", name: "trabajo", parent: null, icon: "work", holds: 3 },
-    { id: "01G", name: "corporativo", parent: "01F", icon: null, holds: 1 },
-    { id: "01H", name: "personal", parent: null, icon: null, holds: 0 },
+    {
+      id: "01F",
+      name: "trabajo",
+      parent: null,
+      icon: "work",
+      holds: 3,
+      archived: false,
+      away: false,
+    },
+    {
+      id: "01G",
+      name: "corporativo",
+      parent: "01F",
+      icon: null,
+      holds: 1,
+      archived: false,
+      away: false,
+    },
+    {
+      id: "01H",
+      name: "personal",
+      parent: null,
+      icon: null,
+      holds: 0,
+      archived: false,
+      away: false,
+    },
   ],
   docs: [
-    { id: "01A", file: "a3f1-0001", title: "Compras", folder: "01F", archived: false },
-    { id: "01B", file: "a3f1-0002", title: "Contrato", folder: "01G", archived: false },
-    { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null, archived: false },
-    { id: "01D", file: "a3f1-0004", title: "", folder: null, archived: false },
-    { id: "01E", file: "a3f1-0005", title: "Viejo", folder: "01F", archived: true },
-    { id: "01J", file: "a3f1-0006", title: "", folder: null, archived: false, gone: true },
+    { id: "01A", file: "a3f1-0001", title: "Compras", folder: "01F", archived: false, away: false },
+    {
+      id: "01B",
+      file: "a3f1-0002",
+      title: "Contrato",
+      folder: "01G",
+      archived: false,
+      away: false,
+    },
+    { id: "01C", file: "a3f1-0003", title: "Suelto", folder: null, archived: false, away: false },
+    { id: "01D", file: "a3f1-0004", title: "", folder: null, archived: false, away: false },
+    { id: "01E", file: "a3f1-0005", title: "Viejo", folder: "01F", archived: true, away: true },
+    {
+      id: "01J",
+      file: "a3f1-0006",
+      title: "",
+      folder: null,
+      archived: false,
+      away: false,
+      gone: true,
+    },
   ],
 };
 
@@ -168,10 +207,18 @@ describe("the document tree", () => {
   it("steps four levels of folder in and keeps each one further along", () => {
     const deep: Papers = {
       folders: [
-        { id: "1", name: "uno", parent: null, icon: null, holds: 0 },
-        { id: "2", name: "dos", parent: "1", icon: null, holds: 0 },
-        { id: "3", name: "tres", parent: "2", icon: null, holds: 0 },
-        { id: "4", name: "cuatro", parent: "3", icon: null, holds: 0 },
+        { id: "1", name: "uno", parent: null, icon: null, holds: 0, archived: false, away: false },
+        { id: "2", name: "dos", parent: "1", icon: null, holds: 0, archived: false, away: false },
+        { id: "3", name: "tres", parent: "2", icon: null, holds: 0, archived: false, away: false },
+        {
+          id: "4",
+          name: "cuatro",
+          parent: "3",
+          icon: null,
+          holds: 0,
+          archived: false,
+          away: false,
+        },
       ],
       docs: [],
     };
@@ -460,7 +507,7 @@ describe("a document with pages", () => {
     folders: papers.folders,
     docs: [
       ...papers.docs,
-      { id: "01K", file: "a3f1-0007", title: "Actas", folder: "01F", archived: false },
+      { id: "01K", file: "a3f1-0007", title: "Actas", folder: "01F", archived: false, away: false },
       {
         id: "01L",
         file: "a3f1-0008",
@@ -468,6 +515,7 @@ describe("a document with pages", () => {
         folder: "01F",
         pageOf: "01K",
         archived: false,
+        away: false,
       },
       {
         id: "01M",
@@ -476,6 +524,7 @@ describe("a document with pages", () => {
         folder: "01F",
         pageOf: "01K",
         archived: false,
+        away: false,
       },
     ],
   };
@@ -568,7 +617,14 @@ describe("a document with pages", () => {
         papers={{
           folders: [],
           docs: [
-            { id: "01K", file: "a3f1-0007", title: "Actas", folder: null, archived: false },
+            {
+              id: "01K",
+              file: "a3f1-0007",
+              title: "Actas",
+              folder: null,
+              archived: false,
+              away: false,
+            },
             {
               id: "01L",
               file: "a3f1-0008",
@@ -576,6 +632,7 @@ describe("a document with pages", () => {
               folder: null,
               pageOf: "01K",
               archived: false,
+              away: false,
             },
           ],
         }}
@@ -594,7 +651,14 @@ describe("a document with pages", () => {
         papers={{
           folders: [],
           docs: [
-            { id: "01K", file: "a3f1-0007", title: "Actas", folder: null, archived: true },
+            {
+              id: "01K",
+              file: "a3f1-0007",
+              title: "Actas",
+              folder: null,
+              archived: true,
+              away: true,
+            },
             {
               id: "01L",
               file: "a3f1-0008",
@@ -602,6 +666,7 @@ describe("a document with pages", () => {
               folder: null,
               pageOf: "01K",
               archived: true,
+              away: true,
             },
           ],
         }}
