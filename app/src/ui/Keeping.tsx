@@ -33,7 +33,6 @@ import {
   logs,
   type Machine,
   type Reach,
-  type Ready,
   type Reviewed,
   reachable,
   reachFor,
@@ -59,8 +58,6 @@ import {
   type Twins,
   twinned,
   unwireAgent,
-  updateInstall,
-  updateReady,
   type Waking,
   type Wired,
   wakeFor,
@@ -97,7 +94,6 @@ type Which =
   | "waking"
   | "settings"
   | "notices"
-  | "updates"
   | "attach"
   | "holds"
   | "tagging"
@@ -134,9 +130,6 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
   const [agents, setAgents] = useState<Wired[] | null>(null);
   const [wired, setWired] = useState(false);
   const [typed, setTyped] = useState(false);
-  const [looking, setLooking] = useState(false);
-  const [found, setFound] = useState<Ready | "none" | null>(null);
-  const [asked, setAsked] = useState(false);
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [brittle, setBrittle] = useState<Brittle[] | null>(null);
@@ -785,64 +778,6 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                     />
                   </Line>
                 ))}
-
-              <Line
-                title={t("updates")}
-                why={t("lookNowWhen")}
-                which="updates"
-                said={said}
-                trouble={trouble}
-                more={
-                  <>
-                    {found === "none" && (
-                      <p className="mt-1.5 text-[12px] text-soft">{t("lookNowNone")}</p>
-                    )}
-                    {found !== null && found !== "none" && (
-                      <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px] text-soft">
-                        {fill("lookNowFound", found.version)}
-                        {found.installs ? (
-                          <button
-                            type="button"
-                            disabled={asked}
-                            onClick={() => {
-                              setAsked(true);
-                              updateInstall().catch((e) => {
-                                setAsked(false);
-                                setTrouble({ card: "updates", text: saidPlainly(e) });
-                              });
-                            }}
-                            className="cursor-pointer rounded-lg bg-accent px-2.5 py-1 text-[12px] text-bg disabled:opacity-60"
-                          >
-                            {t("updateInstall")}
-                          </button>
-                        ) : found.route === "store" ? (
-                          <span className="text-faint">{t("updateStore")}</span>
-                        ) : (
-                          <code className="text-faint">
-                            {fill("updateBrewCli", found.package ?? "tisty")}
-                          </code>
-                        )}
-                      </p>
-                    )}
-                  </>
-                }
-              >
-                <button
-                  type="button"
-                  disabled={held || looking}
-                  onClick={() => {
-                    setLooking(true);
-                    setFound(null);
-                    updateReady(true)
-                      .then((ready) => setFound(ready ?? "none"))
-                      .catch((e) => setTrouble({ card: "updates", text: saidPlainly(e) }))
-                      .finally(() => setLooking(false));
-                  }}
-                  className={mild}
-                >
-                  {looking ? t("lookingNow") : t("lookNow")}
-                </button>
-              </Line>
             </div>
             <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("noticesMore")}</p>
 
@@ -1997,7 +1932,6 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   tongue: "tongue",
   settings: "settingsTitle",
   notices: "bandNotices",
-  updates: "updates",
   attach: "attachTitle",
   holds: "holdsTitle",
   tagging: "tagsRead",

@@ -2591,67 +2591,6 @@ describe("documents on disk the log does not name", () => {
   });
 });
 
-describe("looking for an update without waiting for tomorrow", () => {
-  const openTab = async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
-  };
-
-  it("asks the moment the person asks, not on the daily schedule", async () => {
-    ipc.answer = (
-      (was) => (cmd, args) =>
-        cmd === "update_ready" ? Promise.resolve(null) : was(cmd, args)
-    )(ipc.answer);
-
-    await openTab();
-    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
-
-    await waitFor(() => expect(sent("update_ready").length).toBeGreaterThan(0));
-    const asked = sent("update_ready");
-    expect(asked[asked.length - 1].args.nowPlease).toBe(true);
-    expect(await screen.findByText(/on the newest version/i)).toBeTruthy();
-  });
-
-  it("offers to install it right there, not somewhere else", async () => {
-    ipc.answer = (
-      (was) => (cmd, args) =>
-        cmd === "update_ready"
-          ? Promise.resolve({ version: "0.14.0", installs: true, route: "download" })
-          : was(cmd, args)
-    )(ipc.answer);
-
-    await openTab();
-    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
-
-    expect(await screen.findByText(/0\.14\.0 is out/i)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: /^update$/i }));
-    await waitFor(() => expect(sent("update_install").length).toBe(1));
-  });
-
-  it("says how to get it when this copy cannot update itself", async () => {
-    ipc.answer = (
-      (was) => (cmd, args) =>
-        cmd === "update_ready"
-          ? Promise.resolve({ version: "0.14.0", installs: false, route: "store" })
-          : was(cmd, args)
-    )(ipc.answer);
-
-    await openTab();
-    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
-
-    expect(await screen.findByText(/Microsoft Store|the Store/i)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^update$/i })).toBeNull();
-  });
-});
-
 describe("letting an assistant file work here", () => {
   const openTab = async () => {
     render(
