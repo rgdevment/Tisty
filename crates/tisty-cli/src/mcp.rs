@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 use tisty_core::{
     Op, Paths, State, Store, Task, TaskId,
     capture::{Draft, Rejected},
-    event::{Body, LogAdd, StepAdd},
+    event::{Body, LogAdd, StepAdd, TaskPatch},
     model::{DateSpec, FOLDER_NAME_AT_MOST, Priority, Tag},
     order,
 };
@@ -43,6 +43,14 @@ work out which day someone means by \"Monday\" from the date above, before calli
 Fill in what you actually know. A title alone is a fine task; inventing a deadline nobody \
 gave you is worse than leaving it empty. Put what you read in `description`. Write titles \
 and notes in the language the person writes in.
+
+A date is not a warning. Something that happens once at a set hour and cannot be caught up on \
+afterwards — an appointment, a school event, a flight — is filed with `remind` set the evening \
+before. A person who only meets it on the day meets it too late, and that is the whole reason \
+it was written down. This is not a detail invented about the world: it is what keeps what you \
+were told from being lost. Work that can be done any day gets none, and what repeats gets none \
+either — a routine comes back on its own. For something already filed without one, `remind` \
+sets it, and it only ever adds, so an hour the person chose is never taken away.
 
 A document is markdown, and the editor is what has to be able to open it again: what it cannot \
 keep is refused when you write, not quietly destroyed later. Alongside plain markdown it keeps \
@@ -291,6 +299,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
 
     match name {
         "propose" => propose(paths, &args),
+        "remind" => remind(paths, &args),
         "note" => note(paths, &args),
         "find" => find(paths, &args),
         "read" => read(paths, &args),
@@ -425,6 +434,29 @@ fn day(args: &Value, key: &str) -> Result<Option<DateSpec>, Refused> {
                  yourself before calling."
             ))
         })
+}
+
+fn moments(args: &Value, key: &str) -> Result<Vec<DateSpec>, Refused> {
+    let zone = jiff::tz::TimeZone::system();
+    let named = zone.iana_name().unwrap_or("UTC").to_string();
+    let mut out: Vec<DateSpec> = Vec::new();
+    for said in listed(args, key) {
+        let at = said
+            .contains('T')
+            .then(|| said.parse::<jiff::civil::DateTime>().ok())
+            .flatten()
+            .ok_or_else(|| {
+                Refused::Tool(format!(
+                    "`{key}` takes a day and an hour like 2026-08-31T09:00, not {said:?}. Work \
+                     out the moment yourself before calling."
+                ))
+            })?;
+        let one = DateSpec::floating(at, named.clone());
+        if !out.contains(&one) {
+            out.push(one);
+        }
+    }
+    Ok(out)
 }
 
 fn ranked(args: &Value) -> Result<Option<Priority>, Refused> {
@@ -565,6 +597,16 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             d: Body { body: Some(body) },
         });
     }
+    let bells = moments(args, "remind")?;
+    if !bells.is_empty() {
+        ops.push(Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                reminders: Some(bells),
+                ..Default::default()
+            },
+        });
+    }
     let mut step = order::first();
     for one in listed(args, "steps") {
         ops.push(Op::StepAdd {
@@ -620,6 +662,63 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "title": title,
             "list": landed,
             "proposed": true,
+        }),
+    ))
+}
+
+fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(said) = text(args, "task") else {
+        return Err(Refused::Tool("a reminder needs a `task` id.".into()));
+    };
+    let bells = moments(args, "at")?;
+    if bells.is_empty() {
+        return Err(Refused::Tool(
+            "a reminder needs `at`, a day and an hour like 2026-08-31T09:00.".into(),
+        ));
+    }
+    let (state, mut store) = opened(paths)?;
+    let Ok(id) = said.parse::<TaskId>() else {
+        return Err(Refused::Tool(format!(
+            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
+        )));
+    };
+    let Some(task) = state.tasks.get(&id) else {
+        return Err(Refused::Tool(format!(
+            "no task here has the id {said}. It may have been deleted."
+        )));
+    };
+
+    let mut all = task.reminders.clone();
+    let mut added = 0;
+    for one in bells {
+        if !all.contains(&one) {
+            all.push(one);
+            added += 1;
+        }
+    }
+    if added == 0 {
+        return Ok(told(
+            format!("{:?} was already set to ring then.", task.title),
+            json!({ "id": id.to_string(), "title": task.title, "added": false }),
+        ));
+    }
+    all.sort_by_key(|one| one.at);
+    store
+        .append(Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                reminders: Some(all.clone()),
+                ..Default::default()
+            },
+        })
+        .map_err(hitch)?;
+    Ok(told(
+        format!("{:?} will ring {added} time(s) more.", task.title),
+        json!({
+            "id": id.to_string(),
+            "title": task.title,
+            "added": true,
+            "reminders": all.iter().map(|one| one.at.to_string()).collect::<Vec<_>>(),
         }),
     ))
 }
@@ -2682,6 +2781,7 @@ fn brief(task: &Task, state: &State) -> Value {
         "status": task.status,
         "date": task.date.as_ref().map(|d| d.date().to_string()),
         "deadline": task.deadline.as_ref().map(|d| d.date().to_string()),
+        "reminders": task.reminders.iter().map(|one| one.at.to_string()).collect::<Vec<_>>(),
         "tags": task.tags.iter().map(Tag::as_str).collect::<Vec<_>>(),
         "source": task.source,
         // Where it ended up and how the person ranked it: reading them is how an agent sees a
@@ -2739,6 +2839,16 @@ fn tools() -> Value {
                         "type": "string",
                         "description": "The day it actually runs out, as 2026-08-31"
                     },
+                    "remind": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "When to ring, each as a day and an hour like \
+                                        2026-08-30T20:00. For something that happens once at a \
+                                        set time and cannot be caught up on later — an \
+                                        appointment, a school event, a flight — set the evening \
+                                        before. Leave it out for work that can be done any day, \
+                                        and never set one for something that repeats"
+                    },
                     "priority": {
                         "type": "string",
                         "enum": ["do", "decide", "delegate", "minor"],
@@ -2765,6 +2875,30 @@ fn tools() -> Value {
                     }
                 },
                 "required": ["title"]
+            }
+        },
+        {
+            "name": "remind",
+            "title": "Set a task to ring",
+            "description": "Make a task that is already here ring at a given moment. Adds to \
+                            whatever it rings at already and never takes one away, so a reminder \
+                            the person set themselves is safe. `read` says what it carries \
+                            before you add. Use it for the appointment that was filed without \
+                            one, and leave alone what repeats — a routine already comes back on \
+                            its own.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "task": { "type": "string", "description": "The task id" },
+                    "at": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "When to ring, each as a day and an hour like \
+                                        2026-08-30T20:00"
+                    }
+                },
+                "required": ["task", "at"]
             }
         },
         {

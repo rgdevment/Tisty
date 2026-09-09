@@ -301,6 +301,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
         names,
         [
             "propose",
+            "remind",
             "note",
             "attach",
             "write_doc",
@@ -2131,4 +2132,104 @@ fn nothing_is_hung_under_a_document_that_was_put_away() {
 
     assert_eq!(written["result"]["isError"], true, "{written}");
     assert_eq!(hung["result"]["isError"], true, "{hung}");
+}
+
+#[test]
+fn an_appointment_can_be_filed_already_set_to_ring() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "kermes at school",
+            "date": "2026-09-11",
+            "remind": ["2026-09-10T20:00"],
+        }),
+    );
+    assert_eq!(said["result"]["isError"], serde_json::Value::Null, "{said}");
+
+    let id = said["result"]["structuredContent"]["id"].as_str().unwrap();
+    let read = served.call("read", serde_json::json!({ "task": id }));
+    assert!(
+        serde_json::to_string(&read).unwrap().contains("2026-09-10"),
+        "{read}"
+    );
+}
+
+#[test]
+fn a_moment_without_an_hour_is_turned_away_rather_than_guessed() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "remind": ["2026-09-10"] }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("day and an hour"),
+        "{said}"
+    );
+}
+
+#[test]
+fn what_was_filed_without_a_reminder_can_be_given_one_later() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "date": "2026-09-11" }),
+    );
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let said = served.call(
+        "remind",
+        serde_json::json!({ "task": id, "at": ["2026-09-10T20:00"] }),
+    );
+
+    assert_eq!(said["result"]["structuredContent"]["added"], true, "{said}");
+    let again = served.call(
+        "remind",
+        serde_json::json!({ "task": id, "at": ["2026-09-10T20:00"] }),
+    );
+    assert_eq!(
+        again["result"]["structuredContent"]["added"], false,
+        "the same hour twice rings once: {again}"
+    );
+}
+
+#[test]
+fn an_hour_the_person_chose_is_never_taken_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let filed = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "the dentist",
+            "date": "2026-09-11",
+            "remind": ["2026-09-10T20:00"],
+        }),
+    );
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.call(
+        "remind",
+        serde_json::json!({ "task": id, "at": ["2026-09-11T08:00"] }),
+    );
+
+    let read = serde_json::to_string(&served.call("read", serde_json::json!({ "task": id })))
+        .unwrap();
+    assert!(read.contains("2026-09-10"), "the first one stayed: {read}");
+    assert!(read.contains("2026-09-11T08:00"), "and the second: {read}");
 }
