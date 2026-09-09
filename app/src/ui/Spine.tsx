@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import type { Task } from "../core";
-import Ahead, { HEAVY, spreadOf, weekday } from "./Ahead";
+import type { Coming, Task } from "../core";
+import Ahead, { HEAVY, specOf, spreadOf, weekday } from "./Ahead";
 
 interface Props {
-  tasks: Task[];
+  coming: Coming[];
+  routines: Task[];
   days: number;
   onOpen: (task: string) => void;
 }
 
 const DOTS = 3;
 
-export default function Spine({ tasks, days, onOpen }: Props) {
+export default function Spine({ coming, routines, days, onOpen }: Props) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
-  const spread = spreadOf(tasks, days, new Date());
+  const from = useRef<HTMLButtonElement | null>(null);
+  const spread = spreadOf(coming, days, new Date());
 
   useEffect(() => {
     if (!open) return;
@@ -21,7 +23,9 @@ export default function Spine({ tasks, days, onOpen }: Props) {
       if (!box.current?.contains(e.target as Node)) setOpen(false);
     };
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      from.current?.focus();
     };
     document.addEventListener("mousedown", away);
     document.addEventListener("keydown", key);
@@ -36,7 +40,8 @@ export default function Spine({ tasks, days, onOpen }: Props) {
       {open && (
         <div className="shadow-lift-tall absolute inset-x-2 bottom-full z-10 mb-1 max-h-[60vh] overflow-y-auto rounded-[10px] border border-line bg-bg p-2.5">
           <Ahead
-            tasks={tasks}
+            coming={coming}
+            routines={routines}
             days={days}
             onOpen={(id) => {
               setOpen(false);
@@ -52,7 +57,10 @@ export default function Spine({ tasks, days, onOpen }: Props) {
             key={day.key}
             type="button"
             aria-expanded={open}
-            onClick={() => setOpen(!open)}
+            onClick={(e) => {
+              from.current = e.currentTarget;
+              setOpen(!open);
+            }}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded px-1 py-0.5 hover:bg-hover ${
               day.held.length >= HEAVY ? "bg-hue-amber/12" : ""
             }`}
@@ -70,9 +78,9 @@ export default function Spine({ tasks, days, onOpen }: Props) {
             <span className="flex gap-px" aria-hidden="true">
               {day.held.slice(0, DOTS).map((one) => (
                 <span
-                  key={one.id}
+                  key={`${one.task.id} ${one.on}`}
                   className={`block size-[3px] rounded-full ${
-                    one.date?.has_time ? "bg-accent" : "bg-faint/50"
+                    specOf(one)?.has_time ? "bg-accent" : "bg-faint/50"
                   }`}
                 />
               ))}

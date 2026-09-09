@@ -38,6 +38,7 @@ const shot = (): Snapshot => ({
     },
   ],
   ahead: [],
+  routines: [],
   lists: [],
   tags: [],
   refs: [],

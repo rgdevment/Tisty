@@ -657,9 +657,78 @@ fn tags_in_use(state: &State) -> Vec<Counted> {
 }
 
 #[derive(serde::Serialize)]
+struct Coming {
+    task: Task,
+    on: jiff::civil::Date,
+}
+
+const AHEAD: i64 = 7;
+
+fn horizon(from: jiff::civil::Date) -> Option<jiff::civil::Date> {
+    jiff::Span::new()
+        .try_days(AHEAD)
+        .ok()
+        .and_then(|span| from.checked_add(span).ok())
+}
+
+fn coming(state: &State, from: jiff::civil::Date) -> Vec<Coming> {
+    let Some(until) = horizon(from) else {
+        return Vec::new();
+    };
+
+    let mut out: Vec<Coming> = state
+        .matching(&Filter::default(), from)
+        .into_iter()
+        .filter_map(|task| {
+            let held = task.date.as_ref().map(|d| d.date());
+            let on = held.or_else(|| task.deadline.as_ref().map(|d| d.date()))?;
+            (on > from && on <= until).then(|| Coming {
+                task: task.clone(),
+                on,
+            })
+        })
+        .collect();
+    out.sort_by_key(|one| one.on);
+    out
+}
+
+fn recurring(state: &State, from: jiff::civil::Date) -> Vec<Task> {
+    let Some(until) = horizon(from) else {
+        return Vec::new();
+    };
+
+    state
+        .matching(&Filter::default(), from)
+        .into_iter()
+        .filter(|task| {
+            let (Some(repeat), Some(spec)) = (task.repeat, task.date.as_ref()) else {
+                return false;
+            };
+            let mut at = spec.at;
+            for _ in 0..AHEAD {
+                let Some(next) = repeat.cadence().after(at) else {
+                    return false;
+                };
+                at = next;
+                let on = at.date();
+                if on > until || repeat.ended(on) {
+                    return false;
+                }
+                if on > from {
+                    return true;
+                }
+            }
+            false
+        })
+        .cloned()
+        .collect()
+}
+
+#[derive(serde::Serialize)]
 struct Snapshot {
     tasks: Vec<Task>,
-    ahead: Vec<Task>,
+    ahead: Vec<Coming>,
+    routines: Vec<Task>,
     lists: Vec<List>,
     tags: Vec<Counted>,
     refs: Vec<String>,
@@ -1082,18 +1151,8 @@ fn snapshot(
             .into_iter()
             .cloned()
             .collect(),
-        ahead: session
-            .state
-            .matching(
-                &Filter {
-                    window: Some(Window::After(today())),
-                    ..Default::default()
-                },
-                today(),
-            )
-            .into_iter()
-            .cloned()
-            .collect(),
+        ahead: coming(&session.state, today()),
+        routines: recurring(&session.state, today()),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),
         tags: tags_in_use(&session.state),
         refs: session.state.references(),
@@ -4605,7 +4664,7 @@ fn fitted(window: &tauri::WebviewWindow) {
     let (Ok(Some(screen)), Ok(asked)) = (window.current_monitor(), window.outer_size()) else {
         return;
     };
-    let room = screen.size();
+    let room = screen.work_area().size;
     if asked.width > room.width || asked.height > room.height {
         let _ = window.maximize();
     }
@@ -6415,8 +6474,8 @@ pub fn run() {
 
             if let Some(window) = app.get_webview_window("main") {
                 proofread(&window);
-                fitted(&window);
                 if came_back || !waking::hushed() {
+                    fitted(&window);
                     let _ = window.show();
                 }
             }
@@ -7206,6 +7265,114 @@ mod tests {
 
     fn now() -> jiff::Zoned {
         "2026-08-05T09:00:00[America/Santiago]".parse().unwrap()
+    }
+
+    fn held(title: &str) -> tisty_core::model::Task {
+        tisty_core::model::Task::new(ulid::Ulid::generate(), title, "a0")
+    }
+
+    fn away(from: jiff::civil::Date, days: i64) -> jiff::civil::Date {
+        from.checked_add(jiff::Span::new().try_days(days).unwrap())
+            .unwrap()
+    }
+
+    fn kept(state: &mut State, task: tisty_core::model::Task) {
+        state.tasks.insert(task.id, task);
+    }
+
+    #[test]
+    fn what_comes_reaches_a_week_and_stops() {
+        let from = today();
+        let mut state = State::default();
+        for days in [1_i64, 7, 8] {
+            let mut task = held("somewhere ahead");
+            task.date = Some(tisty_core::model::DateSpec::all_day(
+                away(from, days),
+                "America/Santiago",
+            ));
+            kept(&mut state, task);
+        }
+
+        assert_eq!(coming(&state, from).len(), 2, "the eighth day is outside");
+    }
+
+    #[test]
+    fn today_keeps_its_own_place_and_is_not_ahead() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("call the bank");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            from,
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        assert!(coming(&state, from).is_empty());
+    }
+
+    #[test]
+    fn what_only_falls_due_still_comes() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("hand in the report");
+        task.deadline = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].on, away(from, 2));
+    }
+
+    fn daily(from: jiff::civil::Date, until: Option<jiff::civil::Date>) -> tisty_core::model::Task {
+        let mut task = held("take the pills");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            from,
+            "America/Santiago",
+        ));
+        let mut repeat = tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 1,
+            unit: tisty_core::model::Unit::Day,
+        });
+        repeat.until = until;
+        task.repeat = Some(repeat);
+        task
+    }
+
+    #[test]
+    fn a_routine_is_named_once_and_crowds_no_day() {
+        let from = today();
+        let mut state = State::default();
+        kept(&mut state, daily(from, None));
+
+        assert!(coming(&state, from).is_empty(), "it holds no day of its own");
+        assert_eq!(recurring(&state, from).len(), 1);
+    }
+
+    #[test]
+    fn a_cadence_owing_nothing_this_week_is_no_routine_of_this_week() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 2,
+            unit: tisty_core::model::Unit::Month,
+        }));
+        kept(&mut state, task);
+
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_cadence_that_has_ended_owes_nothing_at_all() {
+        let from = today();
+        let mut state = State::default();
+        kept(&mut state, daily(from, Some(from)));
+
+        assert!(recurring(&state, from).is_empty());
     }
 
     #[test]

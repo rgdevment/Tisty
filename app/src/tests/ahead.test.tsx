@@ -1,17 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { Task } from "../core";
+import type { Coming, Task } from "../core";
 import { t } from "../locales";
 import Ahead from "../ui/Ahead";
-
-const dayFrom = (away: number, clock = "16:00:00"): string => {
-  const at = new Date();
-  at.setDate(at.getDate() + away);
-  const month = String(at.getMonth() + 1).padStart(2, "0");
-  const day = String(at.getDate()).padStart(2, "0");
-  return `${at.getFullYear()}-${month}-${day}T${clock}`;
-};
 
 const dayAway = (away: number): number => {
   const at = new Date();
@@ -19,9 +11,22 @@ const dayAway = (away: number): number => {
   return at.getDate();
 };
 
-const tomorrow = (): number => dayAway(1);
+const stamp = (away: number): string => {
+  const at = new Date();
+  at.setDate(at.getDate() + away);
+  const month = String(at.getMonth() + 1).padStart(2, "0");
+  const day = String(at.getDate()).padStart(2, "0");
+  return `${at.getFullYear()}-${month}-${day}`;
+};
 
-const task = (id: string, title: string, at?: string, timed = false): Task =>
+const spec = (away: number, clock: string) => ({
+  at: `${stamp(away)}T${clock}`,
+  tz: "America/Santiago",
+  floating: true,
+  has_time: clock !== "",
+});
+
+const made = (id: string, title: string, away: number, clock = "", due = false): Task =>
   ({
     id,
     title,
@@ -31,19 +36,44 @@ const task = (id: string, title: string, at?: string, timed = false): Task =>
     steps: [],
     log: [],
     volume: {},
-    ...(at ? { date: { at, tz: "America/Santiago", floating: true, has_time: timed } } : {}),
+    ...(due ? { deadline: spec(away, clock) } : { date: spec(away, clock) }),
+  }) as unknown as Task;
+
+const coming = (id: string, title: string, away: number, clock = "", due = false): Coming => ({
+  task: made(id, title, away, clock, due),
+  on: stamp(away),
+});
+
+const routine = (id: string, title: string, clock: string): Task =>
+  ({
+    ...made(id, title, 0, clock),
+    repeat: { from: "due", each: { every: 1, unit: "day" } },
   }) as unknown as Task;
 
 describe("the week ahead", () => {
   it("puts a timed thing under its day with its hour", () => {
-    render(<Ahead tasks={[task("01A", "Médico", dayFrom(2), true)]} days={7} onOpen={vi.fn()} />);
+    render(
+      <Ahead
+        coming={[coming("01A", "Médico", 2, "16:00:00")]}
+        routines={[]}
+        days={7}
+        onOpen={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText("Médico")).toBeTruthy();
     expect(screen.getByText(/16/)).toBeTruthy();
   });
 
   it("keeps an empty day in sight without a word on it", () => {
-    render(<Ahead tasks={[task("01A", "Médico", dayFrom(1), true)]} days={3} onOpen={vi.fn()} />);
+    render(
+      <Ahead
+        coming={[coming("01A", "Médico", 1, "16:00:00")]}
+        routines={[]}
+        days={3}
+        onOpen={vi.fn()}
+      />,
+    );
 
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(screen.getByText(String(dayAway(2)))).toBeTruthy();
@@ -51,27 +81,28 @@ describe("the week ahead", () => {
   });
 
   it("says so when the whole window is empty", () => {
-    render(<Ahead tasks={[]} days={7} onOpen={vi.fn()} />);
+    render(<Ahead coming={[]} routines={[]} days={7} onOpen={vi.fn()} />);
 
     expect(screen.getByText(t("aheadNothing"))).toBeTruthy();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 
-  it("leaves out what falls past the window", () => {
-    render(<Ahead tasks={[task("01A", "Vuelo", dayFrom(30), true)]} days={7} onOpen={vi.fn()} />);
+  it("leaves out what falls past the window it was given", () => {
+    render(
+      <Ahead
+        coming={[coming("01A", "Vuelo", 30, "07:15:00")]}
+        routines={[]}
+        days={7}
+        onOpen={vi.fn()}
+      />,
+    );
 
     expect(screen.queryByText("Vuelo")).toBeNull();
   });
 
-  it("leaves out today, which the list already holds", () => {
-    render(<Ahead tasks={[task("01A", "Banco", dayFrom(0), true)]} days={7} onOpen={vi.fn()} />);
-
-    expect(screen.queryByText("Banco")).toBeNull();
-  });
-
   it("opens what you click", async () => {
     const opened = vi.fn();
-    render(<Ahead tasks={[task("01A", "Kermés", dayFrom(2))]} days={7} onOpen={opened} />);
+    render(<Ahead coming={[coming("01A", "Kermés", 2)]} routines={[]} days={7} onOpen={opened} />);
 
     await userEvent.click(screen.getByText("Kermés"));
 
@@ -81,11 +112,12 @@ describe("the week ahead", () => {
   it("sorts the timed ones first, by the clock", () => {
     render(
       <Ahead
-        tasks={[
-          task("01A", "Informe", dayFrom(2)),
-          task("01B", "Tarde", dayFrom(2, "18:00:00"), true),
-          task("01C", "Mañana", dayFrom(2, "09:00:00"), true),
+        coming={[
+          coming("01A", "Informe", 2),
+          coming("01B", "Tarde", 2, "18:00:00"),
+          coming("01C", "Mañana", 2, "09:00:00"),
         ]}
+        routines={[]}
         days={7}
         onOpen={vi.fn()}
       />,
@@ -99,32 +131,91 @@ describe("the week ahead", () => {
   });
 
   it("marks the day that carries three things", () => {
-    const at = dayFrom(1);
     render(
       <Ahead
-        tasks={[
-          task("01A", "Kermés", at, true),
-          task("01B", "Médico", at, true),
-          task("01C", "Informe", at),
+        coming={[
+          coming("01A", "Kermés", 1, "11:00:00"),
+          coming("01B", "Médico", 1, "16:00:00"),
+          coming("01C", "Informe", 1),
         ]}
+        routines={[]}
         days={1}
         onOpen={vi.fn()}
       />,
     );
 
-    expect(screen.getByText(String(tomorrow())).className).toContain("hue-amber");
+    expect(screen.getByText(String(dayAway(1))).className).toContain("hue-amber");
   });
 
   it("leaves a lighter day alone", () => {
-    const at = dayFrom(1);
     render(
       <Ahead
-        tasks={[task("01A", "Kermés", at, true), task("01B", "Informe", at)]}
+        coming={[coming("01A", "Kermés", 1, "11:00:00"), coming("01B", "Informe", 1)]}
+        routines={[]}
         days={1}
         onOpen={vi.fn()}
       />,
     );
 
-    expect(screen.getByText(String(tomorrow())).className).not.toContain("hue-amber");
+    expect(screen.getByText(String(dayAway(1))).className).not.toContain("hue-amber");
+  });
+
+  it("shows what falls due, not only what is meant to be worked on", () => {
+    render(
+      <Ahead
+        coming={[coming("01A", "Entregar informe", 2, "", true)]}
+        routines={[]}
+        days={7}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    const shown = screen.getByText("Entregar informe").closest("button");
+
+    expect(shown).toBeTruthy();
+    expect(shown?.className).toContain("hue-amber");
+  });
+
+  it("names a routine once, above the days, and crowds none of them", () => {
+    render(
+      <Ahead
+        coming={[coming("01A", "Kermés", 2, "11:00:00")]}
+        routines={[routine("01B", "Tomar píldoras", "10:00:00")]}
+        days={7}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText("Tomar píldoras")).toHaveLength(1);
+    expect(screen.getByText("Kermés")).toBeTruthy();
+  });
+
+  it("opens the routine it names", async () => {
+    const opened = vi.fn();
+    render(
+      <Ahead
+        coming={[]}
+        routines={[routine("01B", "Tomar píldoras", "10:00:00")]}
+        days={7}
+        onOpen={opened}
+      />,
+    );
+
+    await userEvent.click(screen.getByText("Tomar píldoras"));
+
+    expect(opened).toHaveBeenCalledWith("01B");
+  });
+
+  it("does not call the week empty when a routine runs through it", () => {
+    render(
+      <Ahead
+        coming={[]}
+        routines={[routine("01B", "Tomar píldoras", "10:00:00")]}
+        days={7}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(t("aheadNothing"))).toBeNull();
   });
 });

@@ -21,6 +21,7 @@ const show = (counts: Record<string, number>, hands = picked()) => {
       counts={counts}
       lists={lists}
       ahead={[]}
+      routines={[]}
       papers={3}
       onList={hands.list}
       onQuadrants={hands.quadrants}

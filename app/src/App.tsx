@@ -128,6 +128,7 @@ export const kept = (key: string): string[] => {
 };
 
 const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
+const TURNS_OVER = 60 * 1000;
 
 const PARCEL = "tistyx";
 // Long enough to have walked away from: past this, the notice waits rather than fading.
@@ -620,6 +621,17 @@ export default function App() {
       document.removeEventListener("visibilitychange", seen);
     };
   }, []);
+
+  useEffect(() => {
+    let day = new Date().getDate();
+    const turned = setInterval(() => {
+      const now = new Date().getDate();
+      if (now === day) return;
+      day = now;
+      latest.current();
+    }, TURNS_OVER);
+    return () => clearInterval(turned);
+  }, []);
   const papersNow = useRef(papers.docs);
   papersNow.current = papers.docs;
   useEffect(() => {
@@ -743,7 +755,8 @@ export default function App() {
 
   const fresh =
     data.tasks.find((candidate) => candidate.id === selected) ??
-    found?.tasks.find((candidate) => candidate.id === selected);
+    found?.tasks.find((candidate) => candidate.id === selected) ??
+    data.ahead?.find((candidate) => candidate.task.id === selected)?.task;
   const task = fresh ?? (held?.id === selected ? held : undefined) ?? undefined;
   const open = task !== undefined;
   if (fresh && fresh !== held && acted.current !== fresh.id) setHeld(fresh);
@@ -1930,6 +1943,7 @@ export default function App() {
               counts={data.counts}
               lists={data.lists}
               ahead={data.ahead ?? []}
+              routines={data.routines ?? []}
               papers={papers.docs.filter((one) => !one.pageOf).length}
               onOpen={(id) => setSelected(id)}
               onList={(id) => {
@@ -1946,7 +1960,12 @@ export default function App() {
 
         {aside && (
           <div className={beside ? "hidden @max-[1460px]:block" : "hidden @max-[1080px]:block"}>
-            <Spine tasks={data.ahead ?? []} days={WEEK} onOpen={(id) => setSelected(id)} />
+            <Spine
+              coming={data.ahead ?? []}
+              routines={data.routines ?? []}
+              days={WEEK}
+              onOpen={(id) => setSelected(id)}
+            />
           </div>
         )}
       </div>

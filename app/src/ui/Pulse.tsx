@@ -1,4 +1,4 @@
-import type { List, Task } from "../core";
+import type { Coming, List, Task } from "../core";
 import { t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
 import Ahead, { WEEK } from "./Ahead";
@@ -6,7 +6,8 @@ import Ahead, { WEEK } from "./Ahead";
 interface Props {
   counts: Record<string, number>;
   lists: List[];
-  ahead: Task[];
+  ahead: Coming[];
+  routines: Task[];
   papers: number;
   onList: (id: string) => void;
   onQuadrants: () => void;
@@ -17,6 +18,7 @@ export default function Pulse({
   counts,
   lists,
   ahead,
+  routines,
   papers,
   onList,
   onQuadrants,
@@ -39,7 +41,7 @@ export default function Pulse({
 
       <div>
         <Cap said={t("upcoming")} />
-        <Ahead tasks={ahead} days={WEEK} onOpen={onOpen} />
+        <Ahead coming={ahead} routines={routines} days={WEEK} onOpen={onOpen} />
       </div>
 
       <div>
