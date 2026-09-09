@@ -42,6 +42,7 @@ const made = (id: string, title: string, away: number, clock = "", due = false):
 const coming = (id: string, title: string, away: number, clock = "", due = false): Coming => ({
   task: made(id, title, away, clock, due),
   on: stamp(away),
+  due,
 });
 
 const routine = (id: string, title: string, clock: string): Task =>

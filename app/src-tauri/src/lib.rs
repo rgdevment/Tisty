@@ -660,6 +660,7 @@ fn tags_in_use(state: &State) -> Vec<Counted> {
 struct Coming {
     task: Task,
     on: jiff::civil::Date,
+    due: bool,
 }
 
 const AHEAD: i64 = 7;
@@ -676,16 +677,32 @@ fn coming(state: &State, from: jiff::civil::Date) -> Vec<Coming> {
         return Vec::new();
     };
 
+    let within = |on: jiff::civil::Date| on > from && on <= until;
     let mut out: Vec<Coming> = state
         .matching(&Filter::default(), from)
         .into_iter()
-        .filter_map(|task| {
-            let held = task.date.as_ref().map(|d| d.date());
-            let on = held.or_else(|| task.deadline.as_ref().map(|d| d.date()))?;
-            (on > from && on <= until).then(|| Coming {
-                task: task.clone(),
-                on,
-            })
+        .flat_map(|task| {
+            let held = task
+                .date
+                .as_ref()
+                .map(|d| d.date())
+                .filter(|on| within(*on))
+                .map(|on| Coming {
+                    task: task.clone(),
+                    on,
+                    due: false,
+                });
+            let owed = task
+                .deadline
+                .as_ref()
+                .map(|d| d.date())
+                .filter(|on| within(*on))
+                .map(|on| Coming {
+                    task: task.clone(),
+                    on,
+                    due: true,
+                });
+            held.into_iter().chain(owed)
         })
         .collect();
     out.sort_by_key(|one| one.on);
@@ -7325,6 +7342,51 @@ mod tests {
 
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].on, away(from, 2));
+        assert!(out[0].due);
+    }
+
+    #[test]
+    fn a_deadline_still_counts_when_the_work_was_meant_for_another_day() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("finish the report");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, -1),
+            "America/Santiago",
+        ));
+        task.deadline = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(out.len(), 1, "the day it was meant for is behind us");
+        assert_eq!(out[0].on, away(from, 2));
+        assert!(out[0].due);
+    }
+
+    #[test]
+    fn a_day_to_work_on_it_and_a_day_it_falls_due_are_both_worth_saying() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("finish the report");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 1),
+            "America/Santiago",
+        ));
+        task.deadline = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 3),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(out.len(), 2);
+        assert!(!out[0].due);
+        assert!(out[1].due);
     }
 
     fn daily(from: jiff::civil::Date, until: Option<jiff::civil::Date>) -> tisty_core::model::Task {

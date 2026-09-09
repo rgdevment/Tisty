@@ -84,6 +84,7 @@ export interface Counted {
 export interface Coming {
   task: Task;
   on: string;
+  due: boolean;
 }
 
 export interface Snapshot {

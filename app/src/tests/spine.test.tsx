@@ -29,7 +29,7 @@ const coming = (id: string, title: string, away: number, clock = ""): Coming => 
       has_time: clock !== "",
     },
   } as unknown as Task;
-  return { task, on: stamp(away) };
+  return { task, on: stamp(away), due: false };
 };
 
 describe("the spine", () => {
