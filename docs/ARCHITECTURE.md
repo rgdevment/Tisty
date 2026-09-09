@@ -718,6 +718,30 @@ its name vouches for, and one that was retired is not carried back in, and a
 document body past the reader's ceiling is refused rather than carried in to
 replace one that could be opened.
 
+**What that check costs, and where the answer is kept.** Vouching for an
+attachment means reading all of it — half a gigabyte takes about six seconds, and
+that is the same cold or warm. Heavy files are exactly the ones the shared folder
+keeps and the local store does not, so the cost lands on every video and every
+recording. The answer is written beside the cache, keyed by path, size and date,
+so it is paid once in the life of a file rather than once per launch; a file that
+changes gets a new key and is read again. Losing that file costs a re-read and
+nothing else.
+
+Nothing waits on that read while holding a lock, or every other command touching
+an attachment would queue behind it. And nothing in the window may assume the
+answer is there yet: a player that asks once and gives up mounts with no source
+and stays mute until the document is opened again, which is the bug this rule
+exists to prevent.
+
+**A preview that fills itself in must not be keyed on what it is waiting for.**
+The editor rebuilds a preview when its key changes, and the one being replaced
+leaves the page while whatever it started keeps running. Key a player on the url
+it is waiting for and the arrival rebuilds it: the copy taken out of the page is
+handed the source anyway and plays where nobody can see it — or pause it. One per
+video, all at once, out of step with the one on screen. So the url stays out of
+the key, and anything a preview leaves running is called off when the editor
+destroys it.
+
 ### Why there is nothing to merge
 
 Each device directory has **exactly one writer**. Push only your own — nobody
