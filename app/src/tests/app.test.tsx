@@ -85,6 +85,7 @@ let counts: Record<string, number>;
 
 const shot = (view: { archive?: boolean } | undefined): Snapshot => ({
   tasks: tasks.filter((one) => (view?.archive ? one.status !== "open" : one.status === "open")),
+  ahead: [],
   lists: [],
   tags: [],
   refs: [],

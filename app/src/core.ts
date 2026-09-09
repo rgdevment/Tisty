@@ -83,6 +83,7 @@ export interface Counted {
 
 export interface Snapshot {
   tasks: Task[];
+  ahead: Task[];
   lists: List[];
   tags: Counted[];
   refs: string[];

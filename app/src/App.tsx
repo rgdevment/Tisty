@@ -1928,7 +1928,9 @@ export default function App() {
               counts={data.counts}
               lists={data.lists}
               tags={data.tags}
+              ahead={data.ahead ?? []}
               papers={papers.docs.filter((one) => !one.pageOf).length}
+              onOpen={(id) => setSelected(id)}
               onList={(id) => {
                 setSelected(undefined);
                 setChosen({ named: "lists", list: id });

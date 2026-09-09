@@ -659,6 +659,7 @@ fn tags_in_use(state: &State) -> Vec<Counted> {
 #[derive(serde::Serialize)]
 struct Snapshot {
     tasks: Vec<Task>,
+    ahead: Vec<Task>,
     lists: Vec<List>,
     tags: Vec<Counted>,
     refs: Vec<String>,
@@ -1078,6 +1079,18 @@ fn snapshot(
         tasks: session
             .state
             .matching(&filter, today())
+            .into_iter()
+            .cloned()
+            .collect(),
+        ahead: session
+            .state
+            .matching(
+                &Filter {
+                    window: Some(Window::After(today())),
+                    ..Default::default()
+                },
+                today(),
+            )
             .into_iter()
             .cloned()
             .collect(),

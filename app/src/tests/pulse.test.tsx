@@ -13,6 +13,7 @@ const picked = () => ({
   list: vi.fn(),
   tags: vi.fn(),
   quadrants: vi.fn(),
+  open: vi.fn(),
 });
 
 const show = (
@@ -25,10 +26,12 @@ const show = (
       counts={counts}
       lists={lists}
       tags={tags}
+      ahead={[]}
       papers={3}
       onList={hands.list}
       onTags={hands.tags}
       onQuadrants={hands.quadrants}
+      onOpen={hands.open}
     />,
   );
   return hands;

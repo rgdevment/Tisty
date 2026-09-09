@@ -1,20 +1,34 @@
-import type { Counted, List } from "../core";
+import type { Counted, List, Task } from "../core";
 import { fill, t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
+import Ahead from "./Ahead";
 
 interface Props {
   counts: Record<string, number>;
   lists: List[];
   tags: Counted[];
+  ahead: Task[];
   papers: number;
   onList: (id: string) => void;
   onTags: () => void;
   onQuadrants: () => void;
+  onOpen: (task: string) => void;
 }
 
 const SHOWN = 8;
+const WEEK = 7;
 
-export default function Pulse({ counts, lists, tags, papers, onList, onTags, onQuadrants }: Props) {
+export default function Pulse({
+  counts,
+  lists,
+  tags,
+  ahead,
+  papers,
+  onList,
+  onTags,
+  onQuadrants,
+  onOpen,
+}: Props) {
   const held = lists
     .filter((one) => counts[one.id])
     .sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0));
@@ -29,6 +43,11 @@ export default function Pulse({ counts, lists, tags, papers, onList, onTags, onQ
           <Count many={counts.dueToday ?? 0} said={t("pulseToday")} tone="text-accent" />
           <Count many={counts.upcoming ?? 0} said={t("pulseAhead")} />
         </dl>
+      </div>
+
+      <div>
+        <Cap said={t("upcoming")} />
+        <Ahead tasks={ahead} days={WEEK} onOpen={onOpen} />
       </div>
 
       <div>
