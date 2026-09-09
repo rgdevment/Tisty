@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import type { Coming, Task } from "../core";
+import type { Coming, Habit } from "../core";
 import Ahead, { HEAVY, specOf, spreadOf, weekday } from "./Ahead";
 
 interface Props {
   coming: Coming[];
-  routines: Task[];
+  routines: Habit[];
   days: number;
   onOpen: (task: string) => void;
 }

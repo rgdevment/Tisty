@@ -87,10 +87,16 @@ export interface Coming {
   due: boolean;
 }
 
+export interface Habit {
+  task: Task;
+  series?: Series;
+  on?: string;
+}
+
 export interface Snapshot {
   tasks: Task[];
   ahead: Coming[];
-  routines: Task[];
+  routines: Habit[];
   lists: List[];
   tags: Counted[];
   refs: string[];

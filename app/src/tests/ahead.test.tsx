@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { Coming, Task } from "../core";
+import type { Coming, Habit, Series, Task } from "../core";
 import { t } from "../locales";
 import Ahead from "../ui/Ahead";
 
@@ -45,11 +45,31 @@ const coming = (id: string, title: string, away: number, clock = "", due = false
   due,
 });
 
-const routine = (id: string, title: string, clock: string): Task =>
-  ({
+const routine = (id: string, title: string, clock: string): Habit => ({
+  task: {
     ...made(id, title, 0, clock),
     repeat: { from: "due", each: { every: 1, unit: "day" } },
-  }) as unknown as Task;
+  } as unknown as Task,
+});
+
+const told = (streak: number, marks: string[]): Series =>
+  ({
+    last: "01B",
+    title: "Tomar píldoras",
+    turns: marks.map((status, at) => ({
+      id: `t${at}`,
+      status,
+      due: spec(-marks.length + at, "10:00:00"),
+    })),
+    kept: marks.filter((one) => one === "done").length,
+    owed: marks.length,
+    dropped: 0,
+    open: 0,
+    skipped: 0,
+    streak,
+    longest: streak,
+    measurable: true,
+  }) as unknown as Series;
 
 describe("the week ahead", () => {
   it("puts a timed thing under its day with its hour", () => {
@@ -218,5 +238,54 @@ describe("the week ahead", () => {
     );
 
     expect(screen.queryByText(t("aheadNothing"))).toBeNull();
+  });
+
+  it("carries how many turns it has kept in a row", () => {
+    const one = routine("01B", "Tomar píldoras", "10:00:00");
+    render(
+      <Ahead
+        coming={[]}
+        routines={[{ ...one, series: told(4, ["done", "open", "done", "done"]) }]}
+        days={7}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("4")).toBeTruthy();
+  });
+
+  it("names the day of a routine that falls only once this week", () => {
+    const one = routine("01B", "Revisión dental", "09:00:00");
+    render(<Ahead coming={[]} routines={[{ ...one, on: stamp(2) }]} days={7} onOpen={vi.fn()} />);
+
+    const line = screen.getByText("Revisión dental").closest("button");
+
+    expect(line?.textContent).toContain(String(dayAway(2)));
+  });
+
+  it("names no day for a routine that falls every day", () => {
+    render(
+      <Ahead
+        coming={[]}
+        routines={[routine("01B", "Tomar píldoras", "10:00:00")]}
+        days={7}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Tomar píldoras").closest("button")?.textContent).not.toMatch(/\d/);
+  });
+
+  it("says nothing of a streak for a routine with no series behind it", () => {
+    render(
+      <Ahead
+        coming={[]}
+        routines={[routine("01B", "Tomar píldoras", "10:00:00")]}
+        days={7}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Tomar píldoras").closest("button")?.textContent).not.toMatch(/\d/);
   });
 });

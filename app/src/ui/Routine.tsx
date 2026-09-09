@@ -11,7 +11,7 @@ interface Props {
   onError?: (problem: unknown) => void;
 }
 
-type Mark = "kept" | "gap" | "given" | "open";
+export type Mark = "kept" | "gap" | "given" | "open";
 
 export default function Routine({ task, onError, heading }: Props) {
   const told = useAsked(() => taskSeries(task), [task], onError);
@@ -146,7 +146,7 @@ function Key({ mark, word }: { mark: Mark; word: string }) {
   );
 }
 
-const paint = (mark: Mark): string =>
+export const paint = (mark: Mark): string =>
   mark === "kept"
     ? "bg-accent"
     : mark === "gap"
@@ -155,14 +155,14 @@ const paint = (mark: Mark): string =>
         ? "border-[1.5px] border-faint bg-transparent"
         : "bg-hair";
 
-interface Day {
+export interface Day {
   key: string;
   when: string;
   mark: Mark;
   told: boolean;
 }
 
-function laid(told: Series): Day[] {
+export function laid(told: Series): Day[] {
   const days: Day[] = [];
   for (const turn of told.turns) {
     for (const gap of turn.gaps ?? []) {

@@ -681,6 +681,7 @@ fn coming(state: &State, from: jiff::civil::Date) -> Vec<Coming> {
     let mut out: Vec<Coming> = state
         .matching(&Filter::default(), from)
         .into_iter()
+        .filter(|task| task.repeat.is_none())
         .flat_map(|task| {
             let held = task
                 .date
@@ -709,7 +710,16 @@ fn coming(state: &State, from: jiff::civil::Date) -> Vec<Coming> {
     out
 }
 
-fn recurring(state: &State, from: jiff::civil::Date) -> Vec<Task> {
+#[derive(serde::Serialize)]
+struct Habit {
+    task: Task,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    series: Option<tisty_core::series::Series>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    on: Option<jiff::civil::Date>,
+}
+
+fn recurring(state: &State, from: jiff::civil::Date) -> Vec<Habit> {
     let Some(until) = horizon(from) else {
         return Vec::new();
     };
@@ -717,27 +727,37 @@ fn recurring(state: &State, from: jiff::civil::Date) -> Vec<Task> {
     state
         .matching(&Filter::default(), from)
         .into_iter()
-        .filter(|task| {
+        .filter_map(|task| {
             let (Some(repeat), Some(spec)) = (task.repeat, task.date.as_ref()) else {
-                return false;
+                return None;
             };
+
+            let mut turns: Vec<jiff::civil::Date> = Vec::new();
+            let own = spec.date();
+            if own > from && own <= until {
+                turns.push(own);
+            }
             let mut at = spec.at;
             for _ in 0..AHEAD {
                 let Some(next) = repeat.cadence().after(at) else {
-                    return false;
+                    break;
                 };
                 at = next;
                 let on = at.date();
                 if on > until || repeat.ended(on) {
-                    return false;
+                    break;
                 }
                 if on > from {
-                    return true;
+                    turns.push(on);
                 }
             }
-            false
+
+            (!turns.is_empty()).then(|| Habit {
+                task: task.clone(),
+                series: tisty_core::series::series(state, task.id),
+                on: (turns.len() == 1).then(|| turns[0]),
+            })
         })
-        .cloned()
         .collect()
 }
 
@@ -745,7 +765,7 @@ fn recurring(state: &State, from: jiff::civil::Date) -> Vec<Task> {
 struct Snapshot {
     tasks: Vec<Task>,
     ahead: Vec<Coming>,
-    routines: Vec<Task>,
+    routines: Vec<Habit>,
     lists: Vec<List>,
     tags: Vec<Counted>,
     refs: Vec<String>,
@@ -7412,6 +7432,40 @@ mod tests {
 
         assert!(coming(&state, from).is_empty(), "it holds no day of its own");
         assert_eq!(recurring(&state, from).len(), 1);
+    }
+
+    #[test]
+    fn a_routine_falling_once_this_week_says_which_day() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 2,
+            unit: tisty_core::model::Unit::Month,
+        }));
+        kept(&mut state, task);
+
+        let out = recurring(&state, from);
+
+        assert_eq!(out.len(), 1, "its own date lands inside the week");
+        assert_eq!(out[0].on, Some(away(from, 2)));
+        assert!(coming(&state, from).is_empty(), "and it crowds no day");
+    }
+
+    #[test]
+    fn a_routine_falling_every_day_names_no_day_at_all() {
+        let from = today();
+        let mut state = State::default();
+        kept(&mut state, daily(from, None));
+
+        let out = recurring(&state, from);
+
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].on, None, "seven turns name no single day");
     }
 
     #[test]

@@ -1,4 +1,4 @@
-import type { Coming, List, Task } from "../core";
+import type { Coming, Habit, List } from "../core";
 import { t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
 import Ahead, { WEEK } from "./Ahead";
@@ -7,7 +7,7 @@ interface Props {
   counts: Record<string, number>;
   lists: List[];
   ahead: Coming[];
-  routines: Task[];
+  routines: Habit[];
   papers: number;
   onList: (id: string) => void;
   onQuadrants: () => void;
