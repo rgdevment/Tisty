@@ -1,5 +1,6 @@
 import { Editor } from "@tiptap/core";
 import { describe, expect, it, vi } from "vitest";
+import { t } from "../locales";
 import { previewing, type Reach } from "../ui/previewing";
 import { asMarkdown, written } from "../ui/writing";
 
@@ -294,6 +295,105 @@ describe("what the editor makes of a reference marked as a card", () => {
     expect(asMarkdown(editor)?.trim()).toBe("![contrato](attachments/contrato-91f2.pdf)");
 
     editor.destroy();
+  });
+});
+
+describe("a heavy file the shared folder still has to answer for", () => {
+  // Reading half a gigabyte to check it answers for its name takes seconds. Asking once and
+  // giving up left the player with no source at all, mute until the document was reopened.
+  const slowly = () => {
+    let held: string | null = null;
+    return {
+      reach: { url: () => held } as Partial<Reach>,
+      arrives: (url: string) => {
+        held = url;
+      },
+    };
+  };
+
+  it("says it is getting it ready instead of looking empty", () => {
+    const { reach: slow } = slowly();
+    const editor = made("![charla](<attachments/charla-a3f9.mp4>)", slow);
+
+    expect(editor.view.dom.querySelector(".preview-long")?.textContent).toBe(t("gettingIt"));
+
+    editor.destroy();
+  });
+
+  it("plays it when the url finally arrives, rather than staying mute", async () => {
+    vi.useFakeTimers();
+    const { reach: slow, arrives } = slowly();
+    const editor = made("![charla](<attachments/charla-a3f9.mp4>)", slow);
+    const play = editor.view.dom.querySelector<HTMLButtonElement>(".preview-play");
+    play?.click();
+
+    const player = editor.view.dom.querySelector<HTMLVideoElement>("video[controls]");
+    expect(player?.getAttribute("src")).toBeNull();
+    expect(editor.view.dom.querySelector(".preview-getting")).toBeTruthy();
+
+    arrives("asset://localhost/attachments/charla-a3f9.mp4");
+    await vi.advanceTimersByTimeAsync(400);
+
+    expect(player?.getAttribute("src")).toBe("asset://localhost/attachments/charla-a3f9.mp4");
+    expect(editor.view.dom.querySelector(".preview-getting")).toBeNull();
+
+    editor.destroy();
+    vi.useRealTimers();
+  });
+
+  it("never gives a source to a player the editor already took away", async () => {
+    vi.useFakeTimers();
+    const { reach: slow, arrives } = slowly();
+    const editor = made("![charla](<attachments/charla-a3f9.mp4>)", slow);
+    editor.view.dom.querySelector<HTMLButtonElement>(".preview-play")?.click();
+    const player = editor.view.dom.querySelector<HTMLVideoElement>("video[controls]");
+    expect(player).toBeTruthy();
+
+    // Taken out of the page it would go on waiting, and hand a source to a player nobody can
+    // see — or pause. One per video, all playing at once.
+    editor.commands.setContent("nada de eso");
+    arrives("asset://localhost/attachments/charla-a3f9.mp4");
+    await vi.advanceTimersByTimeAsync(400);
+
+    expect(player?.getAttribute("src")).toBeNull();
+
+    editor.destroy();
+    vi.useRealTimers();
+  });
+
+  it("keeps the player it opened when the url arrives, instead of rebuilding it", async () => {
+    vi.useFakeTimers();
+    const { reach: slow, arrives } = slowly();
+    const editor = made("![charla](<attachments/charla-a3f9.mp4>)", slow);
+    editor.view.dom.querySelector<HTMLButtonElement>(".preview-play")?.click();
+    const player = editor.view.dom.querySelector<HTMLVideoElement>("video[controls]");
+
+    arrives("asset://localhost/attachments/charla-a3f9.mp4");
+    editor.view.dispatch(editor.state.tr.setMeta("preview", true));
+    await vi.advanceTimersByTimeAsync(400);
+
+    expect(editor.view.dom.querySelectorAll("video[controls]")).toHaveLength(1);
+    expect(editor.view.dom.querySelector("video[controls]")).toBe(player);
+
+    editor.destroy();
+    vi.useRealTimers();
+  });
+
+  it("waits for a sound file the same way", async () => {
+    vi.useFakeTimers();
+    const { reach: slow, arrives } = slowly();
+    const editor = made("![nota](<attachments/nota-a3f9.mp3>)", slow);
+
+    const player = editor.view.dom.querySelector<HTMLAudioElement>("audio");
+    expect(player?.getAttribute("src")).toBeNull();
+
+    arrives("asset://localhost/attachments/nota-a3f9.mp3");
+    await vi.advanceTimersByTimeAsync(400);
+
+    expect(player?.getAttribute("src")).toBe("asset://localhost/attachments/nota-a3f9.mp3");
+
+    editor.destroy();
+    vi.useRealTimers();
   });
 });
 

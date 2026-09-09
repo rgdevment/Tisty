@@ -103,8 +103,41 @@ const clocked = (secs: number): string => {
   return `${mins}:${String(whole % 60).padStart(2, "0")}`;
 };
 
+/// A file the shared folder holds answers for its bytes before it is served, and half a gigabyte
+/// takes seconds to read. Asking once and giving up leaves the player with no source at all, mute
+/// until the document is opened again — so it is asked for until it arrives.
+const WAITS_UP_TO = 90_000;
+const ASKS_EVERY = 200;
+
+/// What a widget left running when the editor took it out of the page. ProseMirror hands the
+/// node back on destroy, which is the only moment we can call it off.
+const waits = new WeakMap<HTMLElement, () => void>();
+
+const awaited = (get: () => string | null, then: (url: string) => void): (() => void) => {
+  const now = get();
+  if (now) {
+    then(now);
+    return () => {};
+  }
+  let live = true;
+  const stop = () => {
+    live = false;
+    window.clearInterval(again);
+    window.clearTimeout(gives);
+  };
+  const again = window.setInterval(() => {
+    const url = get();
+    if (!url || !live) return;
+    stop();
+    then(url);
+  }, ASKS_EVERY);
+  const gives = window.setTimeout(stop, WAITS_UP_TO);
+  return stop;
+};
+
 const played = (seen: Preview & { as: "video" }, reach: Reach, label: string): HTMLElement => {
   const box = frame("preview preview-video");
+  let waiting: (() => void) | null = null;
 
   const asks = () => {
     const seat = document.createElement("span");
@@ -114,8 +147,6 @@ const played = (seen: Preview & { as: "video" }, reach: Reach, label: string): H
     glance.muted = true;
     glance.playsInline = true;
     glance.tabIndex = -1;
-    const url = reach.url(seen.at);
-    if (url) glance.src = `${url}#t=0.1`;
     glance.addEventListener("loadeddata", () => seat.classList.add("preview-lit"));
     glance.addEventListener("loadedmetadata", () => {
       if (glance.currentTime < 0.05 && glance.duration > 0.2) glance.currentTime = 0.1;
@@ -129,7 +160,17 @@ const played = (seen: Preview & { as: "video" }, reach: Reach, label: string): H
     called.textContent = label || named(seen.at);
     const under = document.createElement("span");
     under.className = "preview-long";
+    if (!reach.url(seen.at)) under.textContent = t("gettingIt");
     strip.append(called, under);
+
+    waiting?.();
+    waiting = awaited(
+      () => reach.url(seen.at),
+      (url) => {
+        glance.src = `${url}#t=0.1`;
+        if (under.textContent === t("gettingIt")) under.textContent = "";
+      },
+    );
 
     const said = document.createElement("button");
     said.type = "button";
@@ -147,8 +188,17 @@ const played = (seen: Preview & { as: "video" }, reach: Reach, label: string): H
     player.controls = true;
     player.autoplay = true;
     player.preload = "metadata";
-    const url = reach.url(seen.at);
-    if (url) player.src = url;
+    const telling = document.createElement("span");
+    telling.className = "preview-getting";
+    telling.textContent = t("gettingIt");
+    waiting?.();
+    waiting = awaited(
+      () => reach.url(seen.at),
+      (url) => {
+        player.src = url;
+        telling.remove();
+      },
+    );
 
     const away = document.createElement("button");
     away.type = "button";
@@ -166,9 +216,11 @@ const played = (seen: Preview & { as: "video" }, reach: Reach, label: string): H
     });
 
     box.replaceChildren(player, away);
+    if (!reach.url(seen.at)) box.append(telling);
   };
 
   asks();
+  waits.set(box, () => waiting?.());
   return box;
 };
 
@@ -247,10 +299,20 @@ const built = (
     const player = document.createElement("audio");
     player.controls = true;
     player.preload = "metadata";
-    const url = reach.url(seen.at);
-    if (url) player.src = url;
+    const telling = document.createElement("span");
+    telling.className = "preview-getting";
+    telling.textContent = t("gettingIt");
+    const stop = awaited(
+      () => reach.url(seen.at),
+      (url) => {
+        player.src = url;
+        telling.remove();
+      },
+    );
     box.classList.add("preview-audio");
     box.append(player);
+    if (!reach.url(seen.at)) box.append(telling);
+    waits.set(box, stop);
     return box;
   }
 
@@ -460,7 +522,9 @@ const settled = (seen: Preview, reach: Reach): string => {
   }
   if (reach.gone?.(seen.at)) return "gone";
   if (seen.as === "file") return String(reach.weight(seen.at) ?? "");
-  return reach.url(seen.at) ?? "";
+  // A player waits for its own source and fills it in, so the url must not key the widget: a new
+  // key rebuilds it, and the one being replaced would go on playing out of sight.
+  return "";
 };
 
 export const previewing = (reach: () => Reach) => {
@@ -502,6 +566,9 @@ export const previewing = (reach: () => Reach) => {
                       side: 1,
                       ignoreSelection: true,
                       stopEvent: () => true,
+                      // Taken out of the page it would go on waiting, and hand a source to a
+                      // player nobody can see or pause.
+                      destroy: (node: Node) => waits.get(node as HTMLElement)?.(),
                     },
                   ),
                 ]),

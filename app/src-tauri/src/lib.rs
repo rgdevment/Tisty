@@ -32,6 +32,33 @@ struct Session {
     log: Option<(String, Vec<Event>)>,
 }
 
+/// What the toolkit says goes where everything else does. Without this its own refusals — an
+/// asset it would not serve, a window it could not draw — are written to a logger nobody set up,
+/// so they leave no trace at all and the window simply shows nothing.
+struct Relayed;
+
+impl log::Log for Relayed {
+    fn enabled(&self, said: &log::Metadata<'_>) -> bool {
+        said.level() <= log::Level::Warn
+    }
+
+    fn log(&self, said: &log::Record<'_>) {
+        if !self.enabled(said.metadata()) {
+            return;
+        }
+        let facts = [
+            ("from", Fact::Why(said.target().to_string())),
+            ("why", Fact::Why(said.args().to_string())),
+        ];
+        match said.level() {
+            log::Level::Error => witness::error(channel::WINDOW, "the toolkit refused", &facts),
+            _ => witness::warn(channel::WINDOW, "the toolkit complained", &facts),
+        }
+    }
+
+    fn flush(&self) {}
+}
+
 impl Session {
     fn open() -> tisty_core::Result<Self> {
         let paths = Paths::resolve()?;
@@ -39,6 +66,11 @@ impl Session {
             tisty_core::witness::file(&paths),
             tisty_core::witness::wants_all(),
         );
+        static RELAY: Relayed = Relayed;
+        if log::set_logger(&RELAY).is_ok() {
+            log::set_max_level(log::LevelFilter::Warn);
+        }
+        vouching_kept_at(paths.cache().join("vouched.json"));
         tisty_core::witness::catches(tisty_core::witness::channel::WINDOW);
         witness::note(
             channel::WINDOW,
@@ -3131,9 +3163,82 @@ fn under_root(at: &std::path::Path, root: &std::path::Path) -> bool {
 
 /// The sync has always made that folder answer for its bytes; opening one asks the same, once per
 /// file and again only when it changes size or date.
+type Vouched = std::collections::HashMap<String, bool>;
+
+/// Enough for every heavy file a shared folder holds, and a ceiling so a store that churns
+/// through them cannot grow this without end.
+const VOUCHED_AT_MOST: usize = 4096;
+
+#[derive(Default)]
+struct Vouching {
+    at: Option<std::path::PathBuf>,
+    seen: Vouched,
+    read: bool,
+}
+
+static VOUCHING: std::sync::OnceLock<Mutex<Vouching>> = std::sync::OnceLock::new();
+
+fn vouching() -> &'static Mutex<Vouching> {
+    VOUCHING.get_or_init(Default::default)
+}
+
+/// Reading half a gigabyte to answer for its name is worth doing once, not once per launch: the
+/// answers are kept beside the cache, where losing them costs a re-read and nothing else.
+fn vouching_kept_at(at: std::path::PathBuf) {
+    if let Ok(mut one) = vouching().lock() {
+        one.at = Some(at);
+        one.seen.clear();
+        one.read = false;
+    }
+}
+
+/// What was written down last time, read from disk once and then held.
+fn vouched_before(asked: &str) -> Option<bool> {
+    let mut one = vouching().lock().ok()?;
+    if !one.read {
+        one.read = true;
+        if let Some(said) = one
+            .at
+            .as_ref()
+            .and_then(|at| std::fs::read_to_string(at).ok())
+            .and_then(|said| serde_json::from_str::<Vouched>(&said).ok())
+        {
+            one.seen = said;
+        }
+    }
+    one.seen.get(asked).copied()
+}
+
+fn vouching_kept(asked: String, said: bool) {
+    let Ok(mut one) = vouching().lock() else {
+        return;
+    };
+    // A file that changed keeps its path with a new size or date, so the old row is dead weight;
+    // dropping the lot is simpler than tracking which, and costs one re-read each.
+    if one.seen.len() >= VOUCHED_AT_MOST {
+        one.seen.clear();
+    }
+    one.seen.insert(asked, said);
+    let Some(at) = one.at.clone() else {
+        return;
+    };
+    let Ok(body) = serde_json::to_vec(&one.seen) else {
+        return;
+    };
+    drop(one);
+    if let Some(parent) = at.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Err(e) = tisty_core::store::write_atomic(&at, &body) {
+        witness::warn(
+            channel::ATTACH,
+            "what answered for its name could not be written down",
+            &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
+        );
+    }
+}
+
 fn vouches(at: &std::path::Path, reference: &str) -> bool {
-    static SEEN: std::sync::OnceLock<Mutex<std::collections::HashMap<String, bool>>> =
-        std::sync::OnceLock::new();
     let mut parts = reference.rsplit('/');
     let (Some(leaf), Some(shelf)) = (parts.next(), parts.next()) else {
         return false;
@@ -3149,15 +3254,14 @@ fn vouches(at: &std::path::Path, reference: &str) -> bool {
         .unwrap_or(0);
     let asked = format!("{}|{}|{when}", at.display(), told.len());
 
-    let seen = SEEN.get_or_init(Default::default);
-    if let Some(held) = seen.lock().ok().and_then(|one| one.get(&asked).copied()) {
+    if let Some(held) = vouched_before(&asked) {
         return held;
     }
+    // Not while the lock is held: reading the file takes seconds, and every other window
+    // command that touches an attachment would wait behind it.
     let said = tisty_core::attach::hashed(at)
         .is_ok_and(|(sha256, _)| tisty_core::attach::vouched(shelf, leaf, &sha256));
-    if let Ok(mut one) = seen.lock() {
-        one.insert(asked, said);
-    }
+    vouching_kept(asked, said);
     said
 }
 
@@ -6678,9 +6782,53 @@ mod deleting {
 
 #[cfg(test)]
 mod tests {
+    /// What answers for an attachment is remembered process-wide, so the tests that reach it
+    /// take turns rather than reading each other's answers.
+    static ALONE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn what_answered_for_its_name_is_remembered_past_this_launch() {
+        use super::{vouches, vouching_kept_at};
+
+        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+
+        let room = tempfile::tempdir().unwrap();
+        let kept = room.path().join("cache").join("vouched.json");
+        vouching_kept_at(kept.clone());
+
+        // The name has to answer for the bytes, or nothing is written down to remember.
+        let loose = room.path().join("loose.mp4");
+        std::fs::write(&loose, b"lo que pesa").unwrap();
+        let (sha256, _) = tisty_core::attach::hashed(&loose).unwrap();
+        let shelf = &sha256[..2];
+        let leaf = format!("charla-{}.mp4", &sha256[2..10]);
+        let at = room.path().join("attachments").join(shelf);
+        std::fs::create_dir_all(&at).unwrap();
+        let file = at.join(&leaf);
+        std::fs::copy(&loose, &file).unwrap();
+        let reference = format!("attachments/{shelf}/{leaf}");
+
+        assert!(
+            vouches(&file, &reference),
+            "the name does not answer for it"
+        );
+        assert!(kept.is_file(), "the answer was not written down");
+
+        let said: std::collections::HashMap<String, bool> =
+            serde_json::from_str(&std::fs::read_to_string(&kept).unwrap()).unwrap();
+        let (row, answered) = said.iter().next().expect("one row");
+        assert!(*answered, "it was written down as not answering for itself");
+        assert!(
+            row.starts_with(&file.display().to_string()),
+            "the row does not name the file it answered for: {row}"
+        );
+    }
+
     #[test]
     fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
         use super::{Sought, found_in};
+
+        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
 
         let here = tempfile::tempdir().unwrap();
         let shared = tempfile::tempdir().unwrap();
@@ -6709,6 +6857,7 @@ mod tests {
     fn an_attachment_is_looked_for_here_first_and_then_where_it_is_shared() {
         use super::{Sought, found_in};
 
+        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
         let here = tempfile::tempdir().unwrap();
         let shared = tempfile::tempdir().unwrap();
         let from = tempfile::tempdir().unwrap();
@@ -7120,7 +7269,6 @@ mod tests {
     fn a_refusal_the_window_showed_says_what_it_was_about() {
         use super::note_trouble;
 
-        static ALONE: std::sync::Mutex<()> = std::sync::Mutex::new(());
         let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
 
         let kept = tempfile::tempdir().unwrap();
