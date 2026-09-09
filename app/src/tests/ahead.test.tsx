@@ -13,11 +13,13 @@ const dayFrom = (away: number, clock = "16:00:00"): string => {
   return `${at.getFullYear()}-${month}-${day}T${clock}`;
 };
 
-const tomorrow = (): number => {
+const dayAway = (away: number): number => {
   const at = new Date();
-  at.setDate(at.getDate() + 1);
+  at.setDate(at.getDate() + away);
   return at.getDate();
 };
+
+const tomorrow = (): number => dayAway(1);
 
 const task = (id: string, title: string, at?: string, timed = false): Task =>
   ({
@@ -40,17 +42,19 @@ describe("the week ahead", () => {
     expect(screen.getByText(/16/)).toBeTruthy();
   });
 
-  it("calls a day with nothing on it free", () => {
+  it("keeps an empty day in sight without a word on it", () => {
     render(<Ahead tasks={[task("01A", "Médico", dayFrom(1), true)]} days={3} onOpen={vi.fn()} />);
 
-    expect(screen.getAllByText(t("aheadFree"))).toHaveLength(2);
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getByText(String(dayAway(2)))).toBeTruthy();
+    expect(screen.getByText(String(dayAway(3)))).toBeTruthy();
   });
 
   it("says so when the whole window is empty", () => {
     render(<Ahead tasks={[]} days={7} onOpen={vi.fn()} />);
 
     expect(screen.getByText(t("aheadNothing"))).toBeTruthy();
-    expect(screen.queryByText(t("aheadFree"))).toBeNull();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 
   it("leaves out what falls past the window", () => {

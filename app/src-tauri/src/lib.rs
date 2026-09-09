@@ -4601,6 +4601,16 @@ fn proofread(window: &tauri::WebviewWindow) {
 #[cfg(not(target_os = "macos"))]
 fn proofread(_window: &tauri::WebviewWindow) {}
 
+fn fitted(window: &tauri::WebviewWindow) {
+    let (Ok(Some(screen)), Ok(asked)) = (window.current_monitor(), window.outer_size()) else {
+        return;
+    };
+    let room = screen.size();
+    if asked.width > room.width || asked.height > room.height {
+        let _ = window.maximize();
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn menued(
     app: &tauri::AppHandle,
@@ -6405,6 +6415,7 @@ pub fn run() {
 
             if let Some(window) = app.get_webview_window("main") {
                 proofread(&window);
+                fitted(&window);
                 if came_back || !waking::hushed() {
                     let _ = window.show();
                 }

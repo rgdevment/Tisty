@@ -11,25 +11,18 @@ const lists: List[] = [
 
 const picked = () => ({
   list: vi.fn(),
-  tags: vi.fn(),
   quadrants: vi.fn(),
   open: vi.fn(),
 });
 
-const show = (
-  counts: Record<string, number>,
-  tags: { tag: string; tasks: number; docs: number }[] = [],
-  hands = picked(),
-) => {
+const show = (counts: Record<string, number>, hands = picked()) => {
   render(
     <Pulse
       counts={counts}
       lists={lists}
-      tags={tags}
       ahead={[]}
       papers={3}
       onList={hands.list}
-      onTags={hands.tags}
       onQuadrants={hands.quadrants}
       onOpen={hands.open}
     />,
@@ -73,23 +66,11 @@ describe("the day beside the list", () => {
     expect(hands.list).not.toHaveBeenCalled();
   });
 
-  it("says nothing of tags where none is in use", () => {
-    show({});
+  it("carries no tags, which the sidebar already reaches", () => {
+    show({ all: 12 });
 
     expect(screen.queryByText("Tags")).toBeNull();
-  });
-
-  it("puts the most used tag first and carries its count", async () => {
-    const hands = show({}, [
-      { tag: "banco", tasks: 1, docs: 0 },
-      { tag: "casa", tasks: 4, docs: 0 },
-    ]);
-
-    const first = screen.getAllByRole("button", { name: /^#/ })[0];
-    expect(first.textContent).toBe("#casa 4");
-
-    await userEvent.click(first);
-    expect(hands.tags).toHaveBeenCalled();
+    expect(screen.queryAllByRole("button", { name: /^#/ })).toHaveLength(0);
   });
 
   it("gathers what is left over as figures, not as a second way in", () => {

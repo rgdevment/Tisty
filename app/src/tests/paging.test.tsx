@@ -108,6 +108,16 @@ describe("the smallest the window may be", () => {
     expect(main.minWidth).toBeLessThanOrEqual(1366);
     expect(main.minHeight).toBeLessThanOrEqual(768);
   });
+
+  it("opens wide enough for the panel to stand beside the list", () => {
+    const app = readFileSync("src/App.tsx", "utf8");
+    const needed = /grid-cols-\[minmax\(0,1fr\)_0px_0px\] @min-\[(\d+)px\]/.exec(app)?.[1];
+    expect(needed).toBeTruthy();
+
+    const rail = 380;
+    const gutter = 8;
+    expect(main.width - rail - gutter).toBeGreaterThanOrEqual(Number(needed));
+  });
 });
 
 describe("the paper reaching the printer", () => {

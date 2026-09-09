@@ -1,37 +1,30 @@
-import type { Counted, List, Task } from "../core";
-import { fill, t } from "../locales";
+import type { List, Task } from "../core";
+import { t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
 import Ahead, { WEEK } from "./Ahead";
 
 interface Props {
   counts: Record<string, number>;
   lists: List[];
-  tags: Counted[];
   ahead: Task[];
   papers: number;
   onList: (id: string) => void;
-  onTags: () => void;
   onQuadrants: () => void;
   onOpen: (task: string) => void;
 }
 
-const SHOWN = 8;
-
 export default function Pulse({
   counts,
   lists,
-  tags,
   ahead,
   papers,
   onList,
-  onTags,
   onQuadrants,
   onOpen,
 }: Props) {
   const held = lists
     .filter((one) => counts[one.id])
     .sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0));
-  const named = [...tags].sort((a, b) => b.tasks - a.tasks).slice(0, SHOWN);
 
   return (
     <aside className="scroller flex flex-col gap-4 border-l border-hair bg-panel px-3.5 pt-12 pb-6">
@@ -89,24 +82,6 @@ export default function Pulse({
               onPick={() => onList(one.id)}
             />
           ))}
-        </div>
-      )}
-
-      {named.length > 0 && (
-        <div>
-          <Cap said={t("tags")} />
-          <div className="flex flex-wrap gap-1">
-            {named.map((one) => (
-              <button
-                key={one.tag}
-                type="button"
-                onClick={onTags}
-                className="rounded-full border border-hair px-2 text-[10.5px] text-faint hover:text-ink"
-              >
-                {fill("tagAndCount", one.tag, String(one.tasks))}
-              </button>
-            ))}
-          </div>
         </div>
       )}
 

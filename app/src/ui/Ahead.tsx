@@ -63,28 +63,30 @@ export default function Ahead({ tasks, days, onOpen }: Props) {
 
   return (
     <div className="flex flex-col gap-px">
-      {spread.map((day) => (
-        <div
-          key={day.key}
-          className={`flex gap-2 rounded-md px-1.5 py-1 ${
-            day.held.length >= HEAVY ? "bg-hue-amber/12" : ""
-          }`}
-        >
-          <p className="w-8 shrink-0 pt-0.5 text-[9px] font-semibold tracking-[0.05em] text-faint uppercase">
-            {weekday().format(day.at)}
-            <span
-              className={`block text-[11.5px] tabular-nums ${
-                day.held.length >= HEAVY ? "text-hue-amber" : "text-ink"
+      {spread.map((day) => {
+        const heavy = day.held.length >= HEAVY;
+        const bare = day.held.length === 0;
+        return (
+          <div
+            key={day.key}
+            className={`flex gap-2 rounded-md px-1.5 py-0.5 ${heavy ? "bg-hue-amber/12" : ""}`}
+          >
+            <p
+              className={`w-11 shrink-0 truncate pt-px text-[9px] font-semibold tracking-[0.05em] uppercase ${
+                bare ? "text-faint/70" : "text-faint"
               }`}
             >
-              {day.at.getDate()}
-            </span>
-          </p>
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5 pt-0.5">
-            {day.held.length === 0 ? (
-              <span className="text-[10.5px] text-faint italic">{t("aheadFree")}</span>
-            ) : (
-              day.held.map((one) =>
+              {weekday().format(day.at)}{" "}
+              <span
+                className={`tabular-nums ${
+                  heavy ? "text-hue-amber" : bare ? "text-faint/70" : "text-ink"
+                }`}
+              >
+                {day.at.getDate()}
+              </span>
+            </p>
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              {day.held.map((one) =>
                 one.date?.has_time ? (
                   <button
                     key={one.id}
@@ -105,11 +107,11 @@ export default function Ahead({ tasks, days, onOpen }: Props) {
                     <span className="min-w-0 truncate">{one.title}</span>
                   </button>
                 ),
-              )
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
