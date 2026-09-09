@@ -1,7 +1,7 @@
 import type { Counted, List, Task } from "../core";
 import { fill, t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
-import Ahead from "./Ahead";
+import Ahead, { WEEK } from "./Ahead";
 
 interface Props {
   counts: Record<string, number>;
@@ -16,7 +16,6 @@ interface Props {
 }
 
 const SHOWN = 8;
-const WEEK = 7;
 
 export default function Pulse({
   counts,

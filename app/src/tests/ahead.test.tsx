@@ -13,6 +13,12 @@ const dayFrom = (away: number, clock = "16:00:00"): string => {
   return `${at.getFullYear()}-${month}-${day}T${clock}`;
 };
 
+const tomorrow = (): number => {
+  const at = new Date();
+  at.setDate(at.getDate() + 1);
+  return at.getDate();
+};
+
 const task = (id: string, title: string, at?: string, timed = false): Task =>
   ({
     id,
@@ -86,5 +92,35 @@ describe("the week ahead", () => {
     expect(shown[0]).toContain("Mañana");
     expect(shown[1]).toContain("Tarde");
     expect(shown[2]).toContain("Informe");
+  });
+
+  it("marks the day that carries three things", () => {
+    const at = dayFrom(1);
+    render(
+      <Ahead
+        tasks={[
+          task("01A", "Kermés", at, true),
+          task("01B", "Médico", at, true),
+          task("01C", "Informe", at),
+        ]}
+        days={1}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(String(tomorrow())).className).toContain("hue-amber");
+  });
+
+  it("leaves a lighter day alone", () => {
+    const at = dayFrom(1);
+    render(
+      <Ahead
+        tasks={[task("01A", "Kermés", at, true), task("01B", "Informe", at)]}
+        days={1}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(String(tomorrow())).className).not.toContain("hue-amber");
   });
 });

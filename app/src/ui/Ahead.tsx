@@ -8,11 +8,18 @@ interface Props {
   onOpen: (task: string) => void;
 }
 
-const HEAVY = 3;
+export const HEAVY = 3;
+export const WEEK = 7;
+
+export interface Day {
+  at: Date;
+  key: string;
+  held: Task[];
+}
 
 let cached: { for: string; weekday: Intl.DateTimeFormat } | undefined;
 
-function weekday(): Intl.DateTimeFormat {
+export function weekday(): Intl.DateTimeFormat {
   const code = locale();
   if (cached?.for !== code) {
     cached = { for: code, weekday: new Intl.DateTimeFormat(code, { weekday: "short" }) };
@@ -41,12 +48,14 @@ const sorted = (all: Task[]): Task[] =>
     return 0;
   });
 
-export default function Ahead({ tasks, days, onOpen }: Props) {
-  const now = new Date();
-  const spread = stretch(days, now).map((at) => {
+export const spreadOf = (tasks: Task[], days: number, now: Date): Day[] =>
+  stretch(days, now).map((at) => {
     const key = stamp(at);
     return { at, key, held: sorted(tasks.filter((one) => one.date?.at.slice(0, 10) === key)) };
   });
+
+export default function Ahead({ tasks, days, onOpen }: Props) {
+  const spread = spreadOf(tasks, days, new Date());
 
   if (spread.every((day) => day.held.length === 0)) {
     return <p className="py-px text-[11.5px] leading-snug text-faint">{t("aheadNothing")}</p>;

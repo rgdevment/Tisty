@@ -69,6 +69,7 @@ import { adopt, fill, t, type Word } from "./locales";
 import { noticeBehind, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
+import { WEEK } from "./ui/Ahead";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Cover from "./ui/Cover";
@@ -91,6 +92,7 @@ import Search from "./ui/Search";
 import Shelf from "./ui/Shelf";
 import Sidebar from "./ui/Sidebar";
 import Sightings from "./ui/Sightings";
+import Spine from "./ui/Spine";
 import Tagged from "./ui/Tagged";
 import Tags from "./ui/Tags";
 import TaskList from "./ui/TaskList";
@@ -1523,9 +1525,9 @@ export default function App() {
         }}
       />
 
-      <div className="@container my-2 mr-2 flex min-w-0 overflow-hidden rounded-[10px] border border-hair bg-bg shadow-lift">
+      <div className="@container my-2 mr-2 flex min-w-0 flex-col overflow-hidden rounded-[10px] border border-hair bg-bg shadow-lift">
         <div
-          className={`grid w-full min-w-0 overflow-hidden motion-safe:transition-[grid-template-columns] motion-safe:duration-150 ${
+          className={`grid min-h-0 w-full min-w-0 flex-1 overflow-hidden motion-safe:transition-[grid-template-columns] motion-safe:duration-150 ${
             beside
               ? aside
                 ? "grid-cols-[minmax(0,1fr)_380px_0px] @min-[1460px]:grid-cols-[minmax(0,1fr)_380px_300px]"
@@ -1946,6 +1948,12 @@ export default function App() {
             />
           )}
         </div>
+
+        {aside && (
+          <div className={beside ? "hidden @max-[1460px]:block" : "hidden @max-[1080px]:block"}>
+            <Spine tasks={data.ahead ?? []} days={WEEK} onOpen={(id) => setSelected(id)} />
+          </div>
+        )}
       </div>
     </div>
   );
