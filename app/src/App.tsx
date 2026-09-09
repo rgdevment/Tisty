@@ -69,7 +69,7 @@ import { adopt, fill, t, type Word } from "./locales";
 import { noticeBehind, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
-import { WEEK } from "./ui/Ahead";
+import Ahead, { WEEK } from "./ui/Ahead";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Cover from "./ui/Cover";
@@ -93,6 +93,7 @@ import Shelf from "./ui/Shelf";
 import Sidebar from "./ui/Sidebar";
 import Sightings from "./ui/Sightings";
 import Spine from "./ui/Spine";
+import Spread from "./ui/Spread";
 import Tagged from "./ui/Tagged";
 import Tags from "./ui/Tags";
 import TaskList from "./ui/TaskList";
@@ -129,6 +130,7 @@ export const kept = (key: string): string[] => {
 
 const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
 const TURNS_OVER = 60 * 1000;
+const TIGHT = 1300;
 
 const PARCEL = "tistyx";
 // Long enough to have walked away from: past this, the notice waits rather than fading.
@@ -169,6 +171,14 @@ export default function App() {
   useEffect(() => {
     noticeBehind(setBehind);
     return () => noticeBehind(null);
+  }, []);
+
+  const [tight, setTight] = useState(() => window.innerWidth < TIGHT);
+
+  useEffect(() => {
+    const look = () => setTight(window.innerWidth < TIGHT);
+    window.addEventListener("resize", look);
+    return () => window.removeEventListener("resize", look);
   }, []);
   const twice = useRef(0);
   const say = (words: string) => {
@@ -768,10 +778,10 @@ export default function App() {
       )
     : [];
 
-  const beside = open && mode === "columns" && chosen.named !== "keeping";
+  const sheet = open && (mode === "sheet" || tight);
+  const beside = open && !sheet && chosen.named !== "keeping";
   const aside =
-    (chosen.named === "tasks" || chosen.named === "tags" || chosen.list !== undefined) &&
-    !(open && mode === "sheet");
+    (chosen.named === "tasks" || chosen.named === "tags" || chosen.list !== undefined) && !sheet;
 
   const remember = (next: Mode) => {
     localStorage.setItem("detail", next);
@@ -1543,10 +1553,10 @@ export default function App() {
           className={`grid min-h-0 w-full min-w-0 flex-1 overflow-hidden motion-safe:transition-[grid-template-columns] motion-safe:duration-150 ${
             beside
               ? aside
-                ? "grid-cols-[minmax(0,1fr)_380px_0px] @min-[1460px]:grid-cols-[minmax(0,1fr)_380px_300px]"
-                : "grid-cols-[minmax(0,1fr)_380px_0px]"
+                ? "grid-cols-[minmax(0,1fr)_380px_0px] @min-[1260px]:grid-cols-[minmax(0,1fr)_380px_300px] @min-[1520px]:grid-cols-[minmax(0,1fr)_560px_300px]"
+                : "grid-cols-[minmax(0,1fr)_380px_0px] @min-[1140px]:grid-cols-[minmax(0,1fr)_560px_0px]"
               : aside
-                ? "grid-cols-[minmax(0,1fr)_0px_0px] @min-[1080px]:grid-cols-[minmax(0,1fr)_0px_300px]"
+                ? "grid-cols-[minmax(0,1fr)_0px_0px] @min-[880px]:grid-cols-[minmax(0,1fr)_0px_300px]"
                 : "grid-cols-[minmax(0,1fr)_0px_0px]"
           }`}
         >
@@ -1602,7 +1612,7 @@ export default function App() {
               onChanged={load}
               onError={(e) => setError(saidPlainly(e))}
             />
-          ) : chosen.named === "quadrants" && !(open && mode === "sheet") ? (
+          ) : chosen.named === "quadrants" && !sheet ? (
             // One child, one track: a fragment of two would push the board into the next column,
             // which is nought pixels wide whenever nothing is open beside it.
             <div className="flex min-w-0 flex-col overflow-hidden">
@@ -1610,7 +1620,7 @@ export default function App() {
               <Matrix
                 tasks={data.tasks}
                 lists={data.lists}
-                beside={open && mode === "columns"}
+                beside={beside}
                 onPlace={(id, where) => act(patch(id, { priority: where }))}
                 onOpen={(one) => setSelected(one.id)}
                 onSow={(where) => {
@@ -1630,6 +1640,14 @@ export default function App() {
                 }}
               />
             </div>
+          ) : chosen.named === "spread" && !sheet ? (
+            <div className="flex min-w-0 flex-col overflow-hidden">
+              <Spread
+                tasks={data.tasks}
+                onPlace={(id, on) => act(patch(id, { date: on }))}
+                onOpen={(one) => setSelected(one.id)}
+              />
+            </div>
           ) : chosen.named === "keeping" ? (
             <Keeping
               greeted={greeted}
@@ -1644,7 +1662,7 @@ export default function App() {
                 carries.current?.changed();
               }}
             />
-          ) : open && mode === "sheet" ? (
+          ) : sheet ? (
             <Detail
               key={task.id}
               task={task}
@@ -1674,236 +1692,262 @@ export default function App() {
               onDoc={openDoc}
             />
           ) : (
-            <TaskList
-              tasks={shown}
-              lists={data.lists}
-              title={title(chosen, data.lists)}
-              when={chosen.named === "tasks" ? todayLong() : undefined}
-              count={
-                chosen.named === "tasks"
-                  ? undefined
-                  : chosen.named === "archive" && !chosen.folded && chosen.layer === "routine"
-                    ? data.counts.routines
-                    : shown.length
-              }
-              onBack={
-                chosen.list
-                  ? () => {
-                      setChosen({ named: "lists" });
-                      setSelected(undefined);
-                    }
-                  : chosen.named === "tags"
-                    ? () => {
-                        setChosen(cameFrom ?? { named: "tasks" });
-                        setCameFrom(null);
-                        setSelected(undefined);
-                      }
-                    : undefined
-              }
-              empty={
-                found?.papers.length && !shown.length
-                  ? t("onlyPapers")
-                  : nothing(chosen, found !== null)
-              }
-              note={
-                found && found.total > found.tasks.length
-                  ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
-                  : undefined
-              }
-              selected={selected}
-              fresh={captured?.id}
-              reveal={reveal}
-              bands={
-                found !== null || chosen.list || chosen.named === "tags" || chosen.tags?.length
-                  ? undefined
-                  : chosen.named === "archive"
-                    ? "month"
-                    : "day"
-              }
-              axis={found === null && chosen.named === "archive" ? chosen.axis : undefined}
-              dense={
-                found === null &&
-                chosen.named === "archive" &&
-                !chosen.folded &&
-                chosen.layer === "trace"
-              }
-              onSelect={setSelected}
-              onComplete={
-                chosen.named === "archive"
-                  ? undefined
-                  : (id) => {
-                      const one = shown.find((task) => task.id === id);
-                      marking(id, one?.title ?? "");
-                      if (id === selected) setSelected(undefined);
-                    }
-              }
-              onFold={chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined}
-              closing={asking?.id}
-              ask={(id) => (asking?.id === id ? strip : null)}
-              below={
-                found?.papers.length ? (
-                  <Sightings papers={found.papers} onOpen={openDoc} />
-                ) : chosen.tags?.length ? (
-                  <Tagged docs={taggedDocs} onOpen={openDoc} />
-                ) : undefined
-              }
-              instead={
-                chosen.named === "archive" &&
-                !chosen.folded &&
-                chosen.layer === "routine" &&
-                found === null ? (
-                  <Shelf
-                    lists={data.lists}
-                    onOpen={setSelected}
-                    onError={(e) => setError(saidPlainly(e))}
-                  />
-                ) : undefined
-              }
-              above={
-                chosen.named === "tasks" ? (
-                  <div className="flex gap-1 px-2.5 pb-1">
-                    {SLICES.map((slice) => {
-                      const on = (chosen.slice ?? "today") === slice;
-                      const many = data.counts[slice === "today" ? "tasks" : slice];
-                      return (
-                        <button
-                          key={slice}
-                          type="button"
-                          aria-pressed={on}
-                          onClick={() => {
-                            setSelected(undefined);
-                            window.localStorage.setItem("tisty.slice", slice);
-                            setChosen({ named: "tasks", slice, lists: chosen.lists });
-                          }}
-                          className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                            on
-                              ? "border-ink bg-ink text-bg"
-                              : "border-line text-faint hover:text-soft"
-                          }`}
-                        >
-                          {t(sliceWord(slice))}
-                          {many ? (
-                            <span className="ml-1 tabular-nums opacity-70">{many}</span>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                    <Only
-                      lists={data.lists}
-                      chosen={chosen.lists ?? []}
-                      onChange={(lists) => {
-                        setSelected(undefined);
-                        window.localStorage.setItem("tisty.only", JSON.stringify(lists));
-                        setChosen({ ...chosen, named: "tasks", lists });
-                      }}
-                    />
-                  </div>
-                ) : chosen.named === "archive" ? (
-                  <>
-                    {found === null && !chosen.folded && (
-                      <Cover onError={(e) => setError(saidPlainly(e))} />
-                    )}
-                    <div className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
-                      {LAYERS.map((layer) => {
-                        const on = !chosen.folded && (chosen.layer ?? "story") === layer;
-                        const many = data.counts[layerCount(layer)];
-                        return (
-                          <button
-                            key={layer}
-                            type="button"
-                            aria-pressed={on}
-                            onClick={() => {
-                              setSelected(undefined);
-                              setFound(null);
-                              setChosen({ named: "archive", layer });
-                            }}
-                            className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                              on
-                                ? "border-ink bg-ink text-bg"
-                                : "border-line text-faint hover:text-soft"
-                            }`}
-                          >
-                            {t(layerWord(layer))}
-                            {many ? (
-                              <span className="ml-1 tabular-nums opacity-70">{many}</span>
-                            ) : null}
-                          </button>
-                        );
-                      })}
-                      <span className="mx-1 h-3.5 w-px bg-hair" />
-                      {AXES.map((axis) => {
-                        const on = (chosen.axis ?? "time") === axis;
-                        return (
-                          <button
-                            key={axis}
-                            type="button"
-                            aria-pressed={on}
-                            onClick={() => {
-                              setSelected(undefined);
-                              setChosen({ ...chosen, named: "archive", axis, folded: false });
-                            }}
-                            className={`rounded-full px-2 py-0.5 text-[11.5px] ${
-                              on ? "bg-active font-semibold text-ink" : "text-faint hover:text-soft"
-                            }`}
-                          >
-                            {t(axisWord(axis))}
-                          </button>
-                        );
-                      })}
-                      {data.counts.folded || chosen.folded ? (
-                        <button
-                          type="button"
-                          aria-pressed={chosen.folded === true}
-                          onClick={() => {
-                            setSelected(undefined);
-                            setFound(null);
-                            setChosen({ named: "archive", folded: !chosen.folded });
-                          }}
-                          className="ml-1 text-xs text-faint hover:text-ink"
-                        >
-                          {chosen.folded
-                            ? `⊕ ${t("backToArchive")}`
-                            : `⊖ ${data.counts.folded} ${t("folded")}`}
-                        </button>
-                      ) : null}
-                    </div>
-                  </>
-                ) : chosen.named === "tags" || chosen.tags?.length ? (
-                  <Tags
-                    tags={data.tags}
-                    chosen={chosen.tags ?? []}
-                    onToggle={(tag) => {
-                      const now = chosen.tags ?? [];
-                      const next = now.includes(tag) ? now.filter((t) => t !== tag) : [...now, tag];
-                      setChosen({ named: "tags", tags: next });
-                      setSelected(undefined);
-                    }}
-                  />
-                ) : undefined
-              }
-            >
-              {chosen.named === "search" ? (
-                <Search key="search" onFound={setFound} onError={setError} />
-              ) : chosen.named === "archive" ? (
-                <Search key="archive" fixed="archived" onFound={setFound} onError={setError} />
-              ) : accepts(chosen) ? (
-                <CaptureField
-                  invite={invite(chosen, data.lists)}
+            <div className="flex min-w-0">
+              <div
+                className={`flex min-w-0 flex-1 flex-col overflow-hidden ${
+                  beside || chosen.named !== "tasks" ? "" : "@min-[1760px]:max-w-[560px]"
+                }`}
+              >
+                <TaskList
+                  tasks={shown}
                   lists={data.lists}
-                  tags={data.tags}
-                  onCapture={(written, edits) => {
-                    setError(null);
-                    return capture(written, asView(chosen), edits).then((task) => {
-                      say(fill("saidFiled", task.title));
-                      setCaptured(task);
-                      load();
-                      return task;
-                    });
-                  }}
-                  onError={setError}
-                />
-              ) : null}
-            </TaskList>
+                  title={title(chosen, data.lists)}
+                  when={chosen.named === "tasks" ? todayLong() : undefined}
+                  count={
+                    chosen.named === "tasks"
+                      ? undefined
+                      : chosen.named === "archive" && !chosen.folded && chosen.layer === "routine"
+                        ? data.counts.routines
+                        : shown.length
+                  }
+                  onBack={
+                    chosen.list
+                      ? () => {
+                          setChosen({ named: "lists" });
+                          setSelected(undefined);
+                        }
+                      : chosen.named === "tags"
+                        ? () => {
+                            setChosen(cameFrom ?? { named: "tasks" });
+                            setCameFrom(null);
+                            setSelected(undefined);
+                          }
+                        : undefined
+                  }
+                  empty={
+                    found?.papers.length && !shown.length
+                      ? t("onlyPapers")
+                      : nothing(chosen, found !== null)
+                  }
+                  note={
+                    found && found.total > found.tasks.length
+                      ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
+                      : undefined
+                  }
+                  selected={selected}
+                  fresh={captured?.id}
+                  reveal={reveal}
+                  bands={
+                    found !== null || chosen.list || chosen.named === "tags" || chosen.tags?.length
+                      ? undefined
+                      : chosen.named === "archive"
+                        ? "month"
+                        : "day"
+                  }
+                  axis={found === null && chosen.named === "archive" ? chosen.axis : undefined}
+                  dense={
+                    found === null &&
+                    chosen.named === "archive" &&
+                    !chosen.folded &&
+                    chosen.layer === "trace"
+                  }
+                  onSelect={setSelected}
+                  onComplete={
+                    chosen.named === "archive"
+                      ? undefined
+                      : (id) => {
+                          const one = shown.find((task) => task.id === id);
+                          marking(id, one?.title ?? "");
+                          if (id === selected) setSelected(undefined);
+                        }
+                  }
+                  onFold={
+                    chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined
+                  }
+                  closing={asking?.id}
+                  ask={(id) => (asking?.id === id ? strip : null)}
+                  below={
+                    found?.papers.length ? (
+                      <Sightings papers={found.papers} onOpen={openDoc} />
+                    ) : chosen.tags?.length ? (
+                      <Tagged docs={taggedDocs} onOpen={openDoc} />
+                    ) : undefined
+                  }
+                  instead={
+                    chosen.named === "archive" &&
+                    !chosen.folded &&
+                    chosen.layer === "routine" &&
+                    found === null ? (
+                      <Shelf
+                        lists={data.lists}
+                        onOpen={setSelected}
+                        onError={(e) => setError(saidPlainly(e))}
+                      />
+                    ) : undefined
+                  }
+                  above={
+                    chosen.named === "tasks" ? (
+                      <div className="flex gap-1 px-2.5 pb-1">
+                        {SLICES.map((slice) => {
+                          const on = (chosen.slice ?? "today") === slice;
+                          const many = data.counts[slice === "today" ? "tasks" : slice];
+                          return (
+                            <button
+                              key={slice}
+                              type="button"
+                              aria-pressed={on}
+                              onClick={() => {
+                                setSelected(undefined);
+                                window.localStorage.setItem("tisty.slice", slice);
+                                setChosen({ named: "tasks", slice, lists: chosen.lists });
+                              }}
+                              className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+                                on
+                                  ? "border-ink bg-ink text-bg"
+                                  : "border-line text-faint hover:text-soft"
+                              }`}
+                            >
+                              {t(sliceWord(slice))}
+                              {many ? (
+                                <span className="ml-1 tabular-nums opacity-70">{many}</span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                        <Only
+                          lists={data.lists}
+                          chosen={chosen.lists ?? []}
+                          onChange={(lists) => {
+                            setSelected(undefined);
+                            window.localStorage.setItem("tisty.only", JSON.stringify(lists));
+                            setChosen({ ...chosen, named: "tasks", lists });
+                          }}
+                        />
+                      </div>
+                    ) : chosen.named === "archive" ? (
+                      <>
+                        {found === null && !chosen.folded && (
+                          <Cover onError={(e) => setError(saidPlainly(e))} />
+                        )}
+                        <div className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
+                          {LAYERS.map((layer) => {
+                            const on = !chosen.folded && (chosen.layer ?? "story") === layer;
+                            const many = data.counts[layerCount(layer)];
+                            return (
+                              <button
+                                key={layer}
+                                type="button"
+                                aria-pressed={on}
+                                onClick={() => {
+                                  setSelected(undefined);
+                                  setFound(null);
+                                  setChosen({ named: "archive", layer });
+                                }}
+                                className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+                                  on
+                                    ? "border-ink bg-ink text-bg"
+                                    : "border-line text-faint hover:text-soft"
+                                }`}
+                              >
+                                {t(layerWord(layer))}
+                                {many ? (
+                                  <span className="ml-1 tabular-nums opacity-70">{many}</span>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                          <span className="mx-1 h-3.5 w-px bg-hair" />
+                          {AXES.map((axis) => {
+                            const on = (chosen.axis ?? "time") === axis;
+                            return (
+                              <button
+                                key={axis}
+                                type="button"
+                                aria-pressed={on}
+                                onClick={() => {
+                                  setSelected(undefined);
+                                  setChosen({ ...chosen, named: "archive", axis, folded: false });
+                                }}
+                                className={`rounded-full px-2 py-0.5 text-[11.5px] ${
+                                  on
+                                    ? "bg-active font-semibold text-ink"
+                                    : "text-faint hover:text-soft"
+                                }`}
+                              >
+                                {t(axisWord(axis))}
+                              </button>
+                            );
+                          })}
+                          {data.counts.folded || chosen.folded ? (
+                            <button
+                              type="button"
+                              aria-pressed={chosen.folded === true}
+                              onClick={() => {
+                                setSelected(undefined);
+                                setFound(null);
+                                setChosen({ named: "archive", folded: !chosen.folded });
+                              }}
+                              className="ml-1 text-xs text-faint hover:text-ink"
+                            >
+                              {chosen.folded
+                                ? `⊕ ${t("backToArchive")}`
+                                : `⊖ ${data.counts.folded} ${t("folded")}`}
+                            </button>
+                          ) : null}
+                        </div>
+                      </>
+                    ) : chosen.named === "tags" || chosen.tags?.length ? (
+                      <Tags
+                        tags={data.tags}
+                        chosen={chosen.tags ?? []}
+                        onToggle={(tag) => {
+                          const now = chosen.tags ?? [];
+                          const next = now.includes(tag)
+                            ? now.filter((t) => t !== tag)
+                            : [...now, tag];
+                          setChosen({ named: "tags", tags: next });
+                          setSelected(undefined);
+                        }}
+                      />
+                    ) : undefined
+                  }
+                >
+                  {chosen.named === "search" ? (
+                    <Search key="search" onFound={setFound} onError={setError} />
+                  ) : chosen.named === "archive" ? (
+                    <Search key="archive" fixed="archived" onFound={setFound} onError={setError} />
+                  ) : accepts(chosen) ? (
+                    <CaptureField
+                      invite={invite(chosen, data.lists)}
+                      lists={data.lists}
+                      tags={data.tags}
+                      onCapture={(written, edits) => {
+                        setError(null);
+                        return capture(written, asView(chosen), edits).then((task) => {
+                          say(fill("saidFiled", task.title));
+                          setCaptured(task);
+                          load();
+                          return task;
+                        });
+                      }}
+                      onError={setError}
+                    />
+                  ) : null}
+                </TaskList>
+              </div>
+              {chosen.named === "tasks" && !beside && (
+                <div className="hidden min-w-0 flex-1 flex-col gap-2 py-4 pr-4 @min-[1760px]:flex">
+                  <p className="text-[13px] font-semibold tracking-[-0.01em]">{t("upcoming")}</p>
+                  <Ahead
+                    coming={data.ahead ?? []}
+                    routines={data.routines ?? []}
+                    days={WEEK}
+                    columns
+                    onOpen={(id) => setSelected(id)}
+                  />
+                </div>
+              )}
+            </div>
           )}
 
           {beside && (
@@ -1944,6 +1988,7 @@ export default function App() {
               lists={data.lists}
               ahead={data.ahead ?? []}
               routines={data.routines ?? []}
+              beside={beside}
               papers={papers.docs.filter((one) => !one.pageOf).length}
               onOpen={(id) => setSelected(id)}
               onList={(id) => {
@@ -1959,7 +2004,7 @@ export default function App() {
         </div>
 
         {aside && (
-          <div className={beside ? "hidden @max-[1460px]:block" : "hidden @max-[1080px]:block"}>
+          <div className={beside ? "hidden @max-[1260px]:block" : "hidden @max-[880px]:block"}>
             <Spine
               coming={data.ahead ?? []}
               routines={data.routines ?? []}

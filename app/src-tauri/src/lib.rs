@@ -693,11 +693,12 @@ fn coming(state: &State, from: jiff::civil::Date) -> Vec<Coming> {
                     on,
                     due: false,
                 });
+            let own = task.date.as_ref().map(|d| d.date());
             let owed = task
                 .deadline
                 .as_ref()
                 .map(|d| d.date())
-                .filter(|on| within(*on))
+                .filter(|on| within(*on) && Some(*on) != own)
                 .map(|on| Coming {
                     task: task.clone(),
                     on,
@@ -7385,6 +7386,22 @@ mod tests {
         assert_eq!(out.len(), 1, "the day it was meant for is behind us");
         assert_eq!(out[0].on, away(from, 2));
         assert!(out[0].due);
+    }
+
+    #[test]
+    fn one_day_that_is_both_is_said_once() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("the interview");
+        let on = tisty_core::model::DateSpec::all_day(away(from, 1), "America/Santiago");
+        task.date = Some(on.clone());
+        task.deadline = Some(on);
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(out.len(), 1, "working on it and owing it is one day, not two");
+        assert!(!out[0].due);
     }
 
     #[test]

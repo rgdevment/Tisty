@@ -53,7 +53,9 @@ const remembered = (held: Map<string, string>, file: string, text: string) => {
 
 const WIDE = 1440;
 
-const RAIL = 284;
+const RAIL = 336;
+const RAIL_WIDE = 380;
+const GUTTER = 8;
 const SHEET = 820;
 
 const PAPER: Record<Paper, number> = { a4: 820, letter: 843, tabloid: 1090 };
@@ -536,7 +538,7 @@ export default function Docs({
     setSized(now);
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
   };
-  const spare = room - RAIL;
+  const spare = room - (wide ? RAIL_WIDE : RAIL) - GUTTER;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">

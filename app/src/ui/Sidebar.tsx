@@ -29,6 +29,7 @@ const NAMED: { key: Named; icon: string }[] = [
   { key: "search", icon: "search" },
   { key: "tasks", icon: "sun" },
   { key: "quadrants", icon: "grid" },
+  { key: "spread", icon: "calendar" },
   { key: "lists", icon: "rows" },
   { key: "tags", icon: "tag" },
   { key: "archive", icon: "archive" },

@@ -272,11 +272,19 @@ describe("where the document rests", () => {
   });
 
   it("gives the column its room when what is left still fits the page", async () => {
-    widen(1500);
+    widen(1600);
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
     expect(roomOf()?.style.paddingRight).toBe("344px");
+  });
+
+  it("counts the sidebar at the width it really has, and lets the column float when it does not fit", async () => {
+    widen(1500);
+    show();
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(roomOf()?.style.paddingRight).toBe("0px");
   });
 
   it("lets the column lie over the text rather than pushing it", async () => {

@@ -8,6 +8,7 @@ interface Props {
   lists: List[];
   ahead: Coming[];
   routines: Habit[];
+  beside: boolean;
   papers: number;
   onList: (id: string) => void;
   onQuadrants: () => void;
@@ -19,6 +20,7 @@ export default function Pulse({
   lists,
   ahead,
   routines,
+  beside,
   papers,
   onList,
   onQuadrants,
@@ -39,7 +41,7 @@ export default function Pulse({
         </dl>
       </div>
 
-      <div>
+      <div className={beside ? "" : "@max-[1760px]:block hidden"}>
         <Cap said={t("upcoming")} />
         <Ahead coming={ahead} routines={routines} days={WEEK} onOpen={onOpen} />
       </div>
