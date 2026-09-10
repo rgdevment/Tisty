@@ -23,7 +23,6 @@ interface Props {
   onSelect: (id: string) => void;
   onComplete?: (id: string) => void;
   onFold?: (id: string, away: boolean) => void;
-  onDrop?: (task: string, after?: string, before?: string) => void;
   above?: React.ReactNode;
   ask?: (id: string) => React.ReactNode;
   closing?: string;

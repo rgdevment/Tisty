@@ -162,9 +162,10 @@ export interface Day {
   told: boolean;
 }
 
-export function laid(told: Series): Day[] {
+export function laid(told: Series, tail?: number): Day[] {
   const days: Day[] = [];
-  for (const turn of told.turns) {
+  const walked = tail === undefined ? told.turns : told.turns.slice(-tail);
+  for (const turn of walked) {
     for (const gap of turn.gaps ?? []) {
       days.push({ key: `gap-${gap}`, when: dated(gap), mark: "gap", told: false });
     }
@@ -183,14 +184,19 @@ const mark = (turn: Turn): Mark =>
 
 const counted = (many: number): string => new Intl.NumberFormat(locale()).format(many);
 
+let stamps: { for: string; shape: Intl.DateTimeFormat } | undefined;
+
 const dated = (day: string): string => {
   const at = new Date(`${day}T12:00:00`);
   if (Number.isNaN(at.getTime())) return day;
-  return new Intl.DateTimeFormat(locale(), {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(at);
+  const code = locale();
+  if (stamps?.for !== code) {
+    stamps = {
+      for: code,
+      shape: new Intl.DateTimeFormat(code, { weekday: "short", day: "numeric", month: "short" }),
+    };
+  }
+  return stamps.shape.format(at);
 };
 
 function clocked(told: Series) {

@@ -70,12 +70,17 @@ export default function Spread({ tasks, onPlace, onOpen, onCarrying }: Props) {
 
   const carried = useMemo(() => {
     const held = new Map<string, Task[]>();
-    for (const task of tasks) {
-      if (task.repeat || !task.date) continue;
-      const key = task.date.at.slice(0, 10);
+    const put = (key: string, task: Task) => {
       const mine = held.get(key);
       if (mine) mine.push(task);
       else held.set(key, [task]);
+    };
+    for (const task of tasks) {
+      if (task.repeat) continue;
+      const on = task.date?.at.slice(0, 10);
+      const owed = task.deadline?.at.slice(0, 10);
+      if (on) put(on, task);
+      if (owed && owed !== on) put(owed, task);
     }
     for (const mine of held.values()) {
       mine.sort((a, b) => (a.date?.at ?? "").localeCompare(b.date?.at ?? ""));
@@ -91,7 +96,10 @@ export default function Spread({ tasks, onPlace, onOpen, onCarrying }: Props) {
     return walk(from, span);
   }, [today, carried]);
 
-  const waiting = useMemo(() => tasks.filter((one) => !one.date && !one.repeat), [tasks]);
+  const waiting = useMemo(
+    () => tasks.filter((one) => !one.date && !one.deadline && !one.repeat),
+    [tasks],
+  );
 
   const reach = useCallback((key: string) => {
     river.current?.querySelector(`[data-day="${key}"]`)?.scrollIntoView?.({ block: "start" });

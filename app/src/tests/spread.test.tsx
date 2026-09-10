@@ -47,6 +47,17 @@ const made = (id: string, title: string, on?: string, clock = ""): Task =>
         }),
   }) as unknown as Task;
 
+const owing = (id: string, title: string, by: string): Task =>
+  ({
+    ...made(id, title),
+    deadline: {
+      at: `${by}T00:00:00`,
+      tz: "America/Santiago",
+      floating: true,
+      has_time: false,
+    },
+  }) as unknown as Task;
+
 const routine = (id: string, title: string, on: string): Task =>
   ({
     ...made(id, title, on),
@@ -96,6 +107,20 @@ describe("the river of days", () => {
 
     expect(dayAt(4)?.textContent).toContain("Kermés");
     expect(dayAt(4)?.textContent).toContain("11:00");
+  });
+
+  it("does not call a day free when work is owed on it", () => {
+    render(
+      <Spread
+        tasks={[owing("01A", "Entregar el informe", weekDay(4))]}
+        onPlace={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(dayAt(4)?.textContent).toContain("Entregar el informe");
+    expect(dayAt(4)?.textContent).not.toContain(t("spreadFree"));
+    expect(document.querySelector("[data-tray]")?.textContent).not.toContain("Entregar el informe");
   });
 
   it("calls a day with nothing on it free", () => {

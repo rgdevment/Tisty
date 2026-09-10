@@ -87,7 +87,7 @@ export default function Ahead({ coming, routines, days, onOpen }: Props) {
             {one.series && (
               <span className="ml-auto flex shrink-0 items-center gap-1.5">
                 <span className="flex gap-px" aria-hidden="true">
-                  {laid(one.series)
+                  {laid(one.series, BEADS)
                     .slice(-BEADS)
                     .map((day) => (
                       <span key={day.key} className={`h-1.5 w-1.5 rounded-md ${paint(day.mark)}`} />

@@ -195,7 +195,6 @@ pub fn done(
             && !owed.is_empty()
             && let Some(task) = app.state.tasks.get(&id)
         {
-            // The task is closed by now, so the hint has to name it by something that still resolves.
             let days = owed
                 .iter()
                 .map(ToString::to_string)

@@ -37,26 +37,13 @@ export default function Spine({ coming, routines, days, onOpen }: Props) {
 
   return (
     <div ref={box} className="relative h-7 shrink-0 border-t border-hair bg-panel px-2 py-1">
-      {open && (
-        <div className="shadow-lift-tall absolute inset-x-2 bottom-full z-10 mb-1 max-h-[60vh] overflow-y-auto rounded-[10px] border border-line bg-bg p-2.5">
-          <Ahead
-            coming={coming}
-            routines={routines}
-            days={days}
-            onOpen={(id) => {
-              setOpen(false);
-              onOpen(id);
-            }}
-          />
-        </div>
-      )}
-
       <div className="flex items-center gap-0.5">
         {spread.map((day) => (
           <button
             key={day.key}
             type="button"
             aria-expanded={open}
+            aria-controls="spine-days"
             onClick={(e) => {
               from.current = e.currentTarget;
               setOpen(!open);
@@ -88,6 +75,23 @@ export default function Spine({ coming, routines, days, onOpen }: Props) {
           </button>
         ))}
       </div>
+
+      {open && (
+        <div
+          id="spine-days"
+          className="shadow-lift-tall absolute inset-x-2 bottom-full z-10 mb-1 max-h-[60vh] overflow-y-auto rounded-[10px] border border-line bg-bg p-2.5"
+        >
+          <Ahead
+            coming={coming}
+            routines={routines}
+            days={days}
+            onOpen={(id) => {
+              setOpen(false);
+              onOpen(id);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
