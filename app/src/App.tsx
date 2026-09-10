@@ -790,6 +790,7 @@ export default function App() {
     chosen.named === "tags" ||
     chosen.named === "archive" ||
     chosen.named === "lists" ||
+    chosen.named === "spread" ||
     chosen.list !== undefined ||
     sheet;
   const lane =

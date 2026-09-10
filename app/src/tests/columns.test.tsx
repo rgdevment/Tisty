@@ -119,14 +119,13 @@ describe("the room the desk keeps for the lanes beside it", () => {
     expect(lane().className).toContain("pr-[716px]");
   });
 
-  it("keeps no room at all in the spread, where seven days want the whole width", async () => {
+  it("keeps no room in the spread: the lane floats over the days instead", async () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByText("write the report");
 
     await user.click(screen.getByRole("button", { name: /spread/i }));
-    await screen.findByRole("button", { name: /the week after/i });
-
+    await screen.findByRole("button", { name: /^Month$/ });
     expect(lane().className).not.toContain("pr-[");
 
     await user.click(screen.getByText("write the report"));

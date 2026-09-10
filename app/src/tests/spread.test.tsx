@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Task, Volume } from "../core";
+import type { Task } from "../core";
 import { t } from "../locales";
-import Spread, { heftOf } from "../ui/Spread";
+import Spread from "../ui/Spread";
 
 beforeAll(() => {
   if (!Element.prototype.setPointerCapture) {
@@ -62,14 +62,26 @@ const dragged = (from: HTMLElement, onto: Element | null) => {
 };
 
 const dayAt = (n: number) => document.querySelector(`[data-day="${weekDay(n)}"]`);
+const days = () => document.querySelectorAll("[data-day]");
 
-describe("spreading the week", () => {
-  it("lays out the whole week, monday through sunday", () => {
+describe("the river of days", () => {
+  it("starts on the monday of the week you are living and runs on for months", () => {
     render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
-    expect(document.querySelectorAll("[data-day]")).toHaveLength(7);
-    expect(dayAt(0)).toBeTruthy();
-    expect(dayAt(6)).toBeTruthy();
+    expect(days()).toHaveLength(120);
+    expect(days()[0].getAttribute("data-day")).toBe(weekDay(0));
+    expect(dayAt(119)).toBeTruthy();
+  });
+
+  it("names the month once, where it turns", () => {
+    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+
+    const said = [...document.querySelectorAll("p")]
+      .map((one) => one.textContent ?? "")
+      .filter((one) => /\d{4}$/.test(one));
+
+    expect(said.length).toBeGreaterThanOrEqual(4);
+    expect(new Set(said).size).toBe(said.length);
   });
 
   it("puts each task under the day it carries", () => {
@@ -82,6 +94,7 @@ describe("spreading the week", () => {
     );
 
     expect(dayAt(4)?.textContent).toContain("Kermés");
+    expect(dayAt(4)?.textContent).toContain("11:00");
   });
 
   it("calls a day with nothing on it free", () => {
@@ -90,12 +103,10 @@ describe("spreading the week", () => {
     expect(dayAt(3)?.textContent).toContain(t("spreadFree"));
   });
 
-  it("keeps what has no day at all in the tray, with its heft", () => {
+  it("keeps what has no day at all in the tray", () => {
     render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
-    const card = screen.getByText("Sin fecha").closest("button");
-
-    expect(card?.textContent).toContain(t("spreadSmall"));
+    expect(document.querySelector("[data-tray]")?.textContent).toContain("Sin fecha");
     expect(dayAt(0)?.textContent).not.toContain("Sin fecha");
   });
 
@@ -109,6 +120,26 @@ describe("spreading the week", () => {
     );
 
     expect(screen.queryByText("Tomar píldoras")).toBeNull();
+  });
+
+  it("draws every task the same way, whatever it carries", () => {
+    render(
+      <Spread
+        tasks={[
+          made("01A", "Con hora", weekDay(1), "09:00:00"),
+          made("01B", "Sin hora", weekDay(1)),
+        ]}
+        onPlace={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    const shapes = [...(dayAt(1)?.querySelectorAll("button") ?? [])].map((one) =>
+      one.className.replace(/cursor-\w+/, ""),
+    );
+
+    expect(shapes).toHaveLength(2);
+    expect(shapes[0]).toBe(shapes[1]);
   });
 
   it("deals a task a day when you drop it on one", () => {
@@ -142,7 +173,50 @@ describe("spreading the week", () => {
     expect(opened).toHaveBeenCalledWith(expect.objectContaining({ id: "01A" }));
   });
 
-  it("asks when the day you dropped it on is turning heavy, and offers a free one", () => {
+  it("takes the day away when a dated task is dropped back on the tray", () => {
+    const placed = vi.fn();
+    render(
+      <Spread tasks={[made("01A", "Kermés", weekDay(4))]} onPlace={placed} onOpen={vi.fn()} />,
+    );
+
+    dragged(
+      dayAt(4)?.querySelector("button") as HTMLElement,
+      document.querySelector("[data-tray]"),
+    );
+
+    expect(placed).toHaveBeenCalledWith("01A", null);
+  });
+
+  it("says nothing when what comes back to the tray never had a day", () => {
+    const placed = vi.fn();
+    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
+
+    dragged(screen.getByText("Sin fecha"), document.querySelector("[data-tray]"));
+
+    expect(placed).not.toHaveBeenCalled();
+  });
+
+  it("moves a task that already had a day onto a different one", () => {
+    const placed = vi.fn();
+    render(
+      <Spread tasks={[made("01A", "Kermés", weekDay(1))]} onPlace={placed} onOpen={vi.fn()} />,
+    );
+
+    dragged(screen.getByText("Kermés"), dayAt(5));
+
+    expect(placed).toHaveBeenCalledWith("01A", weekDay(5));
+  });
+
+  it("does nothing when a task is let go outside every day", () => {
+    const placed = vi.fn();
+    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
+
+    dragged(screen.getByText("Sin fecha"), document.body);
+
+    expect(placed).not.toHaveBeenCalled();
+  });
+
+  it("asks when the day it landed on is turning heavy, and offers a free one", () => {
     const placed = vi.fn();
     render(
       <Spread
@@ -192,50 +266,7 @@ describe("spreading the week", () => {
     expect(screen.queryByText(t("spreadLeaveIt"))).toBeNull();
   });
 
-  it("does nothing when a task is let go outside every day", () => {
-    const placed = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
-
-    dragged(screen.getByText("Sin fecha"), document.body);
-
-    expect(placed).not.toHaveBeenCalled();
-  });
-
-  it("takes the day away when a dated task is dropped back on the tray", () => {
-    const placed = vi.fn();
-    render(
-      <Spread tasks={[made("01A", "Kermés", weekDay(4))]} onPlace={placed} onOpen={vi.fn()} />,
-    );
-
-    dragged(
-      dayAt(4)?.querySelector("button") as HTMLElement,
-      document.querySelector("[data-tray]"),
-    );
-
-    expect(placed).toHaveBeenCalledWith("01A", null);
-  });
-
-  it("says nothing when what comes back to the tray never had a day", () => {
-    const placed = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
-
-    dragged(screen.getByText("Sin fecha"), document.querySelector("[data-tray]"));
-
-    expect(placed).not.toHaveBeenCalled();
-  });
-
-  it("moves a task that already had a day onto a different one", () => {
-    const placed = vi.fn();
-    render(
-      <Spread tasks={[made("01A", "Kermés", weekDay(1))]} onPlace={placed} onOpen={vi.fn()} />,
-    );
-
-    dragged(screen.getByText("Kermés"), dayAt(5));
-
-    expect(placed).toHaveBeenCalledWith("01A", weekDay(5));
-  });
-
-  it("offers no day to move to when the crowded day is the last of the week", () => {
+  it("keeps looking for a free day past the end of the week", () => {
     const placed = vi.fn();
     render(
       <Spread
@@ -250,85 +281,81 @@ describe("spreading the week", () => {
     );
 
     dragged(screen.getByText("Sin fecha"), dayAt(6));
-
-    expect(placed).toHaveBeenCalledWith("01C", weekDay(6));
-    expect(screen.getByText(t("spreadLeaveIt"))).toBeTruthy();
-    expect(
-      screen.queryByRole("button", {
-        name: new RegExp(t("spreadMoveIt").split("{")[0].trim()),
-      }),
-    ).toBeNull();
-  });
-});
-
-describe("a week that crosses into another month and year", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 0, 1, 9, 0, 0));
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("still lays out seven days and lands a drop on the right date", () => {
-    const placed = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
-
-    expect(document.querySelectorAll("[data-day]")).toHaveLength(7);
-    expect(dayAt(0)).toBeTruthy();
-    expect(document.querySelector('[data-day="2025-12-29"]')).toBeTruthy();
-    expect(document.querySelector('[data-day="2026-01-04"]')).toBeTruthy();
-
-    dragged(screen.getByText("Sin fecha"), document.querySelector('[data-day="2025-12-31"]'));
-
-    expect(placed).toHaveBeenCalledWith("01A", "2025-12-31");
-  });
-});
-
-describe("walking the weeks", () => {
-  const shown = (): string[] =>
-    [...document.querySelectorAll("[data-day]")].map(
-      (one) => one.getAttribute("data-day") as string,
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp(t("spreadMoveIt").split("{")[0].trim()) }),
     );
 
-  it("starts on the week you are living", () => {
+    expect(placed).toHaveBeenLastCalledWith("01C", weekDay(7));
+  });
+});
+
+describe("the month, for looking and no more", () => {
+  const open = () => fireEvent.click(screen.getByRole("button", { name: t("spreadMoon") }));
+
+  it("lays out six weeks of cells and hides the river while it shows", () => {
     render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
-    expect(shown()[0]).toBe(weekDay(0));
+    open();
+
+    expect(days()).toHaveLength(42);
+    expect(screen.queryByText(t("spreadFree"))).toBeNull();
   });
 
-  it("goes on a week, and comes back one", () => {
+  it("never calls a cell free, since Tisty cannot promise a day is", () => {
     render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: t("spreadOn") }));
-    expect(shown()[0]).toBe(weekDay(7));
+    open();
 
-    fireEvent.click(screen.getByRole("button", { name: t("spreadBack") }));
-    expect(shown()[0]).toBe(weekDay(0));
+    expect(document.body.textContent).not.toContain(t("spreadFree"));
   });
 
-  it("offers the way home only once you have left", () => {
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+  it("shows what a day carries, and says how many it could not fit", () => {
+    render(
+      <Spread
+        tasks={[
+          made("01A", "Uno", weekDay(3)),
+          made("01B", "Dos", weekDay(3)),
+          made("01C", "Tres", weekDay(3)),
+          made("01D", "Cuatro", weekDay(3)),
+        ]}
+        onPlace={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
 
-    expect(screen.queryByText(t("spreadNow"))).toBeNull();
+    open();
+    const cell = document.querySelector(`[data-day="${weekDay(3)}"]`);
 
-    fireEvent.click(screen.getByRole("button", { name: t("spreadBack") }));
-    fireEvent.click(screen.getByRole("button", { name: t("spreadBack") }));
-    expect(shown()[0]).toBe(weekDay(-14));
-
-    fireEvent.click(screen.getByText(t("spreadNow")));
-    expect(shown()[0]).toBe(weekDay(0));
+    expect(cell?.textContent).toContain("Uno");
+    expect(cell?.textContent).toContain("+1");
+    expect(cell?.textContent).not.toContain("Cuatro");
   });
 
-  it("deals a day on the week you walked to, not the one you came from", () => {
+  it("takes no task anywhere: pressing a day sends you back to it in the river", () => {
     const placed = vi.fn();
     render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: t("spreadOn") }));
-    dragged(screen.getByText("Sin fecha"), document.querySelector(`[data-day="${weekDay(10)}"]`));
+    open();
+    fireEvent.click(document.querySelector(`[data-day="${weekDay(5)}"]`) as HTMLElement);
 
-    expect(placed).toHaveBeenCalledWith("01A", weekDay(10));
+    expect(placed).not.toHaveBeenCalled();
+    expect(days()).toHaveLength(120);
+  });
+
+  it("walks a month back and a month on", () => {
+    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    open();
+
+    const now = new Date();
+    const said = () => screen.getByRole("heading", { level: 2 }).textContent ?? "";
+    const was = said();
+
+    fireEvent.click(screen.getByRole("button", { name: t("spreadOn") }));
+    expect(said()).not.toBe(was);
+
+    fireEvent.click(screen.getByRole("button", { name: t("spreadBack") }));
+    expect(said()).toBe(was);
+    expect(said()).toContain(String(now.getFullYear()));
   });
 });
 
@@ -342,45 +369,33 @@ describe("a monday read from a zone behind UTC", () => {
     vi.useRealTimers();
   });
 
-  it("lays out the week that monday opens, not the one it closed", () => {
+  it("opens the week that monday starts, not the one it closed", () => {
     render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
-    expect(document.querySelector('[data-day="2026-09-07"]')).toBeTruthy();
-    expect(document.querySelector('[data-day="2026-09-13"]')).toBeTruthy();
+    expect(days()[0].getAttribute("data-day")).toBe("2026-09-07");
     expect(document.querySelector('[data-day="2026-08-31"]')).toBeNull();
   });
 });
 
-describe("heftOf mirrors the weight the backend computes", () => {
-  const weigh = (volume: Volume): number => {
-    const plan = (volume.steps ?? 0) <= 2 ? 0 : (volume.steps ?? 0) <= 7 ? 1 : 2;
-    const refs = (volume.refs ?? 0) === 0 ? 0 : (volume.refs ?? 0) <= 2 ? 1 : 2;
-    return (volume.prose ?? 0) + plan + refs;
-  };
-
-  it("matches Volume::weight() from crates/tisty-core/src/model/task.rs for a spread of volumes", () => {
-    const cases: Volume[] = [
-      {},
-      { steps: 2 },
-      { steps: 3 },
-      { steps: 7 },
-      { steps: 8 },
-      { steps: 40 },
-      { refs: 1 },
-      { refs: 2 },
-      { refs: 3 },
-      { prose: 5 },
-      { prose: 8, steps: 8, refs: 3 },
-      { steps: 0, refs: 0, prose: 0 },
-    ];
-
-    for (const volume of cases) {
-      expect(heftOf(volume)).toBe(weigh(volume));
-    }
+describe("a week that crosses into another month and year", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 1, 9, 0, 0));
   });
 
-  it("treats a missing volume the same as an empty one", () => {
-    expect(heftOf(undefined)).toBe(heftOf({}));
-    expect(heftOf(undefined)).toBe(0);
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("still lands a drop on the right date", () => {
+    const placed = vi.fn();
+    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
+
+    expect(document.querySelector('[data-day="2025-12-29"]')).toBeTruthy();
+    expect(document.querySelector('[data-day="2026-01-04"]')).toBeTruthy();
+
+    dragged(screen.getByText("Sin fecha"), document.querySelector('[data-day="2025-12-31"]'));
+
+    expect(placed).toHaveBeenCalledWith("01A", "2025-12-31");
   });
 });

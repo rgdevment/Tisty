@@ -259,7 +259,7 @@ export default function Detail({
       ref={opened as React.RefObject<HTMLElement>}
       tabIndex={-1}
       onKeyDown={leave}
-      className={`absolute top-11 bottom-3 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-panel shadow-lift outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
+      className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-panel shadow-lift outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
     >
       <div className="flex items-center justify-end gap-1 px-3 pt-2.5 text-[13px] text-faint">
         <button

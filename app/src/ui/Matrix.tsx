@@ -140,9 +140,10 @@ export default function Matrix({
 
   return (
     <section
-      className={`flex min-h-0 flex-1 flex-col gap-3 px-5 pt-4 pb-5 ${held ? "cursor-grabbing" : ""}`}
+      className={`flex min-h-0 flex-1 flex-col gap-3 px-5 pb-5 ${held ? "cursor-grabbing" : ""}`}
     >
-      <header className="flex items-baseline gap-3">
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      <header className="-mt-3 flex items-baseline gap-3">
         <h2 className="text-[21px] font-semibold tracking-[-0.015em]">{t("quadrants")}</h2>
         {!asked && !beside && waiting > 0 && (
           <button

@@ -32,7 +32,7 @@ export default function Pulse({
 
   return (
     <aside
-      className={`scroller absolute top-11 bottom-3 w-[300px] flex-col gap-4 rounded-[10px] border border-hair bg-panel px-3.5 pt-4 pb-5 shadow-lift ${apart}`}
+      className={`scroller absolute top-11 bottom-3 z-20 w-[300px] flex-col gap-4 rounded-[10px] border border-hair bg-panel px-3.5 pt-4 pb-5 shadow-lift ${apart}`}
       style={{ right: 12 }}
     >
       <div>

@@ -1,5 +1,5 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Task, Volume } from "../core";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { Task } from "../core";
 import { clockOf } from "../format";
 import { fill, locale, t } from "../locales";
 import { HEAVY, weekday } from "./Ahead";
@@ -12,8 +12,10 @@ interface Props {
 }
 
 const SLIP = 5;
-const DOTS = 3;
 const WEEK = 7;
+const RIVER = 120;
+const GLANCE = 3;
+const CELLS = 42;
 const TRAY = "tray";
 
 const stamp = (at: Date): string =>
@@ -27,46 +29,25 @@ const dayOne = (key: string): Date => {
 const monday = (now: Date): Date =>
   new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
 
-const week = (now: Date, shift: number): Date[] => {
-  const first = monday(now);
+const walk = (from: Date, many: number): Date[] => {
   const out: Date[] = [];
-  for (let i = 0; i < WEEK; i += 1) {
-    out.push(new Date(first.getFullYear(), first.getMonth(), first.getDate() + shift * WEEK + i));
+  for (let i = 0; i < many; i += 1) {
+    out.push(new Date(from.getFullYear(), from.getMonth(), from.getDate() + i));
   }
   return out;
 };
 
-export const heftOf = (volume?: Volume): number => {
-  const steps = volume?.steps ?? 0;
-  const refs = volume?.refs ?? 0;
-  const plan = steps <= 2 ? 0 : steps <= 7 ? 1 : 2;
-  const linked = refs === 0 ? 0 : refs <= 2 ? 1 : 2;
-  return (volume?.prose ?? 0) + plan + linked;
-};
-
-const sized = (heft: number): { word: string; lit: number } =>
-  heft >= 4
-    ? { word: t("spreadLarge"), lit: 3 }
-    : heft >= 2
-      ? { word: t("spreadMiddling"), lit: 2 }
-      : { word: t("spreadSmall"), lit: 1 };
+const resting = (at: Date): boolean => at.getDay() === 0 || at.getDay() === 6;
 
 const named = (at: Date): string => weekday().format(at);
 
-const titled = (from: Date, to: Date): string => {
-  const month = new Intl.DateTimeFormat(locale(), { month: "long" });
-  const dated = new Intl.DateTimeFormat(locale(), { month: "long", year: "numeric" });
-  const said =
-    from.getFullYear() !== to.getFullYear()
-      ? `${dated.format(from)} – ${dated.format(to)}`
-      : from.getMonth() !== to.getMonth()
-        ? `${month.format(from)} – ${dated.format(to)}`
-        : dated.format(to);
+const moonOf = (at: Date): string => {
+  const said = new Intl.DateTimeFormat(locale(), { month: "long", year: "numeric" }).format(at);
   return said.charAt(0).toUpperCase() + said.slice(1);
 };
 
 export default function Spread({ tasks, onPlace, onOpen }: Props) {
-  const [shift, setShift] = useState(0);
+  const [glance, setGlance] = useState<{ year: number; month: number } | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [held, setHeld] = useState<string | null>(null);
   const [asked, setAsked] = useState<{
@@ -77,27 +58,43 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
   } | null>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
   const ghost = useRef<HTMLDivElement>(null);
+  const river = useRef<HTMLDivElement>(null);
+  const wanted = useRef<string | null>(null);
   const at = useRef({ x: 0, y: 0 });
 
   const now = new Date();
   const today = stamp(now);
 
-  const spread = useMemo(() => {
-    const loose = tasks.filter((one) => !one.repeat);
-    return week(dayOne(today), shift).map((day) => {
-      const key = stamp(day);
-      const mine = loose.filter((one) => one.date?.at.slice(0, 10) === key);
-      return {
-        day,
-        key,
-        anchors: mine.filter((one) => one.date?.has_time),
-        slots: mine.filter((one) => !one.date?.has_time),
-        many: mine.length,
-      };
-    });
-  }, [tasks, today, shift]);
+  const carried = useMemo(() => {
+    const held = new Map<string, Task[]>();
+    for (const task of tasks) {
+      if (task.repeat || !task.date) continue;
+      const key = task.date.at.slice(0, 10);
+      const mine = held.get(key);
+      if (mine) mine.push(task);
+      else held.set(key, [task]);
+    }
+    for (const mine of held.values()) {
+      mine.sort((a, b) => (a.date?.at ?? "").localeCompare(b.date?.at ?? ""));
+    }
+    return held;
+  }, [tasks]);
+
+  const days = useMemo(() => walk(monday(dayOne(today)), RIVER), [today]);
 
   const waiting = useMemo(() => tasks.filter((one) => !one.date && !one.repeat), [tasks]);
+
+  const reach = useCallback((key: string) => {
+    river.current?.querySelector(`[data-day="${key}"]`)?.scrollIntoView?.({ block: "start" });
+  }, []);
+
+  useEffect(() => {
+    if (glance !== null) return;
+    const key = wanted.current;
+    wanted.current = null;
+    if (key) reach(key);
+    else if (river.current) river.current.scrollTop = 0;
+  }, [glance, reach]);
 
   const trail = () => {
     const one = ghost.current;
@@ -109,6 +106,7 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
   const under = (x: number, y: number): string | null => {
     const spot = document.elementFromPoint(x, y);
     if (spot?.closest("[data-tray]")) return TRAY;
+    if (glance) return null;
     return spot?.closest("[data-day]")?.getAttribute("data-day") ?? null;
   };
 
@@ -123,14 +121,10 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
         on,
       ),
     );
-    const crowded = spread.find((one) => one.key === on);
-    if (!crowded || crowded.many + 1 < HEAVY) return setAsked(null);
-    setAsked({
-      task,
-      on,
-      many: crowded.many + 1,
-      free: spread.find((one) => one.key > on && one.many === 0)?.key,
-    });
+    const many = (carried.get(on)?.length ?? 0) + 1;
+    if (many < HEAVY) return setAsked(null);
+    const free = days.find((day) => stamp(day) > on && !carried.get(stamp(day))?.length);
+    setAsked({ task, on, many, free: free && stamp(free) });
   };
 
   const carry = (task: Task) => ({
@@ -176,191 +170,255 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
     `touch-none text-left select-none ${held === task.id ? "cursor-grabbing opacity-30" : "cursor-grab"}`;
 
   const carrying = held ? tasks.find((one) => one.id === held) : undefined;
-  const dayOf = (key: string) => spread.find((one) => one.key === key)?.day;
   const losing = carrying?.date !== undefined;
+
+  const card = (task: Task) => (
+    <button
+      key={task.id}
+      type="button"
+      {...carry(task)}
+      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] hover:bg-hover ${grip(task)}`}
+    >
+      <span
+        aria-hidden="true"
+        className={`size-3.5 shrink-0 rounded-full border-[1.5px] ${
+          task.deadline ? "border-hue-amber" : "border-line"
+        }`}
+      />
+      {task.date?.has_time && (
+        <span className="shrink-0 text-[11.5px] tabular-nums text-faint">{clockOf(task.date)}</span>
+      )}
+      <span className="min-w-0 truncate">{task.title}</span>
+    </button>
+  );
+
+  const flowing = () => {
+    const out: React.ReactNode[] = [];
+    let moon = -1;
+    for (const day of days) {
+      const key = stamp(day);
+      const mine = carried.get(key) ?? [];
+      if (day.getMonth() !== moon) {
+        moon = day.getMonth();
+        out.push(
+          <p
+            key={`moon-${key}`}
+            className="sticky top-0 z-10 shrink-0 bg-desk px-0.5 pt-2 pb-1 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase"
+          >
+            {moonOf(day)}
+          </p>,
+        );
+      }
+      out.push(
+        <div
+          key={key}
+          data-day={key}
+          className={`grid shrink-0 scroll-mt-8 grid-cols-[84px_minmax(0,1fr)] overflow-hidden rounded-[10px] border transition-colors ${
+            over === key
+              ? "border-accent bg-accent-soft ring-2 ring-accent/40"
+              : key === today
+                ? "border-accent/40 bg-panel"
+                : resting(day)
+                  ? "border-hair border-dashed"
+                  : "border-hair bg-panel"
+          }`}
+        >
+          <p
+            className={`flex min-h-9 flex-col justify-center border-r border-hair px-3 py-1.5 ${
+              key === today ? "text-accent" : ""
+            }`}
+          >
+            <span className="text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+              {named(day)}
+            </span>
+            <span className="text-[13px] font-semibold tabular-nums">{day.getDate()}</span>
+          </p>
+          {mine.length === 0 ? (
+            <p className="flex min-h-9 items-center px-3 text-[12.5px] text-faint italic">
+              {t("spreadFree")}
+            </p>
+          ) : (
+            <div className="flex min-h-9 flex-col justify-center gap-px p-1.5">
+              {mine.map(card)}
+            </div>
+          )}
+        </div>,
+      );
+    }
+    return out;
+  };
+
+  const glanced = () => {
+    if (!glance) return null;
+    const first = new Date(glance.year, glance.month, 1);
+    const from = new Date(glance.year, glance.month, 1 - ((first.getDay() + 6) % 7));
+    return walk(from, CELLS).map((day) => {
+      const key = stamp(day);
+      const mine = carried.get(key) ?? [];
+      const away = day.getMonth() !== glance.month;
+      return (
+        <button
+          key={key}
+          type="button"
+          data-day={key}
+          aria-label={`${named(day)} ${day.getDate()}`}
+          onClick={() => {
+            wanted.current = key;
+            setGlance(null);
+          }}
+          className={`flex min-w-0 flex-col gap-0.5 overflow-hidden rounded-[10px] border px-1.5 py-1 text-left hover:border-line ${
+            key === today
+              ? "border-accent/40 bg-panel"
+              : away || resting(day)
+                ? "border-hair border-dashed"
+                : "border-hair bg-panel"
+          }`}
+        >
+          <span
+            className={`text-[11.5px] tabular-nums ${
+              key === today ? "font-semibold text-accent" : away ? "text-faint/40" : "text-soft"
+            }`}
+          >
+            {day.getDate()}
+          </span>
+          {mine.slice(0, GLANCE).map((task) => (
+            <span key={task.id} className="flex min-w-0 items-center gap-1 text-[10.5px] text-soft">
+              <span
+                aria-hidden="true"
+                className={`size-1 shrink-0 rounded-full border ${
+                  task.deadline ? "border-hue-amber" : "border-line"
+                }`}
+              />
+              <span className="min-w-0 truncate">{task.title}</span>
+            </span>
+          ))}
+          {mine.length > GLANCE && (
+            <span className="mt-auto text-[10.5px] text-faint">+{mine.length - GLANCE}</span>
+          )}
+        </button>
+      );
+    });
+  };
+
+  const swung = (by: number) =>
+    setGlance((was) => {
+      if (!was) return was;
+      const at = new Date(was.year, was.month + by, 1);
+      return { year: at.getFullYear(), month: at.getMonth() };
+    });
 
   return (
     <section
-      className={`flex min-h-0 flex-1 flex-col gap-3 px-5 pt-4 pb-4 ${held ? "cursor-grabbing" : ""}`}
+      className={`flex min-h-0 flex-1 flex-col gap-3 px-5 pb-4 ${held ? "cursor-grabbing" : ""}`}
     >
-      <header className="flex items-center gap-1">
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      <header className="-mt-3 flex items-center gap-1">
         <h2 className="mr-1 text-[21px] font-semibold tracking-[-0.015em]">
-          {titled(spread[0]?.day ?? now, spread[WEEK - 1]?.day ?? now)}
+          {glance ? moonOf(new Date(glance.year, glance.month, 1)) : t("spread")}
         </h2>
-        <button
-          type="button"
-          aria-label={t("spreadBack")}
-          onClick={() => setShift((one) => one - 1)}
-          className="grid size-6 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
-        >
-          <Glyph name="chevron" className="h-3.5 w-3.5 rotate-90" />
-        </button>
-        <button
-          type="button"
-          aria-label={t("spreadOn")}
-          onClick={() => setShift((one) => one + 1)}
-          className="grid size-6 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
-        >
-          <Glyph name="chevron" className="h-3.5 w-3.5 -rotate-90" />
-        </button>
-        {shift !== 0 && (
+        {glance && (
+          <>
+            <button
+              type="button"
+              aria-label={t("spreadBack")}
+              onClick={() => swung(-1)}
+              className="grid size-6 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
+            >
+              <Glyph name="chevron" className="h-3.5 w-3.5 rotate-90" />
+            </button>
+            <button
+              type="button"
+              aria-label={t("spreadOn")}
+              onClick={() => swung(1)}
+              className="grid size-6 place-items-center rounded-md text-faint hover:bg-hover hover:text-ink"
+            >
+              <Glyph name="chevron" className="h-3.5 w-3.5 -rotate-90" />
+            </button>
+          </>
+        )}
+        <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
-            onClick={() => setShift(0)}
-            className="ml-1 rounded-md px-2 py-1 text-[11.5px] text-accent hover:bg-hover"
+            onClick={() => (glance ? setGlance(null) : reach(today))}
+            className="rounded-md px-2 py-1 text-[11.5px] text-accent hover:bg-hover"
           >
             {t("spreadNow")}
           </button>
-        )}
+          <button
+            type="button"
+            aria-pressed={glance !== null}
+            onClick={() =>
+              setGlance((was) => (was ? null : { year: now.getFullYear(), month: now.getMonth() }))
+            }
+            className={`rounded-md px-2 py-1 text-[11.5px] hover:bg-hover ${
+              glance ? "bg-hover text-ink" : "text-faint hover:text-ink"
+            }`}
+          >
+            {t("spreadMoon")}
+          </button>
+        </div>
       </header>
 
       <div
         className="grid min-h-0 flex-1 gap-3"
-        style={{ gridTemplateColumns: "228px minmax(0,1fr)" }}
+        style={{ gridTemplateColumns: glance ? "minmax(0,1fr)" : "232px minmax(0,1fr)" }}
       >
-        <div
-          data-tray=""
-          className={`flex min-h-0 flex-col gap-1.5 rounded-[10px] border border-transparent border-r-hair pr-3 transition-colors ${
-            over === TRAY && losing ? "border-accent border-dashed bg-accent-soft" : ""
-          }`}
-        >
-          <p className="flex items-baseline justify-between text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
-            <span>{t("spreadTray")}</span>
-            <span className="tabular-nums">{waiting.length}</span>
-          </p>
-          {losing ? (
-            <p className="text-[11.5px] leading-relaxed text-accent">{t("spreadOff")}</p>
-          ) : waiting.length === 0 ? (
-            <p className="text-[11.5px] leading-relaxed text-faint">{t("spreadEmpty")}</p>
-          ) : null}
-          {waiting.length > 0 && (
-            <ul className="scroller flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
-              {waiting.map((task) => {
-                const heft = sized(heftOf(task.volume));
-                return (
-                  <li key={task.id}>
-                    <button
-                      type="button"
-                      {...carry(task)}
-                      className={`flex w-full flex-col gap-1 rounded-[10px] border border-hair bg-panel px-2 py-1.5 hover:bg-hover ${grip(task)}`}
-                    >
-                      <span className="w-full truncate text-[12.5px] leading-snug">
-                        {task.title}
-                      </span>
-                      <span className="flex items-center gap-1.5 text-[10.5px] text-faint">
-                        <span className="flex gap-px" aria-hidden="true">
-                          {[0, 1, 2].map((one) => (
-                            <span
-                              key={one}
-                              className={`block size-[4px] rounded-md ${
-                                one < heft.lit ? "bg-accent" : "bg-faint/40"
-                              }`}
-                            />
-                          ))}
-                        </span>
-                        {heft.word}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        {!glance && (
+          <section
+            data-tray=""
+            className={`flex min-h-0 flex-col overflow-hidden rounded-[10px] border border-dashed transition-colors ${
+              over === TRAY && losing ? "border-accent bg-accent-soft" : "border-line bg-panel"
+            }`}
+          >
+            <header className="flex items-center gap-2 border-b border-hair px-3 py-2">
+              <span className="text-[13px] font-semibold">{t("spreadTray")}</span>
+              <span className="ml-auto text-[11.5px] tabular-nums text-faint">
+                {waiting.length || ""}
+              </span>
+            </header>
+            {losing ? (
+              <p className="grid flex-1 place-items-center px-3 text-center text-[12.5px] text-accent">
+                {t("spreadOff")}
+              </p>
+            ) : waiting.length === 0 ? (
+              <p className="grid flex-1 place-items-center px-3 text-center text-[12.5px] leading-relaxed text-faint">
+                {t("spreadEmpty")}
+              </p>
+            ) : (
+              <div className="scroller flex-1 p-1.5">{waiting.map(card)}</div>
+            )}
+          </section>
+        )}
 
-        <div className="flex min-h-0 gap-1">
-          {spread.map((one) => {
-            const heavy = one.many >= HEAVY;
-            return (
-              <fieldset
-                key={one.key}
-                data-day={one.key}
-                aria-label={`${named(one.day)} ${one.day.getDate()}`}
-                className={`flex min-h-0 min-w-[104px] flex-1 flex-col gap-1 overflow-hidden rounded-[10px] border px-1.5 pb-1.5 transition-colors ${
-                  over === one.key
-                    ? "border-accent border-dashed bg-accent-soft ring-2 ring-accent/40"
-                    : heavy
-                      ? "border-hue-amber/40 bg-hue-amber/10"
-                      : "border-hair bg-panel"
-                }`}
-              >
-                <header className="flex items-baseline justify-between border-b border-hair pt-1.5 pb-1.5">
-                  <span className="text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
-                    {named(one.day)}{" "}
-                    <span
-                      className={`text-[12.5px] tabular-nums ${
-                        one.key === today ? "text-accent" : heavy ? "text-hue-amber" : "text-ink"
-                      }`}
-                    >
-                      {one.day.getDate()}
-                    </span>
-                  </span>
-                  <span className="flex gap-px" aria-hidden="true">
-                    {[0, 1, 2].map((at) => (
-                      <span
-                        key={at}
-                        className={`block size-[3px] rounded-full ${
-                          at < Math.min(one.many, DOTS)
-                            ? heavy
-                              ? "bg-hue-amber"
-                              : "bg-accent"
-                            : "bg-faint/40"
-                        }`}
-                      />
-                    ))}
-                  </span>
-                </header>
-
-                <ul className="scroller flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
-                  {one.anchors.map((task) => (
-                    <li key={task.id}>
-                      <button
-                        type="button"
-                        {...carry(task)}
-                        className={`flex w-full gap-1.5 rounded-md bg-mark-date px-1.5 py-0.5 text-[12.5px] leading-snug hover:brightness-95 ${grip(task)}`}
-                      >
-                        {task.date && (
-                          <span className="shrink-0 tabular-nums text-faint">
-                            {clockOf(task.date)}
-                          </span>
-                        )}
-                        <span className="min-w-0 truncate text-ink">{task.title}</span>
-                      </button>
-                    </li>
-                  ))}
-                  {one.slots.map((task) => (
-                    <li key={task.id}>
-                      <button
-                        type="button"
-                        {...carry(task)}
-                        className={`flex w-full border-l-2 py-0.5 pl-1.5 text-[12.5px] leading-snug text-soft hover:text-ink ${
-                          task.deadline ? "border-hue-amber" : "border-line"
-                        } ${grip(task)}`}
-                      >
-                        <span className="min-w-0 truncate">{task.title}</span>
-                      </button>
-                    </li>
-                  ))}
-                  {one.many === 0 && (
-                    <li className="mt-auto border-t border-dashed border-hair pt-1 text-[11.5px] text-faint italic">
-                      {t("spreadFree")}
-                    </li>
-                  )}
-                </ul>
-              </fieldset>
-            );
-          })}
-        </div>
+        {glance ? (
+          <div className="flex min-h-0 flex-col gap-1.5">
+            <div className="grid grid-cols-7 gap-1.5">
+              {walk(monday(now), WEEK).map((day) => (
+                <span
+                  key={day.getDay()}
+                  className="pl-1 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase"
+                >
+                  {named(day)}
+                </span>
+              ))}
+            </div>
+            <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-7 gap-1.5">{glanced()}</div>
+          </div>
+        ) : (
+          <div ref={river} className="scroller flex min-h-0 flex-col gap-1.5 pr-1">
+            {flowing()}
+          </div>
+        )}
       </div>
 
       {asked && (
         <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-l-2 border-hue-amber py-1 pl-2.5 text-[12.5px] leading-snug text-soft">
           <span className="text-ink">
-            {fill("spreadCrowded", named(dayOf(asked.on) ?? now), String(asked.many))}
+            {fill("spreadCrowded", named(dayOne(asked.on)), String(asked.many))}
           </span>
           {asked.free && (
             <>
-              <span>{fill("spreadRoom", named(dayOf(asked.free) ?? now))}</span>
+              <span>{fill("spreadRoom", named(dayOne(asked.free)))}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -377,7 +435,7 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
                 }}
                 className="text-accent hover:underline"
               >
-                {fill("spreadMoveIt", named(dayOf(asked.free) ?? now))}
+                {fill("spreadMoveIt", named(dayOne(asked.free)))}
               </button>
             </>
           )}
