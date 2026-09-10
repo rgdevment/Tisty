@@ -115,7 +115,7 @@ export default function Composed({
             e.stopPropagation();
             onWhole?.();
           }}
-          className="mt-1 rounded-md px-1.5 py-0.5 text-xs text-accent hover:bg-hover"
+          className="mt-1 rounded-md px-1.5 py-0.5 text-[11.5px] text-accent hover:bg-hover"
         >
           {t("showWhole")}
         </button>

@@ -64,7 +64,7 @@ export default function Owed({ days, onConfirm }: Props) {
           <button
             type="button"
             onClick={() => onConfirm(taken)}
-            className="ml-auto cursor-pointer rounded-lg border border-accent bg-accent px-3 py-[5px] text-[12.5px] font-semibold text-white"
+            className="ml-auto cursor-pointer rounded-[10px] border border-accent bg-accent px-3 py-[5px] text-[12.5px] font-semibold text-white"
           >
             {fill("owedFill", String(taken.length))}
           </button>

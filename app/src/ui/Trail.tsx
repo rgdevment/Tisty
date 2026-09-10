@@ -42,16 +42,16 @@ export default function Trail({ task, lists, onError, heading, before }: Props) 
           >
             <span
               title={wroteAt(page.at)}
-              className="pt-px text-right text-[11px] whitespace-nowrap tabular-nums text-faint"
+              className="pt-px text-right text-[11.5px] whitespace-nowrap tabular-nums text-faint"
             >
               {shortStamp(page.at)}
             </span>
-            <span className="text-center text-[11px] leading-5 text-faint">{glyph(page)}</span>
+            <span className="text-center text-[11.5px] leading-5 text-faint">{glyph(page)}</span>
             <span
               className={`text-[12.5px] leading-relaxed ${page.undoing ? "text-faint" : "text-soft"}`}
             >
               {phrase(page, named)}
-              {page.undoing && <span className="ml-1.5 text-[11px]">· {t("trailUndone")}</span>}
+              {page.undoing && <span className="ml-1.5 text-[11.5px]">· {t("trailUndone")}</span>}
               {page.chapter === "wrote" && (
                 <q className="mt-1 block border-l-2 border-hair pl-2.5 text-soft italic">
                   {plainly(page.body ?? "")}

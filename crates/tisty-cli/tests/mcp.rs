@@ -301,6 +301,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
         names,
         [
             "propose",
+            "remind",
             "note",
             "attach",
             "write_doc",
@@ -2131,4 +2132,214 @@ fn nothing_is_hung_under_a_document_that_was_put_away() {
 
     assert_eq!(written["result"]["isError"], true, "{written}");
     assert_eq!(hung["result"]["isError"], true, "{hung}");
+}
+
+#[test]
+fn an_appointment_can_be_filed_already_set_to_ring() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "kermes at school",
+            "date": on(2),
+            "remind": [soon(1, 20)],
+        }),
+    );
+    assert_eq!(said["result"]["isError"], serde_json::Value::Null, "{said}");
+
+    let id = said["result"]["structuredContent"]["id"].as_str().unwrap();
+    let read = served.call("read", serde_json::json!({ "task": id }));
+    assert!(
+        serde_json::to_string(&read).unwrap().contains(&soon(1, 20)),
+        "{read}"
+    );
+}
+
+#[test]
+fn a_moment_without_an_hour_is_turned_away_rather_than_guessed() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "remind": ["2026-09-10"] }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("day and an hour"),
+        "{said}"
+    );
+}
+
+fn soon(days: i64, hour: i8) -> String {
+    let at = jiff::Zoned::now()
+        .checked_add(jiff::Span::new().try_days(days).unwrap())
+        .unwrap()
+        .date();
+    format!("{at}T{hour:02}:00")
+}
+
+fn on(days: i64) -> String {
+    jiff::Zoned::now()
+        .checked_add(jiff::Span::new().try_days(days).unwrap())
+        .unwrap()
+        .date()
+        .to_string()
+}
+
+#[test]
+fn what_was_filed_without_a_reminder_can_be_given_one_later() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "date": on(2) }),
+    );
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let said = served.call(
+        "remind",
+        serde_json::json!({ "task": id, "at": [soon(1, 20)] }),
+    );
+
+    assert_eq!(said["result"]["structuredContent"]["added"], true, "{said}");
+    let again = served.call(
+        "remind",
+        serde_json::json!({ "task": id, "at": [soon(1, 20)] }),
+    );
+    assert_eq!(
+        again["result"]["structuredContent"]["added"], false,
+        "the same hour twice rings once: {again}"
+    );
+}
+
+#[test]
+fn an_hour_the_person_chose_is_never_taken_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let filed = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "the dentist",
+            "date": on(2),
+            "remind": [soon(1, 20)],
+        }),
+    );
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.call(
+        "remind",
+        serde_json::json!({ "task": id, "at": [soon(2, 8)] }),
+    );
+
+    let read =
+        serde_json::to_string(&served.call("read", serde_json::json!({ "task": id }))).unwrap();
+    assert!(read.contains(&soon(1, 20)), "the first one stayed: {read}");
+    assert!(read.contains(&soon(2, 8)), "and the second: {read}");
+}
+
+#[test]
+fn a_moment_already_gone_is_turned_away_rather_than_promised() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "remind": [soon(-2, 20)] }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("already gone"),
+        "{said}"
+    );
+}
+
+#[test]
+fn a_moment_that_is_not_even_a_word_is_turned_away_rather_than_dropped() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "remind": [20260910] }),
+    );
+
+    assert_eq!(
+        said["result"]["isError"], true,
+        "a number in the list is not a moment: {said}"
+    );
+}
+
+#[test]
+fn the_same_instant_under_another_zone_name_rings_once() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let filed = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "date": on(2), "remind": [soon(1, 20)] }),
+    );
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let again = served.call(
+        "remind",
+        serde_json::json!({ "task": id, "at": [soon(1, 20)] }),
+    );
+
+    assert_eq!(
+        again["result"]["structuredContent"]["added"], false,
+        "the instant was already set, whatever zone it was written under: {again}"
+    );
+}
+
+#[test]
+fn a_list_of_moments_longer_than_the_door_allows_is_turned_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let many: Vec<String> = (1..40).map(|n| soon(n, 9)).collect();
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "remind": many }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+}
+
+#[test]
+fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "remind": "2026-09-10T20:00" }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("list of moments"),
+        "{said}"
+    );
 }

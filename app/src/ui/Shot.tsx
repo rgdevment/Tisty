@@ -20,7 +20,7 @@ export default function Shot({ at, onOpen, onKeep, onDrop }: Props) {
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={onOpen}
-        className="rounded-md px-2 py-1 text-[12px] text-soft hover:bg-hover hover:text-ink"
+        className="rounded-md px-2 py-1 text-[12.5px] text-soft hover:bg-hover hover:text-ink"
       >
         {t("seeWhole")}
       </button>
@@ -29,7 +29,7 @@ export default function Shot({ at, onOpen, onKeep, onDrop }: Props) {
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={onKeep}
-          className="rounded-md px-2 py-1 text-[12px] text-soft hover:bg-hover hover:text-ink"
+          className="rounded-md px-2 py-1 text-[12.5px] text-soft hover:bg-hover hover:text-ink"
         >
           {t("keepACopy")}
         </button>
@@ -41,7 +41,7 @@ export default function Shot({ at, onOpen, onKeep, onDrop }: Props) {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={onDrop}
-            className="rounded-md px-2 py-1 text-[12px] text-soft hover:bg-hover hover:text-urgent"
+            className="rounded-md px-2 py-1 text-[12.5px] text-soft hover:bg-hover hover:text-urgent"
           >
             {t("remove")}
           </button>

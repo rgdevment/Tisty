@@ -108,6 +108,32 @@ describe("the smallest the window may be", () => {
     expect(main.minWidth).toBeLessThanOrEqual(1366);
     expect(main.minHeight).toBeLessThanOrEqual(768);
   });
+
+  it("measures the sidebar the same width the grid actually draws it", () => {
+    const app = readFileSync("src/App.tsx", "utf8");
+    const paper = readFileSync("src/ui/Docs.tsx", "utf8");
+    const drawn =
+      /grid-template-columns:(\d+)px_minmax\(0,1fr\)\]\s+min-\[\d+px\]:\[grid-template-columns:(\d+)px/.exec(
+        app,
+      );
+    expect(drawn).toBeTruthy();
+
+    const rail = /^const RAIL = (\d+);/m.exec(paper)?.[1];
+    const wide = /^const RAIL_WIDE = (\d+);/m.exec(paper)?.[1];
+
+    expect(rail).toBe(drawn?.[1]);
+    expect(wide).toBe(drawn?.[2]);
+  });
+
+  it("opens wide enough for the panel to stand beside the list", () => {
+    const app = readFileSync("src/App.tsx", "utf8");
+    const needed = /@min-\[(\d+)px\]:pr-\[324px\]/.exec(app)?.[1];
+    expect(needed).toBeTruthy();
+
+    const rail = 380;
+    const gutter = 8;
+    expect(main.width - rail - gutter).toBeGreaterThanOrEqual(Number(needed));
+  });
 });
 
 describe("the paper reaching the printer", () => {

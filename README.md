@@ -124,7 +124,7 @@ productivity tool** that lives on your machine and nowhere else.
 > **It is for one person, by design.** No assignees, no permissions, no boards.
 > If you need to run a team, Tisty will not carry that.
 
-![A record of how you work](assets/Store/jpg/en-01-archive.jpg)
+![Read in three layers, with what each task left behind](assets/Store/jpg/en-07-archive.jpg)
 
 ## Table of Contents
 
@@ -211,6 +211,8 @@ account, no subscription and no AI**, this is what Tisty is:
 | Finished work | an **archive that keeps what each task taught you** |
 | Two machines | through a folder you already sync. No server of ours |
 | Natural language | dates, deadlines and repeats, parsed on your machine |
+| When to do it | a spread of days you deal work onto, and a month for looking |
+| Reminders | an hour you choose, that rings on this machine and nowhere else |
 | Source | open, auditable, yours to fork |
 
 **The Eisenhower matrix, not numbered priorities.** A task is urgent, important,
@@ -316,7 +318,7 @@ window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-![The date reads itself out of the sentence](assets/Store/jpg/en-02-capture.jpg)
+![The date reads itself out of the sentence](assets/Store/jpg/en-01-record.jpg)
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
@@ -350,7 +352,23 @@ quadrant has a **+** that opens the quick capture with that quadrant already
 set, and whatever nobody has placed waits in a tray that opens the way you
 left it.
 
-![Urgent against important, and what to do with each](assets/Store/jpg/en-04-priorities.jpg)
+![Urgent against important, and what to do with each](assets/Store/jpg/en-02-priorities.jpg)
+
+**The spread deals your days, one row at a time.** Priorities sort what matters;
+the spread decides when. It runs as a river of days you scroll through rather
+than a week you page: every day is a row, and the row grows with what it carries,
+so a heavy Friday is tall and a free Tuesday is a line. What you wrote with no
+day waits in a tray on the left, and you drag it onto a day — or drag it back to
+take the day away again. Drop one onto a day that already carries three and
+Tisty says so, and offers the next day that is free; it never insists.
+
+A **month** button is there for looking, not for dealing: press it and the same
+days lay out as a grid, press a day and you land on it in the river. Nothing is
+dropped there on purpose. Tisty cannot see the calendar you keep somewhere else,
+so a square with nothing written on it is only a square with nothing written on
+it — never a promise that the day is yours.
+
+![The days as rows, and what each one carries](assets/Store/jpg/en-03-spread.jpg)
 
 **Documents** live beside the tasks, for reference material that has no date and
 never gets ticked. They are Markdown files you edit as documents — tables,
@@ -421,7 +439,7 @@ than as a stranger's. Either way, not one line of the history travels inside.
 Write an alias — optional, and yours to choose — and every document is signed
 with it, while whatever arrives from somebody else keeps theirs.
 
-![Documents in Markdown, with attachments](assets/Store/jpg/en-03-documents.jpg)
+![Documents in Markdown, with attachments](assets/Store/jpg/en-05-documents.jpg)
 
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
@@ -441,7 +459,7 @@ the way, because it still happened and search still reaches it.
 
 ## Your Data and Privacy
 
-![No account, no telemetry, no server](assets/Store/jpg/en-05-private.jpg)
+![No account, no telemetry, no server](assets/Store/jpg/en-10-private.jpg)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.
@@ -499,6 +517,7 @@ wanted it, and it is entirely optional.
 ```console
 $ tisty "call the bank at 3"
 $ tisty ls today
+$ tisty set 2 --remind 2026-09-30T20:00
 $ tisty done 2
 ```
 
@@ -532,19 +551,19 @@ it stays a device you can throw out; until you do let it in, everything it
 tries is refused.
 
 What it may do is deliberately small: file a task with its steps and its date,
-add to the journal, write a document, add to the end of one that is already
-there, correct a passage of one, write one again whole, file documents into
-folders, keep a copy of a file you point it at — on a task or inside a document,
-which takes the larger file of the two — and read what is already there. What it
-may not do: close a task or delete one, delete a document, rename or empty a
-folder, reach a task you folded away, take files from outside the folders where
-a download lands, or file the same thing twice. To correct a passage it has to
-name it exactly as you wrote it, and if that text is not there or is there
-twice, nothing is written at all. To write a whole body again it has to send
-back the print the document read at when it last looked: if you have written in
-it since, the write is refused and it has to read again, so what you typed while
-it was thinking cannot be lost. A document you archived it can still read, and
-it is told that you archived it.
+set an hour for it to ring at, add to the journal, write a document, add to the
+end of one that is already there, correct a passage of one, write one again
+whole, file documents into folders, keep a copy of a file you point it at — on a
+task or inside a document, which takes the larger file of the two — and read
+what is already there. What it may not do: close a task or delete one, delete a
+document, rename or empty a folder, reach a task you folded away, take files
+from outside the folders where a download lands, or file the same thing twice.
+To correct a passage it has to name it exactly as you wrote it, and if that text
+is not there or is there twice, nothing is written at all. To write a whole body
+again it has to send back the print the document read at when it last looked: if
+you have written in it since, the write is refused and it has to read again, so
+what you typed while it was thinking cannot be lost. A document you archived it
+can still read, and it is told that you archived it.
 
 Whatever it reads travels wherever that assistant travels. That is between you
 and it — which is precisely why this is a door you open, and not one that was

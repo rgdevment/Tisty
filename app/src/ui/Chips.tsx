@@ -31,7 +31,7 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
   if (chips.length === 0) return empty;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
+    <div className="flex flex-wrap items-center gap-1.5 text-[12.5px]">
       {chips.map((chip) => {
         const key = name(chip.slot);
         const pickable = chip.on !== undefined && chip.offer === undefined;
@@ -45,7 +45,7 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
                 : `${chip.tint} py-0.5 pr-0.5 pl-1.5`
             }`}
           >
-            <span className="mr-1 w-3 text-center text-[11px] text-soft">{chip.glyph}</span>
+            <span className="mr-1 w-3 text-center text-[11.5px] text-soft">{chip.glyph}</span>
             {pickable ? (
               <button
                 type="button"
@@ -61,7 +61,7 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
               type="button"
               aria-label={`${chip.offer ? t("accept") : t("remove")} ${chip.value}`}
               onClick={() => onEdit(chip.offer ?? without(edits, chip.slot))}
-              className={`ml-1 flex h-4 w-4 items-center justify-center rounded ${
+              className={`ml-1 flex h-4 w-4 items-center justify-center rounded-md ${
                 chip.offer
                   ? "text-accent hover:bg-accent-soft"
                   : "text-soft hover:bg-line hover:text-ink"

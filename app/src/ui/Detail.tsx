@@ -17,6 +17,7 @@ interface Props {
   task: Task;
   lists: List[];
   known: string[];
+  apart?: string;
   expanded: boolean;
   from?: string;
   onExpand: () => void;
@@ -39,6 +40,7 @@ export default function Detail({
   task,
   lists,
   known,
+  apart,
   expanded,
   from,
   onExpand,
@@ -94,7 +96,7 @@ export default function Detail({
 
   const body = (
     <>
-      <Title task={task} big={expanded} onRename={(title) => onPatch({ title })} />
+      <Title task={task} onRename={(title) => onPatch({ title })} />
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
       <Section label={t("description")} />
@@ -135,9 +137,7 @@ export default function Detail({
 
   const sealed = (
     <>
-      <h1 className={`leading-snug font-semibold ${expanded ? "text-[22px]" : "text-[17px]"}`}>
-        {task.title}
-      </h1>
+      <h1 className="text-[21px] leading-snug font-semibold">{task.title}</h1>
       <Stamps task={task} lists={lists} />
 
       {task.description?.trim() && (
@@ -151,7 +151,7 @@ export default function Detail({
               task.description,
               task.steps?.map((one) => one.text),
             )}
-            className="prose px-1.5 py-1 text-[13.5px] leading-relaxed"
+            className="prose px-1.5 py-1 text-[13px] leading-relaxed"
           />
         </>
       )}
@@ -167,7 +167,7 @@ export default function Detail({
               <li key={step.id} className="flex items-start gap-2.5 text-[13px]">
                 <span
                   aria-hidden="true"
-                  className={`pt-px text-[12px] ${step.done ? "text-accent" : "text-faint"}`}
+                  className={`pt-px text-[12.5px] ${step.done ? "text-accent" : "text-faint"}`}
                 >
                   {step.done ? "✓" : "▫"}
                 </span>
@@ -186,7 +186,7 @@ export default function Detail({
           <ul className="flex flex-col gap-3">
             {task.log.map((entry) => (
               <li key={entry.id}>
-                <span className="block text-[11px] tabular-nums text-faint">
+                <span className="block text-[11.5px] tabular-nums text-faint">
                   {wroteAt(entry.at, entry.tz)}
                 </span>
                 <Composed
@@ -224,7 +224,7 @@ export default function Detail({
         className="flex flex-col overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
       >
         <div data-tauri-drag-region className="h-9 shrink-0" />
-        <div className="flex items-center gap-1 px-6 text-[13px] text-faint">
+        <div className="flex items-center gap-1 px-6 pb-2 text-[13px] text-faint">
           <button
             type="button"
             onClick={onCollapse}
@@ -234,8 +234,8 @@ export default function Detail({
             <span aria-hidden="true">‹</span> {from || t("collapse")}
           </button>
         </div>
-        <div className="scroller @container flex-1 px-6 pt-4 pb-12">
-          <div className="mx-auto grid w-fit grid-cols-1 gap-x-10 @min-[1120px]:grid-cols-[minmax(0,720px)_320px]">
+        <div className="scroller @container flex-1 px-5 pb-6">
+          <div className="mx-auto grid w-fit gap-x-10 rounded-[10px] border border-hair bg-sheet px-8 pt-6 pb-10 shadow-lift @min-[1120px]:grid-cols-[minmax(0,720px)_320px]">
             <div className="min-w-0">{shown}</div>
             <div className="min-w-0">{aside}</div>
           </div>
@@ -257,20 +257,9 @@ export default function Detail({
       ref={opened as React.RefObject<HTMLElement>}
       tabIndex={-1}
       onKeyDown={leave}
-      className="flex flex-col overflow-hidden border-l border-hair bg-panel outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+      className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-panel shadow-lift outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
     >
-      <div data-tauri-drag-region className="h-9 shrink-0" />
-      <div className="flex items-center gap-1 px-5 text-[13px] text-faint">
-        <button
-          type="button"
-          onClick={onClose}
-          title={t("closePanel")}
-          aria-label={t("closePanel")}
-          aria-keyshortcuts="Escape"
-          className="-ml-1 flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-ink"
-        >
-          <span aria-hidden="true">✕</span>
-        </button>
+      <div className="flex items-center justify-end gap-1 px-3 pt-2.5 text-[13px] text-faint">
         <button
           type="button"
           onClick={onExpand}
@@ -280,8 +269,18 @@ export default function Detail({
         >
           <span aria-hidden="true">⤢</span>
         </button>
+        <button
+          type="button"
+          onClick={onClose}
+          title={t("closePanel")}
+          aria-label={t("closePanel")}
+          aria-keyshortcuts="Escape"
+          className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-ink"
+        >
+          <span aria-hidden="true">✕</span>
+        </button>
       </div>
-      <div className="scroller flex-1 px-5 pt-2.5 pb-7">{shown}</div>
+      <div className="scroller flex-1 px-5 pt-1.5 pb-7">{shown}</div>
       <Settled
         task={task}
         onComplete={onComplete}
@@ -360,18 +359,9 @@ function Settled({
   );
 }
 
-function Title({
-  task,
-  big,
-  onRename,
-}: {
-  task: Task;
-  big: boolean;
-  onRename: (title: string) => void;
-}) {
+function Title({ task, onRename }: { task: Task; onRename: (title: string) => void }) {
   const [text, setText] = useState(task.title);
   const dropped = useRef(false);
-  const size = big ? "text-[22px]" : "text-[17px]";
 
   useEffect(() => setText(task.title), [task.id, task.title]);
 
@@ -403,7 +393,7 @@ function Title({
           e.currentTarget.blur();
         }
       }}
-      className={`mb-3 field-sizing-content w-full resize-none rounded-md bg-transparent leading-snug font-semibold -tracking-[0.01em] outline-none hover:bg-hover focus:bg-hover ${size}`}
+      className="mb-3 field-sizing-content w-full resize-none rounded-md bg-transparent text-[21px] leading-snug font-semibold -tracking-[0.01em] outline-none hover:bg-hover focus:bg-hover"
     />
   );
 }
@@ -427,7 +417,7 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
 
   return (
     <>
-      <p className="mt-2 text-[12px] text-faint">
+      <p className="mt-2 text-[12.5px] text-faint">
         <span aria-hidden="true">{task.status === "dropped" ? "⨯" : "▣"}</span>{" "}
         {t(task.status === "dropped" ? "dropped" : "done")}
         {closed && ` · ${closed}`}
@@ -461,8 +451,8 @@ function Facts({ task, from }: { task: Task; from: string }) {
       <Section label={t("carries")} />
       <dl className="grid grid-cols-2 gap-1.5">
         {kept.map(([count, said]) => (
-          <div key={said} className="rounded-lg border border-hair px-2.5 py-1.5">
-            <dt className="text-[16px] leading-tight font-semibold tabular-nums">{count}</dt>
+          <div key={said} className="rounded-[10px] border border-hair px-2.5 py-1.5">
+            <dt className="text-[13px] leading-tight font-semibold tabular-nums">{count}</dt>
             <dd className="text-[10.5px] text-faint">{said}</dd>
           </div>
         ))}

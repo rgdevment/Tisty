@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { useAttended } from "../attended";
 import { t } from "../locales";
 
 export default function Asking({
@@ -8,6 +9,7 @@ export default function Asking({
   onName: (name: string) => void;
   leaf?: boolean;
 }) {
+  const held = useAttended<HTMLInputElement>();
   const [name, setName] = useState("");
   const field = useId();
 
@@ -21,13 +23,13 @@ export default function Asking({
     >
       <label
         htmlFor={field}
-        className="block px-2.5 pt-1 text-[11px] tracking-[0.04em] text-faint uppercase"
+        className="block px-2.5 pt-1 text-[11.5px] tracking-[0.04em] text-faint uppercase"
       >
         {t(leaf ? "pageName" : "docName")}
       </label>
       <input
         id={field}
-        autoFocus
+        ref={held}
         value={name}
         onChange={(e) => setName(e.target.value)}
         className="mt-0.5 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none"

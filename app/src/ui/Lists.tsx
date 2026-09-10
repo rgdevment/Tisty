@@ -1,12 +1,12 @@
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
+import { useAttended } from "../attended";
 import { type List, listAdd, listDrop, listLook, listRename, type Task } from "../core";
 import { isOverdue, isToday, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
-
 import Naming from "./Naming";
 import Pick from "./Pick";
 
@@ -74,6 +74,8 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
       .catch((e) => onError(saidPlainly(e)));
   };
 
+  const field = useAttended<HTMLInputElement>(making);
+
   const drop = (list: List) => {
     ask(fill("listDropSure", list.name), { kind: "warning" })
       .then((sure) => {
@@ -95,7 +97,7 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
           <button
             type="button"
             onClick={() => setMaking((open) => !open)}
-            className="rounded-lg px-2.5 py-1 text-[12.5px] text-soft hover:bg-hover"
+            className="rounded-[10px] px-2.5 py-1 text-[12.5px] text-soft hover:bg-hover"
           >
             {t("newList")}
           </button>
@@ -107,15 +109,15 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
         </p>
 
         {making && (
-          <div className="mb-4 rounded-xl border border-hair bg-panel p-3.5">
+          <div className="mb-4 rounded-[10px] border border-hair bg-sheet p-3.5 shadow-lift">
             <input
-              autoFocus
+              ref={field}
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && make()}
               placeholder={t("listName")}
               aria-label={t("listName")}
-              className="w-full rounded-lg bg-hover px-3 py-2 text-[13.5px] outline-none placeholder:text-faint"
+              className="w-full rounded-[10px] bg-hover px-3 py-2 text-[13px] outline-none placeholder:text-faint"
             />
             <div className="mt-2.5">
               <Pick icon={icon} colour={hue} onIcon={setIcon} onColour={setHue} />
@@ -124,14 +126,14 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
               <button
                 type="button"
                 onClick={make}
-                className="rounded-lg bg-accent px-3 py-1.5 text-[12.5px] text-bg"
+                className="rounded-[10px] bg-accent px-3 py-1.5 text-[12.5px] text-bg"
               >
                 {t("create")}
               </button>
               <button
                 type="button"
                 onClick={() => setMaking(false)}
-                className="rounded-lg px-3 py-1.5 text-[12.5px] text-soft hover:bg-hover"
+                className="rounded-[10px] px-3 py-1.5 text-[12.5px] text-soft hover:bg-hover"
               >
                 {t("cancel")}
               </button>
@@ -139,28 +141,31 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
           </div>
         )}
 
-        <div className="grid grid-cols-1 items-start gap-2.5 @min-[380px]:grid-cols-2 @min-[760px]:grid-cols-3 @min-[1180px]:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3.5 @min-[620px]:grid-cols-2 @min-[1040px]:grid-cols-3">
           {lists.map((list) => {
             const next = soonest(tasks.filter((one) => one.list === list.id));
             return (
-              <div key={list.id} className="rounded-xl border border-hair bg-panel px-3.5 py-3">
-                <div className="flex items-center gap-2">
+              <div
+                key={list.id}
+                className="rounded-[10px] border border-hair bg-sheet px-4 py-3 shadow-lift"
+              >
+                <div className="flex items-center gap-2 border-b border-hair pb-1.5">
                   <button
                     type="button"
                     onClick={() => setEditing(list)}
                     aria-label={fill("iconOf", list.name)}
-                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[15px] hover:bg-hover ${painted(list.color)}`}
+                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-md text-[13px] hover:bg-hover ${painted(list.color)}`}
                   >
                     {list.icon ? (
-                      <Glyph name={list.icon ?? ""} />
+                      <Glyph name={list.icon ?? ""} className="h-3.5 w-3.5" />
                     ) : (
-                      <span className="text-[12px] text-faint">○</span>
+                      <span className="text-[12.5px] text-faint">○</span>
                     )}
                   </button>
                   <button
                     type="button"
                     onClick={() => onOpen(list.id)}
-                    className="min-w-0 flex-1 truncate text-left text-[13.5px] font-medium text-ink"
+                    className="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-ink hover:text-accent"
                   >
                     {list.name}
                   </button>
@@ -169,7 +174,7 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
                   </span>
                 </div>
 
-                <div className="mt-2 border-t border-hair pt-1.5">
+                <div className="mt-1.5">
                   {next.length === 0 ? (
                     <p className="text-[11.5px] text-faint italic">{t("listSettled")}</p>
                   ) : (
@@ -180,11 +185,11 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
                           key={task.id}
                           type="button"
                           onClick={() => onOpen(list.id)}
-                          className="flex w-full items-baseline gap-2 py-px text-left text-[11.5px] text-soft"
+                          className="flex w-full items-baseline gap-3 rounded-md py-0.5 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
                         >
                           <span className="min-w-0 truncate">{task.title}</span>
                           <span
-                            className={`ml-auto shrink-0 tabular-nums ${
+                            className={`ml-auto shrink-0 text-[11.5px] tabular-nums ${
                               when
                                 ? isOverdue(when)
                                   ? "text-urgent"

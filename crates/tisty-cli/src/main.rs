@@ -73,6 +73,10 @@ pub struct SetArgs {
     pub repeat: Option<String>,
     #[arg(long, conflicts_with = "repeat")]
     pub no_repeat: bool,
+    #[arg(long, alias = "recordar")]
+    pub remind: Option<String>,
+    #[arg(long)]
+    pub unremind: Option<String>,
 }
 
 #[derive(Subcommand)]

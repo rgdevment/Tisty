@@ -68,7 +68,7 @@ export default function Slash({ at, blocks, active, onPick }: Props) {
         >
           <span
             aria-hidden
-            className={`flex w-4 shrink-0 justify-center text-[11px] ${
+            className={`flex w-4 shrink-0 justify-center text-[11.5px] ${
               i === active ? "text-accent" : "text-faint"
             }`}
           >
@@ -77,7 +77,7 @@ export default function Slash({ at, blocks, active, onPick }: Props) {
           <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink">{one.label}</span>
           <span
             aria-hidden
-            className="shrink-0 font-mono text-[10px] text-faint tabular-nums opacity-70"
+            className="shrink-0 font-mono text-[10.5px] text-faint tabular-nums opacity-70"
           >
             {one.hint}
           </span>

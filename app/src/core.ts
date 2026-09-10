@@ -81,8 +81,22 @@ export interface Counted {
   docs: number;
 }
 
+export interface Coming {
+  task: Task;
+  on: string;
+  due: boolean;
+}
+
+export interface Habit {
+  task: Task;
+  series?: Series;
+  on?: string;
+}
+
 export interface Snapshot {
   tasks: Task[];
+  ahead: Coming[];
+  routines: Habit[];
   lists: List[];
   tags: Counted[];
   refs: string[];

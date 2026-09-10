@@ -426,6 +426,40 @@ fn redo_puts_back_what_the_last_undo_took() {
     assert!(!cli.ok(&["ls", "all"]).contains("ship the release"));
 }
 
+fn soon(days: i64, hour: i8) -> String {
+    let at = jiff::Zoned::now()
+        .checked_add(jiff::Span::new().try_days(days).unwrap())
+        .unwrap()
+        .date();
+    format!("{at}T{hour:02}:00")
+}
+
+#[test]
+fn a_reminder_can_be_set_and_cleared_from_the_command_line() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants"]);
+    let at = soon(2, 9);
+
+    cli.ok(&["set", "water the plants", "--remind", &at]);
+    let read = cli.ok(&["show", "water the plants", "--json"]);
+    assert!(read.contains(&at), "the hour was kept: {read}");
+
+    cli.ok(&["set", "water the plants", "--unremind", &at]);
+    let after = cli.ok(&["show", "water the plants", "--json"]);
+    assert!(!after.contains(&at), "and taken away again: {after}");
+}
+
+#[test]
+fn the_command_line_refuses_an_hour_that_has_already_gone() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants"]);
+
+    let said = cli.run(&["set", "water the plants", "--remind", &soon(-2, 9)]);
+
+    assert_ne!(said.code, 0, "{}", said.err);
+    assert!(said.err.contains("already gone"), "{}", said.err);
+}
+
 #[test]
 fn redo_walks_the_same_ladder_as_undo() {
     let cli = Cli::new();

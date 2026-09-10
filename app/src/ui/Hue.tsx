@@ -52,7 +52,7 @@ export default function Hue({ chosen, onPick, onHold }: Props) {
         aria-pressed={!chosen}
         aria-label={t("noColour")}
         title={t("noColour")}
-        className={`grid h-6 w-6 place-items-center rounded-full border text-[10px] text-faint ${
+        className={`grid h-6 w-6 place-items-center rounded-full border text-[10.5px] text-faint ${
           chosen ? "border-line hover:bg-hover" : "border-accent bg-accent-soft"
         }`}
       >

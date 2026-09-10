@@ -657,8 +657,122 @@ fn tags_in_use(state: &State) -> Vec<Counted> {
 }
 
 #[derive(serde::Serialize)]
+struct Coming {
+    task: Task,
+    on: jiff::civil::Date,
+    due: bool,
+}
+
+const AHEAD: i64 = 7;
+const BEADS: usize = 5;
+
+fn horizon(from: jiff::civil::Date) -> Option<jiff::civil::Date> {
+    jiff::Span::new()
+        .try_days(AHEAD)
+        .ok()
+        .and_then(|span| from.checked_add(span).ok())
+}
+
+fn coming(state: &State, from: jiff::civil::Date) -> Vec<Coming> {
+    let Some(until) = horizon(from) else {
+        return Vec::new();
+    };
+
+    let within = |on: jiff::civil::Date| on > from && on <= until;
+    let mut out: Vec<Coming> = state
+        .matching(&Filter::default(), from)
+        .into_iter()
+        .filter(|task| task.repeat.is_none())
+        .flat_map(|task| {
+            let held = task
+                .date
+                .as_ref()
+                .map(|d| d.date())
+                .filter(|on| within(*on))
+                .map(|on| Coming {
+                    task: task.clone(),
+                    on,
+                    due: false,
+                });
+            let own = task.date.as_ref().map(|d| d.date());
+            let owed = task
+                .deadline
+                .as_ref()
+                .map(|d| d.date())
+                .filter(|on| within(*on) && Some(*on) != own)
+                .map(|on| Coming {
+                    task: task.clone(),
+                    on,
+                    due: true,
+                });
+            held.into_iter().chain(owed)
+        })
+        .collect();
+    out.sort_by_key(|one| one.on);
+    out
+}
+
+#[derive(serde::Serialize)]
+struct Habit {
+    task: Task,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    series: Option<tisty_core::series::Series>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    on: Option<jiff::civil::Date>,
+}
+
+fn recurring(state: &State, from: jiff::civil::Date) -> Vec<Habit> {
+    let Some(until) = horizon(from) else {
+        return Vec::new();
+    };
+
+    state
+        .matching(&Filter::default(), from)
+        .into_iter()
+        .filter_map(|task| {
+            let (Some(repeat), Some(spec)) = (task.repeat, task.date.as_ref()) else {
+                return None;
+            };
+
+            let mut turns: Vec<jiff::civil::Date> = Vec::new();
+            let own = spec.date();
+            if own > from && own <= until {
+                turns.push(own);
+            }
+            if repeat.cadence().every > 0 {
+                let mut walked = repeat.cadence().beyond(spec.at, from);
+                for _ in 0..AHEAD {
+                    let Some(at) = walked else {
+                        break;
+                    };
+                    let on = at.date();
+                    if on > until || repeat.ended(on) {
+                        break;
+                    }
+                    if !turns.contains(&on) {
+                        turns.push(on);
+                    }
+                    walked = repeat.cadence().after(at);
+                }
+            }
+
+            (!turns.is_empty()).then(|| Habit {
+                task: task.clone(),
+                series: tisty_core::series::series(state, task.id).map(|mut told| {
+                    told.turns.drain(..told.turns.len().saturating_sub(BEADS));
+                    told
+                }),
+                on: (turns.len() == 1).then(|| turns[0]),
+            })
+        })
+        .collect()
+}
+
+#[derive(serde::Serialize)]
 struct Snapshot {
     tasks: Vec<Task>,
+    ahead: Vec<Coming>,
+    routines: Vec<Habit>,
     lists: Vec<List>,
     tags: Vec<Counted>,
     refs: Vec<String>,
@@ -1081,6 +1195,8 @@ fn snapshot(
             .into_iter()
             .cloned()
             .collect(),
+        ahead: coming(&session.state, today()),
+        routines: recurring(&session.state, today()),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),
         tags: tags_in_use(&session.state),
         refs: session.state.references(),
@@ -4588,6 +4704,16 @@ fn proofread(window: &tauri::WebviewWindow) {
 #[cfg(not(target_os = "macos"))]
 fn proofread(_window: &tauri::WebviewWindow) {}
 
+fn fitted(window: &tauri::WebviewWindow) {
+    let (Ok(Some(screen)), Ok(asked)) = (window.current_monitor(), window.outer_size()) else {
+        return;
+    };
+    let room = screen.work_area().size;
+    if asked.width > room.width || asked.height > room.height {
+        let _ = window.maximize();
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn menued(
     app: &tauri::AppHandle,
@@ -6393,6 +6519,7 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 proofread(&window);
                 if came_back || !waking::hushed() {
+                    fitted(&window);
                     let _ = window.show();
                 }
             }
@@ -7182,6 +7309,419 @@ mod tests {
 
     fn now() -> jiff::Zoned {
         "2026-08-05T09:00:00[America/Santiago]".parse().unwrap()
+    }
+
+    fn held(title: &str) -> tisty_core::model::Task {
+        tisty_core::model::Task::new(ulid::Ulid::generate(), title, "a0")
+    }
+
+    fn away(from: jiff::civil::Date, days: i64) -> jiff::civil::Date {
+        from.checked_add(jiff::Span::new().try_days(days).unwrap())
+            .unwrap()
+    }
+
+    fn kept(state: &mut State, task: tisty_core::model::Task) {
+        state.tasks.insert(task.id, task);
+    }
+
+    #[test]
+    fn what_comes_reaches_a_week_and_stops() {
+        let from = today();
+        let mut state = State::default();
+        for days in [1_i64, 7, 8] {
+            let mut task = held("somewhere ahead");
+            task.date = Some(tisty_core::model::DateSpec::all_day(
+                away(from, days),
+                "America/Santiago",
+            ));
+            kept(&mut state, task);
+        }
+
+        assert_eq!(coming(&state, from).len(), 2, "the eighth day is outside");
+    }
+
+    #[test]
+    fn today_keeps_its_own_place_and_is_not_ahead() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("call the bank");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            from,
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        assert!(coming(&state, from).is_empty());
+    }
+
+    #[test]
+    fn what_only_falls_due_still_comes() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("hand in the report");
+        task.deadline = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].on, away(from, 2));
+        assert!(out[0].due);
+    }
+
+    #[test]
+    fn a_deadline_still_counts_when_the_work_was_meant_for_another_day() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("finish the report");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, -1),
+            "America/Santiago",
+        ));
+        task.deadline = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(out.len(), 1, "the day it was meant for is behind us");
+        assert_eq!(out[0].on, away(from, 2));
+        assert!(out[0].due);
+    }
+
+    #[test]
+    fn one_day_that_is_both_is_said_once() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("the interview");
+        let on = tisty_core::model::DateSpec::all_day(away(from, 1), "America/Santiago");
+        task.date = Some(on.clone());
+        task.deadline = Some(on);
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(
+            out.len(),
+            1,
+            "working on it and owing it is one day, not two"
+        );
+        assert!(!out[0].due);
+    }
+
+    #[test]
+    fn a_day_to_work_on_it_and_a_day_it_falls_due_are_both_worth_saying() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("finish the report");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 1),
+            "America/Santiago",
+        ));
+        task.deadline = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 3),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(out.len(), 2);
+        assert!(!out[0].due);
+        assert!(out[1].due);
+    }
+
+    fn daily(from: jiff::civil::Date, until: Option<jiff::civil::Date>) -> tisty_core::model::Task {
+        let mut task = held("take the pills");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            from,
+            "America/Santiago",
+        ));
+        let mut repeat = tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 1,
+            unit: tisty_core::model::Unit::Day,
+        });
+        repeat.until = until;
+        task.repeat = Some(repeat);
+        task
+    }
+
+    #[test]
+    fn a_routine_is_named_once_and_crowds_no_day() {
+        let from = today();
+        let mut state = State::default();
+        kept(&mut state, daily(from, None));
+
+        assert!(
+            coming(&state, from).is_empty(),
+            "it holds no day of its own"
+        );
+        assert_eq!(recurring(&state, from).len(), 1);
+    }
+
+    #[test]
+    fn a_snapshot_carries_only_the_turns_the_strip_draws() {
+        let from = today();
+        let mut state = State::default();
+        let mut last = None;
+        for step in 0..12 {
+            let mut turn = daily(away(from, -40 + step), None);
+            turn.after = last;
+            turn.status = tisty_core::model::Status::Done;
+            last = Some(turn.id);
+            kept(&mut state, turn);
+        }
+        let mut open = daily(from, None);
+        open.after = last;
+        let id = open.id;
+        kept(&mut state, open);
+
+        let whole = tisty_core::series::series(&state, id).expect("a routine keeps a series");
+        let out = recurring(&state, from);
+        let told = out[0].series.as_ref().expect("a routine keeps a series");
+
+        assert!(
+            whole.turns.len() > BEADS,
+            "the chain is longer than the strip draws, or this proves nothing"
+        );
+        assert_eq!(
+            told.turns.len(),
+            BEADS,
+            "the strip draws {BEADS} beads, so {BEADS} turns cross the bridge"
+        );
+        assert_eq!(
+            told.kept, whole.kept,
+            "the counters still see the whole chain"
+        );
+    }
+
+    #[test]
+    fn a_routine_left_unkept_still_falls_on_its_own_weekday() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, -10),
+            "America/Santiago",
+        ));
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 1,
+            unit: tisty_core::model::Unit::Week,
+        }));
+        kept(&mut state, task);
+
+        let out = recurring(&state, from);
+
+        assert_eq!(out.len(), 1);
+        assert_eq!(
+            out[0].on,
+            Some(away(from, 4)),
+            "ten days late, its turn is still the weekday it was dealt"
+        );
+    }
+
+    #[test]
+    fn a_monthly_routine_left_unkept_does_not_vanish_from_the_week() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, -27),
+            "America/Santiago",
+        ));
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 1,
+            unit: tisty_core::model::Unit::Month,
+        }));
+        kept(&mut state, task);
+
+        assert_eq!(
+            recurring(&state, from).len(),
+            1,
+            "its turn falls inside the week ahead, however late it is"
+        );
+    }
+
+    #[test]
+    fn a_routine_falling_once_this_week_says_which_day() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 2,
+            unit: tisty_core::model::Unit::Month,
+        }));
+        kept(&mut state, task);
+
+        let out = recurring(&state, from);
+
+        assert_eq!(out.len(), 1, "its own date lands inside the week");
+        assert_eq!(out[0].on, Some(away(from, 2)));
+        assert!(coming(&state, from).is_empty(), "and it crowds no day");
+    }
+
+    #[test]
+    fn a_routine_falling_every_day_names_no_day_at_all() {
+        let from = today();
+        let mut state = State::default();
+        kept(&mut state, daily(from, None));
+
+        let out = recurring(&state, from);
+
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].on, None, "seven turns name no single day");
+    }
+
+    #[test]
+    fn a_cadence_owing_nothing_this_week_is_no_routine_of_this_week() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 2,
+            unit: tisty_core::model::Unit::Month,
+        }));
+        kept(&mut state, task);
+
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_cadence_that_has_ended_owes_nothing_at_all() {
+        let from = today();
+        let mut state = State::default();
+        kept(&mut state, daily(from, Some(from)));
+
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_cadence_of_zero_still_names_the_single_day_it_falls_on() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 0,
+            unit: tisty_core::model::Unit::Day,
+        }));
+        kept(&mut state, task);
+
+        let out = recurring(&state, from);
+
+        assert_eq!(out.len(), 1, "a cadence of zero should still surface once");
+        assert_eq!(
+            out[0].on,
+            Some(away(from, 2)),
+            "«every 0 days» stands still on the same date instead of advancing, so the loop \
+             pushes that one real day seven more times and the day gets folded away as if the \
+             routine crowded the whole week"
+        );
+    }
+
+    #[test]
+    fn a_cadence_of_four_hundred_days_owes_nothing_this_week() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 400,
+            unit: tisty_core::model::Unit::Day,
+        }));
+        kept(&mut state, task);
+
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_horizon_past_the_edge_of_the_calendar_is_none() {
+        assert_eq!(horizon(jiff::civil::Date::MAX), None);
+    }
+
+    #[test]
+    fn nothing_comes_or_recurs_once_the_calendar_runs_out() {
+        let from = jiff::civil::Date::MAX;
+        let mut state = State::default();
+
+        let mut plain = held("at the edge of time");
+        plain.date = Some(tisty_core::model::DateSpec::all_day(from, "UTC"));
+        kept(&mut state, plain);
+
+        let mut routine = daily(from, None);
+        routine.date = Some(tisty_core::model::DateSpec::all_day(from, "UTC"));
+        kept(&mut state, routine);
+
+        assert!(coming(&state, from).is_empty());
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_hidden_task_neither_comes_nor_recurs() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("folded away");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        task.hidden = true;
+        kept(&mut state, task);
+
+        let mut routine = daily(from, None);
+        routine.hidden = true;
+        kept(&mut state, routine);
+
+        assert!(coming(&state, from).is_empty());
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_dropped_task_neither_comes_nor_recurs() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("let go");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        task.status = tisty_core::model::Status::Dropped;
+        kept(&mut state, task);
+
+        let mut routine = daily(from, None);
+        routine.status = tisty_core::model::Status::Dropped;
+        kept(&mut state, routine);
+
+        assert!(coming(&state, from).is_empty());
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_deadline_on_the_last_day_of_the_window_still_counts() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("submit the form");
+        task.deadline = Some(tisty_core::model::DateSpec::all_day(
+            away(from, AHEAD),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(out.len(), 1, "the seventh day still belongs to the window");
+        assert_eq!(out[0].on, away(from, AHEAD));
     }
 
     #[test]

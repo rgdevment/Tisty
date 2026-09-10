@@ -56,7 +56,7 @@ const dated = (when: number | null): string =>
   when ? stamped(new Date(when * 1000).toISOString()) : "—";
 
 const mild =
-  "rounded-[7px] border border-line px-2 py-1 text-[11.5px] text-soft hover:bg-hover hover:text-ink disabled:border-hair disabled:text-faint";
+  "rounded-[10px] border border-line px-2 py-1 text-[11.5px] text-soft hover:bg-hover hover:text-ink disabled:border-hair disabled:text-faint";
 
 const LEAVES: Paper[] = ["a4", "letter", "tabloid"];
 
@@ -123,11 +123,11 @@ export default function Beside({
   return (
     <aside
       aria-label={t("aboutPaper")}
-      className="absolute top-11 right-3 bottom-3 flex w-[320px] flex-col overflow-hidden rounded-[11px] border border-hair bg-panel shadow-lift"
+      className="absolute top-11 right-3 bottom-3 flex w-[320px] flex-col overflow-hidden rounded-[10px] border border-hair bg-panel shadow-lift"
     >
       <div className="flex items-start gap-2 px-4 pt-3.5">
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[13.5px] font-semibold">{title || t("untitledDoc")}</h2>
+          <h2 className="truncate text-[13px] font-semibold">{title || t("untitledDoc")}</h2>
           <p className="mt-0.5 truncate text-[11.5px] text-faint">
             <button
               type="button"
@@ -155,7 +155,7 @@ export default function Beside({
           onClick={onShut}
           title={t("besideShut")}
           aria-label={t("besideShut")}
-          className="grid h-5.5 w-5.5 shrink-0 place-items-center rounded-md text-[11px] text-faint hover:bg-hover hover:text-ink"
+          className="grid h-5.5 w-5.5 shrink-0 place-items-center rounded-md text-[11.5px] text-faint hover:bg-hover hover:text-ink"
         >
           <span aria-hidden="true">✕</span>
         </button>
@@ -166,7 +166,7 @@ export default function Beside({
           <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">
             {t("aboutPaper")}
           </h3>
-          <dl className="flex flex-col gap-1.5 text-[12px]">
+          <dl className="flex flex-col gap-1.5 text-[12.5px]">
             {facts?.author && (
               <div className="flex items-baseline justify-between gap-2.5">
                 <dt className="text-faint">{t("paperAuthor")}</dt>
@@ -234,7 +234,7 @@ export default function Beside({
                   <span
                     key={one}
                     title={many > 0 ? fill("tagTimes", String(many)) : undefined}
-                    className="inline-flex items-baseline gap-1 rounded-full bg-mark-tag px-2 py-0.5 text-[11px] text-ink"
+                    className="inline-flex items-baseline gap-1 rounded-full bg-mark-tag px-2 py-0.5 text-[11.5px] text-ink"
                   >
                     #{one}
                     {many > 0 && <span className="tabular-nums text-faint">{many}</span>}
@@ -254,7 +254,7 @@ export default function Beside({
                 type="button"
                 aria-pressed={leaf === one}
                 onClick={() => onLeaf(one)}
-                className={`flex-1 rounded-[7px] border px-2 py-1 text-[11.5px] ${
+                className={`flex-1 rounded-[10px] border px-2 py-1 text-[11.5px] ${
                   leaf === one
                     ? "border-ink bg-ink text-bg"
                     : "border-line text-faint hover:text-soft"
@@ -302,7 +302,7 @@ export default function Beside({
         <section className="flex flex-col gap-2">
           <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("outline")}</h3>
           {heads.length === 0 ? (
-            <p className="text-[12px] text-faint">{t("outlineNone")}</p>
+            <p className="text-[12.5px] text-faint">{t("outlineNone")}</p>
           ) : (
             <nav className="flex flex-col gap-px">
               {heads.map((one) => (
@@ -310,7 +310,7 @@ export default function Beside({
                   key={one.key}
                   type="button"
                   onClick={one.go}
-                  className={`truncate rounded-md px-1.5 py-1 text-left text-[12px] hover:bg-hover hover:text-ink ${
+                  className={`truncate rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
                     one.level > 1 ? "pl-5 text-faint" : "text-soft"
                   }`}
                 >
@@ -343,7 +343,7 @@ function Band({ name, blocks }: { name: string; blocks: Block[] }) {
             </span>
             <span className="min-w-0 flex-1 truncate">{one.label}</span>
             {one.hint && (
-              <span className="shrink-0 rounded-[4px] bg-hover px-1.5 py-px font-mono text-[10.5px] text-faint">
+              <span className="shrink-0 rounded-md bg-hover px-1.5 py-px font-mono text-[10.5px] text-faint">
                 {one.hint}
               </span>
             )}

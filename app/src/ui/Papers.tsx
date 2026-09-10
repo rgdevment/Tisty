@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAttended } from "../attended";
 import { docs, type Filed } from "../core";
 import { matched } from "../finding";
 import { t } from "../locales";
@@ -33,11 +34,12 @@ export default function Papers({
   // Sister pages are called January, February, March: without their document the rows read alike.
   const under = (doc: Filed) =>
     doc.pageOf ? (all ?? []).find((one) => one.id === doc.pageOf) : undefined;
+  const held = useAttended<HTMLInputElement>();
 
   return (
     <>
       <input
-        autoFocus
+        ref={held}
         value={word}
         aria-label={t("pickADocToLink")}
         placeholder={t("pickADocToLink")}

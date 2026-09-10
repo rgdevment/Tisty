@@ -29,6 +29,7 @@ const NAMED: { key: Named; icon: string }[] = [
   { key: "search", icon: "search" },
   { key: "tasks", icon: "sun" },
   { key: "quadrants", icon: "grid" },
+  { key: "spread", icon: "calendar" },
   { key: "lists", icon: "rows" },
   { key: "tags", icon: "tag" },
   { key: "archive", icon: "archive" },
@@ -80,11 +81,11 @@ export default function Sidebar({
             onClick={() => setOpenDocs((open) => !open)}
             aria-expanded={openDocs}
             aria-label={t("docs")}
-            className="flex flex-1 items-center gap-1.5 px-2.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
+            className="flex flex-1 items-center gap-1.5 px-2.5 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
           >
             {!openDocs && <Glyph name="chevron" className="h-3 w-3 shrink-0 -rotate-90" />}
             {t("docs")}
-            <span className="ml-auto text-[11px] font-normal">
+            <span className="ml-auto text-[11.5px] font-normal">
               {papers.docs.filter((one) => !one.pageOf).length || ""}
             </span>
           </button>
@@ -96,7 +97,7 @@ export default function Sidebar({
             }}
             aria-label={t("docsActions")}
             aria-haspopup="menu"
-            className="mr-1 grid h-5 w-5 place-items-center rounded text-[14px] text-faint hover:bg-hover hover:text-ink"
+            className="mr-1 grid h-5 w-5 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
           >
             +
           </button>
@@ -126,7 +127,7 @@ export default function Sidebar({
           aria-label={t("keeping")}
           title={t("keeping")}
           onClick={() => onChoose({ named: "keeping" })}
-          className={`grid size-7 place-items-center rounded-[7px] hover:bg-hover ${
+          className={`grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
             chosen.named === "keeping" ? "bg-active text-accent" : "text-soft"
           }`}
         >
@@ -140,7 +141,7 @@ export default function Sidebar({
             type="button"
             aria-label={`${t("aboutScreen")} · ${t("updateWaiting")}`}
             onClick={() => onChoose({ named: "aboutScreen" })}
-            className="ml-auto flex items-center gap-1.5 rounded-[7px] bg-accent-soft px-2 py-1 text-[11.5px] font-medium text-accent hover:bg-hover"
+            className="ml-auto flex items-center gap-1.5 rounded-[10px] bg-accent-soft px-2 py-1 text-[11.5px] font-medium text-accent hover:bg-hover"
           >
             <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
             Tisty {waiting}
@@ -151,7 +152,7 @@ export default function Sidebar({
             aria-label={t("aboutScreen")}
             title={t("aboutScreen")}
             onClick={() => onChoose({ named: "aboutScreen" })}
-            className={`ml-auto grid size-7 place-items-center rounded-[7px] hover:bg-hover ${
+            className={`ml-auto grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
               chosen.named === "aboutScreen" ? "bg-active text-accent" : "text-soft"
             }`}
           >
@@ -180,7 +181,7 @@ function Entry({ icon, label, count, on, muted, onClick }: EntryProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-2.5 rounded-[7px] px-2.5 py-1.5 text-left text-[13.5px] hover:bg-hover ${
+      className={`flex items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-left text-[13px] hover:bg-hover ${
         on ? "bg-active font-semibold" : ""
       } ${muted ? "text-faint" : "text-ink"}`}
     >
@@ -193,7 +194,7 @@ function Entry({ icon, label, count, on, muted, onClick }: EntryProps) {
       )}
       <span className="truncate">{label}</span>
       {count !== undefined && count !== 0 && (
-        <span className="ml-auto text-xs text-faint tabular-nums">{count}</span>
+        <span className="ml-auto text-[11.5px] text-faint tabular-nums">{count}</span>
       )}
     </button>
   );
