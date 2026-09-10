@@ -1816,7 +1816,7 @@ function Ask({ said }: { said: string }) {
       <button
         type="button"
         aria-label={said}
-        className="peer flex h-[15px] w-[15px] items-center justify-center rounded text-[11.5px] leading-none text-faint hover:bg-line hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        className="peer flex h-[15px] w-[15px] items-center justify-center rounded-md text-[11.5px] leading-none text-faint hover:bg-line hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
       >
         ?
       </button>

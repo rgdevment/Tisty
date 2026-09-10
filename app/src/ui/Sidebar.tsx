@@ -97,7 +97,7 @@ export default function Sidebar({
             }}
             aria-label={t("docsActions")}
             aria-haspopup="menu"
-            className="mr-1 grid h-5 w-5 place-items-center rounded text-[13px] text-faint hover:bg-hover hover:text-ink"
+            className="mr-1 grid h-5 w-5 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
           >
             +
           </button>
@@ -194,7 +194,7 @@ function Entry({ icon, label, count, on, muted, onClick }: EntryProps) {
       )}
       <span className="truncate">{label}</span>
       {count !== undefined && count !== 0 && (
-        <span className="ml-auto text-xs text-faint tabular-nums">{count}</span>
+        <span className="ml-auto text-[11.5px] text-faint tabular-nums">{count}</span>
       )}
     </button>
   );

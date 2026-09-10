@@ -123,7 +123,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
         </div>
 
         <div
-          className={`rounded-[10px] border px-3 py-2 text-xs leading-relaxed ${
+          className={`rounded-[10px] border px-3 py-2 text-[11.5px] leading-relaxed ${
             warning.mild ? "border-hair bg-accent-soft text-soft" : "border-hue-amber/40 text-soft"
           }`}
         >
@@ -134,7 +134,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
         {strays?.unreadable && (
           <div
             role="alert"
-            className="rounded-[10px] border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
+            className="rounded-[10px] border border-hue-amber/40 px-3 py-2 text-[11.5px] leading-relaxed text-soft"
           >
             <span className="block text-[12.5px] font-semibold text-ink">
               {t("keepersUnreadable")}
@@ -146,7 +146,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
         {(strays?.adrift ?? 0) > 0 && (
           <div
             role="alert"
-            className="rounded-[10px] border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
+            className="rounded-[10px] border border-hue-amber/40 px-3 py-2 text-[11.5px] leading-relaxed text-soft"
           >
             <span className="block text-[12.5px] font-semibold text-ink">
               {fill("keepersStrays", `${strays?.adrift}`)}
@@ -155,7 +155,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
           </div>
         )}
 
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-4 text-[11.5px]">
           <button
             type="button"
             disabled={stuck}

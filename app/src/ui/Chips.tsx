@@ -61,7 +61,7 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
               type="button"
               aria-label={`${chip.offer ? t("accept") : t("remove")} ${chip.value}`}
               onClick={() => onEdit(chip.offer ?? without(edits, chip.slot))}
-              className={`ml-1 flex h-4 w-4 items-center justify-center rounded ${
+              className={`ml-1 flex h-4 w-4 items-center justify-center rounded-md ${
                 chip.offer
                   ? "text-accent hover:bg-accent-soft"
                   : "text-soft hover:bg-line hover:text-ink"

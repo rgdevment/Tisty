@@ -9,11 +9,13 @@ interface Props {
   tasks: Task[];
   onPlace: (task: string, on: string | null) => void;
   onOpen: (task: Task) => void;
+  onCarrying?: (held: boolean) => void;
 }
 
 const SLIP = 5;
 const WEEK = 7;
 const RIVER = 120;
+const DAY = 24 * 60 * 60 * 1000;
 const GLANCE = 3;
 const CELLS = 42;
 const TRAY = "tray";
@@ -46,7 +48,7 @@ const moonOf = (at: Date): string => {
   return said.charAt(0).toUpperCase() + said.slice(1);
 };
 
-export default function Spread({ tasks, onPlace, onOpen }: Props) {
+export default function Spread({ tasks, onPlace, onOpen, onCarrying }: Props) {
   const [glance, setGlance] = useState<{ year: number; month: number } | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [held, setHeld] = useState<string | null>(null);
@@ -57,6 +59,7 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
     free?: string;
   } | null>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
+  const slid = useRef(false);
   const ghost = useRef<HTMLDivElement>(null);
   const river = useRef<HTMLDivElement>(null);
   const wanted = useRef<string | null>(null);
@@ -80,7 +83,13 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
     return held;
   }, [tasks]);
 
-  const days = useMemo(() => walk(monday(dayOne(today)), RIVER), [today]);
+  const days = useMemo(() => {
+    const here = monday(dayOne(today));
+    const oldest = [...carried.keys()].sort()[0];
+    const from = oldest && oldest < stamp(here) ? monday(dayOne(oldest)) : here;
+    const span = Math.round((here.getTime() - from.getTime()) / DAY) + RIVER;
+    return walk(from, span);
+  }, [today, carried]);
 
   const waiting = useMemo(() => tasks.filter((one) => !one.date && !one.repeat), [tasks]);
 
@@ -103,6 +112,10 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
 
   useLayoutEffect(trail, [held]);
 
+  useEffect(() => {
+    onCarrying?.(held !== null);
+  }, [held, onCarrying]);
+
   const under = (x: number, y: number): string | null => {
     const spot = document.elementFromPoint(x, y);
     if (spot?.closest("[data-tray]")) return TRAY;
@@ -123,11 +136,20 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
     );
     const many = (carried.get(on)?.length ?? 0) + 1;
     if (many < HEAVY) return setAsked(null);
-    const free = days.find((day) => stamp(day) > on && !carried.get(stamp(day))?.length);
+    const free = days.find(
+      (day) => stamp(day) > on && stamp(day) >= today && !carried.get(stamp(day))?.length,
+    );
     setAsked({ task, on, many, free: free && stamp(free) });
   };
 
   const carry = (task: Task) => ({
+    onClick: () => {
+      if (slid.current) {
+        slid.current = false;
+        return;
+      }
+      onOpen(task);
+    },
     onPointerDown: (e: React.PointerEvent) => {
       if (e.button !== 0) return;
       start.current = { x: e.clientX, y: e.clientY };
@@ -144,10 +166,11 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
     },
     onPointerUp: (e: React.PointerEvent) => {
       const dragged = held === task.id;
+      slid.current = dragged;
       start.current = null;
       setHeld(null);
       setOver(null);
-      if (!dragged) return onOpen(task);
+      if (!dragged) return;
       const where = under(e.clientX, e.clientY);
       if (!where) return;
       if (where === TRAY) {
@@ -261,7 +284,9 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
           key={key}
           type="button"
           data-day={key}
-          aria-label={`${named(day)} ${day.getDate()}`}
+          aria-label={[moonOf(day), String(day.getDate()), ...mine.map((one) => one.title)].join(
+            " ",
+          )}
           onClick={() => {
             wanted.current = key;
             setGlance(null);
@@ -339,7 +364,11 @@ export default function Spread({ tasks, onPlace, onOpen }: Props) {
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
-            onClick={() => (glance ? setGlance(null) : reach(today))}
+            onClick={() => {
+              if (!glance) return reach(today);
+              wanted.current = today;
+              setGlance(null);
+            }}
             className="rounded-md px-2 py-1 text-[11.5px] text-accent hover:bg-hover"
           >
             {t("spreadNow")}

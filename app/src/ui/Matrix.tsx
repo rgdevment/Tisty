@@ -198,7 +198,7 @@ export default function Matrix({
                         <button
                           type="button"
                           onClick={() => onDiscardAll(mine.map((one) => one.id))}
-                          className="rounded px-1.5 py-0.5 text-[11.5px] text-faint hover:bg-hover hover:text-soft"
+                          className="rounded-md px-1.5 py-0.5 text-[11.5px] text-faint hover:bg-hover hover:text-soft"
                         >
                           {t("dropThemAll")}
                         </button>
@@ -241,7 +241,7 @@ export default function Matrix({
                 aria-label={t("hideUnplaced")}
                 title={t("hideUnplaced")}
                 onClick={() => swing(false)}
-                className="grid h-5 w-5 shrink-0 place-items-center rounded text-[12.5px] leading-none text-faint hover:bg-hover hover:text-soft"
+                className="grid h-5 w-5 shrink-0 place-items-center rounded-md text-[12.5px] leading-none text-faint hover:bg-hover hover:text-soft"
               >
                 ✕
               </button>
@@ -280,7 +280,7 @@ function Sow({ where, onSow }: { where: Priority; onSow: (where: Priority) => vo
       aria-label={fill("addTo", said(where))}
       title={fill("addTo", said(where))}
       onClick={() => onSow(where)}
-      className="grid h-5 w-5 shrink-0 place-items-center rounded pb-px text-[13px] leading-none text-faint hover:bg-hover hover:text-ink"
+      className="grid h-5 w-5 shrink-0 place-items-center rounded-md pb-px text-[13px] leading-none text-faint hover:bg-hover hover:text-ink"
     >
       +
     </button>

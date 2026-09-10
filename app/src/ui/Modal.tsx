@@ -58,7 +58,7 @@ export default function Modal({ title, wide, onClose, children }: Props) {
         ref={box}
         className={`w-full ${wide ? "max-w-lg" : "max-w-md"} rounded-[10px] border border-hair bg-bg p-6 shadow-lift-tall`}
       >
-        <h2 id={heading} className="mb-3.5 text-lg font-semibold">
+        <h2 id={heading} className="mb-3.5 text-[21px] font-semibold">
           {title}
         </h2>
         {children}

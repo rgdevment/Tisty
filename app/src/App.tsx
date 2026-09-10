@@ -174,6 +174,7 @@ export default function App() {
   }, []);
 
   const [tight, setTight] = useState(() => window.innerWidth < TIGHT);
+  const [dealing, setDealing] = useState(false);
 
   useEffect(() => {
     const look = () => setTight(window.innerWidth < TIGHT);
@@ -758,7 +759,7 @@ export default function App() {
     return (
       <div className="grid h-full font-sans" style={{ gridTemplateColumns: "1fr" }}>
         <WindowChrome />
-        {error && <p className="mt-16 px-6 text-center text-xs text-urgent">{error}</p>}
+        {error && <p className="mt-16 px-6 text-center text-[11.5px] text-urgent">{error}</p>}
       </div>
     );
   }
@@ -1344,7 +1345,7 @@ export default function App() {
                 setError(null);
                 setChosen({ named: "keeping" });
               }}
-              className="shrink-0 rounded border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
+              className="shrink-0 rounded-md border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
             >
               {t("stuckTakeMe")}
             </button>
@@ -1360,7 +1361,7 @@ export default function App() {
                   setError(saidPlainly(problem));
                 });
               }}
-              className="shrink-0 rounded border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
+              className="shrink-0 rounded-md border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
             >
               {t(underway ? "updateInstalling" : "updateInstall")}
             </button>
@@ -1372,7 +1373,7 @@ export default function App() {
               setError(null);
               setBehind(false);
             }}
-            className="-mr-1 shrink-0 rounded px-1 hover:bg-urgent/10"
+            className="-mr-1 shrink-0 rounded-md px-1 hover:bg-urgent/10"
           >
             ✕
           </button>
@@ -1380,7 +1381,7 @@ export default function App() {
       )}
 
       {settling && !error && (
-        <p className="pointer-events-none fixed inset-x-0 top-11 z-[60] mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-xs text-accent">
+        <p className="pointer-events-none fixed inset-x-0 top-11 z-[60] mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-[11.5px] text-accent">
           {t("settlingIn")}
         </p>
       )}
@@ -1388,7 +1389,7 @@ export default function App() {
       {note && !error && !afoot && (
         <p
           role="status"
-          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-fit -translate-x-1/2 rounded-[10px] border border-hair bg-rail px-3.5 py-2 text-xs text-ink shadow-xl"
+          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-fit -translate-x-1/2 rounded-[10px] border border-hair bg-rail px-3.5 py-2 text-[11.5px] text-ink shadow-xl"
         >
           {note}
         </p>
@@ -1398,7 +1399,7 @@ export default function App() {
         <p
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-64 -translate-x-1/2 rounded-[10px] border border-hair bg-rail px-3.5 py-2 text-xs text-ink shadow-xl"
+          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-64 -translate-x-1/2 rounded-[10px] border border-hair bg-rail px-3.5 py-2 text-[11.5px] text-ink shadow-xl"
         >
           <span className="block">
             {fill(`${afoot.stage}On` as Word, afoot.far ? `${afoot.far} %` : "").trim()}
@@ -1661,6 +1662,7 @@ export default function App() {
             ) : chosen.named === "spread" && !sheet ? (
               <div className="flex min-w-0 flex-col overflow-hidden">
                 <Spread
+                  onCarrying={setDealing}
                   tasks={data.tasks}
                   onPlace={(id, on) =>
                     act(patch(id, on === null ? { noDate: true } : { date: on }))
@@ -1691,7 +1693,7 @@ export default function App() {
                 expanded
                 from={title(chosen, data.lists)}
                 onExpand={() => remember("sheet")}
-                onCollapse={() => remember("columns")}
+                onCollapse={() => (tight ? shut() : remember("columns"))}
                 onPatch={(change: Change) => act(patch(task.id, change))}
                 onStep={(text, step) => act(writeStep(task.id, text, step))}
                 onMark={(step, done) => act(markStep(task.id, step, done))}
@@ -1906,7 +1908,7 @@ export default function App() {
                                   setFound(null);
                                   setChosen({ named: "archive", folded: !chosen.folded });
                                 }}
-                                className="ml-1 text-xs text-faint hover:text-ink"
+                                className="ml-1 text-[11.5px] text-faint hover:text-ink"
                               >
                                 {chosen.folded
                                   ? `⊕ ${t("backToArchive")}`
@@ -1965,7 +1967,9 @@ export default function App() {
 
           {beside && (
             <Detail
-              apart={aside ? "right-3 @min-[1536px]:right-[324px]" : "right-3"}
+              apart={`${aside ? "right-3 @min-[1536px]:right-[324px]" : "right-3"} ${
+                dealing ? "pointer-events-none opacity-10" : ""
+              }`}
               key={task.id}
               task={task}
               lists={data.lists}

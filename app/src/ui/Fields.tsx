@@ -222,7 +222,7 @@ function Held({ slot, open, tint, empty, label, onOpen, children }: HeldProps) {
         aria-expanded={open === slot}
         aria-haspopup="menu"
         onClick={() => onOpen(open === slot ? null : slot)}
-        className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs ${
+        className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] ${
           empty ? "border border-dashed border-line text-faint" : `${tint} text-ink`
         }`}
       >
@@ -236,13 +236,15 @@ function Held({ slot, open, tint, empty, label, onOpen, children }: HeldProps) {
 
 function Worn({ label, tint, onDrop }: { label: string; tint: string; onDrop: () => void }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-md py-1 pr-1 pl-2.5 text-xs ${tint}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-md py-1 pr-1 pl-2.5 text-[11.5px] ${tint}`}
+    >
       {label}
       <button
         type="button"
         aria-label={`${t("remove")} ${label}`}
         onClick={onDrop}
-        className="flex h-4 w-4 items-center justify-center rounded text-faint hover:bg-line hover:text-ink"
+        className="flex h-4 w-4 items-center justify-center rounded-md text-faint hover:bg-line hover:text-ink"
       >
         ×
       </button>

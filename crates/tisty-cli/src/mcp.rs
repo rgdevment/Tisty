@@ -355,7 +355,7 @@ const AT_MOST: &[(&str, usize)] = &[
     ("source", 512),
     ("label", 200),
 ];
-const MANY_AT_MOST: &[(&str, usize)] = &[("tags", 32), ("steps", 200)];
+const MANY_AT_MOST: &[(&str, usize)] = &[("tags", 32), ("steps", 200), ("remind", 32), ("at", 32)];
 const EACH_AT_MOST: usize = 2_000;
 
 /// An append-only log rereads a ten-megabyte title forever, and control characters in one
@@ -437,7 +437,10 @@ fn day(args: &Value, key: &str) -> Result<Option<DateSpec>, Refused> {
 }
 
 fn moments(args: &Value, key: &str) -> Result<Vec<DateSpec>, Refused> {
-    if args.get(key).is_some_and(|one| !one.is_array()) {
+    if args.get(key).is_some_and(|one| {
+        one.as_array()
+            .is_none_or(|all| !all.iter().all(Value::is_string))
+    }) {
         return Err(Refused::Tool(format!(
             "`{key}` takes a list of moments, each a day and an hour like \
              [\"2026-08-31T09:00\"]."
@@ -457,8 +460,13 @@ fn moments(args: &Value, key: &str) -> Result<Vec<DateSpec>, Refused> {
                      out the moment yourself before calling."
                 ))
             })?;
+        if at < jiff::Zoned::now().datetime() {
+            return Err(Refused::Tool(format!(
+                "`{key}` cannot ring in the past: {said:?} has already gone."
+            )));
+        }
         let one = DateSpec::floating(at, named.clone());
-        if !out.contains(&one) {
+        if !out.iter().any(|kept| kept.at == one.at) {
             out.push(one);
         }
     }
@@ -697,7 +705,7 @@ fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut all = task.reminders.clone();
     let mut added = 0;
     for one in bells {
-        if !all.contains(&one) {
+        if !all.iter().any(|kept| kept.at == one.at) {
             all.push(one);
             added += 1;
         }

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
 import { t } from "../locales";
@@ -169,8 +170,63 @@ describe("the river of days", () => {
     const card = screen.getByText("Sin fecha");
     fireEvent.pointerDown(card, { button: 0, clientX: 0, clientY: 0 });
     fireEvent.pointerUp(card, { clientX: 0, clientY: 0 });
+    fireEvent.click(card);
 
     expect(opened).toHaveBeenCalledWith(expect.objectContaining({ id: "01A" }));
+  });
+
+  it("opens from the keyboard, like every other list in the app", async () => {
+    const opened = vi.fn();
+    const user = userEvent.setup();
+    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={vi.fn()} onOpen={opened} />);
+
+    const card = screen.getByText("Sin fecha").closest("button") as HTMLElement;
+    card.focus();
+    await user.keyboard("{Enter}");
+
+    expect(opened).toHaveBeenCalledWith(expect.objectContaining({ id: "01A" }));
+  });
+
+  it("says when it is carrying, so the panel over the days can step aside", () => {
+    const carrying = vi.fn();
+    render(
+      <Spread
+        tasks={[made("01A", "Sin fecha")]}
+        onPlace={vi.fn()}
+        onOpen={vi.fn()}
+        onCarrying={carrying}
+      />,
+    );
+
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => document.body;
+    const card = screen.getByText("Sin fecha");
+    fireEvent.pointerDown(card, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(card, { clientX: 80, clientY: 80 });
+    expect(carrying).toHaveBeenLastCalledWith(true);
+
+    fireEvent.pointerUp(card, { clientX: 80, clientY: 80 });
+    document.elementFromPoint = was;
+    expect(carrying).toHaveBeenLastCalledWith(false);
+  });
+
+  it("does not open what you only dragged somewhere else", () => {
+    const opened = vi.fn();
+    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={vi.fn()} onOpen={opened} />);
+
+    const card = screen.getByText("Sin fecha");
+    dragged(card, dayAt(3));
+    fireEvent.click(card);
+
+    expect(opened).not.toHaveBeenCalled();
+  });
+
+  it("reaches a day that already went by, so slipped work can be dealt again", () => {
+    const gone = iso(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    render(<Spread tasks={[made("01A", "Se me pasó", gone)]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+
+    expect(document.querySelector(`[data-day="${gone}"]`)).toBeTruthy();
+    expect(document.querySelector(`[data-day="${gone}"]`)?.textContent).toContain("Se me pasó");
   });
 
   it("takes the day away when a dated task is dropped back on the tray", () => {

@@ -35,7 +35,7 @@ export default function Left({ task, heading, onDoc, onError }: Props) {
                   one.gone ? "border-dashed border-hair" : "border-hair"
                 } ${open ? "cursor-pointer hover:border-line" : "cursor-default"}`}
               >
-                <span aria-hidden="true" className="text-center text-xs text-faint">
+                <span aria-hidden="true" className="text-center text-[11.5px] text-faint">
                   {one.away ? "▢" : GLYPH[one.kind]}
                 </span>
                 <span className={`truncate text-[12.5px] ${one.gone ? "text-faint" : "text-ink"}`}>

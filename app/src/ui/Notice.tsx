@@ -44,7 +44,7 @@ export default function Notice({ task, lists, elsewhere, onOpen, onDismiss }: Pr
           type="button"
           onClick={onOpen}
           aria-label={fill("openIt", task.title)}
-          className="flex min-w-0 flex-1 items-start gap-2.5 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <span aria-hidden="true" className="text-[13px] leading-snug text-accent">
             ✓
@@ -68,7 +68,7 @@ export default function Notice({ task, lists, elsewhere, onOpen, onDismiss }: Pr
           onClick={onDismiss}
           aria-label={t("close")}
           title={t("close")}
-          className="rounded text-[11.5px] text-faint outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-md text-[11.5px] text-faint outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
         >
           ✕
         </button>

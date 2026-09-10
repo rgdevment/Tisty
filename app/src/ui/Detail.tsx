@@ -96,7 +96,7 @@ export default function Detail({
 
   const body = (
     <>
-      <Title task={task} big={expanded} onRename={(title) => onPatch({ title })} />
+      <Title task={task} onRename={(title) => onPatch({ title })} />
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
       <Section label={t("description")} />
@@ -137,9 +137,7 @@ export default function Detail({
 
   const sealed = (
     <>
-      <h1 className={`leading-snug font-semibold ${expanded ? "text-[21px]" : "text-[21px]"}`}>
-        {task.title}
-      </h1>
+      <h1 className="text-[21px] leading-snug font-semibold">{task.title}</h1>
       <Stamps task={task} lists={lists} />
 
       {task.description?.trim() && (
@@ -361,18 +359,9 @@ function Settled({
   );
 }
 
-function Title({
-  task,
-  big,
-  onRename,
-}: {
-  task: Task;
-  big: boolean;
-  onRename: (title: string) => void;
-}) {
+function Title({ task, onRename }: { task: Task; onRename: (title: string) => void }) {
   const [text, setText] = useState(task.title);
   const dropped = useRef(false);
-  const size = big ? "text-[21px]" : "text-[21px]";
 
   useEffect(() => setText(task.title), [task.id, task.title]);
 
@@ -404,7 +393,7 @@ function Title({
           e.currentTarget.blur();
         }
       }}
-      className={`mb-3 field-sizing-content w-full resize-none rounded-md bg-transparent leading-snug font-semibold -tracking-[0.01em] outline-none hover:bg-hover focus:bg-hover ${size}`}
+      className="mb-3 field-sizing-content w-full resize-none rounded-md bg-transparent text-[21px] leading-snug font-semibold -tracking-[0.01em] outline-none hover:bg-hover focus:bg-hover"
     />
   );
 }

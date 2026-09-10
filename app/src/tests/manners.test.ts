@@ -20,20 +20,28 @@ const sources = (): { name: string; body: string }[] =>
 const strays = (of: RegExp, allowed: string[]): string[] =>
   sources().flatMap(({ name, body }) =>
     [...body.matchAll(of)]
-      .map((hit) => hit[1])
+      .map((hit) => hit[1] ?? "bare")
       .filter((one) => !allowed.includes(one))
       .map((one) => `${name}: ${one}`),
   );
 
 describe("the house keeps one scale", () => {
   it("sets type at one of the six sizes, and no other", () => {
-    expect(strays(/text-\[([0-9.]+)px\]/g, TYPE)).toEqual([]);
+    expect(strays(/\btext-\[([0-9.]+)px\]/g, TYPE)).toEqual([]);
+  });
+
+  it("never reaches for a named size, which a bracketed guard cannot see", () => {
+    expect(strays(/\btext-(xs|sm|base|lg|[0-9]?xl)\b/g, [])).toEqual([]);
   });
 
   it("rounds a corner three ways, and no other", () => {
     expect(
       strays(/\brounded(?:-[trbl][lr]?)?-(\[[0-9]+px\]|none|sm|md|lg|xl|2xl|3xl|full)/g, CORNERS),
     ).toEqual([]);
+  });
+
+  it("never leaves a corner bare, which takes four pixels nothing else uses", () => {
+    expect(strays(/\brounded(?:-[trbl][lr]?)?(?![-\w[])/g, [])).toEqual([]);
   });
 
   it("veils a colour at one of three strengths, and no other", () => {

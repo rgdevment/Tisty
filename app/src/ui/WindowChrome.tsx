@@ -129,7 +129,7 @@ export default function WindowChrome() {
     { key: "close", glyph: "✕", danger: true },
   ];
 
-  // The content pane is inset by `my-2 mr-2` and rounded; these sit inside it.
+  // The content pane is inset by `my-2 mr-2` and rounded-md; these sit inside it.
   return (
     <div data-chrome className="fixed top-2 right-2 z-[60] flex gap-0.5 pt-1.5 pr-1.5 pl-2">
       {buttons.map((button) => (

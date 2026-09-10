@@ -726,7 +726,7 @@ function Grip({
       aria-expanded={open}
       aria-controls={controls}
       style={{ marginLeft: `${at}px` }}
-      className="grid h-5 w-[18px] shrink-0 place-items-center rounded text-faint hover:text-ink"
+      className="grid h-5 w-[18px] shrink-0 place-items-center rounded-md text-faint hover:text-ink"
     >
       <span className="col-start-1 row-start-1 flex items-center transition-opacity group-hover/row:opacity-0 group-has-[:focus-visible]/row:opacity-0 motion-reduce:transition-none">
         {children}

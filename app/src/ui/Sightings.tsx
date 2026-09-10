@@ -30,7 +30,7 @@ export default function Sightings({ papers, onOpen }: Props) {
                 {one.archived ? "▢" : "▣"}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm">
+                <span className="block truncate text-[13px]">
                   {one.title.trim() || t("untitledDoc")}
                   {one.archived ? <span className="sr-only"> ({t("scopeArchived")})</span> : null}
                 </span>

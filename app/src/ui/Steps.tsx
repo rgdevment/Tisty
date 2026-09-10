@@ -30,7 +30,7 @@ export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
         }}
         className="flex items-center gap-2.5 py-1"
       >
-        <span className="h-[15px] w-[15px] shrink-0 rounded border-[1.5px] border-dashed border-line" />
+        <span className="h-[15px] w-[15px] shrink-0 rounded-md border-[1.5px] border-dashed border-line" />
         <input
           value={adding}
           placeholder={t("addStep")}
@@ -56,7 +56,7 @@ function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "s
         aria-checked={step.done}
         aria-label={fill(step.done ? "unmarkStep" : "markStep", step.text)}
         onClick={() => onMark(step.id, !step.done)}
-        className={`mt-0.5 h-[15px] w-[15px] shrink-0 rounded border-[1.5px] ${
+        className={`mt-0.5 h-[15px] w-[15px] shrink-0 rounded-md border-[1.5px] ${
           step.done ? "border-accent bg-accent" : "border-faint hover:border-accent"
         }`}
       />
@@ -81,7 +81,7 @@ function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "s
             e.currentTarget.blur();
           }
         }}
-        className={`min-w-0 flex-1 rounded bg-transparent outline-none hover:bg-hover focus:bg-hover ${
+        className={`min-w-0 flex-1 rounded-md bg-transparent outline-none hover:bg-hover focus:bg-hover ${
           step.done ? "text-faint line-through" : ""
         }`}
       />
@@ -89,7 +89,7 @@ function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "s
         type="button"
         aria-label={`${t("remove")} ${step.text}`}
         onClick={() => onDrop(step.id)}
-        className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded text-faint opacity-0 outline-none group-hover:opacity-100 hover:bg-line hover:text-ink focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent"
+        className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-md text-faint opacity-0 outline-none group-hover:opacity-100 hover:bg-line hover:text-ink focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent"
       >
         ×
       </button>

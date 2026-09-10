@@ -200,7 +200,7 @@ export default function Folder({
         </nav>
       )}
 
-      <h1 className="text-lg font-semibold">
+      <h1 className="text-[21px] font-semibold">
         <button
           type="button"
           disabled={!ownMenu}
@@ -246,7 +246,7 @@ export default function Folder({
                 aria-label={fill(closed ? "openFolder" : "closeFolder", one.name)}
                 aria-expanded={!closed}
                 aria-controls={`holds-${one.id}`}
-                className="grid h-5 w-3 shrink-0 cursor-pointer place-items-center rounded text-[9px] text-faint hover:text-ink"
+                className="grid h-5 w-3 shrink-0 cursor-pointer place-items-center rounded-md text-[9px] text-faint hover:text-ink"
               >
                 <span className={`transition-transform ${closed ? "-rotate-90" : ""}`}>▼</span>
               </button>

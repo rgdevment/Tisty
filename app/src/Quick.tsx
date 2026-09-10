@@ -97,7 +97,7 @@ export default function Quick() {
           onError={setError}
         />
       )}
-      {error && <p className="pt-1 text-xs text-urgent">{error}</p>}
+      {error && <p className="pt-1 text-[11.5px] text-urgent">{error}</p>}
     </Frame>
   );
 }

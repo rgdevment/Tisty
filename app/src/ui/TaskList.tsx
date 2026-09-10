@@ -223,7 +223,7 @@ export default function TaskList({
 
           <div className="min-w-0">
             <h2
-              className={`text-sm leading-snug ${
+              className={`text-[13px] leading-snug ${
                 closing === task.id ? "text-faint line-through" : ""
               }`}
             >
@@ -244,7 +244,7 @@ export default function TaskList({
                 e.stopPropagation();
                 onFold(task.id, !task.hidden);
               }}
-              className="mt-0.5 flex h-4 w-4 items-center justify-center rounded text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 hover:bg-line hover:text-ink"
+              className="mt-0.5 flex h-4 w-4 items-center justify-center rounded-md text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 hover:bg-line hover:text-ink"
             >
               {task.hidden ? "⊕" : "⊖"}
             </button>
@@ -374,7 +374,7 @@ function Meta({ task, list }: { task: Task; list?: string }) {
   }
 
   if (bits.length === 0) return null;
-  return <div className="mt-0.5 flex flex-wrap gap-2.5 text-xs text-soft">{bits}</div>;
+  return <div className="mt-0.5 flex flex-wrap gap-2.5 text-[11.5px] text-soft">{bits}</div>;
 }
 
 function Volume({ task }: { task: Task }) {
@@ -385,7 +385,9 @@ function Volume({ task }: { task: Task }) {
     v.journal ? `✎${v.journal}` : null,
   ].filter(Boolean);
 
-  return <span className="pt-px text-xs whitespace-nowrap text-faint">{parts.join(" · ")}</span>;
+  return (
+    <span className="pt-px text-[11.5px] whitespace-nowrap text-faint">{parts.join(" · ")}</span>
+  );
 }
 
 const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {

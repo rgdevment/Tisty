@@ -38,7 +38,7 @@ export default function Field({ icon, value, hint, marks, onChange, onSubmit }: 
           aria-label={hint}
           onChange={(e) => onChange(e.target.value)}
           onScroll={(e) => setShift(e.currentTarget.scrollLeft)}
-          className={`relative w-full bg-transparent text-sm leading-5 outline-none placeholder:text-faint ${
+          className={`relative w-full bg-transparent text-[13px] leading-5 outline-none placeholder:text-faint ${
             painted ? "text-transparent caret-ink selection:bg-accent-soft" : ""
           }`}
         />
@@ -77,7 +77,7 @@ function Mirror({ text, marks, shift }: { text: string; marks: Mark[]; shift: nu
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       <div
-        className="whitespace-pre text-sm leading-5"
+        className="whitespace-pre text-[13px] leading-5"
         style={{ transform: `translateX(${-shift}px)` }}
       >
         {cut(text, marks).map((run) =>

@@ -61,7 +61,7 @@ export default function Spine({ coming, routines, days, onOpen }: Props) {
               from.current = e.currentTarget;
               setOpen(!open);
             }}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded px-1 py-0.5 hover:bg-hover ${
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-1 py-0.5 hover:bg-hover ${
               day.held.length >= HEAVY ? "bg-hue-amber/10" : ""
             }`}
           >
