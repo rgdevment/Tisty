@@ -26,7 +26,7 @@ export default function Field({ icon, value, hint, marks, onChange, onSubmit }: 
         e.preventDefault();
         onSubmit?.();
       }}
-      className="flex w-full items-center gap-2.5 rounded-[9px] border border-line bg-bg px-3 py-2.5 focus-within:border-accent focus-within:ring-[3px] focus-within:ring-accent-soft"
+      className="flex w-full items-center gap-2.5 rounded-[10px] border border-line bg-bg px-3 py-2.5 focus-within:border-accent focus-within:ring-[3px] focus-within:ring-accent-soft"
     >
       <span className="w-4 shrink-0 text-center text-[13px] text-faint">{icon}</span>
       <div className="relative min-w-0 flex-1">
@@ -69,7 +69,7 @@ function paint({ span, offered, overruled }: Mark): string {
   if (overruled) return "text-faint line-through decoration-faint";
   if (offered) return "underline decoration-dashed underline-offset-[3px] decoration-faint";
   return span.certainty === "sure"
-    ? `rounded-[3px] ${TINT[span.mark]}`
+    ? `rounded-md ${TINT[span.mark]}`
     : `underline decoration-dotted underline-offset-[3px] ${DOTTED[span.mark]}`;
 }
 

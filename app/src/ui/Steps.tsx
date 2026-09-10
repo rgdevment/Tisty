@@ -36,7 +36,7 @@ export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
           placeholder={t("addStep")}
           aria-label={t("addStep")}
           onChange={(e) => setAdding(e.target.value)}
-          className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-faint"
+          className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint"
         />
       </form>
     </>
@@ -49,7 +49,7 @@ function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "s
   useEffect(() => setText(step.text), [step.id, step.text]);
 
   return (
-    <div className="group flex items-start gap-2.5 py-1 text-[13.5px]">
+    <div className="group flex items-start gap-2.5 py-1 text-[13px]">
       <button
         type="button"
         role="checkbox"

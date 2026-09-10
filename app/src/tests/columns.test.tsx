@@ -82,21 +82,18 @@ beforeEach(() => {
   };
 });
 
-const cells = () => {
-  const grid = document.querySelector('[class*="grid-cols-"]') as HTMLElement;
-  const named = /grid-cols-\[([^\]]+)\]/.exec(grid.className);
-  const tracks = named ? named[1].split("_").length : 0;
-  return { grid, tracks, children: grid.children.length };
-};
+Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: 1440 });
 
-describe("the three columns of the window", () => {
+const lane = () => document.querySelector('[class*="transition-[padding]"]') as HTMLElement;
+
+describe("the room the desk keeps for the lanes beside it", () => {
   beforeEach(() => {
     // The board takes the pointer when a card is pressed, and jsdom has no such thing.
     Element.prototype.setPointerCapture = () => {};
     Element.prototype.releasePointerCapture = () => {};
   });
 
-  it("gives the board one cell, strip and all, so it never lands in a track of nought", async () => {
+  it("holds the board itself, so nothing of it hides under a lane", async () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByText("write the report");
@@ -104,17 +101,37 @@ describe("the three columns of the window", () => {
     await user.click(screen.getByRole("button", { name: /priorit/i }));
     await screen.findByRole("button", { name: /write the report/i });
 
-    const before = cells();
-    expect(before.children).toBeLessThanOrEqual(before.tracks);
+    const board = document.querySelector("section") as HTMLElement;
+    expect(lane().contains(board)).toBe(true);
+  });
+
+  it("keeps room for the day on its own, and for the task beside it", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText("write the report");
+
+    expect(lane().className).toContain("pr-[324px]");
 
     await user.click(screen.getByText("write the report"));
-    await user.click(await screen.findByRole("button", { name: /^Complete$/ }));
-    await screen.findByRole("region", { name: /did you do it/i });
+    await screen.findByRole("textbox", { name: "Title" });
 
-    const after = cells();
-    expect(after.children).toBeLessThanOrEqual(after.tracks);
+    expect(lane().className).toContain("pr-[404px]");
+    expect(lane().className).toContain("pr-[716px]");
+  });
 
-    const board = after.grid.querySelector("section") as HTMLElement;
-    expect(after.grid.children[0].contains(board)).toBe(true);
+  it("keeps no room at all in the spread, where seven days want the whole width", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText("write the report");
+
+    await user.click(screen.getByRole("button", { name: /spread/i }));
+    await screen.findByRole("button", { name: /the week after/i });
+
+    expect(lane().className).not.toContain("pr-[");
+
+    await user.click(screen.getByText("write the report"));
+    await screen.findByRole("textbox", { name: "Title" });
+
+    expect(lane().className).not.toContain("pr-[");
   });
 });

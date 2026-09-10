@@ -20,7 +20,7 @@ export default function Row({
     >
       <span className="w-[15px] text-center">{glyph}</span>
       {children}
-      <span className="ml-auto text-[11px] text-faint">{say}</span>
+      <span className="ml-auto text-[11.5px] text-faint">{say}</span>
     </button>
   );
 }

@@ -69,15 +69,6 @@ export default function TaskList({
     [tasks, bands, axis, lists],
   );
   const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
-  const opens = useMemo(() => {
-    const said = new Set<string>();
-    return rows.map((row) => {
-      if (!row.band || said.has(row.band)) return false;
-      said.add(row.band);
-      return true;
-    });
-  }, [rows]);
-
   const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
   const hidden = (band: string) => heads && shut.has(band);
   const many = useMemo(() => {
@@ -86,11 +77,21 @@ export default function TaskList({
     return tally;
   }, [rows]);
 
+  const sheets = useMemo(() => {
+    const out = new Map<string, typeof rows>();
+    for (const row of rows) {
+      const kept = out.get(row.band);
+      if (kept) kept.push(row);
+      else out.set(row.band, [row]);
+    }
+    return [...out].map(([band, held]) => ({ band, rows: held }));
+  }, [rows]);
+
   const named = (id: string) => lists.find((list) => list.id === id)?.name;
   const columns = onFold
     ? "grid-cols-[20px_minmax(0,1fr)_auto_16px]"
     : "grid-cols-[20px_minmax(0,1fr)_auto]";
-  const width = "w-full max-w-[900px]";
+  const width = "mx-auto w-full max-w-[820px]";
 
   const asked = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -104,8 +105,12 @@ export default function TaskList({
   const [reached, setReached] = useState<string | null>(null);
 
   const drawn = useMemo(
-    () => rows.filter((row) => !(heads && shut.has(row.band))).map((row) => row.key),
-    [rows, shut, heads],
+    () =>
+      sheets
+        .flatMap((leaf) => leaf.rows)
+        .filter((row) => !(heads && shut.has(row.band)))
+        .map((row) => row.key),
+    [sheets, shut, heads],
   );
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;
@@ -162,14 +167,14 @@ export default function TaskList({
         >
           <span
             aria-hidden="true"
-            className={`text-center text-[11px] ${
+            className={`text-center text-[11.5px] ${
               task.status === "dropped" ? "text-faint" : "text-accent"
             }`}
           >
             {task.status === "dropped" ? "⨯" : "✓"}
           </span>
           <span className="truncate text-[13px] text-soft">{task.title}</span>
-          <span className="text-[11px] whitespace-nowrap text-faint tabular-nums">
+          <span className="text-[11.5px] whitespace-nowrap text-faint tabular-nums">
             {task.completed_at ? stamped(task.completed_at) : ""}
           </span>
         </div>
@@ -189,7 +194,7 @@ export default function TaskList({
           onFocus={() => setReached(at)}
           onKeyDown={(event) => typed(event, task, at)}
           onClick={() => onSelect(task.id)}
-          className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-lg px-2.5 py-2 hover:bg-hover ${
+          className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-[10px] px-2.5 py-2 hover:bg-hover ${
             selected === task.id ? "bg-active" : ""
           } ${fresh === task.id ? "bg-accent-soft transition-colors duration-700" : ""}`}
         >
@@ -259,7 +264,7 @@ export default function TaskList({
             onClick={onBack}
             aria-label={t("goBack")}
             title={t("goBack")}
-            className="-ml-5 shrink-0 self-center rounded-md px-1.5 py-0.5 text-[15px] text-faint hover:bg-hover hover:text-ink"
+            className="-ml-5 shrink-0 self-center rounded-md px-1.5 py-0.5 text-[13px] text-faint hover:bg-hover hover:text-ink"
           >
             ‹
           </button>
@@ -279,46 +284,51 @@ export default function TaskList({
 
       <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>
       {note && <p className={`shrink-0 px-7 pb-1.5 text-[11.5px] text-faint ${width}`}>{note}</p>}
-      {above && <div className={`shrink-0 px-5 ${width}`}>{above}</div>}
+      {above && <div className={`shrink-0 px-5 pb-1 ${width}`}>{above}</div>}
 
       <div
         ref={listed}
         role="list"
         aria-label={t("tasks")}
-        className={`scroller flex-1 px-5 pt-4 pb-6 ${width}`}
+        className={`scroller flex flex-1 flex-col gap-3.5 px-5 pt-4 pb-6 ${width}`}
       >
         {instead}
         {!instead && tasks.length === 0 && (
-          <p className="px-2.5 py-4 text-sm leading-relaxed text-soft">
+          <p className="rounded-[10px] border border-hair bg-sheet px-5 py-4 text-[12.5px] leading-relaxed text-soft shadow-lift">
             {empty ?? t("nothingOpen")}
           </p>
         )}
 
         {!instead &&
-          rows.map((row, r) => (
-            <div key={row.key}>
-              {heads && opens[r] && (
+          sheets.map((leaf) => (
+            <section
+              key={leaf.band || "all"}
+              className="rounded-[10px] border border-hair bg-sheet px-2.5 py-2 shadow-lift"
+            >
+              {heads && leaf.band && (
                 <button
                   type="button"
-                  aria-expanded={!shut.has(row.band)}
-                  onClick={() => setShut((was) => flip(was, row.band))}
-                  className="mt-5 mb-1 flex w-full items-center gap-2 px-2.5 text-left text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase first:mt-1 hover:text-soft"
+                  aria-expanded={!shut.has(leaf.band)}
+                  onClick={() => setShut((was) => flip(was, leaf.band))}
+                  className="mb-1 flex w-full items-baseline gap-2 border-b border-hair px-2.5 pb-1.5 text-left text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase hover:text-soft"
                 >
                   <span aria-hidden="true" className="text-[9px]">
-                    {shut.has(row.band) ? "▸" : "▾"}
+                    {shut.has(leaf.band) ? "▸" : "▾"}
                   </span>
-                  {row.band}
-                  {shut.has(row.band) && (
-                    <span className="font-normal tracking-normal normal-case tabular-nums">
-                      {many.get(row.band)}
-                    </span>
-                  )}
+                  {leaf.band}
+                  <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
+                    {many.get(leaf.band)}
+                  </span>
                 </button>
               )}
 
-              {!hidden(row.band) && line(row.task, row.key)}
-              {!hidden(row.band) && ask?.(row.task.id)}
-            </div>
+              {leaf.rows.map((row) => (
+                <div key={row.key}>
+                  {!hidden(row.band) && line(row.task, row.key)}
+                  {!hidden(row.band) && ask?.(row.task.id)}
+                </div>
+              ))}
+            </section>
           ))}
 
         {below}

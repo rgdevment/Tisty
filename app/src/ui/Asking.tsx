@@ -21,7 +21,7 @@ export default function Asking({
     >
       <label
         htmlFor={field}
-        className="block px-2.5 pt-1 text-[11px] tracking-[0.04em] text-faint uppercase"
+        className="block px-2.5 pt-1 text-[11.5px] tracking-[0.04em] text-faint uppercase"
       >
         {t(leaf ? "pageName" : "docName")}
       </label>

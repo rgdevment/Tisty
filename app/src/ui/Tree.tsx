@@ -383,7 +383,7 @@ export default function Tree({
     const pages = pagesOf(doc.id);
     const closed = !spread.has(doc.id) && !pages.some((one) => one.file === open);
     const mark = worn.mark ? (
-      <span className="text-[12px] leading-none">{worn.mark}</span>
+      <span className="text-[12.5px] leading-none">{worn.mark}</span>
     ) : (
       <Glyph
         name={page ? "alignleft" : "page"}
@@ -469,7 +469,7 @@ export default function Tree({
               </span>
             )}
             {pages.length > 0 && (
-              <span className="ml-auto shrink-0 pl-2 text-[11px] text-faint">
+              <span className="ml-auto shrink-0 pl-2 text-[11.5px] text-faint">
                 {pages.length === 1 ? t("pageHeld") : fill("pagesHeld", String(pages.length))}
               </span>
             )}
@@ -551,7 +551,7 @@ export default function Tree({
               }`}
             >
               <span className="truncate">{folder.name}</span>
-              <span className="ml-auto pr-1 text-[11px] text-faint opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
+              <span className="ml-auto pr-1 text-[11.5px] text-faint opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
                 {folder.holds || ""}
               </span>
             </button>
@@ -570,7 +570,7 @@ export default function Tree({
             {papersIn.flatMap((doc) => [paper(doc, depth + 1)])}
             {!kids.length && !papersIn.length && (
               <li
-                className="py-0.5 text-[11px] text-faint italic"
+                className="py-0.5 text-[11.5px] text-faint italic"
                 style={{ paddingLeft: `${8 + (depth + 1) * STEP + ICON}px` }}
               >
                 {t("folderEmpty")}
@@ -592,7 +592,7 @@ export default function Tree({
   const tree = (
     <ul aria-label={t("docs")} className="flex flex-col gap-px">
       {papers.folders.length === 0 && papers.docs.length === 0 && (
-        <li className="px-2.5 py-2 text-[12px] text-faint">{t("noDocsYet")}</li>
+        <li className="px-2.5 py-2 text-[12.5px] text-faint">{t("noDocsYet")}</li>
       )}
       {lifted && (
         <li
@@ -642,7 +642,7 @@ export default function Tree({
             }`}
           >
             <span className="truncate">{t("unfiled")}</span>
-            <span className="ml-auto text-[11px] opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
+            <span className="ml-auto text-[11.5px] opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
               {loose.length || ""}
             </span>
           </button>
@@ -673,7 +673,7 @@ export default function Tree({
         onClick={() => fold("away")}
         aria-expanded={opened.has("away")}
         aria-label={t("archived")}
-        className="flex w-full items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase"
+        className="flex w-full items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
       >
         <span
           aria-hidden
@@ -682,7 +682,7 @@ export default function Tree({
           ▼
         </span>
         {t("archived")}
-        <span className="ml-auto text-[11px] font-normal">{held}</span>
+        <span className="ml-auto text-[11.5px] font-normal">{held}</span>
       </button>
       {opened.has("away") && (
         <ul aria-label={t("archived")} className="flex flex-col gap-px">

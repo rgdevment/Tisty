@@ -62,14 +62,14 @@ export default function Spine({ coming, routines, days, onOpen }: Props) {
               setOpen(!open);
             }}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded px-1 py-0.5 hover:bg-hover ${
-              day.held.length >= HEAVY ? "bg-hue-amber/12" : ""
+              day.held.length >= HEAVY ? "bg-hue-amber/10" : ""
             }`}
           >
             <span className="text-[9px] font-semibold tracking-[0.05em] text-faint uppercase">
               {weekday().format(day.at)}
             </span>
             <span
-              className={`text-[10px] tabular-nums ${
+              className={`text-[10.5px] tabular-nums ${
                 day.held.length >= HEAVY ? "text-hue-amber" : "text-soft"
               }`}
             >
@@ -80,7 +80,7 @@ export default function Spine({ coming, routines, days, onOpen }: Props) {
                 <span
                   key={`${one.task.id} ${one.on}`}
                   className={`block size-[3px] rounded-full ${
-                    specOf(one)?.has_time ? "bg-accent" : "bg-faint/50"
+                    specOf(one)?.has_time ? "bg-accent" : "bg-faint/40"
                   }`}
                 />
               ))}

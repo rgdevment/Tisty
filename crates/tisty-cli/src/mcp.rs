@@ -437,6 +437,12 @@ fn day(args: &Value, key: &str) -> Result<Option<DateSpec>, Refused> {
 }
 
 fn moments(args: &Value, key: &str) -> Result<Vec<DateSpec>, Refused> {
+    if args.get(key).is_some_and(|one| !one.is_array()) {
+        return Err(Refused::Tool(format!(
+            "`{key}` takes a list of moments, each a day and an hour like \
+             [\"2026-08-31T09:00\"]."
+        )));
+    }
     let zone = jiff::tz::TimeZone::system();
     let named = zone.iana_name().unwrap_or("UTC").to_string();
     let mut out: Vec<DateSpec> = Vec::new();

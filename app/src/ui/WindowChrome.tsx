@@ -139,7 +139,7 @@ export default function WindowChrome() {
           onClick={acts[button.key]}
           aria-label={t(button.key)}
           title={t(button.key)}
-          className={`grid h-7 w-8 place-items-center rounded-md text-[11px] text-soft ${
+          className={`grid h-7 w-8 place-items-center rounded-md text-[11.5px] text-soft ${
             button.danger ? "hover:bg-urgent hover:text-bg" : "hover:bg-hover"
           }`}
         >

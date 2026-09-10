@@ -79,7 +79,7 @@ export default function Menu({ at, choices, label, onClose }: Props) {
           walk(e.target as HTMLElement, e.key === "ArrowDown" ? 1 : -1);
         }
       }}
-      className="scroller fixed z-[70] max-h-[min(420px,80vh)] min-w-[210px] rounded-lg border border-hair bg-rail py-1 shadow-lg"
+      className="scroller fixed z-[70] max-h-[min(420px,80vh)] min-w-[210px] rounded-[10px] border border-hair bg-rail py-1 shadow-lg"
     >
       {deeper && (
         <button
@@ -88,7 +88,7 @@ export default function Menu({ at, choices, label, onClose }: Props) {
           onClick={() => setDeeper(null)}
           className="mb-1 flex w-full items-center gap-2.5 border-b border-hair px-3 py-1.5 text-left text-[12.5px] text-faint hover:bg-hover focus:bg-hover focus:outline-none"
         >
-          <span aria-hidden className="w-3.5 shrink-0 text-center text-[11px]">
+          <span aria-hidden className="w-3.5 shrink-0 text-center text-[11.5px]">
             ‹
           </span>
           <span className="truncate">{deeper.label}</span>
@@ -110,12 +110,12 @@ export default function Menu({ at, choices, label, onClose }: Props) {
               one.danger ? "text-urgent" : "text-ink"
             }`}
           >
-            <span aria-hidden className="w-3.5 shrink-0 text-center text-[11px] text-faint">
+            <span aria-hidden className="w-3.5 shrink-0 text-center text-[11.5px] text-faint">
               {one.icon ?? ""}
             </span>
             <span className="truncate">{one.label}</span>
             {one.into && (
-              <span aria-hidden className="ml-auto pl-3 text-[11px] text-faint">
+              <span aria-hidden className="ml-auto pl-3 text-[11.5px] text-faint">
                 ›
               </span>
             )}

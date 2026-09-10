@@ -134,7 +134,7 @@ export default function Prose({
         onError={onError}
         onWhole={onWhole}
         onDoc={onDoc}
-        className="prose cursor-text rounded-md px-1.5 py-1 text-[13.5px] leading-relaxed outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
+        className="prose cursor-text rounded-md px-1.5 py-1 text-[13px] leading-relaxed outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
       />
     </div>
   );
@@ -150,7 +150,7 @@ export default function Prose({
         onError={onError}
         onDoc={onDoc}
         html={composed(text, steps)}
-        className="prose px-1.5 py-1 text-[13.5px] leading-relaxed"
+        className="prose px-1.5 py-1 text-[13px] leading-relaxed"
       />
     </div>
   );

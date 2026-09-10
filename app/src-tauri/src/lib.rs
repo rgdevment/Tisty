@@ -738,18 +738,21 @@ fn recurring(state: &State, from: jiff::civil::Date) -> Vec<Habit> {
             if own > from && own <= until {
                 turns.push(own);
             }
-            let mut at = spec.at;
-            for _ in 0..AHEAD {
-                let Some(next) = repeat.cadence().after(at) else {
-                    break;
-                };
-                at = next;
-                let on = at.date();
-                if on > until || repeat.ended(on) {
-                    break;
-                }
-                if on > from {
-                    turns.push(on);
+            if repeat.cadence().every > 0 {
+                let floor = from.to_datetime(jiff::civil::Time::midnight());
+                let mut at = if spec.at > floor { spec.at } else { floor };
+                for _ in 0..AHEAD {
+                    let Some(next) = repeat.cadence().after(at) else {
+                        break;
+                    };
+                    at = next;
+                    let on = at.date();
+                    if on > until || repeat.ended(on) {
+                        break;
+                    }
+                    if on > from && !turns.contains(&on) {
+                        turns.push(on);
+                    }
                 }
             }
 
@@ -7400,7 +7403,11 @@ mod tests {
 
         let out = coming(&state, from);
 
-        assert_eq!(out.len(), 1, "working on it and owing it is one day, not two");
+        assert_eq!(
+            out.len(),
+            1,
+            "working on it and owing it is one day, not two"
+        );
         assert!(!out[0].due);
     }
 
@@ -7447,7 +7454,10 @@ mod tests {
         let mut state = State::default();
         kept(&mut state, daily(from, None));
 
-        assert!(coming(&state, from).is_empty(), "it holds no day of its own");
+        assert!(
+            coming(&state, from).is_empty(),
+            "it holds no day of its own"
+        );
         assert_eq!(recurring(&state, from).len(), 1);
     }
 
@@ -7506,6 +7516,126 @@ mod tests {
         kept(&mut state, daily(from, Some(from)));
 
         assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_cadence_of_zero_still_names_the_single_day_it_falls_on() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 0,
+            unit: tisty_core::model::Unit::Day,
+        }));
+        kept(&mut state, task);
+
+        let out = recurring(&state, from);
+
+        assert_eq!(out.len(), 1, "a cadence of zero should still surface once");
+        assert_eq!(
+            out[0].on,
+            Some(away(from, 2)),
+            "«every 0 days» stands still on the same date instead of advancing, so the loop \
+             pushes that one real day seven more times and the day gets folded away as if the \
+             routine crowded the whole week"
+        );
+    }
+
+    #[test]
+    fn a_cadence_of_four_hundred_days_owes_nothing_this_week() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = daily(from, None);
+        task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+            every: 400,
+            unit: tisty_core::model::Unit::Day,
+        }));
+        kept(&mut state, task);
+
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_horizon_past_the_edge_of_the_calendar_is_none() {
+        assert_eq!(horizon(jiff::civil::Date::MAX), None);
+    }
+
+    #[test]
+    fn nothing_comes_or_recurs_once_the_calendar_runs_out() {
+        let from = jiff::civil::Date::MAX;
+        let mut state = State::default();
+
+        let mut plain = held("at the edge of time");
+        plain.date = Some(tisty_core::model::DateSpec::all_day(from, "UTC"));
+        kept(&mut state, plain);
+
+        let mut routine = daily(from, None);
+        routine.date = Some(tisty_core::model::DateSpec::all_day(from, "UTC"));
+        kept(&mut state, routine);
+
+        assert!(coming(&state, from).is_empty());
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_hidden_task_neither_comes_nor_recurs() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("folded away");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        task.hidden = true;
+        kept(&mut state, task);
+
+        let mut routine = daily(from, None);
+        routine.hidden = true;
+        kept(&mut state, routine);
+
+        assert!(coming(&state, from).is_empty());
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_dropped_task_neither_comes_nor_recurs() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("let go");
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            away(from, 2),
+            "America/Santiago",
+        ));
+        task.status = tisty_core::model::Status::Dropped;
+        kept(&mut state, task);
+
+        let mut routine = daily(from, None);
+        routine.status = tisty_core::model::Status::Dropped;
+        kept(&mut state, routine);
+
+        assert!(coming(&state, from).is_empty());
+        assert!(recurring(&state, from).is_empty());
+    }
+
+    #[test]
+    fn a_deadline_on_the_last_day_of_the_window_still_counts() {
+        let from = today();
+        let mut state = State::default();
+        let mut task = held("submit the form");
+        task.deadline = Some(tisty_core::model::DateSpec::all_day(
+            away(from, AHEAD),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+
+        let out = coming(&state, from);
+
+        assert_eq!(out.len(), 1, "the seventh day still belongs to the window");
+        assert_eq!(out[0].on, away(from, AHEAD));
     }
 
     #[test]

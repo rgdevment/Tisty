@@ -24,18 +24,18 @@ export default function Closing({ onDismiss, onError }: Props) {
           type="button"
           autoFocus
           onClick={() => settle("hide")}
-          className="rounded-lg border border-line px-3.5 py-2.5 text-left hover:bg-hover"
+          className="rounded-[10px] border border-line px-3.5 py-2.5 text-left hover:bg-hover"
         >
-          <span className="block text-[13.5px] font-medium">{t("closingHide")}</span>
+          <span className="block text-[13px] font-medium">{t("closingHide")}</span>
           <span className="block text-xs text-faint">{t("closingHideWhy")}</span>
         </button>
 
         <button
           type="button"
           onClick={() => settle("quit")}
-          className="rounded-lg border border-line px-3.5 py-2.5 text-left hover:bg-hover"
+          className="rounded-[10px] border border-line px-3.5 py-2.5 text-left hover:bg-hover"
         >
-          <span className="block text-[13.5px] font-medium">{t("closingQuit")}</span>
+          <span className="block text-[13px] font-medium">{t("closingQuit")}</span>
           <span className="block text-xs text-faint">{t("closingQuitWhy")}</span>
         </button>
       </div>

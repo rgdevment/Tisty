@@ -86,13 +86,13 @@ export default function SlashMenu({ from, query, lists, tags, onDate, onInsert, 
           type="button"
           onMouseEnter={() => setAt(i)}
           onClick={row.run}
-          className={`flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-[7px] text-[13px] ${
+          className={`flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-[7px] text-[13px] ${
             i === on ? "bg-accent-soft" : ""
           }`}
         >
-          <span className="w-[15px] text-center text-[12px] text-soft">{row.glyph}</span>
+          <span className="w-[15px] text-center text-[12.5px] text-soft">{row.glyph}</span>
           <span className="text-ink">{row.label}</span>
-          {row.say && <span className="ml-auto text-[11px] text-faint">{row.say}</span>}
+          {row.say && <span className="ml-auto text-[11.5px] text-faint">{row.say}</span>}
         </button>
       ))}
     </div>

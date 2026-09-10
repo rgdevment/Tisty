@@ -10,11 +10,13 @@ export default function Sightings({ papers, onOpen }: Props) {
   if (!papers.length) return null;
 
   return (
-    <div className="mt-6 border-t border-hair pt-4 first:mt-1 first:border-0 first:pt-0">
-      <div className="mb-1 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
+    <section className="rounded-[10px] border border-hair bg-sheet px-2.5 py-2 shadow-lift">
+      <p className="mb-1 flex items-baseline gap-2 border-b border-hair px-2.5 pb-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
         {t("foundPapers")}
-        <span className="ml-1.5 tabular-nums opacity-70">{papers.length}</span>
-      </div>
+        <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
+          {papers.length}
+        </span>
+      </p>
 
       <ul>
         {papers.map((one) => (
@@ -22,7 +24,7 @@ export default function Sightings({ papers, onOpen }: Props) {
             <button
               type="button"
               onClick={() => onOpen(one.id)}
-              className="grid w-full grid-cols-[16px_minmax(0,1fr)] items-start gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-hover"
+              className="grid w-full grid-cols-[16px_minmax(0,1fr)] items-start gap-2.5 rounded-[10px] px-2.5 py-2 text-left hover:bg-hover"
             >
               <span aria-hidden="true" className="text-center text-[13px] text-faint">
                 {one.archived ? "▢" : "▣"}
@@ -40,6 +42,6 @@ export default function Sightings({ papers, onOpen }: Props) {
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }

@@ -31,7 +31,7 @@ export default function Shelf({ lists, onOpen, onError }: Props) {
             <button
               type="button"
               onClick={() => onOpen(one.last)}
-              className="grid w-full cursor-pointer grid-cols-[18px_minmax(0,1fr)_auto] items-start gap-2.5 rounded-lg px-2.5 py-2 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
+              className="grid w-full cursor-pointer grid-cols-[18px_minmax(0,1fr)_auto] items-start gap-2.5 rounded-[10px] px-2.5 py-2 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
             >
               <span
                 aria-hidden="true"

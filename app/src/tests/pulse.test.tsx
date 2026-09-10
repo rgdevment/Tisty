@@ -22,7 +22,7 @@ const show = (counts: Record<string, number>, hands = picked()) => {
       lists={lists}
       ahead={[]}
       routines={[]}
-      beside={false}
+      apart=""
       papers={3}
       onList={hands.list}
       onQuadrants={hands.quadrants}

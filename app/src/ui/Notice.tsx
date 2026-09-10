@@ -68,7 +68,7 @@ export default function Notice({ task, lists, elsewhere, onOpen, onDismiss }: Pr
           onClick={onDismiss}
           aria-label={t("close")}
           title={t("close")}
-          className="rounded text-[11px] text-faint outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded text-[11.5px] text-faint outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
         >
           ✕
         </button>

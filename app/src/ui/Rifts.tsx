@@ -18,8 +18,8 @@ const SIDES: { key: Pick; word: "riftKeepMine" | "riftKeepTheirs" | "riftKeepBot
 
 const Said = ({ head, said, dim }: { head: string; said: string[]; dim?: boolean }) => (
   <div className={dim ? "opacity-60" : undefined}>
-    <p className="mb-0.5 text-[11px] tracking-[0.04em] text-faint uppercase">{head}</p>
-    <pre className="max-h-40 overflow-auto rounded-md bg-hover px-2.5 py-1.5 text-[12px] leading-relaxed whitespace-pre-wrap">
+    <p className="mb-0.5 text-[11.5px] tracking-[0.04em] text-faint uppercase">{head}</p>
+    <pre className="max-h-40 overflow-auto rounded-md bg-hover px-2.5 py-1.5 text-[12.5px] leading-relaxed whitespace-pre-wrap">
       {said.join("\n\n") || "—"}
     </pre>
   </div>
@@ -37,7 +37,7 @@ export default function Rifts({ named, rifts, onDone, onClose }: Props) {
         {rifts.map((rift, at) => (
           <li
             key={`${at}:${rift.was.join("")}`}
-            className="rounded-lg border border-line px-3 py-2.5"
+            className="rounded-[10px] border border-line px-3 py-2.5"
           >
             {rift.was.length > 0 && <Said head={t("riftWas")} said={rift.was} dim />}
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -53,7 +53,7 @@ export default function Rifts({ named, rifts, onDone, onClose }: Props) {
                   onClick={() =>
                     setPicks((was) => was.map((one, n) => (n === at ? side.key : one)))
                   }
-                  className={`rounded-md border px-2.5 py-0.5 text-[12px] ${
+                  className={`rounded-md border px-2.5 py-0.5 text-[12.5px] ${
                     picks[at] === side.key
                       ? "border-ink bg-ink text-bg"
                       : "border-line text-soft hover:border-ink"
@@ -69,7 +69,7 @@ export default function Rifts({ named, rifts, onDone, onClose }: Props) {
 
       <div className="mt-3 flex items-center justify-end gap-3">
         {left > 0 && (
-          <span className="text-[12px] text-faint">{fill("riftLeft", String(left))}</span>
+          <span className="text-[12.5px] text-faint">{fill("riftLeft", String(left))}</span>
         )}
         <button
           type="button"

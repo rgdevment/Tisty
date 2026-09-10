@@ -45,7 +45,7 @@ export default function Routine({ task, onError, heading }: Props) {
       </div>
 
       {told.repeat && (
-        <p className="mt-3 text-[12px] text-faint">
+        <p className="mt-3 text-[12.5px] text-faint">
           ↻ {cadence(told.repeat)}
           {" · "}
           {told.repeat.until ? fill("routineUntil", dated(told.repeat.until)) : t("routineEndless")}
@@ -59,13 +59,13 @@ export default function Routine({ task, onError, heading }: Props) {
           <span
             key={day.key}
             title={`${day.when}${day.told ? ` · ${t("routineKeyTold")}` : ""}`}
-            className={`h-3 w-3 rounded-[3px] ${paint(day.mark)} ${
+            className={`h-3 w-3 rounded-md ${paint(day.mark)} ${
               day.told ? "ring-2 ring-high ring-offset-1 ring-offset-bg" : ""
             }`}
           />
         ))}
       </div>
-      <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-faint">
+      <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-faint">
         <Key mark="kept" word={t("routineKeyKept")} />
         {told.measurable && <Key mark="gap" word={t("routineKeyGap")} />}
         {told.dropped > 0 && <Key mark="given" word={t("routineKeyGiven")} />}
@@ -81,28 +81,28 @@ export default function Routine({ task, onError, heading }: Props) {
                 key={one.hour}
                 title={`${String(one.hour).padStart(2, "0")}:00 · ${one.many}`}
                 style={{ height: `${Math.max(one.tall, one.tall > 0 ? 6 : 2)}%` }}
-                className={`flex-1 rounded-t-[3px] bg-accent ${
+                className={`flex-1 rounded-t-md bg-accent ${
                   one.tall > 0 ? "opacity-70" : "opacity-15"
                 }`}
               />
             ))}
           </div>
-          <div className="mt-1 flex justify-between text-[11px] tabular-nums text-faint">
+          <div className="mt-1 flex justify-between text-[11.5px] tabular-nums text-faint">
             <span>{hours.from}</span>
             <span>{hours.usual}</span>
             <span>{hours.to}</span>
           </div>
-          <p className="mt-2 text-[11px] leading-relaxed text-faint">{t("routineZone")}</p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("routineZone")}</p>
         </>
       )}
 
       <Line label={t("routineHoles")} />
       {!told.measurable ? (
-        <p className="text-[12px] leading-relaxed text-faint">{t("routineUnmeasured")}</p>
+        <p className="text-[12.5px] leading-relaxed text-faint">{t("routineUnmeasured")}</p>
       ) : told.skipped === 0 ? (
-        <p className="text-[12px] text-faint">{t("routineNoHoles")}</p>
+        <p className="text-[12.5px] text-faint">{t("routineNoHoles")}</p>
       ) : (
-        <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-soft">
+        <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-soft">
           {told.turns.flatMap((turn) =>
             (turn.gaps ?? []).map((gap) => (
               <li key={gap} className="tabular-nums">
@@ -119,9 +119,9 @@ export default function Routine({ task, onError, heading }: Props) {
 function Fact({ big, small, aside }: { big: string; small: string; aside?: string }) {
   return (
     <div>
-      <b className="block text-[19px] leading-tight font-bold tracking-tight tabular-nums">
+      <b className="block text-[21px] leading-tight font-bold tracking-tight tabular-nums">
         {big}
-        {aside && <span className="ml-1.5 text-[12px] font-normal text-faint">{aside}</span>}
+        {aside && <span className="ml-1.5 text-[12.5px] font-normal text-faint">{aside}</span>}
       </b>
       <span className="text-[11.5px] text-faint">{small}</span>
     </div>
@@ -130,7 +130,7 @@ function Fact({ big, small, aside }: { big: string; small: string; aside?: strin
 
 function Line({ label }: { label: string }) {
   return (
-    <div className="mt-5 mb-2 flex items-center gap-2.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase">
+    <div className="mt-5 mb-2 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
       <span>{label}</span>
       <span className="h-px flex-1 bg-hair" />
     </div>
@@ -140,7 +140,7 @@ function Line({ label }: { label: string }) {
 function Key({ mark, word }: { mark: Mark; word: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={`h-3 w-3 rounded-[3px] ${paint(mark)}`} />
+      <span className={`h-3 w-3 rounded-md ${paint(mark)}`} />
       {word}
     </span>
   );

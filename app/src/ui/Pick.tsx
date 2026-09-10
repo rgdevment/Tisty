@@ -120,7 +120,7 @@ export default function Pick({
       aria-pressed={icon === key}
       aria-label={key}
       title={key}
-      className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
+      className={`grid h-8 w-8 shrink-0 place-items-center rounded-[10px] ${
         icon === key ? "bg-accent-soft" : "hover:bg-hover"
       }`}
     >
@@ -140,7 +140,7 @@ export default function Pick({
           }}
           placeholder={t("siftIcons")}
           aria-label={t("siftIcons")}
-          className="min-w-0 flex-1 rounded-lg bg-hover px-2.5 py-1 text-[12px] outline-none placeholder:text-faint"
+          className="min-w-0 flex-1 rounded-[10px] bg-hover px-2.5 py-1 text-[12.5px] outline-none placeholder:text-faint"
         />
         {clears && (
           <button
@@ -150,7 +150,7 @@ export default function Pick({
             aria-pressed={!icon}
             aria-label={t("noIcon")}
             title={t("noIcon")}
-            className={`grid w-8 shrink-0 self-stretch place-items-center rounded-lg text-[13px] ${
+            className={`grid w-8 shrink-0 self-stretch place-items-center rounded-[10px] text-[13px] ${
               icon ? "text-faint hover:bg-hover" : "bg-accent-soft text-accent"
             }`}
           >
@@ -172,7 +172,7 @@ export default function Pick({
                 restart();
               }}
               aria-selected={marks === mine}
-              className={`flex-1 rounded-lg px-2 py-1 text-[11.5px] ${
+              className={`flex-1 rounded-[10px] px-2 py-1 text-[11.5px] ${
                 marks === mine ? "bg-accent-soft text-accent" : "text-faint hover:bg-hover"
               }`}
             >
@@ -197,7 +197,7 @@ export default function Pick({
                 restart();
               }}
               aria-pressed={only === name}
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] whitespace-nowrap ${
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[11.5px] whitespace-nowrap ${
                 only === name ? "bg-accent-soft text-accent" : "text-faint hover:bg-hover"
               }`}
             >
@@ -213,7 +213,7 @@ export default function Pick({
       >
         <legend className="sr-only">{t("pickAnIcon")}</legend>
         {many === 0 && sized && (
-          <p className="px-2.5 py-1.5 text-[12px] text-faint">{t("noneHere")}</p>
+          <p className="px-2.5 py-1.5 text-[12.5px] text-faint">{t("noneHere")}</p>
         )}
         {columns === 0 ? (
           sized && (
@@ -233,7 +233,7 @@ export default function Pick({
                 return "title" in row ? (
                   <p
                     key={mark}
-                    className="flex h-9 items-end px-0.5 pb-1 text-[10px] font-medium tracking-wide text-faint uppercase"
+                    className="flex h-9 items-end px-0.5 pb-1 text-[10.5px] font-medium tracking-wide text-faint uppercase"
                   >
                     {t(`family_${row.title}` as Word) ?? row.title}
                   </p>

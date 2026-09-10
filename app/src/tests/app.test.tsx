@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import type { Snapshot, Task } from "../core";
+import { t } from "../locales";
 
 Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
 
@@ -388,12 +389,13 @@ describe("closing an open task", () => {
 });
 
 describe("opening a task beside the list", () => {
-  it("stands the list where it was, rather than centring it on what is left", async () => {
+  it("centres the list on the desk, and leaves it centred when a task opens", async () => {
     const user = userEvent.setup();
     await started();
     const list = screen.getByRole("list", { name: "Tasks" });
     const was = list.className;
-    expect(was).not.toContain("mx-auto");
+    expect(was).toContain("mx-auto");
+    expect(was).toContain("max-w-[820px]");
 
     await user.click(screen.getByText("write the report"));
     await screen.findByRole("textbox", { name: "Title" });
@@ -604,5 +606,92 @@ describe("the views nothing else opens", () => {
     await user.click(screen.getByRole("button", { name: /not doing it/i }));
 
     await waitFor(() => expect(ipc.calls.some((one) => one.cmd === "discard")).toBe(true));
+  });
+});
+
+const widen = (px: number) => {
+  act(() => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: px });
+    window.dispatchEvent(new Event("resize"));
+  });
+};
+
+describe("the width below which a task takes the whole window", () => {
+  afterEach(() => widen(1440));
+
+  it("opens a task full screen a pixel under 1308", async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 1307,
+    });
+    await started();
+
+    await user.click(screen.getByText("write the report"));
+
+    expect(
+      await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
+  });
+
+  it("opens a task beside the list right at 1308", async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 1308,
+    });
+    await started();
+
+    await user.click(screen.getByText("write the report"));
+
+    expect(await screen.findByRole("button", { name: t("expand") })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: new RegExp(`^${t("collapse")}`) })).toBeNull();
+  });
+
+  it("falls back to full screen once a live resize crosses under 1308", async () => {
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByText("write the report"));
+    expect(await screen.findByRole("button", { name: t("expand") })).toBeTruthy();
+
+    widen(1307);
+
+    expect(
+      await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
+  });
+});
+
+describe("the day the calendar turns over", () => {
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+  afterEach(() => vi.useRealTimers());
+
+  it("reloads once the day turns from the last of a month into the next", async () => {
+    vi.setSystemTime(new Date(2026, 7, 31, 23, 59, 0));
+    await started();
+    const before = ipc.calls.filter((one) => one.cmd === "snapshot").length;
+
+    vi.setSystemTime(new Date(2026, 8, 1, 0, 0, 30));
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    await waitFor(() =>
+      expect(ipc.calls.filter((one) => one.cmd === "snapshot").length).toBeGreaterThan(before),
+    );
+  });
+
+  it("stays quiet while the day has not actually changed", async () => {
+    vi.setSystemTime(new Date(2026, 7, 15, 10, 0, 0));
+    await started();
+    const before = ipc.calls.filter((one) => one.cmd === "snapshot").length;
+
+    vi.setSystemTime(new Date(2026, 7, 15, 10, 5, 0));
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(ipc.calls.filter((one) => one.cmd === "snapshot").length).toBe(before);
   });
 });

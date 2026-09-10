@@ -31,7 +31,7 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
   if (chips.length === 0) return empty;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
+    <div className="flex flex-wrap items-center gap-1.5 text-[12.5px]">
       {chips.map((chip) => {
         const key = name(chip.slot);
         const pickable = chip.on !== undefined && chip.offer === undefined;
@@ -45,7 +45,7 @@ export default function Chips({ seen, edits, onEdit, empty }: Props) {
                 : `${chip.tint} py-0.5 pr-0.5 pl-1.5`
             }`}
           >
-            <span className="mr-1 w-3 text-center text-[11px] text-soft">{chip.glyph}</span>
+            <span className="mr-1 w-3 text-center text-[11.5px] text-soft">{chip.glyph}</span>
             {pickable ? (
               <button
                 type="button"

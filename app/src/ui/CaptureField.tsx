@@ -192,5 +192,5 @@ function Hint() {
 }
 
 function Key({ children }: { children: string }) {
-  return <code className="rounded bg-hover px-1.5 py-px text-[11px] text-soft">{children}</code>;
+  return <code className="rounded bg-hover px-1.5 py-px text-[11.5px] text-soft">{children}</code>;
 }

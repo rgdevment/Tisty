@@ -2228,8 +2228,28 @@ fn an_hour_the_person_chose_is_never_taken_away() {
         serde_json::json!({ "task": id, "at": ["2026-09-11T08:00"] }),
     );
 
-    let read = serde_json::to_string(&served.call("read", serde_json::json!({ "task": id })))
-        .unwrap();
+    let read =
+        serde_json::to_string(&served.call("read", serde_json::json!({ "task": id }))).unwrap();
     assert!(read.contains("2026-09-10"), "the first one stayed: {read}");
     assert!(read.contains("2026-09-11T08:00"), "and the second: {read}");
+}
+
+#[test]
+fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "the dentist", "remind": "2026-09-10T20:00" }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("list of moments"),
+        "{said}"
+    );
 }

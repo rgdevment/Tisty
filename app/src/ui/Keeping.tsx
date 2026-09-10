@@ -253,7 +253,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
         <div className="mx-auto w-full max-w-[560px] px-6">
           <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
           {trouble && (
-            <div className="rounded-xl border border-hair bg-panel p-4">
+            <div className="rounded-[10px] border border-hair bg-panel p-4">
               <p role="alert" className="text-[12.5px] leading-relaxed text-urgent">
                 {trouble.text}
               </p>
@@ -534,7 +534,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
             <button
               type="button"
               onClick={() => setAsking(null)}
-              className="rounded-lg px-3 py-1.5 text-faint hover:text-ink"
+              className="rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
             >
               {t("aliasRestNo")}
             </button>
@@ -551,7 +551,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                   });
                 });
               }}
-              className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
+              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
             >
               {t("aliasRestYes")}
             </button>
@@ -627,7 +627,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                         onChanged();
                       });
                     }}
-                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
                   >
                     <option value="">{t("tongueTheirs")}</option>
                     <option value="es">Español</option>
@@ -646,7 +646,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                   more={
                     wake.theirs &&
                     !wake.wakes && (
-                      <div className="mt-2 rounded-lg bg-mark-priority px-3 py-2.5">
+                      <div className="mt-2 rounded-[10px] bg-mark-priority px-3 py-2.5">
                         <p className="text-[12.5px] leading-relaxed text-ink">{t("wakeTheirs")}</p>
                       </div>
                     )
@@ -726,14 +726,14 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                     });
                   }}
                   list={before.length > 0 ? "signed-before" : undefined}
-                  className={`w-40 rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  className={`w-40 rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
                 />
                 {mine > 0 && (
                   <button
                     type="button"
                     disabled={held}
                     onClick={() => setAsking(alias)}
-                    className="rounded-[7px] border border-line px-2 py-1 text-[12px] hover:bg-hover disabled:opacity-60"
+                    className="rounded-[10px] border border-line px-2 py-1 text-[12.5px] hover:bg-hover disabled:opacity-60"
                   >
                     {t("aliasRest")}
                   </button>
@@ -797,7 +797,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                   more={
                     reach.withinReach &&
                     !reach.onPath && (
-                      <div className="mt-2 rounded-lg bg-mark-priority px-3 py-2.5">
+                      <div className="mt-2 rounded-[10px] bg-mark-priority px-3 py-2.5">
                         <p className="text-[12.5px] leading-relaxed text-ink">
                           {t("terminalNotOnPath")}
                         </p>
@@ -910,15 +910,15 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
               </div>
               {state.chosen && (
                 <>
-                  <p className="mt-2 text-[12px] text-soft">
+                  <p className="mt-2 text-[12.5px] text-soft">
                     {state.heard ? fill("syncHeard", stamped(state.heard)) : t("syncHeardNever")}
                   </p>
                   {state.heard && -daysFrom(state.heard) >= QUIET_DAYS && (
-                    <p className="mt-1.5 text-[12px] leading-relaxed text-ink">
+                    <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink">
                       {t("syncNothingSince")}
                     </p>
                   )}
-                  <p className="mt-1.5 text-[12px] leading-relaxed text-faint">
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-faint">
                     {t("syncOnlyFolder")}
                   </p>
                   <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-hair pt-2.5">
@@ -971,7 +971,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                     onChange={(e) =>
                       remember({ ...kept, attachUpTo: Number(e.target.value) }, "attach")
                     }
-                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
                   >
                     {SIZES.map((bytes) => (
                       <option key={bytes} value={bytes}>
@@ -1030,7 +1030,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                         void carryNow();
                       }
                     }}
-                    className={`rounded-[7px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
                   >
                     <option value="everywhere">{t("holdsEverywhere")}</option>
                     <option value="mine">{t("holdsMine")}</option>
@@ -1054,7 +1054,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                   type="button"
                   disabled={held}
                   onClick={onPack}
-                  className={`rounded-[7px] border border-line px-2 py-1 text-[12px] hover:bg-hover ${off}`}
+                  className={`rounded-[10px] border border-line px-2 py-1 text-[12.5px] hover:bg-hover ${off}`}
                 >
                   {t("packAllDo")}
                 </button>
@@ -1070,7 +1070,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                   type="button"
                   disabled={held}
                   onClick={onUnpack}
-                  className={`rounded-[7px] border border-line px-2 py-1 text-[12px] hover:bg-hover ${off}`}
+                  className={`rounded-[10px] border border-line px-2 py-1 text-[12.5px] hover:bg-hover ${off}`}
                 >
                   {t("unpackDo")}
                 </button>
@@ -1166,14 +1166,14 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
             >
               <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsWhat")}</p>
 
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-hair px-3 py-2.5">
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-[10px] border border-hair px-3 py-2.5">
                 <span className="min-w-0">
                   <span className="block text-[13px] font-semibold">
                     {agent?.on ? fill("agentsOn", agent.called ?? "") : t("agentsOff")}
                   </span>
                   {agent?.on && (
                     <>
-                      <span className="block text-[12px] text-soft">
+                      <span className="block text-[12.5px] text-soft">
                         {agent.filed > 0
                           ? fill("agentsFiled", String(agent.filed))
                           : t("agentsFiledNone")}
@@ -1192,7 +1192,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                       .then((fresh) => setAgent(fresh))
                       .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }));
                   }}
-                  className={`shrink-0 rounded-md border px-2.5 py-1 text-[12px] disabled:text-faint ${
+                  className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint ${
                     agent?.on
                       ? "border-line text-soft hover:border-urgent hover:text-urgent"
                       : "border-accent text-accent"
@@ -1214,7 +1214,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
 
               {agents && agents.length > 0 && (
                 <>
-                  <div className="mt-3 overflow-hidden rounded-lg border border-hair">
+                  <div className="mt-3 overflow-hidden rounded-[10px] border border-hair">
                     {agents.map((one) => (
                       <div
                         key={one.id}
@@ -1240,7 +1240,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                           type="button"
                           disabled={held}
                           onClick={() => join(one)}
-                          className={`shrink-0 rounded-md border px-2.5 py-1 text-[12px] disabled:text-faint ${
+                          className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint ${
                             one.wired && !one.astray
                               ? "border-line text-soft hover:border-urgent hover:text-urgent"
                               : "border-accent text-accent"
@@ -1297,8 +1297,8 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
             >
               <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsHow")}</p>
 
-              <p className="mt-3 text-[12px] font-semibold">{t("agentsByFile")}</p>
-              <pre className="mt-1 overflow-x-auto rounded-lg border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
+              <p className="mt-3 text-[12.5px] font-semibold">{t("agentsByFile")}</p>
+              <pre className="mt-1 overflow-x-auto rounded-[10px] border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
                 {wiring(reach?.binary)}
               </pre>
               <button
@@ -1309,13 +1309,13 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                     window.setTimeout(() => setWired(false), 1500);
                   });
                 }}
-                className="mt-2 rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-accent hover:text-accent"
+                className="mt-2 rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-accent hover:text-accent"
               >
                 {wired ? t("agentsCopied") : t("agentsCopy")}
               </button>
 
-              <p className="mt-4 text-[12px] font-semibold">{t("agentsByLine")}</p>
-              <pre className="mt-1 overflow-x-auto rounded-lg border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
+              <p className="mt-4 text-[12.5px] font-semibold">{t("agentsByLine")}</p>
+              <pre className="mt-1 overflow-x-auto rounded-[10px] border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
                 {oneLine(reach?.binary, t("agentsCalled"))}
               </pre>
               <p className="mt-1 text-[11.5px] text-faint">{t("agentsWhichever")}</p>
@@ -1327,7 +1327,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                     window.setTimeout(() => setTyped(false), 1500);
                   });
                 }}
-                className="mt-2 rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-accent hover:text-accent"
+                className="mt-2 rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-accent hover:text-accent"
               >
                 {typed ? t("agentsCopied") : t("agentsCopy")}
               </button>
@@ -1401,12 +1401,12 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                   {audit.machines.map((one) => (
                     <li
                       key={one.id}
-                      className={`flex items-center justify-between gap-3 rounded-lg px-2.5 py-2 ${
+                      className={`flex items-center justify-between gap-3 rounded-[10px] px-2.5 py-2 ${
                         one.mine ? "bg-accent-soft" : ""
                       }`}
                     >
                       <span className="min-w-0">
-                        <span className="block text-[13.5px] font-semibold">
+                        <span className="block text-[13px] font-semibold">
                           {one.called}
                           {one.mine && (
                             <span className="ml-2 rounded-full border border-accent px-1.5 py-px align-[1px] text-[10.5px] font-semibold tracking-wide text-accent uppercase">
@@ -1415,7 +1415,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                           )}
                         </span>
                         <span
-                          className={`block text-[12px] ${hushed(one) ? "text-ink" : "text-soft"}`}
+                          className={`block text-[12.5px] ${hushed(one) ? "text-ink" : "text-soft"}`}
                         >
                           {one.when === 0 ? t("machineNever") : dated(one.when)}
                         </span>
@@ -1425,13 +1425,13 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                       </span>
                       <span className="flex shrink-0 items-center gap-2.5">
                         {one.mine ? (
-                          <span className="text-[12px] text-faint">{t("machineNeverDrop")}</span>
+                          <span className="text-[12.5px] text-faint">{t("machineNeverDrop")}</span>
                         ) : (
                           <button
                             type="button"
                             disabled={held}
                             onClick={() => dropMachine(one)}
-                            className="rounded-md border border-line px-2.5 py-0.5 text-[12px] text-soft hover:border-urgent hover:text-urgent disabled:text-faint"
+                            className="rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-urgent hover:text-urgent disabled:text-faint"
                           >
                             {t("machineDrop")}
                           </button>
@@ -1511,7 +1511,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                       type="button"
                       disabled={held || audit.loose === 0}
                       onClick={() => letGoOfAll(audit.astray)}
-                      className="rounded-[7px] border border-urgent/45 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-hover disabled:border-hair disabled:text-faint"
+                      className="rounded-[10px] border border-urgent/40 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-hover disabled:border-hair disabled:text-faint"
                     >
                       {t("upkeepSafeAll")}
                     </button>
@@ -1577,7 +1577,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                       type="button"
                       disabled={held}
                       onClick={() => takeInAll(audit.stranded)}
-                      className="rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:border-hair disabled:text-faint"
+                      className="rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:border-hair disabled:text-faint"
                     >
                       {t("upkeepTakeInAll")}
                     </button>
@@ -1752,7 +1752,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                 <summary className="cursor-pointer text-[12.5px] text-accent">
                   {t("reportShow")}
                 </summary>
-                <pre className="scroller mt-2 max-h-[22rem] overflow-x-auto rounded-lg bg-hover px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-soft">
+                <pre className="scroller mt-2 max-h-[22rem] overflow-x-auto rounded-[10px] bg-hover px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-soft">
                   {paper ?? "…"}
                 </pre>
               </details>
@@ -1788,9 +1788,9 @@ const dated = (when: number): string => {
 };
 
 const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
-const mild = `rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
-const strong = `rounded-[7px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
-const risky = `rounded-[7px] border border-urgent/45 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-urgent/10 ${off}`;
+const mild = `rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
+const strong = `rounded-[10px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
+const risky = `rounded-[10px] border border-urgent/40 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-urgent/10 ${off}`;
 
 const wiring = (at?: string) =>
   `{
@@ -1804,7 +1804,7 @@ const oneLine = (at?: string, agent = "agent") =>
 
 function Band({ label }: { label: string }) {
   return (
-    <div className="mt-5 mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-faint uppercase">
+    <div className="mt-5 mb-1.5 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
       {label}
     </div>
   );
@@ -1816,7 +1816,7 @@ function Ask({ said }: { said: string }) {
       <button
         type="button"
         aria-label={said}
-        className="peer flex h-[15px] w-[15px] items-center justify-center rounded text-[11px] leading-none text-faint hover:bg-line hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        className="peer flex h-[15px] w-[15px] items-center justify-center rounded text-[11.5px] leading-none text-faint hover:bg-line hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
       >
         ?
       </button>
@@ -1852,7 +1852,7 @@ function Line({
       <div className="flex items-center gap-4">
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-medium">{title}</span>
-          {why && <span className="mt-px block text-[12px] leading-snug text-faint">{why}</span>}
+          {why && <span className="mt-px block text-[12.5px] leading-snug text-faint">{why}</span>}
         </span>
         {children && (
           <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">{children}</span>
@@ -1947,7 +1947,7 @@ function Warned({ keeper, named }: { keeper: Keeper; named?: string }) {
   const warning = warningOf(keeper, named);
   return (
     <div
-      className={`mt-2 rounded-lg px-3 py-2 text-[12px] leading-relaxed text-soft ${
+      className={`mt-2 rounded-[10px] px-3 py-2 text-[12.5px] leading-relaxed text-soft ${
         warning.mild ? "bg-accent-soft" : "border border-hue-amber/40"
       }`}
     >
@@ -1961,7 +1961,7 @@ function Card({ title, which, busy, said, trouble, children }: CardProps) {
   const waiting = busy !== null && busy !== which;
   return (
     <section className="mb-3 rounded-[10px] border border-hair px-4 py-3.5">
-      <h3 className="mb-0.5 text-[13.5px] font-semibold">{title}</h3>
+      <h3 className="mb-0.5 text-[13px] font-semibold">{title}</h3>
       {children}
       {waiting && (
         <p className="mt-2 text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>

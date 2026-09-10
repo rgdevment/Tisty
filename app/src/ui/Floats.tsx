@@ -52,7 +52,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
     { key: "underline", glyph: "U", name: t("underlined"), weight: "underline" },
     { key: "strike", glyph: "S", name: t("struck"), weight: "line-through" },
     { key: "code", glyph: "‹›", name: t("codeSpan"), weight: "font-mono" },
-    { key: "pen", glyph: "A", name: t("penIt"), weight: "rounded-[3px] bg-pen-yellow px-1" },
+    { key: "pen", glyph: "A", name: t("penIt"), weight: "rounded-md bg-pen-yellow px-1" },
   ] as const;
 
   const kinds = ["note", "tip", "important", "warning", "caution"] as const;
@@ -169,18 +169,20 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
             aria-label={t("linkTo")}
             aria-invalid={wrong || undefined}
             className={`min-w-0 flex-1 rounded-md px-2 py-1 text-[12.5px] outline-none placeholder:text-faint ${
-              wrong ? "bg-urgent/15 text-urgent" : "bg-hover"
+              wrong ? "bg-urgent/10 text-urgent" : "bg-hover"
             }`}
           />
           <button
             type="submit"
             aria-label={t("linkIt")}
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-[12px] text-accent hover:bg-hover"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-[12.5px] text-accent hover:bg-hover"
           >
             ↵
           </button>
         </div>
-        {wrong && <p className="px-1 text-[11px] leading-tight text-urgent">{t("notAnAddress")}</p>}
+        {wrong && (
+          <p className="px-1 text-[11.5px] leading-tight text-urgent">{t("notAnAddress")}</p>
+        )}
       </form>
     );
   }
@@ -217,7 +219,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
               .updateAttributes("callout", { kind: e.target.value })
               .run()
           }
-          className="mr-0.5 h-7 rounded-md border-0 bg-transparent px-1 text-[12px] text-soft hover:bg-hover"
+          className="mr-0.5 h-7 rounded-md border-0 bg-transparent px-1 text-[12.5px] text-soft hover:bg-hover"
         >
           {kinds.map((one) => (
             <option key={one} value={one}>
@@ -267,7 +269,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
             editor.isActive("highlight", { color: one.key }) ? "bg-accent-soft" : ""
           }`}
         >
-          <span className={`h-3 w-3 rounded-[3px] border border-line ${one.paint}`} />
+          <span className={`h-3 w-3 rounded-md border border-line ${one.paint}`} />
         </button>
       ))}
 
@@ -289,7 +291,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
             held: live,
           })
         }
-        className={`grid h-7 w-7 place-items-center rounded-md text-[12px] ${
+        className={`grid h-7 w-7 place-items-center rounded-md text-[12.5px] ${
           editor.isActive("link")
             ? "bg-accent-soft text-accent"
             : "text-soft hover:bg-hover hover:text-ink"
@@ -309,7 +311,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
           onMouseDown={(e) => e.preventDefault()}
           onFocus={() => setReached(marks.length + 2)}
           onClick={asCard}
-          className="grid h-7 w-7 place-items-center rounded-md text-[12px] text-soft hover:bg-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
+          className="grid h-7 w-7 place-items-center rounded-md text-[12.5px] text-soft hover:bg-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-35"
         >
           ▤
         </button>
