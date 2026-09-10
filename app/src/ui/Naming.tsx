@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAttended } from "../attended";
 import { t } from "../locales";
 import Modal from "./Modal";
 import Pick from "./Pick";
@@ -34,6 +35,8 @@ export default function Naming({
   const [icon, setIcon] = useState<string | undefined>(drawn);
   const [colour, setColour] = useState<string | undefined>(painted);
 
+  const held = useAttended<HTMLInputElement>();
+
   const done = () => {
     const wanted = name.trim();
     if (wanted) onName(wanted, icon, colour);
@@ -42,7 +45,7 @@ export default function Naming({
   return (
     <Modal title={title} onClose={onClose}>
       <input
-        autoFocus
+        ref={held}
         onFocus={(e) => e.target.select()}
         value={name}
         maxLength={most}
@@ -50,7 +53,7 @@ export default function Naming({
         onKeyDown={(e) => e.key === "Enter" && done()}
         placeholder={invite}
         aria-label={invite}
-        className="w-full rounded-lg bg-hover px-3 py-2 text-[13.5px] outline-none placeholder:text-faint"
+        className="w-full rounded-[10px] bg-hover px-3 py-2 text-[13px] outline-none placeholder:text-faint"
       />
       <div className="mt-2.5">
         <Pick icon={icon} colour={colour} onIcon={setIcon} onColour={setColour} />
@@ -59,14 +62,14 @@ export default function Naming({
         <button
           type="button"
           onClick={done}
-          className="rounded-lg bg-accent px-3 py-1.5 text-[12.5px] text-bg"
+          className="rounded-[10px] bg-accent px-3 py-1.5 text-[12.5px] text-bg"
         >
           {action ?? t("create")}
         </button>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg px-3 py-1.5 text-[12.5px] text-soft hover:bg-hover"
+          className="rounded-[10px] px-3 py-1.5 text-[12.5px] text-soft hover:bg-hover"
         >
           {t("cancel")}
         </button>
@@ -74,7 +77,7 @@ export default function Naming({
           <button
             type="button"
             onClick={onDrop}
-            className="ml-auto rounded-lg px-3 py-1.5 text-[12.5px] text-urgent hover:bg-hover"
+            className="ml-auto rounded-[10px] px-3 py-1.5 text-[12.5px] text-urgent hover:bg-hover"
           >
             {dropWord}
           </button>

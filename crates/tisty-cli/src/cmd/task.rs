@@ -195,7 +195,6 @@ pub fn done(
             && !owed.is_empty()
             && let Some(task) = app.state.tasks.get(&id)
         {
-            // The task is closed by now, so the hint has to name it by something that still resolves.
             let days = owed
                 .iter()
                 .map(ToString::to_string)
@@ -279,6 +278,11 @@ pub fn rm(app: &mut App, selector: &str, force: bool, lang: Lang) -> anyhow::Res
     })
 }
 
+fn moment(raw: &str, lang: Lang) -> anyhow::Result<jiff::civil::DateTime> {
+    raw.parse::<jiff::civil::DateTime>()
+        .map_err(|_| anyhow::anyhow!("{}", lang.fill("not-a-moment", &[("said", raw)])))
+}
+
 pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Result<ExitCode> {
     let date = date_flag(args.date.as_deref(), lang)?;
     let deadline = date_flag(args.deadline.as_deref(), lang)?;
@@ -298,7 +302,7 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
                 .map(|raw| named_priority(raw, lang))
                 .transpose()?,
             tags,
-            reminders: None,
+            reminders: recalled(app, id, &args, lang)?,
             repeat: over,
         };
 
@@ -312,6 +316,39 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
         report(app, id, today, lang);
         Ok(ExitCode::SUCCESS)
     })
+}
+
+fn recalled(
+    app: &App,
+    id: tisty_core::TaskId,
+    args: &SetArgs,
+    lang: Lang,
+) -> anyhow::Result<Option<Vec<tisty_core::DateSpec>>> {
+    if args.remind.is_none() && args.unremind.is_none() {
+        return Ok(None);
+    }
+    let mut at = app.state.tasks[&id].reminders.clone();
+    if let Some(raw) = &args.unremind {
+        let gone = moment(raw, lang)?;
+        at.retain(|kept| kept.at != gone);
+    }
+    if let Some(raw) = &args.remind {
+        let when = moment(raw, lang)?;
+        if when < jiff::Zoned::now().datetime() {
+            anyhow::bail!("{}", lang.fill("moment-gone", &[("said", raw)]));
+        }
+        if !at.iter().any(|kept| kept.at == when) {
+            at.push(tisty_core::DateSpec::floating(
+                when,
+                jiff::tz::TimeZone::system()
+                    .iana_name()
+                    .unwrap_or("UTC")
+                    .to_string(),
+            ));
+        }
+    }
+    at.sort_by_key(|one| one.at);
+    Ok(Some(at))
 }
 
 fn warn_if_backwards(

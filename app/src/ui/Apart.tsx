@@ -74,11 +74,11 @@ export default function Apart({ kin, onPick, onElse, onClose }: Props) {
             <button
               type="button"
               onClick={() => onPick(door.key)}
-              className="w-full rounded-lg border border-line px-3 py-2.5 text-left hover:border-ink hover:bg-hover"
+              className="w-full rounded-[10px] border border-line px-3 py-2.5 text-left hover:border-ink hover:bg-hover"
             >
-              <span className="block text-[13.5px] font-semibold">{t(door.name)}</span>
-              <span className="mt-0.5 block text-[12px] text-faint">{t(door.why)}</span>
-              <span className="mt-1.5 block text-[12px] leading-relaxed whitespace-pre-line text-soft">
+              <span className="block text-[13px] font-semibold">{t(door.name)}</span>
+              <span className="mt-0.5 block text-[12.5px] text-faint">{t(door.why)}</span>
+              <span className="mt-1.5 block text-[12.5px] leading-relaxed whitespace-pre-line text-soft">
                 {t(door.how)}
               </span>
             </button>

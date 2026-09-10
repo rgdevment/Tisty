@@ -1332,7 +1332,7 @@ impl State {
     pub fn docs_tagged(&self, tag: &Tag) -> impl Iterator<Item = &crate::model::Kept> {
         self.docs
             .values()
-            .filter(move |one| !one.archived && one.tags.contains(tag))
+            .filter(move |one| !self.held_away(one) && one.tags.contains(tag))
     }
 }
 
@@ -4317,6 +4317,43 @@ mod tests {
         assert!(
             !state.docs[&one].archived && !state.docs[&two].archived,
             "the folder holds the mark, not the documents"
+        );
+    }
+
+    #[test]
+    fn a_tag_counts_no_document_the_archive_holds_away_from_sight() {
+        let mut state = State::default();
+        let gone = folder(&mut state, "linio", None);
+        let here = folder(&mut state, "tisty", None);
+        let stowed = doc(&mut state, "a3f1-0001", Some(gone));
+        let shown = doc(&mut state, "a3f1-0002", Some(here));
+        let by_hand = doc(&mut state, "a3f1-0003", Some(here));
+        let tag: Tag = "adc".parse().unwrap();
+
+        for one in [stowed, shown, by_hand] {
+            state.apply(&ev(
+                2,
+                "a",
+                Op::DocSaid {
+                    id: one,
+                    d: crate::event::Said {
+                        title: "gcp".into(),
+                        bytes: None,
+                        tags: Some(vec![tag.clone()]),
+                        by: None,
+                    },
+                },
+            ));
+        }
+        state.apply(&ev(3, "a", Op::FolderArchive { id: gone }));
+        state.apply(&ev(4, "a", Op::DocArchive { id: by_hand }));
+
+        let counted: Vec<DocId> = state.docs_tagged(&tag).map(|one| one.id).collect();
+
+        assert_eq!(counted, vec![shown], "counted: {counted:?}");
+        assert!(
+            !state.docs[&stowed].archived,
+            "the folder holds the mark, so counting on the document alone would have counted it"
         );
     }
 

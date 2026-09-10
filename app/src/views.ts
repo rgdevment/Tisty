@@ -6,6 +6,7 @@ export type Named =
   | "search"
   | "tasks"
   | "quadrants"
+  | "spread"
   | "lists"
   | "docs"
   | "tags"

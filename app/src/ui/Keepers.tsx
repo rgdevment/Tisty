@@ -35,8 +35,8 @@ const HUE: Record<string, string> = {
 };
 
 const row =
-  "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left hover:bg-hover disabled:opacity-50 disabled:hover:bg-transparent";
-const badge = "flex-none rounded-md px-1.5 py-0.5 text-[10px] tracking-wide";
+  "flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2 text-left hover:bg-hover disabled:opacity-50 disabled:hover:bg-transparent";
+const badge = "flex-none rounded-md px-1.5 py-0.5 text-[10.5px] tracking-wide";
 
 export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) {
   const [offers, setOffers] = useState<Offering[]>([]);
@@ -113,17 +113,17 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
     const warning = warningOf(standing.keeper, standing.named);
     return (
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2.5 rounded-lg border border-accent bg-accent-soft px-3 py-2">
+        <div className="flex items-center gap-2.5 rounded-[10px] border border-accent bg-accent-soft px-3 py-2">
           <span className="min-w-0 flex-1">
-            <span className="block text-[13.5px] font-medium">
+            <span className="block text-[13px] font-medium">
               {standing.named ?? t("keepersOther")}
             </span>
-            <span className="block truncate text-[11px] text-faint">{standing.at}</span>
+            <span className="block truncate text-[11.5px] text-faint">{standing.at}</span>
           </span>
         </div>
 
         <div
-          className={`rounded-lg border px-3 py-2 text-xs leading-relaxed ${
+          className={`rounded-[10px] border px-3 py-2 text-[11.5px] leading-relaxed ${
             warning.mild ? "border-hair bg-accent-soft text-soft" : "border-hue-amber/40 text-soft"
           }`}
         >
@@ -134,7 +134,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
         {strays?.unreadable && (
           <div
             role="alert"
-            className="rounded-lg border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
+            className="rounded-[10px] border border-hue-amber/40 px-3 py-2 text-[11.5px] leading-relaxed text-soft"
           >
             <span className="block text-[12.5px] font-semibold text-ink">
               {t("keepersUnreadable")}
@@ -146,7 +146,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
         {(strays?.adrift ?? 0) > 0 && (
           <div
             role="alert"
-            className="rounded-lg border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
+            className="rounded-[10px] border border-hue-amber/40 px-3 py-2 text-[11.5px] leading-relaxed text-soft"
           >
             <span className="block text-[12.5px] font-semibold text-ink">
               {fill("keepersStrays", `${strays?.adrift}`)}
@@ -155,7 +155,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
           </div>
         )}
 
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-4 text-[11.5px]">
           <button
             type="button"
             disabled={stuck}
@@ -168,7 +168,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
             type="button"
             disabled={stuck}
             onClick={keep}
-            className="ml-auto rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60"
+            className="ml-auto rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60"
           >
             {t("keepersSave")}
           </button>
@@ -188,21 +188,21 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
           className={`${row} border-line`}
         >
           <span
-            className={`grid size-6 flex-none place-items-center rounded-md text-[11px] font-semibold text-white ${
+            className={`grid size-6 flex-none place-items-center rounded-md text-[11.5px] font-semibold text-white ${
               HUE[one.key] ?? "bg-soft"
             }`}
           >
             {one.named.slice(0, 1)}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[13.5px] font-medium">{one.named}</span>
-            <span className="block truncate text-[11px] text-faint">
+            <span className="block text-[13px] font-medium">{one.named}</span>
+            <span className="block truncate text-[11.5px] text-faint">
               {one.at ?? t("keepersMissing")}
             </span>
           </span>
           <span
             className={`${badge} ${
-              one.at ? "bg-hue-green/15 text-hue-green" : "border border-hair text-faint"
+              one.at ? "bg-hue-green/10 text-hue-green" : "border border-hair text-faint"
             }`}
           >
             {one.at ? t("keepersHere") : t("keepersGone")}
@@ -211,23 +211,23 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
       ))}
 
       <button type="button" disabled={stuck} onClick={browse} className={`${row} border-line`}>
-        <span className="grid size-6 flex-none place-items-center rounded-md border border-dashed border-line text-[11px] text-faint">
+        <span className="grid size-6 flex-none place-items-center rounded-md border border-dashed border-line text-[11.5px] text-faint">
           +
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[13.5px] font-medium">{t("keepersOther")}</span>
-          <span className="block truncate text-[11px] text-faint">{t("keepersOtherWhy")}</span>
+          <span className="block text-[13px] font-medium">{t("keepersOther")}</span>
+          <span className="block truncate text-[11.5px] text-faint">{t("keepersOtherWhy")}</span>
         </span>
       </button>
 
       <div className="mt-1 border-t border-hair pt-3">
         <button type="button" disabled={stuck} onClick={alone} className={`${row} border-line`}>
-          <span className="grid size-6 flex-none place-items-center rounded-md bg-soft text-[11px] font-semibold text-bg">
+          <span className="grid size-6 flex-none place-items-center rounded-md bg-soft text-[11.5px] font-semibold text-bg">
             1
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[13.5px] font-medium">{t("welcomeAlone")}</span>
-            <span className="block truncate text-[11px] text-faint">{t("welcomeAloneWhy")}</span>
+            <span className="block text-[13px] font-medium">{t("welcomeAlone")}</span>
+            <span className="block truncate text-[11.5px] text-faint">{t("welcomeAloneWhy")}</span>
           </span>
         </button>
       </div>

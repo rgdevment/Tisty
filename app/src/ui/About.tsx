@@ -85,12 +85,12 @@ export default function About({
         <div className="flex items-center gap-3.5">
           <span
             aria-hidden="true"
-            className="grid size-[52px] shrink-0 place-items-center rounded-[13px] bg-linear-150 from-accent to-[#6f4bd8] text-[26px] font-semibold text-white shadow-lift"
+            className="grid size-[52px] shrink-0 place-items-center rounded-[10px] bg-linear-150 from-accent to-[#6f4bd8] text-[21px] font-semibold text-white shadow-lift"
           >
             T
           </span>
           <span className="min-w-0">
-            <h2 className="text-[22px] font-semibold tracking-[-0.015em]">Tisty</h2>
+            <h2 className="text-[21px] font-semibold tracking-[-0.015em]">Tisty</h2>
             <span className="mt-px flex items-center gap-2 text-[11.5px] text-faint tabular-nums">
               <span>{build?.version ?? "—"}</span>
               <span aria-hidden="true" className="size-[3px] rounded-full bg-line" />
@@ -100,7 +100,7 @@ export default function About({
         </div>
 
         <p className="mt-4 text-[13px] leading-relaxed text-soft">{t("aboutWhat")}</p>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
+        <p className="mt-1.5 text-[12.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
 
         {trouble && (
           <div className="mt-4">
@@ -123,12 +123,12 @@ export default function About({
               </span>
               {step ? (
                 step.stage === "installing" ? (
-                  <span className="mt-0.5 block text-[12px] text-soft">
+                  <span className="mt-0.5 block text-[12.5px] text-soft">
                     {t("updateInstalling")}
                   </span>
                 ) : (
                   <>
-                    <span className="mt-0.5 block text-[12px] text-soft">
+                    <span className="mt-0.5 block text-[12.5px] text-soft">
                       {fill("updateGetting", `${step.far} %`)}
                     </span>
                     <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-desk">
@@ -140,7 +140,7 @@ export default function About({
                   </>
                 )
               ) : (
-                <span className="mt-0.5 block text-[12px] text-soft">
+                <span className="mt-0.5 block text-[12.5px] text-soft">
                   {newer.installs ? (
                     t("updateAsk")
                   ) : newer.route === "store" ? (
@@ -163,7 +163,7 @@ export default function About({
                     onError(problem);
                   });
                 }}
-                className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white disabled:opacity-60"
+                className="shrink-0 rounded-[10px] bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white disabled:opacity-60"
               >
                 {t("updateInstall")}
               </button>
@@ -214,10 +214,10 @@ export default function About({
             onClick={() => openUrl(tool.at).catch(onError)}
             className="mb-2 flex w-full items-start gap-3 rounded-[10px] border border-hair px-3.5 py-3 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
           >
-            <img src={tool.icon} alt="" className="mt-px size-6 shrink-0 rounded-[6px]" />
+            <img src={tool.icon} alt="" className="mt-px size-6 shrink-0 rounded-md" />
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-semibold">{tool.name}</span>
-              <span className="mt-0.5 block text-[12px] leading-relaxed text-soft">
+              <span className="mt-0.5 block text-[12.5px] leading-relaxed text-soft">
                 {t(tool.said)}
               </span>
             </span>
@@ -254,7 +254,7 @@ export default function About({
             label={t("aboutNotices")}
             html={composed(said)}
             onError={onError}
-            className="prose scroller mt-2.5 max-h-[380px] rounded-[8px] border border-hair px-3 py-2 text-[12px] leading-relaxed text-soft"
+            className="prose scroller mt-2.5 max-h-[380px] rounded-[10px] border border-hair px-3 py-2 text-[12.5px] leading-relaxed text-soft"
           />
         )}
       </div>
@@ -263,14 +263,14 @@ export default function About({
 }
 
 const mild =
-  "rounded-[7px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:border-hair disabled:bg-hair disabled:text-soft";
+  "rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:border-hair disabled:bg-hair disabled:text-soft";
 
 function Pip({ ok }: { ok?: boolean }) {
   return (
     <span
       aria-hidden="true"
       className={`size-2 shrink-0 rounded-full ${
-        ok ? "bg-hue-green ring-3 ring-hue-green/15" : "bg-accent ring-3 ring-accent-soft"
+        ok ? "bg-hue-green ring-3 ring-hue-green/10" : "bg-accent ring-3 ring-accent-soft"
       }`}
     />
   );
@@ -300,7 +300,7 @@ function Gives({
     <button
       type="button"
       onClick={onPick}
-      className="flex items-center gap-2.5 rounded-[9px] border border-hair bg-panel px-3 py-2.5 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
+      className="flex items-center gap-2.5 rounded-[10px] border border-hair bg-panel px-3 py-2.5 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
     >
       <svg viewBox="0 0 16 16" aria-hidden="true" className="size-[17px] shrink-0">
         {children}

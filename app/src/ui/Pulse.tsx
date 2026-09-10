@@ -1,27 +1,40 @@
-import type { Counted, List } from "../core";
-import { fill, t } from "../locales";
+import type { Coming, Habit, List } from "../core";
+import { t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
+import Ahead, { WEEK } from "./Ahead";
 
 interface Props {
+  apart: string;
   counts: Record<string, number>;
   lists: List[];
-  tags: Counted[];
+  ahead: Coming[];
+  routines: Habit[];
   papers: number;
   onList: (id: string) => void;
-  onTags: () => void;
   onQuadrants: () => void;
+  onOpen: (task: string) => void;
 }
 
-const SHOWN = 8;
-
-export default function Pulse({ counts, lists, tags, papers, onList, onTags, onQuadrants }: Props) {
+export default function Pulse({
+  apart,
+  counts,
+  lists,
+  ahead,
+  routines,
+  papers,
+  onList,
+  onQuadrants,
+  onOpen,
+}: Props) {
   const held = lists
     .filter((one) => counts[one.id])
     .sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0));
-  const named = [...tags].sort((a, b) => b.tasks - a.tasks).slice(0, SHOWN);
 
   return (
-    <aside className="scroller flex flex-col gap-4 border-l border-hair bg-panel px-3.5 pt-12 pb-6">
+    <aside
+      className={`scroller absolute top-11 bottom-3 z-20 w-[300px] flex-col gap-4 rounded-[10px] border border-hair bg-panel px-3.5 pt-4 pb-5 shadow-lift ${apart}`}
+      style={{ right: 12 }}
+    >
       <div>
         <Cap said={t("theDay")} />
         <dl className="grid grid-cols-3 gap-1.5">
@@ -32,6 +45,11 @@ export default function Pulse({ counts, lists, tags, papers, onList, onTags, onQ
       </div>
 
       <div>
+        <Cap said={t("upcoming")} />
+        <Ahead coming={ahead} routines={routines} days={WEEK} onOpen={onOpen} />
+      </div>
+
+      <div>
         <Cap said={t("quadrants")} />
         <div className="grid grid-cols-2 gap-1.5">
           {QUADRANTS.map((one) => (
@@ -39,9 +57,9 @@ export default function Pulse({ counts, lists, tags, papers, onList, onTags, onQ
               key={one}
               type="button"
               onClick={onQuadrants}
-              className="flex items-baseline gap-2 rounded-lg border border-hair px-2 py-1 text-left hover:bg-hover"
+              className="flex items-baseline gap-2 rounded-[10px] border border-hair px-2 py-1 text-left hover:bg-hover"
             >
-              <span className="min-w-0 truncate text-[11px] text-soft">{said(one)}</span>
+              <span className="min-w-0 truncate text-[11.5px] text-soft">{said(one)}</span>
               <b className={`ml-auto text-[12.5px] tabular-nums ${tint(one)}`}>
                 {counts[one] ?? 0}
               </b>
@@ -52,7 +70,7 @@ export default function Pulse({ counts, lists, tags, papers, onList, onTags, onQ
           <button
             type="button"
             onClick={onQuadrants}
-            className="mt-1 flex w-full items-baseline gap-2 text-left text-[11px] text-faint hover:text-ink"
+            className="mt-1 flex w-full items-baseline gap-2 text-left text-[11.5px] text-faint hover:text-ink"
           >
             <span>{t("noPriority")}</span>
             <span className="ml-auto tabular-nums">{counts.quadrants}</span>
@@ -71,24 +89,6 @@ export default function Pulse({ counts, lists, tags, papers, onList, onTags, onQ
               onPick={() => onList(one.id)}
             />
           ))}
-        </div>
-      )}
-
-      {named.length > 0 && (
-        <div>
-          <Cap said={t("tags")} />
-          <div className="flex flex-wrap gap-1">
-            {named.map((one) => (
-              <button
-                key={one.tag}
-                type="button"
-                onClick={onTags}
-                className="rounded-full border border-hair px-2 text-[10.5px] text-faint hover:text-ink"
-              >
-                {fill("tagAndCount", one.tag, String(one.tasks))}
-              </button>
-            ))}
-          </div>
         </div>
       )}
 
@@ -146,11 +146,11 @@ function Line({
 
 function Count({ many, said, tone }: { many: number; said: string; tone?: string }) {
   return (
-    <div className="rounded-lg border border-hair px-2 py-1">
-      <dt className={`text-[17px] leading-tight font-semibold tabular-nums ${tone ?? ""}`}>
+    <div className="rounded-[10px] border border-hair px-2 py-1">
+      <dt className={`text-[21px] leading-tight font-semibold tabular-nums ${tone ?? ""}`}>
         {many}
       </dt>
-      <dd className="text-[9.5px] leading-tight text-faint">{said}</dd>
+      <dd className="text-[9px] leading-tight text-faint">{said}</dd>
     </div>
   );
 }

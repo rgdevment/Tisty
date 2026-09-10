@@ -67,6 +67,8 @@ const errand: Task = {
 
 const shot = (view: View | undefined): Snapshot => ({
   tasks: view?.archive ? (view.reading === "trace" ? [errand] : [told]) : [open],
+  ahead: [],
+  routines: [],
   lists: [],
   tags: [],
   refs: [],

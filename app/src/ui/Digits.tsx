@@ -67,7 +67,7 @@ export default function Digits({ label, value, onChange, onDone }: Props) {
             const kept = e.clipboardData.getData("text").replace(/\D/g, "");
             if (kept) said(kept);
           }}
-          className="h-11 w-9 rounded-[9px] border border-line bg-bg text-center font-mono text-[17px] text-ink caret-transparent outline-none focus:border-accent"
+          className="h-11 w-9 rounded-[10px] border border-line bg-bg text-center font-mono text-[21px] text-ink caret-transparent outline-none focus:border-accent"
         />
       ))}
       <span className="sr-only" aria-live="polite">

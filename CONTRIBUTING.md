@@ -108,6 +108,36 @@ keystrokes it costs, not what is possible. A feature that only exists behind a
 mouse cannot be scripted or emitted as `--json`, which is the point of the
 tool.
 
+## The look
+
+The interface keeps one scale, and `src/tests/manners.test.ts` fails the build
+when something falls outside it. The point is not the numbers: it is that a
+view should not feel like a different application from the one beside it.
+
+**Six type sizes, one role each.** `21` a view title, `13` a task title or
+emphasised body, `12.5` body, `11.5` secondary and metadata, `10.5` chips,
+pills and the small caps that name a section, `9` the smallest annotation there
+is — a day letter, the word under a counter. If a text fits none of them, the
+role it was given is wrong, not the scale. A sidebar may sit a role lower on
+the scale than the main canvas does: the same list is peripheral in one and the
+subject in the other.
+
+**Three corners.** `rounded-md` for controls, rows and chips; `rounded-[10px]`
+for cards, panels and windows; `rounded-full` for pills.
+
+**Three veils.** `/10` a faint fill, `/40` a soft border, `/70` dimmed text.
+Colour itself comes from the tokens in `index.css` and nowhere else — a literal
+hex belongs only to somebody else's brand, like a Drive blue or a traffic
+light on macOS.
+
+**Type comes from the system**, in three optical sizes: `--font-small` under
+12px, `--font-sans` in between, `--font-display` for titles. Segoe UI Variable
+and San Francisco both draw small text differently from large, and using one
+cut for everything wastes that.
+
+A new value joins the scale only when a role appears that none of the existing
+ones covers, and it is added here first — never inside a component.
+
 ## Tests
 
 The tests worth writing verify design properties, not round trips. Storing a

@@ -39,6 +39,8 @@ const bank: Task = {
 
 const shot = (): Snapshot => ({
   tasks: [bank],
+  ahead: [],
+  routines: [],
   lists: [],
   tags: [],
   refs: [],

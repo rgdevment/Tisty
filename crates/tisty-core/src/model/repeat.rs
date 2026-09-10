@@ -1,4 +1,4 @@
-use jiff::civil::DateTime;
+use jiff::civil::{Date, DateTime};
 use serde::{Deserialize, Serialize};
 
 use super::DateSpec;
@@ -98,15 +98,19 @@ impl Repeat {
         today: DateTime,
     ) -> Option<DateSpec> {
         let last = done.date().max(today.date());
-        let mut at = step.after(due.at)?;
-        while at.date() <= last {
-            at = step.after(at)?;
-        }
-        Some(due.moved(at))
+        Some(due.moved(step.beyond(due.at, last)?))
     }
 }
 
 impl Cadence {
+    pub fn beyond(self, anchor: DateTime, past: Date) -> Option<DateTime> {
+        let mut at = self.after(anchor)?;
+        while at.date() <= past {
+            at = self.after(at)?;
+        }
+        Some(at)
+    }
+
     pub fn after(self, from: DateTime) -> Option<DateTime> {
         let n = i64::from(self.every);
         let span = match self.unit {

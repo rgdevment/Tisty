@@ -65,7 +65,7 @@ export default function Quick() {
   if (!data) {
     return (
       <Frame>
-        <p className="text-[17px] leading-snug -tracking-[0.011em] text-soft">
+        <p className="text-[21px] leading-snug -tracking-[0.011em] text-soft">
           {error ?? t("addTask")}
         </p>
       </Frame>
@@ -75,7 +75,7 @@ export default function Quick() {
   return (
     <Frame>
       {kept ? (
-        <p className="flex items-baseline gap-2.5 text-[17px] leading-snug -tracking-[0.011em]">
+        <p className="flex items-baseline gap-2.5 text-[21px] leading-snug -tracking-[0.011em]">
           <span className="text-[13px] text-accent">✓</span> {kept}
         </p>
       ) : (
@@ -97,14 +97,14 @@ export default function Quick() {
           onError={setError}
         />
       )}
-      {error && <p className="pt-1 text-xs text-urgent">{error}</p>}
+      {error && <p className="pt-1 text-[11.5px] text-urgent">{error}</p>}
     </Frame>
   );
 }
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-full flex-col justify-center rounded-xl border border-hair bg-bg/85 px-[22px] py-5 shadow-lift-tall backdrop-blur-xl">
+    <div className="flex h-full flex-col justify-center rounded-[10px] border border-hair bg-bg/70 px-[22px] py-5 shadow-lift-tall backdrop-blur-xl">
       {children}
     </div>
   );

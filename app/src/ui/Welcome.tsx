@@ -57,12 +57,12 @@ function Choice({
       disabled={busy}
       aria-pressed={on}
       onClick={onPick}
-      className={`rounded-lg border px-3.5 py-2.5 text-left hover:bg-hover disabled:opacity-60 ${
+      className={`rounded-[10px] border px-3.5 py-2.5 text-left hover:bg-hover disabled:opacity-60 ${
         on ? "border-accent bg-accent-soft" : "border-line"
       }`}
     >
-      <span className="block text-[13.5px] font-medium">{said}</span>
-      {why && <span className="block text-xs text-faint">{why}</span>}
+      <span className="block text-[13px] font-medium">{said}</span>
+      {why && <span className="block text-[11.5px] text-faint">{why}</span>}
     </button>
   );
 }
@@ -235,10 +235,10 @@ export default function Welcome({ onDone }: Props) {
     return (
       <Modal title={t("welcomeFolderHolds")}>
         <p className="mt-3 text-[13px] leading-relaxed text-soft">{t("welcomeFolderHoldsWhy")}</p>
-        <p className="mt-2 text-[12px] leading-relaxed text-faint">
+        <p className="mt-2 text-[12.5px] leading-relaxed text-faint">
           {offer.alias ? fill("welcomeFolderHoldsAs", offer.alias) : t("welcomeFolderHoldsHow")}
         </p>
-        <div className="mt-5 flex items-center gap-3 text-xs">
+        <div className="mt-5 flex items-center gap-3 text-[11.5px]">
           <button
             type="button"
             onClick={() => {
@@ -254,7 +254,7 @@ export default function Welcome({ onDone }: Props) {
           <button
             type="button"
             onClick={takeItAll}
-            className="ml-auto cursor-pointer rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-bg"
+            className="ml-auto cursor-pointer rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-bg"
           >
             {t("welcomeBringIt")}
           </button>
@@ -314,13 +314,13 @@ export default function Welcome({ onDone }: Props) {
                 placeholder={t("aliasLike")}
                 onChange={(e) => setAlias(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && signAs()}
-                className="min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 py-2 text-[13px] disabled:opacity-60"
+                className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-3 py-2 text-[13px] disabled:opacity-60"
               />
               <button
                 type="button"
                 disabled={busy}
                 onClick={signAs}
-                className="cursor-pointer rounded-lg bg-accent px-3.5 py-2 text-[13px] text-bg disabled:opacity-60"
+                className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-2 text-[13px] text-bg disabled:opacity-60"
               >
                 {t("welcomeSigned")}
               </button>
@@ -341,7 +341,7 @@ export default function Welcome({ onDone }: Props) {
           <div className="flex flex-col gap-3">
             <div
               role="alert"
-              className="rounded-lg border border-hue-amber/40 px-3 py-2 text-xs leading-relaxed text-soft"
+              className="rounded-[10px] border border-hue-amber/40 px-3 py-2 text-[11.5px] leading-relaxed text-soft"
             >
               <span className="block text-[12.5px] font-semibold text-ink">
                 {t("welcomeCarryStuck")}
@@ -351,7 +351,7 @@ export default function Welcome({ onDone }: Props) {
             <button
               type="button"
               onClick={() => next()}
-              className="ml-auto rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
+              className="ml-auto rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90"
             >
               {t("welcomeAnyway")}
             </button>
@@ -360,7 +360,7 @@ export default function Welcome({ onDone }: Props) {
           <div
             role="status"
             aria-live="polite"
-            className="rounded-lg border border-hair bg-accent-soft px-3 py-2 text-xs leading-relaxed text-soft"
+            className="rounded-[10px] border border-hair bg-accent-soft px-3 py-2 text-[11.5px] leading-relaxed text-soft"
           >
             <span className="block text-[12.5px] font-semibold text-ink">
               {t("welcomeCarrying")}
@@ -379,16 +379,16 @@ export default function Welcome({ onDone }: Props) {
       </div>
 
       {trouble && (
-        <p role="alert" className="mt-3 text-xs text-urgent">
+        <p role="alert" className="mt-3 text-[11.5px] text-urgent">
           {trouble}
         </p>
       )}
 
       {step === "copies" && (
-        <p className="mt-4 text-xs leading-relaxed text-faint">{t("welcomeRedundancy")}</p>
+        <p className="mt-4 text-[11.5px] leading-relaxed text-faint">{t("welcomeRedundancy")}</p>
       )}
 
-      <div className="mt-4 flex items-center gap-4 text-xs">
+      <div className="mt-4 flex items-center gap-4 text-[11.5px]">
         {step === "copies" && !deciding && !carrying && (
           <button
             type="button"

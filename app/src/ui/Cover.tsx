@@ -20,7 +20,7 @@ export default function Cover({ onError }: Props) {
 
   return (
     <section aria-label={t("coverTitle")} className="px-2.5 pt-1 pb-2">
-      <p className="text-[12px] text-faint">
+      <p className="text-[12.5px] text-faint">
         {shape.since && (
           <>
             {fill("coverSince", month(shape.since))}
@@ -44,13 +44,13 @@ export default function Cover({ onError }: Props) {
                 key={one.key}
                 title={`${named(one.key)} · ${one.closed}`}
                 style={{ height: `${Math.max((one.closed / most) * 100, one.closed ? 6 : 2)}%` }}
-                className={`flex-1 rounded-t-[3px] bg-accent ${
+                className={`flex-1 rounded-t-md bg-accent ${
                   at === last ? "opacity-100" : "opacity-40"
                 }`}
               />
             ))}
           </div>
-          <div className="mt-1 flex justify-between text-[11px] tabular-nums text-faint">
+          <div className="mt-1 flex justify-between text-[11.5px] tabular-nums text-faint">
             <span>{named(shape.months[0].key)}</span>
             <span>
               {fill("coverPeak", `${shape.months[peak].closed} · ${named(shape.months[peak].key)}`)}

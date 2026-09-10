@@ -125,7 +125,7 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 > **Es para una persona, a propósito.** Sin responsables, sin permisos, sin
 > tableros. Si necesitas llevar un equipo, Tisty no va a sostener eso.
 
-![Un registro de cómo trabajas](assets/Store/jpg/es-01-archivo.jpg)
+![Se lee en tres capas, con lo que dejó cada tarea](assets/Store/jpg/es-07-archivo.jpg)
 
 ## Contenido
 
@@ -212,6 +212,8 @@ cuenta, sin suscripción y sin inteligencia artificial**, esto es Tisty:
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
 | Dos equipos | por una carpeta que ya sincronizas. Sin servidor nuestro |
 | Lenguaje natural | fechas, límites y repeticiones, interpretados en tu equipo |
+| Cuándo hacerlo | un reparto de días donde repartes el trabajo, y un mes para mirar |
+| Recordatorios | una hora que eliges, que suena en este equipo y en ningún otro |
 | Código | abierto, auditable, tuyo para bifurcar |
 
 **La matriz de Eisenhower, no prioridades numeradas.** Una tarea es urgente,
@@ -320,7 +322,7 @@ siempre le gana el sitio.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
-![La fecha se lee sola de la frase que escribes](assets/Store/jpg/es-02-captura.jpg)
+![La fecha se lee sola de la frase que escribes](assets/Store/jpg/es-01-registro.jpg)
 
 ```text
 "desplegar mañana a las 10"        →  mañana 10:00
@@ -354,7 +356,24 @@ Cada cuadrante lleva un **+** que abre la captura rápida con ese cuadrante ya
 puesto, y lo que nadie ha colocado espera en una bandeja que se abre como la
 dejaste.
 
-![Urgente contra importante, y qué hacer con cada cosa](assets/Store/jpg/es-04-prioridades.jpg)
+![Urgente contra importante, y qué hacer con cada cosa](assets/Store/jpg/es-02-prioridades.jpg)
+
+**El reparto reparte tus días, una fila cada vez.** Las prioridades ordenan lo
+que importa; el reparto decide cuándo. Es un río de días por el que bajas, no
+una semana que pasas de página: cada día es una fila, y la fila crece con lo que
+lleva, así que un viernes cargado es alto y un martes libre es una línea. Lo que
+escribiste sin día espera en una bandeja a la izquierda, y lo arrastras hasta un
+día —o lo devuelves a la bandeja para quitarle el día otra vez—. Si lo sueltas
+en un día que ya lleva tres, Tisty te lo dice y te ofrece el siguiente que está
+libre; nunca insiste.
+
+Un botón de **mes** está para mirar, no para repartir: lo pulsas y esos mismos
+días se ordenan en cuadrícula, pulsas un día y caes en él dentro del río. Ahí no
+se suelta nada, a propósito. Tisty no ve el calendario que llevas en otro sitio,
+así que una casilla sin nada escrito es solo una casilla sin nada escrito, nunca
+la promesa de que ese día es tuyo.
+
+![Los días como filas, y lo que lleva cada uno](assets/Store/jpg/es-03-reparto.jpg)
 
 **Los documentos** viven junto a las tareas, para el material de consulta que no
 tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
@@ -422,7 +441,7 @@ una línea del historial. Si escribes un alias —opcional, y solo tú decides
 cuál—, cada documento queda firmado con él, y lo que te llegue de otra persona
 conserva el suyo.
 
-![Documentos en Markdown, con adjuntos](assets/Store/jpg/es-03-documentos.jpg)
+![Documentos en Markdown, con adjuntos](assets/Store/jpg/es-05-documentos.jpg)
 
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.
@@ -443,7 +462,7 @@ porque pasó igual y la búsqueda sigue alcanzándolo.
 
 ## Tus datos y tu privacidad
 
-![Sin cuenta, sin telemetría, sin servidor](assets/Store/jpg/es-05-privado.jpg)
+![Sin cuenta, sin telemetría, sin servidor](assets/Store/jpg/es-10-privado.jpg)
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada
@@ -502,6 +521,7 @@ porque yo la quería, y es totalmente opcional.
 ```console
 $ tisty "llamar al banco a las 3"
 $ tisty ls hoy
+$ tisty set 2 --recordar 2026-09-30T20:00
 $ tisty done 2
 ```
 
@@ -535,20 +555,20 @@ y sigue siendo un dispositivo que puedes echar; mientras no le des entrada, todo
 lo que intente se le niega.
 
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
-fecha, agregar a la bitácora, escribir un documento, agregar al final de uno que
-ya está ahí, corregir un pasaje de uno, escribir uno entero de nuevo, ordenar
-documentos en carpetas, guardar una copia de un archivo que le señales —en una
-tarea o dentro de un documento, que admite el archivo más grande de los dos— y
-leer lo que ya está. Lo que no puede: cerrar una tarea ni borrarla, borrar un
-documento, renombrar ni vaciar una carpeta, alcanzar una tarea que plegaste,
-tomar archivos fuera de las carpetas donde aterriza una descarga, ni anotar dos
-veces lo mismo. Para corregir un pasaje tiene que nombrarlo tal como lo
-escribiste, y si ese texto no está o está dos veces, no se escribe nada. Para
-escribir un cuerpo entero de nuevo tiene que devolver la huella con la que leyó
-el documento la última vez: si escribiste en él desde entonces, la escritura se
-rechaza y tiene que volver a leer, así que lo que tecleaste mientras pensaba no
-se puede perder. Un documento que archivaste sí lo puede leer, y se le dice que
-lo archivaste.
+fecha, ponerle una hora a la que sonar, agregar a la bitácora, escribir un
+documento, agregar al final de uno que ya está ahí, corregir un pasaje de uno,
+escribir uno entero de nuevo, ordenar documentos en carpetas, guardar una copia
+de un archivo que le señales —en una tarea o dentro de un documento, que admite
+el archivo más grande de los dos— y leer lo que ya está. Lo que no puede: cerrar
+una tarea ni borrarla, borrar un documento, renombrar ni vaciar una carpeta,
+alcanzar una tarea que plegaste, tomar archivos fuera de las carpetas donde
+aterriza una descarga, ni anotar dos veces lo mismo. Para corregir un pasaje
+tiene que nombrarlo tal como lo escribiste, y si ese texto no está o está dos
+veces, no se escribe nada. Para escribir un cuerpo entero de nuevo tiene que
+devolver la huella con la que leyó el documento la última vez: si escribiste en
+él desde entonces, la escritura se rechaza y tiene que volver a leer, así que lo
+que tecleaste mientras pensaba no se puede perder. Un documento que archivaste
+sí lo puede leer, y se le dice que lo archivaste.
 
 Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que es
 justamente por lo que esta es una puerta que abres, y no una que ya estaba

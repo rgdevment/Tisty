@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAttended } from "../attended";
 import { closeWindow } from "../core";
 import { t } from "../locales";
 import Modal from "./Modal";
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function Closing({ onDismiss, onError }: Props) {
+  const held = useAttended<HTMLButtonElement>();
   const [remember, setRemember] = useState(true);
 
   const settle = (how: "hide" | "quit") => {
@@ -22,30 +24,34 @@ export default function Closing({ onDismiss, onError }: Props) {
       <div className="mt-5 flex flex-col gap-2">
         <button
           type="button"
-          autoFocus
+          ref={held}
           onClick={() => settle("hide")}
-          className="rounded-lg border border-line px-3.5 py-2.5 text-left hover:bg-hover"
+          className="rounded-[10px] border border-line px-3.5 py-2.5 text-left hover:bg-hover"
         >
-          <span className="block text-[13.5px] font-medium">{t("closingHide")}</span>
-          <span className="block text-xs text-faint">{t("closingHideWhy")}</span>
+          <span className="block text-[13px] font-medium">{t("closingHide")}</span>
+          <span className="block text-[11.5px] text-faint">{t("closingHideWhy")}</span>
         </button>
 
         <button
           type="button"
           onClick={() => settle("quit")}
-          className="rounded-lg border border-line px-3.5 py-2.5 text-left hover:bg-hover"
+          className="rounded-[10px] border border-line px-3.5 py-2.5 text-left hover:bg-hover"
         >
-          <span className="block text-[13.5px] font-medium">{t("closingQuit")}</span>
-          <span className="block text-xs text-faint">{t("closingQuitWhy")}</span>
+          <span className="block text-[13px] font-medium">{t("closingQuit")}</span>
+          <span className="block text-[11.5px] text-faint">{t("closingQuitWhy")}</span>
         </button>
       </div>
 
-      <label className="mt-4 flex items-center gap-2 text-xs text-faint">
+      <label className="mt-4 flex items-center gap-2 text-[11.5px] text-faint">
         <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
         {t("closingRemember")}
       </label>
 
-      <button type="button" onClick={onDismiss} className="mt-4 text-xs text-faint hover:text-ink">
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="mt-4 text-[11.5px] text-faint hover:text-ink"
+      >
         {t("closingStay")}
       </button>
     </Modal>

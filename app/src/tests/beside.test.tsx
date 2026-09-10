@@ -165,6 +165,21 @@ describe("the column beside a document", () => {
     expect(column()).toBeNull();
   });
 
+  it("shows itself by default right at the 1440 threshold", async () => {
+    widen(1440);
+    show();
+
+    expect(await screen.findByRole("complementary", { name: "About this document" })).toBeTruthy();
+  });
+
+  it("stays away by default a pixel under the 1440 threshold", async () => {
+    widen(1439);
+    show();
+
+    await screen.findByLabelText("editor");
+    expect(column()).toBeNull();
+  });
+
   it("stays closed while the window stays the size it was", async () => {
     show();
     await userEvent.click(await screen.findByRole("button", { name: "Close this column" }));
@@ -272,11 +287,19 @@ describe("where the document rests", () => {
   });
 
   it("gives the column its room when what is left still fits the page", async () => {
-    widen(1500);
+    widen(1600);
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
     expect(roomOf()?.style.paddingRight).toBe("344px");
+  });
+
+  it("counts the sidebar at the width it really has, and lets the column float when it does not fit", async () => {
+    widen(1500);
+    show();
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(roomOf()?.style.paddingRight).toBe("0px");
   });
 
   it("lets the column lie over the text rather than pushing it", async () => {
@@ -302,6 +325,22 @@ describe("where the document rests", () => {
     await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
 
     expect(sheetOf()?.style.maxWidth).toBe("820px");
+  });
+
+  it("reserves room right at 1552, the exact width the column needs to fit beside the page", async () => {
+    widen(1552);
+    show();
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(roomOf()?.style.paddingRight).toBe("344px");
+  });
+
+  it("reserves nothing a single pixel short of 1552", async () => {
+    widen(1551);
+    show();
+    await screen.findByRole("complementary", { name: "About this document" });
+
+    expect(roomOf()?.style.paddingRight).toBe("0px");
   });
 });
 

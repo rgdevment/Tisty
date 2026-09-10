@@ -12,20 +12,22 @@ export default function Tagged({ docs, onOpen }: Props) {
   if (docs.length === 0) return null;
 
   return (
-    <>
-      <p className="mt-5 mb-1 flex items-center gap-2 px-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
+    <section className="rounded-[10px] border border-hair bg-sheet px-2.5 py-2 shadow-lift">
+      <p className="mb-1 flex items-baseline gap-2 border-b border-hair px-2.5 pb-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
         {t("docs")}
-        <span className="font-normal tracking-normal normal-case tabular-nums">{docs.length}</span>
+        <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
+          {docs.length}
+        </span>
       </p>
       {docs.map((doc) => (
         <button
           key={doc.id}
           type="button"
           onClick={() => onOpen(doc.file)}
-          className="flex w-full items-baseline gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-hover"
+          className="flex w-full items-baseline gap-2 rounded-md px-2.5 py-1 text-left hover:bg-hover"
         >
           <Glyph name="page" className="h-[13px] w-[13px] shrink-0 self-center text-faint" />
-          <span className="min-w-0 truncate text-sm">{doc.title || t("untitledDoc")}</span>
+          <span className="min-w-0 truncate text-[13px]">{doc.title || t("untitledDoc")}</span>
           <span className="min-w-0 shrink truncate text-[11.5px] text-faint">
             {(doc.tags ?? []).map((one) => `#${one}`).join(" ")}
           </span>
@@ -34,6 +36,6 @@ export default function Tagged({ docs, onOpen }: Props) {
           )}
         </button>
       ))}
-    </>
+    </section>
   );
 }

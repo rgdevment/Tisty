@@ -22,7 +22,7 @@ const menuAt = (e: React.KeyboardEvent) => {
 
 const INDEX = "columns-1 gap-x-8 md:columns-2 xl:columns-3";
 const ROW =
-  "-ml-1.5 flex w-full cursor-pointer items-center gap-2 truncate rounded-[6px] px-1.5 py-[3px] text-left text-[12.5px] hover:bg-hover";
+  "-ml-1.5 flex w-full cursor-pointer items-center gap-2 truncate rounded-md px-1.5 py-[3px] text-left text-[12.5px] hover:bg-hover";
 
 interface Props {
   folder: Folded | null;
@@ -138,7 +138,7 @@ export default function Folder({
           )}
           {one.gone && <span className="shrink-0 text-[11.5px] text-urgent">{t("goneDoc")}</span>}
           {!one.gone && (one.wrote || one.bytes) && (
-            <span className="ml-auto shrink-0 text-[11px] text-faint tabular-nums">
+            <span className="ml-auto shrink-0 text-[11.5px] text-faint tabular-nums">
               {[one.wrote ? shortStamp(one.wrote) : "", one.bytes ? weighed(one.bytes) : ""]
                 .filter(Boolean)
                 .join(" · ")}
@@ -184,7 +184,7 @@ export default function Folder({
           {trail.map((up, at) => (
             <span key={up.id} className="flex items-center gap-1.5">
               {at > 0 && (
-                <span aria-hidden="true" className="text-[10px] text-faint">
+                <span aria-hidden="true" className="text-[10.5px] text-faint">
                   ›
                 </span>
               )}
@@ -200,7 +200,7 @@ export default function Folder({
         </nav>
       )}
 
-      <h1 className="text-lg font-semibold">
+      <h1 className="text-[21px] font-semibold">
         <button
           type="button"
           disabled={!ownMenu}
@@ -246,7 +246,7 @@ export default function Folder({
                 aria-label={fill(closed ? "openFolder" : "closeFolder", one.name)}
                 aria-expanded={!closed}
                 aria-controls={`holds-${one.id}`}
-                className="grid h-5 w-3 shrink-0 cursor-pointer place-items-center rounded text-[9px] text-faint hover:text-ink"
+                className="grid h-5 w-3 shrink-0 cursor-pointer place-items-center rounded-md text-[9px] text-faint hover:text-ink"
               >
                 <span className={`transition-transform ${closed ? "-rotate-90" : ""}`}>▼</span>
               </button>

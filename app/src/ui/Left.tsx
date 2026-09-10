@@ -31,17 +31,17 @@ export default function Left({ task, heading, onDoc, onError }: Props) {
                 type="button"
                 disabled={!open}
                 onClick={open}
-                className={`grid w-full grid-cols-[17px_minmax(0,1fr)_auto] items-baseline gap-2.5 rounded-lg border px-2.5 py-2 text-left ${
+                className={`grid w-full grid-cols-[17px_minmax(0,1fr)_auto] items-baseline gap-2.5 rounded-[10px] border px-2.5 py-2 text-left ${
                   one.gone ? "border-dashed border-hair" : "border-hair"
                 } ${open ? "cursor-pointer hover:border-line" : "cursor-default"}`}
               >
-                <span aria-hidden="true" className="text-center text-xs text-faint">
+                <span aria-hidden="true" className="text-center text-[11.5px] text-faint">
                   {one.away ? "▢" : GLYPH[one.kind]}
                 </span>
                 <span className={`truncate text-[12.5px] ${one.gone ? "text-faint" : "text-ink"}`}>
                   {named(one)}
                 </span>
-                <span className="text-[11px] whitespace-nowrap text-faint">{said(one)}</span>
+                <span className="text-[11.5px] whitespace-nowrap text-faint">{said(one)}</span>
               </button>
             </li>
           );

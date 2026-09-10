@@ -140,10 +140,11 @@ export default function Matrix({
 
   return (
     <section
-      className={`flex min-h-0 flex-1 flex-col gap-3 px-5 pt-4 pb-5 ${held ? "cursor-grabbing" : ""}`}
+      className={`flex min-h-0 flex-1 flex-col gap-3 px-5 pb-5 ${held ? "cursor-grabbing" : ""}`}
     >
-      <header className="flex items-baseline gap-3">
-        <h2 className="text-[19px] font-semibold tracking-[-0.015em]">{t("quadrants")}</h2>
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      <header className="-mt-3 flex items-baseline gap-3">
+        <h2 className="text-[21px] font-semibold tracking-[-0.015em]">{t("quadrants")}</h2>
         {!asked && !beside && waiting > 0 && (
           <button
             type="button"
@@ -177,7 +178,7 @@ export default function Matrix({
                   key={where}
                   data-quadrant={where}
                   aria-label={said(where)}
-                  className={`flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border transition-colors ${
+                  className={`flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[10px] border transition-colors ${
                     over === where
                       ? "border-accent bg-accent-soft ring-2 ring-accent/40"
                       : held
@@ -197,7 +198,7 @@ export default function Matrix({
                         <button
                           type="button"
                           onClick={() => onDiscardAll(mine.map((one) => one.id))}
-                          className="rounded px-1.5 py-0.5 text-[11.5px] text-faint hover:bg-hover hover:text-soft"
+                          className="rounded-md px-1.5 py-0.5 text-[11.5px] text-faint hover:bg-hover hover:text-soft"
                         >
                           {t("dropThemAll")}
                         </button>
@@ -223,7 +224,7 @@ export default function Matrix({
           <aside
             data-quadrant="unset"
             aria-label={t("unplaced")}
-            className={`flex min-h-0 flex-col rounded-xl border border-dashed transition-colors ${
+            className={`flex min-h-0 flex-col rounded-[10px] border border-dashed transition-colors ${
               over === "unset"
                 ? "border-accent bg-accent-soft ring-2 ring-accent/40"
                 : "border-line bg-panel"
@@ -240,7 +241,7 @@ export default function Matrix({
                 aria-label={t("hideUnplaced")}
                 title={t("hideUnplaced")}
                 onClick={() => swing(false)}
-                className="grid h-5 w-5 shrink-0 place-items-center rounded text-[12px] leading-none text-faint hover:bg-hover hover:text-soft"
+                className="grid h-5 w-5 shrink-0 place-items-center rounded-md text-[12.5px] leading-none text-faint hover:bg-hover hover:text-soft"
               >
                 ✕
               </button>
@@ -279,7 +280,7 @@ function Sow({ where, onSow }: { where: Priority; onSow: (where: Priority) => vo
       aria-label={fill("addTo", said(where))}
       title={fill("addTo", said(where))}
       onClick={() => onSow(where)}
-      className="grid h-5 w-5 shrink-0 place-items-center rounded pb-px text-[15px] leading-none text-faint hover:bg-hover hover:text-ink"
+      className="grid h-5 w-5 shrink-0 place-items-center rounded-md pb-px text-[13px] leading-none text-faint hover:bg-hover hover:text-ink"
     >
       +
     </button>

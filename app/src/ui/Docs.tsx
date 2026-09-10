@@ -53,7 +53,9 @@ const remembered = (held: Map<string, string>, file: string, text: string) => {
 
 const WIDE = 1440;
 
-const RAIL = 284;
+const RAIL = 336;
+const RAIL_WIDE = 380;
+const GUTTER = 8;
 const SHEET = 820;
 
 const PAPER: Record<Paper, number> = { a4: 820, letter: 843, tabloid: 1090 };
@@ -536,7 +538,7 @@ export default function Docs({
     setSized(now);
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
   };
-  const spare = room - RAIL;
+  const spare = room - (wide ? RAIL_WIDE : RAIL) - GUTTER;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
@@ -662,7 +664,7 @@ export default function Docs({
             <button
               type="button"
               onClick={() => setStirred(false)}
-              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
             >
               {t("docStirredGone")}
             </button>
@@ -677,14 +679,14 @@ export default function Docs({
             <button
               type="button"
               onClick={mineStands}
-              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
             >
               {t("clashSave")}
             </button>
             <button
               type="button"
               onClick={theirsStands}
-              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
             >
               {t("clashLook")}
             </button>
@@ -703,7 +705,7 @@ export default function Docs({
                   .then(() => onKept({ id: open.id, title: open.title }))
                   .catch((e) => onError(saidPlainly(e)))
               }
-              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
             >
               {t("bringBack")}
             </button>
@@ -726,7 +728,7 @@ export default function Docs({
                   .then(() => onKept({ id: open.id, title: open.title }))
                   .catch((e) => onError(saidPlainly(e)))
               }
-              className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
             >
               {t("unlockIt")}
             </button>
@@ -747,7 +749,7 @@ export default function Docs({
               <button
                 type="button"
                 onClick={stuck ? anyway : () => convert(open.file)}
-                className="rounded-[7px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+                className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
               >
                 {t(stuck ? "frailAnyway" : "frailConvert")}
               </button>
@@ -795,14 +797,14 @@ export default function Docs({
                 setPdfAsked(false);
                 setSigning(false);
               }}
-              className="rounded-lg px-3 py-1.5 text-faint hover:text-ink"
+              className="rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
             >
               {t("cancel")}
             </button>
             <button
               type="button"
               onClick={() => madePdf(signing)}
-              className="cursor-pointer rounded-lg bg-accent px-3.5 py-1.5 text-bg"
+              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg"
             >
               {t("toPdfDo")}
             </button>

@@ -1,5 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useId, useState } from "react";
+import { useAttended } from "../attended";
 import { attach } from "../core";
 import { addressed } from "../linking";
 import { t } from "../locales";
@@ -114,6 +115,7 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
 }
 
 function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
+  const held = useAttended<HTMLInputElement>();
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [wrong, setWrong] = useState(false);
@@ -131,20 +133,20 @@ function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
     >
       <label
         htmlFor={said}
-        className="block px-2.5 pt-1 text-[11px] tracking-[0.04em] text-faint uppercase"
+        className="block px-2.5 pt-1 text-[11.5px] tracking-[0.04em] text-faint uppercase"
       >
         {t("linkText")}
       </label>
       <input
         id={said}
-        autoFocus
+        ref={held}
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         className="mt-0.5 mb-1 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none"
       />
       <label
         htmlFor={where}
-        className="block px-2.5 text-[11px] tracking-[0.04em] text-faint uppercase"
+        className="block px-2.5 text-[11.5px] tracking-[0.04em] text-faint uppercase"
       >
         {t("linkUrl")}
       </label>
@@ -158,10 +160,10 @@ function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
           setUrl(e.target.value);
         }}
         className={`mt-0.5 w-full rounded-md px-2.5 py-1.5 outline-none placeholder:text-faint ${
-          wrong ? "bg-urgent/15 text-urgent" : "bg-hover"
+          wrong ? "bg-urgent/10 text-urgent" : "bg-hover"
         }`}
       />
-      {wrong && <p className="px-2.5 pt-1 text-[11px] text-urgent">{t("notAnAddress")}</p>}
+      {wrong && <p className="px-2.5 pt-1 text-[11.5px] text-urgent">{t("notAnAddress")}</p>}
       <button type="submit" className="sr-only">
         {t("insertLink")}
       </button>

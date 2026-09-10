@@ -92,7 +92,7 @@ export default function Tabled({ editor, at }: Props) {
         left: Math.max(120, Math.min(spot.x, window.innerWidth - 120)),
         top: Math.max(38, spot.y),
       }}
-      className="fixed z-40 flex -translate-x-1/2 -translate-y-full items-center gap-0.5 rounded-[9px] border border-hair bg-panel px-1 py-1 shadow-lift"
+      className="fixed z-40 flex -translate-x-1/2 -translate-y-full items-center gap-0.5 rounded-[10px] border border-hair bg-panel px-1 py-1 shadow-lift"
     >
       {acts.map((one) => (
         <button

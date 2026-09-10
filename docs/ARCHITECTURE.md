@@ -476,6 +476,32 @@ Nothing is ever created ahead of time. There is no timer and no scheduler: a
 task can only come from you writing one or from finishing a repeat. Skip a day
 and there is still exactly one, waiting, overdue — never two.
 
+### Naming the next turn without closing anything
+
+The week ahead has to say when a routine falls next, and it must do that without
+writing anything: the strip is a reading, not a decision. `recurring` walks the
+cadence forward and reports the turns that land inside the window.
+
+**The walk starts at the series anchor, never at today.** A cadence is a phase as
+much as an interval: «every Monday» is Mondays, and a routine you did not tick
+on time is still Mondays. Restarting the walk at midnight today looks harmless and
+quietly reprojects the series onto whatever weekday you happen to be reading
+it — a Monday routine read on a Thursday would announce itself for Thursday, while
+ticking it produced the Monday, so two parts of the program answered the same
+question differently. Worse for a monthly cadence: the first step from today
+lands a month away, past the window, and the routine vanishes from the strip
+although its real turn was three days off.
+
+The walk itself is `Cadence::beyond`, which is the same one `Repeat::next` uses
+when a turn is kept. One definition, so the strip and the tick cannot disagree.
+
+**Only the last few turns cross the bridge.** A routine's series grows by one
+every time it is kept, and the strip draws five beads from it. Sending the whole
+chain would make every snapshot — and there is one on every tick, every focus,
+every midnight — cost as much as the routine has been honoured, which is exactly
+backwards. The counters are computed over the whole chain first, then the turns
+are trimmed to what the strip draws.
+
 ### Marking a turn late
 
 Because a completion carries no date of its own, a calendar cadence closed days
@@ -497,6 +523,26 @@ trusting whoever called it. A date the cadence never had would write a turn that
 never existed, and a mistyped year would drag the live turn years out and take
 the routine with it — so the window and the command line cannot widen it between
 them, and neither can a future caller.
+
+## Reminders
+
+A reminder is an hour, kept on the task as a list of moments. Nothing about it is
+scheduled anywhere: `herald::owed` reads the store when the program is running
+and reports what has come due since it last looked, which is why a reminder rings
+on the machine that holds the store and nowhere else. There is no server, so
+there is nobody to ring for you while the computer is off.
+
+That reading window is what makes **a moment already gone a refusal rather than
+a value**. `owed` floors its window at twelve hours before now, so an hour
+written into the past falls behind the floor and never rings. Storing it anyway
+would leave the person — or the assistant that filed it — believing an
+appointment is covered when nothing will ever sound. Every door refuses it: the
+window, `set --remind`, and the `remind` tool.
+
+**Two moments are the same moment when their instants match**, not when their
+whole specs do. A reminder written before a journey, or merged in from another
+machine, carries that machine's zone name; comparing the specs whole would let
+the same instant in twice and ring the person twice for one appointment.
 
 ## Reading the archive
 

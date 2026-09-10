@@ -35,7 +35,7 @@ export default function When({ value, clock, never, confirm, onPick, onClear, on
             aria-label={t("allDay")}
             title={t("allDay")}
             onClick={() => setAt("")}
-            className="flex h-6 w-6 items-center justify-center rounded text-faint hover:bg-hover hover:text-ink"
+            className="flex h-6 w-6 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink"
           >
             ×
           </button>

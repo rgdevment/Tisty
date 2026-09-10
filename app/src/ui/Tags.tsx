@@ -10,7 +10,7 @@ export default function Tags({ tags, chosen, onToggle }: Props) {
   if (tags.length === 0) return null;
 
   return (
-    <div className="scroller flex max-h-[38vh] flex-wrap content-start gap-2 px-2.5 pb-4">
+    <div className="scroller flex max-h-[34vh] flex-wrap content-start gap-2 rounded-[10px] border border-hair bg-sheet p-2.5 shadow-lift">
       {tags.map(({ tag, tasks, docs }) => {
         const on = chosen.includes(tag);
         return (
@@ -18,12 +18,12 @@ export default function Tags({ tags, chosen, onToggle }: Props) {
             type="button"
             key={tag}
             onClick={() => onToggle(tag)}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] ${
+            className={`flex items-center gap-2 rounded-md px-2.5 py-1 text-[12.5px] ${
               on ? "bg-mark-tag text-ink" : "bg-hover text-soft hover:text-ink"
             }`}
           >
             #{tag}
-            <span className="text-xs text-faint tabular-nums">
+            <span className="text-[10.5px] text-faint tabular-nums">
               {docs ? `${tasks} · ${docs}` : tasks}
             </span>
           </button>
