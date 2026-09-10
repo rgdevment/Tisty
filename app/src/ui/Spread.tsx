@@ -90,7 +90,7 @@ export default function Spread({ tasks, onPlace, onOpen, onCarrying }: Props) {
 
   const days = useMemo(() => {
     const here = monday(dayOne(today));
-    const oldest = [...carried.keys()].sort()[0];
+    const oldest = [...carried.keys()].reduce((first, one) => (one < first ? one : first), today);
     const from = oldest && oldest < stamp(here) ? monday(dayOne(oldest)) : here;
     const span = Math.round((here.getTime() - from.getTime()) / DAY) + RIVER;
     return walk(from, span);

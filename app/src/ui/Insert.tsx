@@ -1,5 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useId, useState } from "react";
+import { useAttended } from "../attended";
 import { attach } from "../core";
 import { addressed } from "../linking";
 import { t } from "../locales";
@@ -114,6 +115,7 @@ export default function Insert({ steps = [], onPut, onClose, onError }: Props) {
 }
 
 function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
+  const held = useAttended<HTMLInputElement>();
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [wrong, setWrong] = useState(false);
@@ -137,7 +139,7 @@ function Linking({ onLink }: { onLink: (text: string, url: string) => void }) {
       </label>
       <input
         id={said}
-        autoFocus
+        ref={held}
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         className="mt-0.5 mb-1 w-full rounded-md bg-hover px-2.5 py-1.5 outline-none"

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAttended } from "../attended";
 import type { Span } from "../core";
 
 interface Props {
@@ -17,6 +18,7 @@ export interface Mark {
 }
 
 export default function Field({ icon, value, hint, marks, onChange, onSubmit }: Props) {
+  const held = useAttended<HTMLInputElement>();
   const [shift, setShift] = useState(0);
   const painted = marks !== undefined;
 
@@ -32,7 +34,7 @@ export default function Field({ icon, value, hint, marks, onChange, onSubmit }: 
       <div className="relative min-w-0 flex-1">
         {painted && <Mirror text={value} marks={marks} shift={shift} />}
         <input
-          autoFocus
+          ref={held}
           value={value}
           placeholder={hint}
           aria-label={hint}

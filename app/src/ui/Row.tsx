@@ -1,3 +1,5 @@
+import { useAttended } from "../attended";
+
 export default function Row({
   glyph,
   say,
@@ -11,10 +13,12 @@ export default function Row({
   children: React.ReactNode;
   onPick: () => void;
 }) {
+  const held = useAttended<HTMLButtonElement>(first);
+
   return (
     <button
       type="button"
-      autoFocus={first}
+      ref={held}
       onClick={onPick}
       className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-ink hover:bg-hover"
     >

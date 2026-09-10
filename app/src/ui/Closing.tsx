@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAttended } from "../attended";
 import { closeWindow } from "../core";
 import { t } from "../locales";
 import Modal from "./Modal";
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function Closing({ onDismiss, onError }: Props) {
+  const held = useAttended<HTMLButtonElement>();
   const [remember, setRemember] = useState(true);
 
   const settle = (how: "hide" | "quit") => {
@@ -22,7 +24,7 @@ export default function Closing({ onDismiss, onError }: Props) {
       <div className="mt-5 flex flex-col gap-2">
         <button
           type="button"
-          autoFocus
+          ref={held}
           onClick={() => settle("hide")}
           className="rounded-[10px] border border-line px-3.5 py-2.5 text-left hover:bg-hover"
         >

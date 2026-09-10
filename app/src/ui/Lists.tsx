@@ -1,12 +1,12 @@
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
+import { useAttended } from "../attended";
 import { type List, listAdd, listDrop, listLook, listRename, type Task } from "../core";
 import { isOverdue, isToday, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
-
 import Naming from "./Naming";
 import Pick from "./Pick";
 
@@ -74,6 +74,8 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
       .catch((e) => onError(saidPlainly(e)));
   };
 
+  const field = useAttended<HTMLInputElement>(making);
+
   const drop = (list: List) => {
     ask(fill("listDropSure", list.name), { kind: "warning" })
       .then((sure) => {
@@ -109,7 +111,7 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
         {making && (
           <div className="mb-4 rounded-[10px] border border-hair bg-sheet p-3.5 shadow-lift">
             <input
-              autoFocus
+              ref={field}
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && make()}

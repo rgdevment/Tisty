@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useAttended } from "../attended";
 import { known as drawn } from "../glyphs";
 import { t, type Word } from "../locales";
 import { isMark } from "../marks";
@@ -100,6 +101,8 @@ export default function Pick({
     return () => watcher.disconnect();
   }, []);
 
+  const held = useAttended<HTMLInputElement>(autoFocus);
+
   const restart = () => {
     setDown(0);
     if (box.current) box.current.scrollTop = 0;
@@ -132,7 +135,7 @@ export default function Pick({
     <div className="flex min-h-0 flex-col gap-1.5">
       <div className="flex shrink-0 gap-1.5">
         <input
-          autoFocus={autoFocus}
+          ref={held}
           value={word}
           onChange={(e) => {
             setWord(e.target.value);

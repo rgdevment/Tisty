@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAttended } from "../attended";
 import { t } from "../locales";
 import Modal from "./Modal";
 import Pick from "./Pick";
@@ -34,6 +35,8 @@ export default function Naming({
   const [icon, setIcon] = useState<string | undefined>(drawn);
   const [colour, setColour] = useState<string | undefined>(painted);
 
+  const held = useAttended<HTMLInputElement>();
+
   const done = () => {
     const wanted = name.trim();
     if (wanted) onName(wanted, icon, colour);
@@ -42,7 +45,7 @@ export default function Naming({
   return (
     <Modal title={title} onClose={onClose}>
       <input
-        autoFocus
+        ref={held}
         onFocus={(e) => e.target.select()}
         value={name}
         maxLength={most}

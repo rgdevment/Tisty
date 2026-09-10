@@ -1,5 +1,6 @@
 import type { Editor as Writing } from "@tiptap/core";
 import { useEffect, useRef, useState } from "react";
+import { useAttended } from "../attended";
 import { addressed } from "../linking";
 import { t } from "../locales";
 import { named, pictured, previewOf } from "../previews";
@@ -125,6 +126,8 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
     return () => document.removeEventListener("mousedown", away);
   });
 
+  const held = useAttended<HTMLInputElement>();
+
   const walk = (by: number) => {
     const all = [...(card.current?.querySelectorAll<HTMLElement>("[data-tool]") ?? [])];
     for (let step = 1; step <= all.length; step += 1) {
@@ -151,7 +154,7 @@ export default function Floats({ editor, at, asking, onDone }: Props) {
         className="fixed z-40 flex w-[276px] flex-col gap-1 rounded-[10px] border border-hair bg-rail p-1.5 shadow-xl"
       >
         <input
-          autoFocus
+          ref={held}
           value={linking.words}
           onChange={(e) => setLinking({ ...linking, words: e.target.value })}
           placeholder={t("linkWords")}

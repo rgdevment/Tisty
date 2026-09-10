@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAttended } from "../attended";
 import type { Change, List, Task } from "../core";
 import { begun } from "../finding";
 import { cadence, clockOf, whenLabel } from "../format";
@@ -339,6 +340,7 @@ function Naming({
   taken: string[];
   onName: (name: string) => void;
 }) {
+  const held = useAttended<HTMLInputElement>();
   const [text, setText] = useState("");
   const typed = text.trim().replace(/^#/, "").toLowerCase();
   const offered = known.filter((one) => !taken.includes(one) && begun(one, typed));
@@ -352,7 +354,7 @@ function Naming({
         }}
       >
         <input
-          autoFocus
+          ref={held}
           value={text}
           placeholder={t("fieldTag")}
           aria-label={t("fieldTag")}
