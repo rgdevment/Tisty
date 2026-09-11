@@ -1164,7 +1164,16 @@ pub fn forget_paper(dest: &Path, id: &str) {
         return;
     };
     match std::fs::remove_file(&theirs) {
-        Ok(()) | Err(_) => {}
+        Ok(()) => {}
+        Err(why) if why.kind() == std::io::ErrorKind::NotFound => {}
+        Err(why) => witness::warn(
+            channel::SYNC,
+            "a deleted document kept its file in the shared folder, where the next round will find it again",
+            &[
+                ("at", Fact::Id(id.to_string())),
+                ("why", Fact::Why(why.to_string())),
+            ],
+        ),
     }
 }
 
@@ -1199,6 +1208,11 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
     if keep == Keep::Both {
         let body = tisty_core::docs::read(&dest.join(PAPERS), id)
             .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+        witness::warn(
+            channel::SYNC,
+            "a document that two machines disagreed on was kept twice",
+            &[("at", Fact::Id(id.to_string()))],
+        );
         return Ok(Some(body));
     }
 
@@ -1224,10 +1238,35 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
             tisty_core::docs::forget_carried(data, id);
             said.forget(id);
         }
-        Err(e) => return Err(io(e)),
+        Err(e) => {
+            witness::error(
+                channel::SYNC,
+                "a document was settled but its print could not be read, so the next round may ask again",
+                &[
+                    ("at", Fact::Id(id.to_string())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+            return Err(io(e));
+        }
     }
     said.save(data)
         .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+    witness::warn(
+        channel::SYNC,
+        "a document that two machines disagreed on was settled by hand",
+        &[
+            ("at", Fact::Id(id.to_string())),
+            (
+                "kept",
+                Fact::Word(match keep {
+                    Keep::Mine => "mine",
+                    Keep::Theirs => "theirs",
+                    Keep::Both => "both",
+                }),
+            ),
+        ],
+    );
     Ok(None)
 }
 
@@ -1240,10 +1279,26 @@ fn landed(mine: &Path, theirs: &Path) -> bool {
 }
 
 fn joined(data: &Path, dest: &Path, id: &str, mine: &Path, theirs: &Path) -> Option<String> {
-    let base = tisty_core::docs::read_carried(data, id)?;
-    let ours = std::fs::read_to_string(mine).ok()?;
-    let yours = std::fs::read_to_string(theirs).ok()?;
-    let whole = tisty_core::merge::merged(&base, &ours, &yours)?;
+    let gave_up = |why: &'static str| {
+        witness::note(
+            channel::SYNC,
+            "two versions of a document could not be joined on their own, so the person is asked",
+            &[("at", Fact::Id(id.to_string())), ("why", Fact::Word(why))],
+        );
+        None::<String>
+    };
+    let Some(base) = tisty_core::docs::read_carried(data, id) else {
+        return gave_up("no version they both came from");
+    };
+    let Ok(ours) = std::fs::read_to_string(mine) else {
+        return gave_up("this side could not be read");
+    };
+    let Ok(yours) = std::fs::read_to_string(theirs) else {
+        return gave_up("the other side could not be read");
+    };
+    let Some(whole) = tisty_core::merge::merged(&base, &ours, &yours) else {
+        return gave_up("both sides changed the same lines");
+    };
 
     for one in tisty_core::refs::extract(&whole)
         .into_iter()
@@ -1262,6 +1317,11 @@ fn joined(data: &Path, dest: &Path, id: &str, mine: &Path, theirs: &Path) -> Opt
             return None;
         }
     }
+    witness::note(
+        channel::SYNC,
+        "two versions of a document were joined without asking",
+        &[("at", Fact::Id(id.to_string()))],
+    );
     Some(whole)
 }
 
@@ -5088,6 +5148,95 @@ lo mio"
             unclaimed(shared.path()),
             Holding::Whole,
             "a document the log itself deleted was reported as belonging to no history"
+        );
+    }
+
+    #[test]
+    fn a_document_one_machine_deleted_leaves_the_other_machine_too() {
+        let one = machine("dev_a");
+        filed(
+            &one,
+            "dev_a-0001",
+            "# the first
+",
+        );
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let two = blank("dev_b");
+        joined(&two, shared.path());
+
+        let here = |who: &Machine| {
+            tisty_core::State::replay(&tisty_core::store::read_all(&who.store).unwrap())
+                .docs
+                .values()
+                .any(|d| d.file == "dev_a-0001")
+        };
+        assert!(
+            here(&two),
+            "the second machine has it before anything is deleted"
+        );
+
+        let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+            .docs
+            .values()
+            .find(|d| d.file == "dev_a-0001")
+            .map(|d| d.id)
+            .unwrap();
+        says(&one, Op::DocDelete { id });
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert!(
+            !here(&two),
+            "the delete reached the second machine, so the document is not left showing an error"
+        );
+        assert!(
+            !two.data.join(PAPERS).join("dev_a-0001.md").exists(),
+            "and its file went with it"
+        );
+    }
+
+    #[test]
+    fn a_file_that_went_before_its_delete_did_stops_showing_an_error_once_it_arrives() {
+        let one = machine("dev_a");
+        filed(
+            &one,
+            "dev_a-0001",
+            "# the first
+",
+        );
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let two = blank("dev_b");
+        joined(&two, shared.path());
+
+        let told = |who: &Machine| {
+            tisty_core::State::replay(&tisty_core::store::read_all(&who.store).unwrap())
+        };
+        let here = |who: &Machine| told(who).docs.values().any(|d| d.file == "dev_a-0001");
+        let id = told(&one)
+            .docs
+            .values()
+            .find(|d| d.file == "dev_a-0001")
+            .map(|d| d.id)
+            .unwrap();
+
+        forget_paper(shared.path(), "dev_a-0001");
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+        assert!(
+            here(&two),
+            "the file is gone but nothing said to forget it, so the document still stands"
+        );
+
+        says(&one, Op::DocDelete { id });
+        carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+        carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+        assert!(
+            !here(&two),
+            "once the delete arrives the document goes, however late it came"
         );
     }
 

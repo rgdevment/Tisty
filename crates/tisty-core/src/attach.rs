@@ -806,14 +806,7 @@ pub fn sweep(
             continue;
         };
         match std::fs::remove_file(&at) {
-            Ok(()) => {
-                gone += 1;
-                witness::note(
-                    channel::ATTACH,
-                    "a retired attachment was taken out",
-                    &[("at", Fact::Path(at))],
-                );
-            }
+            Ok(()) => gone += 1,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => witness::warn(
                 channel::ATTACH,
@@ -821,6 +814,13 @@ pub fn sweep(
                 &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
             ),
         }
+    }
+    if gone > 0 {
+        witness::note(
+            channel::ATTACH,
+            "retired attachments were taken out",
+            &[("count", Fact::Count(gone))],
+        );
     }
     gone
 }

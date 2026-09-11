@@ -41,6 +41,7 @@ import {
   folderLook,
   folderRename,
   markStep,
+  noteTrouble,
   owed,
   type Papers,
   type Pick,
@@ -524,10 +525,11 @@ export default function App() {
         if (found?.docs.some((one) => one.file === paper)) {
           setChosen({ named: "docs", doc: paper });
         } else {
+          void noteTrouble("goneDoc", paper);
           setError(t("goneDoc"));
         }
       })
-      .catch(() => setError(t("goneDoc")));
+      .catch((e) => setError(saidPlainly(e)));
   };
 
   const told = useCallback((problem: unknown) => setError(saidPlainly(problem)), []);

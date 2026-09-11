@@ -172,13 +172,34 @@ impl State {
     }
 
     pub fn apply(&mut self, event: &Event) {
-        if event
-            .entity_id()
-            .is_some_and(|id| self.tombstones.contains(&id))
-        {
+        if let Some(id) = event.entity_id().filter(|id| self.tombstones.contains(id)) {
+            crate::witness::trace(
+                crate::witness::channel::STORE,
+                "an event arrived for something already gone, and was let go",
+                &[
+                    ("at", crate::witness::Fact::Id(id.to_string())),
+                    ("by", crate::witness::Fact::Id(event.device.0.clone())),
+                ],
+            );
             return;
         }
         if event.op.destroys() && self.assistants.contains(&event.device) {
+            crate::witness::warn(
+                crate::witness::channel::STORE,
+                "an assistant asked to destroy something, and was refused",
+                &[
+                    (
+                        "at",
+                        crate::witness::Fact::Id(
+                            event
+                                .entity_id()
+                                .map(|id| id.to_string())
+                                .unwrap_or_default(),
+                        ),
+                    ),
+                    ("by", crate::witness::Fact::Id(event.device.0.clone())),
+                ],
+            );
             return;
         }
 
@@ -2355,6 +2376,67 @@ mod tests {
 
         assert_eq!(state.sourced.get("wa:msg-991"), Some(&id));
         assert_eq!(state.sourced.get("wa:msg-992"), None);
+    }
+
+    fn with_an_agent() -> (State, DocId) {
+        let mut state = State::default();
+        state.apply(&ev(
+            1,
+            "dev_agent",
+            Op::DeviceJoin {
+                d: DeviceId("dev_agent".into()),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        ));
+        let id = Ulid::generate();
+        state.apply(&ev(
+            2,
+            "dev_agent",
+            Op::DocAdd {
+                id,
+                d: crate::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
+                    said: None,
+                    file: "dev_agent-0001".into(),
+                    order: "a0".into(),
+                    folder: None,
+                    page_of: None,
+                },
+            },
+        ));
+        assert!(state.docs.contains_key(&id), "the assistant filed it");
+        (state, id)
+    }
+
+    #[test]
+    fn what_an_assistant_wrote_is_the_persons_to_delete() {
+        let (mut state, id) = with_an_agent();
+
+        state.apply(&ev(3, "dev_laptop", Op::DocDelete { id }));
+
+        assert!(
+            !state.docs.contains_key(&id),
+            "the person deleted it from a machine of theirs, so it is gone"
+        );
+        assert!(
+            state.tombstones.contains(&id),
+            "and it stays gone wherever the log is replayed"
+        );
+    }
+
+    #[test]
+    fn an_assistant_cannot_take_back_what_it_wrote() {
+        let (mut state, id) = with_an_agent();
+
+        state.apply(&ev(3, "dev_agent", Op::DocDelete { id }));
+
+        assert!(
+            state.docs.contains_key(&id),
+            "finishing is the person's, and so is deleting"
+        );
     }
 
     #[test]

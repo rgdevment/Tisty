@@ -891,8 +891,20 @@ fn mend(dir: &Path) {
     let path = &dir.join(ACTIVE);
     // Read as bytes: half of a multi-byte letter is not text, and refusing to look at it would
     // leave the very file this exists to save unreadable.
-    let Ok(whole) = std::fs::read(path) else {
-        return;
+    let whole = match std::fs::read(path) {
+        Ok(whole) => whole,
+        Err(why) if why.kind() == std::io::ErrorKind::NotFound => return,
+        Err(why) => {
+            witness::warn(
+                channel::STORE,
+                "the log could not be read to see whether a power cut left it torn",
+                &[
+                    ("at", Fact::Path(path.clone())),
+                    ("why", Fact::Why(why.to_string())),
+                ],
+            );
+            return;
+        }
     };
     let shut = whole.iter().rposition(|one| *one == b'\n');
     let tail = match shut {
@@ -924,7 +936,16 @@ fn mend(dir: &Path) {
     }
 
     let aside = path.with_extension("torn");
-    if std::fs::write(&aside, tail).is_err() {
+    if let Err(why) = std::fs::write(&aside, tail) {
+        witness::error(
+            channel::STORE,
+            "a torn tail was found and could not be set aside, so the log is left as it is",
+            &[
+                ("at", Fact::Path(aside.clone())),
+                ("bytes", Fact::Bytes(tail.len() as u64)),
+                ("why", Fact::Why(why.to_string())),
+            ],
+        );
         return;
     }
     let kept: &[u8] = match shut {

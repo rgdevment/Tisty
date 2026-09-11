@@ -933,10 +933,26 @@ pub fn sweep(root: &Path, shed: &std::collections::BTreeSet<String>) -> usize {
         let Ok(at) = resolve(root, id) else {
             continue;
         };
-        if std::fs::remove_file(&at).is_ok() {
-            gone += 1;
+        match std::fs::remove_file(&at) {
+            Ok(()) => gone += 1,
+            Err(why) if why.kind() == std::io::ErrorKind::NotFound => {}
+            Err(why) => crate::witness::warn(
+                crate::witness::channel::STORE,
+                "a deleted document kept its file, and it is swept again at the next opening",
+                &[
+                    ("at", crate::witness::Fact::Id(id.clone())),
+                    ("why", crate::witness::Fact::Why(why.to_string())),
+                ],
+            ),
         }
         forget_carried(root.parent().unwrap_or(root), id);
+    }
+    if gone > 0 {
+        crate::witness::note(
+            crate::witness::channel::STORE,
+            "documents deleted elsewhere had their files taken out here",
+            &[("count", crate::witness::Fact::Count(gone))],
+        );
     }
     gone
 }
