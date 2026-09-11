@@ -104,12 +104,82 @@ turns one on — from the Agents tab or `tisty agent --on`. Nothing arriving
 over the wire can register one. Its own directory is what keeps `undo`
 apart: the person's undo never reaches what the agent filed.
 
-It can propose a task, add to a journal, read one whole task, search, attach
+It can propose a task, move the day of a task it filed itself, add to a
+journal, read one whole task or the fields of it that it names, search, attach
 a file to a task or into a document, write documents, add to them and change a
-named passage of one, list what is written and file it into folders, and read
-the names of the lists. There is no tool for completing, dropping, deleting,
+passage of one, list what is written and file it into folders, and read the
+names of the lists. There is no tool for completing, dropping, deleting,
 undoing, editing a task the person wrote, making a list, or handing a document a
 new body whole.
+
+`reschedule` is the one tool that writes over something already filed, and it
+reaches only tasks whose `created_by` is a device the person turned on as an
+agent. A day the person set is refused with the reason. Everything else an
+agent knows it must add rather than change: a journal note, a new task, a new
+document.
+
+### A door an agent can afford to walk through
+
+A tool that hands back more than was asked is a tool that is used once and then
+worked around. Three rules keep the door cheap.
+
+*Read the shape before the body.* `outline_doc` answers with the headings, the
+line each sits on, the length and the print — a few hundred tokens for a
+document that costs tens of thousands whole. `read_doc` then takes a `section`,
+a run of lines, or a budget of `chars` with a cursor; a body past 12 000
+characters comes back as its outline anyway, with `whole` set to false, rather
+than filling the window with text nobody asked for. Carrying on from a cursor
+needs the print the previous part came with, so two halves of a document that
+moved in between are refused rather than joined.
+
+*Write without reading.* `edit_doc` names its passage either by what it says or
+by where it sits — a section number, a line range — and `append_doc` takes
+`under`, a heading to add beneath. With an outline and a print, one part of a
+long document is changed without the body ever crossing the wire. What
+`edit_doc` names by place is guarded by the print, because there is no text to
+recognise it by.
+
+*Answer with what changed, not with what was sent.* No writing tool echoes the
+body back: the answer is the title, the length and the new print. A refusal for
+a stale print brings the outline, not the document.
+
+### A card, worked out here and never sent anywhere
+
+Choosing which of two hundred documents to open is a different question from
+reading one, and an outline does not answer it. Each body has a **card**
+(`docs::Card`): its title, the headings with the line each sits on, how many
+words, pictures and links it holds, the words it leans on, and the print it
+reads at. `docs` carries an abridged card for every document it lists, so an
+agent picks what to open without opening anything.
+
+Every field on a card is **read back out of the body**, so none of them can be
+stale. It is kept in `read.db` beside the projected state — local, never synced,
+thrown away and rebuilt like the rest of that cache — keyed by the file's size
+and modification time, exactly as `Corpus` keys its in-memory copy. A document
+written since its card was worked out simply misses, and the body is read again.
+Nothing is written to the log, so two machines never have to agree about it, and
+a card cannot arrive without the document it describes.
+
+That last point is the reason a summary is not on the card. A summary cannot be
+worked out from a body — somebody has to write it — and what somebody writes
+cannot live in a store that is thrown away. Derived things belong in the cache;
+written things belong in the log. Mixing the two is what makes an index lie.
+
+`catch_up` is the other half of the same idea, for tasks rather than documents:
+one call gives the lists, the folders, the tags in use, how much there is, the
+documents written most recently, and a cursor. Send that cursor back and only
+what moved since comes with it — the tasks touched and the documents written,
+read straight off the log. It replaces the three blind calls a session used to
+open with. `propose` takes a `tasks` array for the same reason: eight tasks in
+one call instead of eight calls, each judged on its own so a bad draft does not
+take the good ones with it. What the door costs an agent is mostly the
+conversation it has to send again every time, not the writing.
+
+`find` carries the same idea: a `doc` argument searches inside one document and
+answers with line numbers, and `tag`, `list`, `by_agent` and a `from`/`to` range
+sift by what a task *is* rather than what it says, so «everything an agent filed
+for next week» is one call instead of a search and a read of each hit. Fields
+that say nothing — a null, an empty list — are left out of every answer.
 
 **No assistant ever deletes, and that is the design rather than an omission.** The
 MCP has no tool that writes any of the deletions — not a task, not a list, not a
@@ -119,6 +189,15 @@ not an assistant: `tisty rm` and `tisty list delete` do delete, under the
 machine's own device. **Documents are narrower still — only the window deletes
 one**, so a
 mistyped command cannot lose a document.
+
+### What it said before is kept first
+
+`edit_doc` and a whole-body `write_doc` both copy the old text into
+`data/originals` **before** the new text is written, inside the same lock. If
+that copy cannot be made the write is refused and the document is left alone.
+The order matters: keeping the copy afterwards means a failure there leaves the
+person with no way back, which for a product whose promise is that nothing is
+destroyed is the one irreversible loss the door could allow.
 
 The absence of a tool is a locked door, not a law, so the rule is written into the
 log as well. `Op::destroys` names the six operations that take something away for

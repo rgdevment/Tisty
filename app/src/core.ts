@@ -764,8 +764,6 @@ export const docWrite = (id: string, body: string, anyway?: boolean): Promise<Do
 export const folderFile = (id: string, parent?: string, before?: string): Promise<void> =>
   invoke("folder_file", { id, parent, before });
 
-export const printed = (): Promise<void> => invoke("printed");
-
 export const keepPdf = (at: string, bytes: number[]): Promise<void> =>
   invoke("keep_pdf", { at, bytes });
 

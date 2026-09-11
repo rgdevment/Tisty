@@ -535,7 +535,11 @@ mod tests {
         std::panic::set_hook(quiet);
 
         let seen = recent(&paths, 10);
-        let said = seen.last().expect("a line");
+        // Another test writing a note of its own must not decide whether this one passes.
+        let said = seen
+            .iter()
+            .rfind(|one| one.contains("FATAL"))
+            .expect("a line");
         assert!(said.contains("FATAL"), "{said}");
         assert!(said.contains("panicked"), "{said}");
         assert!(said.contains("witness.rs:"), "{said}");

@@ -440,8 +440,6 @@ const Ico = Node.create({
 
 export const PENS = ["yellow", "green", "blue", "pink"] as const;
 
-export type Pen = (typeof PENS)[number];
-
 const Lit = Highlight.configure({ multicolor: true }).extend({
   inclusive: false,
 
