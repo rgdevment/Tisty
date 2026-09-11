@@ -798,14 +798,16 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         Some(name) => format!("in {name}"),
         None => "in the inbox".to_string(),
     };
+    let mut kept = serde_json::Map::new();
+    kept.insert("id".into(), json!(id.to_string()));
+    kept.insert("title".into(), json!(title));
+    if let Some(landed) = &landed {
+        kept.insert("list".into(), json!(landed));
+    }
+    kept.insert("proposed".into(), json!(true));
     Ok(told(
         format!("Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}."),
-        json!({
-            "id": id.to_string(),
-            "title": title,
-            "list": landed,
-            "proposed": true,
-        }),
+        Value::Object(kept),
     ))
 }
 
@@ -1281,6 +1283,7 @@ struct Sifted {
     tag: Option<String>,
     list: Option<String>,
     by_agent: Option<bool>,
+    from_source: Option<String>,
     from: Option<jiff::civil::Date>,
     to: Option<jiff::civil::Date>,
 }
@@ -1301,6 +1304,7 @@ impl Sifted {
             tag: text(args, "tag").map(|one| one.trim_start_matches('#').to_lowercase()),
             list: text(args, "list").map(|one| one.to_lowercase()),
             by_agent: args.get("by_agent").and_then(Value::as_bool),
+            from_source: text(args, "from_source").map(|one| alike(&one)),
             from: on("from")?,
             to: on("to")?,
         })
@@ -1310,6 +1314,7 @@ impl Sifted {
         self.tag.is_none()
             && self.list.is_none()
             && self.by_agent.is_none()
+            && self.from_source.is_none()
             && self.from.is_none()
             && self.to.is_none()
     }
@@ -1326,6 +1331,9 @@ impl Sifted {
             Some(true) => all.push("filed by an agent".into()),
             Some(false) => all.push("written by the person".into()),
             None => {}
+        }
+        if let Some(one) = &self.from_source {
+            all.push(format!("out of {one}"));
         }
         if let (Some(from), Some(to)) = (self.from, self.to) {
             all.push(format!("{from} to {to}"));
@@ -1362,6 +1370,12 @@ impl Sifted {
                 .as_ref()
                 .is_some_and(|who| state.agents.contains(who));
             if by != want {
+                return false;
+            }
+        }
+        if let Some(want) = &self.from_source {
+            let came = task.source.as_deref().map(alike);
+            if !came.is_some_and(|one| one.starts_with(want.as_str())) {
                 return false;
             }
         }
@@ -2426,12 +2440,12 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let all = kept.len();
     let shown_of: Vec<&tisty_core::model::Kept> =
         kept.iter().skip(past).take(most).copied().collect();
+    let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
+    // Listing them is the one moment that already knows which files are really there.
+    tisty_core::docs::forget_stray_cards(&paths.docs(), held.as_ref());
     let cards = tisty_core::docs::cards_of(
         &paths.docs(),
-        tisty_core::cache::Cache::open(paths.cache())
-            .ok()
-            .flatten()
-            .as_ref(),
+        held.as_ref(),
         &shown_of
             .iter()
             .map(|one| one.file.clone())
@@ -3468,7 +3482,7 @@ fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         "counts".into(),
         json!({
             "open": state.tasks.values().filter(|one| one.is_open() && !one.folded()).count(),
-            "docs": state.docs.len(),
+            "docs": state.docs.values().filter(|one| !state.held_away(one)).count(),
         }),
     );
     if let Some(head) = &head {
@@ -3478,7 +3492,11 @@ fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let since = text(args, "since");
     let said = match &since {
         None => {
-            let mut newest: Vec<&tisty_core::model::Kept> = state.docs.values().collect();
+            let mut newest: Vec<&tisty_core::model::Kept> = state
+                .docs
+                .values()
+                .filter(|one| !state.held_away(one))
+                .collect();
             newest.sort_by_key(|one| std::cmp::Reverse((one.wrote, one.id)));
             let newest: Vec<String> = newest
                 .iter()
@@ -3499,7 +3517,11 @@ fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     .values()
                     .filter(|one| one.is_open() && !one.folded())
                     .count(),
-                state.docs.len()
+                state
+                    .docs
+                    .values()
+                    .filter(|one| !state.held_away(one))
+                    .count()
             )
         }
         Some(since) => {
@@ -3994,7 +4016,7 @@ fn alike(source: &str) -> String {
             true => space = !out.is_empty(),
             false => {
                 if c == '#' {
-                    while out.ends_with(':') {
+                    while out.ends_with(':') || out.ends_with(' ') {
                         out.pop();
                     }
                 } else if space {
@@ -4582,8 +4604,9 @@ fn tools() -> Value {
             "name": "find",
             "title": "Search the list and the archive",
             "description": "Search the tasks and the documents. By text with `query`; by what a \
-                            task is rather than what it says with `tag`, `list`, `by_agent` and \
-                            the days between `from` and `to`, which work on their own or narrow \
+                            task is rather than what it says with `tag`, `list`, `by_agent`, \
+                            `from_source` and the days between `from` and `to`, which work on \
+                            their own or narrow \
                             a query; by `source` alone, to check whether something was already \
                             filed from it. With `doc`, it looks inside that one document instead \
                             and hands back the lines that match with their numbers, so you can \
@@ -4604,6 +4627,7 @@ fn tools() -> Value {
                     "tag": { "type": "string", "description": "Only tasks carrying this tag, with or without the #" },
                     "list": { "type": "string", "description": "Only tasks in this list, named as `lists` names it" },
                     "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
+                    "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, so «sereno» brings everything read out of that one place. Written however you like: «sereno», «sereno#» and «sereno: » all match the same" },
                     "from": { "type": "string", "description": "Only tasks whose date or deadline falls on this day or after it (2026-08-31)" },
                     "to": { "type": "string", "description": "Only tasks whose date or deadline falls on this day or before it" },
                     "scope": {

@@ -682,20 +682,25 @@ pub fn card_of(root: &Path, cache: Option<&crate::cache::Cache>, id: &str) -> Op
     Some(card)
 }
 
-/// The cards of many, in one pass, forgetting what no longer has a file behind it.
+/// The cards of many, in one pass. It forgets nothing: the caller asks for a page at a time,
+/// and throwing away every card outside that page would leave the cache colder each time.
 pub fn cards_of(
     root: &Path,
     cache: Option<&crate::cache::Cache>,
     ids: &[String],
 ) -> std::collections::BTreeMap<String, Card> {
-    let found: std::collections::BTreeMap<String, Card> = ids
-        .iter()
+    ids.iter()
         .filter_map(|id| card_of(root, cache, id).map(|card| (id.clone(), card)))
-        .collect();
-    if let Some(cache) = cache {
-        cache.forget_cards(&found.keys().cloned().collect());
-    }
-    found
+        .collect()
+}
+
+/// What is remembered about documents that are no longer on disk, weighed against the files
+/// themselves rather than against whatever somebody happened to ask for.
+pub fn forget_stray_cards(root: &Path, cache: Option<&crate::cache::Cache>) {
+    let Some(cache) = cache else {
+        return;
+    };
+    cache.forget_cards(&all(root).into_iter().map(|one| one.id).collect());
 }
 
 /// A picture is drawn where a link is followed, and an agent choosing a document wants to know
@@ -4917,6 +4922,44 @@ mod cards {
     }
 
     #[test]
+    fn asking_for_one_page_of_them_does_not_forget_the_rest() {
+        let room = tempfile::tempdir().unwrap();
+        let cache = crate::cache::Cache::open(&room.path().join("cache"))
+            .unwrap()
+            .expect("a cache to remember in");
+        let docs = room.path().join("docs");
+        std::fs::create_dir_all(&docs).unwrap();
+        for n in 1..=3 {
+            std::fs::write(
+                docs.join(format!("mac0-000{n}.md")),
+                format!("# Acta {n}\n\nlo que se hablo.\n"),
+            )
+            .unwrap();
+        }
+        let all: Vec<String> = (1..=3).map(|n| format!("mac0-000{n}")).collect();
+        cards_of(&docs, Some(&cache), &all);
+
+        // A window onto the list, as `docs` hands one back.
+        cards_of(&docs, Some(&cache), &all[..1]);
+
+        let stamp = |id: &str| {
+            let told = std::fs::metadata(docs.join(format!("{id}.md"))).unwrap();
+            (
+                told.len(),
+                told.modified()
+                    .unwrap()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos() as u64,
+            )
+        };
+        assert!(
+            cache.card("mac0-0003", stamp("mac0-0003")).is_some(),
+            "what was not on the page is still remembered"
+        );
+    }
+
+    #[test]
     fn a_document_that_is_gone_stops_being_remembered() {
         let room = tempfile::tempdir().unwrap();
         let cache = crate::cache::Cache::open(&room.path().join("cache"))
@@ -4927,13 +4970,29 @@ mod cards {
         std::fs::write(docs.join("mac0-0001.md"), "# Acta\n\nel riego.\n").unwrap();
         std::fs::write(docs.join("mac0-0002.md"), "# Otra\n\nel porton.\n").unwrap();
 
+        let told = std::fs::metadata(docs.join("mac0-0002.md")).unwrap();
+        let stamp = (
+            told.len(),
+            told.modified()
+                .unwrap()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as u64,
+        );
+
         let both = ["mac0-0001".to_string(), "mac0-0002".to_string()];
         assert_eq!(cards_of(&docs, Some(&cache), &both).len(), 2);
+        assert!(
+            cache.card("mac0-0002", stamp).is_some(),
+            "it was remembered to begin with"
+        );
 
         std::fs::remove_file(docs.join("mac0-0002.md")).unwrap();
+        forget_stray_cards(&docs, Some(&cache));
+
         assert_eq!(cards_of(&docs, Some(&cache), &both).len(), 1);
         assert!(
-            cache.card("mac0-0002", (0, 0)).is_none(),
+            cache.card("mac0-0002", stamp).is_none(),
             "and what it said is forgotten"
         );
     }

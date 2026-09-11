@@ -383,7 +383,9 @@ impl Cache {
             "INSERT OR REPLACE INTO paper VALUES (?, ?, ?, ?)",
             rusqlite::params![id, stamp.0 as i64, stamp.1 as i64, said],
         ) {
-            witness::warn(
+            // Nothing is lost when this fails — the body is read again — and the window holding
+            // the database is the ordinary reason, so it is not the person's to read about.
+            witness::trace(
                 channel::CACHE,
                 "what a document holds could not be remembered",
                 &[
