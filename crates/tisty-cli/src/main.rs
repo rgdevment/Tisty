@@ -290,11 +290,21 @@ fn main() -> ExitCode {
     match run() {
         Ok(code) => code,
         Err(e) => {
-            tisty_core::witness::warn(
-                tisty_core::witness::channel::TERMINAL,
-                "a command ended in an error",
-                &blamed(asked(), &e),
-            );
+            let facts = blamed(asked(), &e);
+            // Ours knows what broke; anything else is the person being told no, which is the
+            // command working. Only the first is worth a warning in a log somebody sends us.
+            match e.downcast_ref::<tisty_core::Error>() {
+                Some(_) => tisty_core::witness::warn(
+                    tisty_core::witness::channel::TERMINAL,
+                    "a command ended in an error",
+                    &facts,
+                ),
+                None => tisty_core::witness::note(
+                    tisty_core::witness::channel::TERMINAL,
+                    "a command turned the person away",
+                    &facts,
+                ),
+            }
             let lang = Lang::detect(None);
             let said = match e.downcast_ref::<tisty_core::Error>() {
                 Some(tisty_core::Error::UnsupportedVersion(_)) => {
@@ -477,6 +487,21 @@ mod tests {
 
         assert_eq!(keys(&facts), ["command"]);
         assert!(!format!("{facts:?}").contains("Juan"), "{facts:?}");
+    }
+
+    #[test]
+    fn being_told_no_is_not_the_same_as_something_breaking() {
+        let refused = anyhow::anyhow!("no list matches «la clínica de Juan»");
+        let broke = anyhow::Error::from(tisty_core::Error::AlreadyRunning);
+
+        assert!(
+            refused.downcast_ref::<tisty_core::Error>().is_none(),
+            "a refusal carries no error of ours, so it is noted rather than warned about"
+        );
+        assert!(
+            broke.downcast_ref::<tisty_core::Error>().is_some(),
+            "something of ours breaking is what a warning is for"
+        );
     }
 
     #[test]
