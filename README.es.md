@@ -570,8 +570,9 @@ ficha de cada documento —sus títulos, cuánto ocupa, las palabras en que se
 apoya— sacada del propio texto, en este equipo, y que no viaja a ninguna parte.
 El asistente lee eso para saber qué documento le sirve, y después pide la parte
 que quiere, o corrige esa parte sin haber leído el resto. Un documento largo no
-termina volcado en el modelo de nadie porque un asistente quería un párrafo. Para corregir un pasaje
-tiene que nombrarlo tal como lo escribiste, y si ese texto no está o está dos
+termina volcado en el modelo de nadie porque un asistente quería un párrafo.
+Para corregir un pasaje tiene que nombrarlo tal como lo escribiste, y si ese
+texto no está o está dos
 veces, no se escribe nada. Para escribir un cuerpo entero de nuevo tiene que
 devolver la huella con la que leyó el documento la última vez: si escribiste en
 él desde entonces, la escritura se rechaza y tiene que volver a leer, así que lo

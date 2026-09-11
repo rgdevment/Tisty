@@ -562,8 +562,9 @@ take files from outside the folders where a download lands, or file the same
 thing twice.
 
 It also reads sparingly, which is your business as much as its own. Tisty keeps
-a small card for each document — its headings, how long it is, what it leans on —
-worked out from the text itself, on this machine, and never sent anywhere. An
+a small card for each document — its headings, how long it is, what it leans
+on — worked out from the text itself, on this machine, and never sent anywhere.
+An
 assistant reads that to pick which document it needs, then asks for the part it
 wants, or changes that part without having read the rest. A long document is not
 poured into somebody's model because an assistant wanted one paragraph of it.
