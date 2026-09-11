@@ -486,13 +486,15 @@ pub enum Rewrite {
     Moved,
 }
 
-pub fn rewrite(root: &Path, id: &str, body: &str, print: &str) -> Result<Rewrite> {
+/// What it said before is kept first: a rewrite that cannot be undone is not written at all.
+pub fn rewrite(root: &Path, data: &Path, id: &str, body: &str, print: &str) -> Result<Rewrite> {
     alone(root, || {
         let at = resolve(root, id)?;
         if print_of(&at)?.as_deref() != Some(print) {
             return Ok(Rewrite::Moved);
         }
         let was = read(root, id)?;
+        kept_before(data, id, &was)?;
         written(root, id, body)?;
         Ok(Rewrite::Made {
             was,
@@ -501,7 +503,7 @@ pub fn rewrite(root: &Path, id: &str, body: &str, print: &str) -> Result<Rewrite
     })
 }
 
-pub fn edit(root: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
+pub fn edit(root: &Path, data: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
     if old.is_empty() {
         return Ok(Change::Missing);
     }
@@ -516,12 +518,234 @@ pub fn edit(root: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
             0 => Ok(Change::Missing),
             1 => {
                 let whole = was.replacen(old.as_str(), new.as_str(), 1);
+                kept_before(data, id, &was)?;
                 written(root, id, &whole)?;
                 Ok(Change::Made { was, whole })
             }
             many => Ok(Change::Twice(many)),
         }
     })
+}
+
+/// Work out the new body under the same lock that writes it, so nothing slips in between.
+pub fn amend(
+    root: &Path,
+    data: &Path,
+    id: &str,
+    make: impl FnOnce(&str) -> Option<String>,
+) -> Result<Option<String>> {
+    alone(root, || {
+        let was = read(root, id)?;
+        let Some(whole) = make(&was) else {
+            return Ok(None);
+        };
+        kept_before(data, id, &was)?;
+        written(root, id, &whole)?;
+        Ok(Some(settled(&whole)))
+    })
+}
+
+/// A heading inside a fence is code, not a title: skipping the fences is what keeps a shell
+/// prompt from becoming a section.
+pub fn headings(body: &str) -> Vec<(usize, usize, String)> {
+    let mut out = Vec::new();
+    let mut fenced = false;
+    for (n, line) in body.lines().enumerate() {
+        let bare = line.trim_start();
+        if bare.starts_with("```") || bare.starts_with("~~~") {
+            fenced = !fenced;
+            continue;
+        }
+        if fenced {
+            continue;
+        }
+        let deep = bare.chars().take_while(|one| *one == '#').count();
+        if deep == 0 || deep > 3 || !bare[deep..].starts_with(' ') {
+            continue;
+        }
+        out.push((n + 1, deep, bare[deep + 1..].trim().to_string()));
+    }
+    out
+}
+
+/// Where a section ends: the next heading no deeper than its own, or the end of the document.
+/// The blank lines before the next heading separate the two, so they belong to neither.
+pub fn section_lines(body: &str, at: usize) -> Option<(usize, usize)> {
+    let all = headings(body);
+    let (line, deep, _) = all.get(at)?.clone();
+    let lines: Vec<&str> = body.lines().collect();
+    let mut last = all
+        .iter()
+        .skip(at + 1)
+        .find(|(_, other, _)| *other <= deep)
+        .map(|(next, _, _)| next - 1)
+        .unwrap_or(lines.len());
+    while last > line && lines.get(last - 1).is_some_and(|one| one.trim().is_empty()) {
+        last -= 1;
+    }
+    Some((line, last))
+}
+
+/// Cut where the lines really end, so a body that ended in a newline still does.
+pub fn lines_between(body: &str, from: usize, to: usize) -> String {
+    let mut start = 0usize;
+    let mut end = body.len();
+    let mut at = 0usize;
+    for (n, line) in body.split_inclusive('\n').enumerate() {
+        if n + 1 == from {
+            start = at;
+        }
+        at += line.len();
+        if n + 1 == to {
+            end = at;
+            break;
+        }
+    }
+    body.get(start..end).unwrap_or_default().to_string()
+}
+
+/// What can be worked out from a body without anybody writing it down, and so can never be
+/// stale: every field here is read back out of the text each time the file changes.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Card {
+    pub print: String,
+    pub title: String,
+    pub chars: usize,
+    pub lines: usize,
+    pub words: usize,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub outline: Vec<Heading>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub keywords: Vec<String>,
+    #[serde(default, skip_serializing_if = "none_at_all")]
+    pub pictures: usize,
+    #[serde(default, skip_serializing_if = "none_at_all")]
+    pub links: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Heading {
+    pub at: usize,
+    pub line: usize,
+    pub level: usize,
+    pub title: String,
+}
+
+fn none_at_all(many: &usize) -> bool {
+    *many == 0
+}
+
+const KEYWORDS_AT_MOST: usize = 12;
+const A_WORD_AT_LEAST: usize = 4;
+
+impl Card {
+    pub fn read_from(body: &str) -> Self {
+        let outline: Vec<Heading> = headings(body)
+            .into_iter()
+            .enumerate()
+            .map(|(at, (line, level, title))| Heading {
+                at,
+                line,
+                level,
+                title,
+            })
+            .collect();
+        let (pictures, links) = pointed_at(body);
+        Self {
+            print: crate::attach::printed(body.as_bytes()),
+            title: titled(body),
+            chars: body.chars().count(),
+            lines: body.lines().count(),
+            words: body.split_whitespace().count(),
+            keywords: standing_out(body),
+            outline,
+            pictures,
+            links,
+        }
+    }
+}
+
+/// Worked out once per version of a file and remembered locally, because reading two hundred
+/// bodies to answer "which of these is about the roof" is a cost nobody should pay twice.
+pub fn card_of(root: &Path, cache: Option<&crate::cache::Cache>, id: &str) -> Option<Card> {
+    let at = resolve(root, id).ok()?;
+    let stamp = stamped(&at)?;
+    if let Some(cache) = cache
+        && let Some(card) = cache.card(id, stamp)
+    {
+        return Some(card);
+    }
+    let card = Card::read_from(&read(root, id).ok()?);
+    if let Some(cache) = cache {
+        cache.note_card(id, stamp, &card);
+    }
+    Some(card)
+}
+
+/// The cards of many, in one pass. It forgets nothing: the caller asks for a page at a time,
+/// and throwing away every card outside that page would leave the cache colder each time.
+pub fn cards_of(
+    root: &Path,
+    cache: Option<&crate::cache::Cache>,
+    ids: &[String],
+) -> std::collections::BTreeMap<String, Card> {
+    ids.iter()
+        .filter_map(|id| card_of(root, cache, id).map(|card| (id.clone(), card)))
+        .collect()
+}
+
+/// What is remembered about documents that are no longer on disk, weighed against the files
+/// themselves rather than against whatever somebody happened to ask for.
+pub fn forget_stray_cards(root: &Path, cache: Option<&crate::cache::Cache>) {
+    let Some(cache) = cache else {
+        return;
+    };
+    cache.forget_cards(&all(root).into_iter().map(|one| one.id).collect());
+}
+
+/// A picture is drawn where a link is followed, and an agent choosing a document wants to know
+/// which of the two it is walking into.
+fn pointed_at(body: &str) -> (usize, usize) {
+    let (mut drawn, mut followed) = (0, 0);
+    let bytes = body.as_bytes();
+    for (at, _) in body.match_indices('[') {
+        let picture = at > 0 && bytes[at - 1] == b'!';
+        match body[at..].find("](") {
+            Some(_) if picture => drawn += 1,
+            Some(_) => followed += 1,
+            None => {}
+        }
+    }
+    (drawn, followed)
+}
+
+/// The tags a body carries first, since somebody meant those; then the words it leans on, which
+/// nobody meant but which say what it is about all the same.
+fn standing_out(body: &str) -> Vec<String> {
+    let mut out: Vec<String> = crate::tagging::tags_in(body)
+        .iter()
+        .map(|one| one.as_str().to_string())
+        .collect();
+
+    let mut times: std::collections::HashMap<String, usize> = Default::default();
+    for word in crate::text::terms(body) {
+        if word.chars().count() < A_WORD_AT_LEAST {
+            continue;
+        }
+        *times.entry(word).or_default() += 1;
+    }
+    let mut said: Vec<(String, usize)> = times.into_iter().filter(|(_, n)| *n > 1).collect();
+    said.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    for (word, _) in said {
+        if out.len() >= KEYWORDS_AT_MOST {
+            break;
+        }
+        if !out.contains(&word) {
+            out.push(word);
+        }
+    }
+    out.truncate(KEYWORDS_AT_MOST);
+    out
 }
 
 /// A document imported from Windows keeps its line endings, and nobody types those.
@@ -1946,6 +2170,7 @@ Gasfiter.
 
         let made = edit(
             room.path(),
+            room.path(),
             "mac0-0002",
             "Cambiar la manguera del patio.",
             "Cambiar la manguera y la llave de paso.",
@@ -1976,7 +2201,14 @@ Cambiar la manguera y la llave de paso.
     fn an_edit_that_names_what_is_not_there_writes_nothing() {
         let room = papers();
 
-        let missed = edit(room.path(), "mac0-0002", "la reja del patio", "otra cosa").unwrap();
+        let missed = edit(
+            room.path(),
+            room.path(),
+            "mac0-0002",
+            "la reja del patio",
+            "otra cosa",
+        )
+        .unwrap();
 
         assert_eq!(missed, Change::Missing);
         assert_eq!(
@@ -2003,7 +2235,14 @@ regar
         )
         .unwrap();
 
-        let twice = edit(room.path(), "mac0-0001", "regar", "regar el patio").unwrap();
+        let twice = edit(
+            room.path(),
+            room.path(),
+            "mac0-0001",
+            "regar",
+            "regar el patio",
+        )
+        .unwrap();
 
         assert_eq!(twice, Change::Twice(2));
         assert_eq!(
@@ -2022,7 +2261,7 @@ regar
         let room = papers();
 
         assert_eq!(
-            edit(room.path(), "mac0-0002", "", "algo").unwrap(),
+            edit(room.path(), room.path(), "mac0-0002", "", "algo").unwrap(),
             Change::Missing
         );
         assert_eq!(
@@ -2053,6 +2292,7 @@ tres
 
         edit(
             room.path(),
+            room.path(),
             "mac0-0001",
             "
 
@@ -2061,6 +2301,7 @@ dos",
         )
         .unwrap();
         edit(
+            room.path(),
             room.path(),
             "mac0-0001",
             "uno",
@@ -2100,6 +2341,7 @@ dos
 
         let made = edit(
             room.path(),
+            room.path(),
             "mac0-0001",
             "uno
 
@@ -2138,6 +2380,7 @@ uno
 
         let refused = edit(
             room.path(),
+            room.path(),
             "mac0-0001",
             "uno",
             &"a".repeat(BODY_AT_MOST as usize),
@@ -2165,6 +2408,7 @@ uno
         assert_eq!(
             rewrite(
                 room.path(),
+                room.path(),
                 "mac0-0001",
                 "# Otra acta\n\notra cosa\n",
                 &print
@@ -2190,7 +2434,14 @@ uno
         let print = print_of(&at).unwrap().unwrap();
 
         assert_eq!(
-            rewrite(room.path(), "mac0-0001", "# Otra\n\notra cosa\n", &print).unwrap(),
+            rewrite(
+                room.path(),
+                room.path(),
+                "mac0-0001",
+                "# Otra\n\notra cosa\n",
+                &print
+            )
+            .unwrap(),
             Rewrite::Made {
                 was: "# Acta\n\nsin salto final".to_string(),
                 whole: "# Otra\n\notra cosa\n".to_string(),
@@ -2210,7 +2461,14 @@ uno
         write(room.path(), "mac0-0001", mine).unwrap();
 
         assert_eq!(
-            rewrite(room.path(), "mac0-0001", "# Otra\n\notra cosa\n", &print).unwrap(),
+            rewrite(
+                room.path(),
+                room.path(),
+                "mac0-0001",
+                "# Otra\n\notra cosa\n",
+                &print
+            )
+            .unwrap(),
             Rewrite::Moved
         );
         assert_eq!(read(room.path(), "mac0-0001").unwrap(), mine);
@@ -2220,7 +2478,14 @@ uno
     fn a_print_of_a_document_that_is_not_there_replaces_nothing() {
         let room = root();
         assert_eq!(
-            rewrite(room.path(), "mac0-0009", "# Algo\n", "sea lo que sea").unwrap(),
+            rewrite(
+                room.path(),
+                room.path(),
+                "mac0-0009",
+                "# Algo\n",
+                "sea lo que sea"
+            )
+            .unwrap(),
             Rewrite::Moved
         );
     }
@@ -2243,6 +2508,7 @@ lo que escribio la persona",
         ] {
             assert_eq!(
                 edit(
+                    room.path(),
                     room.path(),
                     "mac0-0001",
                     named,
@@ -2273,6 +2539,7 @@ dos
         .unwrap();
 
         let made = edit(
+            room.path(),
             room.path(),
             "mac0-0001",
             "uno
@@ -4593,5 +4860,140 @@ mod survival {
                 ),
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod cards {
+    use super::*;
+
+    #[test]
+    fn a_card_says_what_is_in_a_body_without_anybody_writing_it_down() {
+        let card = Card::read_from(
+            "# Acta del comite\n\n## El riego\n\nEl riego queda para mayo. El riego es lo de \
+             siempre.\n\n![la foto](foto.png)\n\n[el plano](plano.pdf)\n\n```sh\n# not a \
+             heading\n```\n",
+        );
+
+        assert_eq!(card.title, "Acta del comite");
+        assert_eq!(
+            card.outline.len(),
+            2,
+            "the fenced one is code: {:?}",
+            card.outline
+        );
+        assert_eq!(card.outline[1].title, "El riego");
+        assert_eq!(card.pictures, 1);
+        assert_eq!(card.links, 1);
+        assert!(card.words > 10);
+        assert!(
+            card.keywords.iter().any(|one| one == "riego"),
+            "what it leans on: {:?}",
+            card.keywords
+        );
+    }
+
+    #[test]
+    fn a_card_is_read_again_once_the_file_it_described_is_written() {
+        let room = tempfile::tempdir().unwrap();
+        let cache = crate::cache::Cache::open(&room.path().join("cache"))
+            .unwrap()
+            .expect("a cache to remember in");
+        let docs = room.path().join("docs");
+        std::fs::create_dir_all(&docs).unwrap();
+        std::fs::write(docs.join("mac0-0001.md"), "# Acta\n\nel riego.\n").unwrap();
+
+        let first = card_of(&docs, Some(&cache), "mac0-0001").unwrap();
+        assert_eq!(first.title, "Acta");
+        assert_eq!(
+            card_of(&docs, Some(&cache), "mac0-0001").unwrap(),
+            first,
+            "read twice, the same card comes back"
+        );
+
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        std::fs::write(docs.join("mac0-0001.md"), "# Otra acta\n\nel porton.\n").unwrap();
+        let now = card_of(&docs, Some(&cache), "mac0-0001").unwrap();
+        assert_eq!(
+            now.title, "Otra acta",
+            "the remembered one was not handed back"
+        );
+        assert_ne!(now.print, first.print);
+    }
+
+    #[test]
+    fn asking_for_one_page_of_them_does_not_forget_the_rest() {
+        let room = tempfile::tempdir().unwrap();
+        let cache = crate::cache::Cache::open(&room.path().join("cache"))
+            .unwrap()
+            .expect("a cache to remember in");
+        let docs = room.path().join("docs");
+        std::fs::create_dir_all(&docs).unwrap();
+        for n in 1..=3 {
+            std::fs::write(
+                docs.join(format!("mac0-000{n}.md")),
+                format!("# Acta {n}\n\nlo que se hablo.\n"),
+            )
+            .unwrap();
+        }
+        let all: Vec<String> = (1..=3).map(|n| format!("mac0-000{n}")).collect();
+        cards_of(&docs, Some(&cache), &all);
+
+        // A window onto the list, as `docs` hands one back.
+        cards_of(&docs, Some(&cache), &all[..1]);
+
+        let stamp = |id: &str| {
+            let told = std::fs::metadata(docs.join(format!("{id}.md"))).unwrap();
+            (
+                told.len(),
+                told.modified()
+                    .unwrap()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos() as u64,
+            )
+        };
+        assert!(
+            cache.card("mac0-0003", stamp("mac0-0003")).is_some(),
+            "what was not on the page is still remembered"
+        );
+    }
+
+    #[test]
+    fn a_document_that_is_gone_stops_being_remembered() {
+        let room = tempfile::tempdir().unwrap();
+        let cache = crate::cache::Cache::open(&room.path().join("cache"))
+            .unwrap()
+            .expect("a cache to remember in");
+        let docs = room.path().join("docs");
+        std::fs::create_dir_all(&docs).unwrap();
+        std::fs::write(docs.join("mac0-0001.md"), "# Acta\n\nel riego.\n").unwrap();
+        std::fs::write(docs.join("mac0-0002.md"), "# Otra\n\nel porton.\n").unwrap();
+
+        let told = std::fs::metadata(docs.join("mac0-0002.md")).unwrap();
+        let stamp = (
+            told.len(),
+            told.modified()
+                .unwrap()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as u64,
+        );
+
+        let both = ["mac0-0001".to_string(), "mac0-0002".to_string()];
+        assert_eq!(cards_of(&docs, Some(&cache), &both).len(), 2);
+        assert!(
+            cache.card("mac0-0002", stamp).is_some(),
+            "it was remembered to begin with"
+        );
+
+        std::fs::remove_file(docs.join("mac0-0002.md")).unwrap();
+        forget_stray_cards(&docs, Some(&cache));
+
+        assert_eq!(cards_of(&docs, Some(&cache), &both).len(), 1);
+        assert!(
+            cache.card("mac0-0002", stamp).is_none(),
+            "and what it said is forgotten"
+        );
     }
 }

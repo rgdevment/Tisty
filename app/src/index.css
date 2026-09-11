@@ -147,8 +147,6 @@
   --color-mark-tag: var(--tisty-mark-tag);
   --color-mark-priority: var(--tisty-mark-priority);
   --color-mark-repeat: var(--tisty-mark-repeat);
-  --color-mark-step: var(--tisty-mark-step);
-  --color-mark-doc: var(--tisty-mark-doc);
 }
 
 html,

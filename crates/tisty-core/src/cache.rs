@@ -50,7 +50,12 @@ impl Cache {
                  CREATE TABLE IF NOT EXISTS list(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS folder(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS doc(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
-                 CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY);",
+                 CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY);
+                 CREATE TABLE IF NOT EXISTS paper(
+                     id TEXT PRIMARY KEY,
+                     bytes INTEGER NOT NULL,
+                     wrote INTEGER NOT NULL,
+                     card TEXT NOT NULL);",
         ) {
             witness::warn(
                 channel::CACHE,
@@ -354,6 +359,60 @@ impl Cache {
             );
         }
         Ok(())
+    }
+
+    /// The card a document reads at, or nothing if the file has been written since it was
+    /// worked out. Nobody is told a stale one: the caller reads the body again instead.
+    pub fn card(&self, id: &str, stamp: (u64, u64)) -> Option<crate::docs::Card> {
+        let said: String = self
+            .db
+            .query_row(
+                "SELECT card FROM paper WHERE id = ? AND bytes = ? AND wrote = ?",
+                rusqlite::params![id, stamp.0 as i64, stamp.1 as i64],
+                |row| row.get(0),
+            )
+            .ok()?;
+        serde_json::from_str(&said).ok()
+    }
+
+    pub fn note_card(&self, id: &str, stamp: (u64, u64), card: &crate::docs::Card) {
+        let Ok(said) = serde_json::to_string(card) else {
+            return;
+        };
+        if let Err(e) = self.db.execute(
+            "INSERT OR REPLACE INTO paper VALUES (?, ?, ?, ?)",
+            rusqlite::params![id, stamp.0 as i64, stamp.1 as i64, said],
+        ) {
+            // Nothing is lost when this fails — the body is read again — and the window holding
+            // the database is the ordinary reason, so it is not the person's to read about.
+            witness::trace(
+                channel::CACHE,
+                "what a document holds could not be remembered",
+                &[
+                    ("id", Fact::Id(id.into())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+        }
+    }
+
+    /// A document deleted or renamed leaves its card behind, and nothing ever asks for it again.
+    pub fn forget_cards(&self, kept: &std::collections::BTreeSet<String>) {
+        let Ok(mut all) = self.db.prepare("SELECT id FROM paper") else {
+            return;
+        };
+        let Ok(found) = all.query_map([], |row| row.get::<_, String>(0)) else {
+            return;
+        };
+        let gone: Vec<String> = found
+            .filter_map(std::result::Result::ok)
+            .filter(|one| !kept.contains(one))
+            .collect();
+        for one in gone {
+            let _ = self
+                .db
+                .execute("DELETE FROM paper WHERE id = ?", rusqlite::params![one]);
+        }
     }
 
     pub fn already(&self) -> crate::tidy::Already {

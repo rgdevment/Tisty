@@ -555,15 +555,24 @@ y sigue siendo un dispositivo que puedes echar; mientras no le des entrada, todo
 lo que intente se le niega.
 
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
-fecha, ponerle una hora a la que sonar, agregar a la bitácora, escribir un
-documento, agregar al final de uno que ya está ahí, corregir un pasaje de uno,
-escribir uno entero de nuevo, ordenar documentos en carpetas, guardar una copia
-de un archivo que le señales —en una tarea o dentro de un documento, que admite
-el archivo más grande de los dos— y leer lo que ya está. Lo que no puede: cerrar
-una tarea ni borrarla, borrar un documento, renombrar ni vaciar una carpeta,
-alcanzar una tarea que plegaste, tomar archivos fuera de las carpetas donde
-aterriza una descarga, ni anotar dos veces lo mismo. Para corregir un pasaje
-tiene que nombrarlo tal como lo escribiste, y si ese texto no está o está dos
+fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó él
+mismo, agregar a la bitácora, escribir un documento, agregar a uno que ya está
+ahí —al final o bajo un título—, corregir un pasaje de uno, escribir uno entero
+de nuevo, ordenar documentos en carpetas, guardar una copia de un archivo que le
+señales —en una tarea o dentro de un documento, que admite el archivo más grande
+de los dos— y leer lo que ya está. Lo que no puede: cerrar una tarea ni borrarla,
+mover un día que pusiste tú, borrar un documento, renombrar ni vaciar una
+carpeta, alcanzar una tarea que plegaste, tomar archivos fuera de las carpetas
+donde aterriza una descarga, ni anotar dos veces lo mismo.
+
+También lee con mesura, que es asunto tuyo tanto como suyo. Tisty guarda una
+ficha de cada documento —sus títulos, cuánto ocupa, las palabras en que se
+apoya— sacada del propio texto, en este equipo, y que no viaja a ninguna parte.
+El asistente lee eso para saber qué documento le sirve, y después pide la parte
+que quiere, o corrige esa parte sin haber leído el resto. Un documento largo no
+termina volcado en el modelo de nadie porque un asistente quería un párrafo.
+Para corregir un pasaje tiene que nombrarlo tal como lo escribiste, y si ese
+texto no está o está dos
 veces, no se escribe nada. Para escribir un cuerpo entero de nuevo tiene que
 devolver la huella con la que leyó el documento la última vez: si escribiste en
 él desde entonces, la escritura se rechaza y tiene que volver a leer, así que lo

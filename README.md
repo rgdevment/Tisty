@@ -551,13 +551,23 @@ it stays a device you can throw out; until you do let it in, everything it
 tries is refused.
 
 What it may do is deliberately small: file a task with its steps and its date,
-set an hour for it to ring at, add to the journal, write a document, add to the
-end of one that is already there, correct a passage of one, write one again
-whole, file documents into folders, keep a copy of a file you point it at — on a
-task or inside a document, which takes the larger file of the two — and read
-what is already there. What it may not do: close a task or delete one, delete a
-document, rename or empty a folder, reach a task you folded away, take files
-from outside the folders where a download lands, or file the same thing twice.
+set an hour for it to ring at, move the day of a task it filed itself, add to
+the journal, write a document, add to one that is already there — at the end or
+under a heading — correct a passage of one, write one again whole, file
+documents into folders, keep a copy of a file you point it at — on a task or
+inside a document, which takes the larger file of the two — and read what is
+already there. What it may not do: close a task or delete one, move a day you
+set, delete a document, rename or empty a folder, reach a task you folded away,
+take files from outside the folders where a download lands, or file the same
+thing twice.
+
+It also reads sparingly, which is your business as much as its own. Tisty keeps
+a small card for each document — its headings, how long it is, what it leans
+on — worked out from the text itself, on this machine, and never sent anywhere.
+An
+assistant reads that to pick which document it needs, then asks for the part it
+wants, or changes that part without having read the rest. A long document is not
+poured into somebody's model because an assistant wanted one paragraph of it.
 To correct a passage it has to name it exactly as you wrote it, and if that text
 is not there or is there twice, nothing is written at all. To write a whole body
 again it has to send back the print the document read at when it last looked: if

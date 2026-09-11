@@ -4830,18 +4830,6 @@ pub fn parting<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 struct Leaving(std::sync::atomic::AtomicBool);
 
 #[tauri::command]
-fn printed(window: tauri::WebviewWindow) -> Answer<()> {
-    window.print().map_err(|e| {
-        witness::warn(
-            channel::WINDOW,
-            "the document would not print",
-            &[("why", Fact::Why(e.to_string()))],
-        );
-        Refusal::of("cannotOpen")
-    })
-}
-
-#[tauri::command]
 fn sow(app: tauri::AppHandle, priority: Option<String>) {
     tray::sow(&app, priority);
 }
@@ -6756,7 +6744,6 @@ pub fn run() {
             doc_lock,
             parted,
             sow,
-            printed,
             folder_file
         ])
         .build(tauri::generate_context!())
