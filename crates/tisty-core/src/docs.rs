@@ -635,6 +635,23 @@ fn none_at_all(many: &usize) -> bool {
     *many == 0
 }
 
+/// What a card cannot work out because nobody can: somebody read the document and said what it
+/// was about. It is kept beside the card, on this machine only, and carries the print of the
+/// body it was written against — so a reader can be told it is describing an older text.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Gist {
+    pub print: String,
+    pub summary: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub notes: String,
+    pub at: jiff::Timestamp,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
+}
+
+pub const SUMMARY_AT_MOST: usize = 2_000;
+pub const NOTES_AT_MOST: usize = 4_000;
+
 const KEYWORDS_AT_MOST: usize = 12;
 const A_WORD_AT_LEAST: usize = 4;
 

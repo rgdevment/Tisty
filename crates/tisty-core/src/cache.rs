@@ -55,7 +55,10 @@ impl Cache {
                      id TEXT PRIMARY KEY,
                      bytes INTEGER NOT NULL,
                      wrote INTEGER NOT NULL,
-                     card TEXT NOT NULL);",
+                     card TEXT NOT NULL);
+                 CREATE TABLE IF NOT EXISTS gist(
+                     id TEXT PRIMARY KEY,
+                     said TEXT NOT NULL);",
         ) {
             witness::warn(
                 channel::CACHE,
@@ -396,6 +399,43 @@ impl Cache {
         }
     }
 
+    /// Unlike a card, this was written rather than worked out, so it is not thrown away when the
+    /// body moves: it is handed back with the print it was written against, and read as old.
+    pub fn gist(&self, id: &str) -> Option<crate::docs::Gist> {
+        let said: String = self
+            .db
+            .query_row(
+                "SELECT said FROM gist WHERE id = ?",
+                rusqlite::params![id],
+                |row| row.get(0),
+            )
+            .ok()?;
+        serde_json::from_str(&said).ok()
+    }
+
+    pub fn note_gist(&self, id: &str, gist: &crate::docs::Gist) -> bool {
+        let Ok(said) = serde_json::to_string(gist) else {
+            return false;
+        };
+        match self.db.execute(
+            "INSERT OR REPLACE INTO gist VALUES (?, ?)",
+            rusqlite::params![id, said],
+        ) {
+            Ok(_) => true,
+            Err(e) => {
+                witness::warn(
+                    channel::CACHE,
+                    "what an agent wrote about a document could not be kept",
+                    &[
+                        ("id", Fact::Id(id.into())),
+                        ("why", Fact::Why(e.to_string())),
+                    ],
+                );
+                false
+            }
+        }
+    }
+
     /// A document deleted or renamed leaves its card behind, and nothing ever asks for it again.
     pub fn forget_cards(&self, kept: &std::collections::BTreeSet<String>) {
         let Ok(mut all) = self.db.prepare("SELECT id FROM paper") else {
@@ -412,6 +452,9 @@ impl Cache {
             let _ = self
                 .db
                 .execute("DELETE FROM paper WHERE id = ?", rusqlite::params![one]);
+            let _ = self
+                .db
+                .execute("DELETE FROM gist WHERE id = ?", rusqlite::params![one]);
         }
     }
 

@@ -317,6 +317,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "read_doc",
             "catch_up",
             "reschedule",
+            "sum_up",
             "outline_doc",
             "read",
             "find",
@@ -2313,6 +2314,133 @@ fn audit_a_batch_is_bounded_and_says_so_rather_than_writing_part_of_it() {
         serde_json::json!(0),
         "not one of them was written: {after}"
     );
+}
+
+#[test]
+fn what_one_agent_worked_out_is_there_for_the_next_without_the_document() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(
+        &served,
+        "# Acta del comite\n\n## El riego\n\nqueda para mayo.\n\n## El porton\n\npara abril.",
+    );
+
+    let kept = served.call(
+        "sum_up",
+        serde_json::json!({
+            "doc": &doc,
+            "summary": "Lo acordado sobre el riego y el porton en el comite de marzo.",
+            "notes": "El riego esta en la seccion 1, el porton en la 2."
+        }),
+    );
+    assert!(kept["result"]["isError"] != true, "{kept}");
+
+    let seen = served.call("outline_doc", serde_json::json!({ "doc": &doc }));
+    let gist = &seen["result"]["structuredContent"]["gist"];
+    assert!(
+        gist["summary"].as_str().unwrap().contains("el riego"),
+        "{gist}"
+    );
+    assert!(
+        gist["notes"].as_str().unwrap().contains("seccion 1"),
+        "{gist}"
+    );
+    assert_eq!(gist["by_agent"], serde_json::json!(true), "{gist}");
+    assert!(
+        gist["stale"].is_null(),
+        "it describes the text as it reads: {gist}"
+    );
+
+    let listed = served.call("docs", serde_json::json!({}));
+    let one = &listed["result"]["structuredContent"]["docs"][0];
+    assert!(
+        one["gist"]["summary"].is_string(),
+        "the list carries it: {one}"
+    );
+    assert!(one["gist"]["notes"].is_null(), "but not the notes: {one}");
+}
+
+#[test]
+fn a_summary_of_a_document_that_moved_says_so_rather_than_lying() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(&served, "# Acta\n\nEl riego queda para mayo.");
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "El riego queda para mayo." }),
+    );
+
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "body": "Y el porton, para abril." }),
+    );
+
+    let seen = served.call("outline_doc", serde_json::json!({ "doc": &doc }));
+    let gist = &seen["result"]["structuredContent"]["gist"];
+    assert_eq!(gist["stale"], serde_json::json!(true), "{seen}");
+    assert!(
+        gist["summary"].as_str().unwrap().contains("mayo"),
+        "what was said is still handed back, marked old: {gist}"
+    );
+}
+
+#[test]
+fn what_an_agent_remembers_never_leaves_this_machine() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "un secreto de trabajo" }),
+    );
+
+    let store = served.home.path().join("data/store");
+    let mut written = String::new();
+    for dir in std::fs::read_dir(&store).unwrap().filter_map(Result::ok) {
+        if let Ok(said) = std::fs::read_to_string(dir.path().join("active.tisty")) {
+            written.push_str(&said);
+        }
+    }
+    assert!(
+        !written.contains("un secreto de trabajo"),
+        "it is not in the log, so it never syncs: {written}"
+    );
+    let body = std::fs::read_to_string(
+        served
+            .home
+            .path()
+            .join("data/docs")
+            .join(format!("{doc}.md")),
+    )
+    .unwrap();
+    assert!(!body.contains("un secreto"), "nor in the document: {body}");
+}
+
+#[test]
+fn saying_nothing_about_a_document_is_refused_rather_than_kept() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
+
+    let empty = served.call("sum_up", serde_json::json!({ "doc": &doc }));
+    assert_eq!(
+        empty["result"]["isError"],
+        serde_json::json!(true),
+        "{empty}"
+    );
+
+    let long = served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &doc, "summary": "a".repeat(2_100) }),
+    );
+    assert_eq!(long["result"]["isError"], serde_json::json!(true), "{long}");
+
+    let lost = served.call(
+        "sum_up",
+        serde_json::json!({ "doc": "no-esta-0001", "summary": "algo" }),
+    );
+    assert_eq!(lost["result"]["isError"], serde_json::json!(true), "{lost}");
 }
 
 #[test]

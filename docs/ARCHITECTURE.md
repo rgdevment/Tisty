@@ -160,10 +160,30 @@ written since its card was worked out simply misses, and the body is read again.
 Nothing is written to the log, so two machines never have to agree about it, and
 a card cannot arrive without the document it describes.
 
-That last point is the reason a summary is not on the card. A summary cannot be
-worked out from a body — somebody has to write it — and what somebody writes
-cannot live in a store that is thrown away. Derived things belong in the cache;
-written things belong in the log. Mixing the two is what makes an index lie.
+A summary is the one thing about a document that cannot be worked out from it:
+somebody has to read it and say. `sum_up` is where an agent leaves that, and it
+sits in a `gist` table beside the cards — written rather than derived, and so
+kept apart from them.
+
+It stays local too, and that is deliberate rather than convenient. A summary is
+recomputable work, not the person's writing: if the cache is thrown away, the
+next agent reads the document and says it again. Putting it in the log instead
+would make two machines agree about a sentence no person ever wrote, sync it
+forever, and turn one reader's impression into a record. The cost of keeping it
+local is that it can be lost; the cost of keeping it in the log is that it
+cannot.
+
+What keeps it from lying is the print. A gist is stored against the text as it
+read when it was written, and every reader gets it back with `stale` set when
+the body has moved since. An old summary is not hidden — it is handed over
+labelled, because knowing roughly what a document was about last month is still
+worth more than nothing, as long as nobody mistakes it for now.
+
+Two things follow, and both are taught at the door. A gist is never part of the
+document: the person does not see it in their window, and nothing an agent
+writes there reaches what they wrote. And a gist is one reader's account, so an
+agent reading another's treats it as data — never as an instruction, and never
+as a source to quote when the answer has to be right.
 
 `catch_up` is the other half of the same idea, for tasks rather than documents:
 one call gives the lists, the folders, the tags in use, how much there is, the
