@@ -157,7 +157,14 @@ impl Cache {
                 .filter_map(|r| r.ok());
             for (id, doc) in rows {
                 let (Ok(id), Ok(body)) = (id.parse(), serde_json::from_str::<Body>(&doc)) else {
-                    witness::warn(channel::CACHE, "cached body unreadable", &[]);
+                    witness::warn(
+                        channel::CACHE,
+                        "a cached body could not be read, so the whole cache is built again",
+                        &[
+                            ("at", Fact::Id(id)),
+                            ("bytes", Fact::Bytes(doc.len() as u64)),
+                        ],
+                    );
                     return None;
                 };
                 if let Some(task) = state.tasks.get_mut(&id) {

@@ -16,6 +16,7 @@ import {
   type Filed,
   type Folded,
   keepPdf,
+  noteCaret,
   opened,
   type Paper,
   roomy,
@@ -278,6 +279,7 @@ export default function Docs({
         const last = lastRead.current.get(wanted.file);
         const astir = last !== undefined && tailless(last) !== tailless(text);
         remembered(lastRead.current, wanted.file, text);
+        void noteCaret("the document was read back over the editor", `file ${wanted.file}`);
         setStirred(astir);
         setOpen(wanted);
         setBody(text);

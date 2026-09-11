@@ -6,6 +6,7 @@ use std::sync::{Mutex, Once, OnceLock};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Gravity {
+    Trace,
     Note,
     Warn,
     Error,
@@ -15,6 +16,7 @@ pub enum Gravity {
 impl Gravity {
     fn worded(self) -> &'static str {
         match self {
+            Gravity::Trace => "TRACE",
             Gravity::Note => "NOTE",
             Gravity::Warn => "WARN",
             Gravity::Error => "ERROR",
@@ -57,6 +59,7 @@ pub mod channel {
     pub const HERALD: &str = "herald";
     pub const WINDOW: &str = "window";
     pub const TERMINAL: &str = "terminal";
+    pub const AGENT: &str = "agent";
     pub const BACKUP: &str = "backup";
 }
 
@@ -111,6 +114,10 @@ pub fn wants_all() -> bool {
         .unwrap_or(false)
 }
 
+pub fn trace(channel: &'static str, said: &'static str, facts: &[(&'static str, Fact)]) {
+    write(Gravity::Trace, channel, said, facts);
+}
+
 pub fn note(channel: &'static str, said: &'static str, facts: &[(&'static str, Fact)]) {
     write(Gravity::Note, channel, said, facts);
 }
@@ -133,7 +140,7 @@ fn write(
     said: &'static str,
     facts: &[(&'static str, Fact)],
 ) {
-    if gravity < Gravity::Warn && !ALL.load(Ordering::Relaxed) {
+    if gravity < Gravity::Note && !ALL.load(Ordering::Relaxed) {
         return;
     }
     if INSIDE.with(|inside| inside.replace(true)) {
@@ -445,6 +452,7 @@ mod tests {
 
     #[test]
     fn gravity_sorts_the_way_it_reads() {
+        assert!(Gravity::Trace < Gravity::Note);
         assert!(Gravity::Note < Gravity::Warn);
         assert!(Gravity::Warn < Gravity::Error);
         assert!(Gravity::Error < Gravity::Fatal);
@@ -469,17 +477,47 @@ mod tests {
 
         warn(channel::SYNC, "first", &[]);
         error(channel::SYNC, "second", &[]);
-        note(channel::SYNC, "quiet by default", &[]);
+        note(
+            channel::SYNC,
+            "kept, so a shared log says what happened",
+            &[],
+        );
+        trace(channel::SYNC, "quiet unless asked for", &[]);
 
         let seen = recent(&paths, 10);
-        assert_eq!(seen.len(), 2, "{seen:?}");
+        assert_eq!(seen.len(), 3, "{seen:?}");
         assert!(seen[0].contains("first"), "{seen:?}");
         assert!(seen[1].contains("second"), "{seen:?}");
+        assert!(seen[2].contains("kept"), "{seen:?}");
         assert!(weighs(&paths) > 0);
 
         forget(&paths).unwrap();
         assert!(recent(&paths, 10).is_empty());
         assert_eq!(weighs(&paths), 0);
+        stops();
+    }
+
+    #[test]
+    fn the_finest_trail_is_kept_only_when_it_is_asked_for() {
+        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+
+        keeps(file(&paths), true);
+        trace(channel::SYNC, "asked for", &[]);
+        assert_eq!(
+            recent(&paths, 10).len(),
+            1,
+            "verbose keeps the finest trail"
+        );
+
+        forget(&paths).unwrap();
+        keeps(file(&paths), false);
+        trace(channel::SYNC, "not asked for", &[]);
+        assert!(
+            recent(&paths, 10).is_empty(),
+            "and a log somebody shares is not drowned in it"
+        );
         stops();
     }
 

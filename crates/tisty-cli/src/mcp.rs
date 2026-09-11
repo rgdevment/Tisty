@@ -8,6 +8,7 @@ use tisty_core::{
     event::{Body, LogAdd, StepAdd, TaskPatch},
     model::{DateSpec, FOLDER_NAME_AT_MOST, Priority, Tag},
     order,
+    witness::{self, Fact},
 };
 use ulid::Ulid;
 
@@ -210,12 +211,47 @@ fn answer(paths: &Paths, line: &str) -> Option<String> {
             }),
         ),
         "tools/call" => match called(paths, &params) {
-            Ok(said) => reply(id, said),
-            Err(Refused::Protocol(code, why)) => fault(id, code, &why),
-            Err(Refused::Tool(why)) => reply(id, wrong(&why)),
+            Ok(said) => {
+                witness::trace(
+                    witness::channel::AGENT,
+                    "the door answered a tool",
+                    &[("tool", Fact::Id(named_tool(&params)))],
+                );
+                reply(id, said)
+            }
+            Err(Refused::Protocol(code, why)) => {
+                witness::warn(
+                    witness::channel::AGENT,
+                    "the door was spoken to in a way it does not know",
+                    &[
+                        ("tool", Fact::Id(named_tool(&params))),
+                        ("code", Fact::Count(code.unsigned_abs() as usize)),
+                    ],
+                );
+                fault(id, code, &why)
+            }
+            Err(Refused::Tool(why)) => {
+                witness::warn(
+                    witness::channel::AGENT,
+                    "the door turned a tool away",
+                    &[
+                        ("tool", Fact::Id(named_tool(&params))),
+                        ("why", Fact::Why(why.clone())),
+                    ],
+                );
+                reply(id, wrong(&why))
+            }
         },
         _ => fault(id, -32601, &format!("unknown method: {method}")),
     })
+}
+
+fn named_tool(params: &Value) -> String {
+    params
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or("?")
+        .to_string()
 }
 
 fn discovered() -> Value {

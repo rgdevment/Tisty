@@ -788,16 +788,38 @@ struct Refusal {
     name: Option<String>,
 }
 
+/// A refusal the person could not have caused by asking for something ordinary: it says the store
+/// and the window disagree, and that is worth a line in a log somebody will send us.
+const TELLS_OF_TROUBLE: &[&str] = &[
+    "noSuchDoc",
+    "noSuchTask",
+    "deleteRefused",
+    "internal",
+    "internalNamed",
+    "storeNewer",
+    "otherStore",
+    "wouldReset",
+];
+
 impl Refusal {
     fn of(code: &'static str) -> Self {
-        Self { code, name: None }
+        Self::told(code, None)
     }
 
     fn about(code: &'static str, name: impl Into<String>) -> Self {
-        Self {
-            code,
-            name: Some(name.into()),
+        Self::told(code, Some(name.into()))
+    }
+
+    /// The name is left out on purpose: it carries what the person wrote, and this file is meant
+    /// to be shared.
+    fn told(code: &'static str, name: Option<String>) -> Self {
+        let facts = [("code", Fact::Code(code))];
+        if TELLS_OF_TROUBLE.contains(&code) {
+            witness::warn(channel::WINDOW, "the window was refused", &facts);
+        } else {
+            witness::trace(channel::WINDOW, "the window was refused", &facts);
         }
+        Self { code, name }
     }
 }
 
@@ -2231,6 +2253,19 @@ fn note_trouble(code: String, name: Option<String>) {
         facts.push(("at", Fact::Path(std::path::PathBuf::from(name))));
     }
     witness::warn(channel::WINDOW, "the window showed a refusal", &facts);
+}
+
+#[tauri::command]
+fn note_caret(why: String, facts: String) {
+    let cut = |text: String, most: usize| text.chars().take(most).collect::<String>();
+    witness::warn(
+        channel::WINDOW,
+        "the caret was moved by something other than the person",
+        &[
+            ("why", Fact::Why(cut(why, 40))),
+            ("facts", Fact::Why(cut(facts, 300))),
+        ],
+    );
 }
 
 #[derive(serde::Serialize)]
@@ -3842,7 +3877,7 @@ fn doc_write(
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
     let hand = signing(&session.state);
-    let _ = session.retell(&id, &body, hand);
+    session.retell(&id, &body, hand);
     let title = tisty_core::docs::titled(&body);
     Ok(tisty_core::docs::Doc { title, id })
 }
@@ -3870,7 +3905,16 @@ fn noted(session: &mut Session, file: &str, body: &str) {
         by: None,
         ..told
     };
-    let _ = session.commit(Op::DocSaid { id, d: said });
+    if let Err(e) = session.commit(Op::DocSaid { id, d: said }) {
+        witness::warn(
+            channel::STORE,
+            "what a document says of itself could not be written down",
+            &[
+                ("at", Fact::Id(id.to_string())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+    }
 }
 
 /// Read as a file, ordered from the log: a body that arrived from elsewhere may say otherwise.
@@ -5359,11 +5403,33 @@ async fn sync_now(
             &[("why", Fact::Why(e.to_string()))],
         );
     }
-    witness::note(
-        channel::SYNC,
-        "a carry finished",
-        &[("moved", Fact::Word(if moved { "yes" } else { "no" }))],
-    );
+    let unsettled = done.undecided.len() + done.unreadable.len() + done.astray.len();
+    let facts = [
+        ("moved", Fact::Word(if moved { "yes" } else { "no" })),
+        ("sent", Fact::Count(done.sent)),
+        ("brought", Fact::Count(done.brought)),
+        ("arrived", Fact::Count(done.arrived.len())),
+        ("undecided", Fact::Count(done.undecided.len())),
+        ("unreadable", Fact::Count(done.unreadable.len())),
+        ("astray", Fact::Count(done.astray.len())),
+        ("joined", Fact::Count(done.joined.len())),
+    ];
+    if unsettled > 0 {
+        witness::warn(
+            channel::SYNC,
+            "a carry finished, and left work behind",
+            &facts,
+        );
+    } else {
+        witness::note(channel::SYNC, "a carry finished", &facts);
+    }
+    for one in done.unreadable.iter().chain(done.astray.iter()) {
+        witness::warn(
+            channel::SYNC,
+            "a carry could not settle a document",
+            &[("at", Fact::Id(one.clone()))],
+        );
+    }
     let heard = done.brought > 0;
     session.keep(|c| {
         c.synced_at = Some(jiff::Timestamp::now());
@@ -6645,6 +6711,7 @@ pub fn run() {
             facts,
             keep_report,
             note_trouble,
+            note_caret,
             note_break,
             update_ready,
             update_install,
