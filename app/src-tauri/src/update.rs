@@ -1,17 +1,16 @@
 use tisty_core::witness::{self, Fact, channel};
 
-/// The three feeds live in a release of their own, under a tag that never moves. The tag is what
-/// makes the address steady: a feed served from whichever release GitHub last called the latest
-/// would follow the date one was published rather than the version in it, and would never serve a
-/// candidate at all, since a candidate is never that release.
+/// A branch of its own, holding these three files and nothing else. The address has to stay the
+/// same across every version, and no release can answer for that: one is named after the version
+/// in it, and the one GitHub calls the latest follows the date it was published rather than the
+/// version in it, and is never a candidate.
 const MANIFEST: &str =
-    "https://github.com/rgdevment/Tisty/releases/download/updater-feed/release-manifest.json";
+    "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json";
 /// One holds a stable version and the other a candidate, never both, so the track a copy belongs
 /// to can be read off the version it is being offered.
-pub const LATEST: &str =
-    "https://github.com/rgdevment/Tisty/releases/download/updater-feed/latest.json";
+pub const LATEST: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/latest.json";
 pub const CANDIDATE: &str =
-    "https://github.com/rgdevment/Tisty/releases/download/updater-feed/candidate.json";
+    "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/candidate.json";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 
