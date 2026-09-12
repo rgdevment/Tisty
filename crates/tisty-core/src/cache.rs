@@ -55,7 +55,8 @@ impl Cache {
                      id TEXT PRIMARY KEY,
                      bytes INTEGER NOT NULL,
                      wrote INTEGER NOT NULL,
-                     card TEXT NOT NULL);
+                     card TEXT NOT NULL,
+                     flat TEXT NOT NULL DEFAULT '');
                  CREATE TABLE IF NOT EXISTS gist(
                      id TEXT PRIMARY KEY,
                      said TEXT NOT NULL);",
@@ -367,24 +368,29 @@ impl Cache {
     /// The card a document reads at, or nothing if the file has been written since it was
     /// worked out. Nobody is told a stale one: the caller reads the body again instead.
     pub fn card(&self, id: &str, stamp: (u64, u64)) -> Option<crate::docs::Card> {
-        let said: String = self
+        let (said, flat): (String, String) = self
             .db
             .query_row(
-                "SELECT card FROM paper WHERE id = ? AND bytes = ? AND wrote = ?",
+                "SELECT card, flat FROM paper WHERE id = ? AND bytes = ? AND wrote = ?",
                 rusqlite::params![id, stamp.0 as i64, stamp.1 as i64],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .ok()?;
-        serde_json::from_str(&said).ok()
+        let card: crate::docs::Card = serde_json::from_str(&said).ok()?;
+        // A row written before the text was kept alongside would answer searches with silence.
+        if flat.is_empty() && card.chars > 0 {
+            return None;
+        }
+        Some(card)
     }
 
-    pub fn note_card(&self, id: &str, stamp: (u64, u64), card: &crate::docs::Card) {
+    pub fn note_card(&self, id: &str, stamp: (u64, u64), card: &crate::docs::Card, flat: &str) {
         let Ok(said) = serde_json::to_string(card) else {
             return;
         };
         if let Err(e) = self.db.execute(
-            "INSERT OR REPLACE INTO paper VALUES (?, ?, ?, ?)",
-            rusqlite::params![id, stamp.0 as i64, stamp.1 as i64, said],
+            "INSERT OR REPLACE INTO paper VALUES (?, ?, ?, ?, ?)",
+            rusqlite::params![id, stamp.0 as i64, stamp.1 as i64, said, flat],
         ) {
             // Nothing is lost when this fails — the body is read again — and the window holding
             // the database is the ordinary reason, so it is not the person's to read about.
@@ -397,6 +403,29 @@ impl Cache {
                 ],
             );
         }
+    }
+
+    /// Which documents hold every one of these words, answered without opening a single file.
+    /// The text was folded when it was kept, so the terms are matched the same way.
+    pub fn holding(&self, terms: &[String]) -> Option<Vec<String>> {
+        if terms.is_empty() {
+            return Some(Vec::new());
+        }
+        let where_all = terms
+            .iter()
+            .map(|_| "flat LIKE '%' || ? || '%'")
+            .collect::<Vec<_>>()
+            .join(" AND ");
+        let mut asked = self
+            .db
+            .prepare(&format!("SELECT id FROM paper WHERE {where_all}"))
+            .ok()?;
+        let found = asked
+            .query_map(rusqlite::params_from_iter(terms.iter()), |row| row.get(0))
+            .ok()?
+            .filter_map(std::result::Result::ok)
+            .collect();
+        Some(found)
     }
 
     /// Unlike a card, this was written rather than worked out, so it is not thrown away when the

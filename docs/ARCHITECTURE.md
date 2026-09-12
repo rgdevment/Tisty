@@ -160,6 +160,14 @@ written since its card was worked out simply misses, and the body is read again.
 Nothing is written to the log, so two machines never have to agree about it, and
 a card cannot arrive without the document it describes.
 
+The card carries the words too, stripped of their markup and folded the way a
+query is folded. That is what turns a search from opening two hundred files into
+one question the database answers: it names the few documents that hold every
+term, and only those are read, and only to quote the line. A file the cache has
+never seen is read and remembered on the way past rather than skipped — silence
+would be worse than the work. Without a cache at all there is nothing to ask, so
+the search walks the files as it always did.
+
 A summary is the one thing about a document that cannot be worked out from it:
 somebody has to read it and say. `sum_up` is where an agent leaves that, and it
 sits in a `gist` table beside the cards — written rather than derived, and so

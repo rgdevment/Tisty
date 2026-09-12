@@ -4119,20 +4119,26 @@ fn papers_matching(
         })
         .collect();
 
-    tisty_core::docs::Corpus::default()
-        .searching(&paths.docs(), query, most, |id| here.contains_key(id))
-        .into_iter()
-        .map(|one| {
-            let (archived, page_of) = here.get(&one.id).cloned().unwrap_or((false, None));
-            json!({
-                "doc": one.id,
-                "title": one.title,
-                "line": one.line,
-                "page_of": page_of,
-                "archived": archived,
-            })
+    let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
+    tisty_core::docs::sighted(&paths.docs(), held.as_ref(), query, most, |id| {
+        here.contains_key(id)
+    })
+    .unwrap_or_else(|| {
+        tisty_core::docs::Corpus::default()
+            .searching(&paths.docs(), query, most, |id| here.contains_key(id))
+    })
+    .into_iter()
+    .map(|one| {
+        let (archived, page_of) = here.get(&one.id).cloned().unwrap_or((false, None));
+        json!({
+            "doc": one.id,
+            "title": one.title,
+            "line": one.line,
+            "page_of": page_of,
+            "archived": archived,
         })
-        .collect()
+    })
+    .collect()
 }
 
 /// «sereno#1», «sereno: #1» and «Sereno #1» name the same message, and a second filing of one
