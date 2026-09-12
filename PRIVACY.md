@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** September 4, 2026
+**Last updated:** September 12, 2026
 
 ## The short version
 
@@ -11,7 +11,9 @@ It makes **one** network request on its own — when it opens, and once a day
 after that: it downloads a small file to see whether a newer version exists.
 It sends nothing. Two more follow only if you press the button that offers you
 an update, and one more only if you ask a link in a document for its preview.
-Never otherwise. All of them are described in full below.
+Never otherwise. A copy installed from the Microsoft Store makes none of those:
+it asks Windows what the Store has, and the Store does the rest. All of them are
+described in full below.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -144,14 +146,35 @@ repository, and this section was written before the release that carries it.
 The file it downloads contains version numbers and nothing else — no address, so
 nothing that arrives from it can send you anywhere.
 
+## If Tisty came from the Microsoft Store
+
+That copy asks GitHub nothing. It asks Windows what the Store has for it,
+through the system's own Store interface, and Windows is what talks to
+Microsoft — with the identity that machine already uses for every other app it
+installed from there. Tisty adds nothing of its own: no identifier, no store, no
+task, no name. It is the question Windows asks on its own schedule anyway; the
+button only asks it now.
+
+| | |
+| :--- | :--- |
+| **Why** | To tell you a newer Tisty exists, and to install it if you say so |
+| **What it asks** | Windows, through `StoreContext`. No server of ours is involved |
+| **What it sends** | Nothing of Tisty's. What travels is what the Store already sends for any app installed from it |
+| **How often** | When Tisty opens, every six hours for as long as it keeps running, and whenever you ask *About* to look |
+| **Timeout** | 10 seconds to ask |
+| **If it fails** | Nothing is said, and *About* falls back to sending you to the Store yourself |
+
+Pressing **Update** there downloads nothing through Tisty: the Store fetches and
+installs the package, and Windows closes Tisty to put it in place.
+
 ## The requests only you can start
 
-Pressing **Update** in *About* makes Tisty fetch a second file, which does name
-an address, and then the installer at that address. Both go to
-`raw.githubusercontent.com` and `github.com` over HTTPS, and both carry what any
-download carries: an address to send the bytes back to, and a user agent — here
-`tauri-plugin-updater/<version>`, the library doing the fetching. Nothing about
-you, nothing about what you have written.
+On every copy but the Store's, pressing **Update** in *About* makes Tisty fetch
+a second file, which does name an address, and then the installer at that
+address. Both go to `raw.githubusercontent.com` and `github.com` over HTTPS,
+and both carry what any download carries: an address to send the bytes back to,
+and a user agent — here `tauri-plugin-updater/<version>`, the library doing the
+fetching. Nothing about you, nothing about what you have written.
 
 This is the one place where an address that arrived over the network is opened,
 which is why it is fenced twice. The address has to be where this project's

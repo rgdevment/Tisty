@@ -273,7 +273,8 @@ got solved. Three things follow from that, and they shaped everything else:
 
 **Windows** — from the
 [Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), which keeps
-it updated for you.
+it updated for you. About asks the Store for one on the spot when you would
+rather not wait.
 
 **macOS** — with [Homebrew](https://brew.sh). The tap is added once and never
 again. After that Tisty keeps itself up to date, so Homebrew stands aside:

@@ -92,6 +92,11 @@ whatever it claims to be. The private half is held by the maintainer alone and
 cannot be rotated — if it were lost, every installed copy would go on working
 and simply stop being able to update itself.
 
+A copy kept by the Microsoft Store is the one exception, because it downloads
+nothing itself: it asks the Store what it has and lets the Store install it. What
+signs the package there is the Store, on publication, and the key above never
+comes into it.
+
 ## Questions
 
 <github@apirest.cl>. If your situation is not covered here, ask before

@@ -4,6 +4,7 @@ mod command;
 mod glimpse;
 mod herald;
 mod report;
+mod shop;
 mod tray;
 mod update;
 mod waking;
@@ -2323,18 +2324,54 @@ struct Settings {
 
 const HERE: &str = env!("CARGO_PKG_VERSION");
 
+/// Which window owns the dialogs the Store raises on its own.
+#[cfg(windows)]
+fn owner(app: &tauri::AppHandle) -> Option<isize> {
+    app.get_webview_window("main")
+        .or_else(|| app.webview_windows().into_values().next())
+        .and_then(|window| window.hwnd().ok())
+        .map(|window| window.0 as isize)
+}
+
+#[cfg(not(windows))]
+fn owner(_app: &tauri::AppHandle) -> Option<isize> {
+    None
+}
+
 #[tauri::command]
 async fn update_ready(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     now_please: Option<bool>,
 ) -> Answer<Option<update::Ready>> {
+    let kept = update::route();
+    // A release is out for everyone else while the Store is still certifying it, so a copy kept
+    // there asks the Store rather than the manifest: being sent for a version the Store does not
+    // have yet is worse than being told nothing.
+    if kept.route == update::Route::Store
+        && let Some(window) = owner(&app)
+        && let Ok(shelf) = tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await
+        && shelf != shop::Shelf::Silent
+    {
+        let seen = match shelf {
+            shop::Shelf::Waiting(version) => update::from_the_shop(&version, HERE),
+            _ => None,
+        };
+        let version = seen.as_ref().map(|one| one.version.clone());
+        held(&session).keep(|c| {
+            c.checked_at = Some(jiff::Timestamp::now());
+            c.found_version = version;
+        })?;
+        return Ok(seen);
+    }
+
     let (last, found) = {
         let held = held(&session);
         (held.config.checked_at, held.config.found_version.clone())
     };
     let now = jiff::Timestamp::now();
     if !now_please.unwrap_or(false) && !update::due(last, now) {
-        return Ok(update::remembered(HERE, found.as_deref(), update::route()));
+        return Ok(update::remembered(HERE, found.as_deref(), kept));
     }
 
     let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
@@ -2344,10 +2381,10 @@ async fn update_ready(
     // A look that never answered says nothing about whether an update is owed, so what was found
     // before stays where it is.
     let Some(manifest) = manifest else {
-        return Ok(update::remembered(HERE, found.as_deref(), update::route()));
+        return Ok(update::remembered(HERE, found.as_deref(), kept));
     };
 
-    let seen = update::newer(HERE, &manifest, update::route());
+    let seen = update::newer(HERE, &manifest, kept);
     let version = seen.as_ref().map(|one| one.version.clone());
     held(&session).keep(|c| {
         c.checked_at = Some(now);
@@ -2378,6 +2415,9 @@ async fn update_install(
         .ok_or_else(|| Refusal::of("updateBusy"))?;
 
     let kept = update::route();
+    if kept.route == update::Route::Store {
+        return take_from_the_shop(app).await;
+    }
     if !update::self_installs(kept.route) || update::from_a_mount() {
         return Err(Refusal::of("updateNotHere"));
     }
@@ -2460,6 +2500,31 @@ async fn update_install(
     app.run_on_main_thread(move || handle.restart())
         .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
     Ok(())
+}
+
+/// Windows ends the process to put the new package in place, so the progress left behind is the
+/// last thing anyone sees.
+async fn take_from_the_shop(app: tauri::AppHandle) -> Answer<()> {
+    let window = owner(&app).ok_or_else(|| Refusal::of("updateNotHere"))?;
+    let telling = app.clone();
+    let taken = tauri::async_runtime::spawn_blocking(move || {
+        let mut said: (&'static str, u64) = ("", 0);
+        shop::take(window, move |stage, far| {
+            if said != (stage, far) {
+                said = (stage, far);
+                let _ = telling.emit("updating", Underway { stage, far });
+            }
+        })
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?;
+
+    match taken {
+        Ok(()) => Ok(()),
+        Err(shop::Trouble::Gone) => Err(Refusal::of("updateGone")),
+        Err(shop::Trouble::Stopped) => Err(Refusal::of("updateStopped")),
+        Err(shop::Trouble::Failed(why)) => Err(Refusal::about("updateFailed", why)),
+    }
 }
 
 #[tauri::command]
@@ -7328,7 +7393,7 @@ mod tests {
         rust(&root.join("crates"), &mut files);
         rust(&root.join("app/src-tauri/src"), &mut files);
 
-        let allowed: Vec<String> = files
+        let mut allowed: Vec<String> = files
             .iter()
             .filter(|at| {
                 std::fs::read_to_string(at)
@@ -7337,14 +7402,17 @@ mod tests {
             })
             .map(|at| at.display().to_string())
             .collect();
+        allowed.sort();
 
+        let audited = ["src-tauri/src/lib.rs", "src-tauri/src/shop.rs"];
         assert_eq!(
             allowed.len(),
-            1,
-            "unsafe is allowed in more than the one audited place: {allowed:?}"
+            audited.len(),
+            "unsafe is allowed outside the audited places: {allowed:?}"
         );
-        let mine = std::path::Path::new(&allowed[0]);
-        assert!(mine.ends_with("src-tauri/src/lib.rs"), "{allowed:?}");
+        for (mine, is) in allowed.iter().zip(audited) {
+            assert!(std::path::Path::new(mine).ends_with(is), "{allowed:?}");
+        }
     }
 
     fn now() -> jiff::Zoned {

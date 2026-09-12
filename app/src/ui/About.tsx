@@ -124,7 +124,7 @@ export default function About({
               {step ? (
                 step.stage === "installing" ? (
                   <span className="mt-0.5 block text-[12.5px] text-soft">
-                    {t("updateInstalling")}
+                    {t(newer.route === "store" ? "updateInstallingStore" : "updateInstalling")}
                   </span>
                 ) : (
                   <>
@@ -157,11 +157,20 @@ export default function About({
                 disabled={asked}
                 onClick={() => {
                   setAsked(true);
-                  updateInstall().catch((problem) => {
-                    setAsked(false);
-                    onGaveUp?.();
-                    onError(problem);
-                  });
+                  updateInstall()
+                    // Every other route takes the process with it, and a button handed back there
+                    // would only offer an update to a copy on its way out.
+                    .then(() => {
+                      if (newer.route !== "store") return;
+                      setAsked(false);
+                      onGaveUp?.();
+                      lookAgain();
+                    })
+                    .catch((problem) => {
+                      setAsked(false);
+                      onGaveUp?.();
+                      onError(problem);
+                    });
                 }}
                 className="shrink-0 rounded-[10px] bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white disabled:opacity-60"
               >
