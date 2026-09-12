@@ -1,6 +1,6 @@
 # Contributor License Agreement
 
-Tisty Individual Contributor License Agreement, version 1.1.
+Tisty Individual Contributor License Agreement, version 1.2.
 
 Thank you for contributing to Tisty. This agreement exists for one reason:
 Tisty is released under the AGPL-3.0 **and** offered under separate
@@ -36,7 +36,10 @@ Request, and a signature that only looked forward would leave those earlier
 routes unaccounted for.
 
 **"Project Owner"** means Mario Hidalgo G. (rgdevment), the copyright holder
-and maintainer of Tisty.
+and maintainer of Tisty, and whoever holds those rights after him — a
+successor, or anyone the project is assigned or transferred to, in whole or in
+part. The licences You grant below run to them on the same terms, and to no
+wider ones.
 
 ## 2. Copyright licence
 
@@ -126,6 +129,12 @@ mandatory law where You live.
 
 **If a clause fails.** If any provision is held unenforceable, the rest stays
 in force and that provision is read as narrowly as needed to make it valid.
+
+**This agreement travels with the project.** The Project Owner may assign it,
+together with the rights it grants, to whoever the project passes to. You need
+not be asked, and nothing about what You granted changes: what a successor
+receives is what You gave, neither more nor less. You keep the copyright on
+everything You wrote, and section 6 binds them as it binds him.
 
 **This is the whole agreement** between You and the Project Owner about Your
 Contributions, and it replaces anything discussed before it. A later version
