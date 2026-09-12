@@ -106,6 +106,7 @@ export const settles = ({ at, want, done, put, watch }: Settling) => {
   let timer = 0;
   let writing = false;
   let tallness = -1;
+  let typing: HTMLElement | null = null;
 
   const sheet = at();
 
@@ -121,6 +122,7 @@ export const settles = ({ at, want, done, put, watch }: Settling) => {
     if (over) return;
     over = true;
     seeing?.disconnect();
+    typing?.removeEventListener("beforeinput", stop);
     sheet?.removeEventListener("scroll", nudged);
     window.clearTimeout(timer);
     cancelAnimationFrame(frame);
@@ -146,11 +148,17 @@ export const settles = ({ at, want, done, put, watch }: Settling) => {
   timer = window.setTimeout(stop, WAITS);
 
   const grows = watch?.();
-  if (grows && typeof ResizeObserver !== "undefined") {
-    seeing = new ResizeObserver(() => {
-      if (!over) reach();
-    });
-    seeing.observe(grows);
+  if (grows) {
+    // A body still rendering keeps growing, and each growth reaches again: once a key is
+    // pressed the view is theirs, not the one they left last time.
+    typing = grows;
+    grows.addEventListener("beforeinput", stop);
+    if (typeof ResizeObserver !== "undefined") {
+      seeing = new ResizeObserver(() => {
+        if (!over) reach();
+      });
+      seeing.observe(grows);
+    }
   }
 
   return stop;

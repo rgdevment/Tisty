@@ -568,6 +568,8 @@ An
 assistant reads that to pick which document it needs, then asks for the part it
 wants, or changes that part without having read the rest. A long document is not
 poured into somebody's model because an assistant wanted one paragraph of it.
+Having read one, it can leave a summary for the next one — kept on this machine,
+never synced, and not part of what you wrote.
 To correct a passage it has to name it exactly as you wrote it, and if that text
 is not there or is there twice, nothing is written at all. To write a whole body
 again it has to send back the print the document read at when it last looked: if

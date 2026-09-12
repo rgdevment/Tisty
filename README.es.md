@@ -571,6 +571,8 @@ apoya— sacada del propio texto, en este equipo, y que no viaja a ninguna parte
 El asistente lee eso para saber qué documento le sirve, y después pide la parte
 que quiere, o corrige esa parte sin haber leído el resto. Un documento largo no
 termina volcado en el modelo de nadie porque un asistente quería un párrafo.
+Cuando ya leyó uno, puede dejar un resumen para el siguiente: guardado en este
+equipo, que no viaja, y que no forma parte de lo que tú escribiste.
 Para corregir un pasaje tiene que nombrarlo tal como lo escribiste, y si ese
 texto no está o está dos
 veces, no se escribe nada. Para escribir un cuerpo entero de nuevo tiene que
