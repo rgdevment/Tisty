@@ -844,6 +844,16 @@ impl From<tisty_core::Error> for Refusal {
 }
 
 const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
+/// The releases page hands a copy kept by the Store an installer that would settle beside the
+/// package instead of replacing it, and leave the person with two Tistys.
+const IN_THE_STORE: &str = "https://apps.microsoft.com/detail/9PGVWXD8X93N";
+
+fn where_it_comes_from() -> &'static str {
+    match update::route().route {
+        update::Route::Store => IN_THE_STORE,
+        _ => RELEASES,
+    }
+}
 
 fn speaks_spanish() -> bool {
     let chosen = tisty_core::Paths::resolve()
@@ -2387,7 +2397,7 @@ async fn update_ready(
     }
 
     if !asked && !update::due(last, now) {
-        return Ok(update::remembered(HERE, found.as_deref(), kept));
+        return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
     }
 
     let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
@@ -2397,7 +2407,7 @@ async fn update_ready(
     // A look that never answered says nothing about whether an update is owed, so what was found
     // before stays where it is.
     let Some(manifest) = manifest else {
-        return Ok(update::remembered(HERE, found.as_deref(), kept));
+        return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
     };
 
     let seen = update::newer(HERE, &manifest, kept, wants);
@@ -2438,19 +2448,25 @@ async fn update_install(
         return Err(Refusal::of("updateNotHere"));
     }
 
-    let found = held(&session).config.found_version.clone();
-    let Some(want) = update::remembered(HERE, found.as_deref(), kept).map(|one| one.version) else {
+    let (found, wants) = {
+        let held = held(&session);
+        (held.config.found_version.clone(), held.config.candidates)
+    };
+    let Some(want) = update::remembered(HERE, found.as_deref(), kept, wants).map(|one| one.version)
+    else {
         return Err(Refusal::of("updateGone"));
     };
 
     let asked = want.clone();
     let update = app
         .updater_builder()
-        .endpoints(vec![
-            update::channel_for(&want)
-                .parse()
+        .endpoints(
+            update::feeds_for(&want)
+                .into_iter()
+                .map(|one| one.parse())
+                .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| Refusal::of("internal"))?,
-        ])
+        )
         .map_err(|why| Refusal::about("updateFailed", why.to_string()))?
         // Pinned to what the person was shown, so a feed that moves in between cannot quietly
         // hand them a different version than the one they agreed to.
@@ -4926,7 +4942,7 @@ fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
         candidates: update::tracking(HERE, session.config.candidates),
         // The Store keeps its own tracks, and offers no candidates at all: a box here would be a
         // switch wired to nothing.
-        candidates_apply: update::route().route != update::Route::Store,
+        candidates_apply: update::takes_candidates(update::route().route),
     })
 }
 
@@ -6555,7 +6571,8 @@ pub fn run() {
                             .buttons(MessageDialogButtons::OkCancelCustom(yes.into(), no.into()))
                             .blocking_show()
                         {
-                            let _ = tauri_plugin_opener::open_url(RELEASES, None::<&str>);
+                            let _ =
+                                tauri_plugin_opener::open_url(where_it_comes_from(), None::<&str>);
                         }
                     } else {
                         said.blocking_show();
