@@ -802,8 +802,7 @@ jobs:
             gh release create updater-feed \
               --prerelease \
               --title "Update feed" \
-              --notes "Not a release. These files are what an installed Tisty reads to learn that \
-a newer one exists. The program is on the releases beside this one."
+              --notes "Not a release. These files are what an installed Tisty reads to learn that a newer one exists; the program itself is on the releases beside this one."
           fi
 
           # Re-running the workflow of a release that has since been passed would otherwise walk

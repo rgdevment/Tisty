@@ -15,6 +15,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # A workflow that will not parse fails in no time at all, with no job and no line number, and
+      # the one that matters is the release: it is only ever run when a tag is already pushed.
+      - name: The workflows parse
+        run: |
+          set -euo pipefail
+          for one in .github/workflows/*.yml; do
+            if ! npx --yes js-yaml "$one" > /dev/null; then
+              echo "::error::$one is not valid YAML, so whatever it runs will not run"
+              exit 1
+            fi
+          done
+          echo "every workflow parses"
+
       - name: The core produces no terminal output
         run: |
           if grep -rn 'println!\|eprintln!\|print!' crates/tisty-core/src --include='*.rs'; then
