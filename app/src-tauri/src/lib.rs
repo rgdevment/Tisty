@@ -2255,19 +2255,6 @@ fn note_trouble(code: String, name: Option<String>) {
     witness::warn(channel::WINDOW, "the window showed a refusal", &facts);
 }
 
-#[tauri::command]
-fn note_caret(why: String, facts: String) {
-    let cut = |text: String, most: usize| text.chars().take(most).collect::<String>();
-    witness::warn(
-        channel::WINDOW,
-        "the caret was moved by something other than the person",
-        &[
-            ("why", Fact::Why(cut(why, 40))),
-            ("facts", Fact::Why(cut(facts, 300))),
-        ],
-    );
-}
-
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Logs {
@@ -6699,7 +6686,6 @@ pub fn run() {
             facts,
             keep_report,
             note_trouble,
-            note_caret,
             note_break,
             update_ready,
             update_install,

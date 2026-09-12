@@ -12,7 +12,6 @@ import {
   type Glimpse,
   glimpseFetch,
   glimpseKept,
-  noteCaret,
   noteTrouble,
   served,
   weighs,
@@ -676,10 +675,6 @@ export default function Editor({
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     if (!stale(value, mine.current, () => asMarkdown(editor))) return;
-    void noteCaret(
-      "content reloaded under the caret",
-      `mine ${mine.current.length} · value ${value.length}`,
-    );
     mine.current = value;
     editor.commands.setContent(loosened(value), { emitUpdate: false });
     const text = asMarkdown(editor);
