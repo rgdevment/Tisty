@@ -2307,6 +2307,7 @@ struct About {
     repository: &'static str,
     license: &'static str,
     store: String,
+    candidates: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -2365,9 +2366,13 @@ async fn update_ready(
         return Ok(seen);
     }
 
-    let (last, found) = {
+    let (last, found, wants) = {
         let held = held(&session);
-        (held.config.checked_at, held.config.found_version.clone())
+        (
+            held.config.checked_at,
+            held.config.found_version.clone(),
+            held.config.wants_candidates(),
+        )
     };
     let now = jiff::Timestamp::now();
     if !now_please.unwrap_or(false) && !update::due(last, now) {
@@ -2384,7 +2389,7 @@ async fn update_ready(
         return Ok(update::remembered(HERE, found.as_deref(), kept));
     };
 
-    let seen = update::newer(HERE, &manifest, kept);
+    let seen = update::newer(HERE, &manifest, kept, wants);
     let version = seen.as_ref().map(|one| one.version.clone());
     held(&session).keep(|c| {
         c.checked_at = Some(now);
@@ -4907,7 +4912,21 @@ fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
         repository: "https://github.com/rgdevment/Tisty",
         license: "AGPL-3.0-only",
         store: session.paths.store().display().to_string(),
+        candidates: session.config.wants_candidates(),
     })
+}
+
+/// A copy only ever reaches the candidates' track from here. Turning it off does not walk it back:
+/// a candidate already installed stays one until a stable release passes it.
+#[tauri::command]
+fn update_candidates(session: tauri::State<'_, Mutex<Session>>, wants: bool) -> Answer<()> {
+    held(&session).keep(|c| {
+        c.candidates = Some(wants);
+        // What was found under the old answer says nothing about the new one.
+        c.checked_at = None;
+        c.found_version = None;
+    })?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -5558,7 +5577,7 @@ fn convert_paper(
     let was = tisty_core::docs::read(&papers, &id)
         .map_err(|_| Refusal::about("cannotRead", id.clone()))?;
 
-    tisty_core::docs::kept_before(session.paths.data(), &id, &was)
+    tisty_core::docs::kept_before(session.paths.data(), &id, &was, &body)
         .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
     tisty_core::docs::write(&papers, &id, &body).map_err(|e| match e {
         tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
@@ -5657,7 +5676,7 @@ fn weave_paper(
         .ok_or_else(|| Refusal::of("cannotWeave"))?;
 
     let papers = session.paths.docs();
-    tisty_core::docs::kept_before(session.paths.data(), &id, &mine)
+    tisty_core::docs::kept_before(session.paths.data(), &id, &mine, &whole)
         .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
     tisty_core::docs::write(&papers, &id, &whole).map_err(|e| match e {
         tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
@@ -6754,6 +6773,7 @@ pub fn run() {
             note_break,
             update_ready,
             update_install,
+            update_candidates,
             logs,
             icons,
             families,

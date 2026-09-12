@@ -1536,3 +1536,249 @@ fn an_edit_that_reaches_either_end_leaves_no_copy_of_the_document_behind() {
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     told(&doc, "edit_doc that touches neither end");
 }
+
+#[test]
+fn what_a_write_replaced_can_be_put_back_and_putting_it_back_undoes_itself() {
+    let served = Served::new();
+    let doc = served.wrote("# Acta\n\nLo que se dijo.", None);
+    let print = served.print_of(&doc);
+
+    served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "old": "Lo que se dijo.", "new": "Otra cosa.", "print": print }),
+    );
+    assert!(served.body_of(&doc).contains("Otra cosa"));
+
+    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert!(
+        served.body_of(&doc).contains("Lo que se dijo"),
+        "what the edit replaced came back: {}",
+        served.body_of(&doc)
+    );
+
+    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert!(
+        served.body_of(&doc).contains("Otra cosa"),
+        "going back twice lands where it started, so trying it is safe: {}",
+        served.body_of(&doc)
+    );
+}
+
+#[test]
+fn a_document_nothing_has_been_written_over_has_nothing_to_go_back_to() {
+    let served = Served::new();
+    let doc = served.wrote("# Acta\n\nLo que se dijo.", None);
+
+    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+}
+
+#[test]
+fn every_write_says_how_much_the_document_grew_by() {
+    let served = Served::new();
+    let doc = served.wrote("# Acta\n\nUno.", None);
+
+    let said = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "body": "Dos." }),
+    );
+    let grew = said["result"]["structuredContent"]["grew"]
+        .as_i64()
+        .unwrap();
+    assert_eq!(grew, "\n\nDos.".chars().count() as i64, "{said}");
+
+    let print = served.print_of(&doc);
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "old": "Dos.", "new": "X", "print": print }),
+    );
+    assert_eq!(
+        said["result"]["structuredContent"]["grew"].as_i64(),
+        Some(-3),
+        "an edit that takes text out says so with a minus: {said}"
+    );
+}
+
+#[test]
+fn an_edit_can_hand_back_what_it_reads_like_now_instead_of_being_read_again() {
+    let served = Served::new();
+    let doc = served.wrote("# Acta\n\nUno.\n\nDos.\n\nTres.\n\nCuatro.\n\nCinco.", None);
+    let print = served.print_of(&doc);
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "old": "Tres.", "new": "Trece.", "print": print, "echo": true }),
+    );
+    let around = &said["result"]["structuredContent"]["around"];
+    assert!(
+        around["body"].as_str().unwrap().contains("Trece."),
+        "the change is in what came back: {said}"
+    );
+    assert!(around["from"].as_u64().unwrap() >= 1, "{said}");
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "old": "Cuatro.", "new": "Catorce.", "print": served.print_of(&doc) }),
+    );
+    assert!(
+        said["result"]["structuredContent"]["around"].is_null(),
+        "nothing is handed back unless it was asked for: {said}"
+    );
+}
+
+#[test]
+fn putting_a_document_away_says_what_is_left_pointing_at_it() {
+    let served = Served::new();
+    let cited = served.wrote("# Citado\n\nAqui.", None);
+    let pointing = served.wrote(
+        &format!("# Apunta\n\nMira [esto](tisty:doc/{cited})."),
+        None,
+    );
+
+    let said = served.call("archive_doc", serde_json::json!({ "doc": &cited }));
+    let told = said["result"]["structuredContent"]["pointed_at"]
+        .as_array()
+        .unwrap();
+    assert_eq!(told, &[serde_json::json!(pointing)], "{said}");
+}
+
+#[test]
+fn a_run_of_lines_is_held_to_the_same_budget_as_every_other_way_of_reading() {
+    let served = Served::new();
+    let long = (1..=400)
+        .map(|n| {
+            format!("Linea {n} con bastante texto detras para que ocupe lo suyo en el presupuesto.")
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    let doc = served.wrote(&format!("# Largo\n\n{long}"), None);
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": &doc, "from": 1, "to": 900 }),
+    );
+    let kept = &said["result"]["structuredContent"];
+    assert!(
+        kept["next"].as_u64().is_some(),
+        "a run too wide to fit says where to carry on: {}",
+        kept["next"]
+    );
+    assert!(
+        kept["body"].as_str().unwrap().chars().count() < long.chars().count(),
+        "naming a run was the way round the budget"
+    );
+}
+
+/// Adding to the end keeps no body of its own, and neither does the window's save. Either one
+/// leaves what is kept beside the document further back than a single step.
+#[test]
+fn going_back_is_refused_when_it_would_undo_more_than_the_write_that_was_kept() {
+    let served = Served::new();
+    let doc = served.wrote("# Acta\n\nUno.", None);
+
+    served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "old": "Uno.", "new": "Dos.", "print": served.print_of(&doc) }),
+    );
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "body": "Acuerdo importante." }),
+    );
+
+    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    assert_eq!(
+        said["result"]["isError"].as_bool(),
+        Some(true),
+        "going back here would have taken the appended line with it: {said}"
+    );
+    assert!(
+        served.body_of(&doc).contains("Acuerdo importante"),
+        "and nothing was touched: {}",
+        served.body_of(&doc)
+    );
+}
+
+#[test]
+fn a_section_is_held_to_the_same_budget_as_a_run_of_lines() {
+    let served = Served::new();
+    let long = (1..=400)
+        .map(|n| {
+            format!("Linea {n} con bastante texto detras para que ocupe lo suyo en el presupuesto.")
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    let doc = served.wrote(&format!("# Largo\n\n{long}"), None);
+
+    let said = served.call("read_doc", serde_json::json!({ "doc": &doc, "section": 0 }));
+    let kept = &said["result"]["structuredContent"];
+    assert!(
+        kept["next"].as_u64().is_some(),
+        "one heading over the whole document was the way round the budget: {}",
+        kept["next"]
+    );
+}
+
+#[test]
+fn indented_code_is_not_mistaken_for_a_paragraph_somebody_wrapped() {
+    let served = Served::new();
+    let doc = served.wrote("# Codigo\n\nLo de abajo.", None);
+
+    let said = served.call(
+        "append_doc",
+        serde_json::json!({
+            "doc": &doc,
+            "body": "    let one = something_with_a_fairly_long_name(argument, another);\n    let two = something_with_a_fairly_long_name(argument, another);\n    let three = something_with_long_name(argument, another_one_here);",
+        }),
+    );
+    let told = said["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(
+        !told.contains("wrapped"),
+        "indented code is not prose anybody wrapped: {told}"
+    );
+}
+
+#[test]
+fn going_back_over_more_than_one_write_is_asked_for_and_is_itself_undone() {
+    let served = Served::new();
+    let doc = served.wrote("# Acta\n\nUno.", None);
+
+    served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "old": "Uno.", "new": "Dos.", "print": served.print_of(&doc) }),
+    );
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "body": "Acuerdo importante." }),
+    );
+    let stood = served.body_of(&doc);
+
+    let said = served.call(
+        "restore_doc",
+        serde_json::json!({ "doc": &doc, "even_if_more": true }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert_eq!(
+        said["result"]["structuredContent"]["over_more_than_one_write"],
+        serde_json::json!(true),
+        "it says it went further than one write: {said}"
+    );
+    let now = served.body_of(&doc);
+    assert!(now.contains("Uno."), "it went all the way back: {now:?}");
+    assert!(!now.contains("Acuerdo importante"), "{now:?}");
+
+    // What it wrote over is kept in turn, so the same call again undoes the whole thing.
+    let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+    assert!(
+        said["result"]["isError"].as_bool() != Some(true),
+        "going back over more than one write left something that could be put back: {said}"
+    );
+    assert_eq!(
+        served.body_of(&doc),
+        stood,
+        "everything that was undone came back, without needing the flag again"
+    );
+}

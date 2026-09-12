@@ -112,6 +112,26 @@ names of the lists. There is no tool for completing, dropping, deleting,
 undoing, editing a task the person wrote, making a list, or handing a document a
 new body whole.
 
+`restore_doc` is the one thing that goes backwards, and it reaches documents
+only. Changing a passage and replacing a body already keep what they replaced
+beside the documents, so putting that body back costs nothing and needs nothing
+kept that was not kept anyway. What it replaces is kept in turn, so calling it
+twice lands where it started.
+
+Not every write keeps one, though — adding to the end does not, and neither
+does the person saving from the window — so the body kept beside a document is
+not always one step back. What is kept alongside it is the print the document
+read at when that body was set aside, and going back is refused unless the
+document still reads exactly that way. Without it the tool would have been at
+its most destructive in the case it exists for: an agent that wrote, watched
+the person work all afternoon, and then decided to undo itself.
+
+`even_if_more` goes back anyway, and exists because the refusal would otherwise
+be a dead end for the one who has read the document and knows the writing since
+is its own. It is not a way out of the guarantee so much as a way of saying it
+out loud: the body it writes over is kept in turn, so the call that went too far
+is undone by the same call without the flag.
+
 `reschedule` is the one tool that writes over something already filed, and it
 reaches only tasks whose `created_by` is a device the person turned on as an
 agent. A day the person set is refused with the reason. Everything else an
@@ -128,7 +148,10 @@ line each sits on, the length and the print — a few hundred tokens for a
 document that costs tens of thousands whole. `read_doc` then takes a `section`,
 a run of lines, or a budget of `chars` with a cursor; a body past 12 000
 characters comes back as its outline anyway, with `whole` set to false, rather
-than filling the window with text nobody asked for. Carrying on from a cursor
+than filling the window with text nobody asked for. A run of lines is held to
+that same budget and says where to carry on, because naming one wide enough to
+cover the document was the way round it, and the way round was the one anybody
+reaching for the whole text would find first. Carrying on from a cursor
 needs the print the previous part came with, so two halves of a document that
 moved in between are refused rather than joined.
 
@@ -140,8 +163,19 @@ long document is changed without the body ever crossing the wire. What
 recognise it by.
 
 *Answer with what changed, not with what was sent.* No writing tool echoes the
-body back: the answer is the title, the length and the new print. A refusal for
-a stale print brings the outline, not the document.
+body back unasked: the answer is the title, the length, how much the document
+`grew` by, and the new print. The size is there to be read — an edit that
+changes it by far more than what was sent did not do what was asked — and
+`echo` adds the few lines around the change, which is cheaper than reading the
+document again to see it landed. A refusal for a stale print brings the
+outline, not the document.
+
+*Cut only what can be cut.* `edit_doc` naming a place, and `append_doc` naming a
+heading, both work by keeping the head and the tail of the document around what
+they write. The two are cut from the same text, so together they can never be
+longer than it was; when they are, the document is not written. That invariant
+is cheap and it is checked, because the day it did not hold the answer was a
+document with a second copy of itself pasted behind the edit.
 
 ### A card, worked out here and never sent anywhere
 

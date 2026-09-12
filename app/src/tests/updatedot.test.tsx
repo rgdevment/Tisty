@@ -147,6 +147,18 @@ describe("what About suggests", () => {
     expect(screen.getByRole("button", { name: "Update" })).toHaveProperty("disabled", false);
   });
 
+  it("takes the candidates only when somebody asks for them, and says what that means", async () => {
+    render(<About ready={null} onError={vi.fn()} />);
+
+    const asks = await screen.findByRole("checkbox");
+    expect(asks).toHaveProperty("checked", false);
+    expect(screen.getByText(/less tested/i)).toBeTruthy();
+
+    await userEvent.click(asks);
+
+    expect(asked).toContain("update_candidates");
+  });
+
   it("says nothing when this copy is the newest", async () => {
     render(<About ready={null} onError={vi.fn()} />);
 

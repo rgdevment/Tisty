@@ -19,14 +19,30 @@ pub struct Doc {
     pub title: String,
 }
 
-pub fn kept_before(data: &Path, id: &str, body: &str) -> Result<()> {
+/// The body a write replaced, kept with the print of the body that write left behind. Not every
+/// way of writing a document keeps one — the window's own save does not, nor does adding to the
+/// end — so the print is what says whether this is still the step back it looks like.
+pub fn kept_before(data: &Path, id: &str, body: &str, left: &str) -> Result<()> {
     let at = data.join("originals");
     std::fs::create_dir_all(&at)?;
     let _ = crate::paths::ours_alone(&at);
     let into = resolve(&at, id)?;
     write_atomic(&into, body.as_bytes())?;
     let _ = crate::paths::ours_alone(&into);
+
+    let marked = data.join("originals-at");
+    std::fs::create_dir_all(&marked)?;
+    let _ = crate::paths::ours_alone(&marked);
+    let into = resolve(&marked, id)?;
+    write_atomic(&into, crate::attach::printed(left.as_bytes()).as_bytes())?;
+    let _ = crate::paths::ours_alone(&into);
     Ok(())
+}
+
+/// What the document read at when what is kept beside it was set aside.
+pub fn before_left_at(data: &Path, id: &str) -> Option<String> {
+    let at = resolve(&data.join("originals-at"), id).ok()?;
+    std::fs::read_to_string(at).ok()
 }
 
 fn base(data: &Path) -> PathBuf {
@@ -494,7 +510,7 @@ pub fn rewrite(root: &Path, data: &Path, id: &str, body: &str, print: &str) -> R
             return Ok(Rewrite::Moved);
         }
         let was = read(root, id)?;
-        kept_before(data, id, &was)?;
+        kept_before(data, id, &was, body)?;
         written(root, id, body)?;
         Ok(Rewrite::Made {
             was,
@@ -518,7 +534,7 @@ pub fn edit(root: &Path, data: &Path, id: &str, old: &str, new: &str) -> Result<
             0 => Ok(Change::Missing),
             1 => {
                 let whole = was.replacen(old.as_str(), new.as_str(), 1);
-                kept_before(data, id, &was)?;
+                kept_before(data, id, &was, &whole)?;
                 written(root, id, &whole)?;
                 Ok(Change::Made { was, whole })
             }
@@ -539,7 +555,7 @@ pub fn amend(
         let Some(whole) = make(&was) else {
             return Ok(None);
         };
-        kept_before(data, id, &was)?;
+        kept_before(data, id, &was, &whole)?;
         written(root, id, &whole)?;
         Ok(Some(settled(&whole)))
     })
@@ -3194,7 +3210,7 @@ despues
         let papers = data.join("docs");
         std::fs::create_dir_all(&papers).unwrap();
 
-        kept_before(data, "mac0-0001", "---\nx: 1\n---\n\n# Minuta").unwrap();
+        kept_before(data, "mac0-0001", "---\nx: 1\n---\n\n# Minuta", "# Minuta").unwrap();
 
         assert!(
             all(&papers).is_empty(),
@@ -3210,8 +3226,8 @@ despues
     fn converting_twice_keeps_what_it_was_the_second_time_not_the_first() {
         let room = tempfile::tempdir().unwrap();
 
-        kept_before(room.path(), "mac0-0001", "# La primera").unwrap();
-        kept_before(room.path(), "mac0-0001", "# La segunda").unwrap();
+        kept_before(room.path(), "mac0-0001", "# La primera", "# Otra").unwrap();
+        kept_before(room.path(), "mac0-0001", "# La segunda", "# Otra").unwrap();
 
         assert_eq!(
             read_before(room.path(), "mac0-0001").as_deref(),
@@ -3231,7 +3247,7 @@ despues
     fn what_was_before_can_never_be_named_outside_the_store() {
         let room = tempfile::tempdir().unwrap();
 
-        assert!(kept_before(room.path(), "../escaped", "x").is_err());
+        assert!(kept_before(room.path(), "../escaped", "x", "y").is_err());
         assert_eq!(read_before(room.path(), "../escaped"), None);
     }
 
@@ -3249,7 +3265,7 @@ despues
         ];
 
         for (label, body) in cases {
-            kept_before(room.path(), "mac0-0001", body).unwrap();
+            kept_before(room.path(), "mac0-0001", body, "# Otra").unwrap();
             assert_eq!(
                 read_before(room.path(), "mac0-0001").as_deref(),
                 Some(body),
@@ -4004,7 +4020,7 @@ despues
             long.as_str(),
         ] {
             assert!(
-                kept_before(data, id, "x").is_err(),
+                kept_before(data, id, "x", "y").is_err(),
                 "{id:?} was written before"
             );
             assert_eq!(read_before(data, id), None, "{id:?} answered for something");
@@ -4018,7 +4034,7 @@ despues
         std::fs::create_dir_all(data.join("docs")).unwrap();
         let body = "antes\0del cero\0despues";
 
-        kept_before(data, "mac0-0001", body).unwrap();
+        kept_before(data, "mac0-0001", body, "# Otra").unwrap();
 
         assert_eq!(read_before(data, "mac0-0001").as_deref(), Some(body));
     }
@@ -4043,7 +4059,7 @@ despues
         let room = tempfile::tempdir().unwrap();
         let many = "una linea\n".repeat(40_000);
 
-        kept_before(room.path(), "mac0-0001", &many).unwrap();
+        kept_before(room.path(), "mac0-0001", &many, "# Otra").unwrap();
 
         assert_eq!(
             read_before(room.path(), "mac0-0001").as_deref(),
