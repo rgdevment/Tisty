@@ -34,7 +34,12 @@ pub fn kept_before(data: &Path, id: &str, body: &str, left: &str) -> Result<()> 
     std::fs::create_dir_all(&marked)?;
     let _ = crate::paths::ours_alone(&marked);
     let into = resolve(&marked, id)?;
-    write_atomic(&into, crate::attach::printed(left.as_bytes()).as_bytes())?;
+    // What reaches the disk is the settled body, so hashing what was handed in would leave the
+    // print of a text that was never written and go back on nothing.
+    write_atomic(
+        &into,
+        crate::attach::printed(settled(left).as_bytes()).as_bytes(),
+    )?;
     let _ = crate::paths::ours_alone(&into);
     Ok(())
 }

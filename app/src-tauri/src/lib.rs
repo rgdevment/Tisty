@@ -2308,6 +2308,7 @@ struct About {
     license: &'static str,
     store: String,
     candidates: bool,
+    candidates_apply: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -2346,36 +2347,46 @@ async fn update_ready(
     now_please: Option<bool>,
 ) -> Answer<Option<update::Ready>> {
     let kept = update::route();
-    // A release is out for everyone else while the Store is still certifying it, so a copy kept
-    // there asks the Store rather than the manifest: being sent for a version the Store does not
-    // have yet is worse than being told nothing.
-    if kept.route == update::Route::Store
-        && let Some(window) = owner(&app)
-        && let Ok(shelf) = tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await
-        && shelf != shop::Shelf::Silent
-    {
-        let seen = match shelf {
-            shop::Shelf::Waiting(version) => update::from_the_shop(&version, HERE),
-            _ => None,
-        };
-        let version = seen.as_ref().map(|one| one.version.clone());
-        held(&session).keep(|c| {
-            c.checked_at = Some(jiff::Timestamp::now());
-            c.found_version = version;
-        })?;
-        return Ok(seen);
-    }
-
     let (last, found, wants) = {
         let held = held(&session);
         (
             held.config.checked_at,
             held.config.found_version.clone(),
-            held.config.wants_candidates(),
+            held.config.candidates,
         )
     };
     let now = jiff::Timestamp::now();
-    if !now_please.unwrap_or(false) && !update::due(last, now) {
+    let asked = now_please.unwrap_or(false);
+
+    // A release is out for everyone else while the Store is still certifying it, so a copy kept
+    // there asks the Store rather than the manifest: being sent for a version the Store does not
+    // have yet is worse than being told nothing. Held to the same interval as the manifest, since
+    // a Store that never answers leaves the thread that asked it waiting for good.
+    if kept.route == update::Route::Store
+        && let Some(window) = owner(&app)
+    {
+        if !asked && !update::due(last, now) {
+            return Ok(found
+                .as_deref()
+                .and_then(|version| update::from_the_shop(version, HERE)));
+        }
+        if let Ok(shelf) = tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await
+            && shelf != shop::Shelf::Silent
+        {
+            let seen = match shelf {
+                shop::Shelf::Waiting(version) => update::from_the_shop(&version, HERE),
+                _ => None,
+            };
+            let version = seen.as_ref().map(|one| one.version.clone());
+            held(&session).keep(|c| {
+                c.checked_at = Some(now);
+                c.found_version = version;
+            })?;
+            return Ok(seen);
+        }
+    }
+
+    if !asked && !update::due(last, now) {
         return Ok(update::remembered(HERE, found.as_deref(), kept));
     }
 
@@ -4912,7 +4923,10 @@ fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
         repository: "https://github.com/rgdevment/Tisty",
         license: "AGPL-3.0-only",
         store: session.paths.store().display().to_string(),
-        candidates: session.config.wants_candidates(),
+        candidates: update::tracking(HERE, session.config.candidates),
+        // The Store keeps its own tracks, and offers no candidates at all: a box here would be a
+        // switch wired to nothing.
+        candidates_apply: update::route().route != update::Route::Store,
     })
 }
 

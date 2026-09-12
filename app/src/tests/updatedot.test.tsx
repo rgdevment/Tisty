@@ -21,6 +21,8 @@ vi.mock("@tauri-apps/api/core", () => ({
       repository: "https://example.invalid/tisty",
       license: "AGPL-3.0",
       store: "C:/store",
+      candidates: false,
+      candidatesApply: true,
     });
   },
 }));
