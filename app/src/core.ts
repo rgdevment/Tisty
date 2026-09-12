@@ -522,9 +522,6 @@ export const updateInstall = (): Promise<void> => invoke("update_install");
 
 export const noteBreak = (kind: string, frames: string): Promise<void> =>
   invoke("note_break", { kind, frames });
-export const noteCaret = (why: string, facts: string): Promise<void> =>
-  invoke("note_caret", { why, facts });
-
 export const settings = (): Promise<Settings> => invoke("settings");
 export const keepSettings = (settings: Settings): Promise<Settings> =>
   invoke("keep_settings", { settings });
