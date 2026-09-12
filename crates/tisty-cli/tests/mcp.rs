@@ -1911,7 +1911,11 @@ fn the_list_says_what_each_document_is_about_so_none_has_to_be_opened() {
     );
     assert_eq!(watered["sections"], serde_json::json!(2), "{watered}");
     assert_eq!(watered["pictures"], serde_json::json!(1), "{watered}");
-    assert!(watered["print"].is_string(), "{watered}");
+    assert!(
+        watered["print"].is_null(),
+        "a print per document is 64 characters nobody reads; the one that matters comes back \
+         from `read_doc` and `outline_doc`: {watered}"
+    );
     assert!(watered["wrote"].is_string(), "{watered}");
 }
 
@@ -2885,8 +2889,16 @@ fn what_is_written_is_listed_again_with_the_folder_it_sits_in() {
         held["docs"][0]["archived"].is_null(),
         "put away is the exception, so only that is said"
     );
-    assert!(held["docs"][0]["print"].is_string(), "{listed}");
+    assert!(held["docs"][0]["print"].is_null(), "{listed}");
     assert!(held["docs"][0]["words"].is_number(), "{listed}");
+    assert!(
+        held["folders"].is_null(),
+        "the folder tree is the biggest thing a listing carries and is only sent when asked \
+         for: {listed}"
+    );
+
+    let asked = served.call("docs", serde_json::json!({ "folders": true }));
+    let held = &asked["result"]["structuredContent"];
     assert_eq!(held["folders"][0]["icon"], "home");
     assert_eq!(held["folders"][0]["docs"], 1);
 }
@@ -2906,7 +2918,8 @@ fn a_folder_that_is_already_there_is_used_instead_of_made_twice() {
         again["result"]["structuredContent"]["id"]
     );
     assert_eq!(
-        served.call("docs", serde_json::json!({}))["result"]["structuredContent"]["folders"]
+        served.call("docs", serde_json::json!({ "folders": true }))["result"]["structuredContent"]
+            ["folders"]
             .as_array()
             .unwrap()
             .len(),

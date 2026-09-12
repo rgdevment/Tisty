@@ -586,14 +586,19 @@ pub fn section_lines(body: &str, at: usize) -> Option<(usize, usize)> {
     Some((line, last))
 }
 
-/// Cut where the lines really end, so a body that ended in a newline still does.
+/// Cut where the lines really end, so a body that ended in a newline still does. A run that ends
+/// before it begins, or begins past the last line, is nothing at all: callers splice a head and a
+/// tail around an edit, and a tail that answered with the whole body would duplicate it.
 pub fn lines_between(body: &str, from: usize, to: usize) -> String {
-    let mut start = 0usize;
+    if to < from {
+        return String::new();
+    }
+    let mut start = None;
     let mut end = body.len();
     let mut at = 0usize;
     for (n, line) in body.split_inclusive('\n').enumerate() {
         if n + 1 == from {
-            start = at;
+            start = Some(at);
         }
         at += line.len();
         if n + 1 == to {
@@ -601,6 +606,9 @@ pub fn lines_between(body: &str, from: usize, to: usize) -> String {
             break;
         }
     }
+    let Some(start) = start else {
+        return String::new();
+    };
     body.get(start..end).unwrap_or_default().to_string()
 }
 
@@ -1644,6 +1652,34 @@ fn opening(at: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    const REPRO: &str = "Repro\n\n## S\n\nx";
+
+    #[test]
+    fn a_run_that_begins_past_the_last_line_is_nothing_at_all() {
+        assert_eq!(super::lines_between(REPRO, 6, 5), "");
+        assert_eq!(super::lines_between(REPRO, 9, 9), "");
+    }
+
+    #[test]
+    fn a_run_that_ends_before_it_begins_is_nothing_at_all() {
+        assert_eq!(super::lines_between(REPRO, 1, 0), "");
+        assert_eq!(super::lines_between(REPRO, 4, 2), "");
+    }
+
+    #[test]
+    fn a_run_that_is_really_there_is_the_lines_it_names() {
+        assert_eq!(super::lines_between(REPRO, 1, 1), "Repro\n");
+        assert_eq!(super::lines_between(REPRO, 3, 3), "## S\n");
+        assert_eq!(super::lines_between(REPRO, 5, 5), "x");
+        assert_eq!(super::lines_between(REPRO, 3, 5), "## S\n\nx");
+        assert_eq!(super::lines_between(REPRO, 1, 5), REPRO);
+        assert_eq!(
+            super::lines_between(REPRO, 1, 99),
+            REPRO,
+            "asking past the end is not asking for the start again"
+        );
+    }
 
     #[test]
     fn line_endings_and_the_last_newline_are_not_a_change_anybody_made() {

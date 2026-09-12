@@ -2032,12 +2032,13 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Added {} {:?}. Nothing that was there changed.{}",
+            "Added {} {:?}, {}. Nothing that was there changed.{}",
             match &under {
                 Some(under) => format!("under {under:?} in"),
                 None => "to the end of".into(),
             },
             tisty_core::docs::titled(&whole),
+            by_how_much(&before, &whole),
             if settled { "" } else { UNSETTLED }
         ),
         json!({
@@ -2045,9 +2046,24 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "title": tisty_core::docs::titled(&whole),
             "chars": whole.chars().count(),
             "lines": whole.lines().count(),
+            "grew": grew(&before, &whole),
             "print": tisty_core::attach::printed(whole.as_bytes()),
         }),
     ))
+}
+
+fn grew(was: &str, whole: &str) -> i64 {
+    whole.chars().count() as i64 - was.chars().count() as i64
+}
+
+/// Said out loud on every write, so a splice that quietly doubled a document cannot read like a
+/// small change to whoever asked for one.
+fn by_how_much(was: &str, whole: &str) -> String {
+    match grew(was, whole) {
+        0 => "the same length".into(),
+        by if by > 0 => format!("{by} characters longer"),
+        by => format!("{} characters shorter", -by),
+    }
 }
 
 /// `old` and `new` are matched byte for byte, so trimming them would be trimming the document.
@@ -2156,12 +2172,14 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     .join(", ")
             )
         })),
-        tisty_core::docs::Change::Made { whole, .. } => {
+        tisty_core::docs::Change::Made { was, whole } => {
             let settled = retold(&state, &mut store, &which, &whole).is_ok();
             Ok(told(
                 format!(
-                    "Changed that passage in {:?}. What it was is kept beside the documents.{}",
+                    "Changed that passage in {:?}, {}. What it was is kept beside the \
+                     documents.{}",
                     tisty_core::docs::titled(&whole),
+                    by_how_much(&was, &whole),
                     if settled { "" } else { UNSETTLED }
                 ),
                 json!({
@@ -2169,6 +2187,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     "title": tisty_core::docs::titled(&whole),
                     "chars": whole.chars().count(),
                     "lines": whole.lines().count(),
+                    "grew": grew(&was, &whole),
                     "print": tisty_core::attach::printed(whole.as_bytes()),
                 }),
             ))
@@ -2351,6 +2370,7 @@ fn in_its_place(
                     "title": tisty_core::docs::titled(&whole),
                     "chars": whole.chars().count(),
                     "lines": whole.lines().count(),
+                    "grew": grew(&body, &whole),
                     "print": tisty_core::attach::printed(whole.as_bytes()),
                 }),
             ))
@@ -2493,7 +2513,6 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             }
             if let Some(card) = card {
                 kept_of.insert("words".into(), json!(card.words));
-                kept_of.insert("print".into(), json!(card.print));
                 if !card.outline.is_empty() {
                     kept_of.insert("sections".into(), json!(card.outline.len()));
                 }
@@ -2576,13 +2595,22 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         ),
     });
 
+    let mut kept = json!({ "docs": shown, "total": all });
+    if args
+        .get("folders")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        kept["folders"] = json!(folders);
+    }
+
     Ok(told(
         format!(
             "{all} document(s); showing {}.\n{}",
             shown.len(),
             lines.join("\n")
         ),
-        json!({ "docs": shown, "total": all, "folders": folders }),
+        kept,
     ))
 }
 
@@ -4516,7 +4544,7 @@ fn tools() -> Value {
         {
             "name": "docs",
             "title": "The documents and the folders",
-            "description": "Everything written down here, the one written most recently first, with the folder each one sits in, whether it was put away, whether it is locked, and for each one what it is about: how many words it holds, how many sections, the words it leans on, and the print it reads at. That is enough to pick which document to open without opening any of them. Ask for it before writing, so you do not write again what is already kept.",
+            "description": "Everything written down here, the one written most recently first, with the folder each one sits in, whether it was put away, whether it is locked, and for each one what it is about: how many words it holds, how many sections, and the words it leans on. That is enough to pick which document to open without opening any of them; the `print` of the one you go on to edit comes back from `read_doc` or `outline_doc`. Ask for it before writing, so you do not write again what is already kept.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "scope": {
@@ -4529,6 +4557,12 @@ fn tools() -> Value {
                         "type": "integer",
                         "description": "Skip this many. With `total` higher than what came back, \
                                         ask again with `after` set to how many you have"
+                    },
+                    "folders": {
+                        "type": "boolean",
+                        "description": "Send every folder back too, with its id, path, icon and \
+                                        how much it holds. The answer already names them all in \
+                                        its text, so ask for this only when a name is not enough"
                     }
                 }
             }))

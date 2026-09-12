@@ -106,6 +106,14 @@ impl Served {
             .to_string()
     }
 
+    fn print_of(&self, doc: &str) -> String {
+        self.call("read_doc", serde_json::json!({ "doc": doc }))["result"]["structuredContent"]
+            ["print"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    }
+
     fn pages_of(&self, doc: &str) -> Vec<String> {
         let said = self.call("read_doc", serde_json::json!({ "doc": doc }));
         said["result"]["structuredContent"]["pages"]
@@ -1454,4 +1462,77 @@ fn a_body_the_editor_could_not_keep_is_never_written_by_the_warning() {
             "lo que se guardo ya no se puede volver a escribir: {again} para {body:?}"
         );
     }
+}
+
+/// Every one of these once spliced the tail of the document back on as a whole second copy.
+#[test]
+fn an_edit_that_reaches_either_end_leaves_no_copy_of_the_document_behind() {
+    let served = Served::new();
+    let whole = "Repro\n\n## S\n\nx";
+
+    let told = |doc: &str, what: &str| {
+        let now = served.body_of(doc);
+        assert!(now.len() < whole.len() * 2, "{what} duplicated it: {now:?}");
+        assert!(
+            now.matches("Repro").count() <= 1,
+            "{what} duplicated it: {now:?}"
+        );
+    };
+
+    let doc = served.wrote(whole, None);
+    let said = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "under": "S", "body": "Z" }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    told(&doc, "append_doc under the last heading");
+
+    let doc = served.wrote(whole, None);
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "section": 0, "print": served.print_of(&doc), "new": "## S2" }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    told(&doc, "edit_doc over the last section");
+
+    let doc = served.wrote(whole, None);
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "from": 3, "to": 5, "print": served.print_of(&doc), "new": "y" }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    told(&doc, "edit_doc to the last line");
+
+    let doc = served.wrote(whole, None);
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "from": 3, "print": served.print_of(&doc), "new": "y" }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    told(&doc, "edit_doc with no `to` at all");
+
+    let doc = served.wrote(whole, None);
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "from": 1, "to": 2, "print": served.print_of(&doc), "new": "Otro" }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    let now = served.body_of(&doc);
+    assert_eq!(
+        now.matches("## S").count(),
+        1,
+        "edit_doc from the first line duplicated it: {now:?}"
+    );
+    assert!(
+        !now.contains("Repro"),
+        "the first line was replaced, not kept: {now:?}"
+    );
+
+    let doc = served.wrote(whole, None);
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "from": 3, "to": 4, "print": served.print_of(&doc), "new": "y" }),
+    );
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    told(&doc, "edit_doc that touches neither end");
 }
