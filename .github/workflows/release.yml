@@ -761,7 +761,20 @@ jobs:
           if git fetch origin manifest --depth 1 2>/dev/null; then
             git checkout -B manifest FETCH_HEAD
           else
-            git checkout -B manifest
+            # Without a parent, or the branch carries a copy of the whole source beside the feed
+            # and that copy is never updated again.
+            git checkout --orphan manifest
+            git rm -rq --cached . 2>/dev/null || true
+          fi
+
+          # Re-running the workflow of a release that has since been passed would otherwise walk
+          # the feed backwards and offer everybody a version they already left behind.
+          was=$(jq -r '.latest // ""' release-manifest.json 2>/dev/null || echo "")
+          if [ -n "$was" ] \
+             && [ "$(printf '%s\n%s\n' "$was" "$v" | sort -V | tail -1)" != "$v" ]; then
+            echo "::error::the feed already says $was, and this run would set it back to $v. \
+                  Nothing was written."
+            exit 1
           fi
 
           latest=$(jq -r '.latest // ""' release-manifest.json 2>/dev/null || echo "")
@@ -790,46 +803,6 @@ jobs:
           git commit -m "chore: release manifest for $v"
           git push origin manifest
 
-      # Where every copy built from here on looks. The branch above is kept alongside it for the
-      # copies already out there, whose address is compiled in and cannot be changed from here.
-      - name: The feed, in a release of its own
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Marked a prerelease so it never becomes what GitHub calls the latest release: the feed
-          # has to answer for both tracks, and the latest one is only ever the stable track.
-          if ! gh release view updater-feed >/dev/null 2>&1; then
-            gh release create updater-feed \
-              --prerelease \
-              --title "Update feed" \
-              --notes "Not a release. These files are what an installed Tisty reads to learn that a newer one exists; the program itself is on the releases beside this one."
-          fi
-
-          # Re-running the workflow of a release that has since been passed would otherwise walk
-          # the feed backwards and offer everybody a version they already left behind.
-          if curl -fsSL -o "$RUNNER_TEMP/was.json" \
-               "https://github.com/${{ github.repository }}/releases/download/updater-feed/release-manifest.json" \
-               2>/dev/null; then
-            before=$(jq -r '.latest // "0.0.0"' "$RUNNER_TEMP/was.json")
-            now=$(jq -r '.latest' release-manifest.json)
-            if [ "$(printf '%s\n%s\n' "$before" "$now" | sort -V | tail -1)" != "$now" ]; then
-              echo "::error::the feed already says $before, and this run would set it back to \
-                    $now. Nothing was written."
-              exit 1
-            fi
-          fi
-
-          for one in latest.json candidate.json; do
-            if [ -f "$one" ]; then
-              gh release upload updater-feed "$one" --clobber
-            else
-              # A stable release takes the candidate feed away, and the asset has to go with it or
-              # a candidate would go on being offered a version nobody is publishing any more.
-              gh release delete-asset updater-feed "$one" --yes 2>/dev/null || true
-            fi
-          done
-          gh release upload updater-feed release-manifest.json --clobber
-
   verify:
     name: The update is installable
     needs: [version, publish]
@@ -848,7 +821,7 @@ jobs:
           v="${{ needs.version.outputs.version }}"
           file=latest.json
           if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then file=candidate.json; fi
-          feed="https://github.com/${{ github.repository }}/releases/download/updater-feed/$file"
+          feed="https://raw.githubusercontent.com/${{ github.repository }}/manifest/$file"
 
           said=""
           for attempt in 1 2 3 4 5 6; do

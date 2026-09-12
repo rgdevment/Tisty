@@ -136,7 +136,7 @@ repository, and this section was written before the release that carries it.
 | | |
 | :--- | :--- |
 | **Why** | To tell you a newer Tisty exists |
-| **What it asks for** | `https://github.com/rgdevment/Tisty/releases/download/updater-feed/release-manifest.json` |
+| **What it asks for** | `https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json` |
 | **Method** | GET. Nothing is uploaded |
 | **What it sends** | The headers a request cannot avoid, and a user agent that says `tisty/<version>` — the same thing the download itself would reveal. No identifier, no store, no task, no name |
 | **How often** | When Tisty opens, and at most once a day for as long as it keeps running |
@@ -144,9 +144,9 @@ repository, and this section was written before the release that carries it.
 | **If it fails** | Nothing is said and nothing is retried: the next look is the next day, or the next time Tisty opens |
 
 The file it downloads contains version numbers and nothing else — no address, so
-nothing that arrives from it can send you anywhere. It sits in a release of its
-own, under a tag that does not move, which is why the address above stays the
-same however many versions come out.
+nothing that arrives from it can send you anywhere. It sits in a branch of its
+own that holds those files and nothing else, which is why the address above
+stays the same however many versions come out.
 
 If you turn on release candidates in *About*, this same request is what carries
 them: nothing else changes, and nothing more is sent.
@@ -176,8 +176,7 @@ installs the package, and Windows closes Tisty to put it in place.
 
 On every copy but the Store's, pressing **Update** in *About* makes Tisty fetch
 a second file, which does name an address, and then the installer at that
-address. Both go to `github.com` over HTTPS, which hands them on to
-`objects.githubusercontent.com`,
+address. Both go to `raw.githubusercontent.com` and `github.com` over HTTPS,
 and both carry what any download carries: an address to send the bytes back to,
 and a user agent — here `tauri-plugin-updater/<version>`, the library doing the
 fetching. Nothing about you, nothing about what you have written.
