@@ -30,8 +30,10 @@ report will never be dismissed for being inconvenient.
   telemetry, no remote server. There is no cloud service to breach because there
   is no cloud service. Tisty makes one request of its own — a daily GET for a
   version manifest, carrying nothing but the version you are running — and two
-  more only if you press the button that offers you an update. It is written out
-  in full in [PRIVACY.md](PRIVACY.md), down to the headers.
+  more only if you press the button that offers you an update. A copy from the
+  Microsoft Store makes neither request: it asks Windows what the Store has for
+  it. It is written out in full in [PRIVACY.md](PRIVACY.md), down to the
+  headers.
 - **An update is verified before it is installed.** What the button fetches is
   checked against a public key compiled into the copy already on your machine.
   A build signed with any other key is refused, so a release that is not the
@@ -39,7 +41,11 @@ report will never be dismissed for being inconvenient.
   guards sit in front of that one: the address an update is fetched from must be
   where this project's releases live, not merely whatever the feed named, and
   the download is given a deadline, so a server that answers slowly forever is
-  eventually hung up on.
+  eventually hung up on. A copy kept by the Microsoft Store never fetches an
+  installer at all: it asks the Store what it has and lets the Store install it,
+  so what stands behind that package is Microsoft's signature rather than the
+  key below. The rule that nothing older than what is running may be offered
+  holds there too.
 - **What the world sends is read to a limit, never to the end.** One preview of
   one link, asked for by a button, is the only request Tisty makes to an address
   it did not choose. A page is read to 256 KiB and the picture it offers to
@@ -92,7 +98,9 @@ Being explicit here matters more than sounding reassuring.
   there. If it leaked, a build signed with it would be accepted by installed
   copies; if it were lost, those copies would go on working and simply stop
   being able to update themselves. Either way the fix is a new release installed
-  by hand, and it would be announced on the releases page.
+  by hand, and it would be announced on the releases page. None of this reaches
+  a copy kept by the Store, which stands on Microsoft's signature instead — a
+  single point of its own, but not one this project holds.
 - **Whoever holds the shared folder holds your data.** Syncing through a
   provider's folder means that provider stores your tasks, under their terms.
   That is the trade you make when you turn it on, and Tisty states it rather

@@ -11,6 +11,7 @@ const KNOWN = [
   "updateElsewhere",
   "updateNotHere",
   "updateGone",
+  "updateStopped",
   "updateFailed",
   "untitled",
   "noSuchList",

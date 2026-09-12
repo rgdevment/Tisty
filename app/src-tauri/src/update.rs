@@ -102,6 +102,20 @@ fn offered(version: String, kept: Kept) -> Ready {
     }
 }
 
+/// `self_installs` says no for the Store because a copy kept there cannot replace itself from a
+/// download; an offer the Store itself made is the one it can take without leaving the window.
+pub fn from_the_shop(version: &str, now: &str) -> Option<Ready> {
+    let here: semver::Version = now.parse().ok()?;
+    let said: semver::Version = version.parse().ok()?;
+
+    (said > here).then(|| Ready {
+        version: said.to_string(),
+        route: Route::Store,
+        package: None,
+        installs: true,
+    })
+}
+
 /// What the last look found, so closing the window does not take the offer away with it. The copy
 /// may have moved between a download and a cask since, so where it stands is read again.
 pub fn remembered(now: &str, said: Option<&str>, kept: Kept) -> Option<Ready> {
@@ -335,6 +349,32 @@ mod tests {
         );
         assert!(remembered("0.2.0", None, kept).is_none());
         assert!(remembered("0.2.0", Some("tomorrow"), kept).is_none());
+    }
+
+    #[test]
+    fn an_offer_the_store_itself_made_is_one_this_copy_can_take() {
+        let offer = from_the_shop("0.3.0", "0.2.0").expect("0.3.0 is newer");
+
+        assert_eq!(offer.route, Route::Store);
+        assert!(offer.installs);
+        assert!(
+            !self_installs(Route::Store),
+            "and the manifest still cannot offer one on the store's behalf"
+        );
+    }
+
+    #[test]
+    fn the_store_is_held_to_the_same_rule_as_the_manifest() {
+        assert!(
+            from_the_shop("0.3.0", "0.3.0").is_none(),
+            "the version already running is not an update"
+        );
+        assert!(
+            from_the_shop("0.2.0", "0.3.0").is_none(),
+            "nor is one behind it"
+        );
+        assert!(from_the_shop("tomorrow", "0.3.0").is_none());
+        assert!(from_the_shop("0.3.0", "tomorrow").is_none());
     }
 
     #[test]

@@ -152,7 +152,15 @@ export default function App() {
 
   const looked = useRef(false);
 
+  const going = useRef(false);
   useEffect(() => {
+    going.current = !!underway;
+  }, [underway]);
+
+  useEffect(() => {
+    // An update already under way owns what About shows; looking again could take the offer out
+    // from under its own progress bar.
+    if (going.current) return;
     const first = !looked.current;
     looked.current = true;
     updateReady(behind || first)
@@ -162,6 +170,7 @@ export default function App() {
 
   useEffect(() => {
     const again = setInterval(() => {
+      if (going.current) return;
       updateReady()
         .then(setReady)
         .catch(() => {});

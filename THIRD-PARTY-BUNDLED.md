@@ -269,11 +269,12 @@ instead.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (366 crates)
+## In the core (377 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
 | `adler2` | 2.0.1 | 0BSD OR MIT OR Apache-2.0 |
+| `aead` | 0.5.2 | MIT OR Apache-2.0 |
 | `aho-corasick` | 1.1.5 | Unlicense OR MIT |
 | `alloc-no-stdlib` | 2.0.4 | BSD-3-Clause |
 | `alloc-stdlib` | 0.2.4 | BSD-3-Clause |
@@ -309,8 +310,10 @@ instead.
 | `cfb` | 0.7.3 | MIT |
 | `cfg_aliases` | 0.2.2 | MIT |
 | `cfg-if` | 1.0.4 | MIT OR Apache-2.0 |
-| `chacha20` | 0.10.2 | MIT OR Apache-2.0 |
+| `chacha20` | 0.9.1 | Apache-2.0 OR MIT |
+| `chacha20poly1305` | 0.10.1 | Apache-2.0 OR MIT |
 | `chrono` | 0.4.45 | MIT OR Apache-2.0 |
+| `cipher` | 0.4.4 | MIT OR Apache-2.0 |
 | `clap` | 4.6.5 | MIT OR Apache-2.0 |
 | `clap_builder` | 4.6.5 | MIT OR Apache-2.0 |
 | `clap_derive` | 4.6.4 | MIT OR Apache-2.0 |
@@ -388,6 +391,7 @@ instead.
 | `hashlink` | 0.10.0 | MIT OR Apache-2.0 |
 | `heck` | 0.5.0 | MIT OR Apache-2.0 |
 | `hex` | 0.4.3 | MIT OR Apache-2.0 |
+| `hmac` | 0.12.1 | MIT OR Apache-2.0 |
 | `html5ever` | 0.38.0 | MIT OR Apache-2.0 |
 | `http` | 1.5.0 | MIT OR Apache-2.0 |
 | `http-body` | 1.1.0 | MIT |
@@ -411,6 +415,7 @@ instead.
 | `image` | 0.25.10 | MIT OR Apache-2.0 |
 | `indexmap` | 1.9.3 | Apache-2.0 OR MIT |
 | `infer` | 0.19.0 | MIT |
+| `inout` | 0.1.4 | MIT OR Apache-2.0 |
 | `ipnet` | 2.12.1 | MIT OR Apache-2.0 |
 | `is_terminal_polyfill` | 1.70.2 | MIT OR Apache-2.0 |
 | `itoa` | 1.0.18 | MIT OR Apache-2.0 |
@@ -443,10 +448,12 @@ instead.
 | `num-traits` | 0.2.19 | MIT OR Apache-2.0 |
 | `once_cell` | 1.21.4 | MIT OR Apache-2.0 |
 | `once_cell_polyfill` | 1.70.2 | MIT OR Apache-2.0 |
+| `opaque-debug` | 0.3.1 | MIT OR Apache-2.0 |
 | `open` | 5.4.1 | MIT |
 | `option-ext` | 0.2.0 | MPL-2.0 |
 | `parking_lot` | 0.12.5 | MIT OR Apache-2.0 |
 | `parking_lot_core` | 0.9.12 | MIT OR Apache-2.0 |
+| `pbkdf2` | 0.12.2 | MIT OR Apache-2.0 |
 | `percent-encoding` | 2.3.2 | MIT OR Apache-2.0 |
 | `phf` | 0.13.1 | MIT |
 | `phf_codegen` | 0.13.1 | MIT |
@@ -457,6 +464,7 @@ instead.
 | `pkg-config` | 0.3.33 | MIT OR Apache-2.0 |
 | `plist` | 1.10.0 | MIT |
 | `png` | 0.17.16 | MIT OR Apache-2.0 |
+| `poly1305` | 0.8.0 | Apache-2.0 OR MIT |
 | `potential_utf` | 0.1.5 | Unicode-3.0 |
 | `powerfmt` | 0.2.0 | MIT OR Apache-2.0 |
 | `ppv-lite86` | 0.2.21 | MIT OR Apache-2.0 |
@@ -471,7 +479,7 @@ instead.
 | `quote` | 1.0.47 | MIT OR Apache-2.0 |
 | `rand` | 0.9.5 | MIT OR Apache-2.0 |
 | `rand_chacha` | 0.9.0 | MIT OR Apache-2.0 |
-| `rand_core` | 0.9.5 | MIT OR Apache-2.0 |
+| `rand_core` | 0.6.4 | MIT OR Apache-2.0 |
 | `rand_pcg` | 0.10.2 | MIT OR Apache-2.0 |
 | `raw-window-handle` | 0.6.2 | MIT OR Apache-2.0 OR Zlib |
 | `ref-cast` | 1.0.26 | MIT OR Apache-2.0 |
@@ -489,10 +497,12 @@ instead.
 | `rustls-pki-types` | 1.15.1 | MIT OR Apache-2.0 |
 | `rustls-platform-verifier` | 0.7.0 | MIT OR Apache-2.0 |
 | `rustls-webpki` | 0.103.14 | ISC |
+| `salsa20` | 0.10.2 | MIT OR Apache-2.0 |
 | `same-file` | 1.0.6 | Unlicense/MIT |
 | `schemars` | 0.8.22 | MIT |
 | `schemars_derive` | 0.8.22 | MIT |
 | `scopeguard` | 1.2.0 | MIT OR Apache-2.0 |
+| `scrypt` | 0.11.0 | MIT OR Apache-2.0 |
 | `selectors` | 0.36.1 | MPL-2.0 |
 | `semver` | 1.0.28 | MIT OR Apache-2.0 |
 | `serde` | 1.0.229 | MIT OR Apache-2.0 |
@@ -585,6 +595,7 @@ instead.
 | `unicode-normalization` | 0.1.25 | MIT OR Apache-2.0 |
 | `unicode-segmentation` | 1.13.3 | MIT OR Apache-2.0 |
 | `unicode-width` | 0.2.2 | MIT OR Apache-2.0 |
+| `universal-hash` | 0.5.1 | MIT OR Apache-2.0 |
 | `untrusted` | 0.9.0 | ISC |
 | `url` | 2.5.8 | MIT OR Apache-2.0 |
 | `urlpattern` | 0.3.0 | MIT |
