@@ -31,9 +31,11 @@ it is complete, and it is free forever.
 
 ## The terms for a signed build
 
-Mario Hidalgo G. (rgdevment) grants you a **non-exclusive, worldwide,
-non-transferable licence** to install and use the signed build, on any number of
-devices you own or control, for as long as you like, personally or at work.
+Mario Hidalgo G. (rgdevment), and whoever holds the copyright after him, grants
+you a **non-exclusive, worldwide, non-transferable licence** to install and use
+the signed build, on any number of devices you own or control, for as long as
+you like, personally or at work. A build already in your hands keeps the licence
+it came with, whoever the project belongs to afterwards.
 
 You may not redistribute the signed build itself, decompile it, or remove its
 signature. **None of that limits the source**: everything the AGPL grants over
