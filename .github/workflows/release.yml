@@ -786,6 +786,33 @@ jobs:
           git commit -m "chore: release manifest for $v"
           git push origin manifest
 
+      # Where every copy built from here on looks. The branch above is kept alongside it for the
+      # copies already out there, whose address is compiled in and cannot be changed from here.
+      - name: The feed, in a release of its own
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Marked a prerelease so it never becomes what GitHub calls the latest release: the feed
+          # has to answer for both tracks, and the latest one is only ever the stable track.
+          if ! gh release view updater-feed >/dev/null 2>&1; then
+            gh release create updater-feed \
+              --prerelease \
+              --title "Update feed" \
+              --notes "Not a release. These files are what an installed Tisty reads to learn that \
+a newer one exists. The program is on the releases beside this one."
+          fi
+
+          gh release upload updater-feed release-manifest.json --clobber
+          for one in latest.json candidate.json; do
+            if [ -f "$one" ]; then
+              gh release upload updater-feed "$one" --clobber
+            else
+              # A stable release takes the candidate feed away, and the asset has to go with it or
+              # a candidate would go on being offered a version nobody is publishing any more.
+              gh release delete-asset updater-feed "$one" --yes 2>/dev/null || true
+            fi
+          done
+
   verify:
     name: The update is installable
     needs: [version, publish]
@@ -804,7 +831,7 @@ jobs:
           v="${{ needs.version.outputs.version }}"
           file=latest.json
           if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then file=candidate.json; fi
-          feed="https://raw.githubusercontent.com/${{ github.repository }}/manifest/$file"
+          feed="https://github.com/${{ github.repository }}/releases/download/updater-feed/$file"
 
           said=""
           for attempt in 1 2 3 4 5 6; do

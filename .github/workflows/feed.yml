@@ -1,0 +1,73 @@
+name: Feed
+
+# What a release checks the moment it publishes, checked again every day. A feed only breaks
+# between releases — an asset deleted, a release published by hand without one, a tag moved — and
+# nothing else would notice until somebody wondered why their Tisty had not changed in a month.
+on:
+  schedule:
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  answers:
+    name: the feed answers what a copy would read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read it the way an installed copy does
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          feed="https://github.com/${{ github.repository }}/releases/download/updater-feed"
+
+          if ! curl -fsSL -H "Cache-Control: no-cache" -o manifest.json "$feed/release-manifest.json"; then
+            echo "::error::the feed did not answer; every installed copy is looking at nothing"
+            exit 1
+          fi
+          if ! jq -e . manifest.json >/dev/null 2>&1; then
+            echo "::error::the feed answered with something that is not json"
+            cat manifest.json
+            exit 1
+          fi
+
+          said=$(jq -r '.latest // ""' manifest.json)
+          newest=$(gh api "repos/${{ github.repository }}/releases/latest" -q .tag_name | sed 's/^v//')
+          echo "the feed says $said; the newest release is $newest"
+          if [ "$said" != "$newest" ]; then
+            echo "::error::the feed says «$said» and the newest release is «$newest». Every copy \
+                  out there is being told about a version that is not the one being published."
+            exit 1
+          fi
+
+          # The manifest only says a version exists. This is the one that carries the address and
+          # the signature, and a copy that is offered an update and cannot take it is worse off
+          # than one that was never offered anything.
+          if ! curl -fsSL -H "Cache-Control: no-cache" -o channel.json "$feed/latest.json"; then
+            echo "::error::the stable channel did not answer, so the update nobody can take is the \
+                  one being announced"
+            exit 1
+          fi
+          took=$(jq -r '.version // ""' channel.json)
+          if [ "$took" != "$said" ]; then
+            echo "::error::the feed announces «$said» and the channel offers «$took»"
+            exit 1
+          fi
+
+      # Kept alive for the copies whose address was compiled in before the feed moved. It is left
+      # behind rather than taken down, so a copy that wakes up years from now still finds its way
+      # across; this is what says it is still there.
+      - name: The address the copies before the move still read
+        run: |
+          set -euo pipefail
+          was="https://raw.githubusercontent.com/${{ github.repository }}/manifest/release-manifest.json"
+          if ! curl -fsSL -H "Cache-Control: no-cache" -o was.json "$was"; then
+            echo "::error::the old address stopped answering; copies from before the move can no \
+                  longer be told anything at all"
+            exit 1
+          fi
+          jq -e . was.json >/dev/null
+          echo "the old address still says $(jq -r '.latest // ""' was.json)"

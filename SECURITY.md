@@ -188,6 +188,22 @@ write is refused and it has to read again. It can be wrong about a document; it
 cannot quietly take what you wrote while it was thinking. What it wrote over is
 kept beside the documents either way.
 
+**It can take one step back, and only when that step is the whole distance.**
+That kept body is not only held, it is reachable: `restore_doc` puts it back,
+and what it replaces is kept in turn, so going back destroys nothing and going
+back twice leaves the document where it started. But not every write keeps a
+body — adding to the end does not, and your own saves from the window do not —
+so what is kept is not always one step behind. Kept alongside it is the print
+the document read at when it was set aside, and going back is refused unless
+the document still reads exactly that way. An assistant that wrote this
+morning does not undo an afternoon of yours by reaching for the wrong tool.
+
+It can still do it on purpose: `even_if_more` goes back over writing done
+since, and an assistant that has read the document may decide that is what it
+wants. What that call writes over is kept in turn, so the same call again puts
+your afternoon back — and the answer says it went further than one write, which
+is the thing to look for if a document is suddenly shorter than you left it.
+
 **Attachments are the one thing that leaves the machine.** They reach the shared
 folder, and from there whatever cloud client you run. So the file an assistant
 may
@@ -202,8 +218,10 @@ read, and the path is canonicalised first, so traversal does not reach past it.
 **What this does not protect against.** An assistant under prompt injection is
 still
 an assistant with your permission: it can file nonsense, write documents you did
-not ask for, write over one you already had with a version of its own, and put a
-screenshot holding a password into a task, because a
+not ask for, write over one you already had with a version of its own, put back
+over a document a body from before you wrote in it — which it has to ask for,
+and which is kept and can be put back — and
+put a screenshot holding a password into a task, because a
 screenshot is a picture and Tisty cannot read what is in it. Anything it reads
 travels wherever that assistant travels — that is between it and you, and it is
 why the door stays shut until you open it, and why closing it is one click.

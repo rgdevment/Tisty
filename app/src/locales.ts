@@ -571,6 +571,9 @@ const en = {
   updateNotHere: "Something else keeps this copy up to date.",
   updateGone: "That version is no longer offered.",
   updateStopped: "The update stopped before it was installed.",
+  betaTake: "Take release candidates",
+  betaWarns:
+    "Candidates come out before a release is finished, so they are less tested and some break. Turning this off leaves any candidate already installed where it is: the next stable release replaces it.",
   updateFailed: "The update could not be installed — {name}",
   aboutStore: "Store",
   aboutRepo: "Open the repository",
@@ -1791,6 +1794,9 @@ const es: Catalog = {
   updateNotHere: "De esta copia se encarga otro.",
   updateGone: "Esa versión ya no se ofrece.",
   updateStopped: "La actualización se detuvo antes de instalarse.",
+  betaTake: "Recibir versiones candidatas",
+  betaWarns:
+    "Las candidatas salen antes de que una versión esté terminada, así que están menos probadas y algunas fallan. Desactivarlo no deshace la candidata que ya tengas: la reemplaza la siguiente versión estable.",
   updateFailed: "No se pudo instalar la actualización — {name}",
   aboutStore: "Almacén",
   aboutRepo: "Abrir el repositorio",

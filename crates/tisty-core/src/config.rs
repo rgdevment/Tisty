@@ -107,6 +107,16 @@ pub struct Config {
     pub guide: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sown: Option<bool>,
+    /// Asked for, never arrived at: a copy is only ever walked onto the candidates' track by
+    /// somebody saying so here, and a manifest cannot do it on its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidates: Option<bool>,
+}
+
+impl Config {
+    pub fn wants_candidates(&self) -> bool {
+        self.candidates.unwrap_or(false)
+    }
 }
 
 impl Config {
@@ -133,6 +143,7 @@ impl Config {
             heard_at: None,
             guide: None,
             sown: Some(false),
+            candidates: None,
         };
         config.save(paths)?;
         Ok(config)
@@ -407,6 +418,7 @@ mod tests {
         let config = Config {
             device_id: DeviceId("dev_a".into()),
             agent_id: None,
+            candidates: None,
             locale: Some("es".into()),
             editor: None,
             opened_by: Some("0.1.0".into()),
@@ -440,6 +452,7 @@ mod tests {
             Config {
                 device_id: DeviceId(new_device_id()),
                 agent_id: None,
+                candidates: None,
                 sown: None,
                 locale: None,
                 editor: None,

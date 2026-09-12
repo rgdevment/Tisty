@@ -8,6 +8,7 @@ import {
   notices,
   type Ready,
   type Underway,
+  updateCandidates,
   updateInstall,
   updateReady,
 } from "../core";
@@ -189,6 +190,30 @@ export default function About({
             </button>
           </div>
         )}
+
+        <label className="mt-3 flex cursor-pointer items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={build?.candidates ?? false}
+            onChange={(e) => {
+              const wants = e.target.checked;
+              setBuild((was) => (was ? { ...was, candidates: wants } : was));
+              updateCandidates(wants)
+                .then(lookAgain)
+                .catch((problem) => {
+                  setBuild((was) => (was ? { ...was, candidates: !wants } : was));
+                  onError(problem);
+                });
+            }}
+            className="mt-px size-[13px] shrink-0 accent-accent"
+          />
+          <span className="min-w-0">
+            <span className="block text-[12.5px]">{t("betaTake")}</span>
+            <span className="mt-0.5 block text-[11.5px] leading-relaxed text-faint">
+              {t("betaWarns")}
+            </span>
+          </span>
+        </label>
 
         <Rule said={t("supportTitle")} />
         <p className="text-[13px] leading-relaxed text-soft">{t("supportWhy")}</p>

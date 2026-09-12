@@ -1,12 +1,17 @@
 use tisty_core::witness::{self, Fact, channel};
 
+/// The three feeds live in a release of their own, under a tag that never moves. The tag is what
+/// makes the address steady: a feed served from whichever release GitHub last called the latest
+/// would follow the date one was published rather than the version in it, and would never serve a
+/// candidate at all, since a candidate is never that release.
 const MANIFEST: &str =
-    "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/release-manifest.json";
+    "https://github.com/rgdevment/Tisty/releases/download/updater-feed/release-manifest.json";
 /// One holds a stable version and the other a candidate, never both, so the track a copy belongs
 /// to can be read off the version it is being offered.
-pub const LATEST: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/latest.json";
+pub const LATEST: &str =
+    "https://github.com/rgdevment/Tisty/releases/download/updater-feed/latest.json";
 pub const CANDIDATE: &str =
-    "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/candidate.json";
+    "https://github.com/rgdevment/Tisty/releases/download/updater-feed/candidate.json";
 const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 
@@ -72,17 +77,19 @@ struct Manifest {
     latest_prerelease: Option<String>,
 }
 
-pub fn newer(now: &str, manifest: &str, kept: Kept) -> Option<Ready> {
+pub fn newer(now: &str, manifest: &str, kept: Kept, wants: bool) -> Option<Ready> {
     let here: semver::Version = now.parse().ok()?;
     let read: Manifest = serde_json::from_str(manifest).ok()?;
 
     let mut best: semver::Version = read.latest.parse().ok()?;
     // A stable copy stays on the stable track whatever the manifest says, so a hostile one cannot
-    // walk it onto a less-tested build.
-    if here.pre.is_empty() && !best.pre.is_empty() {
+    // walk it onto a less-tested build. Asking for the candidates is the one way across, and it is
+    // asked for here, not out there.
+    let tracking = !here.pre.is_empty() || wants;
+    if !tracking && !best.pre.is_empty() {
         return None;
     }
-    if !here.pre.is_empty()
+    if tracking
         && let Some(said) = read.latest_prerelease.as_deref()
         && let Ok(candidate) = said.parse::<semver::Version>()
         && candidate > best
@@ -206,22 +213,35 @@ mod tests {
 
     #[test]
     fn a_stable_copy_is_never_pointed_at_a_candidate() {
-        let found = newer("0.2.0", FEED, Kept::plain(Route::Download)).expect("0.3.0 is newer");
+        let found =
+            newer("0.2.0", FEED, Kept::plain(Route::Download), false).expect("0.3.0 is newer");
 
         assert_eq!(found.version, "0.3.0");
+    }
+
+    #[test]
+    fn a_stable_copy_takes_the_candidates_track_only_by_asking_for_it() {
+        let found = newer("0.3.0", FEED, Kept::plain(Route::Download), true)
+            .expect("asked for the candidates");
+
+        assert_eq!(found.version, "0.4.0-rc1");
+        assert!(
+            newer("0.3.0", FEED, Kept::plain(Route::Download), false).is_none(),
+            "and without asking, the same manifest says nothing"
+        );
     }
 
     #[test]
     fn a_manifest_cannot_walk_a_stable_copy_onto_the_candidates_track() {
         let feed = r#"{"latest":"9.9.9-rc1"}"#;
 
-        assert!(newer("0.3.0", feed, Kept::plain(Route::Download)).is_none());
+        assert!(newer("0.3.0", feed, Kept::plain(Route::Download), false).is_none());
     }
 
     #[test]
     fn a_candidate_is_offered_the_newest_of_either() {
         assert_eq!(
-            newer("0.3.0-rc1", FEED, Kept::plain(Route::Download))
+            newer("0.3.0-rc1", FEED, Kept::plain(Route::Download), false)
                 .unwrap()
                 .version,
             "0.4.0-rc1"
@@ -233,7 +253,7 @@ mod tests {
         let feed = r#"{"latest":"0.5.0","latestPrerelease":"0.4.0-rc1"}"#;
 
         assert_eq!(
-            newer("0.4.0-rc1", feed, Kept::plain(Route::Download))
+            newer("0.4.0-rc1", feed, Kept::plain(Route::Download), false)
                 .unwrap()
                 .version,
             "0.5.0"
@@ -242,18 +262,19 @@ mod tests {
 
     #[test]
     fn the_same_version_is_not_an_update() {
-        assert!(newer("0.3.0", FEED, Kept::plain(Route::Download)).is_none());
-        assert!(newer("0.4.0-rc1", FEED, Kept::plain(Route::Download)).is_none());
+        assert!(newer("0.3.0", FEED, Kept::plain(Route::Download), false).is_none());
+        assert!(newer("0.4.0-rc1", FEED, Kept::plain(Route::Download), false).is_none());
     }
 
     #[test]
     fn a_manifest_that_makes_no_sense_says_nothing() {
-        assert!(newer("0.1.0", "not json", Kept::plain(Route::Download)).is_none());
+        assert!(newer("0.1.0", "not json", Kept::plain(Route::Download), false).is_none());
         assert!(
             newer(
                 "0.1.0",
                 r#"{"latest":"tomorrow"}"#,
-                Kept::plain(Route::Download)
+                Kept::plain(Route::Download),
+                false
             )
             .is_none()
         );
@@ -264,7 +285,7 @@ mod tests {
         let feed = r#"{"latest":"0.3.0"}"#;
 
         assert_eq!(
-            newer("0.2.0-rc1", feed, Kept::plain(Route::Download))
+            newer("0.2.0-rc1", feed, Kept::plain(Route::Download), false)
                 .unwrap()
                 .version,
             "0.3.0"
@@ -276,12 +297,12 @@ mod tests {
         let feed = r#"{"schema":1,"latest":"0.0.0","latestPrerelease":"0.2.0-rc6"}"#;
 
         assert_eq!(
-            newer("0.2.0-rc5", feed, Kept::plain(Route::Download))
+            newer("0.2.0-rc5", feed, Kept::plain(Route::Download), false)
                 .unwrap()
                 .version,
             "0.2.0-rc6"
         );
-        assert!(newer("0.1.0", feed, Kept::plain(Route::Download)).is_none());
+        assert!(newer("0.1.0", feed, Kept::plain(Route::Download), false).is_none());
     }
 
     #[test]
@@ -325,7 +346,8 @@ mod tests {
     #[test]
     fn the_feed_follows_what_is_offered_rather_than_what_is_running() {
         let feed = r#"{"latest":"0.5.0","latestPrerelease":"0.4.0-rc1"}"#;
-        let found = newer("0.4.0-rc1", feed, Kept::plain(Route::Download)).expect("0.5.0 is newer");
+        let found =
+            newer("0.4.0-rc1", feed, Kept::plain(Route::Download), false).expect("0.5.0 is newer");
 
         assert_eq!(
             channel_for(&found.version),
@@ -382,12 +404,12 @@ mod tests {
         let feed = r#"{"latest":"0.3.0"}"#;
 
         assert!(
-            newer("0.2.0", feed, Kept::plain(Route::Download))
+            newer("0.2.0", feed, Kept::plain(Route::Download), false)
                 .unwrap()
                 .installs
         );
         assert!(
-            !newer("0.2.0", feed, Kept::plain(Route::Store))
+            !newer("0.2.0", feed, Kept::plain(Route::Store), false)
                 .unwrap()
                 .installs
         );
