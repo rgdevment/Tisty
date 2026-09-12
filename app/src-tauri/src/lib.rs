@@ -2358,13 +2358,13 @@ async fn update_ready(
     let now = jiff::Timestamp::now();
     let asked = now_please.unwrap_or(false);
 
-    // A release is out for everyone else while the Store is still certifying it, so a copy kept
-    // there asks the Store rather than the manifest: being sent for a version the Store does not
-    // have yet is worse than being told nothing. Held to the same interval as the manifest, since
-    // a Store that never answers leaves the thread that asked it waiting for good.
+    // A copy kept by the Store asks the Store and not the manifest: a release is out for everyone
+    // else while the Store is still certifying it, and being sent for a version it does not have
+    // yet is worse than being told nothing.
     if kept.route == update::Route::Store
         && let Some(window) = owner(&app)
     {
+        // Held to the manifest's interval too: a Store that never answers strands the thread.
         if !asked && !update::due(last, now) {
             return Ok(found
                 .as_deref()
