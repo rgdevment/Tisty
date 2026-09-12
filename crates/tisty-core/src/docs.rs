@@ -635,6 +635,23 @@ fn none_at_all(many: &usize) -> bool {
     *many == 0
 }
 
+/// What a card cannot work out because nobody can: somebody read the document and said what it
+/// was about. It is kept beside the card, on this machine only, and carries the print of the
+/// body it was written against — so a reader can be told it is describing an older text.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Gist {
+    pub print: String,
+    pub summary: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub notes: String,
+    pub at: jiff::Timestamp,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
+}
+
+pub const SUMMARY_AT_MOST: usize = 2_000;
+pub const NOTES_AT_MOST: usize = 4_000;
+
 const KEYWORDS_AT_MOST: usize = 12;
 const A_WORD_AT_LEAST: usize = 4;
 
@@ -665,6 +682,58 @@ impl Card {
     }
 }
 
+/// Searching without opening anything: the cards already hold the text, folded the same way a
+/// query is, so the database names the few documents worth reading and only those are read.
+/// Without a cache there is nothing to ask, and the caller falls back to walking the files.
+pub fn sighted(
+    root: &Path,
+    cache: Option<&crate::cache::Cache>,
+    query: &str,
+    most: usize,
+    wanted: impl Fn(&str) -> bool,
+) -> Option<Vec<Sighting>> {
+    let terms = crate::text::terms(query);
+    if terms.is_empty() {
+        return Some(Vec::new());
+    }
+    let cache = cache?;
+    // A card missing for a file that is there means the text was never read into the database,
+    // and answering from what it holds would quietly leave that document out of every search.
+    let all = all(root);
+    for one in &all {
+        card_of(root, Some(cache), &one.id)?;
+    }
+
+    let mut found = cache.holding(&terms)?;
+    found.sort();
+    let mut out = Vec::new();
+    for id in found {
+        if out.len() >= most || !wanted(&id) {
+            continue;
+        }
+        let Ok(body) = read(root, &id) else { continue };
+        let title = titled(&body);
+        let line = match crate::text::folded(&title)
+            .split_whitespace()
+            .collect::<String>()
+            .is_empty()
+        {
+            _ if terms
+                .iter()
+                .all(|term| crate::text::folded(&title).contains(term.as_str())) =>
+            {
+                String::new()
+            }
+            _ => match shown_around(&body, &terms) {
+                Some(line) => line,
+                None => continue,
+            },
+        };
+        out.push(Sighting { id, title, line });
+    }
+    Some(out)
+}
+
 /// Worked out once per version of a file and remembered locally, because reading two hundred
 /// bodies to answer "which of these is about the roof" is a cost nobody should pay twice.
 pub fn card_of(root: &Path, cache: Option<&crate::cache::Cache>, id: &str) -> Option<Card> {
@@ -675,9 +744,10 @@ pub fn card_of(root: &Path, cache: Option<&crate::cache::Cache>, id: &str) -> Op
     {
         return Some(card);
     }
-    let card = Card::read_from(&read(root, id).ok()?);
+    let body = read(root, id).ok()?;
+    let card = Card::read_from(&body);
     if let Some(cache) = cache {
-        cache.note_card(id, stamp, &card);
+        cache.note_card(id, stamp, &card, &crate::text::folded(&bared(&body)));
     }
     Some(card)
 }
@@ -4956,6 +5026,91 @@ mod cards {
         assert!(
             cache.card("mac0-0003", stamp("mac0-0003")).is_some(),
             "what was not on the page is still remembered"
+        );
+    }
+
+    fn a_room() -> (tempfile::TempDir, std::path::PathBuf, crate::cache::Cache) {
+        let room = tempfile::tempdir().unwrap();
+        let docs = room.path().join("docs");
+        std::fs::create_dir_all(&docs).unwrap();
+        let cache = crate::cache::Cache::open(&room.path().join("cache"))
+            .unwrap()
+            .expect("a cache to remember in");
+        (room, docs, cache)
+    }
+
+    #[test]
+    fn the_words_of_a_document_are_kept_so_searching_opens_nothing() {
+        let (_room, docs, cache) = a_room();
+        std::fs::write(
+            docs.join("mac0-0001.md"),
+            "# Acta del riego\n\nEl riego del patio queda para mayo.\n",
+        )
+        .unwrap();
+        std::fs::write(
+            docs.join("mac0-0002.md"),
+            "# El porton\n\nSe cambia en abril.\n",
+        )
+        .unwrap();
+
+        let all: Vec<String> = ["mac0-0001", "mac0-0002"].map(String::from).to_vec();
+        cards_of(&docs, Some(&cache), &all);
+
+        let found = sighted(&docs, Some(&cache), "riego", 20, |_| true).expect("the cache answers");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(found[0].id, "mac0-0001");
+
+        // Accents typed or not typed decide nothing, the same as walking the files.
+        let found = sighted(&docs, Some(&cache), "porton", 20, |_| true).unwrap();
+        assert_eq!(found.len(), 1, "{found:?}");
+
+        let none = sighted(&docs, Some(&cache), "camion", 20, |_| true).unwrap();
+        assert!(none.is_empty(), "{none:?}");
+    }
+
+    #[test]
+    fn a_document_the_cache_never_read_is_taken_in_rather_than_left_out() {
+        let (_room, docs, cache) = a_room();
+        std::fs::write(docs.join("mac0-0001.md"), "# Acta\n\nel riego.\n").unwrap();
+        cards_of(&docs, Some(&cache), &["mac0-0001".to_string()]);
+
+        // Another machine's round drops a document in; nothing has read it here yet.
+        std::fs::write(docs.join("mac0-0002.md"), "# Otra\n\nel porton.\n").unwrap();
+
+        let found =
+            sighted(&docs, Some(&cache), "porton", 20, |_| true).expect("the search still answers");
+        assert_eq!(
+            found.len(),
+            1,
+            "the new one is read in rather than missed: {found:?}"
+        );
+        assert_eq!(found[0].id, "mac0-0002");
+
+        let at = docs.join("mac0-0002.md");
+        assert!(
+            cache.card("mac0-0002", stamped(&at).unwrap()).is_some(),
+            "and it is remembered, so the next search opens nothing"
+        );
+    }
+
+    #[test]
+    fn a_card_kept_before_the_words_were_is_read_again_rather_than_trusted() {
+        let (_room, docs, cache) = a_room();
+        std::fs::write(docs.join("mac0-0001.md"), "# Acta\n\nel riego.\n").unwrap();
+        let at = docs.join("mac0-0001.md");
+        let stamp = stamped(&at).unwrap();
+        let card = Card::read_from(&read(&docs, "mac0-0001").unwrap());
+
+        cache.note_card("mac0-0001", stamp, &card, "");
+
+        assert!(
+            cache.card("mac0-0001", stamp).is_none(),
+            "a card with no words behind it is no card at all"
+        );
+        assert!(card_of(&docs, Some(&cache), "mac0-0001").is_some());
+        assert!(
+            cache.card("mac0-0001", stamp).is_some(),
+            "and it is kept whole"
         );
     }
 
