@@ -1782,3 +1782,34 @@ fn going_back_over_more_than_one_write_is_asked_for_and_is_itself_undone() {
         "everything that was undone came back, without needing the flag again"
     );
 }
+
+/// A body handed in without a closing newline is written with one. Hashing the one that was handed
+/// in rather than the one that reached the disk refused every step back the moment it was taken.
+#[test]
+fn a_body_written_over_can_be_put_back_whether_or_not_it_ended_in_a_newline() {
+    for body in ["# Acta\n\nUno.", "# Acta\n\nUno.\n"] {
+        let served = Served::new();
+        let doc = served.wrote(body, None);
+
+        let said = served.call(
+            "write_doc",
+            serde_json::json!({ "doc": &doc, "body": "# Acta\n\nDos.", "print": served.print_of(&doc) }),
+        );
+        assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+
+        let said = served.call("restore_doc", serde_json::json!({ "doc": &doc }));
+        assert!(
+            said["result"]["isError"].as_bool() != Some(true),
+            "nothing was written in between, so this is one step back: {said}"
+        );
+        assert!(
+            said["result"]["structuredContent"]["over_more_than_one_write"].is_null(),
+            "and it did not have to go further than one write: {said}"
+        );
+        assert!(
+            served.body_of(&doc).contains("Uno."),
+            "{}",
+            served.body_of(&doc)
+        );
+    }
+}

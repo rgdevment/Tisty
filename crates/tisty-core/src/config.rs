@@ -114,12 +114,6 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn wants_candidates(&self) -> bool {
-        self.candidates.unwrap_or(false)
-    }
-}
-
-impl Config {
     pub fn load_or_init(paths: &Paths) -> Result<Self> {
         if let Some(existing) = Self::load(&paths.config_file())? {
             return Ok(existing);

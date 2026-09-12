@@ -22,52 +22,77 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+
+          # What GitHub calls the latest release is the one published most recently, which is not
+          # the highest version: a fix published for an older series after a newer one is out would
+          # be it. The feed follows the versions, so this has to as well.
+          newest=$(gh release list --limit 100 --json tagName,isPrerelease,isDraft \
+            -q '.[] | select(.isPrerelease == false and .isDraft == false) | .tagName' \
+            | sed 's/^v//' | sort -V | tail -1)
+
+          # Nothing stable published yet is the one state with nothing to be wrong about. Every
+          # other silence — the release holding the feed never made, or deleted since — is a cut
+          # line, and skipping whenever the feed is missing would say nothing in exactly the case
+          # worth saying it.
+          if [ -z "$newest" ]; then
+            echo "::notice::nothing stable has been published yet"
+            exit 0
+          fi
+
+          said() {
+            local what="$1" where="$2"
+            if ! curl -fsSL -H "Cache-Control: no-cache" -o "$RUNNER_TEMP/$what.json" "$where"; then
+              echo ""
+              return
+            fi
+            jq -r '.latest // ""' "$RUNNER_TEMP/$what.json" 2>/dev/null || echo ""
+          }
+
           feed="https://github.com/${{ github.repository }}/releases/download/updater-feed"
-
-          if ! curl -fsSL -H "Cache-Control: no-cache" -o manifest.json "$feed/release-manifest.json"; then
-            echo "::error::the feed did not answer; every installed copy is looking at nothing"
+          here=$(said now "$feed/release-manifest.json")
+          if [ -z "$here" ]; then
+            echo "::error::the feed did not answer, or answered with something that is not the \
+                  manifest, so every copy out there is looking at nothing. If the release holding \
+                  it was never made, make it once — gh release create updater-feed --prerelease \
+                  — and upload release-manifest.json and latest.json to it. Publishing any \
+                  release makes it too."
             exit 1
           fi
-          if ! jq -e . manifest.json >/dev/null 2>&1; then
-            echo "::error::the feed answered with something that is not json"
-            cat manifest.json
-            exit 1
-          fi
-
-          said=$(jq -r '.latest // ""' manifest.json)
-          newest=$(gh api "repos/${{ github.repository }}/releases/latest" -q .tag_name | sed 's/^v//')
-          echo "the feed says $said; the newest release is $newest"
-          if [ "$said" != "$newest" ]; then
-            echo "::error::the feed says «$said» and the newest release is «$newest». Every copy \
+          echo "the feed says $here; the highest release is $newest"
+          if [ "$here" != "$newest" ]; then
+            echo "::error::the feed says «$here» and the highest release is «$newest». Every copy \
                   out there is being told about a version that is not the one being published."
             exit 1
           fi
 
           # The manifest only says a version exists. This is the one that carries the address and
-          # the signature, and a copy that is offered an update and cannot take it is worse off
-          # than one that was never offered anything.
+          # the signature, and a copy that is offered an update it cannot take is worse off than
+          # one that was offered nothing.
           if ! curl -fsSL -H "Cache-Control: no-cache" -o channel.json "$feed/latest.json"; then
-            echo "::error::the stable channel did not answer, so the update nobody can take is the \
-                  one being announced"
+            echo "::error::the stable channel did not answer, so what is being announced is an \
+                  update nobody can take"
             exit 1
           fi
           took=$(jq -r '.version // ""' channel.json)
-          if [ "$took" != "$said" ]; then
-            echo "::error::the feed announces «$said» and the channel offers «$took»"
+          if [ "$took" != "$here" ]; then
+            echo "::error::the feed announces «$here» and the channel offers «$took»"
             exit 1
           fi
 
-      # Kept alive for the copies whose address was compiled in before the feed moved. It is left
-      # behind rather than taken down, so a copy that wakes up years from now still finds its way
-      # across; this is what says it is still there.
-      - name: The address the copies before the move still read
-        run: |
-          set -euo pipefail
-          was="https://raw.githubusercontent.com/${{ github.repository }}/manifest/release-manifest.json"
-          if ! curl -fsSL -H "Cache-Control: no-cache" -o was.json "$was"; then
-            echo "::error::the old address stopped answering; copies from before the move can no \
-                  longer be told anything at all"
+          # Kept alive for the copies whose address was compiled in before the feed moved — which
+          # is most of them, so it is held to the same standard rather than merely pinged. It is
+          # left behind rather than taken down, so a copy that wakes up years from now still finds
+          # its way across.
+          was=$(said before \
+            "https://raw.githubusercontent.com/${{ github.repository }}/manifest/release-manifest.json")
+          if [ -z "$was" ]; then
+            echo "::error::the address from before the move stopped answering. Copies older than \
+                  that move can no longer be told anything at all, and nothing in them will say so."
             exit 1
           fi
-          jq -e . was.json >/dev/null
-          echo "the old address still says $(jq -r '.latest // ""' was.json)"
+          if [ "$was" != "$newest" ]; then
+            echo "::error::the old address says «$was» and the highest release is «$newest». The \
+                  copies that read it are the ones that cannot be reached any other way."
+            exit 1
+          fi
+          echo "the old address says $was too"

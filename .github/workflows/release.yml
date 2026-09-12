@@ -13,6 +13,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 env:
   CARGO_TERM_COLOR: always
   BUILD_MACOS: "true"
@@ -802,7 +806,20 @@ jobs:
 a newer one exists. The program is on the releases beside this one."
           fi
 
-          gh release upload updater-feed release-manifest.json --clobber
+          # Re-running the workflow of a release that has since been passed would otherwise walk
+          # the feed backwards and offer everybody a version they already left behind.
+          if curl -fsSL -o "$RUNNER_TEMP/was.json" \
+               "https://github.com/${{ github.repository }}/releases/download/updater-feed/release-manifest.json" \
+               2>/dev/null; then
+            before=$(jq -r '.latest // "0.0.0"' "$RUNNER_TEMP/was.json")
+            now=$(jq -r '.latest' release-manifest.json)
+            if [ "$(printf '%s\n%s\n' "$before" "$now" | sort -V | tail -1)" != "$now" ]; then
+              echo "::error::the feed already says $before, and this run would set it back to \
+                    $now. Nothing was written."
+              exit 1
+            fi
+          fi
+
           for one in latest.json candidate.json; do
             if [ -f "$one" ]; then
               gh release upload updater-feed "$one" --clobber
@@ -812,6 +829,7 @@ a newer one exists. The program is on the releases beside this one."
               gh release delete-asset updater-feed "$one" --yes 2>/dev/null || true
             fi
           done
+          gh release upload updater-feed release-manifest.json --clobber
 
   verify:
     name: The update is installable

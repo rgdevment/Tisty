@@ -470,6 +470,7 @@ export interface About {
   license: string;
   store: string;
   candidates: boolean;
+  candidatesApply: boolean;
 }
 
 export type Holds = "everywhere" | "mine" | "shared";
