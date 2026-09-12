@@ -176,7 +176,8 @@ installs the package, and Windows closes Tisty to put it in place.
 
 On every copy but the Store's, pressing **Update** in *About* makes Tisty fetch
 a second file, which does name an address, and then the installer at that
-address. Both go to `raw.githubusercontent.com` and `github.com` over HTTPS,
+address. They go to `raw.githubusercontent.com` and to `github.com`, which
+hands the download on to `objects.githubusercontent.com`, all over HTTPS,
 and both carry what any download carries: an address to send the bytes back to,
 and a user agent — here `tauri-plugin-updater/<version>`, the library doing the
 fetching. Nothing about you, nothing about what you have written.

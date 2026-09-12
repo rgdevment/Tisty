@@ -51,6 +51,13 @@ pub const fn self_installs(route: Route) -> bool {
     matches!(route, Route::Brew | Route::Download)
 }
 
+/// Where asking for candidates can lead anywhere. The Store is sent none, and the command line's
+/// candidates live in a formula of another name, so the command that route prints could never
+/// hand over the version it had just announced.
+pub const fn takes_candidates(route: Route) -> bool {
+    matches!(route, Route::Brew | Route::Download)
+}
+
 /// Where a release of ours can possibly come from. The plugin fetches whatever address the feed
 /// names, so a feed that was tampered with could otherwise send the download anywhere.
 const FROM: [&str; 2] = ["github.com", "objects.githubusercontent.com"];
@@ -61,10 +68,15 @@ pub fn ours(url: &str) -> bool {
     })
 }
 
-pub fn channel_for(version: &str) -> &'static str {
+/// Where to look for the version being offered, in the order to try. A candidate is looked for
+/// among the candidates, and then among the stable releases — because the release that retires a
+/// candidate takes its channel away with it, and a copy still holding that offer would otherwise
+/// meet a refusal from the network rather than an answer. The stable channel does not have the
+/// version it was promised either, so what it is told is that the offer is gone.
+pub fn feeds_for(version: &str) -> Vec<&'static str> {
     match version.parse::<semver::Version>() {
-        Ok(said) if !said.pre.is_empty() => CANDIDATE,
-        _ => LATEST,
+        Ok(said) if !said.pre.is_empty() => vec![CANDIDATE, LATEST],
+        _ => vec![LATEST],
     }
 }
 
@@ -114,7 +126,7 @@ fn offered(version: String, kept: Kept) -> Ready {
         version,
         route: kept.route,
         package: kept.package,
-        installs: self_installs(kept.route),
+        installs: self_installs(kept.route) && !from_a_mount(),
     }
 }
 
@@ -133,10 +145,16 @@ pub fn from_the_shop(version: &str, now: &str) -> Option<Ready> {
 }
 
 /// What the last look found, so closing the window does not take the offer away with it. The copy
-/// may have moved between a download and a cask since, so where it stands is read again.
-pub fn remembered(now: &str, said: Option<&str>, kept: Kept) -> Option<Ready> {
+/// may have moved between a download and a cask since, so where it stands is read again — and so
+/// may the track it is on, which is why the rule is applied here too rather than trusted to
+/// whatever was true when the answer was written down.
+pub fn remembered(now: &str, said: Option<&str>, kept: Kept, wants: Option<bool>) -> Option<Ready> {
     let here: semver::Version = now.parse().ok()?;
     let kept_version: semver::Version = said?.parse().ok()?;
+
+    if !tracking(now, wants) && !kept_version.pre.is_empty() {
+        return None;
+    }
 
     (kept_version > here).then(|| offered(kept_version.to_string(), kept))
 }
@@ -250,6 +268,31 @@ mod tests {
         assert!(
             newer("1.5.0", feed, kept, None).is_none(),
             "and the release itself is not offered to itself"
+        );
+    }
+
+    /// The answer can be written down while somebody is turning the candidates off, and what was
+    /// true when the question went out is not what decides whether it may be shown.
+    #[test]
+    fn a_candidate_written_down_before_the_answer_changed_is_not_offered_after_it() {
+        let kept = Kept::plain(Route::Download);
+
+        assert_eq!(
+            remembered("1.12.0", Some("1.13.0-rc1"), kept, Some(true))
+                .unwrap()
+                .version,
+            "1.13.0-rc1"
+        );
+        assert!(
+            remembered("1.12.0", Some("1.13.0-rc1"), kept, Some(false)).is_none(),
+            "a copy that asked to leave the candidates is not handed one it was promised earlier"
+        );
+        assert_eq!(
+            remembered("1.12.0", Some("1.13.0"), kept, Some(false))
+                .unwrap()
+                .version,
+            "1.13.0",
+            "and a stable one it was promised still arrives"
         );
     }
 
@@ -415,9 +458,20 @@ mod tests {
 
     #[test]
     fn a_candidate_asks_the_candidates_feed_and_a_stable_one_the_stable_feed() {
-        assert_eq!(channel_for("0.3.0"), LATEST);
-        assert_eq!(channel_for("0.4.0-rc1"), CANDIDATE);
-        assert_eq!(channel_for("tomorrow"), LATEST, "unreadable means stable");
+        assert_eq!(feeds_for("0.3.0"), vec![LATEST]);
+        assert_eq!(
+            feeds_for("tomorrow"),
+            vec![LATEST],
+            "unreadable means stable"
+        );
+    }
+
+    /// The release that retires a candidate deletes its channel. A copy still holding that offer
+    /// asks for a file that is no longer served, and a refusal from the network is not something
+    /// anybody can act on.
+    #[test]
+    fn a_candidate_that_was_retired_is_told_it_is_gone_rather_than_met_with_a_refusal() {
+        assert_eq!(feeds_for("0.4.0-rc1"), vec![CANDIDATE, LATEST]);
     }
 
     #[test]
@@ -427,8 +481,8 @@ mod tests {
             newer("0.4.0-rc1", feed, Kept::plain(Route::Download), None).expect("0.5.0 is newer");
 
         assert_eq!(
-            channel_for(&found.version),
-            LATEST,
+            feeds_for(&found.version),
+            vec![LATEST],
             "a candidate sent to a stable release must be pointed at the stable feed"
         );
     }
@@ -438,16 +492,18 @@ mod tests {
         let kept = Kept::plain(Route::Download);
 
         assert_eq!(
-            remembered("0.2.0", Some("0.3.0"), kept).unwrap().version,
+            remembered("0.2.0", Some("0.3.0"), kept, None)
+                .unwrap()
+                .version,
             "0.3.0"
         );
-        assert!(remembered("0.3.0", Some("0.3.0"), kept).is_none());
+        assert!(remembered("0.3.0", Some("0.3.0"), kept, None).is_none());
         assert!(
-            remembered("0.4.0", Some("0.3.0"), kept).is_none(),
+            remembered("0.4.0", Some("0.3.0"), kept, None).is_none(),
             "a copy updated by hand is not owed the old offer"
         );
-        assert!(remembered("0.2.0", None, kept).is_none());
-        assert!(remembered("0.2.0", Some("tomorrow"), kept).is_none());
+        assert!(remembered("0.2.0", None, kept, None).is_none());
+        assert!(remembered("0.2.0", Some("tomorrow"), kept, None).is_none());
     }
 
     #[test]
@@ -474,6 +530,36 @@ mod tests {
         );
         assert!(from_the_shop("tomorrow", "0.3.0").is_none());
         assert!(from_the_shop("0.3.0", "tomorrow").is_none());
+    }
+
+    /// The offer and the refusal read the same thing, or the button is shown to somebody it will
+    /// then be taken from, with a message saying somebody else looks after this copy — when the
+    /// truth is that nobody does.
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn a_copy_that_cannot_replace_itself_is_not_offered_a_button() {
+        let feed = r#"{"latest":"0.3.0"}"#;
+        let offer = newer("0.2.0", feed, Kept::plain(Route::Download), None).unwrap();
+
+        assert_eq!(
+            offer.installs,
+            !from_a_mount(),
+            "what the offer promises is what the install will allow"
+        );
+    }
+
+    #[test]
+    fn candidates_are_only_asked_for_where_one_could_arrive() {
+        assert!(takes_candidates(Route::Download));
+        assert!(takes_candidates(Route::Brew));
+        assert!(
+            !takes_candidates(Route::Store),
+            "the store is sent finished versions only"
+        );
+        assert!(
+            !takes_candidates(Route::BrewCli),
+            "and the formula keeps its candidates under another name"
+        );
     }
 
     #[test]

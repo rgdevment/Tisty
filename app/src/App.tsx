@@ -1374,7 +1374,13 @@ export default function App() {
               }}
               className="shrink-0 rounded-md border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
             >
-              {t(underway ? "updateInstalling" : "updateInstall")}
+              {t(
+                underway
+                  ? ready?.route === "store"
+                    ? "updateInstallingStore"
+                    : "updateInstalling"
+                  : "updateInstall",
+              )}
             </button>
           )}
           <button

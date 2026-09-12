@@ -1,11 +1,14 @@
 name: Feed
 
-# What a release checks the moment it publishes, checked again every day. A feed only breaks
-# between releases — a file deleted, a release published by hand, a branch force-pushed — and
-# nothing else would notice until somebody wondered why their Tisty had not changed in a month.
+# What a release checks the moment it publishes, checked again every day and again whenever a
+# release is touched by hand. A feed breaks between releases — an asset deleted, one replaced with
+# other bytes, a release retired, a branch force-pushed — and nothing else would notice until
+# somebody wondered why their Tisty had not changed in a month.
 on:
   schedule:
     - cron: "17 7 * * *"
+  release:
+    types: [published, unpublished, deleted, edited, released]
   workflow_dispatch:
 
 permissions:
@@ -15,13 +18,21 @@ jobs:
   answers:
     name: the feed answers what a copy would read
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v6
+
       - name: Read it the way an installed copy does
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq minisign
+          feed="https://raw.githubusercontent.com/${{ github.repository }}/manifest"
+
+          # The key every installed copy carries. Verifying against anything else would be
+          # verifying that the release signs itself, which it always does.
+          jq -r '.plugins.updater.pubkey' app/src-tauri/tauri.conf.json | base64 -d > tisty.pub
 
           # What GitHub calls the latest release is the one published most recently, which is not
           # the highest version: a fix published for an older series after a newer one is out would
@@ -31,11 +42,10 @@ jobs:
             | sed 's/^v//' | sort -V | tail -1)
 
           if [ -z "$newest" ]; then
-            echo "::notice::nothing stable has been published yet"
-            exit 0
+            echo "::error::there is no stable release at all, and the feed is still announcing \
+                  one to every copy out there"
+            exit 1
           fi
-
-          feed="https://raw.githubusercontent.com/${{ github.repository }}/manifest"
 
           if ! curl -fsSL -H "Cache-Control: no-cache" -o manifest.json "$feed/release-manifest.json"; then
             echo "::error::the feed did not answer. Every copy out there is looking at nothing, \
@@ -56,29 +66,63 @@ jobs:
             exit 1
           fi
 
-          # The manifest only says a version exists. This one carries the address and the
-          # signature, and a copy that is offered an update it cannot take is worse off than one
-          # that was offered nothing.
-          if ! curl -fsSL -H "Cache-Control: no-cache" -o channel.json "$feed/latest.json"; then
-            echo "::error::the stable channel did not answer, so what is being announced is an \
-                  update nobody can take"
-            exit 1
-          fi
-          took=$(jq -r '.version // ""' channel.json)
-          if [ "$took" != "$said" ]; then
-            echo "::error::the feed announces «$said» and the channel offers «$took»"
-            exit 1
-          fi
-
-          # And the address it sends them to has to be there. A feed that announces a release
-          # somebody has since deleted hands every copy a button that fails.
-          for os in $(jq -r '.platforms | keys[]' channel.json); do
-            url=$(jq -r --arg os "$os" '.platforms[$os].url' channel.json)
-            code=$(curl -sIL -o /dev/null -w '%{http_code}' "$url")
-            if [ "$code" != "200" ]; then
-              echo "::error::the installer for $os answers $code. The update is announced and \
-                    cannot be taken: $url"
-              exit 1
+          # A channel is more than a version: it carries the address and the signature, and those
+          # are what decide whether an update announced can actually be taken. Checking that the
+          # installer answers 200 is not enough — an asset can be deleted and put back with other
+          # bytes, which answers 200 and fails on every machine in the world.
+          takes() {
+            local what="$1" expected="$2"
+            if ! curl -fsSL -H "Cache-Control: no-cache" -o channel.json "$feed/$what"; then
+              echo "::error::$what did not answer, so what is announced is an update nobody \
+                    can take"
+              return 1
             fi
-            echo "$os is there"
-          done
+            local version
+            version=$(jq -r '.version // ""' channel.json)
+            if [ "$version" != "$expected" ]; then
+              echo "::error::$what offers «$version» and the feed announces «$expected»"
+              return 1
+            fi
+
+            local names
+            names=$(jq -r '.platforms | keys[]' channel.json 2>/dev/null || true)
+            if [ -z "$names" ]; then
+              echo "::error::$what names no platform at all, so it offers nothing to anybody"
+              return 1
+            fi
+
+            local os url
+            for os in $names; do
+              url=$(jq -r --arg os "$os" '.platforms[$os].url' channel.json)
+              jq -r --arg os "$os" '.platforms[$os].signature' channel.json | base64 -d > one.sig
+              if ! curl -fsSL -o one.bin "$url"; then
+                echo "::error::the installer for $os in $what does not answer: $url"
+                return 1
+              fi
+              if ! minisign -Vm one.bin -p tisty.pub -x one.sig >/dev/null; then
+                echo "::error::the installer for $os in $what does not verify against the key \
+                      every installed copy carries. It answers, and it cannot be installed: $url"
+                return 1
+              fi
+              echo "  $os verifies"
+            done
+          }
+
+          echo "the stable channel:"
+          takes latest.json "$said"
+
+          # The candidates' channel exists only between a candidate and the stable release that
+          # retires it, and that release deletes the evidence along with the file. Unwatched,
+          # anything that happens to a candidate is invisible for its whole life.
+          ahead=$(jq -r '.latestPrerelease // ""' manifest.json)
+          if [ -n "$ahead" ]; then
+            echo "the candidates' channel, announcing $ahead:"
+            takes candidate.json "$ahead"
+          elif curl -fsSL -o /dev/null "$feed/candidate.json" 2>/dev/null; then
+            echo "::error::candidate.json is still being served and the feed announces no \
+                  candidate. A copy that remembers one would be sent to a version nobody is \
+                  publishing any more."
+            exit 1
+          else
+            echo "no candidate is announced, and none is served"
+          fi
