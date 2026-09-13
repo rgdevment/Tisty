@@ -23,6 +23,21 @@ input = "review the report tomorrow"
 title = "review the report"
 date = "2026-08-06"
 
+[[case]]
+input = "deploy the day after tomorrow"
+title = "deploy"
+date = "2026-08-07"
+
+[[case]]
+input = "deploy day after tomorrow"
+title = "deploy"
+date = "2026-08-07"
+
+[[case]]
+input = "ask the team to deploy the day after tomorrow"
+title = "ask the team to deploy"
+date = "2026-08-07"
+
 # ─────────────────────────────────────────────────────────────
 #  Weekdays
 # ─────────────────────────────────────────────────────────────
@@ -794,3 +809,22 @@ title = "buy bread"
 date = "2026-08-06"
 tags = ["home"]
 why = "the preposition leaves with the tag it points at, not stranded at the end"
+
+[[case]]
+input = "please call the bank at 3 pm"
+title = "please call the bank"
+date = "2026-08-05"
+time = "15:00"
+
+[[case]]
+input = "meeting at 12 pm"
+title = "meeting"
+date = "2026-08-05"
+time = "12:00"
+
+[[case]]
+input = "meeting at 12 am"
+title = "meeting"
+date = "2026-08-06"
+time = "00:00"
+why = "today's midnight is gone, so the next one is tomorrow's"

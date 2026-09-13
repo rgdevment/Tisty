@@ -22,3 +22,9 @@ app/src-tauri/binaries/
 
 # Written by `npm run notices` for each release, and shipped with it, not here.
 THIRD-PARTY-BUNDLED.md
+
+mutants.out
+mutants.out.old
+app/.stryker-tmp
+app/reports
+app/stryker-setup-*.js

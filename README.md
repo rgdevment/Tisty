@@ -24,6 +24,11 @@
         src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/ci.yml?style=flat-square&logo=github-actions&label=Build"
         alt="Build status"/>
     </a>
+    <a href="https://github.com/rgdevment/Tisty/actions/workflows/mutants.yml">
+      <img
+        src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/mutants.yml?style=flat-square&logo=github-actions&label=Mutants"
+        alt="Mutation sweep"/>
+    </a>
     <a href="https://sonarcloud.io/summary/overall?id=rgdevment_Tisty">
       <img
         src="https://img.shields.io/sonar/quality_gate/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Quality%20Gate"
