@@ -879,8 +879,6 @@ pub fn hold(root: &Path) -> Option<Alone> {
 
     let mut waited = 0;
     loop {
-        // Windows answers a held lock with an error as readily as with false, and a virus
-        // scanner holding the file for a moment looks the same: both are worth another try.
         let taken = std::fs::OpenOptions::new()
             .create(true)
             .write(true)

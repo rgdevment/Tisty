@@ -214,9 +214,7 @@ describe("what the agent is allowed to send opens for editing", () => {
     expect(frail("una <mark>marca</mark>")).not.toContain("frailHtml");
     expect(frail('una <mark data-pen="rojo">marca</mark>')).not.toContain("frailHtml");
     expect(frail('un <span data-ico="check"></span>')).not.toContain("frailHtml");
-    expect(frail('un <span data-ico="check" data-hue="verde"></span>')).not.toContain(
-      "frailHtml",
-    );
+    expect(frail('un <span data-ico="check" data-hue="verde"></span>')).not.toContain("frailHtml");
     expect(frail('un <span data-ico="🎉"></span>')).not.toContain("frailHtml");
   });
 

@@ -709,6 +709,12 @@ const en = {
   layerStories: "Stories",
   layerRoutines: "Routines",
   layerTrace: "Trace",
+  archiveShowing: "Reading",
+  archiveGrouped: "Grouped by",
+  tallyClosed: "closed",
+  tallyKept: "kept of owed",
+  tallyBest: "longest run",
+  tallyMissed: "days missed",
   storiesEmpty:
     "Nothing closed here tells a story yet. A task earns the shelf by what gets written on it — a note, a list of steps, a document.",
   routinesEmpty:
@@ -1934,6 +1940,12 @@ const es: Catalog = {
   layerStories: "Historias",
   layerRoutines: "Rutinas",
   layerTrace: "Rastro",
+  archiveShowing: "Leyendo",
+  archiveGrouped: "Agrupado por",
+  tallyClosed: "cerradas",
+  tallyKept: "cumplidas de las que tocaban",
+  tallyBest: "racha más larga",
+  tallyMissed: "días sin marcar",
   storiesEmpty:
     "Todavía nada de lo cerrado cuenta una historia. Una tarea se gana el estante por lo que se escribe en ella: una nota, unos pasos, un documento.",
   routinesEmpty:
