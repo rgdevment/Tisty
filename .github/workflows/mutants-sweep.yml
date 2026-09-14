@@ -191,7 +191,8 @@ jobs:
                 }' \
             | paste -sd, -)
           echo "$list"
-          npx stryker run --mutate "$list" --reporters progress-append-only,clear-text,json
+          npx stryker run --mutate "$list" --concurrency 4 \
+            --reporters progress-append-only,clear-text,json
 
       - uses: actions/upload-artifact@v7
         if: always()
