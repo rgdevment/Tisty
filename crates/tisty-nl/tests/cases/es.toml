@@ -898,3 +898,22 @@ title = "comprar pan"
 date = "2026-08-06"
 tags = ["casa"]
 why = "la preposición se va con la etiqueta a la que apunta, no queda suelta al final"
+
+[[case]]
+input = "por favor llamar al banco a las 3 pm"
+title = "por favor llamar al banco"
+date = "2026-08-05"
+time = "15:00"
+
+[[case]]
+input = "reunión a las 12 pm"
+title = "reunión"
+date = "2026-08-05"
+time = "12:00"
+
+[[case]]
+input = "reunión a las 12 am"
+title = "reunión"
+date = "2026-08-06"
+time = "00:00"
+why = "las doce de la noche de hoy ya pasaron, así que la siguiente es la de mañana"

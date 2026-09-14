@@ -24,6 +24,16 @@
         src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/ci.yml?style=flat-square&logo=github-actions&label=Build"
         alt="Estado de la compilación"/>
     </a>
+    <a href="https://github.com/rgdevment/Tisty/actions/workflows/mutants.yml">
+      <img
+        src="https://img.shields.io/endpoint?style=flat-square&url=https%3A%2F%2Fraw.githubusercontent.com%2Frgdevment%2FTisty%2Fscore%2Fmutants.json"
+        alt="Puntuación de mutación"/>
+    </a>
+    <a href="https://dashboard.stryker-mutator.io/reports/github.com/rgdevment/Tisty/main">
+      <img
+        src="https://img.shields.io/endpoint?style=flat-square&label=window%20logic&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Frgdevment%2FTisty%2Fmain"
+        alt="Puntuación de mutación de la lógica de la ventana"/>
+    </a>
     <a href="https://sonarcloud.io/summary/overall?id=rgdevment_Tisty">
       <img
         src="https://img.shields.io/sonar/quality_gate/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Quality%20Gate"

@@ -4,6 +4,9 @@
     "!node_modules",
     "!target",
     "!app/node_modules",
+    "!app/.stryker-tmp",
+    "!app/reports",
+    "!mutants.out",
     "!THIRD-PARTY-BUNDLED.md"
   ],
   "config": {
