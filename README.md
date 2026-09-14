@@ -31,8 +31,8 @@
     </a>
     <a href="https://dashboard.stryker-mutator.io/reports/github.com/rgdevment/Tisty/main">
       <img
-        src="https://img.shields.io/endpoint?style=flat-square&label=window&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Frgdevment%2FTisty%2Fmain"
-        alt="Mutation score of the window"/>
+        src="https://img.shields.io/endpoint?style=flat-square&label=window%20logic&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Frgdevment%2FTisty%2Fmain"
+        alt="Mutation score of the window logic"/>
     </a>
     <a href="https://sonarcloud.io/summary/overall?id=rgdevment_Tisty">
       <img

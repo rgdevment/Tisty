@@ -623,7 +623,7 @@ mod tests {
     }
 
     #[test]
-    fn a_signature_that_stops_one_byte_short_is_no_signature() {
+    fn a_file_cut_back_to_its_bare_signature_is_refused() {
         let mut webp = b"RIFF----WEBP".to_vec();
         assert!(!signed_as("webp", &webp));
         webp.push(b'-');

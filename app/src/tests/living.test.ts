@@ -562,8 +562,13 @@ describe("a rule under the marker does not swallow the callout", () => {
       return Math.max(performance.now() - at, 0.1);
     };
 
+    const middling = (many: number) => {
+      const runs = [took(many), took(many), took(many)].sort((a, b) => a - b);
+      return runs[1];
+    };
+
     took(250);
-    const grew = took(2000) / took(500);
+    const grew = middling(2000) / middling(500);
 
     expect(grew, `sixteen times the text took ${grew.toFixed(1)} times as long`).toBeLessThan(50);
   });

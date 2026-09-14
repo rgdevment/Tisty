@@ -6,8 +6,16 @@ crates=${CRATES:-crates}
 badge=${BADGE:-mutants.json}
 
 shards=$(find . -name 'mutants.json' -path '*window*' | sort)
-if [ -z "$shards" ]; then
-  echo "::error::no window report to read, so any score would be made up"
+outcomes=$(find "$crates" -name 'outcomes.json' 2>/dev/null | sort)
+
+told() {
+  if [ -z "$1" ]; then echo 0; else printf '%s\n' "$1" | wc -l | tr -d ' '; fi
+}
+
+if [ "$(told "$shards")" -lt "${WANT_WINDOW:-1}" ] \
+  || [ "$(told "$outcomes")" -lt "${WANT_CRATES:-1}" ]; then
+  echo "::error::$(told "$shards") of ${WANT_WINDOW:-1} window reports and $(told "$outcomes") \
+of ${WANT_CRATES:-1} crate outcomes reached here: a score over half a sweep would be a lie"
   exit 1
 fi
 
@@ -28,15 +36,10 @@ read -r killed survived < <(
 
 caught=0
 missed=0
-for one in $(find "$crates" -name 'outcomes.json' | sort); do
+for one in $outcomes; do
   caught=$((caught + $(jq -r '.caught + .timeout' "$one")))
   missed=$((missed + $(jq -r '.missed' "$one")))
 done
-
-if [ "$caught" -eq 0 ]; then
-  echo "::error::no crate outcome to read, so any score would be made up"
-  exit 1
-fi
 
 live=$((killed + caught))
 dead=$((survived + missed))

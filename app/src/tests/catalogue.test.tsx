@@ -5,9 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import { known, markup } from "../glyphs";
 import { isMark, MARKS, markedAs } from "../marks";
 import Pick from "../ui/Pick";
+import { inTheRepo } from "./repo";
 
 const named = (): string[] => {
-  const at = resolve(process.cwd(), "../crates/tisty-core/src/model/icon.rs");
+  const at = inTheRepo("crates/tisty-core/src/model/icon.rs");
   const said = readFileSync(at, "utf8");
   const body = said.slice(said.indexOf("ICONS"), said.indexOf("];"));
   return [...body.matchAll(/"([a-z-]+)"/g)].map((found) => found[1]);
@@ -86,7 +87,7 @@ describe("a catalogue too long to draw at once", () => {
 
 describe("the marks the core offers and the words the window knows", () => {
   const carved = (): string[] => {
-    const at = resolve(process.cwd(), "../crates/tisty-core/src/model/mark.rs");
+    const at = inTheRepo("crates/tisty-core/src/model/mark.rs");
     const said = readFileSync(at, "utf8");
     const body = said.slice(said.indexOf("MARKS"), said.indexOf("];"));
     return [...body.matchAll(/"([^"]+)"/g)].map((found) => found[1]);

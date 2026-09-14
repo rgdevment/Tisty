@@ -35,7 +35,8 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          git diff "$BASE" -- crates/tisty-core crates/tisty-nl > branch.diff
+          from=$(git merge-base "$BASE" HEAD)
+          git diff "$from" -- crates/tisty-core crates/tisty-nl > branch.diff
           if [ -s branch.diff ]; then echo "any=yes" >> "$GITHUB_OUTPUT"; fi
 
       - uses: dtolnay/rust-toolchain@stable
@@ -85,7 +86,8 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          list=$(git diff --name-only --relative --diff-filter=d "$BASE" -- src \
+          from=$(git merge-base "$BASE" HEAD)
+          list=$(git diff --name-only --relative --diff-filter=d "$from" -- src \
             | grep -E '\.tsx?$' \
             | grep -vE '^src/tests/|^src/(marks|glyphs|locales|synonyms)\.ts$|^src/main\.tsx$|\.d\.ts$' \
             | paste -sd, -)
@@ -238,7 +240,7 @@ jobs:
 
   score:
     name: what the whole sweep came to
-    if: github.event_name != 'pull_request'
+    if: always() && !cancelled() && github.event_name != 'pull_request'
     needs: [tisty-nl, tisty-core, window]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -258,6 +260,9 @@ jobs:
           path: window
 
       - name: Eight shards of the window told as one report
+        env:
+          WANT_WINDOW: 8
+          WANT_CRATES: 17
         run: bash scripts/mutants-score.sh
 
       - name: The report where a survivor can be read one by one
@@ -276,7 +281,7 @@ jobs:
 
       - name: The number, on the branch that holds nothing else
         run: |
-          cp mutants.json "$RUNNER_TEMP/mutants.json"
+          mv mutants.json "$RUNNER_TEMP/mutants.json"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
