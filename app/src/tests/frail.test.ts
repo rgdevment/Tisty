@@ -161,4 +161,51 @@ describe("what the agent is allowed to send opens for editing", () => {
   it("leaves html written as tab-indented code alone", () => {
     expect(frail("Ejemplo:\n\n\t<div>x</div>")).toEqual([]);
   });
+
+  it("tells an entity from an ampersand that only looks like one", () => {
+    expect(frail("&am;")).toContain("frailEntities");
+    expect(frail("&abcdefghijk;")).toContain("frailEntities");
+    expect(frail("&a;")).not.toContain("frailEntities");
+    expect(frail("&abcdefghijkl;")).not.toContain("frailEntities");
+    expect(frail("&no es;")).not.toContain("frailEntities");
+    expect(frail("uno & dos")).not.toContain("frailEntities");
+  });
+
+  it("sees a pair of dollars that opens maths and not one that was escaped", () => {
+    expect(frail("$$x$$")).toContain("frailMaths");
+    expect(frail("a $$x$$ b")).toContain("frailMaths");
+    expect(frail("a \\$$x b")).not.toContain("frailMaths");
+    expect(frail("cuesta 5$ y no 7$")).not.toContain("frailMaths");
+    expect(frail("a \\$$x b$$y")).toContain("frailMaths");
+  });
+
+  it("counts the gap after a bullet and calls it a block from five spaces on", () => {
+    expect(frail("-     texto")).toContain("frailBlocked");
+    expect(frail("-    texto")).not.toContain("frailBlocked");
+  });
+
+  it("sees each kind of block a list item can be hiding", () => {
+    expect(frail("- > una cita")).toContain("frailBlocked");
+    expect(frail("- ```\n- x")).toContain("frailBlocked");
+    expect(frail("- ![una imagen](x.png)")).toContain("frailBlocked");
+    expect(frail("- - una sublista")).toContain("frailBlocked");
+    expect(frail("- # un titulo")).toContain("frailBlocked");
+    expect(frail("- | a | b |\n  | --- | --- |")).toContain("frailBlocked");
+    expect(frail("- | a | b |\n  texto")).not.toContain("frailBlocked");
+    expect(frail("- texto llano")).not.toContain("frailBlocked");
+  });
+
+  it("sees a reference definition, wherever its target was written", () => {
+    expect(frail("[uno]: https://ejemplo.org")).toContain("frailRefs");
+    expect(frail("[uno]:\n  https://ejemplo.org")).toContain("frailRefs");
+    expect(frail("[uno]:")).not.toContain("frailRefs");
+    expect(frail("[^1]: una nota")).not.toContain("frailRefs");
+    expect(frail("[uno] no es una definicion")).not.toContain("frailRefs");
+  });
+
+  it("sees a footnote and not one whose bracket was escaped or left open", () => {
+    expect(frail("un texto[^1] con nota")).toContain("frailNotes");
+    expect(frail("un texto\\[^1] sin nota")).not.toContain("frailNotes");
+    expect(frail("un texto[^1 sin cerrar")).not.toContain("frailNotes");
+  });
 });

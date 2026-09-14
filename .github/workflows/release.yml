@@ -943,18 +943,29 @@ jobs:
             --sellerId "$STORE_SELLER_ID" \
             --clientId "$STORE_CLIENT_ID" \
             --clientSecret "$STORE_CLIENT_SECRET"
-          msstore publish "$msix" --appId "$STORE_APP_ID"
+          set +e
+          msstore publish "$msix" --appId "$STORE_APP_ID" 2>&1 | tee publish.log
+          code=${PIPESTATUS[0]}
+          set -e
 
-      # The commit is posted before its answer is read, so a reply the client cannot parse says
-      # nothing about whether the Store took it. What the submission says it is does.
+          # Once the Store answers CommitStarted the submission is its own: it has the package and
+          # is working through it. What fails after that is the client losing the poll, not the
+          # publish — see microsoft/msstore-cli#29.
+          if [ "$code" -ne 0 ] && grep -q "Status=CommitStarted" publish.log; then
+            echo "::warning::the Store took the submission and is processing it; the client lost \
+            the poll it was holding. Nothing here has to be sent again."
+            exit 0
+          fi
+          exit "$code"
+
       - name: What the Store made of it
         if: always() && steps.gate.outputs.go == 'yes' && steps.sent.outcome == 'failure'
         shell: bash
         run: |
-          echo "::warning::publishing reported an error; asking the Store what state the submission is in"
-          msstore submission status --appId "$STORE_APP_ID" || true
-          echo "::error::the package reached the Store, but the commit was not confirmed. Check the \
-          status above before tagging again: a submission already committed must not be sent twice."
+          echo "::warning::publishing failed before the Store took the submission; asking what state it is in"
+          msstore submission status "$STORE_APP_ID" || true
+          echo "::error::the package reached the Store but no commit was confirmed. Read the status \
+          above before tagging again: a submission already committed must not be sent twice."
 
   homebrew:
     name: Homebrew tap
