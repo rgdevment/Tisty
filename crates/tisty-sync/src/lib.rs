@@ -2393,6 +2393,11 @@ mod tests {
 
         assert!(done.undecided.is_empty(), "pregunto pudiendo juntarlo");
         assert_eq!(done.joined, vec!["uno-0001".to_string()]);
+        assert_eq!(
+            (done.sent, done.brought),
+            (1, 1),
+            "lo que se junta viaja en los dos sentidos y se cuenta una vez en cada uno"
+        );
         let whole = std::fs::read_to_string(here.join("uno-0001.md")).unwrap();
         assert!(whole.contains("del mac"), "{whole}");
         assert!(whole.contains("lo de windows"), "{whole}");
