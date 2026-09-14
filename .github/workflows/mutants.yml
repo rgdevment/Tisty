@@ -82,8 +82,8 @@ jobs:
         run: |
           from=$(git merge-base "$BASE" HEAD)
           list=$(git diff --name-only --relative --diff-filter=d "$from" -- src \
-            | grep -E '\.ts$' \
-            | grep -vE '^src/tests/|^src/(marks|glyphs|locales|synonyms)\.ts$|\.d\.ts$' \
+            | grep -E '\.tsx?$' \
+            | grep -vE '^src/tests/|^src/(marks|glyphs|locales|synonyms)\.ts$|^src/main\.tsx$|\.d\.ts$' \
             | paste -sd, -)
           echo "list=$list" >> "$GITHUB_OUTPUT"
 
