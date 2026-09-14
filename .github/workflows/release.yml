@@ -616,6 +616,7 @@ jobs:
           for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
             cp "app/src-tauri/icons/$logo.png" "msix/Assets/$logo.png"
           done
+          cp app/src-tauri/icons/Square44x44Logo.targetsize-*_altform-unplated.png msix/Assets/
 
           sed -e "s|@IDENTITY@|$MSIX_IDENTITY|" \
               -e "s|@PUBLISHER@|$MSIX_PUBLISHER|" \
@@ -640,6 +641,12 @@ jobs:
 
           $v = "${{ needs.version.outputs.version }}"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          & "$($sdk.FullName)\x64\makepri.exe" createconfig /cf priconfig.xml /dq en-US_es /o
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$($sdk.FullName)\x64\makepri.exe" new /pr msix /cf priconfig.xml /of msix/resources.pri /o
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
           & "$($sdk.FullName)\x64\makeappx.exe" pack /d msix /p "dist/tisty-$v-windows-x86_64.msix" /o
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

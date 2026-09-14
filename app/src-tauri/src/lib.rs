@@ -2367,32 +2367,32 @@ async fn update_ready(
     };
     let now = jiff::Timestamp::now();
     let asked = now_please.unwrap_or(false);
+    let wants = if update::takes_candidates(kept.route) {
+        wants
+    } else {
+        Some(false)
+    };
 
-    // A copy kept by the Store asks the Store and not the manifest: a release is out for everyone
-    // else while the Store is still certifying it, and being sent for a version it does not have
-    // yet is worse than being told nothing.
+    // A copy kept by the Store asks the Store first: an offer the Store itself made is the one it
+    // can take without leaving the window. Having nothing to offer is not the same as there being
+    // nothing out there — the Store holds a release back while it certifies it, and the manifest
+    // names it meanwhile — so the manifest is asked after the Store rather than instead of it.
     if kept.route == update::Route::Store
         && let Some(window) = owner(&app)
     {
         // Held to the manifest's interval too: a Store that never answers strands the thread.
         if !asked && !update::due(last, now) {
-            return Ok(found
-                .as_deref()
-                .and_then(|version| update::from_the_shop(version, HERE)));
+            return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
         }
-        if let Ok(shelf) = tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await
-            && shelf != shop::Shelf::Silent
+        if let Ok(shop::Shelf::Waiting(version)) =
+            tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await
+            && let Some(seen) = update::from_the_shop(&version, HERE)
         {
-            let seen = match shelf {
-                shop::Shelf::Waiting(version) => update::from_the_shop(&version, HERE),
-                _ => None,
-            };
-            let version = seen.as_ref().map(|one| one.version.clone());
             held(&session).keep(|c| {
                 c.checked_at = Some(now);
-                c.found_version = version;
+                c.found_version = Some(seen.version.clone());
             })?;
-            return Ok(seen);
+            return Ok(Some(seen));
         }
     }
 

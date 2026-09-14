@@ -559,7 +559,7 @@ const en = {
   dropFolderSure:
     "Delete «{name}»? Its documents go to Unfiled and its subfolders move up a level. Nothing is lost, but this cannot be undone.",
   updateStore:
-    "The Microsoft Store brings it to you. To have it now, open the Store and ask it to get updates.",
+    "The Microsoft Store brings it to you. Windows cannot replace an app that is running, so close Tisty — the tray icon too — and ask the Store to get updates.",
   updateBrewCli: "Run brew update && brew upgrade {name}",
   updateAsk: "Do you want to update it?",
   updateInstall: "Update",
@@ -1790,7 +1790,7 @@ const es: Catalog = {
   dropFolderSure:
     "¿Borrar «{name}»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.",
   updateStore:
-    "La Microsoft Store te la trae. Para tenerla ya, abre la Store y pídele que busque actualizaciones.",
+    "La Microsoft Store te la trae. Windows no puede reemplazar una aplicación en marcha, así que cierra Tisty —también el icono de la bandeja— y pídele a la Store que busque actualizaciones.",
   updateBrewCli: "Ejecuta brew update && brew upgrade {name}",
   updateAsk: "¿Quieres actualizarla?",
   updateInstall: "Actualizar",
