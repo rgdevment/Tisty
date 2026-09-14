@@ -28,20 +28,9 @@ allow-wildcard-paths = true
 yanked = "deny"
 # Every one of these is unmaintained rather than vulnerable, reached only through
 # Tauri, and not ours to replace. Listed one by one so a new advisory still fails
-# the build; revisit when Tauri moves off GTK3.
+# the build.
 ignore = [
-  # gtk-rs GTK3 bindings, which Tauri links against on Linux.
-  "RUSTSEC-2024-0411",
-  "RUSTSEC-2024-0412",
-  "RUSTSEC-2024-0413",
-  "RUSTSEC-2024-0414",
-  "RUSTSEC-2024-0415",
-  "RUSTSEC-2024-0416",
-  "RUSTSEC-2024-0417",
-  "RUSTSEC-2024-0418",
-  "RUSTSEC-2024-0419",
-  "RUSTSEC-2024-0420",
-  # proc-macro-error, via glib-macros in that same GTK3 tree.
+  # proc-macro-error, via glib-macros in the GTK3 tree Tauri links against on Linux.
   "RUSTSEC-2024-0370",
   # unic-*, via urlpattern in tauri-utils.
   "RUSTSEC-2025-0075",

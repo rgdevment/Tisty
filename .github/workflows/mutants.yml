@@ -3,8 +3,7 @@ name: Mutants
 on:
   pull_request:
     paths:
-      - crates/tisty-core/**
-      - crates/tisty-nl/**
+      - crates/**
       - app/src/**
       - .cargo/mutants.toml
       - app/stryker.config.json
@@ -88,8 +87,8 @@ jobs:
         run: |
           from=$(git merge-base "$BASE" HEAD)
           list=$(git diff --name-only --relative --diff-filter=d "$from" -- src \
-            | grep -E '\.tsx?$' \
-            | grep -vE '^src/tests/|^src/(marks|glyphs|locales|synonyms)\.ts$|^src/main\.tsx$|\.d\.ts$' \
+            | grep -E '\.ts$' \
+            | grep -vE '^src/tests/|^src/(marks|glyphs|locales|synonyms)\.ts$|\.d\.ts$' \
             | paste -sd, -)
           echo "list=$list" >> "$GITHUB_OUTPUT"
 
@@ -202,7 +201,7 @@ jobs:
         id: run
         run: |
           set +e
-          cargo mutants -p tisty-cli --shard ${{ matrix.shard }}/4 -j 2
+          cargo mutants -p tisty-cli --shard $(( ${{ matrix.shard }} - 1 ))/4 -j 2
           echo "code=$?" >> "$GITHUB_OUTPUT"
 
       - name: What survived
@@ -239,7 +238,7 @@ jobs:
         id: run
         run: |
           set +e
-          cargo mutants -p tisty-core --shard ${{ matrix.shard }}/16 -j 2
+          cargo mutants -p tisty-core --shard $(( ${{ matrix.shard }} - 1 ))/16 -j 2
           echo "code=$?" >> "$GITHUB_OUTPUT"
 
       - name: What survived
