@@ -2357,20 +2357,21 @@ async fn update_ready(
     now_please: Option<bool>,
 ) -> Answer<Option<update::Ready>> {
     let kept = update::route();
-    let (last, found, wants) = {
+    let (last, found, the_shop_said, wants) = {
         let held = held(&session);
         (
             held.config.checked_at,
             held.config.found_version.clone(),
+            held.config.found_in_the_shop.unwrap_or(false),
             held.config.candidates,
         )
     };
     let now = jiff::Timestamp::now();
     let asked = now_please.unwrap_or(false);
-    let wants = if update::takes_candidates(kept.route) {
-        wants
-    } else {
+    let wants = if kept.route == update::Route::Store {
         Some(false)
+    } else {
+        wants
     };
 
     // A copy kept by the Store asks the Store first: an offer the Store itself made is the one it
@@ -2382,17 +2383,28 @@ async fn update_ready(
     {
         // Held to the manifest's interval too: a Store that never answers strands the thread.
         if !asked && !update::due(last, now) {
-            return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
+            return Ok(if the_shop_said {
+                found
+                    .as_deref()
+                    .and_then(|version| update::from_the_shop(version, HERE))
+            } else {
+                update::remembered(HERE, found.as_deref(), kept, wants)
+            });
         }
-        if let Ok(shop::Shelf::Waiting(version)) =
-            tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await
-            && let Some(seen) = update::from_the_shop(&version, HERE)
-        {
-            held(&session).keep(|c| {
-                c.checked_at = Some(now);
-                c.found_version = Some(seen.version.clone());
-            })?;
-            return Ok(Some(seen));
+        if let Ok(shelf) = tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await {
+            if let shop::Shelf::Waiting(version) = &shelf
+                && let Some(seen) = update::from_the_shop(version, HERE)
+            {
+                held(&session).keep(|c| {
+                    c.checked_at = Some(now);
+                    c.found_version = Some(seen.version.clone());
+                    c.found_in_the_shop = Some(true);
+                })?;
+                return Ok(Some(seen));
+            }
+            if shelf != shop::Shelf::Silent {
+                held(&session).keep(|c| c.found_in_the_shop = None)?;
+            }
         }
     }
 
@@ -2415,6 +2427,7 @@ async fn update_ready(
     held(&session).keep(|c| {
         c.checked_at = Some(now);
         c.found_version = version;
+        c.found_in_the_shop = None;
     })?;
     Ok(seen)
 }
@@ -4955,6 +4968,7 @@ fn update_candidates(session: tauri::State<'_, Mutex<Session>>, wants: bool) -> 
         // What was found under the old answer says nothing about the new one.
         c.checked_at = None;
         c.found_version = None;
+        c.found_in_the_shop = None;
     })?;
     Ok(())
 }

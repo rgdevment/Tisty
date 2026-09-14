@@ -592,7 +592,7 @@ describe("the views nothing else opens", () => {
     await user.click(screen.getByRole("button", { name: /about|acerca/i }));
 
     expect(await screen.findByRole("button", { name: /^update$/i })).toBeTruthy();
-    expect(screen.queryByText(/ask the Store/i)).toBeNull();
+    expect(screen.queryByText(/Microsoft Store brings it to you/i)).toBeNull();
   });
 
   it("hands the window back when the Store finishes without taking the process", async () => {
@@ -656,7 +656,7 @@ describe("the views nothing else opens", () => {
 
     await user.click(screen.getByRole("button", { name: /about|acerca/i }));
 
-    expect(await screen.findByText(/ask the Store/i)).toBeTruthy();
+    expect(await screen.findByText(/Microsoft Store brings it to you/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^update$/i })).toBeNull();
   });
 

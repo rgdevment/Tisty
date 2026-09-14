@@ -507,7 +507,7 @@ mod tests {
     }
 
     #[test]
-    fn what_the_store_said_yesterday_is_still_news_but_no_longer_a_button() {
+    fn what_only_the_manifest_knows_is_news_a_store_copy_cannot_press_a_button_for() {
         let offer = remembered(
             "1.13.0",
             Some("1.13.3"),

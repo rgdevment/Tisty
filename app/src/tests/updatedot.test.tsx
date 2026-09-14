@@ -82,7 +82,7 @@ describe("what About suggests", () => {
 
     expect(await screen.findByText(/Tisty 0.3.0 is out/)).toBeTruthy();
     const said = screen.getByText(/Microsoft Store brings it to you/);
-    expect(said.textContent).toContain("get updates");
+    expect(said.textContent).toContain("close Tisty");
     expect(screen.queryByRole("button", { name: "Update" })).toBeNull();
   });
 
