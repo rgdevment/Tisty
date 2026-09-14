@@ -876,22 +876,27 @@ pub fn hold(root: &Path) -> Option<Alone> {
     use fs4::fs_std::FileExt;
 
     std::fs::create_dir_all(root).ok()?;
-    let file = std::fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(false)
-        .open(root.join(LOCK))
-        .ok()?;
 
     let mut waited = 0;
-    while !file.try_lock_exclusive().ok()? {
+    loop {
+        // Windows answers a held lock with an error as readily as with false, and a virus
+        // scanner holding the file for a moment looks the same: both are worth another try.
+        let taken = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(root.join(LOCK))
+            .ok()
+            .filter(|file| file.try_lock_exclusive().unwrap_or(false));
+        if let Some(file) = taken {
+            return Some(Alone(file));
+        }
         if waited >= LOCK_WAIT_MS {
             return None;
         }
         std::thread::sleep(std::time::Duration::from_millis(LOCK_POLL_MS));
         waited += LOCK_POLL_MS;
     }
-    Some(Alone(file))
 }
 
 fn alone<T>(root: &Path, work: impl FnOnce() -> Result<T>) -> Result<T> {
