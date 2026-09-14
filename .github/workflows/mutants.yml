@@ -235,3 +235,63 @@ jobs:
           name: mutants-window-${{ matrix.shard }}
           path: app/reports/
           retention-days: 14
+
+  score:
+    name: what the whole sweep came to
+    if: github.event_name != 'pull_request'
+    needs: [tisty-nl, tisty-core, window]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: mutants-tisty-*
+          path: crates
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: mutants-window-*
+          path: window
+
+      - name: Eight shards of the window told as one report
+        run: bash scripts/mutants-score.sh
+
+      - name: The report where a survivor can be read one by one
+        env:
+          KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::warning::no dashboard key: the report goes no further than the artifact"
+            exit 0
+          fi
+          curl -sS --fail-with-body -X PUT \
+            "https://dashboard.stryker-mutator.io/api/reports/github.com/${{ github.repository }}/${{ github.ref_name }}" \
+            -H 'Content-Type: application/json' \
+            -H "X-Api-Key: $KEY" \
+            -d @window.json
+
+      - name: The number, on the branch that holds nothing else
+        run: |
+          cp mutants.json "$RUNNER_TEMP/mutants.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git fetch origin score --depth 1 2>/dev/null; then
+            git switch -C score FETCH_HEAD
+          else
+            git switch --orphan score
+          fi
+          git rm -rq --cached . 2>/dev/null || true
+
+          cp "$RUNNER_TEMP/mutants.json" mutants.json
+          git add -- mutants.json
+          if git diff --cached --quiet; then
+            echo "the score has not moved"
+            exit 0
+          fi
+          git commit -m "chore: what the sweep of $(date -u +%Y-%m-%d) came to"
+          git push origin score

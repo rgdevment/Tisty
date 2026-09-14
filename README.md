@@ -26,8 +26,13 @@
     </a>
     <a href="https://github.com/rgdevment/Tisty/actions/workflows/mutants.yml">
       <img
-        src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/mutants.yml?style=flat-square&logo=github-actions&label=Mutants"
-        alt="Mutation sweep"/>
+        src="https://img.shields.io/endpoint?style=flat-square&url=https%3A%2F%2Fraw.githubusercontent.com%2Frgdevment%2FTisty%2Fscore%2Fmutants.json"
+        alt="Mutation score"/>
+    </a>
+    <a href="https://dashboard.stryker-mutator.io/reports/github.com/rgdevment/Tisty/main">
+      <img
+        src="https://img.shields.io/endpoint?style=flat-square&label=window&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Frgdevment%2FTisty%2Fmain"
+        alt="Mutation score of the window"/>
     </a>
     <a href="https://sonarcloud.io/summary/overall?id=rgdevment_Tisty">
       <img
