@@ -985,7 +985,7 @@ impl State {
         let (Some(due), Some(repeat)) = (task.date.as_ref(), task.repeat) else {
             return Vec::new();
         };
-        if repeat.from != crate::model::From::Due || repeat.cadence().every == 0 {
+        if repeat.cadence().every == 0 {
             return Vec::new();
         }
 
@@ -1624,6 +1624,66 @@ mod tests {
                 "2026-08-25".parse().unwrap(),
                 "2026-08-26".parse().unwrap(),
             ]
+        );
+    }
+
+    #[test]
+    fn a_cadence_counted_from_the_day_it_was_done_owes_the_days_it_skipped_too() {
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("take the pill", "a0");
+        add.date = Some(DateSpec::all_day("2026-08-25".parse().unwrap(), "UTC"));
+        add.repeat = Some(crate::model::Repeat::done(Cadence {
+            every: 1,
+            unit: Unit::Day,
+        }));
+        let state = State::replay(&[Event::new(
+            DeviceId("dev_a".into()),
+            jiff::Timestamp::from_second(1_770_000_000).unwrap(),
+            Op::TaskAdd { id, d: add },
+        )]);
+
+        let owed = state.owed_since(id, "2026-08-26".parse().unwrap());
+
+        assert_eq!(
+            owed,
+            vec!["2026-08-26".parse::<jiff::civil::Date>().unwrap()],
+            "a turn owed yesterday leaves today unasked, whichever end the cadence counts from"
+        );
+    }
+
+    #[test]
+    fn covering_a_late_turn_counted_from_done_writes_the_day_it_would_have_eaten() {
+        let id = Ulid::generate();
+        let mut add = TaskAdd::new("take the pill", "a0");
+        add.date = Some(DateSpec::all_day("2026-08-25".parse().unwrap(), "UTC"));
+        add.repeat = Some(crate::model::Repeat::done(Cadence {
+            every: 1,
+            unit: Unit::Day,
+        }));
+        let state = State::replay(&[Event::new(
+            DeviceId("dev_a".into()),
+            jiff::Timestamp::from_second(1_770_000_000).unwrap(),
+            Op::TaskAdd { id, d: add },
+        )]);
+
+        let ops = state.covering(id, now_on("2026-08-26"), &["2026-08-26".parse().unwrap()]);
+
+        let days: Vec<String> = ops
+            .iter()
+            .filter_map(|op| match op {
+                Op::TaskAdd { d, .. } => d.date.as_ref().map(|at| at.at.date().to_string()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            days,
+            vec!["2026-08-26".to_string(), "2026-08-27".to_string()],
+            "today was closed as done and tomorrow left open: {days:?}"
+        );
+        assert!(
+            ops.iter()
+                .any(|op| matches!(op, Op::TaskDone { filled: true, .. })),
+            "the day the person says they did it was written as a turn already closed"
         );
     }
 

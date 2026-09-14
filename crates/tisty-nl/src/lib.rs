@@ -129,6 +129,14 @@ pub fn parse(input: &str, now: &Zoned, locale: &str) -> Parsed {
         parsed.title = read.title;
         parsed.date = read.date;
         parsed.deadline = read.deadline;
+        if parsed.date.is_some()
+            && let Some(over) = parsed.repeat
+        {
+            parsed.repeat = Some(tisty_core::model::Repeat {
+                from: tisty_core::model::From::Due,
+                ..over
+            });
+        }
         parsed.spans.extend(carved(read.spans, &markers, input, v));
         ends_the_series(&mut parsed, input, v);
         parsed.offers = read
