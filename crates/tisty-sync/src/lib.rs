@@ -6559,4 +6559,64 @@ lo mio"
             "a retired attachment came back from the shared folder"
         );
     }
+
+    #[test]
+    fn a_store_nobody_can_read_is_no_kin_at_all() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        assert_eq!(
+            kinship(&one.store.join("nowhere"), shared.path()),
+            Kin::Unsure(String::new())
+        );
+    }
+
+    #[test]
+    fn a_store_it_cannot_read_stops_the_stitch_instead_of_joining_blindly() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+        let two = machine("dos");
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let blind = one.data.join("gone");
+
+        assert!(matches!(
+            stitch(&blind, &one.device, shared.path()),
+            Err(Trouble::Unreadable(_))
+        ));
+    }
+
+    #[test]
+    fn a_folder_with_no_name_of_its_own_takes_ours() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+
+        let said = settled(&one.store, shared.path(), false).unwrap();
+
+        assert_eq!(said, tisty_core::store::identity(&one.store).unwrap());
+    }
+
+    #[test]
+    fn a_folder_we_just_emptied_is_refused_instead_of_named_again() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+
+        assert!(matches!(
+            settled(&one.store, shared.path(), true),
+            Err(Trouble::Emptied(_))
+        ));
+    }
+
+    #[test]
+    fn two_sides_with_no_name_yet_take_the_one_this_machine_writes() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = blank("uno");
+        std::fs::create_dir_all(&one.store).unwrap();
+
+        let said = settled(&one.store, shared.path(), false).unwrap();
+
+        assert!(!said.is_empty());
+        assert_eq!(said, tisty_core::store::identity(&one.store).unwrap());
+    }
 }

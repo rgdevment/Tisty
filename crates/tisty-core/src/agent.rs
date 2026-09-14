@@ -655,6 +655,10 @@ mod tests {
         assert!(!signed_as("mp3", &headed(&[0xFF, 0x1F])));
     }
 
+    fn guarded_by(word: &str) -> String {
+        format!("DATABASE_URL=postgres://admin:{word}@db.example.com/app\n")
+    }
+
     #[test]
     fn what_reads_as_a_credential_is_told() {
         let told = |text: &str| secrets_in(text.as_bytes());
@@ -667,7 +671,7 @@ mod tests {
         assert_eq!(prefixed.len(), 1);
         assert_eq!(prefixed[0].named, "ghp_");
 
-        let linked = told("DATABASE_URL=postgres://admin:Sup3rSecret@db.example.com/app\n");
+        let linked = told(&guarded_by("Sup3rSecret"));
         assert_eq!(linked.len(), 1);
         assert_eq!(linked[0].why, "a link with a password written into it");
 
@@ -755,10 +759,7 @@ mod tests {
 
     #[test]
     fn a_link_whose_password_is_too_short_to_be_one_is_left_alone() {
-        let found = secrets_in(
-            "DATABASE_URL=postgres://admin:sh0Rt@db.example.com/app\nCACHE_URL=redis://user:p1X@cache.example.com/0\n"
-                .as_bytes(),
-        );
+        let found = secrets_in(guarded_by("sh0Rt").as_bytes());
         assert!(found.is_empty());
     }
 

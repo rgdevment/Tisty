@@ -36,7 +36,7 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           from=$(git merge-base "$BASE" HEAD)
-          git diff "$from" -- crates/tisty-core crates/tisty-nl > branch.diff
+          git diff "$from" -- crates > branch.diff
           if [ -s branch.diff ]; then echo "any=yes" >> "$GITHUB_OUTPUT"; fi
 
       - uses: dtolnay/rust-toolchain@stable
@@ -53,7 +53,7 @@ jobs:
         if: steps.touched.outputs.any == 'yes'
         run: |
           set +e
-          cargo mutants --in-diff branch.diff -p tisty-core -p tisty-nl -j 2
+          cargo mutants --in-diff branch.diff --workspace -j 2
           echo "code=$?" >> "$GITHUB_OUTPUT"
 
       - name: What survived
@@ -149,6 +149,76 @@ jobs:
           path: mutants.out/
           retention-days: 14
 
+  tisty-sync:
+    name: tisty-sync / every mutant
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@cargo-mutants
+
+      - name: Every mutant in what two machines agree on
+        id: run
+        run: |
+          set +e
+          cargo mutants -p tisty-sync -j 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: What survived
+        if: always()
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+          TITLE: tisty-sync
+        run: bash scripts/mutants-report.sh
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-tisty-sync
+          path: mutants.out/
+          retention-days: 14
+
+  tisty-cli:
+    name: tisty-cli / shard ${{ matrix.shard }} of 4
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@cargo-mutants
+
+      - name: One quarter of every mutant the command line carries
+        id: run
+        run: |
+          set +e
+          cargo mutants -p tisty-cli --shard ${{ matrix.shard }}/4 -j 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: What survived
+        if: always()
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+          TITLE: tisty-cli, shard ${{ matrix.shard }} of 4
+        run: bash scripts/mutants-report.sh
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-tisty-cli-${{ matrix.shard }}
+          path: mutants.out/
+          retention-days: 14
+
   tisty-core:
     name: tisty-core / shard ${{ matrix.shard }} of 16
     if: github.event_name != 'pull_request'
@@ -241,7 +311,7 @@ jobs:
   score:
     name: what the whole sweep came to
     if: always() && !cancelled() && github.event_name != 'pull_request'
-    needs: [tisty-nl, tisty-core, window]
+    needs: [tisty-nl, tisty-sync, tisty-cli, tisty-core, window]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -262,7 +332,7 @@ jobs:
       - name: Eight shards of the window told as one report
         env:
           WANT_WINDOW: 8
-          WANT_CRATES: 17
+          WANT_CRATES: 22
         run: bash scripts/mutants-score.sh
 
       - name: The report where a survivor can be read one by one
