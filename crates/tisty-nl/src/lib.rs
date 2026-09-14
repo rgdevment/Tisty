@@ -858,4 +858,235 @@ mod tests {
         assert_eq!(p.title, "mandar \"café ñandú\"");
         assert!(p.date.is_some());
     }
+
+    #[test]
+    fn a_priority_is_named_in_the_language_it_was_asked_for() {
+        assert_eq!(priority_word(Priority::Do, "es"), "hacer");
+        assert_eq!(priority_word(Priority::Decide, "es"), "planificar");
+        assert_eq!(priority_word(Priority::Delegate, "es"), "delegar");
+        assert_eq!(priority_word(Priority::Minor, "es"), "prescindible");
+        assert_eq!(priority_word(Priority::Do, "en"), "do");
+        assert_eq!(priority_word(Priority::Minor, "en"), "minor");
+    }
+
+    #[test]
+    fn a_priority_is_read_back_from_either_language() {
+        assert_eq!(parse_priority("delegar", "es"), Some(Priority::Delegate));
+        assert_eq!(parse_priority("IMPORTANTE", "es"), Some(Priority::Decide));
+        assert_eq!(parse_priority("ninguna", "es"), Some(Priority::Unset));
+        assert_eq!(parse_priority("delegate", "es"), Some(Priority::Delegate));
+        assert_eq!(parse_priority("nimiedad", "es"), None);
+    }
+
+    #[test]
+    fn the_draft_carries_everything_the_parser_read() {
+        let read = parse("pagar la luz mañana #casa !hacer @hogar", &now(), "es");
+        let draft: Draft = read.clone().into();
+
+        assert_eq!(draft.title, read.title);
+        assert_eq!(draft.date, read.date);
+        assert_eq!(draft.deadline, read.deadline);
+        assert_eq!(draft.priority, read.priority);
+        assert_eq!(draft.tags, read.tags);
+        assert_eq!(draft.repeat, read.repeat);
+        assert_eq!(draft.filing, Some(Filing::Marked("hogar".into())));
+        assert!(draft.source.is_none());
+        assert_eq!(draft.title, "pagar la luz");
+        assert_eq!(draft.priority, Some(Priority::Do));
+    }
+
+    #[test]
+    fn a_draft_files_nowhere_when_no_list_was_marked() {
+        let draft: Draft = parse("pagar la luz", &now(), "es").into();
+        assert!(draft.filing.is_none());
+    }
+
+    #[test]
+    fn a_bare_number_is_neither_a_tag_nor_a_list() {
+        let read = parse("revisar el pedido #12 @34", &now(), "es");
+
+        assert!(read.tags.is_empty());
+        assert!(read.list.is_none());
+        assert_eq!(read.title, "revisar el pedido #12 @34");
+    }
+
+    #[test]
+    fn a_cadence_is_only_a_cadence_between_one_and_a_thousand() {
+        let read = |n: u32| parse(&format!("revisar el archivo cada {n} días"), &now(), "es");
+
+        assert!(read(1).repeat.is_some());
+        assert!(read(999).repeat.is_some());
+        assert!(read(1000).repeat.is_none());
+        assert!(read(0).repeat.is_none());
+    }
+
+    #[test]
+    fn an_hour_that_has_just_struck_belongs_to_tomorrow() {
+        let p = parse("llamar al banco a las 9:00", &now(), "es");
+        let at = p.date.expect("a date");
+
+        assert_eq!(at.date().to_string(), "2026-08-06");
+        assert_eq!(at.at.time().to_string(), "09:00:00");
+    }
+
+    #[test]
+    fn an_hour_still_ahead_belongs_to_today() {
+        let p = parse("llamar al banco a las 9:30", &now(), "es");
+        let at = p.date.expect("a date");
+
+        assert_eq!(at.date().to_string(), "2026-08-05");
+        assert_eq!(at.at.time().to_string(), "09:30:00");
+    }
+
+    #[test]
+    fn a_title_gives_back_every_letter_no_span_covers() {
+        let input = "revisar el informe mañana #casa";
+        let read = parse(input, &now(), "es");
+
+        assert_eq!(
+            title_without(input, &read.spans, "es"),
+            "revisar el informe"
+        );
+        assert_eq!(title_without(input, &[], "es"), input);
+    }
+
+    #[test]
+    fn a_title_ignores_a_span_it_cannot_read() {
+        let input = "revisar el informe";
+        let span = |from, to| Span {
+            from,
+            to,
+            mark: Mark::Date,
+            certainty: Certainty::Sure,
+        };
+
+        assert_eq!(title_without(input, &[span(0, 99)], "es"), input);
+        assert_eq!(title_without(input, &[span(12, 3)], "es"), input);
+        assert_eq!(title_without(input, &[span(7, 7)], "es"), input);
+    }
+
+    #[test]
+    fn a_title_takes_the_first_of_two_spans_that_overlap() {
+        let input = "revisar el informe mañana #casa";
+        let span = |from, to| Span {
+            from,
+            to,
+            mark: Mark::Date,
+            certainty: Certainty::Sure,
+        };
+
+        assert_eq!(
+            title_without(input, &[span(0, 8), span(3, 12)], "es"),
+            "el informe mañana #casa"
+        );
+    }
+
+    #[test]
+    fn a_title_takes_both_of_two_spans_that_only_touch() {
+        let input = "revisar el informe mañana #casa";
+        let span = |from, to| Span {
+            from,
+            to,
+            mark: Mark::Date,
+            certainty: Certainty::Sure,
+        };
+
+        assert_eq!(
+            title_without(input, &[span(19, 26), span(26, 31)], "es"),
+            "revisar el informe"
+        );
+    }
+
+    #[test]
+    fn a_date_that_opens_the_phrase_offers_the_title_without_it() {
+        let p = parse("el martes reunión de equipo", &now(), "es");
+        let offer = p.offers.first().expect("an offer");
+
+        assert_eq!(offer.date.date().to_string(), "2026-08-11");
+        assert_eq!(offer.title, "reunión de equipo");
+        assert_eq!(p.title, "el martes reunión de equipo");
+    }
+
+    #[test]
+    fn an_hour_that_opens_the_phrase_is_offered_the_same_way() {
+        let p = parse("a las 5 llamar al banco", &now(), "es");
+        let offer = p.offers.first().expect("an offer");
+
+        assert_eq!(offer.date.date().to_string(), "2026-08-05");
+        assert_eq!(offer.title, "llamar al banco");
+    }
+
+    #[test]
+    fn only_one_thing_is_ever_offered() {
+        let p = parse(
+            "revisar el informe del lunes y el acta del martes",
+            &now(),
+            "es",
+        );
+
+        assert_eq!(p.offers.len(), 1);
+        assert_eq!(p.offers[0].date.date().to_string(), "2026-08-11");
+    }
+
+    #[test]
+    fn a_word_that_only_props_a_date_up_is_dropped() {
+        let v = vocab::for_locale("es");
+
+        for word in [
+            "el", "la", "a", "las", "al", "para", "antes", "hasta", "en", "dentro",
+        ] {
+            assert!(droppable(word, v), "«{word}» holds a span up on its own");
+        }
+        for word in ["informe", "banco", "lunes", "mañana"] {
+            assert!(!droppable(word, v), "«{word}» is not a prop");
+        }
+
+        let en = vocab::for_locale("en");
+        for word in ["the", "at", "on", "by", "until", "in", "within"] {
+            assert!(droppable(word, en), "«{word}» holds a span up on its own");
+        }
+    }
+
+    #[test]
+    fn a_cadence_written_inside_quotes_is_not_a_cadence() {
+        let p = parse("mandar \"cada día algo\" mañana", &now(), "es");
+
+        assert!(p.repeat.is_none());
+        assert_eq!(p.title, "mandar \"cada día algo\"");
+        assert!(p.date.is_some());
+    }
+
+    #[test]
+    fn a_cadence_carries_the_hour_the_phrase_gave_it() {
+        let p = parse("regar las plantas cada 3 días a las 9:30", &now(), "es");
+        let at = p.date.expect("a date");
+
+        assert!(p.repeat.is_some());
+        assert_eq!(at.at.time().to_string(), "09:30:00");
+        assert!(at.has_time);
+    }
+
+    #[test]
+    fn a_marker_written_into_an_hour_splits_the_span_around_it() {
+        let input = "llamar a las #casa 3 @oficina de la tarde";
+        let p = parse(input, &now(), "es");
+        let letters: Vec<char> = input.chars().collect();
+        let said: Vec<(Mark, String)> = p
+            .spans
+            .iter()
+            .map(|s| (s.mark, letters[s.from..s.to].iter().collect()))
+            .collect();
+
+        assert_eq!(p.title, "llamar");
+        assert_eq!(
+            said,
+            vec![
+                (Mark::Tag, "#casa".to_string()),
+                (Mark::Date, "3".to_string()),
+                (Mark::List, "@oficina".to_string()),
+                (Mark::Date, "de la tarde".to_string()),
+            ]
+        );
+        assert_eq!(p.date.expect("a date").at.time().to_string(), "15:00:00");
+    }
 }

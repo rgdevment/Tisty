@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { fireEvent, render, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import Pick from "../ui/Pick";
+import { inTheRepo } from "./repo";
 
-const said = readFileSync(resolve(process.cwd(), "../crates/tisty-core/src/model/icon.rs"), "utf8");
+const said = readFileSync(inTheRepo("crates/tisty-core/src/model/icon.rs"), "utf8");
 
 const named = (): string[] => {
   const body = said.slice(said.indexOf("ICONS"), said.indexOf("];"));

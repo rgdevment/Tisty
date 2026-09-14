@@ -6559,4 +6559,190 @@ lo mio"
             "a retired attachment came back from the shared folder"
         );
     }
+
+    #[test]
+    fn a_store_nobody_can_read_is_no_kin_at_all() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        assert_eq!(
+            kinship(&one.store.join("nowhere"), shared.path()),
+            Kin::Unsure(String::new())
+        );
+    }
+
+    #[test]
+    fn a_store_it_cannot_read_stops_the_stitch_instead_of_joining_blindly() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+        let two = machine("dos");
+        carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let blind = one.data.join("gone");
+
+        assert!(matches!(
+            stitch(&blind, &one.device, shared.path()),
+            Err(Trouble::Unreadable(_))
+        ));
+    }
+
+    #[test]
+    fn a_folder_with_no_name_of_its_own_takes_ours() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+
+        let said = settled(&one.store, shared.path(), false).unwrap();
+
+        assert_eq!(said, tisty_core::store::identity(&one.store).unwrap());
+    }
+
+    #[test]
+    fn a_folder_we_just_emptied_is_refused_instead_of_named_again() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = machine("uno");
+
+        assert!(matches!(
+            settled(&one.store, shared.path(), true),
+            Err(Trouble::Emptied(_))
+        ));
+    }
+
+    #[test]
+    fn two_sides_with_no_name_yet_take_the_one_this_machine_writes() {
+        let shared = tempfile::tempdir().unwrap();
+        let one = blank("uno");
+        std::fs::create_dir_all(&one.store).unwrap();
+
+        let said = settled(&one.store, shared.path(), false).unwrap();
+
+        assert!(!said.is_empty());
+        assert_eq!(said, tisty_core::store::identity(&one.store).unwrap());
+    }
+
+    fn fetched(shared: &Path, other: &Machine, most: Option<u64>, again: bool) -> usize {
+        copy_held(
+            &shared.join(HELD),
+            &other.data.join(HELD),
+            &Default::default(),
+            again,
+            Some(&other.data),
+            most,
+            None,
+            None,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn fetching_says_how_many_files_it_took() {
+        let one = machine("dev_a");
+        planted(&one.data, "uno.txt", b"lo primero");
+        planted(&one.data, "dos.txt", b"lo segundo");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let other = blank("dev_b");
+
+        assert_eq!(fetched(shared.path(), &other, None, false), 2);
+    }
+
+    #[test]
+    fn a_file_of_exactly_the_weight_allowed_still_travels() {
+        let one = machine("dev_a");
+        let just = planted(&one.data, "justo.bin", &vec![3u8; 1000]);
+        let over = planted(&one.data, "pasado.bin", &vec![3u8; 1001]);
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let other = blank("dev_b");
+
+        assert_eq!(fetched(shared.path(), &other, Some(1000), false), 1);
+        assert!(other.data.join(&just).is_file());
+        assert!(!other.data.join(&over).exists());
+    }
+
+    #[test]
+    fn fetching_twice_does_not_carry_the_same_bytes_again() {
+        let one = machine("dev_a");
+        planted(&one.data, "uno.txt", b"lo primero");
+        planted(&one.data, "dos.txt", b"lo segundo");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+        let other = blank("dev_b");
+
+        assert_eq!(fetched(shared.path(), &other, None, false), 2);
+        assert_eq!(fetched(shared.path(), &other, None, false), 0);
+        assert_eq!(fetched(shared.path(), &other, None, true), 2);
+    }
+
+    #[test]
+    fn both_sides_of_a_paper_come_back_word_for_word() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        tisty_core::docs::write(
+            &one.data.join(PAPERS),
+            "uno-0001",
+            "# Lo mio\n\nlo que puse yo\n",
+        )
+        .unwrap();
+
+        let there = shared.path().join(PAPERS);
+        std::fs::create_dir_all(&there).unwrap();
+        tisty_core::docs::write(&there, "uno-0001", "# Lo suyo\n\nlo que puso la otra\n").unwrap();
+
+        let (mine, theirs) = both_papers(&one.data, shared.path(), "uno-0001").unwrap();
+
+        assert_eq!(mine, "# Lo mio\n\nlo que puse yo\n");
+        assert_eq!(theirs, "# Lo suyo\n\nlo que puso la otra\n");
+    }
+
+    #[test]
+    fn a_paper_only_one_side_holds_is_refused_instead_of_halved() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        tisty_core::docs::write(&one.data.join(PAPERS), "uno-0001", "# Lo mio\n").unwrap();
+        std::fs::create_dir_all(shared.path().join(PAPERS)).unwrap();
+
+        assert!(matches!(
+            both_papers(&one.data, shared.path(), "uno-0001"),
+            Err(Trouble::Refused(_)) | Err(Trouble::Unreadable(_))
+        ));
+    }
+
+    #[test]
+    fn a_history_nobody_kept_for_us_does_not_reach_further() {
+        let one = machine("uno");
+        let blank_at = tempfile::tempdir().unwrap();
+
+        assert!(!ours_reaches_further(
+            &blank_at.path().join("nowhere"),
+            &blank_at.path().join("neither")
+        ));
+
+        let mine = one.store.join(&one.device);
+        assert!(ours_reaches_further(
+            &mine,
+            &blank_at.path().join("nothing")
+        ));
+    }
+
+    #[test]
+    fn an_empty_history_reaches_no_further_than_an_absent_one() {
+        let room = tempfile::tempdir().unwrap();
+        let mine = room.path().join("mine");
+        std::fs::create_dir_all(&mine).unwrap();
+
+        assert!(!ours_reaches_further(&mine, &room.path().join("nothing")));
+    }
+
+    #[test]
+    fn two_histories_of_the_same_length_reach_the_same_distance() {
+        let one = machine("uno");
+        let shared = tempfile::tempdir().unwrap();
+        carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+        let mine = one.store.join(&one.device);
+        let theirs = shared.path().join(STORE).join(&one.device);
+
+        assert!(!ours_reaches_further(&mine, &theirs));
+    }
 }

@@ -77,6 +77,15 @@ const dayAt = (n: number) => document.querySelector(`[data-day="${weekDay(n)}"]`
 const days = () => document.querySelectorAll("[data-day]");
 
 describe("the river of days", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(2026, 8, 7, 9, 0, 0));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("starts on the monday of the week you are living and runs on for months", () => {
     render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
@@ -371,6 +380,15 @@ describe("the river of days", () => {
 });
 
 describe("the month, for looking and no more", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(2026, 8, 7, 9, 0, 0));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const open = () => fireEvent.click(screen.getByRole("button", { name: t("spreadMoon") }));
 
   it("lays out six weeks of cells and hides the river while it shows", () => {

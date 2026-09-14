@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEEPEST, FOLDER_NAME_AT_MOST } from "../core";
+import { inTheRepo } from "./repo";
 
 const folder = (): string =>
-  readFileSync(resolve(process.cwd(), "../crates/tisty-core/src/model/folder.rs"), "utf8");
+  readFileSync(inTheRepo("crates/tisty-core/src/model/folder.rs"), "utf8");
 
 describe("how deep folders are allowed to go", () => {
   it("agrees with the core, which is the one that refuses the move", () => {

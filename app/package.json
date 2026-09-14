@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "biome check src",
-    "format": "biome check src --write"
+    "format": "biome check src --write",
+    "mutants": "stryker run"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.6.1",
@@ -45,6 +46,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.8",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2",
     "@testing-library/react": "^16.3.2",

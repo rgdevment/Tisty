@@ -936,4 +936,96 @@ mod tests {
 
         assert_eq!(said, mine);
     }
+
+    #[test]
+    fn a_rule_drawn_mid_page_is_no_front_matter() {
+        let body = told(&["un titulo", "---", "lo que sigue"]);
+
+        assert!(!front_matter(&body));
+
+        let base = told(&["b0", "---", "b2"]);
+        let mine = told(&["b0", "---", "M2"]);
+        let theirs = told(&["T0", "---", "b2"]);
+
+        assert_eq!(
+            merged(&base, &mine, &theirs).as_deref(),
+            Some(told(&["T0", "---", "M2"]).as_str())
+        );
+    }
+
+    #[test]
+    fn a_front_matter_opened_and_never_shut_is_not_one() {
+        assert!(!front_matter("---\nsolo esto\n"));
+        assert!(!front_matter("---\n"));
+        assert!(front_matter("---\ntitulo: kit\n---\n\ncuerpo\n"));
+    }
+
+    #[test]
+    fn front_matter_on_any_one_side_is_enough_to_hand_the_paper_back() {
+        let plain = told(&["b0", "b1"]);
+        let dressed = format!("---\ntitulo: kit\n---\n\n{}", told(&["b0", "b1"]));
+
+        assert!(merged(&dressed, &plain, &plain).is_none());
+        assert!(merged(&plain, &dressed, &plain).is_none());
+        assert!(merged(&plain, &plain, &dressed).is_none());
+    }
+
+    #[test]
+    fn blocks_dropped_here_and_there_are_matched_across_the_gaps() {
+        let base = told(&["b0", "b1", "b2", "b3", "b4", "b5", "b6"]);
+        let mine = told(&["b0", "b2", "b4", "b6"]);
+        let theirs = told(&["b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7"]);
+
+        assert_eq!(
+            merged(&base, &mine, &theirs).as_deref(),
+            Some(told(&["b0", "b2", "b4", "b6", "b7"]).as_str())
+        );
+    }
+
+    #[test]
+    fn a_block_that_comes_back_later_is_not_mistaken_for_the_first_one() {
+        let base = told(&["a", "b", "a", "c", "a"]);
+        let mine = told(&["a", "b", "a", "c", "a", "z"]);
+        let theirs = told(&["a", "b", "a", "c"]);
+
+        assert_eq!(
+            merged(&base, &mine, &theirs).as_deref(),
+            Some(told(&["a", "b", "a", "c", "z"]).as_str())
+        );
+    }
+
+    #[test]
+    fn every_way_of_opening_a_list_is_read_as_one() {
+        for said in [
+            "- uno",
+            "* uno",
+            "+ uno",
+            "1. uno",
+            "2) uno",
+            "10. uno",
+            "  - uno",
+            "- uno\n- dos",
+        ] {
+            assert!(listing(said), "«{said}» abre una lista");
+        }
+    }
+
+    #[test]
+    fn a_paragraph_that_merely_holds_a_full_stop_is_no_list() {
+        for said in [
+            "hola. mundo",
+            ". uno",
+            ") uno",
+            "1.uno",
+            "1)uno",
+            "a. uno",
+            "1a. uno",
+            "-uno",
+            "*uno",
+            "texto llano",
+            "",
+        ] {
+            assert!(!listing(said), "«{said}» no abre ninguna lista");
+        }
+    }
 }

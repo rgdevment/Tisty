@@ -1,0 +1,372 @@
+name: Mutants
+
+on:
+  pull_request:
+    paths:
+      - crates/tisty-core/**
+      - crates/tisty-nl/**
+      - app/src/**
+      - .cargo/mutants.toml
+      - app/stryker.config.json
+      - .github/workflows/mutants.yml
+  schedule:
+    - cron: "0 4 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  crates-on-the-branch:
+    name: crates / the lines this branch changed
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: What the branch changed in the two crates
+        id: touched
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          from=$(git merge-base "$BASE" HEAD)
+          git diff "$from" -- crates > branch.diff
+          if [ -s branch.diff ]; then echo "any=yes" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.touched.outputs.any == 'yes'
+      - uses: Swatinem/rust-cache@v2
+        if: steps.touched.outputs.any == 'yes'
+      - uses: taiki-e/install-action@nextest
+        if: steps.touched.outputs.any == 'yes'
+      - uses: taiki-e/install-action@cargo-mutants
+        if: steps.touched.outputs.any == 'yes'
+
+      - name: A mutant that lives on a line this branch wrote
+        id: run
+        if: steps.touched.outputs.any == 'yes'
+        run: |
+          set +e
+          cargo mutants --in-diff branch.diff --workspace -j 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: What survived
+        if: always() && steps.touched.outputs.any == 'yes'
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+          TITLE: The lines this branch changed
+        run: bash scripts/mutants-report.sh
+
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.touched.outputs.any == 'yes'
+        with:
+          name: mutants-branch-crates
+          path: mutants.out/
+          retention-days: 7
+
+  window-on-the-branch:
+    name: window / the files this branch changed
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: What the branch changed in the window
+        id: touched
+        working-directory: app
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          from=$(git merge-base "$BASE" HEAD)
+          list=$(git diff --name-only --relative --diff-filter=d "$from" -- src \
+            | grep -E '\.tsx?$' \
+            | grep -vE '^src/tests/|^src/(marks|glyphs|locales|synonyms)\.ts$|^src/main\.tsx$|\.d\.ts$' \
+            | paste -sd, -)
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v7
+        if: steps.touched.outputs.list != ''
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - if: steps.touched.outputs.list != ''
+        working-directory: app
+        run: npm ci
+
+      - name: A mutant that lives in a file this branch wrote
+        if: steps.touched.outputs.list != ''
+        working-directory: app
+        run: npx stryker run --mutate "${{ steps.touched.outputs.list }}"
+
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.touched.outputs.list != ''
+        with:
+          name: mutants-branch-window
+          path: app/reports/
+          retention-days: 7
+
+  tisty-nl:
+    name: tisty-nl / every mutant
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@cargo-mutants
+
+      - name: Every mutant the parser carries
+        id: run
+        run: |
+          set +e
+          cargo mutants -p tisty-nl -j 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: What survived
+        if: always()
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+          TITLE: tisty-nl
+        run: bash scripts/mutants-report.sh
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-tisty-nl
+          path: mutants.out/
+          retention-days: 14
+
+  tisty-sync:
+    name: tisty-sync / every mutant
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@cargo-mutants
+
+      - name: Every mutant in what two machines agree on
+        id: run
+        run: |
+          set +e
+          cargo mutants -p tisty-sync -j 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: What survived
+        if: always()
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+          TITLE: tisty-sync
+        run: bash scripts/mutants-report.sh
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-tisty-sync
+          path: mutants.out/
+          retention-days: 14
+
+  tisty-cli:
+    name: tisty-cli / shard ${{ matrix.shard }} of 4
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@cargo-mutants
+
+      - name: One quarter of every mutant the command line carries
+        id: run
+        run: |
+          set +e
+          cargo mutants -p tisty-cli --shard ${{ matrix.shard }}/4 -j 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: What survived
+        if: always()
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+          TITLE: tisty-cli, shard ${{ matrix.shard }} of 4
+        run: bash scripts/mutants-report.sh
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-tisty-cli-${{ matrix.shard }}
+          path: mutants.out/
+          retention-days: 14
+
+  tisty-core:
+    name: tisty-core / shard ${{ matrix.shard }} of 16
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@cargo-mutants
+
+      - name: One sixteenth of every mutant the core carries
+        id: run
+        run: |
+          set +e
+          cargo mutants -p tisty-core --shard ${{ matrix.shard }}/16 -j 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: What survived
+        if: always()
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+          TITLE: tisty-core, shard ${{ matrix.shard }} of 16
+        run: bash scripts/mutants-report.sh
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-tisty-core-${{ matrix.shard }}
+          path: mutants.out/
+          retention-days: 14
+
+  window:
+    name: window / shard ${{ matrix.shard }} of 8
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+
+      - name: One eighth of the logic, dealt out so the shards weigh the same
+        run: |
+          list=$(git ls-files src \
+            | grep -E '\.ts$' \
+            | grep -vE '^src/tests/|^src/(marks|glyphs|locales|synonyms)\.ts$|\.d\.ts$' \
+            | xargs wc -l \
+            | grep -v ' total$' \
+            | sort -rn \
+            | awk -v shard=${{ matrix.shard }} -v many=8 '
+                { name[NR] = $2; wide[NR] = $1; count = NR }
+                END {
+                  for (i = 1; i <= count; i++) {
+                    least = 1
+                    for (s = 2; s <= many; s++) if (load[s] < load[least]) least = s
+                    load[least] += wide[i]
+                    if (least == shard) print name[i]
+                  }
+                }' \
+            | paste -sd, -)
+          echo "$list"
+          npx stryker run --mutate "$list" --reporters progress-append-only,clear-text,json
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mutants-window-${{ matrix.shard }}
+          path: app/reports/
+          retention-days: 14
+
+  score:
+    name: what the whole sweep came to
+    if: always() && !cancelled() && github.event_name != 'pull_request'
+    needs: [tisty-nl, tisty-sync, tisty-cli, tisty-core, window]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: mutants-tisty-*
+          path: crates
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: mutants-window-*
+          path: window
+
+      - name: Eight shards of the window told as one report
+        env:
+          WANT_WINDOW: 8
+          WANT_CRATES: 22
+        run: bash scripts/mutants-score.sh
+
+      - name: The report where a survivor can be read one by one
+        env:
+          KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::warning::no dashboard key: the report goes no further than the artifact"
+            exit 0
+          fi
+          curl -sS --fail-with-body -X PUT \
+            "https://dashboard.stryker-mutator.io/api/reports/github.com/${{ github.repository }}/${{ github.ref_name }}" \
+            -H 'Content-Type: application/json' \
+            -H "X-Api-Key: $KEY" \
+            -d @window.json
+
+      - name: The number, on the branch that holds nothing else
+        run: |
+          mv mutants.json "$RUNNER_TEMP/mutants.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git fetch origin score --depth 1 2>/dev/null; then
+            git switch -C score FETCH_HEAD
+          else
+            git switch --orphan score
+          fi
+          git rm -rq --cached . 2>/dev/null || true
+
+          cp "$RUNNER_TEMP/mutants.json" mutants.json
+          git add -- mutants.json
+          if git diff --cached --quiet; then
+            echo "the score has not moved"
+            exit 0
+          fi
+          git commit -m "chore: what the sweep of $(date -u +%Y-%m-%d) came to"
+          git push origin score

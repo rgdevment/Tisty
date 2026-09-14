@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { alsoNamed, everyNamed } from "../synonyms";
 import { sifted } from "../ui/Icons";
+import { inTheRepo } from "./repo";
 
 const named = (): string[] => {
-  const at = resolve(process.cwd(), "../crates/tisty-core/src/model/icon.rs");
+  const at = inTheRepo("crates/tisty-core/src/model/icon.rs");
   const said = readFileSync(at, "utf8");
   const body = said.slice(said.indexOf("ICONS"), said.indexOf("];"));
   return [...body.matchAll(/"([a-z-]+)"/g)].map((found) => found[1]);

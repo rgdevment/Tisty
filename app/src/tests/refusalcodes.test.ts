@@ -2,8 +2,13 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { saidPlainly } from "../refusal";
+import { inTheRepo } from "./repo";
 
-const roots = ["src-tauri/src", "../crates/tisty-core/src", "../crates/tisty-sync/src"];
+const roots = [
+  "src-tauri/src",
+  inTheRepo("crates/tisty-core/src"),
+  inTheRepo("crates/tisty-sync/src"),
+];
 
 const rustFiles = (at: string): string[] =>
   readdirSync(at).flatMap((one) => {

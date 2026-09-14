@@ -553,10 +553,24 @@ describe("a rule under the marker does not swallow the callout", () => {
   });
 
   it("does not walk the whole document once per marker", () => {
-    const deep = Array.from({ length: 2000 }, (_, at) => `${">".repeat(at + 1)} [!NOTE]`);
-    const at = performance.now();
-    loosened(deep.join("\n"));
-    expect(performance.now() - at).toBeLessThan(3000);
+    const deep = (many: number) =>
+      Array.from({ length: many }, (_, at) => `${">".repeat(at + 1)} [!NOTE]`).join("\n");
+    const took = (many: number) => {
+      const text = deep(many);
+      const at = performance.now();
+      loosened(text);
+      return Math.max(performance.now() - at, 0.1);
+    };
+
+    const middling = (many: number) => {
+      const runs = [took(many), took(many), took(many)].sort((a, b) => a - b);
+      return runs[1];
+    };
+
+    took(250);
+    const grew = middling(2000) / middling(500);
+
+    expect(grew, `sixteen times the text took ${grew.toFixed(1)} times as long`).toBeLessThan(50);
   });
 });
 
