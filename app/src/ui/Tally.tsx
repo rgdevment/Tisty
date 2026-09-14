@@ -1,6 +1,6 @@
 import { useAsked } from "../asked";
 import { allRoutines } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 
 interface Props {
   counts: Record<string, number>;
@@ -8,8 +8,8 @@ interface Props {
 }
 
 export default function Tally({ counts, onError }: Props) {
-  const all = useAsked(() => allRoutines(), [], onError);
   const closed = counts.archive ?? 0;
+  const all = useAsked(() => allRoutines(), [closed, counts.routines], onError);
 
   if (!closed) return null;
 
@@ -19,12 +19,20 @@ export default function Tally({ counts, onError }: Props) {
   const best = told.reduce((top, one) => Math.max(top, one.longest), 0);
   const missed = told.reduce((sum, one) => sum + (one.measurable ? one.skipped : 0), 0);
 
+  const stories = counts.stories ?? 0;
+  const traces = counts.traces ?? 0;
+  const series = counts.routines ?? 0;
+  const turns = Math.max(0, closed - stories - traces);
+
   return (
     <dl className="flex flex-wrap gap-1.5 px-2.5 pb-2">
       <Fact said={String(closed)} small={t("tallyClosed")} />
-      <Fact said={String(counts.stories ?? 0)} small={t("layerStories")} />
-      <Fact said={String(counts.routines ?? 0)} small={t("layerRoutines")} />
-      <Fact said={String(counts.traces ?? 0)} small={t("layerTrace")} />
+      <Fact said={String(stories)} small={t("layerStories")} />
+      <Fact
+        said={String(turns)}
+        small={series === 1 ? t("tallyTurnsOne") : fill("tallyTurns", String(series))}
+      />
+      <Fact said={String(traces)} small={t("layerTrace")} />
       {owed > 0 && <Fact said={`${kept}/${owed}`} small={t("tallyKept")} />}
       {best > 0 && <Fact said={String(best)} small={t("tallyBest")} />}
       {missed > 0 && <Fact said={String(missed)} small={t("tallyMissed")} tone="text-urgent" />}

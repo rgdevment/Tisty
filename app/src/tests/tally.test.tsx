@@ -48,18 +48,19 @@ describe("what the archive says before it is read", () => {
     expect(container.textContent).toBe("");
   });
 
-  it("reads a layer nobody counted as none of it", async () => {
+  it("reads a layer nobody counted as none of it, and lays the rest at the routines", async () => {
     await shown({ archive: 4 });
 
-    expect(screen.getByText("4")).toBeTruthy();
-    expect(screen.getAllByText("0")).toHaveLength(3);
+    expect(screen.getAllByText("4")).toHaveLength(2);
+    expect(screen.getAllByText("0")).toHaveLength(2);
   });
 
   it("counts what each layer holds, and stays quiet about routines nobody keeps", async () => {
-    await shown({ archive: 23, stories: 5, routines: 5, traces: 13 });
+    await shown({ archive: 23, stories: 5, routines: 1, traces: 13 });
 
     expect(screen.getByText("23")).toBeTruthy();
     expect(screen.getByText("13")).toBeTruthy();
+    expect(screen.getByText(/in one routine/)).toBeTruthy();
     expect(screen.queryByText(/longest run/)).toBeNull();
     expect(screen.queryByText(/days missed/)).toBeNull();
   });
@@ -82,5 +83,15 @@ describe("what the archive says before it is read", () => {
 
     expect(await screen.findByText("5/5")).toBeTruthy();
     expect(screen.queryByText(/days missed/)).toBeNull();
+  });
+
+  it("counts turns where a layer counts series, so the four of them add up", async () => {
+    await shown({ archive: 23, stories: 5, routines: 1, traces: 13 });
+
+    const said = screen.getAllByRole("term").map((one) => Number(one.textContent));
+    const [closed, ...layers] = said;
+
+    expect(closed).toBe(23);
+    expect(layers.slice(0, 3).reduce((a, b) => a + b, 0)).toBe(closed);
   });
 });

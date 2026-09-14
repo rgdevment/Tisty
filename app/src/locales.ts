@@ -712,11 +712,13 @@ const en = {
   archiveShowing: "Reading",
   archiveGrouped: "Grouped by",
   tallyClosed: "closed",
+  tallyTurns: "turns, in {name} routines",
+  tallyTurnsOne: "turns, in one routine",
   tallyKept: "kept of owed",
   tallyBest: "longest run",
   tallyMissed: "days missed",
   storiesEmpty:
-    "Nothing closed here tells a story yet. A task earns the shelf by what gets written on it — a note, a list of steps, a document.",
+    "Nothing closed here tells a story yet. A task earns the shelf by what was written on it along the way: a log somebody took the trouble to write, or a few of them.",
   routinesEmpty:
     "Nothing repeats yet. Write «water the plants every three days» to start a series.",
   traceEmpty: "Everything closed here left something written behind.",
@@ -1943,11 +1945,13 @@ const es: Catalog = {
   archiveShowing: "Leyendo",
   archiveGrouped: "Agrupado por",
   tallyClosed: "cerradas",
+  tallyTurns: "vueltas, de {name} rutinas",
+  tallyTurnsOne: "vueltas, de una rutina",
   tallyKept: "cumplidas de las que tocaban",
   tallyBest: "racha más larga",
   tallyMissed: "días sin marcar",
   storiesEmpty:
-    "Todavía nada de lo cerrado cuenta una historia. Una tarea se gana el estante por lo que se escribe en ella: una nota, unos pasos, un documento.",
+    "Todavía nada de lo cerrado cuenta una historia. Una tarea se gana el estante por lo que quedó escrito en ella: una bitácora que alguien se tomó el trabajo de escribir, o unas cuantas.",
   routinesEmpty:
     "Todavía no se repite nada. Escribe «regar las plantas cada tres días» para empezar una serie.",
   traceEmpty: "Todo lo que se ha cerrado aquí dejó algo escrito.",

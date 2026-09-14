@@ -247,4 +247,52 @@ mod tests {
         let ordered = replayed(&after, &second);
         assert!(ordered.tasks[&first.task].order < ordered.tasks[&second.task].order);
     }
+
+    #[test]
+    fn everything_the_phrase_carried_reaches_the_task_it_becomes() {
+        let state = with_lists(&["work"]);
+        let when = DateSpec::all_day("2026-09-20".parse().unwrap(), "UTC");
+        let by = DateSpec::all_day("2026-09-30".parse().unwrap(), "UTC");
+        let every = crate::model::Repeat::due(crate::model::Cadence {
+            every: 1,
+            unit: crate::model::Unit::Week,
+        });
+
+        let told = plan(
+            &state,
+            Draft {
+                title: "reunion de equipo".into(),
+                date: Some(when.clone()),
+                deadline: Some(by.clone()),
+                priority: Some(Priority::Do),
+                tags: vec![Tag::new("work").unwrap()],
+                filing: None,
+                repeat: Some(every),
+                source: Some("sereno#1".into()),
+            },
+        )
+        .unwrap();
+
+        let one = &replayed(&state, &told).tasks[&told.task];
+
+        assert_eq!(one.title, "reunion de equipo");
+        assert_eq!(one.date.as_ref(), Some(&when), "the day was left behind");
+        assert_eq!(
+            one.deadline.as_ref(),
+            Some(&by),
+            "the deadline was left behind"
+        );
+        assert_eq!(one.priority, Priority::Do, "the quadrant was left behind");
+        assert_eq!(
+            one.tags,
+            vec![Tag::new("work").unwrap()],
+            "the tags were left behind"
+        );
+        assert_eq!(one.repeat, Some(every), "the cadence was left behind");
+        assert_eq!(
+            one.source.as_deref(),
+            Some("sereno#1"),
+            "the source was left behind"
+        );
+    }
 }

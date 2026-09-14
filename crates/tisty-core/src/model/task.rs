@@ -342,9 +342,10 @@ const STORY_AT: usize = 3;
 
 fn substance(body: &str) -> usize {
     match body.split_whitespace().count() {
-        0..=2 => 0,
-        3..=29 => 1,
-        _ => 2,
+        0..=7 => 0,
+        8..=29 => 1,
+        30..=99 => 2,
+        _ => 3,
     }
 }
 
@@ -492,6 +493,87 @@ mod tests {
         assert!(rich.weight() > trivial.weight());
     }
 
+    fn worded(many: usize) -> String {
+        vec!["x"; many].join(" ")
+    }
+
+    fn stepped(many: usize) -> Vec<Step> {
+        (0..many)
+            .map(|n| Step {
+                id: Ulid::generate(),
+                text: format!("paso {n}"),
+                done: false,
+                order: format!("a{n}"),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_log_is_weighed_by_what_it_says_and_a_telegram_says_nothing() {
+        for (words, want) in [(7, 0), (8, 1), (29, 1), (30, 2), (99, 2), (100, 3)] {
+            let mut one = task();
+            one.description = Some(worded(words));
+            one.retally();
+
+            assert_eq!(
+                one.volume.prose, want,
+                "{words} words weighed {} instead of {want}",
+                one.volume.prose
+            );
+        }
+    }
+
+    #[test]
+    fn a_plan_climbs_at_three_steps_and_again_at_eight() {
+        for (steps, want) in [(2, 0), (3, 1), (7, 1), (8, 2)] {
+            let mut one = task();
+            one.steps = stepped(steps);
+            one.retally();
+
+            assert_eq!(
+                one.weight(),
+                want,
+                "{steps} steps weighed {} instead of {want}",
+                one.weight()
+            );
+        }
+    }
+
+    #[test]
+    fn a_reference_climbs_at_one_and_again_at_three() {
+        for (many, want) in [(0, 0), (1, 1), (2, 1), (3, 2)] {
+            let mut one = task();
+            let links: Vec<String> = (0..many)
+                .map(|n| format!("[uno](https://x.example/{n})"))
+                .collect();
+            one.description = Some(links.join(" "));
+            one.retally();
+
+            let prose = one.volume.prose;
+            assert_eq!(
+                one.weight() - prose,
+                want,
+                "{many} references weighed {} instead of {want}",
+                one.weight() - prose
+            );
+        }
+    }
+
+    #[test]
+    fn the_weight_is_what_the_three_of_them_come_to_together() {
+        let mut one = task();
+        one.description = Some(format!("{} [uno](https://x.example/1)", worded(30)));
+        one.steps = stepped(8);
+        one.retally();
+
+        assert_eq!(one.volume.prose, 2);
+        assert_eq!(
+            one.weight(),
+            5,
+            "two of prose, two of plan and one reference"
+        );
+    }
+
     #[test]
     fn the_agenda_never_outweighs_the_history() {
         let mut agenda = task();
@@ -503,9 +585,10 @@ mod tests {
         agenda.retally();
 
         let mut history = task();
-        history
-            .log
-            .push(entry("el gateway no propagaba la cabecera"));
+        history.log.push(entry(
+            "el gateway no propagaba la cabecera de idioma, asi que el backend respondia \
+                 siempre en ingles aunque el navegador pidiera otra cosa",
+        ));
         history.retally();
 
         assert_eq!(agenda.weight(), 0);
@@ -608,7 +691,10 @@ mod tests {
     fn a_repeating_task_is_a_routine_even_when_it_carries_a_journal() {
         let mut chore = task();
         chore.repeat = Some(daily());
-        chore.log.push(entry("the pharmacy was shut so it waited"));
+        chore.log.push(entry(
+            "the pharmacy was shut so it waited until the next morning, and the box was \
+             already open by then",
+        ));
         chore.retally();
 
         assert!(chore.weight() > 0, "the note is real substance");
@@ -698,7 +784,11 @@ mod tests {
         ));
         errand.retally();
 
-        assert_eq!(errand.weight(), 2, "one note plus one reference");
+        assert_eq!(
+            errand.weight(),
+            1,
+            "a line that short is only its reference"
+        );
         assert_eq!(
             errand.reading(),
             Reading::Trace,
