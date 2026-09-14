@@ -328,7 +328,7 @@ impl Task {
     pub fn reading(&self) -> Reading {
         if self.repeat.is_some() || self.after.is_some() {
             Reading::Routine
-        } else if self.weight() > 0 {
+        } else if self.weight() >= STORY_AT {
             Reading::Story
         } else {
             Reading::Trace
@@ -337,6 +337,8 @@ impl Task {
 }
 
 const PROSE_CAP: usize = 8;
+
+const STORY_AT: usize = 3;
 
 fn substance(body: &str) -> usize {
     match body.split_whitespace().count() {
@@ -652,7 +654,7 @@ mod tests {
     }
 
     #[test]
-    fn writing_a_note_lifts_a_trace_into_a_story() {
+    fn a_note_alone_leaves_an_errand_where_it_was() {
         let mut one = task();
         one.retally();
         assert_eq!(one.reading(), Reading::Trace);
@@ -663,8 +665,44 @@ mod tests {
 
         assert_eq!(
             one.reading(),
+            Reading::Trace,
+            "somebody wrote one line on a errand; it is still an errand"
+        );
+    }
+
+    #[test]
+    fn what_was_learnt_along_the_way_lifts_a_trace_into_a_story() {
+        let mut one = task();
+        one.log
+            .push(entry("the courier leaves the parcel with the neighbour"));
+        one.log.push(entry(
+            "the neighbour is away until the fifteenth of the month",
+        ));
+        one.log.push(entry(
+            "it went back to the depot and has to be asked for again",
+        ));
+        one.retally();
+
+        assert_eq!(
+            one.reading(),
             Reading::Story,
             "the layer is read from what is there, never stored"
+        );
+    }
+
+    #[test]
+    fn the_weight_a_single_note_and_a_link_carry_is_not_a_story() {
+        let mut errand = task();
+        errand.log.push(entry(
+            "left at [the depot](https://parcels.example/1) after two tries",
+        ));
+        errand.retally();
+
+        assert_eq!(errand.weight(), 2, "one note plus one reference");
+        assert_eq!(
+            errand.reading(),
+            Reading::Trace,
+            "this is the shape every «comprar pan» in a real archive has"
         );
     }
 }
