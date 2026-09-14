@@ -117,7 +117,11 @@ mod tests {
                 when,
                 Op::TaskLog {
                     id,
-                    d: LogAdd::new(Ulid::generate(), "the certificate took nine days"),
+                    d: LogAdd::new(
+                        Ulid::generate(),
+                        "the certificate took nine days to issue and the old one was tied to a \
+                         domain nobody uses any more",
+                    ),
                 },
             ));
         }

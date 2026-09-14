@@ -2172,3 +2172,233 @@ fn an_attachment_named_with_an_anchor_still_lands() {
     assert_eq!(landed.files, 1, "the picture was left behind: {landed:?}");
     assert_eq!(landed.missed, 0);
 }
+
+fn with_manifest(
+    room: &std::path::Path,
+    from: &std::path::Path,
+    said: Vec<u8>,
+) -> std::path::PathBuf {
+    let held = std::fs::read(from).unwrap();
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(held)).unwrap();
+    let at = room.join("swapped.tistyx");
+    let mut out = zip::ZipWriter::new(std::fs::File::create(&at).unwrap());
+    for i in 0..zip.len() {
+        let mut one = zip.by_index(i).unwrap();
+        let named = one.name().to_string();
+        let mut body = Vec::new();
+        std::io::Read::read_to_end(&mut one, &mut body).unwrap();
+        if named == "tisty-docs.json" {
+            body = said.clone();
+        }
+        out.start_file(named, zip::write::SimpleFileOptions::default())
+            .unwrap();
+        std::io::Write::write_all(&mut out, &body).unwrap();
+    }
+    out.finish().unwrap();
+    at
+}
+
+#[test]
+fn a_manifest_past_the_size_a_parcel_may_carry_is_weighed_before_it_is_parsed() {
+    const MANIFEST_AT_MOST: usize = 16 * 1024 * 1024;
+
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc("# Sola\n\nnada mas", None, None);
+    let box_at = room.path().join("una.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let heavy = with_manifest(room.path(), &box_at, vec![b'a'; MANIFEST_AT_MOST + 1]);
+    let mut there = Room::new(room.path(), "theirs");
+    let refused = parcel::read(
+        &there.data,
+        &there.state,
+        &there.dev.clone(),
+        &heavy,
+        &Along::default(),
+    );
+
+    assert!(
+        matches!(refused, Err(tisty_core::Error::TooBig)),
+        "a manifest nobody could have written was read anyway: {refused:?}"
+    );
+    assert!(there.state.docs.is_empty());
+    there.seq += 1;
+}
+
+#[test]
+fn a_manifest_that_just_fits_is_read_rather_than_turned_away_for_its_weight() {
+    const MANIFEST_AT_MOST: usize = 16 * 1024 * 1024;
+
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc("# Sola\n\nnada mas", None, None);
+    let box_at = room.path().join("una.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let brim = with_manifest(room.path(), &box_at, vec![b'a'; MANIFEST_AT_MOST]);
+    let mut there = Room::new(room.path(), "theirs");
+    let refused = parcel::read(
+        &there.data,
+        &there.state,
+        &there.dev.clone(),
+        &brim,
+        &Along::default(),
+    );
+
+    assert!(
+        !matches!(refused, Err(tisty_core::Error::TooBig)),
+        "the last byte that fits was called one too many"
+    );
+    assert!(refused.is_err(), "it is still not a manifest");
+    there.seq += 1;
+}
+
+fn manifest_of(docs: usize, folders: usize) -> Vec<u8> {
+    let mut said = String::from(r#"{"kind":"tisty-docs","version":1,"from":"mine","folders":["#);
+    for n in 0..folders {
+        if n > 0 {
+            said.push(',');
+        }
+        said.push_str(&format!(r#"{{"id":"f{n}","name":"n","order":"a0"}}"#));
+    }
+    said.push_str(r#"],"docs":["#);
+    for n in 0..docs {
+        if n > 0 {
+            said.push(',');
+        }
+        said.push_str(&format!(r#"{{"file":"d{n}.md","order":"a0"}}"#));
+    }
+    said.push_str("]}");
+    said.into_bytes()
+}
+
+fn turned_away(room: &tempfile::TempDir, said: Vec<u8>) -> Result<(), tisty_core::Error> {
+    let mut here = Room::new(room.path(), "mine");
+    here.doc("# Sola\n\nnada mas", None, None);
+    let box_at = room.path().join("una.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let swapped = with_manifest(room.path(), &box_at, said);
+    let mut there = Room::new(room.path(), "theirs");
+    let out = parcel::read(
+        &there.data,
+        &there.state,
+        &there.dev.clone(),
+        &swapped,
+        &Along::default(),
+    );
+    there.seq += 1;
+    out.map(|_| ())
+}
+
+#[test]
+fn a_manifest_naming_more_documents_than_a_parcel_may_hold_is_turned_away() {
+    const PAPERS_AT_MOST: usize = 50_000;
+
+    let room = tmp();
+    let refused = turned_away(&room, manifest_of(PAPERS_AT_MOST + 1, 0));
+
+    assert!(
+        matches!(refused, Err(tisty_core::Error::TooBig)),
+        "a manifest with no end of documents was read anyway: {refused:?}"
+    );
+}
+
+#[test]
+fn a_manifest_naming_more_folders_than_a_parcel_may_hold_is_turned_away_too() {
+    const PAPERS_AT_MOST: usize = 50_000;
+
+    let room = tmp();
+    let refused = turned_away(&room, manifest_of(0, PAPERS_AT_MOST + 1));
+
+    assert!(
+        matches!(refused, Err(tisty_core::Error::TooBig)),
+        "the folders are counted against the same ceiling: {refused:?}"
+    );
+}
+
+#[test]
+fn a_manifest_naming_exactly_as_many_documents_as_fit_is_not_turned_away_for_its_count() {
+    const PAPERS_AT_MOST: usize = 50_000;
+
+    let room = tmp();
+    let refused = turned_away(&room, manifest_of(PAPERS_AT_MOST, 0));
+
+    assert!(
+        !matches!(refused, Err(tisty_core::Error::TooBig)),
+        "the last document that fits was counted as one too many"
+    );
+
+    let room = tmp();
+    let refused = turned_away(&room, manifest_of(0, PAPERS_AT_MOST));
+
+    assert!(
+        !matches!(refused, Err(tisty_core::Error::TooBig)),
+        "the last folder that fits was counted as one too many"
+    );
+}
+
+fn locked_with_work(room: &std::path::Path, work: u8) -> std::path::PathBuf {
+    let mut here = Room::new(room, "mine");
+    here.doc("# Acta\n\nlo mio", None, None);
+    let box_at = room.join(format!("work-{work}.tistyx"));
+    parcel::written(
+        &here.data,
+        &here.state,
+        &[],
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+
+    let mut said = std::fs::read(&box_at).unwrap();
+    said[8] = work;
+    std::fs::write(&box_at, &said).unwrap();
+    box_at
+}
+
+fn opened_with(room: &std::path::Path, at: &std::path::Path) -> Result<(), tisty_core::Error> {
+    let mut fresh = Room::new(room, "fresh");
+    let out = parcel::taken(
+        &fresh.data,
+        &fresh.state,
+        &fresh.dev.clone(),
+        at,
+        &Along::default(),
+        Some("123456"),
+    );
+    fresh.seq += 1;
+    out.map(|_| ())
+}
+
+#[test]
+fn a_parcel_asking_for_more_work_than_anyone_would_have_written_is_turned_away() {
+    let room = tmp();
+
+    for said in [40u8, 19, 13, 0] {
+        let at = locked_with_work(room.path(), said);
+        let refused = opened_with(room.path(), &at);
+
+        assert!(
+            matches!(refused, Err(tisty_core::Error::NotAParcel(_))),
+            "a stranger asked for work {said} and it was ground out anyway: {refused:?}"
+        );
+    }
+}
+
+#[test]
+fn a_parcel_at_either_end_of_the_work_it_may_ask_for_is_read_rather_than_refused() {
+    let room = tmp();
+
+    for said in [14u8, 18] {
+        let at = locked_with_work(room.path(), said);
+        let refused = opened_with(room.path(), &at);
+
+        assert!(
+            matches!(refused, Err(tisty_core::Error::WrongNumber)),
+            "work {said} is inside what a parcel may ask for, so it got as far as the key: {refused:?}"
+        );
+    }
+}

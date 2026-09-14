@@ -465,8 +465,8 @@ a short sound you can turn off. The whole window works from the keyboard.
 **The archive is read in three layers.** The ones that taught something come with
 their whole trail — what changed, when, and what you wrote along the way. The
 routines come with their tallies, their streaks and the hour you usually keep
-them. The rest is the trace: what left nothing written, listed dense and out of
-the way, because it still happened and search still reaches it.
+them. The rest is the trace: what left little or nothing written, listed dense
+and out of the way, because it still happened and search still reaches it.
 
 ## Your Data and Privacy
 

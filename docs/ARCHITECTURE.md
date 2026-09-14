@@ -603,11 +603,13 @@ English; `cada` in Spanish — or by two, which only Spanish uses: `todos los`,
 
 One day per repeat: «Tuesdays and Thursdays» is two tasks, not one.
 
-How the next date is worked out depends on how it was written. Naming a day
-fixes it to the calendar — the bin goes out on Tuesday whether or not it went
-last week — and naming only an interval counts from the doing, which is what a
-habit means. Either way the next one lands past today **and** past the day it
-was finished: coming back from a fortnight away does not owe you a fortnight of
+How the next date is worked out depends on how it was written. Naming a day or an
+hour fixes it to the calendar — the bin goes out on Tuesday whether or not it
+went last week, and «every day at ten» is due at ten whether or not yesterday's
+was ticked — and naming only an interval, with no day and no hour to hang it on,
+counts from the doing, which is what a habit means. Either way the next one lands
+past today **and** past the day it was finished: coming back from a fortnight
+away does not owe you a fortnight of
 bins at once, and finishing today's does not hand you another one for today. A
 time of day is kept as asked — finishing the 09:00 pill at 08:04 does not move
 it to 08:04 for ever — and months and years count off the calendar even when
@@ -656,8 +658,10 @@ about the format changes and a machine that has not updated reads the result.
 
 Two caps keep it honest: at most five turns, and nothing whose turn came due more
 than thirty days ago. Five turns of a weekly cadence would reach back five weeks,
-which is reconstruction, not memory. A cadence counted from the doing never gets
-asked, because it leaves no gaps by definition.
+which is reconstruction, not memory. A cadence counted from the doing is asked
+the same: it is measured against no calendar, but a daily closed two days late
+still left two days with nothing on them, and the person is the one who knows
+whether they happened.
 
 **`covering` checks the claimed dates against `owed_since` itself**, rather than
 trusting whoever called it. A date the cadence never had would write a turn that
@@ -700,8 +704,16 @@ can go stale or disagree with the log:
 - `shape.rs` buckets closings into months for the strip on the archive cover.
 
 A task's `Reading` — story, routine or trace — comes from the substance it holds,
-not from how long it lived: a task that closed in an hour with a journal entry is
-a story, and one that closed after a month with nothing written is a trace.
+not from how long it lived: one that closed in an hour carrying a log somebody
+took the trouble to write is a story, and one that closed after a month with
+nothing written is a trace. A line of three words is not substance; the weight a
+log carries climbs with what it says, and a plan or a pile of links cannot
+make a story on their own.
+
+`Reading` is derived, but the `Volume` it reads from is **not** one of the three
+views above: it is counted on write and travels in the read cache. Changing how
+it is counted therefore means bumping the cache schema, or a store written by an
+older build keeps answering with weights nobody computes any more.
 
 ## The read cache
 

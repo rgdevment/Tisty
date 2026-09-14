@@ -66,7 +66,7 @@ jobs:
           retention-days: 7
 
   window-on-the-branch:
-    name: window / the files this branch changed
+    name: window / the lines this branch changed
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -81,9 +81,20 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           from=$(git merge-base "$BASE" HEAD)
-          list=$(git diff --name-only --relative --diff-filter=d "$from" -- src \
-            | grep -E '\.ts$' \
-            | grep -vE '^src/tests/|^src/(marks|glyphs|locales|synonyms)\.ts$|\.d\.ts$' \
+          list=$(git diff --unified=0 --relative --diff-filter=d "$from" -- src \
+            | awk '
+                /^\+\+\+ b\// { f = substr($2, 3); next }
+                /^@@/ {
+                  if (f !~ /\.tsx?$/) next
+                  if (f ~ /^src\/tests\//) next
+                  if (f ~ /^src\/(marks|glyphs|locales|synonyms)\.ts$/) next
+                  if (f ~ /^src\/main\.tsx$/) next
+                  if (f ~ /\.d\.ts$/) next
+                  split($3, a, ",")
+                  start = substr(a[1], 2) + 0
+                  len = (a[2] == "" ? 1 : a[2] + 0)
+                  if (len > 0) print f ":" start "-" start + len - 1
+                }' \
             | paste -sd, -)
           echo "list=$list" >> "$GITHUB_OUTPUT"
 
