@@ -5075,3 +5075,208 @@ fn tools() -> Value {
         })
     ])
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_notice_goes_after_the_heading_and_otherwise_after_the_block_that_opens_the_body() {
+        assert_eq!(room_for_a_notice("# Titulo\n\ncuerpo\n"), 9);
+        assert_eq!(room_for_a_notice("# Titulo\nprosa\n"), 9);
+        assert_eq!(room_for_a_notice("\n\n# Titulo\n"), 11);
+        assert_eq!(room_for_a_notice("prosa\notra\n\nmas\n"), 11);
+    }
+
+    #[test]
+    fn three_prose_lines_of_a_hand_wrapped_width_are_seen_as_wrapped() {
+        let line = "a".repeat(60);
+        assert!(looks_wrapped(&format!("{line}\n{line}\n{line}\n")));
+        assert!(!looks_wrapped(&format!("{line}\n{line}\n")));
+    }
+
+    #[test]
+    fn the_same_lines_inside_a_fence_are_code_and_not_wrapped_prose() {
+        let line = "a".repeat(60);
+        assert!(!looks_wrapped(&format!(
+            "```\n{line}\n{line}\n{line}\n```\n"
+        )));
+    }
+
+    #[test]
+    fn a_list_an_indent_and_a_number_are_not_prose_however_wide_the_line_is() {
+        let tail = "a".repeat(58);
+        assert!(!looks_wrapped(&format!("- {tail}\n- {tail}\n- {tail}\n")));
+        assert!(!looks_wrapped(&format!("1 {tail}\n1 {tail}\n1 {tail}\n")));
+        let wide = "a".repeat(60);
+        assert!(!looks_wrapped(&format!(
+            "    {wide}\n    {wide}\n    {wide}\n"
+        )));
+    }
+
+    #[test]
+    fn a_page_stops_on_the_line_that_would_overrun_the_room_it_was_given() {
+        let body = "aaa\nbbb\nccc\n";
+        assert_eq!(as_far_as(body, 1, 7, 10), 1);
+        assert_eq!(as_far_as(body, 1, 8, 10), 2);
+        assert_eq!(as_far_as(body, 1, 9, 10), 2);
+        assert_eq!(as_far_as(body, 1, 100, 10), 3);
+        assert_eq!(as_far_as(body, 1, 100, 2), 2);
+    }
+
+    #[test]
+    fn a_path_is_found_by_its_drive_or_by_the_slash_that_opens_it() {
+        assert_eq!(absolute("mira C:/Users/x"), Some(5));
+        assert_eq!(absolute(r"mira C:\Users\x"), Some(5));
+        assert_eq!(absolute("mira C:/"), Some(5));
+        assert_eq!(absolute("lee /etc/hosts"), Some(4));
+        assert_eq!(absolute("https://ejemplo.com"), None);
+        assert_eq!(absolute("/etc/hosts"), None);
+        assert_eq!(absolute("ver C:"), None);
+    }
+
+    fn kept(body: &str) -> String {
+        retargeted(body, &mut |_, target, title| {
+            Some((target.to_string(), title.to_string()))
+        })
+    }
+
+    #[test]
+    fn a_link_is_rewritten_and_what_surrounds_it_is_left_alone() {
+        let out = retargeted("ver [doc](tisty:doc/1) ahora", &mut |_, target, title| {
+            Some((format!("nuevo:{target}"), title.to_string()))
+        });
+        assert_eq!(out, "ver [doc](<nuevo:tisty:doc/1>) ahora");
+    }
+
+    #[test]
+    fn a_body_with_nothing_to_point_at_comes_back_as_it_went_in() {
+        let body = "nada que reescribir (ni esto) [ni esto";
+        assert_eq!(kept(body), body);
+        assert_eq!(kept("texto ](y) mas"), "texto ](y) mas");
+    }
+
+    #[test]
+    fn a_link_whose_parenthesis_never_closes_is_left_as_written() {
+        let body = "esto [x](sin cerrar";
+        assert_eq!(kept(body), body);
+    }
+
+    #[test]
+    fn a_target_carrying_its_own_parentheses_is_read_whole() {
+        assert_eq!(kept("[x](a(b)c)"), "[x](<a(b)c>)");
+    }
+
+    #[test]
+    fn a_picture_keeps_its_mark_and_a_refused_link_keeps_only_its_words() {
+        assert_eq!(kept("mira ![foto](a.png)"), "mira ![foto](<a.png>)");
+        assert_eq!(retargeted("mira [doc](x)", &mut |_, _, _| None), "mira doc");
+        assert_eq!(
+            retargeted("mira ![foto](a.png)", &mut |_, _, _| None),
+            "mira foto",
+            "el signo de la imagen se quedo sin nada que marcar"
+        );
+        assert_eq!(kept("a[!x](y)"), "a[!x](<y>)");
+    }
+
+    #[test]
+    fn a_link_written_inside_a_fence_is_code_and_is_not_pointed_anywhere_else() {
+        let body = "```\n[x](y)\n```\n";
+        assert_eq!(kept(body), body);
+    }
+
+    #[test]
+    fn a_write_says_which_way_the_document_moved_and_by_how_much() {
+        assert_eq!(by_how_much("abc", "abc"), "the same length");
+        assert_eq!(by_how_much("abc", "abcde"), "2 characters longer");
+        assert_eq!(by_how_much("abcde", "abc"), "2 characters shorter");
+    }
+
+    #[test]
+    fn the_nearest_line_is_the_one_that_shares_the_most_with_what_was_asked_for() {
+        let body = "abcdXY\nabcdef\n";
+        assert_eq!(nearest(body, "abcdef"), Some((2, "abcdef".to_string())));
+        assert_eq!(nearest(body, "abcd"), Some((1, "abcdXY".to_string())));
+        assert_eq!(nearest(body, "abc"), None);
+        assert_eq!(nearest("uno\ndos\n", "abcdef"), None);
+    }
+
+    #[test]
+    fn an_escape_is_read_only_where_two_digits_follow_it() {
+        assert_eq!(unescaped("%41BC"), "ABC");
+        assert_eq!(unescaped("a%41"), "aA");
+        assert_eq!(unescaped("a%4"), "a%4");
+        assert_eq!(unescaped("a%zz"), "a%zz");
+    }
+
+    fn tramo(body: &str, args: Value) -> (usize, usize, Option<usize>) {
+        match part_asked(body, &args) {
+            Ok(Part::Held { from, to, next, .. }) => (from, to, next),
+            _ => panic!("se esperaba un tramo de {args}"),
+        }
+    }
+
+    #[test]
+    fn a_run_that_fits_says_nothing_about_carrying_on_and_one_that_does_not_says_where() {
+        let short = "uno\ndos\ntres\n";
+        assert_eq!(tramo(short, json!({"from": 1, "to": 3})), (1, 3, None));
+
+        let long = "0123456789012345678901234567890123456789\n".repeat(400);
+        let (from, to, next) = tramo(&long, json!({"from": 1, "to": 400}));
+        assert_eq!(from, 1);
+        assert!(to < 400, "el presupuesto no recorto nada");
+        assert_eq!(next, Some(to + 1));
+    }
+
+    #[test]
+    fn a_run_named_by_one_end_alone_is_still_a_run() {
+        let short = "uno\ndos\ntres\n";
+        assert_eq!(tramo(short, json!({"from": 2})), (2, 3, None));
+        assert_eq!(tramo(short, json!({"to": 2})), (1, 2, None));
+    }
+
+    #[test]
+    fn a_run_that_ends_before_it_starts_is_refused_and_one_line_alone_is_not() {
+        let short = "uno\ndos\ntres\n";
+        assert!(part_asked(short, &json!({"from": 3, "to": 2})).is_err());
+        assert_eq!(tramo(short, json!({"from": 2, "to": 2})), (2, 2, None));
+    }
+
+    #[test]
+    fn a_budget_of_characters_says_where_to_carry_on_and_stops_saying_it_at_the_end() {
+        let long = "0123456789\n".repeat(50);
+        let (from, to, next) = tramo(&long, json!({"chars": 30}));
+        assert_eq!(from, 1);
+        assert!(to < 50);
+        assert_eq!(next, Some(to + 1));
+        assert_eq!(tramo(&long, json!({"chars": 100_000})), (1, 50, None));
+    }
+
+    #[test]
+    fn a_section_is_handed_over_whole_or_with_the_line_it_was_cut_at() {
+        let short = "# Uno\ntexto\n## Dos\notro\n";
+        assert_eq!(tramo(short, json!({"section": 0})), (1, 4, None));
+        assert_eq!(tramo(short, json!({"section": 1})), (3, 4, None));
+        assert!(part_asked(short, &json!({"section": 9})).is_err());
+
+        let long = format!(
+            "# Uno\n{}",
+            "0123456789012345678901234567890123456789\n".repeat(400)
+        );
+        let (from, to, next) = tramo(&long, json!({"section": 0}));
+        assert_eq!(from, 1);
+        assert!(to < 401, "el presupuesto no recorto la seccion");
+        assert_eq!(next, Some(to + 1));
+    }
+
+    #[test]
+    fn a_document_right_at_the_budget_is_still_handed_over_whole() {
+        let body = "a".repeat(WHOLE_UP_TO);
+        assert!(matches!(
+            part_asked(&body, &json!({})),
+            Ok(Part::Held { .. })
+        ));
+        let over = "a".repeat(WHOLE_UP_TO + 1);
+        assert!(matches!(part_asked(&over, &json!({})), Ok(Part::Outline)));
+    }
+}
