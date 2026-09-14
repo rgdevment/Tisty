@@ -309,7 +309,7 @@ input = "take the pills every day at 10 for 30 days"
 title = "take the pills for 30 days"
 date = "2026-08-05"
 time = "10:00"
-repeat = "done:1d"
+repeat = "due:1d"
 why = "the cadence is read; «for 30 days» stays written, because how long a course lasts is not a date and inventing one a month out was worse than leaving it undated"
 
 [[case]]

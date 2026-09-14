@@ -428,7 +428,7 @@ input = "Tomar la pastilla todos los dias a las 10 por 30 días"
 title = "Tomar la pastilla por 30 días"
 date = "2026-08-05"
 time = "10:00"
-repeat = "done:1d"
+repeat = "due:1d"
 why = "«todos los días» es la cadencia; «por 30 días» es una DURACIÓN y se queda escrita, porque cuánto dura un tratamiento no es una fecha"
 
 [[case]]
@@ -774,7 +774,7 @@ why = "sin «cada» no hay recurrencia que inventar"
 input = "cambiar el filtro cada 3 meses el lunes"
 title = "cambiar el filtro"
 date = "2026-08-10"
-repeat = "done:3m"
+repeat = "due:3m"
 why = "el intervalo manda; la fecha suelta sigue siendo la primera vez"
 
 [[case]]
@@ -787,7 +787,7 @@ input = "tomar las pastillas todos los días a las 10"
 title = "tomar las pastillas"
 date = "2026-08-05"
 time = "10:00"
-repeat = "done:1d"
+repeat = "due:1d"
 why = "la forma en que mucha gente lo diría, y la hora pedida se conserva en cada ocurrencia"
 
 [[case]]
