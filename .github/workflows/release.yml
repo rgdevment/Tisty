@@ -950,8 +950,9 @@ jobs:
 
           # Once the Store answers CommitStarted the submission is its own: it has the package and
           # is working through it. What fails after that is the client losing the poll, not the
-          # publish — see microsoft/msstore-cli#29.
-          if [ "$code" -ne 0 ] && grep -q "Status=CommitStarted" publish.log; then
+          # publish — see microsoft/msstore-cli#29. The word is matched on its own because the
+          # client colours it, and "Status=" and "CommitStarted" are not adjacent in the output.
+          if [ "$code" -ne 0 ] && grep -q "CommitStarted" publish.log; then
             echo "::warning::the Store took the submission and is processing it; the client lost \
             the poll it was holding. Nothing here has to be sent again."
             exit 0
