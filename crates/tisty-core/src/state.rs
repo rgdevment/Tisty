@@ -3570,7 +3570,8 @@ mod tests {
                 id: heavy,
                 d: crate::event::LogAdd::new(
                     Ulid::generate(),
-                    "el gateway no propagaba la cabecera",
+                    "el gateway no propagaba la cabecera de idioma, asi que el backend \
+                     respondia siempre en ingles",
                 ),
             },
         ));

@@ -97,6 +97,7 @@ import Spine from "./ui/Spine";
 import Spread from "./ui/Spread";
 import Tagged from "./ui/Tagged";
 import Tags from "./ui/Tags";
+import Tally from "./ui/Tally";
 import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
@@ -1867,7 +1868,13 @@ export default function App() {
                           {found === null && !chosen.folded && (
                             <Cover onError={(e) => setError(saidPlainly(e))} />
                           )}
+                          {found === null && !chosen.folded && (
+                            <Tally counts={data.counts} onError={(e) => setError(saidPlainly(e))} />
+                          )}
                           <div className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
+                            <span className="mr-0.5 text-[9px] font-semibold tracking-[0.07em] text-faint uppercase">
+                              {t("archiveShowing")}
+                            </span>
                             {LAYERS.map((layer) => {
                               const on = !chosen.folded && (chosen.layer ?? "story") === layer;
                               const many = data.counts[layerCount(layer)];
@@ -1894,7 +1901,10 @@ export default function App() {
                                 </button>
                               );
                             })}
-                            <span className="mx-1 h-3.5 w-px bg-hair" />
+                            <span className="mx-1.5 h-3.5 w-px bg-hair" />
+                            <span className="mr-0.5 text-[9px] font-semibold tracking-[0.07em] text-faint uppercase">
+                              {t("archiveGrouped")}
+                            </span>
                             {AXES.map((axis) => {
                               const on = (chosen.axis ?? "time") === axis;
                               return (

@@ -208,4 +208,33 @@ describe("what the agent is allowed to send opens for editing", () => {
     expect(frail("un texto\\[^1] sin nota")).not.toContain("frailNotes");
     expect(frail("un texto[^1 sin cerrar")).not.toContain("frailNotes");
   });
+
+  it("keeps every tag the editor itself writes", () => {
+    expect(frail("un <u>subrayado</u>")).not.toContain("frailHtml");
+    expect(frail("una <mark>marca</mark>")).not.toContain("frailHtml");
+    expect(frail('una <mark data-pen="rojo">marca</mark>')).not.toContain("frailHtml");
+    expect(frail('un <span data-ico="check"></span>')).not.toContain("frailHtml");
+    expect(frail('un <span data-ico="check" data-hue="verde"></span>')).not.toContain("frailHtml");
+    expect(frail('un <span data-ico="🎉"></span>')).not.toContain("frailHtml");
+  });
+
+  it("flags a tag the editor would lose, however close it looks to one it keeps", () => {
+    expect(frail("un <div>bloque</div>")).toContain("frailHtml");
+    expect(frail('un <span data-otro="x"></span>')).toContain("frailHtml");
+    expect(frail('una <mark data-pen="rojo2">marca</mark>')).toContain("frailHtml");
+    expect(frail('un <span data-ico="check" data-hue="verde2"></span>')).toContain("frailHtml");
+  });
+
+  it("leaves an autolink and a target written between angles alone", () => {
+    expect(frail("ver <https://ejemplo.org>")).not.toContain("frailHtml");
+    expect(frail("escribe a <alguien@ejemplo.org>")).not.toContain("frailHtml");
+    expect(frail("[un enlace](<attachments/ab/x.png>)")).not.toContain("frailHtml");
+  });
+
+  it("only calls the line under a table a table rule", () => {
+    expect(frail("- | a | b |\n  | --- | --- |")).toContain("frailBlocked");
+    expect(frail("- | a | b |\n  ---")).not.toContain("frailBlocked");
+    expect(frail("- | a | b |\n  | x | y |")).not.toContain("frailBlocked");
+    expect(frail("- | a | b |\n  | :-: |")).toContain("frailBlocked");
+  });
 });

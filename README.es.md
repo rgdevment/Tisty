@@ -468,8 +468,8 @@ funciona con el teclado.
 **El archivo se lee en tres capas.** Las que enseñaron algo vienen con todo su
 trayecto: qué cambió, cuándo, y lo que fuiste escribiendo por el camino. Las
 rutinas vienen con sus cuentas, sus rachas y la hora a la que sueles cumplirlas.
-El resto es el rastro: lo que no dejó nada escrito, en una lista densa y apartada,
-porque pasó igual y la búsqueda sigue alcanzándolo.
+El resto es el rastro: lo que no dejó nada escrito, o casi nada, en una lista
+densa y apartada, porque pasó igual y la búsqueda sigue alcanzándolo.
 
 ## Tus datos y tu privacidad
 

@@ -381,7 +381,20 @@ mod tests {
 
         let mut told = task("renew the certificate");
         told.status = Status::Done;
-        told.description = Some("the authority took nine days to issue it".into());
+        told.description = Some(
+            "the authority took nine days to issue it, and the renewal has to be started again \
+             from the beginning because the old one was tied to a domain nobody uses any more, \
+             so the address on file is wrong as well"
+                .into(),
+        );
+        told.steps = (0..4)
+            .map(|n| crate::model::Step {
+                id: Ulid::generate(),
+                text: format!("step {n}"),
+                done: true,
+                order: format!("a{n}"),
+            })
+            .collect();
         told.retally();
 
         let mut turn = task("water the plants");

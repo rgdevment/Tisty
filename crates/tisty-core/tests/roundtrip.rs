@@ -189,7 +189,11 @@ fn trivial_and_documented_tasks_live_side_by_side() {
     store
         .append(Op::TaskLog {
             id: documented,
-            d: LogAdd::new(Ulid::generate(), "an index was missing"),
+            d: LogAdd::new(
+                Ulid::generate(),
+                "an index was missing on the orders table, so every checkout scanned the whole \
+                 thing and timed out under load",
+            ),
         })
         .unwrap();
 
@@ -301,7 +305,11 @@ fn a_story_survives_the_round_trip_through_json() {
             at(1_770_000_003_000),
             Op::TaskLog {
                 id,
-                d: LogAdd::new(Ulid::generate(), "the authority took nine days"),
+                d: LogAdd::new(
+                    Ulid::generate(),
+                    "the authority took nine days to issue it and the old one was tied to a \
+                     domain nobody uses",
+                ),
             },
         ),
         Event::new(
