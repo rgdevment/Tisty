@@ -2338,3 +2338,67 @@ fn a_manifest_naming_exactly_as_many_documents_as_fit_is_not_turned_away_for_its
         "the last folder that fits was counted as one too many"
     );
 }
+
+fn locked_with_work(room: &std::path::Path, work: u8) -> std::path::PathBuf {
+    let mut here = Room::new(room, "mine");
+    here.doc("# Acta\n\nlo mio", None, None);
+    let box_at = room.join(format!("work-{work}.tistyx"));
+    parcel::written(
+        &here.data,
+        &here.state,
+        &[],
+        &box_at,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+
+    let mut said = std::fs::read(&box_at).unwrap();
+    said[8] = work;
+    std::fs::write(&box_at, &said).unwrap();
+    box_at
+}
+
+fn opened_with(room: &std::path::Path, at: &std::path::Path) -> Result<(), tisty_core::Error> {
+    let mut fresh = Room::new(room, "fresh");
+    let out = parcel::taken(
+        &fresh.data,
+        &fresh.state,
+        &fresh.dev.clone(),
+        at,
+        &Along::default(),
+        Some("123456"),
+    );
+    fresh.seq += 1;
+    out.map(|_| ())
+}
+
+#[test]
+fn a_parcel_asking_for_more_work_than_anyone_would_have_written_is_turned_away() {
+    let room = tmp();
+
+    for said in [40u8, 19, 13, 0] {
+        let at = locked_with_work(room.path(), said);
+        let refused = opened_with(room.path(), &at);
+
+        assert!(
+            matches!(refused, Err(tisty_core::Error::NotAParcel(_))),
+            "a stranger asked for work {said} and it was ground out anyway: {refused:?}"
+        );
+    }
+}
+
+#[test]
+fn a_parcel_at_either_end_of_the_work_it_may_ask_for_is_read_rather_than_refused() {
+    let room = tmp();
+
+    for said in [14u8, 18] {
+        let at = locked_with_work(room.path(), said);
+        let refused = opened_with(room.path(), &at);
+
+        assert!(
+            matches!(refused, Err(tisty_core::Error::WrongNumber)),
+            "work {said} is inside what a parcel may ask for, so it got as far as the key: {refused:?}"
+        );
+    }
+}
