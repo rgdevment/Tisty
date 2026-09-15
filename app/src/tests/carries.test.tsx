@@ -49,6 +49,7 @@ const show = (status: Task["status"], expanded: boolean) =>
       onComplete={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}
+      onStillOpen={() => {}}
       onErase={() => {}}
       onClose={() => {}}
     />,

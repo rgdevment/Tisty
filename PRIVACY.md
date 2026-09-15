@@ -238,10 +238,12 @@ happens on its own:
   you have to admit, and everything it tries before that is refused. Admitting
   it is an event written into your log rather than a line in a settings file,
   so you can see when it happened and throw it out whenever you want.
-- **What it may do is bounded.** File a task, add to the journal, write a
+- **What it may do is bounded.** File a task, add to the journal, say a task it
+  filed is done — which marks it for you and closes nothing — write a
   document, write one again whole, keep a copy of a file you point it at, and
-  read what is already there. It may not close or delete anything, reach a task
-  you hid, or take files from outside the folders where a download lands. To
+  read what is already there. It may not close or delete anything, say a task
+  you wrote is done, reach a task you hid, or take files from outside the
+  folders where a download lands. To
   replace a whole document it has to send back the print it read that document
   at, so what you wrote while it was thinking cannot be taken. What it reads
   comes back without the paths of your disk.

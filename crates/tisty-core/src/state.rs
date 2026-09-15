@@ -229,6 +229,7 @@ impl State {
                 t.closed_in = None;
                 t.completed_at = None;
                 t.hidden = false;
+                t.resolved = None;
             }),
             Op::TaskHide { id } => self.with_task(*id, |t| t.hidden = true),
             Op::TaskShow { id } => self.with_task(*id, |t| t.hidden = false),
@@ -247,9 +248,23 @@ impl State {
             Op::TaskDescribe { id, d } => self.with_task(*id, |t| t.description = d.body.clone()),
             Op::TaskLog { id, d } => {
                 let at = event.timestamp;
-                self.with_task(*id, |t| add_log_entry(t, d, at));
+                let by = event.device.clone();
+                self.with_task(*id, |t| add_log_entry(t, d, at, &by));
             }
             Op::TaskLogEdit { id, d } => self.with_task(*id, |t| edit_log_entry(t, d)),
+            Op::TaskResolve { id, d } => {
+                let said = crate::model::Resolved {
+                    at: d.at.unwrap_or(event.timestamp),
+                    by: d.by.clone().unwrap_or_else(|| event.device.clone()),
+                    entry: d.entry,
+                };
+                self.with_task(*id, |t| {
+                    if t.is_open() {
+                        t.resolved = Some(said);
+                    }
+                });
+            }
+            Op::TaskUnresolve { id } => self.with_task(*id, |t| t.resolved = None),
 
             Op::StepAdd { id, d } => self.with_task(*id, |t| add_step(t, d)),
             Op::StepDone { id, d } => self.with_step(*id, d.step, |s| s.done = true),
@@ -1427,12 +1442,13 @@ fn move_task(task: &mut Task, d: &TaskMove) {
     }
 }
 
-fn add_log_entry(task: &mut Task, d: &LogAdd, at: jiff::Timestamp) {
+fn add_log_entry(task: &mut Task, d: &LogAdd, at: jiff::Timestamp, by: &DeviceId) {
     task.log.push(LogEntry {
         id: d.entry,
         at,
         tz: d.tz.clone(),
         body: d.body.clone(),
+        by: Some(by.clone()),
     });
 }
 
@@ -2423,6 +2439,190 @@ mod tests {
             state.tasks[&id].created_by,
             Some(DeviceId("dev_agent".into())),
             "the writer is in every event and must survive projection"
+        );
+    }
+
+    fn filed_by_an_agent() -> (State, TaskId) {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "dev_agent",
+            Op::TaskAdd {
+                id,
+                d: crate::event::TaskAdd::new("pasar biome sobre el front", "a0"),
+            },
+        ));
+        (state, id)
+    }
+
+    fn said_done(state: &mut State, at: i64, id: TaskId) -> crate::model::LogId {
+        let entry = Ulid::generate();
+        state.apply(&ev(
+            at,
+            "dev_agent",
+            Op::TaskLog {
+                id,
+                d: crate::event::LogAdd::new(entry, "0 errores"),
+            },
+        ));
+        state.apply(&ev(
+            at,
+            "dev_agent",
+            Op::TaskResolve {
+                id,
+                d: crate::event::Resolve::new(entry),
+            },
+        ));
+        entry
+    }
+
+    #[test]
+    fn a_task_an_agent_says_is_done_stays_open() {
+        let (mut state, id) = filed_by_an_agent();
+
+        said_done(&mut state, 2, id);
+
+        let task = &state.tasks[&id];
+        assert_eq!(
+            task.status,
+            Status::Open,
+            "saying it is done is not closing it"
+        );
+        assert!(task.completed_at.is_none(), "nobody finished it yet");
+        assert!(task.resolved.is_some());
+    }
+
+    #[test]
+    fn the_mark_says_who_spoke_when_and_which_entry_accounts_for_it() {
+        let (mut state, id) = filed_by_an_agent();
+
+        let entry = said_done(&mut state, 7, id);
+
+        let said = state.tasks[&id].resolved.as_ref().unwrap();
+        assert_eq!(said.by, DeviceId("dev_agent".into()));
+        assert_eq!(said.at, at(7));
+        assert_eq!(
+            said.entry, entry,
+            "the claim points at the journal entry that explains it"
+        );
+    }
+
+    #[test]
+    fn what_is_already_closed_takes_no_mark() {
+        let (mut state, id) = filed_by_an_agent();
+        state.apply(&ev(2, "dev_laptop", Op::TaskDone { id, filled: false }));
+
+        said_done(&mut state, 3, id);
+
+        assert!(
+            state.tasks[&id].resolved.is_none(),
+            "a task the person finished is not one an agent gets to speak for"
+        );
+    }
+
+    #[test]
+    fn the_journal_remembers_which_hand_wrote_each_entry() {
+        let (mut state, id) = filed_by_an_agent();
+        state.apply(&ev(
+            2,
+            "dev_laptop",
+            Op::TaskLog {
+                id,
+                d: crate::event::LogAdd::new(Ulid::generate(), "lo apunto yo"),
+            },
+        ));
+
+        said_done(&mut state, 3, id);
+
+        let log = &state.tasks[&id].log;
+        assert_eq!(log[0].by, Some(DeviceId("dev_laptop".into())));
+        assert_eq!(
+            log[1].by,
+            Some(DeviceId("dev_agent".into())),
+            "an account nobody signs is one nobody can weigh"
+        );
+    }
+
+    #[test]
+    fn the_person_finishing_it_keeps_both_signatures() {
+        let (mut state, id) = filed_by_an_agent();
+        said_done(&mut state, 2, id);
+
+        state.apply(&ev(3, "dev_laptop", Op::TaskDone { id, filled: false }));
+
+        let task = &state.tasks[&id];
+        assert_eq!(task.status, Status::Done);
+        assert!(
+            task.resolved.is_some(),
+            "the archive says who resolved it as well as who closed it"
+        );
+    }
+
+    #[test]
+    fn taking_the_mark_off_leaves_the_task_as_it_was() {
+        let (mut state, id) = filed_by_an_agent();
+        said_done(&mut state, 2, id);
+
+        state.apply(&ev(3, "dev_laptop", Op::TaskUnresolve { id }));
+
+        let task = &state.tasks[&id];
+        assert!(task.resolved.is_none());
+        assert_eq!(task.status, Status::Open);
+        assert_eq!(task.log.len(), 1, "the account of it stays");
+    }
+
+    #[test]
+    fn the_turn_that_follows_a_marked_one_is_born_with_nothing_said_about_it() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("tomar las pastillas", "a0");
+        d.date = Some(DateSpec::floating(
+            "2026-09-15T09:00:00".parse().unwrap(),
+            "America/Santiago",
+        ));
+        d.repeat = Some(crate::model::Repeat {
+            from: crate::model::From::Due,
+            each: crate::model::Cadence {
+                every: 1,
+                unit: crate::model::Unit::Day,
+            },
+            until: None,
+        });
+        state.apply(&ev(1, "dev_agent", Op::TaskAdd { id, d }));
+        said_done(&mut state, 2, id);
+
+        let now = at(3).to_zoned(jiff::tz::TimeZone::UTC);
+        for (n, op) in state.completing(id, now).into_iter().enumerate() {
+            state.apply(&ev(4 + n as i64, "dev_laptop", op));
+        }
+
+        let born = state
+            .tasks
+            .values()
+            .find(|one| one.id != id)
+            .expect("nace el turno siguiente");
+        assert!(
+            born.resolved.is_none(),
+            "el turno nuevo no hereda lo que se dijo del anterior"
+        );
+        assert!(
+            state.tasks[&id].resolved.is_some(),
+            "y el que se cerro conserva las dos firmas"
+        );
+    }
+
+    #[test]
+    fn work_that_comes_back_comes_back_unmarked() {
+        let (mut state, id) = filed_by_an_agent();
+        said_done(&mut state, 2, id);
+        state.apply(&ev(3, "dev_laptop", Op::TaskDone { id, filled: false }));
+
+        state.apply(&ev(4, "dev_laptop", Op::TaskReopen { id }));
+
+        assert!(
+            state.tasks[&id].resolved.is_none(),
+            "an old claim on work that is open again would be a lie"
         );
     }
 

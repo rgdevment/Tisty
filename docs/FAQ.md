@@ -135,3 +135,23 @@ did replace is kept beside the documents either way.
 
 The window tells you when something wrote in the document you have open, and if
 you try to save over a change you had not seen, it asks which one stands.
+
+## An assistant says one of its tasks is done. Did it close it?
+
+No. Nothing an assistant does closes a task, and there is no tool that would let
+it. What it can do is say so: the task gets a mark, the hour it spoke, and the
+account of what it did in the journal — the command it ran and what that
+answered, the commit, whatever holds the claim up. The task stays open until you
+decide.
+
+Those tasks gather under **Agents** at the foot of the list, with a count of how
+many wait on you, so you can go through them in one pass. What is due today or
+already overdue does not move: it stays in its own band, marked, because a thing
+with a date on it should be where you look for it.
+
+Tick it and it closes like any other, keeping both signatures in the archive —
+who resolved it and who finished it. Or open it and choose **Still to do**: the
+mark comes off, the task goes back to its day, and the account stays, so next
+time you can both see what was claimed. An assistant can only speak for tasks it
+filed itself, never for the ones you wrote, and it cannot say the same thing
+twice while a mark is still waiting on you.

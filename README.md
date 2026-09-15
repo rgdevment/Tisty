@@ -562,15 +562,16 @@ it stays a device you can throw out; until you do let it in, everything it
 tries is refused.
 
 What it may do is deliberately small: file a task with its steps and its date,
-set an hour for it to ring at, move the day of a task it filed itself, add to
-the journal, write a document, add to one that is already there — at the end or
-under a heading — correct a passage of one, write one again whole, file
+set an hour for it to ring at, move the day of a task it filed itself, say that
+a task it filed is done — which marks it for you to confirm and closes nothing —
+add to the journal, write a document, add to one that is already there — at the
+end or under a heading — correct a passage of one, write one again whole, file
 documents into folders, keep a copy of a file you point it at — on a task or
 inside a document, which takes the larger file of the two — and read what is
-already there. What it may not do: close a task or delete one, move a day you
-set, delete a document, rename or empty a folder, reach a task you folded away,
-take files from outside the folders where a download lands, or file the same
-thing twice.
+already there. What it may not do: close a task or delete one, say a task you
+wrote is done, move a day you set, delete a document, rename or empty a folder,
+reach a task you folded away, take files from outside the folders where a
+download lands, or file the same thing twice.
 
 It also reads sparingly, which is your business as much as its own. Tisty keeps
 a small card for each document — its headings, how long it is, what it leans

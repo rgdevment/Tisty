@@ -272,6 +272,22 @@ fn a_note_of_what_a_document_said_is_one_an_older_build_can_walk_past() {
 }
 
 #[test]
+fn neither_word_about_a_task_being_done_settles_by_itself() {
+    let said = tisty_core::Op::TaskResolve {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::Resolve::new(ulid::Ulid::generate()),
+    };
+    let rejected = tisty_core::Op::TaskUnresolve {
+        id: ulid::Ulid::generate(),
+    };
+
+    assert!(
+        !said.settles() && !rejected.settles(),
+        "cada una es la inversa de la otra: si una se saltara, deshacer volveria sobre sus pasos          para siempre"
+    );
+}
+
+#[test]
 fn no_other_operation_is_written_as_one_to_skip() {
     let told = tisty_core::Op::DocDelete {
         id: ulid::Ulid::generate(),

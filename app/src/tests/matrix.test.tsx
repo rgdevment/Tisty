@@ -352,3 +352,21 @@ describe("what repeats", () => {
     expect(within(tray).getByText("quote the move")).toBeTruthy();
   });
 });
+
+describe("what an agent says is done", () => {
+  it("is told on the card, so this view does not stay quiet about it", () => {
+    const spoken = {
+      ...task("8", "subir el timeout de apigee", "do", "L1"),
+      resolved: { at: "2026-08-06T18:40:00Z", by: "dev_agent", entry: "e1" },
+    } as Task;
+
+    show({ tasks: [...tasks, spoken] });
+
+    expect(
+      screen.getByRole("button", {
+        name: "subir el timeout de apigee — An agent says this is done",
+      }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "close the quarter" })).toBeTruthy();
+  });
+});

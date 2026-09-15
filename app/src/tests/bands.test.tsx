@@ -22,6 +22,11 @@ const task = (id: string, title: string, day?: string): Task =>
       : undefined,
   }) as unknown as Task;
 
+const spoken = (task: Task): Task => ({
+  ...task,
+  resolved: { at: "2026-08-06T18:40:00Z", by: "dev_agent", entry: "e1" },
+});
+
 const show = (tasks: Task[]) =>
   render(<TaskList tasks={tasks} lists={[]} title="Open" bands="day" onSelect={() => {}} />);
 
@@ -92,5 +97,82 @@ describe("banded", () => {
 
     expect(rows.map((row) => row.key)).toEqual(["1", "2", "3"]);
     expect(rows.map((row) => row.band)).toEqual(["Overdue", "Today", "Someday"]);
+  });
+
+  it("gathers what an agent says is done into its own band, at the end", () => {
+    const rows = banded([
+      spoken(task("1", "pasar biome sobre el front", "2026-08-20")),
+      task("2", "llamar al dentista", "2026-08-11"),
+      spoken(task("3", "revisar el icono")),
+    ]);
+
+    expect(rows.map((row) => row.key)).toEqual(["2", "1", "3"]);
+    expect(rows.map((row) => row.band)).toEqual(["Today", "Agents", "Agents"]);
+  });
+
+  it("leaves what is due today or already late where the person looks for it", () => {
+    const rows = banded([
+      spoken(task("1", "renovar la licencia", "2026-08-04")),
+      spoken(task("2", "responder a la notaria", "2026-08-11")),
+      spoken(task("3", "revisar el icono")),
+    ]);
+
+    expect(rows.map((row) => row.band)).toEqual(["Overdue", "Today", "Agents"]);
+  });
+
+  it("leaves a task the person already finished where the date put it", () => {
+    const shut = { ...spoken(task("1", "pasar biome", "2026-08-04")), status: "done" } as Task;
+
+    const rows = banded([shut]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].band).toBe("Overdue");
+  });
+
+  it("puts every task in one band and only one", () => {
+    const rows = banded([
+      spoken(task("1", "pasar biome", "2026-08-04")),
+      task("2", "llamar al dentista", "2026-08-11"),
+      { ...spoken(task("3", "revisar el icono")), status: "done" } as Task,
+    ]);
+
+    expect(rows).toHaveLength(3);
+    expect(new Set(rows.map((row) => row.key)).size).toBe(3);
+  });
+});
+
+describe("the band of what an agent says is done", () => {
+  beforeEach(() => vi.setSystemTime(NOW));
+  afterEach(() => vi.useRealTimers());
+
+  it("counts what is waiting instead of how many there are", () => {
+    show([
+      task("1", "llamar al dentista", "2026-08-11"),
+      spoken(task("2", "pasar biome sobre el front")),
+    ]);
+
+    expect(screen.getByText("1 to confirm")).toBeTruthy();
+  });
+
+  it("does not call a band of its own making a queue of confirmations", () => {
+    show([
+      spoken(task("1", "renovar la licencia", "2026-08-04")),
+      task("2", "llamar al dentista", "2026-08-11"),
+      spoken(task("3", "pasar biome sobre el front")),
+    ]);
+
+    expect(screen.getAllByText("1 to confirm")).toHaveLength(1);
+    expect(screen.getByText("Overdue").parentElement?.textContent).not.toContain("to confirm");
+  });
+
+  it("says when it was said rather than what the task carries", () => {
+    show([
+      task("1", "llamar al dentista", "2026-08-11"),
+      spoken(task("2", "pasar biome sobre el front")),
+    ]);
+
+    const said = screen.getByTitle(/^An agent said this was done — .+/);
+    expect(said.textContent).toMatch(/6/);
+    expect(screen.queryByText("0/0")).toBeNull();
   });
 });
