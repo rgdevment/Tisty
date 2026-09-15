@@ -174,15 +174,8 @@ fn after(plist: &str, key: &str) -> Option<String> {
     Some(rest[open..shut].trim().to_string())
 }
 
-#[cfg(all(unix, not(target_os = "macos")))]
-pub fn os() -> String {
-    let release = std::fs::read_to_string("/etc/os-release").unwrap_or_default();
-    release
-        .lines()
-        .find_map(|line| line.strip_prefix("PRETTY_NAME="))
-        .map(|name| name.trim_matches('"').to_string())
-        .unwrap_or_else(|| "Linux".into())
-}
+#[cfg(not(any(windows, target_os = "macos")))]
+compile_error!("Tisty builds for macOS and Windows only");
 
 #[cfg(test)]
 mod tests {

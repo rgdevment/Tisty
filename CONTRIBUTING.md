@@ -59,7 +59,7 @@ requires the agreement.
 
 ## Development setup
 
-Rust 1.97 or newer. Everything else comes from `rustup`:
+Rust 1.97 or newer, on macOS or Windows. Everything else comes from `rustup`:
 
 ```sh
 cargo build
@@ -75,7 +75,7 @@ cargo nextest run --workspace
 cargo deny check
 ```
 
-CI runs the test suite on Linux, Windows and macOS. Path separators, line
+CI runs the test suite on Windows and macOS. Path separators, line
 endings, case sensitivity and file locking only diverge at runtime, so a green
 build on one platform proves very little.
 
