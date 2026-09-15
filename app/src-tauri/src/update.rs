@@ -507,6 +507,20 @@ mod tests {
     }
 
     #[test]
+    fn what_only_the_manifest_knows_is_news_a_store_copy_cannot_press_a_button_for() {
+        let offer = remembered(
+            "1.13.0",
+            Some("1.13.3"),
+            Kept::plain(Route::Store),
+            Some(false),
+        )
+        .expect("1.13.3 is newer");
+
+        assert_eq!(offer.version, "1.13.3");
+        assert!(!offer.installs);
+    }
+
+    #[test]
     fn an_offer_the_store_itself_made_is_one_this_copy_can_take() {
         let offer = from_the_shop("0.3.0", "0.2.0").expect("0.3.0 is newer");
 

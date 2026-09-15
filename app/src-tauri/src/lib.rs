@@ -2357,42 +2357,53 @@ async fn update_ready(
     now_please: Option<bool>,
 ) -> Answer<Option<update::Ready>> {
     let kept = update::route();
-    let (last, found, wants) = {
+    let (last, found, the_shop_said, wants) = {
         let held = held(&session);
         (
             held.config.checked_at,
             held.config.found_version.clone(),
+            held.config.found_in_the_shop.unwrap_or(false),
             held.config.candidates,
         )
     };
     let now = jiff::Timestamp::now();
     let asked = now_please.unwrap_or(false);
+    let wants = if kept.route == update::Route::Store {
+        Some(false)
+    } else {
+        wants
+    };
 
-    // A copy kept by the Store asks the Store and not the manifest: a release is out for everyone
-    // else while the Store is still certifying it, and being sent for a version it does not have
-    // yet is worse than being told nothing.
+    // A copy kept by the Store asks the Store first: what it offers is what this copy can take
+    // without leaving the window. Having nothing is not the same as there being nothing, so the
+    // manifest is asked after it — a release it is still certifying is already out elsewhere.
     if kept.route == update::Route::Store
         && let Some(window) = owner(&app)
     {
         // Held to the manifest's interval too: a Store that never answers strands the thread.
         if !asked && !update::due(last, now) {
-            return Ok(found
-                .as_deref()
-                .and_then(|version| update::from_the_shop(version, HERE)));
+            return Ok(if the_shop_said {
+                found
+                    .as_deref()
+                    .and_then(|version| update::from_the_shop(version, HERE))
+            } else {
+                update::remembered(HERE, found.as_deref(), kept, wants)
+            });
         }
-        if let Ok(shelf) = tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await
-            && shelf != shop::Shelf::Silent
-        {
-            let seen = match shelf {
-                shop::Shelf::Waiting(version) => update::from_the_shop(&version, HERE),
-                _ => None,
-            };
-            let version = seen.as_ref().map(|one| one.version.clone());
-            held(&session).keep(|c| {
-                c.checked_at = Some(now);
-                c.found_version = version;
-            })?;
-            return Ok(seen);
+        if let Ok(shelf) = tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await {
+            if let shop::Shelf::Waiting(version) = &shelf
+                && let Some(seen) = update::from_the_shop(version, HERE)
+            {
+                held(&session).keep(|c| {
+                    c.checked_at = Some(now);
+                    c.found_version = Some(seen.version.clone());
+                    c.found_in_the_shop = Some(true);
+                })?;
+                return Ok(Some(seen));
+            }
+            if shelf != shop::Shelf::Silent {
+                held(&session).keep(|c| c.found_in_the_shop = None)?;
+            }
         }
     }
 
@@ -2415,6 +2426,7 @@ async fn update_ready(
     held(&session).keep(|c| {
         c.checked_at = Some(now);
         c.found_version = version;
+        c.found_in_the_shop = None;
     })?;
     Ok(seen)
 }
@@ -4955,6 +4967,7 @@ fn update_candidates(session: tauri::State<'_, Mutex<Session>>, wants: bool) -> 
         // What was found under the old answer says nothing about the new one.
         c.checked_at = None;
         c.found_version = None;
+        c.found_in_the_shop = None;
     })?;
     Ok(())
 }
