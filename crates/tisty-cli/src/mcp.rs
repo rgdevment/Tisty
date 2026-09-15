@@ -112,8 +112,9 @@ A page sits where its document names it. Writing one adds the line `![Its title]
 `append_doc` adds to a document that exists, leaving every byte that was there — at the end, or \
 under a heading you name with `under`. `edit_doc` changes one passage of it, named either by what \
 it says, character for character and matching one place only, or by where it sits: a `section` \
-number or a run of lines, which take the `print` in place of matching text. Adding to the document \
-that already covers something beats writing a second one about it.
+number or a run of lines, which take the `print` in place of matching text — so a passage can be \
+changed without carrying the document both ways. Adding to the document that already covers \
+something beats writing a second one about it.
 
 Before reading a document, see whether somebody already read it for you. `docs` and \
 `outline_doc` carry a `gist` when an agent has left one: a summary of what the document says and \
@@ -4690,46 +4691,38 @@ fn tools() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task. Pass the `source` it came from and a second filing \
-                            of the same thing is refused here, handing back the task that exists \
-                            — so there is no need to `find` first, and however the source is \
-                            written, «x#1» and «x: #1» are the one message. Fill in only what \
-                            you were actually told. You cannot close or delete anything — the \
-                            most you can do about work being finished is say so with \
-                            `say_done` — and the \
-                            list has to be one that exists — a refusal names them. Reading a \
-                            thread that holds several, send them together in `tasks` rather than \
-                            one call each: each one is judged on its own and told apart in the \
-                            answer, so a bad one does not take the good ones with it.",
+            "description": "Propose a task. Reading a thread that holds several, send them \
+                            together in `tasks` rather than one call each: each one is judged on \
+                            its own and told apart in the answer, so a bad one does not take the \
+                            good ones with it.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "tasks": {
                         "type": "array",
                         "items": { "type": "object" },
-                        "description": "Several tasks at once, each written exactly as a single one is. Leave it out when proposing one"
+                        "description": "Several at once, each written as a single one is. Left out when proposing one"
                     },
                     "title": { "type": "string", "description": "What has to be done, in a line" },
                     "description": {
                         "type": "string",
-                        "description": "What you read, in markdown. Where the detail goes"
+                        "description": "What you read, in markdown"
                     },
                     "date": {
                         "type": "string",
-                        "description": "The day it is meant to be done, as 2026-08-31"
+                        "description": "The day it is meant to be done (2026-08-31)"
                     },
                     "deadline": {
                         "type": "string",
-                        "description": "The day it actually runs out, as 2026-08-31"
+                        "description": "The day it actually runs out (2026-08-31)"
                     },
                     "remind": {
                         "type": "array",
                         "items": { "type": "string" },
                         "description": "When to ring, each as a day and an hour like \
-                                        2026-08-30T20:00. For something that happens once at a \
-                                        set time and cannot be caught up on later — an \
-                                        appointment, a school event, a flight — set the evening \
-                                        before. Leave it out for work that can be done any day, \
-                                        and never set one for something that repeats"
+                                        2026-08-30T20:00. Only for what happens at a set time and \
+                                        cannot be caught up on later — an appointment, a flight — \
+                                        and set it the evening before. Not for work that can be \
+                                        done any day, nor for what repeats"
                     },
                     "priority": {
                         "type": "string",
@@ -4738,12 +4731,12 @@ fn tools() -> Value {
                     },
                     "list": {
                         "type": "string",
-                        "description": "An existing list, by name. Ask `lists` first. Leave it out and it lands in the inbox for the person to place"
+                        "description": "An existing list, by name; `lists` says which. Left out, it lands in the inbox"
                     },
                     "tags": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "One word each and no spaces — a space becomes a dash. Capitals and accents make no difference to which tag it is, so send it as it reads. Tag the subjects the task is about — what it is for, where it belongs, what it is part of — and six different subjects is already a lot for one task. It is subjects that are counted, not tags: a subject takes as many words as it truly needs, while a word that merely appears in the title is no subject at all. In the plain words the person would say, never a phrase. Call `tags` first and reuse one whose subject is the same."
+                        "description": "The subjects the task is about — what it is for, where it belongs, what it is part of — in the plain words the person would say. One word each, no spaces; capitals and accents decide nothing. Six subjects is already a lot, and a word that merely appears in the title is no subject. Call `tags` first and reuse one that means the same."
                     },
                     "steps": {
                         "type": "array",
@@ -4752,8 +4745,7 @@ fn tools() -> Value {
                     },
                     "source": {
                         "type": "string",
-                        "description": "Where you read it — a message id, a thread link. Stable \
-                                        enough to recognise the same thing twice"
+                        "description": "Where you read it — a message id, a thread link"
                     }
                 },
                 "required": ["title"]
@@ -4824,7 +4816,7 @@ fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary, something to keep. Markdown — headings, lists, emphasis, inline links, tables, fenced code with its language and an optional title=\"…\" after it (which `mermaid` and `math` fences take too), and GitHub alerts (> [!NOTE] and its kin) — plus the four tags the editor writes itself: <u>, <mark>, a coloured <mark data-pen=\"…\"> and the icon span. No other HTML. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — which is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, one word and no spaces, for the subjects the writing is about and no more than six of them — a subject takes as many words as it needs, and a word that merely appears in the text is no subject — `tags` says which are already in use. Write it as the sentence needs it, capitals and accents and all: #Salud and #salud are the same tag, so how it reads is yours to choose and which tag it is never changes.",
+            "description": "Write something down that is not work to do: a note, a summary, something to keep. Plain markdown: what the editor could not keep is refused on the way in, naming it. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — which is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, for the subjects the writing is about and no more than six of them; `tags` says which are already in use.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "body": {
@@ -4858,7 +4850,7 @@ fn tools() -> Value {
         {
             "name": "append_doc",
             "title": "Add to a document",
-            "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost, and no `print` is needed for that reason. Use it to keep a document alive: a running minute, a log, a list that grows. With `under` you can put a paragraph in the right part of a long document without reading any of it: `outline_doc` tells you which headings there are. The answer says how many characters the document `grew` by; with `echo` it also hands back the lines around what you added, so seeing it lands right costs nothing.",
+            "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost and no `print` is needed. Use it to keep a document alive: a running minute, a log, a list that grows. With `under` you can put a paragraph in the right part of a long document without reading any of it; `outline_doc` tells you which headings there are. The answer says how many characters it `grew` by; with `echo` it hands back the lines around what you added.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -4881,7 +4873,7 @@ fn tools() -> Value {
         {
             "name": "restore_doc",
             "title": "Put a document back the way it was",
-            "description": "Undo a write to a document. Changing a passage and replacing a body both keep what they replaced beside the documents, and this puts that body back; adding to the end keeps nothing, and neither does the person saving from the window. So this is refused unless the document still reads exactly as the write that kept that body left it — if anything has been written since, going back would undo that too, and you are told so instead, with `even_if_more` there to go back over all of it when you have read the document and know that is what you want. What it puts back is kept in turn, so calling it twice in a row leaves the document where it started, which makes it safe to try. Reach for it the moment a write comes back saying something you did not expect, instead of retyping the document from what you remember of it.",
+            "description": "Undo a write to a document. Changing a passage and replacing a body keep what they replaced, and this puts it back; adding to the end keeps nothing, and neither do the person's own saves. Refused unless the document still reads as that write left it — going back would undo whatever came after — with `even_if_more` to go back over all of it once you have read the document and know that is what you want. What it puts back is kept in turn, so calling it twice leaves the document where it started, which makes it safe to try. Reach for it the moment a write comes back saying something you did not expect, instead of retyping the document from memory.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -4896,13 +4888,13 @@ fn tools() -> Value {
         {
             "name": "edit_doc",
             "title": "Change a passage of a document",
-            "description": "Replace one passage of a document with another. Name the passage one of two ways. By what it says: `old` has to match character for character and appear exactly once — if it appears twice, or not at all, nothing is written and you are told which. Or by where it sits: `section`, as `outline_doc` numbers them, which replaces a whole section in one call, or `from` and `to` lines, which need the `print` in place of matching text and let you change a part of a document you never read. Whichever way, what it said before is kept beside the documents first, and if that cannot be done the edit is refused rather than made — `restore_doc` puts it back. The answer says how many characters the document `grew` by, which is worth reading: an edit should not change the size by much more than what you sent. With `echo` it hands back the lines around the change as well.",
+            "description": "Replace one passage of a document with another, named either by what it says with `old` or by where it sits with `section` or a line range — which let you change a part of a document you never read. What it said before is kept first, and if that cannot be done the edit is refused rather than made; `restore_doc` puts it back. The answer says how many characters the document `grew` by, which is worth reading: an edit should not change the size by much more than what you sent.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
                     "old": {
                         "type": "string",
-                        "description": "The passage as it is written now, copied from `read_doc`. Take in the lines around it if a short one would fit twice. Leave it out when naming a `section` or a line range"
+                        "description": "The passage as it is written now, copied from `read_doc`, matching one place only — take in the lines around it if a short one would fit twice. Leave it out when naming a `section` or a line range"
                     },
                     "new": {
                         "type": "string",
@@ -4914,7 +4906,7 @@ fn tools() -> Value {
                     },
                     "from": { "type": "integer", "description": "First line to replace, counting from 1. Needs `print`" },
                     "to": { "type": "integer", "description": "Last line to replace. Left out, it runs to the end" },
-                    "print": { "type": "string", "description": "The print the document read at, from `read_doc` or `outline_doc`. Needed when naming a place rather than a passage. It says which version you are editing, not which document: if the person or another agent wrote since you read it, nothing is changed and the answer hands you what it says now along with its new print, to read and try again against" },
+                    "print": { "type": "string", "description": "The print the document read at, from `read_doc` or `outline_doc`. Needed when naming a place rather than a passage. It says which version you are editing: if anyone wrote since you read it, nothing is changed and the answer hands you what it says now, with its new print" },
                     "echo": { "type": "boolean", "description": "Hand back the lines around the change as well, instead of reading the document again to see it" }
                 },
                 "required": ["doc", "new"]
@@ -4949,7 +4941,7 @@ fn tools() -> Value {
         {
             "name": "import_doc",
             "title": "Bring a markdown file on this machine in as a document",
-            "description": "Read one markdown file from disk and keep it here as a document, tidying on the way in what Tisty's editor could not hold: front matter, HTML that markdown can say and HTML it cannot, comments, entities, links written by reference, maths between dollars, and fences written in from the margin. Every file the text points at beside it — pictures, video, PDFs — is copied in too, and the text is pointed at Tisty's own copies: nothing is left pointing outside. What cannot come in has its link taken out rather than left dangling, and the answer says which and why. The files on disk are left untouched. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
+            "description": "Read one markdown file from disk and keep it here as a document, tidying on the way in what Tisty's editor could not hold and saying what it changed. Every file the text points at beside it — pictures, video, PDFs — is copied in too, and the text is pointed at Tisty's own copies: nothing is left pointing outside. What cannot come in has its link taken out rather than left dangling. The files on disk are left untouched. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "path": {
@@ -5067,7 +5059,7 @@ fn tools() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document, or a part of one",
-            "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body, but a long one comes back as its outline instead, with `whole` set to false — then ask again for the part you want: `section` for one heading and everything under it, `from` and `to` for lines, or `chars` for a budget, which answers with `next` to carry on from. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest.",
+            "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; a long one comes back as its outline instead, with `whole` set to false, and then you ask for the part you want. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -5110,22 +5102,15 @@ fn tools() -> Value {
         {
             "name": "say_done",
             "title": "Say a task you filed is finished",
-            "description": "Say that a task you filed is done, when you did the work \
-                            yourself. Reading somewhere that it no longer matters is not doing \
-                            it — that goes in `note`. It reaches only what you filed yourself: \
-                            not a task the person wrote, and not one another agent filed. \
-                            This does \
-                            not close anything — the task stays open, marked, until the person \
-                            finishes it, and they may reject the mark instead. The `body` is not \
-                            optional: it is the account the person reads before deciding, so give \
-                            what you actually did and what makes you sure — the command you ran \
-                            and what it answered, the commit, the message that said it was off. \
-                            Say it once: if you already said it and the person has not looked \
-                            yet, add what is new with `note` instead.",
+            "description": "Say that a task you filed is done, when you did the work yourself — \
+                            reading that it no longer matters is not doing it, and goes in \
+                            `note`. It closes nothing: the task stays open, marked, until the \
+                            person finishes it or takes the mark off. Say it once; if they have \
+                            not looked yet, what is new goes in `note` too.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
-                    "body": { "type": "string", "description": "What you did and how you know it holds, in markdown" }
+                    "body": { "type": "string", "description": "The account the person reads before deciding: what you did and what makes you sure — the command you ran and what it answered, the commit. In markdown" }
                 },
                 "required": ["task", "body"]
             }))
@@ -5133,7 +5118,7 @@ fn tools() -> Value {
         {
             "name": "sum_up",
             "title": "Say what a document is about",
-            "description": "Leave what you worked out about a document, so the next agent — or you, next week — does not have to read it again to find out whether it is the one. A `summary` of what it says, `notes` for what somebody working with it should know. It is kept on this machine only: it never syncs, it is not part of the document, and the person does not see it in their window. It is stored against the text as it reads now, so if the document is written into afterwards, whoever reads your summary is told it describes an older version. Write it after reading a long document, not instead of reading one — and write what the document says, never what you would like it to say: the next agent will act on this without opening the document.",
+            "description": "Leave what you worked out about a document, so the next agent — or you, next week — does not have to read it again to know whether it is the one. A `summary` of what it says, `notes` for what somebody working with it should know. Kept on this machine only: it never syncs, it is not part of the document, and the person does not see it. Stored against the text as it reads now, so a later write marks it as describing an older version. Write it after reading a long document, never instead of reading one, and write what the document says rather than what you would like it to say: the next agent will act on this without opening the document.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -5173,18 +5158,15 @@ fn tools() -> Value {
         {
             "name": "find",
             "title": "Search the list and the archive",
-            "description": "Search the tasks and the documents. By text with `query`; by what a \
-                            task is rather than what it says with `tag`, `list`, `by_agent`, \
-                            `said_done`, `from_source` and the days between `from` and `to`, \
-                            which work on \
-                            their own or narrow \
-                            a query; by `source` alone, to check whether something was already \
-                            filed from it. With `doc`, it looks inside that one document instead \
-                            and hands back the lines that match with their numbers, so you can \
-                            read or change just that part.",
+            "description": "Search the tasks and the documents. By text with `query`, by what a \
+                            task is rather than what it says with the sifting fields — alone or \
+                            narrowing a query — or by `source` alone, to check whether something \
+                            was already filed from it. With `doc` it looks inside that one \
+                            document instead and hands back the lines that match with their \
+                            numbers, so you can read or change just that part.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "query": { "type": "string", "description": "Words to look for. Not needed when sifting by tag, list, who filed it or dates" },
+                    "query": { "type": "string", "description": "Words to look for. Not needed when sifting by the fields below" },
                     "source": {
                         "type": "string",
                         "description": "Ask whether this exact source was proposed already"
@@ -5193,13 +5175,13 @@ fn tools() -> Value {
                         "type": "string",
                         "description": "Look inside this one document rather than across the tasks. Hands back matching lines with their numbers and the lines around them"
                     },
-                    "tag": { "type": "string", "description": "Only tasks carrying this tag, with or without the #" },
-                    "list": { "type": "string", "description": "Only tasks in this list, named as `lists` names it" },
+                    "tag": { "type": "string", "description": "Carrying this tag, with or without the #" },
+                    "list": { "type": "string", "description": "In this list, named as `lists` names it" },
                     "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
-                    "said_done": { "type": "boolean", "description": "True for what an agent already said is done and the person has not finished yet, false for what nobody has spoken for" },
-                    "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, so «sereno» brings everything read out of that one place. Written however you like: «sereno», «sereno#» and «sereno: » all match the same" },
-                    "from": { "type": "string", "description": "Only tasks whose date or deadline falls on this day or after it (2026-08-31)" },
-                    "to": { "type": "string", "description": "Only tasks whose date or deadline falls on this day or before it" },
+                    "said_done": { "type": "boolean", "description": "True for what an agent said is done and the person has not finished yet; false for what nobody spoke for" },
+                    "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, so «sereno» brings everything read out of that one place. However it is written: «sereno», «sereno#» and «sereno: » all match" },
+                    "from": { "type": "string", "description": "Its date or deadline on this day or after (2026-08-31)" },
+                    "to": { "type": "string", "description": "Its date or deadline on this day or before" },
                     "scope": {
                         "type": "string",
                         "enum": ["open", "archive", "either"],
