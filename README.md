@@ -636,7 +636,7 @@ Same idea, same terms: free, open source, no ads, no telemetry, everything
 local.
 
 - **[CopyPaste](https://github.com/rgdevment/CopyPaste)** — a clipboard manager
-  for Windows, macOS and Linux.
+  for Windows and macOS.
 - **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — a browser
   selector for Windows and macOS: it asks which browser should open a link
   instead of assuming.

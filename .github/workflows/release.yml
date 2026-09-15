@@ -1066,17 +1066,15 @@ jobs:
           	class ${CLASS} < Formula
           	  desc "Command line for Tisty, the local task manager${SUFFIX}"
           	  homepage "https://github.com/${{ github.repository }}"
-          	  license "AGPL-3.0-only"
+          	  url "${BASE}/${CLI}"
           	  version "${VERSION}"
+          	  sha256 "${CLI_SHA}"
+          	  license "AGPL-3.0-only"
+
+          	  depends_on :macos
 
           	  # The app carries this same binary, so having both is having two.
-          	  conflicts_with formula: "${FORMULA_OTHER}"
-
-          	  # Linux is a phase of its own and is not built yet.
-          	  on_macos do
-          	    url "${BASE}/${CLI}"
-          	    sha256 "${CLI_SHA}"
-          	  end
+          	  conflicts_with "${FORMULA_OTHER}", because: "both install the same tisty binary"
 
           	  def install
           	    bin.install "tisty"

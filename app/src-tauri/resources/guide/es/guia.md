@@ -326,5 +326,5 @@ Un enlace solo en su párrafo, como ese, se dibuja como tarjeta; el mismo enlace
 
 En [el mismo perfil](https://github.com/rgdevment) hay dos herramientas más, con la misma idea y los mismos términos: gratis, abiertas, sin anuncios, sin telemetría, todo en tu equipo.
 
-- [**CopyPaste**](https://github.com/rgdevment/CopyPaste) — un gestor de portapapeles para Windows, macOS y Linux.
+- [**CopyPaste**](https://github.com/rgdevment/CopyPaste) — un gestor de portapapeles para Windows y macOS.
 - [**LinkUnbound**](https://github.com/rgdevment/LinkUnbound) — un selector de navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de suponerlo.

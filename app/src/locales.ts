@@ -958,7 +958,7 @@ const en = {
   settlingIn: "Settling in — bringing your machines together",
   otherTools: "Other tools",
   toolCopyPaste:
-    "Free, open source clipboard manager for Windows, macOS and Linux. Same philosophy: no ads, no telemetry, everything local.",
+    "Free, open source clipboard manager for Windows and macOS. Same philosophy: no ads, no telemetry, everything local.",
   toolLinkUnbound:
     "Open source browser selector for Windows and macOS. Same philosophy: no ads, no telemetry, everything local.",
   whereItLives: "Where it lives",
@@ -2190,7 +2190,7 @@ const es: Catalog = {
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
   otherTools: "Otras herramientas",
   toolCopyPaste:
-    "Gestor de portapapeles gratuito y de código abierto para Windows, macOS y Linux. Misma filosofía: sin anuncios, sin telemetría, todo local.",
+    "Gestor de portapapeles gratuito y de código abierto para Windows y macOS. Misma filosofía: sin anuncios, sin telemetría, todo local.",
   toolLinkUnbound:
     "Selector de navegadores de código abierto para Windows y macOS. Misma filosofía: sin anuncios, sin telemetría, todo local.",
   whereItLives: "Dónde vive",

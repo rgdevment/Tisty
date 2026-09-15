@@ -85,12 +85,6 @@ pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R
 
     app.manage(Said(Mutex::new(vec![capture, show, quit])));
 
-    #[cfg(target_os = "linux")]
-    return {
-        let _ = tray;
-        None
-    };
-    #[cfg(not(target_os = "linux"))]
     Some(tray)
 }
 
