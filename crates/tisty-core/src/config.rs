@@ -100,6 +100,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub found_version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub found_in_the_shop: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attach_up_to: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub holds: Option<Holds>,
@@ -127,6 +129,7 @@ impl Config {
             quiet: None,
             checked_at: None,
             found_version: None,
+            found_in_the_shop: None,
             attach_up_to: Some(crate::attach::COPIED_AT_FIRST),
             holds: None,
             opened_by: None,
@@ -424,6 +427,7 @@ mod tests {
             quiet: None,
             checked_at: None,
             found_version: None,
+            found_in_the_shop: Some(true),
             attach_up_to: None,
             holds: None,
             guide: Some("mac0-0001".into()),
@@ -453,6 +457,7 @@ mod tests {
                 quiet: None,
                 checked_at: None,
                 found_version: None,
+                found_in_the_shop: None,
                 attach_up_to: None,
                 holds: None,
                 opened_by: None,
