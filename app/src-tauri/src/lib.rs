@@ -2374,10 +2374,9 @@ async fn update_ready(
         wants
     };
 
-    // A copy kept by the Store asks the Store first: an offer the Store itself made is the one it
-    // can take without leaving the window. Having nothing to offer is not the same as there being
-    // nothing out there — the Store holds a release back while it certifies it, and the manifest
-    // names it meanwhile — so the manifest is asked after the Store rather than instead of it.
+    // A copy kept by the Store asks the Store first: what it offers is what this copy can take
+    // without leaving the window. Having nothing is not the same as there being nothing, so the
+    // manifest is asked after it — a release it is still certifying is already out elsewhere.
     if kept.route == update::Route::Store
         && let Some(window) = owner(&app)
     {
