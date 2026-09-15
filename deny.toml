@@ -1,3 +1,11 @@
+[graph]
+# Only what release.yml builds; left open, the graph walks Tauri's GTK3 tree.
+targets = [
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+  "x86_64-pc-windows-msvc",
+]
+
 [licenses]
 # Permissive licences only. AGPL-3.0 can depend on these; the reverse is not
 # true, so anything copyleft in the tree would be a problem worth knowing about.
@@ -30,8 +38,6 @@ yanked = "deny"
 # Tauri, and not ours to replace. Listed one by one so a new advisory still fails
 # the build.
 ignore = [
-  # proc-macro-error, via glib-macros in the GTK3 tree Tauri links against on Linux.
-  "RUSTSEC-2024-0370",
   # unic-*, via urlpattern in tauri-utils.
   "RUSTSEC-2025-0075",
   "RUSTSEC-2025-0080",

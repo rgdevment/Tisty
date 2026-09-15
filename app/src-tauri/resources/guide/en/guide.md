@@ -326,5 +326,5 @@ A link left alone in its paragraph, like that one, is drawn as a card; the same 
 
 [The same profile](https://github.com/rgdevment) holds two more tools, same idea and same terms: free, open, no ads, no telemetry, all on your own machine.
 
-- [**CopyPaste**](https://github.com/rgdevment/CopyPaste) — a clipboard manager for Windows, macOS and Linux.
+- [**CopyPaste**](https://github.com/rgdevment/CopyPaste) — a clipboard manager for Windows and macOS.
 - [**LinkUnbound**](https://github.com/rgdevment/LinkUnbound) — a browser picker for Windows and macOS: it asks which one should open a link instead of assuming.
