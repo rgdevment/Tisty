@@ -46,6 +46,7 @@ const shot = (): Snapshot => ({
   refs: [],
   counts: {},
   locale: "en",
+  agents: {},
 });
 
 const paper = {

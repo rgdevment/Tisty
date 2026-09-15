@@ -55,6 +55,7 @@ import {
   snapshot,
   sow,
   spelled,
+  stillOpen,
   syncState,
   type Task,
   type Underway,
@@ -115,6 +116,7 @@ import {
   type Slice,
   title,
 } from "./views";
+import { knowAgents } from "./who";
 
 export const steady = <T,>(was: T, found: T): T =>
   JSON.stringify(was) === JSON.stringify(found) ? was : found;
@@ -600,6 +602,7 @@ export default function App() {
     snapshot(asView(chosen))
       .then((fresh) => {
         adopt(fresh.locale);
+        knowAgents(fresh.agents);
         setData(fresh);
         acted.current = null;
       })
@@ -1726,6 +1729,7 @@ export default function App() {
                   setSelected(undefined);
                 }}
                 onReopen={() => act(reopen(task.id))}
+                onStillOpen={() => act(stillOpen(task.id))}
                 onErase={() => wipe(task)}
                 onClose={shut}
                 onError={(e) => setError(saidPlainly(e))}
@@ -2018,6 +2022,7 @@ export default function App() {
                 setSelected(undefined);
               }}
               onReopen={() => act(reopen(task.id))}
+              onStillOpen={() => act(stillOpen(task.id))}
               onErase={() => wipe(task)}
               onClose={shut}
               onError={(e) => setError(saidPlainly(e))}

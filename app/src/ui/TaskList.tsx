@@ -4,6 +4,7 @@ import type { List, Task } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
+import { Lozenge, Pip, spokenLabel } from "./Spoke";
 
 interface Props {
   tasks: Task[];
@@ -156,7 +157,7 @@ export default function TaskList({
           data-row={at}
           role="listitem"
           tabIndex={stops(at) ? 0 : -1}
-          aria-label={task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`}
+          aria-label={spokenLabel(task)}
           onFocus={() => setReached(at)}
           onKeyDown={(event) => typed(event, task, at)}
           onClick={() => onSelect(task.id)}
@@ -173,7 +174,8 @@ export default function TaskList({
             {task.status === "dropped" ? "⨯" : "✓"}
           </span>
           <span className="truncate text-[13px] text-soft">{task.title}</span>
-          <span className="text-[11.5px] whitespace-nowrap text-faint tabular-nums">
+          <span className="flex items-baseline gap-1.5 text-[11.5px] whitespace-nowrap text-faint tabular-nums">
+            <Lozenge task={task} />
             {task.completed_at ? stamped(task.completed_at) : ""}
           </span>
         </div>
@@ -186,7 +188,7 @@ export default function TaskList({
           data-row={at}
           role="listitem"
           tabIndex={stops(at) ? 0 : -1}
-          aria-label={task.status === "open" ? task.title : `${task.title} — ${t(task.status)}`}
+          aria-label={spokenLabel(task)}
           aria-keyshortcuts={
             (onComplete && task.status === "open") || onFold ? "Control+Enter" : undefined
           }
@@ -207,10 +209,12 @@ export default function TaskList({
                 e.stopPropagation();
                 onComplete(task.id);
               }}
-              className={`mt-0.5 h-4 w-4 rounded-full border-[1.5px] ${edge(task.priority)} ${
+              className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] ${edge(task.priority)} ${
                 closing === task.id ? "bg-accent" : ""
               }`}
-            />
+            >
+              {closing !== task.id && <Pip task={task} />}
+            </button>
           ) : (
             <span
               title={task.status === "dropped" ? t("dropped") : t("done")}
@@ -316,7 +320,9 @@ export default function TaskList({
                   </span>
                   {leaf.band}
                   <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
-                    {many.get(leaf.band)}
+                    {leaf.band === t("agentBand")
+                      ? fill("toConfirm", String(many.get(leaf.band)))
+                      : many.get(leaf.band)}
                   </span>
                 </button>
               )}
@@ -379,13 +385,29 @@ function Meta({ task, list }: { task: Task; list?: string }) {
 function Volume({ task }: { task: Task }) {
   const v = task.volume ?? {};
 
+  if (task.resolved && task.status === "open") {
+    const when = stamped(task.resolved.at);
+    return (
+      <span
+        title={fill("agentSaidWhen", when)}
+        className="pt-px text-[11.5px] whitespace-nowrap text-hue-teal"
+      >
+        <span aria-hidden="true">◆ </span>
+        {when}
+      </span>
+    );
+  }
+
   const parts = [
     v.steps ? `${v.steps_done ?? 0}/${v.steps}` : null,
     v.journal ? `✎${v.journal}` : null,
   ].filter(Boolean);
 
   return (
-    <span className="pt-px text-[11.5px] whitespace-nowrap text-faint">{parts.join(" · ")}</span>
+    <span className="flex items-baseline gap-1.5 pt-px text-[11.5px] whitespace-nowrap text-faint">
+      <Lozenge task={task} />
+      {parts.join(" · ")}
+    </span>
   );
 }
 

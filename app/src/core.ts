@@ -24,6 +24,7 @@ export interface LogEntry {
   at: string;
   tz?: string;
   body: string;
+  by?: string;
 }
 
 export interface Volume {
@@ -33,6 +34,12 @@ export interface Volume {
   described?: boolean;
   prose?: number;
   refs?: number;
+}
+
+export interface Resolved {
+  at: string;
+  by: string;
+  entry: string;
 }
 
 export interface Task {
@@ -55,6 +62,7 @@ export interface Task {
   hidden?: boolean;
   volume?: Volume;
   created_by?: string;
+  resolved?: Resolved;
   filled?: boolean;
   source?: string;
   closed_in?: string;
@@ -102,6 +110,7 @@ export interface Snapshot {
   refs: string[];
   counts: Record<string, number>;
   locale?: string;
+  agents: Record<string, string>;
 }
 
 export type Mark = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
@@ -271,6 +280,7 @@ export const dropStep = (id: string, step: string): Promise<Task> =>
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
+export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });
 export const complete = (id: string, also?: string[]): Promise<Task> =>
   invoke("complete", { id, also });
 export const owed = (id: string): Promise<string[]> => invoke("owed", { id });

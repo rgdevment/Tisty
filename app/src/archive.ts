@@ -1,5 +1,5 @@
 import type { List, Task } from "./core";
-import { bandOf, monthOf } from "./format";
+import { bandOf, daysFrom, monthOf } from "./format";
 import { locale, t } from "./locales";
 import { said } from "./quadrants";
 
@@ -61,11 +61,18 @@ export function shelved(tasks: Task[], axis: Axis, lists: List[]): Row[] {
   });
 }
 
-export function banded(tasks: Task[]): Row[] {
-  return tasks.map((task) => ({
-    kind: "one" as const,
-    key: task.id,
-    task,
-    band: bandOf(task.date),
-  }));
+export function banded(tasks: Task[], now = new Date()): Row[] {
+  const waiting: Row[] = [];
+  const rest: Row[] = [];
+  for (const task of tasks) {
+    const owedToday = task.date ? daysFrom(task.date.at, now) <= 0 : false;
+    const spoken = Boolean(task.resolved) && task.status === "open" && !owedToday;
+    (spoken ? waiting : rest).push({
+      kind: "one" as const,
+      key: task.id,
+      task,
+      band: spoken ? t("agentBand") : bandOf(task.date, now),
+    });
+  }
+  return [...rest, ...waiting];
 }

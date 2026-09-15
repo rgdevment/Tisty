@@ -1,5 +1,5 @@
 use crate::{
-    event::{Body, Event, LogEdit, Op, StepAdd, StepRef, StepText, TaskMove, TaskPatch},
+    event::{Body, Event, LogEdit, Op, Resolve, StepAdd, StepRef, StepText, TaskMove, TaskPatch},
     model::Status,
     state::State,
 };
@@ -122,6 +122,20 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 body: String::new(),
             },
         }),
+        Op::TaskResolve { id, .. } => match &before.tasks.get(id)?.resolved {
+            Some(was) => Some(Op::TaskResolve {
+                id: *id,
+                d: Resolve::new(was.entry).said_by(was.at, was.by.clone()),
+            }),
+            None => Some(Op::TaskUnresolve { id: *id }),
+        },
+        Op::TaskUnresolve { id } => {
+            let was = before.tasks.get(id)?.resolved.as_ref()?;
+            Some(Op::TaskResolve {
+                id: *id,
+                d: Resolve::new(was.entry).said_by(was.at, was.by.clone()),
+            })
+        }
         Op::TaskLogEdit { id, d } => Some(Op::TaskLogEdit {
             id: *id,
             d: LogEdit {
@@ -299,6 +313,147 @@ mod tests {
         let (before, undone) =
             round_trip(vec![a_task(id)], ev(2, Op::TaskDone { id, filled: false }));
         assert_eq!(before, undone);
+    }
+
+    fn marked(ms: i64, id: Ulid, entry: Ulid) -> Vec<Event> {
+        vec![
+            ev(
+                ms,
+                Op::TaskLog {
+                    id,
+                    d: LogAdd::new(entry, "0 errores"),
+                },
+            ),
+            ev(
+                ms,
+                Op::TaskResolve {
+                    id,
+                    d: Resolve::new(entry),
+                },
+            ),
+        ]
+    }
+
+    #[test]
+    fn undoing_the_first_word_that_it_is_done_takes_the_mark_off() {
+        let id = Ulid::generate();
+        let entry = Ulid::generate();
+        let mut setup = vec![a_task(id)];
+        setup.push(marked(2, id, entry).remove(0));
+
+        let (before, undone) = round_trip(
+            setup,
+            ev(
+                3,
+                Op::TaskResolve {
+                    id,
+                    d: Resolve::new(entry),
+                },
+            ),
+        );
+
+        assert!(undone.tasks[&id].resolved.is_none());
+        assert_eq!(before, undone);
+    }
+
+    #[test]
+    fn undoing_a_second_word_puts_the_first_one_back() {
+        let id = Ulid::generate();
+        let first = Ulid::generate();
+        let again = Ulid::generate();
+        let mut setup = vec![a_task(id)];
+        setup.extend(marked(2, id, first));
+        setup.push(ev(
+            3,
+            Op::TaskLog {
+                id,
+                d: LogAdd::new(again, "y esta vez de verdad"),
+            },
+        ));
+
+        let (_, undone) = round_trip(
+            setup,
+            ev(
+                4,
+                Op::TaskResolve {
+                    id,
+                    d: Resolve::new(again),
+                },
+            ),
+        );
+
+        assert_eq!(
+            undone.tasks[&id].resolved.as_ref().map(|one| one.entry),
+            Some(first),
+            "the mark it had before the second word is the one that comes back"
+        );
+    }
+
+    #[test]
+    fn undoing_the_person_rejecting_it_puts_the_mark_back() {
+        let id = Ulid::generate();
+        let entry = Ulid::generate();
+        let mut setup = vec![a_task(id)];
+        setup.extend(marked(2, id, entry));
+
+        let (_, undone) = round_trip(setup, ev(3, Op::TaskUnresolve { id }));
+
+        let back = undone.tasks[&id]
+            .resolved
+            .as_ref()
+            .expect("the mark is back");
+        assert_eq!(back.entry, entry);
+        assert_eq!(back.by, DeviceId("dev_a".into()));
+    }
+
+    #[test]
+    fn taking_back_a_rejection_gives_the_word_back_to_whoever_said_it() {
+        let id = Ulid::generate();
+        let entry = Ulid::generate();
+        let agent = DeviceId("dev_agent".into());
+        let spoke = Event::new(
+            agent.clone(),
+            at(2),
+            Op::TaskResolve {
+                id,
+                d: Resolve::new(entry),
+            },
+        );
+        let setup = vec![
+            a_task(id),
+            ev(
+                2,
+                Op::TaskLog {
+                    id,
+                    d: LogAdd::new(entry, "0 errores"),
+                },
+            ),
+            spoke,
+        ];
+
+        let (_, undone) = round_trip(setup, ev(3, Op::TaskUnresolve { id }));
+
+        let back = undone.tasks[&id]
+            .resolved
+            .as_ref()
+            .expect("la marca vuelve");
+        assert_eq!(
+            back.by, agent,
+            "quien la puso fue el agente, no quien deshace"
+        );
+        assert_eq!(
+            back.at,
+            at(2),
+            "y la hora es la de entonces, no la de ahora"
+        );
+    }
+
+    #[test]
+    fn there_is_nothing_to_undo_in_rejecting_what_was_never_marked() {
+        let id = Ulid::generate();
+        let before = State::replay(&[a_task(id)]);
+
+        assert!(inverse(&ev(2, Op::TaskUnresolve { id }), &before).is_none());
     }
 
     #[test]

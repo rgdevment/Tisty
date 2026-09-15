@@ -181,6 +181,15 @@ counted; a count of one would say the thing exists. What it reads comes back
 without
 the absolute paths of your disk.
 
+**What it says about work being finished only ever adds.** An assistant can mark
+a task it filed as one it has finished, with the account of what it did. It
+cannot mark a task you wrote, it cannot close anything, and the mark takes
+nothing out of your list: what is due today or overdue stays in the band you
+look for it in. Saying it twice over a mark you have not seen yet is refused, so
+a text it reads somewhere cannot fill your journal by repetition. Taking the
+mark off is yours alone — and doing so keeps the account, so you can see what it
+claimed and why you disagreed.
+
 **A body it did not read is a body it cannot replace.** An assistant may write a
 whole document again, not only add to it — but only by sending back the print
 that document read at when it last looked. If you have written in it since, the

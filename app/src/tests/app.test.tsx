@@ -95,6 +95,7 @@ const shot = (view: { archive?: boolean } | undefined): Snapshot => ({
   refs: [],
   counts,
   locale: "en",
+  agents: {},
 });
 
 beforeEach(() => {

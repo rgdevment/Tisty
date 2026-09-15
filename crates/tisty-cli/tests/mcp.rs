@@ -318,6 +318,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "read_doc",
             "catch_up",
             "reschedule",
+            "say_done",
             "sum_up",
             "outline_doc",
             "read",
@@ -326,10 +327,176 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "tags"
         ]
     );
-    for barred in ["done", "drop", "rm", "undo", "sync", "set"] {
+    for barred in [
+        "done",
+        "drop",
+        "rm",
+        "undo",
+        "sync",
+        "set",
+        "unresolve",
+        "still_open",
+        "reopen",
+    ] {
         let said = served.call(barred, serde_json::json!({}));
         assert_eq!(said["error"]["code"], -32602, "{barred} answered: {said}");
     }
+}
+
+fn filed(served: &Served, title: &str) -> String {
+    let said = served.call("propose", serde_json::json!({ "title": title }));
+    said["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+fn today_there() -> String {
+    jiff::Timestamp::now()
+        .to_zoned(jiff::tz::TimeZone::get("America/Santiago").unwrap())
+        .strftime("%Y-%m-%d")
+        .to_string()
+}
+
+#[test]
+fn what_it_says_is_done_stays_open_until_the_person_finishes_it() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = filed(&served, "pasar biome sobre el front");
+
+    let said = served.call(
+        "say_done",
+        serde_json::json!({ "task": id, "body": "npm run lint: 0 errores" }),
+    );
+
+    assert_ne!(said["result"]["isError"], true, "{said}");
+    assert_eq!(said["result"]["structuredContent"]["open"], true);
+    let left = served.cli(&["ls", "all"]);
+    assert!(
+        left.contains("pasar biome sobre el front"),
+        "saying it is done is not closing it: {left}"
+    );
+}
+
+#[test]
+fn saying_it_is_done_leaves_the_account_of_it_on_the_journal() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = filed(&served, "sacar la clave de la URL");
+
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": id, "body": "responde 401 sin sesión, va en el PR 212" }),
+    );
+
+    let read = served.call("read", serde_json::json!({ "task": id }));
+    let whole = read.to_string();
+    assert!(whole.contains("responde 401 sin"), "{whole}");
+    let spoke = read["result"]["structuredContent"]["said_done"]
+        .as_str()
+        .unwrap_or_else(|| {
+            panic!("an agent that cannot see it already spoke says it again every session: {whole}")
+        });
+    assert!(
+        spoke.starts_with(&today_there()),
+        "the mark says when it was made, in the person's own day: {spoke:?}"
+    );
+}
+
+#[test]
+fn it_cannot_say_a_task_the_person_wrote_is_done() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.cli(&["llamar al taller"]);
+    let mine = served.call("find", serde_json::json!({ "query": "taller" }));
+    let id = mine["result"]["structuredContent"]["matches"][0]["id"]
+        .as_str()
+        .unwrap();
+
+    let said = served.call(
+        "say_done",
+        serde_json::json!({ "task": id, "body": "lo di por hecho" }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    let why = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(why.contains("the person's own"), "{why}");
+    assert!(
+        served.cli(&["ls", "all"]).contains("llamar al taller"),
+        "and nothing of theirs moved"
+    );
+}
+
+#[test]
+fn the_account_of_what_it_did_is_not_optional() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = filed(&served, "revisar el icono del MSIX");
+
+    let said = served.call("say_done", serde_json::json!({ "task": id }));
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    let why = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        why.contains("body"),
+        "the refusal names what it wants: {why}"
+    );
+    let read = served.call("read", serde_json::json!({ "task": id }));
+    assert!(
+        !read.to_string().contains("said_done"),
+        "a refusal that marked it anyway would be worse than none"
+    );
+}
+
+#[test]
+fn saying_it_twice_is_refused_so_the_journal_does_not_fill_up() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = filed(&served, "confirmar el envío a la Store");
+    let once = serde_json::json!({ "task": id, "body": "la Store lo aceptó el martes" });
+
+    served.call("say_done", once.clone());
+    let again = served.call("say_done", once);
+
+    assert_eq!(again["result"]["isError"], true, "{again}");
+    let why = again["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(why.contains("already said"), "{why}");
+    assert!(why.contains("note"), "it names what to do instead: {why}");
+    assert!(
+        why.contains(&today_there()),
+        "and when it said so, or the agent cannot tell a word from today \
+         from one left months ago: {why}"
+    );
+}
+
+#[test]
+fn what_it_has_spoken_for_can_be_told_apart_from_what_it_has_not() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let spoken = filed(&served, "pasar biome sobre el front");
+    filed(&served, "corregir los dos IDOR");
+
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": spoken, "body": "0 errores" }),
+    );
+
+    let waiting = served.call("find", serde_json::json!({ "said_done": true }));
+    let rest = served.call("find", serde_json::json!({ "said_done": false }));
+    assert_eq!(waiting["result"]["structuredContent"]["total"], 1);
+    assert_eq!(
+        waiting["result"]["structuredContent"]["matches"][0]["id"],
+        serde_json::json!(spoken)
+    );
+    assert!(
+        rest.to_string().contains("IDOR"),
+        "and the ones nobody spoke for are the rest: {rest}"
+    );
+
+    let how = waiting["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(how.contains("already said done"), "{how}");
+    let other = rest["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(other.contains("not said done yet"), "{other}");
 }
 
 #[test]

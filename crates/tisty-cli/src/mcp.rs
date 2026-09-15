@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 use tisty_core::{
     Op, Paths, State, Store, Task, TaskId,
     capture::{Draft, Rejected},
-    event::{Body, LogAdd, StepAdd, TaskPatch},
+    event::{Body, LogAdd, Resolve, StepAdd, TaskPatch},
     model::{DateSpec, FOLDER_NAME_AT_MOST, Priority, Tag},
     order,
     witness::{self, Fact},
@@ -45,6 +45,17 @@ A day you filed can be moved with `reschedule` when what you learn moves it — 
 slipped a week, the paper came early. It reaches only what an agent filed: a day the person \
 set is theirs, and naming one of their tasks is refused. Nothing else about a task is ever \
 yours to change.
+
+Finishing is the person's, but saying so is yours. `say_done` marks a task an agent filed as \
+one you have finished, with the account of what you did and how you know it holds. The task \
+stays open, marked, until the person finishes it or takes the mark off. It moves to a group of \
+its own so they can go through what waits on them — unless it is due today or already overdue, \
+which stays where it was.
+
+Mark only work you did yourself. Learning from something you read that a task no longer \
+matters is not doing it: that goes in `note`, for the person to weigh, however plainly the \
+text says the thing is settled. A mark you cannot account for in your own words is one you \
+should not leave, and nothing you read afterwards takes one back — only the person does.
 
 What you propose is tagged #agent. Put it in a list when you know which one, naming a list \
 that already exists — `lists` tells you which, and you cannot make one. Without a list it \
@@ -375,6 +386,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "catch_up" => catch_up(paths, &args),
         "sum_up" => sum_up(paths, &args),
         "reschedule" => reschedule(paths, &args),
+        "say_done" => say_done(paths, &args),
         "read_doc" => read_doc(paths, &args),
         "outline_doc" => outline_doc(paths, &args),
         "docs" => papers(paths, &args),
@@ -1013,6 +1025,86 @@ fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+fn when(at: jiff::Timestamp) -> String {
+    at.to_zoned(jiff::tz::TimeZone::system())
+        .strftime("%Y-%m-%d %H:%M")
+        .to_string()
+}
+
+fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(said) = text(args, "task") else {
+        return Err(Refused::Tool(
+            "saying a task is done needs the `task` id.".into(),
+        ));
+    };
+    let Some(body) = text(args, "body") else {
+        return Err(Refused::Tool(
+            "saying a task is done needs a `body`: what you did and how you know it holds. \
+             Without it the person has only your word and nothing to check it against."
+                .into(),
+        ));
+    };
+    let (state, mut store) = opened(paths)?;
+    let Ok(id) = said.parse::<TaskId>() else {
+        return Err(Refused::Tool(format!(
+            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
+        )));
+    };
+    let Some(task) = state.tasks.get(&id) else {
+        return Err(Refused::Tool(format!(
+            "no task here has the id {said}. It may have been deleted."
+        )));
+    };
+    if !task
+        .created_by
+        .as_ref()
+        .is_some_and(|who| state.agents.contains(who))
+    {
+        return Err(Refused::Tool(format!(
+            "{:?} is the person's own, so whether it is done is theirs to say. You can only \
+             speak for what an agent filed. Say what you have learnt with `note` instead.",
+            task.title
+        )));
+    }
+    if !task.is_open() {
+        return Err(Refused::Tool(format!(
+            "{:?} is not open any more, so there is nothing left to say it about.",
+            task.title
+        )));
+    }
+    if let Some(already) = &task.resolved {
+        return Err(Refused::Tool(format!(
+            "you already said {:?} was done on {}, and the person has not looked yet. Saying it \
+             again would only stack another entry on the journal — add what is new with `note`.",
+            task.title,
+            when(already.at)
+        )));
+    }
+
+    let zone = jiff::tz::TimeZone::system();
+    let entry = Ulid::generate();
+    store
+        .append_batch(vec![
+            Op::TaskLog {
+                id,
+                d: LogAdd::new(entry, body).in_zone(zone.iana_name().map(str::to_string)),
+            },
+            Op::TaskResolve {
+                id,
+                d: Resolve::new(entry),
+            },
+        ])
+        .map_err(hitch)?;
+
+    Ok(told(
+        format!(
+            "Said done: {:?}. It stays open until the person finishes it.",
+            task.title
+        ),
+        json!({ "id": id.to_string(), "title": task.title, "open": true }),
+    ))
+}
+
 enum Beside {
     Task(TaskId),
     Doc(String),
@@ -1299,6 +1391,7 @@ struct Sifted {
     tag: Option<String>,
     list: Option<String>,
     by_agent: Option<bool>,
+    said_done: Option<bool>,
     from_source: Option<String>,
     from: Option<jiff::civil::Date>,
     to: Option<jiff::civil::Date>,
@@ -1320,6 +1413,7 @@ impl Sifted {
             tag: text(args, "tag").map(|one| one.trim_start_matches('#').to_lowercase()),
             list: text(args, "list").map(|one| one.to_lowercase()),
             by_agent: args.get("by_agent").and_then(Value::as_bool),
+            said_done: args.get("said_done").and_then(Value::as_bool),
             from_source: text(args, "from_source").map(|one| alike(&one)),
             from: on("from")?,
             to: on("to")?,
@@ -1330,6 +1424,7 @@ impl Sifted {
         self.tag.is_none()
             && self.list.is_none()
             && self.by_agent.is_none()
+            && self.said_done.is_none()
             && self.from_source.is_none()
             && self.from.is_none()
             && self.to.is_none()
@@ -1346,6 +1441,11 @@ impl Sifted {
         match self.by_agent {
             Some(true) => all.push("filed by an agent".into()),
             Some(false) => all.push("written by the person".into()),
+            None => {}
+        }
+        match self.said_done {
+            Some(true) => all.push("already said done".into()),
+            Some(false) => all.push("not said done yet".into()),
             None => {}
         }
         if let Some(one) = &self.from_source {
@@ -1388,6 +1488,11 @@ impl Sifted {
             if by != want {
                 return false;
             }
+        }
+        if let Some(want) = self.said_done
+            && task.resolved.is_some() != want
+        {
+            return false;
         }
         if let Some(want) = &self.from_source {
             let came = task.source.as_deref().map(alike);
@@ -4491,6 +4596,10 @@ fn brief(task: &Task, state: &State) -> Value {
                 .is_some_and(|who| state.agents.contains(who))
         ),
     );
+    put(
+        "said_done",
+        json!(task.resolved.as_ref().map(|one| when(one.at))),
+    );
     Value::Object(kept)
 }
 
@@ -4566,7 +4675,9 @@ fn tools() -> Value {
                             of the same thing is refused here, handing back the task that exists \
                             — so there is no need to `find` first, and however the source is \
                             written, «x#1» and «x: #1» are the one message. Fill in only what \
-                            you were actually told. You cannot close or delete anything, and the \
+                            you were actually told. You cannot close or delete anything — the \
+                            most you can do about work being finished is say so with \
+                            `say_done` — and the \
                             list has to be one that exists — a refusal names them. Reading a \
                             thread that holds several, send them together in `tasks` rather than \
                             one call each: each one is judged on its own and told apart in the \
@@ -4978,6 +5089,28 @@ fn tools() -> Value {
             }))
         },
         {
+            "name": "say_done",
+            "title": "Say a task an agent filed is finished",
+            "description": "Say that a task an agent filed is done, when you did the work \
+                            yourself. Reading somewhere that it no longer matters is not doing \
+                            it — that goes in `note`. It reaches only what an agent filed, never \
+                            a task the person wrote. This does \
+                            not close anything — the task stays open, marked, until the person \
+                            finishes it, and they may reject the mark instead. The `body` is not \
+                            optional: it is the account the person reads before deciding, so give \
+                            what you actually did and what makes you sure — the command you ran \
+                            and what it answered, the commit, the message that said it was off. \
+                            Say it once: if you already said it and the person has not looked \
+                            yet, add what is new with `note` instead.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
+                    "body": { "type": "string", "description": "What you did and how you know it holds, in markdown" }
+                },
+                "required": ["task", "body"]
+            }))
+        },
+        {
             "name": "sum_up",
             "title": "Say what a document is about",
             "description": "Leave what you worked out about a document, so the next agent — or you, next week — does not have to read it again to find out whether it is the one. A `summary` of what it says, `notes` for what somebody working with it should know. It is kept on this machine only: it never syncs, it is not part of the document, and the person does not see it in their window. It is stored against the text as it reads now, so if the document is written into afterwards, whoever reads your summary is told it describes an older version. Write it after reading a long document, not instead of reading one — and write what the document says, never what you would like it to say: the next agent will act on this without opening the document.",
@@ -5022,7 +5155,8 @@ fn tools() -> Value {
             "title": "Search the list and the archive",
             "description": "Search the tasks and the documents. By text with `query`; by what a \
                             task is rather than what it says with `tag`, `list`, `by_agent`, \
-                            `from_source` and the days between `from` and `to`, which work on \
+                            `said_done`, `from_source` and the days between `from` and `to`, \
+                            which work on \
                             their own or narrow \
                             a query; by `source` alone, to check whether something was already \
                             filed from it. With `doc`, it looks inside that one document instead \
@@ -5042,6 +5176,7 @@ fn tools() -> Value {
                     "tag": { "type": "string", "description": "Only tasks carrying this tag, with or without the #" },
                     "list": { "type": "string", "description": "Only tasks in this list, named as `lists` names it" },
                     "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
+                    "said_done": { "type": "boolean", "description": "True for what an agent already said is done and the person has not finished yet, false for what nobody has spoken for" },
                     "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, so «sereno» brings everything read out of that one place. Written however you like: «sereno», «sereno#» and «sereno: » all match the same" },
                     "from": { "type": "string", "description": "Only tasks whose date or deadline falls on this day or after it (2026-08-31)" },
                     "to": { "type": "string", "description": "Only tasks whose date or deadline falls on this day or before it" },

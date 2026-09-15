@@ -40,6 +40,8 @@ pub const KNOWN_OPS: &[&str] = &[
     "task.describe",
     "task.log",
     "task.log.edit",
+    "task.resolve",
+    "task.unresolve",
     "task.step.add",
     "task.step.done",
     "task.step.undone",
@@ -108,6 +110,10 @@ pub enum Op {
     TaskLog { id: TaskId, d: LogAdd },
     #[serde(rename = "task.log.edit")]
     TaskLogEdit { id: TaskId, d: LogEdit },
+    #[serde(rename = "task.resolve")]
+    TaskResolve { id: TaskId, d: Resolve },
+    #[serde(rename = "task.unresolve")]
+    TaskUnresolve { id: TaskId },
 
     #[serde(rename = "task.step.add")]
     StepAdd { id: TaskId, d: StepAdd },
@@ -253,6 +259,8 @@ impl Op {
             Op::TaskDescribe { d, .. } => Op::TaskDescribe { id, d },
             Op::TaskLog { d, .. } => Op::TaskLog { id, d },
             Op::TaskLogEdit { d, .. } => Op::TaskLogEdit { id, d },
+            Op::TaskResolve { d, .. } => Op::TaskResolve { id, d },
+            Op::TaskUnresolve { .. } => Op::TaskUnresolve { id },
             Op::StepAdd { d, .. } => Op::StepAdd { id, d },
             Op::StepDone { d, .. } => Op::StepDone { id, d },
             Op::StepUndone { d, .. } => Op::StepUndone { id, d },
@@ -375,6 +383,8 @@ impl Op {
             | Op::TaskDescribe { id, .. }
             | Op::TaskLog { id, .. }
             | Op::TaskLogEdit { id, .. }
+            | Op::TaskResolve { id, .. }
+            | Op::TaskUnresolve { id }
             | Op::StepAdd { id, .. }
             | Op::StepDone { id, .. }
             | Op::StepUndone { id, .. }
@@ -529,6 +539,31 @@ impl LogAdd {
 pub struct LogEdit {
     pub entry: LogId,
     pub body: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Resolve {
+    pub entry: LogId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<DeviceId>,
+}
+
+impl Resolve {
+    pub fn new(entry: LogId) -> Self {
+        Self {
+            entry,
+            at: None,
+            by: None,
+        }
+    }
+
+    pub fn said_by(mut self, at: jiff::Timestamp, by: DeviceId) -> Self {
+        self.at = Some(at);
+        self.by = Some(by);
+        self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

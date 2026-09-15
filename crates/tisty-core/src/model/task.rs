@@ -110,6 +110,9 @@ pub struct LogEntry {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tz: Option<String>,
     pub body: String,
+    /// Projected from the event's `by`, never written to the log.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<crate::event::DeviceId>,
 }
 
 impl LogEntry {
@@ -121,6 +124,13 @@ impl LogEntry {
             .unwrap_or_else(jiff::tz::TimeZone::system);
         self.at.to_zoned(zone)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Resolved {
+    pub at: Timestamp,
+    pub by: crate::event::DeviceId,
+    pub entry: LogId,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -157,6 +167,8 @@ pub struct Task {
     /// Projected from the event's `by`, never written to the log.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_by: Option<crate::event::DeviceId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved: Option<Resolved>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
     /// The zone the closing event was written in, so an hour reads back where it happened.
@@ -226,6 +238,7 @@ impl Task {
             after: None,
             hidden: false,
             created_by: None,
+            resolved: None,
             source: None,
             closed_in: None,
             filled: false,
@@ -379,6 +392,7 @@ mod tests {
             at: Timestamp::UNIX_EPOCH,
             tz: None,
             body: body.into(),
+            by: None,
         }
     }
 
@@ -810,6 +824,7 @@ mod trace_tests {
                 at: Timestamp::from_second(0).unwrap(),
                 tz: None,
                 body: (*one).to_string(),
+                by: None,
             })
             .collect();
         task.references()

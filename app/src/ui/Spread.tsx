@@ -4,6 +4,7 @@ import { clockOf } from "../format";
 import { fill, locale, t } from "../locales";
 import { HEAVY, weekday } from "./Ahead";
 import Glyph from "./Glyph";
+import { Pip, spokenLabel } from "./Spoke";
 
 interface Props {
   tasks: Task[];
@@ -207,15 +208,18 @@ export default function Spread({ tasks, onPlace, onOpen, onCarrying }: Props) {
     <button
       key={task.id}
       type="button"
+      aria-label={spokenLabel(task)}
       {...carry(task)}
       className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] hover:bg-hover ${grip(task)}`}
     >
       <span
         aria-hidden="true"
-        className={`size-3.5 shrink-0 rounded-full border-[1.5px] ${
-          task.deadline ? "border-hue-amber" : "border-line"
+        className={`flex size-3.5 shrink-0 items-center justify-center rounded-full border-[1.5px] ${
+          task.resolved ? "border-hue-teal" : task.deadline ? "border-hue-amber" : "border-line"
         }`}
-      />
+      >
+        <Pip task={task} />
+      </span>
       {task.date?.has_time && (
         <span className="shrink-0 text-[11.5px] tabular-nums text-faint">{clockOf(task.date)}</span>
       )}
@@ -319,7 +323,11 @@ export default function Spread({ tasks, onPlace, onOpen, onCarrying }: Props) {
               <span
                 aria-hidden="true"
                 className={`size-1 shrink-0 rounded-full border ${
-                  task.deadline ? "border-hue-amber" : "border-line"
+                  task.resolved
+                    ? "border-hue-teal bg-hue-teal"
+                    : task.deadline
+                      ? "border-hue-amber"
+                      : "border-line"
                 }`}
               />
               <span className="min-w-0 truncate">{task.title}</span>

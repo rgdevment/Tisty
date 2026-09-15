@@ -779,6 +779,7 @@ struct Snapshot {
     refs: Vec<String>,
     counts: std::collections::BTreeMap<String, usize>,
     locale: Option<String>,
+    agents: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -1235,7 +1236,17 @@ fn snapshot(
         refs: session.state.references(),
         counts: tally(&session.state),
         locale: session.locale.clone(),
+        agents: named_agents(&session.state),
     })
+}
+
+fn named_agents(state: &tisty_core::State) -> std::collections::BTreeMap<String, String> {
+    state
+        .agents
+        .iter()
+        .chain(state.assistants.iter())
+        .map(|one| (one.0.clone(), tisty_core::config::nicknamed(&one.0)))
+        .collect()
 }
 
 #[derive(serde::Deserialize, Default)]
@@ -1893,6 +1904,28 @@ fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> An
     } else {
         Op::TaskShow { id }
     })?;
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
+}
+
+#[tauri::command]
+fn still_open(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    let marked = session
+        .state
+        .tasks
+        .get(&id)
+        .ok_or_else(|| Refusal::of("notATaskId"))?
+        .resolved
+        .is_some();
+    if marked {
+        session.commit(Op::TaskUnresolve { id })?;
+    }
     session
         .state
         .tasks
@@ -6778,6 +6811,7 @@ pub fn run() {
             drop_step,
             write_log,
             fold,
+            still_open,
             discard,
             attach,
             served,
