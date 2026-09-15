@@ -74,6 +74,7 @@ const shot = (view: View | undefined): Snapshot => ({
   refs: [],
   counts: { stories: 1, routines: 0, traces: 1 },
   locale: "en",
+  agents: {},
 });
 
 const views = () =>

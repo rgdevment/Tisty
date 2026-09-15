@@ -2,14 +2,14 @@ mod op;
 
 pub use op::{
     ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Filed, FolderAdd, KNOWN_OPS, ListAdd, LogAdd, LogEdit,
-    Look, Name, Op, Said, Signature, StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd,
-    TaskMove, TaskPatch,
+    Look, Name, Op, Resolve, Said, Signature, StepAdd, StepRef, StepReorder, StepText, Stitch,
+    TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 12;
+pub const SCHEMA_VERSION: u32 = 13;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -88,6 +88,8 @@ impl Event {
             | Op::TaskDescribe { id, .. }
             | Op::TaskLog { id, .. }
             | Op::TaskLogEdit { id, .. }
+            | Op::TaskResolve { id, .. }
+            | Op::TaskUnresolve { id }
             | Op::StepAdd { id, .. }
             | Op::StepDone { id, .. }
             | Op::StepUndone { id, .. }

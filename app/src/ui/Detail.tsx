@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Change, List, Task } from "../core";
-import { cadence, daysFrom, whenLabel, wroteAt } from "../format";
-import { t } from "../locales";
+import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
+import { fill, t } from "../locales";
 import { composed } from "../markdown";
 import { placed, said } from "../quadrants";
+import { agentNamed } from "../who";
 import Composed from "./Composed";
 import Fields from "./Fields";
 import Journal from "./Journal";
@@ -30,6 +31,7 @@ interface Props {
   onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
+  onStillOpen: () => void;
   onErase: () => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
@@ -53,6 +55,7 @@ export default function Detail({
   onComplete,
   onDiscard,
   onReopen,
+  onStillOpen,
   onErase,
   onClose,
   onError,
@@ -97,6 +100,15 @@ export default function Detail({
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
+      {task.resolved && (
+        <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal">
+          <span aria-hidden="true">◆</span>
+          {agentNamed(task.resolved.by)
+            ? fill("agentNamedSaidDone", agentNamed(task.resolved.by) as string)
+            : t("agentSaidDone")}
+          <span className="ml-auto font-normal text-faint">{stamped(task.resolved.at)}</span>
+        </p>
+      )}
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
       <Section label={t("description")} />
@@ -246,6 +258,7 @@ export default function Detail({
           onComplete={onComplete}
           onDiscard={onDiscard}
           onReopen={onReopen}
+          onStillOpen={onStillOpen}
           onErase={onErase}
         />
       </main>
@@ -286,6 +299,7 @@ export default function Detail({
         onComplete={onComplete}
         onDiscard={onDiscard}
         onReopen={onReopen}
+        onStillOpen={onStillOpen}
         onErase={onErase}
       />
     </aside>
@@ -298,6 +312,7 @@ function Settled({
   onComplete,
   onDiscard,
   onReopen,
+  onStillOpen,
   onErase,
 }: {
   task: Task;
@@ -305,6 +320,7 @@ function Settled({
   onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
+  onStillOpen: () => void;
   onErase: () => void;
 }) {
   const folded = task.hidden || task.status === "dropped";
@@ -337,6 +353,16 @@ function Settled({
             >
               <span aria-hidden="true">⊘</span> {task.repeat ? t("endRepeat") : t("discardIt")}
             </button>
+            {task.resolved && (
+              <button
+                type="button"
+                onClick={onStillOpen}
+                title={fill("stillOpenIt", task.title)}
+                className={`${seat} hover:text-ink`}
+              >
+                <span aria-hidden="true">↩</span> {t("stillOpen")}
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -421,6 +447,14 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
         <span aria-hidden="true">{task.status === "dropped" ? "⨯" : "▣"}</span>{" "}
         {t(task.status === "dropped" ? "dropped" : "done")}
         {closed && ` · ${closed}`}
+        {task.resolved && (
+          <span className="text-hue-teal">
+            {" · "}
+            {agentNamed(task.resolved.by)
+              ? fill("agentNamedSaidDone", agentNamed(task.resolved.by) as string)
+              : t("agentSettled")}
+          </span>
+        )}
       </p>
       {seals.length > 0 && (
         <div className="mt-2.5 flex flex-wrap gap-1.5">

@@ -41,6 +41,7 @@ const shown = (task: Task) =>
       onComplete={nothing}
       onDiscard={nothing}
       onReopen={nothing}
+      onStillOpen={nothing}
       onErase={nothing}
       onClose={nothing}
     />,

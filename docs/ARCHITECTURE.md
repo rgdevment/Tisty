@@ -104,13 +104,13 @@ turns one on — from the Agents tab or `tisty agent --on`. Nothing arriving
 over the wire can register one. Its own directory is what keeps `undo`
 apart: the person's undo never reaches what the agent filed.
 
-It can propose a task, move the day of a task it filed itself, add to a
-journal, read one whole task or the fields of it that it names, search, attach
-a file to a task or into a document, write documents, add to them and change a
-passage of one, list what is written and file it into folders, and read the
-names of the lists. There is no tool for completing, dropping, deleting,
-undoing, editing a task the person wrote, making a list, or handing a document a
-new body whole.
+It can propose a task, move the day of a task it filed itself, say that a task
+it filed is done, add to a journal, read one whole task or the fields of it that
+it names, search, attach a file to a task or into a document, write documents,
+add to them and change a passage of one, list what is written and file it into
+folders, and read the names of the lists. There is no tool for completing,
+dropping, deleting, undoing, editing a task the person wrote, making a list, or
+handing a document a new body whole.
 
 `restore_doc` is the one thing that goes backwards, and it reaches documents
 only. Changing a passage and replacing a body already keep what they replaced
@@ -132,11 +132,17 @@ is its own. It is not a way out of the guarantee so much as a way of saying it
 out loud: the body it writes over is kept in turn, so the call that went too far
 is undone by the same call without the flag.
 
-`reschedule` is the one tool that writes over something already filed, and it
-reaches only tasks whose `created_by` is a device the person turned on as an
-agent. A day the person set is refused with the reason. Everything else an
-agent knows it must add rather than change: a journal note, a new task, a new
-document.
+`reschedule` and `say_done` are the two tools that write over something already
+filed, and both reach only tasks whose `created_by` is a device the person
+turned on as an agent. A day the person set is refused with the reason, and so
+is a task they wrote. Everything else an agent knows it must add rather than
+change: a journal note, a new task, a new document.
+
+`say_done` is the narrower of the two, and deliberately so: it adds a mark
+beside the task and the account that holds it up, and changes nothing else. The
+task stays open. Whether it closes is the person's, who may take the mark off
+instead — which is the one thing an agent cannot do twice over, because a second
+`say_done` on a mark nobody has looked at is refused rather than stacked.
 
 ### A door an agent can afford to walk through
 
@@ -238,9 +244,11 @@ take the good ones with it. What the door costs an agent is mostly the
 conversation it has to send again every time, not the writing.
 
 `find` carries the same idea: a `doc` argument searches inside one document and
-answers with line numbers, and `tag`, `list`, `by_agent` and a `from`/`to` range
-sift by what a task *is* rather than what it says, so «everything an agent filed
-for next week» is one call instead of a search and a read of each hit. Fields
+answers with line numbers, and `tag`, `list`, `by_agent`, `said_done` and a
+`from`/`to` range sift by what a task *is* rather than what it says, so
+«everything an agent filed for next week» is one call instead of a search and a
+read of each hit. `said_done` is how an agent tells what it has already spoken
+for from what it has not, so it does not say the same thing twice. Fields
 that say nothing — a null, an empty list — are left out of every answer.
 
 **No assistant ever deletes, and that is the design rather than an omission.** The
@@ -1347,6 +1355,15 @@ inverse.
 exists, so it does not carry the skip-me mark: a build that ignored it would show
 the folder open and write inside it. An older machine stops syncing until it
 updates, which it is told to do the moment it meets the newer store.
+
+**It was raised to 13 for `task.resolve` and `task.unresolve`.** The same
+reasoning: a mark an older build walked past would leave that build showing a
+task nobody has spoken for, and the person deciding without the account. Neither
+carries the skip-me mark. What the two of them say sits beside the task rather
+than inside it, so a build that does read them loses nothing if it meets them out
+of order; and because the account travels as a plain `task.log`, even a build
+that refuses the store entirely is refusing something whose reasons it would have
+understood.
 
 ## What the editor may write into a document
 

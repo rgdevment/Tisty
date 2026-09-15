@@ -8,7 +8,7 @@ Tisty no es un TODO como lo conoces. Es un historial de aprendizaje y conocimien
 
 Todo local, sin cuentas, sin suscripciones y sin telemetría: tus datos son tuyos. Crea notas en Markdown, documentación, recordatorios y mucho más. Es tu cuaderno personal y de trabajo, privado.
 
-Y si trabajas con un asistente, tiene una puerta por MCP para leer tus documentos, escribir uno nuevo o proponerte tareas. El programa que la abre corre en esta máquina. Cerrar y borrar no puede.
+Y si trabajas con un asistente, tiene una puerta por MCP para leer tus documentos, escribir uno nuevo o proponerte tareas. El programa que la abre corre en esta máquina. Puede decirte que una tarea suya está hecha; cerrar y borrar no puede.
 
 Esta guía te tomará un par de minutos y podrás conocer un poco más de qué puedes hacer en Tisty. Puedes volver a ella cuando quieras desde Ajustes.
 
@@ -281,6 +281,8 @@ Antes que abrirlo y destruirte eso en la primera tecla, Tisty lo dice y lo abre 
 ### 11. Un asistente puede escribir aquí
 
 Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste.
+
+Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Agentes** con la hora en que habló —salvo que venza hoy o esté atrasada, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
 
 Para reescribir un documento entero se le entrega una huella del texto exacto que leyó, y tiene que devolverla al escribir. Si escribiste tú en medio, la huella ya no cuadra: no se escribe nada y se le dice que vuelva a leerlo. La ventana te avisa cuando algo ha escrito en el documento que tienes abierto.
 

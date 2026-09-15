@@ -44,6 +44,7 @@ const shot = (): Snapshot => ({
   refs: [],
   counts: {},
   locale: "en",
+  agents: {},
 });
 
 let settling: Settling;

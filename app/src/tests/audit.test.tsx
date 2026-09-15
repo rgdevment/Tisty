@@ -212,6 +212,7 @@ describe("the title's size does not actually depend on whether the task is expan
       onComplete: vi.fn(),
       onDiscard: vi.fn(),
       onReopen: vi.fn(),
+      onStillOpen: vi.fn(),
       onErase: vi.fn(),
       onClose: vi.fn(),
     };

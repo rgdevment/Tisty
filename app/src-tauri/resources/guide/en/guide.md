@@ -8,7 +8,7 @@ Tisty is not a TODO app as you know it. It is a record of what you learned and w
 
 All local, no accounts, no subscriptions and no telemetry: your data is yours. Write notes in Markdown, documentation, reminders and much more. It is your notebook, personal and for work, and private.
 
-And if you work with an assistant, it has a door through MCP to read your documents, write a new one or propose tasks to you. The program that opens that door runs on this machine. Closing and deleting it cannot do.
+And if you work with an assistant, it has a door through MCP to read your documents, write a new one or propose tasks to you. The program that opens that door runs on this machine. It can tell you a task of its own is done; closing and deleting it cannot do.
 
 This guide takes a couple of minutes, and you will come out of it knowing a little more about what you can do in Tisty. You can come back to it from Settings whenever you like.
 
@@ -281,6 +281,8 @@ Rather than open it and destroy those on your first keystroke, Tisty says so and
 ### 11. An assistant can write here
 
 If you use an assistant, it can file documents and propose tasks of its own accord. What it cannot do is close, delete or touch what you wrote.
+
+When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **Agents** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
 
 To rewrite a whole document it is handed a print of the exact text it read, and it has to send that print back when it writes. If you wrote in between, the print no longer matches: nothing is written and it is told to read the document again. The window tells you when something wrote in the document you have open.
 

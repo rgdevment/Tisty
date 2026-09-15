@@ -3,6 +3,7 @@ import type { List, Priority, Task } from "../core";
 import { fill, t } from "../locales";
 import { QUADRANTS, said, tint } from "../quadrants";
 import Only from "./Only";
+import { Pip, spokenLabel } from "./Spoke";
 
 const WIDE = 1280;
 const SLIP = 5;
@@ -122,6 +123,7 @@ export default function Matrix({
     <li key={task.id}>
       <button
         type="button"
+        aria-label={spokenLabel(task)}
         {...carry(task)}
         className={`flex w-full touch-none items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] select-none hover:bg-hover ${
           held === task.id ? "cursor-grabbing opacity-30" : "cursor-grab"
@@ -129,8 +131,12 @@ export default function Matrix({
       >
         <span
           aria-hidden
-          className="h-3.5 w-3.5 shrink-0 rounded-full border-[1.5px] border-line"
-        />
+          className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-[1.5px] ${
+            task.resolved ? "border-hue-teal" : "border-line"
+          }`}
+        >
+          <Pip task={task} />
+        </span>
         <span className="truncate">{task.title}</span>
       </button>
     </li>
