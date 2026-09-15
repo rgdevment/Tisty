@@ -3,8 +3,6 @@ import { stamped } from "../format";
 import { fill, t } from "../locales";
 import { agentNamed } from "../who";
 
-export const spokenFor = (task: Task): boolean => Boolean(task.resolved);
-
 export function spokenLabel(task: Task): string {
   const bits = [task.title];
   if (task.status !== "open") bits.push(t(task.status));
@@ -12,7 +10,7 @@ export function spokenLabel(task: Task): string {
   return bits.join(" — ");
 }
 
-export function saidBy(task: Task): string {
+function saidBy(task: Task): string {
   const named = task.resolved ? agentNamed(task.resolved.by) : undefined;
   if (named) return fill("agentNamedSaidDone", named);
   return task.status === "open" ? t("agentSaidDone") : t("agentSettled");

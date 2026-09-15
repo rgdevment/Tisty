@@ -428,6 +428,30 @@ fn it_cannot_say_a_task_the_person_wrote_is_done() {
 }
 
 #[test]
+fn it_cannot_speak_for_what_another_agent_filed() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = filed(&served, "subir el timeout de apigee");
+
+    // The person retires that agent and turns a fresh one on: a new identity, same machine.
+    served.cli(&["agent", "--off"]);
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "say_done",
+        serde_json::json!({ "task": id, "body": "lo dejo por hecho" }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    let why = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        why.contains("another agent"),
+        "and it is told whose it was, not that it belongs to the person: {why}"
+    );
+    assert!(!why.contains("the person's own"), "{why}");
+}
+
+#[test]
 fn the_account_of_what_it_did_is_not_optional() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);

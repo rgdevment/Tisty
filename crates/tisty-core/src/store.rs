@@ -635,7 +635,7 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
 
 fn renamed(tmp: &Path, path: &Path) -> std::io::Result<()> {
     let mut wait = 10;
-    for _ in 0..4 {
+    for _ in 0..6 {
         match std::fs::rename(tmp, path) {
             Ok(()) => return Ok(()),
             Err(e) if !for_a_moment(&e) => return Err(e),

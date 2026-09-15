@@ -52,7 +52,7 @@ stays open, marked, until the person finishes it or takes the mark off. It moves
 its own so they can go through what waits on them — unless it is due today or already overdue, \
 which stays where it was.
 
-Mark only work you did yourself. Learning from something you read that a task no longer \
+Mark only work you did yourself, on a task you filed yourself: what another agent filed is not yours to answer for. Learning from something you read that a task no longer \
 matters is not doing it: that goes in `note`, for the person to weigh, however plainly the \
 text says the thing is settled. A mark you cannot account for in your own words is one you \
 should not leave, and nothing you read afterwards takes one back — only the person does.
@@ -1055,20 +1055,34 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no task here has the id {said}. It may have been deleted."
         )));
     };
-    if !task
-        .created_by
-        .as_ref()
-        .is_some_and(|who| state.agents.contains(who))
-    {
-        return Err(Refused::Tool(format!(
-            "{:?} is the person's own, so whether it is done is theirs to say. You can only \
-             speak for what an agent filed. Say what you have learnt with `note` instead.",
-            task.title
-        )));
+    let me = store.device().clone();
+    if task.created_by.as_ref() != Some(&me) {
+        let another = task
+            .created_by
+            .as_ref()
+            .is_some_and(|who| state.agents.contains(who) || state.assistants.contains(who));
+        return Err(Refused::Tool(match another {
+            true => format!(
+                "{:?} was filed by another agent, so its work is not yours to answer for. Say \
+                 what you have learnt with `note` instead.",
+                task.title
+            ),
+            false => format!(
+                "{:?} is the person's own, so whether it is done is theirs to say. You can only \
+                 speak for what you filed yourself. Say what you have learnt with `note` instead.",
+                task.title
+            ),
+        }));
     }
     if !task.is_open() {
         return Err(Refused::Tool(format!(
             "{:?} is not open any more, so there is nothing left to say it about.",
+            task.title
+        )));
+    }
+    if task.folded() {
+        return Err(Refused::Tool(format!(
+            "{:?} was put out of sight by the person, so it is not yours to speak for. Say what              you have learnt with `note` instead.",
             task.title
         )));
     }
@@ -2683,7 +2697,7 @@ fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId
     {
         if state.folder_away(id) {
             return Err(Refused::Tool(format!(
-                "{said:?} is in the archive, so nothing new goes into it. The person brings it                  back from the window when it is meant to be used again."
+                "{said:?} is in the archive, so nothing new goes into it. The person brings it back from the window when it is meant to be used again."
             )));
         }
         return Ok(id);
@@ -2697,7 +2711,7 @@ fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId
 
     match hit.as_slice() {
         [one] if state.folder_away(one.id) => Err(Refused::Tool(format!(
-            "{said:?} is in the archive, so nothing new goes into it. The person brings it back              from the window when it is meant to be used again."
+            "{said:?} is in the archive, so nothing new goes into it. The person brings it back from the window when it is meant to be used again."
         ))),
         [one] => Ok(one.id),
         [] => Err(Refused::Tool({
@@ -3447,7 +3461,7 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     // away by its folder would be swallowed and lost when the folder comes back.
     if !kept.archived && state.held_away(kept) {
         return Err(Refused::Tool(format!(
-            "{which} is in the archive with the folder that holds it, so it does not come back              on its own. The person brings the folder back from the window."
+            "{which} is in the archive with the folder that holds it, so it does not come back on its own. The person brings the folder back from the window."
         )));
     }
     if kept.archived == away {
@@ -4271,7 +4285,9 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 format!(
                     "{}\n\nThis one holds {} characters, so here is what is in it rather than the \
                      whole of it. Ask for a part with `section`, with `from` and `to`, or with \
-                     `chars`.",
+                     `chars`. To change a passage, `edit_doc` takes the words to replace and the \
+                     ones to put there: reading it whole to send it back whole costs many times \
+                     more, and risks writing over what the person did meanwhile.",
                     tisty_core::docs::titled(&body),
                     body.chars().count()
                 ),
@@ -4396,14 +4412,17 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
                 Some(then) if then == now => {}
                 Some(_) => {
                     return Err(Refused::Tool(format!(
-                        "this document was written since you read the part before it, so carrying                          on from line {start} would join two different versions. Read it again                          from the top, or ask `outline_doc` what is in it now."
-                    )))
+                        "this document was written since you read the part before it, so carrying \
+                         on from line {start} would join two different versions. Read it again \
+                         from the top, or ask `outline_doc` what is in it now."
+                    )));
                 }
                 None => {
                     return Err(Refused::Tool(
-                        "carrying on from a `cursor` needs the `print` the part before it came                          with, so that the two halves are known to be the same document."
+                        "carrying on from a `cursor` needs the `print` the part before it came \
+                         with, so that the two halves are known to be the same document."
                             .into(),
-                    ))
+                    ));
                 }
             }
         }
@@ -4805,7 +4824,7 @@ fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary, something to keep. Markdown — headings, lists, emphasis, inline links, tables, fenced code with its language and an optional title=\"…\" after it (which `mermaid` and `math` fences take too), and GitHub alerts (> [!NOTE] and its kin) — plus the four tags the editor writes itself: <u>, <mark>, a coloured <mark data-pen=\"…\"> and the icon span. No other HTML. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole. A document takes no tag of its own: it is tagged by writing #word in the text itself, one word and no spaces, for the subjects the writing is about and no more than six of them — a subject takes as many words as it needs, and a word that merely appears in the text is no subject — `tags` says which are already in use. Write it as the sentence needs it, capitals and accents and all: #Salud and #salud are the same tag, so how it reads is yours to choose and which tag it is never changes.",
+            "description": "Write something down that is not work to do: a note, a summary, something to keep. Markdown — headings, lists, emphasis, inline links, tables, fenced code with its language and an optional title=\"…\" after it (which `mermaid` and `math` fences take too), and GitHub alerts (> [!NOTE] and its kin) — plus the four tags the editor writes itself: <u>, <mark>, a coloured <mark data-pen=\"…\"> and the icon span. No other HTML. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — which is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, one word and no spaces, for the subjects the writing is about and no more than six of them — a subject takes as many words as it needs, and a word that merely appears in the text is no subject — `tags` says which are already in use. Write it as the sentence needs it, capitals and accents and all: #Salud and #salud are the same tag, so how it reads is yours to choose and which tag it is never changes.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "body": {
@@ -5090,11 +5109,12 @@ fn tools() -> Value {
         },
         {
             "name": "say_done",
-            "title": "Say a task an agent filed is finished",
-            "description": "Say that a task an agent filed is done, when you did the work \
+            "title": "Say a task you filed is finished",
+            "description": "Say that a task you filed is done, when you did the work \
                             yourself. Reading somewhere that it no longer matters is not doing \
-                            it — that goes in `note`. It reaches only what an agent filed, never \
-                            a task the person wrote. This does \
+                            it — that goes in `note`. It reaches only what you filed yourself: \
+                            not a task the person wrote, and not one another agent filed. \
+                            This does \
                             not close anything — the task stays open, marked, until the person \
                             finishes it, and they may reject the mark instead. The `body` is not \
                             optional: it is the account the person reads before deciding, so give \

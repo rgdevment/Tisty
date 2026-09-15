@@ -2573,6 +2573,46 @@ mod tests {
     }
 
     #[test]
+    fn the_turn_that_follows_a_marked_one_is_born_with_nothing_said_about_it() {
+        let mut state = State::default();
+        let id = Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("tomar las pastillas", "a0");
+        d.date = Some(DateSpec::floating(
+            "2026-09-15T09:00:00".parse().unwrap(),
+            "America/Santiago",
+        ));
+        d.repeat = Some(crate::model::Repeat {
+            from: crate::model::From::Due,
+            each: crate::model::Cadence {
+                every: 1,
+                unit: crate::model::Unit::Day,
+            },
+            until: None,
+        });
+        state.apply(&ev(1, "dev_agent", Op::TaskAdd { id, d }));
+        said_done(&mut state, 2, id);
+
+        let now = at(3).to_zoned(jiff::tz::TimeZone::UTC);
+        for (n, op) in state.completing(id, now).into_iter().enumerate() {
+            state.apply(&ev(4 + n as i64, "dev_laptop", op));
+        }
+
+        let born = state
+            .tasks
+            .values()
+            .find(|one| one.id != id)
+            .expect("nace el turno siguiente");
+        assert!(
+            born.resolved.is_none(),
+            "el turno nuevo no hereda lo que se dijo del anterior"
+        );
+        assert!(
+            state.tasks[&id].resolved.is_some(),
+            "y el que se cerro conserva las dos firmas"
+        );
+    }
+
+    #[test]
     fn work_that_comes_back_comes_back_unmarked() {
         let (mut state, id) = filed_by_an_agent();
         said_done(&mut state, 2, id);
