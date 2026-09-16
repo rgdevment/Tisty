@@ -30,6 +30,7 @@ import {
   keepLocale,
   keepReport,
   keepSettings,
+  keepTheme,
   logs,
   type Machine,
   type Reach,
@@ -55,6 +56,7 @@ import {
   syncKin,
   syncNow,
   syncState,
+  type Theme,
   type Twins,
   twinned,
   unwireAgent,
@@ -104,7 +106,8 @@ type Which =
   | "greet"
   | "signing"
   | "parcel"
-  | "tongue";
+  | "tongue"
+  | "look";
 type Word = { card: Which; text: string };
 type Tab = "general" | "data" | "agents" | "upkeep";
 
@@ -632,6 +635,34 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                     <option value="">{t("tongueTheirs")}</option>
                     <option value="es">Español</option>
                     <option value="en">English</option>
+                  </select>
+                </Line>
+              )}
+
+              {kept && (
+                <Line
+                  title={t("look")}
+                  why={t("lookWhy")}
+                  which="look"
+                  said={said}
+                  trouble={trouble}
+                >
+                  <select
+                    aria-label={t("look")}
+                    value={kept.theme ?? ""}
+                    disabled={held}
+                    onChange={(e) => {
+                      const wanted = (e.target.value || undefined) as Theme | undefined;
+                      run("look", keepTheme(wanted), (now) => {
+                        setKept({ ...kept, theme: now ?? undefined });
+                        onChanged();
+                      });
+                    }}
+                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  >
+                    <option value="">{t("lookTheirs")}</option>
+                    <option value="light">{t("lookLight")}</option>
+                    <option value="dark">{t("lookDark")}</option>
                   </select>
                 </Line>
               )}
@@ -1930,6 +1961,7 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   waking: "wake",
   greet: "greetAgain",
   tongue: "tongue",
+  look: "look",
   settings: "settingsTitle",
   notices: "bandNotices",
   attach: "attachTitle",

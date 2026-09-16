@@ -20,6 +20,7 @@ const KNOWN = [
   "notATaskId",
   "onlyArchivedGoes",
   "notAClosing",
+  "notATheme",
   "notAListId",
   "pastEnd",
   "manyLists",

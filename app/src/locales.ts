@@ -41,6 +41,7 @@ const en = {
   notATaskId: "That is not a task",
   onlyArchivedGoes: "Only what is archived and put away can be erased",
   notAClosing: "That is not a way to close",
+  notATheme: "That is not a look the window has",
   eraseIt: "Erase for good",
   eraseSure:
     "«{name}» goes from this machine and from the others on the next sync. There is no undo.",
@@ -943,6 +944,12 @@ const en = {
   tongueWhy:
     "Tisty speaks the language your computer does. Pick one here to hold it, whatever the computer says.",
   tongueTheirs: "Follow the computer",
+  look: "Look",
+  lookWhy:
+    "The window is light or dark the way your computer is. Pick one here to hold it, whatever the computer says.",
+  lookTheirs: "Follow the computer",
+  lookLight: "Light",
+  lookDark: "Dark",
   welcomeStep: "Step {name}",
   closingTitle: "Close the window, or quit Tisty?",
   closingWhy:
@@ -1278,6 +1285,7 @@ const es: Catalog = {
   notATaskId: "Eso no es una tarea",
   onlyArchivedGoes: "Solo se puede borrar lo que está archivado y oculto",
   notAClosing: "Esa no es una forma de cerrar",
+  notATheme: "La ventana no tiene ese aspecto",
   eraseIt: "Borrar para siempre",
   eraseSure:
     "«{name}» desaparece de este equipo y de los demás en la próxima sincronización. No hay deshacer.",
@@ -2185,6 +2193,12 @@ const es: Catalog = {
   tongueWhy:
     "Tisty habla el idioma de tu equipo. Elige uno aquí para fijarlo, diga lo que diga el equipo.",
   tongueTheirs: "Seguir al equipo",
+  look: "Aspecto",
+  lookWhy:
+    "La ventana es clara u oscura como lo sea tu equipo. Elige uno aquí para fijarlo, diga lo que diga el equipo.",
+  lookTheirs: "Seguir al equipo",
+  lookLight: "Claro",
+  lookDark: "Oscuro",
   welcomeStep: "Paso {name}",
   closingTitle: "¿Cerrar la ventana, o salir de Tisty?",
   closingWhy:

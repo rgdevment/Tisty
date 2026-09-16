@@ -494,10 +494,13 @@ export interface Freeing {
 export const freeUp = (): Promise<Freeing> => invoke("free_up");
 export const stopFreeing = (): Promise<void> => invoke("stop_freeing");
 
+export type Theme = "light" | "dark";
+
 export interface Settings {
   quiet: string[];
   attachUpTo: number;
   locale?: string;
+  theme?: Theme;
   holds: Holds;
   shares: boolean;
   onlySharedAbove: number;
@@ -640,6 +643,7 @@ export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<
   invoke("close_window", { how, remember });
 export const keepLocale = (locale?: string): Promise<string | null> =>
   invoke("keep_locale", { locale });
+export const keepTheme = (theme?: Theme): Promise<Theme | null> => invoke("keep_theme", { theme });
 export const keepClosing = (how: "hide" | "quit"): Promise<void> => invoke("keep_closing", { how });
 export const guide = (): Promise<Doc> => invoke("guide");
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });

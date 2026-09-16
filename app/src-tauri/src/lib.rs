@@ -2361,6 +2361,8 @@ struct Settings {
     attach_up_to: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     locale: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    theme: Option<tisty_core::config::Theme>,
     holds: tisty_core::config::Holds,
     /// Whether the choice means anything here: without a shared folder there is nowhere else.
     shares: bool,
@@ -2698,6 +2700,7 @@ fn as_settings(session: &Session) -> Settings {
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
         locale: session.config.locale.clone(),
+        theme: session.config.theme,
         holds: session.config.holds.unwrap_or_default(),
         shares: !session.config.backs_up(),
         only_shared_above: session.config.only_shared_above(),
@@ -5182,6 +5185,49 @@ fn keep_locale(
 }
 
 #[tauri::command]
+fn keep_theme(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    theme: Option<String>,
+) -> Answer<Option<tisty_core::config::Theme>> {
+    let wanted = match theme
+        .as_deref()
+        .map(str::trim)
+        .filter(|one| !one.is_empty())
+    {
+        None => None,
+        Some(said) => Some(
+            said.parse::<tisty_core::config::Theme>()
+                .map_err(|_| Refusal::of("notATheme"))?,
+        ),
+    };
+    held(&session).keep(|config| config.theme = wanted)?;
+    appearance(&app, wanted);
+    Ok(wanted)
+}
+
+/// The window's own theme is what the webview reads `prefers-color-scheme` from, so the
+/// page repaints by itself; absent, the window goes back to following the computer.
+fn appearance<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    theme: Option<tisty_core::config::Theme>,
+) {
+    let wanted = theme.map(|one| match one {
+        tisty_core::config::Theme::Light => tauri::Theme::Light,
+        tisty_core::config::Theme::Dark => tauri::Theme::Dark,
+    });
+    for window in app.webview_windows().values() {
+        if let Err(why) = window.set_theme(wanted) {
+            witness::warn(
+                channel::WINDOW,
+                "the window would not take the theme",
+                &[("why", Fact::Why(why.to_string()))],
+            );
+        }
+    }
+}
+
+#[tauri::command]
 fn keep_closing(session: tauri::State<'_, Mutex<Session>>, how: String) -> Answer<()> {
     let how = match how.as_str() {
         "hide" => tisty_core::config::Closing::Hide,
@@ -6666,6 +6712,7 @@ pub fn run() {
             // with the session comes back hidden — looking, to whoever pressed the button, like it
             // never came back at all.
             let came_back = session.config.found_version.as_deref() == Some(HERE);
+            appearance(app.handle(), session.config.theme);
             app.manage(Mutex::new(session));
             app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
             herald::watch(app.handle().clone(), watched);
@@ -6797,6 +6844,7 @@ pub fn run() {
             wake_for,
             keep_locale,
             keep_closing,
+            keep_theme,
             erase,
             guide,
             capture,

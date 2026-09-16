@@ -1704,6 +1704,29 @@ describe("the maintenance panel", () => {
     expect(sent("keep_locale")[0].args.locale).toBe("es");
   });
 
+  it("holds a look of its own, and lets it go back to the computer's", async () => {
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await ready();
+    const look = await screen.findByLabelText<HTMLSelectElement>(/^look$/i);
+    expect(look.value).toBe("");
+
+    await userEvent.selectOptions(look, "dark");
+    await waitFor(() => expect(sent("keep_theme").length).toBe(1));
+    expect(sent("keep_theme")[0].args.theme).toBe("dark");
+
+    await userEvent.selectOptions(look, "");
+    await waitFor(() => expect(sent("keep_theme").length).toBe(2));
+    expect(sent("keep_theme")[1].args.theme).toBeUndefined();
+  });
+
   it("offers the welcome again, without touching what is written", async () => {
     const greet = vi.fn();
     render(
