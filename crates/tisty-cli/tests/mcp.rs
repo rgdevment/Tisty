@@ -4205,3 +4205,27 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
         "the second filing is on the list"
     );
 }
+
+#[test]
+fn a_finish_taken_back_leaves_the_task_marked_as_the_agents() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = filed(&served, "renovar el certificado");
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "renovado, vence en 2027" }),
+    );
+    closed_by_the_person(&served, "renovar el certificado");
+    served.cli(&["undone", &id]);
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = &read["result"]["structuredContent"];
+    assert_eq!(kept["status"], serde_json::json!("open"), "{read}");
+    assert!(kept["closed"].is_null(), "{read}");
+    assert!(
+        kept["said_done"].is_string(),
+        "the person's mistaken finish does not unsay the agent: {read}"
+    );
+    let waiting = served.call("find", serde_json::json!({ "said_done": true }));
+    assert!(format!("{waiting}").contains(&id), "{waiting}");
+}

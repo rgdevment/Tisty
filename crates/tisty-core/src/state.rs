@@ -223,13 +223,14 @@ impl State {
                     t.closed_in = zone;
                 })
             }
+            // The agent's mark stays: reopening is most often a finish taken back by
+            // mistake, and taking the mark off is the person's own op, `TaskUnresolve`.
             Op::TaskReopen { id } => self.with_task(*id, |t| {
                 t.status = Status::Open;
                 t.filled = false;
                 t.closed_in = None;
                 t.completed_at = None;
                 t.hidden = false;
-                t.resolved = None;
             }),
             Op::TaskHide { id } => self.with_task(*id, |t| t.hidden = true),
             Op::TaskShow { id } => self.with_task(*id, |t| t.hidden = false),
@@ -2613,17 +2614,22 @@ mod tests {
     }
 
     #[test]
-    fn work_that_comes_back_comes_back_unmarked() {
+    fn work_that_comes_back_is_still_the_agents() {
         let (mut state, id) = filed_by_an_agent();
         said_done(&mut state, 2, id);
         state.apply(&ev(3, "dev_laptop", Op::TaskDone { id, filled: false }));
 
         state.apply(&ev(4, "dev_laptop", Op::TaskReopen { id }));
 
+        let task = &state.tasks[&id];
+        assert_eq!(task.status, Status::Open);
         assert!(
-            state.tasks[&id].resolved.is_none(),
-            "an old claim on work that is open again would be a lie"
+            task.resolved.is_some(),
+            "a finish taken back does not unsay the agent: taking the mark off is its own op"
         );
+
+        state.apply(&ev(5, "dev_laptop", Op::TaskUnresolve { id }));
+        assert!(state.tasks[&id].resolved.is_none());
     }
 
     #[test]

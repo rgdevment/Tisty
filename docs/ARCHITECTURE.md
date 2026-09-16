@@ -159,7 +159,10 @@ done once more, and never while the earlier task is still open.
 beside the task and the account that holds it up, and changes nothing else. The
 task stays open. Whether it closes is the person's, who may take the mark off
 instead — which is the one thing an agent cannot do twice over, because a second
-`say_done` on a mark nobody has looked at is refused rather than stacked.
+`say_done` on a mark nobody has looked at is refused rather than stacked. The
+mark survives a finish taken back: reopening clears the closing and nothing
+else, because a finish undone by mistake must not unsay the agent, and saying
+no to the mark is the person's own op, `TaskUnresolve`, not a side effect.
 
 ### A door an agent can afford to walk through
 
