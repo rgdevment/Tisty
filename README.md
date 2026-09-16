@@ -571,7 +571,26 @@ inside a document, which takes the larger file of the two — and read what is
 already there. What it may not do: close a task or delete one, say a task you
 wrote is done, move a day you set, delete a document, rename or empty a folder,
 reach a task you folded away, take files from outside the folders where a
-download lands, or file the same thing twice.
+download lands, or file the same thing twice. A task you closed is history to
+it: it reads as it ended, takes no note and no new day, and if the same work
+comes back the assistant proposes a new one that says how the last one ended.
+One you closed having written nothing on it — no description, no journal — it
+does not see at all: that is your trace, and there was nothing in it to learn.
+
+**The command line is yours, not the assistant's.** An assistant with a shell
+could type `tisty done 3` the day its MCP server is not connected, and act as
+you; or `tisty agent --on`, and let itself in. So `tisty` looks at who is at the
+keyboard before it opens anything, and refuses every command but `tisty mcp`
+when a coding assistant is — by the marks its environment carries, by what sits
+above it in the process tree, or by an editor above it and no terminal at all.
+And `tisty agent --on` asks you, on the terminal, before it lets anyone in: a
+shell with no terminal to answer from is refused outright, whatever drives it.
+The refusal is written for the assistant that reads it: go through the server,
+or tell the person it is down. It is a heuristic, and an honest one: the same
+user in the same shell cannot be told apart with certainty, so where your
+assistant's client can turn the command down before it runs — a hook, a rule —
+that is the layer that does not depend on the server, and this is the floor
+beneath it.
 
 It also reads sparingly, which is your business as much as its own. Tisty keeps
 a small card for each document — its headings, how long it is, what it leans

@@ -3942,3 +3942,164 @@ fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
         "{said}"
     );
 }
+
+// The person closes from the terminal, which is theirs: the listing numbers what `done` names.
+fn closed_by_the_person(served: &Served, title: &str) {
+    let listed = served.cli(&["ls", "all"]);
+    let number = listed
+        .lines()
+        .find(|line| line.contains(title))
+        .and_then(|line| line.split_whitespace().next())
+        .unwrap_or_else(|| panic!("{title:?} is not listed: {listed}"))
+        .trim_end_matches('.')
+        .to_string();
+    served.cli(&["done", &number]);
+}
+
+const A_STORY: &str = "La reunión con el colegio dejó tres cosas claras. La primera es que la \
+                       cartulina rosada se compra el lunes, en la librería de la esquina, y que \
+                       hacen falta cuatro pliegos. La segunda es que la profesora quiere ver \
+                       el trabajo el miércoles antes de la exposición del viernes. La tercera \
+                       es que los padres no entran a la sala durante la exposición, así que \
+                       hay que grabarla con el teléfono del hermano mayor, que es el único con \
+                       memoria libre, y descargarla esa misma noche antes de que se llene otra \
+                       vez con los videos del partido del sábado por la mañana temprano.";
+
+#[test]
+fn a_closed_task_is_history_and_takes_nothing_more() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = served.call(
+        "propose",
+        serde_json::json!({ "title": "comprar la cartulina", "description": A_STORY }),
+    )["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    closed_by_the_person(&served, "comprar la cartulina");
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = &read["result"]["structuredContent"];
+    assert_eq!(kept["status"], serde_json::json!("done"), "{read}");
+    assert!(
+        kept["closed"]
+            .as_str()
+            .is_some_and(|at| at.starts_with(&today_there())),
+        "the day it ended travels with it: {read}"
+    );
+    assert!(
+        read["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("history"),
+        "{read}"
+    );
+
+    for (tool, args) in [
+        (
+            "note",
+            serde_json::json!({ "task": &id, "body": "faltó un pliego" }),
+        ),
+        (
+            "say_done",
+            serde_json::json!({ "task": &id, "body": "comprada" }),
+        ),
+        (
+            "reschedule",
+            serde_json::json!({ "task": &id, "date": "2026-12-01" }),
+        ),
+    ] {
+        let tried = served.call(tool, args);
+        assert_eq!(tried["result"]["isError"], true, "{tool}: {tried}");
+        let said = tried["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(said.contains("history"), "{tool}: {said}");
+        assert!(said.contains("propose a new task"), "{tool}: {said}");
+        assert!(
+            said.contains(&id),
+            "the refusal names the closed one: {said}"
+        );
+    }
+    let whole = served.call("read", serde_json::json!({ "task": &id }));
+    assert!(
+        whole["result"]["structuredContent"]["journal"].is_null(),
+        "nothing was written on it: {whole}"
+    );
+}
+
+#[test]
+fn what_was_closed_having_left_nothing_written_is_out_of_sight() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let before =
+        served.call("catch_up", serde_json::json!({}))["result"]["structuredContent"]["cursor"]
+            .as_str()
+            .unwrap()
+            .to_string();
+    let id = served.call(
+        "propose",
+        serde_json::json!({ "title": "comprar pan", "source": "wa:msg-4410" }),
+    )["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    closed_by_the_person(&served, "comprar pan");
+
+    let sought = served.call(
+        "find",
+        serde_json::json!({ "query": "pan", "scope": "either" }),
+    );
+    assert_eq!(
+        sought["result"]["structuredContent"]["total"],
+        serde_json::json!(0),
+        "{sought}"
+    );
+    let sifted = served.call(
+        "find",
+        serde_json::json!({ "by_agent": true, "scope": "archive" }),
+    );
+    assert!(!format!("{sifted}").contains("comprar pan"), "{sifted}");
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert_eq!(read["result"]["isError"], true, "{read}");
+    let said = read["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("trace"), "{said}");
+    assert!(
+        !said.contains("comprar pan"),
+        "the refusal does not hand the title over: {said}"
+    );
+
+    let moved = served.call("catch_up", serde_json::json!({ "since": before }));
+    assert!(!format!("{moved}").contains("comprar pan"), "{moved}");
+
+    // The source still answers, or the same message would be filed twice.
+    let again = served.call("find", serde_json::json!({ "source": "wa:msg-4410" }));
+    let found = &again["result"]["structuredContent"]["found"];
+    assert_eq!(found["id"], serde_json::json!(id), "{again}");
+    assert!(found["closed"].is_string(), "{again}");
+}
+
+#[test]
+fn a_closed_task_that_taught_something_is_still_found() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call(
+        "propose",
+        serde_json::json!({ "title": "exposición del colegio", "description": A_STORY }),
+    );
+    closed_by_the_person(&served, "exposición del colegio");
+
+    let sought = served.call(
+        "find",
+        serde_json::json!({ "query": "cartulina", "scope": "archive" }),
+    );
+    let hit = &sought["result"]["structuredContent"]["matches"][0];
+    assert_eq!(hit["status"], serde_json::json!("done"), "{sought}");
+    assert!(hit["closed"].is_string(), "{sought}");
+    assert!(
+        sought["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("(done 20"),
+        "the line says when: {sought}"
+    );
+}

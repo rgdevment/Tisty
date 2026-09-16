@@ -2111,3 +2111,17 @@ fn a_day_that_is_not_a_date_is_refused_before_anything_is_written() {
         "the task was closed anyway"
     );
 }
+
+// The store these tests run in is chosen by them, not the person's: an assistant at the
+// keyboard is turned away only from the person's own. The suite itself runs under one.
+#[test]
+fn an_assistant_may_use_a_store_the_person_did_not_choose() {
+    let cli = Cli::new();
+    let mut command = cli.command(cli.home.path(), cli.zone);
+    command.env("CLAUDECODE", "1").args(["lists"]);
+
+    let run = finish(command.output().unwrap());
+
+    assert_eq!(run.code, 0, "{}", run.err);
+    assert!(!run.err.contains("assistant"), "{}", run.err);
+}

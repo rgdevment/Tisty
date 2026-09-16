@@ -576,7 +576,27 @@ archivo más grande de los dos— y leer lo que ya está. Lo que no puede: cerra
 tarea ni borrarla, dar por hecha una tarea que escribiste tú, mover un día que
 pusiste tú, borrar un documento, renombrar ni vaciar una carpeta, alcanzar una
 tarea que plegaste, tomar archivos fuera de las carpetas donde aterriza una
-descarga, ni anotar dos veces lo mismo.
+descarga, ni anotar dos veces lo mismo. Una tarea que cerraste es histórico
+para él: se lee como terminó, no admite bitácora ni un día nuevo, y si el mismo
+trabajo vuelve, el asistente propone una nueva que dice cómo terminó la
+anterior. Una que cerraste sin haber escrito nada en ella —sin descripción, sin
+bitácora— no la ve siquiera: es tu rastro, y no había nada en ella que aprender.
+
+**La línea de comandos es tuya, no del asistente.** Un asistente con shell
+podría teclear `tisty done 3` el día que su servidor MCP no esté conectado, y
+actuar como tú; o `tisty agent --on`, y darse entrada solo. Así que `tisty` mira
+quién está al teclado antes de abrir nada, y rechaza todo comando salvo `tisty
+mcp` cuando lo está un asistente de programación: por las marcas que lleva su
+entorno, por lo que hay encima de él en el árbol de procesos, o por un editor
+encima y ninguna terminal. Y `tisty agent --on` te pregunta a ti, en la
+terminal, antes de dar entrada a nadie: una shell sin terminal desde la que
+responder se rechaza sin más, la maneje quien la maneje. El rechazo está
+escrito para el asistente que lo lee:
+ve por el servidor, o dile a la persona que está caído. Es una heurística, y una
+honesta: al mismo usuario en el mismo shell no se le distingue con certeza, así
+que donde el cliente de tu asistente pueda negar el comando antes de que corra
+—un hook, una regla—, esa es la capa que no depende del servidor, y esta es el
+suelo debajo.
 
 También lee con mesura, que es asunto tuyo tanto como suyo. Tisty guarda una
 ficha de cada documento —sus títulos, cuánto ocupa, las palabras en que se

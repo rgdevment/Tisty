@@ -100,9 +100,10 @@ machine can file work. It is a subcommand of the same binary, so it resolves
 the same paths, takes the same lock, and duplicates no logic.
 
 An agent writes under a `device_id` of its own, minted only when the person
-turns one on — from the Agents tab or `tisty agent --on`. Nothing arriving
-over the wire can register one. Its own directory is what keeps `undo`
-apart: the person's undo never reaches what the agent filed.
+turns one on — from the Agents tab or `tisty agent --on`, which asks them on
+the terminal first. Nothing arriving over the wire can register one. Its own
+directory is what keeps `undo` apart: the person's undo never reaches what the
+agent filed.
 
 It can propose a task, move the day of a task it filed itself, say that a task
 it filed is done, add to a journal, read one whole task or the fields of it that
@@ -137,6 +138,17 @@ filed, and both reach only tasks whose `created_by` is a device the person
 turned on as an agent. A day the person set is refused with the reason, and so
 is a task they wrote. Everything else an agent knows it must add rather than
 change: a journal note, a new task, a new document.
+
+A task the person closed is history to an agent. It comes back from `read`
+and `find` with `closed` set to the moment it ended, and `note`, `reschedule`
+and `say_done` are all refused on it with the same answer: it reads as it
+ended, nothing on it changes, and work that came back is a new task whose
+description says how the last one ended. Traces — closed tasks whose
+`reading()` is `Trace`, having left nothing written — stay out of an agent's
+sight altogether: `find` and `catch_up` leave them out and `read` turns the id
+away without naming the task. There was nothing in them to learn, and listing
+them would only hand over what the person did; `find` by `source` still answers
+for one, or the same message would be filed twice.
 
 `say_done` is the narrower of the two, and deliberately so: it adds a mark
 beside the task and the account that holds it up, and changes nothing else. The
@@ -250,6 +262,34 @@ answers with line numbers, and `tag`, `list`, `by_agent`, `said_done` and a
 read of each hit. `said_done` is how an agent tells what it has already spoken
 for from what it has not, so it does not say the same thing twice. Fields
 that say nothing — a null, an empty list — are left out of every answer.
+
+**The terminal is the person's, and the binary checks that it is.** An
+assistant with a shell could type `tisty done 3` the day its server is not
+connected, or `tisty agent --on` and mint itself the device the paragraphs
+above say only the person mints. So every subcommand but `mcp` looks at who is
+at the keyboard before the store opens, and is refused when a coding assistant
+is: by a mark in the environment (`CLAUDECODE` and the like), by one up the
+process tree (`claude`, `codex`, `gemini`, `opencode`…), or by an editor up the
+tree with no terminal attached at all — the editor's own integrated terminal
+has one, its agent's shell has none. The refusal is written for the assistant
+that reads it, because it is the one instruction that reaches it without the
+server: go through the server, or tell the person it is down. It is noted in
+the log, so the person can see it happened. A store the person did not choose —
+`TISTY_DATA`, a `TISTY_PROFILE` sandbox — is not guarded, which is what lets
+the tests and `demo` run under an assistant. The check is a heuristic and says
+so: the same user in the same shell cannot be told apart with certainty, and
+an environment variable does not cross from WSL into a Windows binary reached
+through interop. On Windows the tree is walked by `sysinfo` rather than by
+hand, because reading it there takes a call this workspace forbids itself.
+Where the assistant's client can turn the command down before it runs — a
+hook, a rule — that is the layer that does not depend on the server; the
+binary is the floor beneath it.
+
+`tisty agent --on` is guarded once more, and this time by no list of names:
+past the check above it asks the person, on the terminal itself, and a shell
+with no terminal is turned away — a piped answer never reaches the prompt, and
+a shell an assistant drives has no terminal to answer from. A store the person
+did not choose asks nobody, which is what lets the tests turn an agent on.
 
 **No assistant ever deletes, and that is the design rather than an omission.** The
 MCP has no tool that writes any of the deletions — not a task, not a list, not a

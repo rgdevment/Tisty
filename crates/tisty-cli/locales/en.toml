@@ -187,6 +187,9 @@ agent-none     = "no assistant can file work here"
 agent-already  = 'an assistant is already registered, as "{name}"'
 agent-not-on   = "no assistant was registered"
 agent-how      = "point it at: tisty mcp"
+agent-sure     = "Let an assistant file work here? It will be able to propose tasks, write notes and documents, and read what is written"
+agent-needs-terminal = "letting an assistant in is done by you, at a terminal — and this one has none. Open one and run `tisty agent --on` there, or use Settings › Agents in the window"
+not-for-an-assistant = "this command line is the person's, and an assistant does not use it — not even to read. File work through the MCP server, which the person connects to their assistant; if it is not connected, tell them so and stop. Nothing was read or written"
 
 attached-from      = "kept from {path}"
 attach-too-big     = "that file is over the {limit} MB this machine copies"

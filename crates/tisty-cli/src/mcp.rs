@@ -6,7 +6,7 @@ use tisty_core::{
     Op, Paths, State, Store, Task, TaskId,
     capture::{Draft, Rejected},
     event::{Body, LogAdd, Resolve, StepAdd, TaskPatch},
-    model::{DateSpec, FOLDER_NAME_AT_MOST, Priority, Tag},
+    model::{DateSpec, FOLDER_NAME_AT_MOST, Priority, Reading, Tag},
     order,
     witness::{self, Fact},
 };
@@ -162,7 +162,15 @@ quotes when the order is the point.
 `note` appends to a task's journal, including tasks the person wrote themselves. Use it \
 when something new turns up about work that already exists, rather than filing a duplicate. \
 `read` gives you one whole task — description, steps, journal, what it keeps — so ask for it \
-before adding a note and you will not write down what is already written.";
+before adding a note and you will not write down what is already written.
+
+A task the person closed is history. It comes back with `closed` set to the day and hour it \
+ended, reads as it ended, and nothing on it changes: not its day, not its journal, not a mark \
+saying it is done — every one of those is refused. When the same work has come back, that is a \
+new task: `read` how the closed one ended, propose the new one with a description that says so, \
+naming the closed one by its title and its id, and give it a source of its own. What was closed \
+having left nothing written — no description, no journal, a step or two — is the person's trace, \
+and stays out of your sight altogether: `find` does not list it and `read` does not open it.";
 
 pub fn turn(paths: &Paths, on: Option<bool>, lang: crate::i18n::Lang) -> anyhow::Result<ExitCode> {
     let config = tisty_core::Config::load_or_init(paths)?;
@@ -185,6 +193,21 @@ pub fn turn(paths: &Paths, on: Option<bool>, lang: crate::i18n::Lang) -> anyhow:
             println!("  {}", crate::style::dim(lang.get("agent-how")));
         }
         (Some(true), None) => {
+            match let_in(crate::typist::at_the_persons_store(), at_a_terminal()) {
+                Door::Asks if !agreed(lang) => {
+                    println!("  {}", crate::style::dim(lang.get("agent-none")));
+                    return Ok(ExitCode::SUCCESS);
+                }
+                Door::NoTerminal => {
+                    eprintln!(
+                        "{}: {}",
+                        crate::style::paint(crate::style::RED, lang.get("error")),
+                        lang.get("agent-needs-terminal")
+                    );
+                    return Ok(ExitCode::from(crate::EXIT_ERROR));
+                }
+                Door::Asks | Door::Open => {}
+            }
             let who = tisty_core::agent::register(paths)?;
             println!("  {}", lang.fill("agent-on", &[("name", &named(&who))]));
             println!("  {}", crate::style::dim(lang.get("agent-how")));
@@ -196,6 +219,36 @@ pub fn turn(paths: &Paths, on: Option<bool>, lang: crate::i18n::Lang) -> anyhow:
         (Some(false), None) => println!("  {}", crate::style::dim(lang.get("agent-not-on"))),
     }
     Ok(ExitCode::SUCCESS)
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum Door {
+    Open,
+    Asks,
+    NoTerminal,
+}
+
+/// Letting an assistant in is the person's act, so the person is asked — on the terminal
+/// itself, which a shell an assistant drives does not have and a piped answer never reaches.
+fn let_in(at_the_persons_store: bool, at_a_terminal: bool) -> Door {
+    match (at_the_persons_store, at_a_terminal) {
+        (false, _) => Door::Open,
+        (true, true) => Door::Asks,
+        (true, false) => Door::NoTerminal,
+    }
+}
+
+fn at_a_terminal() -> bool {
+    use std::io::IsTerminal;
+    std::io::stdin().is_terminal() && std::io::stderr().is_terminal()
+}
+
+fn agreed(lang: crate::i18n::Lang) -> bool {
+    dialoguer::Confirm::new()
+        .with_prompt(lang.get("agent-sure"))
+        .default(false)
+        .interact()
+        .unwrap_or(false)
 }
 
 pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
@@ -932,11 +985,7 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     }
     if !task.is_open() {
-        return Err(Refused::Tool(format!(
-            "{:?} is not open any more, and a day on a closed task means nothing. Propose a new \
-             one if the work came back.",
-            task.title
-        )));
+        return Err(history(task));
     }
 
     let was = (
@@ -1012,6 +1061,9 @@ fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no task here has the id {said}. It may have been deleted."
         )));
     };
+    if !task.is_open() {
+        return Err(history(task));
+    }
 
     let zone = jiff::tz::TimeZone::system();
     store
@@ -1076,10 +1128,7 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         }));
     }
     if !task.is_open() {
-        return Err(Refused::Tool(format!(
-            "{:?} is not open any more, so there is nothing left to say it about.",
-            task.title
-        )));
+        return Err(history(task));
     }
     if task.folded() {
         return Err(Refused::Tool(format!(
@@ -1349,7 +1398,7 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let hits: Vec<&Task> = hits
         .into_iter()
-        .filter(|one| !one.folded() && sifted.keeps(one, &state))
+        .filter(|one| in_sight(one) && sifted.keeps(one, &state))
         .collect();
     let all = hits.len();
     let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
@@ -1363,7 +1412,7 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let papers: Vec<Value> = papers.into_iter().take(most).collect();
     let mut lines: Vec<String> = hits
         .iter()
-        .map(|task| format!("{} — {} ({})", task.id, task.title, named(task.status)))
+        .map(|task| format!("{} — {} ({})", task.id, task.title, standing(task)))
         .collect();
     lines.extend(papers.iter().map(|one| {
         let put_away = if one["archived"] == json!(true) {
@@ -1611,6 +1660,37 @@ fn named(status: tisty_core::model::Status) -> &'static str {
     }
 }
 
+fn standing(task: &Task) -> String {
+    match task.completed_at.filter(|_| !task.is_open()) {
+        Some(at) => format!("{} {}", named(task.status), when(at)),
+        None => named(task.status).to_string(),
+    }
+}
+
+/// A closed task that left nothing written is the person's trace: it taught nothing, so
+/// there is nothing in it for an agent, and listing it would only hand over what they did.
+fn a_trace(task: &Task) -> bool {
+    !task.is_open() && task.reading() == Reading::Trace
+}
+
+fn in_sight(task: &Task) -> bool {
+    !task.folded() && !a_trace(task)
+}
+
+fn history(task: &Task) -> Refused {
+    let ended = task
+        .completed_at
+        .map(|at| format!(" on {}", when(at)))
+        .unwrap_or_default();
+    Refused::Tool(format!(
+        "{:?} was closed{ended} and is history now: it reads as it ended, and nothing on it \
+         changes — not its day, not its journal, not a mark saying it is done. If the same work \
+         has come back, `read` how this one ended and propose a new task whose description says \
+         so, naming this one by its title and its id {}, with a source of its own.",
+        task.title, task.id
+    ))
+}
+
 fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "task") else {
         return Err(Refused::Tool("reading needs a `task` id.".into()));
@@ -1628,6 +1708,17 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no task here has the id {said}. Look it up again with `find`."
         )));
     };
+    if a_trace(task) {
+        let ended = task
+            .completed_at
+            .map(|at| format!(" on {}", when(at)))
+            .unwrap_or_default();
+        return Err(Refused::Tool(format!(
+            "that task was closed{ended} and left nothing written, so there is nothing of it to \
+             read: it is the person's trace, out of an assistant's sight. If the same work has \
+             come back, propose it anew, with a source of its own."
+        )));
+    }
 
     let asked = listed(args, "fields");
     let wants = |key: &str| asked.is_empty() || asked.iter().any(|one| one == key);
@@ -1675,6 +1766,12 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
 
     let mut plainly = format!("{} — {}", task.id, task.title);
+    if !task.is_open() {
+        plainly.push_str(&format!(
+            " ({}; history — it reads as it ended, and nothing on it changes)",
+            standing(task)
+        ));
+    }
     if let Some(body) = &task.description
         && wants("description")
     {
@@ -3924,7 +4021,7 @@ fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .iter()
                 .filter_map(|id| id.parse::<TaskId>().ok())
                 .filter_map(|id| state.tasks.get(&id))
-                .filter(|one| !one.folded())
+                .filter(|one| in_sight(one))
                 .map(|one| brief(one, &state))
                 .collect();
             let written: Vec<Value> = papers
@@ -4572,6 +4669,10 @@ fn brief(task: &Task, state: &State) -> Value {
     put("title", json!(task.title));
     put("status", json!(task.status));
     put(
+        "closed",
+        json!(task.completed_at.filter(|_| !task.is_open()).map(when)),
+    );
+    put(
         "date",
         json!(task.date.as_ref().map(|d| d.date().to_string())),
     );
@@ -4778,7 +4879,8 @@ fn tools() -> Value {
             "title": "Add to a task's journal",
             "description": "Append to what a task has recorded. Works on tasks the person wrote \
                             too. Use it when something new turns up about work that already \
-                            exists, instead of filing a duplicate.",
+                            exists, instead of filing a duplicate. A closed task is history and \
+                            takes no note: if the work came back, propose it anew.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
@@ -5142,14 +5244,14 @@ fn tools() -> Value {
         {
             "name": "read",
             "title": "Read a whole task",
-            "description": "Everything one task holds: its description, its steps, its journal and what it keeps. Ask for it before adding a note, so you do not write down something already written. With `fields` it brings only the parts you name, which is how to check one thing about a task whose journal is long.",
+            "description": "Everything one task holds: its description, its steps, its journal and what it keeps. Ask for it before adding a note, so you do not write down something already written. With `fields` it brings only the parts you name, which is how to check one thing about a task whose journal is long. A closed task comes with `closed` and reads as it ended; one that was closed having left nothing written is the person's trace and is not opened.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these parts of it: any of title, status, date, deadline, reminders, tags, source, list, priority, by_agent, description, steps, journal, kept. Left out, everything comes. The id always does"
+                        "description": "Only these parts of it: any of title, status, closed, date, deadline, reminders, tags, source, list, priority, by_agent, description, steps, journal, kept. Left out, everything comes. The id always does"
                     }
                 },
                 "required": ["task"]
@@ -5216,6 +5318,18 @@ fn tools() -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_assistant_is_let_in_only_by_somebody_at_a_terminal() {
+        assert_eq!(let_in(true, true), Door::Asks);
+        assert_eq!(let_in(true, false), Door::NoTerminal);
+    }
+
+    #[test]
+    fn a_store_the_person_did_not_choose_asks_nobody() {
+        assert_eq!(let_in(false, false), Door::Open);
+        assert_eq!(let_in(false, true), Door::Open);
+    }
 
     #[test]
     fn a_notice_goes_after_the_heading_and_otherwise_after_the_block_that_opens_the_body() {

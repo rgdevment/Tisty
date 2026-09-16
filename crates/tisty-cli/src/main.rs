@@ -6,6 +6,7 @@ mod mcp;
 mod render;
 mod select;
 mod style;
+mod typist;
 
 use std::process::ExitCode;
 
@@ -16,6 +17,7 @@ use i18n::Lang;
 
 pub const EXIT_ERROR: u8 = 1;
 pub const EXIT_NOT_FOUND: u8 = 4;
+pub const EXIT_NOT_FOR_AN_ASSISTANT: u8 = 5;
 
 const SUBCOMMANDS: &[&str] = &[
     "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
@@ -408,6 +410,29 @@ fn run() -> anyhow::Result<ExitCode> {
     // beside it is never a stale read.
     if matches!(cli.command, Command::Mcp) {
         return mcp::serve(paths);
+    }
+    // The terminal writes as the person. An assistant with a shell would type it the moment
+    // its MCP server is down, or let itself in with `agent --on`; the refusal is the one
+    // instruction that reaches it without that server.
+    if typist::at_the_persons_store()
+        && let Some(sign) = typist::assistant()
+    {
+        tisty_core::witness::note(
+            tisty_core::witness::channel::TERMINAL,
+            "an assistant was turned away from the terminal",
+            &[
+                ("command", tisty_core::witness::Fact::Code(asked())),
+                ("sign", tisty_core::witness::Fact::Code(sign.kind())),
+                ("name", tisty_core::witness::Fact::Id(sign.name())),
+            ],
+        );
+        let lang = Lang::detect(None);
+        eprintln!(
+            "{}: {}",
+            style::paint(style::RED, lang.get("error")),
+            lang.get("not-for-an-assistant")
+        );
+        return Ok(ExitCode::from(EXIT_NOT_FOR_AN_ASSISTANT));
     }
     if let Command::Leave { yes } = cli.command {
         let lang = Lang::detect(tisty_core::Config::load_or_init(&paths)?.locale.as_deref());
