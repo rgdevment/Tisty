@@ -140,15 +140,18 @@ is a task they wrote. Everything else an agent knows it must add rather than
 change: a journal note, a new task, a new document.
 
 A task the person closed is history to an agent. It comes back from `read`
-and `find` with `closed` set to the moment it ended, and `note`, `reschedule`
-and `say_done` are all refused on it with the same answer: it reads as it
-ended, nothing on it changes, and work that came back is a new task whose
-description says how the last one ended. Traces — closed tasks whose
-`reading()` is `Trace`, having left nothing written — stay out of an agent's
-sight altogether: `find` and `catch_up` leave them out and `read` turns the id
+and `find` with `closed` set to the moment it ended, and every tool that
+writes on a task — `note`, `reschedule`, `say_done`, `remind`, `attach` — is
+refused on it with the same answer: it reads as it ended, nothing on it
+changes, and work that came back is a new task whose description says how the
+last one ended. Traces — closed tasks whose `reading()` is `Trace`, having left
+nothing or next to nothing written — stay out of an agent's sight altogether:
+`find` and `catch_up` leave them out, and `read` and every refusal turn the id
 away without naming the task. There was nothing in them to learn, and listing
 them would only hand over what the person did; `find` by `source` still answers
-for one, or the same message would be filed twice.
+for one, or the same message would be filed twice. Refusing the writers is
+what keeps the trace one: a journal line long enough to count as prose — an
+`attach` label, say — would have weighed it into a story and brought it back.
 
 `say_done` is the narrower of the two, and deliberately so: it adds a mark
 beside the task and the account that holds it up, and changes nothing else. The
@@ -288,8 +291,11 @@ binary is the floor beneath it.
 `tisty agent --on` is guarded once more, and this time by no list of names:
 past the check above it asks the person, on the terminal itself, and a shell
 with no terminal is turned away — a piped answer never reaches the prompt, and
-a shell an assistant drives has no terminal to answer from. A store the person
-did not choose asks nobody, which is what lets the tests turn an agent on.
+the shell most assistants drive is a pipe. One driving a pseudo-terminal has a
+terminal to answer from, and is back in the hands of the heuristic above. A
+store the person did not choose asks nobody, which is what lets the tests turn
+an agent on — read the way `Paths::resolve` reads it, so a profile name it
+throws away does not open the person's own store to the check's exemption.
 
 **No assistant ever deletes, and that is the design rather than an omission.** The
 MCP has no tool that writes any of the deletions — not a task, not a list, not a

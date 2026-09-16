@@ -56,10 +56,11 @@ const RUNTIMES: &[&str] = &["node", "bun", "deno", "python", "python3"];
 const ANCESTORS_AT_MOST: usize = 16;
 
 /// A store the person did not choose is not the person's list: tests and `demo` run there.
+/// The profile is read the way `Paths::resolve` reads it, so a name it throws away — blank,
+/// nothing but punctuation — still counts as the person's store here.
 pub fn at_the_persons_store() -> bool {
-    [tisty_core::paths::DATA_ENV, tisty_core::paths::PROFILE_ENV]
-        .iter()
-        .all(|key| std::env::var_os(key).is_none_or(|v| v.is_empty()))
+    std::env::var_os(tisty_core::paths::DATA_ENV).is_none_or(|v| v.is_empty())
+        && tisty_core::paths::profile().is_none()
 }
 
 pub fn assistant() -> Option<Sign> {
@@ -67,18 +68,25 @@ pub fn assistant() -> Option<Sign> {
         .filter(|(_, value)| !value.is_empty())
         .map(|(key, _)| key.to_string_lossy().into_owned())
         .collect();
+    if let Some(mark) = marked(&env) {
+        return Some(mark);
+    }
     let at_a_terminal = std::io::stdin().is_terminal()
         || std::io::stdout().is_terminal()
         || std::io::stderr().is_terminal();
     read(&env, &ancestors(), at_a_terminal)
 }
 
-fn read(env: &[String], ancestors: &[String], at_a_terminal: bool) -> Option<Sign> {
-    if let Some(mark) = ENV_MARKS
+fn marked(env: &[String]) -> Option<Sign> {
+    ENV_MARKS
         .iter()
         .find(|mark| env.iter().any(|key| key == *mark))
-    {
-        return Some(Sign::Env(mark));
+        .map(|mark| Sign::Env(mark))
+}
+
+fn read(env: &[String], ancestors: &[String], at_a_terminal: bool) -> Option<Sign> {
+    if let Some(mark) = marked(env) {
+        return Some(mark);
     }
     for name in ancestors {
         if ASSISTANTS.contains(&name.as_str()) {
@@ -194,22 +202,27 @@ fn ancestors() -> Vec<String> {
     out
 }
 
+// One process at a time, not the whole table: reading every command line on the machine
+// is what makes a process scan slow on Windows. A parent that started after its child is a
+// pid Windows has handed out again since the real parent went away.
 #[cfg(windows)]
 fn ancestors() -> Vec<String> {
     use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
     let mut system = System::new();
-    system.refresh_processes_specifics(
-        ProcessesToUpdate::All,
-        true,
-        ProcessRefreshKind::nothing().with_cmd(UpdateKind::Always),
-    );
+    let wants = ProcessRefreshKind::nothing().with_cmd(UpdateKind::Always);
     let mut out = Vec::new();
     let mut pid = Pid::from_u32(std::process::id());
     for _ in 0..ANCESTORS_AT_MOST {
-        let Some(ppid) = system.process(pid).and_then(|one| one.parent()) else {
+        system.refresh_processes_specifics(ProcessesToUpdate::Some(&[pid]), false, wants);
+        let Some(child) = system.process(pid) else {
             break;
         };
-        let Some(above) = system.process(ppid) else {
+        let born = child.start_time();
+        let Some(ppid) = child.parent() else {
+            break;
+        };
+        system.refresh_processes_specifics(ProcessesToUpdate::Some(&[ppid]), false, wants);
+        let Some(above) = system.process(ppid).filter(|one| one.start_time() <= born) else {
             break;
         };
         let mut args: Vec<String> = above
@@ -244,6 +257,11 @@ mod tests {
         let seen = read(&strings(&["HOME", "CLAUDECODE"]), &[], true);
 
         assert_eq!(seen, Some(Sign::Env("CLAUDECODE")));
+        assert_eq!(
+            marked(&strings(&["HOME", "CLAUDECODE"])),
+            Some(Sign::Env("CLAUDECODE"))
+        );
+        assert_eq!(marked(&strings(&["HOME", "PATH"])), None);
     }
 
     #[test]

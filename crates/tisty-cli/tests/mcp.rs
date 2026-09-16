@@ -3995,6 +3995,8 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
         "{read}"
     );
 
+    let loose = served.home.path().join("boleta.txt");
+    std::fs::write(&loose, "la boleta de la librería").unwrap();
     for (tool, args) in [
         (
             "note",
@@ -4007,6 +4009,14 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
         (
             "reschedule",
             serde_json::json!({ "task": &id, "date": "2026-12-01" }),
+        ),
+        (
+            "remind",
+            serde_json::json!({ "task": &id, "at": ["2026-12-01T09:00"] }),
+        ),
+        (
+            "attach",
+            serde_json::json!({ "task": &id, "path": loose.to_string_lossy() }),
         ),
     ] {
         let tried = served.call(tool, args);
@@ -4023,6 +4033,10 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
     assert!(
         whole["result"]["structuredContent"]["journal"].is_null(),
         "nothing was written on it: {whole}"
+    );
+    assert!(
+        whole["result"]["structuredContent"]["reminders"].is_null(),
+        "no bell was set on it: {whole}"
     );
 }
 
@@ -4059,13 +4073,44 @@ fn what_was_closed_having_left_nothing_written_is_out_of_sight() {
     );
     assert!(!format!("{sifted}").contains("comprar pan"), "{sifted}");
 
-    let read = served.call("read", serde_json::json!({ "task": &id }));
-    assert_eq!(read["result"]["isError"], true, "{read}");
-    let said = read["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(said.contains("trace"), "{said}");
-    assert!(
-        !said.contains("comprar pan"),
-        "the refusal does not hand the title over: {said}"
+    // The trace was a bare title with nothing written: a label long enough to be prose would
+    // turn it into a story and bring it back into sight, so attaching is refused with the rest.
+    let loose = served.home.path().join("probe.txt");
+    std::fs::write(&loose, "una boleta").unwrap();
+    let wordy = "a ".repeat(100).trim().to_string();
+    for (tool, args) in [
+        ("read", serde_json::json!({ "task": &id })),
+        ("note", serde_json::json!({ "task": &id, "body": "hoy no" })),
+        (
+            "say_done",
+            serde_json::json!({ "task": &id, "body": "comprado" }),
+        ),
+        (
+            "reschedule",
+            serde_json::json!({ "task": &id, "date": "2026-12-01" }),
+        ),
+        (
+            "remind",
+            serde_json::json!({ "task": &id, "at": ["2026-12-01T09:00"] }),
+        ),
+        (
+            "attach",
+            serde_json::json!({ "task": &id, "path": loose.to_string_lossy(), "label": wordy }),
+        ),
+    ] {
+        let tried = served.call(tool, args);
+        assert_eq!(tried["result"]["isError"], true, "{tool}: {tried}");
+        let said = tried["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(said.contains("trace"), "{tool}: {said}");
+        assert!(
+            !said.contains("comprar pan"),
+            "{tool}: the refusal does not hand the title over: {said}"
+        );
+    }
+    let still = served.call("read", serde_json::json!({ "task": &id }));
+    assert_eq!(
+        still["result"]["isError"], true,
+        "still out of sight: {still}"
     );
 
     let moved = served.call("catch_up", serde_json::json!({ "since": before }));

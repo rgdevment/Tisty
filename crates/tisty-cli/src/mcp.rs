@@ -909,11 +909,14 @@ fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
         )));
     };
-    let Some(task) = state.tasks.get(&id) else {
+    let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
         return Err(Refused::Tool(format!(
             "no task here has the id {said}. It may have been deleted."
         )));
     };
+    if !task.is_open() {
+        return Err(history(task));
+    }
 
     let mut all = task.reminders.clone();
     let mut added = 0;
@@ -1188,9 +1191,10 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
                     "{who:?} is not a task id. Use the `id` that `find` or `propose` gave you."
                 )));
             };
-            match state.tasks.contains_key(&id) {
-                true => Ok(Beside::Task(id)),
-                false => Err(Refused::Tool(format!("no task here has the id {who}."))),
+            match state.tasks.get(&id).filter(|one| !one.folded()) {
+                Some(task) if !task.is_open() => Err(history(task)),
+                Some(_) => Ok(Beside::Task(id)),
+                None => Err(Refused::Tool(format!("no task here has the id {who}."))),
             }
         }
         (None, Some(which)) => {
@@ -1677,11 +1681,27 @@ fn in_sight(task: &Task) -> bool {
     !task.folded() && !a_trace(task)
 }
 
-fn history(task: &Task) -> Refused {
-    let ended = task
-        .completed_at
+fn ended(task: &Task) -> String {
+    task.completed_at
         .map(|at| format!(" on {}", when(at)))
-        .unwrap_or_default();
+        .unwrap_or_default()
+}
+
+/// Not even the title: naming it would hand over what `find` and `read` keep out of sight.
+fn trace_refused(task: &Task) -> Refused {
+    Refused::Tool(format!(
+        "that task was closed{} and left nothing, or next to nothing, written, so there is \
+         nothing of it to read: it is the person's trace, out of an assistant's sight. If the \
+         same work has come back, propose it anew, with a source of its own.",
+        ended(task)
+    ))
+}
+
+fn history(task: &Task) -> Refused {
+    if a_trace(task) {
+        return trace_refused(task);
+    }
+    let ended = ended(task);
     Refused::Tool(format!(
         "{:?} was closed{ended} and is history now: it reads as it ended, and nothing on it \
          changes — not its day, not its journal, not a mark saying it is done. If the same work \
@@ -1709,15 +1729,7 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     };
     if a_trace(task) {
-        let ended = task
-            .completed_at
-            .map(|at| format!(" on {}", when(at)))
-            .unwrap_or_default();
-        return Err(Refused::Tool(format!(
-            "that task was closed{ended} and left nothing written, so there is nothing of it to \
-             read: it is the person's trace, out of an assistant's sight. If the same work has \
-             come back, propose it anew, with a source of its own."
-        )));
+        return Err(trace_refused(task));
     }
 
     let asked = listed(args, "fields");
