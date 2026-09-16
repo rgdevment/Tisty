@@ -19,6 +19,7 @@ import Composed from "./Composed";
 
 const COFFEE = "https://buymeacoffee.com/rgdevment";
 const SPONSOR = "https://github.com/sponsors/rgdevment";
+const STORE_UPDATES = "ms-windows-store://downloadsandupdates";
 
 const TOOLS = [
   {
@@ -145,7 +146,16 @@ export default function About({
                   {newer.installs ? (
                     t("updateAsk")
                   ) : newer.route === "store" ? (
-                    t("updateStore")
+                    <>
+                      {t("updateStore")}
+                      <button
+                        type="button"
+                        onClick={() => openUrl(STORE_UPDATES).catch(onError)}
+                        className={`mt-2 block ${mild}`}
+                      >
+                        {t("openStore")}
+                      </button>
+                    </>
                   ) : (
                     <code>{fill("updateBrewCli", newer.package ?? "tisty")}</code>
                   )}
