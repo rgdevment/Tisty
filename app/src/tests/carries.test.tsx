@@ -51,6 +51,8 @@ const show = (status: Task["status"], expanded: boolean) =>
       onReopen={() => {}}
       onStillOpen={() => {}}
       onErase={() => {}}
+      onFold={() => {}}
+      onReadAs={() => {}}
       onClose={() => {}}
     />,
   );

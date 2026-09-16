@@ -227,6 +227,8 @@ describe("opening a task", () => {
         onReopen={() => {}}
         onStillOpen={() => {}}
         onErase={() => {}}
+        onFold={() => {}}
+        onReadAs={() => {}}
         onClose={() => {}}
         onError={() => {}}
       />,

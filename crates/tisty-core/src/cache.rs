@@ -1279,6 +1279,48 @@ mod tests {
     }
 
     #[test]
+    fn a_summary_keeps_the_conversion_it_was_handed() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        store
+            .append(Op::TaskDone {
+                id: f.task,
+                filled: false,
+            })
+            .unwrap();
+        store
+            .append(Op::TaskUpdate {
+                id: f.task,
+                d: crate::event::TaskPatch {
+                    read_as: Some(Some(crate::Reading::Trace)),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let mut light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(light.tasks[&f.task].read_as, Some(crate::Reading::Trace));
+        assert_eq!(light.tasks[&f.task].reading(), crate::Reading::Trace);
+
+        let event = store
+            .append(Op::TaskUpdate {
+                id: f.task,
+                d: crate::event::TaskPatch {
+                    title: Some("retitled while light".into()),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+        light.apply(&event);
+        assert_eq!(
+            light.tasks[&f.task].read_as,
+            Some(crate::Reading::Trace),
+            "a patch in summary mode does not shake the conversion off"
+        );
+    }
+
+    #[test]
     fn a_write_that_is_not_carried_leaves_the_cache_behind() {
         let f = loaded();
         project(&f.store_root, &f.cache_dir).unwrap();

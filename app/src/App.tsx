@@ -29,6 +29,7 @@ import {
   docsUnpack,
   dropStep,
   erase,
+  eraseTrace,
   type Filed,
   FOLDER_NAME_AT_MOST,
   type Folded,
@@ -40,6 +41,7 @@ import {
   folderFile,
   folderLook,
   folderRename,
+  foldTrace,
   markStep,
   noteTrouble,
   owed,
@@ -49,6 +51,7 @@ import {
   patch,
   type Ready,
   type Rift,
+  readAs,
   reopen,
   type Snapshot,
   settleIn,
@@ -834,6 +837,26 @@ export default function App() {
           setSelected(undefined);
           setFound(null);
           say(t("erased"));
+          load();
+          carries.current?.changed();
+        });
+      })
+      .catch((e) => setError(saidPlainly(e)));
+  };
+
+  // The set is the core's to decide, under the lock, the instant it runs: the window only
+  // asks, with the count it painted, and says how many went.
+  const sweepTrace = (how: "fold" | "erase") => {
+    const many = String(data.counts.traces ?? 0);
+    const sure = how === "fold" ? fill("foldTraceSure", many) : fill("eraseTraceSure", many);
+    ask(sure, { kind: how === "fold" ? "info" : "warning" })
+      .then((yes) => {
+        if (!yes) return;
+        setError(null);
+        return (how === "fold" ? foldTrace() : eraseTrace()).then((went) => {
+          setSelected(undefined);
+          setFound(null);
+          say(fill(how === "fold" ? "foldedMany" : "erasedMany", String(went)));
           load();
           carries.current?.changed();
         });
@@ -1731,6 +1754,8 @@ export default function App() {
                 onReopen={() => act(reopen(task.id))}
                 onStillOpen={() => act(stillOpen(task.id))}
                 onErase={() => wipe(task)}
+                onFold={(away) => act(fold(task.id, away))}
+                onReadAs={(how) => act(readAs(task.id, how))}
                 onClose={shut}
                 onError={(e) => setError(saidPlainly(e))}
                 onDoc={openDoc}
@@ -1930,6 +1955,34 @@ export default function App() {
                                 </button>
                               );
                             })}
+                            {found === null &&
+                            !chosen.folded &&
+                            chosen.layer === "trace" &&
+                            data.counts.traces ? (
+                              <>
+                                <span className="mx-1.5 h-3.5 w-px bg-hair" />
+                                <button
+                                  type="button"
+                                  onClick={() => sweepTrace("fold")}
+                                  className="text-[11.5px] text-faint hover:text-ink"
+                                >
+                                  ⊖ {t("foldTrace")}
+                                  <span className="ml-1 tabular-nums opacity-70">
+                                    {data.counts.traces}
+                                  </span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => sweepTrace("erase")}
+                                  className="ml-1 text-[11.5px] text-faint hover:text-urgent"
+                                >
+                                  ✕ {t("eraseTrace")}
+                                  <span className="ml-1 tabular-nums opacity-70">
+                                    {data.counts.traces}
+                                  </span>
+                                </button>
+                              </>
+                            ) : null}
                             {data.counts.folded || chosen.folded ? (
                               <button
                                 type="button"
@@ -2024,6 +2077,8 @@ export default function App() {
               onReopen={() => act(reopen(task.id))}
               onStillOpen={() => act(stillOpen(task.id))}
               onErase={() => wipe(task)}
+              onFold={(away) => act(fold(task.id, away))}
+              onReadAs={(how) => act(readAs(task.id, how))}
               onClose={shut}
               onError={(e) => setError(saidPlainly(e))}
               onDoc={openDoc}

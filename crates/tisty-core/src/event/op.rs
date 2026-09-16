@@ -2,7 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::event::DeviceId;
 use crate::model::{
-    DateSpec, DocId, FolderId, ListId, LogId, Priority, Repeat, StepId, Tag, TaskId,
+    DateSpec, DocId, FolderId, ListId, LogId, Priority, Reading, Repeat, StepId, Tag, TaskId,
 };
 
 mod null_clears {
@@ -489,6 +489,10 @@ pub struct TaskPatch {
     pub reminders: Option<Vec<DateSpec>>,
     #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
     pub repeat: Option<Option<Repeat>>,
+    /// The layer the person converted it to; null takes the conversion back, and only undo
+    /// writes that.
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub read_as: Option<Option<Reading>>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

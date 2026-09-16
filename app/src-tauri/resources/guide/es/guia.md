@@ -302,7 +302,7 @@ En Ajustes puedes además guardar un respaldo completo cuando quieras.
 - **Descartar** la aparta sin hacerla: también acaba en el Archivo.
 - Lo del Archivo sigue ahí por si lo buscas. No estorba.
 
-> **Antes de borrar de verdad.** Solo se puede con lo que ya está archivado **y** apartado de la vista. Al borrar desaparece de este equipo y de los demás en la siguiente sincronización, y no hay deshacer.
+> **Antes de borrar de verdad.** Solo se puede con lo que ya está cerrado **y** se lee como rastro. Una historia solo se oculta: para borrarla, léela antes como rastro. Al borrar desaparece de este equipo y de los demás en la siguiente sincronización, y no hay deshacer.
 
 Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en uso en otro documento. Quedan sueltos, y Ajustes → Mantenimiento te los lista para soltarlos cuando quieras.
 

@@ -66,7 +66,29 @@ export interface Task {
   filled?: boolean;
   source?: string;
   closed_in?: string;
+  read_as?: Reading;
 }
+
+export const STORY_AT = 3;
+
+// The same sum the core makes of a task's volume: prose, then steps and references by bucket.
+export const weightOf = (task: Task): number => {
+  const steps = task.volume?.steps ?? 0;
+  const refs = task.volume?.refs ?? 0;
+  const plan = steps >= 8 ? 2 : steps >= 3 ? 1 : 0;
+  const links = refs >= 3 ? 2 : refs >= 1 ? 1 : 0;
+  return (task.volume?.prose ?? 0) + plan + links;
+};
+
+export const readingOf = (task: Task): Reading => {
+  if (task.repeat || task.after) return "routine";
+  if (task.read_as === "story" || task.read_as === "trace") return task.read_as;
+  return weightOf(task) >= STORY_AT ? "story" : "trace";
+};
+
+// Only a closed trace goes; a story is hidden, and converting it is the deliberate step.
+export const erasable = (task: Task): boolean =>
+  task.status !== "open" && readingOf(task) === "trace";
 
 export interface Repeat {
   from: "due" | "done";
@@ -163,7 +185,8 @@ export type Chapter =
   | { chapter: "unplanned"; text: string }
   | { chapter: "closed" }
   | { chapter: "dropped" }
-  | { chapter: "reopened" };
+  | { chapter: "reopened" }
+  | { chapter: "converted"; from?: Reading | null; to?: Reading | null };
 
 export type Page = { n: number; at: string; by: string; undoing?: boolean } & Chapter;
 
@@ -280,6 +303,10 @@ export const dropStep = (id: string, step: string): Promise<Task> =>
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
+export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
+  invoke("read_as", { id, how });
+export const foldTrace = (): Promise<number> => invoke("fold_trace");
+export const eraseTrace = (): Promise<number> => invoke("erase_trace");
 export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });
 export const complete = (id: string, also?: string[]): Promise<Task> =>
   invoke("complete", { id, also });

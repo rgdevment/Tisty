@@ -302,7 +302,7 @@ Settings can also write you a full backup whenever you want one.
 - **Dropping** puts it aside without doing it: it lands in the Archive too.
 - What is in the Archive stays there in case you look for it.
 
-> **Before erasing for good.** It is only possible for what is already archived **and** put away out of sight. Erasing takes it off this computer, and off the others at the next sync, with no undo.
+> **Before erasing for good.** It is only possible for what is already closed **and** reads as a trace. A story is only hidden: to erase it, read it as a trace first. Erasing takes it off this computer, and off the others at the next sync, with no undo.
 
 Files you had attached do not go with it, because another document might still be using them. They stay behind as loose files, and Settings → Maintenance lists them for you to let go of when you want.
 

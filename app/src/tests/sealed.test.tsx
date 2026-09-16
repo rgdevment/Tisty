@@ -43,6 +43,8 @@ const shown = (task: Task) =>
       onReopen={nothing}
       onStillOpen={nothing}
       onErase={nothing}
+      onFold={() => {}}
+      onReadAs={() => {}}
       onClose={nothing}
     />,
   );

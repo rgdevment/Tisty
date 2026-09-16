@@ -636,6 +636,11 @@ fn chapter(what: &tisty_core::story::Chapter, state: &State, today: Date, lang: 
         Chapter::Closed => style::paint(GREEN, lang.get("trail-closed")),
         Chapter::Dropped => lang.get("trail-dropped").into(),
         Chapter::Reopened => lang.get("trail-reopened").into(),
+        Chapter::Converted { to, .. } => match to {
+            Some(tisty_core::Reading::Story) => lang.get("trail-kept-story").into(),
+            Some(tisty_core::Reading::Trace) => lang.get("trail-read-trace").into(),
+            _ => lang.get("trail-read-by-itself").into(),
+        },
     }
 }
 

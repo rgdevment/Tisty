@@ -4,7 +4,7 @@ use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
 use crate::event::{DeviceId, Event, Op};
-use crate::model::{DateSpec, ListId, Priority, Repeat, StepId, Tag, TaskId};
+use crate::model::{DateSpec, ListId, Priority, Reading, Repeat, StepId, Tag, TaskId};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "chapter", rename_all = "lowercase")]
@@ -68,6 +68,10 @@ pub enum Chapter {
     Closed,
     Dropped,
     Reopened,
+    Converted {
+        from: Option<Reading>,
+        to: Option<Reading>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -96,6 +100,7 @@ struct Standing {
     list: Option<ListId>,
     tags: Vec<Tag>,
     repeat: Option<Repeat>,
+    read_as: Option<Reading>,
     described: bool,
     steps: HashMap<StepId, String>,
 }
@@ -197,6 +202,15 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
                         to: *repeat,
                     });
                     standing.repeat = *repeat;
+                }
+                if let Some(read_as) = d.read_as
+                    && read_as != standing.read_as
+                {
+                    write(Chapter::Converted {
+                        from: standing.read_as,
+                        to: read_as,
+                    });
+                    standing.read_as = read_as;
                 }
             }
 
@@ -439,6 +453,52 @@ mod tests {
         ];
 
         assert_eq!(story(&log, mine).pages.len(), 1);
+    }
+
+    #[test]
+    fn a_conversion_after_closing_is_a_chapter_and_taking_it_back_says_so() {
+        let id = Ulid::generate();
+        let convert = |seconds: i64, to: Option<Reading>| {
+            patched(
+                seconds,
+                id,
+                TaskPatch {
+                    read_as: Some(to),
+                    ..Default::default()
+                },
+            )
+        };
+        let mut back = convert(30, None);
+        back.undo = true;
+        let log = vec![
+            born(id, "comprar pan"),
+            event(10, Op::TaskDone { id, filled: false }),
+            convert(20, Some(Reading::Trace)),
+            convert(25, Some(Reading::Trace)),
+            back,
+        ];
+
+        let told = story(&log, id);
+
+        assert_eq!(
+            chapters(&told),
+            vec![
+                &Chapter::Born {
+                    title: "comprar pan".into()
+                },
+                &Chapter::Closed,
+                &Chapter::Converted {
+                    from: None,
+                    to: Some(Reading::Trace)
+                },
+                &Chapter::Converted {
+                    from: Some(Reading::Trace),
+                    to: None
+                },
+            ],
+            "the same conversion twice is one chapter, and the undo is its own"
+        );
+        assert!(told.pages[3].undoing);
     }
 
     #[test]

@@ -5,8 +5,8 @@ use ulid::Ulid;
 use crate::{
     event::{DeviceId, Event, LogAdd, LogEdit, Op, StepAdd, TaskAdd, TaskMove, TaskPatch},
     model::{
-        DocId, Folder, FolderId, Kept, List, ListId, LogEntry, Priority, Status, Step, StepId, Tag,
-        Task, TaskId,
+        DocId, Folder, FolderId, Kept, List, ListId, LogEntry, Priority, Reading, Status, Step,
+        StepId, Tag, Task, TaskId,
     },
     order,
 };
@@ -213,7 +213,10 @@ impl State {
                 }
                 self.tasks.insert(*id, task);
             }
-            Op::TaskUpdate { id, d } => self.with_task(*id, |t| patch(t, d)),
+            Op::TaskUpdate { id, d } => {
+                let person = !self.assistants.contains(&event.device);
+                self.with_task(*id, |t| patch(t, d, person))
+            }
             Op::TaskDone { id, filled } => {
                 let zone = event.zone.clone();
                 self.with_task(*id, |t| {
@@ -1093,6 +1096,26 @@ impl State {
         ops
     }
 
+    /// What the trace layer shows: closed, not folded away, and read as a trace this instant.
+    /// The bulk actions take exactly this, decided under the lock, never a list the window sent.
+    pub fn the_trace(&self) -> impl Iterator<Item = &Task> {
+        self.tasks
+            .values()
+            .filter(|t| t.is_archived() && !t.folded() && t.reading() == Reading::Trace)
+    }
+
+    pub fn folding_the_trace(&self) -> Vec<Op> {
+        self.the_trace()
+            .map(|t| Op::TaskHide { id: t.id })
+            .collect()
+    }
+
+    pub fn erasing_the_trace(&self) -> Vec<Op> {
+        self.the_trace()
+            .map(|t| Op::TaskDelete { id: t.id })
+            .collect()
+    }
+
     pub fn reopening(&self, id: TaskId) -> Vec<Op> {
         let mut ops = vec![Op::TaskReopen { id }];
         if let Some(born) = self
@@ -1258,7 +1281,7 @@ impl State {
                 t.folded(),
                 t.is_archived(),
                 *hit,
-                std::cmp::Reverse(t.weight()),
+                std::cmp::Reverse(t.heft()),
                 std::cmp::Reverse(t.completed_at),
                 std::cmp::Reverse(t.id),
             )
@@ -1410,9 +1433,17 @@ fn task_from(id: TaskId, d: &TaskAdd) -> Task {
     }
 }
 
-fn patch(task: &mut Task, d: &TaskPatch) {
+fn patch(task: &mut Task, d: &TaskPatch, person: bool) {
     if let Some(v) = &d.title {
         task.title = v.clone();
+    }
+    // Converting is the person's: a patch an assistant wrote lands without it. A routine is
+    // never converted, and a pin to "routine" says nothing rather than clearing.
+    if person
+        && let Some(v) = d.read_as
+        && v != Some(Reading::Routine)
+    {
+        task.read_as = v;
     }
     if let Some(v) = &d.date {
         task.date = v.clone();
@@ -5587,6 +5618,284 @@ mod tests {
 
         state.apply(&ev(4, "dev_laptop", Op::AttachRetire { d: at }));
         assert_eq!(state.retired.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod converting {
+    use super::*;
+    use crate::event::{DeviceId, Event, LogAdd, TaskPatch};
+    use crate::model::{STORY_AT, Stays};
+    use ulid::Ulid;
+
+    fn at(ms: i64) -> jiff::Timestamp {
+        jiff::Timestamp::from_millisecond(ms).unwrap()
+    }
+
+    fn ev(ms: i64, who: &str, op: Op) -> Event {
+        Event::new(DeviceId(who.into()), at(ms), op)
+    }
+
+    fn converted(id: TaskId, to: Option<Reading>) -> Op {
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                read_as: Some(to),
+                ..Default::default()
+            },
+        }
+    }
+
+    fn a_line(id: TaskId, said: &str) -> Op {
+        Op::TaskLog {
+            id,
+            d: LogAdd::new(Ulid::generate(), said),
+        }
+    }
+
+    const LONG: &str = "another long entry about the parcel, the depot, the neighbour and the \
+                        courier who never rings twice";
+
+    /// A closed errand with nothing written: the trace every archive is mostly made of.
+    fn closed(state: &mut State, ms: i64, who: &str, title: &str) -> TaskId {
+        let id = Ulid::generate();
+        state.apply(&ev(
+            ms,
+            who,
+            Op::TaskAdd {
+                id,
+                d: crate::event::TaskAdd::new(title, "a0"),
+            },
+        ));
+        state.apply(&ev(ms + 1, who, Op::TaskDone { id, filled: false }));
+        id
+    }
+
+    fn a_story(state: &mut State, ms: i64, who: &str, title: &str) -> TaskId {
+        let id = closed(state, ms, who, title);
+        for n in 0..3 {
+            state.apply(&ev(ms + 2 + n, who, a_line(id, LONG)));
+        }
+        assert_eq!(state.tasks[&id].reading(), Reading::Story);
+        id
+    }
+
+    #[test]
+    fn a_conversion_is_applied_and_taken_back_by_null() {
+        let mut state = State::default();
+        let id = closed(&mut state, 1, "dev_laptop", "comprar pan");
+
+        state.apply(&ev(5, "dev_laptop", converted(id, Some(Reading::Story))));
+        assert_eq!(state.tasks[&id].read_as, Some(Reading::Story));
+        assert_eq!(state.tasks[&id].reading(), Reading::Story);
+
+        state.apply(&ev(6, "dev_laptop", converted(id, None)));
+        assert_eq!(state.tasks[&id].read_as, None);
+        assert_eq!(state.tasks[&id].reading(), Reading::Trace);
+    }
+
+    #[test]
+    fn a_conversion_to_routine_is_ignored_not_a_clearing() {
+        let mut state = State::default();
+        let id = closed(&mut state, 1, "dev_laptop", "comprar pan");
+        state.apply(&ev(5, "dev_laptop", converted(id, Some(Reading::Story))));
+
+        state.apply(&ev(6, "dev_laptop", converted(id, Some(Reading::Routine))));
+
+        assert_eq!(state.tasks[&id].read_as, Some(Reading::Story));
+    }
+
+    #[test]
+    fn an_assistant_cannot_convert_but_the_rest_of_its_patch_lands() {
+        let mut state = State::default();
+        state.apply(&ev(
+            1,
+            "dev_agent",
+            Op::DeviceJoin {
+                d: DeviceId("dev_agent".into()),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        ));
+        let id = closed(&mut state, 2, "dev_laptop", "comprar pan");
+
+        state.apply(&ev(
+            5,
+            "dev_agent",
+            Op::TaskUpdate {
+                id,
+                d: TaskPatch {
+                    read_as: Some(Some(Reading::Story)),
+                    title: Some("comprar pan integral".into()),
+                    ..Default::default()
+                },
+            },
+        ));
+
+        let task = &state.tasks[&id];
+        assert_eq!(task.read_as, None, "converting is the person's");
+        assert_eq!(task.title, "comprar pan integral");
+    }
+
+    #[test]
+    fn reopening_keeps_the_conversion_and_clears_only_hidden() {
+        let mut state = State::default();
+        let id = closed(&mut state, 1, "dev_laptop", "comprar pan");
+        state.apply(&ev(5, "dev_laptop", converted(id, Some(Reading::Story))));
+        state.apply(&ev(6, "dev_laptop", Op::TaskHide { id }));
+
+        state.apply(&ev(7, "dev_laptop", Op::TaskReopen { id }));
+
+        let task = &state.tasks[&id];
+        assert!(!task.hidden);
+        assert_eq!(task.read_as, Some(Reading::Story));
+        assert_eq!(task.erasable(), Err(Stays::Open));
+    }
+
+    #[test]
+    fn the_trace_is_what_the_layer_shows_and_the_bulk_names_no_more() {
+        let mut state = State::default();
+        let seen = closed(&mut state, 1, "dev_laptop", "comprar pan");
+        let hidden = closed(&mut state, 10, "dev_laptop", "regar");
+        state.apply(&ev(12, "dev_laptop", Op::TaskHide { id: hidden }));
+        let dropped = closed(&mut state, 20, "dev_laptop", "llamar");
+        state.apply(&ev(22, "dev_laptop", Op::TaskReopen { id: dropped }));
+        state.apply(&ev(23, "dev_laptop", Op::TaskDrop { id: dropped }));
+        let story = a_story(&mut state, 30, "dev_laptop", "la mudanza");
+        let kept = closed(&mut state, 40, "dev_laptop", "el certificado");
+        state.apply(&ev(42, "dev_laptop", converted(kept, Some(Reading::Story))));
+        let demoted = a_story(&mut state, 50, "dev_laptop", "el seguro");
+        state.apply(&ev(
+            56,
+            "dev_laptop",
+            converted(demoted, Some(Reading::Trace)),
+        ));
+        let turn = Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("pastillas", "a1");
+        d.after = Some(seen);
+        state.apply(&ev(60, "dev_laptop", Op::TaskAdd { id: turn, d }));
+        state.apply(&ev(
+            61,
+            "dev_laptop",
+            Op::TaskDone {
+                id: turn,
+                filled: false,
+            },
+        ));
+        let open = Ulid::generate();
+        state.apply(&ev(
+            70,
+            "dev_laptop",
+            Op::TaskAdd {
+                id: open,
+                d: crate::event::TaskAdd::new("pendiente", "a2"),
+            },
+        ));
+
+        let mut listed: Vec<TaskId> = state.the_trace().map(|t| t.id).collect();
+        listed.sort();
+        let mut wanted = vec![seen, demoted];
+        wanted.sort();
+        assert_eq!(listed, wanted, "{listed:?}");
+        for (id, why) in [
+            (hidden, "hidden is already out of sight"),
+            (dropped, "dropped is folded away"),
+            (story, "a story stays"),
+            (kept, "kept as a story"),
+            (turn, "a routine's turn"),
+            (open, "still open"),
+        ] {
+            assert!(!listed.contains(&id), "{why}");
+        }
+
+        let folding: Vec<TaskId> = state
+            .folding_the_trace()
+            .into_iter()
+            .filter_map(|op| match op {
+                Op::TaskHide { id } => Some(id),
+                _ => None,
+            })
+            .collect();
+        let erasing: Vec<TaskId> = state
+            .erasing_the_trace()
+            .into_iter()
+            .filter_map(|op| match op {
+                Op::TaskDelete { id } => Some(id),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(folding.len(), 2);
+        assert_eq!(erasing.len(), 2);
+        assert!(folding.contains(&demoted) && erasing.contains(&demoted));
+    }
+
+    #[test]
+    fn searching_orders_by_what_the_person_read_it_as() {
+        let mut state = State::default();
+        let plain = closed(&mut state, 1, "dev_laptop", "pagar la luz");
+        let kept = closed(&mut state, 10, "dev_laptop", "pagar el agua");
+        state.apply(&ev(12, "dev_laptop", converted(kept, Some(Reading::Story))));
+        assert!(state.tasks[&kept].weight() < state.tasks[&plain].weight() + 1);
+
+        let (found, _) = state.searching("pagar", crate::view::Scope::Archived, 10);
+        let ids: Vec<TaskId> = found.iter().map(|t| t.id).collect();
+
+        assert_eq!(
+            ids[0], kept,
+            "what was kept as a story comes first: {ids:?}"
+        );
+    }
+
+    /// Two machines: one converts, the other reopens and writes without having seen it. Whatever
+    /// order the events arrive in, the person's conversion holds.
+    #[test]
+    fn a_conversion_holds_whatever_the_other_machine_writes_and_in_any_order() {
+        let mut seed = State::default();
+        let id = a_story(&mut seed, 1, "dev_a", "la mudanza");
+        let mut later = vec![
+            ev(100, "dev_a", converted(id, Some(Reading::Trace))),
+            ev(110, "dev_b", Op::TaskReopen { id }),
+            ev(120, "dev_b", a_line(id, LONG)),
+            ev(130, "dev_b", Op::TaskDone { id, filled: false }),
+        ];
+
+        for round in 0..2 {
+            if round == 1 {
+                later.reverse();
+            }
+            let mut sorted = later.clone();
+            sorted.sort_by(|one, two| one.sort_key().cmp(&two.sort_key()));
+            let mut state = seed.clone();
+            for one in &sorted {
+                state.apply(one);
+            }
+            let task = &state.tasks[&id];
+            assert_eq!(task.reading(), Reading::Trace, "round {round}");
+            assert_eq!(task.erasable(), Ok(()), "round {round}");
+            assert!(
+                task.weight() >= STORY_AT,
+                "the weight still tells what was written"
+            );
+        }
+
+        let mut state = seed.clone();
+        for one in &later {
+            state.apply(one);
+        }
+        state.apply(&ev(140, "dev_b", converted(id, Some(Reading::Story))));
+        assert_eq!(
+            state.tasks[&id].reading(),
+            Reading::Story,
+            "the last word wins"
+        );
+
+        let mut state = seed;
+        state.apply(&ev(100, "dev_a", converted(id, Some(Reading::Trace))));
+        state.apply(&ev(101, "dev_a", Op::TaskDelete { id }));
+        state.apply(&ev(120, "dev_b", a_line(id, LONG)));
+        assert!(
+            !state.tasks.contains_key(&id),
+            "what arrives after the tombstone is let go"
+        );
     }
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Change, List, Task } from "../core";
+import { type Change, erasable, type List, readingOf, type Task } from "../core";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { composed } from "../markdown";
@@ -33,6 +33,8 @@ interface Props {
   onReopen: () => void;
   onStillOpen: () => void;
   onErase: () => void;
+  onFold: (away: boolean) => void;
+  onReadAs: (how: "story" | "trace") => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
@@ -57,6 +59,8 @@ export default function Detail({
   onReopen,
   onStillOpen,
   onErase,
+  onFold,
+  onReadAs,
   onClose,
   onError,
   onDoc,
@@ -260,6 +264,8 @@ export default function Detail({
           onReopen={onReopen}
           onStillOpen={onStillOpen}
           onErase={onErase}
+          onFold={onFold}
+          onReadAs={onReadAs}
         />
       </main>
     );
@@ -301,6 +307,8 @@ export default function Detail({
         onReopen={onReopen}
         onStillOpen={onStillOpen}
         onErase={onErase}
+        onFold={onFold}
+        onReadAs={onReadAs}
       />
     </aside>
   );
@@ -314,6 +322,8 @@ function Settled({
   onReopen,
   onStillOpen,
   onErase,
+  onFold,
+  onReadAs,
 }: {
   task: Task;
   wide?: boolean;
@@ -322,8 +332,10 @@ function Settled({
   onReopen: () => void;
   onStillOpen: () => void;
   onErase: () => void;
+  onFold: (away: boolean) => void;
+  onReadAs: (how: "story" | "trace") => void;
 }) {
-  const folded = task.hidden || task.status === "dropped";
+  const reading = readingOf(task);
   const seat = "flex items-center gap-1 rounded-md px-2.5 py-1 hover:bg-hover";
 
   return (
@@ -369,7 +381,27 @@ function Settled({
             <button type="button" onClick={onReopen} className={`${seat} hover:text-ink`}>
               <span aria-hidden="true">↺</span> {t("reopenIt")}
             </button>
-            {folded && (
+            {task.status !== "dropped" && (
+              <button
+                type="button"
+                onClick={() => onFold(!task.hidden)}
+                className={`${seat} hover:text-ink`}
+              >
+                <span aria-hidden="true">{task.hidden ? "⊕" : "⊖"}</span>{" "}
+                {t(task.hidden ? "showIt" : "hideIt")}
+              </button>
+            )}
+            {reading !== "routine" && (
+              <button
+                type="button"
+                onClick={() => onReadAs(reading === "trace" ? "story" : "trace")}
+                className={`${seat} hover:text-ink`}
+              >
+                <span aria-hidden="true">◇</span>{" "}
+                {t(reading === "trace" ? "keepAsStory" : "readAsTrace")}
+              </button>
+            )}
+            {erasable(task) && (
               <button
                 type="button"
                 onClick={onErase}
@@ -447,6 +479,8 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
         <span aria-hidden="true">{task.status === "dropped" ? "⨯" : "▣"}</span>{" "}
         {t(task.status === "dropped" ? "dropped" : "done")}
         {closed && ` · ${closed}`}
+        {task.read_as === "story" && ` · ${t("keptAsStory")}`}
+        {task.read_as === "trace" && ` · ${t("readAsTraceNow")}`}
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
@@ -41,6 +41,8 @@ const open = (one: Task, expanded = false) => {
       onReopen={() => {}}
       onStillOpen={() => {}}
       onErase={() => {}}
+      onFold={() => {}}
+      onReadAs={() => {}}
       onClose={() => {}}
     />,
   );
@@ -103,6 +105,8 @@ describe("what an agent says is done", () => {
         onReopen={() => {}}
         onStillOpen={back}
         onErase={() => {}}
+        onFold={() => {}}
+        onReadAs={() => {}}
         onClose={() => {}}
       />,
     );
@@ -185,6 +189,8 @@ describe("erasing what is already archived", () => {
         onReopen={() => {}}
         onStillOpen={() => {}}
         onErase={onErase}
+        onFold={() => {}}
+        onReadAs={() => {}}
         onClose={() => {}}
       />,
     );
@@ -205,15 +211,78 @@ describe("erasing what is already archived", () => {
     expect(screen.getByRole("button", { name: /erase for good/i })).toBeTruthy();
   });
 
-  it("is not offered on a completed task still in plain sight", () => {
+  // A trace goes directly: the person closed it and nothing was written on it. Hiding it
+  // first is no longer the step that makes it erasable.
+  it("is offered on a completed trace still in plain sight", () => {
     shown(task({ status: "done" }));
 
+    expect(screen.getByRole("button", { name: /erase for good/i })).toBeTruthy();
+  });
+
+  it("is never offered on a story, hidden or not, until it is read as a trace", () => {
+    const story = { status: "done" as const, volume: { prose: 3, journal: 3 } };
+    shown(task(story));
     expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /read as a trace/i })).toBeTruthy();
+    cleanup();
+
+    shown(task({ ...story, hidden: true }));
+    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+    cleanup();
+
+    shown(task({ ...story, read_as: "trace" }));
+    expect(screen.getByRole("button", { name: /erase for good/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /keep as a story/i })).toBeTruthy();
+  });
+
+  it("is never offered on a trace kept as a story, nor on a turn of a routine", () => {
+    shown(task({ status: "done", read_as: "story" }));
+    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+    cleanup();
+
+    shown(task({ status: "done", after: "01S" }));
+    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /as a (story|trace)/i })).toBeNull();
   });
 
   it("is never offered while the task is open", () => {
     shown(task({ status: "open" }));
 
     expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /as a (story|trace)/i })).toBeNull();
+  });
+
+  it("converts through the handler and hides or shows through the other", async () => {
+    const readAs = vi.fn();
+    const folds = vi.fn();
+    render(
+      <Detail
+        task={task({ status: "done" })}
+        lists={[]}
+        known={[]}
+        expanded={false}
+        onExpand={() => {}}
+        onCollapse={() => {}}
+        onPatch={() => {}}
+        onStep={() => {}}
+        onMark={() => {}}
+        onDropStep={() => {}}
+        onLog={() => {}}
+        onComplete={() => {}}
+        onDiscard={() => {}}
+        onReopen={() => {}}
+        onStillOpen={() => {}}
+        onErase={() => {}}
+        onFold={folds}
+        onReadAs={readAs}
+        onClose={() => {}}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /keep as a story/i }));
+    expect(readAs).toHaveBeenCalledWith("story");
+
+    await userEvent.click(screen.getByRole("button", { name: /^hide it$/i }));
+    expect(folds).toHaveBeenCalledWith(true);
   });
 });

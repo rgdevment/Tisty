@@ -869,9 +869,9 @@ fn speaks_spanish() -> bool {
 fn behind_words(spanish: bool, itself: bool) -> (String, &'static str, &'static str) {
     let (said, how, yes, no) = if spanish {
         (
-            "Tus datos los escribió un Tisty más nuevo que el de este equipo.
+            "Una versión más nueva de Tisty actualizó tus datos.
 
-Actualiza Tisty antes de seguir: abrirlos con esta versión perdería trabajo.",
+Actualiza este Tisty para que los dos vuelvan a entenderse: abrirlos con esta versión perdería trabajo.",
             "
 
 Esta copia la actualiza quien la instaló, no Tisty.",
@@ -880,9 +880,9 @@ Esta copia la actualiza quien la instaló, no Tisty.",
         )
     } else {
         (
-            "Your data was written by a newer Tisty than the one on this machine.
+            "A newer Tisty updated your data.
 
-Update Tisty before going on: opening it with this version would lose work.",
+Update this one so the two agree again: opening it with this version would lose work.",
             "
 
 This copy is updated by whoever installed it, not by Tisty.",
@@ -6489,11 +6489,76 @@ fn erase(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
         .tasks
         .get(&id)
         .ok_or_else(|| Refusal::of("notATaskId"))?;
-    if !(task.is_archived() && task.folded()) {
-        return Err(Refusal::of("onlyArchivedGoes"));
-    }
+    task.erasable().map_err(|why| {
+        Refusal::of(match why {
+            tisty_core::model::Stays::Open => "onlyArchivedGoes",
+            tisty_core::model::Stays::Story => "storyStays",
+            tisty_core::model::Stays::Routine => "routineStays",
+        })
+    })?;
     session.commit(Op::TaskDelete { id })?;
     Ok(())
+}
+
+/// The person's reading of a closed task, story or trace; a routine reads as a routine and
+/// an open task is not read yet.
+#[tauri::command]
+fn read_as(session: tauri::State<'_, Mutex<Session>>, id: String, how: String) -> Answer<Task> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let how = match how.as_str() {
+        "story" => Reading::Story,
+        "trace" => Reading::Trace,
+        _ => return Err(Refusal::of("notAReading")),
+    };
+    let mut session = held(&session);
+    let task = session
+        .state
+        .tasks
+        .get(&id)
+        .ok_or_else(|| Refusal::of("notATaskId"))?;
+    if task.is_open() {
+        return Err(Refusal::of("onlyClosedConverts"));
+    }
+    if task.reading() == Reading::Routine {
+        return Err(Refusal::of("routineReadsAsRoutine"));
+    }
+    session.commit(Op::TaskUpdate {
+        id,
+        d: TaskPatch {
+            read_as: Some(Some(how)),
+            ..Default::default()
+        },
+    })?;
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
+}
+
+// The set is decided here, under the lock, the instant it runs — never a list the window sent,
+// which may have been painted before a sync converted one of them into a story.
+#[tauri::command]
+fn fold_trace(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
+    let mut session = held(&session);
+    let ops = session.state.folding_the_trace();
+    let many = ops.len();
+    if many > 0 {
+        session.commit_all(ops)?;
+    }
+    Ok(many)
+}
+
+#[tauri::command]
+fn erase_trace(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
+    let mut session = held(&session);
+    let ops = session.state.erasing_the_trace();
+    let many = ops.len();
+    if many > 0 {
+        session.commit_all(ops)?;
+    }
+    Ok(many)
 }
 
 #[tauri::command]
@@ -6846,6 +6911,9 @@ pub fn run() {
             keep_closing,
             keep_theme,
             erase,
+            read_as,
+            fold_trace,
+            erase_trace,
             guide,
             capture,
             read,

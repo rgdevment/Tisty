@@ -273,8 +273,9 @@ got solved. Three things follow from that, and they shaped everything else:
 
 - **Search is the main way into the archive**, not a side feature.
 - **Deleting is the exception.** The normal ending is completing, which keeps
-  it. Erasing something for good takes two deliberate steps first: it has to be
-  archived, and then hidden.
+  it. Erasing something for good is only for what is closed and reads as a
+  trace; a story is only hidden, and converting it to a trace is the deliberate
+  step that lets it go.
 - **Capture has to stay instant**, because most tasks are not like that at all.
   The call you have to make tomorrow is born and dies within a day and leaves
   nothing worth keeping — and writing it down must not cost more than one line.
@@ -466,7 +467,11 @@ a short sound you can turn off. The whole window works from the keyboard.
 their whole trail — what changed, when, and what you wrote along the way. The
 routines come with their tallies, their streaks and the hour you usually keep
 them. The rest is the trace: what left little or nothing written, listed dense
-and out of the way, because it still happened and search still reaches it.
+and out of the way, because it still happened and search still reaches it. You
+decide which layer each one reads in: a story that was only noise goes to the
+trace, and a trace worth keeping is kept as a story. The trace is the only layer
+that can be erased — one at a time or all at once — and it can be hidden the
+same way; a story is only ever hidden.
 
 ## Your Data and Privacy
 

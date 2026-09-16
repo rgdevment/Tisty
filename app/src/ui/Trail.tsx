@@ -148,6 +148,12 @@ function phrase(page: Page, named: (id?: string | null) => string | undefined): 
       return t("trailDropped");
     case "reopened":
       return t("trailReopened");
+    case "converted":
+      return page.to === "story"
+        ? t("trailKeptStory")
+        : page.to === "trace"
+          ? t("trailReadTrace")
+          : t("trailReadByItself");
     default:
       return unreadable(page);
   }

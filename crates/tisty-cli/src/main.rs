@@ -79,6 +79,9 @@ pub struct SetArgs {
     pub remind: Option<String>,
     #[arg(long)]
     pub unremind: Option<String>,
+    /// story, trace, or auto to read it by what it holds again
+    #[arg(long, alias = "leer-como", value_name = "LAYER")]
+    pub read_as: Option<String>,
 }
 
 #[derive(Subcommand)]

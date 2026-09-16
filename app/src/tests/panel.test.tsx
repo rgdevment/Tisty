@@ -41,6 +41,8 @@ const show = (expanded = false) => {
       onReopen={() => {}}
       onStillOpen={() => {}}
       onErase={() => {}}
+      onFold={() => {}}
+      onReadAs={() => {}}
       onClose={closed}
     />,
   );

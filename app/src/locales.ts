@@ -39,7 +39,12 @@ const en = {
   notADate: "{name} is not a date",
   notAPriority: "That is not a priority",
   notATaskId: "That is not a task",
-  onlyArchivedGoes: "Only what is archived and put away can be erased",
+  onlyArchivedGoes: "Only what is closed can be erased. Finish it or drop it first",
+  storyStays: "A story is only hidden, never erased. Read it as a trace first if it has to go",
+  routineStays: "A routine's turn is never erased",
+  onlyClosedConverts: "Only a closed task is read as a story or a trace",
+  routineReadsAsRoutine: "A routine reads as a routine, turn by turn",
+  notAReading: "That is not a way to read a task",
   notAClosing: "That is not a way to close",
   notATheme: "That is not a look the window has",
   eraseIt: "Erase for good",
@@ -107,6 +112,21 @@ const en = {
   allDay: "All day",
   hideIt: "Hide it",
   showIt: "Show it again",
+  keepAsStory: "Keep as a story",
+  readAsTrace: "Read as a trace",
+  keptAsStory: "kept as a story",
+  readAsTraceNow: "read as a trace",
+  foldTrace: "Hide all",
+  foldTraceSure:
+    "Hide the {name} traces? They stay in the archive under «hidden», and search still reaches them.",
+  foldedMany: "{name} hidden",
+  eraseTrace: "Erase all",
+  eraseTraceSure:
+    "Erase the {name} traces for good? They go from this machine and from the others on the next sync. There is no undo. Stories and routines stay.",
+  erasedMany: "{name} erased for good",
+  trailKeptStory: "Kept as a story",
+  trailReadTrace: "Read as a trace",
+  trailReadByItself: "Read by what it holds again",
   folded: "hidden",
   backToArchive: "Back to the archive",
   discardIt: "Not doing it",
@@ -757,9 +777,9 @@ const en = {
   syncRefused:
     "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncNewer:
-    "Nothing was synced. The machine «{name}» writes with a newer Tisty than this one, and carrying half of it would lose work. Update this machine and try again.",
+    "Nothing was synced. «{name}» writes with a newer Tisty than this one. Update this machine so the two agree again, and try once more.",
   storeNewer:
-    "This log was written by a newer Tisty than the one on this machine. Update before going on — reading half of it would lose work.",
+    "A newer Tisty updated your data. Update this one so the two agree again — reading half of it would lose work.",
   someLockedAtOdds:
     "{name} is locked here and another machine carries a different text, so nothing was written over it. Unlock it to decide which version stays.",
   syncUnreadable: "What came back does not read: {name}",
@@ -1283,7 +1303,13 @@ const es: Catalog = {
   notADate: "{name} no es una fecha",
   notAPriority: "Eso no es una prioridad",
   notATaskId: "Eso no es una tarea",
-  onlyArchivedGoes: "Solo se puede borrar lo que está archivado y oculto",
+  onlyArchivedGoes: "Solo se borra lo que ya está cerrado. Termínala o descártala antes",
+  storyStays:
+    "Una historia solo se oculta, no se borra. Si tiene que irse, léela antes como rastro",
+  routineStays: "La vuelta de una rutina no se borra",
+  onlyClosedConverts: "Solo una tarea cerrada se lee como historia o como rastro",
+  routineReadsAsRoutine: "Una rutina se lee como rutina, vuelta a vuelta",
+  notAReading: "Esa no es una forma de leer una tarea",
   notAClosing: "Esa no es una forma de cerrar",
   notATheme: "La ventana no tiene ese aspecto",
   eraseIt: "Borrar para siempre",
@@ -1351,6 +1377,21 @@ const es: Catalog = {
   allDay: "Todo el día",
   hideIt: "Ocultar",
   showIt: "Mostrar de nuevo",
+  keepAsStory: "Guardar como historia",
+  readAsTrace: "Leer como rastro",
+  keptAsStory: "guardada como historia",
+  readAsTraceNow: "leída como rastro",
+  foldTrace: "Ocultar todo",
+  foldTraceSure:
+    "¿Ocultar los {name} rastros? Siguen en el archivo, bajo «ocultas», y la búsqueda sigue alcanzándolos.",
+  foldedMany: "{name} ocultas",
+  eraseTrace: "Borrar todo",
+  eraseTraceSure:
+    "¿Borrar para siempre los {name} rastros? Desaparecen de este equipo y de los demás en la próxima sincronización. No hay deshacer. Las historias y las rutinas se quedan.",
+  erasedMany: "{name} borradas para siempre",
+  trailKeptStory: "Guardada como historia",
+  trailReadTrace: "Leída como rastro",
+  trailReadByItself: "Vuelve a leerse por lo que tiene",
   folded: "ocultas",
   backToArchive: "Volver al archivo",
   discardIt: "No lo haré",
@@ -2007,9 +2048,9 @@ const es: Catalog = {
   syncRefused:
     "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
   syncNewer:
-    "No se sincronizó nada. La máquina «{name}» escribe con un Tisty más nuevo que este, y traer la mitad perdería trabajo. Actualiza este equipo y vuelve a intentarlo.",
+    "No se sincronizó nada. «{name}» escribe con un Tisty más nuevo que este. Actualiza este equipo para que los dos vuelvan a entenderse, y vuelve a intentarlo.",
   storeNewer:
-    "Este registro lo escribió un Tisty más nuevo que el de este equipo. Actualiza antes de seguir: leer la mitad perdería trabajo.",
+    "Una versión más nueva de Tisty actualizó tus datos. Actualiza este Tisty para que los dos vuelvan a entenderse: leer la mitad perdería trabajo.",
   someLockedAtOdds:
     "{name} está bloqueado aquí y otra máquina trae un texto distinto, así que no se escribió nada encima. Desbloquéalo para decidir qué versión queda.",
   syncUnreadable: "Lo que llegó no se puede leer: {name}",

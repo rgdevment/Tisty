@@ -62,6 +62,7 @@ Some payload fields carry more than their name says:
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
+| `read_as` | `task.update` | `story` or `trace`, the layer the person converted the task to; `null` reads it by what it holds again, and only undo writes that |
 | `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
 | `by` | `doc.said` | the alias the body was saved under, sealed at the writing rather than worked out afterwards from whoever happens to be signing now. Absent is a hand that did not sign, not the reader's own |
 
@@ -629,10 +630,15 @@ element carries its own identifier.
 Deleting is the exception: it leaves a tombstone, and nothing about that entity
 is ever applied again. That is what stops a late event from resurrecting it.
 
-A task only becomes deletable once it is **archived and hidden** — two
-deliberate steps, refused otherwise, so nothing goes on a slip. The tombstone
-travels; what the log already recorded about the task stays where it was
-written.
+A task is deletable once it is closed and **reads as a trace**. A story or a
+routine is only hidden, never erased: to erase a story the person converts it to
+a trace first, and a trace kept as a story stops being erasable. The conversion
+is the deliberate step, and what the task holds plays no part in it — what the
+person converted is what they said it is. The rule is `Task::erasable()`, in the
+core, and the window and `tisty rm` both obey it at the moment they commit,
+never at replay: a deletion another machine wrote while the task still read as
+a trace has to project the same everywhere. The tombstone travels; what the log
+already recorded about the task stays where it was written.
 
 ## Repeating
 
@@ -768,6 +774,22 @@ took the trouble to write is a story, and one that closed after a month with
 nothing written is a trace. A line of three words is not substance; the weight a
 log carries climbs with what it says, and a plan or a pile of links cannot
 make a story on their own.
+
+Unless the person converted it. `read_as` names the layer they chose — story or
+trace, never routine — and wins over the weight until they convert it back:
+without a pin, the weight decides; the pin freezes; what was not converted goes
+on changing layer with what is written. It is the one thing about a layer that
+is stored, and it is stored as the word, not as a number: a manual weight was
+considered and turned down, because it would have kept a difference against a
+base that keeps moving — one eight-word note, or one word taken out, or the
+other machine writing, would have undone the conversion without anyone asking.
+Search orders by `heft()`, the weight clipped to the chosen side of the
+threshold, so a conversion counts there; `told` on the cover and in the series
+keeps reading `weight()`, because it says «left something written» and must
+keep saying the truth. A conversion is a chapter in the trail, unlike hiding,
+because it explains why a task sits where it sits. It survives reopening, as the
+agent's mark does, and a patch an assistant wrote lands without it: converting
+is the person's.
 
 `Reading` is derived, but the `Volume` it reads from is **not** one of the three
 views above: it is counted on write and travels in the read cache. Changing how

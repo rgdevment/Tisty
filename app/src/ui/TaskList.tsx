@@ -161,7 +161,7 @@ export default function TaskList({
           onFocus={() => setReached(at)}
           onKeyDown={(event) => typed(event, task, at)}
           onClick={() => onSelect(task.id)}
-          className={`grid cursor-pointer grid-cols-[14px_minmax(0,1fr)_auto] items-baseline gap-2.5 rounded-md px-2.5 py-1 outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
+          className={`group grid cursor-pointer grid-cols-[14px_minmax(0,1fr)_auto_auto] items-baseline gap-2.5 rounded-md px-2.5 py-1 outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
             selected === task.id ? "bg-active" : ""
           }`}
         >
@@ -178,6 +178,24 @@ export default function TaskList({
             <Lozenge task={task} />
             {task.completed_at ? stamped(task.completed_at) : ""}
           </span>
+          {onFold && task.status !== "dropped" ? (
+            <button
+              type="button"
+              aria-label={task.hidden ? t("showIt") : t("hideIt")}
+              title={task.hidden ? t("showIt") : t("hideIt")}
+              tabIndex={-1}
+              onKeyDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onFold(task.id, !task.hidden);
+              }}
+              className="flex h-4 w-4 items-center justify-center self-center rounded-md text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 hover:bg-line hover:text-ink"
+            >
+              {task.hidden ? "⊕" : "⊖"}
+            </button>
+          ) : (
+            <span aria-hidden="true" className="h-4 w-4" />
+          )}
         </div>
       );
     }

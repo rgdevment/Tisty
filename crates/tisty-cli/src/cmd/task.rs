@@ -268,6 +268,16 @@ pub fn rm(app: &mut App, selector: &str, force: bool, lang: Lang) -> anyhow::Res
     let all: Vec<_> = app.state.tasks.values().collect();
     resolved!(app, Some(selector), all, lang, |id| {
         let title = app.state.tasks[&id].title.clone();
+        // The same rule the window keeps: a closed trace goes, a story is only hidden, and
+        // converting it is the person's deliberate step.
+        if let Err(why) = app.state.tasks[&id].erasable() {
+            let key = match why {
+                tisty_core::model::Stays::Open => "rm-open",
+                tisty_core::model::Stays::Story => "rm-story",
+                tisty_core::model::Stays::Routine => "rm-routine",
+            };
+            anyhow::bail!("{}", lang.fill(key, &[("title", &title)]));
+        }
         if !confirm(&lang.fill("confirm-rm", &[("title", &title)]), force, lang)? {
             return Ok(ExitCode::SUCCESS);
         }
@@ -291,6 +301,7 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
 
     resolved!(app, Some(&args.selector), all, lang, |id| {
         let tags = merged_tags(app, id, &args.tag, &args.untag)?;
+        let read_as = read_as_flag(app, id, args.read_as.as_deref(), lang)?;
 
         let d = TaskPatch {
             title: args.title.clone(),
@@ -304,6 +315,7 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
             tags,
             reminders: recalled(app, id, &args, lang)?,
             repeat: over,
+            read_as,
         };
 
         if d == TaskPatch::default() {
@@ -316,6 +328,33 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
         report(app, id, today, lang);
         Ok(ExitCode::SUCCESS)
     })
+}
+
+/// Converting is for what is closed and is not a routine; `auto` reads it by what it holds.
+fn read_as_flag(
+    app: &App,
+    id: tisty_core::TaskId,
+    raw: Option<&str>,
+    lang: Lang,
+) -> anyhow::Result<Option<Option<tisty_core::Reading>>> {
+    let Some(raw) = raw else { return Ok(None) };
+    let wanted = match raw.trim().to_lowercase().as_str() {
+        "story" | "historia" => Some(tisty_core::Reading::Story),
+        "trace" | "rastro" => Some(tisty_core::Reading::Trace),
+        "auto" => None,
+        _ => anyhow::bail!("{}", lang.fill("not-a-reading", &[("value", raw)])),
+    };
+    let task = &app.state.tasks[&id];
+    if task.is_open() {
+        anyhow::bail!("{}", lang.fill("read-as-open", &[("title", &task.title)]));
+    }
+    if task.reading() == tisty_core::Reading::Routine {
+        anyhow::bail!(
+            "{}",
+            lang.fill("read-as-routine", &[("title", &task.title)])
+        );
+    }
+    Ok(Some(wanted))
 }
 
 fn recalled(

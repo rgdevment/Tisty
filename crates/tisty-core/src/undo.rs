@@ -87,6 +87,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 id: *id,
                 d: TaskPatch {
                     title: d.title.as_ref().map(|_| task.title.clone()),
+                    read_as: d.read_as.as_ref().map(|_| task.read_as),
                     date: d.date.as_ref().map(|_| task.date.clone()),
                     deadline: d.deadline.as_ref().map(|_| task.deadline.clone()),
                     priority: d.priority.map(|_| task.priority),
@@ -305,6 +306,111 @@ mod tests {
                 d: TaskAdd::new("ship it", "a0"),
             },
         )
+    }
+
+    fn converted(id: Ulid, to: Option<crate::Reading>) -> Op {
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                read_as: Some(to),
+                ..Default::default()
+            },
+        }
+    }
+
+    fn retitled(id: Ulid, title: &str) -> Op {
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                title: Some(title.into()),
+                ..Default::default()
+            },
+        }
+    }
+
+    #[test]
+    fn converting_is_undone_to_what_it_read_as_before() {
+        let id = Ulid::generate();
+        let closed = vec![a_task(id), ev(2, Op::TaskDone { id, filled: false })];
+
+        let (before, undone) = round_trip(
+            closed.clone(),
+            ev(3, converted(id, Some(crate::Reading::Story))),
+        );
+        assert_eq!(before, undone);
+        assert_eq!(undone.tasks[&id].read_as, None);
+
+        let mut kept = closed;
+        kept.push(ev(3, converted(id, Some(crate::Reading::Story))));
+        let (before, undone) = round_trip(kept, ev(4, converted(id, Some(crate::Reading::Trace))));
+        assert_eq!(before, undone);
+        assert_eq!(undone.tasks[&id].read_as, Some(crate::Reading::Story));
+    }
+
+    /// A conversion and an edit, interleaved: each undo takes back its own and leaves the other.
+    #[test]
+    fn undoing_an_edit_keeps_the_conversion_and_the_other_way_round() {
+        let id = Ulid::generate();
+        let mut setup = vec![a_task(id), ev(2, Op::TaskDone { id, filled: false })];
+        setup.push(ev(3, converted(id, Some(crate::Reading::Story))));
+
+        let (before, undone) = round_trip(setup.clone(), ev(4, retitled(id, "ship it, later")));
+        assert_eq!(before, undone);
+        assert_eq!(undone.tasks[&id].read_as, Some(crate::Reading::Story));
+        assert_eq!(undone.tasks[&id].title, "ship it");
+
+        let mut setup = vec![a_task(id), ev(2, Op::TaskDone { id, filled: false })];
+        setup.push(ev(3, retitled(id, "ship it, later")));
+        let (before, undone) = round_trip(setup, ev(4, converted(id, Some(crate::Reading::Trace))));
+        assert_eq!(before, undone);
+        assert_eq!(undone.tasks[&id].title, "ship it, later");
+        assert_eq!(undone.tasks[&id].read_as, None);
+    }
+
+    /// The bulk hide is a batch of hides: undone one by one in reverse it lands where it began,
+    /// and what was already hidden was never in the batch, so no inverse shows it by mistake.
+    #[test]
+    fn a_bulk_hide_is_undone_whole_and_never_shows_what_was_hidden_before() {
+        let ids: Vec<Ulid> = (0..3).map(|_| Ulid::generate()).collect();
+        let mut setup = Vec::new();
+        for (n, id) in ids.iter().enumerate() {
+            setup.push(ev(
+                1 + n as i64 * 10,
+                Op::TaskAdd {
+                    id: *id,
+                    d: TaskAdd::new("errand", "a0"),
+                },
+            ));
+            setup.push(ev(
+                2 + n as i64 * 10,
+                Op::TaskDone {
+                    id: *id,
+                    filled: false,
+                },
+            ));
+        }
+        setup.push(ev(50, Op::TaskHide { id: ids[2] }));
+        let before = State::replay(&setup);
+
+        let batch = before.folding_the_trace();
+        assert_eq!(batch.len(), 2, "the one already hidden is not in it");
+        let mut after = before.clone();
+        let mut inverses = Vec::new();
+        for (n, op) in batch.into_iter().enumerate() {
+            let event = ev(100 + n as i64, op);
+            inverses.push(inverse(&event, &after).expect("a hide has an inverse"));
+            after.apply(&event);
+        }
+        assert!(after.the_trace().next().is_none(), "nothing left in sight");
+
+        let mut undone = after;
+        for (n, back) in inverses.into_iter().rev().enumerate() {
+            for op in back {
+                undone.apply(&ev(200 + n as i64, op));
+            }
+        }
+        assert_eq!(before, undone);
+        assert!(undone.tasks[&ids[2]].hidden, "hidden before, hidden still");
     }
 
     #[test]

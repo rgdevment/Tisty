@@ -796,13 +796,20 @@ fn erasing_the_same_number_twice_is_refused_rather_than_crashing() {
     cli.ok(&["first task"]);
     cli.ok(&["second task"]);
     cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["done", "2"]);
+    cli.ok(&["ls", "archive"]);
 
     cli.ok(&["rm", "2", "--force"]);
     let run = cli.run(&["rm", "2", "--force"]);
 
     assert_eq!(run.code, 4, "{}{}", run.out, run.err);
     assert!(!run.err.contains("panicked"), "{}", run.err);
-    assert!(cli.ok(&["ls", "all"]).contains("first task"));
+    let left = cli.ok(&["ls", "archive"]);
+    assert!(
+        left.contains("first task") != left.contains("second task"),
+        "one went and the other stayed: {left}"
+    );
 }
 
 #[test]
@@ -918,13 +925,171 @@ fn erasing_refuses_to_guess_when_nobody_can_confirm() {
     let cli = Cli::new();
     cli.ok(&["draft the policy"]);
     cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "archive"]);
 
     let run = cli.run(&["rm", "1"]);
     assert_eq!(run.code, 1, "{}{}", run.out, run.err);
-    assert!(cli.ok(&["ls", "all"]).contains("draft the policy"));
+    assert!(cli.ok(&["ls", "archive"]).contains("draft the policy"));
 
     cli.ok(&["rm", "1", "--force"]);
-    assert!(!cli.ok(&["ls", "all"]).contains("draft the policy"));
+    assert!(!cli.ok(&["ls", "archive"]).contains("draft the policy"));
+}
+
+// The terminal keeps the same rule as the window: a closed trace goes, a story is only hidden,
+// and converting it is the person's deliberate step.
+#[test]
+fn rm_refuses_what_is_open_a_story_and_a_turn_of_a_routine_and_says_why() {
+    let cli = Cli::new();
+    cli.ok(&["draft the policy"]);
+    cli.ok(&["ls", "all"]);
+
+    let open = cli.run(&["rm", "1", "--force"]);
+    assert_ne!(open.code, 0);
+    assert!(open.err.contains("still open"), "{}", open.err);
+
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "archive"]);
+    for line in [
+        "the policy needs a section on retention and one on who may read the audit log",
+        "legal wants the retention section to name the ninety days rather than a quarter",
+        "the audit section went out for review and came back with two more readers on it",
+    ] {
+        cli.ok(&["log", "1", line]);
+    }
+    let story = cli.run(&["rm", "1", "--force"]);
+    assert_ne!(story.code, 0);
+    assert!(story.err.contains("is a story"), "{}", story.err);
+    assert!(
+        story.err.contains("--read-as trace"),
+        "the refusal points at the way: {}",
+        story.err
+    );
+    assert!(cli.ok(&["ls", "archive"]).contains("draft the policy"));
+
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "archive"]);
+    let listed = cli.ok(&["ls", "archive"]);
+    let number = listed
+        .lines()
+        .find(|line| line.contains("water the plants"))
+        .and_then(|line| line.split_whitespace().next())
+        .unwrap()
+        .trim_end_matches('.')
+        .to_string();
+    let turn = cli.run(&["rm", &number, "--force"]);
+    assert_ne!(turn.code, 0);
+    assert!(turn.err.contains("routine"), "{}", turn.err);
+}
+
+#[test]
+fn a_story_converted_to_a_trace_goes_and_a_trace_kept_as_a_story_stays() {
+    let cli = Cli::new();
+    cli.ok(&["move the archive to the new server"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "archive"]);
+    for line in [
+        "the old server keeps the archive under a path nobody remembers until it is written down",
+        "the new server wants it under data and the move takes a night of copying over the wire",
+        "it went across in one piece and the checksum on both sides came out the same at dawn",
+    ] {
+        cli.ok(&["log", "1", line]);
+    }
+    assert!(cli.ok(&["ls", "story"]).contains("move the archive"));
+
+    cli.ok(&["set", "1", "--read-as", "trace"]);
+    assert!(
+        cli.ok(&["ls", "trace"]).contains("move the archive"),
+        "it reads as a trace now"
+    );
+    assert!(
+        cli.ok(&["story", "1"]).contains("read as a trace"),
+        "and the trail says so"
+    );
+    cli.ok(&["rm", "1", "--force"]);
+    assert!(!cli.ok(&["ls", "archive"]).contains("move the archive"));
+
+    cli.ok(&["buy bread"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "archive"]);
+    cli.ok(&["set", "1", "--read-as", "story"]);
+    assert!(
+        cli.ok(&["ls", "story"]).contains("buy bread"),
+        "kept as a story"
+    );
+    let kept = cli.run(&["rm", "1", "--force"]);
+    assert_ne!(kept.code, 0);
+    assert!(kept.err.contains("is a story"), "{}", kept.err);
+
+    cli.ok(&["set", "1", "--read-as", "auto"]);
+    assert!(
+        cli.ok(&["ls", "trace"]).contains("buy bread"),
+        "read by what it holds again"
+    );
+}
+
+#[test]
+fn set_read_as_refuses_open_tasks_routines_and_words_it_does_not_know() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+    cli.ok(&["ls", "all"]);
+
+    let open = cli.run(&["set", "1", "--read-as", "story"]);
+    assert_ne!(open.code, 0);
+    assert!(open.err.contains("still open"), "{}", open.err);
+
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "archive"]);
+    let odd = cli.run(&["set", "1", "--read-as", "legend"]);
+    assert_ne!(odd.code, 0);
+    assert!(odd.err.contains("not a way to read"), "{}", odd.err);
+
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    let listed = cli.ok(&["ls", "archive"]);
+    let number = listed
+        .lines()
+        .find(|line| line.contains("water the plants"))
+        .and_then(|line| line.split_whitespace().next())
+        .unwrap()
+        .trim_end_matches('.')
+        .to_string();
+    let turn = cli.run(&["set", &number, "--read-as", "trace"]);
+    assert_ne!(turn.code, 0);
+    assert!(turn.err.contains("routine"), "{}", turn.err);
+}
+
+#[test]
+fn undo_takes_back_the_conversion_and_the_edit_each_on_its_own() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "archive"]);
+    cli.ok(&["set", "1", "--read-as", "story"]);
+    cli.ok(&["set", "1", "--title", "buy bread and milk"]);
+
+    cli.ok(&["undo"]);
+    let out = cli.ok(&["ls", "story"]);
+    assert!(
+        out.contains("buy bread") && !out.contains("and milk"),
+        "{out}"
+    );
+
+    cli.ok(&["undo"]);
+    assert!(
+        !cli.ok(&["ls", "story"]).contains("buy bread"),
+        "the conversion is taken back"
+    );
+    assert!(cli.ok(&["ls", "trace"]).contains("buy bread"));
+
+    cli.ok(&["redo"]);
+    assert!(cli.ok(&["ls", "story"]).contains("buy bread"));
 }
 
 #[test]

@@ -274,9 +274,9 @@ Deja de ser un recordatorio de qué hacer y pasa a ser el registro de cómo se
 resolvió algo. De ahí salen tres cosas, y esas moldearon todo lo demás:
 
 - **La búsqueda es la entrada principal al archivo**, no una función lateral.
-- **Borrar es la excepción.** El final normal es completar, que conserva. Para
-  borrar algo de verdad hacen falta dos pasos deliberados antes: archivarlo y
-  luego ocultarlo.
+- **Borrar es la excepción.** El final normal es completar, que conserva. Solo
+  se borra de verdad lo que está cerrado y se lee como rastro; una historia solo
+  se oculta, y convertirla en rastro es el paso deliberado que la deja ir.
 - **Capturar tiene que seguir siendo instantáneo**, porque la mayoría de las
   tareas no son así. La llamada que tienes que hacer mañana nace y muere en un
   día y no deja nada que guardar — y anotarla no puede costar más de una línea.
@@ -469,7 +469,11 @@ funciona con el teclado.
 trayecto: qué cambió, cuándo, y lo que fuiste escribiendo por el camino. Las
 rutinas vienen con sus cuentas, sus rachas y la hora a la que sueles cumplirlas.
 El resto es el rastro: lo que no dejó nada escrito, o casi nada, en una lista
-densa y apartada, porque pasó igual y la búsqueda sigue alcanzándolo.
+densa y apartada, porque pasó igual y la búsqueda sigue alcanzándolo. Tú decides
+en qué capa se lee cada una: una historia que era ruido pasa al rastro, y un
+rastro que vale la pena se guarda como historia. El rastro es la única capa que
+se puede borrar —de una en una o todo a la vez— y también se puede ocultar; una
+historia solo se oculta.
 
 ## Tus datos y tu privacidad
 
