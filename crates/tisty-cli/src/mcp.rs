@@ -6,7 +6,7 @@ use tisty_core::{
     Op, Paths, State, Store, Task, TaskId,
     capture::{Draft, Rejected},
     event::{Body, LogAdd, Resolve, StepAdd, TaskPatch},
-    model::{DateSpec, FOLDER_NAME_AT_MOST, Priority, Reading, Tag},
+    model::{DateSpec, FOLDER_NAME_AT_MOST, Priority, Tag},
     order,
     witness::{self, Fact},
 };
@@ -39,7 +39,11 @@ Always pass `source` when you have one: a message id, a thread link, anything st
 enough to recognise the same thing twice. Tisty refuses a second filing from the same \
 source and hands back the task that already exists, so you cannot duplicate by mistake \
 and need not check first. How it is written decides nothing: «sereno#1», «sereno: #1» \
-and «Sereno #1» are one source. Without a source, `find` by text before you propose.
+and «Sereno #1» are one source. Without a source, `find` by text before you propose. \
+When the task from that source has been closed since, the answer says so and when: that \
+is what you tell the person who asks whether you filed it — it was filed, and it is done. \
+Only if they want it done again, propose it once more with `again` set, saying in the \
+description how the last one ended.
 
 A day you filed can be moved with `reschedule` when what you learn moves it — the meeting \
 slipped a week, the paper came early. It reaches only what an agent filed: a day the person \
@@ -165,12 +169,13 @@ when something new turns up about work that already exists, rather than filing a
 before adding a note and you will not write down what is already written.
 
 A task the person closed is history. It comes back with `closed` set to the day and hour it \
-ended, reads as it ended, and nothing on it changes: not its day, not its journal, not a mark \
-saying it is done — every one of those is refused. When the same work has come back, that is a \
-new task: `read` how the closed one ended, propose the new one with a description that says so, \
-naming the closed one by its title and its id, and give it a source of its own. What was closed \
-having left nothing written — no description, no journal, a step or two — is the person's trace, \
-and stays out of your sight altogether: `find` does not list it and `read` does not open it.";
+ended and a `notice` saying so, reads as it ended, and nothing on it changes: not its day, not \
+its journal, not a bell, not a file, not a mark saying it is done — every one of those is \
+refused. When the same work has come back, that is a new task: `read` how the closed one ended, \
+propose the new one with a description that says so, naming the closed one by its title and its \
+id, and give it a source of its own. One that was closed having left nothing written is served \
+the same way, and there is simply less in it to read: something that happened, not something \
+to do.";
 
 pub fn turn(paths: &Paths, on: Option<bool>, lang: crate::i18n::Lang) -> anyhow::Result<ExitCode> {
     let config = tisty_core::Config::load_or_init(paths)?;
@@ -774,17 +779,32 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let (state, mut store) = opened(paths)?;
 
+    let again = args.get("again").and_then(Value::as_bool).unwrap_or(false);
     if let Some(source) = text(args, "source")
         && let Some(held) = already(&state, &source)
         && let Some(task) = state.tasks.get(&held)
+        && !(again && !task.is_open())
     {
-        return Ok(told(
-            format!(
-                "Already proposed from that source: {:?}. Nothing was written.",
-                task.title
+        let (said, kept) = match task.completed_at.filter(|_| !task.is_open()) {
+            Some(at) => (
+                format!(
+                    "Already proposed from that source, and closed on {}: {:?}. It is done, and \
+                     history. If the person wants it done again, propose it once more with \
+                     `again` set, saying in the description how this one ended. Nothing was written.",
+                    when(at),
+                    task.title
+                ),
+                json!({ "id": task.id.to_string(), "title": task.title, "proposed": false, "closed": when(at) }),
             ),
-            json!({ "id": task.id.to_string(), "title": task.title, "proposed": false }),
-        ));
+            None => (
+                format!(
+                    "Already proposed from that source: {:?}. Nothing was written.",
+                    task.title
+                ),
+                json!({ "id": task.id.to_string(), "title": task.title, "proposed": false }),
+            ),
+        };
+        return Ok(told(said, kept));
     }
 
     let mut tags: Vec<Tag> = Vec::new();
@@ -847,10 +867,17 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let source = text(args, "source");
     let taken = source.clone();
+    // Checked again under the lock: two agents reading the same thread at once must not
+    // both get through. A closed task from that source stands aside only when `again` says so.
     let written = store
         .append_batch_unless(ops, move |events| match &taken {
             None => false,
-            Some(one) => already(&State::replay(events), one).is_some(),
+            Some(one) => {
+                let held = State::replay(events);
+                already(&held, one)
+                    .and_then(|id| held.tasks.get(&id))
+                    .is_some_and(|task| task.is_open() || !again)
+            }
         })
         .map_err(hitch)?;
 
@@ -1355,6 +1382,12 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         let held = already(&state, &source).and_then(|id| state.tasks.get(&id));
         return Ok(told(
             match held {
+                Some(task) if !task.is_open() => format!(
+                    "Already proposed from that source, and closed since ({}): {:?}. It is done, \
+                     and history; a new filing from this source takes `again`.",
+                    standing(task),
+                    task.title
+                ),
                 Some(task) => format!("Already proposed from that source: {:?}", task.title),
                 None => "Nothing here came from that source.".into(),
             },
@@ -1402,7 +1435,7 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let hits: Vec<&Task> = hits
         .into_iter()
-        .filter(|one| in_sight(one) && sifted.keeps(one, &state))
+        .filter(|one| !one.folded() && sifted.keeps(one, &state))
         .collect();
     let all = hits.len();
     let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
@@ -1671,15 +1704,7 @@ fn standing(task: &Task) -> String {
     }
 }
 
-/// A closed task that left nothing written is the person's trace: it taught nothing, so
-/// there is nothing in it for an agent, and listing it would only hand over what they did.
-fn a_trace(task: &Task) -> bool {
-    !task.is_open() && task.reading() == Reading::Trace
-}
-
-fn in_sight(task: &Task) -> bool {
-    !task.folded() && !a_trace(task)
-}
+const HISTORY: &str = "history: it reads as it ended, and nothing on it changes";
 
 fn ended(task: &Task) -> String {
     task.completed_at
@@ -1687,20 +1712,7 @@ fn ended(task: &Task) -> String {
         .unwrap_or_default()
 }
 
-/// Not even the title: naming it would hand over what `find` and `read` keep out of sight.
-fn trace_refused(task: &Task) -> Refused {
-    Refused::Tool(format!(
-        "that task was closed{} and left nothing, or next to nothing, written, so there is \
-         nothing of it to read: it is the person's trace, out of an assistant's sight. If the \
-         same work has come back, propose it anew, with a source of its own.",
-        ended(task)
-    ))
-}
-
 fn history(task: &Task) -> Refused {
-    if a_trace(task) {
-        return trace_refused(task);
-    }
     let ended = ended(task);
     Refused::Tool(format!(
         "{:?} was closed{ended} and is history now: it reads as it ended, and nothing on it \
@@ -1728,9 +1740,6 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no task here has the id {said}. Look it up again with `find`."
         )));
     };
-    if a_trace(task) {
-        return Err(trace_refused(task));
-    }
 
     let asked = listed(args, "fields");
     let wants = |key: &str| asked.is_empty() || asked.iter().any(|one| one == key);
@@ -1779,10 +1788,9 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let mut plainly = format!("{} — {}", task.id, task.title);
     if !task.is_open() {
-        plainly.push_str(&format!(
-            " ({}; history — it reads as it ended, and nothing on it changes)",
-            standing(task)
-        ));
+        let notice = format!("{} — {HISTORY}", standing(task));
+        plainly.push_str(&format!(" ({notice})"));
+        whole["notice"] = json!(notice);
     }
     if let Some(body) = &task.description
         && wants("description")
@@ -4033,7 +4041,7 @@ fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .iter()
                 .filter_map(|id| id.parse::<TaskId>().ok())
                 .filter_map(|id| state.tasks.get(&id))
-                .filter(|one| in_sight(one))
+                .filter(|one| !one.folded())
                 .map(|one| brief(one, &state))
                 .collect();
             let written: Vec<Value> = papers
@@ -4859,6 +4867,10 @@ fn tools() -> Value {
                     "source": {
                         "type": "string",
                         "description": "Where you read it — a message id, a thread link"
+                    },
+                    "again": {
+                        "type": "boolean",
+                        "description": "Only when the person wants done again what was already proposed from this source and closed since: files a new task despite the source being known. Say in the description how the last one ended. Never for a source whose task is still open"
                     }
                 },
                 "required": ["title"]
@@ -5256,7 +5268,7 @@ fn tools() -> Value {
         {
             "name": "read",
             "title": "Read a whole task",
-            "description": "Everything one task holds: its description, its steps, its journal and what it keeps. Ask for it before adding a note, so you do not write down something already written. With `fields` it brings only the parts you name, which is how to check one thing about a task whose journal is long. A closed task comes with `closed` and reads as it ended; one that was closed having left nothing written is the person's trace and is not opened.",
+            "description": "Everything one task holds: its description, its steps, its journal and what it keeps. Ask for it before adding a note, so you do not write down something already written. With `fields` it brings only the parts you name, which is how to check one thing about a task whose journal is long. A closed task comes with `closed` and a `notice`, and reads as it ended.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },

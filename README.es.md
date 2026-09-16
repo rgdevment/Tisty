@@ -577,10 +577,9 @@ tarea ni borrarla, dar por hecha una tarea que escribiste tú, mover un día que
 pusiste tú, borrar un documento, renombrar ni vaciar una carpeta, alcanzar una
 tarea que plegaste, tomar archivos fuera de las carpetas donde aterriza una
 descarga, ni anotar dos veces lo mismo. Una tarea que cerraste es histórico
-para él: se lee como terminó, no admite bitácora ni un día nuevo, y si el mismo
-trabajo vuelve, el asistente propone una nueva que dice cómo terminó la
-anterior. Una que cerraste sin haber escrito nada en ella —sin descripción, sin
-bitácora— no la ve siquiera: es tu rastro, y no había nada en ella que aprender.
+para él: le llega con un aviso que lo dice, se lee como terminó, no admite
+bitácora, ni un día nuevo, ni una alarma, ni un archivo, y si el mismo trabajo
+vuelve, el asistente propone una nueva que dice cómo terminó la anterior.
 
 **La línea de comandos es tuya, no del asistente.** Un asistente con shell
 podría teclear `tisty done 3` el día que su servidor MCP no esté conectado, y

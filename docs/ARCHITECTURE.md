@@ -140,18 +140,20 @@ is a task they wrote. Everything else an agent knows it must add rather than
 change: a journal note, a new task, a new document.
 
 A task the person closed is history to an agent. It comes back from `read`
-and `find` with `closed` set to the moment it ended, and every tool that
-writes on a task — `note`, `reschedule`, `say_done`, `remind`, `attach` — is
-refused on it with the same answer: it reads as it ended, nothing on it
-changes, and work that came back is a new task whose description says how the
-last one ended. Traces — closed tasks whose `reading()` is `Trace`, having left
-nothing or next to nothing written — stay out of an agent's sight altogether:
-`find` and `catch_up` leave them out, and `read` and every refusal turn the id
-away without naming the task. There was nothing in them to learn, and listing
-them would only hand over what the person did; `find` by `source` still answers
-for one, or the same message would be filed twice. Refusing the writers is
-what keeps the trace one: a journal line long enough to count as prose — an
-`attach` label, say — would have weighed it into a story and brought it back.
+and `find` with `closed` set to the moment it ended and, from `read`, a
+`notice` that says so in words, and every tool that writes on a task —
+`note`, `reschedule`, `say_done`, `remind`, `attach` — is refused on it with
+the same answer: it reads as it ended, nothing on it changes, and work that
+came back is a new task whose description says how the last one ended. A
+closed task that left nothing written — the person's trace, in the archive's
+own three layers — is served the same way, with the same notice: hiding it
+was considered and turned down, because an agent that cannot see a thing
+happened proposes it again, and a notice costs less than a duplicate. The
+source says it too: `find` by `source` and a second `propose` from one answer
+«closed since» with the moment, which is what an agent tells the person who
+asks whether it filed something — it did, and it is done. A second filing from
+that source takes `again`, for the one case where the person wants the work
+done once more, and never while the earlier task is still open.
 
 `say_done` is the narrower of the two, and deliberately so: it adds a mark
 beside the task and the account that holds it up, and changes nothing else. The

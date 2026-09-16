@@ -572,10 +572,9 @@ already there. What it may not do: close a task or delete one, say a task you
 wrote is done, move a day you set, delete a document, rename or empty a folder,
 reach a task you folded away, take files from outside the folders where a
 download lands, or file the same thing twice. A task you closed is history to
-it: it reads as it ended, takes no note and no new day, and if the same work
-comes back the assistant proposes a new one that says how the last one ended.
-One you closed having written nothing on it — no description, no journal — it
-does not see at all: that is your trace, and there was nothing in it to learn.
+it: it comes with a notice saying so, reads as it ended, takes no note, no new
+day, no bell and no file, and if the same work comes back the assistant
+proposes a new one that says how the last one ended.
 
 **The command line is yours, not the assistant's.** An assistant with a shell
 could type `tisty done 3` the day its MCP server is not connected, and act as

@@ -3994,6 +3994,12 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
             .contains("history"),
         "{read}"
     );
+    assert!(
+        kept["notice"]
+            .as_str()
+            .is_some_and(|said| said.contains("history")),
+        "{read}"
+    );
 
     let loose = served.home.path().join("boleta.txt");
     std::fs::write(&loose, "la boleta de la librería").unwrap();
@@ -4041,7 +4047,7 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
 }
 
 #[test]
-fn what_was_closed_having_left_nothing_written_is_out_of_sight() {
+fn what_was_closed_having_left_nothing_written_is_served_as_history() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     let before =
@@ -4062,65 +4068,37 @@ fn what_was_closed_having_left_nothing_written_is_out_of_sight() {
         "find",
         serde_json::json!({ "query": "pan", "scope": "either" }),
     );
-    assert_eq!(
-        sought["result"]["structuredContent"]["total"],
-        serde_json::json!(0),
-        "{sought}"
-    );
-    let sifted = served.call(
-        "find",
-        serde_json::json!({ "by_agent": true, "scope": "archive" }),
-    );
-    assert!(!format!("{sifted}").contains("comprar pan"), "{sifted}");
+    let hit = &sought["result"]["structuredContent"]["matches"][0];
+    assert_eq!(hit["id"], serde_json::json!(id), "{sought}");
+    assert!(hit["closed"].is_string(), "{sought}");
 
-    // The trace was a bare title with nothing written: a label long enough to be prose would
-    // turn it into a story and bring it back into sight, so attaching is refused with the rest.
-    let loose = served.home.path().join("probe.txt");
-    std::fs::write(&loose, "una boleta").unwrap();
-    let wordy = "a ".repeat(100).trim().to_string();
-    for (tool, args) in [
-        ("read", serde_json::json!({ "task": &id })),
-        ("note", serde_json::json!({ "task": &id, "body": "hoy no" })),
-        (
-            "say_done",
-            serde_json::json!({ "task": &id, "body": "comprado" }),
-        ),
-        (
-            "reschedule",
-            serde_json::json!({ "task": &id, "date": "2026-12-01" }),
-        ),
-        (
-            "remind",
-            serde_json::json!({ "task": &id, "at": ["2026-12-01T09:00"] }),
-        ),
-        (
-            "attach",
-            serde_json::json!({ "task": &id, "path": loose.to_string_lossy(), "label": wordy }),
-        ),
-    ] {
-        let tried = served.call(tool, args);
-        assert_eq!(tried["result"]["isError"], true, "{tool}: {tried}");
-        let said = tried["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(said.contains("trace"), "{tool}: {said}");
-        assert!(
-            !said.contains("comprar pan"),
-            "{tool}: the refusal does not hand the title over: {said}"
-        );
-    }
-    let still = served.call("read", serde_json::json!({ "task": &id }));
-    assert_eq!(
-        still["result"]["isError"], true,
-        "still out of sight: {still}"
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = &read["result"]["structuredContent"];
+    assert_eq!(kept["title"], serde_json::json!("comprar pan"), "{read}");
+    assert!(
+        kept["notice"]
+            .as_str()
+            .is_some_and(|said| said.starts_with("done 20") && said.contains("history")),
+        "a bare closed task is served, and told for what it is: {read}"
     );
 
     let moved = served.call("catch_up", serde_json::json!({ "since": before }));
-    assert!(!format!("{moved}").contains("comprar pan"), "{moved}");
+    assert!(format!("{moved}").contains("comprar pan"), "{moved}");
 
-    // The source still answers, or the same message would be filed twice.
     let again = served.call("find", serde_json::json!({ "source": "wa:msg-4410" }));
     let found = &again["result"]["structuredContent"]["found"];
     assert_eq!(found["id"], serde_json::json!(id), "{again}");
     assert!(found["closed"].is_string(), "{again}");
+
+    let tried = served.call("note", serde_json::json!({ "task": &id, "body": "hoy no" }));
+    assert_eq!(tried["result"]["isError"], true, "{tried}");
+    assert!(
+        tried["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("history"),
+        "{tried}"
+    );
 }
 
 #[test]
@@ -4146,5 +4124,84 @@ fn a_closed_task_that_taught_something_is_still_found() {
             .unwrap()
             .contains("(done 20"),
         "the line says when: {sought}"
+    );
+}
+
+// «Did you file it?» — it was filed, and the person has done it since. The answer says so,
+// and only the person wanting it done again opens the source for a second filing.
+#[test]
+fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let first = served.call(
+        "propose",
+        serde_json::json!({ "title": "pedir la cartulina", "source": "wa:msg-77" }),
+    )["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    closed_by_the_person(&served, "pedir la cartulina");
+
+    let asked = served.call("find", serde_json::json!({ "source": "wa:msg-77" }));
+    let said = asked["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("closed"), "{said}");
+    assert!(
+        asked["result"]["structuredContent"]["found"]["closed"].is_string(),
+        "{asked}"
+    );
+
+    let twice = served.call(
+        "propose",
+        serde_json::json!({ "title": "pedir la cartulina", "source": "wa:msg-77" }),
+    );
+    let kept = &twice["result"]["structuredContent"];
+    assert_eq!(kept["proposed"], serde_json::json!(false), "{twice}");
+    assert!(
+        kept["closed"].is_string(),
+        "the refusal says it is done: {twice}"
+    );
+    assert!(
+        twice["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("`again`"),
+        "{twice}"
+    );
+
+    let anew = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "pedir la cartulina otra vez",
+            "source": "wa:msg-77",
+            "again": true,
+            "description": "La anterior se cerró el mismo día: la cartulina se compró en la librería de la esquina."
+        }),
+    );
+    let kept = &anew["result"]["structuredContent"];
+    assert_eq!(kept["proposed"], serde_json::json!(true), "{anew}");
+    let second = kept["id"].as_str().unwrap().to_string();
+    assert_ne!(second, first, "a new task, not the old one reopened");
+
+    // The source now names the open one, and `again` on an open task is still a duplicate.
+    let now = served.call("find", serde_json::json!({ "source": "wa:msg-77" }));
+    assert_eq!(
+        now["result"]["structuredContent"]["found"]["id"],
+        serde_json::json!(second),
+        "{now}"
+    );
+    let thrice = served.call(
+        "propose",
+        serde_json::json!({ "title": "pedir la cartulina", "source": "wa:msg-77", "again": true }),
+    );
+    assert_eq!(
+        thrice["result"]["structuredContent"]["proposed"],
+        serde_json::json!(false),
+        "{thrice}"
+    );
+    assert!(
+        served
+            .cli(&["ls", "all"])
+            .contains("pedir la cartulina otra vez"),
+        "the second filing is on the list"
     );
 }
