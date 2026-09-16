@@ -1741,6 +1741,10 @@ fn an_export_carries_what_the_views_fold_away() {
         drawer.contains("dropped"),
         "no way out of the drawer: {drawer}"
     );
+    // The window calls that drawer «hidden», and the terminal answers to the same word.
+    for word in ["hidden", "ocultas"] {
+        assert!(cli.ok(&["ls", word]).contains("dropped"), "{word}");
+    }
 }
 
 fn shared() -> TempDir {

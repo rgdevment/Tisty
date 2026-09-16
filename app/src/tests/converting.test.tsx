@@ -318,4 +318,19 @@ describe("the trail tells a conversion", () => {
     expect(screen.getByText(/read as a trace/i)).toBeTruthy();
     expect(screen.getByText(/read again by what it holds/i)).toBeTruthy();
   });
+
+  // The conversion is the one chapter written while the detail is open: the trail asks again
+  // when the task moved, not only when another task is opened.
+  it("asks for the story again when the task moved under an open detail", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "task_story" ? Promise.resolve({ id: "01B", pages: [] }) : Promise.resolve(null);
+    const { rerender } = render(<Trail task="01B" moved="done||" lists={[]} />);
+    await waitFor(() => expect(sent("task_story")).toHaveLength(1));
+
+    rerender(<Trail task="01B" moved="done|trace|" lists={[]} />);
+    await waitFor(() => expect(sent("task_story")).toHaveLength(2));
+
+    rerender(<Trail task="01B" moved="done|trace|" lists={[]} />);
+    expect(sent("task_story")).toHaveLength(2);
+  });
 });

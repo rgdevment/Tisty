@@ -82,6 +82,15 @@ export default function Detail({
     <>
       <Trail
         task={task.id}
+        moved={[
+          task.status,
+          task.read_as ?? "",
+          task.completed_at ?? "",
+          task.hidden ? "hidden" : "",
+          task.log?.length ?? task.volume?.journal ?? 0,
+          task.steps?.length ?? task.volume?.steps ?? 0,
+          task.title,
+        ].join("|")}
         lists={lists}
         onError={onError}
         heading={<Section label={t("trail")} />}

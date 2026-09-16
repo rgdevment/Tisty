@@ -176,7 +176,15 @@ pub fn canonical_filter(raw: &str) -> Option<&'static str> {
         ("archive", &["archive", "archivo", "hechas", "done"][..]),
         (
             "folded",
-            &["folded", "plegadas", "descartadas", "dropped"][..],
+            &[
+                "folded",
+                "hidden",
+                "ocultas",
+                "ocultos",
+                "plegadas",
+                "descartadas",
+                "dropped",
+            ][..],
         ),
         ("story", &["stories", "story", "historias", "historia"][..]),
         ("routine", &["routines", "routine", "rutinas", "rutina"][..]),

@@ -7,6 +7,9 @@ import { said } from "../quadrants";
 
 interface Props {
   task: string;
+  /// Anything that changes when the task's story grows — a status, a conversion, an entry
+  /// count — so the trail asks again without the detail being closed and opened.
+  moved?: string;
   heading?: React.ReactNode;
   lists: List[];
   onError?: (problem: unknown) => void;
@@ -15,8 +18,8 @@ interface Props {
   before?: (from: string) => React.ReactNode;
 }
 
-export default function Trail({ task, lists, onError, heading, before }: Props) {
-  const told = useAsked(() => taskStory(task), [task], onError);
+export default function Trail({ task, moved, lists, onError, heading, before }: Props) {
+  const told = useAsked(() => taskStory(task), [task, moved], onError);
 
   if (!told) return null;
   if (!told.pages.length) {
