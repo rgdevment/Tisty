@@ -24,11 +24,19 @@ impl Waking {
     }
 }
 
+/// A copy served by `tauri dev` only opens while the dev server runs; registered at login it
+/// would greet the person with a refused connection to localhost.
 pub fn waking() -> Waking {
+    if tauri::is_dev() {
+        return Waking::none();
+    }
     there::waking()
 }
 
 pub fn wake(wanted: bool) -> std::io::Result<Waking> {
+    if tauri::is_dev() {
+        return Ok(Waking::none());
+    }
     there::wake(wanted).inspect_err(|why| {
         witness::error(
             channel::WINDOW,
