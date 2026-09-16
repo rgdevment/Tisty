@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Coming, Habit, Series, Task } from "../core";
+import { clockOf } from "../format";
 import { t } from "../locales";
 import Ahead from "../ui/Ahead";
 
@@ -83,7 +84,7 @@ describe("the week ahead", () => {
     );
 
     expect(screen.getByText("Médico")).toBeTruthy();
-    expect(screen.getByText(/16/)).toBeTruthy();
+    expect(screen.getByText(clockOf(spec(2, "16:00:00")))).toBeTruthy();
   });
 
   it("keeps an empty day in sight without a word on it", () => {
