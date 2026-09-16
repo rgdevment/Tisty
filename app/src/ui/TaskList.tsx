@@ -132,7 +132,7 @@ export default function TaskList({
         onComplete(task.id);
         return;
       }
-      if (onFold) {
+      if (onFold && task.status !== "dropped") {
         walk(at, 1);
         onFold(task.id, !task.hidden);
       }
@@ -187,6 +187,7 @@ export default function TaskList({
               onKeyDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
+                walk(at, 1);
                 onFold(task.id, !task.hidden);
               }}
               className="flex h-4 w-4 items-center justify-center self-center rounded-md text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 hover:bg-line hover:text-ink"
@@ -254,7 +255,7 @@ export default function TaskList({
           </div>
 
           <Volume task={task} />
-          {onFold && (
+          {onFold && task.status !== "dropped" && (
             <button
               type="button"
               aria-label={task.hidden ? t("showIt") : t("hideIt")}

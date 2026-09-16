@@ -4229,3 +4229,107 @@ fn a_finish_taken_back_leaves_the_task_marked_as_the_agents() {
     let waiting = served.call("find", serde_json::json!({ "said_done": true }));
     assert!(format!("{waiting}").contains(&id), "{waiting}");
 }
+
+// The person erased it: an assistant reading the same message again is told so, and does not
+// file it again unless the person wants it back.
+#[test]
+fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = served.call(
+        "propose",
+        serde_json::json!({ "title": "comprar pan", "source": "wa:msg-4410" }),
+    )["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    closed_by_the_person(&served, "comprar pan");
+    let listed = served.cli(&["ls", "archive"]);
+    let number = listed
+        .lines()
+        .find(|line| line.contains("comprar pan"))
+        .and_then(|line| line.split_whitespace().next())
+        .unwrap()
+        .trim_end_matches('.')
+        .to_string();
+    served.cli(&["rm", &number, "--force"]);
+
+    let asked = served.call("find", serde_json::json!({ "source": "wa:msg-4410" }));
+    assert!(
+        asked["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("erased since"),
+        "{asked}"
+    );
+    assert_eq!(
+        asked["result"]["structuredContent"]["found"]["erased"], true,
+        "{asked}"
+    );
+
+    let again = served.call(
+        "propose",
+        serde_json::json!({ "title": "comprar pan", "source": "wa:msg-4410" }),
+    );
+    let kept = &again["result"]["structuredContent"];
+    assert_eq!(kept["proposed"], serde_json::json!(false), "{again}");
+    assert_eq!(kept["erased"], serde_json::json!(true), "{again}");
+    assert!(
+        !served.cli(&["ls", "all"]).contains("comprar pan"),
+        "nothing was filed"
+    );
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert!(
+        read["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("erased by the person"),
+        "{read}"
+    );
+
+    let wanted = served.call(
+        "propose",
+        serde_json::json!({ "title": "comprar pan", "source": "wa:msg-4410", "again": true }),
+    );
+    assert_eq!(
+        wanted["result"]["structuredContent"]["proposed"],
+        serde_json::json!(true),
+        "the person wants it back: {wanted}"
+    );
+    assert!(served.cli(&["ls", "all"]).contains("comprar pan"));
+}
+
+// Decision six: what an agent reads never carries the person's reading of a task.
+#[test]
+fn the_persons_reading_of_a_task_is_not_handed_to_the_agent() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = filed(&served, "el certificado");
+    closed_by_the_person(&served, "el certificado");
+    let listed = served.cli(&["ls", "archive"]);
+    let number = listed
+        .lines()
+        .find(|line| line.contains("el certificado"))
+        .and_then(|line| line.split_whitespace().next())
+        .unwrap()
+        .trim_end_matches('.')
+        .to_string();
+    served.cli(&["set", &number, "--read-as", "story"]);
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let whole = read.to_string();
+    assert!(
+        !whole.contains("read_as") && !whole.contains("\"reading\""),
+        "{whole}"
+    );
+    let sought = served.call(
+        "find",
+        serde_json::json!({ "query": "certificado", "scope": "archive" }),
+    );
+    let whole = sought.to_string();
+    assert!(
+        !whole.contains("read_as") && !whole.contains("\"reading\""),
+        "{whole}"
+    );
+}

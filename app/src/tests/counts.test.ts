@@ -5,12 +5,26 @@ import { describe, expect, it } from "vitest";
 const rust = readFileSync(resolve(process.cwd(), "src-tauri/src/lib.rs"), "utf8");
 
 const made = new Set(
-  [...rust.matchAll(/count\(\s*"([a-z]+)"/g), ...rust.matchAll(/counts\.insert\("([a-z]+)"/g)].map(
-    (hit) => hit[1],
-  ),
+  [
+    ...rust.matchAll(/count\(\s*"([a-zA-Z]+)"/g),
+    ...rust.matchAll(/counts\.insert\(\s*"([a-zA-Z]+)"/g),
+    // The layer counts come out of a loop over their names.
+    ...rust.matchAll(/\("([a-z]+)", Reading::[A-Z][a-z]+\)/g),
+  ].map((hit) => hit[1]),
 );
 
-const ASKED = ["tasks", "upcoming", "repeating", "all", "tags", "archive", "folded"];
+const ASKED = [
+  "tasks",
+  "upcoming",
+  "repeating",
+  "all",
+  "tags",
+  "archive",
+  "folded",
+  "stories",
+  "traces",
+  "tracesTold",
+];
 
 describe("the counts the sidebar and the chips paint", () => {
   it.each(ASKED)("the backend answers «%s»", (key) => {

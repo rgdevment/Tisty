@@ -83,7 +83,21 @@ fn meta(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     if entries > 0 {
         meta.push(style::dim(&format!("✎{entries}")));
     }
+    if let Some(said) = converted(task, lang) {
+        meta.push(style::dim(said));
+    }
     meta.join(" · ")
+}
+
+fn converted(task: &Task, lang: Lang) -> Option<&'static str> {
+    match task
+        .read_as
+        .filter(|_| task.reading() != tisty_core::Reading::Routine)
+    {
+        Some(tisty_core::Reading::Story) => Some(lang.get("kept-story")),
+        Some(tisty_core::Reading::Trace) => Some(lang.get("read-trace")),
+        _ => None,
+    }
 }
 
 fn cadence(over: tisty_core::model::Repeat, lang: Lang) -> String {
@@ -147,6 +161,9 @@ pub fn detail(task: &Task, state: &State, today: Date, lang: Lang) -> String {
     }
     if !task.reminders.is_empty() {
         meta.push(format!("⏰ {}", task.reminders.len()));
+    }
+    if let Some(said) = converted(task, lang) {
+        meta.push(said.to_string());
     }
     if !meta.is_empty() {
         out.push_str(&format!("    {}\n", meta.join(" · ")));

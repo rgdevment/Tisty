@@ -26,6 +26,7 @@ const KNOWN = [
   "onlyClosedConverts",
   "routineReadsAsRoutine",
   "notAReading",
+  "traceChanged",
   "notAListId",
   "pastEnd",
   "manyLists",

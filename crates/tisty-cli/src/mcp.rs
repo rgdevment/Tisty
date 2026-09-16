@@ -42,8 +42,9 @@ and need not check first. How it is written decides nothing: «sereno#1», «ser
 and «Sereno #1» are one source. Without a source, `find` by text before you propose. \
 When the task from that source has been closed since, the answer says so and when: that \
 is what you tell the person who asks whether you filed it — it was filed, and it is done. \
-Only if they want it done again, propose it once more with `again` set, saying in the \
-description how the last one ended.
+When they erased it, the answer says that instead, and it stays erased. Only if they want it \
+done again, propose it once more with `again` set, saying in the description how the last \
+one ended.
 
 A day you filed can be moved with `reschedule` when what you learn moves it — the meeting \
 slipped a week, the paper came early. It reaches only what an agent filed: a day the person \
@@ -782,6 +783,18 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let again = args.get("again").and_then(Value::as_bool).unwrap_or(false);
     if let Some(source) = text(args, "source")
         && let Some(held) = already(&state, &source)
+        && state.is_erased(held)
+        && !again
+    {
+        return Ok(told(
+            "Already proposed from that source, and erased since: the person let it go. Nothing \
+             was written. Only if they want it back, propose it once more with `again` set."
+                .into(),
+            json!({ "id": held.to_string(), "proposed": false, "erased": true }),
+        ));
+    }
+    if let Some(source) = text(args, "source")
+        && let Some(held) = already(&state, &source)
         && let Some(task) = state.tasks.get(&held)
         && !(again && !task.is_open())
     {
@@ -874,9 +887,13 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             None => false,
             Some(one) => {
                 let held = State::replay(events);
-                already(&held, one)
-                    .and_then(|id| held.tasks.get(&id))
-                    .is_some_and(|task| task.is_open() || !again)
+                already(&held, one).is_some_and(|id| {
+                    held.is_erased(id) && !again
+                        || held
+                            .tasks
+                            .get(&id)
+                            .is_some_and(|task| task.is_open() || !again)
+                })
             }
         })
         .map_err(hitch)?;
@@ -937,9 +954,7 @@ fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     };
     let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
-        return Err(Refused::Tool(format!(
-            "no task here has the id {said}. It may have been deleted."
-        )));
+        return Err(gone(&state, &said));
     };
     if !task.is_open() {
         return Err(history(task));
@@ -999,9 +1014,7 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     };
     let Some(task) = state.tasks.get(&id) else {
-        return Err(Refused::Tool(format!(
-            "no task here has the id {said}. It may have been deleted."
-        )));
+        return Err(gone(&state, &said));
     };
     if !task
         .created_by
@@ -1087,9 +1100,7 @@ fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     };
     let Some(task) = state.tasks.get(&id) else {
-        return Err(Refused::Tool(format!(
-            "no task here has the id {said}. It may have been deleted."
-        )));
+        return Err(gone(&state, &said));
     };
     if !task.is_open() {
         return Err(history(task));
@@ -1134,9 +1145,7 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     };
     let Some(task) = state.tasks.get(&id) else {
-        return Err(Refused::Tool(format!(
-            "no task here has the id {said}. It may have been deleted."
-        )));
+        return Err(gone(&state, &said));
     };
     let me = store.device().clone();
     if task.created_by.as_ref() != Some(&me) {
@@ -1379,7 +1388,16 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     .into(),
             ));
         }
-        let held = already(&state, &source).and_then(|id| state.tasks.get(&id));
+        let filed = already(&state, &source);
+        if let Some(id) = filed.filter(|id| state.is_erased(*id)) {
+            return Ok(told(
+                "Already proposed from that source, and erased since: the person let it go. A \
+                 new filing from this source takes `again`, and only if they want it back."
+                    .into(),
+                json!({ "found": { "id": id.to_string(), "erased": true } }),
+            ));
+        }
+        let held = filed.and_then(|id| state.tasks.get(&id));
         return Ok(told(
             match held {
                 Some(task) if !task.is_open() => format!(
@@ -1697,6 +1715,19 @@ fn named(status: tisty_core::model::Status) -> &'static str {
     }
 }
 
+/// The tombstone knows: what the person erased is said to be erased, not merely missing.
+fn gone(state: &State, said: &str) -> Refused {
+    match said.parse::<TaskId>() {
+        Ok(id) if state.is_erased(id) => Refused::Tool(format!(
+            "{said} was erased by the person, and stays erased. If the same work has come back, \
+             propose it anew."
+        )),
+        _ => Refused::Tool(format!(
+            "no task here has the id {said}. It may have been deleted."
+        )),
+    }
+}
+
 fn standing(task: &Task) -> String {
     match task.completed_at.filter(|_| !task.is_open()) {
         Some(at) => format!("{} {}", named(task.status), when(at)),
@@ -1736,6 +1767,9 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     // Hidden is the person taking something out of sight. An agent reading its journal whole
     // would undo that decision on the one task most likely to deserve it.
     let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
+        if state.is_erased(id) {
+            return Err(gone(&state, &said));
+        }
         return Err(Refused::Tool(format!(
             "no task here has the id {said}. Look it up again with `find`."
         )));

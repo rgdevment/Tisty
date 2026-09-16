@@ -489,8 +489,8 @@ pub struct TaskPatch {
     pub reminders: Option<Vec<DateSpec>>,
     #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
     pub repeat: Option<Option<Repeat>>,
-    /// The layer the person converted it to; null takes the conversion back, and only undo
-    /// writes that.
+    /// The layer the person converted it to; null reads it by what it holds again, which is
+    /// what undo writes and what `--read-as auto` asks for.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
     pub read_as: Option<Option<Reading>>,
 }

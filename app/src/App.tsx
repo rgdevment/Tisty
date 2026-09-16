@@ -829,7 +829,11 @@ export default function App() {
   };
 
   const wipe = (task: Task) => {
-    ask(fill("eraseSure", task.title), { kind: "warning" })
+    const entries = task.volume?.journal ?? 0;
+    const sure = entries
+      ? `${fill("eraseSure", task.title)} ${fill("eraseWritten", String(entries))}`
+      : fill("eraseSure", task.title);
+    ask(sure, { kind: "warning" })
       .then((yes) => {
         if (!yes) return;
         setError(null);
@@ -847,13 +851,17 @@ export default function App() {
   // The set is the core's to decide, under the lock, the instant it runs: the window only
   // asks, with the count it painted, and says how many went.
   const sweepTrace = (how: "fold" | "erase") => {
-    const many = String(data.counts.traces ?? 0);
-    const sure = how === "fold" ? fill("foldTraceSure", many) : fill("eraseTraceSure", many);
+    const seen = data.counts.traces ?? 0;
+    const told = data.counts.tracesTold ?? 0;
+    const sure =
+      how === "fold"
+        ? fill("foldTraceSure", String(seen))
+        : `${fill("eraseTraceSure", String(seen))}${told ? ` ${fill("eraseTraceTold", String(told))}` : ""}`;
     ask(sure, { kind: how === "fold" ? "info" : "warning" })
       .then((yes) => {
         if (!yes) return;
         setError(null);
-        return (how === "fold" ? foldTrace() : eraseTrace()).then((went) => {
+        return (how === "fold" ? foldTrace() : eraseTrace(seen)).then((went) => {
           setSelected(undefined);
           setFound(null);
           say(fill(how === "fold" ? "foldedMany" : "erasedMany", String(went)));
@@ -1192,6 +1200,13 @@ export default function App() {
       .then((one) => {
         setHeld(one);
         acted.current = one?.id ?? null;
+        // A hit still shows in the search results it came from, so what came back replaces it
+        // there too, or the detail would go on reading the copy from before.
+        setFound((was) =>
+          was && one
+            ? { ...was, tasks: was.tasks.map((hit) => (hit.id === one.id ? one : hit)) }
+            : was,
+        );
         load();
         carries.current?.changed();
       })
@@ -1792,7 +1807,7 @@ export default function App() {
                     empty={
                       found?.papers.length && !shown.length
                         ? t("onlyPapers")
-                        : nothing(chosen, found !== null)
+                        : nothing(chosen, found !== null, data.counts.folded ?? 0)
                     }
                     note={
                       found && found.total > found.tasks.length

@@ -76,10 +76,18 @@ const errand: Task = {
   volume: {},
 };
 
-const counts = { stories: 1, routines: 0, traces: 2, folded: 0 };
+const counts = { stories: 1, routines: 0, traces: 2, tracesTold: 1, folded: 0 };
 
 const shot = (view: View | undefined): Snapshot => ({
-  tasks: view?.archive ? (view.hidden ? [] : view.reading === "trace" ? [errand] : [told]) : [open],
+  tasks: view?.archive
+    ? view.hidden
+      ? []
+      : view.reading === "trace"
+        ? counts.traces
+          ? [errand]
+          : []
+        : [told]
+    : [open],
   ahead: [],
   routines: [],
   lists: [],
@@ -135,11 +143,19 @@ const inTheTrace = async (user: ReturnType<typeof userEvent.setup>) => {
 };
 
 describe("the layer a task reads as, decided in the window the way the core decides it", () => {
+  // The same buckets the core uses: steps 0–2 → 0, 3–7 → 1, 8+ → 2; refs 0 → 0, 1–2 → 1, 3+ → 2.
   it("weighs prose, then steps and references by bucket", () => {
     expect(weightOf({ ...errand, volume: {} })).toBe(0);
+    expect(weightOf({ ...errand })).toBe(0);
     expect(weightOf({ ...errand, volume: { prose: 2, steps: 3, refs: 1 } })).toBe(4);
     expect(weightOf({ ...errand, volume: { prose: 8, steps: 8, refs: 3 } })).toBe(12);
     expect(weightOf({ ...errand, volume: { steps: 2 } })).toBe(0);
+    expect(weightOf({ ...errand, volume: { steps: 7 } })).toBe(1);
+    expect(weightOf({ ...errand, volume: { steps: 8 } })).toBe(2);
+    expect(weightOf({ ...errand, volume: { refs: 2 } })).toBe(1);
+    expect(weightOf({ ...errand, volume: { refs: 3 } })).toBe(2);
+    expect(readingOf({ ...errand, volume: { prose: 2 } })).toBe("trace");
+    expect(readingOf({ ...errand, volume: { prose: 3 } })).toBe("story");
   });
 
   it("reads a routine as a routine, a conversion as what it says, and the rest by weight", () => {
@@ -201,8 +217,56 @@ describe("the trace layer offers to hide or erase all of it", () => {
     await user.click(screen.getByRole("button", { name: /erase all/i }));
 
     await waitFor(() => expect(sent("erase_trace")).toHaveLength(1));
-    expect(sent("erase_trace")[0].args).toEqual({});
+    expect(sent("erase_trace")[0].args).toEqual({ seen: 2 });
     await screen.findByText(/2 erased for good/i);
+  });
+
+  it("stops when the trace changed under the person, and says so", async () => {
+    const user = userEvent.setup();
+    await inTheTrace(user);
+    const was = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "erase_trace" ? Promise.reject({ code: "traceChanged" }) : was(cmd, args);
+
+    await user.click(screen.getByRole("button", { name: /erase all/i }));
+
+    await screen.findByText(/changed since you looked/i);
+    expect(screen.getByText("buy bread")).toBeTruthy();
+  });
+
+  it("offers nothing to sweep when there is nothing, when folded, or while searching", async () => {
+    const user = userEvent.setup();
+    counts.traces = 0;
+    counts.tracesTold = 0;
+    try {
+      render(<App />);
+      await screen.findByText("write the report");
+      await user.click(screen.getByRole("button", { name: /Archive/ }));
+      await screen.findByText("renew the certificate");
+      await user.click(screen.getByRole("button", { name: /Trace/ }));
+      await waitFor(() => expect(screen.queryByRole("button", { name: /hide all/i })).toBeNull());
+      expect(screen.queryByRole("button", { name: /erase all/i })).toBeNull();
+    } finally {
+      counts.traces = 2;
+      counts.tracesTold = 1;
+    }
+  });
+
+  it("says where the trace went once it is all hidden", async () => {
+    const user = userEvent.setup();
+    counts.traces = 0;
+    counts.folded = 40;
+    try {
+      render(<App />);
+      await screen.findByText("write the report");
+      await user.click(screen.getByRole("button", { name: /Archive/ }));
+      await screen.findByText("renew the certificate");
+      await user.click(screen.getByRole("button", { name: /Trace/ }));
+      await screen.findByText(/40 under «hidden»/i);
+    } finally {
+      counts.traces = 2;
+      counts.folded = 0;
+    }
   });
 
   it("does nothing when the person says no", async () => {
@@ -252,6 +316,6 @@ describe("the trail tells a conversion", () => {
 
     expect(screen.getByText(/kept as a story/i)).toBeTruthy();
     expect(screen.getByText(/read as a trace/i)).toBeTruthy();
-    expect(screen.getByText(/read by what it holds again/i)).toBeTruthy();
+    expect(screen.getByText(/read again by what it holds/i)).toBeTruthy();
   });
 });

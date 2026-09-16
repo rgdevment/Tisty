@@ -241,10 +241,26 @@ impl State {
                 t.status = Status::Dropped;
                 t.completed_at = Some(event.timestamp);
             }),
+            // The word the person gave a task outlives a delete written elsewhere while it still
+            // read as a trace: the same stamp order everywhere, so every machine keeps it. And
+            // what it was written from stays known, so an assistant does not file it again.
             Op::TaskDelete { id } => {
-                if let Some(source) = self.tasks.remove(id).and_then(|task| task.source) {
-                    self.sourced.remove(&source);
+                if self
+                    .tasks
+                    .get(id)
+                    .is_some_and(|task| task.read_as == Some(Reading::Story))
+                {
+                    crate::witness::warn(
+                        crate::witness::channel::STORE,
+                        "a delete reached a task kept as a story, and was let go",
+                        &[
+                            ("at", crate::witness::Fact::Id(id.to_string())),
+                            ("by", crate::witness::Fact::Id(event.device.0.clone())),
+                        ],
+                    );
+                    return;
                 }
+                self.tasks.remove(id);
                 self.tombstones.insert(*id);
             }
             Op::TaskMove { id, d } => self.with_task(*id, |t| move_task(t, d)),
@@ -1096,12 +1112,31 @@ impl State {
         ops
     }
 
+    /// The tasks other turns hang from: a root whose `repeat` was taken off reads as a trace,
+    /// and erasing it would cut the series it still heads.
+    pub fn roots(&self) -> std::collections::BTreeSet<TaskId> {
+        self.tasks.values().filter_map(|t| t.after).collect()
+    }
+
+    pub fn erasable(&self, id: TaskId) -> Result<(), crate::model::Stays> {
+        let task = self.tasks.get(&id).ok_or(crate::model::Stays::Open)?;
+        task.erasable()?;
+        if self.roots().contains(&id) {
+            return Err(crate::model::Stays::Routine);
+        }
+        Ok(())
+    }
+
     /// What the trace layer shows: closed, not folded away, and read as a trace this instant.
     /// The bulk actions take exactly this, decided under the lock, never a list the window sent.
     pub fn the_trace(&self) -> impl Iterator<Item = &Task> {
-        self.tasks
-            .values()
-            .filter(|t| t.is_archived() && !t.folded() && t.reading() == Reading::Trace)
+        let roots = self.roots();
+        self.tasks.values().filter(move |t| {
+            t.is_archived()
+                && !t.folded()
+                && t.reading() == Reading::Trace
+                && !roots.contains(&t.id)
+        })
     }
 
     pub fn folding_the_trace(&self) -> Vec<Op> {
@@ -1116,8 +1151,23 @@ impl State {
             .collect()
     }
 
+    /// A trace pin is let go on reopening — work starts again and is judged again by what it
+    /// writes — while a story pin stays: a finish taken back by mistake must not unkeep it.
     pub fn reopening(&self, id: TaskId) -> Vec<Op> {
         let mut ops = vec![Op::TaskReopen { id }];
+        if self
+            .tasks
+            .get(&id)
+            .is_some_and(|task| task.read_as == Some(Reading::Trace))
+        {
+            ops.push(Op::TaskUpdate {
+                id,
+                d: TaskPatch {
+                    read_as: Some(None),
+                    ..Default::default()
+                },
+            });
+        }
         if let Some(born) = self
             .tasks
             .values()
@@ -2895,19 +2945,20 @@ mod tests {
     }
 
     #[test]
-    fn deleting_a_task_takes_what_it_was_written_from_with_it() {
+    fn deleting_a_task_keeps_what_it_was_written_from_pointing_at_the_grave() {
         let mut state = State::default();
         let id = Ulid::generate();
         let mut d = crate::event::TaskAdd::new("buy pink card stock", "a0");
         d.source = Some("wa:msg-991".into());
         state.apply(&ev(1, "dev_agent", Op::TaskAdd { id, d }));
-        state.apply(&ev(2, "dev_agent", Op::TaskDelete { id }));
+        state.apply(&ev(2, "dev_laptop", Op::TaskDelete { id }));
 
         assert_eq!(
             state.sourced.get("wa:msg-991"),
-            None,
-            "what someone deleted has to be capturable again"
+            Some(&id),
+            "the person let it go; an assistant reading the same message must not file it again"
         );
+        assert!(state.is_erased(id));
     }
 
     #[test]
@@ -5771,7 +5822,7 @@ mod converting {
         ));
         let turn = Ulid::generate();
         let mut d = crate::event::TaskAdd::new("pastillas", "a1");
-        d.after = Some(seen);
+        d.after = Some(Ulid::generate());
         state.apply(&ev(60, "dev_laptop", Op::TaskAdd { id: turn, d }));
         state.apply(&ev(
             61,
@@ -5826,6 +5877,101 @@ mod converting {
         assert_eq!(folding.len(), 2);
         assert_eq!(erasing.len(), 2);
         assert!(folding.contains(&demoted) && erasing.contains(&demoted));
+    }
+
+    /// A root whose repeat was taken off reads as a trace, but turns still hang from it:
+    /// erasing it would cut the series, so it stays with the routines.
+    #[test]
+    fn a_root_other_turns_hang_from_is_a_routine_however_bare() {
+        let mut state = State::default();
+        let root = closed(&mut state, 1, "dev_laptop", "pastillas");
+        let turn = Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("pastillas", "a1");
+        d.after = Some(root);
+        state.apply(&ev(10, "dev_laptop", Op::TaskAdd { id: turn, d }));
+        state.apply(&ev(
+            11,
+            "dev_laptop",
+            Op::TaskDone {
+                id: turn,
+                filled: false,
+            },
+        ));
+
+        assert_eq!(
+            state.tasks[&root].reading(),
+            Reading::Trace,
+            "bare, by itself"
+        );
+        assert_eq!(
+            state.tasks[&root].erasable(),
+            Ok(()),
+            "the task alone cannot tell"
+        );
+        assert_eq!(state.erasable(root), Err(Stays::Routine), "the state can");
+        assert_eq!(state.erasable(turn), Err(Stays::Routine));
+        assert!(state.the_trace().all(|t| t.id != root && t.id != turn));
+        assert_eq!(
+            state.erasable(Ulid::generate()),
+            Err(Stays::Open),
+            "nothing there"
+        );
+    }
+
+    #[test]
+    fn a_delete_that_arrives_for_a_task_kept_as_a_story_is_let_go() {
+        let mut state = State::default();
+        let kept = closed(&mut state, 1, "dev_a", "el certificado");
+        state.apply(&ev(100, "dev_a", converted(kept, Some(Reading::Story))));
+        state.apply(&ev(110, "dev_b", Op::TaskDelete { id: kept }));
+        assert!(
+            state.tasks.contains_key(&kept),
+            "the word the person gave outlives the delete"
+        );
+        assert!(!state.is_erased(kept));
+
+        let gone = closed(&mut state, 200, "dev_a", "comprar pan");
+        state.apply(&ev(210, "dev_a", converted(gone, Some(Reading::Trace))));
+        state.apply(&ev(220, "dev_b", Op::TaskDelete { id: gone }));
+        assert!(!state.tasks.contains_key(&gone), "read as a trace, it goes");
+
+        let unpinned = a_story(&mut state, 300, "dev_a", "la mudanza");
+        state.apply(&ev(320, "dev_b", Op::TaskDelete { id: unpinned }));
+        assert!(
+            !state.tasks.contains_key(&unpinned),
+            "only the pin guards: a story by weight was a trace somewhere, and the delete stands"
+        );
+    }
+
+    #[test]
+    fn reopening_lets_a_trace_pin_go_and_keeps_a_story_pin() {
+        let mut state = State::default();
+        let demoted = a_story(&mut state, 1, "dev_laptop", "la mudanza");
+        state.apply(&ev(
+            10,
+            "dev_laptop",
+            converted(demoted, Some(Reading::Trace)),
+        ));
+        let kept = closed(&mut state, 20, "dev_laptop", "el certificado");
+        state.apply(&ev(22, "dev_laptop", converted(kept, Some(Reading::Story))));
+
+        for (n, op) in state.reopening(demoted).into_iter().enumerate() {
+            state.apply(&ev(30 + n as i64, "dev_laptop", op));
+        }
+        for (n, op) in state.reopening(kept).into_iter().enumerate() {
+            state.apply(&ev(40 + n as i64, "dev_laptop", op));
+        }
+
+        assert_eq!(
+            state.tasks[&demoted].read_as, None,
+            "work starts again, judged again"
+        );
+        assert_eq!(
+            state.tasks[&kept].read_as,
+            Some(Reading::Story),
+            "a finish taken back"
+        );
+        assert!(state.tasks[&demoted].is_open() && state.tasks[&kept].is_open());
     }
 
     #[test]

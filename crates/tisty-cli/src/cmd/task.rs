@@ -276,7 +276,10 @@ pub fn rm(app: &mut App, selector: &str, force: bool, lang: Lang) -> anyhow::Res
                 tisty_core::model::Stays::Story => "rm-story",
                 tisty_core::model::Stays::Routine => "rm-routine",
             };
-            anyhow::bail!("{}", lang.fill(key, &[("title", &title)]));
+            anyhow::bail!(
+                "{}",
+                lang.fill(key, &[("title", &title), ("selector", selector)])
+            );
         }
         if !confirm(&lang.fill("confirm-rm", &[("title", &title)]), force, lang)? {
             return Ok(ExitCode::SUCCESS);

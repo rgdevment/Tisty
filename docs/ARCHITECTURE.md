@@ -62,7 +62,7 @@ Some payload fields carry more than their name says:
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
-| `read_as` | `task.update` | `story` or `trace`, the layer the person converted the task to; `null` reads it by what it holds again, and only undo writes that |
+| `read_as` | `task.update` | `story` or `trace`, the layer the person converted the task to; `null` reads it by what it holds again — what undo writes, and what `tisty set --read-as auto` asks for |
 | `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
 | `by` | `doc.said` | the alias the body was saved under, sealed at the writing rather than worked out afterwards from whoever happens to be signing now. Absent is a hand that did not sign, not the reader's own |
 
@@ -635,10 +635,21 @@ routine is only hidden, never erased: to erase a story the person converts it to
 a trace first, and a trace kept as a story stops being erasable. The conversion
 is the deliberate step, and what the task holds plays no part in it — what the
 person converted is what they said it is. The rule is `Task::erasable()`, in the
-core, and the window and `tisty rm` both obey it at the moment they commit,
-never at replay: a deletion another machine wrote while the task still read as
-a trace has to project the same everywhere. The tombstone travels; what the log
-already recorded about the task stays where it was written.
+core — a task other turns hang from counts as a routine's root, however bare —
+and the window and `tisty rm` both obey it at the moment they commit, after
+re-reading the store, since erasing has no undo and an agent or the terminal may
+have written since the window last looked. The bulk erase carries how many the
+person was shown, and a layer that changed under them is a reason to look again
+rather than a guess. One thing is judged at replay, deterministically, the way
+an assistant's deletion is: a delete that reaches a task the person kept as a
+story is let go, on every machine alike, because that word outlives a delete
+written elsewhere while the task still read as a trace. Two deletions are not
+the person's and stay outside the rule: reopening a routine's turn deletes the
+untouched turn born from it, and undoing a capture deletes what it captured.
+The tombstone travels, and it keeps what the task was written from: an
+assistant reading the same message again is told it was let go, and files it
+again only when the person asks for it back with `again`. What the log already
+recorded about the task stays where it was written.
 
 ## Repeating
 
@@ -787,9 +798,11 @@ Search orders by `heft()`, the weight clipped to the chosen side of the
 threshold, so a conversion counts there; `told` on the cover and in the series
 keeps reading `weight()`, because it says «left something written» and must
 keep saying the truth. A conversion is a chapter in the trail, unlike hiding,
-because it explains why a task sits where it sits. It survives reopening, as the
-agent's mark does, and a patch an assistant wrote lands without it: converting
-is the person's.
+because it explains why a task sits where it sits. Reopening keeps a story pin,
+as it keeps the agent's mark — a finish taken back by mistake must not unkeep
+it — and lets a trace pin go: work starts again, and is judged again by what it
+writes. A patch an assistant wrote lands without the pin, and its chapter is
+not written: converting is the person's.
 
 `Reading` is derived, but the `Volume` it reads from is **not** one of the three
 views above: it is counted on write and travels in the read cache. Changing how

@@ -479,8 +479,9 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
         <span aria-hidden="true">{task.status === "dropped" ? "⨯" : "▣"}</span>{" "}
         {t(task.status === "dropped" ? "dropped" : "done")}
         {closed && ` · ${closed}`}
-        {task.read_as === "story" && ` · ${t("keptAsStory")}`}
-        {task.read_as === "trace" && ` · ${t("readAsTraceNow")}`}
+        {task.read_as &&
+          readingOf(task) !== "routine" &&
+          ` · ${t(task.read_as === "story" ? "keptAsStory" : "readAsTraceNow")}`}
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}

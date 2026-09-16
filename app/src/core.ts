@@ -306,7 +306,7 @@ export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold",
 export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
   invoke("read_as", { id, how });
 export const foldTrace = (): Promise<number> => invoke("fold_trace");
-export const eraseTrace = (): Promise<number> => invoke("erase_trace");
+export const eraseTrace = (seen: number): Promise<number> => invoke("erase_trace", { seen });
 export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });
 export const complete = (id: string, also?: string[]): Promise<Task> =>
   invoke("complete", { id, also });

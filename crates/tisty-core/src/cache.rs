@@ -50,7 +50,7 @@ impl Cache {
                  CREATE TABLE IF NOT EXISTS list(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS folder(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS doc(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
-                 CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY);
+                 CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY, source TEXT);
                  CREATE TABLE IF NOT EXISTS paper(
                      id TEXT PRIMARY KEY,
                      bytes INTEGER NOT NULL,
@@ -184,14 +184,21 @@ impl Cache {
             }
         }
 
-        let mut erased = self.db.prepare("SELECT id FROM tombstone").ok()?;
-        let ids = erased
-            .query_map([], |r| r.get::<_, String>(0))
+        let mut erased = self.db.prepare("SELECT id, source FROM tombstone").ok()?;
+        let gone = erased
+            .query_map([], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
+            })
             .ok()?
             .filter_map(|r| r.ok());
-        for id in ids {
+        for (id, source) in gone {
             if let Ok(id) = id.parse() {
                 state.mark_erased(id);
+                if let Some(source) = source
+                    && !state.sourced.contains_key(&source)
+                {
+                    state.sourced.insert(source, id);
+                }
             }
         }
         Some(state)
@@ -239,9 +246,12 @@ impl Cache {
                 }
             }
             {
-                let mut gone = tx.prepare("INSERT INTO tombstone VALUES (?)")?;
+                let mut gone = tx.prepare("INSERT INTO tombstone VALUES (?,?)")?;
                 for id in state.erased() {
-                    gone.execute([id.to_string()])?;
+                    gone.execute(rusqlite::params![
+                        id.to_string(),
+                        source_of_the_grave(state, *id)
+                    ])?;
                 }
             }
             tx.execute(
@@ -341,8 +351,10 @@ impl Cache {
                     self.db.execute("DELETE FROM folder WHERE id = ?", [&id])?;
                     self.db.execute("DELETE FROM doc WHERE id = ?", [&id])?;
                     if state.is_erased(entity) {
-                        self.db
-                            .execute("INSERT OR REPLACE INTO tombstone VALUES (?)", [&id])?;
+                        self.db.execute(
+                            "INSERT OR REPLACE INTO tombstone VALUES (?,?)",
+                            rusqlite::params![&id, source_of_the_grave(state, entity)],
+                        )?;
                     }
                 }
             }
@@ -693,15 +705,34 @@ fn reached(
         return print;
     }
 
+    // One transaction for the lot: a bulk of thousands would otherwise stamp the fingerprint
+    // row by row, and a process cut halfway would leave a cache that calls itself current
+    // while still holding tasks the log had already buried.
+    let _ = cache.db.execute_batch("BEGIN");
     for event in events {
         if let Some(id) = event.entity_id() {
             let _ = cache.touch(state, id, &print);
         }
     }
+    if cache.db.execute_batch("COMMIT").is_err() {
+        let _ = cache.db.execute_batch("ROLLBACK");
+        cache.invalidate();
+        return print;
+    }
     if let Some(onward) = highest(events) {
         cache.mark(&onward);
     }
     print
+}
+
+/// The tombstone keeps what the task was written from, so a cache read back knows the source
+/// as the log does, and an assistant reading the same message is told it was let go.
+fn source_of_the_grave(state: &State, id: ulid::Ulid) -> Option<String> {
+    state
+        .sourced
+        .iter()
+        .find(|(_, held)| **held == id)
+        .map(|(source, _)| source.clone())
 }
 
 /// The log only ever grows, so a cache left behind by one file growing can be caught up from
@@ -1189,6 +1220,32 @@ mod tests {
 
         let again = project(&f.store_root, &f.cache_dir).unwrap();
         assert!(again.is_erased(f.task), "the cache forgot a deletion");
+    }
+
+    /// An assistant reading the same message again is told the task was let go, and that
+    /// has to hold on a cache read back as much as on a log replayed.
+    #[test]
+    fn the_grave_keeps_what_the_task_was_written_from() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let filed = ulid::Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("comprar pan", "a9");
+        d.source = Some("wa:msg-4410".into());
+        store.append(Op::TaskAdd { id: filed, d }).unwrap();
+        store.append(Op::TaskDelete { id: filed }).unwrap();
+
+        let state = project(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(state.sourced.get("wa:msg-4410"), Some(&filed));
+        assert!(state.is_erased(filed));
+
+        let again = project(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(
+            again.sourced.get("wa:msg-4410"),
+            Some(&filed),
+            "the cache forgot where an erased task came from"
+        );
+        let light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(light.sourced.get("wa:msg-4410"), Some(&filed));
     }
 
     #[test]

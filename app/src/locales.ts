@@ -45,6 +45,8 @@ const en = {
   onlyClosedConverts: "Only a closed task is read as a story or a trace",
   routineReadsAsRoutine: "A routine reads as a routine, turn by turn",
   notAReading: "That is not a way to read a task",
+  traceChanged:
+    "The trace changed since you looked — a sync, or the terminal. Look again before erasing",
   notAClosing: "That is not a way to close",
   notATheme: "That is not a look the window has",
   eraseIt: "Erase for good",
@@ -122,11 +124,14 @@ const en = {
   foldedMany: "{name} hidden",
   eraseTrace: "Erase all",
   eraseTraceSure:
-    "Erase the {name} traces for good? They go from this machine and from the others on the next sync. There is no undo. Stories and routines stay.",
+    "Erase the {name} traces for good? They go from this machine and from the others on the next sync. There is no undo. Stories, routines and what is hidden stay.",
+  eraseTraceTold: "{name} of them left something written.",
+  eraseWritten: "It carries {name} journal entries, and they go with it.",
   erasedMany: "{name} erased for good",
+  traceHidden: "The trace is hidden: {name} under «hidden», and search still reaches them.",
   trailKeptStory: "Kept as a story",
   trailReadTrace: "Read as a trace",
-  trailReadByItself: "Read by what it holds again",
+  trailReadByItself: "Read again by what it holds",
   folded: "hidden",
   backToArchive: "Back to the archive",
   discardIt: "Not doing it",
@@ -740,7 +745,7 @@ const en = {
   tallyBest: "longest run",
   tallyMissed: "days missed",
   storiesEmpty:
-    "Nothing closed here tells a story yet. A task earns the shelf by what was written on it along the way: a log somebody took the trouble to write, or a few of them.",
+    "Nothing closed here tells a story yet. A task earns the shelf by what was written on it along the way — a log somebody took the trouble to write, or a few of them — or because you kept it as one.",
   routinesEmpty:
     "Nothing repeats yet. Write «water the plants every three days» to start a series.",
   traceEmpty: "Everything closed here left something written behind.",
@@ -1310,6 +1315,8 @@ const es: Catalog = {
   onlyClosedConverts: "Solo una tarea cerrada se lee como historia o como rastro",
   routineReadsAsRoutine: "Una rutina se lee como rutina, vuelta a vuelta",
   notAReading: "Esa no es una forma de leer una tarea",
+  traceChanged:
+    "El rastro cambió desde que lo viste — un sync, o la terminal. Míralo de nuevo antes de borrar",
   notAClosing: "Esa no es una forma de cerrar",
   notATheme: "La ventana no tiene ese aspecto",
   eraseIt: "Borrar para siempre",
@@ -1387,11 +1394,14 @@ const es: Catalog = {
   foldedMany: "{name} ocultas",
   eraseTrace: "Borrar todo",
   eraseTraceSure:
-    "¿Borrar para siempre los {name} rastros? Desaparecen de este equipo y de los demás en la próxima sincronización. No hay deshacer. Las historias y las rutinas se quedan.",
+    "¿Borrar para siempre los {name} rastros? Desaparecen de este equipo y de los demás en la próxima sincronización. No hay deshacer. Las historias, las rutinas y lo oculto se quedan.",
+  eraseTraceTold: "{name} de ellos dejaron algo escrito.",
+  eraseWritten: "Lleva {name} entradas de bitácora, y se van con ella.",
   erasedMany: "{name} borradas para siempre",
+  traceHidden: "El rastro está oculto: {name} bajo «ocultas», y la búsqueda sigue alcanzándolos.",
   trailKeptStory: "Guardada como historia",
   trailReadTrace: "Leída como rastro",
-  trailReadByItself: "Vuelve a leerse por lo que tiene",
+  trailReadByItself: "Leída otra vez por lo que tiene",
   folded: "ocultas",
   backToArchive: "Volver al archivo",
   discardIt: "No lo haré",
@@ -2011,7 +2021,7 @@ const es: Catalog = {
   tallyBest: "racha más larga",
   tallyMissed: "días sin marcar",
   storiesEmpty:
-    "Todavía nada de lo cerrado cuenta una historia. Una tarea se gana el estante por lo que quedó escrito en ella: una bitácora que alguien se tomó el trabajo de escribir, o unas cuantas.",
+    "Todavía nada de lo cerrado cuenta una historia. Una tarea se gana el estante por lo que quedó escrito en ella —una bitácora que alguien se tomó el trabajo de escribir, o unas cuantas— o porque tú la guardaste como tal.",
   routinesEmpty:
     "Todavía no se repite nada. Escribe «regar las plantas cada tres días» para empezar una serie.",
   traceEmpty: "Todo lo que se ha cerrado aquí dejó algo escrito.",

@@ -4,7 +4,6 @@ use jiff::civil::Date;
 use tisty_core::{
     ListId, Op, Tag,
     event::{ListAdd, Name, TaskPatch},
-    inverse,
 };
 use ulid::Ulid;
 
@@ -283,9 +282,9 @@ fn step_history(app: &mut App, redoing: bool, today: Date, lang: Lang) -> anyhow
         }
 
         let mut ops = Vec::with_capacity(change.len());
-        for (event, before) in change.iter().rev() {
-            match inverse(event, before) {
-                Some(back) => ops.extend(back),
+        for (_, back) in change.iter().rev() {
+            match back {
+                Some(back) => ops.extend(back.iter().cloned()),
                 None => anyhow::bail!("{}", lang.get("cannot-undo")),
             }
         }

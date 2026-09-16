@@ -635,6 +635,11 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
     for list in state.ordered_lists() {
         counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
     }
+    // A trace the person converted may hold a journal: the bulk erase says how many do.
+    counts.insert(
+        "tracesTold".to_string(),
+        state.the_trace().filter(|t| t.weight() > 0).count(),
+    );
     counts
 }
 
@@ -1538,6 +1543,7 @@ fn patch(
         tags: tagged(&task, &change)?,
         reminders: recalled(&task, &change, &now)?,
         repeat: repeated(&change, &now)?,
+        read_as: None,
     };
 
     let mut ops = Vec::new();
@@ -6483,19 +6489,22 @@ fn complete(
 #[tauri::command]
 fn erase(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    let task = session
-        .state
-        .tasks
-        .get(&id)
-        .ok_or_else(|| Refusal::of("notATaskId"))?;
-    task.erasable().map_err(|why| {
-        Refusal::of(match why {
-            tisty_core::model::Stays::Open => "onlyArchivedGoes",
-            tisty_core::model::Stays::Story => "storyStays",
-            tisty_core::model::Stays::Routine => "routineStays",
-        })
-    })?;
+    erasing(&mut held(&session), id)
+}
+
+// Erasing has no undo, so it is judged against the store as it is now — an agent or the
+// terminal may have written since the window last looked.
+fn erasing(session: &mut Session, id: tisty_core::TaskId) -> Answer<()> {
+    session.reload()?;
+    if !session.state.tasks.contains_key(&id) {
+        return Err(Refusal::of("notATaskId"));
+    }
+    match session.state.erasable(id) {
+        Ok(()) => {}
+        Err(tisty_core::model::Stays::Open) => return Err(Refusal::of("onlyArchivedGoes")),
+        Err(tisty_core::model::Stays::Story) => return Err(Refusal::of("storyStays")),
+        Err(tisty_core::model::Stays::Routine) => return Err(Refusal::of("routineStays")),
+    }
     session.commit(Op::TaskDelete { id })?;
     Ok(())
 }
@@ -6510,7 +6519,11 @@ fn read_as(session: tauri::State<'_, Mutex<Session>>, id: String, how: String) -
         "trace" => Reading::Trace,
         _ => return Err(Refusal::of("notAReading")),
     };
-    let mut session = held(&session);
+    reading_as(&mut held(&session), id, how)
+}
+
+fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> Answer<Task> {
+    session.reload()?;
     let task = session
         .state
         .tasks
@@ -6541,7 +6554,11 @@ fn read_as(session: tauri::State<'_, Mutex<Session>>, id: String, how: String) -
 // which may have been painted before a sync converted one of them into a story.
 #[tauri::command]
 fn fold_trace(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
-    let mut session = held(&session);
+    folding_the_trace(&mut held(&session))
+}
+
+fn folding_the_trace(session: &mut Session) -> Answer<usize> {
+    session.reload()?;
     let ops = session.state.folding_the_trace();
     let many = ops.len();
     if many > 0 {
@@ -6550,11 +6567,21 @@ fn fold_trace(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
     Ok(many)
 }
 
+/// `seen` is how many the person was shown when they said yes. Erasing has no undo, so a
+/// layer that changed under them — a sync, the terminal — is a reason to look again, not
+/// to guess which of the two lists they meant.
 #[tauri::command]
-fn erase_trace(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
-    let mut session = held(&session);
+fn erase_trace(session: tauri::State<'_, Mutex<Session>>, seen: usize) -> Answer<usize> {
+    erasing_the_trace(&mut held(&session), seen)
+}
+
+fn erasing_the_trace(session: &mut Session, seen: usize) -> Answer<usize> {
+    session.reload()?;
     let ops = session.state.erasing_the_trace();
     let many = ops.len();
+    if many != seen {
+        return Err(Refusal::of("traceChanged"));
+    }
     if many > 0 {
         session.commit_all(ops)?;
     }
@@ -8326,6 +8353,153 @@ mod behind_tests {
             update::ours(RELEASES),
             "the offer has to lead where our releases live"
         );
+    }
+}
+
+#[cfg(test)]
+mod letting_go {
+    use super::{Session, erasing, erasing_the_trace, folding_the_trace, reading_as};
+    use tisty_core::{Op, Paths, Reading, TaskId};
+
+    struct Desk {
+        _tmp: tempfile::TempDir,
+        paths: Paths,
+    }
+
+    fn desk() -> Desk {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        std::fs::create_dir_all(paths.docs()).unwrap();
+        Desk { _tmp: tmp, paths }
+    }
+
+    fn closed(session: &mut Session, title: &str) -> TaskId {
+        let id = ulid::Ulid::generate();
+        session
+            .commit(Op::TaskAdd {
+                id,
+                d: tisty_core::event::TaskAdd::new(title, "a0"),
+            })
+            .unwrap();
+        session.commit(Op::TaskDone { id, filled: false }).unwrap();
+        id
+    }
+
+    fn code(said: Result<impl std::fmt::Debug, super::Refusal>) -> String {
+        match said {
+            Ok(_) => "ok".into(),
+            Err(refusal) => refusal.code.to_string(),
+        }
+    }
+
+    #[test]
+    fn erasing_keeps_the_rule_the_core_keeps() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let open = ulid::Ulid::generate();
+        session
+            .commit(Op::TaskAdd {
+                id: open,
+                d: tisty_core::event::TaskAdd::new("still open", "a0"),
+            })
+            .unwrap();
+        let errand = closed(&mut session, "buy bread");
+        let kept = closed(&mut session, "the certificate");
+        reading_as(&mut session, kept, Reading::Story).unwrap();
+
+        assert_eq!(code(erasing(&mut session, open)), "onlyArchivedGoes");
+        assert_eq!(code(erasing(&mut session, kept)), "storyStays");
+        assert_eq!(
+            code(erasing(&mut session, ulid::Ulid::generate())),
+            "notATaskId"
+        );
+        assert_eq!(code(erasing(&mut session, errand)), "ok");
+        assert!(session.state.is_erased(errand));
+    }
+
+    #[test]
+    fn converting_is_for_what_is_closed_and_not_a_routine() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let open = ulid::Ulid::generate();
+        session
+            .commit(Op::TaskAdd {
+                id: open,
+                d: tisty_core::event::TaskAdd::new("still open", "a0"),
+            })
+            .unwrap();
+        let turn = ulid::Ulid::generate();
+        let mut d = tisty_core::event::TaskAdd::new("pills", "a1");
+        d.after = Some(ulid::Ulid::generate());
+        session.commit(Op::TaskAdd { id: turn, d }).unwrap();
+        session
+            .commit(Op::TaskDone {
+                id: turn,
+                filled: false,
+            })
+            .unwrap();
+        let errand = closed(&mut session, "buy bread");
+
+        assert_eq!(
+            code(reading_as(&mut session, open, Reading::Story)),
+            "onlyClosedConverts"
+        );
+        assert_eq!(
+            code(reading_as(&mut session, turn, Reading::Trace)),
+            "routineReadsAsRoutine"
+        );
+        let told = reading_as(&mut session, errand, Reading::Story).unwrap();
+        assert_eq!(told.read_as, Some(Reading::Story));
+        assert_eq!(code(erasing(&mut session, errand)), "storyStays");
+    }
+
+    /// What the person was shown is what goes: a trace that changed under them — the
+    /// terminal wrote while the dialog was open — is a reason to look again.
+    #[test]
+    fn the_sweep_erases_what_was_seen_and_refuses_what_changed_meanwhile() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let one = closed(&mut session, "buy bread");
+        let two = closed(&mut session, "water the plants");
+        let kept = closed(&mut session, "the certificate");
+        reading_as(&mut session, kept, Reading::Story).unwrap();
+
+        assert_eq!(code(erasing_the_trace(&mut session, 3)), "traceChanged");
+        assert!(session.state.tasks.contains_key(&one), "nothing went");
+
+        let mut elsewhere = Session::at(desk.paths.clone()).unwrap();
+        closed(&mut elsewhere, "written from the terminal meanwhile");
+        assert_eq!(
+            code(erasing_the_trace(&mut session, 2)),
+            "traceChanged",
+            "the store moved on since the window counted"
+        );
+
+        assert_eq!(erasing_the_trace(&mut session, 3).unwrap(), 3);
+        assert!(session.state.is_erased(one) && session.state.is_erased(two));
+        assert!(
+            session.state.tasks.contains_key(&kept),
+            "kept as a story, it stays"
+        );
+        assert_eq!(
+            erasing_the_trace(&mut session, 0).unwrap(),
+            0,
+            "nothing left, nothing written"
+        );
+    }
+
+    #[test]
+    fn hiding_the_trace_takes_what_shows_and_leaves_what_is_hidden_where_it_is() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let one = closed(&mut session, "buy bread");
+        let hidden = closed(&mut session, "water the plants");
+        session.commit(Op::TaskHide { id: hidden }).unwrap();
+
+        assert_eq!(folding_the_trace(&mut session).unwrap(), 1);
+        assert!(session.state.tasks[&one].hidden);
+        assert_eq!(folding_the_trace(&mut session).unwrap(), 0);
+        assert_eq!(session.state.the_trace().count(), 0);
     }
 }
 

@@ -106,6 +106,18 @@ struct Standing {
 }
 
 pub fn story(events: &[Event], id: TaskId) -> Story {
+    // The same rule `State::apply` keeps: a device says what kind it is itself, and a
+    // conversion an assistant wrote never landed, so it is not a chapter either.
+    let assistants: std::collections::BTreeSet<&DeviceId> = events
+        .iter()
+        .filter_map(|event| match &event.op {
+            Op::DeviceJoin {
+                d,
+                k: Some(crate::event::DeviceKind::Agent),
+            } if d == &event.device => Some(d),
+            _ => None,
+        })
+        .collect();
     let mut mine: Vec<&Event> = events
         .iter()
         .filter(|event| event.entity_id() == Some(id))
@@ -205,6 +217,7 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
                 }
                 if let Some(read_as) = d.read_as
                     && read_as != standing.read_as
+                    && !assistants.contains(&event.device)
                 {
                     write(Chapter::Converted {
                         from: standing.read_as,
@@ -499,6 +512,44 @@ mod tests {
             "the same conversion twice is one chapter, and the undo is its own"
         );
         assert!(told.pages[3].undoing);
+    }
+
+    #[test]
+    fn a_conversion_an_assistant_wrote_is_no_chapter_because_it_never_landed() {
+        let id = Ulid::generate();
+        let agent = DeviceId("dev_agent".into());
+        let mut joined = event(
+            1,
+            Op::DeviceJoin {
+                d: agent.clone(),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        );
+        joined.device = agent.clone();
+        let mut theirs = patched(
+            20,
+            id,
+            TaskPatch {
+                read_as: Some(Some(Reading::Trace)),
+                ..Default::default()
+            },
+        );
+        theirs.device = agent;
+        let log = vec![
+            joined,
+            born(id, "comprar pan"),
+            event(10, Op::TaskDone { id, filled: false }),
+            theirs,
+        ];
+
+        let told = story(&log, id);
+
+        assert_eq!(
+            told.pages.len(),
+            2,
+            "born and closed, nothing more: {:?}",
+            chapters(&told)
+        );
     }
 
     #[test]

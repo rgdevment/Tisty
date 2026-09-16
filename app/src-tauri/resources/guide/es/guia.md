@@ -302,6 +302,8 @@ En Ajustes puedes además guardar un respaldo completo cuando quieras.
 - **Descartar** la aparta sin hacerla: también acaba en el Archivo.
 - Lo del Archivo sigue ahí por si lo buscas. No estorba.
 
+El Archivo se lee en tres capas: las **historias**, que dejaron algo escrito; las **rutinas**, que vuelven; y el **rastro**, lo que se cerró sin dejar casi nada. Tú decides en qué capa se lee cada una: en el detalle de una cerrada, «Guardar como historia» o «Leer como rastro». En la capa del rastro puedes ocultarlo o borrarlo entero, y lo que está oculto se queda donde está.
+
 > **Antes de borrar de verdad.** Solo se puede con lo que ya está cerrado **y** se lee como rastro. Una historia solo se oculta: para borrarla, léela antes como rastro. Al borrar desaparece de este equipo y de los demás en la siguiente sincronización, y no hay deshacer.
 
 Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en uso en otro documento. Quedan sueltos, y Ajustes → Mantenimiento te los lista para soltarlos cuando quieras.
