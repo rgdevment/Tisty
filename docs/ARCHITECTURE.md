@@ -171,9 +171,12 @@ asks whether it filed something — it did, and it is done. A second filing from
 that source takes `again`, for the one case where the person wants the work
 done once more, and never while the earlier task is still open.
 
-`say_done` is the narrower of the two, and deliberately so: it adds a mark
-beside the task and the account that holds it up, and changes nothing else. The
-task stays open. Whether it closes is the person's, who may take the mark off
+`say_done` is the narrower of the fill-ins, and deliberately so: it adds a
+mark beside the task and the account that holds it up, and changes nothing
+else. It is refused while a step of the task is unticked, because a mark beside
+an unticked checklist reads as work nobody did: the agent ticks what it did,
+and a step that no longer applies goes in a note for the person to take off.
+The task stays open. Whether it closes is the person's, who may take the mark off
 instead — which is the one thing an agent cannot do twice over, because a second
 `say_done` on a mark nobody has looked at is refused rather than stacked. The
 mark survives a finish taken back: reopening clears the closing and nothing

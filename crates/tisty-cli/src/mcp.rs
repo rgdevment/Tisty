@@ -57,6 +57,14 @@ stays open, marked, until the person finishes it or takes the mark off. It moves
 its own so they can go through what waits on them — unless it is due today or already overdue, \
 which stays where it was.
 
+A task you filed is yours to keep true while you work it, not only to file. `tick` each step \
+the moment you finish it — several at once when you did several — `note` what you learnt on \
+the way, `describe` it if you filed it bare, `plan` the steps you found out it takes, and \
+`say_done` in the turn the work ends, not at the end of a conversation that may never come. \
+`say_done` is refused while a step is unticked, because a mark beside an unticked checklist \
+reads as work nobody did. What you leave with its steps unticked and no mark reads as untouched, \
+however much you did.
+
 The person can open one of their own tasks to agents: it comes back with `open_to_agents` \
 from `read`, `find` and `catch_up`, and then it is yours to fill in as if you had filed it — \
 `describe` it if it has no description, `plan` its steps, `tick` the ones you did, `say_done` \
@@ -941,8 +949,15 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         kept.insert("list".into(), json!(landed));
     }
     kept.insert("proposed".into(), json!(true));
+    let planned = listed(args, "steps").len();
     Ok(told(
-        format!("Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}."),
+        match planned {
+            0 => format!("Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}."),
+            n => format!(
+                "Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}, with {n} step(s): \
+                 `tick` each as you do it, `say_done` when all are."
+            ),
+        },
         Value::Object(kept),
     ))
 }
@@ -1192,50 +1207,86 @@ fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "task") else {
         return Err(Refused::Tool("ticking needs a `task` id.".into()));
     };
-    let Some(wanted) = text(args, "step") else {
+    let mut wanted = listed(args, "steps");
+    if let Some(one) = text(args, "step") {
+        wanted.push(one);
+    }
+    if wanted.is_empty() {
         return Err(Refused::Tool(
-            "ticking needs `step`: the text of the step, as `read` shows it.".into(),
-        ));
-    };
-    let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
-    let wanted = wanted.trim();
-    let sought = wanted.to_lowercase();
-    let hits: Vec<&tisty_core::model::Step> = task
-        .steps
-        .iter()
-        .filter(|one| one.text.trim().to_lowercase() == sought)
-        .collect();
-    let step = match hits.as_slice() {
-        [one] => *one,
-        [] => {
-            return Err(Refused::Tool(format!(
-                "no step of {:?} reads {wanted:?}. `read` shows them as they are written.",
-                task.title
-            )));
-        }
-        _ => {
-            return Err(Refused::Tool(format!(
-                "{wanted:?} names more than one step of {:?}; nothing was ticked.",
-                task.title
-            )));
-        }
-    };
-    if step.done {
-        return Ok(told(
-            format!("{:?} was ticked already.", step.text),
-            json!({ "id": id.to_string(), "title": task.title, "ticked": false }),
+            "ticking needs `steps`: the text of each step you did, as `read` shows it \
+             (`step` for one)."
+                .into(),
         ));
     }
+    let (state, mut store) = opened(paths)?;
+    let (id, task) = filling(&state, &store, &said)?;
+    let mut chosen: Vec<&tisty_core::model::Step> = Vec::new();
+    for one in &wanted {
+        let sought = one.trim().to_lowercase();
+        let hits: Vec<&tisty_core::model::Step> = task
+            .steps
+            .iter()
+            .filter(|step| step.text.trim().to_lowercase() == sought)
+            .collect();
+        match hits.as_slice() {
+            [step] => {
+                if !chosen.iter().any(|had| had.id == step.id) {
+                    chosen.push(step);
+                }
+            }
+            [] => {
+                return Err(Refused::Tool(format!(
+                    "no step of {:?} reads {one:?}; nothing was ticked. `read` shows them as \
+                     they are written.",
+                    task.title
+                )));
+            }
+            _ => {
+                return Err(Refused::Tool(format!(
+                    "{one:?} names more than one step of {:?}; nothing was ticked.",
+                    task.title
+                )));
+            }
+        }
+    }
+    let (already, fresh): (Vec<&tisty_core::model::Step>, Vec<&tisty_core::model::Step>) =
+        chosen.iter().partition(|step| step.done);
     store
-        .append(Op::StepDone {
-            id,
-            d: StepRef { step: step.id },
-        })
+        .append_batch(
+            fresh
+                .iter()
+                .map(|step| Op::StepDone {
+                    id,
+                    d: StepRef { step: step.id },
+                })
+                .collect(),
+        )
         .map_err(hitch)?;
+    let left = task
+        .steps
+        .iter()
+        .filter(|step| !step.done && !fresh.iter().any(|had| had.id == step.id))
+        .count();
+    let mut said = match fresh.len() {
+        0 => format!("Nothing new ticked on {:?}: ", task.title),
+        n => format!("Ticked {n} step(s) on {:?}. ", task.title),
+    };
+    if !already.is_empty() {
+        said.push_str(&format!("{} ticked already. ", already.len()));
+    }
+    said.push_str(&match left {
+        0 => "None left: `say_done` when the work is done.".to_string(),
+        n => format!("{n} still unticked."),
+    });
     Ok(told(
-        format!("Ticked {:?} on {:?}.", step.text, task.title),
-        json!({ "id": id.to_string(), "title": task.title, "ticked": true }),
+        said,
+        json!({
+            "id": id.to_string(),
+            "title": task.title,
+            "ticked": fresh.len(),
+            "already": already.len(),
+            "left": left,
+        }),
     ))
 }
 
@@ -1340,6 +1391,27 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
              `note`.",
             task.title,
             when(already.at)
+        )));
+    }
+    // A mark beside an unticked checklist reads as work nobody did: the steps say what was
+    // done, and the mark that all of it was.
+    let unticked: Vec<&str> = task
+        .steps
+        .iter()
+        .filter(|step| !step.done)
+        .map(|step| step.text.as_str())
+        .collect();
+    if !unticked.is_empty() {
+        return Err(Refused::Tool(format!(
+            "{:?} still has {} step(s) unticked: {}. `tick` the ones you did; if one no longer \
+             applies, say so with `note` and leave the task open — the person decides.",
+            task.title,
+            unticked.len(),
+            unticked
+                .iter()
+                .map(|one| format!("{one:?}"))
+                .collect::<Vec<_>>()
+                .join(", ")
         )));
     }
 
@@ -5137,17 +5209,20 @@ fn tools() -> Value {
         },
         {
             "name": "tick",
-            "title": "Tick a step you did",
-            "description": "Mark one step of a task done, on a task you filed or one the person \
-                            opened to agents, when you did that step yourself. Name it by its \
-                            text as `read` shows it. No confirmation waits on it: a step is not \
-                            the task, and the task stays open until `say_done` and the person.",
+            "title": "Tick the steps you did",
+            "description": "Mark steps of a task done, on a task you filed or one the person \
+                            opened to agents, when you did them yourself — the moment you did, \
+                            not at the end. Name each by its text as `read` shows it; one \
+                            unknown name and nothing is ticked. No confirmation waits on it: a \
+                            step is not the task, and the task stays open until `say_done` and \
+                            the person.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
-                    "step": { "type": "string", "description": "The step's text, exactly as `read` shows it" }
+                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps you did, each by its text exactly as `read` shows it" },
+                    "step": { "type": "string", "description": "One step, by its text — the same as `steps` with one entry" }
                 },
-                "required": ["task", "step"]
+                "required": ["task"]
             }))
         },
         {
@@ -5482,11 +5557,12 @@ fn tools() -> Value {
             "title": "Say a task you filed, or were given, is finished",
             "description": "Say that a task is done, when you did the work yourself — one you \
                             filed, or one the person opened to agents (`open_to_agents` in \
-                            what `read` and `find` hand back). Reading that it no longer \
-                            matters is not doing it, and goes in `note`. It closes nothing: the \
-                            task stays open, marked, until the person finishes it or takes the \
-                            mark off. Say it once; if they have not looked yet, what is new goes \
-                            in `note` too.",
+                            what `read` and `find` hand back). Say it in the turn the work \
+                            ends. Every step has to be ticked first; with one unticked it is \
+                            refused. Reading that it no longer matters is not doing it, and \
+                            goes in `note`. It closes nothing: the task stays open, marked, \
+                            until the person finishes it or takes the mark off. Say it once; if \
+                            they have not looked yet, what is new goes in `note` too.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },

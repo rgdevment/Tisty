@@ -4454,15 +4454,17 @@ fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
         serde_json::json!({ "task": &id, "step": "PAGAR LA INSCRIPCIÓN" }),
     );
     assert_eq!(
-        ticked["result"]["structuredContent"]["ticked"], true,
+        ticked["result"]["structuredContent"]["ticked"], 1,
         "{ticked}"
     );
+    assert_eq!(ticked["result"]["structuredContent"]["left"], 1, "{ticked}");
     let twice = served.call(
         "tick",
         serde_json::json!({ "task": &id, "step": "pagar la inscripción" }),
     );
+    assert_eq!(twice["result"]["structuredContent"]["ticked"], 0, "{twice}");
     assert_eq!(
-        twice["result"]["structuredContent"]["ticked"], false,
+        twice["result"]["structuredContent"]["already"], 1,
         "{twice}"
     );
     let none = served.call(
@@ -4489,6 +4491,26 @@ fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
         "the day stays the person's: {moved}"
     );
 
+    let early = served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "paid and downloaded" }),
+    );
+    assert_eq!(
+        early["result"]["isError"], true,
+        "a step is unticked: {early}"
+    );
+    assert!(
+        early["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("\"download the file\""),
+        "{early}"
+    );
+    let rest = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "steps": ["download the file"] }),
+    );
+    assert_eq!(rest["result"]["structuredContent"]["left"], 0, "{rest}");
     let done = served.call(
         "say_done",
         serde_json::json!({ "task": &id, "body": "paid and downloaded" }),
@@ -4539,7 +4561,106 @@ fn what_an_assistant_filed_it_fills_in_without_being_opened() {
     assert!(planned["result"]["isError"].is_null(), "{planned}");
     let ticked = served.call("tick", serde_json::json!({ "task": &id, "step": "lint" }));
     assert_eq!(
-        ticked["result"]["structuredContent"]["ticked"], true,
+        ticked["result"]["structuredContent"]["ticked"], 1,
         "{ticked}"
     );
+}
+
+#[test]
+fn steps_are_ticked_together_and_one_wrong_name_ticks_none() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let said = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "pasar biome sobre el front",
+            "steps": ["lint", "format", "commit"]
+        }),
+    );
+    let id = said["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("with 3 step(s): `tick` each as you do it"),
+        "{said}"
+    );
+
+    let wrong = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "steps": ["lint", "push"] }),
+    );
+    assert_eq!(wrong["result"]["isError"], true, "{wrong}");
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert!(
+        read["result"]["structuredContent"]["steps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|step| step["done"] == false),
+        "nothing was ticked: {read}"
+    );
+
+    let two = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "steps": ["lint", "Format", "lint"] }),
+    );
+    assert_eq!(two["result"]["structuredContent"]["ticked"], 2, "{two}");
+    assert_eq!(two["result"]["structuredContent"]["left"], 1, "{two}");
+    let bare = served.call("tick", serde_json::json!({ "task": &id }));
+    assert_eq!(bare["result"]["isError"], true, "{bare}");
+}
+
+#[test]
+fn saying_done_waits_for_every_step_and_a_task_without_steps_needs_none() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let planned = served.call(
+        "propose",
+        serde_json::json!({ "title": "release", "steps": ["tag", "build"] }),
+    );
+    let planned = planned["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let bare = filed(&served, "write the notes");
+
+    let early = served.call(
+        "say_done",
+        serde_json::json!({ "task": &planned, "body": "tagged and built" }),
+    );
+    assert_eq!(early["result"]["isError"], true, "{early}");
+    let text = early["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("2 step(s) unticked") && text.contains("`note`"),
+        "{early}"
+    );
+    let read = served.call("read", serde_json::json!({ "task": &planned }));
+    assert!(
+        read["result"]["structuredContent"]["said_done"].is_null(),
+        "no mark landed: {read}"
+    );
+
+    served.call(
+        "tick",
+        serde_json::json!({ "task": &planned, "steps": ["tag", "build"] }),
+    );
+    let done = served.call(
+        "say_done",
+        serde_json::json!({ "task": &planned, "body": "tagged and built" }),
+    );
+    assert!(done["result"]["isError"].is_null(), "{done}");
+    let read = served.call("read", serde_json::json!({ "task": &planned }));
+    assert!(
+        read["result"]["structuredContent"]["said_done"].is_string(),
+        "{read}"
+    );
+    let done = served.call(
+        "say_done",
+        serde_json::json!({ "task": &bare, "body": "written" }),
+    );
+    assert!(done["result"]["isError"].is_null(), "{done}");
 }
