@@ -181,7 +181,9 @@ export default function About({
           <div className="mt-5 flex items-center gap-3">
             <Pip ok />
             <span className="flex-1 text-[12.5px] text-soft">
-              {looking ? t("lookingNow") : t("lookNowNone")}
+              {looking
+                ? t("lookingNow")
+                : t(build?.keptByTheStore ? "lookNowNoneStore" : "lookNowNone")}
             </span>
             <button type="button" disabled={looking} onClick={lookAgain} className={mild}>
               {t("lookNow")}

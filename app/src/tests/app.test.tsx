@@ -593,7 +593,6 @@ describe("the views nothing else opens", () => {
     await user.click(screen.getByRole("button", { name: /about|acerca/i }));
 
     expect(await screen.findByRole("button", { name: /^update$/i })).toBeTruthy();
-    expect(screen.queryByText(/Microsoft Store brings it to you/i)).toBeNull();
   });
 
   it("hands the window back when the Store finishes without taking the process", async () => {

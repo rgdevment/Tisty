@@ -2366,6 +2366,8 @@ struct About {
     store: String,
     candidates: bool,
     candidates_apply: bool,
+    /// Kept by the Microsoft Store: updates come from it alone, and «none» means it has none yet.
+    kept_by_the_store: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -2417,24 +2419,19 @@ async fn update_ready(
     };
     let now = jiff::Timestamp::now();
     let asked = now_please.unwrap_or(false);
-    let wants = if kept.route == update::Route::Store {
-        Some(false)
-    } else {
-        wants
-    };
 
     // A copy kept by the Store asks the Store and nobody else: a release the Store is still
     // certifying is out for everyone else, and being told of one this copy cannot take is a
     // button that does nothing. What the Store last said stands until it says otherwise.
     if kept.route == update::Route::Store {
-        let Some(window) = owner(&app) else {
-            return Ok(None);
-        };
         let last_said = || {
             the_shop_said
                 .then_some(found.as_deref())
                 .flatten()
                 .and_then(|version| update::from_the_shop(version, HERE))
+        };
+        let Some(window) = owner(&app) else {
+            return Ok(last_said());
         };
         if !asked && !update::due(last, now) {
             return Ok(last_said());
@@ -5013,6 +5010,7 @@ fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
         // The Store keeps its own tracks, and offers no candidates at all: a box here would be a
         // switch wired to nothing.
         candidates_apply: update::takes_candidates(update::route().route),
+        kept_by_the_store: update::route().route == update::Route::Store,
     })
 }
 

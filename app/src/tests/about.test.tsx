@@ -145,6 +145,16 @@ describe("the notice every bundled licence asks for", () => {
 // Only the Store speaks for a copy it keeps: what reaches here is what the Store itself has,
 // and that one this copy can take without leaving the window.
 describe("a newer version the Store itself offers", () => {
+  it("says who was asked when there is nothing, instead of calling the copy the newest", async () => {
+    ipc.answer = (cmd) =>
+      Promise.resolve(cmd === "about" ? { ...build, keptByTheStore: true } : null);
+    render(<About ready={null} onError={() => {}} />);
+
+    await screen.findByText("0.1.0");
+    expect(screen.getByText(/Microsoft Store has nothing newer/i)).toBeTruthy();
+    expect(screen.queryByText(/newest version/i)).toBeNull();
+  });
+
   const waiting = { version: "1.15.0", route: "store" as const, package: null, installs: true };
 
   it("is taken with the one button, and never through a door to the Store", async () => {
