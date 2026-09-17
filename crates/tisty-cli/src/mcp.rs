@@ -295,6 +295,36 @@ pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
+/// What the client called itself, kept for the session — one process serves one client — so
+/// every event written from here says which hand spoke. Nothing decides on it.
+static SPEAKING_THROUGH: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
+fn introduced(params: &Value) {
+    let said = params
+        .get("clientInfo")
+        .or_else(|| {
+            params
+                .get("_meta")
+                .and_then(|meta| meta.get("io.modelcontextprotocol/clientInfo"))
+        })
+        .and_then(|info| info.get("name"))
+        .and_then(Value::as_str)
+        .and_then(tisty_core::agent::client_said);
+    if let Some(said) = said {
+        witness::note(
+            witness::channel::AGENT,
+            "a client introduced itself",
+            &[("as", Fact::Why(said.clone()))],
+        );
+        let _ = SPEAKING_THROUGH.set(said);
+    }
+}
+
+/// The name kept from the greeting, or nothing: an unnamed hand is still let in.
+fn speaking_through() -> Option<String> {
+    SPEAKING_THROUGH.get().cloned()
+}
+
 fn answer(paths: &Paths, line: &str) -> Option<String> {
     let asked: Value = match serde_json::from_str(line) {
         Ok(asked) => asked,
@@ -313,6 +343,10 @@ fn answer(paths: &Paths, line: &str) -> Option<String> {
     // A notification has no id and takes no answer, whatever it says.
     let id = id?;
     let params = asked.get("params").cloned().unwrap_or(json!({}));
+
+    if matches!(method, "server/discover" | "initialize") {
+        introduced(&params);
+    }
 
     Some(match method {
         "server/discover" => reply(id, discovered()),
@@ -698,7 +732,9 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
                 .into(),
         ));
     }
-    let store = Store::open(paths.store(), agent).map_err(hitch)?;
+    let store = Store::open(paths.store(), agent)
+        .map_err(hitch)?
+        .speaking_through(speaking_through());
     Ok((state, store))
 }
 
@@ -1489,9 +1525,13 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     }
     if let Some(already) = &task.resolved {
-        let who = match already.by == me {
+        let who = match already.by == me && already.via == speaking_through() {
             true => "you".to_string(),
-            false => tisty_core::config::nicknamed(&already.by.0),
+            false => already
+                .via
+                .as_deref()
+                .map(tisty_core::agent::client_named)
+                .unwrap_or_else(|| "an assistant".to_string()),
         };
         return Err(Refused::Tool(format!(
             "{who} already said {:?} was done on {}, and the person has not looked yet. Saying \
@@ -5150,12 +5190,18 @@ fn brief(task: &Task, state: &State) -> Value {
         "priority",
         json!((task.priority != Priority::Unset).then_some(task.priority)),
     );
+    let by_agent = task
+        .created_by
+        .as_ref()
+        .is_some_and(|who| state.assistants.contains(who));
+    put("by_agent", json!(by_agent));
     put(
-        "by_agent",
+        "via",
         json!(
-            task.created_by
-                .as_ref()
-                .is_some_and(|who| state.assistants.contains(who))
+            task.created_via
+                .as_deref()
+                .filter(|_| by_agent)
+                .map(tisty_core::agent::client_named)
         ),
     );
     put(
@@ -5748,7 +5794,7 @@ fn tools() -> Value {
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, said_done, open_to_agents, description, steps, journal, kept. Left out, everything comes. The id always does"
+                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, open_to_agents, description, steps, journal, kept. Left out, everything comes. The id always does"
                     }
                 },
                 "required": ["task"]

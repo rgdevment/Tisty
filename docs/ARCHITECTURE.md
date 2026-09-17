@@ -40,6 +40,7 @@ is never modified again.
 | `tx` | groups the events of one user action |
 | `un` / `re` | marks a compensation or a replay of one |
 | `tz` | the zone whoever wrote it was in, so an hour reads back where it happened |
+| `via` | the client an assistant spoke through — `claude-code`, `codex` — as the MCP session named itself; sealed by `tisty mcp` on every event it writes, read by nothing that decides |
 | `opt` | a reader that cannot make sense of this operation skips it instead of refusing the store; absent means refuse |
 | `op`, `id`, `d` | the operation, the entity it affects, its payload |
 
@@ -60,6 +61,7 @@ Some payload fields carry more than their name says:
 | Field | On | Meaning |
 |---|---|---|
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
+| `d`, `of` | `device.host` | the machine an agent device is hosted on. The join is written as the agent and said nothing about where; this says it, marked `opt`, and only the agent's own word or its host's counts — `d` an agent, `of` a machine. The window writes it as the machine, so it settles like `doc.said`: `undo` walks past it |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
 | `read_as` | `task.update` | `story` or `trace`, the layer the person converted the task to; `null` reads it by what it holds again — what undo writes, and what `tisty set --read-as auto` asks for; the window only moves between the two |
@@ -140,6 +142,23 @@ is undone by the same call without the flag.
 is refused with the reason, and so is a task they wrote. Everything else an
 agent knows it must add rather than change: a journal note, a new task, a new
 document.
+
+**Who wrote it is the client, not the device.** One agent device per machine
+is the door; the name a person reads is the hand that came through it. The
+MCP session introduces itself (`clientInfo` in the greeting, or the same under
+`_meta` in the newer revision), the server keeps the name for the session —
+one process serves one client — and seals it as `via` on every event it
+writes; a client that never introduced itself is named by nothing. What it
+called itself is kept as said; naming it for people is one table in the core
+(`agent::client_id`, `agent::client_named`): `codex-mcp-client` is the
+`codex` of the person's settings and reads «Codex». The window says «by
+Claude Code», «by Codex», and «by an assistant» for what was written before
+clients were named; the tree-and-number nickname of a device names a device,
+never a hand — Sync says it of machines, and Settings says it once of this
+machine's agent, as the signature its events carry. `via` is a label and
+nothing more: no rule reads it, so a forged or missing one can only
+mislabel, never open a door. Where an agent lives is said once by
+`device.host`, and the detail says «from this machine» or names the other.
 
 Filling a task in is the one thing an agent does on a task it did not file, and
 only where the person let it. `say_done`, `describe`, `plan` and `tick` reach a

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { LogEntry } from "../core";
 import { wroteAt } from "../format";
-import { fill, t } from "../locales";
-import { agentNamed } from "../who";
+import { t } from "../locales";
+import { signedBy } from "../who";
 import Prose from "./Prose";
 
 interface Props {
@@ -39,10 +39,8 @@ export default function Journal({ entries, steps, onError, onWhole, onDoc, onWri
         <div key={entry.id} className="border-t border-hair py-2.5">
           <time className="mb-1 flex items-baseline gap-1.5 px-1.5 text-[11.5px] text-faint">
             {wroteAt(entry.at, entry.tz)}
-            {agentNamed(entry.by) && (
-              <span className="text-hue-teal">
-                {fill("agentWrote", agentNamed(entry.by) as string)}
-              </span>
+            {signedBy(entry.by, entry.via) && (
+              <span className="text-hue-teal">{signedBy(entry.by, entry.via)}</span>
             )}
           </time>
           <Prose

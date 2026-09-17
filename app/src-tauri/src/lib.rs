@@ -111,6 +111,15 @@ impl Session {
             log: None,
         };
         session.tidy_up(true);
+        if let Some(host) = tisty_core::agent::unhosted(&session.config, &session.state)
+            && let Err(why) = session.commit(host)
+        {
+            witness::warn(
+                channel::WINDOW,
+                "the agent could not say which machine hosts it",
+                &[("why", Fact::Why(why.to_string()))],
+            );
+        }
         if session.config.sync.is_some() {
             session.sow_if_due();
         }
@@ -791,6 +800,10 @@ struct Snapshot {
     locale: Option<String>,
     agents: std::collections::BTreeMap<String, String>,
     agent_tag: &'static str,
+    hosts: std::collections::BTreeMap<String, String>,
+    machines: std::collections::BTreeMap<String, String>,
+    machine_here: String,
+    clients: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -1140,8 +1153,93 @@ fn task_series(
 struct Agent {
     on: bool,
     called: Option<String>,
-    id: Option<String>,
+}
+
+/// One assistant as the person meets it: a client Tisty can wire, and what a hand of that name
+/// has written in the whole log — on this machine and on the others.
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Assistant {
+    /// The id the client is wired under when Tisty knows it, else what it called itself,
+    /// lower-case; `None` for what was written before clients were named.
+    via: Option<String>,
+    named: String,
+    wired: Option<bool>,
     filed: usize,
+    wrote: usize,
+    last: Option<String>,
+}
+
+#[tauri::command]
+fn assistants(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Assistant>> {
+    let mut session = held(&session);
+    session.reload()?;
+    let assistants = session.state.assistants.clone();
+    let events = session.log()?;
+    Ok(hands(events, &assistants, &wiring::seen()))
+}
+
+/// One row per hand, keyed by the id a known client is wired under so what `codex-mcp-client`
+/// wrote sits on the Codex row; only what reached the list counts, never a join or a host.
+fn hands(
+    events: &[Event],
+    assistants: &std::collections::BTreeSet<tisty_core::DeviceId>,
+    seen: &[wiring::Seen],
+) -> Vec<Assistant> {
+    let mut tally: std::collections::BTreeMap<
+        Option<String>,
+        (usize, usize, Option<jiff::Timestamp>),
+    > = Default::default();
+    for event in events
+        .iter()
+        .filter(|one| assistants.contains(&one.device) && one.entity_id().is_some())
+    {
+        let key = event.via.as_deref().map(|via| {
+            tisty_core::agent::client_id(via).map_or_else(|| via.to_lowercase(), str::to_string)
+        });
+        let told = tally.entry(key).or_default();
+        if matches!(event.op, Op::TaskAdd { .. } | Op::DocAdd { .. }) {
+            told.0 += 1;
+        }
+        told.1 += 1;
+        told.2 = Some(
+            told.2
+                .map_or(event.timestamp, |had| had.max(event.timestamp)),
+        );
+    }
+    let wired: std::collections::BTreeMap<String, bool> = seen
+        .iter()
+        .map(|one| (one.id.to_string(), one.wired))
+        .collect();
+    let mut all: Vec<Assistant> = wired
+        .keys()
+        .map(|id| Some(id.clone()))
+        .chain(tally.keys().cloned())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .map(|via| {
+            let (filed, wrote, last) = tally.get(&via).cloned().unwrap_or_default();
+            Assistant {
+                named: via
+                    .as_deref()
+                    .map(tisty_core::agent::client_named)
+                    .unwrap_or_default(),
+                wired: via.as_deref().and_then(|id| wired.get(id).copied()),
+                filed,
+                wrote,
+                last: last.map(|at| at.to_string()),
+                via,
+            }
+        })
+        .collect();
+    all.sort_by(|a, b| {
+        b.wired
+            .is_some()
+            .cmp(&a.wired.is_some())
+            .then(b.wrote.cmp(&a.wrote))
+            .then(a.named.cmp(&b.named))
+    });
+    all
 }
 
 #[tauri::command]
@@ -1151,19 +1249,7 @@ fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
     let who = session.config.agent_id.clone();
     Ok(Agent {
         on: who.is_some(),
-        called: who
-            .as_ref()
-            .map(|one| tisty_core::config::nicknamed(&one.0)),
-        filed: match &who {
-            Some(one) => session
-                .state
-                .tasks
-                .values()
-                .filter(|task| task.created_by.as_ref() == Some(one))
-                .count(),
-            None => 0,
-        },
-        id: who.map(|one| one.0),
+        called: who.map(|one| tisty_core::config::nicknamed(&one.0)),
     })
 }
 
@@ -1249,7 +1335,36 @@ fn snapshot(
         locale: session.locale.clone(),
         agents: named_agents(&session.state),
         agent_tag: tisty_core::model::AGENT_TAG,
+        hosts: session
+            .state
+            .hosts
+            .iter()
+            .map(|(agent, machine)| (agent.0.clone(), machine.0.clone()))
+            .collect(),
+        machines: session
+            .state
+            .devices
+            .iter()
+            .filter(|one| !session.state.assistants.contains(one))
+            .map(|one| (one.0.clone(), tisty_core::config::nicknamed(&one.0)))
+            .collect(),
+        machine_here: session.config.device_id.0.clone(),
+        clients: named_clients(&session.state),
     })
+}
+
+fn named_clients(state: &tisty_core::State) -> std::collections::BTreeMap<String, String> {
+    state
+        .tasks
+        .values()
+        .flat_map(|task| {
+            task.created_via
+                .iter()
+                .chain(task.resolved.iter().filter_map(|one| one.via.as_ref()))
+                .chain(task.log.iter().filter_map(|entry| entry.via.as_ref()))
+        })
+        .map(|via| (via.clone(), tisty_core::agent::client_named(via)))
+        .collect()
 }
 
 fn named_agents(state: &tisty_core::State) -> std::collections::BTreeMap<String, String> {
@@ -2457,7 +2572,12 @@ async fn update_ready(
                 })?;
                 Ok(None)
             }
-            shop::Shelf::Silent => Ok(last_said()),
+            // Asked and not answered is still asked: the next look waits its turn like any other,
+            // and a copy the Store never signed is not asked again every few hours.
+            shop::Shelf::Silent => {
+                held(&session).keep(|c| c.checked_at = Some(now))?;
+                Ok(last_said())
+            }
         };
     }
 
@@ -6946,6 +7066,7 @@ pub fn run() {
             free_up,
             stop_freeing,
             wiring,
+            assistants,
             wire,
             unwire,
             waking,
@@ -8368,6 +8489,142 @@ mod behind_tests {
             update::ours(RELEASES),
             "the offer has to lead where our releases live"
         );
+    }
+}
+
+#[cfg(test)]
+mod hands_of {
+    use super::hands;
+    use tisty_core::{DeviceId, Event, Op};
+
+    fn wrote(device: &str, via: Option<&str>, at: i64, op: Op) -> Event {
+        let mut event = Event::new(
+            DeviceId(device.into()),
+            jiff::Timestamp::from_second(at).unwrap(),
+            op,
+        );
+        event.via = via.map(str::to_string);
+        event
+    }
+
+    fn task(title: &str) -> Op {
+        Op::TaskAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::TaskAdd::new(title, "a0"),
+        }
+    }
+
+    #[test]
+    fn a_client_is_one_row_whatever_it_called_itself_and_a_join_is_not_writing() {
+        let agent = DeviceId("dev_agent".into());
+        let events = vec![
+            wrote(
+                "dev_agent",
+                None,
+                1,
+                Op::DeviceJoin {
+                    d: agent.clone(),
+                    k: Some(tisty_core::event::DeviceKind::Agent),
+                },
+            ),
+            wrote(
+                "dev_agent",
+                None,
+                1,
+                Op::DeviceHost {
+                    d: agent.clone(),
+                    of: DeviceId("dev_laptop".into()),
+                },
+            ),
+            wrote("dev_agent", Some("codex-mcp-client"), 10, task("one")),
+            wrote("dev_agent", Some("Codex"), 20, task("two")),
+            wrote("dev_agent", Some("claude-code"), 30, task("three")),
+            wrote("dev_laptop", None, 40, task("the person's own")),
+        ];
+        let seen = vec![super::wiring::Seen {
+            id: "codex",
+            name: "Codex",
+            at: "~/.codex/config.toml".into(),
+            wired: true,
+            astray: false,
+            points: None,
+        }];
+
+        let rows = hands(&events, &[agent].into_iter().collect(), &seen);
+
+        let said: Vec<String> = rows
+            .iter()
+            .map(|row| {
+                format!(
+                    "{}={} wired:{:?} filed:{} wrote:{}",
+                    row.via.as_deref().unwrap_or("-"),
+                    row.named,
+                    row.wired,
+                    row.filed,
+                    row.wrote
+                )
+            })
+            .collect();
+        assert_eq!(
+            said,
+            vec![
+                "codex=Codex wired:Some(true) filed:2 wrote:2",
+                "claude-code=Claude Code wired:None filed:1 wrote:1",
+            ],
+            "{rows:?}"
+        );
+        assert_eq!(rows[0].last.as_deref(), Some("1970-01-01T00:00:20Z"));
+    }
+}
+
+#[cfg(test)]
+mod hosting {
+    use super::Session;
+    use tisty_core::{Config, DeviceId, Op, Paths, Store};
+
+    /// An agent that joined before `device.host` existed gets its host written by the window,
+    /// once, as the machine — and a machine with no agent writes nothing.
+    #[test]
+    fn the_window_says_where_an_older_agent_lives_once() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        std::fs::create_dir_all(paths.docs()).unwrap();
+        let lines = || {
+            tisty_core::store::read_all(paths.store())
+                .unwrap()
+                .into_iter()
+                .filter(|one| matches!(one.op, Op::DeviceHost { .. }))
+                .count()
+        };
+
+        Session::at(paths.clone()).unwrap();
+        assert_eq!(lines(), 0, "no agent, nothing to say");
+
+        let mut config = Config::load_or_init(&paths).unwrap();
+        let agent = DeviceId("dev_agent".into());
+        config.agent_id = Some(agent.clone());
+        config.save(&paths).unwrap();
+        Store::open(paths.store(), agent.clone())
+            .unwrap()
+            .append(Op::DeviceJoin {
+                d: agent.clone(),
+                k: Some(tisty_core::event::DeviceKind::Agent),
+            })
+            .unwrap();
+
+        let session = Session::at(paths.clone()).unwrap();
+        assert_eq!(session.state.hosts.get(&agent), Some(&config.device_id));
+        assert_eq!(lines(), 1);
+        let said = tisty_core::store::read_all(paths.store())
+            .unwrap()
+            .into_iter()
+            .find(|one| matches!(one.op, Op::DeviceHost { .. }))
+            .unwrap();
+        assert_eq!(said.device, config.device_id, "the machine's own word");
+        assert!(said.optional, "an older build walks past it");
+
+        Session::at(paths.clone()).unwrap();
+        assert_eq!(lines(), 1, "said once");
     }
 }
 

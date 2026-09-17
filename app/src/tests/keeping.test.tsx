@@ -13,8 +13,6 @@ const ipc = vi.hoisted(() => ({
 const serving = vi.hoisted(() => ({
   on: false,
   called: undefined as string | undefined,
-  id: undefined as string | undefined,
-  filed: 0,
 }));
 
 const installed = vi.hoisted(() => ({
@@ -25,6 +23,14 @@ const installed = vi.hoisted(() => ({
     wired: boolean;
     astray: boolean;
     points?: string;
+  }[],
+  hands: [] as {
+    via: string | null;
+    named: string;
+    wired: boolean | null;
+    filed: number;
+    wrote: number;
+    last: string | null;
   }[],
 }));
 
@@ -129,7 +135,7 @@ beforeEach(() => {
   asked.folder = null;
   asked.file = null;
   asked.sure = false;
-  Object.assign(serving, { on: false, called: undefined, id: undefined, filed: 0 });
+  Object.assign(serving, { on: false, called: undefined });
   installed.seen = [
     {
       id: "claude-code",
@@ -214,6 +220,8 @@ beforeEach(() => {
         return Promise.resolve({ ...standing });
       case "wiring":
         return Promise.resolve(installed.seen.map((one) => ({ ...one })));
+      case "assistants":
+        return Promise.resolve(installed.hands.map((one) => ({ ...one })));
       case "wire":
       case "unwire": {
         const id = String(ipc.calls[ipc.calls.length - 1]?.args.id);
@@ -2643,7 +2651,8 @@ describe("letting an assistant file work here", () => {
 
     await waitFor(() => expect(sent("agent_turn").length).toBe(1));
     expect(sent("agent_turn")[0].args.on).toBe(true);
-    expect(await screen.findByText(/espino 3 can file work here/i)).toBeTruthy();
+    expect(await screen.findByText(/An assistant can file work here/i)).toBeTruthy();
+    expect(screen.getByText(/signs the log as «espino 3»/i)).toBeTruthy();
   });
 
   it("lists the assistants on this computer, with the file each one reads", async () => {
@@ -2696,6 +2705,37 @@ describe("letting an assistant file work here", () => {
     expect(sent("wire")[0].args.id).toBe("codex");
   });
 
+  // The list is one row per assistant, by the name it gives itself, and says what each wrote;
+  // what was written before clients were named gets a row of its own, with no button.
+  it("says what each assistant wrote, and gathers the unnamed under one row", async () => {
+    installed.hands = [
+      {
+        via: "claude-code",
+        named: "Claude Code",
+        wired: true,
+        filed: 27,
+        wrote: 140,
+        last: "2026-09-16T10:00:00Z",
+      },
+      { via: null, named: "", wired: null, filed: 132, wrote: 570, last: "2026-09-10T10:00:00Z" },
+    ];
+    try {
+      await openTab();
+
+      const claude = await screen.findByText("Claude Code");
+      expect(claude.parentElement?.textContent).toContain("27 filed");
+      expect(claude.parentElement?.textContent).toContain("the last");
+      const unnamed = screen.getByText("An assistant with no name");
+      expect(unnamed.parentElement?.textContent).toContain("132 filed");
+      expect(screen.getByText("Antigravity").parentElement?.textContent).toContain(
+        "nothing written yet",
+      );
+      expect(screen.queryByText(/espino|canelo|mirto/)).toBeNull();
+    } finally {
+      installed.hands = [];
+    }
+  });
+
   it("with none of them installed it says so instead of showing an empty list", async () => {
     installed.seen = [];
 
@@ -2704,12 +2744,41 @@ describe("letting an assistant file work here", () => {
     expect(await screen.findByText(/knows its way around/i)).toBeTruthy();
   });
 
+  // A machine that only receives the log by Sync still reads what the other machine's hands
+  // wrote: the table does not hang from a client being installed here.
+  it("still says what the hands wrote when none of them is installed here", async () => {
+    installed.seen = [];
+    installed.hands = [
+      {
+        via: "codex",
+        named: "Codex",
+        wired: null,
+        filed: 40,
+        wrote: 90,
+        last: "2026-09-16T10:00:00Z",
+      },
+      { via: null, named: "", wired: null, filed: 132, wrote: 570, last: "2026-09-10T10:00:00Z" },
+    ];
+    try {
+      await openTab();
+
+      const codex = await screen.findByText("Codex");
+      expect(codex.parentElement?.textContent).toContain("40 filed");
+      expect(screen.getByText("An assistant with no name").parentElement?.textContent).toContain(
+        "132 filed",
+      );
+      expect(screen.getByText(/knows its way around/i)).toBeTruthy();
+    } finally {
+      installed.hands = [];
+    }
+  });
+
   it("spells out what it can never do, where the person decides", async () => {
-    Object.assign(serving, { on: true, called: "espino 3", id: "dev_wskajy01", filed: 4 });
+    Object.assign(serving, { on: true, called: "espino 3" });
 
     await openTab();
 
-    expect(await screen.findByText(/4 filed so far/i)).toBeTruthy();
+    expect(await screen.findByText(/An assistant can file work here/i)).toBeTruthy();
     expect(screen.getByText(/Complete, reopen, drop or delete anything/i)).toBeTruthy();
     expect(screen.getByText(/your undo never reaches what it filed/i)).toBeTruthy();
     expect(screen.getByText(/"mcpServers"/)).toBeTruthy();

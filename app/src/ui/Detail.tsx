@@ -4,7 +4,7 @@ import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { composed } from "../markdown";
 import { placed, said } from "../quadrants";
-import { agentNamed } from "../who";
+import { agentNamed, clientNamed, hostedOn, signedBy } from "../who";
 import Composed from "./Composed";
 import Fields from "./Fields";
 import Journal from "./Journal";
@@ -119,16 +119,16 @@ export default function Detail({
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
-      {task.status === "open" && agentNamed(task.created_by) && (
-        <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal">
-          {fill("agentWrote", agentNamed(task.created_by) as string)}
+      {task.status === "open" && signedBy(task.created_by, task.created_via) && (
+        <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal" title={hostedOn(task.created_by)}>
+          {signedBy(task.created_by, task.created_via)}
         </p>
       )}
       {task.resolved && (
         <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal">
           <span aria-hidden="true">◆</span>
-          {agentNamed(task.resolved.by)
-            ? fill("agentNamedSaidDone", agentNamed(task.resolved.by) as string)
+          {clientNamed(task.resolved.via)
+            ? fill("agentNamedSaidDone", clientNamed(task.resolved.via) as string)
             : t("agentSaidDone")}
           <span className="ml-auto font-normal text-faint">{stamped(task.resolved.at)}</span>
         </p>
@@ -584,17 +584,17 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
           readingOf(task) !== "routine" &&
           ` · ${t(task.read_as === "story" ? "keptAsStory" : "readAsTraceNow")}`}
         {task.open_to_agents && ` · ${t("wasOpenToAgents")}`}
-        {agentNamed(task.created_by) && (
-          <span className="text-hue-teal">
+        {signedBy(task.created_by, task.created_via) && (
+          <span className="text-hue-teal" title={hostedOn(task.created_by)}>
             {" · "}
-            {fill("agentWrote", agentNamed(task.created_by) as string)}
+            {signedBy(task.created_by, task.created_via)}
           </span>
         )}
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}
-            {agentNamed(task.resolved.by)
-              ? fill("agentNamedSaidDone", agentNamed(task.resolved.by) as string)
+            {clientNamed(task.resolved.via)
+              ? fill("agentNamedSaidDone", clientNamed(task.resolved.via) as string)
               : t("agentSettled")}
           </span>
         )}

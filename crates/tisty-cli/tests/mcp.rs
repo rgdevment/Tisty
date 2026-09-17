@@ -2877,6 +2877,102 @@ words." });
     );
 }
 
+/// The greeting names the client; every event that session writes carries the name, and what
+/// the agent reads back says it in words.
+#[test]
+fn what_a_session_writes_says_which_client_spoke() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.talk(&[
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"claude-code","version":"1"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+    ]);
+    let id = said[1]["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let held = std::fs::read_dir(served.home.path().join("data/store"))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path().join("active.tisty"))
+        .filter_map(|at| std::fs::read_to_string(at).ok())
+        .collect::<String>();
+    assert!(
+        held.lines()
+            .any(|line| line.contains("\"task.add\"") && line.contains("\"via\":\"claude-code\"")),
+        "the event carries the client: {held}"
+    );
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert_eq!(
+        read["result"]["structuredContent"]["via"], "Claude Code",
+        "{read}"
+    );
+}
+
+/// Every client on a machine speaks through the one agent device, so «you already said» is
+/// only true of the same hand: another client is told which one spoke, by the name people read.
+#[test]
+fn a_second_client_is_told_which_hand_already_said_it_was_done() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let greeting = |name: &str| {
+        format!(
+            r#"{{"jsonrpc":"2.0","id":1,"method":"initialize","params":{{"protocolVersion":"2025-06-18","capabilities":{{}},"clientInfo":{{"name":"{name}","version":"1"}}}}}}"#
+        )
+    };
+    let said = served.talk(&[
+        &greeting("claude-code"),
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+    ]);
+    let id = said[1]["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let done = serde_json::json!({
+        "jsonrpc": "2.0", "id": 3, "method": "tools/call",
+        "params": { "name": "say_done", "arguments": { "task": id, "body": "0 errores" } },
+    })
+    .to_string();
+    let first = served.talk(&[&greeting("claude-code"), &done]);
+    assert_ne!(first[1]["result"]["isError"], true, "{first:?}");
+
+    let again = served.talk(&[&greeting("claude-code"), &done]);
+    let text = again[1]["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.starts_with("you already said"), "{text}");
+
+    let other = served.talk(&[&greeting("codex-mcp-client"), &done]);
+    let text = other[1]["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.starts_with("Claude Code already said"),
+        "another hand, named as the person knows it: {text}"
+    );
+}
+
+/// A greeting of the newer era carries the client in `_meta`, the way the server names itself.
+#[test]
+fn a_client_named_in_meta_is_kept_too() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.talk(&[
+        r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"codex","version":"2"}}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+    ]);
+    let id = said[1]["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert_eq!(
+        read["result"]["structuredContent"]["via"], "Codex",
+        "{read}"
+    );
+}
+
 #[test]
 fn a_client_of_either_era_gets_an_answer_it_understands() {
     let served = Served::new();

@@ -228,6 +228,7 @@ mod tests {
             seq: 0,
             optional: false,
             zone: None,
+            via: None,
             op: tisty_core::event::Op::TaskAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::TaskAdd::new("algo", "a0"),

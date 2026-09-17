@@ -27,6 +27,7 @@ pub struct Store {
     seen: u64,
     overtaken: bool,
     lock: Option<File>,
+    via: Option<String>,
 }
 
 impl Store {
@@ -73,6 +74,7 @@ impl Store {
             root,
             dir,
             device,
+            via: None,
             lock: None,
         })
     }
@@ -141,12 +143,19 @@ impl Store {
         })
     }
 
+    /// The client this store writes on behalf of, sealed into every event from here on.
+    pub fn speaking_through(mut self, via: Option<String>) -> Self {
+        self.via = via;
+        self
+    }
+
     fn minted(&mut self, op: Op) -> Event {
         let (timestamp, seq) = self.stamp();
         let optional = op.is_optional();
         let mut event = Event::new(self.device.clone(), timestamp, op);
         event.seq = seq;
         event.optional = optional;
+        event.via = self.via.clone();
         // Read per write, not once at open: the window keeps a Store alive for the whole session
         // and a laptop that travels would keep stamping the zone it started in.
         event.zone = jiff::tz::TimeZone::system()
@@ -1265,6 +1274,7 @@ mod tests {
             op,
             optional: false,
             zone: None,
+            via: None,
         };
 
         let told = |remover: &str, joiner: &str| {
@@ -1325,6 +1335,7 @@ mod tests {
             op,
             optional: false,
             zone: None,
+            via: None,
         };
 
         for (who, when, seq, op) in [

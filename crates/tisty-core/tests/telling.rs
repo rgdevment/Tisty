@@ -272,6 +272,20 @@ fn a_note_of_what_a_document_said_is_one_an_older_build_can_walk_past() {
 }
 
 #[test]
+fn where_an_agent_lives_is_a_line_an_older_build_and_undo_both_walk_past() {
+    let op = tisty_core::Op::DeviceHost {
+        d: tisty_core::DeviceId("dev_agent".into()),
+        of: tisty_core::DeviceId("dev_laptop".into()),
+    };
+
+    assert!(op.is_optional(), "un lector viejo se atragantaria con ella");
+    assert!(
+        op.settles(),
+        "la ventana la escribe como la maquina: sin esto, deshacer se topa con ella"
+    );
+}
+
+#[test]
 fn neither_word_about_a_task_being_done_settles_by_itself() {
     let said = tisty_core::Op::TaskResolve {
         id: ulid::Ulid::generate(),

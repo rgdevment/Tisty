@@ -303,6 +303,31 @@ fn attaching_leaves_the_description_alone() {
     );
 }
 
+/// The window says where an agent lives as the machine, in the person's own directory: a line
+/// that names no change of theirs must not be the wall `undo` stops at.
+#[test]
+fn undo_walks_past_the_machine_saying_where_its_agent_lives() {
+    let cli = Cli::new();
+    cli.ok(&["first task"]);
+    cli.pipe(&["agent", "--on"], Some("y\n"));
+
+    let paths =
+        tisty_core::Paths::new(cli.home.path().join("data"), cli.home.path().join("config"));
+    let config = tisty_core::Config::load_or_init(&paths).unwrap();
+    tisty_core::Store::open(paths.store(), config.device_id.clone())
+        .unwrap()
+        .append(tisty_core::Op::DeviceHost {
+            d: config.agent_id.clone().unwrap(),
+            of: config.device_id.clone(),
+        })
+        .unwrap();
+
+    cli.ok(&["undo"]);
+
+    let out = cli.ok(&["ls", "all"]);
+    assert!(!out.contains("first task"), "{out}");
+}
+
 #[test]
 fn undo_steps_further_back_instead_of_undoing_itself() {
     let cli = Cli::new();
