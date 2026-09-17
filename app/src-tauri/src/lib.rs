@@ -8552,23 +8552,24 @@ mod hands_of {
 
         let rows = hands(&events, &[agent].into_iter().collect(), &seen);
 
-        let named: Vec<(Option<&str>, &str, Option<bool>, usize, usize)> = rows
+        let said: Vec<String> = rows
             .iter()
             .map(|row| {
-                (
-                    row.via.as_deref(),
-                    row.named.as_str(),
+                format!(
+                    "{}={} wired:{:?} filed:{} wrote:{}",
+                    row.via.as_deref().unwrap_or("-"),
+                    row.named,
                     row.wired,
                     row.filed,
-                    row.wrote,
+                    row.wrote
                 )
             })
             .collect();
         assert_eq!(
-            named,
+            said,
             vec![
-                (Some("codex"), "Codex", Some(true), 2, 2),
-                (Some("claude-code"), "Claude Code", None, 1, 1),
+                "codex=Codex wired:Some(true) filed:2 wrote:2",
+                "claude-code=Claude Code wired:None filed:1 wrote:1",
             ],
             "{rows:?}"
         );
