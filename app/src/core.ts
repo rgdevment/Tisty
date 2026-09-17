@@ -512,6 +512,7 @@ export interface About {
   store: string;
   candidates: boolean;
   candidatesApply: boolean;
+  keptByTheStore: boolean;
 }
 
 export type Holds = "everywhere" | "mine" | "shared";

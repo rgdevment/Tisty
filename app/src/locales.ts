@@ -1063,6 +1063,8 @@ const en = {
   lookNow: "Check for updates",
   lookingNow: "Checking…",
   lookNowNone: "You are on the newest version",
+  lookNowNoneStore:
+    "The Microsoft Store has nothing newer for this copy right now. It is asked again at every launch and every few hours, and brings the update here when it has it",
   agentsTitle: "Tisty has no AI inside it",
   agentsWhat:
     "None, and none is going in: the natural language it reads is rules running on this machine, with no model and no cloud. But if you already use an assistant and it works for you, here is a door for it. It can file what you tell it — the card stock the school group wants on Monday, the thing you were tagged about on Slack — through a program already on this machine. Nothing reaches the network and Tisty still calls nobody. You decide whether to open it, and you can close it whenever you like.",
@@ -2340,6 +2342,8 @@ const es: Catalog = {
   lookNow: "Buscar actualizaciones",
   lookingNow: "Buscando…",
   lookNowNone: "Estás en la versión más reciente",
+  lookNowNoneStore:
+    "La Microsoft Store no tiene nada más nuevo para esta copia ahora mismo. Se le vuelve a preguntar en cada arranque y cada pocas horas, y trae la actualización aquí cuando la tiene",
   agentsTitle: "Tisty no lleva IA dentro",
   agentsWhat:
     "Ninguna, y no se la vamos a poner: el lenguaje natural que lee son reglas corriendo en esta máquina, sin modelo y sin nube. Pero si ya usas un asistente y te sirve, aquí tiene una puerta. Puede anotar lo que tú le cuentes —las cartulinas que el grupo del colegio pide para el lunes, aquello por lo que te mencionaron en Slack— a través de un programa que ya está en este equipo. Nada sale a la red y Tisty sigue sin llamar a nadie. Tú decides si la abres, y puedes cerrarla cuando quieras.",
