@@ -76,7 +76,7 @@ const errand: Task = {
   volume: {},
 };
 
-const counts = { stories: 1, routines: 0, traces: 2, tracesTold: 1, folded: 0 };
+const counts = { stories: 1, routines: 0, traces: 2, tracesTold: 1, folded: 0, tracesHidden: 0 };
 
 const shot = (view: View | undefined): Snapshot => ({
   tasks: view?.archive
@@ -255,7 +255,8 @@ describe("the trace layer offers to hide or erase all of it", () => {
   it("says where the trace went once it is all hidden", async () => {
     const user = userEvent.setup();
     counts.traces = 0;
-    counts.folded = 40;
+    counts.folded = 41;
+    counts.tracesHidden = 40;
     try {
       render(<App />);
       await screen.findByText("write the report");
@@ -266,6 +267,7 @@ describe("the trace layer offers to hide or erase all of it", () => {
     } finally {
       counts.traces = 2;
       counts.folded = 0;
+      counts.tracesHidden = 0;
     }
   });
 

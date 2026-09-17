@@ -87,6 +87,6 @@ describe("letting an agent fill a task in", () => {
 
     expect(screen.queryByRole("button", { name: /keep it to myself/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /let an agent fill it in/i })).toBeNull();
-    expect(screen.getByText(/· open to agents/i)).toBeTruthy();
+    expect(screen.getByText(/· was open to agents/i)).toBeTruthy();
   });
 });

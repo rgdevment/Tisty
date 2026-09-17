@@ -183,27 +183,28 @@ impl State {
             );
             return;
         }
-        // What an assistant fills in lands only where it may: on a task an assistant filed, or
-        // one the person opened to them. Judged here, at replay, so a fill-in written on a
-        // machine that had not yet seen the person close the task to agents projects the same
-        // everywhere — and never on a task the person kept to themselves.
+        // What an assistant writes on a task that exists lands only where the door lets it, and
+        // the door is judged here, at replay, so every machine projects the same whatever the
+        // server that wrote believed: a note anywhere; a bell anywhere, since it only ever adds;
+        // the rest of a patch on what an assistant filed; a fill-in — mark, description, steps —
+        // on what an assistant filed or the person opened to them; nothing else, ever — not a
+        // close, a drop, a move, a hide, a step taken back.
         if self.assistants.contains(&event.device)
             && let Some(id) = event.op.about_whom()
-            && matches!(
-                event.op,
+            && let Some(task) = self.tasks.get(&id)
+            && !match &event.op {
+                Op::TaskLog { .. } => true,
+                Op::TaskUpdate { d, .. } => self.filed_by_agents(task) || only_bells(d),
                 Op::TaskResolve { .. }
-                    | Op::TaskDescribe { .. }
-                    | Op::StepAdd { .. }
-                    | Op::StepDone { .. }
-            )
-            && self
-                .tasks
-                .get(&id)
-                .is_some_and(|task| !self.attended_by_agents(task))
+                | Op::TaskDescribe { .. }
+                | Op::StepAdd { .. }
+                | Op::StepDone { .. } => self.attended_by_agents(task),
+                _ => false,
+            }
         {
             crate::witness::warn(
                 crate::witness::channel::STORE,
-                "an assistant wrote on a task the person kept to themselves, and was let go",
+                "an assistant wrote on a task where the door does not let it, and was let go",
                 &[
                     ("at", crate::witness::Fact::Id(id.to_string())),
                     ("by", crate::witness::Fact::Id(event.device.0.clone())),
@@ -1143,11 +1144,13 @@ impl State {
     /// A task an assistant may fill in: one an assistant filed, or one the person opened to
     /// them. `assistants` only ever grows, so a task the retired agent filed stays attended.
     pub fn attended_by_agents(&self, task: &Task) -> bool {
-        task.open_to_agents
-            || task
-                .created_by
-                .as_ref()
-                .is_some_and(|who| self.assistants.contains(who))
+        task.open_to_agents || self.filed_by_agents(task)
+    }
+
+    pub fn filed_by_agents(&self, task: &Task) -> bool {
+        task.created_by
+            .as_ref()
+            .is_some_and(|who| self.assistants.contains(who))
     }
 
     /// The tasks other turns hang from: a root whose `repeat` was taken off reads as a trace,
@@ -1168,13 +1171,9 @@ impl State {
     /// What the trace layer shows: closed, not folded away, and read as a trace this instant.
     /// The bulk actions take exactly this, decided under the lock, never a list the window sent.
     pub fn the_trace(&self) -> impl Iterator<Item = &Task> {
-        let roots = self.roots();
-        self.tasks.values().filter(move |t| {
-            t.is_archived()
-                && !t.folded()
-                && t.reading() == Reading::Trace
-                && !roots.contains(&t.id)
-        })
+        self.tasks
+            .values()
+            .filter(|t| t.is_archived() && !t.folded() && t.reading() == Reading::Trace)
     }
 
     pub fn folding_the_trace(&self) -> Vec<Op> {
@@ -1183,8 +1182,12 @@ impl State {
             .collect()
     }
 
+    /// A root other turns hang from shows in the trace and is hidden with it, but stays when
+    /// the trace is erased: cutting it would cut the series it still heads.
     pub fn erasing_the_trace(&self) -> Vec<Op> {
+        let roots = self.roots();
         self.the_trace()
+            .filter(|t| !roots.contains(&t.id))
             .map(|t| Op::TaskDelete { id: t.id })
             .collect()
     }
@@ -1519,6 +1522,16 @@ fn task_from(id: TaskId, d: &TaskAdd) -> Task {
         source: d.source.clone(),
         ..Task::new(id, d.title.clone(), d.order.clone())
     }
+}
+
+/// A bell is the one thing an assistant adds to any open task: `remind` only ever adds one.
+pub(crate) fn only_bells(d: &TaskPatch) -> bool {
+    d.reminders.is_some()
+        && *d
+            == TaskPatch {
+                reminders: d.reminders.clone(),
+                ..Default::default()
+            }
 }
 
 fn patch(task: &mut Task, d: &TaskPatch, person: bool) {
@@ -5808,7 +5821,7 @@ mod converting {
                 k: Some(crate::event::DeviceKind::Agent),
             },
         ));
-        let id = closed(&mut state, 2, "dev_laptop", "comprar pan");
+        let id = closed(&mut state, 2, "dev_agent", "comprar pan");
 
         state.apply(&ev(
             5,
@@ -5825,7 +5838,10 @@ mod converting {
 
         let task = &state.tasks[&id];
         assert_eq!(task.read_as, None, "converting is the person's");
-        assert_eq!(task.title, "comprar pan integral");
+        assert_eq!(
+            task.title, "comprar pan integral",
+            "on what it filed, the rest lands"
+        );
     }
 
     #[test]
@@ -5951,7 +5967,24 @@ mod converting {
         );
         assert_eq!(state.erasable(root), Err(Stays::Routine), "the state can");
         assert_eq!(state.erasable(turn), Err(Stays::Routine));
-        assert!(state.the_trace().all(|t| t.id != root && t.id != turn));
+        assert!(
+            state.the_trace().any(|t| t.id == root) && state.the_trace().all(|t| t.id != turn),
+            "the root shows in the trace as the layer shows it; the turn is a routine's"
+        );
+        assert!(
+            state
+                .folding_the_trace()
+                .iter()
+                .any(|op| matches!(op, Op::TaskHide { id } if *id == root)),
+            "and is hidden with it"
+        );
+        assert!(
+            state
+                .erasing_the_trace()
+                .iter()
+                .all(|op| !matches!(op, Op::TaskDelete { id } if *id == root)),
+            "but never erased with it"
+        );
         assert_eq!(
             state.erasable(Ulid::generate()),
             Err(Stays::Open),
@@ -6322,7 +6355,7 @@ mod opening {
     }
 
     #[test]
-    fn an_assistant_patch_lands_without_its_opening() {
+    fn an_assistant_patch_on_the_persons_task_is_let_go_whole_but_for_a_bell() {
         let mut state = with_an_agent();
         let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
 
@@ -6338,10 +6371,99 @@ mod opening {
                 },
             },
         ));
-
         let task = &state.tasks[&id];
         assert!(!task.open_to_agents);
-        assert_eq!(task.title, "renew the TLS certificate");
+        assert_eq!(task.title, "renew the certificate", "nothing of it lands");
+
+        let bell = crate::model::DateSpec::fixed("2026-10-01T09:00".parse().unwrap(), "UTC");
+        state.apply(&ev(
+            4,
+            "dev_agent",
+            Op::TaskUpdate {
+                id,
+                d: TaskPatch {
+                    reminders: Some(vec![bell.clone()]),
+                    ..Default::default()
+                },
+            },
+        ));
+        assert_eq!(
+            state.tasks[&id].reminders,
+            vec![bell.clone()],
+            "a bell only ever adds"
+        );
+
+        state.apply(&ev(
+            5,
+            "dev_agent",
+            Op::TaskUpdate {
+                id,
+                d: TaskPatch {
+                    reminders: Some(vec![bell]),
+                    title: Some("renew the TLS certificate".into()),
+                    ..Default::default()
+                },
+            },
+        ));
+        assert_eq!(
+            state.tasks[&id].title, "renew the certificate",
+            "a bell smuggling a title in is let go with it"
+        );
+    }
+
+    /// Everything else an assistant could write on the person's task — a close, a drop, a hide,
+    /// a move, a mark taken off, a step taken back — is let go, on an opened task too.
+    #[test]
+    fn what_no_door_ever_lets_an_assistant_do_is_let_go_on_every_task() {
+        let mut state = with_an_agent();
+        let mine = written(&mut state, 2, "dev_laptop", "renew the certificate");
+        state.apply(&ev(3, "dev_laptop", opened(mine, true)));
+        let step = filled_in(&mut state, 10, mine);
+        let theirs = written(&mut state, 20, "dev_agent", "pasar biome sobre el front");
+
+        for id in [mine, theirs] {
+            state.apply(&ev(30, "dev_agent", Op::TaskDone { id, filled: false }));
+            assert_eq!(state.tasks[&id].status, Status::Open, "no close");
+            state.apply(&ev(31, "dev_agent", Op::TaskDrop { id }));
+            assert_eq!(state.tasks[&id].status, Status::Open, "no drop");
+            state.apply(&ev(32, "dev_agent", Op::TaskHide { id }));
+            assert!(!state.tasks[&id].hidden, "no hide");
+            state.apply(&ev(33, "dev_agent", Op::TaskUnresolve { id }));
+        }
+        assert!(state.tasks[&mine].resolved.is_some(), "no unsaying");
+        state.apply(&ev(
+            34,
+            "dev_agent",
+            Op::StepUndone {
+                id: mine,
+                d: StepRef { step },
+            },
+        ));
+        assert!(state.tasks[&mine].steps[0].done, "no step taken back");
+        state.apply(&ev(
+            35,
+            "dev_agent",
+            Op::TaskUpdate {
+                id: mine,
+                d: TaskPatch {
+                    title: Some("renamed".into()),
+                    ..Default::default()
+                },
+            },
+        ));
+        assert_eq!(
+            state.tasks[&mine].title, "renew the certificate",
+            "opened is not filed: the title stays the person's"
+        );
+        state.apply(&ev(
+            36,
+            "dev_agent",
+            Op::TaskLog {
+                id: mine,
+                d: LogAdd::new(Ulid::generate(), "a note lands anywhere"),
+            },
+        ));
+        assert_eq!(state.tasks[&mine].log.len(), 2);
     }
 }
 

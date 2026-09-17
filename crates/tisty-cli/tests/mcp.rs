@@ -2798,14 +2798,10 @@ fn lock(served: &Served, file: &str) {
     std::fs::write(&at, held).unwrap();
 }
 
+/// Hiding is the person's hand: written into their own directory, never the agent's, which the
+/// replay would let go of.
 fn hide(served: &Served, id: &str) {
-    let store = served.home.path().join("data/store");
-    let dir = std::fs::read_dir(&store)
-        .unwrap()
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .find(|at| at.is_dir())
-        .unwrap();
+    let dir = the_persons_directory(served);
     let by = dir.file_name().unwrap().to_string_lossy().into_owned();
     let at = dir.join("active.tisty");
     let mut held = std::fs::read_to_string(&at).unwrap();
@@ -3565,7 +3561,7 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
          {taught}"
     );
     assert!(
-        taught.contains("never edit a task the person wrote"),
+        taught.contains("never edit a task the person wrote — unless they opened it to agents"),
         "{taught}"
     );
     assert!(
@@ -4341,9 +4337,9 @@ fn the_persons_reading_of_a_task_is_not_handed_to_the_agent() {
 
 // The person opens one of their own tasks to agents from the terminal's frozen twin — the
 // window's command — which the test reaches through the log directly.
-fn opened_to_agents(served: &Served, id: &str, open: bool) {
+fn the_persons_directory(served: &Served) -> std::path::PathBuf {
     let store = served.home.path().join("data/store");
-    let dir = std::fs::read_dir(&store)
+    std::fs::read_dir(&store)
         .unwrap()
         .filter_map(|e| e.ok())
         .map(|e| e.path())
@@ -4354,7 +4350,11 @@ fn opened_to_agents(served: &Served, id: &str, open: bool) {
                 !held.contains("\"device.join\"") || !held.contains("\"k\":\"agent\"")
             }
         })
-        .expect("the person's own directory");
+        .expect("the person's own directory")
+}
+
+fn opened_to_agents(served: &Served, id: &str, open: bool) {
+    let dir = the_persons_directory(served);
     let by = dir.file_name().unwrap().to_string_lossy().into_owned();
     let at = dir.join("active.tisty");
     let mut held = std::fs::read_to_string(&at).unwrap();
@@ -4612,6 +4612,126 @@ fn steps_are_ticked_together_and_one_wrong_name_ticks_none() {
     assert_eq!(two["result"]["structuredContent"]["left"], 1, "{two}");
     let bare = served.call("tick", serde_json::json!({ "task": &id }));
     assert_eq!(bare["result"]["isError"], true, "{bare}");
+}
+
+#[test]
+fn a_repeated_step_is_walked_down_and_an_accent_written_two_ways_is_one_step() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let said = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "release",
+            "steps": ["test", "test", "pagar la inscripcio\u{301}n"]
+        }),
+    );
+    let id = said["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let first = served.call("tick", serde_json::json!({ "task": &id, "step": "test" }));
+    assert_eq!(first["result"]["structuredContent"]["ticked"], 1, "{first}");
+    let second = served.call("tick", serde_json::json!({ "task": &id, "step": "test" }));
+    assert_eq!(
+        second["result"]["structuredContent"]["ticked"], 1,
+        "{second}"
+    );
+    let third = served.call("tick", serde_json::json!({ "task": &id, "step": "test" }));
+    assert_eq!(
+        third["result"]["structuredContent"]["already"], 1,
+        "{third}"
+    );
+
+    let composed = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "steps": ["Pagar la inscripción"] }),
+    );
+    assert_eq!(
+        composed["result"]["structuredContent"]["left"], 0,
+        "{composed}"
+    );
+    let done = served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "all three" }),
+    );
+    assert!(done["result"]["isError"].is_null(), "{done}");
+}
+
+#[test]
+fn ticking_refuses_a_malformed_list_and_an_oversized_name_and_names_only_a_few_left() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let steps: Vec<String> = (1..=8).map(|n| format!("step number {n}")).collect();
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "release", "steps": steps }),
+    );
+    let id = said["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let mixed = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "steps": ["step number 1", 7] }),
+    );
+    assert_eq!(mixed["result"]["isError"], true, "{mixed}");
+    let bare = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "steps": "step number 1" }),
+    );
+    assert_eq!(bare["result"]["isError"], true, "{bare}");
+    let long = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "step": "x".repeat(2_001) }),
+    );
+    assert_eq!(long["result"]["isError"], true, "{long}");
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert!(
+        read["result"]["structuredContent"]["steps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|step| step["done"] == false),
+        "nothing was ticked by a refused call: {read}"
+    );
+
+    let early = served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "done" }),
+    );
+    let text = early["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("8 step(s) unticked"), "{early}");
+    assert!(text.contains("and 3 more"), "{early}");
+    assert!(!text.contains("step number 6"), "{early}");
+}
+
+#[test]
+fn proposing_several_with_steps_says_what_to_do_with_them_once() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "tasks": [
+            { "title": "one", "steps": ["a"] },
+            { "title": "two" },
+            { "title": "three", "steps": ["b", "c"] }
+        ] }),
+    );
+    let text = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.ends_with("2 of them carry steps: `tick` each as you do it, `say_done` when all are."),
+        "{text}"
+    );
+    assert_eq!(
+        said["result"]["structuredContent"]["tasks"][2]["steps"], 2,
+        "{said}"
+    );
+    assert!(
+        said["result"]["structuredContent"]["tasks"][1]["steps"].is_null(),
+        "{said}"
+    );
 }
 
 #[test]

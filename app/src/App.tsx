@@ -870,7 +870,11 @@ export default function App() {
           carries.current?.changed();
         });
       })
-      .catch((e) => setError(saidPlainly(e)));
+      .catch((e) => {
+        setError(saidPlainly(e));
+        // «Look again» is only possible once the list shows what the store holds now.
+        load();
+      });
   };
 
   const marking = (id: string, title: string) => {
@@ -1809,7 +1813,7 @@ export default function App() {
                     empty={
                       found?.papers.length && !shown.length
                         ? t("onlyPapers")
-                        : nothing(chosen, found !== null, data.counts.folded ?? 0)
+                        : nothing(chosen, found !== null, data.counts.tracesHidden ?? 0)
                     }
                     note={
                       found && found.total > found.tasks.length

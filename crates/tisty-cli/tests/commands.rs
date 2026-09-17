@@ -2294,3 +2294,70 @@ fn an_assistant_may_use_a_store_the_person_did_not_choose() {
     assert_eq!(run.code, 0, "{}", run.err);
     assert!(!run.err.contains("assistant"), "{}", run.err);
 }
+
+/// The store the person chose is the one the gate guards: with no `TISTY_DATA` the binary
+/// would land in the home directory, so the test hands it an empty one and expects it untouched.
+#[cfg(unix)]
+#[test]
+fn an_assistant_at_the_persons_own_store_is_turned_away_and_told_which_mark_did_it() {
+    let home = tempfile::tempdir().unwrap();
+    let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_tisty"));
+    command
+        .env_clear()
+        .env("PATH", std::env::var_os("PATH").unwrap_or_default())
+        .env("HOME", home.path())
+        .env("XDG_DATA_HOME", home.path().join("data"))
+        .env("XDG_CONFIG_HOME", home.path().join("config"))
+        .env("XDG_CACHE_HOME", home.path().join("cache"))
+        .env("CLAUDECODE", "1")
+        .env("NO_COLOR", "1")
+        .env("LANG", "en_US.UTF-8")
+        .args(["lists"]);
+
+    let run = finish(command.output().unwrap());
+
+    assert_eq!(run.code, 5, "{}", run.err);
+    assert!(
+        run.err.contains("an assistant does not use it"),
+        "{}",
+        run.err
+    );
+    assert!(run.err.contains("seen: `CLAUDECODE`"), "{}", run.err);
+    assert!(run.out.is_empty(), "{}", run.out);
+    assert!(
+        !home.path().join("data").exists(),
+        "no store was opened, let alone written"
+    );
+    let noted = std::fs::read_to_string(home.path().join("config/tisty/private/tisty.log"))
+        .unwrap_or_default();
+    assert!(
+        noted.contains("turned away"),
+        "the log keeps that it happened: {noted}"
+    );
+}
+
+/// `TISTY_DATA` is how tests and `demo` step aside; aimed back at the person's own store it
+/// steps nowhere, and the gate stays.
+#[cfg(unix)]
+#[test]
+fn naming_the_persons_own_store_by_its_path_does_not_open_the_gate() {
+    let home = tempfile::tempdir().unwrap();
+    let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_tisty"));
+    command
+        .env_clear()
+        .env("PATH", std::env::var_os("PATH").unwrap_or_default())
+        .env("HOME", home.path())
+        .env("XDG_DATA_HOME", home.path().join("data"))
+        .env("XDG_CONFIG_HOME", home.path().join("config"))
+        .env("XDG_CACHE_HOME", home.path().join("cache"))
+        .env("TISTY_DATA", home.path().join("data/tisty"))
+        .env("CLAUDECODE", "1")
+        .env("NO_COLOR", "1")
+        .env("LANG", "en_US.UTF-8")
+        .args(["lists"]);
+
+    let run = finish(command.output().unwrap());
+
+    assert_eq!(run.code, 5, "{}", run.err);
+    assert!(!home.path().join("data/tisty/store").exists());
+}

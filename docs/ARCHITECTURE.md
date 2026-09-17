@@ -295,11 +295,15 @@ binary is not: `tisty mcp` is the door, the window carries it as a sidecar, and
 `agent`, `doctor`, `sync`, `export`, `leave` and `demo` are maintenance that
 stays. What goes is the terminal as a second window — the task and document
 commands — because every rule was being written three times: core, window,
-terminal, and the third copy is the one nobody uses. Until they go, no new
-rule reaches them and no new command joins them; what has to hold in the
-terminal for safety is enforced in the core, which is where `erasable()` and
-the assistant guard already live. When they are gone, the check below shrinks
-to what is left: nothing an assistant could reach for.
+terminal, and the third copy is the one nobody uses. Until they go, no feature
+reaches them and no new command joins them; what has to hold in the terminal
+for safety — a rule the window keeps, like which task may be erased — still
+does, and is written once, in the core, so that the terminal only obeys it.
+That is how `tisty rm` came to refuse a story and `tisty set --read-as` to
+exist the same day the policy was written: the erase rule moved to the core,
+and the terminal had to be able to convert to obey it. The check below is the
+binary's own and stays. When the commands are gone, it guards what is left:
+nothing an assistant could reach for.
 
 **The terminal is the person's, and the binary checks that it is.** An
 assistant with a shell could type `tisty done 3` the day its server is not
@@ -362,10 +366,30 @@ projection said nothing was wrong.
 That the rule lives here and not at the tool gate matters because the gate only
 guards one binary: a shared folder takes lines from anywhere, and one future tool
 or one CLI subcommand written without this in mind would otherwise be honoured
-everywhere the folder reaches. It is not a defence against a forged log — nothing
-checks that an event in a device's folder was written by that device, and anyone
-who can append there can also delete the files directly. It binds an honest binary,
-which is what the rule is for.
+everywhere the folder reaches. The same replay keeps the rest of what an
+assistant's hand may do to a task that exists, as a list of what is let in
+rather than of what is kept out: a journal line on any task; a bell on any
+open task, since `remind` only ever adds one; the rest of a patch on what an
+assistant filed; a mark, a description and steps on what an assistant filed or
+the person opened to them; and nothing else — not a close, a drop, a hide, a
+move, a mark taken off, a step taken back — whatever the server that wrote it
+believed. The trail (`story.rs`) keeps the same list, so it never tells of a
+step the task did not take.
+
+It is a defence against an honest binary that was wrong, not against a forged
+log. One thing is checked: an event claims the device whose directory holds it
+— a device writes only there and sync copies directories whole, so on
+everything Tisty ever wrote the two agree — and one that claims another is let
+go at reading. Beyond that, nothing signs an event, and a hand that can append
+to the store's files can also delete them: that hand is the person's own, and
+the terminal gate below is the floor it stands on, not a lock.
+
+Judged at replay, the door is judged in the order the merged log sorts, by
+stamp. A fill-in written on one machine before the opening that let it in
+sorted there — a clock ahead on the machine that opened — is let go on every
+machine alike, the one that wrote it included, and the agent was told it
+landed. Deterministic, and a loss the agent cannot see; the answer to it is
+the window, where the person sees what the task holds.
 
 The trade it takes: this changes how an already-written log projects, so a machine
 on an older build still honours what this one drops.
@@ -663,15 +687,17 @@ A task is deletable once it is closed and **reads as a trace**. A story or a
 routine is only hidden, never erased: to erase a story the person converts it to
 a trace first, and a trace kept as a story stops being erasable. The conversion
 is the deliberate step, and what the task holds plays no part in it — what the
-person converted is what they said it is. The rule is `Task::erasable()`, in the
-core — a task other turns hang from counts as a routine's root, however bare —
-and the window and `tisty rm` both obey it at the moment they commit, after
-re-reading the store, since erasing has no undo and an agent or the terminal may
-have written since the window last looked. The bulk erase carries how many the
+person converted is what they said it is. The rule is `State::erasable()`, in
+the core — `Task::erasable()` reads the task alone, and the state adds that a
+task other turns hang from counts as a routine's root, however bare — and the
+window and `tisty rm` both obey it at the moment they commit, judged again
+under the lock, since erasing has no undo and an agent or the other window may
+have written since they last looked. The bulk erase carries how many the
 person was shown, and a layer that changed under them is a reason to look again
-rather than a guess. One thing is judged at replay, deterministically, the way
-an assistant's deletion is: a delete that reaches a task the person kept as a
-story is let go, on every machine alike, because that word outlives a delete
+rather than a guess; a root shows in the trace and is hidden with it, and stays
+when the trace is erased. One thing is judged at replay, deterministically, the
+way an assistant's deletion is: a delete that reaches a task the person kept as
+a story is let go, on every machine alike, because that word outlives a delete
 written elsewhere while the task still read as a trace. Two deletions are not
 the person's and stay outside the rule: reopening a routine's turn deletes the
 untouched turn born from it, and undoing a capture deletes what it captured.

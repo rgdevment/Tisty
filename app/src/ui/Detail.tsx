@@ -92,6 +92,8 @@ export default function Detail({
           task.open_to_agents ? "open" : "",
           task.log?.length ?? task.volume?.journal ?? 0,
           task.steps?.length ?? task.volume?.steps ?? 0,
+          task.steps?.filter((step) => step.done).length ?? task.volume?.steps_done ?? 0,
+          task.description ? "described" : "",
           task.title,
         ].join("|")}
         lists={lists}

@@ -417,7 +417,7 @@ fn run() -> anyhow::Result<ExitCode> {
     // The terminal writes as the person. An assistant with a shell would type it the moment
     // its MCP server is down, or let itself in with `agent --on`; the refusal is the one
     // instruction that reaches it without that server.
-    if typist::at_the_persons_store()
+    if typist::at_the_persons_store(&paths)
         && let Some(sign) = typist::assistant()
     {
         tisty_core::witness::note(
@@ -429,11 +429,29 @@ fn run() -> anyhow::Result<ExitCode> {
                 ("name", tisty_core::witness::Fact::Id(sign.name())),
             ],
         );
-        let lang = Lang::detect(None);
+        // The config is read, never written here: the person's language, and nothing opened.
+        let configured = tisty_core::Config::load(&paths.config_file())
+            .ok()
+            .flatten()
+            .and_then(|config| config.locale);
+        let lang = Lang::detect(configured.as_deref());
         eprintln!(
             "{}: {}",
             style::paint(style::RED, lang.get("error")),
             lang.get("not-for-an-assistant")
+        );
+        // A person taken for an assistant has to be told which mark did it, or they cannot undo
+        // it: that mark is the whole reason, and the witness alone is not where they would look.
+        eprintln!(
+            "{}",
+            lang.fill(
+                match sign {
+                    typist::Sign::Env(_) => "taken-for-env",
+                    typist::Sign::Ancestor(_) => "taken-for-ancestor",
+                    typist::Sign::Ide(_) => "taken-for-ide",
+                },
+                &[("name", &sign.name())]
+            )
         );
         return Ok(ExitCode::from(EXIT_NOT_FOR_AN_ASSISTANT));
     }

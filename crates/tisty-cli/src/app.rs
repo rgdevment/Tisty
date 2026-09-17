@@ -132,6 +132,23 @@ impl App {
         self.commit_marked(ops, false, true)
     }
 
+    /// Written only if the store, read again under the lock, still allows it: `None` when it
+    /// moved since this terminal read it.
+    pub fn commit_unless(
+        &mut self,
+        ops: Vec<Op>,
+        settled: impl FnOnce(&[Event]) -> bool,
+    ) -> tisty_core::Result<Option<usize>> {
+        let Some(events) = self.store.append_batch_unless(ops, settled)? else {
+            return Ok(None);
+        };
+        for event in &events {
+            self.state.apply(event);
+        }
+        self.refresh(&events);
+        Ok(Some(events.len()))
+    }
+
     fn commit_marked(&mut self, ops: Vec<Op>, undo: bool, redo: bool) -> tisty_core::Result<usize> {
         let events = self.store.append_batch_tagged(ops, undo, redo)?;
         for event in &events {

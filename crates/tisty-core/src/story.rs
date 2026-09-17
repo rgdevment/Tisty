@@ -104,8 +104,23 @@ struct Standing {
     repeat: Option<Repeat>,
     read_as: Option<Reading>,
     open_to_agents: bool,
+    filed_by_agent: bool,
     described: bool,
     steps: HashMap<StepId, String>,
+}
+
+/// The same door `State::apply` keeps for an assistant's hand.
+fn lets(op: &Op, standing: &Standing) -> bool {
+    let attended = standing.open_to_agents || standing.filed_by_agent;
+    match op {
+        Op::TaskAdd { .. } | Op::TaskLog { .. } => true,
+        Op::TaskUpdate { d, .. } => standing.filed_by_agent || crate::state::only_bells(d),
+        Op::TaskResolve { .. }
+        | Op::TaskDescribe { .. }
+        | Op::StepAdd { .. }
+        | Op::StepDone { .. } => attended,
+        _ => false,
+    }
 }
 
 pub fn story(events: &[Event], id: TaskId) -> Story {
@@ -131,6 +146,12 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
     let mut pages = Vec::new();
 
     for event in mine {
+        // The trail tells what landed: what `State::apply` lets go of an assistant's hand is
+        // no chapter, or the trail would tell of steps and marks the task never took.
+        let by_assistant = assistants.contains(&event.device);
+        if by_assistant && !lets(&event.op, &standing) {
+            continue;
+        }
         let mut write = |chapter: Chapter| {
             pages.push(Page {
                 n: pages.len(),
@@ -143,6 +164,7 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
 
         match &event.op {
             Op::TaskAdd { d, .. } => {
+                standing.filed_by_agent = by_assistant;
                 standing.title = d.title.clone();
                 standing.date = d.date.clone();
                 standing.deadline = d.deadline.clone();
@@ -220,6 +242,7 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
                 }
                 if let Some(read_as) = d.read_as
                     && read_as != standing.read_as
+                    && read_as != Some(Reading::Routine)
                     && !assistants.contains(&event.device)
                 {
                     write(Chapter::Converted {
@@ -607,6 +630,68 @@ mod tests {
                 &Chapter::Shut,
             ],
             "the same opening twice is one chapter, and an assistant's never landed"
+        );
+    }
+
+    #[test]
+    fn a_fill_in_the_replay_let_go_is_no_chapter_and_one_it_kept_is() {
+        let id = Ulid::generate();
+        let agent = DeviceId("dev_agent".into());
+        let mut joined = event(
+            1,
+            Op::DeviceJoin {
+                d: agent.clone(),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        );
+        joined.device = agent.clone();
+        let step = Ulid::generate();
+        let planned = |seconds: i64| {
+            let mut one = event(
+                seconds,
+                Op::StepAdd {
+                    id,
+                    d: crate::event::StepAdd {
+                        step,
+                        text: "pay".into(),
+                        order: "a0".into(),
+                    },
+                },
+            );
+            one.device = agent.clone();
+            one
+        };
+        let mut closed = event(30, Op::TaskDone { id, filled: false });
+        closed.device = agent.clone();
+        let log = vec![
+            joined,
+            born(id, "renew the certificate"),
+            planned(10),
+            patched(
+                20,
+                id,
+                TaskPatch {
+                    open_to_agents: Some(true),
+                    ..Default::default()
+                },
+            ),
+            planned(25),
+            closed,
+        ];
+
+        let told = story(&log, id);
+
+        assert_eq!(
+            chapters(&told),
+            vec![
+                &Chapter::Born {
+                    title: "renew the certificate".into()
+                },
+                &Chapter::Opened,
+                &Chapter::Planned { text: "pay".into() },
+            ],
+            "the step before the door opened never landed, nor did the close: {:?}",
+            chapters(&told)
         );
     }
 

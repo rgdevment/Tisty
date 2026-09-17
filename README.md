@@ -528,8 +528,9 @@ on the other, [FAQ.md](docs/FAQ.md) lists the causes worth checking, in order.
 
 The window is the way in. The terminal was a second one — the same store, the
 same tasks, the same natural language — and it is being retired, by stages:
-what it still does keeps working, nothing new reaches it, and the task and
-document commands go in the next major version. What stays is the `tisty`
+what it still does keeps working, no feature reaches it — only a rule the
+window keeps for safety, which it obeys — and the task and document commands
+go in the next major version. What stays is the `tisty`
 binary itself, because it is the door your assistant comes through (`tisty
 mcp`) and the place for maintenance: `doctor`, `sync`, `export`, `agent`.
 

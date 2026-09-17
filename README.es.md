@@ -531,7 +531,8 @@ enumera las causas en el orden en que conviene revisarlas (en inglés).
 
 La ventana es la entrada. La terminal fue una segunda —el mismo almacén, las
 mismas tareas, el mismo lenguaje natural— y se retira por etapas: lo que aún
-hace sigue funcionando, nada nuevo le llega, y los comandos de tareas y
+hace sigue funcionando, ninguna función nueva le llega —solo una regla que la
+ventana guarda por seguridad, y que obedece—, y los comandos de tareas y
 documentos se van en la siguiente versión mayor. Lo que se queda es el binario
 `tisty`, porque es la puerta por la que entra tu asistente (`tisty mcp`) y el
 sitio del mantenimiento: `doctor`, `sync`, `export`, `agent`.

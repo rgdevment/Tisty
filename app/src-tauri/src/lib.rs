@@ -577,6 +577,16 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             },
         );
     }
+    // The empty trace layer says where the trace went: hidden traces, not every hidden task.
+    count(
+        "tracesHidden",
+        Filter {
+            scope: Scope::Archived,
+            hidden: true,
+            reading: Some(Reading::Trace),
+            ..Default::default()
+        },
+    );
     count(
         "overdue",
         Filter {
@@ -6533,8 +6543,9 @@ fn open_to_agents(
     opening_to_agents(&mut held(&session), id, open)
 }
 
-/// Only an open task the person wrote takes the permission: a closed one is history to an
-/// assistant, and one an assistant filed is already its own to fill in.
+/// Only an open task takes the permission: a closed one is history to an assistant. What this
+/// machine's own agent filed is already its to fill in; what another identity filed — the
+/// agent on the other machine, or one since retired — is not, so the door is what lets it on.
 fn opening_to_agents(session: &mut Session, id: tisty_core::TaskId, open: bool) -> Answer<Task> {
     session.reload()?;
     let task = session
@@ -6545,11 +6556,7 @@ fn opening_to_agents(session: &mut Session, id: tisty_core::TaskId, open: bool) 
     if !task.is_open() {
         return Err(Refusal::of("onlyOpenOpens"));
     }
-    if task
-        .created_by
-        .as_ref()
-        .is_some_and(|who| session.state.assistants.contains(who))
-    {
+    if task.created_by.is_some() && task.created_by == session.config.agent_id {
         return Err(Refusal::of("alreadyTheirs"));
     }
     session.commit(Op::TaskUpdate {
@@ -6620,13 +6627,15 @@ fn erase_trace(session: tauri::State<'_, Mutex<Session>>, seen: usize) -> Answer
     erasing_the_trace(&mut held(&session), seen)
 }
 
+/// `seen` is what the layer showed; what goes is that minus the roots a series still hangs
+/// from, so the answer can be smaller than the count on the button and never larger.
 fn erasing_the_trace(session: &mut Session, seen: usize) -> Answer<usize> {
     session.reload()?;
-    let ops = session.state.erasing_the_trace();
-    let many = ops.len();
-    if many != seen {
+    if session.state.the_trace().count() != seen {
         return Err(Refusal::of("traceChanged"));
     }
+    let ops = session.state.erasing_the_trace();
+    let many = ops.len();
     if many > 0 {
         session.commit_all(ops)?;
     }

@@ -110,7 +110,7 @@ maintenance that has no better home. What is being retired is the terminal as
 a second window — `add`, `ls`, `done`, `set`, `rm`, `mv`, `desc`, `log`,
 `step`, `show`, `story`, `series`, `search`, `list`, `tag`, `attach`, `doc`.
 They cost a third implementation of every rule, and one commit in five since
-July has been paying it. So: no new rule reaches those commands, and no new
+July has been paying it. So: no feature reaches those commands, and no new
 command joins them. A feature is done when the core and the window have it;
 if a rule the window keeps must also hold in the terminal for safety — what
 can be erased, say — it is enforced in the core and the command merely obeys.

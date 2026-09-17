@@ -270,22 +270,30 @@ pub fn rm(app: &mut App, selector: &str, force: bool, lang: Lang) -> anyhow::Res
         let title = app.state.tasks[&id].title.clone();
         // The same rule the window keeps: a closed trace goes, a story is only hidden, and
         // converting it is the person's deliberate step.
-        if let Err(why) = app.state.tasks[&id].erasable() {
+        let stays = |why: tisty_core::model::Stays| {
             let key = match why {
                 tisty_core::model::Stays::Open => "rm-open",
                 tisty_core::model::Stays::Story => "rm-story",
                 tisty_core::model::Stays::Routine => "rm-routine",
             };
-            anyhow::bail!(
+            anyhow::anyhow!(
                 "{}",
                 lang.fill(key, &[("title", &title), ("selector", selector)])
-            );
-        }
+            )
+        };
+        app.state.erasable(id).map_err(stays)?;
         if !confirm(&lang.fill("confirm-rm", &[("title", &title)]), force, lang)? {
             return Ok(ExitCode::SUCCESS);
         }
 
-        app.commit(Op::TaskDelete { id })?;
+        // Judged again under the lock: the window may have kept it as a story while the
+        // question was on the screen.
+        let written = app.commit_unless(vec![Op::TaskDelete { id }], |events| {
+            tisty_core::State::replay(events).erasable(id).is_err()
+        })?;
+        if written.is_none() {
+            anyhow::bail!("{}", lang.fill("rm-moved", &[("title", &title)]));
+        }
         println!("  {} {}", style::dim("✕"), style::dim(&title));
         Ok(ExitCode::SUCCESS)
     })

@@ -56,11 +56,10 @@ const RUNTIMES: &[&str] = &["node", "bun", "deno", "python", "python3"];
 const ANCESTORS_AT_MOST: usize = 16;
 
 /// A store the person did not choose is not the person's list: tests and `demo` run there.
-/// The profile is read the way `Paths::resolve` reads it, so a name it throws away — blank,
-/// nothing but punctuation — still counts as the person's store here.
-pub fn at_the_persons_store() -> bool {
-    std::env::var_os(tisty_core::paths::DATA_ENV).is_none_or(|v| v.is_empty())
-        && tisty_core::paths::profile().is_none()
+/// Judged by where the data resolved to, not by how: `TISTY_DATA` aimed at the person's own
+/// store is still the person's own store.
+pub fn at_the_persons_store(paths: &tisty_core::Paths) -> bool {
+    paths.the_persons_own()
 }
 
 pub fn assistant() -> Option<Sign> {
@@ -106,14 +105,20 @@ fn is_or_helps(name: &str, ide: &str) -> bool {
             .is_some_and(|rest| rest.starts_with([' ', '-']))
 }
 
+/// What a script is called is the program: `gemini.js` under node is gemini.
+const SCRIPT_ENDINGS: &[&str] = &[".exe", ".js", ".mjs", ".cjs", ".py"];
+
 /// The program behind a command line: `node /usr/bin/claude` is claude, not node.
 fn named(args: &[String]) -> String {
     let base = |arg: &String| {
-        std::path::Path::new(arg)
+        let name = std::path::Path::new(arg)
             .file_name()
             .map(|name| name.to_string_lossy().to_lowercase())
-            .unwrap_or_default()
-            .trim_end_matches(".exe")
+            .unwrap_or_default();
+        SCRIPT_ENDINGS
+            .iter()
+            .find_map(|ending| name.strip_suffix(ending))
+            .unwrap_or(&name)
             .to_string()
     };
     let Some(first) = args.first() else {
@@ -164,24 +169,29 @@ fn parent_of(pid: u32) -> Option<u32> {
         .ok()
 }
 
+// `comm=` is the executable alone, spaces and all — `/Applications/Visual Studio Code.app/…`
+// split on whitespace would read as «visual» — and only a runtime needs its arguments read,
+// one process at a time.
 #[cfg(target_os = "macos")]
 fn ancestors() -> Vec<String> {
-    let listed = std::process::Command::new("ps")
-        .args(["-axo", "pid=,ppid=,command="])
-        .stdin(std::process::Stdio::null())
-        .output()
-        .ok()
-        .filter(|done| done.status.success())
-        .map(|done| String::from_utf8_lossy(&done.stdout).into_owned())
-        .unwrap_or_default();
-    let table: std::collections::HashMap<u32, (u32, String)> = listed
+    let ps = |args: &[&str]| {
+        std::process::Command::new("ps")
+            .args(args)
+            .stdin(std::process::Stdio::null())
+            .output()
+            .ok()
+            .filter(|done| done.status.success())
+            .map(|done| String::from_utf8_lossy(&done.stdout).into_owned())
+            .unwrap_or_default()
+    };
+    let table: std::collections::HashMap<u32, (u32, String)> = ps(&["-axo", "pid=,ppid=,comm="])
         .lines()
         .filter_map(|line| {
-            let mut parts = line.split_whitespace();
-            let pid: u32 = parts.next()?.parse().ok()?;
-            let ppid: u32 = parts.next()?.parse().ok()?;
-            let args: Vec<String> = parts.map(ToString::to_string).collect();
-            Some((pid, (ppid, named(&args))))
+            let mut parts = line.trim_start().splitn(3, ' ');
+            let pid: u32 = parts.next()?.trim().parse().ok()?;
+            let ppid: u32 = parts.next()?.trim().parse().ok()?;
+            let program = parts.next()?.trim().to_string();
+            Some((pid, (ppid, program)))
         })
         .collect();
     let mut out = Vec::new();
@@ -193,10 +203,17 @@ fn ancestors() -> Vec<String> {
         if *ppid <= 1 {
             break;
         }
-        let Some((_, name)) = table.get(ppid) else {
+        let Some((_, program)) = table.get(ppid) else {
             break;
         };
-        out.push(name.clone());
+        let mut args = vec![program.clone()];
+        if RUNTIMES.contains(&named(&args).as_str()) {
+            args = ps(&["-o", "command=", "-p", &ppid.to_string()])
+                .split_whitespace()
+                .map(ToString::to_string)
+                .collect();
+        }
+        out.push(named(&args));
         pid = *ppid;
     }
     out
@@ -250,6 +267,28 @@ mod tests {
 
     fn strings(list: &[&str]) -> Vec<String> {
         list.iter().map(ToString::to_string).collect()
+    }
+
+    #[test]
+    fn a_script_under_a_runtime_is_called_by_its_name_without_the_ending() {
+        assert_eq!(
+            named(&strings(&["node", "/opt/gemini/bundle/gemini.js"])),
+            "gemini"
+        );
+        assert_eq!(
+            named(&strings(&[
+                "node",
+                "--max-old-space-size=4096",
+                "/x/bin/codex.js"
+            ])),
+            "codex"
+        );
+        assert_eq!(
+            named(&strings(&["python3", "/usr/local/bin/aider.py"])),
+            "aider"
+        );
+        assert_eq!(named(&strings(&["/usr/local/bin/claude.exe"])), "claude");
+        assert_eq!(named(&strings(&["node"])), "node");
     }
 
     #[test]

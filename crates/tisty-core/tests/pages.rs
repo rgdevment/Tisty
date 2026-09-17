@@ -1706,12 +1706,14 @@ fn two_machines_that_each_name_a_new_page_first_can_land_on_the_same_key_and_sti
     let one = doc_add(&mut store_a, "a3f1-0002", "a0", None, Some(book));
     let two = doc_add(&mut store_a, "a3f1-0003", "a1", None, Some(book));
 
-    // A second machine that pulled the same history before either of them wrote a word since.
+    // A second machine that pulled the same history before either of them wrote a word since:
+    // sync brings a device's directory over whole, so the copy sits under dev_a's own name.
     let world_b = World::new();
-    let mut store_b = world_b.store("dev_b");
+    let mut mirrored = world_b.store("dev_a");
     for event in store_a.read_all().unwrap() {
-        store_b.append_event(&event).unwrap();
+        mirrored.append_event(&event).unwrap();
     }
+    let mut store_b = world_b.store("dev_b");
 
     // Both machines independently write a brand new page and name it first, from the same
     // starting text -- neither has seen the other's move.

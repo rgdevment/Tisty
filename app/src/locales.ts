@@ -123,7 +123,7 @@ const en = {
   letAgentFill: "Let an agent fill it in",
   keepToMyself: "Keep it to myself",
   openToAgents: "Open to agents: one may say it is done, describe it, plan its steps and tick them",
-  wasOpenToAgents: "open to agents",
+  wasOpenToAgents: "was open to agents",
   foldTrace: "Hide all",
   foldTraceSure:
     "Hide the {name} traces? They stay in the archive under «hidden», and search still reaches them.",
@@ -996,7 +996,7 @@ const en = {
   terminal: "Command line",
   terminalOn: "Your terminal finds «tisty», through {name}",
   terminalRetiring:
-    "The task and document commands are being retired: nothing new reaches them, and they go in the next major version. The window is where Tisty happens; the binary stays as your assistant's door and for maintenance.",
+    "The task and document commands are being retired: no feature reaches them, and they go in the next major version. The window is where Tisty happens; the binary stays as your assistant's door and for maintenance.",
   terminalRemove: "Take it back out",
   terminalGone: "No longer reachable",
   settlingIn: "Settling in — bringing your machines together",
@@ -1397,7 +1397,7 @@ const es: Catalog = {
   keepToMyself: "Quedármela",
   openToAgents:
     "Abierta a los agentes: uno puede darla por hecha, describirla, planear sus pasos y marcarlos",
-  wasOpenToAgents: "abierta a los agentes",
+  wasOpenToAgents: "estuvo abierta a los agentes",
   foldTrace: "Ocultar todo",
   foldTraceSure:
     "¿Ocultar los {name} rastros? Siguen en el archivo, bajo «ocultas», y la búsqueda sigue alcanzándolos.",
@@ -2275,7 +2275,7 @@ const es: Catalog = {
   terminal: "Línea de comandos",
   terminalOn: "Tu terminal encuentra «tisty», desde {name}",
   terminalRetiring:
-    "Los comandos de tareas y documentos se retiran: nada nuevo les llega, y se van en la siguiente versión mayor. Tisty pasa en la ventana; el binario se queda como puerta de tu asistente y para mantenimiento.",
+    "Los comandos de tareas y documentos se retiran: ninguna función nueva les llega, y se van en la siguiente versión mayor. Tisty pasa en la ventana; el binario se queda como puerta de tu asistente y para mantenimiento.",
   terminalRemove: "Quitarlo",
   terminalGone: "Ya no está disponible",
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
