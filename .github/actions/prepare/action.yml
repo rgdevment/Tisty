@@ -29,7 +29,7 @@ runs:
       run: |
         version="${{ inputs.version }}"
 
-        cargo fetch --locked
+        cargo fetch --locked --offline 2>/dev/null || cargo fetch --locked
 
         sed -i.bak -e "s/^version = .*/version = \"$version\"/" Cargo.toml
         rm -f Cargo.toml.bak
