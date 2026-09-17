@@ -268,11 +268,32 @@ pub fn rm(app: &mut App, selector: &str, force: bool, lang: Lang) -> anyhow::Res
     let all: Vec<_> = app.state.tasks.values().collect();
     resolved!(app, Some(selector), all, lang, |id| {
         let title = app.state.tasks[&id].title.clone();
+        // The same rule the window keeps: a closed trace goes, a story is only hidden, and
+        // converting it is the person's deliberate step.
+        let stays = |why: tisty_core::model::Stays| {
+            let key = match why {
+                tisty_core::model::Stays::Open => "rm-open",
+                tisty_core::model::Stays::Story => "rm-story",
+                tisty_core::model::Stays::Routine => "rm-routine",
+            };
+            anyhow::anyhow!(
+                "{}",
+                lang.fill(key, &[("title", &title), ("selector", selector)])
+            )
+        };
+        app.state.erasable(id).map_err(stays)?;
         if !confirm(&lang.fill("confirm-rm", &[("title", &title)]), force, lang)? {
             return Ok(ExitCode::SUCCESS);
         }
 
-        app.commit(Op::TaskDelete { id })?;
+        // Judged again under the lock: the window may have kept it as a story while the
+        // question was on the screen.
+        let written = app.commit_unless(vec![Op::TaskDelete { id }], |events| {
+            tisty_core::State::replay(events).erasable(id).is_err()
+        })?;
+        if written.is_none() {
+            anyhow::bail!("{}", lang.fill("rm-moved", &[("title", &title)]));
+        }
         println!("  {} {}", style::dim("✕"), style::dim(&title));
         Ok(ExitCode::SUCCESS)
     })
@@ -291,6 +312,7 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
 
     resolved!(app, Some(&args.selector), all, lang, |id| {
         let tags = merged_tags(app, id, &args.tag, &args.untag)?;
+        let read_as = read_as_flag(app, id, args.read_as.as_deref(), lang)?;
 
         let d = TaskPatch {
             title: args.title.clone(),
@@ -304,6 +326,9 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
             tags,
             reminders: recalled(app, id, &args, lang)?,
             repeat: over,
+            read_as,
+            // The terminal is frozen: opening a task to agents is the window's.
+            open_to_agents: None,
         };
 
         if d == TaskPatch::default() {
@@ -316,6 +341,33 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
         report(app, id, today, lang);
         Ok(ExitCode::SUCCESS)
     })
+}
+
+/// Converting is for what is closed and is not a routine; `auto` reads it by what it holds.
+fn read_as_flag(
+    app: &App,
+    id: tisty_core::TaskId,
+    raw: Option<&str>,
+    lang: Lang,
+) -> anyhow::Result<Option<Option<tisty_core::Reading>>> {
+    let Some(raw) = raw else { return Ok(None) };
+    let wanted = match raw.trim().to_lowercase().as_str() {
+        "story" | "historia" => Some(tisty_core::Reading::Story),
+        "trace" | "rastro" => Some(tisty_core::Reading::Trace),
+        "auto" => None,
+        _ => anyhow::bail!("{}", lang.fill("not-a-reading", &[("value", raw)])),
+    };
+    let task = &app.state.tasks[&id];
+    if task.is_open() {
+        anyhow::bail!("{}", lang.fill("read-as-open", &[("title", &task.title)]));
+    }
+    if task.reading() == tisty_core::Reading::Routine {
+        anyhow::bail!(
+            "{}",
+            lang.fill("read-as-routine", &[("title", &task.title)])
+        );
+    }
+    Ok(Some(wanted))
 }
 
 fn recalled(

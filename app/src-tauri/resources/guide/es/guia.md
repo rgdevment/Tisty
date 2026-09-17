@@ -282,7 +282,9 @@ Antes que abrirlo y destruirte eso en la primera tecla, Tisty lo dice y lo abre 
 
 Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste.
 
-Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Agentes** con la hora en que habló —salvo que venza hoy o esté atrasada, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
+Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Por confirmar** con la hora en que habló —salvo que venza hoy o esté atrasada, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
+
+Una tarea tuya se la puedes abrir: en su detalle, **Permitir agentes**. Desde ahí un asistente puede darla por hecha —para que la confirmes—, describirla si no tiene descripción, planear sus pasos y marcarlos a medida que avanza, que es lo único que hace sin preguntar. El día, el título, la lista y el cierre siguen siendo tuyos. **Sin agentes** cierra la puerta y conserva lo que alcanzó a completar.
 
 Para reescribir un documento entero se le entrega una huella del texto exacto que leyó, y tiene que devolverla al escribir. Si escribiste tú en medio, la huella ya no cuadra: no se escribe nada y se le dice que vuelva a leerlo. La ventana te avisa cuando algo ha escrito en el documento que tienes abierto.
 
@@ -302,7 +304,9 @@ En Ajustes puedes además guardar un respaldo completo cuando quieras.
 - **Descartar** la aparta sin hacerla: también acaba en el Archivo.
 - Lo del Archivo sigue ahí por si lo buscas. No estorba.
 
-> **Antes de borrar de verdad.** Solo se puede con lo que ya está archivado **y** apartado de la vista. Al borrar desaparece de este equipo y de los demás en la siguiente sincronización, y no hay deshacer.
+El Archivo se lee en tres capas: las **historias**, que dejaron algo escrito; las **rutinas**, que vuelven; y el **rastro**, lo que se cerró sin dejar casi nada. Tú decides en qué capa se lee cada una: en el detalle de una cerrada, «Mover a rastro» o «Mover a historia». El trayecto guarda cada movimiento. Un rastro se borra o se oculta de uno en uno, desde su detalle o su fila.
+
+> **Antes de borrar de verdad.** Solo se puede con lo que ya está cerrado **y** se lee como rastro. Una historia solo se oculta: para borrarla, léela antes como rastro. Al borrar desaparece de este equipo y de los demás en la siguiente sincronización, y no hay deshacer.
 
 Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en uso en otro documento. Quedan sueltos, y Ajustes → Mantenimiento te los lista para soltarlos cuando quieras.
 

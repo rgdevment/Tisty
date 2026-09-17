@@ -29,6 +29,9 @@ ulid.workspace = true
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 sys-locale.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+sysinfo.workspace = true
+
 [dev-dependencies]
 rusqlite.workspace = true
 tempfile.workspace = true

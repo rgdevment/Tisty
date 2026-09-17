@@ -87,6 +87,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 id: *id,
                 d: TaskPatch {
                     title: d.title.as_ref().map(|_| task.title.clone()),
+                    read_as: d.read_as.as_ref().map(|_| task.read_as),
+                    open_to_agents: d.open_to_agents.map(|_| task.open_to_agents),
                     date: d.date.as_ref().map(|_| task.date.clone()),
                     deadline: d.deadline.as_ref().map(|_| task.deadline.clone()),
                     priority: d.priority.map(|_| task.priority),
@@ -305,6 +307,91 @@ mod tests {
                 d: TaskAdd::new("ship it", "a0"),
             },
         )
+    }
+
+    fn converted(id: Ulid, to: Option<crate::Reading>) -> Op {
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                read_as: Some(to),
+                ..Default::default()
+            },
+        }
+    }
+
+    fn retitled(id: Ulid, title: &str) -> Op {
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                title: Some(title.into()),
+                ..Default::default()
+            },
+        }
+    }
+
+    #[test]
+    fn converting_is_undone_to_what_it_read_as_before() {
+        let id = Ulid::generate();
+        let closed = vec![a_task(id), ev(2, Op::TaskDone { id, filled: false })];
+
+        let (before, undone) = round_trip(
+            closed.clone(),
+            ev(3, converted(id, Some(crate::Reading::Story))),
+        );
+        assert_eq!(before, undone);
+        assert_eq!(undone.tasks[&id].read_as, None);
+
+        let mut kept = closed;
+        kept.push(ev(3, converted(id, Some(crate::Reading::Story))));
+        let (before, undone) = round_trip(kept, ev(4, converted(id, Some(crate::Reading::Trace))));
+        assert_eq!(before, undone);
+        assert_eq!(undone.tasks[&id].read_as, Some(crate::Reading::Story));
+    }
+
+    fn opened(id: Ulid, open: bool) -> Op {
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                open_to_agents: Some(open),
+                ..Default::default()
+            },
+        }
+    }
+
+    #[test]
+    fn opening_to_agents_is_undone_to_how_the_door_stood() {
+        let id = Ulid::generate();
+
+        let (before, undone) = round_trip(vec![a_task(id)], ev(2, opened(id, true)));
+        assert_eq!(before, undone);
+        assert!(!undone.tasks[&id].open_to_agents);
+
+        let (before, undone) = round_trip(
+            vec![a_task(id), ev(2, opened(id, true))],
+            ev(3, opened(id, false)),
+        );
+        assert_eq!(before, undone);
+        assert!(undone.tasks[&id].open_to_agents);
+    }
+
+    /// A conversion and an edit, interleaved: each undo takes back its own and leaves the other.
+    #[test]
+    fn undoing_an_edit_keeps_the_conversion_and_the_other_way_round() {
+        let id = Ulid::generate();
+        let mut setup = vec![a_task(id), ev(2, Op::TaskDone { id, filled: false })];
+        setup.push(ev(3, converted(id, Some(crate::Reading::Story))));
+
+        let (before, undone) = round_trip(setup.clone(), ev(4, retitled(id, "ship it, later")));
+        assert_eq!(before, undone);
+        assert_eq!(undone.tasks[&id].read_as, Some(crate::Reading::Story));
+        assert_eq!(undone.tasks[&id].title, "ship it");
+
+        let mut setup = vec![a_task(id), ev(2, Op::TaskDone { id, filled: false })];
+        setup.push(ev(3, retitled(id, "ship it, later")));
+        let (before, undone) = round_trip(setup, ev(4, converted(id, Some(crate::Reading::Trace))));
+        assert_eq!(before, undone);
+        assert_eq!(undone.tasks[&id].title, "ship it, later");
+        assert_eq!(undone.tasks[&id].read_as, None);
     }
 
     #[test]

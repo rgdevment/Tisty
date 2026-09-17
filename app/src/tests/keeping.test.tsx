@@ -223,7 +223,7 @@ beforeEach(() => {
         );
         return Promise.resolve(installed.seen.map((one) => ({ ...one })));
       }
-      case "reach_for":
+      case "take_out_of_reach":
         standing.withinReach = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
         return Promise.resolve({ ...standing });
       case "guide":
@@ -1704,6 +1704,29 @@ describe("the maintenance panel", () => {
     expect(sent("keep_locale")[0].args.locale).toBe("es");
   });
 
+  it("holds a look of its own, and lets it go back to the computer's", async () => {
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await ready();
+    const look = await screen.findByLabelText<HTMLSelectElement>(/^look$/i);
+    expect(look.value).toBe("");
+
+    await userEvent.selectOptions(look, "dark");
+    await waitFor(() => expect(sent("keep_theme").length).toBe(1));
+    expect(sent("keep_theme")[0].args.theme).toBe("dark");
+
+    await userEvent.selectOptions(look, "");
+    await waitFor(() => expect(sent("keep_theme").length).toBe(2));
+    expect(sent("keep_theme")[1].args.theme).toBeUndefined();
+  });
+
   it("offers the welcome again, without touching what is written", async () => {
     const greet = vi.fn();
     render(
@@ -2327,7 +2350,9 @@ describe("the first-run assistant", () => {
     expect(sent("sign")[0].args.alias).toBeUndefined();
   });
 
-  it("offers the command line, and says what to do next", async () => {
+  // The command line is being retired: it is no longer offered, and whoever put it within
+  // reach before is told so and can only take it back out.
+  it("no longer offers the command line", async () => {
     render(
       <Keeping
         onPack={() => {}}
@@ -2338,16 +2363,13 @@ describe("the first-run assistant", () => {
       />,
     );
     await ready();
-    expect(await screen.findByText(/cannot find it yet/i)).toBeTruthy();
 
-    await userEvent.click(screen.getByRole("switch", { name: /make it reachable/i }));
-
-    await waitFor(() => expect(sent("reach_for").length).toBe(1));
-    expect(sent("reach_for")[0].args.wanted).toBe(true);
-    expect(await screen.findByText(/next time you sign in/i)).toBeTruthy();
+    expect(screen.queryByText(/command line/i)).toBeNull();
+    expect(screen.queryByRole("switch", { name: /make it reachable/i })).toBeNull();
+    expect(sent("take_out_of_reach")).toHaveLength(0);
   });
 
-  it("takes it back off when asked", async () => {
+  it("takes it back off when asked, and says it is being retired", async () => {
     standing.withinReach = true;
     render(
       <Keeping
@@ -2359,11 +2381,13 @@ describe("the first-run assistant", () => {
       />,
     );
     await ready();
-    expect(await screen.findByText(/already finds/i)).toBeTruthy();
+    expect(await screen.findByText(/terminal finds/i)).toBeTruthy();
+    expect(screen.getByText(/being retired/i)).toBeTruthy();
 
-    await userEvent.click(screen.getByRole("switch", { name: /take it back out/i }));
+    await userEvent.click(screen.getByRole("button", { name: /take it back out/i }));
 
-    await waitFor(() => expect(sent("reach_for")[0].args.wanted).toBe(false));
+    await waitFor(() => expect(sent("take_out_of_reach")).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByText(/terminal finds/i)).toBeNull());
   });
 
   it("says nothing when there is no command line to offer", async () => {
@@ -2437,41 +2461,26 @@ describe("the report a bug gets attached to", () => {
 });
 
 describe("the command line on a Mac", () => {
-  it("says so when the link lands where no shell looks", async () => {
-    standing.withinReach = true;
-    standing.onPath = false;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
+  it("no longer points at Homebrew or a shell profile, whether or not the folder is searched", async () => {
+    for (const onPath of [false, true]) {
+      standing.withinReach = true;
+      standing.onPath = onPath;
+      const { unmount } = render(
+        <Keeping
+          onPack={() => {}}
+          onUnpack={() => {}}
+          onGreet={() => {}}
+          onChanged={() => {}}
+          onDoc={() => {}}
+        />,
+      );
+      await ready();
 
-    expect(await screen.findByText(/no shell looks in that folder/i)).toBeTruthy();
-    expect(screen.getByText(/\$HOME\/\.local\/bin/)).toBeTruthy();
-    expect(screen.getByText(/brew install/)).toBeTruthy();
-  });
-
-  it("stays quiet where the folder is already searched", async () => {
-    standing.withinReach = true;
-    standing.onPath = true;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
-
-    await screen.findByText(/already finds/i);
-    expect(screen.queryByText(/no shell looks in that folder/i)).toBeNull();
+      await screen.findByText(/terminal finds/i);
+      expect(screen.queryByText(/no shell looks in that folder/i)).toBeNull();
+      expect(screen.queryByText(/brew install/)).toBeNull();
+      unmount();
+    }
   });
 });
 

@@ -41,6 +41,33 @@ impl Cache {
                 return Ok(None);
             }
         };
+        // A schema that moved is a cache that is thrown away whole, tables included: `IF NOT
+        // EXISTS` keeps an old table's columns, and a write into it fails forever after.
+        let held = db
+            .query_row("SELECT value FROM meta WHERE key = 'schema'", [], |row| {
+                row.get::<_, String>(0)
+            })
+            .ok();
+        if held.is_some_and(|had| had != SCHEMA.to_string())
+            && let Err(e) = db.execute_batch(
+                "DROP TABLE IF EXISTS meta;
+                 DROP TABLE IF EXISTS task;
+                 DROP TABLE IF EXISTS task_body;
+                 DROP TABLE IF EXISTS list;
+                 DROP TABLE IF EXISTS folder;
+                 DROP TABLE IF EXISTS doc;
+                 DROP TABLE IF EXISTS tombstone;
+                 DROP TABLE IF EXISTS paper;
+                 DROP TABLE IF EXISTS gist;",
+            )
+        {
+            witness::warn(
+                channel::CACHE,
+                "an older cache could not be cleared",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+            return Ok(None);
+        }
         if let Err(e) = db.execute_batch(
             "PRAGMA journal_mode=WAL;
                  PRAGMA synchronous=NORMAL;
@@ -50,7 +77,7 @@ impl Cache {
                  CREATE TABLE IF NOT EXISTS list(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS folder(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS doc(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
-                 CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY);
+                 CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY, source TEXT);
                  CREATE TABLE IF NOT EXISTS paper(
                      id TEXT PRIMARY KEY,
                      bytes INTEGER NOT NULL,
@@ -184,14 +211,26 @@ impl Cache {
             }
         }
 
-        let mut erased = self.db.prepare("SELECT id FROM tombstone").ok()?;
-        let ids = erased
-            .query_map([], |r| r.get::<_, String>(0))
+        let mut erased = self.db.prepare("SELECT id, source FROM tombstone").ok()?;
+        let gone = erased
+            .query_map([], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
+            })
             .ok()?
             .filter_map(|r| r.ok());
-        for id in ids {
-            if let Ok(id) = id.parse() {
+        // A source filed again and erased again has two graves: the later one is the one the
+        // log leaves it pointing at, and a task still alive under it wins over both.
+        for (id, source) in gone {
+            if let Ok(id) = id.parse::<ulid::Ulid>() {
                 state.mark_erased(id);
+                if let Some(source) = source
+                    && state
+                        .sourced
+                        .get(&source)
+                        .is_none_or(|held| state.is_erased(*held) && *held < id)
+                {
+                    state.sourced.insert(source, id);
+                }
             }
         }
         Some(state)
@@ -239,9 +278,12 @@ impl Cache {
                 }
             }
             {
-                let mut gone = tx.prepare("INSERT INTO tombstone VALUES (?)")?;
+                let mut gone = tx.prepare("INSERT INTO tombstone VALUES (?,?)")?;
                 for id in state.erased() {
-                    gone.execute([id.to_string()])?;
+                    gone.execute(rusqlite::params![
+                        id.to_string(),
+                        source_of_the_grave(state, *id)
+                    ])?;
                 }
             }
             tx.execute(
@@ -341,8 +383,17 @@ impl Cache {
                     self.db.execute("DELETE FROM folder WHERE id = ?", [&id])?;
                     self.db.execute("DELETE FROM doc WHERE id = ?", [&id])?;
                     if state.is_erased(entity) {
-                        self.db
-                            .execute("INSERT OR REPLACE INTO tombstone VALUES (?)", [&id])?;
+                        let source = source_of_the_grave(state, entity);
+                        if let Some(source) = &source {
+                            self.db.execute(
+                                "UPDATE tombstone SET source = NULL WHERE source = ?",
+                                [source],
+                            )?;
+                        }
+                        self.db.execute(
+                            "INSERT OR REPLACE INTO tombstone VALUES (?,?)",
+                            rusqlite::params![&id, source],
+                        )?;
                     }
                 }
             }
@@ -693,15 +744,34 @@ fn reached(
         return print;
     }
 
+    // One transaction for the lot: a bulk of thousands would otherwise stamp the fingerprint
+    // row by row, and a process cut halfway would leave a cache that calls itself current
+    // while still holding tasks the log had already buried.
+    let _ = cache.db.execute_batch("BEGIN");
     for event in events {
         if let Some(id) = event.entity_id() {
             let _ = cache.touch(state, id, &print);
         }
     }
+    if cache.db.execute_batch("COMMIT").is_err() {
+        let _ = cache.db.execute_batch("ROLLBACK");
+        cache.invalidate();
+        return print;
+    }
     if let Some(onward) = highest(events) {
         cache.mark(&onward);
     }
     print
+}
+
+/// The tombstone keeps what the task was written from, so a cache read back knows the source
+/// as the log does, and an assistant reading the same message is told it was let go.
+fn source_of_the_grave(state: &State, id: ulid::Ulid) -> Option<String> {
+    state
+        .sourced
+        .iter()
+        .find(|(_, held)| **held == id)
+        .map(|(source, _)| source.clone())
 }
 
 /// The log only ever grows, so a cache left behind by one file growing can be caught up from
@@ -1191,6 +1261,60 @@ mod tests {
         assert!(again.is_erased(f.task), "the cache forgot a deletion");
     }
 
+    /// An assistant reading the same message again is told the task was let go, and that
+    /// has to hold on a cache read back as much as on a log replayed.
+    #[test]
+    fn the_grave_keeps_what_the_task_was_written_from() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let filed = ulid::Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("comprar pan", "a9");
+        d.source = Some("wa:msg-4410".into());
+        store.append(Op::TaskAdd { id: filed, d }).unwrap();
+        store.append(Op::TaskDelete { id: filed }).unwrap();
+
+        let state = project(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(state.sourced.get("wa:msg-4410"), Some(&filed));
+        assert!(state.is_erased(filed));
+
+        let again = project(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(
+            again.sourced.get("wa:msg-4410"),
+            Some(&filed),
+            "the cache forgot where an erased task came from"
+        );
+        let light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(light.sourced.get("wa:msg-4410"), Some(&filed));
+    }
+
+    /// Erased, filed again from the same message with `again`, erased again: the cache caught
+    /// up one event at a time must point the source at the later grave, as a replay does.
+    #[test]
+    fn a_source_erased_twice_points_at_its_later_grave_however_the_cache_was_built() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        let mut filed = Vec::new();
+        for _ in 0..2 {
+            let id = ulid::Ulid::generate();
+            let mut d = crate::event::TaskAdd::new("comprar pan", "a9");
+            d.source = Some("wa:msg-4410".into());
+            store.append(Op::TaskAdd { id, d }).unwrap();
+            project(&f.store_root, &f.cache_dir).unwrap();
+            store.append(Op::TaskDelete { id }).unwrap();
+            project(&f.store_root, &f.cache_dir).unwrap();
+            filed.push(id);
+        }
+
+        let caught_up = summarised(&f.store_root, &f.cache_dir).unwrap();
+        let replayed = State::replay(&store.read_all().unwrap());
+        assert_eq!(replayed.sourced.get("wa:msg-4410"), Some(&filed[1]));
+        assert_eq!(
+            caught_up.sourced.get("wa:msg-4410"),
+            replayed.sourced.get("wa:msg-4410"),
+            "the cache and the log disagree on which grave the source points at"
+        );
+    }
+
     #[test]
     fn advancing_leaves_the_cache_current_after_a_write() {
         let f = loaded();
@@ -1276,6 +1400,97 @@ mod tests {
         let task = &light.tasks[&f.task];
         assert_eq!(task.journal_count(), 2, "the volume was recounted from air");
         assert_eq!(task.steps_done(), (0, 1));
+    }
+
+    /// The tombstone table gained a column this schema: a cache written before it must be
+    /// rebuilt whole, or every write into it fails and the cache never loads again.
+    #[test]
+    fn a_cache_from_an_older_schema_is_rebuilt_rather_than_left_dead() {
+        let f = loaded();
+        std::fs::create_dir_all(&f.cache_dir).unwrap();
+        let db = Connection::open(f.cache_dir.join("read.db")).unwrap();
+        db.execute_batch(
+            "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             CREATE TABLE tombstone(id TEXT PRIMARY KEY);
+             INSERT INTO meta VALUES ('schema', '1');",
+        )
+        .unwrap();
+        drop(db);
+
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let print = fingerprint(&f.store_root);
+        let cache = Cache::open(&f.cache_dir).unwrap().unwrap();
+        assert_eq!(
+            cache.meta("schema").as_deref(),
+            Some(SCHEMA.to_string().as_str())
+        );
+        assert!(
+            cache.load(&print, true).is_some(),
+            "the cache loads again after the rebuild"
+        );
+    }
+
+    #[test]
+    fn a_summary_keeps_the_conversion_it_was_handed() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        store
+            .append(Op::TaskDone {
+                id: f.task,
+                filled: false,
+            })
+            .unwrap();
+        store
+            .append(Op::TaskUpdate {
+                id: f.task,
+                d: crate::event::TaskPatch {
+                    read_as: Some(Some(crate::Reading::Trace)),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let mut light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(light.tasks[&f.task].read_as, Some(crate::Reading::Trace));
+        assert_eq!(light.tasks[&f.task].reading(), crate::Reading::Trace);
+
+        let event = store
+            .append(Op::TaskUpdate {
+                id: f.task,
+                d: crate::event::TaskPatch {
+                    title: Some("retitled while light".into()),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+        light.apply(&event);
+        assert_eq!(
+            light.tasks[&f.task].read_as,
+            Some(crate::Reading::Trace),
+            "a patch in summary mode does not shake the conversion off"
+        );
+    }
+
+    #[test]
+    fn a_summary_keeps_the_door_to_agents_it_was_handed() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        store
+            .append(Op::TaskUpdate {
+                id: f.task,
+                d: crate::event::TaskPatch {
+                    open_to_agents: Some(true),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        assert!(light.tasks[&f.task].open_to_agents);
+        assert!(light.attended_by_agents(&light.tasks[&f.task]));
     }
 
     #[test]

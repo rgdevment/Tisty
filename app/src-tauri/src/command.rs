@@ -5,7 +5,7 @@ use tisty_core::witness::{self, Fact, channel};
 fn unwritten(why: &std::io::Error) {
     witness::error(
         channel::TERMINAL,
-        "the command could not be put within reach",
+        "the command could not be taken out of reach",
         &[("why", Fact::Why(why.to_string()))],
     );
 }
@@ -21,18 +21,6 @@ fn same(a: &str, b: &str) -> bool {
         }
     };
     !a.trim().is_empty() && tidy(a) == tidy(b)
-}
-
-#[cfg(windows)]
-pub fn with(path: &str, dir: &str) -> Option<String> {
-    if path.split(SEPARATOR).any(|one| same(one, dir)) {
-        return None;
-    }
-    Some(if path.trim().is_empty() {
-        dir.to_string()
-    } else {
-        format!("{}{SEPARATOR}{dir}", path.trim_end_matches(SEPARATOR))
-    })
 }
 
 #[cfg(windows)]
@@ -204,37 +192,21 @@ fn ours() -> bool {
 }
 
 #[cfg(not(windows))]
-fn tie(wanted: bool) -> std::io::Result<bool> {
-    let (Some(shelf), Some(link), Some(folder)) = (shelf(), link(), beside()) else {
+fn untie() -> std::io::Result<bool> {
+    let (Some(link), Some(folder)) = (link(), beside()) else {
         return Ok(false);
     };
-    tie_at(&shelf, &link, &folder, wanted)
+    untie_at(&link, &folder)
 }
 
+/// Only a link of ours, pointing at this window's command, is taken out: somebody else's
+/// `tisty` on the shelf is left where it is.
 #[cfg(not(windows))]
-fn tie_at(shelf: &Path, link: &Path, folder: &Path, wanted: bool) -> std::io::Result<bool> {
-    let mine = points_at(link, folder);
-    if wanted {
-        if mine {
-            return Ok(false);
-        }
-        if link.symlink_metadata().is_ok() {
-            if !is_our_own_link(link) {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::AlreadyExists,
-                    link.display().to_string(),
-                ));
-            }
-            std::fs::remove_file(link)?;
-        }
-        std::fs::create_dir_all(shelf)?;
-        std::os::unix::fs::symlink(folder.join("tisty"), link)?;
-    } else {
-        if !mine {
-            return Ok(false);
-        }
-        std::fs::remove_file(link)?;
+fn untie_at(link: &Path, folder: &Path) -> std::io::Result<bool> {
+    if !points_at(link, folder) {
+        return Ok(false);
     }
+    std::fs::remove_file(link)?;
     Ok(true)
 }
 
@@ -244,26 +216,15 @@ fn points_at(link: &Path, folder: &Path) -> bool {
         && std::fs::read_link(link).is_ok_and(|to| to == folder.join("tisty"))
 }
 
-#[cfg(not(windows))]
-fn is_our_own_link(at: &Path) -> bool {
-    at.symlink_metadata().is_ok_and(|it| it.is_symlink())
-        && std::fs::read_link(at).is_ok_and(|to| to.file_name().is_some_and(|n| n == "tisty"))
-}
-
+/// The command is no longer put within reach — the terminal is being retired — but whoever
+/// put it there before can still take it back out.
 #[cfg(windows)]
-pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
+pub fn out_of_reach() -> std::io::Result<bool> {
     let Some(folder) = beside() else {
         return Ok(false);
     };
-    let named = folder.display().to_string();
     let path = read().unwrap_or_default();
-
-    let next = if wanted {
-        with(&path, &named)
-    } else {
-        without(&path, &named)
-    };
-    match next {
+    match without(&path, &folder.display().to_string()) {
         Some(next) => {
             write(&next).inspect_err(unwritten)?;
             Ok(true)
@@ -273,8 +234,8 @@ pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
 }
 
 #[cfg(not(windows))]
-pub fn within_reach(wanted: bool) -> std::io::Result<bool> {
-    tie(wanted).inspect_err(unwritten)
+pub fn out_of_reach() -> std::io::Result<bool> {
+    untie().inspect_err(unwritten)
 }
 
 #[cfg(test)]
@@ -358,82 +319,46 @@ mod tests {
         }
     }
 
-    #[test]
-    fn the_link_is_made_and_taken_back_out() {
-        let it = laid();
-
-        assert!(tie_at(&it.shelf, &it.link, &it.folder, true).unwrap());
-        assert_eq!(
-            std::fs::read_link(&it.link).unwrap(),
-            it.folder.join("tisty")
-        );
-
-        assert!(tie_at(&it.shelf, &it.link, &it.folder, false).unwrap());
-        assert!(it.link.symlink_metadata().is_err());
+    fn linked(it: &Laid) {
+        std::fs::create_dir_all(&it.shelf).unwrap();
+        std::os::unix::fs::symlink(it.folder.join("tisty"), &it.link).unwrap();
     }
 
     #[test]
-    fn making_it_twice_changes_nothing_and_says_so() {
+    fn the_link_is_taken_back_out() {
         let it = laid();
-        tie_at(&it.shelf, &it.link, &it.folder, true).unwrap();
+        linked(&it);
 
-        assert!(!tie_at(&it.shelf, &it.link, &it.folder, true).unwrap());
+        assert!(untie_at(&it.link, &it.folder).unwrap());
+        assert!(it.link.symlink_metadata().is_err());
     }
 
     #[test]
     fn taking_out_what_was_never_there_changes_nothing() {
         let it = laid();
 
-        assert!(!tie_at(&it.shelf, &it.link, &it.folder, false).unwrap());
+        assert!(!untie_at(&it.link, &it.folder).unwrap());
     }
 
     #[test]
-    fn a_tisty_that_is_not_ours_is_refused_rather_than_replaced() {
+    fn somebody_elses_command_is_left_alone_when_the_link_is_taken_out() {
         let it = laid();
         std::fs::create_dir_all(&it.shelf).unwrap();
-        std::fs::write(&it.link, b"somebody else's tisty").unwrap();
+        std::fs::write(&it.link, b"somebody else's command").unwrap();
 
-        let refused = tie_at(&it.shelf, &it.link, &it.folder, true);
-
-        assert_eq!(
-            refused.unwrap_err().kind(),
-            std::io::ErrorKind::AlreadyExists
-        );
-        assert!(it.link.is_file(), "the other tisty was removed");
-    }
-
-    #[test]
-    fn somebody_elses_tisty_is_left_alone_when_the_link_is_taken_out() {
-        let it = laid();
-        std::fs::create_dir_all(&it.shelf).unwrap();
-        std::fs::write(&it.link, b"somebody else's tisty").unwrap();
-
-        assert!(!tie_at(&it.shelf, &it.link, &it.folder, false).unwrap());
+        assert!(!untie_at(&it.link, &it.folder).unwrap());
         assert!(it.link.is_file());
     }
 
     #[test]
-    fn a_link_of_ours_left_pointing_elsewhere_is_repointed() {
+    fn a_link_of_ours_pointing_elsewhere_is_left_where_it_points() {
         let it = laid();
         let gone = it.folder.parent().unwrap().join("Old/tisty");
         std::fs::create_dir_all(&it.shelf).unwrap();
         std::os::unix::fs::symlink(&gone, &it.link).unwrap();
 
-        assert!(tie_at(&it.shelf, &it.link, &it.folder, true).unwrap());
-        assert_eq!(
-            std::fs::read_link(&it.link).unwrap(),
-            it.folder.join("tisty")
-        );
-    }
-
-    #[test]
-    fn a_shelf_that_is_not_there_yet_is_made() {
-        let it = laid();
-        assert!(!it.shelf.exists());
-
-        tie_at(&it.shelf, &it.link, &it.folder, true).unwrap();
-
-        assert!(it.shelf.is_dir());
+        assert!(!untie_at(&it.link, &it.folder).unwrap());
+        assert_eq!(std::fs::read_link(&it.link).unwrap(), gone);
     }
 }
 
@@ -453,18 +378,11 @@ mod tests {
         let path = many.join(&SEPARATOR.to_string());
         assert!(path.len() > 1024, "the case only bites past 1024");
 
-        let added = with(&path, "C:\\Programs\\Tisty").unwrap();
+        let added = format!("{path}{SEPARATOR}C:\\Programs\\Tisty");
         assert_eq!(added.split(SEPARATOR).count(), 23);
 
         let back = without(&added, "C:\\Programs\\Tisty").unwrap();
         assert_eq!(back, path, "the other entries did not come back");
-    }
-
-    #[test]
-    fn adding_twice_does_not_grow_it() {
-        let path = joined(&["C:\\one", "C:\\two"]);
-        let added = with(&path, "C:\\Tisty").unwrap();
-        assert!(with(&added, "C:\\Tisty").is_none());
     }
 
     #[test]
@@ -475,21 +393,12 @@ mod tests {
 
     #[test]
     fn an_empty_path_is_not_a_missing_one() {
-        assert_eq!(with("", "C:\\Tisty").unwrap(), "C:\\Tisty");
         assert!(without("", "C:\\Tisty").is_none());
-    }
-
-    #[test]
-    fn a_trailing_separator_does_not_become_a_blank_entry() {
-        let path = format!("C:\\one{SEPARATOR}");
-        let added = with(&path, "C:\\Tisty").unwrap();
-        assert_eq!(added, joined(&["C:\\one", "C:\\Tisty"]));
     }
 
     #[test]
     fn a_trailing_slash_is_the_same_directory() {
         let path = joined(&["C:\\one", "C:\\Tisty\\"]);
-        assert!(with(&path, "C:\\Tisty").is_none());
         assert_eq!(without(&path, "C:\\Tisty").unwrap(), "C:\\one");
     }
 
@@ -497,7 +406,6 @@ mod tests {
     #[test]
     fn windows_does_not_mind_the_case() {
         let path = joined(&["C:\\one", "c:\\programs\\TISTY"]);
-        assert!(with(&path, "C:\\Programs\\Tisty").is_none());
         assert_eq!(without(&path, "C:\\Programs\\Tisty").unwrap(), "C:\\one");
     }
 

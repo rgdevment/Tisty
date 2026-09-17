@@ -273,8 +273,9 @@ got solved. Three things follow from that, and they shaped everything else:
 
 - **Search is the main way into the archive**, not a side feature.
 - **Deleting is the exception.** The normal ending is completing, which keeps
-  it. Erasing something for good takes two deliberate steps first: it has to be
-  archived, and then hidden.
+  it. Erasing something for good is only for what is closed and reads as a
+  trace; a story is only hidden, and converting it to a trace is the deliberate
+  step that lets it go.
 - **Capture has to stay instant**, because most tasks are not like that at all.
   The call you have to make tomorrow is born and dies within a day and leaves
   nothing worth keeping — and writing it down must not cost more than one line.
@@ -466,7 +467,11 @@ a short sound you can turn off. The whole window works from the keyboard.
 their whole trail — what changed, when, and what you wrote along the way. The
 routines come with their tallies, their streaks and the hour you usually keep
 them. The rest is the trace: what left little or nothing written, listed dense
-and out of the way, because it still happened and search still reaches it.
+and out of the way, because it still happened and search still reaches it. You
+decide which layer each one reads in: a story that was only noise goes to the
+trace, and a trace worth keeping is kept as a story. The trace is the only layer
+that can be erased, and both erasing and hiding are one task at a time; a story
+is only ever hidden.
 
 ## Your Data and Privacy
 
@@ -521,19 +526,23 @@ on the other, [FAQ.md](docs/FAQ.md) lists the causes worth checking, in order.
 
 ## A Command Line, If You Want One
 
-The window is the main way in. But everything it does, the terminal does too:
-the same store, the same tasks, the same natural language. It exists because I
-wanted it, and it is entirely optional.
+The window is the way in. The terminal was a second one — the same store, the
+same tasks, the same natural language — and it is being retired, by stages:
+what it still does keeps working, no feature reaches it — only a rule the
+window keeps for safety, which it obeys — and the task and document commands
+go in the next major version. What stays is the `tisty`
+binary itself, because it is the door your assistant comes through (`tisty
+mcp`) and the place for maintenance: `doctor`, `sync`, `export`, `agent`.
 
 ```console
-$ tisty "call the bank at 3"
-$ tisty ls today
-$ tisty set 2 --remind 2026-09-30T20:00
-$ tisty done 2
+$ tisty doctor
+$ tisty sync
+$ tisty export --markdown
 ```
 
-Settings puts it within reach of your terminal, or you can install only the
-command with `brew install rgdevment/tap/tisty-cli` and never open the window.
+If you script against `tisty ls --json` or `tisty add`, plan to move: the
+window is where Tisty happens, and the assistant's door is how a program
+reaches it.
 
 ## An Assistant, If You Use One
 
@@ -571,7 +580,32 @@ inside a document, which takes the larger file of the two — and read what is
 already there. What it may not do: close a task or delete one, say a task you
 wrote is done, move a day you set, delete a document, rename or empty a folder,
 reach a task you folded away, take files from outside the folders where a
-download lands, or file the same thing twice.
+download lands, or file the same thing twice. A task you closed is history to
+it: it comes with a notice saying so, reads as it ended, takes no note, no new
+day, no bell and no file, and if the same work comes back the assistant
+proposes a new one that says how the last one ended.
+
+A task you wrote stays yours unless you say otherwise. Open one to agents from
+its detail — «Allow agents» — and an assistant may say it is done,
+for you to confirm; describe it, where there is no description yet; plan its
+steps; and tick them off as it goes, which is the one thing it does without
+asking. Its day, its title, its list and its closing stay yours all the same.
+«No agents» shuts the door again and keeps what was filled in.
+
+**The command line is yours, not the assistant's.** An assistant with a shell
+could type `tisty done 3` the day its MCP server is not connected, and act as
+you; or `tisty agent --on`, and let itself in. So `tisty` looks at who is at the
+keyboard before it opens anything, and refuses every command but `tisty mcp`
+when a coding assistant is — by the marks its environment carries, by what sits
+above it in the process tree, or by an editor above it and no terminal at all.
+And `tisty agent --on` asks you, on the terminal, before it lets anyone in: a
+shell with no terminal to answer from is refused outright, whatever drives it.
+The refusal is written for the assistant that reads it: go through the server,
+or tell the person it is down. It is a heuristic, and an honest one: the same
+user in the same shell cannot be told apart with certainty, so where your
+assistant's client can turn the command down before it runs — a hook, a rule —
+that is the layer that does not depend on the server, and this is the floor
+beneath it.
 
 It also reads sparingly, which is your business as much as its own. Tisty keeps
 a small card for each document — its headings, how long it is, what it leans

@@ -207,8 +207,15 @@ impl Store {
         let root = self.root.clone();
 
         self.locked(|s| {
-            if settled(&read_all(&root)?) {
+            let held = read_all(&root)?;
+            if settled(&held) {
                 return Ok(None);
+            }
+            // Judged against the whole log, written after the whole log: a clock behind another
+            // machine's would otherwise stamp this before the event that let it through, and
+            // the replay — sorted by stamp — would let it go everywhere.
+            if let Some(newest) = held.iter().map(|one| one.timestamp).max() {
+                s.after(newest);
             }
             let mut written = Vec::with_capacity(ops.len());
             for op in ops {
@@ -219,6 +226,13 @@ impl Store {
             s.write_all(&written)?;
             Ok(Some(written))
         })
+    }
+
+    fn after(&mut self, newest: jiff::Timestamp) {
+        if newest >= self.head {
+            self.head = newest + jiff::SignedDuration::from_micros(1);
+            self.seq = 0;
+        }
     }
 
     pub fn append_event(&mut self, event: &Event) -> Result<()> {
@@ -614,12 +628,31 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<usi
         // under; a known one that fails to parse is corruption, and waving it through would
         // erase what it said.
         match serde_json::from_str::<Event>(&line) {
+            Ok(event) if !signed_by_its_directory(path, &event) => witness::warn(
+                channel::STORE,
+                "an event claims a device other than the one whose segment holds it, and was let go",
+                &[
+                    ("at", Fact::Path(path.to_path_buf())),
+                    ("line", Fact::Count(i + 1)),
+                    ("by", Fact::Id(event.device.0.clone())),
+                ],
+            ),
             Ok(event) => out.push(event),
             Err(source) if stamp.opt && strange => skipped(source.to_string()),
             Err(source) => return Err(malformed(source)),
         }
     }
     Ok(lines)
+}
+
+/// A device writes only into its own directory and sync copies directories whole, so the name
+/// on the event and the name of the directory agree on everything Tisty ever wrote. One that
+/// disagrees was written by a hand outside Tisty in another device's name, and every rule that
+/// keys off the device — what an assistant may do — would take that name at its word.
+fn signed_by_its_directory(path: &Path, event: &Event) -> bool {
+    path.parent()
+        .and_then(Path::file_name)
+        .is_none_or(|dir| dir == std::ffi::OsStr::new(&event.device.0))
 }
 
 pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
@@ -688,7 +721,8 @@ mod atomic_tests {
     #[test]
     fn a_store_written_before_the_schema_moved_still_opens() {
         let room = tempfile::tempdir().unwrap();
-        let at = room.path().join("000001.tisty");
+        std::fs::create_dir(room.path().join("dev_a")).unwrap();
+        let at = room.path().join("dev_a/000001.tisty");
         std::fs::write(
             &at,
             "{\"v\":2,\"ts\":\"2026-08-13T00:00:00Z\",\"by\":\"dev_a\",\"seq\":1,\"op\":\"task.done\",\"id\":\"01JBQ0000000000000000000AA\"}\n",
@@ -700,6 +734,62 @@ mod atomic_tests {
 
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].version, 2, "what was written is not rewritten");
+    }
+
+    /// A machine whose clock runs behind writes after what it read: sorted by stamp, its
+    /// event lands after the one that let it through, not before.
+    #[test]
+    fn a_write_judged_against_the_log_is_stamped_after_all_of_it() {
+        let room = tempfile::tempdir().unwrap();
+        let ahead = jiff::Timestamp::now() + jiff::SignedDuration::from_secs(3600);
+        let id = ulid::Ulid::generate();
+        let mut theirs = Store::open(room.path(), DeviceId("dev_b".into())).unwrap();
+        theirs
+            .append_event(&Event::new(
+                DeviceId("dev_b".into()),
+                ahead,
+                Op::TaskAdd {
+                    id,
+                    d: crate::event::TaskAdd::new("opened later", "a0"),
+                },
+            ))
+            .unwrap();
+
+        let mut mine = Store::open(room.path(), DeviceId("dev_a".into())).unwrap();
+        let written = mine
+            .append_batch_unless(vec![Op::TaskDone { id, filled: false }], |_| false)
+            .unwrap()
+            .unwrap();
+
+        assert!(
+            written[0].timestamp > ahead,
+            "{} is not after {ahead}",
+            written[0].timestamp
+        );
+        let all = read_all(room.path()).unwrap();
+        assert!(matches!(all.last().unwrap().op, Op::TaskDone { .. }));
+    }
+
+    #[test]
+    fn an_event_in_another_devices_name_is_let_go_and_the_rest_of_the_segment_read() {
+        let room = tempfile::tempdir().unwrap();
+        std::fs::create_dir(room.path().join("dev_a")).unwrap();
+        let at = room.path().join("dev_a/active.tisty");
+        std::fs::write(
+            &at,
+            format!(
+                "{}\n{}\n",
+                r#"{"v":6,"ts":"2026-08-01T10:00:00Z","by":"dev_a","op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{"title":"mine","order":"V"}}"#,
+                r#"{"v":6,"ts":"2026-08-01T10:00:01Z","by":"dev_laptop","op":"task.delete","id":"01M14RFT9ECC2B6E4CX4P59XPH"}"#
+            ),
+        )
+        .unwrap();
+
+        let mut out = Vec::new();
+        read_segment(&at, &mut out).unwrap();
+
+        assert_eq!(out.len(), 1, "the one in the directory's own name");
+        assert_eq!(out[0].device.0, "dev_a");
     }
 
     #[test]

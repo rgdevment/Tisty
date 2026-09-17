@@ -66,7 +66,30 @@ export interface Task {
   filled?: boolean;
   source?: string;
   closed_in?: string;
+  read_as?: Reading;
+  open_to_agents?: boolean;
 }
+
+export const STORY_AT = 3;
+
+// The same sum the core makes of a task's volume: prose, then steps and references by bucket.
+export const weightOf = (task: Task): number => {
+  const steps = task.volume?.steps ?? 0;
+  const refs = task.volume?.refs ?? 0;
+  const plan = steps >= 8 ? 2 : steps >= 3 ? 1 : 0;
+  const links = refs >= 3 ? 2 : refs >= 1 ? 1 : 0;
+  return (task.volume?.prose ?? 0) + plan + links;
+};
+
+export const readingOf = (task: Task): Reading => {
+  if (task.repeat || task.after) return "routine";
+  if (task.read_as === "story" || task.read_as === "trace") return task.read_as;
+  return weightOf(task) >= STORY_AT ? "story" : "trace";
+};
+
+// Only a closed trace goes; a story is hidden, and converting it is the deliberate step.
+export const erasable = (task: Task): boolean =>
+  task.status !== "open" && readingOf(task) === "trace";
 
 export interface Repeat {
   from: "due" | "done";
@@ -163,7 +186,10 @@ export type Chapter =
   | { chapter: "unplanned"; text: string }
   | { chapter: "closed" }
   | { chapter: "dropped" }
-  | { chapter: "reopened" };
+  | { chapter: "reopened" }
+  | { chapter: "converted"; from?: Reading | null; to?: Reading | null }
+  | { chapter: "opened" }
+  | { chapter: "shut" };
 
 export type Page = { n: number; at: string; by: string; undoing?: boolean } & Chapter;
 
@@ -280,6 +306,10 @@ export const dropStep = (id: string, step: string): Promise<Task> =>
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
+export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
+  invoke("read_as", { id, how });
+export const openToAgents = (id: string, open: boolean): Promise<Task> =>
+  invoke("open_to_agents", { id, open });
 export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });
 export const complete = (id: string, also?: string[]): Promise<Task> =>
   invoke("complete", { id, also });
@@ -494,10 +524,13 @@ export interface Freeing {
 export const freeUp = (): Promise<Freeing> => invoke("free_up");
 export const stopFreeing = (): Promise<void> => invoke("stop_freeing");
 
+export type Theme = "light" | "dark";
+
 export interface Settings {
   quiet: string[];
   attachUpTo: number;
   locale?: string;
+  theme?: Theme;
   holds: Holds;
   shares: boolean;
   onlySharedAbove: number;
@@ -613,7 +646,7 @@ export interface Wired {
 export const seenAgents = (): Promise<Wired[]> => invoke("wiring");
 export const wireAgent = (id: string): Promise<Wired[]> => invoke("wire", { id });
 export const unwireAgent = (id: string): Promise<Wired[]> => invoke("unwire", { id });
-export const reachFor = (wanted: boolean): Promise<Reach> => invoke("reach_for", { wanted });
+export const takeOutOfReach = (): Promise<Reach> => invoke("take_out_of_reach");
 
 export interface Waking {
   offered: boolean;
@@ -640,6 +673,7 @@ export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<
   invoke("close_window", { how, remember });
 export const keepLocale = (locale?: string): Promise<string | null> =>
   invoke("keep_locale", { locale });
+export const keepTheme = (theme?: Theme): Promise<Theme | null> => invoke("keep_theme", { theme });
 export const keepClosing = (how: "hide" | "quit"): Promise<void> => invoke("keep_closing", { how });
 export const guide = (): Promise<Doc> => invoke("guide");
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });

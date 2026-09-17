@@ -38,6 +38,9 @@ const open = (one: Task) =>
       onReopen={() => {}}
       onStillOpen={() => {}}
       onErase={() => {}}
+      onFold={() => {}}
+      onReadAs={() => {}}
+      onOpenToAgents={() => {}}
       onClose={() => {}}
     />,
   );

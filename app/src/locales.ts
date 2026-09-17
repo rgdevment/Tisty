@@ -39,9 +39,19 @@ const en = {
   notADate: "{name} is not a date",
   notAPriority: "That is not a priority",
   notATaskId: "That is not a task",
-  onlyArchivedGoes: "Only what is archived and put away can be erased",
+  onlyArchivedGoes: "Only what is closed can be erased. Finish it or drop it first",
+  storyStays: "A story is only hidden, never erased. Read it as a trace first if it has to go",
+  routineStays: "A routine's turn is never erased",
+  onlyClosedConverts: "Only a closed task is read as a story or a trace",
+  routineReadsAsRoutine: "A routine reads as a routine, turn by turn",
+  notAReading: "That is not a way to read a task",
+  onlyOpenOpens: "Only an open task is let to an agent. A closed one is history to them",
+  alreadyTheirs: "An agent filed this one: it is already theirs to fill in",
   notAClosing: "That is not a way to close",
-  eraseIt: "Erase for good",
+  notATheme: "That is not a look the window has",
+  eraseIt: "Erase",
+  more: "More",
+  eraseForGood: "Erase for good — there is no undo",
   eraseSure:
     "«{name}» goes from this machine and from the others on the next sync. There is no undo.",
   erased: "Erased for good",
@@ -106,6 +116,28 @@ const en = {
   allDay: "All day",
   hideIt: "Hide it",
   showIt: "Show it again",
+  moveToTrace: "Move to the trace",
+  moveToTraceWhy:
+    "Read it as a trace: it leaves the stories, and a trace can be erased. The trail keeps the move",
+  moveToStories: "Move to the stories",
+  moveToStoriesWhy:
+    "Keep it as a story: it leaves the trace, and a story is only ever hidden. The trail keeps the move",
+  keptAsStory: "kept as a story",
+  readAsTraceNow: "read as a trace",
+  letAgentFill: "Allow agents",
+  letAgentFillWhy:
+    "Let an assistant work on this task: say it is done — for you to confirm — describe it, plan its steps and tick them. Its day, title and closing stay yours",
+  keepToMyself: "No agents",
+  keepToMyselfWhy: "Take the permission back. What the agent filled in stays",
+  openToAgents: "Open to agents: one may say it is done, describe it, plan its steps and tick them",
+  wasOpenToAgents: "was open to agents",
+  eraseWritten: "It carries {name} journal entries, and they go with it.",
+  traceHidden: "The trace is hidden: {name} under «hidden», and search still reaches them.",
+  trailKeptStory: "Kept as a story",
+  trailReadTrace: "Read as a trace",
+  trailReadByItself: "Read again by what it holds",
+  trailOpened: "Let to an agent",
+  trailShut: "Kept to yourself again",
   folded: "hidden",
   backToArchive: "Back to the archive",
   discardIt: "Not doing it",
@@ -712,6 +744,11 @@ const en = {
   layerTrace: "Trace",
   archiveShowing: "Reading",
   archiveGrouped: "Grouped by",
+  hiddenOnes: "Hidden",
+  byTime: "By time",
+  byList: "By list",
+  byTag: "By topic",
+  byKind: "By kind",
   tallyClosed: "closed",
   tallyTurns: "turns, in {name} routines",
   tallyTurnsOne: "turns, in one routine",
@@ -719,7 +756,7 @@ const en = {
   tallyBest: "longest run",
   tallyMissed: "days missed",
   storiesEmpty:
-    "Nothing closed here tells a story yet. A task earns the shelf by what was written on it along the way: a log somebody took the trouble to write, or a few of them.",
+    "Nothing closed here tells a story yet. A task earns the shelf by what was written on it along the way — a log somebody took the trouble to write, or a few of them — or because you kept it as one.",
   routinesEmpty:
     "Nothing repeats yet. Write «water the plants every three days» to start a series.",
   traceEmpty: "Everything closed here left something written behind.",
@@ -728,8 +765,7 @@ const en = {
   todayEmpty:
     "Nothing for today. Write «buy bread tomorrow at 10» — the date is read from the sentence.",
   someday: "Someday",
-  agentBand: "Agents",
-  toConfirm: "{name} to confirm",
+  agentBand: "To confirm",
   agentSaidDone: "An agent says this is done",
   agentNamedSaidDone: "{name} says this is done",
   agentWrote: "by {name}",
@@ -756,9 +792,9 @@ const en = {
   syncRefused:
     "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncNewer:
-    "Nothing was synced. The machine «{name}» writes with a newer Tisty than this one, and carrying half of it would lose work. Update this machine and try again.",
+    "Nothing was synced. «{name}» writes with a newer Tisty than this one. Update this machine so the two agree again, and try once more.",
   storeNewer:
-    "This log was written by a newer Tisty than the one on this machine. Update before going on — reading half of it would lose work.",
+    "A newer Tisty updated your data. Update this one so the two agree again — reading half of it would lose work.",
   someLockedAtOdds:
     "{name} is locked here and another machine carries a different text, so nothing was written over it. Unlock it to decide which version stays.",
   syncUnreadable: "What came back does not read: {name}",
@@ -943,6 +979,12 @@ const en = {
   tongueWhy:
     "Tisty speaks the language your computer does. Pick one here to hold it, whatever the computer says.",
   tongueTheirs: "Follow the computer",
+  look: "Look",
+  lookWhy:
+    "The window is light or dark the way your computer is. Pick one here to hold it, whatever the computer says.",
+  lookTheirs: "Follow the computer",
+  lookLight: "Light",
+  lookDark: "Dark",
   welcomeStep: "Step {name}",
   closingTitle: "Close the window, or quit Tisty?",
   closingWhy:
@@ -954,16 +996,10 @@ const en = {
   closingRemember: "Remember my choice",
   closingStay: "Stay open",
   terminal: "Command line",
-  terminalOn: "Your terminal already finds «tisty», through {name}",
-  terminalOff: "Tisty ships the «tisty» command, but your terminal cannot find it yet.",
-  terminalNotOnPath:
-    "The link is made, but no shell looks in that folder yet. Add this line to your shell profile — «.zshrc» on macOS — and open a new terminal:",
-  terminalOrBrew:
-    "Or install just the command line with Homebrew, which puts it somewhere your shell already looks: brew install rgdevment/tap/tisty-cli",
-  terminalAdd: "Make it reachable",
+  terminalOn: "Your terminal finds «tisty», through {name}",
+  terminalRetiring:
+    "The task and document commands are being retired: no feature reaches them, and they go in the next major version. The window is where Tisty happens; the binary stays as your assistant's door and for maintenance.",
   terminalRemove: "Take it back out",
-  terminalFresh: "Ready the next time you sign in",
-  terminalFreshNow: "Ready in any terminal you open from now on",
   terminalGone: "No longer reachable",
   settlingIn: "Settling in — bringing your machines together",
   otherTools: "Other tools",
@@ -1276,9 +1312,21 @@ const es: Catalog = {
   notADate: "{name} no es una fecha",
   notAPriority: "Eso no es una prioridad",
   notATaskId: "Eso no es una tarea",
-  onlyArchivedGoes: "Solo se puede borrar lo que está archivado y oculto",
+  onlyArchivedGoes: "Solo se borra lo que ya está cerrado. Termínala o descártala antes",
+  storyStays:
+    "Una historia solo se oculta, no se borra. Si tiene que irse, léela antes como rastro",
+  routineStays: "La vuelta de una rutina no se borra",
+  onlyClosedConverts: "Solo una tarea cerrada se lee como historia o como rastro",
+  routineReadsAsRoutine: "Una rutina se lee como rutina, vuelta a vuelta",
+  notAReading: "Esa no es una forma de leer una tarea",
+  onlyOpenOpens:
+    "Solo una tarea abierta se le deja a un agente. Una cerrada es historia para ellos",
+  alreadyTheirs: "Esta la archivó un agente: ya es suya para completarla",
   notAClosing: "Esa no es una forma de cerrar",
-  eraseIt: "Borrar para siempre",
+  notATheme: "La ventana no tiene ese aspecto",
+  eraseIt: "Borrar",
+  more: "Más",
+  eraseForGood: "Borrar para siempre: no hay deshacer",
   eraseSure:
     "«{name}» desaparece de este equipo y de los demás en la próxima sincronización. No hay deshacer.",
   erased: "Borrada para siempre",
@@ -1343,6 +1391,29 @@ const es: Catalog = {
   allDay: "Todo el día",
   hideIt: "Ocultar",
   showIt: "Mostrar de nuevo",
+  moveToTrace: "Mover a rastro",
+  moveToTraceWhy:
+    "Leerla como rastro: sale de las historias, y un rastro se puede borrar. El trayecto guarda el movimiento",
+  moveToStories: "Mover a historia",
+  moveToStoriesWhy:
+    "Guardarla como historia: sale del rastro, y una historia solo se oculta. El trayecto guarda el movimiento",
+  keptAsStory: "guardada como historia",
+  readAsTraceNow: "leída como rastro",
+  letAgentFill: "Permitir agentes",
+  letAgentFillWhy:
+    "Deja que un asistente trabaje esta tarea: darla por hecha —tú confirmas—, describirla, planear sus pasos y marcarlos. Su día, su título y su cierre siguen siendo tuyos",
+  keepToMyself: "Sin agentes",
+  keepToMyselfWhy: "Retira el permiso. Lo que el agente completó se queda",
+  openToAgents:
+    "Abierta a los agentes: uno puede darla por hecha, describirla, planear sus pasos y marcarlos",
+  wasOpenToAgents: "estuvo abierta a los agentes",
+  eraseWritten: "Lleva {name} entradas de bitácora, y se van con ella.",
+  traceHidden: "El rastro está oculto: {name} bajo «ocultas», y la búsqueda sigue alcanzándolos.",
+  trailKeptStory: "Guardada como historia",
+  trailReadTrace: "Leída como rastro",
+  trailReadByItself: "Leída otra vez por lo que tiene",
+  trailOpened: "Dejada a un agente",
+  trailShut: "Vuelta a quedar contigo",
   folded: "ocultas",
   backToArchive: "Volver al archivo",
   discardIt: "No lo haré",
@@ -1955,6 +2026,11 @@ const es: Catalog = {
   layerTrace: "Rastro",
   archiveShowing: "Leyendo",
   archiveGrouped: "Agrupado por",
+  hiddenOnes: "Ocultas",
+  byTime: "Por tiempo",
+  byList: "Por lista",
+  byTag: "Por tema",
+  byKind: "Por naturaleza",
   tallyClosed: "cerradas",
   tallyTurns: "vueltas, de {name} rutinas",
   tallyTurnsOne: "vueltas, de una rutina",
@@ -1962,7 +2038,7 @@ const es: Catalog = {
   tallyBest: "racha más larga",
   tallyMissed: "días sin marcar",
   storiesEmpty:
-    "Todavía nada de lo cerrado cuenta una historia. Una tarea se gana el estante por lo que quedó escrito en ella: una bitácora que alguien se tomó el trabajo de escribir, o unas cuantas.",
+    "Todavía nada de lo cerrado cuenta una historia. Una tarea se gana el estante por lo que quedó escrito en ella —una bitácora que alguien se tomó el trabajo de escribir, o unas cuantas— o porque tú la guardaste como tal.",
   routinesEmpty:
     "Todavía no se repite nada. Escribe «regar las plantas cada tres días» para empezar una serie.",
   traceEmpty: "Todo lo que se ha cerrado aquí dejó algo escrito.",
@@ -1971,8 +2047,7 @@ const es: Catalog = {
     "Nada con fecha por delante. Escribe «llamar al dentista el viernes» para poner algo aquí.",
   todayEmpty: "Nada para hoy. Escribe «comprar pan mañana a las 10»: la fecha se lee de la frase.",
   someday: "Algún día",
-  agentBand: "Agentes",
-  toConfirm: "{name} por confirmar",
+  agentBand: "Por confirmar",
   agentSaidDone: "Un agente la da por hecha",
   agentNamedSaidDone: "{name} la da por hecha",
   agentWrote: "por {name}",
@@ -1999,9 +2074,9 @@ const es: Catalog = {
   syncRefused:
     "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
   syncNewer:
-    "No se sincronizó nada. La máquina «{name}» escribe con un Tisty más nuevo que este, y traer la mitad perdería trabajo. Actualiza este equipo y vuelve a intentarlo.",
+    "No se sincronizó nada. «{name}» escribe con un Tisty más nuevo que este. Actualiza este equipo para que los dos vuelvan a entenderse, y vuelve a intentarlo.",
   storeNewer:
-    "Este registro lo escribió un Tisty más nuevo que el de este equipo. Actualiza antes de seguir: leer la mitad perdería trabajo.",
+    "Una versión más nueva de Tisty actualizó tus datos. Actualiza este Tisty para que los dos vuelvan a entenderse: leer la mitad perdería trabajo.",
   someLockedAtOdds:
     "{name} está bloqueado aquí y otra máquina trae un texto distinto, así que no se escribió nada encima. Desbloquéalo para decidir qué versión queda.",
   syncUnreadable: "Lo que llegó no se puede leer: {name}",
@@ -2185,6 +2260,12 @@ const es: Catalog = {
   tongueWhy:
     "Tisty habla el idioma de tu equipo. Elige uno aquí para fijarlo, diga lo que diga el equipo.",
   tongueTheirs: "Seguir al equipo",
+  look: "Aspecto",
+  lookWhy:
+    "La ventana es clara u oscura como lo sea tu equipo. Elige uno aquí para fijarlo, diga lo que diga el equipo.",
+  lookTheirs: "Seguir al equipo",
+  lookLight: "Claro",
+  lookDark: "Oscuro",
   welcomeStep: "Paso {name}",
   closingTitle: "¿Cerrar la ventana, o salir de Tisty?",
   closingWhy:
@@ -2196,16 +2277,10 @@ const es: Catalog = {
   closingRemember: "Recordar mi elección",
   closingStay: "Seguir aquí",
   terminal: "Línea de comandos",
-  terminalOn: "Tu terminal ya encuentra «tisty», desde {name}",
-  terminalOff: "Tisty incluye el comando «tisty», pero tu terminal todavía no lo encuentra.",
-  terminalNotOnPath:
-    "El enlace ya está creado, pero tu terminal todavía no busca en esa carpeta. Agrega esta línea a tu perfil —«.zshrc» en macOS— y abre una terminal nueva:",
-  terminalOrBrew:
-    "También puedes instalar solo el comando con Homebrew, que lo deja donde tu terminal ya busca: brew install rgdevment/tap/tisty-cli",
-  terminalAdd: "Dejarlo disponible",
+  terminalOn: "Tu terminal encuentra «tisty», desde {name}",
+  terminalRetiring:
+    "Los comandos de tareas y documentos se retiran: ninguna función nueva les llega, y se van en la siguiente versión mayor. Tisty pasa en la ventana; el binario se queda como puerta de tu asistente y para mantenimiento.",
   terminalRemove: "Quitarlo",
-  terminalFresh: "Quedará listo la próxima vez que inicies sesión",
-  terminalFreshNow: "Listo en cualquier terminal que abras a partir de ahora",
   terminalGone: "Ya no está disponible",
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
   otherTools: "Otras herramientas",

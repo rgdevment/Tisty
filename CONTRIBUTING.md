@@ -103,10 +103,20 @@ history — that is what the commit log is for.
 reading `stdin`. The CLI and the GUI are both clients of the same API, and
 anything the core prints leaks into the GUI as garbage.
 
-**Anything the GUI can do, the CLI can do too.** What differs is how many
-keystrokes it costs, not what is possible. A feature that only exists behind a
-mouse cannot be scripted or emitted as `--json`, which is the point of the
-tool.
+**The person's command line is frozen, and on its way out.** The `tisty`
+binary stays: `tisty mcp` is the assistant's door, the window bundles it as a
+sidecar, and `agent`, `doctor`, `sync`, `export`, `leave` and `demo` are
+maintenance that has no better home. What is being retired is the terminal as
+a second window — `add`, `ls`, `done`, `set`, `rm`, `mv`, `desc`, `log`,
+`step`, `show`, `story`, `series`, `search`, `list`, `tag`, `attach`, `doc`.
+They cost a third implementation of every rule, and one commit in five since
+July has been paying it. So: no feature reaches those commands, and no new
+command joins them. A feature is done when the core and the window have it;
+if a rule the window keeps must also hold in the terminal for safety — what
+can be erased, say — it is enforced in the core and the command merely obeys.
+The stages, and what has to exist before the last one (undo in the window),
+are on the retirement task in the project's own Tisty; `docs/ARCHITECTURE.md`
+says what the binary is for once they are gone.
 
 ## The look
 

@@ -30,12 +30,12 @@ import {
   keepLocale,
   keepReport,
   keepSettings,
+  keepTheme,
   logs,
   type Machine,
   type Reach,
   type Reviewed,
   reachable,
-  reachFor,
   settings as readSettings,
   readTags,
   rebuild,
@@ -55,7 +55,9 @@ import {
   syncKin,
   syncNow,
   syncState,
+  type Theme,
   type Twins,
+  takeOutOfReach,
   twinned,
   unwireAgent,
   type Waking,
@@ -74,7 +76,6 @@ import { type Brittle, scanned } from "../scanning";
 import Apart, { type Door } from "./Apart";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
-import { onMac } from "./WindowChrome";
 
 const carried = {
   came: "syncCame",
@@ -104,7 +105,8 @@ type Which =
   | "greet"
   | "signing"
   | "parcel"
-  | "tongue";
+  | "tongue"
+  | "look";
 type Word = { card: Which; text: string };
 type Tab = "general" | "data" | "agents" | "upkeep";
 
@@ -636,6 +638,34 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                 </Line>
               )}
 
+              {kept && (
+                <Line
+                  title={t("look")}
+                  why={t("lookWhy")}
+                  which="look"
+                  said={said}
+                  trouble={trouble}
+                >
+                  <select
+                    aria-label={t("look")}
+                    value={kept.theme ?? ""}
+                    disabled={held}
+                    onChange={(e) => {
+                      const wanted = (e.target.value || undefined) as Theme | undefined;
+                      run("look", keepTheme(wanted), (now) => {
+                        setKept({ ...kept, theme: now ?? undefined });
+                        onChanged();
+                      });
+                    }}
+                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  >
+                    <option value="">{t("lookTheirs")}</option>
+                    <option value="light">{t("lookLight")}</option>
+                    <option value="dark">{t("lookDark")}</option>
+                  </select>
+                </Line>
+              )}
+
               {wake?.offered && (
                 <Line
                   title={t("wake")}
@@ -783,54 +813,32 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
 
             <Band label={t("bandOutside")} />
             <div className="border-t border-hair">
-              {reach?.shipped && (
+              {reach?.shipped && reach.withinReach && (
                 <Line
                   title={t("terminal")}
-                  why={
-                    reach.withinReach
-                      ? fill("terminalOn", reach.through ?? reach.at ?? "")
-                      : t("terminalOff")
-                  }
+                  why={fill("terminalOn", reach.through ?? reach.at ?? "")}
                   which="terminal"
                   said={said}
                   trouble={trouble}
                   more={
-                    reach.withinReach &&
-                    !reach.onPath && (
-                      <div className="mt-2 rounded-[10px] bg-mark-priority px-3 py-2.5">
-                        <p className="text-[12.5px] leading-relaxed text-ink">
-                          {t("terminalNotOnPath")}
-                        </p>
-                        <code className="mt-1.5 block font-mono text-[11.5px] break-all text-soft">
-                          export PATH=&quot;$HOME/.local/bin:$PATH&quot;
-                        </code>
-                        <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">
-                          {t("terminalOrBrew")}
-                        </p>
-                      </div>
-                    )
+                    <p className="mt-2 text-[11.5px] leading-relaxed text-faint">
+                      {t("terminalRetiring")}
+                    </p>
                   }
                 >
-                  <Knob
-                    on={reach.withinReach}
-                    label={t(reach.withinReach ? "terminalRemove" : "terminalAdd")}
+                  <button
+                    type="button"
                     disabled={held}
-                    onPress={() =>
-                      run("terminal", reachFor(!reach.withinReach), (now) => {
+                    onClick={() =>
+                      run("terminal", takeOutOfReach(), (now) => {
                         setReach(now);
-                        setSaid({
-                          card: "terminal",
-                          text: t(
-                            now.withinReach
-                              ? onMac
-                                ? "terminalFreshNow"
-                                : "terminalFresh"
-                              : "terminalGone",
-                          ),
-                        });
+                        setSaid({ card: "terminal", text: t("terminalGone") });
                       })
                     }
-                  />
+                    className={mild}
+                  >
+                    {t("terminalRemove")}
+                  </button>
                 </Line>
               )}
 
@@ -1930,6 +1938,7 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   waking: "wake",
   greet: "greetAgain",
   tongue: "tongue",
+  look: "look",
   settings: "settingsTitle",
   notices: "bandNotices",
   attach: "attachTitle",

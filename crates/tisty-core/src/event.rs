@@ -9,7 +9,7 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 13;
+pub const SCHEMA_VERSION: u32 = 14;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -231,6 +231,41 @@ mod tests {
             KNOWN_OPS.len() + 1,
             "serde accepts an operation the reader would treat as corruption"
         );
+    }
+
+    #[test]
+    fn a_patch_tells_a_conversion_from_a_conversion_taken_back() {
+        let untouched: TaskPatch = serde_json::from_str("{}").unwrap();
+        assert_eq!(untouched.read_as, None);
+
+        let taken_back: TaskPatch = serde_json::from_str(r#"{"read_as": null}"#).unwrap();
+        assert_eq!(taken_back.read_as, Some(None));
+
+        let converted: TaskPatch = serde_json::from_str(r#"{"read_as": "story"}"#).unwrap();
+        assert_eq!(converted.read_as, Some(Some(crate::Reading::Story)));
+
+        let written = serde_json::to_string(&TaskPatch {
+            read_as: Some(Some(crate::Reading::Trace)),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(written, r#"{"read_as":"trace"}"#);
+    }
+
+    #[test]
+    fn a_patch_carries_the_door_to_agents_only_when_it_moves() {
+        let untouched: TaskPatch = serde_json::from_str("{}").unwrap();
+        assert_eq!(untouched.open_to_agents, None);
+
+        let opened: TaskPatch = serde_json::from_str(r#"{"open_to_agents": true}"#).unwrap();
+        assert_eq!(opened.open_to_agents, Some(true));
+
+        let written = serde_json::to_string(&TaskPatch {
+            open_to_agents: Some(false),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(written, r#"{"open_to_agents":false}"#);
     }
 
     #[test]

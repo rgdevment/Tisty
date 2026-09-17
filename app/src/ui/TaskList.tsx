@@ -4,7 +4,11 @@ import type { List, Task } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
+import { agentNamed } from "../who";
 import { Lozenge, Pip, spokenLabel } from "./Spoke";
+
+// The tag the server adds to what an agent files; said in words, the tag is noise.
+const AGENT_TAG = "agent";
 
 interface Props {
   tasks: Task[];
@@ -132,7 +136,7 @@ export default function TaskList({
         onComplete(task.id);
         return;
       }
-      if (onFold) {
+      if (onFold && task.status !== "dropped") {
         walk(at, 1);
         onFold(task.id, !task.hidden);
       }
@@ -161,7 +165,7 @@ export default function TaskList({
           onFocus={() => setReached(at)}
           onKeyDown={(event) => typed(event, task, at)}
           onClick={() => onSelect(task.id)}
-          className={`grid cursor-pointer grid-cols-[14px_minmax(0,1fr)_auto] items-baseline gap-2.5 rounded-md px-2.5 py-1 outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
+          className={`group grid cursor-pointer grid-cols-[14px_minmax(0,1fr)_auto_auto] items-baseline gap-2.5 rounded-md px-2.5 py-1 outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
             selected === task.id ? "bg-active" : ""
           }`}
         >
@@ -178,6 +182,25 @@ export default function TaskList({
             <Lozenge task={task} />
             {task.completed_at ? stamped(task.completed_at) : ""}
           </span>
+          {onFold && task.status !== "dropped" ? (
+            <button
+              type="button"
+              aria-label={task.hidden ? t("showIt") : t("hideIt")}
+              title={task.hidden ? t("showIt") : t("hideIt")}
+              tabIndex={-1}
+              onKeyDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                walk(at, 1);
+                onFold(task.id, !task.hidden);
+              }}
+              className="flex h-4 w-4 items-center justify-center self-center rounded-md text-[13px] leading-none text-faint opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 hover:bg-line hover:text-ink"
+            >
+              {task.hidden ? "⊕" : "⊖"}
+            </button>
+          ) : (
+            <span aria-hidden="true" className="h-4 w-4" />
+          )}
         </div>
       );
     }
@@ -236,7 +259,7 @@ export default function TaskList({
           </div>
 
           <Volume task={task} />
-          {onFold && (
+          {onFold && task.status !== "dropped" && (
             <button
               type="button"
               aria-label={task.hidden ? t("showIt") : t("hideIt")}
@@ -320,9 +343,7 @@ export default function TaskList({
                   </span>
                   {leaf.band}
                   <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
-                    {leaf.band === t("agentBand")
-                      ? fill("toConfirm", String(many.get(leaf.band)))
-                      : many.get(leaf.band)}
+                    {many.get(leaf.band)}
                   </span>
                 </button>
               )}
@@ -370,10 +391,19 @@ function Meta({ task, list }: { task: Task; list?: string }) {
     );
   }
   if (list) bits.push(<span key="list">@{list}</span>);
-  if (task.tags?.length) {
+  const filedBy = agentNamed(task.created_by);
+  const tags = (task.tags ?? []).filter((tag) => !(filedBy && tag === AGENT_TAG));
+  if (tags.length) {
     bits.push(
       <span key="tags" className="text-faint">
-        {task.tags.map((tag) => `#${tag}`).join(" ")}
+        {tags.map((tag) => `#${tag}`).join(" ")}
+      </span>,
+    );
+  }
+  if (filedBy) {
+    bits.push(
+      <span key="by" className="text-hue-teal">
+        {fill("agentWrote", filedBy)}
       </span>,
     );
   }
