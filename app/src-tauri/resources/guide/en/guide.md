@@ -280,7 +280,7 @@ Rather than open it and destroy those on your first keystroke, Tisty says so and
 
 ### 11. An assistant can write here
 
-If you use an assistant, it can file documents and propose tasks of its own accord. What it cannot do is close, delete or touch what you wrote.
+If you use an assistant, it can file documents and propose tasks of its own accord. What it cannot do is close, delete or touch what you wrote. What it writes is signed with the name of the program it spoke through — «by Claude Code», «by Codex» — and what was written before programs said their name reads «by an assistant».
 
 When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **To confirm** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
 

@@ -17,11 +17,108 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
     config.save(paths)?;
 
     let mut store = Store::open(paths.store(), who.clone())?;
-    store.append(Op::DeviceJoin {
-        d: who.clone(),
-        k: Some(DeviceKind::Agent),
-    })?;
+    store.append_batch(vec![
+        Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(DeviceKind::Agent),
+        },
+        Op::DeviceHost {
+            d: who.clone(),
+            of: config.device_id.clone(),
+        },
+    ])?;
     Ok(who)
+}
+
+/// An agent that joined before `device.host` existed says where it lives the next time the
+/// machine that hosts it opens the store with a build that knows to ask.
+pub fn unhosted(config: &Config, state: &crate::State) -> Option<Op> {
+    let who = config.agent_id.clone()?;
+    if state.hosts.contains_key(&who) || !state.assistants.contains(&who) {
+        return None;
+    }
+    Some(Op::DeviceHost {
+        d: who,
+        of: config.device_id.clone(),
+    })
+}
+
+/// What the MCP client called itself, made fit to keep: one line, composed, forty characters.
+pub fn client_said(raw: &str) -> Option<String> {
+    let one: String = crate::text::composed(raw.trim())
+        .chars()
+        .filter(|c| {
+            !c.is_control()
+                && !matches!(
+                    *c,
+                    '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{206f}' | '\u{feff}'
+                )
+        })
+        .take(40)
+        .collect();
+    let one = one.trim().to_string();
+    (!one.is_empty()).then_some(one)
+}
+
+const CLIENTS: &[(&str, &str, &[&str])] = &[
+    ("claude-code", "Claude Code", &["claude code"]),
+    (
+        "claude-desktop",
+        "Claude Desktop",
+        &["claude desktop", "claude-ai"],
+    ),
+    (
+        "codex",
+        "Codex",
+        &["codex-cli", "codex cli", "codex-mcp-client"],
+    ),
+    ("antigravity", "Antigravity", &[]),
+    (
+        "gemini-cli",
+        "Gemini CLI",
+        &["gemini", "gemini-cli-mcp-client"],
+    ),
+    ("opencode", "OpenCode", &[]),
+    (
+        "vscode",
+        "Visual Studio Code",
+        &["visual studio code", "visual studio code - insiders"],
+    ),
+    ("cursor", "Cursor", &["cursor-agent"]),
+    ("windsurf", "Windsurf", &[]),
+    ("zed", "Zed", &[]),
+];
+
+/// The id a known client is wired under, whatever it called itself: `codex-mcp-client` is
+/// the same hand as the `codex` in the person's settings.
+pub fn client_id(raw: &str) -> Option<&'static str> {
+    let key = raw.trim().to_lowercase();
+    let said = |name: &str| key == name || key.starts_with(&format!("{name}/"));
+    CLIENTS
+        .iter()
+        .find(|(id, _, aliases)| said(id) || aliases.iter().any(|alias| said(alias)))
+        .map(|(id, _, _)| *id)
+}
+
+pub fn client_named(raw: &str) -> String {
+    if let Some(id) = client_id(raw)
+        && let Some((_, named, _)) = CLIENTS.iter().find(|(one, _, _)| one == &id)
+    {
+        return (*named).to_string();
+    }
+    raw.trim()
+        .to_lowercase()
+        .split(['-', '_', ' '])
+        .filter(|word| !word.is_empty())
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// What it wrote stays: retiring takes the voice, never the words.
@@ -811,5 +908,47 @@ mod tests {
             assert!(one.exists(), "{} is not there", one.display());
         }
         assert!(roots.contains(&std::env::temp_dir().canonicalize().unwrap()));
+    }
+}
+
+#[cfg(test)]
+mod naming {
+    use super::{client_id, client_named, client_said};
+
+    #[test]
+    fn a_client_is_named_for_people_by_what_it_called_itself() {
+        assert_eq!(client_named("claude-code"), "Claude Code");
+        assert_eq!(client_named("Claude Code"), "Claude Code");
+        assert_eq!(client_named("codex-cli"), "Codex");
+        assert_eq!(client_named("codex/1.2.3"), "Codex");
+        assert_eq!(client_named("codex-mcp-client"), "Codex");
+        assert_eq!(client_named("gemini-cli-mcp-client"), "Gemini CLI");
+        assert_eq!(client_named("Visual Studio Code"), "Visual Studio Code");
+        assert_eq!(client_named("antigravity"), "Antigravity");
+        assert_eq!(client_named("some-new_tool"), "Some New Tool");
+    }
+
+    #[test]
+    fn a_known_client_is_the_one_wired_under_that_id_whatever_it_said() {
+        assert_eq!(client_id("codex-mcp-client"), Some("codex"));
+        assert_eq!(client_id("Codex-CLI/0.9"), Some("codex"));
+        assert_eq!(client_id("visual studio code"), Some("vscode"));
+        assert_eq!(client_id("gemini-cli-mcp-client"), Some("gemini-cli"));
+        assert_eq!(client_id("claude-code"), Some("claude-code"));
+        assert_eq!(client_id("some-new-tool"), None);
+    }
+
+    #[test]
+    fn what_a_client_said_is_kept_short_plain_and_composed() {
+        assert_eq!(client_said("  claude-code \n"), Some("claude-code".into()));
+        assert_eq!(client_said(""), None);
+        assert_eq!(client_said("\u{7}\u{1b}"), None);
+        assert_eq!(
+            client_said("\u{202e}codex\u{200b}\u{feff} \u{2066}"),
+            Some("codex".into()),
+            "what turns text around or hides in it is not a name"
+        );
+        let long = client_said(&"x".repeat(100)).unwrap();
+        assert_eq!(long.chars().count(), 40);
     }
 }

@@ -121,6 +121,9 @@ pub struct LogEntry {
     /// Projected from the event's `by`, never written to the log.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<crate::event::DeviceId>,
+    /// The client the assistant spoke through, from the event's `via`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 impl LogEntry {
@@ -139,6 +142,8 @@ pub struct Resolved {
     pub at: Timestamp,
     pub by: crate::event::DeviceId,
     pub entry: LogId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -193,6 +198,9 @@ pub struct Task {
     /// tick its steps — what an assistant may do on a task it filed itself.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub open_to_agents: bool,
+    /// The client the assistant that filed this task spoke through, from the event's `via`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_via: Option<String>,
 
     #[serde(default, skip_serializing_if = "Volume::is_empty")]
     pub volume: Volume,
@@ -260,6 +268,7 @@ impl Task {
             completed_at: None,
             read_as: None,
             open_to_agents: false,
+            created_via: None,
             volume: Volume::default(),
         }
     }
@@ -435,6 +444,7 @@ mod tests {
             tz: None,
             body: body.into(),
             by: None,
+            via: None,
         }
     }
 
@@ -513,6 +523,7 @@ mod tests {
             "completed_at",
             "read_as",
             "open_to_agents",
+            "created_via",
         ] {
             assert!(
                 !json.contains(absent),
@@ -1017,6 +1028,7 @@ mod trace_tests {
                 tz: None,
                 body: (*one).to_string(),
                 by: None,
+                via: None,
             })
             .collect();
         task.references()

@@ -25,11 +25,14 @@ describe("what the mark says out loud", () => {
     expect(spokenLabel(task())).toBe("pasar biome sobre el front");
   });
 
-  it("names the agent when this machine knows it", () => {
-    knowAgents({ dev_agent: "peral 76" });
+  it("names the client the agent spoke through", () => {
+    knowAgents(
+      { dev_agent: "peral 76" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
 
-    expect(spokenLabel(task({ resolved: marked }))).toBe(
-      "pasar biome sobre el front — peral 76 says this is done",
+    expect(spokenLabel(task({ resolved: { ...marked, via: "claude-code" } }))).toBe(
+      "pasar biome sobre el front — Claude Code says this is done",
     );
   });
 
@@ -77,10 +80,13 @@ describe("the lozenge beside the hour", () => {
   });
 
   it("says who spoke, so the colour is never the only teller", () => {
-    knowAgents({ dev_agent: "peral 76" });
-    render(<Lozenge task={task({ resolved: marked })} />);
+    knowAgents(
+      { dev_agent: "peral 76" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
+    render(<Lozenge task={task({ resolved: { ...marked, via: "codex" } })} />);
 
-    const mark = screen.getByTitle("peral 76 says this is done");
+    const mark = screen.getByTitle("Codex says this is done");
     expect(mark.textContent).toBe("◆");
   });
 

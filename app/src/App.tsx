@@ -603,7 +603,13 @@ export default function App() {
     snapshot(asView(chosen))
       .then((fresh) => {
         adopt(fresh.locale);
-        knowAgents(fresh.agents, fresh.agent_tag);
+        knowAgents(fresh.agents, {
+          tag: fresh.agent_tag,
+          hosts: fresh.hosts,
+          machines: fresh.machines,
+          here: fresh.machine_here,
+          clients: fresh.clients,
+        });
         setData(fresh);
         acted.current = null;
       })

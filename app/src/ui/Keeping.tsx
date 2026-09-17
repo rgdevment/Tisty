@@ -6,10 +6,12 @@ import {
   type About,
   type Agent,
   ALIAS_AT_MOST,
+  type Assistant,
   type Astray,
   about,
   agentState,
   agentTurn,
+  assistants,
   backUp,
   type Carrying,
   checked,
@@ -130,6 +132,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
   const [tab, setTab] = useState<Tab>("general");
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agents, setAgents] = useState<Wired[] | null>(null);
+  const [hands, setHands] = useState<Assistant[] | null>(null);
   const [wired, setWired] = useState(false);
   const [typed, setTyped] = useState(false);
   const [state, setState] = useState<Carrying | null>(null);
@@ -185,6 +188,9 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
       .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }));
     seenAgents()
       .then(setAgents)
+      .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
+    assistants()
+      .then(setHands)
       .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
   }, [tab]);
 
@@ -1177,19 +1183,12 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
               <div className="mt-3 flex items-center justify-between gap-3 rounded-[10px] border border-hair px-3 py-2.5">
                 <span className="min-w-0">
                   <span className="block text-[13px] font-semibold">
-                    {agent?.on ? fill("agentsOn", agent.called ?? "") : t("agentsOff")}
+                    {agent?.on ? t("agentsOn") : t("agentsOff")}
                   </span>
                   {agent?.on && (
-                    <>
-                      <span className="block text-[12.5px] text-soft">
-                        {agent.filed > 0
-                          ? fill("agentsFiled", String(agent.filed))
-                          : t("agentsFiledNone")}
-                      </span>
-                      <span className="block font-mono text-[10.5px] break-all text-faint">
-                        {agent.id}
-                      </span>
-                    </>
+                    <span className="block text-[12.5px] text-soft">
+                      {fill("agentsSignsAs", agent.called ?? "")}
+                    </span>
                   )}
                 </span>
                 <button
@@ -1221,49 +1220,69 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
               )}
 
               {agents && agents.length > 0 && (
-                <>
-                  <div className="mt-3 overflow-hidden rounded-[10px] border border-hair">
-                    {agents.map((one) => (
-                      <div
-                        key={one.id}
-                        className="flex items-center gap-3 border-t border-hair px-3 py-2.5 first:border-t-0"
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[13px] font-semibold">{one.name}</span>
-                          <span className="block truncate font-mono text-[10.5px] text-faint">
-                            {one.at}
-                          </span>
-                          {one.astray && (
-                            <span className="block text-[11.5px] text-high">
-                              {t("wiringAstray")}
-                            </span>
-                          )}
+                <div className="mt-3 overflow-hidden rounded-[10px] border border-hair">
+                  {agents.map((one) => (
+                    <div
+                      key={one.id}
+                      className="flex items-center gap-3 border-t border-hair px-3 py-2.5 first:border-t-0"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-semibold">{one.name}</span>
+                        <span className="block text-[12.5px] text-soft">
+                          {wroteSaid(hands?.find((hand) => hand.via === one.id))}
                         </span>
-                        {one.wired && !one.astray && (
-                          <span className="shrink-0 rounded-full border border-hue-green/40 px-2 py-0.5 text-[11.5px] text-hue-green">
-                            {t("wiringOn")}
-                          </span>
+                        <span className="block truncate font-mono text-[10.5px] text-faint">
+                          {one.at}
+                        </span>
+                        {one.astray && (
+                          <span className="block text-[11.5px] text-high">{t("wiringAstray")}</span>
                         )}
-                        <button
-                          type="button"
-                          disabled={held}
-                          onClick={() => join(one)}
-                          className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint ${
-                            one.wired && !one.astray
-                              ? "border-line text-soft hover:border-urgent hover:text-urgent"
-                              : "border-accent text-accent"
-                          }`}
-                        >
-                          {one.astray
-                            ? t("wiringAgain")
-                            : one.wired
-                              ? t("wiringOut")
-                              : t("wiringJoin")}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                      </span>
+                      {one.wired && !one.astray && (
+                        <span className="shrink-0 rounded-full border border-hue-green/40 px-2 py-0.5 text-[11.5px] text-hue-green">
+                          {t("wiringOn")}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        disabled={held}
+                        onClick={() => join(one)}
+                        className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint ${
+                          one.wired && !one.astray
+                            ? "border-line text-soft hover:border-urgent hover:text-urgent"
+                            : "border-accent text-accent"
+                        }`}
+                      >
+                        {one.astray
+                          ? t("wiringAgain")
+                          : one.wired
+                            ? t("wiringOut")
+                            : t("wiringJoin")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
+              {hands
+                ?.filter((hand) => !agents?.some((one) => one.id === hand.via))
+                .map((hand) => (
+                  <div
+                    key={hand.via ?? "unnamed"}
+                    className="mt-2 flex items-center gap-3 rounded-[10px] border border-hair px-3 py-2.5"
+                    title={hand.via ? undefined : t("assistantUnnamedWhy")}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-semibold">
+                        {hand.named || t("assistantUnnamed")}
+                      </span>
+                      <span className="block text-[12.5px] text-soft">{wroteSaid(hand)}</span>
+                    </span>
+                  </div>
+                ))}
+
+              {agents && agents.length > 0 && (
+                <>
                   {agent?.on === false && (
                     <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">
                       {t("wiringMute")}
@@ -1799,6 +1818,12 @@ const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
 const mild = `rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
 const strong = `rounded-[10px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
 const risky = `rounded-[10px] border border-urgent/40 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-urgent/10 ${off}`;
+
+const wroteSaid = (hand: Assistant | undefined): string => {
+  if (!hand || hand.wrote === 0) return t("assistantNothing");
+  const filed = fill("assistantFiled", String(hand.filed));
+  return hand.last ? `${filed} · ${fill("assistantLast", stamped(hand.last))}` : filed;
+};
 
 const wiring = (at?: string) =>
   `{

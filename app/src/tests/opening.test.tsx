@@ -78,7 +78,10 @@ describe("letting an agent fill a task in", () => {
   });
 
   it("is not offered on what an agent filed, which is the agents' already", () => {
-    knowAgents({ dev_agent: "peral 76" });
+    knowAgents(
+      { dev_agent: "peral 76" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
     open(task({ created_by: "dev_agent" }));
 
     expect(screen.queryByRole("button", { name: /^more$/i })).toBeNull();

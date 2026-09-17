@@ -25,6 +25,7 @@ export interface LogEntry {
   tz?: string;
   body: string;
   by?: string;
+  via?: string;
 }
 
 export interface Volume {
@@ -40,6 +41,7 @@ export interface Resolved {
   at: string;
   by: string;
   entry: string;
+  via?: string;
 }
 
 export interface Task {
@@ -68,6 +70,7 @@ export interface Task {
   closed_in?: string;
   read_as?: Reading;
   open_to_agents?: boolean;
+  created_via?: string;
 }
 
 export const STORY_AT = 3;
@@ -135,6 +138,10 @@ export interface Snapshot {
   locale?: string;
   agents: Record<string, string>;
   agent_tag?: string;
+  hosts?: Record<string, string>;
+  machines?: Record<string, string>;
+  machine_here?: string;
+  clients?: Record<string, string>;
 }
 
 export type Mark = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
@@ -351,8 +358,6 @@ export const archiveShape = (): Promise<Shape> => invoke("archive_shape");
 export interface Agent {
   on: boolean;
   called?: string;
-  id?: string;
-  filed: number;
 }
 
 export const agentState = (): Promise<Agent> => invoke("agent");
@@ -646,6 +651,17 @@ export interface Wired {
 }
 
 export const seenAgents = (): Promise<Wired[]> => invoke("wiring");
+
+/** One assistant as the person meets it: what it is called, whether it is wired, what it wrote. */
+export interface Assistant {
+  via: string | null;
+  named: string;
+  wired: boolean | null;
+  filed: number;
+  wrote: number;
+  last: string | null;
+}
+export const assistants = (): Promise<Assistant[]> => invoke("assistants");
 export const wireAgent = (id: string): Promise<Wired[]> => invoke("wire", { id });
 export const unwireAgent = (id: string): Promise<Wired[]> => invoke("unwire", { id });
 export const takeOutOfReach = (): Promise<Reach> => invoke("take_out_of_reach");

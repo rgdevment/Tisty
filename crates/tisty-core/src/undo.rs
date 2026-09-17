@@ -127,7 +127,9 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         Op::TaskResolve { id, .. } => match &before.tasks.get(id)?.resolved {
             Some(was) => Some(Op::TaskResolve {
                 id: *id,
-                d: Resolve::new(was.entry).said_by(was.at, was.by.clone()),
+                d: Resolve::new(was.entry)
+                    .said_by(was.at, was.by.clone())
+                    .through(was.via.clone()),
             }),
             None => Some(Op::TaskUnresolve { id: *id }),
         },
@@ -135,7 +137,9 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             let was = before.tasks.get(id)?.resolved.as_ref()?;
             Some(Op::TaskResolve {
                 id: *id,
-                d: Resolve::new(was.entry).said_by(was.at, was.by.clone()),
+                d: Resolve::new(was.entry)
+                    .said_by(was.at, was.by.clone())
+                    .through(was.via.clone()),
             })
         }
         Op::TaskLogEdit { id, d } => Some(Op::TaskLogEdit {
@@ -260,6 +264,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
 
         Op::DeviceJoin { .. }
+        | Op::DeviceHost { .. }
         | Op::DeviceRemove { .. }
         | Op::Signed { .. }
         | Op::AttachRetire { .. }
@@ -356,6 +361,29 @@ mod tests {
                 ..Default::default()
             },
         }
+    }
+
+    #[test]
+    fn a_mark_taken_off_and_put_back_keeps_the_client_that_spoke() {
+        let id = Ulid::generate();
+        let entry = Ulid::generate();
+        let mut said = ev(
+            2,
+            Op::TaskResolve {
+                id,
+                d: crate::event::Resolve::new(entry),
+            },
+        );
+        said.via = Some("codex".into());
+        let setup = vec![a_task(id), said];
+
+        let (before, undone) = round_trip(setup, ev(3, Op::TaskUnresolve { id }));
+
+        assert_eq!(before, undone);
+        assert_eq!(
+            undone.tasks[&id].resolved.as_ref().unwrap().via.as_deref(),
+            Some("codex")
+        );
     }
 
     #[test]

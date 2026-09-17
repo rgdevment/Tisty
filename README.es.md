@@ -595,7 +595,10 @@ asistente puede darla por hecha, para que la confirmes; describirla, si aún no
 tiene descripción; planear sus pasos; y marcarlos a medida que avanza, que es lo
 único que hace sin preguntar. Su día, su título, su lista y su cierre siguen
 siendo tuyos igual. «Sin agentes» cierra la puerta otra vez y conserva lo que
-alcanzó a completar.
+alcanzó a completar. Lo que escribe un asistente va firmado con el nombre del
+programa por el que habló —«por Claude Code», «por Codex»— en la fila, el
+detalle y la bitácora, y Configuración › Asistentes cuenta lo que anotó cada
+uno.
 
 **La línea de comandos es tuya, no del asistente.** Un asistente con shell
 podría teclear `tisty done 3` el día que su servidor MCP no esté conectado, y

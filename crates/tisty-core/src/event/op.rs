@@ -72,6 +72,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "doc.signed",
     "device.join",
     "device.remove",
+    "device.host",
     "person.signed",
     "attach.retire",
     "stores.joined",
@@ -186,6 +187,10 @@ pub enum Op {
     },
     #[serde(rename = "device.remove")]
     DeviceRemove { d: DeviceId },
+    /// The machine an agent device is hosted on: the join itself is written as the agent, and
+    /// said nothing about where. Optional, so a build that predates it skips it.
+    #[serde(rename = "device.host")]
+    DeviceHost { d: DeviceId, of: DeviceId },
 
     #[serde(rename = "person.signed")]
     Signed { d: Signature },
@@ -230,6 +235,7 @@ impl Op {
             Op::DocSaid { .. }
                 | Op::Signed { .. }
                 | Op::DocSigned { .. }
+                | Op::DeviceHost { .. }
                 | Op::DocMove {
                     d: Filed {
                         folder: None,
@@ -242,7 +248,10 @@ impl Op {
     }
 
     pub fn is_optional(&self) -> bool {
-        matches!(self, Op::DocSaid { .. } | Op::Signed { .. })
+        matches!(
+            self,
+            Op::DocSaid { .. } | Op::Signed { .. } | Op::DeviceHost { .. }
+        )
     }
 
     pub fn about(self, id: TaskId) -> Self {
@@ -290,6 +299,7 @@ impl Op {
             Op::DocLock { .. } => Op::DocLock { id },
             Op::DocUnlock { .. } => Op::DocUnlock { id },
             Op::DeviceJoin { .. }
+            | Op::DeviceHost { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }
@@ -414,6 +424,7 @@ impl Op {
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
+            | Op::DeviceHost { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }
@@ -555,6 +566,10 @@ pub struct Resolve {
     pub at: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<DeviceId>,
+    /// Kept with `by`: an undo rewrites the mark under the person's hand and must not lose
+    /// which client spoke.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 impl Resolve {
@@ -563,12 +578,18 @@ impl Resolve {
             entry,
             at: None,
             by: None,
+            via: None,
         }
     }
 
     pub fn said_by(mut self, at: jiff::Timestamp, by: DeviceId) -> Self {
         self.at = Some(at);
         self.by = Some(by);
+        self
+    }
+
+    pub fn through(mut self, via: Option<String>) -> Self {
+        self.via = via;
         self
     }
 }
