@@ -8,6 +8,10 @@ inputs:
   targets:
     description: Rust targets to install, comma separated.
     required: true
+  cache-key:
+    description: Added to the cache key when one job id builds more than one target.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -17,6 +21,8 @@ runs:
         targets: ${{ inputs.targets }}
 
     - uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ inputs.cache-key }}
 
     - name: Stamp the version
       shell: bash
