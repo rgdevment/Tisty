@@ -183,12 +183,9 @@ impl State {
             );
             return;
         }
-        // What an assistant writes on a task that exists lands only where the door lets it, and
-        // the door is judged here, at replay, so every machine projects the same whatever the
-        // server that wrote believed: a note anywhere; a bell anywhere, since it only ever adds;
-        // the rest of a patch on what an assistant filed; a fill-in — mark, description, steps —
-        // on what an assistant filed or the person opened to them; nothing else, ever — not a
-        // close, a drop, a move, a hide, a step taken back.
+        // The door an assistant's hand meets, judged at replay so every machine agrees: a note or
+        // a bell anywhere, a patch on what it filed, a fill-in where it filed or was let in, and
+        // nothing else — whatever the server that wrote it believed.
         if self.assistants.contains(&event.device)
             && let Some(id) = event.op.about_whom()
             && let Some(task) = self.tasks.get(&id)

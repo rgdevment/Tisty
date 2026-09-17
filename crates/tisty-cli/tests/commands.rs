@@ -2354,12 +2354,28 @@ fn an_assistant_at_the_persons_own_store_is_turned_away_and_told_which_mark_did_
         !home.path().join("data").exists(),
         "no store was opened, let alone written"
     );
-    let noted = std::fs::read_to_string(home.path().join("config/tisty/private/tisty.log"))
-        .unwrap_or_default();
+    let noted = log_under(home.path()).unwrap_or_default();
     assert!(
         noted.contains("turned away"),
         "the log keeps that it happened: {noted}"
     );
+}
+
+/// The witness log sits where the platform keeps config — XDG on Linux, Application Support on
+/// macOS — so the test looks for it rather than naming the place.
+#[cfg(unix)]
+fn log_under(root: &std::path::Path) -> Option<String> {
+    for entry in std::fs::read_dir(root).ok()?.flatten() {
+        let at = entry.path();
+        if at.is_dir() {
+            if let Some(found) = log_under(&at) {
+                return Some(found);
+            }
+        } else if at.file_name().is_some_and(|name| name == "tisty.log") {
+            return std::fs::read_to_string(&at).ok();
+        }
+    }
+    None
 }
 
 /// `TISTY_DATA` is how tests and `demo` step aside; aimed back at the person's own store it
@@ -2376,7 +2392,7 @@ fn naming_the_persons_own_store_by_its_path_does_not_open_the_gate() {
         .env("XDG_DATA_HOME", home.path().join("data"))
         .env("XDG_CONFIG_HOME", home.path().join("config"))
         .env("XDG_CACHE_HOME", home.path().join("cache"))
-        .env("TISTY_DATA", home.path().join("data/tisty"))
+        .env("TISTY_DATA", the_platforms_own_store(home.path()))
         .env("CLAUDECODE", "1")
         .env("NO_COLOR", "1")
         .env("LANG", "en_US.UTF-8")
@@ -2385,7 +2401,18 @@ fn naming_the_persons_own_store_by_its_path_does_not_open_the_gate() {
     let run = finish(command.output().unwrap());
 
     assert_eq!(run.code, 5, "{}", run.err);
-    assert!(!home.path().join("data/tisty/store").exists());
+    assert!(!the_platforms_own_store(home.path()).join("store").exists());
+}
+
+/// Where the binary keeps the person's data under this home: XDG on Linux, Application
+/// Support on macOS.
+#[cfg(unix)]
+fn the_platforms_own_store(home: &std::path::Path) -> std::path::PathBuf {
+    if cfg!(target_os = "macos") {
+        home.join("Library/Application Support/tisty")
+    } else {
+        home.join("data/tisty")
+    }
 }
 
 /// Letting an assistant in is done at a terminal: a shell with none — a script, a pipe, an
