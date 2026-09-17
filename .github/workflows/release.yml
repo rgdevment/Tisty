@@ -9,6 +9,10 @@ on:
         description: "Version to build. Publishes nothing."
         required: false
         default: "0.0.0-dispatch"
+      ship_cli:
+        description: "Also build the loose command line."
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -23,7 +27,7 @@ env:
   # The command line ships inside the app as the assistant's door; the loose binary and its
   # formula are built only when a release has a reason to (a fix for whoever installed
   # only that). Set the repository variable SHIP_CLI to "true" for that tag.
-  SHIP_CLI: ${{ vars.SHIP_CLI || 'false' }}
+  SHIP_CLI: ${{ inputs.ship_cli || vars.SHIP_CLI || 'false' }}
 
 jobs:
   gate:
@@ -312,6 +316,8 @@ jobs:
     needs: version
     runs-on: windows-latest
     timeout-minutes: 60
+    outputs:
+      stage: ${{ steps.stage.outputs.sha }}
     env:
       TARGET: x86_64-pc-windows-msvc
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
@@ -355,6 +361,7 @@ jobs:
 
       # The MSIX packs these same bytes; building them a second time over there bought nothing.
       - name: Set the binaries aside for the MSIX
+        id: stage
         shell: bash
         run: |
           mkdir -p stage/cli
@@ -363,6 +370,7 @@ jobs:
           if [ -d target/release/resources ]; then
             cp -R target/release/resources stage/resources
           fi
+          echo "sha=$(cat stage/Tisty.exe stage/cli/tisty.exe | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -626,6 +634,8 @@ jobs:
 
           test -s msix/Tisty.exe
           test -s msix/cli/tisty.exe
+          test "$(cat msix/Tisty.exe msix/cli/tisty.exe | sha256sum | cut -d' ' -f1)" \
+            = "${{ needs.bundle-windows.outputs.stage }}"
           test "$(./msix/cli/tisty.exe --version)" = "tisty $v"
           mkdir -p msix/Assets
           for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
@@ -687,7 +697,7 @@ jobs:
       && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     permissions:
       contents: write
       id-token: write
@@ -766,6 +776,29 @@ jobs:
             echo "TISTY_EOF"
           } >> "$GITHUB_OUTPUT"
 
+      # Asked before anything is out. Found afterwards, the release would already be published
+      # and marked latest while the feed refused to follow it, and the two would disagree.
+      - name: The feed does not walk backwards
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          if ! git fetch origin manifest --depth 1 2>/dev/null; then
+            echo "no feed yet"
+            exit 0
+          fi
+          feed=$(git show FETCH_HEAD:release-manifest.json 2>/dev/null || echo '{}')
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
+            was=$(jq -r '.latestPrerelease // ""' <<< "$feed"); track="candidates"
+          else
+            was=$(jq -r '.latest // ""' <<< "$feed"); track="stable"
+          fi
+          if [ -n "$was" ] && [ "$was" != "$v" ] \
+             && [ "$(printf '%s\n%s\n' "$was" "$v" | sort -V | tail -1)" != "$v" ]; then
+            echo "::error::the $track feed already says $was; publishing $v would hand everybody \
+                  a version they left behind"
+            exit 1
+          fi
+          echo "the $track feed says «${was:-nothing}»; $v may follow"
+
       # One file at a time, each on its own clock. A connection to uploads.github.com that stalls
       # never answers on its own, and an upload started with the others hung the whole step for as
       # long as the job was allowed to live.
@@ -787,20 +820,39 @@ jobs:
               --prerelease="$PRERELEASE" --generate-notes --notes-file "$RUNNER_TEMP/notes.md"
           fi
 
+          # A file already up with the same bytes stays: a rerun of the failed jobs carries the
+          # same artifacts and must not touch a live release. Other bytes on a published release
+          # are refused, because gh deletes an asset before uploading its replacement, and an
+          # upload that then stalls leaves a hole where every installed copy expects a file.
+          state=$(gh release view "$tag" --json isDraft,assets)
+          draft=$(jq -r .isDraft <<< "$state")
           for f in dist/*; do
-            # Two minutes plus ten seconds a megabyte: the slowest upload that ever finished
+            name=$(basename "$f")
+            have=$(jq -r --arg n "$name" '.assets[] | select(.name == $n) | .digest // ""' <<< "$state")
+            want="sha256:$(sha256sum "$f" | cut -d' ' -f1)"
+            if [ "$have" = "$want" ]; then
+              echo "$name is already up, same bytes"
+              continue
+            fi
+            if [ "$draft" = false ] && [ -n "$have" ]; then
+              echo "::error::$name is published with other bytes; this run would replace a live \
+                file. Rerun only the failed jobs, or delete the release and let it be made again."
+              exit 1
+            fi
+            # Three minutes plus twenty seconds a megabyte: the slowest upload that ever finished
             # moved at 68 KB/s, and one that has really stalled sends nothing at all.
-            secs=$((120 + $(stat -c %s "$f") / 100000))
+            secs=$((180 + $(stat -c %s "$f") / 50000))
             for attempt in 1 2 3; do
+              began=$(date +%s)
               if timeout "$secs" gh release upload "$tag" "$f" --clobber; then
-                echo "$f is up"
+                echo "$name is up in $(( $(date +%s) - began ))s"
                 break
               fi
               if [ "$attempt" = 3 ]; then
-                echo "::error::$f never made it up; the release stays a draft"
+                echo "::error::$name never made it up; the release stays a draft"
                 exit 1
               fi
-              echo "::warning::$f stalled after ${secs}s (${attempt}/3)"
+              echo "::warning::$name stalled after ${secs}s (${attempt}/3)"
               sleep $((attempt * 10))
             done
           done
@@ -1114,7 +1166,7 @@ jobs:
 
           	  url "${BASE}/tisty-installer-${VERSION}-macos-#{arch}.dmg"
           	  name "Tisty"
-          	  desc "Local, private task manager whose archive is the point${SUFFIX}"
+          	  desc "Notes, documents and tasks, all local, no subscription, no telemetry${SUFFIX}"
           	  homepage "https://github.com/${{ github.repository }}"
 
           	  auto_updates true
@@ -1138,7 +1190,7 @@ jobs:
           if [ -n "$CLI_SHA" ]; then
           cat > "Formula/${FORMULA}.rb" <<-FORMULA
           	class ${CLASS} < Formula
-          	  desc "Command line for Tisty, the local task manager${SUFFIX}"
+          	  desc "Command line for Tisty: maintenance, and the door for an assistant${SUFFIX}"
           	  homepage "https://github.com/${{ github.repository }}"
           	  url "${BASE}/${CLI}"
           	  version "${VERSION}"
