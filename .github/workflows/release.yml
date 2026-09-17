@@ -9,6 +9,10 @@ on:
         description: "Version to build. Publishes nothing."
         required: false
         default: "0.0.0-dispatch"
+      ship_cli:
+        description: "Also build the loose command line."
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -23,7 +27,7 @@ env:
   # The command line ships inside the app as the assistant's door; the loose binary and its
   # formula are built only when a release has a reason to (a fix for whoever installed
   # only that). Set the repository variable SHIP_CLI to "true" for that tag.
-  SHIP_CLI: ${{ vars.SHIP_CLI || 'false' }}
+  SHIP_CLI: ${{ inputs.ship_cli || vars.SHIP_CLI || 'false' }}
 
 jobs:
   gate:
@@ -59,15 +63,18 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets
 
+  # The builds start as soon as the version is known; fmt and clippy still gate publishing below,
+  # so a run that fails them ships nothing, it only finds out later.
   version:
     name: Resolve the version
-    needs: [gate, rust]
+    needs: [gate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       prerelease: ${{ steps.resolve.outputs.prerelease }}
       macos: ${{ steps.resolve.outputs.macos }}
+      cli: ${{ steps.resolve.outputs.cli }}
     env:
       MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
       MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -311,6 +318,8 @@ jobs:
     needs: version
     runs-on: windows-latest
     timeout-minutes: 60
+    outputs:
+      stage: ${{ steps.stage.outputs.sha }}
     env:
       TARGET: x86_64-pc-windows-msvc
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
@@ -335,12 +344,14 @@ jobs:
         working-directory: app
         run: npm ci
 
+      # Built where `tauri build` builds, without `--target`: aimed at a target directory of its own,
+      # the workspace crates were compiled a second time for the app in the same job.
       - name: The CLI rides along
         shell: bash
         run: |
-          cargo build --release --bin tisty --target "$TARGET"
+          cargo build --release --bin tisty
           mkdir -p app/src-tauri/binaries
-          cp "target/$TARGET/release/tisty.exe" "app/src-tauri/binaries/tisty-$TARGET.exe"
+          cp target/release/tisty.exe "app/src-tauri/binaries/tisty-$TARGET.exe"
 
       # A public key in the config makes the private one a build requirement, so a run without the
       # secret has to say so rather than fail on a line about an environment variable.
@@ -351,6 +362,26 @@ jobs:
           sign=""
           if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then sign="--no-sign"; fi
           npm run tauri build -- --bundles nsis $sign
+
+      # The MSIX packs these same bytes; building them a second time over there bought nothing.
+      - name: Set the binaries aside for the MSIX
+        id: stage
+        shell: bash
+        run: |
+          mkdir -p stage/cli
+          cp target/release/tisty-gui.exe stage/Tisty.exe
+          cp target/release/tisty.exe stage/cli/tisty.exe
+          if [ -d target/release/resources ]; then
+            cp -R target/release/resources stage/resources
+          fi
+          echo "sha=$(cat stage/Tisty.exe stage/cli/tisty.exe | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage-windows
+          path: stage
+          retention-days: 5
+          if-no-files-found: error
 
       - name: Sign the installer
         if: env.PFX_BASE64 != ''
@@ -412,13 +443,25 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  # One disk image per architecture: half the bytes to upload, half for the updater to fetch,
+  # and both halves notarised side by side instead of one universal bundle after the other.
   bundle-macos:
-    name: tisty-macos-installer
+    name: tisty-macos-installer (${{ matrix.arch }})
     needs: version
     if: needs.version.outputs.macos == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            arch: aarch64
+          - target: x86_64-apple-darwin
+            arch: x86_64
     env:
+      TARGET: ${{ matrix.target }}
+      ARCH: ${{ matrix.arch }}
       MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
@@ -431,7 +474,8 @@ jobs:
       - uses: ./.github/actions/prepare
         with:
           version: ${{ needs.version.outputs.version }}
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
+          targets: ${{ matrix.target }}
+          cache-key: ${{ matrix.target }}
 
       - uses: actions/setup-node@v4
         with:
@@ -443,19 +487,19 @@ jobs:
         working-directory: app
         run: npm ci
 
+      # The bundler exports this for the app from the config, and cc recompiles everything native
+      # when it changes; set for the whole job, sqlite is built once and the CLI carries the same
+      # minimum system as the app it rides in.
+      - name: One deployment target for the CLI and the app
+        run: |
+          floor=$(jq -r '.bundle.macOS.minimumSystemVersion' app/src-tauri/tauri.conf.json)
+          echo "MACOSX_DEPLOYMENT_TARGET=$floor" >> "$GITHUB_ENV"
+
       - name: The CLI rides along
         run: |
-          cargo build --release --bin tisty --target aarch64-apple-darwin
-          cargo build --release --bin tisty --target x86_64-apple-darwin
+          cargo build --release --bin tisty --target "$TARGET"
           mkdir -p app/src-tauri/binaries
-          cp target/aarch64-apple-darwin/release/tisty \
-            app/src-tauri/binaries/tisty-aarch64-apple-darwin
-          cp target/x86_64-apple-darwin/release/tisty \
-            app/src-tauri/binaries/tisty-x86_64-apple-darwin
-          lipo -create -output app/src-tauri/binaries/tisty-universal-apple-darwin \
-            target/aarch64-apple-darwin/release/tisty \
-            target/x86_64-apple-darwin/release/tisty
-          lipo -archs app/src-tauri/binaries/tisty-universal-apple-darwin
+          cp "target/$TARGET/release/tisty" "app/src-tauri/binaries/tisty-$TARGET"
 
       - name: Bundle
         working-directory: app
@@ -463,12 +507,25 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: npm run tauri build -- --target universal-apple-darwin --bundles app,dmg
+        run: npm run tauri build -- --target "$TARGET" --bundles app,dmg
+
+      - name: The app is one architecture
+        run: |
+          app=$(ls -d "target/$TARGET/release/bundle/macos"/*.app | head -1)
+          want=x86_64; [ "$ARCH" = aarch64 ] && want=arm64
+          for bin in "$app"/Contents/MacOS/*; do
+            archs=$(lipo -archs "$bin")
+            if [ "$archs" != "$want" ]; then
+              echo "::error::$(basename "$bin") is «$archs», not $want alone"
+              exit 1
+            fi
+            echo "$(basename "$bin"): $archs"
+          done
 
       - name: The app is really signed
         if: env.MACOS_CERTIFICATE_P12 != ''
         run: |
-          app=$(ls -d target/universal-apple-darwin/release/bundle/macos/*.app | head -1)
+          app=$(ls -d "target/$TARGET/release/bundle/macos"/*.app | head -1)
           codesign --verify --deep --strict --verbose=2 "$app"
           if codesign -dv "$app" 2>&1 | grep -q "Signature=adhoc"; then
             echo "::error::$app came out ad-hoc signed; notarisation would refuse it"
@@ -478,7 +535,7 @@ jobs:
       - name: Notarize
         if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
         run: |
-          dmg=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
+          dmg=$(ls "target/$TARGET/release/bundle/dmg"/*.dmg | head -1)
           xcrun notarytool submit "$dmg" \
             --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" --wait --timeout 900
@@ -490,7 +547,7 @@ jobs:
       - name: Staple the app itself, and tar it again
         if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
         run: |
-          out="target/universal-apple-darwin/release/bundle/macos"
+          out="target/$TARGET/release/bundle/macos"
           app=$(ls -d "$out"/*.app | head -1)
 
           ditto -c -k --keepParent "$app" "$RUNNER_TEMP/app.zip"
@@ -512,7 +569,7 @@ jobs:
         if: env.TAURI_SIGNING_PRIVATE_KEY != '' && env.APPLE_ID != ''
         working-directory: app
         run: |
-          out="../target/universal-apple-darwin/release/bundle/macos"
+          out="../target/$TARGET/release/bundle/macos"
           npm run tauri -- signer sign "$out/Tisty.app.tar.gz"
           test -s "$out/Tisty.app.tar.gz.sig"
 
@@ -520,43 +577,42 @@ jobs:
         run: |
           v="${{ needs.version.outputs.version }}"
           mkdir -p dist
-          out="target/universal-apple-darwin/release/bundle/macos"
+          out="target/$TARGET/release/bundle/macos"
           # The bundler leaves a tarball of its own during the build, before any of the stapling.
           # Publishing that one would replace a notarised app with an unnotarised one, so it only
           # travels when the ticket is on it.
           app=$(ls -d "$out"/*.app 2>/dev/null | head -1)
           if [ -n "$app" ] && xcrun stapler validate "$app" >/dev/null 2>&1 \
             && [ -s "$out/Tisty.app.tar.gz.sig" ]; then
-            cp "$out/Tisty.app.tar.gz" "dist/tisty-$v-macos-universal.app.tar.gz"
-            cp "$out/Tisty.app.tar.gz.sig" "dist/tisty-$v-macos-universal.app.tar.gz.sig"
+            cp "$out/Tisty.app.tar.gz" "dist/tisty-$v-macos-$ARCH.app.tar.gz"
+            cp "$out/Tisty.app.tar.gz.sig" "dist/tisty-$v-macos-$ARCH.app.tar.gz.sig"
           else
-            echo "::warning::no stapled, signed tarball; macOS gets no self-update this release"
+            echo "::warning::no stapled, signed tarball; macOS $ARCH gets no self-update this release"
             rm -f "$out/Tisty.app.tar.gz" "$out/Tisty.app.tar.gz.sig"
           fi
-          dmg=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
+          dmg=$(ls "target/$TARGET/release/bundle/dmg"/*.dmg | head -1)
           if [ -z "$dmg" ]; then
             echo "::error::the bundler produced no disk image"
             exit 1
           fi
-          cp "$dmg" "dist/tisty-installer-$v-macos-universal.dmg"
+          cp "$dmg" "dist/tisty-installer-$v-macos-$ARCH.dmg"
           ls -l dist
 
       - uses: actions/upload-artifact@v4
         with:
-          name: bundle-macos
+          name: bundle-macos-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
 
   bundle-msix:
     name: tisty-windows-msix
-    needs: version
+    needs: [version, bundle-windows]
     if: needs.version.outputs.prerelease == 'false'
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 20
     outputs:
       made: ${{ steps.gate.outputs.go }}
     env:
-      TARGET: x86_64-pc-windows-msvc
       MSIX_IDENTITY: ${{ vars.MSIX_IDENTITY }}
       MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
       MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
@@ -575,36 +631,11 @@ jobs:
       - uses: actions/checkout@v6
         if: steps.gate.outputs.go == 'yes'
 
-      - uses: ./.github/actions/prepare
+      - uses: actions/download-artifact@v7
         if: steps.gate.outputs.go == 'yes'
         with:
-          version: ${{ needs.version.outputs.version }}
-          targets: ${{ env.TARGET }}
-
-      - uses: actions/setup-node@v4
-        if: steps.gate.outputs.go == 'yes'
-        with:
-          node-version: lts/*
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-
-      - name: Frontend
-        if: steps.gate.outputs.go == 'yes'
-        working-directory: app
-        run: npm ci
-
-      - name: The CLI rides along
-        if: steps.gate.outputs.go == 'yes'
-        shell: bash
-        run: |
-          cargo build --release --bin tisty --target "$TARGET"
-          mkdir -p app/src-tauri/binaries
-          cp "target/$TARGET/release/tisty.exe" "app/src-tauri/binaries/tisty-$TARGET.exe"
-
-      - name: Build
-        if: steps.gate.outputs.go == 'yes'
-        working-directory: app
-        run: npm run tauri build -- --no-bundle
+          name: stage-windows
+          path: msix
 
       - name: Lay the package out
         if: steps.gate.outputs.go == 'yes'
@@ -613,12 +644,12 @@ jobs:
           v="${{ needs.version.outputs.version }}"
           quad="${v%%-*}.0"
 
-          mkdir -p msix/Assets msix/cli
-          cp target/release/tisty-gui.exe msix/Tisty.exe
-          cp "target/$TARGET/release/tisty.exe" msix/cli/tisty.exe
-          if [ -d target/release/resources ]; then
-            cp -R target/release/resources msix/resources
-          fi
+          test -s msix/Tisty.exe
+          test -s msix/cli/tisty.exe
+          test "$(cat msix/Tisty.exe msix/cli/tisty.exe | sha256sum | cut -d' ' -f1)" \
+            = "${{ needs.bundle-windows.outputs.stage }}"
+          test "$(./msix/cli/tisty.exe --version)" = "tisty $v"
+          mkdir -p msix/Assets
           for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
             cp "app/src-tauri/icons/$logo.png" "msix/Assets/$logo.png"
           done
@@ -668,17 +699,17 @@ jobs:
   publish:
     name: GitHub Release
     needs:
-      [version, build-macos, build-windows, bundle-windows, bundle-macos, bundle-msix]
+      [rust, version, build-macos, build-windows, bundle-windows, bundle-macos, bundle-msix]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-      && needs.version.result == 'success'
+      && needs.rust.result == 'success' && needs.version.result == 'success'
       && (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped')
       && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped')
       && needs.bundle-windows.result == 'success'
       && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     permissions:
       contents: write
       id-token: write
@@ -688,8 +719,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      # By prefix, not everything: the run also carries binaries set aside between jobs.
       - uses: actions/download-artifact@v7
         with:
+          pattern: bundle-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: cli-*
           path: dist
           merge-multiple: true
 
@@ -713,13 +751,15 @@ jobs:
           if [ "${SHIP_CLI}" = "true" ]; then want="$want tisty-cli-$v-windows-x86_64.zip"; fi
           if [ "${BUILD_MACOS}" = "true" ]; then
             if [ "${SHIP_CLI}" = "true" ]; then want="$want tisty-cli-$v-macos-universal.tar.gz"; fi
-            want="$want tisty-installer-$v-macos-universal.dmg"
+            for arch in aarch64 x86_64; do want="$want tisty-installer-$v-macos-$arch.dmg"; done
           fi
           # A missing signature is a release nobody can install. It has to be loud here.
           if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
             want="$want tisty-installer-$v-windows-x86_64.exe.sig"
             if [ "${BUILD_MACOS}" = "true" ]; then
-              want="$want tisty-$v-macos-universal.app.tar.gz tisty-$v-macos-universal.app.tar.gz.sig"
+              for arch in aarch64 x86_64; do
+                want="$want tisty-$v-macos-$arch.app.tar.gz tisty-$v-macos-$arch.app.tar.gz.sig"
+              done
             fi
           fi
           for f in $want; do
@@ -748,36 +788,112 @@ jobs:
             echo "TISTY_EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: softprops/action-gh-release@v3
-        with:
-          body: ${{ steps.notes.outputs.body }}
-          generate_release_notes: true
-          prerelease: ${{ needs.version.outputs.prerelease == 'true' }}
-          make_latest: ${{ needs.version.outputs.prerelease == 'false' }}
-          files: dist/*
+      # Asked before anything is out. Found afterwards, the release would already be published
+      # and marked latest while the feed refused to follow it, and the two would disagree.
+      - name: The feed does not walk backwards
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          if ! git fetch origin manifest --depth 1 2>/dev/null; then
+            echo "no feed yet"
+            exit 0
+          fi
+          feed=$(git show FETCH_HEAD:release-manifest.json 2>/dev/null || echo '{}')
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
+            was=$(jq -r '.latestPrerelease // ""' <<< "$feed"); track="candidates"
+          else
+            was=$(jq -r '.latest // ""' <<< "$feed"); track="stable"
+          fi
+          if [ -n "$was" ] && [ "$was" != "$v" ] \
+             && [ "$(printf '%s\n%s\n' "$was" "$v" | sort -V | tail -1)" != "$v" ]; then
+            echo "::error::the $track feed already says $was; publishing $v would hand everybody \
+                  a version they left behind"
+            exit 1
+          fi
+          echo "the $track feed says «${was:-nothing}»; $v may follow"
+
+      # One file at a time, each on its own clock. A connection to uploads.github.com that stalls
+      # never answers on its own, and an upload started with the others hung the whole step for as
+      # long as the job was allowed to live.
+      - name: Publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTES: ${{ steps.notes.outputs.body }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          printf '%s\n' "$NOTES" > "$RUNNER_TEMP/notes.md"
+
+          # Born a draft: nobody is offered a release with half its files, and a rerun picks up
+          # the one it left instead of making another. Only a listing that answered and lacks
+          # the tag makes a new one: an error read as «not there» would leave two drafts on it.
+          tags=$(gh release list --limit 200 --json tagName --jq '.[].tagName')
+          if ! grep -qx "$tag" <<< "$tags"; then
+            gh release create "$tag" --draft --verify-tag --title "$tag" \
+              --prerelease="$PRERELEASE" --generate-notes --notes-file "$RUNNER_TEMP/notes.md"
+          fi
+
+          # A file already up with the same bytes stays: a rerun of the failed jobs carries the
+          # same artifacts and must not touch a live release. Other bytes on a published release
+          # are refused, because gh deletes an asset before uploading its replacement, and an
+          # upload that then stalls leaves a hole where every installed copy expects a file.
+          state=$(gh release view "$tag" --json isDraft,assets)
+          draft=$(jq -r .isDraft <<< "$state")
+          for f in dist/*; do
+            name=$(basename "$f")
+            have=$(jq -r --arg n "$name" '.assets[] | select(.name == $n) | .digest // ""' <<< "$state")
+            want="sha256:$(sha256sum "$f" | cut -d' ' -f1)"
+            if [ "$have" = "$want" ]; then
+              echo "$name is already up, same bytes"
+              continue
+            fi
+            if [ "$draft" = false ] && [ -n "$have" ]; then
+              echo "::error::$name is published with other bytes; this run would replace a live \
+                file. Rerun only the failed jobs, or delete the release and let it be made again."
+              exit 1
+            fi
+            # Three minutes plus twenty seconds a megabyte: the slowest upload that ever finished
+            # moved at 68 KB/s, and one that has really stalled sends nothing at all.
+            secs=$((180 + $(stat -c %s "$f") / 50000))
+            for attempt in 1 2 3; do
+              began=$(date +%s)
+              if timeout "$secs" gh release upload "$tag" "$f" --clobber; then
+                echo "$name is up in $(( $(date +%s) - began ))s"
+                break
+              fi
+              if [ "$attempt" = 3 ]; then
+                echo "::error::$name never made it up; the release stays a draft"
+                exit 1
+              fi
+              echo "::warning::$name stalled after ${secs}s (${attempt}/3)"
+              sleep $((attempt * 10))
+            done
+          done
+
+          latest=false; [ "$PRERELEASE" = "false" ] && latest=true
+          gh release edit "$tag" --draft=false --latest="$latest"
 
       - name: Release manifest
         run: |
           v="${{ needs.version.outputs.version }}"
           base="https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}"
           win="tisty-installer-$v-windows-x86_64.exe"
-          mac="tisty-$v-macos-universal.app.tar.gz"
+          arm="tisty-$v-macos-aarch64.app.tar.gz"
+          intel="tisty-$v-macos-x86_64.app.tar.gz"
 
           # Composed before the checkout below swaps the working tree out from under us.
           if [ -s "dist/$win.sig" ]; then
             ws=$(cat "dist/$win.sig")
-            ms=$(cat "dist/$mac.sig" 2>/dev/null || true)
+            as=$(cat "dist/$arm.sig" 2>/dev/null || true)
+            is=$(cat "dist/$intel.sig" 2>/dev/null || true)
             jq -n --arg v "$v" \
                   --arg n "https://github.com/${{ github.repository }}/releases/tag/${GITHUB_REF_NAME}" \
                   --arg wu "$base/$win" --arg ws "$ws" \
-                  --arg mu "$base/$mac" --arg ms "$ms" \
+                  --arg au "$base/$arm" --arg as "$as" \
+                  --arg iu "$base/$intel" --arg is "$is" \
               '{version: $v, notes: $n, platforms:
                  ({"windows-x86_64": {url: $wu, signature: $ws}}
-                  + (if $ms == "" then {}
-                     else {"darwin-aarch64": {url: $mu, signature: $ms},
-                           "darwin-x86_64":  {url: $mu, signature: $ms}} end))}' \
+                  + (if $as == "" then {} else {"darwin-aarch64": {url: $au, signature: $as}} end)
+                  + (if $is == "" then {} else {"darwin-x86_64": {url: $iu, signature: $is}} end))}' \
               > "$RUNNER_TEMP/channel.json"
             cat "$RUNNER_TEMP/channel.json"
           elif [ "${{ github.event_name }}" = "push" ]; then
@@ -1004,7 +1120,8 @@ jobs:
           VERSION="${{ needs.version.outputs.version }}"
           BASE="https://github.com/${{ github.repository }}/releases/download/${TAG}"
 
-          DMG="tisty-installer-${VERSION}-macos-universal.dmg"
+          DMG_ARM="tisty-installer-${VERSION}-macos-aarch64.dmg"
+          DMG_INTEL="tisty-installer-${VERSION}-macos-x86_64.dmg"
           CLI="tisty-cli-${VERSION}-macos-universal.tar.gz"
 
           if [[ "$VERSION" == *-* ]]; then
@@ -1035,11 +1152,13 @@ jobs:
             CLI_SHA=$(sha256sum "/tmp/$CLI" | awk '{print $1}')
           fi
 
-          DMG_SHA=""
-          if fetch "$DMG"; then
-            DMG_SHA=$(sha256sum "/tmp/$DMG" | awk '{print $1}')
+          # The cask names both images at once, so it moves only when both are there.
+          ARM_SHA=""; INTEL_SHA=""
+          if fetch "$DMG_ARM" && fetch "$DMG_INTEL"; then
+            ARM_SHA=$(sha256sum "/tmp/$DMG_ARM" | awk '{print $1}')
+            INTEL_SHA=$(sha256sum "/tmp/$DMG_INTEL" | awk '{print $1}')
           else
-            echo "::warning::no disk image for ${VERSION}; leaving the cask as it is"
+            echo "::warning::a disk image is missing for ${VERSION}; leaving the cask as it is"
           fi
 
           git clone "https://x-access-token:${GIST_TOKEN}@github.com/rgdevment/homebrew-tap.git" /tmp/tap
@@ -1048,15 +1167,18 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           mkdir -p Casks Formula
 
-          if [ -n "$DMG_SHA" ]; then
+          if [ -n "$ARM_SHA" ] && [ -n "$INTEL_SHA" ]; then
             cat > "Casks/${CASK}.rb" <<-CASK
           	cask "${CASK}" do
-          	  version "${VERSION}"
-          	  sha256 "${DMG_SHA}"
+          	  arch arm: "aarch64", intel: "x86_64"
 
-          	  url "${BASE}/${DMG}"
+          	  version "${VERSION}"
+          	  sha256 arm:   "${ARM_SHA}",
+          	         intel: "${INTEL_SHA}"
+
+          	  url "${BASE}/tisty-installer-${VERSION}-macos-#{arch}.dmg"
           	  name "Tisty"
-          	  desc "Local, private task manager whose archive is the point${SUFFIX}"
+          	  desc "Notes, documents and tasks, all local, no subscription, no telemetry${SUFFIX}"
           	  homepage "https://github.com/${{ github.repository }}"
 
           	  auto_updates true
@@ -1080,7 +1202,7 @@ jobs:
           if [ -n "$CLI_SHA" ]; then
           cat > "Formula/${FORMULA}.rb" <<-FORMULA
           	class ${CLASS} < Formula
-          	  desc "Command line for Tisty, the local task manager${SUFFIX}"
+          	  desc "Command line for Tisty: maintenance, and the door for an assistant${SUFFIX}"
           	  homepage "https://github.com/${{ github.repository }}"
           	  url "${BASE}/${CLI}"
           	  version "${VERSION}"

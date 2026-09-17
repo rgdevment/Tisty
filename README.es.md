@@ -78,7 +78,7 @@
     <sub>¿Prefieres la descarga directa?
     <a href="https://github.com/rgdevment/Tisty/releases/latest">GitHub
     Releases</a> lleva los instaladores firmados — Windows (.exe) · macOS
-    (.dmg)</sub>
+    (.dmg, uno por chip)</sub>
   </p>
 
   <p>
@@ -299,7 +299,9 @@ $ brew install --cask tisty
 
 O toma la imagen de disco y el instalador directamente de
 [Releases](https://github.com/rgdevment/Tisty/releases), en cualquiera de los
-dos sistemas.
+dos sistemas. En macOS hay dos imágenes: `aarch64` para Apple Silicon y
+`x86_64` para Intel — menú Apple › *Acerca de este Mac* dice cuál es la tuya.
+Homebrew elige sola.
 
 ## Qué hace
 

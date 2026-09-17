@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** September 12, 2026
+**Last updated:** September 17, 2026
 
 ## The short version
 
@@ -180,7 +180,10 @@ address. They go to `raw.githubusercontent.com` and to `github.com`, which
 hands the download on to `objects.githubusercontent.com`, all over HTTPS,
 and both carry what any download carries: an address to send the bytes back to,
 and a user agent — here `tauri-plugin-updater/<version>`, the library doing the
-fetching. Nothing about you, nothing about what you have written.
+fetching. On a Mac the installer asked for is the one built for its chip, so
+the name of that download says whether the machine is Apple Silicon or Intel —
+as a download made by hand from the releases page would. Nothing about you,
+nothing about what you have written.
 
 This is the one place where an address that arrived over the network is opened,
 which is why it is fenced twice. The address has to be where this project's

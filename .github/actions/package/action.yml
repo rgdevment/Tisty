@@ -41,6 +41,6 @@ runs:
 
     - uses: actions/upload-artifact@v6
       with:
-        name: ${{ inputs.name }}
+        name: cli-${{ inputs.name }}
         path: dist/*
         retention-days: 5

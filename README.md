@@ -78,7 +78,7 @@
     <sub>Prefer a direct download?
     <a href="https://github.com/rgdevment/Tisty/releases/latest">GitHub
     Releases</a> carries the signed installers — Windows (.exe) · macOS
-    (.dmg)</sub>
+    (.dmg, one per chip)</sub>
   </p>
 
   <p>
@@ -297,6 +297,9 @@ $ brew install --cask tisty
 
 Or take the disk image and the installer straight from
 [Releases](https://github.com/rgdevment/Tisty/releases), on either system.
+On macOS there are two images: `aarch64` for Apple Silicon and `x86_64` for
+Intel — Apple menu › *About This Mac* says which one yours is. Homebrew picks
+by itself.
 
 ## What It Does
 

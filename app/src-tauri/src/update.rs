@@ -186,6 +186,14 @@ pub fn from_a_mount() -> bool {
     mounted(std::env::current_exe().ok().as_deref())
 }
 
+/// The plugin names the platform after the architecture the binary was built for, and a copy
+/// running under Rosetta would ask for Intel on a machine that is not. Only an Apple Silicon Mac
+/// can be translating, so a translated copy asks for the native build and comes out of the update
+/// as it.
+pub fn platform(translated: bool) -> Option<&'static str> {
+    translated.then_some("darwin-aarch64")
+}
+
 const PREFIXES: [&str; 2] = ["/opt/homebrew", "/usr/local"];
 const CASKS: [&str; 2] = ["tisty", "tisty-beta"];
 const FORMULAE: [&str; 2] = ["tisty-cli", "tisty-cli-beta"];
@@ -245,6 +253,16 @@ mod tests {
     use super::*;
 
     const FEED: &str = r#"{"schema":1,"latest":"0.3.0","latestPrerelease":"0.4.0-rc1"}"#;
+
+    #[test]
+    fn a_copy_under_rosetta_asks_for_the_native_build_and_no_other_copy_chooses() {
+        assert_eq!(platform(true), Some("darwin-aarch64"));
+        assert_eq!(
+            platform(false),
+            None,
+            "the plugin's own architecture stands"
+        );
+    }
 
     #[test]
     fn a_stable_copy_is_never_pointed_at_a_candidate() {
