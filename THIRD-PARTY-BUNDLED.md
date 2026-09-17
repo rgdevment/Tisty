@@ -269,7 +269,7 @@ instead.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (377 crates)
+## In the core (380 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -444,6 +444,7 @@ instead.
 | `muda` | 0.19.3 | Apache-2.0 OR MIT |
 | `new_debug_unreachable` | 1.0.6 | MIT |
 | `notify-rust` | 4.18.0 | MIT OR Apache-2.0 |
+| `ntapi` | 0.4.3 | Apache-2.0 OR MIT |
 | `num-conv` | 0.2.2 | MIT OR Apache-2.0 |
 | `num-traits` | 0.2.19 | MIT OR Apache-2.0 |
 | `once_cell` | 1.21.4 | MIT OR Apache-2.0 |
@@ -493,7 +494,7 @@ instead.
 | `rusqlite` | 0.37.0 | MIT |
 | `rustc_version` | 0.4.1 | MIT OR Apache-2.0 |
 | `rustc-hash` | 2.1.3 | Apache-2.0 OR MIT |
-| `rustls` | 0.23.43 | Apache-2.0 OR ISC OR MIT |
+| `rustls` | 0.23.45 | Apache-2.0 OR ISC OR MIT |
 | `rustls-pki-types` | 1.15.1 | MIT OR Apache-2.0 |
 | `rustls-platform-verifier` | 0.7.0 | MIT OR Apache-2.0 |
 | `rustls-webpki` | 0.103.14 | ISC |
@@ -536,6 +537,7 @@ instead.
 | `sync_wrapper` | 1.0.2 | Apache-2.0 |
 | `synstructure` | 0.13.2 | MIT |
 | `sys-locale` | 0.3.2 | MIT OR Apache-2.0 |
+| `sysinfo` | 0.39.6 | MIT |
 | `tao` | 0.35.3 | Apache-2.0 |
 | `tauri` | 2.11.5 | Apache-2.0 OR MIT |
 | `tauri-build` | 2.6.3 | Apache-2.0 OR MIT |
@@ -613,6 +615,7 @@ instead.
 | `webview2-com-macros` | 0.8.1 | MIT |
 | `webview2-com-sys` | 0.38.2 | MIT |
 | `weezl` | 0.1.12 | MIT OR Apache-2.0 |
+| `winapi` | 0.3.9 | MIT/Apache-2.0 |
 | `winapi-util` | 0.1.11 | Unlicense OR MIT |
 | `window-vibrancy` | 0.6.0 | Apache-2.0 OR MIT |
 | `windows` | 0.61.3 | MIT OR Apache-2.0 |

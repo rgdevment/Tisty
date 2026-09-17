@@ -132,6 +132,23 @@ impl App {
         self.commit_marked(ops, false, true)
     }
 
+    /// Written only if the store, read again under the lock, still allows it: `None` when it
+    /// moved since this terminal read it.
+    pub fn commit_unless(
+        &mut self,
+        ops: Vec<Op>,
+        settled: impl FnOnce(&[Event]) -> bool,
+    ) -> tisty_core::Result<Option<usize>> {
+        let Some(events) = self.store.append_batch_unless(ops, settled)? else {
+            return Ok(None);
+        };
+        for event in &events {
+            self.state.apply(event);
+        }
+        self.refresh(&events);
+        Ok(Some(events.len()))
+    }
+
     fn commit_marked(&mut self, ops: Vec<Op>, undo: bool, redo: bool) -> tisty_core::Result<usize> {
         let events = self.store.append_batch_tagged(ops, undo, redo)?;
         for event in &events {
@@ -151,11 +168,17 @@ impl App {
         );
     }
 
-    pub fn last_own_change(&self) -> tisty_core::Result<Vec<(Event, State)>> {
+    /// The last change of this machine's own, each event with what takes it back — worked out
+    /// in the one replay, against the state just before it. A bulk of thousands is one batch,
+    /// and keeping a copy of the whole state per event of it would cost the machine its memory.
+    pub fn last_own_change(&self) -> tisty_core::Result<Vec<(Event, Option<Vec<Op>>)>> {
         self.reachable_change(false)
     }
 
-    fn reachable_change(&self, want_undo: bool) -> tisty_core::Result<Vec<(Event, State)>> {
+    fn reachable_change(
+        &self,
+        want_undo: bool,
+    ) -> tisty_core::Result<Vec<(Event, Option<Vec<Op>>)>> {
         let events = self.store.read_all()?;
         let mine: Vec<usize> = events
             .iter()
@@ -200,8 +223,8 @@ impl App {
             }
         };
 
-        let wanted: Vec<usize> = match events[last].batch {
-            None => vec![last],
+        let wanted: std::collections::BTreeSet<usize> = match events[last].batch {
+            None => std::iter::once(last).collect(),
             Some(batch) => events
                 .iter()
                 .enumerate()
@@ -214,7 +237,7 @@ impl App {
         let mut found = Vec::with_capacity(wanted.len());
         for (i, event) in events.iter().enumerate() {
             if wanted.contains(&i) {
-                found.push((event.clone(), state.clone()));
+                found.push((event.clone(), tisty_core::inverse(event, &state)));
             }
             state.apply(event);
         }

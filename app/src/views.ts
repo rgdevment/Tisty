@@ -119,12 +119,13 @@ export function invite(chosen: Chosen, lists: List[]): string {
   return t("addTask");
 }
 
-export function nothing(chosen: Chosen, searching: boolean): string {
+export function nothing(chosen: Chosen, searching: boolean, tracesHidden = 0): string {
   if (searching) return t(chosen.named === "archive" ? "noHitsHere" : "noHits");
   if (chosen.named === "search") return t("searchInvite");
   if (chosen.named === "archive") {
     if (chosen.folded) return t("archiveEmpty");
     const layer = chosen.layer ?? "story";
+    if (layer === "trace" && tracesHidden > 0) return fill("traceHidden", String(tracesHidden));
     return t(
       layer === "story" ? "storiesEmpty" : layer === "routine" ? "routinesEmpty" : "traceEmpty",
     );

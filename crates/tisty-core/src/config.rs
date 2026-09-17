@@ -58,6 +58,26 @@ pub enum Closing {
     Quit,
 }
 
+/// The look the person chose; absent, the window follows the computer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    Light,
+    Dark,
+}
+
+impl std::str::FromStr for Theme {
+    type Err = ();
+
+    fn from_str(said: &str) -> std::result::Result<Self, ()> {
+        match said {
+            "light" => Ok(Self::Light),
+            "dark" => Ok(Self::Dark),
+            _ => Err(()),
+        }
+    }
+}
+
 /// Where a large attachment lives once there is a shared folder to keep it in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
@@ -83,6 +103,8 @@ pub struct Config {
     pub opened_by: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on_close: Option<Closing>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub theme: Option<Theme>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub backed_up_at: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -134,6 +156,7 @@ impl Config {
             holds: None,
             opened_by: None,
             on_close: None,
+            theme: None,
             backed_up_at: None,
             sync: None,
             synced_at: None,
@@ -420,6 +443,7 @@ mod tests {
             editor: None,
             opened_by: Some("0.1.0".into()),
             on_close: Some(Closing::Hide),
+            theme: Some(Theme::Dark),
             backed_up_at: None,
             sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
             synced_at: None,
@@ -443,6 +467,22 @@ mod tests {
         );
     }
 
+    /// A file from before the choice existed follows the computer, and the word in the file
+    /// is the one settings shows, so a hand edit reads back.
+    #[test]
+    fn the_look_follows_the_computer_until_one_is_chosen() {
+        let before: Config = toml::from_str(r#"device_id = "dev_a""#).unwrap();
+        assert_eq!(before.theme, None);
+
+        let chosen: Config = toml::from_str("device_id = \"dev_a\"\ntheme = \"light\"").unwrap();
+        assert_eq!(chosen.theme, Some(Theme::Light));
+        assert_eq!("dark".parse(), Ok(Theme::Dark));
+        assert_eq!("system".parse::<Theme>(), Err(()));
+
+        let written = toml::to_string_pretty(&chosen).unwrap();
+        assert!(written.contains("theme = \"light\""), "{written}");
+    }
+
     mod ceilings {
         use super::*;
 
@@ -462,6 +502,7 @@ mod tests {
                 holds: None,
                 opened_by: None,
                 on_close: None,
+                theme: None,
                 backed_up_at: None,
                 sync: None,
                 synced_at: None,

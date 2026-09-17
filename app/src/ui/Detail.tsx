@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Change, List, Task } from "../core";
+import { type Change, erasable, type List, readingOf, type Task } from "../core";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { composed } from "../markdown";
@@ -9,6 +9,7 @@ import Composed from "./Composed";
 import Fields from "./Fields";
 import Journal from "./Journal";
 import Left from "./Left";
+import Menu, { type Choice } from "./Menu";
 import Prose from "./Prose";
 import Routine from "./Routine";
 import Steps from "./Steps";
@@ -33,6 +34,9 @@ interface Props {
   onReopen: () => void;
   onStillOpen: () => void;
   onErase: () => void;
+  onFold: (away: boolean) => void;
+  onReadAs: (how: "story" | "trace") => void;
+  onOpenToAgents: (open: boolean) => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
@@ -57,6 +61,9 @@ export default function Detail({
   onReopen,
   onStillOpen,
   onErase,
+  onFold,
+  onReadAs,
+  onOpenToAgents,
   onClose,
   onError,
   onDoc,
@@ -78,6 +85,18 @@ export default function Detail({
     <>
       <Trail
         task={task.id}
+        moved={[
+          task.status,
+          task.read_as ?? "",
+          task.completed_at ?? "",
+          task.hidden ? "hidden" : "",
+          task.open_to_agents ? "open" : "",
+          task.log?.length ?? task.volume?.journal ?? 0,
+          task.steps?.length ?? task.volume?.steps ?? 0,
+          task.steps?.filter((step) => step.done).length ?? task.volume?.steps_done ?? 0,
+          task.description ? "described" : "",
+          task.title,
+        ].join("|")}
         lists={lists}
         onError={onError}
         heading={<Section label={t("trail")} />}
@@ -100,6 +119,11 @@ export default function Detail({
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
+      {task.status === "open" && agentNamed(task.created_by) && (
+        <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal">
+          {fill("agentWrote", agentNamed(task.created_by) as string)}
+        </p>
+      )}
       {task.resolved && (
         <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal">
           <span aria-hidden="true">◆</span>
@@ -107,6 +131,12 @@ export default function Detail({
             ? fill("agentNamedSaidDone", agentNamed(task.resolved.by) as string)
             : t("agentSaidDone")}
           <span className="ml-auto font-normal text-faint">{stamped(task.resolved.at)}</span>
+        </p>
+      )}
+      {task.status === "open" && task.open_to_agents && (
+        <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hair bg-hover px-2.5 py-1.5 text-[12.5px] text-soft">
+          <span aria-hidden="true">⊚</span>
+          {t("openToAgents")}
         </p>
       )}
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
@@ -260,6 +290,9 @@ export default function Detail({
           onReopen={onReopen}
           onStillOpen={onStillOpen}
           onErase={onErase}
+          onFold={onFold}
+          onReadAs={onReadAs}
+          onOpenToAgents={onOpenToAgents}
         />
       </main>
     );
@@ -301,6 +334,9 @@ export default function Detail({
         onReopen={onReopen}
         onStillOpen={onStillOpen}
         onErase={onErase}
+        onFold={onFold}
+        onReadAs={onReadAs}
+        onOpenToAgents={onOpenToAgents}
       />
     </aside>
   );
@@ -314,6 +350,9 @@ function Settled({
   onReopen,
   onStillOpen,
   onErase,
+  onFold,
+  onReadAs,
+  onOpenToAgents,
 }: {
   task: Task;
   wide?: boolean;
@@ -322,66 +361,155 @@ function Settled({
   onReopen: () => void;
   onStillOpen: () => void;
   onErase: () => void;
+  onFold: (away: boolean) => void;
+  onReadAs: (how: "story" | "trace") => void;
+  onOpenToAgents: (open: boolean) => void;
 }) {
-  const folded = task.hidden || task.status === "dropped";
-  const seat = "flex items-center gap-1 rounded-md px-2.5 py-1 hover:bg-hover";
+  const [more, setMore] = useState<{ x: number; y: number } | null>(null);
+  const open = task.status === "open";
+  const reading = readingOf(task);
+  const seat =
+    "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 hover:bg-hover";
+
+  // The pair that moves the task sits in the footer; the rest waits behind «⋯», where a label
+  // may be as long as its language needs.
+  const discard: Choice = {
+    key: "discard",
+    label: task.repeat ? t("endRepeat") : t("discardIt"),
+    icon: "⊘",
+    hint: task.repeat ? t("endRepeatWhy") : undefined,
+    onPick: onDiscard,
+  };
+  const choices: Choice[] = open
+    ? [
+        ...(task.resolved ? [discard] : []),
+        ...(agentNamed(task.created_by)
+          ? []
+          : [
+              {
+                key: "agents",
+                label: t(task.open_to_agents ? "keepToMyself" : "letAgentFill"),
+                icon: "⊚",
+                hint: t(task.open_to_agents ? "keepToMyselfWhy" : "letAgentFillWhy"),
+                apart: task.resolved !== undefined,
+                onPick: () => onOpenToAgents(!task.open_to_agents),
+              },
+            ]),
+      ]
+    : [
+        ...(reading === "routine"
+          ? []
+          : [
+              {
+                key: "move",
+                label: t(reading === "trace" ? "moveToStories" : "moveToTrace"),
+                icon: "◇",
+                hint: t(reading === "trace" ? "moveToStoriesWhy" : "moveToTraceWhy"),
+                onPick: () => onReadAs(reading === "trace" ? "story" : "trace"),
+              },
+            ]),
+        ...(erasable(task)
+          ? [
+              {
+                key: "erase",
+                label: t("eraseIt"),
+                icon: "✕",
+                hint: t("eraseForGood"),
+                danger: true,
+                apart: reading !== "routine",
+                onPick: onErase,
+              },
+            ]
+          : []),
+      ];
 
   return (
-    <footer
-      aria-label={t("taskDoings")}
-      className="shrink-0 border-hair border-t bg-panel/70 px-3 py-1.5 text-[12.5px] text-soft backdrop-blur"
-    >
-      <div
-        className={
-          wide ? "mx-auto flex w-full max-w-[720px] items-center gap-1" : "flex items-center gap-1"
-        }
+    <>
+      <footer
+        aria-label={t("taskDoings")}
+        className="shrink-0 border-hair border-t bg-panel/70 px-3 py-1.5 text-[12.5px] text-soft backdrop-blur"
       >
-        {task.status === "open" ? (
-          <>
-            <button
-              type="button"
-              onClick={onComplete}
-              className={`${seat} font-medium text-accent`}
-            >
-              <span aria-hidden="true">✓</span> {t("markDone")}
-            </button>
-            <button
-              type="button"
-              onClick={onDiscard}
-              title={task.repeat ? t("endRepeatWhy") : undefined}
-              className={`${seat} hover:text-ink`}
-            >
-              <span aria-hidden="true">⊘</span> {task.repeat ? t("endRepeat") : t("discardIt")}
-            </button>
-            {task.resolved && (
+        <div
+          className={
+            wide
+              ? "mx-auto flex w-full max-w-[720px] items-center gap-1"
+              : "flex items-center gap-1"
+          }
+        >
+          {open ? (
+            <>
               <button
                 type="button"
-                onClick={onStillOpen}
-                title={fill("stillOpenIt", task.title)}
-                className={`${seat} hover:text-ink`}
+                onClick={onComplete}
+                className={`${seat} font-medium text-accent`}
               >
-                <span aria-hidden="true">↩</span> {t("stillOpen")}
+                <span aria-hidden="true">✓</span> {t("markDone")}
               </button>
-            )}
-          </>
-        ) : (
-          <>
-            <button type="button" onClick={onReopen} className={`${seat} hover:text-ink`}>
-              <span aria-hidden="true">↺</span> {t("reopenIt")}
+              {task.resolved ? (
+                <button
+                  type="button"
+                  onClick={onStillOpen}
+                  title={fill("stillOpenIt", task.title)}
+                  className={`${seat} hover:text-ink`}
+                >
+                  <span aria-hidden="true">↩</span> {t("stillOpen")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onDiscard}
+                  title={discard.hint}
+                  className={`${seat} hover:text-ink`}
+                >
+                  <span aria-hidden="true">⊘</span> {discard.label}
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={onReopen} className={`${seat} hover:text-ink`}>
+                <span aria-hidden="true">↺</span> {t("reopenIt")}
+              </button>
+              {task.status !== "dropped" && (
+                <button
+                  type="button"
+                  onClick={() => onFold(!task.hidden)}
+                  className={`${seat} hover:text-ink`}
+                >
+                  <span aria-hidden="true">{task.hidden ? "⊕" : "⊖"}</span>{" "}
+                  {t(task.hidden ? "showIt" : "hideIt")}
+                </button>
+              )}
+            </>
+          )}
+          {choices.length > 0 && (
+            <button
+              type="button"
+              aria-label={t("more")}
+              title={t("more")}
+              aria-haspopup="menu"
+              aria-expanded={more !== null}
+              onClick={(e) => {
+                const box = e.currentTarget.getBoundingClientRect();
+                setMore({ x: box.right - 210, y: box.top - 4 });
+              }}
+              className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink"
+            >
+              <span aria-hidden="true">⋯</span>
             </button>
-            {folded && (
-              <button
-                type="button"
-                onClick={onErase}
-                className={`${seat} ml-auto text-faint hover:text-urgent`}
-              >
-                <span aria-hidden="true">✕</span> {t("eraseIt")}
-              </button>
-            )}
-          </>
-        )}
-      </div>
-    </footer>
+          )}
+        </div>
+      </footer>
+      {more && (
+        <Menu
+          at={more}
+          up
+          choices={choices}
+          label={t("taskDoings")}
+          onClose={() => setMore(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -447,6 +575,16 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
         <span aria-hidden="true">{task.status === "dropped" ? "⨯" : "▣"}</span>{" "}
         {t(task.status === "dropped" ? "dropped" : "done")}
         {closed && ` · ${closed}`}
+        {task.read_as &&
+          readingOf(task) !== "routine" &&
+          ` · ${t(task.read_as === "story" ? "keptAsStory" : "readAsTraceNow")}`}
+        {task.open_to_agents && ` · ${t("wasOpenToAgents")}`}
+        {agentNamed(task.created_by) && (
+          <span className="text-hue-teal">
+            {" · "}
+            {fill("agentWrote", agentNamed(task.created_by) as string)}
+          </span>
+        )}
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}

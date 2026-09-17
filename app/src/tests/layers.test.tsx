@@ -159,6 +159,35 @@ describe("the archive reads in layers", () => {
     expect(ipc.calls.some((one) => one.cmd === "routines")).toBe(true);
   });
 
+  // Four words for the axis in two languages never fit beside three counted pills: the axis
+  // is one pill that opens, and the row carries no labels at all.
+  it("groups through one pill and keeps the row to the layers, the axis and the hidden", async () => {
+    const user = userEvent.setup();
+    await inTheArchive(user);
+
+    expect(screen.getByText(/^Reading$/).className).toContain("sr-only");
+    const axis = screen.getByRole("button", { name: /Grouped by/i });
+    expect(axis.textContent).not.toContain("Grouped by");
+    expect(axis.textContent).toContain("By time");
+
+    await user.click(axis);
+    await user.click(screen.getByRole("radio", { name: /^List$/ }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Grouped by/i }).textContent).toContain("By list"),
+    );
+    expect(screen.queryByRole("radio", { name: /^List$/ })).toBeNull();
+  });
+
+  it("hides the axis under the routines, which have a shelf of their own", async () => {
+    const user = userEvent.setup();
+    await inTheArchive(user);
+
+    await user.click(screen.getByRole("button", { name: /Routines/ }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Grouped by/i })).toBeNull());
+  });
+
   it("asks for the trace only once it is chosen", async () => {
     const user = userEvent.setup();
     await inTheArchive(user);

@@ -1,7 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AXES } from "./archive";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
 import { asPlain } from "./copying";
@@ -42,6 +41,7 @@ import {
   folderRename,
   markStep,
   noteTrouble,
+  openToAgents,
   owed,
   type Papers,
   type Pick,
@@ -49,6 +49,7 @@ import {
   patch,
   type Ready,
   type Rift,
+  readAs,
   reopen,
   type Snapshot,
   settleIn,
@@ -72,6 +73,7 @@ import { noticeBehind, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
+import Axis from "./ui/Axis";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Cover from "./ui/Cover";
@@ -105,7 +107,6 @@ import WindowChrome from "./ui/WindowChrome";
 import {
   accepts,
   asView,
-  axisWord,
   type Chosen,
   invite,
   LAYERS,
@@ -826,7 +827,11 @@ export default function App() {
   };
 
   const wipe = (task: Task) => {
-    ask(fill("eraseSure", task.title), { kind: "warning" })
+    const entries = task.volume?.journal ?? 0;
+    const sure = entries
+      ? `${fill("eraseSure", task.title)} ${fill("eraseWritten", String(entries))}`
+      : fill("eraseSure", task.title);
+    ask(sure, { kind: "warning" })
       .then((yes) => {
         if (!yes) return;
         setError(null);
@@ -1169,6 +1174,13 @@ export default function App() {
       .then((one) => {
         setHeld(one);
         acted.current = one?.id ?? null;
+        // A hit still shows in the search results it came from, so what came back replaces it
+        // there too, or the detail would go on reading the copy from before.
+        setFound((was) =>
+          was && one
+            ? { ...was, tasks: was.tasks.map((hit) => (hit.id === one.id ? one : hit)) }
+            : was,
+        );
         load();
         carries.current?.changed();
       })
@@ -1731,6 +1743,9 @@ export default function App() {
                 onReopen={() => act(reopen(task.id))}
                 onStillOpen={() => act(stillOpen(task.id))}
                 onErase={() => wipe(task)}
+                onFold={(away) => act(fold(task.id, away))}
+                onReadAs={(how) => act(readAs(task.id, how))}
+                onOpenToAgents={(open) => act(openToAgents(task.id, open))}
                 onClose={shut}
                 onError={(e) => setError(saidPlainly(e))}
                 onDoc={openDoc}
@@ -1767,7 +1782,7 @@ export default function App() {
                     empty={
                       found?.papers.length && !shown.length
                         ? t("onlyPapers")
-                        : nothing(chosen, found !== null)
+                        : nothing(chosen, found !== null, data.counts.tracesHidden ?? 0)
                     }
                     note={
                       found && found.total > found.tasks.length
@@ -1875,10 +1890,8 @@ export default function App() {
                           {found === null && !chosen.folded && (
                             <Tally counts={data.counts} onError={(e) => setError(saidPlainly(e))} />
                           )}
-                          <div className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
-                            <span className="mr-0.5 text-[9px] font-semibold tracking-[0.07em] text-faint uppercase">
-                              {t("archiveShowing")}
-                            </span>
+                          <fieldset className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
+                            <legend className="sr-only">{t("archiveShowing")}</legend>
                             {LAYERS.map((layer) => {
                               const on = !chosen.folded && (chosen.layer ?? "story") === layer;
                               const many = data.counts[layerCount(layer)];
@@ -1905,48 +1918,43 @@ export default function App() {
                                 </button>
                               );
                             })}
-                            <span className="mx-1.5 h-3.5 w-px bg-hair" />
-                            <span className="mr-0.5 text-[9px] font-semibold tracking-[0.07em] text-faint uppercase">
-                              {t("archiveGrouped")}
-                            </span>
-                            {AXES.map((axis) => {
-                              const on = (chosen.axis ?? "time") === axis;
-                              return (
-                                <button
-                                  key={axis}
-                                  type="button"
-                                  aria-pressed={on}
-                                  onClick={() => {
-                                    setSelected(undefined);
-                                    setChosen({ ...chosen, named: "archive", axis, folded: false });
-                                  }}
-                                  className={`rounded-full px-2 py-0.5 text-[11.5px] ${
-                                    on
-                                      ? "bg-active font-semibold text-ink"
-                                      : "text-faint hover:text-soft"
-                                  }`}
-                                >
-                                  {t(axisWord(axis))}
-                                </button>
-                              );
-                            })}
                             {data.counts.folded || chosen.folded ? (
                               <button
                                 type="button"
                                 aria-pressed={chosen.folded === true}
+                                title={chosen.folded ? t("backToArchive") : undefined}
                                 onClick={() => {
                                   setSelected(undefined);
                                   setFound(null);
                                   setChosen({ named: "archive", folded: !chosen.folded });
                                 }}
-                                className="ml-1 text-[11.5px] text-faint hover:text-ink"
+                                className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+                                  chosen.folded
+                                    ? "border-ink bg-ink text-bg"
+                                    : "border-line text-faint hover:text-soft"
+                                }`}
                               >
-                                {chosen.folded
-                                  ? `⊕ ${t("backToArchive")}`
-                                  : `⊖ ${data.counts.folded} ${t("folded")}`}
+                                {t("hiddenOnes")}
+                                {data.counts.folded ? (
+                                  <span className="ml-1 tabular-nums opacity-70">
+                                    {data.counts.folded}
+                                  </span>
+                                ) : null}
                               </button>
                             ) : null}
-                          </div>
+                            {!chosen.folded && (chosen.layer ?? "story") !== "routine" && (
+                              <>
+                                <span className="mx-1.5 h-3.5 w-px bg-hair" />
+                                <Axis
+                                  axis={chosen.axis ?? "time"}
+                                  onChange={(axis) => {
+                                    setSelected(undefined);
+                                    setChosen({ ...chosen, named: "archive", axis, folded: false });
+                                  }}
+                                />
+                              </>
+                            )}
+                          </fieldset>
                         </>
                       ) : chosen.named === "tags" || chosen.tags?.length ? (
                         <Tags
@@ -2024,6 +2032,9 @@ export default function App() {
               onReopen={() => act(reopen(task.id))}
               onStillOpen={() => act(stillOpen(task.id))}
               onErase={() => wipe(task)}
+              onFold={(away) => act(fold(task.id, away))}
+              onReadAs={(how) => act(readAs(task.id, how))}
+              onOpenToAgents={(open) => act(openToAgents(task.id, open))}
               onClose={shut}
               onError={(e) => setError(saidPlainly(e))}
               onDoc={openDoc}

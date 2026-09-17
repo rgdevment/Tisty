@@ -52,6 +52,9 @@ function open(task: Task = written) {
       onReopen={on.reopen}
       onStillOpen={() => {}}
       onErase={() => {}}
+      onFold={() => {}}
+      onReadAs={() => {}}
+      onOpenToAgents={() => {}}
       onClose={() => {}}
     />,
   );

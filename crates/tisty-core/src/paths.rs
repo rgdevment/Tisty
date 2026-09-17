@@ -35,6 +35,17 @@ impl Paths {
         })
     }
 
+    /// The store the person chose is the one at the platform's own place, however the path was
+    /// arrived at: `TISTY_DATA` pointing right back at it does not make it somebody else's,
+    /// while a sandbox or a temporary directory is nobody's list.
+    pub fn the_persons_own(&self) -> bool {
+        let Some(dirs) = directories::ProjectDirs::from("", "", "tisty") else {
+            return false;
+        };
+        let settled = |at: &Path| at.canonicalize().unwrap_or_else(|_| at.to_path_buf());
+        settled(&self.data) == settled(dirs.data_local_dir())
+    }
+
     pub fn swept_on_leaving(&self) -> Vec<PathBuf> {
         vec![self.config.clone(), self.cache.clone()]
     }

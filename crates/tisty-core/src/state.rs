@@ -5,8 +5,8 @@ use ulid::Ulid;
 use crate::{
     event::{DeviceId, Event, LogAdd, LogEdit, Op, StepAdd, TaskAdd, TaskMove, TaskPatch},
     model::{
-        DocId, Folder, FolderId, Kept, List, ListId, LogEntry, Priority, Status, Step, StepId, Tag,
-        Task, TaskId,
+        DocId, Folder, FolderId, Kept, List, ListId, LogEntry, Priority, Reading, Status, Step,
+        StepId, Tag, Task, TaskId,
     },
     order,
 };
@@ -183,6 +183,32 @@ impl State {
             );
             return;
         }
+        // The door an assistant's hand meets, judged at replay so every machine agrees: a note or
+        // a bell anywhere, a patch on what it filed, a fill-in where it filed or was let in, and
+        // nothing else — whatever the server that wrote it believed.
+        if self.assistants.contains(&event.device)
+            && let Some(id) = event.op.about_whom()
+            && let Some(task) = self.tasks.get(&id)
+            && !match &event.op {
+                Op::TaskLog { .. } => true,
+                Op::TaskUpdate { d, .. } => self.filed_by_agents(task) || only_bells(d),
+                Op::TaskResolve { .. }
+                | Op::TaskDescribe { .. }
+                | Op::StepAdd { .. }
+                | Op::StepDone { .. } => self.attended_by_agents(task),
+                _ => false,
+            }
+        {
+            crate::witness::warn(
+                crate::witness::channel::STORE,
+                "an assistant wrote on a task where the door does not let it, and was let go",
+                &[
+                    ("at", crate::witness::Fact::Id(id.to_string())),
+                    ("by", crate::witness::Fact::Id(event.device.0.clone())),
+                ],
+            );
+            return;
+        }
         if event.op.destroys() && self.assistants.contains(&event.device) {
             crate::witness::warn(
                 crate::witness::channel::STORE,
@@ -213,7 +239,10 @@ impl State {
                 }
                 self.tasks.insert(*id, task);
             }
-            Op::TaskUpdate { id, d } => self.with_task(*id, |t| patch(t, d)),
+            Op::TaskUpdate { id, d } => {
+                let person = !self.assistants.contains(&event.device);
+                self.with_task(*id, |t| patch(t, d, person))
+            }
             Op::TaskDone { id, filled } => {
                 let zone = event.zone.clone();
                 self.with_task(*id, |t| {
@@ -223,13 +252,14 @@ impl State {
                     t.closed_in = zone;
                 })
             }
+            // The agent's mark stays: reopening is most often a finish taken back by
+            // mistake, and taking the mark off is the person's own op, `TaskUnresolve`.
             Op::TaskReopen { id } => self.with_task(*id, |t| {
                 t.status = Status::Open;
                 t.filled = false;
                 t.closed_in = None;
                 t.completed_at = None;
                 t.hidden = false;
-                t.resolved = None;
             }),
             Op::TaskHide { id } => self.with_task(*id, |t| t.hidden = true),
             Op::TaskShow { id } => self.with_task(*id, |t| t.hidden = false),
@@ -237,10 +267,26 @@ impl State {
                 t.status = Status::Dropped;
                 t.completed_at = Some(event.timestamp);
             }),
+            // The word the person gave a task outlives a delete written elsewhere while it still
+            // read as a trace: the same stamp order everywhere, so every machine keeps it. And
+            // what it was written from stays known, so an assistant does not file it again.
             Op::TaskDelete { id } => {
-                if let Some(source) = self.tasks.remove(id).and_then(|task| task.source) {
-                    self.sourced.remove(&source);
+                if self
+                    .tasks
+                    .get(id)
+                    .is_some_and(|task| task.read_as == Some(Reading::Story))
+                {
+                    crate::witness::warn(
+                        crate::witness::channel::STORE,
+                        "a delete reached a task kept as a story, and was let go",
+                        &[
+                            ("at", crate::witness::Fact::Id(id.to_string())),
+                            ("by", crate::witness::Fact::Id(event.device.0.clone())),
+                        ],
+                    );
+                    return;
                 }
+                self.tasks.remove(id);
                 self.tombstones.insert(*id);
             }
             Op::TaskMove { id, d } => self.with_task(*id, |t| move_task(t, d)),
@@ -1092,8 +1138,57 @@ impl State {
         ops
     }
 
+    /// A task an assistant may fill in: one an assistant filed, or one the person opened to
+    /// them. `assistants` only ever grows, so a task the retired agent filed stays attended.
+    pub fn attended_by_agents(&self, task: &Task) -> bool {
+        task.open_to_agents || self.filed_by_agents(task)
+    }
+
+    pub fn filed_by_agents(&self, task: &Task) -> bool {
+        task.created_by
+            .as_ref()
+            .is_some_and(|who| self.assistants.contains(who))
+    }
+
+    /// The tasks other turns hang from: a root whose `repeat` was taken off reads as a trace,
+    /// and erasing it would cut the series it still heads.
+    pub fn roots(&self) -> std::collections::BTreeSet<TaskId> {
+        self.tasks.values().filter_map(|t| t.after).collect()
+    }
+
+    pub fn erasable(&self, id: TaskId) -> Result<(), crate::model::Stays> {
+        let task = self.tasks.get(&id).ok_or(crate::model::Stays::Open)?;
+        task.erasable()?;
+        if self.roots().contains(&id) {
+            return Err(crate::model::Stays::Routine);
+        }
+        Ok(())
+    }
+
+    /// What the trace layer shows: closed, not folded away, and read as a trace this instant.
+    pub fn the_trace(&self) -> impl Iterator<Item = &Task> {
+        self.tasks
+            .values()
+            .filter(|t| t.is_archived() && !t.folded() && t.reading() == Reading::Trace)
+    }
+
+    /// A trace pin is let go on reopening — work starts again and is judged again by what it
+    /// writes — while a story pin stays: a finish taken back by mistake must not unkeep it.
     pub fn reopening(&self, id: TaskId) -> Vec<Op> {
         let mut ops = vec![Op::TaskReopen { id }];
+        if self
+            .tasks
+            .get(&id)
+            .is_some_and(|task| task.read_as == Some(Reading::Trace))
+        {
+            ops.push(Op::TaskUpdate {
+                id,
+                d: TaskPatch {
+                    read_as: Some(None),
+                    ..Default::default()
+                },
+            });
+        }
         if let Some(born) = self
             .tasks
             .values()
@@ -1257,7 +1352,7 @@ impl State {
                 t.folded(),
                 t.is_archived(),
                 *hit,
-                std::cmp::Reverse(t.weight()),
+                std::cmp::Reverse(t.heft()),
                 std::cmp::Reverse(t.completed_at),
                 std::cmp::Reverse(t.id),
             )
@@ -1409,9 +1504,30 @@ fn task_from(id: TaskId, d: &TaskAdd) -> Task {
     }
 }
 
-fn patch(task: &mut Task, d: &TaskPatch) {
+/// A bell is the one thing an assistant adds to any open task: `remind` only ever adds one.
+pub(crate) fn only_bells(d: &TaskPatch) -> bool {
+    d.reminders.is_some()
+        && *d
+            == TaskPatch {
+                reminders: d.reminders.clone(),
+                ..Default::default()
+            }
+}
+
+fn patch(task: &mut Task, d: &TaskPatch, person: bool) {
     if let Some(v) = &d.title {
         task.title = v.clone();
+    }
+    // Converting is the person's: a patch an assistant wrote lands without it. A routine is
+    // never converted, and a pin to "routine" says nothing rather than clearing.
+    if person
+        && let Some(v) = d.read_as
+        && v != Some(Reading::Routine)
+    {
+        task.read_as = v;
+    }
+    if person && let Some(v) = d.open_to_agents {
+        task.open_to_agents = v;
     }
     if let Some(v) = &d.date {
         task.date = v.clone();
@@ -2613,17 +2729,22 @@ mod tests {
     }
 
     #[test]
-    fn work_that_comes_back_comes_back_unmarked() {
+    fn work_that_comes_back_is_still_the_agents() {
         let (mut state, id) = filed_by_an_agent();
         said_done(&mut state, 2, id);
         state.apply(&ev(3, "dev_laptop", Op::TaskDone { id, filled: false }));
 
         state.apply(&ev(4, "dev_laptop", Op::TaskReopen { id }));
 
+        let task = &state.tasks[&id];
+        assert_eq!(task.status, Status::Open);
         assert!(
-            state.tasks[&id].resolved.is_none(),
-            "an old claim on work that is open again would be a lie"
+            task.resolved.is_some(),
+            "a finish taken back does not unsay the agent: taking the mark off is its own op"
         );
+
+        state.apply(&ev(5, "dev_laptop", Op::TaskUnresolve { id }));
+        assert!(state.tasks[&id].resolved.is_none());
     }
 
     #[test]
@@ -2858,19 +2979,20 @@ mod tests {
     }
 
     #[test]
-    fn deleting_a_task_takes_what_it_was_written_from_with_it() {
+    fn deleting_a_task_keeps_what_it_was_written_from_pointing_at_the_grave() {
         let mut state = State::default();
         let id = Ulid::generate();
         let mut d = crate::event::TaskAdd::new("buy pink card stock", "a0");
         d.source = Some("wa:msg-991".into());
         state.apply(&ev(1, "dev_agent", Op::TaskAdd { id, d }));
-        state.apply(&ev(2, "dev_agent", Op::TaskDelete { id }));
+        state.apply(&ev(2, "dev_laptop", Op::TaskDelete { id }));
 
         assert_eq!(
             state.sourced.get("wa:msg-991"),
-            None,
-            "what someone deleted has to be capturable again"
+            Some(&id),
+            "the person let it go; an assistant reading the same message must not file it again"
         );
+        assert!(state.is_erased(id));
     }
 
     #[test]
@@ -5581,6 +5703,715 @@ mod tests {
 
         state.apply(&ev(4, "dev_laptop", Op::AttachRetire { d: at }));
         assert_eq!(state.retired.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod converting {
+    use super::*;
+    use crate::event::{DeviceId, Event, LogAdd, TaskPatch};
+    use crate::model::{STORY_AT, Stays};
+    use ulid::Ulid;
+
+    fn at(ms: i64) -> jiff::Timestamp {
+        jiff::Timestamp::from_millisecond(ms).unwrap()
+    }
+
+    fn ev(ms: i64, who: &str, op: Op) -> Event {
+        Event::new(DeviceId(who.into()), at(ms), op)
+    }
+
+    fn converted(id: TaskId, to: Option<Reading>) -> Op {
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                read_as: Some(to),
+                ..Default::default()
+            },
+        }
+    }
+
+    fn a_line(id: TaskId, said: &str) -> Op {
+        Op::TaskLog {
+            id,
+            d: LogAdd::new(Ulid::generate(), said),
+        }
+    }
+
+    const LONG: &str = "another long entry about the parcel, the depot, the neighbour and the \
+                        courier who never rings twice";
+
+    /// A closed errand with nothing written: the trace every archive is mostly made of.
+    fn closed(state: &mut State, ms: i64, who: &str, title: &str) -> TaskId {
+        let id = Ulid::generate();
+        state.apply(&ev(
+            ms,
+            who,
+            Op::TaskAdd {
+                id,
+                d: crate::event::TaskAdd::new(title, "a0"),
+            },
+        ));
+        state.apply(&ev(ms + 1, who, Op::TaskDone { id, filled: false }));
+        id
+    }
+
+    fn a_story(state: &mut State, ms: i64, who: &str, title: &str) -> TaskId {
+        let id = closed(state, ms, who, title);
+        for n in 0..3 {
+            state.apply(&ev(ms + 2 + n, who, a_line(id, LONG)));
+        }
+        assert_eq!(state.tasks[&id].reading(), Reading::Story);
+        id
+    }
+
+    #[test]
+    fn a_conversion_is_applied_and_taken_back_by_null() {
+        let mut state = State::default();
+        let id = closed(&mut state, 1, "dev_laptop", "comprar pan");
+
+        state.apply(&ev(5, "dev_laptop", converted(id, Some(Reading::Story))));
+        assert_eq!(state.tasks[&id].read_as, Some(Reading::Story));
+        assert_eq!(state.tasks[&id].reading(), Reading::Story);
+
+        state.apply(&ev(6, "dev_laptop", converted(id, None)));
+        assert_eq!(state.tasks[&id].read_as, None);
+        assert_eq!(state.tasks[&id].reading(), Reading::Trace);
+    }
+
+    #[test]
+    fn a_conversion_to_routine_is_ignored_not_a_clearing() {
+        let mut state = State::default();
+        let id = closed(&mut state, 1, "dev_laptop", "comprar pan");
+        state.apply(&ev(5, "dev_laptop", converted(id, Some(Reading::Story))));
+
+        state.apply(&ev(6, "dev_laptop", converted(id, Some(Reading::Routine))));
+
+        assert_eq!(state.tasks[&id].read_as, Some(Reading::Story));
+    }
+
+    #[test]
+    fn an_assistant_cannot_convert_but_the_rest_of_its_patch_lands() {
+        let mut state = State::default();
+        state.apply(&ev(
+            1,
+            "dev_agent",
+            Op::DeviceJoin {
+                d: DeviceId("dev_agent".into()),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        ));
+        let id = closed(&mut state, 2, "dev_agent", "comprar pan");
+
+        state.apply(&ev(
+            5,
+            "dev_agent",
+            Op::TaskUpdate {
+                id,
+                d: TaskPatch {
+                    read_as: Some(Some(Reading::Story)),
+                    title: Some("comprar pan integral".into()),
+                    ..Default::default()
+                },
+            },
+        ));
+
+        let task = &state.tasks[&id];
+        assert_eq!(task.read_as, None, "converting is the person's");
+        assert_eq!(
+            task.title, "comprar pan integral",
+            "on what it filed, the rest lands"
+        );
+    }
+
+    #[test]
+    fn reopening_keeps_the_conversion_and_clears_only_hidden() {
+        let mut state = State::default();
+        let id = closed(&mut state, 1, "dev_laptop", "comprar pan");
+        state.apply(&ev(5, "dev_laptop", converted(id, Some(Reading::Story))));
+        state.apply(&ev(6, "dev_laptop", Op::TaskHide { id }));
+
+        state.apply(&ev(7, "dev_laptop", Op::TaskReopen { id }));
+
+        let task = &state.tasks[&id];
+        assert!(!task.hidden);
+        assert_eq!(task.read_as, Some(Reading::Story));
+        assert_eq!(task.erasable(), Err(Stays::Open));
+    }
+
+    #[test]
+    fn the_trace_is_what_the_layer_shows_and_no_more() {
+        let mut state = State::default();
+        let seen = closed(&mut state, 1, "dev_laptop", "comprar pan");
+        let hidden = closed(&mut state, 10, "dev_laptop", "regar");
+        state.apply(&ev(12, "dev_laptop", Op::TaskHide { id: hidden }));
+        let dropped = closed(&mut state, 20, "dev_laptop", "llamar");
+        state.apply(&ev(22, "dev_laptop", Op::TaskReopen { id: dropped }));
+        state.apply(&ev(23, "dev_laptop", Op::TaskDrop { id: dropped }));
+        let story = a_story(&mut state, 30, "dev_laptop", "la mudanza");
+        let kept = closed(&mut state, 40, "dev_laptop", "el certificado");
+        state.apply(&ev(42, "dev_laptop", converted(kept, Some(Reading::Story))));
+        let demoted = a_story(&mut state, 50, "dev_laptop", "el seguro");
+        state.apply(&ev(
+            56,
+            "dev_laptop",
+            converted(demoted, Some(Reading::Trace)),
+        ));
+        let turn = Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("pastillas", "a1");
+        d.after = Some(Ulid::generate());
+        state.apply(&ev(60, "dev_laptop", Op::TaskAdd { id: turn, d }));
+        state.apply(&ev(
+            61,
+            "dev_laptop",
+            Op::TaskDone {
+                id: turn,
+                filled: false,
+            },
+        ));
+        let open = Ulid::generate();
+        state.apply(&ev(
+            70,
+            "dev_laptop",
+            Op::TaskAdd {
+                id: open,
+                d: crate::event::TaskAdd::new("pendiente", "a2"),
+            },
+        ));
+
+        let mut listed: Vec<TaskId> = state.the_trace().map(|t| t.id).collect();
+        listed.sort();
+        let mut wanted = vec![seen, demoted];
+        wanted.sort();
+        assert_eq!(listed, wanted, "{listed:?}");
+        for (id, why) in [
+            (hidden, "hidden is already out of sight"),
+            (dropped, "dropped is folded away"),
+            (story, "a story stays"),
+            (kept, "kept as a story"),
+            (turn, "a routine's turn"),
+            (open, "still open"),
+        ] {
+            assert!(!listed.contains(&id), "{why}");
+        }
+
+        assert!(listed.contains(&demoted));
+    }
+
+    /// A root whose repeat was taken off reads as a trace, but turns still hang from it:
+    /// erasing it would cut the series, so it stays with the routines.
+    #[test]
+    fn a_root_other_turns_hang_from_is_a_routine_however_bare() {
+        let mut state = State::default();
+        let root = closed(&mut state, 1, "dev_laptop", "pastillas");
+        let turn = Ulid::generate();
+        let mut d = crate::event::TaskAdd::new("pastillas", "a1");
+        d.after = Some(root);
+        state.apply(&ev(10, "dev_laptop", Op::TaskAdd { id: turn, d }));
+        state.apply(&ev(
+            11,
+            "dev_laptop",
+            Op::TaskDone {
+                id: turn,
+                filled: false,
+            },
+        ));
+
+        assert_eq!(
+            state.tasks[&root].reading(),
+            Reading::Trace,
+            "bare, by itself"
+        );
+        assert_eq!(
+            state.tasks[&root].erasable(),
+            Ok(()),
+            "the task alone cannot tell"
+        );
+        assert_eq!(state.erasable(root), Err(Stays::Routine), "the state can");
+        assert_eq!(state.erasable(turn), Err(Stays::Routine));
+        assert!(
+            state.the_trace().any(|t| t.id == root) && state.the_trace().all(|t| t.id != turn),
+            "the root shows in the trace as the layer shows it; the turn is a routine's"
+        );
+        assert_eq!(
+            state.erasable(Ulid::generate()),
+            Err(Stays::Open),
+            "nothing there"
+        );
+    }
+
+    #[test]
+    fn a_delete_that_arrives_for_a_task_kept_as_a_story_is_let_go() {
+        let mut state = State::default();
+        let kept = closed(&mut state, 1, "dev_a", "el certificado");
+        state.apply(&ev(100, "dev_a", converted(kept, Some(Reading::Story))));
+        state.apply(&ev(110, "dev_b", Op::TaskDelete { id: kept }));
+        assert!(
+            state.tasks.contains_key(&kept),
+            "the word the person gave outlives the delete"
+        );
+        assert!(!state.is_erased(kept));
+
+        let gone = closed(&mut state, 200, "dev_a", "comprar pan");
+        state.apply(&ev(210, "dev_a", converted(gone, Some(Reading::Trace))));
+        state.apply(&ev(220, "dev_b", Op::TaskDelete { id: gone }));
+        assert!(!state.tasks.contains_key(&gone), "read as a trace, it goes");
+
+        let unpinned = a_story(&mut state, 300, "dev_a", "la mudanza");
+        state.apply(&ev(320, "dev_b", Op::TaskDelete { id: unpinned }));
+        assert!(
+            !state.tasks.contains_key(&unpinned),
+            "only the pin guards: a story by weight was a trace somewhere, and the delete stands"
+        );
+    }
+
+    #[test]
+    fn reopening_lets_a_trace_pin_go_and_keeps_a_story_pin() {
+        let mut state = State::default();
+        let demoted = a_story(&mut state, 1, "dev_laptop", "la mudanza");
+        state.apply(&ev(
+            10,
+            "dev_laptop",
+            converted(demoted, Some(Reading::Trace)),
+        ));
+        let kept = closed(&mut state, 20, "dev_laptop", "el certificado");
+        state.apply(&ev(22, "dev_laptop", converted(kept, Some(Reading::Story))));
+
+        for (n, op) in state.reopening(demoted).into_iter().enumerate() {
+            state.apply(&ev(30 + n as i64, "dev_laptop", op));
+        }
+        for (n, op) in state.reopening(kept).into_iter().enumerate() {
+            state.apply(&ev(40 + n as i64, "dev_laptop", op));
+        }
+
+        assert_eq!(
+            state.tasks[&demoted].read_as, None,
+            "work starts again, judged again"
+        );
+        assert_eq!(
+            state.tasks[&kept].read_as,
+            Some(Reading::Story),
+            "a finish taken back"
+        );
+        assert!(state.tasks[&demoted].is_open() && state.tasks[&kept].is_open());
+    }
+
+    #[test]
+    fn searching_orders_by_what_the_person_read_it_as() {
+        let mut state = State::default();
+        let plain = closed(&mut state, 1, "dev_laptop", "pagar la luz");
+        let kept = closed(&mut state, 10, "dev_laptop", "pagar el agua");
+        state.apply(&ev(12, "dev_laptop", converted(kept, Some(Reading::Story))));
+        assert!(state.tasks[&kept].weight() < state.tasks[&plain].weight() + 1);
+
+        let (found, _) = state.searching("pagar", crate::view::Scope::Archived, 10);
+        let ids: Vec<TaskId> = found.iter().map(|t| t.id).collect();
+
+        assert_eq!(
+            ids[0], kept,
+            "what was kept as a story comes first: {ids:?}"
+        );
+    }
+
+    /// Two machines: one converts, the other reopens and writes without having seen it. Whatever
+    /// order the events arrive in, the person's conversion holds.
+    #[test]
+    fn a_conversion_holds_whatever_the_other_machine_writes_and_in_any_order() {
+        let mut seed = State::default();
+        let id = a_story(&mut seed, 1, "dev_a", "la mudanza");
+        let mut later = vec![
+            ev(100, "dev_a", converted(id, Some(Reading::Trace))),
+            ev(110, "dev_b", Op::TaskReopen { id }),
+            ev(120, "dev_b", a_line(id, LONG)),
+            ev(130, "dev_b", Op::TaskDone { id, filled: false }),
+        ];
+
+        for round in 0..2 {
+            if round == 1 {
+                later.reverse();
+            }
+            let mut sorted = later.clone();
+            sorted.sort_by(|one, two| one.sort_key().cmp(&two.sort_key()));
+            let mut state = seed.clone();
+            for one in &sorted {
+                state.apply(one);
+            }
+            let task = &state.tasks[&id];
+            assert_eq!(task.reading(), Reading::Trace, "round {round}");
+            assert_eq!(task.erasable(), Ok(()), "round {round}");
+            assert!(
+                task.weight() >= STORY_AT,
+                "the weight still tells what was written"
+            );
+        }
+
+        let mut state = seed.clone();
+        for one in &later {
+            state.apply(one);
+        }
+        state.apply(&ev(140, "dev_b", converted(id, Some(Reading::Story))));
+        assert_eq!(
+            state.tasks[&id].reading(),
+            Reading::Story,
+            "the last word wins"
+        );
+
+        let mut state = seed;
+        state.apply(&ev(100, "dev_a", converted(id, Some(Reading::Trace))));
+        state.apply(&ev(101, "dev_a", Op::TaskDelete { id }));
+        state.apply(&ev(120, "dev_b", a_line(id, LONG)));
+        assert!(
+            !state.tasks.contains_key(&id),
+            "what arrives after the tombstone is let go"
+        );
+    }
+}
+
+#[cfg(test)]
+mod opening {
+    use super::*;
+    use crate::event::{DeviceId, Event, LogAdd, Resolve, StepAdd, StepRef, TaskPatch};
+    use ulid::Ulid;
+
+    fn at(ms: i64) -> jiff::Timestamp {
+        jiff::Timestamp::from_millisecond(ms).unwrap()
+    }
+
+    fn ev(ms: i64, who: &str, op: Op) -> Event {
+        Event::new(DeviceId(who.into()), at(ms), op)
+    }
+
+    fn opened(id: TaskId, open: bool) -> Op {
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                open_to_agents: Some(open),
+                ..Default::default()
+            },
+        }
+    }
+
+    fn with_an_agent() -> State {
+        let mut state = State::default();
+        state.apply(&ev(
+            1,
+            "dev_agent",
+            Op::DeviceJoin {
+                d: DeviceId("dev_agent".into()),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        ));
+        state
+    }
+
+    fn written(state: &mut State, ms: i64, who: &str, title: &str) -> TaskId {
+        let id = Ulid::generate();
+        state.apply(&ev(
+            ms,
+            who,
+            Op::TaskAdd {
+                id,
+                d: crate::event::TaskAdd::new(title, "a0"),
+            },
+        ));
+        id
+    }
+
+    /// Everything an assistant may fill in, written in one go.
+    fn filled_in(state: &mut State, ms: i64, id: TaskId) -> StepId {
+        let step = Ulid::generate();
+        let entry = Ulid::generate();
+        state.apply(&ev(
+            ms,
+            "dev_agent",
+            Op::TaskDescribe {
+                id,
+                d: crate::event::Body {
+                    body: Some("the yearly one".into()),
+                },
+            },
+        ));
+        state.apply(&ev(
+            ms + 1,
+            "dev_agent",
+            Op::StepAdd {
+                id,
+                d: StepAdd {
+                    step,
+                    text: "pay".into(),
+                    order: "a0".into(),
+                },
+            },
+        ));
+        state.apply(&ev(
+            ms + 2,
+            "dev_agent",
+            Op::StepDone {
+                id,
+                d: StepRef { step },
+            },
+        ));
+        state.apply(&ev(
+            ms + 3,
+            "dev_agent",
+            Op::TaskLog {
+                id,
+                d: LogAdd::new(entry, "paid"),
+            },
+        ));
+        state.apply(&ev(
+            ms + 4,
+            "dev_agent",
+            Op::TaskResolve {
+                id,
+                d: Resolve::new(entry),
+            },
+        ));
+        step
+    }
+
+    #[test]
+    fn only_the_person_opens_a_task_and_shuts_it_again() {
+        let mut state = with_an_agent();
+        let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+
+        state.apply(&ev(3, "dev_agent", opened(id, true)));
+        assert!(
+            !state.tasks[&id].open_to_agents,
+            "an assistant cannot let itself in"
+        );
+        assert!(!state.attended_by_agents(&state.tasks[&id]));
+
+        state.apply(&ev(4, "dev_laptop", opened(id, true)));
+        assert!(state.tasks[&id].open_to_agents);
+        assert!(state.attended_by_agents(&state.tasks[&id]));
+
+        state.apply(&ev(5, "dev_agent", opened(id, false)));
+        assert!(
+            state.tasks[&id].open_to_agents,
+            "nor shut the door behind itself"
+        );
+
+        state.apply(&ev(6, "dev_laptop", opened(id, false)));
+        assert!(!state.tasks[&id].open_to_agents);
+    }
+
+    #[test]
+    fn a_fill_in_on_a_task_the_person_kept_is_let_go_at_replay() {
+        let mut state = with_an_agent();
+        let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+
+        filled_in(&mut state, 10, id);
+
+        let task = &state.tasks[&id];
+        assert_eq!(task.description, None);
+        assert!(task.steps.is_empty());
+        assert!(task.resolved.is_none(), "no mark on what was never theirs");
+        assert_eq!(
+            task.log.len(),
+            1,
+            "the journal line stays: a note is not a fill-in"
+        );
+    }
+
+    #[test]
+    fn a_fill_in_lands_once_the_person_opened_the_task() {
+        let mut state = with_an_agent();
+        let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+        state.apply(&ev(3, "dev_laptop", opened(id, true)));
+
+        let step = filled_in(&mut state, 10, id);
+
+        let task = &state.tasks[&id];
+        assert_eq!(task.description.as_deref(), Some("the yearly one"));
+        assert!(task.steps.iter().any(|s| s.id == step && s.done));
+        assert!(task.resolved.is_some());
+        assert_eq!(
+            task.status,
+            Status::Open,
+            "saying it is done is still not closing it"
+        );
+    }
+
+    #[test]
+    fn shutting_the_task_keeps_what_was_filled_in_and_refuses_what_comes_after() {
+        let mut state = with_an_agent();
+        let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+        state.apply(&ev(3, "dev_laptop", opened(id, true)));
+        filled_in(&mut state, 10, id);
+        state.apply(&ev(20, "dev_laptop", opened(id, false)));
+
+        let step = Ulid::generate();
+        state.apply(&ev(
+            21,
+            "dev_agent",
+            Op::StepAdd {
+                id,
+                d: StepAdd {
+                    step,
+                    text: "one more".into(),
+                    order: "a1".into(),
+                },
+            },
+        ));
+
+        let task = &state.tasks[&id];
+        assert_eq!(task.description.as_deref(), Some("the yearly one"));
+        assert_eq!(task.steps.len(), 1, "the later step never lands");
+        assert!(task.resolved.is_some(), "shutting is not unsaying");
+    }
+
+    #[test]
+    fn what_an_assistant_filed_needs_no_opening_and_stays_its_own_past_the_badge() {
+        let mut state = with_an_agent();
+        let id = written(&mut state, 2, "dev_agent", "pasar biome sobre el front");
+        assert!(state.attended_by_agents(&state.tasks[&id]));
+
+        state.apply(&ev(
+            3,
+            "dev_laptop",
+            Op::DeviceRemove {
+                d: DeviceId("dev_agent".into()),
+            },
+        ));
+        filled_in(&mut state, 10, id);
+
+        let task = &state.tasks[&id];
+        assert!(state.attended_by_agents(task));
+        assert_eq!(task.description.as_deref(), Some("the yearly one"));
+        assert!(task.resolved.is_some());
+    }
+
+    #[test]
+    fn a_task_the_person_wrote_is_theirs_however_much_an_assistant_wrote_on_it() {
+        let mut state = with_an_agent();
+        let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+        state.apply(&ev(
+            3,
+            "dev_agent",
+            Op::TaskLog {
+                id,
+                d: LogAdd::new(Ulid::generate(), "I looked into it"),
+            },
+        ));
+
+        assert!(!state.attended_by_agents(&state.tasks[&id]));
+        assert_eq!(
+            state.tasks[&id].created_by,
+            Some(DeviceId("dev_laptop".into()))
+        );
+    }
+
+    #[test]
+    fn an_assistant_patch_on_the_persons_task_is_let_go_whole_but_for_a_bell() {
+        let mut state = with_an_agent();
+        let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+
+        state.apply(&ev(
+            3,
+            "dev_agent",
+            Op::TaskUpdate {
+                id,
+                d: TaskPatch {
+                    open_to_agents: Some(true),
+                    title: Some("renew the TLS certificate".into()),
+                    ..Default::default()
+                },
+            },
+        ));
+        let task = &state.tasks[&id];
+        assert!(!task.open_to_agents);
+        assert_eq!(task.title, "renew the certificate", "nothing of it lands");
+
+        let bell = crate::model::DateSpec::fixed("2026-10-01T09:00".parse().unwrap(), "UTC");
+        state.apply(&ev(
+            4,
+            "dev_agent",
+            Op::TaskUpdate {
+                id,
+                d: TaskPatch {
+                    reminders: Some(vec![bell.clone()]),
+                    ..Default::default()
+                },
+            },
+        ));
+        assert_eq!(
+            state.tasks[&id].reminders,
+            vec![bell.clone()],
+            "a bell only ever adds"
+        );
+
+        state.apply(&ev(
+            5,
+            "dev_agent",
+            Op::TaskUpdate {
+                id,
+                d: TaskPatch {
+                    reminders: Some(vec![bell]),
+                    title: Some("renew the TLS certificate".into()),
+                    ..Default::default()
+                },
+            },
+        ));
+        assert_eq!(
+            state.tasks[&id].title, "renew the certificate",
+            "a bell smuggling a title in is let go with it"
+        );
+    }
+
+    /// Everything else an assistant could write on the person's task — a close, a drop, a hide,
+    /// a move, a mark taken off, a step taken back — is let go, on an opened task too.
+    #[test]
+    fn what_no_door_ever_lets_an_assistant_do_is_let_go_on_every_task() {
+        let mut state = with_an_agent();
+        let mine = written(&mut state, 2, "dev_laptop", "renew the certificate");
+        state.apply(&ev(3, "dev_laptop", opened(mine, true)));
+        let step = filled_in(&mut state, 10, mine);
+        let theirs = written(&mut state, 20, "dev_agent", "pasar biome sobre el front");
+
+        for id in [mine, theirs] {
+            state.apply(&ev(30, "dev_agent", Op::TaskDone { id, filled: false }));
+            assert_eq!(state.tasks[&id].status, Status::Open, "no close");
+            state.apply(&ev(31, "dev_agent", Op::TaskDrop { id }));
+            assert_eq!(state.tasks[&id].status, Status::Open, "no drop");
+            state.apply(&ev(32, "dev_agent", Op::TaskHide { id }));
+            assert!(!state.tasks[&id].hidden, "no hide");
+            state.apply(&ev(33, "dev_agent", Op::TaskUnresolve { id }));
+        }
+        assert!(state.tasks[&mine].resolved.is_some(), "no unsaying");
+        state.apply(&ev(
+            34,
+            "dev_agent",
+            Op::StepUndone {
+                id: mine,
+                d: StepRef { step },
+            },
+        ));
+        assert!(state.tasks[&mine].steps[0].done, "no step taken back");
+        state.apply(&ev(
+            35,
+            "dev_agent",
+            Op::TaskUpdate {
+                id: mine,
+                d: TaskPatch {
+                    title: Some("renamed".into()),
+                    ..Default::default()
+                },
+            },
+        ));
+        assert_eq!(
+            state.tasks[&mine].title, "renew the certificate",
+            "opened is not filed: the title stays the person's"
+        );
+        state.apply(&ev(
+            36,
+            "dev_agent",
+            Op::TaskLog {
+                id: mine,
+                d: LogAdd::new(Ulid::generate(), "a note lands anywhere"),
+            },
+        ));
+        assert_eq!(state.tasks[&mine].log.len(), 2);
     }
 }
 

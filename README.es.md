@@ -274,9 +274,9 @@ Deja de ser un recordatorio de qué hacer y pasa a ser el registro de cómo se
 resolvió algo. De ahí salen tres cosas, y esas moldearon todo lo demás:
 
 - **La búsqueda es la entrada principal al archivo**, no una función lateral.
-- **Borrar es la excepción.** El final normal es completar, que conserva. Para
-  borrar algo de verdad hacen falta dos pasos deliberados antes: archivarlo y
-  luego ocultarlo.
+- **Borrar es la excepción.** El final normal es completar, que conserva. Solo
+  se borra de verdad lo que está cerrado y se lee como rastro; una historia solo
+  se oculta, y convertirla en rastro es el paso deliberado que la deja ir.
 - **Capturar tiene que seguir siendo instantáneo**, porque la mayoría de las
   tareas no son así. La llamada que tienes que hacer mañana nace y muere en un
   día y no deja nada que guardar — y anotarla no puede costar más de una línea.
@@ -469,7 +469,11 @@ funciona con el teclado.
 trayecto: qué cambió, cuándo, y lo que fuiste escribiendo por el camino. Las
 rutinas vienen con sus cuentas, sus rachas y la hora a la que sueles cumplirlas.
 El resto es el rastro: lo que no dejó nada escrito, o casi nada, en una lista
-densa y apartada, porque pasó igual y la búsqueda sigue alcanzándolo.
+densa y apartada, porque pasó igual y la búsqueda sigue alcanzándolo. Tú decides
+en qué capa se lee cada una: una historia que era ruido pasa al rastro, y un
+rastro que vale la pena se guarda como historia. El rastro es la única capa que
+se puede borrar, y tanto borrar como ocultar van de una en una; una historia solo
+se oculta.
 
 ## Tus datos y tu privacidad
 
@@ -525,19 +529,23 @@ enumera las causas en el orden en que conviene revisarlas (en inglés).
 
 ## Una línea de comandos, si la quieres
 
-La ventana es la entrada principal. Pero todo lo que hace ella lo hace también la
-terminal: el mismo almacén, las mismas tareas, el mismo lenguaje natural. Existe
-porque yo la quería, y es totalmente opcional.
+La ventana es la entrada. La terminal fue una segunda —el mismo almacén, las
+mismas tareas, el mismo lenguaje natural— y se retira por etapas: lo que aún
+hace sigue funcionando, ninguna función nueva le llega —solo una regla que la
+ventana guarda por seguridad, y que obedece—, y los comandos de tareas y
+documentos se van en la siguiente versión mayor. Lo que se queda es el binario
+`tisty`, porque es la puerta por la que entra tu asistente (`tisty mcp`) y el
+sitio del mantenimiento: `doctor`, `sync`, `export`, `agent`.
 
 ```console
-$ tisty "llamar al banco a las 3"
-$ tisty ls hoy
-$ tisty set 2 --recordar 2026-09-30T20:00
-$ tisty done 2
+$ tisty doctor
+$ tisty sync
+$ tisty export --markdown
 ```
 
-Ajustes la deja al alcance de tu terminal, o puedes instalar solo el comando con
-`brew install rgdevment/tap/tisty-cli` y no abrir nunca la ventana.
+Si tienes scripts contra `tisty ls --json` o `tisty add`, ve pensando en
+moverlos: Tisty pasa en la ventana, y la puerta del asistente es como un
+programa llega a ella.
 
 ## Un asistente, si usas uno
 
@@ -576,7 +584,34 @@ archivo más grande de los dos— y leer lo que ya está. Lo que no puede: cerra
 tarea ni borrarla, dar por hecha una tarea que escribiste tú, mover un día que
 pusiste tú, borrar un documento, renombrar ni vaciar una carpeta, alcanzar una
 tarea que plegaste, tomar archivos fuera de las carpetas donde aterriza una
-descarga, ni anotar dos veces lo mismo.
+descarga, ni anotar dos veces lo mismo. Una tarea que cerraste es histórico
+para él: le llega con un aviso que lo dice, se lee como terminó, no admite
+bitácora, ni un día nuevo, ni una alarma, ni un archivo, y si el mismo trabajo
+vuelve, el asistente propone una nueva que dice cómo terminó la anterior.
+
+Una tarea que escribiste tú sigue siendo tuya salvo que digas otra cosa. Ábrela
+a los agentes desde su detalle —«Permitir agentes»— y un
+asistente puede darla por hecha, para que la confirmes; describirla, si aún no
+tiene descripción; planear sus pasos; y marcarlos a medida que avanza, que es lo
+único que hace sin preguntar. Su día, su título, su lista y su cierre siguen
+siendo tuyos igual. «Sin agentes» cierra la puerta otra vez y conserva lo que
+alcanzó a completar.
+
+**La línea de comandos es tuya, no del asistente.** Un asistente con shell
+podría teclear `tisty done 3` el día que su servidor MCP no esté conectado, y
+actuar como tú; o `tisty agent --on`, y darse entrada solo. Así que `tisty` mira
+quién está al teclado antes de abrir nada, y rechaza todo comando salvo `tisty
+mcp` cuando lo está un asistente de programación: por las marcas que lleva su
+entorno, por lo que hay encima de él en el árbol de procesos, o por un editor
+encima y ninguna terminal. Y `tisty agent --on` te pregunta a ti, en la
+terminal, antes de dar entrada a nadie: una shell sin terminal desde la que
+responder se rechaza sin más, la maneje quien la maneje. El rechazo está
+escrito para el asistente que lo lee:
+ve por el servidor, o dile a la persona que está caído. Es una heurística, y una
+honesta: al mismo usuario en el mismo shell no se le distingue con certeza, así
+que donde el cliente de tu asistente pueda negar el comando antes de que corra
+—un hook, una regla—, esa es la capa que no depende del servidor, y esta es el
+suelo debajo.
 
 También lee con mesura, que es asunto tuyo tanto como suyo. Tisty guarda una
 ficha de cada documento —sus títulos, cuánto ocupa, las palabras en que se

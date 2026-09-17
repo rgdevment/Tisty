@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
@@ -41,6 +41,9 @@ const open = (one: Task, expanded = false) => {
       onReopen={() => {}}
       onStillOpen={() => {}}
       onErase={() => {}}
+      onFold={() => {}}
+      onReadAs={() => {}}
+      onOpenToAgents={() => {}}
       onClose={() => {}}
     />,
   );
@@ -103,6 +106,9 @@ describe("what an agent says is done", () => {
         onReopen={() => {}}
         onStillOpen={back}
         onErase={() => {}}
+        onFold={() => {}}
+        onReadAs={() => {}}
+        onOpenToAgents={() => {}}
         onClose={() => {}}
       />,
     );
@@ -185,35 +191,117 @@ describe("erasing what is already archived", () => {
         onReopen={() => {}}
         onStillOpen={() => {}}
         onErase={onErase}
+        onFold={() => {}}
+        onReadAs={() => {}}
+        onOpenToAgents={() => {}}
         onClose={() => {}}
       />,
     );
     return onErase;
   };
 
-  it("is offered on a dropped task", async () => {
-    const erased = shown(task({ status: "dropped" }));
+  // The pair that moves the task sits in the footer; what is left waits behind «More».
+  const behindMore = async () => {
+    await userEvent.click(screen.getByRole("button", { name: /^more$/i }));
+    return screen.getByRole("menu");
+  };
+  const noMore = () => screen.queryByRole("button", { name: /^more$/i });
 
-    await userEvent.click(screen.getByRole("button", { name: /erase for good/i }));
+  it("is offered on a dropped task, behind «more»", async () => {
+    const erased = shown(task({ status: "dropped" }));
+    await behindMore();
+
+    await userEvent.click(screen.getByRole("menuitem", { name: /^erase$/i }));
 
     expect(erased).toHaveBeenCalled();
   });
 
-  it("is offered on a completed task that was put away", () => {
+  it("is offered on a completed task that was put away", async () => {
     shown(task({ status: "done", hidden: true }));
+    await behindMore();
 
-    expect(screen.getByRole("button", { name: /erase for good/i })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /^erase$/i })).toBeTruthy();
   });
 
-  it("is not offered on a completed task still in plain sight", () => {
+  // A trace goes directly: the person closed it and nothing was written on it. Hiding it
+  // first is no longer the step that makes it erasable.
+  it("is offered on a completed trace still in plain sight", async () => {
     shown(task({ status: "done" }));
+    await behindMore();
 
-    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: /^erase$/i })).toBeTruthy();
   });
 
-  it("is never offered while the task is open", () => {
-    shown(task({ status: "open" }));
+  it("is never offered on a story, hidden or not, until it is moved to the trace", async () => {
+    const story = { status: "done" as const, volume: { prose: 3, journal: 3 } };
+    shown(task(story));
+    await behindMore();
+    expect(screen.queryByRole("menuitem", { name: /^erase$/i })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: /move to the trace/i })).toBeTruthy();
+    cleanup();
 
-    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+    shown(task({ ...story, hidden: true }));
+    await behindMore();
+    expect(screen.queryByRole("menuitem", { name: /^erase$/i })).toBeNull();
+    cleanup();
+
+    shown(task({ ...story, read_as: "trace" }));
+    await behindMore();
+    expect(screen.getByRole("menuitem", { name: /^erase$/i })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /move to the stories/i })).toBeTruthy();
+  });
+
+  it("is never offered on a trace kept as a story, nor on a turn of a routine", async () => {
+    shown(task({ status: "done", read_as: "story" }));
+    await behindMore();
+    expect(screen.queryByRole("menuitem", { name: /^erase$/i })).toBeNull();
+    cleanup();
+
+    shown(task({ status: "done", after: "01S" }));
+    expect(noMore()).toBeNull();
+  });
+
+  it("is never offered while the task is open", async () => {
+    shown(task({ status: "open" }));
+    await behindMore();
+
+    expect(screen.queryByRole("menuitem", { name: /^erase$/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /move to the/i })).toBeNull();
+  });
+
+  it("converts through the handler and hides or shows through the other", async () => {
+    const readAs = vi.fn();
+    const folds = vi.fn();
+    render(
+      <Detail
+        task={task({ status: "done" })}
+        lists={[]}
+        known={[]}
+        expanded={false}
+        onExpand={() => {}}
+        onCollapse={() => {}}
+        onPatch={() => {}}
+        onStep={() => {}}
+        onMark={() => {}}
+        onDropStep={() => {}}
+        onLog={() => {}}
+        onComplete={() => {}}
+        onDiscard={() => {}}
+        onReopen={() => {}}
+        onStillOpen={() => {}}
+        onErase={() => {}}
+        onFold={folds}
+        onReadAs={readAs}
+        onOpenToAgents={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /^more$/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /move to the stories/i }));
+    expect(readAs).toHaveBeenCalledWith("story");
+
+    await userEvent.click(screen.getByRole("button", { name: /^hide it$/i }));
+    expect(folds).toHaveBeenCalledWith(true);
   });
 });

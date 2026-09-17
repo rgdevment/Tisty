@@ -24,6 +24,14 @@ pub enum Reading {
     Trace,
 }
 
+/// Why a task is not for erasing: only a closed trace goes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stays {
+    Open,
+    Story,
+    Routine,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("priority must be do, decide, delegate or minor")]
 pub struct InvalidPriority;
@@ -178,6 +186,13 @@ pub struct Task {
     pub filled: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completed_at: Option<Timestamp>,
+    /// The layer the person chose, story or trace; absent, the weight decides.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read_as: Option<Reading>,
+    /// The person let an assistant fill this one in: say it is done, describe it, plan and
+    /// tick its steps — what an assistant may do on a task it filed itself.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub open_to_agents: bool,
 
     #[serde(default, skip_serializing_if = "Volume::is_empty")]
     pub volume: Volume,
@@ -243,6 +258,8 @@ impl Task {
             closed_in: None,
             filled: false,
             completed_at: None,
+            read_as: None,
+            open_to_agents: false,
             volume: Volume::default(),
         }
     }
@@ -340,18 +357,43 @@ impl Task {
 
     pub fn reading(&self) -> Reading {
         if self.repeat.is_some() || self.after.is_some() {
-            Reading::Routine
-        } else if self.weight() >= STORY_AT {
-            Reading::Story
-        } else {
-            Reading::Trace
+            return Reading::Routine;
+        }
+        match self.read_as {
+            Some(Reading::Story) => Reading::Story,
+            Some(Reading::Trace) => Reading::Trace,
+            _ if self.weight() >= STORY_AT => Reading::Story,
+            _ => Reading::Trace,
+        }
+    }
+
+    /// The weight as the person reads it: a conversion lands on its layer's side of the
+    /// threshold, and everything else weighs what it wrote. For ordering, never for counting.
+    pub fn heft(&self) -> usize {
+        match self.reading() {
+            Reading::Story => self.weight().max(STORY_AT),
+            Reading::Trace => self.weight().min(STORY_AT - 1),
+            Reading::Routine => self.weight(),
+        }
+    }
+
+    /// Only a closed trace is erased; a story is hidden, and converting it is the person's
+    /// deliberate step. Whether it is folded away plays no part.
+    pub fn erasable(&self) -> Result<(), Stays> {
+        if self.is_open() {
+            return Err(Stays::Open);
+        }
+        match self.reading() {
+            Reading::Trace => Ok(()),
+            Reading::Story => Err(Stays::Story),
+            Reading::Routine => Err(Stays::Routine),
         }
     }
 }
 
 const PROSE_CAP: usize = 8;
 
-const STORY_AT: usize = 3;
+pub const STORY_AT: usize = 3;
 
 fn substance(body: &str) -> usize {
     match body.split_whitespace().count() {
@@ -469,6 +511,8 @@ mod tests {
             "tags",
             "reminders",
             "completed_at",
+            "read_as",
+            "open_to_agents",
         ] {
             assert!(
                 !json.contains(absent),
@@ -788,6 +832,154 @@ mod tests {
             Reading::Story,
             "the layer is read from what is there, never stored"
         );
+    }
+
+    fn closed(mut one: Task) -> Task {
+        one.status = Status::Done;
+        one.completed_at = Some(Timestamp::UNIX_EPOCH);
+        one
+    }
+
+    fn story() -> Task {
+        let mut one = task();
+        for line in [
+            "the courier leaves the parcel with the neighbour",
+            "the neighbour is away until the fifteenth of the month",
+            "it went back to the depot and has to be asked for again",
+        ] {
+            one.log.push(entry(line));
+        }
+        one.retally();
+        assert_eq!(one.reading(), Reading::Story);
+        one
+    }
+
+    #[test]
+    fn a_trace_kept_as_a_story_reads_as_one_whatever_it_weighs() {
+        let mut errand = task();
+        errand.retally();
+        errand.read_as = Some(Reading::Story);
+
+        assert_eq!(errand.reading(), Reading::Story);
+        assert_eq!(
+            errand.weight(),
+            0,
+            "the weight keeps telling what was written"
+        );
+        assert_eq!(
+            errand.heft(),
+            STORY_AT,
+            "and the heft lands it with the stories"
+        );
+    }
+
+    #[test]
+    fn a_story_read_as_a_trace_reads_as_one_whatever_it_weighs() {
+        let mut one = story();
+        one.read_as = Some(Reading::Trace);
+
+        assert_eq!(one.reading(), Reading::Trace);
+        assert!(one.weight() >= STORY_AT);
+        assert_eq!(one.heft(), STORY_AT - 1);
+    }
+
+    #[test]
+    fn a_routine_reads_as_a_routine_however_it_is_pinned() {
+        let mut turn = task();
+        turn.after = Some(Ulid::generate());
+        turn.read_as = Some(Reading::Story);
+        turn.retally();
+
+        assert_eq!(turn.reading(), Reading::Routine);
+        assert_eq!(turn.heft(), turn.weight());
+    }
+
+    #[test]
+    fn heft_leaves_what_was_not_converted_alone() {
+        let mut errand = task();
+        errand.retally();
+        let one = story();
+
+        assert_eq!(errand.heft(), errand.weight());
+        assert_eq!(one.heft(), one.weight());
+    }
+
+    /// The content grows after the conversion: the layer the person chose holds, and the
+    /// weight goes on telling the truth about what is written.
+    #[test]
+    fn what_is_written_after_a_conversion_does_not_undo_it() {
+        let mut one = closed(story());
+        one.read_as = Some(Reading::Trace);
+        for _ in 0..3 {
+            one.log.push(entry(
+                "another long entry about the parcel, the depot, the neighbour and the courier \
+                 who never rings twice",
+            ));
+        }
+        one.retally();
+
+        assert_eq!(one.reading(), Reading::Trace);
+        assert_eq!(one.erasable(), Ok(()));
+        assert!(one.weight() > STORY_AT, "{}", one.weight());
+        assert_eq!(one.heft(), STORY_AT - 1);
+    }
+
+    #[test]
+    fn only_a_closed_trace_is_erasable() {
+        let open = task();
+        assert_eq!(open.erasable(), Err(Stays::Open));
+        let mut open_story = story();
+        open_story.read_as = Some(Reading::Trace);
+        assert_eq!(
+            open_story.erasable(),
+            Err(Stays::Open),
+            "open is open, converted or not"
+        );
+
+        let mut errand = closed(task());
+        errand.retally();
+        assert_eq!(errand.erasable(), Ok(()));
+        errand.hidden = true;
+        assert_eq!(errand.erasable(), Ok(()), "folded away changes nothing");
+        errand.status = Status::Dropped;
+        assert_eq!(errand.erasable(), Ok(()), "dropped is closed");
+
+        let mut kept = closed(task());
+        kept.retally();
+        kept.read_as = Some(Reading::Story);
+        assert_eq!(
+            kept.erasable(),
+            Err(Stays::Story),
+            "kept as a story, it stays"
+        );
+
+        let mut one = closed(story());
+        assert_eq!(one.erasable(), Err(Stays::Story));
+        one.read_as = Some(Reading::Trace);
+        assert_eq!(one.erasable(), Ok(()), "converted, it goes");
+
+        let mut turn = closed(task());
+        turn.after = Some(Ulid::generate());
+        assert_eq!(turn.erasable(), Err(Stays::Routine));
+        turn.read_as = Some(Reading::Trace);
+        assert_eq!(
+            turn.erasable(),
+            Err(Stays::Routine),
+            "a pin never reaches a routine"
+        );
+    }
+
+    #[test]
+    fn a_conversion_round_trips_and_absent_is_absent() {
+        let mut one = task();
+        one.read_as = Some(Reading::Trace);
+        let json = serde_json::to_string(&one).unwrap();
+        assert!(json.contains(r#""read_as":"trace""#), "{json}");
+        let back: Task = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.read_as, Some(Reading::Trace));
+
+        let before: Task = serde_json::from_str(&serde_json::to_string(&task()).unwrap()).unwrap();
+        assert_eq!(before.read_as, None);
     }
 
     #[test]

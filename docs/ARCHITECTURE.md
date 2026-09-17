@@ -62,6 +62,8 @@ Some payload fields carry more than their name says:
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
+| `read_as` | `task.update` | `story` or `trace`, the layer the person converted the task to; `null` reads it by what it holds again — what undo writes, and what `tisty set --read-as auto` asks for; the window only moves between the two |
+| `open_to_agents` | `task.update` | the person let an assistant fill this task in. Only their own hand sets it: written by an assistant, the field is dropped and the rest of the patch lands |
 | `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
 | `by` | `doc.said` | the alias the body was saved under, sealed at the writing rather than worked out afterwards from whoever happens to be signing now. Absent is a hand that did not sign, not the reader's own |
 
@@ -100,9 +102,10 @@ machine can file work. It is a subcommand of the same binary, so it resolves
 the same paths, takes the same lock, and duplicates no logic.
 
 An agent writes under a `device_id` of its own, minted only when the person
-turns one on — from the Agents tab or `tisty agent --on`. Nothing arriving
-over the wire can register one. Its own directory is what keeps `undo`
-apart: the person's undo never reaches what the agent filed.
+turns one on — from the Agents tab or `tisty agent --on`, which asks them on
+the terminal first. Nothing arriving over the wire can register one. Its own
+directory is what keeps `undo` apart: the person's undo never reaches what the
+agent filed.
 
 It can propose a task, move the day of a task it filed itself, say that a task
 it filed is done, add to a journal, read one whole task or the fields of it that
@@ -132,17 +135,53 @@ is its own. It is not a way out of the guarantee so much as a way of saying it
 out loud: the body it writes over is kept in turn, so the call that went too far
 is undone by the same call without the flag.
 
-`reschedule` and `say_done` are the two tools that write over something already
-filed, and both reach only tasks whose `created_by` is a device the person
-turned on as an agent. A day the person set is refused with the reason, and so
-is a task they wrote. Everything else an agent knows it must add rather than
-change: a journal note, a new task, a new document.
+`reschedule` writes over something already filed, and reaches only tasks whose
+`created_by` is a device the person turned on as an agent: a day the person set
+is refused with the reason, and so is a task they wrote. Everything else an
+agent knows it must add rather than change: a journal note, a new task, a new
+document.
 
-`say_done` is the narrower of the two, and deliberately so: it adds a mark
-beside the task and the account that holds it up, and changes nothing else. The
-task stays open. Whether it closes is the person's, who may take the mark off
+Filling a task in is the one thing an agent does on a task it did not file, and
+only where the person let it. `say_done`, `describe`, `plan` and `tick` reach a
+task an assistant filed, or one the person opened with `open_to_agents` — a
+verb of the window, on an open task of their own, never part of an edit and
+never the terminal's. Opened, the task stays theirs: its day, its title, its
+list and its closing are as out of reach as before, `tick` marks a step and
+never unmarks one, `describe` writes a description where there was none and
+refuses to write over one, and `plan` adds steps under whatever is there. The
+core judges it again at replay — `TaskResolve`, `TaskDescribe`, `StepAdd` and
+`StepDone` from an assistant on a task nobody opened to them are let go,
+whatever the server that wrote them believed — so a fill-in written on one
+machine before the person shut the door on another projects the same
+everywhere. Shutting it keeps what was filled in; it is not an unsaying.
+
+A task the person closed is history to an agent. It comes back from `read`
+and `find` with `closed` set to the moment it ended and, from `read`, a
+`notice` that says so in words, and every tool that writes on a task —
+`note`, `reschedule`, `say_done`, `remind`, `attach` — is refused on it with
+the same answer: it reads as it ended, nothing on it changes, and work that
+came back is a new task whose description says how the last one ended. A
+closed task that left nothing written — the person's trace, in the archive's
+own three layers — is served the same way, with the same notice: hiding it
+was considered and turned down, because an agent that cannot see a thing
+happened proposes it again, and a notice costs less than a duplicate. The
+source says it too: `find` by `source` and a second `propose` from one answer
+«closed since» with the moment, which is what an agent tells the person who
+asks whether it filed something — it did, and it is done. A second filing from
+that source takes `again`, for the one case where the person wants the work
+done once more, and never while the earlier task is still open.
+
+`say_done` is the narrower of the fill-ins, and deliberately so: it adds a
+mark beside the task and the account that holds it up, and changes nothing
+else. It is refused while a step of the task is unticked, because a mark beside
+an unticked checklist reads as work nobody did: the agent ticks what it did,
+and a step that no longer applies goes in a note for the person to take off.
+The task stays open. Whether it closes is the person's, who may take the mark off
 instead — which is the one thing an agent cannot do twice over, because a second
-`say_done` on a mark nobody has looked at is refused rather than stacked.
+`say_done` on a mark nobody has looked at is refused rather than stacked. The
+mark survives a finish taken back: reopening clears the closing and nothing
+else, because a finish undone by mistake must not unsay the agent, and saying
+no to the mark is the person's own op, `TaskUnresolve`, not a side effect.
 
 ### A door an agent can afford to walk through
 
@@ -251,6 +290,52 @@ read of each hit. `said_done` is how an agent tells what it has already spoken
 for from what it has not, so it does not say the same thing twice. Fields
 that say nothing — a null, an empty list — are left out of every answer.
 
+**The person's command line is frozen, and being retired by stages.** The
+binary is not: `tisty mcp` is the door, the window carries it as a sidecar, and
+`agent`, `doctor`, `sync`, `export`, `leave` and `demo` are maintenance that
+stays. What goes is the terminal as a second window — the task and document
+commands — because every rule was being written three times: core, window,
+terminal, and the third copy is the one nobody uses. Until they go, no feature
+reaches them and no new command joins them; what has to hold in the terminal
+for safety — a rule the window keeps, like which task may be erased — still
+does, and is written once, in the core, so that the terminal only obeys it.
+That is how `tisty rm` came to refuse a story and `tisty set --read-as` to
+exist the same day the policy was written: the erase rule moved to the core,
+and the terminal had to be able to convert to obey it. The check below is the
+binary's own and stays. When the commands are gone, it guards what is left:
+nothing an assistant could reach for.
+
+**The terminal is the person's, and the binary checks that it is.** An
+assistant with a shell could type `tisty done 3` the day its server is not
+connected, or `tisty agent --on` and mint itself the device the paragraphs
+above say only the person mints. So every subcommand but `mcp` looks at who is
+at the keyboard before the store opens, and is refused when a coding assistant
+is: by a mark in the environment (`CLAUDECODE` and the like), by one up the
+process tree (`claude`, `codex`, `gemini`, `opencode`…), or by an editor up the
+tree with no terminal attached at all — the editor's own integrated terminal
+has one, its agent's shell has none. The refusal is written for the assistant
+that reads it, because it is the one instruction that reaches it without the
+server: go through the server, or tell the person it is down. It is noted in
+the log, so the person can see it happened. A store the person did not choose —
+`TISTY_DATA`, a `TISTY_PROFILE` sandbox — is not guarded, which is what lets
+the tests and `demo` run under an assistant. The check is a heuristic and says
+so: the same user in the same shell cannot be told apart with certainty, and
+an environment variable does not cross from WSL into a Windows binary reached
+through interop. On Windows the tree is walked by `sysinfo` rather than by
+hand, because reading it there takes a call this workspace forbids itself.
+Where the assistant's client can turn the command down before it runs — a
+hook, a rule — that is the layer that does not depend on the server; the
+binary is the floor beneath it.
+
+`tisty agent --on` is guarded once more, and this time by no list of names:
+past the check above it asks the person, on the terminal itself, and a shell
+with no terminal is turned away — a piped answer never reaches the prompt, and
+the shell most assistants drive is a pipe. One driving a pseudo-terminal has a
+terminal to answer from, and is back in the hands of the heuristic above. A
+store the person did not choose asks nobody, which is what lets the tests turn
+an agent on — read the way `Paths::resolve` reads it, so a profile name it
+throws away does not open the person's own store to the check's exemption.
+
 **No assistant ever deletes, and that is the design rather than an omission.** The
 MCP has no tool that writes any of the deletions — not a task, not a list, not a
 folder, not a document. Finishing is the person's, and so is unmaking; an agent
@@ -281,10 +366,32 @@ projection said nothing was wrong.
 That the rule lives here and not at the tool gate matters because the gate only
 guards one binary: a shared folder takes lines from anywhere, and one future tool
 or one CLI subcommand written without this in mind would otherwise be honoured
-everywhere the folder reaches. It is not a defence against a forged log — nothing
-checks that an event in a device's folder was written by that device, and anyone
-who can append there can also delete the files directly. It binds an honest binary,
-which is what the rule is for.
+everywhere the folder reaches. The same replay keeps the rest of what an
+assistant's hand may do to a task that exists, as a list of what is let in
+rather than of what is kept out: a journal line on any task; a bell on any
+open task, since `remind` only ever adds one; the rest of a patch on what an
+assistant filed; a mark, a description and steps on what an assistant filed or
+the person opened to them; and nothing else — not a close, a drop, a hide, a
+move, a mark taken off, a step taken back — whatever the server that wrote it
+believed. The trail (`story.rs`) keeps the same list, so it never tells of a
+step the task did not take.
+
+It is a defence against an honest binary that was wrong, not against a forged
+log. One thing is checked: an event claims the device whose directory holds it
+— a device writes only there and sync copies directories whole, so on
+everything Tisty ever wrote the two agree — and one that claims another is let
+go at reading. Beyond that, nothing signs an event, and a hand that can append
+to the store's files can also delete them: that hand is the person's own, and
+the terminal gate below is the floor it stands on, not a lock.
+
+Judged at replay, the door is judged in the order the merged log sorts, by
+stamp, and a clock behind another machine's would stamp a fill-in before the
+opening that let it in — let go everywhere, the machine that wrote it
+included, after the agent was told it landed. So every fill-in is written
+under the lock, judged against the whole log and stamped after the newest
+event in it (`Store::append_batch_unless`): what was read as open lands after
+what opened it, whatever the clocks say. An opening that has not synced over
+yet is simply not there, and the server refuses rather than writes.
 
 The trade it takes: this changes how an already-written log projects, so a machine
 on an older build still honours what this one drops.
@@ -578,10 +685,28 @@ element carries its own identifier.
 Deleting is the exception: it leaves a tombstone, and nothing about that entity
 is ever applied again. That is what stops a late event from resurrecting it.
 
-A task only becomes deletable once it is **archived and hidden** — two
-deliberate steps, refused otherwise, so nothing goes on a slip. The tombstone
-travels; what the log already recorded about the task stays where it was
-written.
+A task is deletable once it is closed and **reads as a trace**. A story or a
+routine is only hidden, never erased: to erase a story the person converts it to
+a trace first, and a trace kept as a story stops being erasable. The conversion
+is the deliberate step, and what the task holds plays no part in it — what the
+person converted is what they said it is. The rule is `State::erasable()`, in
+the core — `Task::erasable()` reads the task alone, and the state adds that a
+task other turns hang from counts as a routine's root, however bare — and the
+window and `tisty rm` both obey it at the moment they commit, judged again
+under the lock, since erasing has no undo and an agent or the other window may
+have written since they last looked. Erasing and hiding are one task at a time:
+a sweep of the whole layer was built and taken out, because a trace is let go
+of by looking at it, not by a count. One thing is judged at replay,
+deterministically, the way an assistant's deletion is: a delete that reaches a
+task the person kept as a story is let go, on every machine alike, because that
+word outlives a delete written elsewhere while the task still read as a trace.
+Two deletions are not
+the person's and stay outside the rule: reopening a routine's turn deletes the
+untouched turn born from it, and undoing a capture deletes what it captured.
+The tombstone travels, and it keeps what the task was written from: an
+assistant reading the same message again is told it was let go, and files it
+again only when the person asks for it back with `again`. What the log already
+recorded about the task stays where it was written.
 
 ## Repeating
 
@@ -717,6 +842,24 @@ took the trouble to write is a story, and one that closed after a month with
 nothing written is a trace. A line of three words is not substance; the weight a
 log carries climbs with what it says, and a plan or a pile of links cannot
 make a story on their own.
+
+Unless the person converted it. `read_as` names the layer they chose — story or
+trace, never routine — and wins over the weight until they convert it back:
+without a pin, the weight decides; the pin freezes; what was not converted goes
+on changing layer with what is written. It is the one thing about a layer that
+is stored, and it is stored as the word, not as a number: a manual weight was
+considered and turned down, because it would have kept a difference against a
+base that keeps moving — one eight-word note, or one word taken out, or the
+other machine writing, would have undone the conversion without anyone asking.
+Search orders by `heft()`, the weight clipped to the chosen side of the
+threshold, so a conversion counts there; `told` on the cover and in the series
+keeps reading `weight()`, because it says «left something written» and must
+keep saying the truth. A conversion is a chapter in the trail, unlike hiding,
+because it explains why a task sits where it sits. Reopening keeps a story pin,
+as it keeps the agent's mark — a finish taken back by mistake must not unkeep
+it — and lets a trace pin go: work starts again, and is judged again by what it
+writes. A patch an assistant wrote lands without the pin, and its chapter is
+not written: converting is the person's.
 
 `Reading` is derived, but the `Volume` it reads from is **not** one of the three
 views above: it is counted on write and travels in the read cache. Changing how

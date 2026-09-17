@@ -54,6 +54,9 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 dialoguer = { version = "0.12", default-features = false, features = ["fuzzy-select"] }
 sys-locale = "0.3"
+# Only for walking the process tree on Windows, where doing it by hand takes a system
+# call this workspace forbids itself; the other platforms read /proc or ask ps.
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 unicode-normalization = "0.1"
 tempfile = "3"
 

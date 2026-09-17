@@ -7,6 +7,9 @@ import { said } from "../quadrants";
 
 interface Props {
   task: string;
+  /// Anything that changes when the task's story grows — a status, a conversion, an entry
+  /// count — so the trail asks again without the detail being closed and opened.
+  moved?: string;
   heading?: React.ReactNode;
   lists: List[];
   onError?: (problem: unknown) => void;
@@ -15,8 +18,8 @@ interface Props {
   before?: (from: string) => React.ReactNode;
 }
 
-export default function Trail({ task, lists, onError, heading, before }: Props) {
-  const told = useAsked(() => taskStory(task), [task], onError);
+export default function Trail({ task, moved, lists, onError, heading, before }: Props) {
+  const told = useAsked(() => taskStory(task), [task, moved], onError);
 
   if (!told) return null;
   if (!told.pages.length) {
@@ -98,6 +101,9 @@ function glyph(page: Page): string {
       return "⨯";
     case "reopened":
       return "⊕";
+    case "opened":
+    case "shut":
+      return "◆";
     default:
       return "·";
   }
@@ -148,6 +154,16 @@ function phrase(page: Page, named: (id?: string | null) => string | undefined): 
       return t("trailDropped");
     case "reopened":
       return t("trailReopened");
+    case "converted":
+      return page.to === "story"
+        ? t("trailKeptStory")
+        : page.to === "trace"
+          ? t("trailReadTrace")
+          : t("trailReadByItself");
+    case "opened":
+      return t("trailOpened");
+    case "shut":
+      return t("trailShut");
     default:
       return unreadable(page);
   }
