@@ -142,24 +142,18 @@ describe("the notice every bundled licence asks for", () => {
   });
 });
 
-describe("a newer version the Store has not caught up with", () => {
-  const waiting = { version: "1.15.0", route: "store" as const, package: null, installs: false };
+// Only the Store speaks for a copy it keeps: what reaches here is what the Store itself has,
+// and that one this copy can take without leaving the window.
+describe("a newer version the Store itself offers", () => {
+  const waiting = { version: "1.15.0", route: "store" as const, package: null, installs: true };
 
-  it("offers a way into the Store instead of leaving an instruction", async () => {
+  it("is taken with the one button, and never through a door to the Store", async () => {
     render(<About ready={waiting} onError={() => {}} />);
-
-    await screen.findByText("0.1.0");
-    await userEvent.click(screen.getByRole("button", { name: /open the store/i }));
-
-    expect(opened.urls).toEqual(["ms-windows-store://downloadsandupdates"]);
-  });
-
-  it("puts that button away once the Store itself offers the update", async () => {
-    render(<About ready={{ ...waiting, installs: true }} onError={() => {}} />);
 
     await screen.findByText("0.1.0");
 
     expect(screen.queryByRole("button", { name: /open the store/i })).toBeNull();
     expect(screen.getByRole("button", { name: /update/i })).toBeTruthy();
+    expect(opened.urls).toEqual([]);
   });
 });

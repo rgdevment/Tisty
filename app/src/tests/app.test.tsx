@@ -630,37 +630,6 @@ describe("the views nothing else opens", () => {
     );
   });
 
-  it("sends whoever the Store does not answer for back to the Store", async () => {
-    const was = ipc.answer;
-    ipc.answer = (cmd, args) => {
-      if (cmd === "update_ready") {
-        return Promise.resolve({
-          version: "9.9.9",
-          route: "store",
-          package: null,
-          installs: false,
-        });
-      }
-      if (cmd === "about") {
-        return Promise.resolve({
-          version: "0.1.0",
-          sandbox: null,
-          repository: "https://example.invalid/tisty",
-          license: "AGPL-3.0",
-          store: "C:/store",
-        });
-      }
-      return was(cmd, args);
-    };
-    const user = userEvent.setup();
-    await started();
-
-    await user.click(screen.getByRole("button", { name: /about|acerca/i }));
-
-    expect(await screen.findByText(/Microsoft Store brings it to you/i)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^update$/i })).toBeNull();
-  });
-
   it("says why the update did not happen, and hands the button back", async () => {
     const was = ipc.answer;
     ipc.answer = (cmd, args) => {

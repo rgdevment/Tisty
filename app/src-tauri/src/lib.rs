@@ -2423,37 +2423,45 @@ async fn update_ready(
         wants
     };
 
-    // A copy kept by the Store asks the Store first: what it offers is what this copy can take
-    // without leaving the window. Having nothing is not the same as there being nothing, so the
-    // manifest is asked after it — a release it is still certifying is already out elsewhere.
-    if kept.route == update::Route::Store
-        && let Some(window) = owner(&app)
-    {
-        // Held to the manifest's interval too: a Store that never answers strands the thread.
+    // A copy kept by the Store asks the Store and nobody else: a release the Store is still
+    // certifying is out for everyone else, and being told of one this copy cannot take is a
+    // button that does nothing. What the Store last said stands until it says otherwise.
+    if kept.route == update::Route::Store {
+        let Some(window) = owner(&app) else {
+            return Ok(None);
+        };
+        let last_said = || {
+            the_shop_said
+                .then_some(found.as_deref())
+                .flatten()
+                .and_then(|version| update::from_the_shop(version, HERE))
+        };
         if !asked && !update::due(last, now) {
-            return Ok(if the_shop_said {
-                found
-                    .as_deref()
-                    .and_then(|version| update::from_the_shop(version, HERE))
-            } else {
-                update::remembered(HERE, found.as_deref(), kept, wants)
-            });
+            return Ok(last_said());
         }
-        if let Ok(shelf) = tauri::async_runtime::spawn_blocking(move || shop::asked(window)).await {
-            if let shop::Shelf::Waiting(version) = &shelf
-                && let Some(seen) = update::from_the_shop(version, HERE)
-            {
+        let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window))
+            .await
+            .unwrap_or(shop::Shelf::Silent);
+        return match shelf {
+            shop::Shelf::Waiting(version) => {
+                let seen = update::from_the_shop(&version, HERE);
                 held(&session).keep(|c| {
                     c.checked_at = Some(now);
-                    c.found_version = Some(seen.version.clone());
-                    c.found_in_the_shop = Some(true);
+                    c.found_version = seen.as_ref().map(|one| one.version.clone());
+                    c.found_in_the_shop = seen.as_ref().map(|_| true);
                 })?;
-                return Ok(Some(seen));
+                Ok(seen)
             }
-            if shelf != shop::Shelf::Silent {
-                held(&session).keep(|c| c.found_in_the_shop = None)?;
+            shop::Shelf::Current => {
+                held(&session).keep(|c| {
+                    c.checked_at = Some(now);
+                    c.found_version = None;
+                    c.found_in_the_shop = None;
+                })?;
+                Ok(None)
             }
-        }
+            shop::Shelf::Silent => Ok(last_said()),
+        };
     }
 
     if !asked && !update::due(last, now) {

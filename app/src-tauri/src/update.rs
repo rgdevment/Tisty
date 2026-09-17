@@ -99,6 +99,9 @@ pub fn tracking(now: &str, wants: Option<bool>) -> bool {
 }
 
 pub fn newer(now: &str, manifest: &str, kept: Kept, wants: Option<bool>) -> Option<Ready> {
+    if kept.route == Route::Store {
+        return None;
+    }
     let here: semver::Version = now.parse().ok()?;
     let read: Manifest = serde_json::from_str(manifest).ok()?;
 
@@ -149,6 +152,9 @@ pub fn from_the_shop(version: &str, now: &str) -> Option<Ready> {
 /// may the track it is on, which is why the rule is applied here too rather than trusted to
 /// whatever was true when the answer was written down.
 pub fn remembered(now: &str, said: Option<&str>, kept: Kept, wants: Option<bool>) -> Option<Ready> {
+    if kept.route == Route::Store {
+        return None;
+    }
     let here: semver::Version = now.parse().ok()?;
     let kept_version: semver::Version = said?.parse().ok()?;
 
@@ -506,18 +512,21 @@ mod tests {
         assert!(remembered("0.2.0", Some("tomorrow"), kept, None).is_none());
     }
 
+    /// A release the Store is still certifying is out for everyone else; told of it, a copy the
+    /// Store keeps has a button that does nothing. Only the Store speaks for what it sells.
     #[test]
-    fn what_only_the_manifest_knows_is_news_a_store_copy_cannot_press_a_button_for() {
-        let offer = remembered(
-            "1.13.0",
-            Some("1.13.3"),
-            Kept::plain(Route::Store),
-            Some(false),
-        )
-        .expect("1.13.3 is newer");
-
-        assert_eq!(offer.version, "1.13.3");
-        assert!(!offer.installs);
+    fn the_manifest_says_nothing_to_a_copy_the_store_keeps() {
+        assert!(
+            remembered(
+                "1.13.0",
+                Some("1.13.3"),
+                Kept::plain(Route::Store),
+                Some(false)
+            )
+            .is_none()
+        );
+        let feed = r#"{"schema":1,"latest":"1.13.3"}"#;
+        assert!(newer("1.13.0", feed, Kept::plain(Route::Store), Some(false)).is_none());
     }
 
     #[test]
