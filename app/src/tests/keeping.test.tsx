@@ -13,8 +13,6 @@ const ipc = vi.hoisted(() => ({
 const serving = vi.hoisted(() => ({
   on: false,
   called: undefined as string | undefined,
-  id: undefined as string | undefined,
-  filed: 0,
 }));
 
 const installed = vi.hoisted(() => ({
@@ -137,7 +135,7 @@ beforeEach(() => {
   asked.folder = null;
   asked.file = null;
   asked.sure = false;
-  Object.assign(serving, { on: false, called: undefined, id: undefined, filed: 0 });
+  Object.assign(serving, { on: false, called: undefined });
   installed.seen = [
     {
       id: "claude-code",
@@ -2746,8 +2744,37 @@ describe("letting an assistant file work here", () => {
     expect(await screen.findByText(/knows its way around/i)).toBeTruthy();
   });
 
+  // A machine that only receives the log by Sync still reads what the other machine's hands
+  // wrote: the table does not hang from a client being installed here.
+  it("still says what the hands wrote when none of them is installed here", async () => {
+    installed.seen = [];
+    installed.hands = [
+      {
+        via: "codex",
+        named: "Codex",
+        wired: null,
+        filed: 40,
+        wrote: 90,
+        last: "2026-09-16T10:00:00Z",
+      },
+      { via: null, named: "", wired: null, filed: 132, wrote: 570, last: "2026-09-10T10:00:00Z" },
+    ];
+    try {
+      await openTab();
+
+      const codex = await screen.findByText("Codex");
+      expect(codex.parentElement?.textContent).toContain("40 filed");
+      expect(screen.getByText("An assistant with no name").parentElement?.textContent).toContain(
+        "132 filed",
+      );
+      expect(screen.getByText(/knows its way around/i)).toBeTruthy();
+    } finally {
+      installed.hands = [];
+    }
+  });
+
   it("spells out what it can never do, where the person decides", async () => {
-    Object.assign(serving, { on: true, called: "espino 3", id: "dev_wskajy01", filed: 4 });
+    Object.assign(serving, { on: true, called: "espino 3" });
 
     await openTab();
 

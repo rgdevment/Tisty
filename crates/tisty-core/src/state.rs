@@ -29,7 +29,6 @@ pub struct State {
     pub signed_before: Vec<String>,
     pub agents: BTreeSet<DeviceId>,
     pub assistants: BTreeSet<DeviceId>,
-    /// Which machine each agent device is hosted on, as `device.host` said.
     pub hosts: BTreeMap<DeviceId, DeviceId>,
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
@@ -586,7 +585,10 @@ impl State {
             }
             // Self-declared like `k`, or declared by the machine that hosts it: nobody else's word.
             Op::DeviceHost { d, of } => {
-                if event.device == *d || event.device == *of {
+                if (event.device == *d || event.device == *of)
+                    && self.assistants.contains(d)
+                    && !self.assistants.contains(of)
+                {
                     self.hosts.insert(d.clone(), of.clone());
                 }
             }
@@ -616,6 +618,7 @@ impl State {
             Op::DeviceRemove { d } => {
                 self.devices.remove(d);
                 self.agents.remove(d);
+                self.hosts.remove(d);
                 self.dropped.insert(d.clone());
             }
             Op::AttachRetire { d } => {
@@ -6584,6 +6587,43 @@ mod signing {
             Some(&other),
             "the host may say so itself"
         );
+
+        state.apply(&through(
+            5,
+            "dev_agent",
+            None,
+            Op::DeviceHost {
+                d: agent.clone(),
+                of: agent.clone(),
+            },
+        ));
+        assert_eq!(
+            state.hosts.get(&agent),
+            Some(&other),
+            "an agent is hosted on a machine, never on an agent"
+        );
+
+        state.apply(&through(
+            6,
+            "dev_laptop",
+            None,
+            Op::DeviceHost {
+                d: host.clone(),
+                of: other.clone(),
+            },
+        ));
+        assert!(
+            !state.hosts.contains_key(&host),
+            "a machine is nobody's guest"
+        );
+
+        state.apply(&through(
+            7,
+            "dev_laptop",
+            None,
+            Op::DeviceRemove { d: agent.clone() },
+        ));
+        assert!(state.hosts.is_empty(), "a retired agent lives nowhere");
     }
 
     #[test]

@@ -235,6 +235,7 @@ impl Op {
             Op::DocSaid { .. }
                 | Op::Signed { .. }
                 | Op::DocSigned { .. }
+                | Op::DeviceHost { .. }
                 | Op::DocMove {
                     d: Filed {
                         folder: None,

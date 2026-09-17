@@ -81,8 +81,6 @@ pub struct Page {
     pub n: usize,
     pub at: Timestamp,
     pub by: DeviceId,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub via: Option<String>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub undoing: bool,
     #[serde(flatten)]
@@ -159,7 +157,6 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
                 n: pages.len(),
                 at: event.timestamp,
                 by: event.device.clone(),
-                via: event.via.clone(),
                 undoing: event.undo,
                 chapter,
             });

@@ -56,7 +56,10 @@ describe("a task an agent filed carries its signature", () => {
   afterEach(() => knowAgents({}));
 
   it("signs the row by name and drops the tag that said the same", () => {
-    knowAgents({ dev_agent: "canelo 39" });
+    knowAgents(
+      { dev_agent: "canelo 39" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
     render(<TaskList tasks={[task()]} lists={[]} title="Open" bands="day" onSelect={() => {}} />);
 
     expect(screen.getByText("by Claude Code")).toBeTruthy();
@@ -66,7 +69,10 @@ describe("a task an agent filed carries its signature", () => {
   });
 
   it("calls what was written before clients had names the work of an assistant", () => {
-    knowAgents({ dev_agent: "canelo 39" });
+    knowAgents(
+      { dev_agent: "canelo 39" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
     render(
       <TaskList
         tasks={[task({ created_via: undefined })]}
@@ -88,7 +94,10 @@ describe("a task an agent filed carries its signature", () => {
   });
 
   it("signs the detail under the title while open, and in the stamps once closed", () => {
-    knowAgents({ dev_agent: "canelo 39" });
+    knowAgents(
+      { dev_agent: "canelo 39" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
     const { unmount } = detail(task());
     expect(screen.getByText("by Claude Code")).toBeTruthy();
     unmount();
@@ -97,8 +106,54 @@ describe("a task an agent filed carries its signature", () => {
     expect(screen.getByText(/· by Claude Code/)).toBeTruthy();
   });
 
-  it("is read out loud too, apart from what the agent said about it", () => {
+  it("reads a client the core did not name as it called itself, never as nothing", () => {
     knowAgents({ dev_agent: "canelo 39" });
+    render(
+      <TaskList
+        tasks={[task({ created_via: "kiro" })]}
+        lists={[]}
+        title="Open"
+        bands="day"
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("by kiro")).toBeTruthy();
+  });
+
+  // The tooltip names machines the way Settings › Sync does, and never by their id.
+  it("says which machine the hand wrote from, by the name the person knows it by", () => {
+    knowAgents(
+      { dev_agent: "canelo 39" },
+      {
+        clients: { "claude-code": "Claude Code" },
+        hosts: { dev_agent: "dev_desk" },
+        machines: { dev_desk: "roble 12", dev_lap: "sauce 4" },
+        here: "dev_lap",
+      },
+    );
+    const { unmount } = detail(task());
+    expect(screen.getByText("by Claude Code").getAttribute("title")).toBe("from roble 12");
+    unmount();
+
+    knowAgents(
+      { dev_agent: "canelo 39" },
+      {
+        clients: { "claude-code": "Claude Code" },
+        hosts: { dev_agent: "dev_lap" },
+        machines: { dev_lap: "sauce 4" },
+        here: "dev_lap",
+      },
+    );
+    detail(task());
+    expect(screen.getByText("by Claude Code").getAttribute("title")).toBe("from this machine");
+  });
+
+  it("is read out loud too, apart from what the agent said about it", () => {
+    knowAgents(
+      { dev_agent: "canelo 39" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
     expect(spokenLabel(task())).toBe("renew the certificate — by Claude Code");
     expect(
       spokenLabel(

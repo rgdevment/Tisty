@@ -192,10 +192,10 @@ routine           = "rutinas"
 trace             = "rastro"
 
 
-agent-on       = "un asistente ya puede anotar aquí, como «{name}»"
+agent-on       = "un asistente ya puede anotar aquí; el agente de este equipo firma el registro como «{name}»"
 agent-off      = "el asistente ya no puede anotar aquí"
 agent-none     = "ningún asistente puede anotar aquí"
-agent-already  = "ya hay un asistente registrado, como «{name}»"
+agent-already  = "un asistente ya podía anotar aquí; el agente de este equipo firma el registro como «{name}»"
 agent-not-on   = "no había ningún asistente registrado"
 agent-how      = "apúntalo a: tisty mcp"
 agent-sure     = "¿Dejar que un asistente anote aquí? Podrá proponer tareas, escribir notas y documentos, y leer lo que hay escrito"

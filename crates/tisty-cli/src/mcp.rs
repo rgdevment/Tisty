@@ -297,7 +297,7 @@ pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
 
 /// What the client called itself, kept for the session — one process serves one client — so
 /// every event written from here says which hand spoke. Nothing decides on it.
-static SPEAKING_THROUGH: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+static SPEAKING_THROUGH: std::sync::OnceLock<String> = std::sync::OnceLock::new();
 
 fn introduced(params: &Value) {
     let said = params
@@ -310,19 +310,14 @@ fn introduced(params: &Value) {
         .and_then(|info| info.get("name"))
         .and_then(Value::as_str)
         .and_then(tisty_core::agent::client_said);
-    if said.is_some() {
+    if let Some(said) = said {
         let _ = SPEAKING_THROUGH.set(said);
     }
 }
 
-/// The name kept from the greeting; failing that, the assistant or editor driving this
-/// process; failing that, nothing — an unnamed hand is still let in.
+/// The name kept from the greeting, or nothing: an unnamed hand is still let in.
 fn speaking_through() -> Option<String> {
-    SPEAKING_THROUGH
-        .get_or_init(|| {
-            crate::typist::driver().and_then(|one| tisty_core::agent::client_said(&one))
-        })
-        .clone()
+    SPEAKING_THROUGH.get().cloned()
 }
 
 fn answer(paths: &Paths, line: &str) -> Option<String> {
@@ -1525,9 +1520,13 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     }
     if let Some(already) = &task.resolved {
-        let who = match already.by == me {
+        let who = match already.by == me && already.via == speaking_through() {
             true => "you".to_string(),
-            false => tisty_core::config::nicknamed(&already.by.0),
+            false => already
+                .via
+                .as_deref()
+                .map(tisty_core::agent::client_named)
+                .unwrap_or_else(|| "an assistant".to_string()),
         };
         return Err(Refused::Tool(format!(
             "{who} already said {:?} was done on {}, and the person has not looked yet. Saying \
@@ -1554,9 +1553,7 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 },
                 Op::TaskResolve {
                     id,
-                    d: Resolve::new(entry)
-                        .said_by(jiff::Timestamp::now(), me.clone())
-                        .through(speaking_through()),
+                    d: Resolve::new(entry).said_by(jiff::Timestamp::now(), me.clone()),
                 },
             ],
             |events| {
@@ -5188,19 +5185,17 @@ fn brief(task: &Task, state: &State) -> Value {
         "priority",
         json!((task.priority != Priority::Unset).then_some(task.priority)),
     );
-    put(
-        "by_agent",
-        json!(
-            task.created_by
-                .as_ref()
-                .is_some_and(|who| state.assistants.contains(who))
-        ),
-    );
+    let by_agent = task
+        .created_by
+        .as_ref()
+        .is_some_and(|who| state.assistants.contains(who));
+    put("by_agent", json!(by_agent));
     put(
         "via",
         json!(
             task.created_via
                 .as_deref()
+                .filter(|_| by_agent)
                 .map(tisty_core::agent::client_named)
         ),
     );
@@ -5794,7 +5789,7 @@ fn tools() -> Value {
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, said_done, open_to_agents, description, steps, journal, kept. Left out, everything comes. The id always does"
+                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, open_to_agents, description, steps, journal, kept. Left out, everything comes. The id always does"
                     }
                 },
                 "required": ["task"]

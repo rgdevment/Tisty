@@ -1070,8 +1070,7 @@ const en = {
     "None, and none is going in: the natural language it reads is rules running on this machine, with no model and no cloud. But if you already use an assistant and it works for you, here is a door for it. It can file what you tell it — the card stock the school group wants on Monday, the thing you were tagged about on Slack — through a program already on this machine. Nothing reaches the network and Tisty still calls nobody. You decide whether to open it, and you can close it whenever you like.",
   agentsOff: "No assistant can file work here",
   agentsOn: "An assistant can file work here",
-  agentsSignsAs:
-    "This machine's agent signs the log as «{name}»: that is how the other machines and Sync see it",
+  agentsSignsAs: "This machine's agent signs the log as «{name}»",
   assistantFiled: "{name} filed",
   assistantLast: "the last {name}",
   assistantNothing: "nothing written yet",
@@ -2357,8 +2356,7 @@ const es: Catalog = {
     "Ninguna, y no se la vamos a poner: el lenguaje natural que lee son reglas corriendo en esta máquina, sin modelo y sin nube. Pero si ya usas un asistente y te sirve, aquí tiene una puerta. Puede anotar lo que tú le cuentes —las cartulinas que el grupo del colegio pide para el lunes, aquello por lo que te mencionaron en Slack— a través de un programa que ya está en este equipo. Nada sale a la red y Tisty sigue sin llamar a nadie. Tú decides si la abres, y puedes cerrarla cuando quieras.",
   agentsOff: "Ningún asistente puede anotar aquí",
   agentsOn: "Un asistente puede anotar aquí",
-  agentsSignsAs:
-    "El agente de este equipo firma el registro como «{name}»: así lo ven las otras máquinas y Sync",
+  agentsSignsAs: "El agente de este equipo firma el registro como «{name}»",
   assistantFiled: "{name} anotadas",
   assistantLast: "la última {name}",
   assistantNothing: "todavía no ha escrito nada",

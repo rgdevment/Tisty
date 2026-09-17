@@ -139,7 +139,9 @@ export interface Snapshot {
   agents: Record<string, string>;
   agent_tag?: string;
   hosts?: Record<string, string>;
+  machines?: Record<string, string>;
   machine_here?: string;
+  clients?: Record<string, string>;
 }
 
 export type Mark = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
@@ -197,7 +199,7 @@ export type Chapter =
   | { chapter: "opened" }
   | { chapter: "shut" };
 
-export type Page = { n: number; at: string; by: string; via?: string; undoing?: boolean } & Chapter;
+export type Page = { n: number; at: string; by: string; undoing?: boolean } & Chapter;
 
 export interface Story {
   id: string;
@@ -356,8 +358,6 @@ export const archiveShape = (): Promise<Shape> => invoke("archive_shape");
 export interface Agent {
   on: boolean;
   called?: string;
-  id?: string;
-  filed: number;
 }
 
 export const agentState = (): Promise<Agent> => invoke("agent");

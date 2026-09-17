@@ -2912,6 +2912,45 @@ fn what_a_session_writes_says_which_client_spoke() {
     );
 }
 
+/// Every client on a machine speaks through the one agent device, so «you already said» is
+/// only true of the same hand: another client is told which one spoke, by the name people read.
+#[test]
+fn a_second_client_is_told_which_hand_already_said_it_was_done() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let greeting = |name: &str| {
+        format!(
+            r#"{{"jsonrpc":"2.0","id":1,"method":"initialize","params":{{"protocolVersion":"2025-06-18","capabilities":{{}},"clientInfo":{{"name":"{name}","version":"1"}}}}}}"#
+        )
+    };
+    let said = served.talk(&[
+        &greeting("claude-code"),
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+    ]);
+    let id = said[1]["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let done = serde_json::json!({
+        "jsonrpc": "2.0", "id": 3, "method": "tools/call",
+        "params": { "name": "say_done", "arguments": { "task": id, "body": "0 errores" } },
+    })
+    .to_string();
+    let first = served.talk(&[&greeting("claude-code"), &done]);
+    assert_ne!(first[1]["result"]["isError"], true, "{first:?}");
+
+    let again = served.talk(&[&greeting("claude-code"), &done]);
+    let text = again[1]["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.starts_with("you already said"), "{text}");
+
+    let other = served.talk(&[&greeting("codex-mcp-client"), &done]);
+    let text = other[1]["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        text.starts_with("Claude Code already said"),
+        "another hand, named as the person knows it: {text}"
+    );
+}
+
 /// A greeting of the newer era carries the client in `_meta`, the way the server names itself.
 #[test]
 fn a_client_named_in_meta_is_kept_too() {

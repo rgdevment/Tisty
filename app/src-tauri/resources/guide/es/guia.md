@@ -280,7 +280,7 @@ Antes que abrirlo y destruirte eso en la primera tecla, Tisty lo dice y lo abre 
 
 ### 11. Un asistente puede escribir aquí
 
-Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste. Lo que escribe va firmado con el nombre del programa por el que habló —«por Claude Code», «por Codex»—, así siempre sabes de qué mano fue.
+Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste. Lo que escribe va firmado con el nombre del programa por el que habló —«por Claude Code», «por Codex»—, y lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
 
 Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Por confirmar** con la hora en que habló —salvo que venza hoy o esté atrasada, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
 

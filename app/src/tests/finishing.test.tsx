@@ -136,7 +136,10 @@ describe("what an agent says is done", () => {
   // The mark names the client that spoke — what the person recognises — never the device's
   // tree-and-number nickname, which names nothing to them.
   it("calls the agent by the client it spoke through", () => {
-    knowAgents({ dev_agent: "peral 76" });
+    knowAgents(
+      { dev_agent: "peral 76" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
     shown(task({ resolved: { ...marked, by: "dev_agent", via: "claude-code" } } as Partial<Task>));
 
     expect(screen.getByText("Claude Code says this is done")).toBeTruthy();
@@ -151,7 +154,10 @@ describe("what an agent says is done", () => {
   });
 
   it("signs each journal entry an agent wrote, and leaves the person's unsigned", () => {
-    knowAgents({ dev_agent: "peral 76" });
+    knowAgents(
+      { dev_agent: "peral 76" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
     shown(
       task({
         resolved: marked,

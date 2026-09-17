@@ -734,6 +734,7 @@ fn reached(
             crate::Op::ListDelete { .. }
                 | crate::Op::FolderDelete { .. }
                 | crate::Op::DeviceJoin { .. }
+                | crate::Op::DeviceHost { .. }
                 | crate::Op::DeviceRemove { .. }
                 | crate::Op::AttachRetire { .. }
                 | crate::Op::Signed { .. }
@@ -1499,6 +1500,44 @@ mod tests {
 
         let light = summarised(&f.store_root, &f.cache_dir).unwrap();
         assert_eq!(light.hosts.get(&agent), Some(&DeviceId("dev_a".into())));
+    }
+
+    #[test]
+    fn a_host_said_in_a_tail_is_still_known_at_the_next_open() {
+        let f = loaded();
+        let agent = DeviceId("dev_agent".into());
+        Store::open(&f.store_root, agent.clone())
+            .unwrap()
+            .append(Op::DeviceJoin {
+                d: agent.clone(),
+                k: Some(crate::event::DeviceKind::Agent),
+            })
+            .unwrap();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        store
+            .append(Op::DeviceHost {
+                d: agent.clone(),
+                of: DeviceId("dev_a".into()),
+            })
+            .unwrap();
+        store
+            .append(Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new("after the host was said", "a1"),
+            })
+            .unwrap();
+
+        let caught = project(&f.store_root, &f.cache_dir).unwrap();
+        let opened = project(&f.store_root, &f.cache_dir).unwrap();
+        let light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(caught.hosts.get(&agent), Some(&DeviceId("dev_a".into())));
+        assert_eq!(
+            opened.hosts, caught.hosts,
+            "a tail applied on a warm cache must leave the host where a replay would"
+        );
+        assert_eq!(light.hosts, caught.hosts);
     }
 
     #[test]

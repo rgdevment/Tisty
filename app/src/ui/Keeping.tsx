@@ -1220,68 +1220,69 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
               )}
 
               {agents && agents.length > 0 && (
-                <>
-                  <div className="mt-3 overflow-hidden rounded-[10px] border border-hair">
-                    {agents.map((one) => (
-                      <div
-                        key={one.id}
-                        className="flex items-center gap-3 border-t border-hair px-3 py-2.5 first:border-t-0"
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[13px] font-semibold">{one.name}</span>
-                          <span className="block text-[12.5px] text-soft">
-                            {wroteSaid(hands?.find((hand) => hand.via === one.id))}
-                          </span>
-                          <span className="block truncate font-mono text-[10.5px] text-faint">
-                            {one.at}
-                          </span>
-                          {one.astray && (
-                            <span className="block text-[11.5px] text-high">
-                              {t("wiringAstray")}
-                            </span>
-                          )}
+                <div className="mt-3 overflow-hidden rounded-[10px] border border-hair">
+                  {agents.map((one) => (
+                    <div
+                      key={one.id}
+                      className="flex items-center gap-3 border-t border-hair px-3 py-2.5 first:border-t-0"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-semibold">{one.name}</span>
+                        <span className="block text-[12.5px] text-soft">
+                          {wroteSaid(hands?.find((hand) => hand.via === one.id))}
                         </span>
-                        {one.wired && !one.astray && (
-                          <span className="shrink-0 rounded-full border border-hue-green/40 px-2 py-0.5 text-[11.5px] text-hue-green">
-                            {t("wiringOn")}
-                          </span>
+                        <span className="block truncate font-mono text-[10.5px] text-faint">
+                          {one.at}
+                        </span>
+                        {one.astray && (
+                          <span className="block text-[11.5px] text-high">{t("wiringAstray")}</span>
                         )}
-                        <button
-                          type="button"
-                          disabled={held}
-                          onClick={() => join(one)}
-                          className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint ${
-                            one.wired && !one.astray
-                              ? "border-line text-soft hover:border-urgent hover:text-urgent"
-                              : "border-accent text-accent"
-                          }`}
-                        >
-                          {one.astray
-                            ? t("wiringAgain")
-                            : one.wired
-                              ? t("wiringOut")
-                              : t("wiringJoin")}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {hands
-                    ?.filter((hand) => !agents.some((one) => one.id === hand.via))
-                    .map((hand) => (
-                      <div
-                        key={hand.via ?? "unnamed"}
-                        className="mt-2 flex items-center gap-3 rounded-[10px] border border-hair px-3 py-2.5"
-                        title={hand.via ? undefined : t("assistantUnnamedWhy")}
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[13px] font-semibold">
-                            {hand.named || t("assistantUnnamed")}
-                          </span>
-                          <span className="block text-[12.5px] text-soft">{wroteSaid(hand)}</span>
+                      </span>
+                      {one.wired && !one.astray && (
+                        <span className="shrink-0 rounded-full border border-hue-green/40 px-2 py-0.5 text-[11.5px] text-hue-green">
+                          {t("wiringOn")}
                         </span>
-                      </div>
-                    ))}
+                      )}
+                      <button
+                        type="button"
+                        disabled={held}
+                        onClick={() => join(one)}
+                        className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint ${
+                          one.wired && !one.astray
+                            ? "border-line text-soft hover:border-urgent hover:text-urgent"
+                            : "border-accent text-accent"
+                        }`}
+                      >
+                        {one.astray
+                          ? t("wiringAgain")
+                          : one.wired
+                            ? t("wiringOut")
+                            : t("wiringJoin")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {hands
+                ?.filter((hand) => !agents?.some((one) => one.id === hand.via))
+                .map((hand) => (
+                  <div
+                    key={hand.via ?? "unnamed"}
+                    className="mt-2 flex items-center gap-3 rounded-[10px] border border-hair px-3 py-2.5"
+                    title={hand.via ? undefined : t("assistantUnnamedWhy")}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-semibold">
+                        {hand.named || t("assistantUnnamed")}
+                      </span>
+                      <span className="block text-[12.5px] text-soft">{wroteSaid(hand)}</span>
+                    </span>
+                  </div>
+                ))}
+
+              {agents && agents.length > 0 && (
+                <>
                   {agent?.on === false && (
                     <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">
                       {t("wiringMute")}
