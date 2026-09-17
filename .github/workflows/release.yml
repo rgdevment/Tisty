@@ -368,7 +368,7 @@ jobs:
         with:
           name: stage-windows
           path: stage
-          retention-days: 1
+          retention-days: 5
           if-no-files-found: error
 
       - name: Sign the installer
@@ -624,7 +624,8 @@ jobs:
           v="${{ needs.version.outputs.version }}"
           quad="${v%%-*}.0"
 
-          test -s msix/Tisty.exe && test -s msix/cli/tisty.exe
+          test -s msix/Tisty.exe
+          test -s msix/cli/tisty.exe
           test "$(./msix/cli/tisty.exe --version)" = "tisty $v"
           mkdir -p msix/Assets
           for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
@@ -686,7 +687,7 @@ jobs:
       && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     permissions:
       contents: write
       id-token: write
@@ -778,23 +779,28 @@ jobs:
           printf '%s\n' "$NOTES" > "$RUNNER_TEMP/notes.md"
 
           # Born a draft: nobody is offered a release with half its files, and a rerun picks up
-          # the one it left instead of making another.
-          if ! gh release view "$tag" >/dev/null 2>&1; then
+          # the one it left instead of making another. Only a listing that answered and lacks
+          # the tag makes a new one: an error read as «not there» would leave two drafts on it.
+          tags=$(gh release list --limit 200 --json tagName --jq '.[].tagName')
+          if ! grep -qx "$tag" <<< "$tags"; then
             gh release create "$tag" --draft --verify-tag --title "$tag" \
               --prerelease="$PRERELEASE" --generate-notes --notes-file "$RUNNER_TEMP/notes.md"
           fi
 
           for f in dist/*; do
-            for attempt in 1 2 3 4; do
-              if timeout 180 gh release upload "$tag" "$f" --clobber; then
+            # Two minutes plus ten seconds a megabyte: the slowest upload that ever finished
+            # moved at 68 KB/s, and one that has really stalled sends nothing at all.
+            secs=$((120 + $(stat -c %s "$f") / 100000))
+            for attempt in 1 2 3; do
+              if timeout "$secs" gh release upload "$tag" "$f" --clobber; then
                 echo "$f is up"
                 break
               fi
-              if [ "$attempt" = 4 ]; then
+              if [ "$attempt" = 3 ]; then
                 echo "::error::$f never made it up; the release stays a draft"
                 exit 1
               fi
-              echo "::warning::$f stalled (${attempt}/4)"
+              echo "::warning::$f stalled after ${secs}s (${attempt}/3)"
               sleep $((attempt * 10))
             done
           done
