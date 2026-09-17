@@ -74,16 +74,15 @@ describe("what About suggests", () => {
     version: "0.3.0",
     route,
     package: named,
-    installs: route === "download" || route === "brew",
+    installs: route !== "brewCli",
   });
 
-  it("tells a Store install it is coming, and how to have it sooner", async () => {
+  // An offer a Store copy sees is one the Store itself made, so it is taken like any other.
+  it("offers a Store install what the Store has, with the same button", async () => {
     render(<About ready={ready("store")} onError={vi.fn()} />);
 
     expect(await screen.findByText(/Tisty 0.3.0 is out/)).toBeTruthy();
-    const said = screen.getByText(/Microsoft Store brings it to you/);
-    expect(said.textContent).toContain("close Tisty");
-    expect(screen.queryByRole("button", { name: "Update" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Update" })).toBeTruthy();
   });
 
   it("offers to do it for a copy that can replace itself", async () => {

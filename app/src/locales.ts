@@ -589,11 +589,8 @@ const en = {
   renameIt: "Rename",
   dropFolderSure:
     "Delete «{name}»? Its documents go to Unfiled and its subfolders move up a level. Nothing is lost, but this cannot be undone.",
-  updateStore:
-    "The Microsoft Store brings it to you once it has it. Windows cannot replace an app while it runs, so close Tisty — the tray icon with it — and the Store will put it in place.",
   updateBrewCli: "Run brew update && brew upgrade {name}",
   updateAsk: "Do you want to update it?",
-  openStore: "Open the Store",
   updateInstall: "Update",
   updateGetting: "Getting it — {name}",
   updateInstalling: "Installing. Tisty will close and open again.",
@@ -1868,11 +1865,8 @@ const es: Catalog = {
   renameIt: "Renombrar",
   dropFolderSure:
     "¿Borrar «{name}»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.",
-  updateStore:
-    "La Microsoft Store te la trae en cuanto la tenga. Windows no puede reemplazar una aplicación en marcha: cierra Tisty —también el icono de la bandeja— y la Store la pondrá en su sitio.",
   updateBrewCli: "Ejecuta brew update && brew upgrade {name}",
   updateAsk: "¿Quieres actualizarla?",
-  openStore: "Abrir la Store",
   updateInstall: "Actualizar",
   updateGetting: "Descargando — {name}",
   updateInstalling: "Instalando. Tisty se cerrará y volverá a abrirse.",
