@@ -2644,8 +2644,11 @@ async fn update_install(
     };
 
     let asked = want.clone();
-    let update = app
-        .updater_builder()
+    let mut building = app.updater_builder();
+    if let Some(platform) = update::platform(translated()) {
+        building = building.target(platform);
+    }
+    let update = building
         .endpoints(
             update::feeds_for(&want)
                 .into_iter()
@@ -5038,6 +5041,39 @@ fn proofread(window: &tauri::WebviewWindow) {
             &[("why", Fact::Why(e.to_string()))],
         );
     }
+}
+
+/// Whether this process runs translated by Rosetta. Only an Apple Silicon Mac carries the key, so
+/// an Intel one answers with an error, which reads as no.
+#[cfg(target_os = "macos")]
+#[allow(unsafe_code)]
+fn translated() -> bool {
+    unsafe extern "C" {
+        fn sysctlbyname(
+            name: *const std::ffi::c_char,
+            oldp: *mut std::ffi::c_void,
+            oldlenp: *mut usize,
+            newp: *mut std::ffi::c_void,
+            newlen: usize,
+        ) -> std::ffi::c_int;
+    }
+    let mut yes: std::ffi::c_int = 0;
+    let mut len = size_of::<std::ffi::c_int>();
+    let rc = unsafe {
+        sysctlbyname(
+            c"sysctl.proc_translated".as_ptr(),
+            (&raw mut yes).cast(),
+            &raw mut len,
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    rc == 0 && yes == 1
+}
+
+#[cfg(not(target_os = "macos"))]
+fn translated() -> bool {
+    false
 }
 
 #[cfg(not(target_os = "macos"))]
