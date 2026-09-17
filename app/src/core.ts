@@ -134,6 +134,7 @@ export interface Snapshot {
   counts: Record<string, number>;
   locale?: string;
   agents: Record<string, string>;
+  agent_tag?: string;
 }
 
 export type Mark = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";

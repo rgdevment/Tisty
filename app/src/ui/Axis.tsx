@@ -10,8 +10,6 @@ interface Props {
 
 const PILL = { time: "byTime", list: "byList", tag: "byTag", quadrant: "byKind" } as const;
 
-// One pill that says how the archive is grouped, and a popover of four radios — the way
-// «Only» offers the lists — so four words in two languages never crowd the row.
 export default function Axis({ axis, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);

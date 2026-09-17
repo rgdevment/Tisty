@@ -185,25 +185,22 @@ fn link() -> Option<PathBuf> {
 
 #[cfg(not(windows))]
 fn ours() -> bool {
-    let (Some(at), Some(folder)) = (link(), beside()) else {
-        return false;
-    };
-    points_at(&at, &folder)
+    link().is_some_and(|at| is_our_own_link(&at))
 }
 
 #[cfg(not(windows))]
 fn untie() -> std::io::Result<bool> {
-    let (Some(link), Some(folder)) = (link(), beside()) else {
-        return Ok(false);
-    };
-    untie_at(&link, &folder)
+    match link() {
+        Some(link) => untie_at(&link),
+        None => Ok(false),
+    }
 }
 
-/// Only a link of ours, pointing at this window's command, is taken out: somebody else's
-/// `tisty` on the shelf is left where it is.
+/// Only a link of ours is taken out — one pointing at this window's command, or at an
+/// install that moved — and somebody else's `tisty` on the shelf is left where it is.
 #[cfg(not(windows))]
-fn untie_at(link: &Path, folder: &Path) -> std::io::Result<bool> {
-    if !points_at(link, folder) {
+fn untie_at(link: &Path) -> std::io::Result<bool> {
+    if !is_our_own_link(link) {
         return Ok(false);
     }
     std::fs::remove_file(link)?;
@@ -211,13 +208,11 @@ fn untie_at(link: &Path, folder: &Path) -> std::io::Result<bool> {
 }
 
 #[cfg(not(windows))]
-fn points_at(link: &Path, folder: &Path) -> bool {
-    link.symlink_metadata().is_ok_and(|it| it.is_symlink())
-        && std::fs::read_link(link).is_ok_and(|to| to == folder.join("tisty"))
+fn is_our_own_link(at: &Path) -> bool {
+    at.symlink_metadata().is_ok_and(|it| it.is_symlink())
+        && std::fs::read_link(at).is_ok_and(|to| to.file_name().is_some_and(|n| n == "tisty"))
 }
 
-/// The command is no longer put within reach — the terminal is being retired — but whoever
-/// put it there before can still take it back out.
 #[cfg(windows)]
 pub fn out_of_reach() -> std::io::Result<bool> {
     let Some(folder) = beside() else {
@@ -329,7 +324,7 @@ mod tests {
         let it = laid();
         linked(&it);
 
-        assert!(untie_at(&it.link, &it.folder).unwrap());
+        assert!(untie_at(&it.link).unwrap());
         assert!(it.link.symlink_metadata().is_err());
     }
 
@@ -337,7 +332,7 @@ mod tests {
     fn taking_out_what_was_never_there_changes_nothing() {
         let it = laid();
 
-        assert!(!untie_at(&it.link, &it.folder).unwrap());
+        assert!(!untie_at(&it.link).unwrap());
     }
 
     #[test]
@@ -346,19 +341,19 @@ mod tests {
         std::fs::create_dir_all(&it.shelf).unwrap();
         std::fs::write(&it.link, b"somebody else's command").unwrap();
 
-        assert!(!untie_at(&it.link, &it.folder).unwrap());
+        assert!(!untie_at(&it.link).unwrap());
         assert!(it.link.is_file());
     }
 
     #[test]
-    fn a_link_of_ours_pointing_elsewhere_is_left_where_it_points() {
+    fn a_link_of_ours_left_pointing_at_an_old_install_is_still_ours_to_take_out() {
         let it = laid();
         let gone = it.folder.parent().unwrap().join("Old/tisty");
         std::fs::create_dir_all(&it.shelf).unwrap();
         std::os::unix::fs::symlink(&gone, &it.link).unwrap();
 
-        assert!(!untie_at(&it.link, &it.folder).unwrap());
-        assert_eq!(std::fs::read_link(&it.link).unwrap(), gone);
+        assert!(untie_at(&it.link).unwrap());
+        assert!(it.link.symlink_metadata().is_err());
     }
 }
 

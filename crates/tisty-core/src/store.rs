@@ -230,7 +230,9 @@ impl Store {
 
     fn after(&mut self, newest: jiff::Timestamp) {
         if newest >= self.head {
-            self.head = newest + jiff::SignedDuration::from_micros(1);
+            self.head = newest
+                .checked_add(jiff::SignedDuration::from_micros(1))
+                .unwrap_or(newest);
             self.seq = 0;
         }
     }

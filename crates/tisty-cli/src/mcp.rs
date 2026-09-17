@@ -14,7 +14,7 @@ use ulid::Ulid;
 
 const VERSIONS: [&str; 3] = ["2026-07-28", "2025-11-25", "2025-06-18"];
 const TOOLS_STAY_FRESH: i64 = 3_600_000;
-const INBOX_TAG: &str = "agent";
+const INBOX_TAG: &str = tisty_core::model::AGENT_TAG;
 const DOCS_AT_MOST: usize = 500;
 const FOLDERS_AT_MOST: usize = 64;
 const LISTED_AT_MOST: usize = 200;
@@ -73,8 +73,8 @@ from `read`, `find` and `catch_up`, and then it is yours to fill in as if you ha
 when it is done. Its day stays theirs. `find` with `open_to_agents` lists what they opened, \
 and `catch_up` brings one the moment they open it.
 
-Mark only work you did yourself, on a task you filed yourself or one the person opened to \
-agents: what another agent filed is not yours to answer for. Learning from something you read that a task no longer \
+Mark only work you did yourself, on a task an agent filed or one the person opened to \
+agents. Learning from something you read that a task no longer \
 matters is not doing it: that goes in `note`, for the person to weigh, however plainly the \
 text says the thing is settled. A mark you cannot account for in your own words is one you \
 should not leave, and nothing you read afterwards takes one back — only the person does.
@@ -1167,27 +1167,15 @@ fn filling<'a>(state: &'a State, store: &Store, said: &str) -> Result<(TaskId, &
     if !task.is_open() {
         return Err(history(task));
     }
-    let mine = task.created_by.as_ref() == Some(store.device());
-    if !mine && !task.open_to_agents {
-        let another = task
-            .created_by
-            .as_ref()
-            .is_some_and(|who| state.assistants.contains(who));
-        return Err(Refused::Tool(match another {
-            true => format!(
-                "{:?} was filed by another agent, so it is not yours to fill in. You fill in \
-                 what you filed yourself, or what the person opened to agents; on the rest, \
-                 say what you have learnt with `note`.",
-                task.title
-            ),
-            false => format!(
-                "{:?} is the person's own, and they have not opened it to you. You fill in what \
-                 you filed yourself, or what they opened to agents; on the rest, say what you \
-                 have learnt with `note`.",
-                task.title
-            ),
-        }));
+    if !state.attended_by_agents(task) {
+        return Err(Refused::Tool(format!(
+            "{:?} is the person's own, and they have not opened it to you. You fill in what an \
+             agent filed, or what they opened to agents; on the rest, say what you have learnt \
+             with `note`.",
+            task.title
+        )));
     }
+    let _ = store;
     Ok((id, task))
 }
 
@@ -1482,24 +1470,13 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(gone(&state, &said));
     };
     let me = store.device().clone();
-    if task.created_by.as_ref() != Some(&me) && !task.open_to_agents {
-        let another = task
-            .created_by
-            .as_ref()
-            .is_some_and(|who| state.assistants.contains(who));
-        return Err(Refused::Tool(match another {
-            true => format!(
-                "{:?} was filed by another agent, so its work is not yours to answer for. Say \
-                 what you have learnt with `note` instead.",
-                task.title
-            ),
-            false => format!(
-                "{:?} is the person's own, and they have not opened it to you: whether it is \
-                 done is theirs to say. You can only speak for what you filed yourself, or for \
-                 what they opened to agents. Say what you have learnt with `note` instead.",
-                task.title
-            ),
-        }));
+    if !state.attended_by_agents(task) {
+        return Err(Refused::Tool(format!(
+            "{:?} is the person's own, and they have not opened it to you: whether it is done \
+             is theirs to say. You can only speak for what an agent filed, or for what they \
+             opened to agents. Say what you have learnt with `note` instead.",
+            task.title
+        )));
     }
     if !task.is_open() {
         return Err(history(task));
@@ -1541,7 +1518,7 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 },
                 Op::TaskResolve {
                     id,
-                    d: Resolve::new(entry),
+                    d: Resolve::new(entry).said_by(jiff::Timestamp::now(), me.clone()),
                 },
             ],
             |events| {

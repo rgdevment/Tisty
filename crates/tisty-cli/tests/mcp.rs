@@ -433,12 +433,14 @@ fn it_cannot_say_a_task_the_person_wrote_is_done() {
 }
 
 #[test]
-fn it_cannot_speak_for_what_another_agent_filed() {
+/// What an agent filed is the agents': the person retires one and turns a fresh one on — a
+/// new identity, same machine — and the work the old one filed is not left with nobody to
+/// speak for it.
+fn what_another_agent_identity_filed_is_still_the_agents_to_finish() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     let id = filed(&served, "subir el timeout de apigee");
 
-    // The person retires that agent and turns a fresh one on: a new identity, same machine.
     served.cli(&["agent", "--off"]);
     served.cli(&["agent", "--on"]);
 
@@ -447,13 +449,8 @@ fn it_cannot_speak_for_what_another_agent_filed() {
         serde_json::json!({ "task": id, "body": "lo dejo por hecho" }),
     );
 
-    assert_eq!(said["result"]["isError"], true, "{said}");
-    let why = said["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(
-        why.contains("another agent"),
-        "and it is told whose it was, not that it belongs to the person: {why}"
-    );
-    assert!(!why.contains("the person's own"), "{why}");
+    assert!(said["result"]["isError"].is_null(), "{said}");
+    assert_eq!(said["result"]["structuredContent"]["open"], true);
 }
 
 #[test]
@@ -4586,7 +4583,7 @@ fn a_fill_in_lands_after_an_opening_stamped_by_a_clock_ahead() {
 }
 
 #[test]
-fn a_closed_task_takes_no_fill_in_and_another_agents_takes_none_until_opened() {
+fn a_closed_task_takes_no_fill_in_and_another_agent_identitys_takes_them() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     let closed = filed(&served, "subir el timeout");
@@ -4630,34 +4627,21 @@ fn a_closed_task_takes_no_fill_in_and_another_agents_takes_none_until_opened() {
         );
     }
 
-    // The person retires that agent and turns a fresh one on: what the old one filed is
-    // another agent's, and the person can let the new one have it.
+    // The person retires that agent and turns a fresh one on: what the old one filed is the
+    // agents' still, and needs no door.
     let theirs = filed(&served, "revisar el icono");
     served.cli(&["agent", "--off"]);
     served.cli(&["agent", "--on"]);
-    for (tool, args) in [
-        (
-            "describe",
-            serde_json::json!({ "task": &theirs, "body": "x" }),
-        ),
-        (
-            "plan",
-            serde_json::json!({ "task": &theirs, "steps": ["y"] }),
-        ),
-    ] {
-        let said = served.call(tool, args);
-        assert_eq!(said["result"]["isError"], true, "{tool}: {said}");
-        let why = said["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(why.contains("another agent"), "{tool}: {why}");
-        assert!(!why.contains("the person's own"), "{tool}: {why}");
-    }
+    let described = served.call(
+        "describe",
+        serde_json::json!({ "task": &theirs, "body": "x" }),
+    );
+    assert!(described["result"]["isError"].is_null(), "{described}");
     let read = served.call("read", serde_json::json!({ "task": &theirs }));
     assert_eq!(
         read["result"]["structuredContent"]["by_agent"], true,
         "filed by an agent, retired or not: {read}"
     );
-
-    opened_to_agents(&served, &theirs, true);
     let planned = served.call(
         "plan",
         serde_json::json!({ "task": &theirs, "steps": ["y"] }),

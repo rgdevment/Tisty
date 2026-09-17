@@ -7,6 +7,9 @@ use unicode_normalization::UnicodeNormalization;
 #[error("a tag needs two characters, one of them a letter")]
 pub struct InvalidTag;
 
+/// What an agent's filing is tagged with, so the person finds it however it is signed.
+pub const AGENT_TAG: &str = "agent";
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct Tag(String);

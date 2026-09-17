@@ -224,7 +224,7 @@ beforeEach(() => {
         return Promise.resolve(installed.seen.map((one) => ({ ...one })));
       }
       case "take_out_of_reach":
-        standing.withinReach = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
+        standing.withinReach = false;
         return Promise.resolve({ ...standing });
       case "guide":
         return Promise.resolve({ id: "guide-0001", title: "Cómo funciona Tisty" });
