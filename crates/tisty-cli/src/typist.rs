@@ -62,6 +62,14 @@ pub fn at_the_persons_store(paths: &tisty_core::Paths) -> bool {
     paths.the_persons_own()
 }
 
+/// The assistant or editor nearest above this process, by name: what a client that never
+/// introduced itself over the wire is most likely to be.
+pub fn driver() -> Option<String> {
+    ancestors().into_iter().find(|name| {
+        ASSISTANTS.contains(&name.as_str()) || IDES.iter().any(|ide| is_or_helps(name, ide))
+    })
+}
+
 pub fn assistant() -> Option<Sign> {
     let env: Vec<String> = std::env::vars_os()
         .filter(|(_, value)| !value.is_empty())

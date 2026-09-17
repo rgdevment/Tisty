@@ -1,19 +1,19 @@
 import type { Task } from "../core";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
-import { agentNamed } from "../who";
+import { clientNamed, signedBy } from "../who";
 
 export function spokenLabel(task: Task): string {
   const bits = [task.title];
   if (task.status !== "open") bits.push(t(task.status));
-  const filedBy = agentNamed(task.created_by);
-  if (filedBy) bits.push(fill("agentWrote", filedBy));
+  const filedBy = signedBy(task.created_by, task.created_via);
+  if (filedBy) bits.push(filedBy);
   if (task.resolved) bits.push(saidBy(task));
   return bits.join(" — ");
 }
 
 function saidBy(task: Task): string {
-  const named = task.resolved ? agentNamed(task.resolved.by) : undefined;
+  const named = task.resolved ? clientNamed(task.resolved.via) : undefined;
   if (named) return fill("agentNamedSaidDone", named);
   return task.status === "open" ? t("agentSaidDone") : t("agentSettled");
 }

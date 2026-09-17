@@ -4,7 +4,7 @@ import type { List, Task } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
-import { agentNamed, agentTag } from "../who";
+import { agentTag, signedBy } from "../who";
 import { Lozenge, Pip, spokenLabel } from "./Spoke";
 
 interface Props {
@@ -388,7 +388,7 @@ function Meta({ task, list }: { task: Task; list?: string }) {
     );
   }
   if (list) bits.push(<span key="list">@{list}</span>);
-  const filedBy = agentNamed(task.created_by);
+  const filedBy = signedBy(task.created_by, task.created_via);
   const tags = (task.tags ?? []).filter((tag) => !(filedBy && tag === agentTag()));
   if (tags.length) {
     bits.push(
@@ -400,7 +400,7 @@ function Meta({ task, list }: { task: Task; list?: string }) {
   if (filedBy) {
     bits.push(
       <span key="by" className="text-hue-teal">
-        {fill("agentWrote", filedBy)}
+        {filedBy}
       </span>,
     );
   }

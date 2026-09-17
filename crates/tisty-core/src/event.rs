@@ -36,6 +36,10 @@ pub struct Event {
     pub optional: bool,
     #[serde(rename = "tz", default, skip_serializing_if = "Option::is_none")]
     pub zone: Option<String>,
+    /// The client an assistant spoke through — «claude-code», «codex» — as the MCP session
+    /// named itself; sealed by the server that wrote, read by nothing that decides.
+    #[serde(rename = "via", default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
     #[serde(flatten)]
     pub op: Op,
 }
@@ -56,6 +60,7 @@ impl Event {
             seq: 0,
             optional: false,
             zone: None,
+            via: None,
             op: op.composed(),
         }
     }
@@ -119,6 +124,7 @@ impl Event {
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
+            | Op::DeviceHost { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }
@@ -481,6 +487,7 @@ mod tests {
             },
             optional: false,
             zone: None,
+            via: None,
         };
 
         let read: Event = serde_json::from_str(&serde_json::to_string(&theirs).unwrap()).unwrap();

@@ -603,7 +603,7 @@ export default function App() {
     snapshot(asView(chosen))
       .then((fresh) => {
         adopt(fresh.locale);
-        knowAgents(fresh.agents, fresh.agent_tag);
+        knowAgents(fresh.agents, fresh.agent_tag, fresh.hosts, fresh.machine_here);
         setData(fresh);
         acted.current = null;
       })

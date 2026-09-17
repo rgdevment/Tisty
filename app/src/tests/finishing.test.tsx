@@ -133,11 +133,14 @@ describe("what an agent says is done", () => {
     ).toBeTruthy();
   });
 
-  it("calls the agent by the name the person sees in settings", () => {
+  // The mark names the client that spoke — what the person recognises — never the device's
+  // tree-and-number nickname, which names nothing to them.
+  it("calls the agent by the client it spoke through", () => {
     knowAgents({ dev_agent: "peral 76" });
-    shown(task({ resolved: { ...marked, by: "dev_agent" } } as Partial<Task>));
+    shown(task({ resolved: { ...marked, by: "dev_agent", via: "claude-code" } } as Partial<Task>));
 
-    expect(screen.getByText("peral 76 says this is done")).toBeTruthy();
+    expect(screen.getByText("Claude Code says this is done")).toBeTruthy();
+    expect(screen.queryByText(/peral 76/)).toBeNull();
   });
 
   it("falls back to saying it was an agent when the name is not known here", () => {
@@ -153,14 +156,23 @@ describe("what an agent says is done", () => {
       task({
         resolved: marked,
         log: [
-          { id: "l1", at: "2026-08-06T18:40:00Z", body: "0 errores", by: "dev_agent" },
+          {
+            id: "l1",
+            at: "2026-08-06T18:40:00Z",
+            body: "0 errores",
+            by: "dev_agent",
+            via: "codex",
+          },
+          { id: "l0", at: "2026-08-05T18:40:00Z", body: "de antes", by: "dev_agent" },
           { id: "l2", at: "2026-08-06T19:00:00Z", body: "lo apunto yo", by: "dev_laptop" },
         ],
       } as Partial<Task>),
     );
 
-    expect(screen.getByText("by peral 76")).toBeTruthy();
+    expect(screen.getByText("by Codex")).toBeTruthy();
+    expect(screen.getByText("by an assistant")).toBeTruthy();
     expect(screen.queryByText("by dev_laptop")).toBeNull();
+    expect(screen.queryByText(/peral 76/)).toBeNull();
   });
 
   it("says nothing on a task no agent spoke for", () => {

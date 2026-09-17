@@ -295,6 +295,36 @@ pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
+/// What the client called itself, kept for the session — one process serves one client — so
+/// every event written from here says which hand spoke. Nothing decides on it.
+static SPEAKING_THROUGH: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+
+fn introduced(params: &Value) {
+    let said = params
+        .get("clientInfo")
+        .or_else(|| {
+            params
+                .get("_meta")
+                .and_then(|meta| meta.get("io.modelcontextprotocol/clientInfo"))
+        })
+        .and_then(|info| info.get("name"))
+        .and_then(Value::as_str)
+        .and_then(tisty_core::agent::client_said);
+    if said.is_some() {
+        let _ = SPEAKING_THROUGH.set(said);
+    }
+}
+
+/// The name kept from the greeting; failing that, the assistant or editor driving this
+/// process; failing that, nothing — an unnamed hand is still let in.
+fn speaking_through() -> Option<String> {
+    SPEAKING_THROUGH
+        .get_or_init(|| {
+            crate::typist::driver().and_then(|one| tisty_core::agent::client_said(&one))
+        })
+        .clone()
+}
+
 fn answer(paths: &Paths, line: &str) -> Option<String> {
     let asked: Value = match serde_json::from_str(line) {
         Ok(asked) => asked,
@@ -313,6 +343,10 @@ fn answer(paths: &Paths, line: &str) -> Option<String> {
     // A notification has no id and takes no answer, whatever it says.
     let id = id?;
     let params = asked.get("params").cloned().unwrap_or(json!({}));
+
+    if matches!(method, "server/discover" | "initialize") {
+        introduced(&params);
+    }
 
     Some(match method {
         "server/discover" => reply(id, discovered()),
@@ -698,7 +732,9 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
                 .into(),
         ));
     }
-    let store = Store::open(paths.store(), agent).map_err(hitch)?;
+    let store = Store::open(paths.store(), agent)
+        .map_err(hitch)?
+        .speaking_through(speaking_through());
     Ok((state, store))
 }
 
@@ -1518,7 +1554,9 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 },
                 Op::TaskResolve {
                     id,
-                    d: Resolve::new(entry).said_by(jiff::Timestamp::now(), me.clone()),
+                    d: Resolve::new(entry)
+                        .said_by(jiff::Timestamp::now(), me.clone())
+                        .through(speaking_through()),
                 },
             ],
             |events| {
@@ -5156,6 +5194,14 @@ fn brief(task: &Task, state: &State) -> Value {
             task.created_by
                 .as_ref()
                 .is_some_and(|who| state.assistants.contains(who))
+        ),
+    );
+    put(
+        "via",
+        json!(
+            task.created_via
+                .as_deref()
+                .map(tisty_core::agent::client_named)
         ),
     );
     put(

@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 3;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 4;
 
 pub struct Cache {
     db: Connection,
@@ -138,6 +138,10 @@ impl Cache {
             .unwrap_or_default();
         state.assistants = self
             .meta("assistants")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
+        state.hosts = self
+            .meta("hosts")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
         state.fill = if bodies {
@@ -287,7 +291,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -300,6 +304,7 @@ impl Cache {
                     serde_json::to_string(&state.agents).unwrap_or_default(),
                     serde_json::to_string(&state.assistants).unwrap_or_default(),
                     serde_json::to_string(&state.forebears).unwrap_or_default(),
+                    serde_json::to_string(&state.hosts).unwrap_or_default(),
                 ],
             )?;
             tx.commit()
@@ -1471,6 +1476,29 @@ mod tests {
             Some(crate::Reading::Trace),
             "a patch in summary mode does not shake the conversion off"
         );
+    }
+
+    #[test]
+    fn a_cache_remembers_where_each_agent_lives() {
+        let f = loaded();
+        let agent = DeviceId("dev_agent".into());
+        let mut store = Store::open(&f.store_root, agent.clone()).unwrap();
+        store
+            .append_batch(vec![
+                Op::DeviceJoin {
+                    d: agent.clone(),
+                    k: Some(crate::event::DeviceKind::Agent),
+                },
+                Op::DeviceHost {
+                    d: agent.clone(),
+                    of: DeviceId("dev_a".into()),
+                },
+            ])
+            .unwrap();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        assert_eq!(light.hosts.get(&agent), Some(&DeviceId("dev_a".into())));
     }
 
     #[test]

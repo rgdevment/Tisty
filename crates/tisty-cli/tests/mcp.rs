@@ -2877,6 +2877,63 @@ words." });
     );
 }
 
+/// The greeting names the client; every event that session writes carries the name, and what
+/// the agent reads back says it in words.
+#[test]
+fn what_a_session_writes_says_which_client_spoke() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.talk(&[
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"claude-code","version":"1"}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+    ]);
+    let id = said[1]["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let held = std::fs::read_dir(served.home.path().join("data/store"))
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path().join("active.tisty"))
+        .filter_map(|at| std::fs::read_to_string(at).ok())
+        .collect::<String>();
+    assert!(
+        held.lines()
+            .any(|line| line.contains("\"task.add\"") && line.contains("\"via\":\"claude-code\"")),
+        "the event carries the client: {held}"
+    );
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert_eq!(
+        read["result"]["structuredContent"]["via"], "Claude Code",
+        "{read}"
+    );
+}
+
+/// A greeting of the newer era carries the client in `_meta`, the way the server names itself.
+#[test]
+fn a_client_named_in_meta_is_kept_too() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.talk(&[
+        r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"codex","version":"2"}}}}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"propose","arguments":{"title":"pasar biome"}}}"#,
+    ]);
+    let id = said[1]["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert_eq!(
+        read["result"]["structuredContent"]["via"], "Codex",
+        "{read}"
+    );
+}
+
 #[test]
 fn a_client_of_either_era_gets_an_answer_it_understands() {
     let served = Served::new();

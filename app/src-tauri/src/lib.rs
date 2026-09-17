@@ -111,6 +111,25 @@ impl Session {
             log: None,
         };
         session.tidy_up(true);
+        if session.state.hosts.is_empty()
+            || !session.state.hosts.contains_key(
+                session
+                    .config
+                    .agent_id
+                    .as_ref()
+                    .unwrap_or(&session.config.device_id),
+            )
+        {
+            if let Err(why) = tisty_core::agent::hosted(&session.paths, &session.state) {
+                witness::warn(
+                    channel::WINDOW,
+                    "the agent could not say which machine hosts it",
+                    &[("why", Fact::Why(why.to_string()))],
+                );
+            } else {
+                let _ = session.reload();
+            }
+        }
         if session.config.sync.is_some() {
             session.sow_if_due();
         }
@@ -791,6 +810,9 @@ struct Snapshot {
     locale: Option<String>,
     agents: std::collections::BTreeMap<String, String>,
     agent_tag: &'static str,
+    /// Which machine each agent device is hosted on, by device id.
+    hosts: std::collections::BTreeMap<String, String>,
+    machine_here: String,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -1144,6 +1166,79 @@ struct Agent {
     filed: usize,
 }
 
+/// One assistant as the person meets it: a client Tisty can wire, and what a hand of that name
+/// has written in the whole log — on this machine and on the others.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Assistant {
+    /// The name the client gives itself over the wire, lower-case; `None` for what was written
+    /// before clients were named.
+    via: Option<String>,
+    named: String,
+    wired: Option<bool>,
+    filed: usize,
+    wrote: usize,
+    last: Option<String>,
+}
+
+#[tauri::command]
+fn assistants(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Assistant>> {
+    let mut session = held(&session);
+    session.reload()?;
+    let assistants = session.state.assistants.clone();
+    let events = session.log()?.to_vec();
+    let mut tally: std::collections::BTreeMap<
+        Option<String>,
+        (usize, usize, Option<jiff::Timestamp>),
+    > = Default::default();
+    for event in events.iter().filter(|one| assistants.contains(&one.device)) {
+        let key = event.via.as_deref().map(str::to_lowercase);
+        let told = tally.entry(key).or_default();
+        if matches!(event.op, Op::TaskAdd { .. } | Op::DocAdd { .. }) {
+            told.0 += 1;
+        }
+        told.1 += 1;
+        told.2 = Some(
+            told.2
+                .map_or(event.timestamp, |had| had.max(event.timestamp)),
+        );
+    }
+    let wired: std::collections::BTreeMap<String, bool> = wiring::seen()
+        .into_iter()
+        .map(|one| (one.id.to_string(), one.wired))
+        .collect();
+    let mut all: Vec<Assistant> = wired
+        .keys()
+        .map(|id| Some(id.clone()))
+        .chain(tally.keys().cloned())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .map(|via| {
+            let (filed, wrote, last) = tally.get(&via).cloned().unwrap_or_default();
+            Assistant {
+                named: via
+                    .as_deref()
+                    .map(tisty_core::agent::client_named)
+                    .unwrap_or_default(),
+                wired: via.as_deref().and_then(|id| wired.get(id).copied()),
+                filed,
+                wrote,
+                last: last.map(|at| at.to_string()),
+                via,
+            }
+        })
+        .collect();
+    // What was written first, and what is wired, before what is neither.
+    all.sort_by(|a, b| {
+        b.wired
+            .is_some()
+            .cmp(&a.wired.is_some())
+            .then(b.wrote.cmp(&a.wrote))
+            .then(a.named.cmp(&b.named))
+    });
+    Ok(all)
+}
+
 #[tauri::command]
 fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
     let mut session = held(&session);
@@ -1249,6 +1344,13 @@ fn snapshot(
         locale: session.locale.clone(),
         agents: named_agents(&session.state),
         agent_tag: tisty_core::model::AGENT_TAG,
+        hosts: session
+            .state
+            .hosts
+            .iter()
+            .map(|(agent, machine)| (agent.0.clone(), machine.0.clone()))
+            .collect(),
+        machine_here: session.config.device_id.0.clone(),
     })
 }
 
@@ -6946,6 +7048,7 @@ pub fn run() {
             free_up,
             stop_freeing,
             wiring,
+            assistants,
             wire,
             unwire,
             waking,
