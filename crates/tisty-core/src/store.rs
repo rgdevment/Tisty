@@ -207,8 +207,15 @@ impl Store {
         let root = self.root.clone();
 
         self.locked(|s| {
-            if settled(&read_all(&root)?) {
+            let held = read_all(&root)?;
+            if settled(&held) {
                 return Ok(None);
+            }
+            // Judged against the whole log, written after the whole log: a clock behind another
+            // machine's would otherwise stamp this before the event that let it through, and
+            // the replay — sorted by stamp — would let it go everywhere.
+            if let Some(newest) = held.iter().map(|one| one.timestamp).max() {
+                s.after(newest);
             }
             let mut written = Vec::with_capacity(ops.len());
             for op in ops {
@@ -219,6 +226,13 @@ impl Store {
             s.write_all(&written)?;
             Ok(Some(written))
         })
+    }
+
+    fn after(&mut self, newest: jiff::Timestamp) {
+        if newest >= self.head {
+            self.head = newest + jiff::SignedDuration::from_micros(1);
+            self.seq = 0;
+        }
     }
 
     pub fn append_event(&mut self, event: &Event) -> Result<()> {
@@ -720,6 +734,40 @@ mod atomic_tests {
 
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].version, 2, "what was written is not rewritten");
+    }
+
+    /// A machine whose clock runs behind writes after what it read: sorted by stamp, its
+    /// event lands after the one that let it through, not before.
+    #[test]
+    fn a_write_judged_against_the_log_is_stamped_after_all_of_it() {
+        let room = tempfile::tempdir().unwrap();
+        let ahead = jiff::Timestamp::now() + jiff::SignedDuration::from_secs(3600);
+        let id = ulid::Ulid::generate();
+        let mut theirs = Store::open(room.path(), DeviceId("dev_b".into())).unwrap();
+        theirs
+            .append_event(&Event::new(
+                DeviceId("dev_b".into()),
+                ahead,
+                Op::TaskAdd {
+                    id,
+                    d: crate::event::TaskAdd::new("opened later", "a0"),
+                },
+            ))
+            .unwrap();
+
+        let mut mine = Store::open(room.path(), DeviceId("dev_a".into())).unwrap();
+        let written = mine
+            .append_batch_unless(vec![Op::TaskDone { id, filled: false }], |_| false)
+            .unwrap()
+            .unwrap();
+
+        assert!(
+            written[0].timestamp > ahead,
+            "{} is not after {ahead}",
+            written[0].timestamp
+        );
+        let all = read_all(room.path()).unwrap();
+        assert!(matches!(all.last().unwrap().op, Op::TaskDone { .. }));
     }
 
     #[test]

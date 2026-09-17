@@ -118,16 +118,15 @@ const en = {
   showIt: "Show it again",
   keepAsStory: "Keep as a story",
   readAsTrace: "Read as a trace",
+  readByItself: "Read by what it holds",
+  readByItselfWhy:
+    "Take the layer you chose off: it reads as a story or a trace by what it holds again",
   keptAsStory: "kept as a story",
   readAsTraceNow: "read as a trace",
   letAgentFill: "Let an agent fill it in",
   keepToMyself: "Keep it to myself",
   openToAgents: "Open to agents: one may say it is done, describe it, plan its steps and tick them",
   wasOpenToAgents: "was open to agents",
-  foldTrace: "Hide all",
-  foldTraceSure:
-    "Hide the {name} traces? They stay in the archive under «hidden», and search still reaches them.",
-  foldedMany: "{name} hidden",
   eraseTrace: "Erase all",
   eraseTraceSure:
     "Erase the {name} traces for good? They go from this machine and from the others on the next sync. There is no undo. Stories, routines and what is hidden stay.",
@@ -1391,6 +1390,9 @@ const es: Catalog = {
   showIt: "Mostrar de nuevo",
   keepAsStory: "Guardar como historia",
   readAsTrace: "Leer como rastro",
+  readByItself: "Leer por lo que tiene",
+  readByItselfWhy:
+    "Quita la capa que elegiste: vuelve a leerse como historia o rastro por lo que tiene",
   keptAsStory: "guardada como historia",
   readAsTraceNow: "leída como rastro",
   letAgentFill: "Dejar que un agente la complete",
@@ -1398,10 +1400,6 @@ const es: Catalog = {
   openToAgents:
     "Abierta a los agentes: uno puede darla por hecha, describirla, planear sus pasos y marcarlos",
   wasOpenToAgents: "estuvo abierta a los agentes",
-  foldTrace: "Ocultar todo",
-  foldTraceSure:
-    "¿Ocultar los {name} rastros? Siguen en el archivo, bajo «ocultas», y la búsqueda sigue alcanzándolos.",
-  foldedMany: "{name} ocultas",
   eraseTrace: "Borrar todo",
   eraseTraceSure:
     "¿Borrar para siempre los {name} rastros? Desaparecen de este equipo y de los demás en la próxima sincronización. No hay deshacer. Las historias, las rutinas y lo oculto se quedan.",

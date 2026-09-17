@@ -1176,14 +1176,8 @@ impl State {
             .filter(|t| t.is_archived() && !t.folded() && t.reading() == Reading::Trace)
     }
 
-    pub fn folding_the_trace(&self) -> Vec<Op> {
-        self.the_trace()
-            .map(|t| Op::TaskHide { id: t.id })
-            .collect()
-    }
-
-    /// A root other turns hang from shows in the trace and is hidden with it, but stays when
-    /// the trace is erased: cutting it would cut the series it still heads.
+    /// A root other turns hang from shows in the trace but stays when the trace is erased:
+    /// cutting it would cut the series it still heads.
     pub fn erasing_the_trace(&self) -> Vec<Op> {
         let roots = self.roots();
         self.the_trace()
@@ -5915,14 +5909,6 @@ mod converting {
             assert!(!listed.contains(&id), "{why}");
         }
 
-        let folding: Vec<TaskId> = state
-            .folding_the_trace()
-            .into_iter()
-            .filter_map(|op| match op {
-                Op::TaskHide { id } => Some(id),
-                _ => None,
-            })
-            .collect();
         let erasing: Vec<TaskId> = state
             .erasing_the_trace()
             .into_iter()
@@ -5931,9 +5917,8 @@ mod converting {
                 _ => None,
             })
             .collect();
-        assert_eq!(folding.len(), 2);
         assert_eq!(erasing.len(), 2);
-        assert!(folding.contains(&demoted) && erasing.contains(&demoted));
+        assert!(erasing.contains(&demoted));
     }
 
     /// A root whose repeat was taken off reads as a trace, but turns still hang from it:
@@ -5970,13 +5955,6 @@ mod converting {
         assert!(
             state.the_trace().any(|t| t.id == root) && state.the_trace().all(|t| t.id != turn),
             "the root shows in the trace as the layer shows it; the turn is a routine's"
-        );
-        assert!(
-            state
-                .folding_the_trace()
-                .iter()
-                .any(|op| matches!(op, Op::TaskHide { id } if *id == root)),
-            "and is hidden with it"
         );
         assert!(
             state

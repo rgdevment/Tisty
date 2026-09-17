@@ -223,7 +223,7 @@ beforeEach(() => {
         );
         return Promise.resolve(installed.seen.map((one) => ({ ...one })));
       }
-      case "reach_for":
+      case "take_out_of_reach":
         standing.withinReach = Boolean(ipc.calls[ipc.calls.length - 1]?.args.wanted);
         return Promise.resolve({ ...standing });
       case "guide":
@@ -2366,7 +2366,7 @@ describe("the first-run assistant", () => {
 
     expect(screen.queryByText(/command line/i)).toBeNull();
     expect(screen.queryByRole("switch", { name: /make it reachable/i })).toBeNull();
-    expect(sent("reach_for")).toHaveLength(0);
+    expect(sent("take_out_of_reach")).toHaveLength(0);
   });
 
   it("takes it back off when asked, and says it is being retired", async () => {
@@ -2386,7 +2386,7 @@ describe("the first-run assistant", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /take it back out/i }));
 
-    await waitFor(() => expect(sent("reach_for")[0].args.wanted).toBe(false));
+    await waitFor(() => expect(sent("take_out_of_reach")).toHaveLength(1));
     await waitFor(() => expect(screen.queryByText(/terminal finds/i)).toBeNull());
   });
 

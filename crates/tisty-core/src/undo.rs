@@ -394,52 +394,6 @@ mod tests {
         assert_eq!(undone.tasks[&id].read_as, None);
     }
 
-    /// The bulk hide is a batch of hides: undone one by one in reverse it lands where it began,
-    /// and what was already hidden was never in the batch, so no inverse shows it by mistake.
-    #[test]
-    fn a_bulk_hide_is_undone_whole_and_never_shows_what_was_hidden_before() {
-        let ids: Vec<Ulid> = (0..3).map(|_| Ulid::generate()).collect();
-        let mut setup = Vec::new();
-        for (n, id) in ids.iter().enumerate() {
-            setup.push(ev(
-                1 + n as i64 * 10,
-                Op::TaskAdd {
-                    id: *id,
-                    d: TaskAdd::new("errand", "a0"),
-                },
-            ));
-            setup.push(ev(
-                2 + n as i64 * 10,
-                Op::TaskDone {
-                    id: *id,
-                    filled: false,
-                },
-            ));
-        }
-        setup.push(ev(50, Op::TaskHide { id: ids[2] }));
-        let before = State::replay(&setup);
-
-        let batch = before.folding_the_trace();
-        assert_eq!(batch.len(), 2, "the one already hidden is not in it");
-        let mut after = before.clone();
-        let mut inverses = Vec::new();
-        for (n, op) in batch.into_iter().enumerate() {
-            let event = ev(100 + n as i64, op);
-            inverses.push(inverse(&event, &after).expect("a hide has an inverse"));
-            after.apply(&event);
-        }
-        assert!(after.the_trace().next().is_none(), "nothing left in sight");
-
-        let mut undone = after;
-        for (n, back) in inverses.into_iter().rev().enumerate() {
-            for op in back {
-                undone.apply(&ev(200 + n as i64, op));
-            }
-        }
-        assert_eq!(before, undone);
-        assert!(undone.tasks[&ids[2]].hidden, "hidden before, hidden still");
-    }
-
     #[test]
     fn completing_is_undone() {
         let id = Ulid::generate();

@@ -116,7 +116,6 @@ beforeEach(() => {
         return Promise.resolve(shot(args.view as View | undefined));
       case "routines":
         return Promise.resolve([]);
-      case "fold_trace":
       case "erase_trace":
         return Promise.resolve(2);
       case "archive_shape":
@@ -181,33 +180,21 @@ describe("the layer a task reads as, decided in the window the way the core deci
   });
 });
 
-describe("the trace layer offers to hide or erase all of it", () => {
-  it("shows the two actions with the count, only in that layer", async () => {
+describe("the trace layer offers to erase all of it, and hiding stays one by one", () => {
+  it("shows the one action with the count, only in that layer", async () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByText("write the report");
     await user.click(screen.getByRole("button", { name: /Archive/ }));
     await screen.findByText("renew the certificate");
 
-    expect(screen.queryByRole("button", { name: /hide all/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /erase all/i })).toBeNull();
 
     await user.click(screen.getByRole("button", { name: /Trace/ }));
     await screen.findByText("buy bread");
 
-    expect(screen.getByRole("button", { name: /hide all/i }).textContent).toContain("2");
+    expect(screen.queryByRole("button", { name: /hide all/i })).toBeNull();
     expect(screen.getByRole("button", { name: /erase all/i }).textContent).toContain("2");
-  });
-
-  it("hides them all through the core, and says how many went", async () => {
-    const user = userEvent.setup();
-    await inTheTrace(user);
-
-    await user.click(screen.getByRole("button", { name: /hide all/i }));
-
-    await waitFor(() => expect(sent("fold_trace")).toHaveLength(1));
-    expect(sent("fold_trace")[0].args).toEqual({});
-    await screen.findByText(/2 hidden/i);
   });
 
   it("erases them all only after the warning, and never sends ids", async () => {
@@ -244,8 +231,7 @@ describe("the trace layer offers to hide or erase all of it", () => {
       await user.click(screen.getByRole("button", { name: /Archive/ }));
       await screen.findByText("renew the certificate");
       await user.click(screen.getByRole("button", { name: /Trace/ }));
-      await waitFor(() => expect(screen.queryByRole("button", { name: /hide all/i })).toBeNull());
-      expect(screen.queryByRole("button", { name: /erase all/i })).toBeNull();
+      await waitFor(() => expect(screen.queryByRole("button", { name: /erase all/i })).toBeNull());
     } finally {
       counts.traces = 2;
       counts.tracesTold = 1;
@@ -277,10 +263,8 @@ describe("the trace layer offers to hide or erase all of it", () => {
     await inTheTrace(user);
 
     await user.click(screen.getByRole("button", { name: /erase all/i }));
-    await user.click(screen.getByRole("button", { name: /hide all/i }));
 
     expect(sent("erase_trace")).toHaveLength(0);
-    expect(sent("fold_trace")).toHaveLength(0);
   });
 
   it("gives each dense row its own hide button", async () => {

@@ -238,6 +238,41 @@ describe("erasing what is already archived", () => {
     expect(screen.getByRole("button", { name: /keep as a story/i })).toBeTruthy();
   });
 
+  it("offers to read by what it holds only while a layer was chosen", async () => {
+    shown(task({ status: "done" }));
+    expect(screen.queryByRole("button", { name: /read by what it holds/i })).toBeNull();
+    cleanup();
+
+    const readAs = vi.fn();
+    render(
+      <Detail
+        task={task({ status: "done", read_as: "story" })}
+        lists={[]}
+        known={[]}
+        expanded={false}
+        onExpand={() => {}}
+        onCollapse={() => {}}
+        onPatch={() => {}}
+        onStep={() => {}}
+        onMark={() => {}}
+        onDropStep={() => {}}
+        onLog={() => {}}
+        onComplete={() => {}}
+        onDiscard={() => {}}
+        onReopen={() => {}}
+        onStillOpen={() => {}}
+        onErase={() => {}}
+        onFold={() => {}}
+        onReadAs={readAs}
+        onOpenToAgents={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /read as a trace/i })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /read by what it holds/i }));
+    expect(readAs).toHaveBeenCalledWith("auto");
+  });
+
   it("is never offered on a trace kept as a story, nor on a turn of a routine", () => {
     shown(task({ status: "done", read_as: "story" }));
     expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();

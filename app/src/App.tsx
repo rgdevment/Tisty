@@ -41,7 +41,6 @@ import {
   folderFile,
   folderLook,
   folderRename,
-  foldTrace,
   markStep,
   noteTrouble,
   openToAgents,
@@ -851,21 +850,18 @@ export default function App() {
 
   // The set is the core's to decide, under the lock, the instant it runs: the window only
   // asks, with the count it painted, and says how many went.
-  const sweepTrace = (how: "fold" | "erase") => {
+  const sweepTrace = () => {
     const seen = data.counts.traces ?? 0;
     const told = data.counts.tracesTold ?? 0;
-    const sure =
-      how === "fold"
-        ? fill("foldTraceSure", String(seen))
-        : `${fill("eraseTraceSure", String(seen))}${told ? ` ${fill("eraseTraceTold", String(told))}` : ""}`;
-    ask(sure, { kind: how === "fold" ? "info" : "warning" })
+    const sure = `${fill("eraseTraceSure", String(seen))}${told ? ` ${fill("eraseTraceTold", String(told))}` : ""}`;
+    ask(sure, { kind: "warning" })
       .then((yes) => {
         if (!yes) return;
         setError(null);
-        return (how === "fold" ? foldTrace() : eraseTrace(seen)).then((went) => {
+        return eraseTrace(seen).then((went) => {
           setSelected(undefined);
           setFound(null);
-          say(fill(how === "fold" ? "foldedMany" : "erasedMany", String(went)));
+          say(fill("erasedMany", String(went)));
           load();
           carries.current?.changed();
         });
@@ -1984,18 +1980,8 @@ export default function App() {
                                 <span className="mx-1.5 h-3.5 w-px bg-hair" />
                                 <button
                                   type="button"
-                                  onClick={() => sweepTrace("fold")}
-                                  className="text-[11.5px] text-faint hover:text-ink"
-                                >
-                                  ⊖ {t("foldTrace")}
-                                  <span className="ml-1 tabular-nums opacity-70">
-                                    {data.counts.traces}
-                                  </span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => sweepTrace("erase")}
-                                  className="ml-1 text-[11.5px] text-faint hover:text-urgent"
+                                  onClick={sweepTrace}
+                                  className="text-[11.5px] text-faint hover:text-urgent"
                                 >
                                   ✕ {t("eraseTrace")}
                                   <span className="ml-1 tabular-nums opacity-70">

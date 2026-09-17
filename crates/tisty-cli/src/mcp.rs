@@ -1213,15 +1213,43 @@ fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             task.title
         )));
     }
-    store
-        .append(Op::TaskDescribe {
-            id,
-            d: Body { body: Some(body) },
-        })
+    let written = store
+        .append_batch_unless(
+            vec![Op::TaskDescribe {
+                id,
+                d: Body { body: Some(body) },
+            }],
+            |events| {
+                let held = State::replay(events);
+                held.tasks.get(&id).is_none_or(|now| {
+                    !still_filling(&held, now)
+                        || now
+                            .description
+                            .as_deref()
+                            .is_some_and(|had| !had.trim().is_empty())
+                })
+            },
+        )
         .map_err(hitch)?;
+    if written.is_none() {
+        return Err(moved(task));
+    }
     Ok(told(
         format!("Described {:?}.", task.title),
         json!({ "id": id.to_string(), "title": task.title }),
+    ))
+}
+
+/// Still open, in sight, and open to this hand: what every fill-in checks again under the lock.
+fn still_filling(held: &State, now: &Task) -> bool {
+    now.is_open() && !now.folded() && held.attended_by_agents(now)
+}
+
+fn moved(task: &Task) -> Refused {
+    Refused::Tool(format!(
+        "{:?} moved while you were writing — the person, or another agent. `read` it again \
+         before saying anything.",
+        task.title
     ))
 }
 
@@ -1250,7 +1278,17 @@ fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         });
         order = order::after(&order);
     }
-    store.append_batch(ops).map_err(hitch)?;
+    let written = store
+        .append_batch_unless(ops, |events| {
+            let held = State::replay(events);
+            held.tasks
+                .get(&id)
+                .is_none_or(|now| !still_filling(&held, now))
+        })
+        .map_err(hitch)?;
+    if written.is_none() {
+        return Err(moved(task));
+    }
     Ok(told(
         format!("Planned {} step(s) on {:?}.", steps.len(), task.title),
         json!({ "id": id.to_string(), "title": task.title, "added": steps.len() }),
@@ -1316,9 +1354,7 @@ fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .append_batch_unless(ops, |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    !now.is_open()
-                        || now.folded()
-                        || !held.attended_by_agents(now)
+                    !still_filling(&held, now)
                         || now
                             .steps
                             .iter()
@@ -1327,11 +1363,7 @@ fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             })
             .map_err(hitch)?;
         if written.is_none() {
-            return Err(Refused::Tool(format!(
-                "{:?} moved while you were ticking — the person wrote on it. `read` it again \
-                 and tick what is still open.",
-                task.title
-            )));
+            return Err(moved(task));
         }
     }
     let left = task.steps.iter().filter(|step| !step.done).count() - fresh.len();
@@ -1515,21 +1547,15 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    !now.is_open()
-                        || now.folded()
+                    !still_filling(&held, now)
                         || now.resolved.is_some()
-                        || !held.attended_by_agents(now)
                         || now.steps.iter().any(|step| !step.done)
                 })
             },
         )
         .map_err(hitch)?;
     if written.is_none() {
-        return Err(Refused::Tool(format!(
-            "{:?} moved while you were writing — the person, or another agent. `read` it again \
-             before saying anything.",
-            task.title
-        )));
+        return Err(moved(task));
     }
 
     Ok(told(

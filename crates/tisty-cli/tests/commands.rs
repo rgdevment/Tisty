@@ -984,6 +984,32 @@ fn rm_refuses_what_is_open_a_story_and_a_turn_of_a_routine_and_says_why() {
     assert!(turn.err.contains("routine"), "{}", turn.err);
 }
 
+/// A closed root whose repeat was taken off reads as a trace by itself; the terminal asks the
+/// state, which knows a turn still hangs from it, the same as the window.
+#[test]
+fn rm_refuses_the_root_a_series_still_hangs_from_however_bare() {
+    let cli = Cli::new();
+    cli.ok(&["water the plants every tuesday"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["ls", "archive"]);
+    let listed = cli.ok(&["ls", "archive"]);
+    let number = listed
+        .lines()
+        .find(|line| line.contains("water the plants"))
+        .and_then(|line| line.split_whitespace().next())
+        .unwrap()
+        .trim_end_matches('.')
+        .to_string();
+    cli.ok(&["set", &number, "--no-repeat"]);
+
+    let root = cli.run(&["rm", &number, "--force"]);
+
+    assert_ne!(root.code, 0);
+    assert!(root.err.contains("routine"), "{}", root.err);
+    assert!(cli.ok(&["ls", "archive"]).contains("water the plants"));
+}
+
 #[test]
 fn a_story_converted_to_a_trace_goes_and_a_trace_kept_as_a_story_stays() {
     let cli = Cli::new();
@@ -2360,4 +2386,41 @@ fn naming_the_persons_own_store_by_its_path_does_not_open_the_gate() {
 
     assert_eq!(run.code, 5, "{}", run.err);
     assert!(!home.path().join("data/tisty/store").exists());
+}
+
+/// Letting an assistant in is done at a terminal: a shell with none — a script, a pipe, an
+/// assistant driving it — is refused at the person's own store, and nothing is minted.
+#[cfg(unix)]
+#[test]
+fn letting_an_agent_in_from_a_shell_with_no_terminal_is_refused_at_the_persons_store() {
+    let home = tempfile::tempdir().unwrap();
+    let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_tisty"));
+    command
+        .env_clear()
+        .env("PATH", std::env::var_os("PATH").unwrap_or_default())
+        .env("HOME", home.path())
+        .env("XDG_DATA_HOME", home.path().join("data"))
+        .env("XDG_CONFIG_HOME", home.path().join("config"))
+        .env("XDG_CACHE_HOME", home.path().join("cache"))
+        .env("NO_COLOR", "1")
+        .env("LANG", "en_US.UTF-8")
+        .stdin(std::process::Stdio::null())
+        .args(["agent", "--on"]);
+
+    let run = finish(command.output().unwrap());
+
+    assert_ne!(run.code, 0, "{}", run.out);
+    // Run by an assistant — this suite under one — the gate answers first; the invariant is
+    // the same either way: nobody at a terminal, nobody let in.
+    assert!(
+        run.err.contains("at a terminal") || run.err.contains("an assistant does not use it"),
+        "{}",
+        run.err
+    );
+    let config =
+        std::fs::read_to_string(home.path().join("config/tisty/config.toml")).unwrap_or_default();
+    assert!(
+        !config.contains("agent_id"),
+        "no agent was minted: {config}"
+    );
 }

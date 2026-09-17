@@ -472,8 +472,8 @@ El resto es el rastro: lo que no dejó nada escrito, o casi nada, en una lista
 densa y apartada, porque pasó igual y la búsqueda sigue alcanzándolo. Tú decides
 en qué capa se lee cada una: una historia que era ruido pasa al rastro, y un
 rastro que vale la pena se guarda como historia. El rastro es la única capa que
-se puede borrar —de una en una o todo a la vez— y también se puede ocultar; una
-historia solo se oculta.
+se puede borrar —de una en una o todo a la vez— y también se puede ocultar, de
+una en una; una historia solo se oculta.
 
 ## Tus datos y tu privacidad
 

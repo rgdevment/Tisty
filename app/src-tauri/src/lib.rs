@@ -5149,8 +5149,8 @@ fn reachable() -> command::Reach {
 }
 
 #[tauri::command]
-fn reach_for(wanted: bool) -> Answer<command::Reach> {
-    command::within_reach(wanted).map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
+fn take_out_of_reach() -> Answer<command::Reach> {
+    command::out_of_reach().map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
     Ok(command::reach())
 }
 
@@ -6526,8 +6526,9 @@ fn erasing(session: &mut Session, id: tisty_core::TaskId) -> Answer<()> {
 fn read_as(session: tauri::State<'_, Mutex<Session>>, id: String, how: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let how = match how.as_str() {
-        "story" => Reading::Story,
-        "trace" => Reading::Trace,
+        "story" => Some(Reading::Story),
+        "trace" => Some(Reading::Trace),
+        "auto" => None,
         _ => return Err(Refusal::of("notAReading")),
     };
     reading_as(&mut held(&session), id, how)
@@ -6574,7 +6575,8 @@ fn opening_to_agents(session: &mut Session, id: tisty_core::TaskId, open: bool) 
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
-fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> Answer<Task> {
+/// `None` reads the task by what it holds again: the pin taken off, the way undo takes it.
+fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Option<Reading>) -> Answer<Task> {
     session.reload()?;
     let task = session
         .state
@@ -6590,7 +6592,7 @@ fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> An
     session.commit(Op::TaskUpdate {
         id,
         d: TaskPatch {
-            read_as: Some(Some(how)),
+            read_as: Some(how),
             ..Default::default()
         },
     })?;
@@ -6603,25 +6605,9 @@ fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> An
 }
 
 // The set is decided here, under the lock, the instant it runs — never a list the window sent,
-// which may have been painted before a sync converted one of them into a story.
-#[tauri::command]
-fn fold_trace(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
-    folding_the_trace(&mut held(&session))
-}
-
-fn folding_the_trace(session: &mut Session) -> Answer<usize> {
-    session.reload()?;
-    let ops = session.state.folding_the_trace();
-    let many = ops.len();
-    if many > 0 {
-        session.commit_all(ops)?;
-    }
-    Ok(many)
-}
-
-/// `seen` is how many the person was shown when they said yes. Erasing has no undo, so a
-/// layer that changed under them — a sync, the terminal — is a reason to look again, not
-/// to guess which of the two lists they meant.
+// which may have been painted before a sync converted one of them into a story. `seen` is how
+// many the person was shown when they said yes: erasing has no undo, so a layer that changed
+// under them is a reason to look again, not to guess which of the two lists they meant.
 #[tauri::command]
 fn erase_trace(session: tauri::State<'_, Mutex<Session>>, seen: usize) -> Answer<usize> {
     erasing_the_trace(&mut held(&session), seen)
@@ -6755,7 +6741,7 @@ impl OneAtATime {
 
 pub fn unreach() -> std::io::Result<bool> {
     let _ = waking::wake(false);
-    let reached = command::within_reach(false);
+    let reached = command::out_of_reach();
     if let Ok(paths) = tisty_core::Paths::resolve() {
         for at in paths.swept_on_leaving() {
             let _ = std::fs::remove_dir_all(&at);
@@ -6980,7 +6966,7 @@ pub fn run() {
             shortcut,
             settle_in,
             reachable,
-            reach_for,
+            take_out_of_reach,
             free_up,
             stop_freeing,
             wiring,
@@ -6994,7 +6980,6 @@ pub fn run() {
             erase,
             read_as,
             open_to_agents,
-            fold_trace,
             erase_trace,
             guide,
             capture,
@@ -8413,9 +8398,7 @@ mod behind_tests {
 
 #[cfg(test)]
 mod letting_go {
-    use super::{
-        Session, erasing, erasing_the_trace, folding_the_trace, opening_to_agents, reading_as,
-    };
+    use super::{Session, erasing, erasing_the_trace, opening_to_agents, reading_as};
     use tisty_core::{DeviceId, Op, Paths, Reading, TaskId};
 
     struct Desk {
@@ -8462,7 +8445,7 @@ mod letting_go {
             .unwrap();
         let errand = closed(&mut session, "buy bread");
         let kept = closed(&mut session, "the certificate");
-        reading_as(&mut session, kept, Reading::Story).unwrap();
+        reading_as(&mut session, kept, Some(Reading::Story)).unwrap();
 
         assert_eq!(code(erasing(&mut session, open)), "onlyArchivedGoes");
         assert_eq!(code(erasing(&mut session, kept)), "storyStays");
@@ -8498,16 +8481,55 @@ mod letting_go {
         let errand = closed(&mut session, "buy bread");
 
         assert_eq!(
-            code(reading_as(&mut session, open, Reading::Story)),
+            code(reading_as(&mut session, open, Some(Reading::Story))),
             "onlyClosedConverts"
         );
         assert_eq!(
-            code(reading_as(&mut session, turn, Reading::Trace)),
+            code(reading_as(&mut session, turn, Some(Reading::Trace))),
             "routineReadsAsRoutine"
         );
-        let told = reading_as(&mut session, errand, Reading::Story).unwrap();
+        let told = reading_as(&mut session, errand, Some(Reading::Story)).unwrap();
         assert_eq!(told.read_as, Some(Reading::Story));
         assert_eq!(code(erasing(&mut session, errand)), "storyStays");
+        assert_eq!(code(erasing(&mut session, turn)), "routineStays");
+        let told = reading_as(&mut session, errand, None).unwrap();
+        assert_eq!(told.read_as, None, "read by what it holds again");
+        assert_eq!(code(erasing(&mut session, errand)), "ok");
+    }
+
+    /// A closed root with no repeat left reads as a trace by itself; the turn hanging from it
+    /// makes it a routine's to the state, so the window refuses to erase it and leaves it when
+    /// the trace is erased.
+    #[test]
+    fn a_bare_root_a_turn_hangs_from_is_never_erased_with_the_trace() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let root = closed(&mut session, "pills");
+        let turn = ulid::Ulid::generate();
+        let mut d = tisty_core::event::TaskAdd::new("pills", "a1");
+        d.after = Some(root);
+        session.commit(Op::TaskAdd { id: turn, d }).unwrap();
+        session
+            .commit(Op::TaskDone {
+                id: turn,
+                filled: false,
+            })
+            .unwrap();
+        let errand = closed(&mut session, "buy bread");
+
+        assert_eq!(code(erasing(&mut session, root)), "routineStays");
+        assert_eq!(
+            session.state.the_trace().count(),
+            2,
+            "the root shows with the errand"
+        );
+        assert_eq!(
+            erasing_the_trace(&mut session, 2).unwrap(),
+            1,
+            "only the errand goes"
+        );
+        assert!(session.state.is_erased(errand));
+        assert!(session.state.tasks.contains_key(&root));
     }
 
     /// What the person was shown is what goes: a trace that changed under them — the
@@ -8519,7 +8541,7 @@ mod letting_go {
         let one = closed(&mut session, "buy bread");
         let two = closed(&mut session, "water the plants");
         let kept = closed(&mut session, "the certificate");
-        reading_as(&mut session, kept, Reading::Story).unwrap();
+        reading_as(&mut session, kept, Some(Reading::Story)).unwrap();
 
         assert_eq!(code(erasing_the_trace(&mut session, 3)), "traceChanged");
         assert!(session.state.tasks.contains_key(&one), "nothing went");
@@ -8598,20 +8620,6 @@ mod letting_go {
         );
         let told = opening_to_agents(&mut session, mine, false).unwrap();
         assert!(!told.open_to_agents);
-    }
-
-    #[test]
-    fn hiding_the_trace_takes_what_shows_and_leaves_what_is_hidden_where_it_is() {
-        let desk = desk();
-        let mut session = Session::at(desk.paths.clone()).unwrap();
-        let one = closed(&mut session, "buy bread");
-        let hidden = closed(&mut session, "water the plants");
-        session.commit(Op::TaskHide { id: hidden }).unwrap();
-
-        assert_eq!(folding_the_trace(&mut session).unwrap(), 1);
-        assert!(session.state.tasks[&one].hidden);
-        assert_eq!(folding_the_trace(&mut session).unwrap(), 0);
-        assert_eq!(session.state.the_trace().count(), 0);
     }
 }
 

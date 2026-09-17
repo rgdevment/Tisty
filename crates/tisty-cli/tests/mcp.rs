@@ -4354,6 +4354,10 @@ fn the_persons_directory(served: &Served) -> std::path::PathBuf {
 }
 
 fn opened_to_agents(served: &Served, id: &str, open: bool) {
+    opened_to_agents_stamped(served, id, open, jiff::Timestamp::now());
+}
+
+fn opened_to_agents_stamped(served: &Served, id: &str, open: bool, stamp: jiff::Timestamp) {
     let dir = the_persons_directory(served);
     let by = dir.file_name().unwrap().to_string_lossy().into_owned();
     let at = dir.join("active.tisty");
@@ -4364,9 +4368,8 @@ fn opened_to_agents(served: &Served, id: &str, open: bool) {
         .filter_map(|one| one["ts"].as_str()?.parse::<jiff::Timestamp>().ok())
         .max()
         .unwrap_or(jiff::Timestamp::UNIX_EPOCH);
-    // Never in the future: the replay orders by stamp, and what the agent writes next must
-    // land after this.
-    let ts = jiff::Timestamp::now().max(last + jiff::SignedDuration::from_millis(1));
+    // After everything written, so the replay — ordered by stamp — reads it where it was.
+    let ts = stamp.max(last + jiff::SignedDuration::from_millis(1));
     let n = held.lines().count() as u64;
     held.push_str(&format!(
         "{{\"v\":{},\"ts\":\"{ts}\",\"by\":\"{by}\",\"n\":{n},\"op\":\"task.update\",\"id\":\"{id}\",\"d\":{{\"open_to_agents\":{open}}}}}\n",
@@ -4540,6 +4543,133 @@ fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
     assert_eq!(
         shut["result"]["isError"], true,
         "kept to the person again: {shut}"
+    );
+}
+
+/// The person's laptop runs an hour ahead: the opening it synced over is stamped in this
+/// machine's future. A fill-in stamped «now» would sort before it and be let go everywhere.
+#[test]
+fn a_fill_in_lands_after_an_opening_stamped_by_a_clock_ahead() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.cli(&["renew the certificate"]);
+    let id = served.call("find", serde_json::json!({ "query": "certificate" }))["result"]
+        ["structuredContent"]["matches"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    opened_to_agents_stamped(
+        &served,
+        &id,
+        true,
+        jiff::Timestamp::now() + jiff::SignedDuration::from_secs(3600),
+    );
+
+    let described = served.call(
+        "describe",
+        serde_json::json!({ "task": &id, "body": "the yearly one" }),
+    );
+    assert!(described["result"]["isError"].is_null(), "{described}");
+    let planned = served.call("plan", serde_json::json!({ "task": &id, "steps": ["pay"] }));
+    assert!(planned["result"]["isError"].is_null(), "{planned}");
+    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "paid" }),
+    );
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = &read["result"]["structuredContent"];
+    assert_eq!(kept["description"], "the yearly one", "{read}");
+    assert_eq!(kept["steps"][0]["done"], true, "{read}");
+    assert!(kept["said_done"].is_string(), "{read}");
+}
+
+#[test]
+fn a_closed_task_takes_no_fill_in_and_another_agents_takes_none_until_opened() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let closed = filed(&served, "subir el timeout");
+    served.call(
+        "plan",
+        serde_json::json!({ "task": &closed, "steps": ["subirlo"] }),
+    );
+    served.cli(&["ls", "all"]);
+    let listed = served.cli(&["ls", "all"]);
+    let number = listed
+        .lines()
+        .find(|line| line.contains("subir el timeout"))
+        .and_then(|line| line.split_whitespace().next())
+        .unwrap()
+        .trim_end_matches('.')
+        .to_string();
+    served.cli(&["done", &number]);
+
+    for (tool, args) in [
+        (
+            "describe",
+            serde_json::json!({ "task": &closed, "body": "x" }),
+        ),
+        (
+            "plan",
+            serde_json::json!({ "task": &closed, "steps": ["y"] }),
+        ),
+        (
+            "tick",
+            serde_json::json!({ "task": &closed, "step": "subirlo" }),
+        ),
+    ] {
+        let said = served.call(tool, args);
+        assert_eq!(said["result"]["isError"], true, "{tool}: {said}");
+        assert!(
+            said["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("history now"),
+            "{tool}: {said}"
+        );
+    }
+
+    // The person retires that agent and turns a fresh one on: what the old one filed is
+    // another agent's, and the person can let the new one have it.
+    let theirs = filed(&served, "revisar el icono");
+    served.cli(&["agent", "--off"]);
+    served.cli(&["agent", "--on"]);
+    for (tool, args) in [
+        (
+            "describe",
+            serde_json::json!({ "task": &theirs, "body": "x" }),
+        ),
+        (
+            "plan",
+            serde_json::json!({ "task": &theirs, "steps": ["y"] }),
+        ),
+    ] {
+        let said = served.call(tool, args);
+        assert_eq!(said["result"]["isError"], true, "{tool}: {said}");
+        let why = said["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(why.contains("another agent"), "{tool}: {why}");
+        assert!(!why.contains("the person's own"), "{tool}: {why}");
+    }
+    let read = served.call("read", serde_json::json!({ "task": &theirs }));
+    assert_eq!(
+        read["result"]["structuredContent"]["by_agent"], true,
+        "filed by an agent, retired or not: {read}"
+    );
+
+    opened_to_agents(&served, &theirs, true);
+    let planned = served.call(
+        "plan",
+        serde_json::json!({ "task": &theirs, "steps": ["y"] }),
+    );
+    assert!(planned["result"]["isError"].is_null(), "{planned}");
+    let moved = served.call(
+        "reschedule",
+        serde_json::json!({ "task": &theirs, "date": "2026-12-01" }),
+    );
+    assert!(
+        moved["result"]["isError"].is_null(),
+        "filed by an agent, its day is an agent's to move: {moved}"
     );
 }
 

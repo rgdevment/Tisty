@@ -306,11 +306,10 @@ export const dropStep = (id: string, step: string): Promise<Task> =>
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
-export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
+export const readAs = (id: string, how: "story" | "trace" | "auto"): Promise<Task> =>
   invoke("read_as", { id, how });
 export const openToAgents = (id: string, open: boolean): Promise<Task> =>
   invoke("open_to_agents", { id, open });
-export const foldTrace = (): Promise<number> => invoke("fold_trace");
 export const eraseTrace = (seen: number): Promise<number> => invoke("erase_trace", { seen });
 export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });
 export const complete = (id: string, also?: string[]): Promise<Task> =>
@@ -648,7 +647,7 @@ export interface Wired {
 export const seenAgents = (): Promise<Wired[]> => invoke("wiring");
 export const wireAgent = (id: string): Promise<Wired[]> => invoke("wire", { id });
 export const unwireAgent = (id: string): Promise<Wired[]> => invoke("unwire", { id });
-export const reachFor = (wanted: boolean): Promise<Reach> => invoke("reach_for", { wanted });
+export const takeOutOfReach = (): Promise<Reach> => invoke("take_out_of_reach");
 
 export interface Waking {
   offered: boolean;

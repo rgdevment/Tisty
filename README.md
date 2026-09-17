@@ -470,8 +470,8 @@ them. The rest is the trace: what left little or nothing written, listed dense
 and out of the way, because it still happened and search still reaches it. You
 decide which layer each one reads in: a story that was only noise goes to the
 trace, and a trace worth keeping is kept as a story. The trace is the only layer
-that can be erased — one at a time or all at once — and it can be hidden the
-same way; a story is only ever hidden.
+that can be erased — one at a time or all at once — and any of it can be hidden,
+one at a time; a story is only ever hidden.
 
 ## Your Data and Privacy
 

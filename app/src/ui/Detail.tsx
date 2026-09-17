@@ -34,7 +34,7 @@ interface Props {
   onStillOpen: () => void;
   onErase: () => void;
   onFold: (away: boolean) => void;
-  onReadAs: (how: "story" | "trace") => void;
+  onReadAs: (how: "story" | "trace" | "auto") => void;
   onOpenToAgents: (open: boolean) => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
@@ -356,7 +356,7 @@ function Settled({
   onStillOpen: () => void;
   onErase: () => void;
   onFold: (away: boolean) => void;
-  onReadAs: (how: "story" | "trace") => void;
+  onReadAs: (how: "story" | "trace" | "auto") => void;
   onOpenToAgents: (open: boolean) => void;
 }) {
   const reading = readingOf(task);
@@ -433,6 +433,16 @@ function Settled({
               >
                 <span aria-hidden="true">◇</span>{" "}
                 {t(reading === "trace" ? "keepAsStory" : "readAsTrace")}
+              </button>
+            )}
+            {reading !== "routine" && task.read_as && (
+              <button
+                type="button"
+                onClick={() => onReadAs("auto")}
+                title={t("readByItselfWhy")}
+                className={`${seat} hover:text-ink`}
+              >
+                <span aria-hidden="true">◈</span> {t("readByItself")}
               </button>
             )}
             {erasable(task) && (

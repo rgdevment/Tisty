@@ -36,7 +36,6 @@ import {
   type Reach,
   type Reviewed,
   reachable,
-  reachFor,
   settings as readSettings,
   readTags,
   rebuild,
@@ -58,6 +57,7 @@ import {
   syncState,
   type Theme,
   type Twins,
+  takeOutOfReach,
   twinned,
   unwireAgent,
   type Waking,
@@ -830,7 +830,7 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
                     type="button"
                     disabled={held}
                     onClick={() =>
-                      run("terminal", reachFor(false), (now) => {
+                      run("terminal", takeOutOfReach(), (now) => {
                         setReach(now);
                         setSaid({ card: "terminal", text: t("terminalGone") });
                       })
