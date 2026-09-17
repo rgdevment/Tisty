@@ -595,9 +595,8 @@ mod tests {
                 .installs
         );
         assert!(
-            !newer("0.2.0", feed, Kept::plain(Route::Store), None)
-                .unwrap()
-                .installs
+            newer("0.2.0", feed, Kept::plain(Route::Store), None).is_none(),
+            "the manifest makes no offer on the Store's behalf"
         );
     }
 
